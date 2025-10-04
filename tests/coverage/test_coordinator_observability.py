@@ -6,6 +6,8 @@ import importlib.util
 import pathlib
 import sys
 import types
+from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import datetime
 
 import pytest
@@ -44,6 +46,82 @@ def _load_module(name: str, filename: str):
 
 _ensure_package("custom_components", PACKAGE_ROOT.resolve())
 _ensure_package("custom_components.pawcontrol", PAWCONTROL_ROOT)
+
+_runtime_stub = types.ModuleType("custom_components.pawcontrol.coordinator_runtime")
+
+
+@dataclass(slots=True)
+class _EntityBudgetSnapshot:
+    """Lightweight snapshot model mirroring the production contract."""
+
+    dog_id: str
+    capacity: int
+    base_allocation: int
+    dynamic_allocation: int
+    requested_entities: tuple[str, ...] = ()
+    denied_requests: tuple[str, ...] = ()
+
+    @property
+    def total_allocated(self) -> int:
+        return self.base_allocation + self.dynamic_allocation
+
+    @property
+    def remaining(self) -> int:
+        return max(self.capacity - self.total_allocated, 0)
+
+    @property
+    def saturation(self) -> float:
+        if self.capacity <= 0:
+            return 0.0
+        return max(0.0, min(1.0, self.total_allocated / self.capacity))
+
+
+def _summarize_entity_budgets(
+    snapshots: Iterable[_EntityBudgetSnapshot],
+) -> dict[str, float | int]:
+    """Provide deterministic aggregation used by the observability helpers."""
+
+    snapshots = tuple(snapshots)
+    if not snapshots:
+        return {
+            "active_dogs": 0,
+            "total_capacity": 0,
+            "total_allocated": 0,
+            "total_remaining": 0,
+            "average_utilization": 0.0,
+            "peak_utilization": 0.0,
+            "denied_requests": 0,
+        }
+
+    total_capacity = sum(snapshot.capacity for snapshot in snapshots)
+    total_allocated = sum(snapshot.total_allocated for snapshot in snapshots)
+    total_remaining = sum(snapshot.remaining for snapshot in snapshots)
+    denied_requests = sum(len(snapshot.denied_requests) for snapshot in snapshots)
+    average_utilisation = (total_allocated / total_capacity) if total_capacity else 0.0
+    peak_utilisation = max(
+        (snapshot.saturation for snapshot in snapshots),
+        default=0.0,
+    )
+
+    return {
+        "active_dogs": len(snapshots),
+        "total_capacity": total_capacity,
+        "total_allocated": total_allocated,
+        "total_remaining": total_remaining,
+        "average_utilization": round(average_utilisation * 100, 1),
+        "peak_utilization": round(peak_utilisation * 100, 1),
+        "denied_requests": denied_requests,
+    }
+
+
+_runtime_stub.EntityBudgetSnapshot = _EntityBudgetSnapshot
+_runtime_stub.summarize_entity_budgets = _summarize_entity_budgets
+sys.modules[_runtime_stub.__name__] = _runtime_stub
+sys.modules["custom_components.pawcontrol"].coordinator_runtime = _runtime_stub
+sys.modules[
+    "custom_components.pawcontrol.coordinator_observability.coordinator_runtime"
+] = _runtime_stub
+
 
 _observability = _load_module(
     "custom_components.pawcontrol.coordinator_observability",
