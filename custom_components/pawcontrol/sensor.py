@@ -141,7 +141,7 @@ def _copy_base_docstring(
             )
             return
 
-        if isinstance(attribute, (classmethod, staticmethod)):
+        if isinstance(attribute, classmethod | staticmethod):
             func = attribute.__func__
             if getattr(func, "__doc__", None):
                 return

@@ -142,7 +142,7 @@ class PawControlHelperManager:
                 normalized.append(cast(DogConfigData, dog_dict))
             return normalized
 
-        if isinstance(dogs, Sequence) and not isinstance(dogs, (str, bytes)):
+        if isinstance(dogs, Sequence) and not isinstance(dogs, str | bytes):
             for dog_config in dogs:
                 if not isinstance(dog_config, Mapping):
                     continue
@@ -167,7 +167,7 @@ class PawControlHelperManager:
                 if isinstance(module, str) and bool(enabled)
             )
 
-        if isinstance(modules, Sequence) and not isinstance(modules, (str, bytes)):
+        if isinstance(modules, Sequence) and not isinstance(modules, str | bytes):
             return frozenset(str(module) for module in modules)
 
         if isinstance(modules, str):
