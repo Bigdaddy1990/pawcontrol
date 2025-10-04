@@ -45,9 +45,10 @@ from .utils import PawControlDeviceLinkMixin, async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
 
-# Date helpers mutate coordinator-managed settings, so restrict concurrency to
-# one update at a time for the ``parallel-updates`` quality scale rule.
-PARALLEL_UPDATES = 1
+# Date helpers mutate coordinator-managed settings. We rely on the
+# coordinator's own locking and therefore allow Home Assistant to schedule
+# entity updates without artificial limits.
+PARALLEL_UPDATES = 0
 
 
 async def _async_add_entities_in_batches(
