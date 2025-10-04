@@ -48,15 +48,26 @@ class APIValidator:
         self,
         hass: HomeAssistant,
         session: aiohttp.ClientSession,
+        *,
+        verify_ssl: bool = True,
     ) -> None:
         """Initialize API validator.
 
         Args:
             hass: Home Assistant instance
             session: Home Assistant managed session for HTTP calls.
+            verify_ssl: When ``False`` the validator will skip TLS certificate
+                verification. This should only be disabled for development
+                scenarios that rely on self-signed certificates.
         """
         self.hass = hass
         self._session = ensure_shared_client_session(session, owner="APIValidator")
+        self._request_kwargs: dict[str, Any] = {}
+        if not verify_ssl:
+            # aiohttp accepts ``ssl=False`` to bypass certificate validation.
+            # We only add the flag when explicitly requested so production
+            # systems keep the secure defaults provided by Home Assistant.
+            self._request_kwargs["ssl"] = False
 
     @property
     def session(self) -> aiohttp.ClientSession:
@@ -216,7 +227,7 @@ class APIValidator:
             async with session.get(
                 endpoint,
                 allow_redirects=True,
-                ssl=False,  # For self-signed certificates
+                **self._request_kwargs,
             ):
                 # Any response (even 404) means the endpoint is reachable
                 return True
@@ -260,7 +271,7 @@ class APIValidator:
                     async with session.get(
                         auth_endpoint,
                         headers=headers,
-                        ssl=False,
+                        **self._request_kwargs,
                     ) as response:
                         if response.status in (200, 201, 204):
                             # Try to parse response for additional info
