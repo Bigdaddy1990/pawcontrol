@@ -282,9 +282,10 @@ class WalkManager:
 
         container = self._dogs.setdefault(dog_id, {})
         container.setdefault("active_walk", None)
-        container["history"] = self._walk_history.get(dog_id, [])
-        container["stats"] = self._walk_data.get(dog_id, {})
-        container["gps"] = self._gps_data.get(dog_id, {})
+        container["history"] = self._walk_history.get(dog_id, []).copy()
+        container["stats"] = self._walk_data.get(dog_id, {}).copy()
+        container["gps"] = self._gps_data.get(dog_id, {}).copy()
+
 
     async def async_initialize(self, dog_ids: list[str]) -> None:
         """Initialize walk manager for specified dogs with batch optimization.
