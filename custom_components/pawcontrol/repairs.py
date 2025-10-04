@@ -1041,20 +1041,20 @@ class PawControlRepairsFlow(RepairsFlow):
 
 
 @callback
-def async_create_repair_flow(
+def async_create_fix_flow(
     hass: HomeAssistant,
     issue_id: str,
     data: dict[str, Any] | None,
 ) -> PawControlRepairsFlow:
-    """Create a repair flow.
+    """Create a fix flow for a Paw Control repair issue.
 
     Args:
         hass: Home Assistant instance
-        issue_id: Issue identifier
-        data: Issue data
+        issue_id: Identifier of the repair issue
+        data: Issue metadata provided by the registry
 
     Returns:
-        Repair flow instance
+        Repair flow instance bound to the Paw Control handler
     """
     return PawControlRepairsFlow()
 
