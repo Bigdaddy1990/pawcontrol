@@ -26,9 +26,7 @@ ERROR_TEMPLATE = (
 READ_ERROR_TEMPLATE = (
     "{path}: Unable to read Python source ({error}). Skipping file from scan."
 )
-PARSE_ERROR_TEMPLATE = (
-    "{path}: Unable to parse Python source ({error}). Review file syntax before running the guard."
-)
+PARSE_ERROR_TEMPLATE = "{path}: Unable to parse Python source ({error}). Review file syntax before running the guard."
 
 
 def _iter_python_files(root: Path) -> Iterable[Path]:
