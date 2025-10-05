@@ -29,8 +29,8 @@ rules:
     comment: "Runtime data helpers exist, but a number of platforms still access coordinator attributes directly and there is no automated coverage demonstrating consistent usage."
 
   stale-devices:
-    status: in_progress
-    comment: "`async_remove_config_entry_device` has been prototyped, but we do not yet have tests proving that device removal is safe for active dogs."
+    status: done
+    comment: "`async_remove_config_entry_device` has been implemented and is covered by tests in `tests/components/pawcontrol/test_init.py` to ensure active devices are preserved."
 
   dynamic-devices:
     status: todo

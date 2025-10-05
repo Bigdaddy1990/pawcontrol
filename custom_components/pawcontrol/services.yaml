@@ -83,7 +83,7 @@ add_feeding:
 
 feed_dog:
   name: Feed Dog
-  description: Log feeding for a specific dog
+  description: "Log a feeding for a specific dog (deprecated: prefer `add_feeding`)."
   fields:
     dog_id:
       name: Dog ID
@@ -105,8 +105,8 @@ feed_dog:
             - "snack"
             - "treat"
     portion_size:
-      name: Portion Size
-      description: Size of the portion in grams (0 for default)
+      name: Amount (grams)
+      description: "Legacy field matching `add_feeding.amount`; 0 uses the configured default."
       required: false
       default: 0
       selector:

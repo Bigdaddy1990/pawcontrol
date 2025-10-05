@@ -13,7 +13,22 @@ from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from typing import Any, Optional
 
-import voluptuous as vol
+try:  # pragma: no cover - optional third-party dependency
+    import voluptuous as vol
+except ModuleNotFoundError:  # pragma: no cover - simplified fallback
+
+    class _VoluptuousFallback(SimpleNamespace):
+        """Minimal stand-ins that mimic voluptuous validators."""
+
+        def __init__(self) -> None:
+            super().__init__(
+                All=lambda *validators: lambda value: value,
+                Boolean=lambda: lambda value: bool(value),
+                Datetime=lambda: lambda value: value,
+                Date=lambda: lambda value: value,
+            )
+
+    vol = _VoluptuousFallback()
 
 
 class _UnitEnum(str, Enum):
