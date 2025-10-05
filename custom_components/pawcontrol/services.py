@@ -20,10 +20,10 @@ from typing import TypeVar, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import (
+    SIGNAL_CONFIG_ENTRY_CHANGED,
     ConfigEntry,
     ConfigEntryChange,
     ConfigEntryState,
-    SIGNAL_CONFIG_ENTRY_CHANGED,
 )
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError

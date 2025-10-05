@@ -19,8 +19,8 @@ from custom_components.pawcontrol.services import (
 from custom_components.pawcontrol.types import PawControlRuntimeData
 from custom_components.pawcontrol.walk_manager import WeatherCondition
 from homeassistant.config_entries import (
-    ConfigEntryChange,
     SIGNAL_CONFIG_ENTRY_CHANGED,
+    ConfigEntryChange,
 )
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError

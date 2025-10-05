@@ -13,12 +13,12 @@ from custom_components.pawcontrol.const import (
     CONF_DOG_BREED,
     CONF_DOG_ID,
     CONF_DOG_NAME,
-    CONF_MODULES,
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
+    CONF_MODULES,
+    DOMAIN,
     MODULE_DASHBOARD,
     MODULE_GPS,
-    DOMAIN,
 )
 from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
 from custom_components.pawcontrol.exceptions import PawControlSetupError
@@ -602,7 +602,9 @@ async def test_configure_dashboard_form_includes_context(hass: HomeAssistant) ->
     assert "dashboard" in placeholders["dashboard_info"].lower()
 
 
-async def test_configure_dashboard_with_gps_routes_external(hass: HomeAssistant) -> None:
+async def test_configure_dashboard_with_gps_routes_external(
+    hass: HomeAssistant,
+) -> None:
     """Submitting dashboard settings with GPS enabled should request external setup."""
 
     flow = config_flow.PawControlConfigFlow()

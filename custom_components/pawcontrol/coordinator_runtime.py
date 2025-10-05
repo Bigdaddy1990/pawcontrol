@@ -14,6 +14,7 @@ from typing import Any
 
 try:
     from homeassistant.exceptions import ConfigEntryAuthFailed
+
     try:
         from homeassistant.helpers.update_coordinator import UpdateFailed
     except ImportError:  # pragma: no cover - legacy Home Assistant releases
@@ -38,12 +39,12 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
 
     dt_util = _DateTimeModule()
 
-CoordinatorUpdateFailed = UpdateFailed
-
 from .coordinator_support import CoordinatorMetrics, DogConfigRegistry
 from .exceptions import GPSUnavailableError, NetworkError, ValidationError
 from .module_adapters import CoordinatorModuleAdapters
 from .resilience import ResilienceManager, RetryConfig
+
+CoordinatorUpdateFailed = UpdateFailed
 
 API_TIMEOUT = 30.0
 
@@ -112,7 +113,9 @@ class AdaptivePollingController:
 
         base_interval = max(initial_interval_seconds, 1.0)
         calculated_min = (
-            base_interval * 0.25 if min_interval_seconds is None else min_interval_seconds
+            base_interval * 0.25
+            if min_interval_seconds is None
+            else min_interval_seconds
         )
         calculated_max = (
             base_interval * 4 if max_interval_seconds is None else max_interval_seconds
@@ -199,7 +202,10 @@ class AdaptivePollingController:
                 else:
                     next_interval = min(
                         self._max_interval,
-                        max(next_interval, self._current_interval * (1.0 + load_factor / 4)),
+                        max(
+                            next_interval,
+                            self._current_interval * (1.0 + load_factor / 4),
+                        ),
                     )
             else:
                 self._last_activity = now
