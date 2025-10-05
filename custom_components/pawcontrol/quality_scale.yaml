@@ -33,8 +33,8 @@ rules:
     status: todo
     comment: "Action handler coverage is pending; no automated end-to-end test captures service execution."
   appropriate-polling:
-    status: todo
-    comment: "Coordinator fetch cadence still exceeds the Platinum <15-minute guideline when idle."
+    status: done
+    comment: "DogConfigRegistry clamps all update intervals to <=15 minutes and validates user-provided overrides."
   common-modules:
     status: todo
     comment: "Integration is missing shared helper coverage for standard diagnostics and logbook modules."
