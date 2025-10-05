@@ -134,8 +134,7 @@ class DogConfigRegistry:
         """Derive the polling interval from configuration options."""
         if not self._ids:
             interval = UPDATE_INTERVALS.get("minimal", 300)
-            return min(interval, MAX_IDLE_POLL_INTERVAL)
-            return self._enforce_polling_limits(UPDATE_INTERVALS.get("minimal", 300))
+            return self._enforce_polling_limits(interval)
 
         if self.has_module(MODULE_GPS):
             gps_interval = options.get(
@@ -147,7 +146,6 @@ class DogConfigRegistry:
                     gps_interval,
                     "Invalid GPS update interval",
                 )
-            return min(gps_interval, MAX_IDLE_POLL_INTERVAL)
             return self._enforce_polling_limits(gps_interval)
 
         interval: int
@@ -162,15 +160,7 @@ class DogConfigRegistry:
             else:
                 interval = UPDATE_INTERVALS.get("minimal", 300)
 
-        return min(interval, MAX_IDLE_POLL_INTERVAL)
-            return self._enforce_polling_limits(UPDATE_INTERVALS.get("frequent", 60))
-
-        total_modules = self.module_count()
-        if total_modules > 15:
-            return self._enforce_polling_limits(UPDATE_INTERVALS.get("real_time", 30))
-        if total_modules > 8:
-            return self._enforce_polling_limits(UPDATE_INTERVALS.get("balanced", 120))
-        return self._enforce_polling_limits(UPDATE_INTERVALS.get("minimal", 300))
+        return self._enforce_polling_limits(interval)
 
     @staticmethod
     def _enforce_polling_limits(interval: int | None) -> int:
@@ -186,7 +176,7 @@ class DogConfigRegistry:
                 "update_interval", interval, "Polling interval must be positive"
             )
 
-        return min(interval, MAX_POLLING_INTERVAL_SECONDS)
+        return min(interval, MAX_IDLE_POLL_INTERVAL, MAX_POLLING_INTERVAL_SECONDS)
 
 
 @dataclass(slots=True)

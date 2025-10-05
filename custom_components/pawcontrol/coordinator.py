@@ -19,9 +19,6 @@ except ImportError:  # pragma: no cover - compatibility with older cores
         CoordinatorUpdateFailed as UpdateFailed,
     )
 
-# Maintain the legacy name to avoid touching the rest of the module logic
-CoordinatorUpdateFailed = UpdateFailed
-
 from .const import (
     CONF_API_ENDPOINT,
     CONF_API_TOKEN,
@@ -60,13 +57,18 @@ from .coordinator_tasks import (
     ensure_background_task,
     run_maintenance,
 )
-from .coordinator_tasks import shutdown as shutdown_tasks
+from .coordinator_tasks import (
+    shutdown as shutdown_tasks,
+)
 from .device_api import PawControlDeviceClient
 from .exceptions import ValidationError
 from .http_client import ensure_shared_client_session
 from .module_adapters import CoordinatorModuleAdapters
 from .resilience import ResilienceManager, RetryConfig
 from .types import PawControlConfigEntry
+
+# Maintain the legacy name to avoid touching the rest of the module logic
+CoordinatorUpdateFailed = UpdateFailed
 
 if TYPE_CHECKING:
     from .data_manager import PawControlDataManager

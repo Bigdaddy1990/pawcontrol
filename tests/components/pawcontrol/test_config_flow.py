@@ -13,12 +13,12 @@ from custom_components.pawcontrol.const import (
     CONF_DOG_BREED,
     CONF_DOG_ID,
     CONF_DOG_NAME,
-    CONF_MODULES,
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
+    CONF_MODULES,
+    DOMAIN,
     MODULE_DASHBOARD,
     MODULE_GPS,
-    DOMAIN,
 )
 from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
 from custom_components.pawcontrol.exceptions import PawControlSetupError

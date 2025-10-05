@@ -38,12 +38,12 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
 
     dt_util = _DateTimeModule()
 
-CoordinatorUpdateFailed = UpdateFailed
-
 from .coordinator_support import CoordinatorMetrics, DogConfigRegistry
 from .exceptions import GPSUnavailableError, NetworkError, ValidationError
 from .module_adapters import CoordinatorModuleAdapters
 from .resilience import ResilienceManager, RetryConfig
+
+CoordinatorUpdateFailed = UpdateFailed
 
 API_TIMEOUT = 30.0
 

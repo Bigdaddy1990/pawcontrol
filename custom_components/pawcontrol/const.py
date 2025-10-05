@@ -514,9 +514,7 @@ PERFORMANCE_THRESHOLDS: Final[dict[str, float]] = {
 __all__ = (
     "ACTIVITY_LEVELS",
     "ALL_MODULES",
-    # Dashboard configuration
     "CONF_DASHBOARD_ENABLED",
-    # Configuration keys (most commonly used)
     "CONF_DOGS",
     "CONF_DOG_ID",
     "CONF_DOG_NAME",
@@ -526,25 +524,18 @@ __all__ = (
     "DEFAULT_GPS_UPDATE_INTERVAL",
     "DOG_SIZES",
     "DOG_SIZE_WEIGHT_RANGES",
-    # Core essentials
     "DOMAIN",
     "EVENT_FEEDING_LOGGED",
     "EVENT_HEALTH_LOGGED",
-    # Event types
     "EVENT_WALK_STARTED",
-    # Validation constants
     "FOOD_TYPES",
     "HEALTH_STATUS_OPTIONS",
     "MAX_DOG_WEIGHT",
-    # Performance constants
+    "MAX_IDLE_POLL_INTERVAL",
     "MAX_POLLING_INTERVAL_SECONDS",
-    # Limits and defaults
-    "MIN_DOG_WEIGHT",
     "MODULE_DASHBOARD",
     "MODULE_FEEDING",
     "MODULE_GARDEN",
-    "MODULE_GARDEN",
-    # Module identifiers
     "MODULE_GPS",
     "MODULE_HEALTH",
     "MODULE_NOTIFICATIONS",
@@ -553,16 +544,11 @@ __all__ = (
     "PERFORMANCE_THRESHOLDS",
     "PLATFORMS",
     "SERVICE_ADD_GARDEN_ACTIVITY",
-    "SERVICE_ADD_GARDEN_ACTIVITY",
-    "SERVICE_CONFIRM_GARDEN_POOP",
     "SERVICE_CONFIRM_GARDEN_POOP",
     "SERVICE_END_GARDEN_SESSION",
-    "SERVICE_END_GARDEN_SESSION",
-    # Service identifiers
     "SERVICE_FEED_DOG",
     "SERVICE_LOG_HEALTH",
     "SERVICE_START_GARDEN_SESSION",
     "SERVICE_START_WALK",
     "UPDATE_INTERVALS",
-    "MAX_IDLE_POLL_INTERVAL",
 )
