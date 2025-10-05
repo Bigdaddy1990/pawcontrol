@@ -534,6 +534,8 @@ __all__ = (
     "FOOD_TYPES",
     "HEALTH_STATUS_OPTIONS",
     "MAX_DOG_WEIGHT",
+    # Performance constants
+    "MAX_POLLING_INTERVAL_SECONDS",
     # Limits and defaults
     "MIN_DOG_WEIGHT",
     "MODULE_DASHBOARD",
@@ -559,7 +561,5 @@ __all__ = (
     "SERVICE_LOG_HEALTH",
     "SERVICE_START_GARDEN_SESSION",
     "SERVICE_START_WALK",
-    # Performance constants
-    "MAX_POLLING_INTERVAL_SECONDS",
     "UPDATE_INTERVALS",
 )
