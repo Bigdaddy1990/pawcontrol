@@ -375,9 +375,10 @@ class PawControlBinarySensorBase(
 
         # Entity configuration
         self._attr_unique_id = f"pawcontrol_{dog_id}_{sensor_type}"
-        self._attr_name = f"{dog_name} {sensor_type.replace('_', ' ').title()}"
         self._attr_device_class = device_class
         self._attr_entity_category = entity_category
+        self._attr_has_entity_name = True
+        self._attr_translation_key = sensor_type
 
         # Link entity to PawControl device entry for the dog
         self._set_device_link_info(model="Virtual Dog", sw_version="1.0.0")

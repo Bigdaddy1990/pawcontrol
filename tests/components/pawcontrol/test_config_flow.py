@@ -7,6 +7,7 @@ from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
 
 import pytest
+from custom_components.pawcontrol import config_flow
 from custom_components.pawcontrol.const import (
     CONF_DOG_AGE,
     CONF_DOG_BREED,
@@ -17,9 +18,11 @@ from custom_components.pawcontrol.const import (
     DOMAIN,
 )
 from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
+from custom_components.pawcontrol.exceptions import PawControlSetupError
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 from homeassistant.helpers.service_info.usb import UsbServiceInfo
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
@@ -98,6 +101,36 @@ async def test_full_user_flow(hass: HomeAssistant) -> None:
     assert dog_result[CONF_DOG_AGE] == 5
     assert dog_result[CONF_DOG_WEIGHT] == 25.0
     assert dog_result[CONF_DOG_SIZE] == "medium"
+
+
+async def test_dog_modules_invalid_input(hass: HomeAssistant) -> None:
+    """Ensure invalid module data surfaces form errors."""
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    dog = {
+        CONF_DOG_ID: "fido",
+        CONF_DOG_NAME: "Fido",
+        CONF_DOG_BREED: "Labrador",
+        CONF_DOG_AGE: 5,
+        CONF_DOG_WEIGHT: 25.0,
+        CONF_DOG_SIZE: "medium",
+    }
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input=dog
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={"feeding": "definitely"},
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "dog_modules"
+    assert result["errors"] == {"base": "invalid_modules"}
 
 
 async def test_duplicate_dog_id(hass: HomeAssistant) -> None:
@@ -263,6 +296,31 @@ async def test_zeroconf_discovery_flow(hass: HomeAssistant) -> None:
     assert result["step_id"] == "add_dog"
 
 
+async def test_discovery_rejection_aborts(hass: HomeAssistant) -> None:
+    """Validate that users can decline discovered devices."""
+
+    zeroconf_info = ZeroconfServiceInfo(
+        host="192.168.1.42",
+        hostname="paw-control-acceptance.local",
+        name="_pawcontrol._tcp.local.",
+        port=443,
+        properties={"serial": "paw-accept"},
+    )
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_ZEROCONF},
+        data=zeroconf_info,
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={"confirm": False}
+    )
+
+    assert result["type"] == FlowResultType.ABORT
+    assert result["reason"] == "discovery_rejected"
+
+
 async def test_single_instance(hass: HomeAssistant) -> None:
     """Test that only a single instance can be configured."""
     entry = MockConfigEntry(domain=DOMAIN, unique_id=DOMAIN)
@@ -375,3 +433,147 @@ async def test_bluetooth_discovery_flow(hass: HomeAssistant) -> None:
 
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "add_dog"
+
+
+async def test_import_flow_success_with_warnings(hass: HomeAssistant) -> None:
+    """Exercise the enhanced import validation path."""
+
+    import_payload = {
+        "name": "PawControl YAML",
+        "entity_profile": "standard",
+        "dogs": [
+            {
+                CONF_DOG_ID: "buddy",
+                CONF_DOG_NAME: "Buddy",
+                CONF_DOG_BREED: "Collie",
+                CONF_DOG_AGE: 4,
+                CONF_DOG_WEIGHT: 18.5,
+                CONF_DOG_SIZE: "medium",
+                "modules": {"feeding": True, "walk": True, "gps": True},
+            },
+            {
+                CONF_DOG_ID: "buddy",
+                CONF_DOG_NAME: "Duplicate",
+                CONF_DOG_BREED: "Collie",
+                CONF_DOG_AGE: 4,
+                CONF_DOG_WEIGHT: 18.5,
+                CONF_DOG_SIZE: "medium",
+            },
+        ],
+    }
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_IMPORT},
+        data=import_payload,
+    )
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["title"] == "PawControl (Imported)"
+    assert result["data"]["entity_profile"] == "standard"
+    assert len(result["data"]["dogs"]) == 1
+    assert result["options"]["import_source"] == "configuration_yaml"
+    assert "Duplicate dog ID" in "; ".join(result["data"]["import_warnings"])
+
+
+async def test_import_flow_without_valid_dogs(hass: HomeAssistant) -> None:
+    """Ensure invalid YAML imports raise ConfigEntryNotReady."""
+
+    flow = config_flow.PawControlConfigFlow()
+    flow.hass = hass
+    flow.context = {}
+
+    with pytest.raises(ConfigEntryNotReady):
+        await flow.async_step_import({"dogs": []})
+
+
+async def test_entity_profile_invalid_input(hass: HomeAssistant) -> None:
+    """Cover the profile validation failure branch."""
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    dog = {
+        CONF_DOG_ID: "fido",
+        CONF_DOG_NAME: "Fido",
+        CONF_DOG_BREED: "Labrador",
+        CONF_DOG_AGE: 5,
+        CONF_DOG_WEIGHT: 25.0,
+        CONF_DOG_SIZE: "medium",
+    }
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input=dog
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={"feeding": True, "walk": True, "health": True},
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={"add_another": False}
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={"entity_profile": "nonexistent"}
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "entity_profile"
+    assert result["errors"] == {"base": "invalid_profile"}
+
+
+async def test_final_setup_validation_failure(hass: HomeAssistant) -> None:
+    """The final validation step should reject invalid dog data."""
+
+    flow = config_flow.PawControlConfigFlow()
+    flow.hass = hass
+    flow.context = {}
+    flow._dogs = [  # pylint: disable=protected-access
+        {
+            CONF_DOG_ID: "buddy",
+            CONF_DOG_NAME: "",
+            CONF_DOG_SIZE: "medium",
+            CONF_DOG_WEIGHT: 20.0,
+            CONF_DOG_AGE: 5,
+            "modules": {"feeding": True},
+        }
+    ]
+
+    with pytest.raises(PawControlSetupError):
+        await flow.async_step_final_setup()
+
+
+async def test_reconfigure_invalid_profile_error(hass: HomeAssistant) -> None:
+    """Submitting an invalid profile during reconfigure returns the form."""
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            "name": "Paw Control",
+            "dogs": [{CONF_DOG_ID: "buddy", CONF_DOG_NAME: "Buddy"}],
+            "entity_profile": "standard",
+        },
+        options={"entity_profile": "standard"},
+        unique_id=DOMAIN,
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={
+            "source": config_entries.SOURCE_RECONFIGURE,
+            "entry_id": entry.entry_id,
+        },
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={"entity_profile": "invalid"}
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "reconfigure"
+    assert result["errors"] == {"base": "invalid_profile"}
+    assert "error_details" in result["description_placeholders"]

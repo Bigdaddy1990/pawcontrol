@@ -12,9 +12,32 @@ rules:
   config-flow:
     status: done
     comment: "Config flow covers user setup, discovery, import, reauth and now ships data_description helper text."
+  config-flow-test-coverage:
+    status: todo
+    comment: "Existing tests exercise only a subset of discovery, dashboard, module, and reconfigure paths; add coverage before claiming the Platinum rule."
   test-coverage:
     status: todo
-    comment: "Full-suite coverage is still being expanded; pytest-cov currently tracks the entire integration without meeting the 95% target."
+    comment: "Config flow tests expanded significantly; remaining gap is lifting overall suite above the 95% Platinum threshold."
+
+  has-entity-name:
+    status: done
+    comment: "Binary sensor entities now set _attr_has_entity_name=True so device names propagate automatically."
+  entity-translations:
+    status: done
+    comment: "Binary sensor platforms assign translation keys and are covered by tests validating the localized titles."
+
+  brands:
+    status: todo
+    comment: "Brand assets are not yet submitted under brands/pawcontrol."
+  action-setup:
+    status: todo
+    comment: "Action handler coverage is pending; no automated end-to-end test captures service execution."
+  appropriate-polling:
+    status: todo
+    comment: "Coordinator fetch cadence still exceeds the Platinum <15-minute guideline when idle."
+  common-modules:
+    status: todo
+    comment: "Integration is missing shared helper coverage for standard diagnostics and logbook modules."
 
   config-flow-discovery:
     status: done

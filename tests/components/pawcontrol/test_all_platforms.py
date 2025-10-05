@@ -589,11 +589,18 @@ class TestBinarySensorPlatform:
         assert result is None
         assert len(entities) > 0
 
+        # All binary sensor entities should surface Home Assistant entity names
+        # so they inherit the device's friendly name automatically.
+        assert all(entity.has_entity_name for entity in entities)
+
         # Verify essential binary sensor entities were created
-        entity_names = [entity.name for entity in entities]
-        assert any("Online" in name for name in entity_names)
-        assert any("Hungry" in name for name in entity_names)
-        assert any("Needs Walk" in name for name in entity_names)
+        entity_translation_keys = {entity.translation_key for entity in entities}
+        assert "online" in entity_translation_keys
+        assert "is_hungry" in entity_translation_keys
+        assert "needs_walk" in entity_translation_keys
+
+        # Every entity must expose a translation key so localized titles work.
+        assert all(entity.translation_key for entity in entities)
 
     async def test_base_binary_sensors(self, mock_coordinator: Mock) -> None:
         """Test base binary sensor entities."""
