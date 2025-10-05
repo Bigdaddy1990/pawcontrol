@@ -503,11 +503,8 @@ async def _get_debug_information(
     Returns:
         Debug information
     """
-return {
-    "debug_logging_enabled": _LOGGER.isEnabledFor(logging.DEBUG),
-    "integration_version": "1.0.0",
-    "quality_scale": "bronze",
-    "supported_features": [
+
+    return {
         "debug_logging_enabled": _LOGGER.isEnabledFor(logging.DEBUG),
         "integration_version": "1.0.0",
         "quality_scale": "bronze",

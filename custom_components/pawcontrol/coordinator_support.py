@@ -162,11 +162,7 @@ class DogConfigRegistry:
 
         return self._enforce_polling_limits(interval)
 
-
-@staticmethod
-def _enforce_polling_limits(interval: int | None) -> int:
-    """Clamp polling intervals to Bronze quality requirements."""
-
+    @staticmethod
     def _enforce_polling_limits(interval: int | None) -> int:
         """Clamp polling intervals to Bronze quality requirements."""
 
