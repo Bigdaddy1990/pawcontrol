@@ -1,9 +1,9 @@
-from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
 from custom_components.pawcontrol import system_health as system_health_module
 from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.types import PawControlRuntimeData
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -47,8 +47,15 @@ async def test_system_health_reports_coordinator_status(
         unique_id="coordinator-entry",
     )
     entry.add_to_hass(hass)
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = SimpleNamespace(
-        coordinator=coordinator
+    entry.runtime_data = PawControlRuntimeData(
+        coordinator=coordinator,
+        data_manager=MagicMock(),
+        notification_manager=MagicMock(),
+        feeding_manager=MagicMock(),
+        walk_manager=MagicMock(),
+        entity_factory=MagicMock(),
+        entity_profile="standard",
+        dogs=[],
     )
 
     info = await system_health_module.system_health_info(hass)
@@ -77,8 +84,15 @@ async def test_system_health_reports_external_quota(
         unique_id="quota-entry",
     )
     entry.add_to_hass(hass)
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = SimpleNamespace(
-        coordinator=coordinator
+    entry.runtime_data = PawControlRuntimeData(
+        coordinator=coordinator,
+        data_manager=MagicMock(),
+        notification_manager=MagicMock(),
+        feeding_manager=MagicMock(),
+        walk_manager=MagicMock(),
+        entity_factory=MagicMock(),
+        entity_profile="standard",
+        dogs=[],
     )
 
     info = await system_health_module.system_health_info(hass)

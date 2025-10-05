@@ -30,7 +30,6 @@ from .const import (
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
     DOG_SIZES,
-    DOMAIN,
     FOOD_TYPES,
     GPS_SOURCES,
     HEALTH_STATUS_OPTIONS,
@@ -437,14 +436,11 @@ class PawControlSelectBase(
     def _get_domain_entry_data(self) -> dict[str, Any]:
         """Return the hass.data payload for this config entry."""
 
-        if self.hass is None:
-            return {}
+        runtime_data = self._get_runtime_data()
+        if runtime_data is not None:
+            return runtime_data.as_dict()
 
-        domain_data = self.hass.data.get(DOMAIN, {})
-        entry_data = domain_data.get(self.coordinator.config_entry.entry_id, {})
-        if isinstance(entry_data, PawControlRuntimeData):
-            return entry_data.as_dict()
-        return entry_data if isinstance(entry_data, dict) else {}
+        return {}
 
     def _get_data_manager(self):
         """Return the data manager for persistence if available."""

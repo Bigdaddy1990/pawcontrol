@@ -170,19 +170,9 @@ class _CoordinatorResolver:
     def _resolve_from_sources(self) -> PawControlCoordinator:
         """Locate the active coordinator from config entries or stored data."""
 
-        domain_data = self._hass.data.get(DOMAIN)
-        if not domain_data:
-            raise HomeAssistantError(
-                "PawControl is not set up. Add the integration before calling its services.",
-            )
+        entries = list(self._hass.config_entries.async_entries(DOMAIN))
 
-        if not isinstance(domain_data, dict):
-            raise HomeAssistantError(
-                "PawControl runtime storage is corrupted. Reload the integration.",
-            )
-
-        # Prefer coordinators from loaded config entries which hold authoritative runtime data.
-        for entry in self._hass.config_entries.async_entries(DOMAIN):
+        for entry in entries:
             if entry.state is not ConfigEntryState.LOADED:
                 continue
 
@@ -190,26 +180,18 @@ class _CoordinatorResolver:
             if runtime_data and getattr(runtime_data, "coordinator", None):
                 return cast(PawControlCoordinator, runtime_data.coordinator)
 
-        # Fall back to data stored under the domain namespace per entry.
-        for value in domain_data.values():
-            if isinstance(value, dict):
-                runtime = value.get("runtime_data")
-                if runtime and getattr(runtime, "coordinator", None):
-                    return cast(PawControlCoordinator, runtime.coordinator)
+        if any(entry.state is ConfigEntryState.LOADED for entry in entries):
+            raise HomeAssistantError(
+                "PawControl runtime data is not ready yet. Reload the integration.",
+            )
 
-                coordinator_value = value.get("coordinator")
-                if coordinator_value is not None:
-                    return cast(PawControlCoordinator, coordinator_value)
-            elif getattr(value, "coordinator", None):
-                return cast(PawControlCoordinator, value.coordinator)
-
-        # Legacy fallback for integrations that stored the coordinator at the top level.
-        coordinator = domain_data.get("coordinator")
-        if coordinator is not None:
-            return cast(PawControlCoordinator, coordinator)
+        if entries:
+            raise HomeAssistantError(
+                "PawControl is still initializing. Try again once setup has finished.",
+            )
 
         raise HomeAssistantError(
-            "PawControl is still initializing. Try again once setup has finished.",
+            "PawControl is not set up. Add the integration before calling its services.",
         )
 
 
@@ -2899,11 +2881,10 @@ async def async_setup_daily_reset_scheduler(
     if reset_time is None:
         return None
 
-    domain_data = hass.data.setdefault(DOMAIN, {})
-    existing = domain_data.get(entry.entry_id, {})
-    if isinstance(existing, dict) and (unsub := existing.get("daily_reset_unsub")):
+    runtime_data = get_runtime_data(hass, entry)
+    if runtime_data and runtime_data.daily_reset_unsub:
         try:
-            unsub()
+            runtime_data.daily_reset_unsub()
         except Exception as err:  # pragma: no cover - best effort cleanup
             _LOGGER.debug("Failed to cancel previous daily reset listener: %s", err)
 

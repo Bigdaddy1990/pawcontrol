@@ -8,7 +8,7 @@ import re
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 from homeassistant.config_entries import (
@@ -20,6 +20,7 @@ from homeassistant.core import callback
 from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
+from homeassistant.helpers.service_info.usb import UsbServiceInfo
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from homeassistant.util import dt as dt_util
 
@@ -57,6 +58,11 @@ from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .exceptions import ConfigurationError, PawControlSetupError, ValidationError
 from .options_flow import PawControlOptionsFlow
 from .types import DogConfigData, is_dog_config_valid
+
+if TYPE_CHECKING:
+    from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
+else:  # pragma: no cover - only used for typing
+    BluetoothServiceInfoBleak = Any
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -320,6 +326,82 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             updates={"host": discovery_info.ip},
             reload_on_update=True,
         )
+
+        return await self.async_step_discovery_confirm()
+
+    async def async_step_usb(self, discovery_info: UsbServiceInfo) -> ConfigFlowResult:
+        """Handle USB discovery for supported trackers."""
+
+        _LOGGER.debug("USB discovery: %s", discovery_info)
+
+        description = discovery_info.description or ""
+        serial_number = discovery_info.serial_number or ""
+        hostname_hint = description or serial_number
+        properties: dict[str, Any] = {
+            "serial": serial_number,
+            "vid": discovery_info.vid,
+            "pid": discovery_info.pid,
+            "manufacturer": discovery_info.manufacturer,
+            "description": description,
+        }
+
+        if not self._is_supported_device(hostname_hint, properties):
+            return self.async_abort(reason="not_supported")
+
+        self._discovery_info = {
+            "source": "usb",
+            "description": description,
+            "manufacturer": discovery_info.manufacturer,
+            "vid": discovery_info.vid,
+            "pid": discovery_info.pid,
+            "serial_number": serial_number,
+            "device": discovery_info.device,
+        }
+
+        unique_id = serial_number or f"{discovery_info.vid}:{discovery_info.pid}"
+        if unique_id:
+            await self.async_set_unique_id(unique_id)
+            self._abort_if_unique_id_configured(
+                updates={"device": discovery_info.device},
+                reload_on_update=True,
+            )
+
+        return await self.async_step_discovery_confirm()
+
+    async def async_step_bluetooth(
+        self, discovery_info: BluetoothServiceInfoBleak
+    ) -> ConfigFlowResult:
+        """Handle Bluetooth discovery for supported trackers."""
+
+        _LOGGER.debug("Bluetooth discovery: %s", discovery_info)
+
+        name = getattr(discovery_info, "name", "") or ""
+        address = getattr(discovery_info, "address", "") or ""
+        service_uuids = list(getattr(discovery_info, "service_uuids", []) or [])
+
+        hostname_hint = name or address
+        properties: dict[str, Any] = {
+            "address": address,
+            "service_uuids": service_uuids,
+            "name": name,
+        }
+
+        if not self._is_supported_device(hostname_hint, properties):
+            return self.async_abort(reason="not_supported")
+
+        self._discovery_info = {
+            "source": "bluetooth",
+            "name": name,
+            "address": address,
+            "service_uuids": service_uuids,
+        }
+
+        if address:
+            await self.async_set_unique_id(address)
+            self._abort_if_unique_id_configured(
+                updates={"address": address},
+                reload_on_update=True,
+            )
 
         return await self.async_step_discovery_confirm()
 

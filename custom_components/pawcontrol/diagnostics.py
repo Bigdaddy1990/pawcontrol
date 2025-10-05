@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -180,8 +180,7 @@ async def _get_integration_status(
         data_manager = None
         notification_manager = None
 
-    domain_entries = hass.data.get(DOMAIN, {})
-    entry_loaded = isinstance(domain_entries, dict) and entry.entry_id in domain_entries
+    entry_loaded = entry.state is ConfigEntryState.LOADED
 
     return {
         "entry_loaded": entry_loaded,

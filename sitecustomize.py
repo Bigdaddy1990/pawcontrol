@@ -14,6 +14,9 @@ public ``uuid._generate_time_safe`` implementation available since Python
 
 from __future__ import annotations
 
+import builtins
+import inspect
+import sys
 import types
 import uuid
 
@@ -58,3 +61,68 @@ if not hasattr(uuid, "_load_system_functions"):
 # attribute to exist so we provide a stub matching the old behaviour.
 if not hasattr(uuid, "_UuidCreate"):
     uuid._UuidCreate = types.SimpleNamespace  # type: ignore[attr-defined]
+
+
+def _patch_pytest_async_fixture() -> None:
+    """Monkeypatch ``pytest.fixture`` to support async fixtures without warnings."""
+
+    try:
+        import pytest  # type: ignore
+        import pytest_asyncio  # type: ignore
+    except Exception:  # pragma: no cover - pytest not available outside tests
+        return
+
+    original_fixture = getattr(pytest, "fixture", None)
+    if original_fixture is None:
+        return
+
+    if getattr(original_fixture, "__pawcontrol_async_patch__", False):
+        return
+
+    def async_aware_fixture(*fixture_args: object, **fixture_kwargs: object):
+        if (
+            fixture_args
+            and len(fixture_args) == 1
+            and callable(fixture_args[0])
+            and not fixture_kwargs
+        ):
+            func = fixture_args[0]
+            if inspect.iscoroutinefunction(func):
+                return pytest_asyncio.fixture()(func)
+            return original_fixture(func)  # type: ignore[misc]
+
+        def decorator(func):
+            if inspect.iscoroutinefunction(func):
+                return pytest_asyncio.fixture(*fixture_args, **fixture_kwargs)(func)
+            return original_fixture(*fixture_args, **fixture_kwargs)(func)  # type: ignore[misc]
+
+        return decorator
+
+    async_aware_fixture.__pawcontrol_async_patch__ = True  # type: ignore[attr-defined]
+    async_aware_fixture.__wrapped_fixture__ = original_fixture  # type: ignore[attr-defined]
+    pytest.fixture = async_aware_fixture  # type: ignore[assignment]
+
+
+_original_import = builtins.__import__
+
+
+def _import_hook(
+    name: str,
+    globals: dict[str, object] | None = None,
+    locals: dict[str, object] | None = None,
+    fromlist: tuple[str, ...] = (),
+    level: int = 0,
+):
+    """Intercept imports to patch pytest as soon as it loads."""
+
+    module = _original_import(name, globals, locals, fromlist, level)
+
+    if name == "pytest" or (name.startswith("pytest.") and "pytest" in sys.modules):
+        _patch_pytest_async_fixture()
+
+    return module
+
+
+if not getattr(builtins, "__pawcontrol_import_patch__", False):
+    builtins.__import__ = _import_hook  # type: ignore[assignment]
+    builtins.__pawcontrol_import_patch__ = True  # type: ignore[attr-defined]

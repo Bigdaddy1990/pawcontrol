@@ -85,12 +85,6 @@ async def test_gps_source_select_updates_storage(
 
     dog_id = "dog-1"
     coordinator = _DummyCoordinator(hass, runtime_data, dog_id)
-    hass.data.setdefault(DOMAIN, {})[coordinator.config_entry.entry_id] = {
-        "runtime_data": runtime_data,
-        "data_manager": runtime_data.data_manager,
-        "notifications": runtime_data.notification_manager,
-        "coordinator": coordinator,
-    }
 
     select = PawControlGPSSourceSelect(coordinator, dog_id, "Buddy")
     select.hass = hass
@@ -115,13 +109,6 @@ async def test_notification_priority_select_updates_manager(
 
     dog_id = "dog-2"
     coordinator = _DummyCoordinator(hass, runtime_data, dog_id)
-    hass.data.setdefault(DOMAIN, {})[coordinator.config_entry.entry_id] = {
-        "runtime_data": runtime_data,
-        "data_manager": runtime_data.data_manager,
-        "notification_manager": runtime_data.notification_manager,
-        "notifications": runtime_data.notification_manager,
-        "coordinator": coordinator,
-    }
 
     select = PawControlNotificationPrioritySelect(coordinator, dog_id, "Rex")
     select.hass = hass

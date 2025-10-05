@@ -91,6 +91,8 @@ class _DummyEntry:
 
     def __init__(self, entry_id: str) -> None:
         self.entry_id = entry_id
+        self.domain = DOMAIN
+        self.runtime_data: PawControlRuntimeData | None = None
 
 
 @pytest.fixture
@@ -115,13 +117,32 @@ def _entry(entry_id: str = "test-entry") -> PawControlConfigEntry:
     return cast(PawControlConfigEntry, _DummyEntry(entry_id))
 
 
+def _build_hass(
+    *,
+    data: dict[str, object] | None = None,
+    entries: dict[str, PawControlConfigEntry] | None = None,
+) -> SimpleNamespace:
+    """Create a Home Assistant stub exposing config entry lookups."""
+
+    store = data or {}
+    entry_map = entries or {}
+
+    def _async_get_entry(entry_id: str) -> PawControlConfigEntry | None:
+        return entry_map.get(entry_id)
+
+    return SimpleNamespace(
+        data=store,
+        config_entries=SimpleNamespace(async_get_entry=_async_get_entry),
+    )
+
+
 def test_store_and_get_runtime_data_roundtrip(
     runtime_data: PawControlRuntimeData,
 ) -> None:
     """Storing runtime data should make it retrievable via the helper."""
 
-    hass = SimpleNamespace(data={})
     entry = _entry()
+    hass = _build_hass(entries={entry.entry_id: entry}, data={})
 
     store_runtime_data(hass, entry, runtime_data)
 
@@ -134,18 +155,22 @@ def test_get_runtime_data_handles_legacy_container(
 ) -> None:
     """Legacy dict containers should still be unwrapped."""
 
-    hass = SimpleNamespace(data={DOMAIN: {"legacy": {"runtime_data": runtime_data}}})
+    entry = _entry("legacy")
+    hass = _build_hass(
+        data={DOMAIN: {entry.entry_id: {"runtime_data": runtime_data}}},
+        entries={entry.entry_id: entry},
+    )
 
-    assert get_runtime_data(hass, "legacy") is runtime_data
-    # The legacy container should be replaced with the actual runtime data for
-    # subsequent lookups to avoid repeated migrations.
-    assert hass.data[DOMAIN]["legacy"] is runtime_data
+    assert get_runtime_data(hass, entry) is runtime_data
+    assert get_runtime_data(hass, entry.entry_id) is runtime_data
+    assert getattr(entry, "runtime_data", None) is runtime_data
+    assert DOMAIN not in hass.data
 
 
 def test_get_runtime_data_ignores_unknown_entries() -> None:
     """Missing entries should return ``None`` without side effects."""
 
-    hass = SimpleNamespace(data={})
+    hass = _build_hass(data={})
 
     assert get_runtime_data(hass, "missing") is None
 
@@ -155,7 +180,11 @@ def test_get_runtime_data_with_unexpected_container_type(
 ) -> None:
     """Non-mapping containers are treated as absent data."""
 
-    hass = SimpleNamespace(data={DOMAIN: []})
+    entry = _entry("recovered")
+    hass = _build_hass(
+        data={DOMAIN: []},
+        entries={entry.entry_id: entry},
+    )
 
     assert get_runtime_data(hass, "legacy") is None
     # The invalid container should be cleaned up entirely so future lookups do
@@ -163,17 +192,16 @@ def test_get_runtime_data_with_unexpected_container_type(
     assert DOMAIN not in hass.data
 
     # After storing data the invalid container should be replaced with a mapping.
-    entry = _entry("recovered")
     store_runtime_data(hass, entry, runtime_data)
-    assert isinstance(hass.data[DOMAIN], dict)
+    assert DOMAIN not in hass.data
     assert get_runtime_data(hass, entry.entry_id) is runtime_data
 
 
 def test_pop_runtime_data_removes_entry(runtime_data: PawControlRuntimeData) -> None:
     """Popping runtime data should remove the stored value."""
 
-    hass = SimpleNamespace(data={})
     entry = _entry("pop-entry")
+    hass = _build_hass(entries={entry.entry_id: entry}, data={})
 
     store_runtime_data(hass, entry, runtime_data)
     assert pop_runtime_data(hass, entry) is runtime_data
@@ -185,7 +213,7 @@ def test_pop_runtime_data_handles_legacy_container(
 ) -> None:
     """Legacy dict containers should be handled by ``pop_runtime_data`` too."""
 
-    hass = SimpleNamespace(data={DOMAIN: {"legacy": {"runtime_data": runtime_data}}})
+    hass = _build_hass(data={DOMAIN: {"legacy": {"runtime_data": runtime_data}}})
 
     assert pop_runtime_data(hass, "legacy") is runtime_data
     assert DOMAIN not in hass.data
@@ -196,7 +224,7 @@ def test_pop_runtime_data_cleans_up_domain_store(
 ) -> None:
     """Removing the final entry should drop the PawControl data namespace."""
 
-    hass = SimpleNamespace(data={DOMAIN: {"entry": runtime_data}})
+    hass = _build_hass(data={DOMAIN: {"entry": runtime_data}})
 
     assert pop_runtime_data(hass, "entry") is runtime_data
     assert DOMAIN not in hass.data
@@ -214,7 +242,7 @@ def test_coerce_runtime_data_returns_none_for_unknown_payload() -> None:
 def test_cleanup_domain_store_removes_empty_store() -> None:
     """Cleanup helper should remove empty PawControl namespaces."""
 
-    hass = SimpleNamespace(data={DOMAIN: {}})
+    hass = _build_hass(data={DOMAIN: {}})
 
     _cleanup_domain_store(hass, hass.data[DOMAIN])
 
@@ -224,7 +252,7 @@ def test_cleanup_domain_store_removes_empty_store() -> None:
 def test_pop_runtime_data_returns_none_when_store_missing() -> None:
     """Popping runtime data from an empty store should return ``None``."""
 
-    hass = SimpleNamespace(data={})
+    hass = _build_hass(data={})
 
     assert pop_runtime_data(hass, "missing") is None
 
@@ -234,7 +262,7 @@ def test_get_runtime_data_discards_uncoercible_legacy_payload(
 ) -> None:
     """Legacy payloads that cannot be migrated should be removed."""
 
-    hass = SimpleNamespace(data={DOMAIN: {"legacy": {"runtime_data": object()}}})
+    hass = _build_hass(data={DOMAIN: {"legacy": {"runtime_data": object()}}})
 
     monkeypatch.setattr(
         runtime_module,

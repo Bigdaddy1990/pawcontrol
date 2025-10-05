@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import sys
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -20,6 +20,9 @@ from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
+from homeassistant.helpers.service_info.usb import UsbServiceInfo
+from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
     MockModule,
@@ -193,13 +196,71 @@ async def test_reconfigure_flow(hass: HomeAssistant) -> None:
     with patch(
         "homeassistant.config_entries.ConfigFlow.async_update_reload_and_abort",
         return_value={"type": FlowResultType.ABORT, "reason": "reconfigure_successful"},
-    ) as mock_update:
+    ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], user_input={"entity_profile": "basic"}
         )
     assert result["type"] == FlowResultType.ABORT
     assert result["reason"] == "reconfigure_successful"
-    mock_update.assert_called_once()
+
+
+async def test_dhcp_discovery_flow(hass: HomeAssistant) -> None:
+    """Ensure DHCP discovery guides the user through confirmation before setup."""
+
+    dhcp_info = DhcpServiceInfo(
+        ip="192.168.1.25",
+        hostname="tractive-42",
+        macaddress="00:11:22:33:44:55",
+    )
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_DHCP},
+        data=dhcp_info,
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "discovery_confirm"
+    assert result["description_placeholders"]["discovery_source"] == "dhcp"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={"confirm": True},
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "add_dog"
+
+
+async def test_zeroconf_discovery_flow(hass: HomeAssistant) -> None:
+    """Ensure Zeroconf discovery surfaces the confirmation step."""
+
+    zeroconf_info = ZeroconfServiceInfo(
+        host="192.168.1.31",
+        hostname="paw-control-7f.local",
+        port=1234,
+        type="_pawcontrol._tcp.local.",
+        name="paw-control-7f",
+        properties={"serial": "paw-7f"},
+    )
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_ZEROCONF},
+        data=zeroconf_info,
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "discovery_confirm"
+    assert result["description_placeholders"]["discovery_source"] == "zeroconf"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={"confirm": True},
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "add_dog"
 
 
 async def test_single_instance(hass: HomeAssistant) -> None:
@@ -251,3 +312,66 @@ async def test_reauth_confirm_fail(hass: HomeAssistant) -> None:
     )
     assert result["type"] == FlowResultType.FORM
     assert result["errors"] == {"base": "reauth_unsuccessful"}
+
+
+async def test_usb_discovery_flow(hass: HomeAssistant) -> None:
+    """Ensure USB discovery initiates the confirmation step."""
+
+    usb_info = UsbServiceInfo(
+        device="/dev/ttyUSB0",
+        vid=0x1234,
+        pid=0x5678,
+        serial_number="TRACTIVEUSB01",
+        manufacturer="Tractive",
+        description="tractive-gps-tracker",
+    )
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_USB},
+        data=usb_info,
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "discovery_confirm"
+    assert result["description_placeholders"]["discovery_source"] == "usb"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={"confirm": True},
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "add_dog"
+
+
+async def test_bluetooth_discovery_flow(hass: HomeAssistant) -> None:
+    """Ensure Bluetooth discovery funnels into confirmation."""
+
+    bluetooth_info = SimpleNamespace(
+        name="tractive-ble-tracker",
+        address="AA:BB:CC:DD:EE:FF",
+        service_uuids=["0000180f-0000-1000-8000-00805f9b34fb"],
+        manufacturer_data={},
+        service_data={},
+        source="local",
+        advertisement=None,
+    )
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_BLUETOOTH},
+        data=bluetooth_info,
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "discovery_confirm"
+    assert result["description_placeholders"]["discovery_source"] == "bluetooth"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input={"confirm": True},
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "add_dog"

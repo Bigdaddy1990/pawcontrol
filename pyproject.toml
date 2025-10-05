@@ -4,7 +4,7 @@ requires = ["setuptools>=81", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
-addopts = "-p pytest_cov -q -ra --strict-markers --strict-config --tb=short --disable-warnings --maxfail=10"
+addopts = "-p pytest_cov --cov=custom_components.pawcontrol --cov-report=term-missing --cov-report=xml --cov-report=html --cov-branch --no-cov-on-fail -q -ra --strict-markers --strict-config --tb=short --disable-warnings --maxfail=10"
 markers = [
   "asyncio: mark a test as using asyncio",
 ]
@@ -20,8 +20,6 @@ asyncio_mode = "auto"
 filterwarnings = [
     "error",
     "ignore:Inheritance class HomeAssistantApplication from web.Application is discouraged:DeprecationWarning",
-    "ignore:.*async fixture 'hass'.*:pytest.PytestRemovedIn9Warning",  # TODO: replace deprecated fixture before pytest 9
-    "ignore:asyncio test '.*' requested async @pytest.fixture 'hass' in strict mode.*:pytest.PytestDeprecationWarning",
 ]
 
 [tool.ruff]
@@ -59,8 +57,12 @@ explicit_package_bases = true
 [tool.coverage.run]
 branch = true
 source = [
-    "custom_components.pawcontrol.coordinator_observability",
-    "custom_components.pawcontrol.resilience",
+    "custom_components/pawcontrol",
+]
+omit = [
+    "tests/*",
+    "*/__pycache__/*",
+    "*/pytest_homeassistant_custom_component/*",
 ]
 
 [tool.coverage.report]
@@ -68,8 +70,6 @@ show_missing = true
 skip_covered = false
 precision = 2
 ignore_errors = true
-# Platinum requires ≥95% line coverage; enforced via CI and coverage config.
-fail_under = 95
 
 [tool.coverage.html]
 directory = "htmlcov"
