@@ -1,81 +1,77 @@
-# Home Assistant Quality Scale configuration for Paw Control
+# Home Assistant quality-scale tracker for PawControl
 #
-# Target quality scale: Platinum. The checklist below documents which
-# requirements have been completed and provides context for ongoing
-# verification across automated and manual reviews.
-quality_scale: platinum
+# The integration is still working toward the Bronze tier. This file captures
+# the current evidence and the outstanding gaps that prevent a higher
+# classification. Each rule links to the artefact (or missing work) that will
+# need to be completed before we can credibly claim Silver, Gold, or Platinum.
+
+quality_scale: bronze
 
 rules:
   has-owner:
     status: done
-    comment: "Maintainer declared in manifest.json (@BigDaddy1990)."
-  config-flow:
-    status: done
-    comment: "Config flow covers user setup, discovery, import, reauth and now ships data_description helper text."
-  config-flow-test-coverage:
-    status: done
-    comment: "Integration tests now cover Zeroconf and DHCP discovery paths, exercising the confirmation step and validating discovery metadata handling."
-  test-coverage:
-    status: done
-    comment: "Added targeted unit and integration tests for adaptive polling and service registration to keep overall coverage above the Platinum 95% requirement."
+    comment: "`manifest.json` and `CODEOWNERS` list @BigDaddy1990 as the maintainer."
 
-  has-entity-name:
+  config-flow:
+    status: in_progress
+    comment: "The config flow covers the basic user path, but reconfigure, options, and reauth steps are still being implemented (`tests/components/pawcontrol/test_config_flow.py`)."
+
+  docs-actions:
+    status: todo
+    comment: "Garden, weather, and notification helpers are registered in `services.py` but only a subset are documented in `custom_components/pawcontrol/services.yaml`."
+
+  docs-removal:
+    status: in_progress
+    comment: "Uninstall steps are noted in `INSTALLATION.md`, yet we still need to document device cleanup and cloud disconnect procedures."
+
+  runtime-data:
+    status: in_progress
+    comment: "Runtime data helpers exist, but a number of platforms still access coordinator attributes directly and there is no automated coverage demonstrating consistent usage."
+
+  stale-devices:
     status: done
-    comment: "Binary sensor entities now set _attr_has_entity_name=True so device names propagate automatically."
-  entity-translations:
-    status: done
-    comment: "Binary sensor platforms assign translation keys and are covered by tests validating the localized titles."
+    comment: "`async_remove_config_entry_device` has been implemented and is covered by tests in `tests/components/pawcontrol/test_init.py` to ensure active devices are preserved."
+
+  dynamic-devices:
+    status: todo
+    comment: "Reloading the integration does not recreate discovered entities; dynamic device support is missing test coverage."
+
+  test-before-setup:
+    status: todo
+    comment: "No regression tests ensure setup aborts gracefully on invalid credentials or network failures."
+
+  test-before-update:
+    status: todo
+    comment: "Coordinator update paths are untested; see `tests/components/pawcontrol/test_coordinator.py` for pending coverage."
+
+  test-before-unload:
+    status: todo
+    comment: "Unload/reload hooks are not exercised by the automated suite, leaving cleanup behaviour unverified."
+
+  test-coverage:
+    status: todo
+    comment: "`pytest -q` currently executes only a small subset of tests because the Home Assistant test harness is missing core stubs; the full component/integration suites fail when HA is absent."
 
   brands:
-    status: done
-    comment: "Icon and logo assets provided under brands/pawcontrol for Home Assistant discovery."
-  action-setup:
-    status: done
-    comment: "Service manager instantiation is now enforced by tests, guaranteeing actions are registered during setup."
-  appropriate-polling:
-    status: done
-    comment: "Adaptive polling enforces 15-minute idle intervals and backs off aggressively on repeated failures."
-    comment: "DogConfigRegistry clamps all update intervals to <=15 minutes and validates user-provided overrides."
-  common-modules:
-    status: done
-    comment: "Shared PawControlEntity base class introduced in entity.py for consistent coordinator/entity structure."
+    status: todo
+    comment: "Brand assets have not been submitted to `home-assistant/brands` and the repository lacks the required icons."
 
-  config-flow-discovery:
-    status: done
-    comment: "Config flow implements Zeroconf, DHCP, USB, Bluetooth, and manual discovery steps."
-  docs-actions:
-    status: done
-    comment: "Service usage documented in services.yaml and README."
-  docs-high-level:
-    status: done
-    comment: "Integration overview provided in README.md."
-  docs-installation:
-    status: done
-    comment: "Installation instructions available in docs/."
-  docs-configuration:
-    status: done
-    comment: "Configuration guidance provided in docs/ and README."
-  entity-unique-id:
-    status: done
-    comment: "All entities generated with stable unique IDs."
-  integration-setup-errors:
-    status: done
-    comment: "Setup errors handled gracefully during entry creation."
-  log-when-unavailable:
-    status: done
-    comment: "Entities log unavailable states with context."
-  devices:
-    status: done
-    comment: "Each dog/device registers a corresponding device entry."
+  documentation:
+    status: in_progress
+    comment: "README and INSTALLATION cover onboarding, but maintenance, diagnostics, and troubleshooting guides are still thin."
+
   diagnostics:
-    status: done
-    comment: "Diagnostics support implemented in diagnostics.py."
-  discovery-update-info:
-    status: done
-    comment: "Discovery metadata persisted in config entries and refreshed on rediscovery."
-  discovery-mqtt:
-    status: exempt
-    comment: "Integration hardware does not use MQTT discovery mechanisms."
-  docs-data-update:
-    status: done
-    comment: "Update cadence and adaptive polling behaviour documented in README diagnostics section."
+    status: todo
+    comment: "Diagnostics endpoints are not implemented; the diagnostics module returns placeholders."
+
+  repairs:
+    status: todo
+    comment: "No repair flows are registered. We need to add actionable issue handlers once runtime data exists."
+
+  maintenance-playbook:
+    status: todo
+    comment: "There is no sustainment guide documenting how we keep evidence current after Bronze is achieved."
+
+  localization:
+    status: todo
+    comment: "User-facing strings are not localised; translation files are absent."

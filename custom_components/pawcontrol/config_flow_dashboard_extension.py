@@ -4,7 +4,7 @@ This module provides a mixin with additional steps for configuring the
 dashboard during the integration setup. It can be mixed into the main
 ``PawControlConfigFlow`` class to keep the core config flow file concise.
 
-Quality Scale: Platinum
+Quality Scale: Bronze target
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """
@@ -15,7 +15,6 @@ from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
-from homeassistant.helpers import selector
 
 from .const import (
     CONF_DASHBOARD_AUTO_CREATE,
@@ -29,6 +28,7 @@ from .const import (
     DEFAULT_DASHBOARD_THEME,
     MODULE_GPS,
 )
+from .selector_shim import selector
 from .types import DogConfigData
 
 

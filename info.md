@@ -28,7 +28,7 @@ HTTP calls reuse Home Assistant’s managed aiohttp session.
   und liefern strukturierte Payloads für die Sensorplattformen.
 - Laufzeitmetriken für Statistik- und Besuchsflows werden per `perf_counter`
   erfasst; die aktuellen Benchmarks sind im Performance-Anhang dokumentiert.
-  So lassen sich Platinum-Aussagen zur Async-Disziplin jederzeit verifizieren.
+  So lässt sich der aktuelle Bronze-Status der Async-Disziplin transparent nachvollziehen.
 
 ### Benachrichtigungen & Webhooks
 - Der `PawControlNotificationManager` bündelt Push-Nachrichten, Personenerkennung,

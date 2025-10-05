@@ -1,13 +1,13 @@
 """Optimized base entity classes for PawControl integration.
 
 This module provides high-performance base entity classes that implement
-Platinum-level optimizations including advanced caching, memory management,
+Bronze-targeted optimizations including advanced caching, memory management,
 async performance enhancements, and comprehensive error handling.
 
 All platform entities should inherit from these optimized base classes to ensure
-consistent performance characteristics and maintain Platinum quality standards.
+consistent performance characteristics and maintain Bronze quality ambitions.
 
-Quality Scale: Platinum
+Quality Scale: Bronze target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 
@@ -217,7 +217,7 @@ class OptimizedEntityBase(
     - Profile-aware configuration and resource management
 
     All PawControl entities should inherit from this base class to ensure
-    consistent high performance and maintain Platinum quality standards.
+    consistent high performance and maintain Bronze quality ambitions.
     """
 
     # Class-level performance tracking

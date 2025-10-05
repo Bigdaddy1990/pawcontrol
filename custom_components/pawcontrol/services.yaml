@@ -2,9 +2,88 @@
 # Services for Paw Control integration
 # This file defines all available services with their parameters, descriptions, and validation
 
+add_feeding:
+  name: Add Feeding Entry
+  description: Record a feeding event with optional medication context and scheduling metadata
+  target: {}
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog receiving food
+      required: true
+      selector:
+        text:
+    amount:
+      name: Amount (grams)
+      description: Quantity of food dispensed in grams
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 2000
+          step: 1
+          unit_of_measurement: "g"
+    meal_type:
+      name: Meal Type
+      description: Classification of the meal being served
+      required: false
+      selector:
+        select:
+          options:
+            - "breakfast"
+            - "lunch"
+            - "dinner"
+            - "snack"
+            - "treat"
+    feeder:
+      name: Feeder
+      description: Name of the feeder or device that dispensed the meal
+      required: false
+      selector:
+        text:
+    notes:
+      name: Notes
+      description: Optional notes about the feeding event
+      required: false
+      selector:
+        text:
+          multiline: true
+    scheduled:
+      name: Scheduled
+      description: Flag to indicate whether this feeding came from an automated schedule
+      required: false
+      default: false
+      selector:
+        boolean:
+    with_medication:
+      name: Includes Medication
+      description: Whether medication was administered with this meal
+      required: false
+      default: false
+      selector:
+        boolean:
+    medication_name:
+      name: Medication Name
+      description: Name of the medication provided with the feeding
+      required: false
+      selector:
+        text:
+    medication_dose:
+      name: Medication Dose
+      description: Dosage that was administered alongside the meal
+      required: false
+      selector:
+        text:
+    medication_time:
+      name: Medication Administration Time
+      description: Time the medication was given (defaults to now)
+      required: false
+      selector:
+        datetime:
+
 feed_dog:
   name: Feed Dog
-  description: Log feeding for a specific dog
+  description: "Log a feeding for a specific dog (deprecated: prefer `add_feeding`)."
   fields:
     dog_id:
       name: Dog ID
@@ -26,8 +105,8 @@ feed_dog:
             - "snack"
             - "treat"
     portion_size:
-      name: Portion Size
-      description: Size of the portion in grams (0 for default)
+      name: Amount (grams)
+      description: "Legacy field matching `add_feeding.amount`; 0 uses the configured default."
       required: false
       default: 0
       selector:
@@ -56,6 +135,67 @@ feed_dog:
       selector:
         text:
           multiline: true
+
+calculate_portion:
+  name: Calculate Portion
+  description: Calculate a recommended meal portion based on configuration and optional override data
+  target: {}
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog to calculate for
+      required: true
+      selector:
+        text:
+    meal_type:
+      name: Meal Type
+      description: Meal classification used for calculation rules
+      required: true
+      selector:
+        select:
+          options:
+            - "breakfast"
+            - "lunch"
+            - "dinner"
+            - "snack"
+            - "treat"
+    override_weight:
+      name: Override Weight (kg)
+      description: Override weight used in the calculation
+      required: false
+      selector:
+        number:
+          min: 0.5
+          max: 200
+          step: 0.1
+          unit_of_measurement: "kg"
+    override_activity_level:
+      name: Override Activity Level
+      description: Override activity level used in calculations
+      required: false
+      selector:
+        select:
+          options:
+            - "very_low"
+            - "low"
+            - "moderate"
+            - "high"
+            - "very_high"
+    override_health_conditions:
+      name: Override Health Conditions
+      description: Override list of health conditions to consider
+      required: false
+      selector:
+        select:
+          multiple: true
+          options:
+            - "allergies"
+            - "arthritis"
+            - "diabetes"
+            - "heart_disease"
+            - "kidney_disease"
+            - "obesity"
+            - "other"
 
 start_walk:
   name: Start Walk
@@ -120,7 +260,94 @@ end_walk:
         text:
           multiline: true
 
-log_health:
+update_health:
+  name: Update Health Profile
+  description: Update stored health metrics for a dog; values left blank remain unchanged
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog whose health data should be updated
+      required: true
+      selector:
+        text:
+    weight:
+      name: Weight (kg)
+      description: Current weight in kilograms
+      required: false
+      selector:
+        number:
+          min: 0.5
+          max: 200
+          step: 0.1
+          unit_of_measurement: "kg"
+    ideal_weight:
+      name: Ideal Weight (kg)
+      description: Target healthy weight in kilograms
+      required: false
+      selector:
+        number:
+          min: 0.5
+          max: 200
+          step: 0.1
+          unit_of_measurement: "kg"
+    age_months:
+      name: Age (months)
+      description: Age of the dog in months
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 360
+          step: 1
+          unit_of_measurement: "months"
+    activity_level:
+      name: Activity Level
+      description: General daily activity classification
+      required: false
+      selector:
+        select:
+          options:
+            - "very_low"
+            - "low"
+            - "moderate"
+            - "high"
+            - "very_high"
+    body_condition_score:
+      name: Body Condition Score
+      description: Numerical body condition score from 1-9
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 9
+          step: 1
+    health_conditions:
+      name: Health Conditions
+      description: List of diagnosed conditions to consider in recommendations
+      required: false
+      selector:
+        select:
+          multiple: true
+          options:
+            - "allergies"
+            - "arthritis"
+            - "diabetes"
+            - "heart_disease"
+            - "kidney_disease"
+            - "obesity"
+            - "other"
+    weight_goal:
+      name: Weight Goal
+      description: Desired weight trajectory for the dog
+      required: false
+      selector:
+        select:
+          options:
+            - "maintain"
+            - "lose"
+            - "gain"
+
+log_health_data:
   name: Log Health Data
   description: Log health information for a specific dog
   fields:
@@ -200,6 +427,48 @@ log_health:
     note:
       name: Health Note
       description: Additional health notes
+      required: false
+      selector:
+        text:
+          multiline: true
+
+log_poop:
+  name: Log Poop Event
+  description: Record a poop event for tracking and reminders
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    occurred_at:
+      name: Occurred At
+      description: Timestamp of when the event happened
+      required: false
+      selector:
+        datetime:
+    location:
+      name: Location
+      description: Where the event happened (e.g., backyard, walk route)
+      required: false
+      selector:
+        text:
+    consistency:
+      name: Consistency
+      description: Optional descriptor of stool consistency
+      required: false
+      selector:
+        select:
+          options:
+            - "normal"
+            - "soft"
+            - "hard"
+            - "diarrhea"
+            - "bloody"
+    notes:
+      name: Notes
+      description: Additional observations for vets or caregivers
       required: false
       selector:
         text:
@@ -335,6 +604,173 @@ end_grooming:
       selector:
         text:
           multiline: true
+
+start_garden_session:
+  name: Start Garden Session
+  description: Begin tracking time your dog spends in the garden or yard
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    detection_method:
+      name: Detection Method
+      description: How garden presence should be detected
+      required: false
+      default: "manual"
+      selector:
+        select:
+          options:
+            - "manual"
+            - "door_sensor"
+            - "auto"
+    weather_conditions:
+      name: Weather Conditions
+      description: Optional description of current weather conditions
+      required: false
+      selector:
+        text:
+    temperature:
+      name: Temperature
+      description: Outdoor temperature in Celsius when the session starts
+      required: false
+      selector:
+        number:
+          min: -40
+          max: 60
+          step: 0.5
+          unit_of_measurement: "°C"
+
+end_garden_session:
+  name: End Garden Session
+  description: Stop the active garden session and optionally summarise activities
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    notes:
+      name: Notes
+      description: Optional summary of the session
+      required: false
+      selector:
+        text:
+          multiline: true
+    activities:
+      name: Activities
+      description: Optional list of activities recorded during the session
+      required: false
+      selector:
+        object:
+      example:
+        - type: "play"
+          duration_seconds: 300
+          location: "north_yard"
+          notes: "Fetch with tennis ball"
+
+add_garden_activity:
+  name: Add Garden Activity
+  description: Log an activity that occurred during the active garden session
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    activity_type:
+      name: Activity Type
+      description: Type of activity observed in the garden
+      required: true
+      selector:
+        select:
+          options:
+            - "general"
+            - "poop"
+            - "play"
+            - "sniffing"
+            - "digging"
+            - "resting"
+    duration_seconds:
+      name: Duration
+      description: How long the activity lasted in seconds
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 7200
+          step: 1
+          unit_of_measurement: "s"
+    location:
+      name: Location
+      description: Optional location within the garden
+      required: false
+      selector:
+        text:
+    notes:
+      name: Notes
+      description: Additional details about the activity
+      required: false
+      selector:
+        text:
+          multiline: true
+    confirmed:
+      name: Confirmed
+      description: Whether the activity was confirmed by a person
+      required: false
+      default: true
+      selector:
+        boolean:
+
+confirm_garden_poop:
+  name: Confirm Garden Poop Detection
+  description: Confirm or reject an automatic poop detection from the garden session
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    confirmed:
+      name: Confirmed
+      description: Whether the detection is correct
+      required: true
+      selector:
+        boolean:
+    quality:
+      name: Quality
+      description: Optional quality rating for the poop
+      required: false
+      selector:
+        select:
+          options:
+            - "excellent"
+            - "good"
+            - "normal"
+            - "soft"
+            - "loose"
+            - "watery"
+    size:
+      name: Size
+      description: Optional size classification
+      required: false
+      selector:
+        select:
+          options:
+            - "small"
+            - "normal"
+            - "large"
+    location:
+      name: Location
+      description: Where the poop was found in the garden
+      required: false
+      selector:
+        text:
 
 update_location:
   name: Update Location
@@ -742,6 +1178,38 @@ configure_alerts:
       selector:
         time:
 
+analyze_patterns:
+  name: Analyze Patterns
+  description: Analyze historical data for feeding, walking, or health trends
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog whose data should be analysed
+      required: true
+      selector:
+        text:
+    analysis_type:
+      name: Analysis Type
+      description: Dataset to analyse for trends and anomalies
+      required: true
+      selector:
+        select:
+          options:
+            - "feeding"
+            - "walking"
+            - "health"
+            - "comprehensive"
+    days:
+      name: Lookback Window (days)
+      description: Number of days of history to include in the analysis
+      required: false
+      default: 30
+      selector:
+        number:
+          min: 7
+          max: 180
+          step: 1
+
 generate_report:
   name: Generate Report
   description: Generate a comprehensive report for a specific dog
@@ -809,6 +1277,86 @@ generate_report:
       selector:
         boolean:
 
+send_notification:
+  name: Send Notification
+  description: Deliver a PawControl notification with optional targeting and priority controls
+  fields:
+    title:
+      name: Title
+      description: Notification title
+      required: true
+      selector:
+        text:
+    message:
+      name: Message
+      description: Body text of the notification
+      required: true
+      selector:
+        text:
+          multiline: true
+    dog_id:
+      name: Dog ID
+      description: Optional dog identifier to personalise the message
+      required: false
+      selector:
+        text:
+    notification_type:
+      name: Notification Type
+      description: Category of notification for routing and templates
+      required: false
+      selector:
+        select:
+          options:
+            - "feeding_reminder"
+            - "feeding_overdue"
+            - "walk_reminder"
+            - "walk_overdue"
+            - "health_alert"
+            - "medication_reminder"
+            - "veterinary_appointment"
+            - "weight_check"
+            - "system_info"
+            - "system_warning"
+            - "system_error"
+    priority:
+      name: Priority
+      description: Importance level for downstream channels
+      required: false
+      default: "normal"
+      selector:
+        select:
+          options:
+            - "low"
+            - "normal"
+            - "high"
+            - "urgent"
+    channels:
+      name: Channels
+      description: Override the notification delivery channels
+      required: false
+      selector:
+        select:
+          multiple: true
+          options:
+            - "persistent"
+            - "mobile"
+            - "email"
+            - "sms"
+            - "webhook"
+            - "tts"
+            - "media_player"
+            - "slack"
+            - "discord"
+    expires_in_hours:
+      name: Expires In (hours)
+      description: Optional expiry window after which the notification is ignored
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 168
+          step: 1
+
 acknowledge_notification:
   name: Acknowledge Notification
   description: Mark a PawControl notification as acknowledged
@@ -819,3 +1367,773 @@ acknowledge_notification:
       required: true
       selector:
         text:
+
+update_weather_data:
+  name: Update Weather Data
+  description: Refresh weather insights used for dog health recommendations
+  fields:
+    weather_entity_id:
+      name: Weather Entity
+      description: Optional Home Assistant weather entity to source data from
+      required: false
+      selector:
+        entity:
+          domain: weather
+    force_update:
+      name: Force Update
+      description: Ignore throttling and refresh even if data is fresh
+      required: false
+      default: false
+      selector:
+        boolean:
+
+get_weather_alerts:
+  name: Get Weather Alerts
+  description: Retrieve active weather alerts that may affect your dogs
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Optional dog to notify about the alert summary
+      required: false
+      selector:
+        text:
+    severity_filter:
+      name: Severity Filter
+      description: Only include alerts at this severity level or higher
+      required: false
+      selector:
+        select:
+          options:
+            - "low"
+            - "moderate"
+            - "high"
+            - "extreme"
+    impact_filter:
+      name: Impact Filter
+      description: Limit alerts to a particular type of health impact
+      required: false
+      selector:
+        select:
+          options:
+            - "heat_stress"
+            - "cold_stress"
+            - "uv_exposure"
+            - "air_quality"
+            - "exercise_limitation"
+            - "hydration_risk"
+            - "paw_protection"
+            - "respiratory_risk"
+
+get_weather_recommendations:
+  name: Get Weather Recommendations
+  description: Generate personalised advice for a dog based on current weather
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    include_breed_specific:
+      name: Include Breed Specific Guidance
+      description: Tailor recommendations to the dog's breed profile
+      required: false
+      default: true
+      selector:
+        boolean:
+    include_health_conditions:
+      name: Include Health Conditions
+      description: Factor in the dog's recorded health conditions
+      required: false
+      default: true
+      selector:
+        boolean:
+    max_recommendations:
+      name: Maximum Recommendations
+      description: Limit how many suggestions are returned
+      required: false
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 10
+          step: 1
+
+toggle_visitor_mode:
+  name: Toggle Visitor Mode
+  description: Enable or disable visitor mode automations for a household
+  fields:
+    enabled:
+      name: Enabled
+      description: Whether to enable (true) or disable (false) visitor handling automations
+      required: true
+      selector:
+        boolean:
+
+daily_reset:
+  name: Daily Reset
+  description: Reset daily statistics and reminders for the integration
+  fields:
+    entry_id:
+      name: Config Entry ID
+      description: Optional config entry identifier to target; defaults to the active entry
+      required: false
+      selector:
+        text:
+
+setup_automatic_gps:
+  name: Set Up Automatic GPS Tracking
+  description: Configure automatic GPS tracking parameters for a dog
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog whose GPS settings should be configured
+      required: true
+      selector:
+        text:
+    auto_start_walk:
+      name: Auto-Start Walks
+      description: Begin a tracked walk automatically when motion is detected
+      required: false
+      default: true
+      selector:
+        boolean:
+    safe_zone_radius:
+      name: Safe Zone Radius (m)
+      description: Radius of the safe zone geofence in meters
+      required: false
+      default: 50
+      selector:
+        number:
+          min: 10
+          max: 10000
+          step: 5
+          unit_of_measurement: "m"
+    track_route:
+      name: Track Route
+      description: Record GPS points to build route history
+      required: false
+      default: true
+      selector:
+        boolean:
+    safety_alerts:
+      name: Enable Safety Alerts
+      description: Send notifications when the dog leaves the safe zone
+      required: false
+      default: true
+      selector:
+        boolean:
+    geofence_notifications:
+      name: Geofence Notifications
+      description: Announce entries and exits from defined zones
+      required: false
+      default: true
+      selector:
+        boolean:
+    auto_detect_home:
+      name: Auto Detect Home
+      description: Attempt to determine the home zone automatically
+      required: false
+      default: true
+      selector:
+        boolean:
+    gps_accuracy_threshold:
+      name: GPS Accuracy Threshold (m)
+      description: Maximum accuracy (in meters) before readings are ignored
+      required: false
+      default: 50
+      selector:
+        number:
+          min: 5
+          max: 500
+          step: 5
+          unit_of_measurement: "m"
+    update_interval_seconds:
+      name: Update Interval (seconds)
+      description: Frequency of automatic GPS updates
+      required: false
+      default: 60
+      selector:
+        number:
+          min: 30
+          max: 600
+          step: 10
+          unit_of_measurement: "s"
+
+add_gps_point:
+  name: Add GPS Point
+  description: Manually add a GPS point to the active tracking session
+  target: {}
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog to associate with the GPS point
+      required: true
+      selector:
+        text:
+    latitude:
+      name: Latitude
+      description: Latitude in decimal degrees
+      required: true
+      selector:
+        number:
+          min: -90
+          max: 90
+    longitude:
+      name: Longitude
+      description: Longitude in decimal degrees
+      required: true
+      selector:
+        number:
+          min: -180
+          max: 180
+    altitude:
+      name: Altitude (m)
+      description: Optional altitude in meters
+      required: false
+      selector:
+        number:
+          min: -500
+          max: 9000
+          step: 1
+          unit_of_measurement: "m"
+    accuracy:
+      name: Accuracy (m)
+      description: Optional accuracy of the GPS reading in meters
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 1000
+          step: 1
+          unit_of_measurement: "m"
+
+gps_start_walk:
+  name: GPS Start Walk
+  description: Start a GPS-tracked walk session using raw location data
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog starting the walk
+      required: true
+      selector:
+        text:
+    source:
+      name: Source
+      description: Identifier of the GPS source (device tracker, person, etc.)
+      required: true
+      selector:
+        text:
+    accuracy:
+      name: Accuracy (m)
+      description: Accuracy of the initial position in meters
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 1000
+          step: 1
+
+gps_end_walk:
+  name: GPS End Walk
+  description: Stop an active GPS-tracked walk session
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog ending the walk
+      required: true
+      selector:
+        text:
+    distance_m:
+      name: Distance (m)
+      description: Optional total distance covered in meters
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 100000
+          step: 10
+    duration_s:
+      name: Duration (s)
+      description: Optional total walk duration in seconds
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 86400
+          step: 5
+
+gps_post_location:
+  name: GPS Post Location
+  description: Push a raw GPS update for an active walk session
+  target: {}
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog being tracked
+      required: true
+      selector:
+        text:
+    latitude:
+      name: Latitude
+      description: Latitude coordinate in decimal degrees
+      required: true
+      selector:
+        number:
+          min: -90
+          max: 90
+    longitude:
+      name: Longitude
+      description: Longitude coordinate in decimal degrees
+      required: true
+      selector:
+        number:
+          min: -180
+          max: 180
+    accuracy:
+      name: Accuracy (m)
+      description: Optional accuracy of the reading in meters
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 1000
+          step: 1
+    speed:
+      name: Speed (m/s)
+      description: Optional speed reading in meters per second
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 30
+          step: 0.1
+    heading:
+      name: Heading (°)
+      description: Optional heading in degrees
+      required: false
+      selector:
+        number:
+          min: 0
+          max: 360
+          step: 1
+
+gps_export_last_route:
+  name: GPS Export Last Route
+  description: Export the most recently recorded GPS walk route
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog whose walk should be exported
+      required: true
+      selector:
+        text:
+    format:
+      name: Export Format
+      description: File format to export (GPX, GeoJSON, or CSV)
+      required: false
+      default: "gpx"
+      selector:
+        select:
+          options:
+            - "gpx"
+            - "geojson"
+            - "csv"
+
+recalculate_health_portions:
+  name: Recalculate Health Portions
+  description: Re-evaluate feeding portions based on recent health data
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog whose plan should be updated
+      required: true
+      selector:
+        text:
+    force_recalculation:
+      name: Force Recalculation
+      description: Ignore caching and recompute even if data is fresh
+      required: false
+      default: false
+      selector:
+        boolean:
+    update_feeding_schedule:
+      name: Update Feeding Schedule
+      description: Apply the new portions to the stored feeding schedule
+      required: false
+      default: true
+      selector:
+        boolean:
+
+adjust_calories_for_activity:
+  name: Adjust Calories for Activity
+  description: Temporarily adjust calories based on recent exercise levels
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    activity_level:
+      name: Activity Level
+      description: Activity intensity to adjust for
+      required: true
+      selector:
+        select:
+          options:
+            - "very_low"
+            - "low"
+            - "moderate"
+            - "high"
+            - "very_high"
+    duration_hours:
+      name: Duration (hours)
+      description: Optional duration the activity level applied
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 72
+          step: 1
+    temporary:
+      name: Temporary Adjustment
+      description: Whether to automatically revert the change after the duration
+      required: false
+      default: true
+      selector:
+        boolean:
+
+activate_diabetic_feeding_mode:
+  name: Activate Diabetic Feeding Mode
+  description: Configure a diabetes-friendly feeding schedule
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    meal_frequency:
+      name: Meals per Day
+      description: Target number of meals per day during diabetic mode
+      required: false
+      default: 4
+      selector:
+        number:
+          min: 3
+          max: 6
+          step: 1
+    carb_limit_percent:
+      name: Carb Limit (%)
+      description: Percentage of carbs allowed per meal
+      required: false
+      default: 20
+      selector:
+        number:
+          min: 5
+          max: 30
+          step: 1
+    monitor_blood_glucose:
+      name: Monitor Blood Glucose
+      description: Enable additional monitoring reminders
+      required: false
+      default: true
+      selector:
+        boolean:
+
+feed_with_medication:
+  name: Feed with Medication
+  description: Log a feeding that includes medication administration
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    amount:
+      name: Portion Amount (g)
+      description: Amount of food provided in grams
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 5000
+          step: 1
+    medication_name:
+      name: Medication Name
+      description: Name of the medication administered
+      required: true
+      selector:
+        text:
+    dose:
+      name: Dose
+      description: Dosage information for the medication
+      required: true
+      selector:
+        text:
+    meal_type:
+      name: Meal Type
+      description: Optional meal category used for logging
+      required: false
+      default: "medication"
+      selector:
+        text:
+    notes:
+      name: Notes
+      description: Additional notes for this feeding
+      required: false
+      selector:
+        text:
+          multiline: true
+    administration_time:
+      name: Administration Time
+      description: When the medication was given
+      required: false
+      selector:
+        datetime:
+
+generate_weekly_health_report:
+  name: Generate Weekly Health Report
+  description: Produce a weekly summary of a dog's health metrics
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    include_recommendations:
+      name: Include Recommendations
+      description: Add care recommendations to the report
+      required: false
+      default: true
+      selector:
+        boolean:
+    include_charts:
+      name: Include Charts
+      description: Attach visual charts to the report
+      required: false
+      default: true
+      selector:
+        boolean:
+    format:
+      name: Format
+      description: Preferred export format
+      required: false
+      default: "pdf"
+      selector:
+        select:
+          options:
+            - "pdf"
+            - "json"
+            - "markdown"
+
+activate_emergency_feeding_mode:
+  name: Activate Emergency Feeding Mode
+  description: Configure a temporary emergency feeding plan
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    emergency_type:
+      name: Emergency Type
+      description: Reason for the emergency feeding plan
+      required: true
+      selector:
+        select:
+          options:
+            - "illness"
+            - "surgery_recovery"
+            - "digestive_upset"
+            - "medication_reaction"
+    duration_days:
+      name: Duration (days)
+      description: Number of days the plan should remain active
+      required: false
+      default: 3
+      selector:
+        number:
+          min: 1
+          max: 14
+          step: 1
+    portion_adjustment:
+      name: Portion Adjustment
+      description: Portion multiplier to apply while the plan is active
+      required: false
+      default: 0.8
+      selector:
+        number:
+          min: 0.5
+          max: 1.2
+          step: 0.1
+
+start_diet_transition:
+  name: Start Diet Transition
+  description: Begin a gradual transition to a new food
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    new_food_type:
+      name: New Food Type
+      description: Name of the food being introduced
+      required: true
+      selector:
+        text:
+    transition_days:
+      name: Transition Days
+      description: Number of days for the transition plan
+      required: false
+      default: 7
+      selector:
+        number:
+          min: 3
+          max: 14
+          step: 1
+    gradual_increase_percent:
+      name: Gradual Increase (%)
+      description: Percentage increase of new food per step
+      required: false
+      default: 25
+      selector:
+        number:
+          min: 10
+          max: 50
+          step: 5
+
+check_feeding_compliance:
+  name: Check Feeding Compliance
+  description: Evaluate whether scheduled feedings were completed
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    days_to_check:
+      name: Days to Check
+      description: Number of days to include in the audit
+      required: false
+      default: 7
+      selector:
+        number:
+          min: 1
+          max: 30
+          step: 1
+    notify_on_issues:
+      name: Notify on Issues
+      description: Send a notification when compliance gaps are detected
+      required: false
+      default: true
+      selector:
+        boolean:
+
+adjust_daily_portions:
+  name: Adjust Daily Portions
+  description: Apply a percentage adjustment to a dog's daily portion plan
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    adjustment_percent:
+      name: Adjustment (%)
+      description: Percentage adjustment to apply (negative to decrease)
+      required: true
+      selector:
+        number:
+          min: -50
+          max: 50
+          step: 1
+    reason:
+      name: Reason
+      description: Optional note describing why the adjustment is needed
+      required: false
+      selector:
+        text:
+    temporary:
+      name: Temporary Adjustment
+      description: Whether to revert the change after a duration
+      required: false
+      default: false
+      selector:
+        boolean:
+    duration_days:
+      name: Duration (days)
+      description: How many days the temporary adjustment should last
+      required: false
+      selector:
+        number:
+          min: 1
+          max: 30
+          step: 1
+
+add_health_snack:
+  name: Add Health Snack
+  description: Log a supplemental health-focused snack
+  fields:
+    dog_id:
+      name: Dog ID
+      description: Unique identifier of the dog
+      required: true
+      selector:
+        text:
+    snack_type:
+      name: Snack Type
+      description: Description or name of the snack
+      required: true
+      selector:
+        text:
+    amount:
+      name: Amount (g)
+      description: Weight of the snack in grams
+      required: true
+      selector:
+        number:
+          min: 1
+          max: 500
+          step: 1
+    health_benefit:
+      name: Health Benefit
+      description: Optional categorisation of the snack's benefit
+      required: false
+      selector:
+        select:
+          options:
+            - "digestive"
+            - "dental"
+            - "joint"
+            - "skin_coat"
+            - "immune"
+            - "calming"
+    notes:
+      name: Notes
+      description: Additional context about the snack
+      required: false
+      selector:
+        text:
+          multiline: true
+
+service_unavailable:
+  name: Flag service unavailable state (internal)
+  description: Internal helper used when a requested PawControl service cannot be executed. The integration calls this service to record telemetry and notify administrators of the failure.
+  fields:
+    reason:
+      description: Short reason for the failure that triggered the unavailable state.
+      example: external_api_offline
+    context:
+      description: Additional context collected from the failing subsystem.
+      example:
+        dog_id: scout
+        service: feed_dog

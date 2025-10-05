@@ -14,7 +14,7 @@ dozens of ``attr-defined`` errors that blocked the "strict typing" milestone in
 understand the control flow. The runtime behaviour is unchanged, but type
 analysis is now sound and deterministic.
 
-Quality Scale: Platinum
+Quality Scale: Bronze target
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """
@@ -26,7 +26,6 @@ from typing import TYPE_CHECKING, Any, Protocol, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
-from homeassistant.helpers import selector
 
 from .const import (
     CONF_MODULES,
@@ -38,6 +37,7 @@ from .const import (
     MODULE_HEALTH,
     SPECIAL_DIET_OPTIONS,
 )
+from .selector_shim import selector
 from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)

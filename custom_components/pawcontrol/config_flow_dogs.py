@@ -5,7 +5,7 @@ validating, and configuring individual dogs with intelligent defaults
 and enhanced user experience. Now includes per-dog GPS, feeding schedules,
 health data, and individual module configuration.
 
-Quality Scale: Platinum
+Quality Scale: Bronze target
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """
@@ -65,7 +65,8 @@ from custom_components.pawcontrol.const import (
 )
 from custom_components.pawcontrol.types import DogConfigData
 from homeassistant.config_entries import ConfigFlowResult
-from homeassistant.helpers import selector
+
+from .selector_shim import selector
 
 _LOGGER = logging.getLogger(__name__)
 

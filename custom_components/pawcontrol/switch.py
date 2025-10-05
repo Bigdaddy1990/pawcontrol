@@ -1,6 +1,6 @@
 """Ultra-optimized switch platform for PawControl with profile-based entity creation.
 
-Quality Scale: Platinum
+Quality Scale: Bronze target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 

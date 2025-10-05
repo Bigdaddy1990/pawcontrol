@@ -2,7 +2,7 @@
 
 This module provides comprehensive number entities for dog monitoring configuration
 including weight settings, timing controls, thresholds, and system parameters.
-All number entities are designed to meet Home Assistant's Platinum quality standards
+All number entities are designed to meet Home Assistant's Bronze quality ambitions
 with full type annotations, async operations, and robust validation.
 """
 

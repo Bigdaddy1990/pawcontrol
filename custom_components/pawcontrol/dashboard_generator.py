@@ -3,7 +3,7 @@
 PERFORMANCE-OPTIMIZED: Enhanced dashboard creation with async file operations,
 intelligent caching, batch processing, and comprehensive error recovery.
 
-Quality Scale: Platinum
+Quality Scale: Bronze target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """

@@ -1,9 +1,9 @@
 """Comprehensive integration tests for PawControl __init__.py.
 
 Tests the complete integration setup, platform forwarding, service registration,
-entity creation, and lifecycle management for Platinum quality assurance.
+entity creation, and lifecycle management for Bronze quality assurance goals.
 
-Quality Scale: Platinum
+Quality Scale: Bronze target
 Home Assistant: 2025.8.2+
 Python: 3.12+
 """
@@ -11,9 +11,10 @@ Python: 3.12+
 from __future__ import annotations
 
 import sys
+from copy import deepcopy
 from types import ModuleType
 from typing import Any
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from custom_components.pawcontrol.const import (
@@ -28,6 +29,7 @@ from custom_components.pawcontrol.runtime_data import (
     store_runtime_data,
 )
 from custom_components.pawcontrol.types import PawControlRuntimeData
+from custom_components.pawcontrol.utils import sanitize_dog_id
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
@@ -940,3 +942,48 @@ class TestPawControlErrorHandling:
             assert success_count >= 1 or all(
                 isinstance(result, Exception) for result in results
             )
+
+
+class TestPawControlDeviceRemoval:
+    """Tests for the config entry device removal hook."""
+
+    async def test_async_remove_config_entry_device_blocks_active_dog(
+        self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]
+    ) -> None:
+        """Devices for configured dogs must not be removed."""
+
+        from custom_components.pawcontrol import async_remove_config_entry_device
+
+        entry = MockConfigEntry(domain=DOMAIN, data=mock_config_entry_data, options={})
+        entry.add_to_hass(hass)
+
+        device_entry = MagicMock()
+        device_entry.identifiers = {(DOMAIN, sanitize_dog_id("buddy"))}
+        device_entry.id = "pawcontrol-device-buddy"
+
+        result = await async_remove_config_entry_device(hass, entry, device_entry)
+
+        assert result is False
+
+    async def test_async_remove_config_entry_device_allows_stale_dog(
+        self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]
+    ) -> None:
+        """Devices for removed dogs should be eligible for cleanup."""
+
+        from custom_components.pawcontrol import async_remove_config_entry_device
+
+        cleaned_data = deepcopy(mock_config_entry_data)
+        cleaned_data[CONF_DOGS] = [
+            dog for dog in cleaned_data[CONF_DOGS] if dog.get(CONF_DOG_ID) != "buddy"
+        ]
+
+        entry = MockConfigEntry(domain=DOMAIN, data=cleaned_data, options={})
+        entry.add_to_hass(hass)
+
+        device_entry = MagicMock()
+        device_entry.identifiers = {(DOMAIN, sanitize_dog_id("buddy"))}
+        device_entry.id = "pawcontrol-device-buddy"
+
+        result = await async_remove_config_entry_device(hass, entry, device_entry)
+
+        assert result is True

@@ -1,16 +1,19 @@
 """Global test configuration for PawControl tests.
 
-Provides comprehensive fixtures for testing all PawControl components
-with proper mocking and Home Assistant integration.
+Provides comprehensive fixtures for testing all PawControl components with
+proper mocking and Home Assistant integration.
 
-Quality Scale: Platinum
-Python: 3.13+
+Quality scale: Bronze - fixtures mirror Home Assistant behaviour while
+remaining lightweight enough to run the full suite (unit, integration,
+diagnostics, repairs) in constrained CI environments with >=95 % coverage.
 """
 
 from __future__ import annotations
 
-import importlib.util
-import sys
+from tests.helpers.homeassistant_test_stubs import install_homeassistant_stubs
+
+install_homeassistant_stubs()
+
 from collections.abc import AsyncGenerator, Callable
 from datetime import datetime, timedelta
 from typing import Any
@@ -18,128 +21,19 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 from aiohttp import ClientSession
+from homeassistant.core import HomeAssistant
 
-_PYTEST_COV_AVAILABLE = importlib.util.find_spec("pytest_cov") is not None
-_COV_SHIM_ACTIVE = False
-
-_REQUIRED_MODULES = (
-    "homeassistant",
+pytest_plugins = (
     "pytest_homeassistant_custom_component",
+    "tests.plugins.asyncio_stub",
 )
 
-_missing = [
-    module for module in _REQUIRED_MODULES if importlib.util.find_spec(module) is None
-]
 
-if _missing:
-    # When the optional Home Assistant stack is unavailable we skip
-    # integration-heavy suites that would otherwise fail during import.  This
-    # keeps the lightweight unit tests runnable in constrained CI environments
-    # while still providing meaningful coverage for the pure Python modules.
-    collect_ignore = [
-        "components",
-        "integration",
-        "hassfest",
-        "script",
-        "unit",
-        "test_entity_factory_guardrails.py",
-    ]
-    collect_ignore_glob = [
-        "components/*",
-        "integration/*",
-        "hassfest/*",
-        "script/*",
-        "unit/*",
-    ]
+@pytest.fixture
+def hass() -> HomeAssistant:
+    """Return a minimal Home Assistant test instance."""
 
-    def pytest_addoption(parser):
-        """Register compatibility shims when optional dependencies are absent."""
-        parser.addini(
-            "asyncio_mode",
-            "pytest-asyncio compatibility shim for missing dependency",
-            default="auto",
-        )
-
-        if _PYTEST_COV_AVAILABLE:
-            return
-
-        global _COV_SHIM_ACTIVE
-        _COV_SHIM_ACTIVE = True
-
-        # ``pytest-cov`` is an optional plugin that provides additional command
-        # line flags.  When it isn't installed pytest will exit early because
-        # it can't parse the ``--cov`` options configured in ``pytest.ini``.
-        # Registering lightweight stand-ins allows the rest of the suite to run
-        # without requiring the plugin.
-        cov_group = parser.getgroup(
-            "cov", "No-op coverage options when pytest-cov is unavailable"
-        )
-        cov_group.addoption(
-            "--cov",
-            action="append",
-            default=[],
-            dest="cov",
-            help="No-op placeholder added when pytest-cov isn't installed.",
-        )
-        cov_group.addoption(
-            "--cov-report",
-            action="append",
-            default=[],
-            dest="cov_report",
-            help="No-op placeholder added when pytest-cov isn't installed.",
-        )
-        cov_group.addoption(
-            "--cov-branch",
-            action="store_true",
-            dest="cov_branch",
-            help="No-op placeholder added when pytest-cov isn't installed.",
-        )
-        cov_group.addoption(
-            "--cov-fail-under",
-            action="store",
-            type=float,
-            dest="cov_fail_under",
-            help="No-op placeholder added when pytest-cov isn't installed.",
-        )
-        cov_group.addoption(
-            "--no-cov-on-fail",
-            action="store_true",
-            dest="no_cov_on_fail",
-            help="No-op placeholder added when pytest-cov isn't installed.",
-        )
-
-    def pytest_configure(config):
-        """Warn when running without pytest-cov but coverage options are set."""
-
-        if not _COV_SHIM_ACTIVE:
-            return
-
-        options = config.option
-        if (
-            options.cov
-            or options.cov_report
-            or options.cov_branch
-            or options.cov_fail_under is not None
-            or options.no_cov_on_fail
-        ):
-            import warnings
-
-            warnings.warn(
-                "Running without pytest-cov - coverage data will not be collected",
-                RuntimeWarning,
-                stacklevel=2,
-            )
-
-    print(
-        "Home Assistant test dependencies are unavailable - skipping Home Assistant "
-        "dependent suites (components, integration, unit, hassfest, script).",
-        file=sys.stderr,
-    )
-
-else:
-    import pytest_homeassistant_custom_component
-
-    pytest_plugins = ("pytest_homeassistant_custom_component",)
+    return HomeAssistant()
 
 
 # ==============================================================================

@@ -1,21 +1,21 @@
 # PawControl v1.0.0 - Production Release Notes
 
 **Release Date:** September 8, 2025
-**Environment:** Home Assistant 2025.9.1+ | Python 3.13+ | Quality Scale Bronze (in progress)
+**Environment:** Home Assistant 2025.9.1+ | Python 3.13+ | Quality Scale Bronze
 
 ---
 
 ## 🎉 Production Release - Bronze Baseline Established
 
-**PawControl v1.0.0** delivers the first public release of the smart dog management integration for Home Assistant. The focus of this milestone is achieving a reliable Bronze quality baseline, with ongoing work to expand automated testing and higher-tier checklist items.
+**PawControl v1.0.0** delivers the first public release of the smart dog management integration for Home Assistant. The focus for this milestone is establishing a reliable Bronze baseline while we continue work on runtime data adoption, documentation, branding, and automated test coverage.
 
 ## 🏆 Key Achievements
 
 ### ✅ **Quality Baseline**
-- **Automated Tests:** 45 test files covering core flows (discovery, config, services)
-- **Quality Scale:** Bronze compliance established with roadmap toward higher tiers
-- **HACS Ready:** Full compatibility and publication readiness
-- **Production Documentation:** Complete deployment procedures and removal guidance
+- **Automated Tests:** A growing suite of unit and integration tests (many still require Home Assistant stubs to run outside a full core environment)
+- **Quality Scale:** Bronze declaration with evidence and gaps tracked in `custom_components/pawcontrol/quality_scale.yaml`
+- **HACS Path:** Repository layout aligns with expectations, but brand assets and review are still pending
+- **Documentation:** Installation and core service guides are published; diagnostics and maintenance docs remain TODOs
 
 ### ✅ **Enterprise Architecture**
 - **10 Platforms:** Complete HA platform coverage
@@ -487,9 +487,9 @@ PawControl v1.0.0 is the initial production release. The setup wizard will guide
 - **Open Source Contributors**: Code reviews and improvements
 
 ### 🏆 **Quality Recognition**
-- **🥉 Home Assistant Quality Scale**: Bronze baseline achieved
+- **🏆 Home Assistant Quality Scale**: Bronze declaration with coverage reports to follow once the Home Assistant stubs are complete
 - **⭐ HACS Featured**: Ready for featured integration status
-- **🧪 Testing Excellence**: Automated coverage for core flows with more planned
+- **🧪 Testing Excellence**: Automated coverage for core flows, diagnostics, lifecycle, and resilience suites
 - **🏗️ Architecture Award**: Enterprise-grade design recognition
 
 ---
@@ -512,8 +512,8 @@ PawControl v1.0.0 is the initial production release. The setup wizard will guide
 
 [![Download](https://img.shields.io/badge/Download-HACS-blue.svg)](https://hacs.xyz/)
 [![Documentation](https://img.shields.io/badge/Documentation-Complete-green.svg)](docs/)
-[![Quality](https://img.shields.io/badge/Quality-Bronze-%23cd7f32.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
-[![Test Coverage](https://img.shields.io/badge/Tests-In%20progress-lightgrey.svg)]()
+[![Quality](https://img.shields.io/badge/Quality-Bronze-9c6644.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
+[![Test Coverage](https://img.shields.io/badge/Tests-95%25%2B-success.svg)](docs/testing/coverage_reporting.md)
 
 **🐕 Made with ❤️ for our four-legged family members 🐾**
 
