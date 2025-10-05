@@ -5,6 +5,7 @@
 add_feeding:
   name: Add Feeding Entry
   description: Record a feeding event with optional medication context and scheduling metadata
+  target: {}
   fields:
     dog_id:
       name: Dog ID
@@ -61,31 +62,24 @@ add_feeding:
       default: false
       selector:
         boolean:
-    medication_data:
-      name: Medication Details
-      description: Optional medication information recorded with the feeding
+    medication_name:
+      name: Medication Name
+      description: Name of the medication provided with the feeding
       required: false
       selector:
-        object:
-          fields:
-            name:
-              name: Medication Name
-              description: Name of the medication provided
-              required: false
-              selector:
-                text:
-            dose:
-              name: Dose
-              description: Dosage that was administered
-              required: false
-              selector:
-                text:
-            time:
-              name: Administration Time
-              description: Time the medication was given (defaults to now)
-              required: false
-              selector:
-                datetime:
+        text:
+    medication_dose:
+      name: Medication Dose
+      description: Dosage that was administered alongside the meal
+      required: false
+      selector:
+        text:
+    medication_time:
+      name: Medication Administration Time
+      description: Time the medication was given (defaults to now)
+      required: false
+      selector:
+        datetime:
 
 feed_dog:
   name: Feed Dog
@@ -145,6 +139,7 @@ feed_dog:
 calculate_portion:
   name: Calculate Portion
   description: Calculate a recommended meal portion based on configuration and optional override data
+  target: {}
   fields:
     dog_id:
       name: Dog ID
@@ -164,50 +159,43 @@ calculate_portion:
             - "dinner"
             - "snack"
             - "treat"
-    override_health_data:
-      name: Override Health Data
-      description: Optional health metrics to use instead of the stored profile
+    override_weight:
+      name: Override Weight (kg)
+      description: Override weight used in the calculation
       required: false
       selector:
-        object:
-          fields:
-            weight:
-              name: Weight (kg)
-              description: Override weight used in the calculation
-              required: false
-              selector:
-                number:
-                  min: 0.5
-                  max: 200
-                  step: 0.1
-                  unit_of_measurement: "kg"
-            activity_level:
-              name: Activity Level
-              description: Override activity level used in calculations
-              required: false
-              selector:
-                select:
-                  options:
-                    - "very_low"
-                    - "low"
-                    - "moderate"
-                    - "high"
-                    - "very_high"
-            health_conditions:
-              name: Health Conditions
-              description: Override list of health conditions to consider
-              required: false
-              selector:
-                select:
-                  multiple: true
-                  options:
-                    - "allergies"
-                    - "arthritis"
-                    - "diabetes"
-                    - "heart_disease"
-                    - "kidney_disease"
-                    - "obesity"
-                    - "other"
+        number:
+          min: 0.5
+          max: 200
+          step: 0.1
+          unit_of_measurement: "kg"
+    override_activity_level:
+      name: Override Activity Level
+      description: Override activity level used in calculations
+      required: false
+      selector:
+        select:
+          options:
+            - "very_low"
+            - "low"
+            - "moderate"
+            - "high"
+            - "very_high"
+    override_health_conditions:
+      name: Override Health Conditions
+      description: Override list of health conditions to consider
+      required: false
+      selector:
+        select:
+          multiple: true
+          options:
+            - "allergies"
+            - "arthritis"
+            - "diabetes"
+            - "heart_disease"
+            - "kidney_disease"
+            - "obesity"
+            - "other"
 
 start_walk:
   name: Start Walk
@@ -1575,6 +1563,7 @@ setup_automatic_gps:
 add_gps_point:
   name: Add GPS Point
   description: Manually add a GPS point to the active tracking session
+  target: {}
   fields:
     dog_id:
       name: Dog ID
@@ -1590,7 +1579,6 @@ add_gps_point:
         number:
           min: -90
           max: 90
-          step: 0.000001
     longitude:
       name: Longitude
       description: Longitude in decimal degrees
@@ -1599,7 +1587,6 @@ add_gps_point:
         number:
           min: -180
           max: 180
-          step: 0.000001
     altitude:
       name: Altitude (m)
       description: Optional altitude in meters
@@ -1679,6 +1666,7 @@ gps_end_walk:
 gps_post_location:
   name: GPS Post Location
   description: Push a raw GPS update for an active walk session
+  target: {}
   fields:
     dog_id:
       name: Dog ID
@@ -1694,7 +1682,6 @@ gps_post_location:
         number:
           min: -90
           max: 90
-          step: 0.000001
     longitude:
       name: Longitude
       description: Longitude coordinate in decimal degrees
@@ -1703,7 +1690,6 @@ gps_post_location:
         number:
           min: -180
           max: 180
-          step: 0.000001
     accuracy:
       name: Accuracy (m)
       description: Optional accuracy of the reading in meters

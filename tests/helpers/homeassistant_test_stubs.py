@@ -205,9 +205,9 @@ def _install_util_modules() -> None:
 def _install_core_module() -> None:
     core_module = ModuleType("homeassistant.core")
 
-    CALLBACK_TYPE = Callable[..., None]
+    callback_type = Callable[..., None]
 
-    def callback(func: CALLBACK_TYPE) -> CALLBACK_TYPE:
+    def callback(func: callback_type) -> callback_type:
         return func
 
     class ServiceCall:
@@ -220,7 +220,7 @@ def _install_core_module() -> None:
         data: Mapping[str, Any] | None = None
         time_fired: datetime | None = None
 
-    EventStateChangedData = MutableMapping[str, Any]
+    event_state_changed_data = MutableMapping[str, Any]
 
     class _ServiceRegistry:
         def __init__(self) -> None:
@@ -416,10 +416,10 @@ def _install_core_module() -> None:
 
     core_module.HomeAssistant = HomeAssistant
     core_module.callback = callback
-    core_module.CALLBACK_TYPE = CALLBACK_TYPE
+    core_module.CALLBACK_TYPE = callback_type
     core_module.ServiceCall = ServiceCall
     core_module.Event = Event
-    core_module.EventStateChangedData = EventStateChangedData
+    core_module.EventStateChangedData = event_state_changed_data
     core_module.State = State
     core_module.ConfigEntry = ConfigEntry
     core_module.ConfigEntryState = ConfigEntryState
@@ -434,18 +434,18 @@ def _install_exception_module() -> None:
     class HomeAssistantError(Exception):
         pass
 
-    class ConfigEntryAuthFailed(HomeAssistantError):
+    class ConfigEntryAuthFailedError(HomeAssistantError):
         pass
 
-    class ConfigEntryNotReady(HomeAssistantError):
+    class ConfigEntryNotReadyError(HomeAssistantError):
         pass
 
     class ServiceValidationError(HomeAssistantError):
         pass
 
     exceptions_module.HomeAssistantError = HomeAssistantError
-    exceptions_module.ConfigEntryAuthFailed = ConfigEntryAuthFailed
-    exceptions_module.ConfigEntryNotReady = ConfigEntryNotReady
+    exceptions_module.ConfigEntryAuthFailed = ConfigEntryAuthFailedError
+    exceptions_module.ConfigEntryNotReady = ConfigEntryNotReadyError
     exceptions_module.ServiceValidationError = ServiceValidationError
 
     sys.modules["homeassistant.exceptions"] = exceptions_module
@@ -707,7 +707,7 @@ def _install_helper_modules() -> None:
 
     update_module = ModuleType("homeassistant.helpers.update_coordinator")
 
-    class UpdateFailed(Exception):
+    class UpdateFailedError(Exception):
         pass
 
     class CoordinatorEntity(entity_module.Entity):
@@ -750,7 +750,7 @@ def _install_helper_modules() -> None:
 
     update_module.DataUpdateCoordinator = DataUpdateCoordinator
     update_module.CoordinatorEntity = CoordinatorEntity
-    update_module.UpdateFailed = UpdateFailed
+    update_module.UpdateFailed = UpdateFailedError
     sys.modules["homeassistant.helpers.update_coordinator"] = update_module
 
     device_registry_module = ModuleType("homeassistant.helpers.device_registry")

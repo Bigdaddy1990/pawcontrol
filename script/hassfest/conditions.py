@@ -62,11 +62,11 @@ def _validate_entry(
     selector_translation_key_errors: set[str] = set()
 
     if isinstance(fields, Mapping):
-        for field_name, field_config in fields.items():
-            if not isinstance(field_config, Mapping):
+        for field_name, _field_config in fields.items():
+            if not isinstance(_field_config, Mapping):
                 continue
 
-            selector = field_config.get("selector")
+            selector = _field_config.get("selector")
             if not isinstance(selector, Mapping):
                 continue
 
@@ -96,7 +96,7 @@ def _validate_entry(
         integration.add_error(ROOT_KEY, f"{entry_id} has no description")
 
     if isinstance(fields, Mapping):
-        for field_name, field_config in fields.items():
+        for field_name in fields:
             field_strings = (
                 string_fields.get(field_name)
                 if isinstance(string_fields, Mapping)
