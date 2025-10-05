@@ -35,6 +35,7 @@ rules:
   appropriate-polling:
     status: done
     comment: "Adaptive polling enforces 15-minute idle intervals and backs off aggressively on repeated failures."
+    comment: "DogConfigRegistry clamps all update intervals to <=15 minutes and validates user-provided overrides."
   common-modules:
     status: done
     comment: "Shared PawControlEntity base class introduced in entity.py for consistent coordinator/entity structure."

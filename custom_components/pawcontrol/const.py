@@ -473,6 +473,10 @@ UPDATE_INTERVALS: Final[dict[str, int]] = {
 
 # PLATINUM: Cap idle polling to stay within the <15 minute guideline
 MAX_IDLE_POLL_INTERVAL: Final[int] = 900
+# The Platinum appropriate-polling quality rule requires the integration to keep
+# its polling interval below 15 minutes, even when users try to configure higher
+# values.  The coordinator support module enforces this hard ceiling.
+MAX_POLLING_INTERVAL_SECONDS: Final[int] = 15 * 60
 
 # OPTIMIZED: Data file names as constants
 DATA_FILE_WALKS: Final[str] = "walks.json"
@@ -532,6 +536,8 @@ __all__ = (
     "FOOD_TYPES",
     "HEALTH_STATUS_OPTIONS",
     "MAX_DOG_WEIGHT",
+    # Performance constants
+    "MAX_POLLING_INTERVAL_SECONDS",
     # Limits and defaults
     "MIN_DOG_WEIGHT",
     "MODULE_DASHBOARD",
@@ -557,7 +563,6 @@ __all__ = (
     "SERVICE_LOG_HEALTH",
     "SERVICE_START_GARDEN_SESSION",
     "SERVICE_START_WALK",
-    # Performance constants
     "UPDATE_INTERVALS",
     "MAX_IDLE_POLL_INTERVAL",
 )

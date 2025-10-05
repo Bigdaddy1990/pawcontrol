@@ -17,6 +17,7 @@ from .const import (
     CONF_GPS_UPDATE_INTERVAL,
     CONF_MODULES,
     MAX_IDLE_POLL_INTERVAL,
+    MAX_POLLING_INTERVAL_SECONDS,
     MODULE_GPS,
     MODULE_WEATHER,
     UPDATE_INTERVALS,
@@ -134,6 +135,7 @@ class DogConfigRegistry:
         if not self._ids:
             interval = UPDATE_INTERVALS.get("minimal", 300)
             return min(interval, MAX_IDLE_POLL_INTERVAL)
+            return self._enforce_polling_limits(UPDATE_INTERVALS.get("minimal", 300))
 
         if self.has_module(MODULE_GPS):
             gps_interval = options.get(
@@ -146,6 +148,7 @@ class DogConfigRegistry:
                     "Invalid GPS update interval",
                 )
             return min(gps_interval, MAX_IDLE_POLL_INTERVAL)
+            return self._enforce_polling_limits(gps_interval)
 
         interval: int
         if self.has_module(MODULE_WEATHER):
@@ -160,6 +163,30 @@ class DogConfigRegistry:
                 interval = UPDATE_INTERVALS.get("minimal", 300)
 
         return min(interval, MAX_IDLE_POLL_INTERVAL)
+            return self._enforce_polling_limits(UPDATE_INTERVALS.get("frequent", 60))
+
+        total_modules = self.module_count()
+        if total_modules > 15:
+            return self._enforce_polling_limits(UPDATE_INTERVALS.get("real_time", 30))
+        if total_modules > 8:
+            return self._enforce_polling_limits(UPDATE_INTERVALS.get("balanced", 120))
+        return self._enforce_polling_limits(UPDATE_INTERVALS.get("minimal", 300))
+
+    @staticmethod
+    def _enforce_polling_limits(interval: int | None) -> int:
+        """Clamp polling intervals to Platinum quality requirements."""
+
+        if not isinstance(interval, int):
+            raise ValidationError(
+                "update_interval", interval, "Polling interval must be an integer"
+            )
+
+        if interval <= 0:
+            raise ValidationError(
+                "update_interval", interval, "Polling interval must be positive"
+            )
+
+        return min(interval, MAX_POLLING_INTERVAL_SECONDS)
 
 
 @dataclass(slots=True)
