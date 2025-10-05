@@ -17,6 +17,7 @@ from homeassistant.exceptions import (
 )
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.device_registry import DeviceEntry
 
 from .const import (
     ALL_MODULES,
@@ -50,6 +51,7 @@ from .repairs import async_check_for_issues
 from .runtime_data import get_runtime_data, pop_runtime_data, store_runtime_data
 from .script_manager import PawControlScriptManager
 from .services import PawControlServiceManager, async_setup_daily_reset_scheduler
+from .utils import sanitize_dog_id
 from .types import DogConfigData, PawControlConfigEntry, PawControlRuntimeData
 from .walk_manager import WalkManager
 
@@ -1044,6 +1046,75 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
         unload_ok,
     )
     return unload_ok
+
+
+async def async_remove_config_entry_device(
+    hass: HomeAssistant,
+    entry: PawControlConfigEntry,
+    device_entry: DeviceEntry,
+) -> bool:
+    """Determine whether a stale PawControl device can be removed."""
+
+    def _iter_dogs(source: Any) -> list[Mapping[str, Any]]:
+        if isinstance(source, Mapping):
+            dogs: list[Mapping[str, Any]] = []
+            for dog_id, dog_cfg in source.items():
+                if isinstance(dog_cfg, Mapping):
+                    dog_data = dict(dog_cfg)
+                    dog_data.setdefault(CONF_DOG_ID, str(dog_id))
+                    dogs.append(dog_data)
+            return dogs
+
+        if isinstance(source, Sequence) and not isinstance(source, (str, bytes, bytearray)):
+            return [dog for dog in source if isinstance(dog, Mapping)]
+
+        return []
+
+    identifiers = {
+        identifier
+        for identifier in device_entry.identifiers
+        if isinstance(identifier, tuple)
+        and len(identifier) == 2
+        and identifier[0] == DOMAIN
+    }
+
+    if not identifiers:
+        _LOGGER.debug(
+            "Device %s is not managed by PawControl; skipping removal", device_entry.id
+        )
+        return False
+
+    active_ids: dict[str, str] = {}
+
+    runtime_data = get_runtime_data(hass, entry)
+    if runtime_data and isinstance(runtime_data.dogs, Sequence):
+        for dog in runtime_data.dogs:
+            if isinstance(dog, Mapping):
+                dog_id = dog.get(CONF_DOG_ID)
+                if isinstance(dog_id, str):
+                    active_ids[sanitize_dog_id(dog_id)] = dog_id
+
+    entry_dogs = _iter_dogs(entry.data.get(CONF_DOGS))
+    for dog in entry_dogs:
+        dog_id = dog.get(CONF_DOG_ID)
+        if isinstance(dog_id, str):
+            active_ids.setdefault(sanitize_dog_id(dog_id), dog_id)
+
+    configured = {identifier[1] for identifier in identifiers}
+
+    still_present = configured & set(active_ids)
+    if still_present:
+        _LOGGER.debug(
+            "Refusing to remove PawControl device %s because dogs %s are still configured",
+            device_entry.id,
+            ", ".join(sorted(active_ids[dog] for dog in still_present)),
+        )
+        return False
+
+    _LOGGER.debug(
+        "Allowing removal of PawControl device %s with identifiers %s", device_entry.id, configured
+    )
+    return True
 
 
 async def async_reload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -> None:

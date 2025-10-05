@@ -4,7 +4,7 @@ This module provides the base classes and common functionality shared between
 different configuration flow components. It includes validation schemas,
 common constants, and utility methods for enhanced user experience.
 
-Quality Scale: Platinum
+Quality Scale: Bronze target
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """

@@ -169,6 +169,28 @@ cards:
     name: Start Walk
 ```
 
+## 🧹 Removal & Cleanup
+
+Follow these steps to uninstall PawControl cleanly:
+
+1. **Remove integration entry**
+   - Navigate to **Settings → Devices & Services → PawControl**
+   - Open the integration and choose **Delete** to remove the config entry and associated entities
+
+2. **Delete helpers and dashboards**
+   - PawControl creates helpers under **Settings → Devices & Services → Helpers** prefixed with your dog names
+   - Remove any `input_*`, `script.`, or `automation.` entries that were created for PawControl workflows
+   - Delete Lovelace dashboards named `pawcontrol-*` if they were auto-generated
+
+3. **Clean up files (if manually installed)**
+   - Delete the `custom_components/pawcontrol/` directory from your Home Assistant configuration
+   - Restart Home Assistant to purge cached translations and services
+
+4. **Optional: Remove brand assets**
+   - If brand assets were copied manually for testing, remove `www/community/pawcontrol/` or other staging folders
+
+After restart, confirm that no PawControl entities remain in the entity registry and that services under `pawcontrol.*` are no longer listed in the developer tools panel.
+
 ## 🔔 Notification Configuration
 
 ### iOS Setup

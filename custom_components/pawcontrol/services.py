@@ -4,7 +4,7 @@ Comprehensive service definitions for all PawControl functionality including
 feeding management, walk tracking, health monitoring, GPS tracking, medication
 logging, visitor mode, and notifications.
 
-Quality Scale: Platinum
+Quality Scale: Bronze target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """

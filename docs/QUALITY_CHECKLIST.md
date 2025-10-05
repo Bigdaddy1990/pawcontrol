@@ -1,35 +1,39 @@
 # Paw Control – Integration Quality Scale Checklist
 
-This document tracks Paw Control's progress toward the **Integration Quality Scale** requirements. The
-integration is still working toward Platinum compliance and several Bronze and Silver items remain open, so the
-checklist below highlights both the completed work and the gaps that still need attention.
+Paw Control is still working toward the **Bronze** tier of the Home Assistant
+integration quality scale. This checklist records the current status of each
+requirement so contributors can see what remains before we can honestly claim
+Silver, Gold, or Platinum.
 
-## Bronze (baseline expectations)
-- [ ] Runtime data stored via `ConfigEntry.runtime_data` instead of bespoke helpers.
-- [x] Maintainer declared in `manifest.json` (`codeowners`).
-- [x] Config flow available with basic setup / unload.
-- [x] Entities expose unique IDs and mark themselves unavailable on update failures.
-- [x] User-facing strings are translated via `strings.json`.
-- [x] Core services documented in `services.yaml`.
-- [ ] Automated test coverage with full platform regression suites in `tests/components/pawcontrol` (current total ~1 %).
-- [ ] Removal / uninstall instructions published alongside installation docs.
+## Bronze
+- [x] Maintainer declared in `manifest.json` and `CODEOWNERS`.
+- [ ] Config flow: Only the primary user path is implemented; discovery, reconfigure, and reauth steps remain TODO (`tests/components/pawcontrol/test_config_flow.py`).
+- [ ] Runtime data: Helpers exist, but several platforms bypass them and no automated tests cover the access patterns.
+- [ ] Service documentation: Garden, weather, notification, and diagnostics services still need entries in `custom_components/pawcontrol/services.yaml`.
+- [ ] Setup/teardown testing: Integration setup/unload behaviour is not exercised in CI because the Home Assistant stubs are incomplete.
+- [ ] Removal guidance: INSTALLATION.md needs explicit uninstall/device-cleanup steps and screenshots once the hook work lands.
 
 ## Silver
-- [ ] Test coverage ≥ 95 % across the integration.
-- [ ] Config flow regression suite exercises discovery, dashboard, module validation, reconfigure, and reauth paths.
-- [x] Services validated with rich error handling and typed schemas (`services.py`).
-- [x] `PARALLEL_UPDATES = 0` on all coordinator-backed platforms to allow unlimited parallel refreshes.
-- [x] End-to-end style runtime simulations covered by scaling tests.
+- [ ] Coverage ≥90 % in CI (`pytest --cov` is currently disabled because the suite fails without Home Assistant).
+- [ ] Config flow suite for discovery, reconfigure, reauth, and abort scenarios.
+- [ ] Service schema validation for garden/weather/GPS/diagnostics services.
+- [ ] Platform tests confirming `PARALLEL_UPDATES` and coordinator throttling.
+- [ ] Resilience tests verifying coordinator retry/failure handling.
 
-## Gold & Platinum
-- [x] Diagnostics with redaction validated by dedicated fixtures and tests.
-- [x] Repair issues surfaced with guided flows (`repairs.py`).
-- [x] Device registry metadata confirmed via regression coverage.
-- [ ] Brands assets submitted to `home-assistant/brands`.
-- [ ] Polling cadence documented and enforced to stay under the Platinum <15-minute idle target.
+## Gold
+- [ ] Diagnostics that redact secrets with regression coverage.
+- [ ] Repairs flow emitting actionable issues with accompanying tests.
+- [ ] Device registry lifecycle tests covering stale-device pruning (`async_remove_config_entry_device`).
+- [ ] Branding assets prepared and submitted to `home-assistant/brands`.
+- [ ] Adaptive polling strategy documented and validated via automated tests.
 
-## Notes
-- Discovery remains optional for the currently supported hardware and is tracked as an exemption in the quality scale configuration.
-- Reauthentication is handled via `async_step_reauth` and `async_step_reauth_confirm`, allowing credential refresh without removing the entry.
+## Platinum
+- [ ] Test-before-setup/update/unload coverage.
+- [ ] Dynamic device/entity lifecycle tests across reloads.
+- [ ] Coverage gates enforced in CI with published artefacts.
+- [ ] Maintenance playbook defining recurring verification steps.
+- [ ] Localization suite preventing translation drift.
 
-- [x] **GitHub Topics** gesetzt (z. B. `home-assistant`, `hacs`, `integration`) – verbessert Auffindbarkeit im HACS-Store.
+## Sustaining Notes
+- Update `custom_components/pawcontrol/quality_scale.yaml` as work completes so the manifest declaration stays honest.
+- Once Bronze is finished, draft a lightweight maintenance cadence before attempting Silver/Gold/Platinum again.

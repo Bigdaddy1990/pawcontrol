@@ -3,7 +3,7 @@
 Provides comprehensive API connection testing and validation to ensure
 reliable integration setup and configuration health checks.
 
-Quality Scale: Platinum
+Quality Scale: Bronze target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """

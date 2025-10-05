@@ -3,7 +3,7 @@
 Tests walk session management, activity tracking, duration calculations,
 and integration with weather conditions.
 
-Quality Scale: Platinum
+Quality Scale: Bronze target
 Python: 3.13+
 """
 

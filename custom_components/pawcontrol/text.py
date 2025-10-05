@@ -43,7 +43,7 @@ def _normalize_dog_configs(
     The runtime data path provides fully typed ``DogConfigData`` entries, but the
     legacy fallback path may contain partially defined dictionaries. This helper
     filters out invalid items and ensures a mutable modules mapping is available
-    for each configuration so downstream code can rely on Platinum-level types.
+    for each configuration so downstream code can rely on Bronze-targeted types.
     """
 
     normalized_configs: list[DogConfigData] = []

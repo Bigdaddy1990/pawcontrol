@@ -26,6 +26,6 @@ that fulfill them. For a narrative compliance report see `docs/compliance_review
 ## Services & Metadata
 - The service layer now implements the full suite of feeding, health, GPS, export, and notification endpoints published in the
   documentation.【F:custom_components/pawcontrol/services.py†L1400-L1513】
-- The manifest declares `quality_scale: "platinum"`, matching the Platinum checklist in `docs/QUALITY_CHECKLIST.md`.【F:custom_components/pawcontrol/manifest.json†L2-L80】
+- The manifest declares `quality_scale: "platinum"`, aligning with the Platinum sustainment checklist in `docs/QUALITY_CHECKLIST.md`.【F:custom_components/pawcontrol/manifest.json†L2-L80】
 
 For additional implementation references consult the module-specific documentation inside `custom_components/pawcontrol/`.

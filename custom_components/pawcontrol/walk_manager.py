@@ -1,9 +1,9 @@
 """Walk and GPS management for PawControl with advanced optimizations.
 
 Enhanced with performance optimizations, caching, and memory management
-for Platinum quality compliance.
+for Bronze quality compliance.
 
-Quality Scale: Platinum
+Quality Scale: Bronze target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """
@@ -234,7 +234,7 @@ class WalkManager:
     """Optimized walk and GPS management with advanced caching and performance monitoring.
 
     OPTIMIZE: Enhanced with GPS caching, memory management, batch processing,
-    and performance optimizations for Platinum-level quality.
+    and performance optimizations for Bronze-targeted quality.
     """
 
     def __init__(self) -> None:

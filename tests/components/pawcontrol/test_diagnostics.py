@@ -1,0 +1,125 @@
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
+import logging
+from types import SimpleNamespace
+
+from custom_components.pawcontrol.const import (
+    CONF_API_TOKEN,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+    MODULE_GPS,
+)
+from custom_components.pawcontrol.diagnostics import async_get_config_entry_diagnostics
+from custom_components.pawcontrol.types import PawControlRuntimeData
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr, entity_registry as er
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+import pytest
+
+
+@pytest.mark.asyncio
+async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
+    """Diagnostics should redact sensitive fields while exposing metadata."""
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            CONF_DOGS: [
+                {
+                    CONF_DOG_ID: "doggo",
+                    CONF_DOG_NAME: "Doggo",
+                    "modules": {MODULE_GPS: True},
+                }
+            ],
+            CONF_API_TOKEN: "super-secret-token",
+        },
+        title="Doggo",
+    )
+    entry.add_to_hass(hass)
+
+    hass.config.version = "2025.10.1"
+    hass.config.python_version = "3.13.3"
+    hass.config.start_time = datetime.now(UTC)
+
+    device_registry = dr.async_get(hass)
+    device = device_registry.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, "doggo")},
+        manufacturer="PawControl",
+        model="Tracker",
+        name="Doggo Tracker",
+    )
+
+    entity_registry = er.async_get(hass)
+    entity = entity_registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        "doggo_status",
+        config_entry=entry,
+        device_id=device.id,
+        suggested_object_id="pawcontrol_doggo",
+    )
+
+    hass.states.async_set(entity.entity_id, "home", {"location": "Backyard"})
+
+    class DummyCoordinator:
+        def __init__(self) -> None:
+            self.available = True
+            self.last_update_success = True
+            self.last_update_time = datetime.now(UTC)
+            self.update_interval = timedelta(seconds=30)
+            self.update_method = "async_update"
+            self.logger = logging.getLogger(__name__)
+            self.name = "PawControl Coordinator"
+            self.config_entry = entry
+            self.dogs = [SimpleNamespace(dog_id="doggo")]
+
+        def get_update_statistics(self) -> dict[str, object]:
+            return {
+                "total_updates": 10,
+                "failed": 0,
+                "update_interval": 30,
+                "api_token": "another-secret",
+            }
+
+        def get_dog_data(self, dog_id: str) -> dict[str, object]:
+            return {
+                "last_update": "2025-02-01T12:00:00+00:00",
+                "status": "active",
+            }
+
+    coordinator = DummyCoordinator()
+
+    runtime = PawControlRuntimeData(
+        coordinator=coordinator,
+        data_manager=SimpleNamespace(),
+        notification_manager=SimpleNamespace(),
+        feeding_manager=SimpleNamespace(),
+        walk_manager=SimpleNamespace(),
+        entity_factory=SimpleNamespace(),
+        entity_profile="standard",
+        dogs=entry.data[CONF_DOGS],
+    )
+    runtime.performance_stats = {"api_token": "runtime-secret"}
+    entry.runtime_data = runtime
+
+    hass.services.async_register(DOMAIN, "sync", lambda call: None)
+
+    diagnostics = await async_get_config_entry_diagnostics(hass, entry)
+
+    stats = diagnostics["performance_metrics"]["statistics"]
+    assert stats["api_token"] == "**REDACTED**"
+
+    dogs = diagnostics["dogs_summary"]["dogs"]
+    assert dogs[0]["dog_id"] == "doggo"
+    assert dogs[0]["status"] == "active"
+
+    services = diagnostics["integration_status"]["services_registered"]
+    assert "sync" in services
+
+    debug_info = diagnostics["debug_info"]
+    assert debug_info["quality_scale"] == "bronze"

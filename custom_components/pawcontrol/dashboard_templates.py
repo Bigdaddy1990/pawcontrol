@@ -4,7 +4,7 @@ This module provides efficient template caching and management for dashboard
 card generation with multiple visual themes and layouts. It implements LRU
 caching, template validation, and async template loading with various styles.
 
-Quality Scale: Platinum
+Quality Scale: Bronze target
 Home Assistant: 2025.8.3+
 Python: 3.13+
 """

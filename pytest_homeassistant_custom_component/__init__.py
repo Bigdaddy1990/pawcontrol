@@ -1,86 +1,53 @@
-"""Compatibility shim for pytest-homeassistant-custom-component on Python 3.13.
-
-The upstream package depends on `freezegun`, which still reaches into
-private CPython UUID helpers that were removed in Python 3.13.  Importing
-the real package would fail before our tests run.  We patch the `uuid`
-module first and then load the actual distribution from site-packages.
-"""
+"""Lightweight test stub for ``pytest-homeassistant-custom-component``."""
 
 from __future__ import annotations
 
-import importlib
-import pathlib
-import sys
-import types
-import uuid
+from typing import Any, Iterable
 
-_PACKAGE_NAME = __name__
-_SHIM_PARENT = pathlib.Path(__file__).resolve().parent.parent
+import pytest
 
+from homeassistant.core import ConfigEntry, ConfigEntryState, HomeAssistant
 
-def _ensure_uuid_compatibility() -> None:
-    """Provide the private UUID helpers expected by older dependencies."""
-
-    if not hasattr(uuid, "_uuid_generate_time"):
-
-        def _uuid_generate_time() -> bytes:
-            generated = uuid._generate_time_safe()  # type: ignore[attr-defined]
-            return generated[0]
-
-        uuid._uuid_generate_time = _uuid_generate_time  # type: ignore[attr-defined]
-
-    if not hasattr(uuid, "_load_system_functions"):
-
-        def _load_system_functions() -> None:
-            if not hasattr(uuid, "_uuid_generate_time"):
-                uuid._uuid_generate_time = _uuid_generate_time  # type: ignore[attr-defined]
-
-        uuid._load_system_functions = _load_system_functions  # type: ignore[attr-defined]
-
-    if not hasattr(uuid, "_UuidCreate"):
-        uuid._UuidCreate = types.SimpleNamespace  # type: ignore[attr-defined]
+__all__ = ["MockConfigEntry", "enable_custom_integrations"]
 
 
-def _is_shim_path(entry: str) -> bool:
-    """Return ``True`` if a ``sys.path`` entry points to this shim package."""
+class MockConfigEntry(ConfigEntry):
+    """Simplified config entry used in PawControl tests."""
 
-    path = pathlib.Path(entry or ".")
-    try:
-        resolved = path.resolve()
-    except (OSError, RuntimeError):
-        return False
-    return resolved == _SHIM_PARENT
+    def __init__(
+        self,
+        *,
+        domain: str,
+        data: dict[str, Any] | None = None,
+        options: dict[str, Any] | None = None,
+        title: str | None = None,
+        unique_id: str | None = None,
+    ) -> None:
+        super().__init__(domain=domain, data=data, options=options, title=title)
+        if unique_id is not None:
+            self.unique_id = unique_id
+        self.source = "user"
+        self.state = ConfigEntryState.NOT_LOADED
+        self._listeners: list[Any] = []
+
+    def add_to_hass(self, hass: HomeAssistant) -> None:  # type: ignore[override]
+        super().add_to_hass(hass)
+        self.state = ConfigEntryState.NOT_LOADED
+
+    async def async_setup(self, hass: HomeAssistant) -> bool:
+        self.state = ConfigEntryState.LOADED
+        return True
+
+    async def async_unload(self, hass: HomeAssistant) -> bool:
+        self.state = ConfigEntryState.NOT_LOADED
+        return True
+
+    def add_update_listener(self, listener: Any) -> None:
+        self._listeners.append(listener)
 
 
-def _load_real_package() -> types.ModuleType:
-    """Load the real distribution from site-packages.
+@pytest.fixture
+async def enable_custom_integrations() -> Iterable[None]:
+    """Compatibility fixture to match the upstream helper library."""
 
-    We temporarily remove the shim's parent directory from ``sys.path`` so the
-    import machinery locates the installed package instead of this compatibility
-    module.
-    """
-
-    shim_module = sys.modules[_PACKAGE_NAME]
-    original_sys_path = list(sys.path)
-    filtered_path = [entry for entry in sys.path if not _is_shim_path(entry)]
-
-    sys.modules.pop(_PACKAGE_NAME, None)
-    try:
-        sys.path[:] = filtered_path
-        return importlib.import_module(_PACKAGE_NAME)
-    except ModuleNotFoundError as err:  # pragma: no cover - exercised in CI
-        raise ModuleNotFoundError(
-            f"Could not locate the real {_PACKAGE_NAME} distribution for compatibility shim"
-        ) from err
-    finally:
-        sys.path[:] = original_sys_path
-        sys.modules[_PACKAGE_NAME] = shim_module
-
-
-_ensure_uuid_compatibility()
-_real_module = _load_real_package()
-
-globals().update({key: getattr(_real_module, key) for key in dir(_real_module)})
-__all__ = getattr(_real_module, "__all__", [])
-__path__ = getattr(_real_module, "__path__", [])
-sys.modules[_PACKAGE_NAME] = _real_module
+    yield

@@ -2,7 +2,7 @@
 
 This module provides comprehensive binary sensor entities for dog monitoring
 including status indicators, alerts, and automated detection sensors. All
-binary sensors are designed to meet Home Assistant's Platinum quality standards
+binary sensors are designed to meet Home Assistant's Bronze quality ambitions
 with full type annotations, async operations, and robust error handling.
 
 OPTIMIZED: Consistent runtime_data usage, thread-safe caching, reduced code duplication.
@@ -180,7 +180,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up Paw Control binary sensor platform with optimized performance."""
 
-    # OPTIMIZED: Consistent runtime_data usage for Platinum compliance
+    # OPTIMIZED: Consistent runtime_data usage for Bronze readiness
     runtime_data = get_runtime_data(hass, entry)
     if runtime_data is None:
         _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)

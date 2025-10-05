@@ -5,14 +5,14 @@ functions for the PawControl Home Assistant integration. It implements strict ty
 performance-optimized validation, and comprehensive data modeling for all aspects
 of dog care management.
 
-The module is designed for Platinum-level quality with:
+The module is designed for Bronze-targeted quality with:
 - Comprehensive type definitions using TypedDict and dataclasses
 - Performance-optimized validation with frozenset lookups
 - Extensive error handling and data validation
 - Memory-efficient data structures using __slots__ where appropriate
 - Complete documentation for all public APIs
 
-Quality Scale: Platinum
+Quality Scale: Bronze target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """
@@ -310,7 +310,7 @@ class PawControlRuntimeData:
     """Comprehensive runtime data container for the PawControl integration.
 
     This dataclass contains all runtime components needed by the integration
-    for Platinum-level type safety with ConfigEntry[PawControlRuntimeData].
+    for Bronze-targeted type safety with ConfigEntry[PawControlRuntimeData].
     Enhanced with performance monitoring, error tracking, and comprehensive
     component lifecycle management.
 
@@ -356,7 +356,7 @@ class PawControlRuntimeData:
     door_sensor_manager: DoorSensorManager | None = None
     device_api_client: PawControlDeviceClient | None = None
 
-    # Enhanced runtime tracking for Platinum-level monitoring
+    # Enhanced runtime tracking for Bronze-targeted monitoring
     performance_stats: dict[str, Any] = field(default_factory=dict)
     error_history: list[dict[str, Any]] = field(default_factory=list)
     # PLATINUM: Optional unsubscribe callback for daily reset scheduler

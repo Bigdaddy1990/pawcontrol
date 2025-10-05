@@ -3,7 +3,7 @@
 Provides weather-based health warnings and recommendations for dogs based on
 current and forecasted weather conditions.
 
-Quality Scale: Platinum
+Quality Scale: Bronze target
 Home Assistant: 2025.9.4+
 Python: 3.13+
 """

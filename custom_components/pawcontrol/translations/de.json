@@ -337,7 +337,7 @@
       },
       "configure_external_entities": {
         "title": "Externe Entitäten konfigurieren",
-        "description": "🔗 **Konfiguration externer Entitäten**\n\nPaw Control muss sich mit vorhandenen Home Assistant-Entitäten verbinden, um voll funktionsfähig zu sein. Dieser Schritt ist für die Platinum-Qualitätseinhaltung erforderlich.\n\n**Erforderlich für GPS-Tracking:** Device Tracker oder Person-Entität\n**Optional für Besuchererkennung:** Türsensor\n**Optional für Benachrichtigungen:** Benutzerdefinierter Benachrichtigungsdienst\n**Optional für Wetter-Gesundheit:** Wetter-Entität\n\n⚠️ Falls keine Entitäten verfügbar sind, kannst du sie später manuell konfigurieren.",
+        "description": "🔗 **Konfiguration externer Entitäten**\n\nPaw Control muss sich mit vorhandenen Home Assistant-Entitäten verbinden, um voll funktionsfähig zu sein. Dieser Schritt ist für die Bronze-Qualitätsziel erforderlich.\n\n**Erforderlich für GPS-Tracking:** Device Tracker oder Person-Entität\n**Optional für Besuchererkennung:** Türsensor\n**Optional für Benachrichtigungen:** Benutzerdefinierter Benachrichtigungsdienst\n**Optional für Wetter-Gesundheit:** Wetter-Entität\n\n⚠️ Falls keine Entitäten verfügbar sind, kannst du sie später manuell konfigurieren.",
         "data": {
           "gps_source": "GPS-Quelle (Erforderlich für GPS-Tracking)",
           "door_sensor": "Türsensor (Optional für Besuchermodus)",

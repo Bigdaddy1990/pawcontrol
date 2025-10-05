@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from typing import Any
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from custom_components.pawcontrol.const import (
@@ -23,6 +24,7 @@ from custom_components.pawcontrol.const import (
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.update_coordinator import UpdateFailed
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 pytestmark = pytest.mark.usefixtures("enable_custom_integrations")
@@ -162,3 +164,33 @@ async def test_coordinator_external_api_option(hass: HomeAssistant) -> None:
     )
 
     assert coordinator_disabled.use_external_api is False
+
+
+async def test_async_update_data_propagates_update_failed(
+    hass: HomeAssistant,
+) -> None:
+    """Coordinator should surface UpdateFailed errors when runtime fetches fail."""
+
+    dogs = [
+        {
+            CONF_DOG_ID: "failure_dog",
+            "modules": {MODULE_FEEDING: True},
+        }
+    ]
+
+    entry = _create_entry(hass, dogs=dogs)
+    coordinator = PawControlCoordinator(
+        hass, entry, async_get_clientsession(hass)
+    )
+
+    await coordinator.async_prepare_entry()
+
+    with patch.object(
+        coordinator._runtime,
+        "execute_cycle",
+        AsyncMock(side_effect=UpdateFailed("boom")),
+    ) as mock_execute:
+        with pytest.raises(UpdateFailed):
+            await coordinator._async_update_data()
+
+    mock_execute.assert_awaited_once()

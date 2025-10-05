@@ -6,21 +6,18 @@ OPTIMIZED for HA 2025.9.1+ with enhanced performance patterns:
 - Streamlined exports
 - Memory-efficient data structures
 
-Quality Scale: Platinum
+Quality Scale: Bronze target
 Home Assistant: 2025.9.1+
 Python: 3.13+
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from enum import Enum
-from types import SimpleNamespace
 from typing import Final
 
 try:
     from homeassistant.const import Platform
-    from homeassistant.helpers import selector
 except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
 
     class Platform(str, Enum):
@@ -37,26 +34,7 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
         DATE = "date"
         DATETIME = "datetime"
 
-    class NumberSelectorMode(str, Enum):
-        BOX = "box"
-
-    @dataclass(frozen=True)
-    class NumberSelectorConfig:
-        min: float
-        max: float
-        step: float
-        mode: NumberSelectorMode
-        unit_of_measurement: str | None = None
-
-    class NumberSelector:
-        def __init__(self, config: NumberSelectorConfig) -> None:
-            self.config = config
-
-    selector = SimpleNamespace(
-        NumberSelector=NumberSelector,
-        NumberSelectorConfig=NumberSelectorConfig,
-        NumberSelectorMode=NumberSelectorMode,
-    )
+from .selector_shim import selector
 
 # OPTIMIZED: Storage versions for data persistence
 STORAGE_VERSION: Final[int] = 1
@@ -463,7 +441,7 @@ NOTIFICATION_CHANNELS: Final[tuple[str, ...]] = (
     "discord",
 )
 
-# PLATINUM: Update intervals with consistent key naming throughout codebase
+# BRONZE: Update intervals with consistent key naming throughout codebase
 UPDATE_INTERVALS: Final[dict[str, int]] = {
     "minimal": 300,  # 5 minutes - power saving
     "standard": 120,  # 2 minutes - balanced (FIXED: consistent key)
@@ -471,9 +449,9 @@ UPDATE_INTERVALS: Final[dict[str, int]] = {
     "real_time": 30,  # 30 seconds - high performance
 }
 
-# PLATINUM: Cap idle polling to stay within the <15 minute guideline
+# BRONZE: Cap idle polling to stay within the <15 minute guideline
 MAX_IDLE_POLL_INTERVAL: Final[int] = 900
-# The Platinum appropriate-polling quality rule requires the integration to keep
+# The Bronze appropriate-polling quality goal requires the integration to keep
 # its polling interval below 15 minutes, even when users try to configure higher
 # values.  The coordinator support module enforces this hard ceiling.
 MAX_POLLING_INTERVAL_SECONDS: Final[int] = 15 * 60

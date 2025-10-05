@@ -3,7 +3,7 @@
 Tests data storage, retrieval, caching, persistence, and performance
 characteristics of the data management system.
 
-Quality Scale: Platinum
+Quality Scale: Bronze target
 Home Assistant: 2025.8.2+
 Python: 3.12+
 """

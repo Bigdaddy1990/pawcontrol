@@ -2,7 +2,7 @@
 
 Comprehensive tests for circuit breaker, retry logic, and resilience manager.
 
-Quality Scale: Platinum
+Quality Scale: Bronze target
 """
 
 from __future__ import annotations

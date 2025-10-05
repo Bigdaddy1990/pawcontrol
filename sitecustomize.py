@@ -126,3 +126,19 @@ def _import_hook(
 if not getattr(builtins, "__pawcontrol_import_patch__", False):
     builtins.__import__ = _import_hook  # type: ignore[assignment]
     builtins.__pawcontrol_import_patch__ = True  # type: ignore[attr-defined]
+
+
+def _ensure_homeassistant_stubs() -> None:
+    """Install Home Assistant compatibility shims before imports occur."""
+
+    try:
+        from tests.helpers.homeassistant_test_stubs import (
+            install_homeassistant_stubs,
+        )
+    except Exception:  # pragma: no cover - tests package unavailable
+        return
+
+    install_homeassistant_stubs()
+
+
+_ensure_homeassistant_stubs()

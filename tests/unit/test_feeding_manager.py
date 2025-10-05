@@ -3,7 +3,7 @@
 Tests feeding logic, portion calculations, calorie tracking,
 and schedule compliance monitoring.
 
-Quality Scale: Platinum
+Quality Scale: Bronze target
 Python: 3.13+
 """
 
