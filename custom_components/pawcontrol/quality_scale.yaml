@@ -28,10 +28,10 @@ rules:
 
   brands:
     status: todo
-    comment: "Brand assets are not yet submitted under brands/pawcontrol." 
+    comment: "Brand assets are not yet submitted under brands/pawcontrol."
   action-setup:
     status: todo
-    comment: "Action handler coverage is pending; no automated end-to-end test captures service execution." 
+    comment: "Action handler coverage is pending; no automated end-to-end test captures service execution."
   appropriate-polling:
     status: todo
     comment: "Coordinator fetch cadence still exceeds the Platinum <15-minute guideline when idle."
