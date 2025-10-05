@@ -471,6 +471,11 @@ UPDATE_INTERVALS: Final[dict[str, int]] = {
     "real_time": 30,  # 30 seconds - high performance
 }
 
+# The Platinum appropriate-polling quality rule requires the integration to keep
+# its polling interval below 15 minutes, even when users try to configure higher
+# values.  The coordinator support module enforces this hard ceiling.
+MAX_POLLING_INTERVAL_SECONDS: Final[int] = 15 * 60
+
 # OPTIMIZED: Data file names as constants
 DATA_FILE_WALKS: Final[str] = "walks.json"
 DATA_FILE_FEEDINGS: Final[str] = "feedings.json"
@@ -555,5 +560,6 @@ __all__ = (
     "SERVICE_START_GARDEN_SESSION",
     "SERVICE_START_WALK",
     # Performance constants
+    "MAX_POLLING_INTERVAL_SECONDS",
     "UPDATE_INTERVALS",
 )
