@@ -111,7 +111,9 @@ class TestPawControlIntegrationSetup:
         manager_cls.assert_called_once_with(hass)
         assert hass.data[DOMAIN]["service_manager"] is manager_instance
 
-    async def test_async_setup_reuses_existing_manager(self, hass: HomeAssistant) -> None:
+    async def test_async_setup_reuses_existing_manager(
+        self, hass: HomeAssistant
+    ) -> None:
         """Ensure setup does not create a second service manager."""
 
         from custom_components.pawcontrol import async_setup

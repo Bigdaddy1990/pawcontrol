@@ -22,7 +22,9 @@ class PawControlEntity(
     _attr_should_poll = False
     _attr_has_entity_name = True
 
-    def __init__(self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str) -> None:
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
         """Initialise the entity and attach device metadata."""
 
         super().__init__(coordinator)

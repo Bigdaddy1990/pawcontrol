@@ -602,7 +602,9 @@ async def test_configure_dashboard_form_includes_context(hass: HomeAssistant) ->
     assert "dashboard" in placeholders["dashboard_info"].lower()
 
 
-async def test_configure_dashboard_with_gps_routes_external(hass: HomeAssistant) -> None:
+async def test_configure_dashboard_with_gps_routes_external(
+    hass: HomeAssistant,
+) -> None:
     """Submitting dashboard settings with GPS enabled should request external setup."""
 
     flow = config_flow.PawControlConfigFlow()
