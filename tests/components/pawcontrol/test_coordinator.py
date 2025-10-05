@@ -11,6 +11,7 @@ from custom_components.pawcontrol.const import (
     CONF_DOGS,
     CONF_EXTERNAL_INTEGRATIONS,
     CONF_GPS_UPDATE_INTERVAL,
+    MAX_IDLE_POLL_INTERVAL,
     DOMAIN,
     MODULE_FEEDING,
     MODULE_GPS,
@@ -126,6 +127,20 @@ async def test_update_interval_honors_gps_option(hass: HomeAssistant) -> None:
     coordinator = PawControlCoordinator(hass, entry, async_get_clientsession(hass))
 
     assert coordinator.update_interval.total_seconds() == 45
+
+
+async def test_update_interval_capped_for_idle_configs(hass: HomeAssistant) -> None:
+    """Ensure idle configurations respect the platinum 15 minute ceiling."""
+
+    entry = _create_entry(
+        hass,
+        dogs=[{CONF_DOG_ID: "gps_dog", "modules": {MODULE_GPS: True}}],
+        options={CONF_GPS_UPDATE_INTERVAL: 3600},
+    )
+
+    coordinator = PawControlCoordinator(hass, entry, async_get_clientsession(hass))
+
+    assert coordinator.update_interval.total_seconds() == MAX_IDLE_POLL_INTERVAL
 
 
 async def test_coordinator_external_api_option(hass: HomeAssistant) -> None:

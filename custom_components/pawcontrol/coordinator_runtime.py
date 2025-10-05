@@ -14,14 +14,19 @@ from typing import Any
 
 try:
     from homeassistant.exceptions import ConfigEntryAuthFailed
-    from homeassistant.helpers.update_coordinator import CoordinatorUpdateFailed
+    try:
+        from homeassistant.helpers.update_coordinator import UpdateFailed
+    except ImportError:  # pragma: no cover - legacy Home Assistant releases
+        from homeassistant.helpers.update_coordinator import (
+            CoordinatorUpdateFailed as UpdateFailed,
+        )
     from homeassistant.util import dt as dt_util
 except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
 
     class ConfigEntryAuthFailed(RuntimeError):  # noqa: N818 - mirror HA class name
         """Fallback error used when Home Assistant isn't available."""
 
-    class CoordinatorUpdateFailed(RuntimeError):  # noqa: N818 - mirror HA class name
+    class UpdateFailed(RuntimeError):  # noqa: N818 - mirror HA class name
         """Fallback error used when Home Assistant isn't available."""
 
     class _DateTimeModule:
@@ -32,6 +37,8 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
             return datetime.now(UTC)
 
     dt_util = _DateTimeModule()
+
+CoordinatorUpdateFailed = UpdateFailed
 
 from .coordinator_support import CoordinatorMetrics, DogConfigRegistry
 from .exceptions import GPSUnavailableError, NetworkError, ValidationError
@@ -83,6 +90,9 @@ class AdaptivePollingController:
         "_entity_saturation",
         "_error_streak",
         "_history",
+        "_idle_grace",
+        "_idle_interval",
+        "_last_activity",
         "_max_interval",
         "_min_interval",
         "_target_cycle",
@@ -93,20 +103,32 @@ class AdaptivePollingController:
         *,
         initial_interval_seconds: float,
         target_cycle_ms: float = 200.0,
-        min_interval_seconds: float = 0.2,
-        max_interval_seconds: float = 5.0,
+        min_interval_seconds: float | None = None,
+        max_interval_seconds: float | None = None,
+        idle_interval_seconds: float = 900.0,
+        idle_grace_seconds: float = 300.0,
     ) -> None:
         """Initialise the adaptive polling controller."""
 
-        self._history: deque[float] = deque(maxlen=32)
-        self._min_interval = max(min_interval_seconds, 0.05)
-        self._max_interval = max(max_interval_seconds, self._min_interval)
-        self._target_cycle = max(target_cycle_ms / 1000.0, self._min_interval)
-        self._current_interval = min(
-            max(initial_interval_seconds, self._min_interval), self._max_interval
+        base_interval = max(initial_interval_seconds, 1.0)
+        calculated_min = (
+            base_interval * 0.25 if min_interval_seconds is None else min_interval_seconds
         )
+        calculated_max = (
+            base_interval * 4 if max_interval_seconds is None else max_interval_seconds
+        )
+
+        self._history: deque[float] = deque(maxlen=32)
+        self._min_interval = max(calculated_min, 15.0)
+        idle_target = max(idle_interval_seconds, self._min_interval)
+        self._max_interval = max(calculated_max, idle_target)
+        self._idle_interval = idle_target
+        self._idle_grace = max(idle_grace_seconds, 60.0)
+        self._target_cycle = max(target_cycle_ms / 1000.0, self._min_interval)
+        self._current_interval = min(base_interval, self._max_interval)
         self._error_streak = 0
         self._entity_saturation = 0.0
+        self._last_activity = time.monotonic()
 
     @property
     def current_interval(self) -> float:
@@ -140,6 +162,11 @@ class AdaptivePollingController:
 
         next_interval = self._current_interval
 
+        now = time.monotonic()
+
+        if success and (error_ratio > 0.01 or self._entity_saturation > 0.3):
+            self._last_activity = now
+
         if not success:
             # Back off quickly when consecutive errors occur.
             penalty_factor = 1.0 + min(0.5, 0.15 * self._error_streak + error_ratio)
@@ -161,6 +188,22 @@ class AdaptivePollingController:
                     next_interval * (increase_factor * load_factor),
                 )
 
+            idle_candidate = (
+                self._entity_saturation < 0.1 and error_ratio < 0.01 and success
+            )
+            if idle_candidate:
+                idle_elapsed = now - self._last_activity
+                if idle_elapsed >= self._idle_grace:
+                    next_interval = max(next_interval, self._current_interval * 1.5)
+                    next_interval = min(next_interval, self._idle_interval)
+                else:
+                    next_interval = min(
+                        self._max_interval,
+                        max(next_interval, self._current_interval * (1.0 + load_factor / 4)),
+                    )
+            else:
+                self._last_activity = now
+
         self._current_interval = max(
             self._min_interval, min(self._max_interval, next_interval)
         )
@@ -178,6 +221,8 @@ class AdaptivePollingController:
             "history_samples": history_count,
             "error_streak": self._error_streak,
             "entity_saturation": round(self._entity_saturation, 3),
+            "idle_interval_ms": round(self._idle_interval * 1000, 2),
+            "idle_grace_ms": round(self._idle_grace * 1000, 2),
         }
 
 

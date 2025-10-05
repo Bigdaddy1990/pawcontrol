@@ -11,7 +11,6 @@ from homeassistant.components.text import TextEntity, TextMode
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
     ATTR_DOG_ID,
@@ -24,9 +23,10 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .entity import PawControlEntity
 from .runtime_data import get_runtime_data
 from .types import DogConfigData, PawControlConfigEntry
-from .utils import PawControlDeviceLinkMixin, async_call_add_entities
+from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -206,12 +206,7 @@ async def async_setup_entry(
     )
 
 
-class PawControlTextBase(
-    PawControlDeviceLinkMixin,
-    CoordinatorEntity[PawControlCoordinator],
-    TextEntity,
-    RestoreEntity,
-):
+class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
     """Base class for Paw Control text entities."""
 
     def __init__(
@@ -224,19 +219,17 @@ class PawControlTextBase(
         mode: TextMode = TextMode.TEXT,
     ) -> None:
         """Initialize the text entity."""
-        super().__init__(coordinator)
-        self._dog_id = dog_id
-        self._dog_name = dog_name
+        super().__init__(coordinator, dog_id, dog_name)
         self._text_type = text_type
         self._current_value: str = ""
 
         self._attr_unique_id = f"pawcontrol_{dog_id}_{text_type}"
-        self._attr_name = f"{dog_name} {text_type.replace('_', ' ').title()}"
+        self._apply_name_suffix(text_type.replace("_", " ").title())
         self._attr_native_max = max_length
         self._attr_mode = mode
 
         # Link entity to PawControl device entry for the dog
-        self._set_device_link_info(
+        self.update_device_metadata(
             model="Smart Dog",
             sw_version="1.0.0",
             configuration_url="https://github.com/BigDaddy1990/pawcontrol",

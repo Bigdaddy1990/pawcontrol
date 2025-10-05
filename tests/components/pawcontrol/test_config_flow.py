@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sys
 from types import ModuleType, SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from custom_components.pawcontrol import config_flow
@@ -13,8 +13,11 @@ from custom_components.pawcontrol.const import (
     CONF_DOG_BREED,
     CONF_DOG_ID,
     CONF_DOG_NAME,
+    CONF_MODULES,
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
+    MODULE_DASHBOARD,
+    MODULE_GPS,
     DOMAIN,
 )
 from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
@@ -577,3 +580,85 @@ async def test_reconfigure_invalid_profile_error(hass: HomeAssistant) -> None:
     assert result["step_id"] == "reconfigure"
     assert result["errors"] == {"base": "invalid_profile"}
     assert "error_details" in result["description_placeholders"]
+
+
+async def test_configure_dashboard_form_includes_context(hass: HomeAssistant) -> None:
+    """The dashboard configuration step should surface helpful placeholders."""
+
+    flow = config_flow.PawControlConfigFlow()
+    flow.hass = hass
+    flow.context = {}
+    flow._dogs = [
+        {CONF_DOG_ID: "buddy", CONF_MODULES: {MODULE_DASHBOARD: True}},
+        {CONF_DOG_ID: "max", CONF_MODULES: {MODULE_DASHBOARD: True}},
+    ]
+    flow._enabled_modules = {MODULE_GPS: True}
+
+    result = await flow.async_step_configure_dashboard()
+
+    assert result["type"] == FlowResultType.FORM
+    placeholders = result["description_placeholders"]
+    assert placeholders["dog_count"] == 2
+    assert "dashboard" in placeholders["dashboard_info"].lower()
+
+
+async def test_configure_dashboard_with_gps_routes_external(hass: HomeAssistant) -> None:
+    """Submitting dashboard settings with GPS enabled should request external setup."""
+
+    flow = config_flow.PawControlConfigFlow()
+    flow.hass = hass
+    flow.context = {}
+    flow._dogs = [{CONF_DOG_ID: "buddy", CONF_MODULES: {MODULE_DASHBOARD: True}}]
+    flow._enabled_modules = {MODULE_GPS: True}
+    flow.async_step_configure_external_entities = AsyncMock(
+        return_value={"type": FlowResultType.FORM, "step_id": "configure_external"}
+    )
+    flow.async_step_final_setup = AsyncMock()
+
+    result = await flow.async_step_configure_dashboard(
+        {
+            "auto_create_dashboard": True,
+            "create_per_dog_dashboards": True,
+            "dashboard_theme": "default",
+            "dashboard_mode": "cards",
+            "show_statistics": True,
+            "show_maps": True,
+        }
+    )
+
+    assert result["step_id"] == "configure_external"
+    flow.async_step_configure_external_entities.assert_awaited_once()
+    flow.async_step_final_setup.assert_not_awaited()
+
+
+async def test_configure_modules_routes_to_dashboard_when_enabled(
+    hass: HomeAssistant,
+) -> None:
+    """The modules step should branch to dashboard configuration when enabled."""
+
+    flow = config_flow.PawControlConfigFlow()
+    flow.hass = hass
+    flow.context = {}
+    flow._dogs = [
+        {
+            CONF_DOG_ID: "buddy",
+            CONF_MODULES: {MODULE_DASHBOARD: True, MODULE_GPS: False},
+        }
+    ]
+    flow._enabled_modules = {MODULE_DASHBOARD: True}
+    flow.async_step_configure_dashboard = AsyncMock(
+        return_value={"type": FlowResultType.FORM, "step_id": "configure_dashboard"}
+    )
+
+    result = await flow.async_step_configure_modules(
+        {
+            "performance_mode": "balanced",
+            "enable_analytics": False,
+            "enable_cloud_backup": False,
+            "data_retention_days": 90,
+            "debug_logging": False,
+        }
+    )
+
+    assert result["step_id"] == "configure_dashboard"
+    flow.async_step_configure_dashboard.assert_awaited_once()

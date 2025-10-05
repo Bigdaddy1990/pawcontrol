@@ -24,7 +24,6 @@ from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -39,13 +38,10 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .entity import PawControlEntity
 from .runtime_data import get_runtime_data
 from .types import PawControlConfigEntry
-from .utils import (
-    PawControlDeviceLinkMixin,
-    async_call_add_entities,
-    ensure_utc_datetime,
-)
+from .utils import async_call_add_entities, ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -342,10 +338,7 @@ def _create_garden_binary_sensors(
 
 
 class PawControlBinarySensorBase(
-    PawControlDeviceLinkMixin,
-    CoordinatorEntity[PawControlCoordinator],
-    BinarySensorEntity,
-    BinarySensorLogicMixin,
+    PawControlEntity, BinarySensorEntity, BinarySensorLogicMixin
 ):
     """Base class for all Paw Control binary sensor entities.
 
@@ -365,10 +358,7 @@ class PawControlBinarySensorBase(
         entity_category: EntityCategory | None = None,
     ) -> None:
         """Initialize the binary sensor entity."""
-        super().__init__(coordinator)
-
-        self._dog_id = dog_id
-        self._dog_name = dog_name
+        super().__init__(coordinator, dog_id, dog_name)
         self._sensor_type = sensor_type
         self._icon_on = icon_on
         self._icon_off = icon_off
@@ -377,11 +367,11 @@ class PawControlBinarySensorBase(
         self._attr_unique_id = f"pawcontrol_{dog_id}_{sensor_type}"
         self._attr_device_class = device_class
         self._attr_entity_category = entity_category
-        self._attr_has_entity_name = True
         self._attr_translation_key = sensor_type
+        self._apply_name_suffix(sensor_type.replace("_", " ").title())
 
         # Link entity to PawControl device entry for the dog
-        self._set_device_link_info(model="Virtual Dog", sw_version="1.0.0")
+        self.update_device_metadata(model="Virtual Dog", sw_version="1.0.0")
 
         # OPTIMIZED: Thread-safe instance-level caching
         self._data_cache: dict[str, Any] = {}

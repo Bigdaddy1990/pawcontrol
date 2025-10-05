@@ -471,6 +471,8 @@ UPDATE_INTERVALS: Final[dict[str, int]] = {
     "real_time": 30,  # 30 seconds - high performance
 }
 
+# PLATINUM: Cap idle polling to stay within the <15 minute guideline
+MAX_IDLE_POLL_INTERVAL: Final[int] = 900
 # The Platinum appropriate-polling quality rule requires the integration to keep
 # its polling interval below 15 minutes, even when users try to configure higher
 # values.  The coordinator support module enforces this hard ceiling.
@@ -562,4 +564,5 @@ __all__ = (
     "SERVICE_START_GARDEN_SESSION",
     "SERVICE_START_WALK",
     "UPDATE_INTERVALS",
+    "MAX_IDLE_POLL_INTERVAL",
 )

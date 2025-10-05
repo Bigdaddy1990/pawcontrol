@@ -27,7 +27,6 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -47,8 +46,9 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .entity import PawControlEntity
 from .runtime_data import get_runtime_data
-from .utils import PawControlDeviceLinkMixin, async_call_add_entities
+from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -288,12 +288,7 @@ def _create_health_numbers(
     ]
 
 
-class PawControlNumberBase(
-    PawControlDeviceLinkMixin,
-    CoordinatorEntity[PawControlCoordinator],
-    NumberEntity,
-    RestoreEntity,
-):
+class PawControlNumberBase(PawControlEntity, NumberEntity, RestoreEntity):
     """Base class for all Paw Control number entities.
 
     Provides common functionality and ensures consistent behavior across
@@ -336,16 +331,13 @@ class PawControlNumberBase(
             entity_category: Entity category for organization
             initial_value: Initial value for the number
         """
-        super().__init__(coordinator)
-
-        self._dog_id = dog_id
-        self._dog_name = dog_name
+        super().__init__(coordinator, dog_id, dog_name)
         self._number_type = number_type
         self._value = initial_value
 
         # Entity configuration
         self._attr_unique_id = f"pawcontrol_{dog_id}_{number_type}"
-        self._attr_name = f"{dog_name} {number_type.replace('_', ' ').title()}"
+        self._apply_name_suffix(number_type.replace("_", " ").title())
         self._attr_translation_key = translation_key
         self._attr_device_class = device_class
         self._attr_mode = mode
@@ -357,7 +349,7 @@ class PawControlNumberBase(
         self._attr_entity_category = entity_category
 
         # Link entity to PawControl device entry for the dog
-        self._set_device_link_info(
+        self.update_device_metadata(
             model="Smart Dog Monitoring",
             sw_version="1.0.0",
             configuration_url="https://github.com/BigDaddy1990/pawcontrol",
