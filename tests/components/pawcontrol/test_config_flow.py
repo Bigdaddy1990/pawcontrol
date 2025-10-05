@@ -196,7 +196,7 @@ async def test_reconfigure_flow(hass: HomeAssistant) -> None:
     with patch(
         "homeassistant.config_entries.ConfigFlow.async_update_reload_and_abort",
         return_value={"type": FlowResultType.ABORT, "reason": "reconfigure_successful"},
-    ) as mock_update:
+    ):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], user_input={"entity_profile": "basic"}
         )

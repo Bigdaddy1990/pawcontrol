@@ -30,7 +30,6 @@ from .const import (
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
     DOG_SIZES,
-    DOMAIN,
     FOOD_TYPES,
     GPS_SOURCES,
     HEALTH_STATUS_OPTIONS,

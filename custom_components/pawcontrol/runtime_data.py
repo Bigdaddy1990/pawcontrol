@@ -94,7 +94,7 @@ def _detach_runtime_from_entry(entry: PawControlConfigEntry | None) -> None:
         return
 
     if hasattr(entry, "runtime_data"):
-        setattr(entry, "runtime_data", None)
+        entry.runtime_data = None
 
 
 def store_runtime_data(
