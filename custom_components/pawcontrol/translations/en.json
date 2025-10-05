@@ -6,6 +6,9 @@
         "description": "Welcome to Paw Control! Let's set up smart dog management for your Home Assistant.\n\nThis integration will help you track feeding, walks, health, and GPS location for your dogs.",
         "data": {
           "name": "Integration name"
+        },
+        "data_description": {
+          "name": "Shown in Home Assistant under Devices & Services to identify this Paw Control setup."
         }
       },
       "add_dog": {
@@ -18,6 +21,14 @@
           "dog_age": "Age in years",
           "dog_weight": "Weight in kg",
           "dog_size": "Size category"
+        },
+        "data_description": {
+          "dog_id": "Use a short lowercase identifier. It becomes part of the entity IDs created for this dog.",
+          "dog_name": "Friendly display name used in dashboards and notifications.",
+          "dog_breed": "Optional detail that improves nutrition and health recommendations.",
+          "dog_age": "Provide the age in years so Paw Control can tailor activity and feeding guidance.",
+          "dog_weight": "Used to calculate meal portions and health thresholds.",
+          "dog_size": "Select the size profile that best matches your dog for defaults and summaries."
         }
       },
       "dog_modules": {
@@ -36,6 +47,20 @@
           "enable_training": "Training Progress",
           "enable_weather": "Weather Health Monitoring",
           "enable_garden": "Garden Tracking"
+        },
+        "data_description": {
+          "enable_feeding": "Creates feeding sensors, services, and reminders for this dog.",
+          "enable_walk": "Tracks walk history and exposes walk-completion helpers.",
+          "enable_health": "Adds health metrics, medication reminders, and vet schedule tracking.",
+          "enable_gps": "Enables GPS tracking entities and geofencing options.",
+          "enable_notifications": "Allows Paw Control to send Home Assistant notifications for this dog.",
+          "enable_dashboard": "Automatically build a Lovelace dashboard tab for this dog's data.",
+          "enable_visitor": "Provides quick toggles to manage visitor/guest safety automations.",
+          "enable_grooming": "Adds grooming reminders to the helper schedule.",
+          "enable_medication": "Creates helpers to manage medication dosing routines.",
+          "enable_training": "Tracks training goals and exposes reminder services.",
+          "enable_weather": "Surfaces weather-based health guidance for outdoor activities.",
+          "enable_garden": "Adds garden-tracking automations for outdoor areas."
         }
       },
       "dog_gps": {
@@ -47,6 +72,13 @@
           "gps_accuracy_filter": "Accuracy Filter (meters)",
           "enable_geofencing": "Enable Geofencing",
           "home_zone_radius": "Home Zone Radius (meters)"
+        },
+        "data_description": {
+          "gps_source": "Choose the hardware or service providing GPS updates for this dog.",
+          "gps_update_interval": "How frequently to request new GPS data. Shorter intervals use more battery.",
+          "gps_accuracy_filter": "Ignore updates less accurate than this distance in meters.",
+          "enable_geofencing": "Turn on automatic alerts when the dog leaves safe zones.",
+          "home_zone_radius": "Define the radius of the safe home zone used for geofencing alerts."
         }
       },
       "dog_feeding": {
@@ -66,6 +98,21 @@
           "snacks_enabled": "Enable Snacks",
           "enable_reminders": "Feeding Reminders",
           "reminder_minutes_before": "Reminder Minutes Before Meal"
+        },
+        "data_description": {
+          "meals_per_day": "Number of meals Paw Control will plan for each day.",
+          "daily_food_amount": "Total amount of food (in grams) to distribute across all meals.",
+          "food_type": "Used to tailor nutritional advice and feeding reminders.",
+          "feeding_schedule": "Choose the preset schedule or custom times for meals.",
+          "breakfast_enabled": "Enable if this dog should receive a morning meal.",
+          "breakfast_time": "Time of day to serve breakfast when enabled.",
+          "lunch_enabled": "Enable if this dog should receive a midday meal.",
+          "lunch_time": "Time of day to serve lunch when enabled.",
+          "dinner_enabled": "Enable if this dog should receive an evening meal.",
+          "dinner_time": "Time of day to serve dinner when enabled.",
+          "snacks_enabled": "Track snacks separately from regular meals.",
+          "enable_reminders": "Send Home Assistant reminders ahead of each scheduled meal.",
+          "reminder_minutes_before": "How many minutes before a meal the reminder should trigger."
         }
       },
       "dog_health": {
@@ -122,26 +169,136 @@
           "medication_2_time": "Medication 2 Time",
           "medication_2_with_meals": "Medication 2 With Meals",
           "medication_2_notes": "Medication 2 Notes"
+        },
+        "data_description": {
+          "vet_name": "Primary veterinarian used in reminders and diagnostics.",
+          "vet_phone": "Contact number displayed in emergency notifications.",
+          "last_vet_visit": "Date of the most recent vet appointment for reference.",
+          "next_checkup": "Schedule the next planned vet visit to receive reminders.",
+          "weight_tracking": "Enable to log weight entries and show weight trend sensors.",
+          "health_aware_portions": "Adjust feeding recommendations based on the health profile.",
+          "ideal_weight": "Target weight (kg) used for goal tracking and alerts.",
+          "body_condition_score": "BCS score (1-9) guides nutrition recommendations.",
+          "activity_level": "Overall activity level to balance calorie suggestions.",
+          "weight_goal": "Choose whether the dog should maintain, lose, or gain weight.",
+          "spayed_neutered": "Indicate if the dog is spayed/neutered for health calculations.",
+          "has_diabetes": "Enable diabetic care prompts and medication helpers.",
+          "has_kidney_disease": "Enable kidney-friendly feeding suggestions.",
+          "has_heart_disease": "Enable heart-health alerts and diet adjustments.",
+          "has_arthritis": "Track joint-support reminders and activity guidance.",
+          "has_allergies": "Enable allergy alerts and diet filters.",
+          "has_digestive_issues": "Tailor feeding reminders for sensitive stomachs.",
+          "other_health_conditions": "List any other conditions to surface in reminders.",
+          "prescription": "Mark if the dog follows a prescription diet.",
+          "diabetic": "Flag that the dog uses a diabetic diet plan.",
+          "kidney_support": "Flag that the dog uses a kidney support diet plan.",
+          "low_fat": "Flag that the dog uses a low-fat diet plan.",
+          "weight_control": "Flag that the dog uses a weight-control diet plan.",
+          "sensitive_stomach": "Flag that the dog uses a sensitive stomach formula.",
+          "senior_formula": "Flag that the dog uses a senior-specific food.",
+          "puppy_formula": "Flag that the dog uses a puppy-specific food.",
+          "grain_free": "Flag that the dog uses a grain-free diet.",
+          "hypoallergenic": "Flag that the dog uses a hypoallergenic formula.",
+          "organic": "Flag that the dog uses organic food.",
+          "raw_diet": "Flag that the dog follows a raw/BARF diet.",
+          "dental_care": "Flag that the dog uses a dental-care food.",
+          "joint_support": "Flag that the dog uses a joint-support formula.",
+          "rabies_vaccination": "Record the date of the last rabies vaccination.",
+          "rabies_next": "Date the next rabies vaccination is due.",
+          "dhpp_vaccination": "Record the date of the last DHPP vaccination.",
+          "dhpp_next": "Date the next DHPP vaccination is due.",
+          "bordetella_vaccination": "Record the date of the last Bordetella vaccination.",
+          "bordetella_next": "Date the next Bordetella vaccination is due.",
+          "medication_1_name": "Name of the first medication you want to track.",
+          "medication_1_dosage": "Dosage instructions for the first medication.",
+          "medication_1_frequency": "How often the first medication should be given.",
+          "medication_1_time": "Default time to administer the first medication.",
+          "medication_1_with_meals": "Indicate if the first medication should be taken with food.",
+          "medication_1_notes": "Additional notes for the first medication.",
+          "medication_2_name": "Name of the second medication you want to track.",
+          "medication_2_dosage": "Dosage instructions for the second medication.",
+          "medication_2_frequency": "How often the second medication should be given.",
+          "medication_2_time": "Default time to administer the second medication.",
+          "medication_2_with_meals": "Indicate if the second medication should be taken with food.",
+          "medication_2_notes": "Additional notes for the second medication."
+        }
+      },
+      "discovery_confirm": {
+        "title": "Confirm Discovered Device",
+        "description": "Paw Control found a device via {discovery_source}.\n\n{device_info}\n\nContinue to use this hardware as the basis for setup?",
+        "data": {
+          "confirm": "Continue with setup"
+        },
+        "data_description": {
+          "confirm": "Enable to prefill the wizard with the discovered device details. Disable if you want to ignore this discovery."
+        }
+      },
+      "add_another": {
+        "title": "Add Another Dog?",
+        "description": "Dogs configured: {dogs_configured}\n\n{dogs_list}\nPerformance tip: {performance_note}",
+        "data": {
+          "add_another": "Add another dog"
+        },
+        "data_description": {
+          "add_another": "Choose this to return to the dog form and configure an additional pet. Leave unchecked to move on to profile selection."
+        }
+      },
+      "entity_profile": {
+        "title": "Select Entity Profile",
+        "description": "Select the entity profile for {dogs_count} dog(s).\n\n{profiles_info}\nEstimated entities: {estimated_entities}\nRecommendation: {recommendation}",
+        "data": {
+          "entity_profile": "Entity Profile"
+        },
+        "data_description": {
+          "entity_profile": "Determines which sensors, helpers, and automations Paw Control will create. Pick the profile that matches the number of dogs and modules you enabled."
+        }
+      },
+      "reauth_confirm": {
+        "title": "Reauthenticate Paw Control",
+        "description": "The Paw Control integration needs to be reauthenticated.\n\nIntegration: {integration_name}\nIssues detected: {issues_detected}",
+        "data": {
+          "confirm": "Reauthenticate"
+        },
+        "data_description": {
+          "confirm": "Confirm to refresh credentials and run the health checks noted above."
+        }
+      },
+      "reconfigure": {
+        "title": "Reconfigure Paw Control",
+        "description": "Update the Paw Control profile and options.\n\nCurrent profile: {current_profile}\nProfiles: {profiles_info}",
+        "data": {
+          "entity_profile": "Entity Profile"
+        },
+        "data_description": {
+          "entity_profile": "Select a new profile to adjust which entities Paw Control keeps active for this configuration."
         }
       },
       "add_another_dog": {
         "title": "Add Another Dog?",
-        "description": "Dogs configured: {dogs_list} Would you like to add another dog? Remaining spots: {remaining_spots}/{max_dogs}",
+        "description": "Configured dogs ({dog_count}/{max_dogs}): {dogs_list}\n\nRemaining slots: {remaining_spots}",
         "data": {
           "add_another": "Add another dog"
+        },
+        "data_description": {
+          "add_another": "Enable to add one more dog before moving on. Disable to continue with global settings."
         }
       },
       "configure_modules": {
         "title": "Global Settings",
-        "description": "Configure integration-wide settings for {total_dogs} dogs.\n\n📊 GPS dogs: {gps_dogs}\n🏥 Health tracking: {health_dogs}\n\nRecommended performance mode: {suggested_performance}\n{complexity_info}",
+        "description": "Configure integration-wide settings for {dog_count} dog(s).\n\nModule summary: {module_summary}\nTotal modules enabled: {total_modules}",
         "data": {
-          "enable_notifications": "Global Notifications",
-          "enable_dashboard": "Dashboard Auto-Creation",
           "performance_mode": "Performance Mode",
+          "enable_analytics": "Enable Analytics",
+          "enable_cloud_backup": "Enable Cloud Backup",
           "data_retention_days": "Data Retention (days)",
-          "auto_backup": "Automatic Backups",
-          "debug_logging": "Debug Logging",
-          "enable_weather": "Weather Health Monitoring"
+          "debug_logging": "Enable Debug Logging"
+        },
+        "data_description": {
+          "performance_mode": "Select how resource-intensive Paw Control should be for this installation.",
+          "enable_analytics": "Collect anonymous trend data to power overview widgets and reports.",
+          "enable_cloud_backup": "Upload Paw Control configuration and history to your configured cloud target.",
+          "data_retention_days": "Number of days to keep historical metrics before pruning old entries.",
+          "debug_logging": "Enable verbose logging to help troubleshoot issues during setup."
         }
       },
       "configure_dashboard": {
@@ -151,9 +308,31 @@
           "auto_create_dashboard": "Automatically create dashboard",
           "create_per_dog_dashboards": "Create per-dog dashboards",
           "dashboard_theme": "Dashboard Theme",
+          "dashboard_template": "Dashboard Template",
           "dashboard_mode": "Dashboard Mode",
           "show_statistics": "Show statistics",
-          "show_maps": "Show maps"
+          "show_maps": "Show maps",
+          "show_health_charts": "Show health charts",
+          "show_feeding_schedule": "Show feeding schedule",
+          "show_alerts": "Show alerts",
+          "compact_mode": "Enable compact mode",
+          "auto_refresh": "Enable auto refresh",
+          "refresh_interval": "Refresh interval (seconds)"
+        },
+        "data_description": {
+          "auto_create_dashboard": "Automatically build a Lovelace view with recommended cards.",
+          "create_per_dog_dashboards": "Create separate dashboard tabs for each dog when multiple pets exist.",
+          "dashboard_theme": "Pick which visual theme Paw Control should apply to generated views.",
+          "dashboard_template": "Decide which layout template Paw Control should start from.",
+          "dashboard_mode": "Control how detailed or compact the generated dashboard should be.",
+          "show_statistics": "Include charts that summarise historical trends and KPIs.",
+          "show_maps": "Add GPS map cards for dogs that provide location data.",
+          "show_health_charts": "Show health dashboards for weight, medication and vet visits.",
+          "show_feeding_schedule": "Display the shared feeding calendar with upcoming meals.",
+          "show_alerts": "Add an alert panel that highlights outstanding issues.",
+          "compact_mode": "Tighten spacing so the dashboard fits small screens more comfortably.",
+          "auto_refresh": "Keep the dashboard updated without manual refresh actions.",
+          "refresh_interval": "Interval, in seconds, used for automatic dashboard refreshes."
         }
       },
       "configure_external_entities": {
@@ -162,8 +341,12 @@
         "data": {
           "gps_source": "GPS Source (Required for GPS tracking)",
           "door_sensor": "Door Sensor (Optional for visitor mode)",
-          "notify_fallback": "Notification Service (Optional)",
-          "weather_entity": "Weather Entity (Optional for health alerts)"
+          "notify_fallback": "Notification Service (Optional)"
+        },
+        "data_description": {
+          "gps_source": "Choose which device tracker or person entity Paw Control should use for GPS.",
+          "door_sensor": "Optional door sensor that triggers visitor or garden automations.",
+          "notify_fallback": "Optional notification service used when direct device notifications fail."
         }
       },
       "final_setup": {
@@ -210,7 +393,8 @@
     },
     "abort": {
       "already_configured": "Device is already configured",
-      "single_instance_allowed": "Only a single configuration of Paw Control is allowed"
+      "single_instance_allowed": "Only a single configuration of Paw Control is allowed",
+      "discovery_rejected": "Discovery ignored at user request"
     }
   },
   "options": {

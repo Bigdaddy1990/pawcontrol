@@ -14,6 +14,7 @@ Dieser umfassende Guide führt Sie durch die Installation und Konfiguration der 
 8. [Mobile App Integration](#mobile-app-integration)
 9. [Troubleshooting](#troubleshooting)
 10. [Performance-Optimierung](#performance-optimierung)
+11. [Deinstallation & Aufräumen](#deinstallation--aufräumen)
 
 ## 🔧 Voraussetzungen
 
@@ -1422,6 +1423,31 @@ automation:
         data:
           older_than_days: 90
 ```
+
+---
+
+## 🧹 Deinstallation & Aufräumen
+
+Sollten Sie Paw Control entfernen wollen – beispielsweise bei einem Gerätewechsel oder nach Tests – gehen Sie in dieser Reihenfolge vor, um Rückstände zu vermeiden:
+
+1. **Integration aus Home Assistant entfernen**
+   - Öffnen Sie *Einstellungen → Geräte & Dienste*.
+   - Wählen Sie **Paw Control** und klicken Sie auf **Konfiguration entfernen**.
+   - Bestätigen Sie den Dialog. Home Assistant entfernt daraufhin alle Plattformen und beendet Hintergrundaufgaben.
+2. **Automationen, Szenen und Skripte prüfen**
+   - Löschen oder deaktivieren Sie Automationen/Skripte, die auf `pawcontrol.*`-Dienste zugreifen.
+   - Entfernen Sie Lovelace-Karten oder Dashboards, die ausschließlich Paw-Control-Entitäten anzeigen.
+3. **Erzeugte Helfer bereinigen**
+   - Navigieren Sie zu *Einstellungen → Geräte & Dienste → Helfer*.
+   - Filtern Sie nach "Paw Control" oder nach den automatisch erzeugten Helfer-Namen (`input_datetime.pawcontrol_*`, `input_boolean.pawcontrol_*`).
+   - Löschen Sie nicht mehr benötigte Helfer, sofern Sie diese nicht weiterverwenden möchten.
+4. **Optionale Dateien & Backups aufräumen**
+   - Entfernen Sie exportierte Dashboards oder Skripte im `config/www`-Verzeichnis, falls vorhanden.
+   - Löschen Sie gesicherte Diagnosepakete (`/config/.storage/pawcontrol_*`) nach der Archivierung.
+5. **Home Assistant neu starten (empfohlen)**
+   - Ein Neustart stellt sicher, dass zwischengespeicherte Daten, Service-Registrierungen und Scheduler sauber entfernt werden.
+
+> 💡 **Tipp:** Wenn Sie Paw Control später erneut installieren, beginnen Sie mit einer frischen Konfiguration. Importieren Sie keine veralteten YAML-Sicherungen ohne vorherige Prüfung.
 
 ---
 

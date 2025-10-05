@@ -2,15 +2,15 @@
 
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.9.1%2B-blue.svg)](https://www.home-assistant.io/)
 [![HACS](https://img.shields.io/badge/HACS-Ready-41BDF5.svg)](https://hacs.xyz/)
-[![Quality Scale](https://img.shields.io/badge/Quality%20Scale-Platinum%20Tier-gold.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
+[![Quality Scale](https://img.shields.io/badge/Quality%20Scale-Bronze-%23cd7f32.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![CodeFactor](https://www.codefactor.io/repository/github/bigdaddy1990/pawcontrol/badge)](https://www.codefactor.io/repository/github/bigdaddy1990/pawcontrol)
 [![GitHub Release](https://img.shields.io/github/v/release/BigDaddy1990/pawcontrol.svg)](https://github.com/bigdaddy1990/pawcontrol/releases)
 [![Downloads](https://img.shields.io/github/downloads/BigDaddy1990/pawcontrol/total.svg)](https://github.com/bigdaddy1990/pawcontrol/releases)
 [![Version](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/BigDaddy1990/pawcontrol/releases)
-[![Coverage](https://img.shields.io/badge/Coverage-100%25-brightgreen.svg)](docs/testing/coverage_reporting.md)
+[![Coverage](https://img.shields.io/badge/Coverage-In%20progress-lightgrey.svg)](docs/testing/coverage_reporting.md)
 
-**PawControl** is a comprehensive Home Assistant integration for smart dog management, featuring advanced GPS tracking, automated feeding reminders, health monitoring, and intelligent automation workflows. Built with enterprise-grade architecture and ≥95% branch-aware test coverage for production reliability.
+**PawControl** is a comprehensive Home Assistant integration for smart dog management, featuring advanced GPS tracking, automated feeding reminders, health monitoring, and intelligent automation workflows. The project currently targets a reliable **Bronze quality scale** baseline while we continue expanding automated test coverage across the entire codebase.
 
 ## ✨ Key Features
 
@@ -27,9 +27,9 @@
 
 ## 🧪 Quality & Testing
 
-- 📐 **Test pyramid coverage** with focused unit and service-level suites. [Read the strategy](docs/testing/test_pyramid.md#pyramid-overview).
-- ✅ **Branch coverage gate** held at 95% to protect critical resilience paths and currently sitting at 100% on the resilience core.
-- 🧾 **Every PR must attach `pytest` output** showing the coverage summary to satisfy the 100% evidence requirement.
+- 📐 **Targeted regression coverage** exercises config flows, discovery handlers, and service helpers while we continue building broader suites. [Read the strategy](docs/testing/test_pyramid.md#pyramid-overview).
+- 📊 **Integration-wide coverage tracking** is enabled through `pytest-cov`, with results published in [`docs/testing/coverage_reporting.md`](docs/testing/coverage_reporting.md). Raising overall coverage remains an active Bronze milestone.
+- 🧾 **Contributions should include tests when feasible**, helping expand coverage toward future Silver goals.
 - ▶️ Run the lightweight CI suite locally:
   ```bash
   pytest --maxfail=1 --disable-warnings
@@ -378,6 +378,22 @@ select.{dog_id}_food_type         # Dry, wet, BARF, mixed
 select.{dog_id}_current_mood      # Happy, anxious, tired
 select.{dog_id}_activity_level    # Very low to very high
 ```
+
+## ♻️ Removal & Cleanup
+
+When PawControl is no longer needed, follow a short teardown so the Home Assistant instance stays tidy. A step-by-step guide
+with screenshots lives in [`docs/setup_installation_guide.md`](docs/setup_installation_guide.md#-deinstallation--aufräumen).
+
+1. **Remove the integration** – Settings → Devices & Services → Paw Control → *Delete*. Home Assistant unloads every platform
+   and stops background jobs automatically.
+2. **Retire automations & dashboards** – Disable automations, scenes, or Lovelace views that call `pawcontrol.*` services so
+   they do not reference missing entities.
+3. **Prune generated helpers** – Settings → Devices & Services → Helpers → filter for `pawcontrol_*` helpers and delete those
+   you no longer need.
+4. **Restart Home Assistant (recommended)** – Clears caches, schedulers, and stale service registrations.
+
+Planning to reinstall later? Start with a fresh configuration instead of restoring old YAML exports to avoid reintroducing
+deprecated data.
 
 ## 📊 Auto-Generated Dashboards
 
@@ -733,7 +749,7 @@ service: pawcontrol.get_statistics
 ### Code Quality
 
 **✅ Extensive Test Coverage**:
-- **96%+ Test Coverage**: Comprehensive test suite with edge cases
+- **Growing Test Coverage**: Core flows covered; additional scenarios under active development
 - **45 Test Files**: Covering all 42 integration modules
 - **End-to-End Testing**: Complete workflow validation
 - **Performance Testing**: Load testing for multi-dog scenarios
@@ -745,6 +761,18 @@ service: pawcontrol.get_statistics
 - **Error Handling**: Robust exception handling and logging
 - **Documentation**: Extensive docstrings and API documentation
 - **Code Quality**: Follows Home Assistant development standards
+
+## 🧹 Removing PawControl
+
+If you need to uninstall PawControl—whether you're migrating hardware or just testing—follow this sequence to cleanly remove integration artefacts:
+
+1. **Remove the integration** via *Settings → Devices & Services*, choose **PawControl**, and click **Delete** to unload platforms and stop background jobs.
+2. **Review automations, scenes, and scripts** that call `pawcontrol.*` services or reference PawControl entities and disable or delete them as needed.
+3. **Clean up generated helpers** under *Settings → Devices & Services → Helpers* (search for `pawcontrol_*` helpers) if you no longer plan to use them.
+4. **Delete optional exports** such as saved dashboards, scripts, or diagnostic bundles under `/config/www` or `/config/.storage` if you created them.
+5. **Restart Home Assistant** to ensure caches, service registrations, and schedules are fully cleared.
+
+> ℹ️ A more detailed removal checklist is available in the [Setup & Installation Guide](docs/setup_installation_guide.md#-deinstallation--aufr%C3%A4umen).
 
 ## 🔧 Troubleshooting & Support
 
@@ -1029,14 +1057,14 @@ class NewGPSDevicePlugin(PawControlPlugin):
 - Multi-dog management with independent configurations
 - Auto-generated responsive dashboards
 - Intelligent notification system with actionable alerts
-- Enterprise-grade performance with 96%+ test coverage
+- Enterprise-grade performance with an expanding automated test suite
 - Comprehensive API with 20+ services
 - Event-driven automation system
 - Production deployment documentation
 
-**🏆 Quality Achievements**:
-- **Platinum Quality Scale**: Home Assistant Gold Standard
-- **96%+ Test Coverage**: 45 test files covering all modules
+- **🏆 Quality Achievements**:
+- **Quality Scale Improvements Underway**: Targeting Bronze baseline compliance
+- **Automated Test Suite**: 45 test files cover core modules with more scenarios planned
 - **HACS Ready**: Full HACS compatibility and publication ready
 - **Production Validated**: Complete deployment documentation
 - **Enterprise Architecture**: Caching, monitoring, error recovery
@@ -1071,11 +1099,10 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) for 
 
 ### Recognition & Achievements
 
-**🏆 Home Assistant Quality Scale**: **Platinum Tier**
-- Exceeds all quality requirements
-- 96%+ comprehensive test coverage
-- Production-ready code quality
-- Complete documentation and user experience
+**🏆 Home Assistant Quality Scale**: **Bronze (work in progress)**
+- Bronze checklist items addressed with ongoing improvements toward higher tiers
+- Automated tests cover critical flows with further coverage planned
+- Documentation updated for setup, configuration, and safe removal
 
 **⭐ HACS Integration**: **Featured Integration**
 - Ready for HACS publication
@@ -1130,4 +1157,4 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) for 
 
 ---
 
-**Production Ready** ✅ | **HACS Compatible** ✅ | **Platinum Quality** ✅ | **96%+ Test Coverage** ✅
+**Active Development** ✅ | **HACS Compatible** ✅ | **Quality Scale: Bronze** ✅ | **Automated Tests Expanding** ✅

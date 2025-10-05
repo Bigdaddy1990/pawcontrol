@@ -19,6 +19,20 @@ def _resolve_entry_id(entry_or_id: PawControlConfigEntry | str) -> str:
     return entry_or_id if isinstance(entry_or_id, str) else entry_or_id.entry_id
 
 
+def _get_entry(
+    hass: HomeAssistant, entry_or_id: PawControlConfigEntry | str
+) -> PawControlConfigEntry | None:
+    """Resolve a config entry from ``entry_or_id`` when available."""
+
+    if isinstance(entry_or_id, str):
+        entry = hass.config_entries.async_get_entry(entry_or_id)
+        if entry is None or entry.domain != DOMAIN:
+            return None
+        return cast(PawControlConfigEntry, entry)
+
+    return entry_or_id
+
+
 def _get_domain_store(
     hass: HomeAssistant, *, create: bool
 ) -> DomainRuntimeStore | None:
@@ -29,10 +43,6 @@ def _get_domain_store(
 
     if not isinstance(domain_data, MutableMapping):
         if not create:
-            # The store was populated with an unexpected container type. Remove
-            # it so future lookups and writes can recreate a clean mapping. The
-            # tests exercise this behaviour by ensuring ``DOMAIN`` is removed
-            # when invalid data is encountered.
             hass.data.pop(DOMAIN, None)
             return None
         domain_data = {}
@@ -65,22 +75,54 @@ def _cleanup_domain_store(
         hass.data.pop(DOMAIN, None)
 
 
+def _get_runtime_from_entry(
+    entry: PawControlConfigEntry | None,
+) -> PawControlRuntimeData | None:
+    """Return runtime data stored on a config entry when available."""
+
+    if entry is None:
+        return None
+
+    runtime = getattr(entry, "runtime_data", None)
+    return runtime if isinstance(runtime, PawControlRuntimeData) else None
+
+
+def _detach_runtime_from_entry(entry: PawControlConfigEntry | None) -> None:
+    """Remove runtime data from an entry to avoid stale references."""
+
+    if entry is None:
+        return
+
+    if hasattr(entry, "runtime_data"):
+        setattr(entry, "runtime_data", None)
+
+
 def store_runtime_data(
     hass: HomeAssistant,
     entry: PawControlConfigEntry,
     runtime_data: PawControlRuntimeData,
 ) -> None:
-    """Store runtime data in ``hass.data`` for the given config entry."""
+    """Attach runtime data to the config entry and clean legacy storage."""
 
-    store = _get_domain_store(hass, create=True)
-    assert store is not None  # Satisfies the type checker
-    store[entry.entry_id] = runtime_data
+    entry.runtime_data = runtime_data
+
+    store = _get_domain_store(hass, create=False)
+    if store is None:
+        return
+
+    store.pop(entry.entry_id, None)
+    _cleanup_domain_store(hass, store)
 
 
 def get_runtime_data(
     hass: HomeAssistant, entry_or_id: PawControlConfigEntry | str
 ) -> PawControlRuntimeData | None:
     """Return the runtime data associated with a config entry."""
+
+    entry = _get_entry(hass, entry_or_id)
+    runtime = _get_runtime_from_entry(entry)
+    if runtime is not None:
+        return runtime
 
     entry_id = _resolve_entry_id(entry_or_id)
     store = _get_domain_store(hass, create=False)
@@ -89,16 +131,12 @@ def get_runtime_data(
 
     runtime_data, needs_migration = _coerce_runtime_data(store.get(entry_id))
     if runtime_data and needs_migration:
-        store[entry_id] = runtime_data
-    elif runtime_data is None and needs_migration:
-        # ``needs_migration`` is only ``True`` when an old structure was present.
-        # If the payload could not be coerced we should remove the legacy
-        # container to avoid future lookups hitting invalid data.
         store.pop(entry_id, None)
         _cleanup_domain_store(hass, store)
-        return None
-
-    if runtime_data is None and not store:
+        if entry is not None:
+            entry.runtime_data = runtime_data
+    elif runtime_data is None and needs_migration:
+        store.pop(entry_id, None)
         _cleanup_domain_store(hass, store)
 
     return runtime_data
@@ -108,6 +146,12 @@ def pop_runtime_data(
     hass: HomeAssistant, entry_or_id: PawControlConfigEntry | str
 ) -> PawControlRuntimeData | None:
     """Remove and return runtime data for a config entry if present."""
+
+    entry = _get_entry(hass, entry_or_id)
+    runtime_data = _get_runtime_from_entry(entry)
+    if runtime_data is not None:
+        _detach_runtime_from_entry(entry)
+        return runtime_data
 
     entry_id = _resolve_entry_id(entry_or_id)
     store = _get_domain_store(hass, create=False)
@@ -119,8 +163,6 @@ def pop_runtime_data(
 
     runtime_data, needs_migration = _coerce_runtime_data(value)
     if runtime_data and needs_migration:
-        # ``pop`` removed the legacy container, so we can return the
-        # extracted runtime data directly.
         return runtime_data
 
     return runtime_data

@@ -855,19 +855,12 @@ class PawControlResetDailyStatsButton(PawControlButtonBase):
         await super().async_press()
 
         try:
-            # Get data manager from hass.data using entry_id
-            entry_id = getattr(self.coordinator.config_entry, "entry_id", None)
-            if not entry_id:
-                raise HomeAssistantError("Config entry ID not available")
+            runtime_data = get_runtime_data(self.hass, self.coordinator.config_entry)
+            if runtime_data is None:
+                raise HomeAssistantError("Runtime data not available")
 
-            domain_data = self.hass.data.get("pawcontrol", {})
-            entry_data = domain_data.get(entry_id)
-
-            if not entry_data:
-                raise HomeAssistantError("Entry data not found")
-
-            data_manager = entry_data.get("data")
-            if not data_manager:
+            data_manager = getattr(runtime_data, "data_manager", None)
+            if data_manager is None:
                 raise HomeAssistantError("Data manager not available")
 
             await data_manager.async_reset_dog_daily_stats(self._dog_id)

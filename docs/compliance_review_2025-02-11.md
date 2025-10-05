@@ -23,8 +23,9 @@ level of validation.
 
 2. **Automated test coverage remains practically nonexistent.**
    - Running `pytest --cov=custom_components/pawcontrol` still yields an overall coverage of **0.95 %**.
-   - The coverage configuration in `pyproject.toml` has been relaxed to avoid a failing CI gate while no regression
-     tests exist; a follow-up roadmap item must restore a realistic target once tests are written.
+   - Coverage settings now instrument the entire integration rather than two helper modules, but the suite only
+     exercises a sliver of behaviour; once meaningful tests land, reintroduce a realistic fail-under gate in
+     `pyproject.toml`.
 
 3. **Documentation promises continue to exceed verified functionality.**
    - `info.md` and multiple documents in `docs/` (for example `implementation_guide.md` and

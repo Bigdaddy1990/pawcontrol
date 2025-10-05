@@ -103,28 +103,4 @@ def _async_resolve_coordinator(hass: HomeAssistant, entry: ConfigEntry) -> Any |
     if runtime and getattr(runtime, "coordinator", None) is not None:
         return runtime.coordinator
 
-    domain_data = hass.data.get(DOMAIN)
-    if not domain_data:
-        return None
-
-    entry_store = domain_data.get(entry.entry_id)
-    if isinstance(entry_store, dict):
-        runtime = entry_store.get("runtime_data")
-        if runtime and getattr(runtime, "coordinator", None) is not None:
-            return runtime.coordinator
-
-        coordinator = entry_store.get("coordinator")
-        if coordinator is not None:
-            return coordinator
-    elif getattr(entry_store, "coordinator", None) is not None:
-        return entry_store.coordinator
-
-    coordinator = domain_data.get("coordinator")
-    if coordinator is not None:
-        return coordinator
-
-    runtime = domain_data.get("runtime_data")
-    if runtime and getattr(runtime, "coordinator", None) is not None:
-        return runtime.coordinator
-
     return None

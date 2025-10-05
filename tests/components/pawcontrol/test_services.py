@@ -16,10 +16,12 @@ from custom_components.pawcontrol.services import (
     SERVICE_START_WALK,
     ConfigEntryState,
 )
+from custom_components.pawcontrol.types import PawControlRuntimeData
 from custom_components.pawcontrol.walk_manager import WeatherCondition
 from homeassistant.config_entries import EVENT_CONFIG_ENTRY_STATE_CHANGED
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 
 @pytest.fixture
@@ -46,14 +48,37 @@ async def _register_services(
 ) -> dict[tuple[str, str], Callable[[ServiceCall], Awaitable[None]]]:
     """Register PawControl services and return the handlers."""
 
-    domain_data = hass.data.setdefault(DOMAIN, {})
-    domain_data.setdefault(
-        "test-entry",
-        {
-            "runtime_data": SimpleNamespace(coordinator=coordinator),
-            "coordinator": coordinator,
-        },
-    )
+    entry = getattr(coordinator, "config_entry", None)
+    if entry is None:
+        entry = MockConfigEntry(domain=DOMAIN, data={}, unique_id="test-entry")
+        entry.add_to_hass(hass)
+    elif isinstance(entry, MockConfigEntry):
+        entry.add_to_hass(hass)
+
+    if getattr(entry, "state", None) is not ConfigEntryState.LOADED:
+        entry.state = ConfigEntryState.LOADED
+    if getattr(entry, "domain", None) != DOMAIN:
+        entry.domain = DOMAIN
+
+    runtime = getattr(entry, "runtime_data", None)
+    if not isinstance(runtime, PawControlRuntimeData):
+        runtime = PawControlRuntimeData(
+            coordinator=coordinator,
+            data_manager=getattr(coordinator, "data_manager", SimpleNamespace()),
+            notification_manager=getattr(
+                coordinator, "notification_manager", SimpleNamespace()
+            ),
+            feeding_manager=getattr(coordinator, "feeding_manager", SimpleNamespace()),
+            walk_manager=getattr(coordinator, "walk_manager", SimpleNamespace()),
+            entity_factory=getattr(coordinator, "entity_factory", SimpleNamespace()),
+            entity_profile=getattr(coordinator, "entity_profile", "standard"),
+            dogs=[],
+        )
+        entry.runtime_data = runtime
+    else:
+        runtime.coordinator = coordinator
+
+    coordinator.config_entry = entry
 
     registered: dict[tuple[str, str], Callable[[ServiceCall], Awaitable[None]]] = {}
 
