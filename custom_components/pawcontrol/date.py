@@ -24,7 +24,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -38,10 +37,11 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .entity import PawControlEntity
 from .exceptions import PawControlError, ValidationError
 from .helpers import performance_monitor
 from .runtime_data import get_runtime_data
-from .utils import PawControlDeviceLinkMixin, async_call_add_entities
+from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -220,12 +220,7 @@ async def async_setup_entry(
         ) from err
 
 
-class PawControlDateBase(
-    PawControlDeviceLinkMixin,
-    CoordinatorEntity[PawControlCoordinator],
-    DateEntity,
-    RestoreEntity,
-):
+class PawControlDateBase(PawControlEntity, DateEntity, RestoreEntity):
     """Base class for Paw Control date entities.
 
     Provides common functionality for all date entities including state
@@ -249,27 +244,22 @@ class PawControlDateBase(
             date_type: Type identifier for the date entity
             icon: Material Design icon for the entity
         """
-        super().__init__(coordinator)
-        self._dog_id = dog_id
-        self._dog_name = dog_name
+        super().__init__(coordinator, dog_id, dog_name)
         self._date_type = date_type
         self._current_value: date | None = None
         self._active_update_token: object | None = None
 
         # Entity configuration with modern HA standards
         self._attr_unique_id = f"pawcontrol_{dog_id}_{date_type}"
-        self._attr_name = f"{dog_name} {date_type.replace('_', ' ').title()}"
+        self._apply_name_suffix(date_type.replace("_", " ").title())
         self._attr_icon = icon
 
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, dog_id)},
-            "name": dog_name,
-            "manufacturer": "Paw Control",
-            "model": "Smart Dog Management",
-            "sw_version": "2025.8.2",
-            "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
-        }
-        self._attr_suggested_area = f"Pet Area - {dog_name}"
+        self.update_device_metadata(
+            model="Smart Dog Management",
+            sw_version="2025.8.2",
+            configuration_url="https://github.com/BigDaddy1990/pawcontrol",
+            suggested_area=f"Pet Area - {dog_name}",
+        )
 
     @property
     def native_value(self) -> date | None:

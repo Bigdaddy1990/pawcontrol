@@ -11,7 +11,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -25,12 +24,9 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .entity import PawControlEntity
 from .runtime_data import get_runtime_data
-from .utils import (
-    PawControlDeviceLinkMixin,
-    async_call_add_entities,
-    ensure_utc_datetime,
-)
+from .utils import async_call_add_entities, ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -162,12 +158,7 @@ async def async_setup_entry(
     )
 
 
-class PawControlDateTimeBase(
-    PawControlDeviceLinkMixin,
-    CoordinatorEntity[PawControlCoordinator],
-    DateTimeEntity,
-    RestoreEntity,
-):
+class PawControlDateTimeBase(PawControlEntity, DateTimeEntity, RestoreEntity):
     """Base class for Paw Control datetime entities."""
 
     def __init__(
@@ -178,17 +169,15 @@ class PawControlDateTimeBase(
         datetime_type: str,
     ) -> None:
         """Initialize the datetime entity."""
-        super().__init__(coordinator)
-        self._dog_id = dog_id
-        self._dog_name = dog_name
+        super().__init__(coordinator, dog_id, dog_name)
         self._datetime_type = datetime_type
         self._current_value: datetime | None = None
 
         self._attr_unique_id = f"pawcontrol_{dog_id}_{datetime_type}"
-        self._attr_name = f"{dog_name} {datetime_type.replace('_', ' ').title()}"
+        self._apply_name_suffix(datetime_type.replace("_", " ").title())
 
         # Link entity to PawControl device entry for the dog
-        self._set_device_link_info(
+        self.update_device_metadata(
             model="Smart Dog",
             sw_version="1.0.0",
             configuration_url="https://github.com/BigDaddy1990/pawcontrol",

@@ -96,6 +96,38 @@ def mock_config_entry_options() -> dict[str, Any]:
 class TestPawControlIntegrationSetup:
     """Test suite for integration setup and initialization."""
 
+    async def test_async_setup_registers_services(self, hass: HomeAssistant) -> None:
+        """Integration setup should register the service manager once."""
+
+        from custom_components.pawcontrol import async_setup
+
+        with patch(
+            "custom_components.pawcontrol.PawControlServiceManager"
+        ) as manager_cls:
+            manager_instance = manager_cls.return_value
+            result = await async_setup(hass, {})
+
+        assert result is True
+        manager_cls.assert_called_once_with(hass)
+        assert hass.data[DOMAIN]["service_manager"] is manager_instance
+
+    async def test_async_setup_reuses_existing_manager(self, hass: HomeAssistant) -> None:
+        """Ensure setup does not create a second service manager."""
+
+        from custom_components.pawcontrol import async_setup
+
+        existing_manager = Mock()
+        hass.data.setdefault(DOMAIN, {})["service_manager"] = existing_manager
+
+        with patch(
+            "custom_components.pawcontrol.PawControlServiceManager"
+        ) as manager_cls:
+            result = await async_setup(hass, {})
+
+        assert result is True
+        manager_cls.assert_not_called()
+        assert hass.data[DOMAIN]["service_manager"] is existing_manager
+
     async def test_async_setup_entry_success(
         self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]
     ) -> None:

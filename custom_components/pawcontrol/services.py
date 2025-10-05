@@ -20,13 +20,15 @@ from typing import TypeVar, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import (
-    EVENT_CONFIG_ENTRY_STATE_CHANGED,
     ConfigEntry,
+    ConfigEntryChange,
     ConfigEntryState,
+    SIGNAL_CONFIG_ENTRY_CHANGED,
 )
-from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
+from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
@@ -181,16 +183,16 @@ class _CoordinatorResolver:
                 return cast(PawControlCoordinator, runtime_data.coordinator)
 
         if any(entry.state is ConfigEntryState.LOADED for entry in entries):
-            raise HomeAssistantError(
+            raise ServiceValidationError(
                 "PawControl runtime data is not ready yet. Reload the integration.",
             )
 
         if entries:
-            raise HomeAssistantError(
+            raise ServiceValidationError(
                 "PawControl is still initializing. Try again once setup has finished.",
             )
 
-        raise HomeAssistantError(
+        raise ServiceValidationError(
             "PawControl is not set up. Add the integration before calling its services.",
         )
 
@@ -718,18 +720,23 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         remove_listener()
 
     @callback
-    def _handle_config_entry_state(event: Event) -> None:
+    def _handle_config_entry_state(
+        change: ConfigEntryChange, entry: ConfigEntry
+    ) -> None:
         """Invalidate cached coordinator when the active entry changes state."""
 
-        entry_id = event.data.get("entry_id")
-        entry = hass.config_entries.async_get_entry(entry_id) if entry_id else None
-        if not entry or entry.domain != DOMAIN:
+        if entry.domain != DOMAIN:
             return
 
-        resolver.invalidate(entry_id=entry_id)
+        if change in (
+            ConfigEntryChange.ADDED,
+            ConfigEntryChange.REMOVED,
+            ConfigEntryChange.UPDATED,
+        ):
+            resolver.invalidate(entry_id=entry.entry_id)
 
-    domain_data["_service_coordinator_listener"] = hass.bus.async_listen(
-        EVENT_CONFIG_ENTRY_STATE_CHANGED, _handle_config_entry_state
+    domain_data["_service_coordinator_listener"] = async_dispatcher_connect(
+        hass, SIGNAL_CONFIG_ENTRY_CHANGED, _handle_config_entry_state
     )
 
     def _get_coordinator() -> PawControlCoordinator:

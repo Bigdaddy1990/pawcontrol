@@ -19,7 +19,6 @@ from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -42,14 +41,11 @@ from .const import (
     PERFORMANCE_MODES,
 )
 from .coordinator import PawControlCoordinator
+from .entity import PawControlEntity
 from .notifications import NotificationPriority
 from .runtime_data import get_runtime_data
 from .types import PawControlRuntimeData
-from .utils import (
-    PawControlDeviceLinkMixin,
-    async_call_add_entities,
-    deep_merge_dicts,
-)
+from .utils import async_call_add_entities, deep_merge_dicts
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -367,12 +363,7 @@ def _create_health_selects(
     ]
 
 
-class PawControlSelectBase(
-    PawControlDeviceLinkMixin,
-    CoordinatorEntity[PawControlCoordinator],
-    SelectEntity,
-    RestoreEntity,
-):
+class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
     """Base class for all Paw Control select entities.
 
     Provides common functionality and ensures consistent behavior across
@@ -404,22 +395,19 @@ class PawControlSelectBase(
             entity_category: Entity category for organization
             initial_option: Initial selected option
         """
-        super().__init__(coordinator)
-
-        self._dog_id = dog_id
-        self._dog_name = dog_name
+        super().__init__(coordinator, dog_id, dog_name)
         self._select_type = select_type
         self._current_option = initial_option
 
         # Entity configuration
         self._attr_unique_id = f"pawcontrol_{dog_id}_{select_type}"
-        self._attr_name = f"{dog_name} {select_type.replace('_', ' ').title()}"
+        self._apply_name_suffix(select_type.replace("_", " ").title())
         self._attr_options = options
         self._attr_icon = icon
         self._attr_entity_category = entity_category
 
         # Link entity to PawControl device entry for the dog
-        self._set_device_link_info(
+        self.update_device_metadata(
             model="Smart Dog Monitoring",
             sw_version="1.0.0",
             configuration_url="https://github.com/BigDaddy1990/pawcontrol",

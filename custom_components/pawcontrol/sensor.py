@@ -26,7 +26,6 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -37,15 +36,11 @@ from .const import (
     MODULE_GARDEN,
 )
 from .coordinator import PawControlCoordinator
+from .entity import PawControlEntity
 from .entity_factory import EntityFactory
 from .runtime_data import get_runtime_data
 from .types import PawControlConfigEntry
-from .utils import (
-    PawControlDeviceLinkMixin,
-    async_call_add_entities,
-    ensure_utc_datetime,
-    is_number,
-)
+from .utils import async_call_add_entities, ensure_utc_datetime, is_number
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -730,9 +725,7 @@ def _log_setup_metrics(
     )
 
 
-class PawControlSensorBase(
-    PawControlDeviceLinkMixin, CoordinatorEntity[PawControlCoordinator], SensorEntity
-):
+class PawControlSensorBase(PawControlEntity, SensorEntity):
     """Base sensor class with optimized data access and thread-safe caching."""
 
     _attr_should_poll = False
@@ -753,12 +746,10 @@ class PawControlSensorBase(
         translation_key: str | None = None,
     ) -> None:
         """Initialize base sensor with performance optimizations."""
-        super().__init__(coordinator)
-        self._dog_id = dog_id
-        self._dog_name = dog_name
+        super().__init__(coordinator, dog_id, dog_name)
         self._sensor_type = sensor_type
         self._attr_unique_id = f"pawcontrol_{dog_id}_{sensor_type}"
-        self._attr_name = f"{dog_name} {sensor_type.replace('_', ' ').title()}"
+        self._apply_name_suffix(sensor_type.replace("_", " ").title())
         self._pending_translation_key = translation_key
         self._attr_translation_key = None
         self._attr_device_class = device_class
@@ -769,7 +760,7 @@ class PawControlSensorBase(
         self._attr_entity_category = entity_category
 
         # Link entity to PawControl device entry for the dog
-        self._set_device_link_info(model="Virtual Dog", sw_version="1.0.0")
+        self.update_device_metadata(model="Virtual Dog", sw_version="1.0.0")
 
         # OPTIMIZED: Thread-safe instance-level caching system
         self._data_cache: dict[str, Any] = {}

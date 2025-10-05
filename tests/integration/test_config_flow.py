@@ -16,6 +16,8 @@ from custom_components.pawcontrol.const import DOMAIN
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
+from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 
 
 @pytest.mark.integration
@@ -80,6 +82,51 @@ async def test_user_flow_multiple_dogs(hass: HomeAssistant):
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert len(result["data"]["dogs"]) == 2
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_zeroconf_discovery_flow(hass: HomeAssistant) -> None:
+    """Ensure Zeroconf discovery shows confirmation step."""
+
+    info = ZeroconfServiceInfo(
+        host="192.168.1.10",
+        hostname="paw-control-tracker.local.",
+        port=1234,
+        type="_pawcontrol._tcp.local.",
+        name="Paw Control Tracker",
+        properties={"device_id": "paw-1234"},
+    )
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_ZEROCONF},
+        data=info,
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "discovery_confirm"
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_dhcp_discovery_flow(hass: HomeAssistant) -> None:
+    """Ensure DHCP discovery populates confirmation form."""
+
+    info = DhcpServiceInfo(
+        ip="192.168.1.20",
+        hostname="paw-control-dog",
+        macaddress="AA:BB:CC:DD:EE:FF",
+    )
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_DHCP},
+        data=info,
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["step_id"] == "discovery_confirm"
 
 
 @pytest.mark.integration

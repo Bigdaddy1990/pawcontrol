@@ -1,0 +1,10 @@
+{
+  "domain": "pawcontrol",
+  "name": "Paw Control",
+  "color": "#4F7CAC",
+  "secondaryColor": "#1F2933",
+  "textColor": "#F8FAFC",
+  "categories": ["pet"],
+  "logo": "logo.svg",
+  "icon": "icon.svg"
+}

@@ -471,6 +471,9 @@ UPDATE_INTERVALS: Final[dict[str, int]] = {
     "real_time": 30,  # 30 seconds - high performance
 }
 
+# PLATINUM: Cap idle polling to stay within the <15 minute guideline
+MAX_IDLE_POLL_INTERVAL: Final[int] = 900
+
 # OPTIMIZED: Data file names as constants
 DATA_FILE_WALKS: Final[str] = "walks.json"
 DATA_FILE_FEEDINGS: Final[str] = "feedings.json"
@@ -556,4 +559,5 @@ __all__ = (
     "SERVICE_START_WALK",
     # Performance constants
     "UPDATE_INTERVALS",
+    "MAX_IDLE_POLL_INTERVAL",
 )

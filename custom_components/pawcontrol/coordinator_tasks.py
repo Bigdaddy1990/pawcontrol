@@ -73,7 +73,7 @@ async def run_maintenance(coordinator: PawControlCoordinator) -> None:
     ):
         expired = coordinator._modules.cleanup_expired(now)
         if expired:
-            coordinator.logger().debug("Cleaned %d expired cache entries", expired)
+            coordinator.logger.debug("Cleaned %d expired cache entries", expired)
 
         if (
             coordinator._metrics.consecutive_errors > 0
@@ -85,7 +85,7 @@ async def run_maintenance(coordinator: PawControlCoordinator) -> None:
             if hours_since_last_update > 1:
                 previous = coordinator._metrics.consecutive_errors
                 coordinator._metrics.reset_consecutive()
-                coordinator.logger().info(
+                coordinator.logger.info(
                     "Reset consecutive error count (%d) after %d hours of stability",
                     previous,
                     int(hours_since_last_update),
@@ -101,4 +101,4 @@ async def shutdown(coordinator: PawControlCoordinator) -> None:
 
     coordinator._data.clear()
     coordinator._modules.clear_caches()
-    coordinator.logger().info("Coordinator shutdown completed successfully")
+    coordinator.logger.info("Coordinator shutdown completed successfully")

@@ -14,14 +14,12 @@ import asyncio
 import logging
 from typing import Any
 
-from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
+from homeassistant.components.switch import SwitchDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.restore_state import RestoreEntity
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -41,8 +39,9 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .entity import PawControlEntity
 from .runtime_data import get_runtime_data
-from .utils import PawControlDeviceLinkMixin, async_call_add_entities
+from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -314,12 +313,7 @@ async def async_setup_entry(
     )
 
 
-class OptimizedSwitchBase(
-    PawControlDeviceLinkMixin,
-    CoordinatorEntity[PawControlCoordinator],
-    SwitchEntity,
-    RestoreEntity,
-):
+class OptimizedSwitchBase(PawControlEntity, SwitchEntity, RestoreEntity):
     """Optimized base switch class with enhanced caching and state management."""
 
     _attr_should_poll = False
@@ -342,23 +336,20 @@ class OptimizedSwitchBase(
         initial_state: bool = False,
     ) -> None:
         """Initialize optimized switch with profile awareness."""
-        super().__init__(coordinator)
-
-        self._dog_id = dog_id
-        self._dog_name = dog_name
+        super().__init__(coordinator, dog_id, dog_name)
         self._switch_type = switch_type
         self._is_on = initial_state
         self._last_changed = dt_util.utcnow()
 
         # Entity configuration
         self._attr_unique_id = f"pawcontrol_{dog_id}_{switch_type}"
-        self._attr_name = f"{dog_name} {switch_type.replace('_', ' ').title()}"
+        self._apply_name_suffix(switch_type.replace("_", " ").title())
         self._attr_device_class = device_class
         self._attr_icon = icon
         self._attr_entity_category = entity_category
 
         # Link entity to PawControl device entry for the dog
-        self._set_device_link_info(
+        self.update_device_metadata(
             model="Smart Dog Monitoring",
             sw_version="1.1.0",
             configuration_url="https://github.com/BigDaddy1990/pawcontrol",

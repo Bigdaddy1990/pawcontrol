@@ -10,10 +10,17 @@ from typing import TYPE_CHECKING, Any
 
 from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.update_coordinator import (
-    CoordinatorUpdateFailed,
-    DataUpdateCoordinator,
-)
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
+try:  # Home Assistant 2025.10 renamed CoordinatorUpdateFailed to UpdateFailed
+    from homeassistant.helpers.update_coordinator import UpdateFailed
+except ImportError:  # pragma: no cover - compatibility with older cores
+    from homeassistant.helpers.update_coordinator import (
+        CoordinatorUpdateFailed as UpdateFailed,
+    )
+
+# Maintain the legacy name to avoid touching the rest of the module logic
+CoordinatorUpdateFailed = UpdateFailed
 
 from .const import (
     CONF_API_ENDPOINT,
@@ -107,7 +114,11 @@ class PawControlCoordinator(
 
         base_interval = self._initial_update_interval(entry)
         self._adaptive_polling = AdaptivePollingController(
-            initial_interval_seconds=float(base_interval)
+            initial_interval_seconds=float(base_interval),
+            min_interval_seconds=float(max(base_interval * 0.25, 30.0)),
+            max_interval_seconds=float(max(base_interval * 4, 900.0)),
+            idle_interval_seconds=float(max(base_interval * 6, 900.0)),
+            idle_grace_seconds=600.0,
         )
 
         super().__init__(
@@ -208,10 +219,6 @@ class PawControlCoordinator(
     def api_client(self) -> PawControlDeviceClient | None:
         """Return the device API client when configured."""
         return self._api_client
-
-    def logger(self) -> logging.Logger:
-        """Expose the coordinator logger for dependent components."""
-        return _LOGGER
 
     def report_entity_budget(self, snapshot: EntityBudgetSnapshot) -> None:
         """Receive entity budget metrics from the entity factory."""
@@ -414,7 +421,7 @@ class PawControlCoordinator(
         stats = build_runtime_statistics(self)
         duration = perf_counter() - start
         self._metrics.record_statistics_timing(duration)
-        self.logger().debug(
+        self.logger.debug(
             "Runtime statistics generated in %.3f ms (avg %.3f ms over %d samples)",
             duration * 1000,
             self._metrics.average_statistics_runtime_ms,

@@ -18,9 +18,13 @@ from custom_components.pawcontrol.services import (
 )
 from custom_components.pawcontrol.types import PawControlRuntimeData
 from custom_components.pawcontrol.walk_manager import WeatherCondition
-from homeassistant.config_entries import EVENT_CONFIG_ENTRY_STATE_CHANGED
+from homeassistant.config_entries import (
+    ConfigEntryChange,
+    SIGNAL_CONFIG_ENTRY_CHANGED,
+)
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 
@@ -56,7 +60,10 @@ async def _register_services(
         entry.add_to_hass(hass)
 
     if getattr(entry, "state", None) is not ConfigEntryState.LOADED:
-        entry.state = ConfigEntryState.LOADED
+        if hasattr(entry, "mock_state"):
+            entry.mock_state(hass, ConfigEntryState.LOADED)
+        else:
+            entry.state = ConfigEntryState.LOADED
     if getattr(entry, "domain", None) != DOMAIN:
         entry.domain = DOMAIN
 
@@ -79,6 +86,7 @@ async def _register_services(
         runtime.coordinator = coordinator
 
     coordinator.config_entry = entry
+    coordinator.hass = hass
 
     registered: dict[tuple[str, str], Callable[[ServiceCall], Awaitable[None]]] = {}
 
@@ -279,14 +287,9 @@ async def test_config_entry_state_change_invalidates_cache(
     )
     coordinator_mock.config_entry = entry
 
-    with (
-        patch.object(
-            hass.config_entries, "async_entries", return_value=[entry]
-        ) as entries_mock,
-        patch.object(
-            hass.config_entries, "async_get_entry", return_value=entry
-        ) as get_entry_mock,
-    ):
+    with patch.object(
+        hass.config_entries, "async_entries", return_value=[entry]
+    ) as entries_mock:
         handlers = await _register_services(hass, coordinator_mock)
         handler = handlers[(DOMAIN, SERVICE_START_WALK)]
 
@@ -300,20 +303,18 @@ async def test_config_entry_state_change_invalidates_cache(
         await handler(call)
         assert entries_mock.call_count == 1
 
-        hass.bus.async_fire(
-            EVENT_CONFIG_ENTRY_STATE_CHANGED,
-            {
-                "entry_id": entry.entry_id,
-                "from_state": ConfigEntryState.LOADED,
-                "to_state": ConfigEntryState.SETUP_IN_PROGRESS,
-            },
+        entry.state = ConfigEntryState.SETUP_IN_PROGRESS
+        async_dispatcher_send(
+            hass,
+            SIGNAL_CONFIG_ENTRY_CHANGED,
+            ConfigEntryChange.UPDATED,
+            entry,
         )
-        await hass.async_block_till_done()
 
-        await handler(call)
+        with pytest.raises(ServiceValidationError):
+            await handler(call)
 
     assert entries_mock.call_count == 2
-    get_entry_mock.assert_called_with(entry.entry_id)
 
 
 @pytest.mark.asyncio
@@ -338,18 +339,9 @@ async def test_other_entry_state_change_does_not_invalidate_cache(
         state=ConfigEntryState.SETUP_ERROR,
     )
 
-    with (
-        patch.object(
-            hass.config_entries, "async_entries", return_value=[entry]
-        ) as entries_mock,
-        patch.object(
-            hass.config_entries,
-            "async_get_entry",
-            side_effect=lambda entry_id: entry
-            if entry_id == entry.entry_id
-            else other_entry,
-        ),
-    ):
+    with patch.object(
+        hass.config_entries, "async_entries", return_value=[entry]
+    ) as entries_mock:
         handlers = await _register_services(hass, coordinator_mock)
         handler = handlers[(DOMAIN, SERVICE_START_WALK)]
 
@@ -363,17 +355,63 @@ async def test_other_entry_state_change_does_not_invalidate_cache(
         await handler(call)
         assert entries_mock.call_count == 1
 
-        hass.bus.async_fire(
-            EVENT_CONFIG_ENTRY_STATE_CHANGED,
-            {
-                "entry_id": other_entry.entry_id,
-                "from_state": ConfigEntryState.LOADED,
-                "to_state": ConfigEntryState.SETUP_ERROR,
-            },
+        async_dispatcher_send(
+            hass,
+            SIGNAL_CONFIG_ENTRY_CHANGED,
+            ConfigEntryChange.UPDATED,
+            other_entry,
         )
-        await hass.async_block_till_done()
 
         await handler(call)
 
     # Cache is still valid, so async_entries should not have been queried again.
     assert entries_mock.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_resolver_requires_loaded_entry(hass: HomeAssistant) -> None:
+    """Ensure services fail fast when no PawControl entry is available."""
+
+    await services_module.async_setup_services(hass)
+    resolver = services_module._coordinator_resolver(hass)
+
+    with pytest.raises(ServiceValidationError):
+        resolver.resolve()
+
+
+@pytest.mark.asyncio
+async def test_resolver_invalidates_on_config_entry_change(
+    hass: HomeAssistant, coordinator_mock: SimpleNamespace
+) -> None:
+    """Invalidate the cached coordinator when the entry unloads."""
+
+    entry = MockConfigEntry(domain=DOMAIN, data={}, unique_id="resolver-test")
+    entry.add_to_hass(hass)
+    entry.mock_state(hass, ConfigEntryState.LOADED)
+
+    runtime = PawControlRuntimeData(
+        coordinator=coordinator_mock,
+        data_manager=SimpleNamespace(),
+        notification_manager=SimpleNamespace(),
+        feeding_manager=SimpleNamespace(),
+        walk_manager=SimpleNamespace(),
+        entity_factory=SimpleNamespace(),
+        entity_profile="standard",
+        dogs=[],
+    )
+    entry.runtime_data = runtime
+    coordinator_mock.config_entry = entry
+    coordinator_mock.hass = hass
+
+    await services_module.async_setup_services(hass)
+    resolver = services_module._coordinator_resolver(hass)
+
+    assert resolver.resolve() is coordinator_mock
+
+    entry.mock_state(hass, ConfigEntryState.NOT_LOADED)
+    async_dispatcher_send(
+        hass, SIGNAL_CONFIG_ENTRY_CHANGED, ConfigEntryChange.REMOVED, entry
+    )
+
+    with pytest.raises(ServiceValidationError):
+        resolver.resolve()

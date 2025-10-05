@@ -210,7 +210,7 @@ async def test_get_statistics_records_runtime(
     coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
     coordinator._metrics.update_count = 2
 
-    with patch.object(coordinator.logger(), "debug") as debug_mock:
+    with patch.object(coordinator.logger, "debug") as debug_mock:
         stats = coordinator.get_statistics()
 
     assert "update_counts" in stats

@@ -16,6 +16,7 @@ from .const import (
     CONF_DOGS,
     CONF_GPS_UPDATE_INTERVAL,
     CONF_MODULES,
+    MAX_IDLE_POLL_INTERVAL,
     MODULE_GPS,
     MODULE_WEATHER,
     UPDATE_INTERVALS,
@@ -131,7 +132,8 @@ class DogConfigRegistry:
     def calculate_update_interval(self, options: Mapping[str, Any]) -> int:
         """Derive the polling interval from configuration options."""
         if not self._ids:
-            return UPDATE_INTERVALS.get("minimal", 300)
+            interval = UPDATE_INTERVALS.get("minimal", 300)
+            return min(interval, MAX_IDLE_POLL_INTERVAL)
 
         if self.has_module(MODULE_GPS):
             gps_interval = options.get(
@@ -143,17 +145,21 @@ class DogConfigRegistry:
                     gps_interval,
                     "Invalid GPS update interval",
                 )
-            return gps_interval
+            return min(gps_interval, MAX_IDLE_POLL_INTERVAL)
 
+        interval: int
         if self.has_module(MODULE_WEATHER):
-            return UPDATE_INTERVALS.get("frequent", 60)
+            interval = UPDATE_INTERVALS.get("frequent", 60)
+        else:
+            total_modules = self.module_count()
+            if total_modules > 15:
+                interval = UPDATE_INTERVALS.get("real_time", 30)
+            elif total_modules > 8:
+                interval = UPDATE_INTERVALS.get("balanced", 120)
+            else:
+                interval = UPDATE_INTERVALS.get("minimal", 300)
 
-        total_modules = self.module_count()
-        if total_modules > 15:
-            return UPDATE_INTERVALS.get("real_time", 30)
-        if total_modules > 8:
-            return UPDATE_INTERVALS.get("balanced", 120)
-        return UPDATE_INTERVALS.get("minimal", 300)
+        return min(interval, MAX_IDLE_POLL_INTERVAL)
 
 
 @dataclass(slots=True)
