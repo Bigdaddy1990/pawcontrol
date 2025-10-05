@@ -3,11 +3,15 @@
 This report lists the current deltas between the integration and the documented engineering guardrails or Platinum quality scale commitments.
 
 ## 1. Outstanding Bronze/Silver gaps
-- **Bronze – config-flow subcheck:** Config flow strings still lack `data_description` helper text, so users do not see contextual hints during setup.
 - **Bronze – runtime-data:** Runtime data is stored via bespoke helpers under `hass.data[DOMAIN]` instead of the prescribed `ConfigEntry.runtime_data` attribute.
-- **Silver – config-flow-test-coverage:** Automated tests only validate the user, reauthentication, and reconfiguration paths; discovery sources such as DHCP, Zeroconf, USB, and Bluetooth remain untested.
 - **Silver – test-coverage:** Coverage instrumentation now targets the entire integration, but the suite still exercises only a handful of helpers so overall coverage remains ~1 %, well short of the 95 % goal.
+- **Silver – config-flow-test-coverage:** The config flow tests focus on a narrow set of user, import, and reauth paths; discovery rejection, dashboard configuration, and reconfigure edge cases still lack regression coverage.
 - **Bronze – docs-removal-instructions:** The primary setup guide omits removal/uninstall guidance, leaving users without teardown instructions.
+- **Bronze – brands:** The repository still lacks the `brands/` submission package required for the official Home Assistant repository.
+
+### Closed checklist items
+- **Config flow subcheck:** `data_description` helper text now ships in the user step translations, giving clear setup context inside the UI.
+- **Binary sensor localization:** Binary sensor entities set `_attr_has_entity_name = True` and expose translation keys, and regression tests assert the localization coverage for the core PawControl sensors.
 
 ## 2. Quality scale verification
 - `quality_scale.yaml` matches the implementation status and cites evidence for every Platinum rule. Keep the file and supporting documents (for example `docs/QUALITY_CHECKLIST.md`) in sync when features evolve.【F:custom_components/pawcontrol/quality_scale.yaml†L1-L61】【F:docs/QUALITY_CHECKLIST.md†L1-L27】
