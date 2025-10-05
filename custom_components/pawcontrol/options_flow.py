@@ -22,7 +22,6 @@ from typing import Any
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlowResult, OptionsFlow
-from .selector_shim import selector
 
 from .config_flow_profile import (
     DEFAULT_PROFILE,
@@ -71,6 +70,7 @@ from .const import (
 )
 from .device_api import validate_device_endpoint
 from .entity_factory import ENTITY_PROFILES, EntityFactory
+from .selector_shim import selector
 from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)

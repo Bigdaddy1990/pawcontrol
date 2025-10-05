@@ -51,8 +51,8 @@ from .repairs import async_check_for_issues
 from .runtime_data import get_runtime_data, pop_runtime_data, store_runtime_data
 from .script_manager import PawControlScriptManager
 from .services import PawControlServiceManager, async_setup_daily_reset_scheduler
-from .utils import sanitize_dog_id
 from .types import DogConfigData, PawControlConfigEntry, PawControlRuntimeData
+from .utils import sanitize_dog_id
 from .walk_manager import WalkManager
 
 _LOGGER = logging.getLogger(__name__)
@@ -1065,7 +1065,9 @@ async def async_remove_config_entry_device(
                     dogs.append(dog_data)
             return dogs
 
-        if isinstance(source, Sequence) and not isinstance(source, (str, bytes, bytearray)):
+        if isinstance(source, Sequence) and not isinstance(
+            source, str | bytes | bytearray
+        ):
             return [dog for dog in source if isinstance(dog, Mapping)]
 
         return []
@@ -1112,7 +1114,9 @@ async def async_remove_config_entry_device(
         return False
 
     _LOGGER.debug(
-        "Allowing removal of PawControl device %s with identifiers %s", device_entry.id, configured
+        "Allowing removal of PawControl device %s with identifiers %s",
+        device_entry.id,
+        configured,
     )
     return True
 

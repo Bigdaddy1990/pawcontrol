@@ -15,7 +15,9 @@ def _ensure_no_single_quoted_placeholder(value: str) -> str:
     return value
 
 
-string_no_single_quoted_placeholders = vol.All(str, _ensure_no_single_quoted_placeholder)
+string_no_single_quoted_placeholders = vol.All(
+    str, _ensure_no_single_quoted_placeholder
+)
 
 
 __all__ = ["string_no_single_quoted_placeholders"]

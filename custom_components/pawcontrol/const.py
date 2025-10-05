@@ -34,6 +34,7 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
         DATE = "date"
         DATETIME = "datetime"
 
+
 from .selector_shim import selector
 
 # OPTIMIZED: Storage versions for data persistence

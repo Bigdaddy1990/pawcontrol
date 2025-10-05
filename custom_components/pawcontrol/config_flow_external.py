@@ -17,7 +17,6 @@ from typing import TYPE_CHECKING, Any, Protocol, cast
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.core import HomeAssistant
-from .selector_shim import selector
 
 from .const import (
     CONF_DOOR_SENSOR,
@@ -27,6 +26,7 @@ from .const import (
     MODULE_NOTIFICATIONS,
     MODULE_VISITOR,
 )
+from .selector_shim import selector
 from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)

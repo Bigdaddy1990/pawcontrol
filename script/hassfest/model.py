@@ -13,14 +13,14 @@ class Config:
     """Subset of hassfest configuration used by the tests."""
 
     root: Path
-    integrations: dict[str, "Integration"] = field(default_factory=dict)
+    integrations: dict[str, Integration] = field(default_factory=dict)
     errors: list[Any] = field(default_factory=list)
     specific_integrations: set[str] | None = None
     action: str = "validate"
     requirements: bool = True
     warnings: list[Any] = field(default_factory=list)
 
-    def get_integration(self, domain: str) -> "Integration | None":
+    def get_integration(self, domain: str) -> Integration | None:
         return self.integrations.get(domain)
 
 

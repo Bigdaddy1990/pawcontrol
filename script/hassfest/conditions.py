@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 from pathlib import Path
-from typing import Mapping
 
 from annotatedyaml import loader as yaml_loader
 
@@ -40,7 +40,9 @@ def _validate_entry(
     icon_data: Mapping[str, object],
     string_data: Mapping[str, object],
 ) -> None:
-    entry_strings = string_data.get(entry_id, {}) if isinstance(string_data, Mapping) else {}
+    entry_strings = (
+        string_data.get(entry_id, {}) if isinstance(string_data, Mapping) else {}
+    )
     fields = metadata.get("fields") if isinstance(metadata, Mapping) else None
     string_fields = (
         entry_strings.get("fields") if isinstance(entry_strings, Mapping) else None
@@ -68,7 +70,7 @@ def _validate_entry(
             if not isinstance(selector, Mapping):
                 continue
 
-            for selector_type in selector.keys():
+            for selector_type in selector:
                 if selector_type not in allowed_selectors:
                     integration.add_error(
                         ROOT_KEY,
@@ -101,9 +103,7 @@ def _validate_entry(
                 else {}
             )
             if not isinstance(field_strings, Mapping) or not field_strings.get("name"):
-                integration.add_error(
-                    ROOT_KEY, f"field {field_name} with no name"
-                )
+                integration.add_error(ROOT_KEY, f"field {field_name} with no name")
             if not isinstance(field_strings, Mapping) or not field_strings.get(
                 "description"
             ):

@@ -974,9 +974,7 @@ class TestPawControlDeviceRemoval:
 
         cleaned_data = deepcopy(mock_config_entry_data)
         cleaned_data[CONF_DOGS] = [
-            dog
-            for dog in cleaned_data[CONF_DOGS]
-            if dog.get(CONF_DOG_ID) != "buddy"
+            dog for dog in cleaned_data[CONF_DOGS] if dog.get(CONF_DOG_ID) != "buddy"
         ]
 
         entry = MockConfigEntry(domain=DOMAIN, data=cleaned_data, options={})

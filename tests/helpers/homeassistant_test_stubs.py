@@ -3,15 +3,15 @@
 from __future__ import annotations
 
 import asyncio
+import sys
 from collections import defaultdict
+from collections.abc import Callable, Iterable, Mapping, MutableMapping
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
-from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional
-
-import sys
+from typing import Any, Optional
 
 import voluptuous as vol
 
@@ -88,15 +88,15 @@ def _install_util_modules() -> None:
     dt_module = ModuleType("homeassistant.util.dt")
 
     def utcnow() -> datetime:
-        return datetime.now(timezone.utc)
+        return datetime.now(UTC)
 
     def now() -> datetime:
-        return datetime.now(timezone.utc).astimezone()
+        return datetime.now(UTC).astimezone()
 
     def as_utc(value: datetime) -> datetime:
         if value.tzinfo is None:
-            return value.replace(tzinfo=timezone.utc)
-        return value.astimezone(timezone.utc)
+            return value.replace(tzinfo=UTC)
+        return value.astimezone(UTC)
 
     def as_local(value: datetime) -> datetime:
         return value.astimezone()
@@ -109,7 +109,7 @@ def _install_util_modules() -> None:
     dt_module.as_utc = as_utc
     dt_module.as_local = as_local
     dt_module.parse_datetime = parse_datetime
-    dt_module.DEFAULT_TIME_ZONE = timezone.utc
+    dt_module.DEFAULT_TIME_ZONE = UTC
     dt_module.start_of_local_day = lambda value: as_local(value).replace(
         hour=0, minute=0, second=0, microsecond=0
     )
@@ -144,7 +144,9 @@ def _install_util_modules() -> None:
     def parse_yaml(stream) -> object:
         text = stream.read() if hasattr(stream, "read") else str(stream)
         lines = [line.rstrip() for line in text.splitlines() if line.strip()]
-        indexed = [(len(line) - len(line.lstrip(" ")), line.lstrip(" ")) for line in lines]
+        indexed = [
+            (len(line) - len(line.lstrip(" ")), line.lstrip(" ")) for line in lines
+        ]
 
         def parse_block(index: int, indent: int) -> tuple[int, object]:
             container: object | None = None
@@ -209,7 +211,7 @@ def _install_core_module() -> None:
         return func
 
     class ServiceCall:
-        def __init__(self, data: Optional[Mapping[str, Any]] = None) -> None:
+        def __init__(self, data: Mapping[str, Any] | None = None) -> None:
             self.data = dict(data or {})
 
     @dataclass
@@ -265,21 +267,26 @@ def _install_core_module() -> None:
             return self._states.get(entity_id)
 
         def async_set(
-            self, entity_id: str, state: str, attributes: Mapping[str, Any] | None = None
+            self,
+            entity_id: str,
+            state: str,
+            attributes: Mapping[str, Any] | None = None,
         ) -> None:
             self._states[entity_id] = State(
                 entity_id,
                 state,
                 dict(attributes or {}),
-                datetime.now(timezone.utc),
-                datetime.now(timezone.utc),
+                datetime.now(UTC),
+                datetime.now(UTC),
             )
 
         def async_entity_ids(self, domain: str | None = None) -> list[str]:
             if domain is None:
                 return list(self._states)
             prefix = f"{domain}."
-            return [entity_id for entity_id in self._states if entity_id.startswith(prefix)]
+            return [
+                entity_id for entity_id in self._states if entity_id.startswith(prefix)
+            ]
 
         def async_all(self, domain: str | None = None) -> list[State]:
             ids = self.async_entity_ids(domain)
@@ -301,7 +308,7 @@ def _install_core_module() -> None:
             self.location = SimpleNamespace(lat=self.latitude, lon=self.longitude)
             self.version = "test"
             self.python_version = "3.13"
-            self.start_time = datetime.now(timezone.utc)
+            self.start_time = datetime.now(UTC)
             self.components: set[str] = set()
 
         def path(self, path: str) -> str:
@@ -340,12 +347,12 @@ def _install_core_module() -> None:
             self.unique_id = self.entry_id
             self.update_listeners: list[Callable[..., Any]] = []
 
-        def add_to_hass(self, hass: "HomeAssistant") -> None:
+        def add_to_hass(self, hass: HomeAssistant) -> None:
             hass.config_entries._entries[self.entry_id] = self
             self.hass = hass
 
     class ConfigEntriesManager:
-        def __init__(self, hass: "HomeAssistant") -> None:
+        def __init__(self, hass: HomeAssistant) -> None:
             self.hass = hass
             self._entries: dict[str, ConfigEntry] = {}
 
@@ -401,7 +408,9 @@ def _install_core_module() -> None:
         def async_create_task(self, coro: Any) -> asyncio.Task[Any]:
             return asyncio.create_task(coro)
 
-        async def async_add_executor_job(self, func: Callable[..., Any], *args: Any) -> Any:
+        async def async_add_executor_job(
+            self, func: Callable[..., Any], *args: Any
+        ) -> Any:
             loop = asyncio.get_running_loop()
             return await loop.run_in_executor(None, func, *args)
 
@@ -473,9 +482,11 @@ def _install_helper_modules() -> None:
 
             super().__init_subclass__(**kwargs)
             if domain is not None:
-                setattr(cls, "domain", domain)
+                cls.domain = domain
 
-        async def async_set_unique_id(self, unique_id: str, *, raise_on_progress: bool = False) -> None:
+        async def async_set_unique_id(
+            self, unique_id: str, *, raise_on_progress: bool = False
+        ) -> None:
             self._unique_id = unique_id
 
         async def async_show_form(
@@ -509,7 +520,10 @@ def _install_helper_modules() -> None:
             }
 
         async def async_abort(
-            self, *, reason: str, description_placeholders: Mapping[str, Any] | None = None
+            self,
+            *,
+            reason: str,
+            description_placeholders: Mapping[str, Any] | None = None,
         ) -> Mapping[str, Any]:
             return {
                 "type": "abort",
@@ -558,9 +572,7 @@ def _install_helper_modules() -> None:
     dispatcher_module.async_dispatcher_connect = (
         lambda hass, signal, target: lambda: None
     )
-    dispatcher_module.async_dispatcher_send = (
-        lambda hass, signal, *args, **kwargs: None
-    )
+    dispatcher_module.async_dispatcher_send = lambda hass, signal, *args, **kwargs: None
     sys.modules["homeassistant.helpers.dispatcher"] = dispatcher_module
 
     event_module = ModuleType("homeassistant.helpers.event")
@@ -690,9 +702,7 @@ def _install_helper_modules() -> None:
     sys.modules["homeassistant.helpers.typing"] = typing_module
 
     integration_module = ModuleType("homeassistant.helpers.integration_platform")
-    integration_module.async_process_integration_platforms = (
-        lambda *args, **kwargs: []
-    )
+    integration_module.async_process_integration_platforms = lambda *args, **kwargs: []
     sys.modules["homeassistant.helpers.integration_platform"] = integration_module
 
     update_module = ModuleType("homeassistant.helpers.update_coordinator")
@@ -701,10 +711,10 @@ def _install_helper_modules() -> None:
         pass
 
     class CoordinatorEntity(entity_module.Entity):
-        def __init__(self, coordinator: "DataUpdateCoordinator") -> None:
+        def __init__(self, coordinator: DataUpdateCoordinator) -> None:
             self.coordinator = coordinator
 
-        def __class_getitem__(cls, item: Any) -> type["CoordinatorEntity"]:
+        def __class_getitem__(cls, item: Any) -> type[CoordinatorEntity]:
             return cls
 
     class DataUpdateCoordinator:
@@ -726,7 +736,7 @@ def _install_helper_modules() -> None:
             self.last_update_success = True
             self.last_update_time: datetime | None = None
 
-        def __class_getitem__(cls, item: Any) -> type["DataUpdateCoordinator"]:
+        def __class_getitem__(cls, item: Any) -> type[DataUpdateCoordinator]:
             return cls
 
         async def async_config_entry_first_refresh(self) -> None:
@@ -866,7 +876,7 @@ def _install_component_modules() -> None:
 
     button_module.ButtonDeviceClass = ButtonDeviceClass
     sys.modules["homeassistant.components.button"] = button_module
-    setattr(components_package, "button", button_module)
+    components_package.button = button_module
 
     class SwitchEntity(entity_module.Entity):
         pass
@@ -879,7 +889,7 @@ def _install_component_modules() -> None:
 
     switch_module.SwitchDeviceClass = SwitchDeviceClass
     sys.modules["homeassistant.components.switch"] = switch_module
-    setattr(components_package, "switch", switch_module)
+    components_package.switch = switch_module
 
     class SensorEntity(entity_module.Entity):
         pass
@@ -901,7 +911,7 @@ def _install_component_modules() -> None:
     sensor_module.SensorStateClass = SensorStateClass
     sensor_module.SensorDeviceClass = SensorDeviceClass
     sys.modules["homeassistant.components.sensor"] = sensor_module
-    setattr(components_package, "sensor", sensor_module)
+    components_package.sensor = sensor_module
 
     class NumberEntity(entity_module.Entity):
         pass
@@ -921,7 +931,7 @@ def _install_component_modules() -> None:
     number_module.NumberDeviceClass = NumberDeviceClass
     number_module.NumberMode = NumberMode
     sys.modules["homeassistant.components.number"] = number_module
-    setattr(components_package, "number", number_module)
+    components_package.number = number_module
 
     class TextEntity(entity_module.Entity):
         pass
@@ -935,7 +945,7 @@ def _install_component_modules() -> None:
 
     text_module.TextMode = TextMode
     sys.modules["homeassistant.components.text"] = text_module
-    setattr(components_package, "text", text_module)
+    components_package.text = text_module
 
     class SelectEntity(entity_module.Entity):
         pass
@@ -943,7 +953,7 @@ def _install_component_modules() -> None:
     select_module = ModuleType("homeassistant.components.select")
     select_module.SelectEntity = SelectEntity
     sys.modules["homeassistant.components.select"] = select_module
-    setattr(components_package, "select", select_module)
+    components_package.select = select_module
 
     class DateEntity(entity_module.Entity):
         pass
@@ -951,7 +961,7 @@ def _install_component_modules() -> None:
     date_module = ModuleType("homeassistant.components.date")
     date_module.DateEntity = DateEntity
     sys.modules["homeassistant.components.date"] = date_module
-    setattr(components_package, "date", date_module)
+    components_package.date = date_module
 
     class DateTimeEntity(entity_module.Entity):
         pass
@@ -959,27 +969,27 @@ def _install_component_modules() -> None:
     datetime_module = ModuleType("homeassistant.components.datetime")
     datetime_module.DateTimeEntity = DateTimeEntity
     sys.modules["homeassistant.components.datetime"] = datetime_module
-    setattr(components_package, "datetime", datetime_module)
+    components_package.datetime = datetime_module
 
     input_boolean_module = ModuleType("homeassistant.components.input_boolean")
     input_boolean_module.DOMAIN = "input_boolean"
     sys.modules["homeassistant.components.input_boolean"] = input_boolean_module
-    setattr(components_package, "input_boolean", input_boolean_module)
+    components_package.input_boolean = input_boolean_module
 
     input_datetime_module = ModuleType("homeassistant.components.input_datetime")
     input_datetime_module.DOMAIN = "input_datetime"
     sys.modules["homeassistant.components.input_datetime"] = input_datetime_module
-    setattr(components_package, "input_datetime", input_datetime_module)
+    components_package.input_datetime = input_datetime_module
 
     input_number_module = ModuleType("homeassistant.components.input_number")
     input_number_module.DOMAIN = "input_number"
     sys.modules["homeassistant.components.input_number"] = input_number_module
-    setattr(components_package, "input_number", input_number_module)
+    components_package.input_number = input_number_module
 
     input_select_module = ModuleType("homeassistant.components.input_select")
     input_select_module.DOMAIN = "input_select"
     sys.modules["homeassistant.components.input_select"] = input_select_module
-    setattr(components_package, "input_select", input_select_module)
+    components_package.input_select = input_select_module
 
     class DeviceTrackerEntity(entity_module.Entity):
         pass
@@ -993,7 +1003,7 @@ def _install_component_modules() -> None:
 
     device_tracker_module.SourceType = SourceType
     sys.modules["homeassistant.components.device_tracker"] = device_tracker_module
-    setattr(components_package, "device_tracker", device_tracker_module)
+    components_package.device_tracker = device_tracker_module
 
     system_health_module = ModuleType("homeassistant.components.system_health")
 
@@ -1010,7 +1020,7 @@ def _install_component_modules() -> None:
     system_health_module.SystemHealthRegistration = SystemHealthRegistration
     system_health_module.async_check_can_reach_url = async_check_can_reach_url
     sys.modules["homeassistant.components.system_health"] = system_health_module
-    setattr(components_package, "system_health", system_health_module)
+    components_package.system_health = system_health_module
 
     script_module = ModuleType("homeassistant.components.script")
 
@@ -1021,7 +1031,7 @@ def _install_component_modules() -> None:
     script_module.DOMAIN = "script"
     script_module.SCRIPT_ENTITY_SCHEMA = {}
     sys.modules["homeassistant.components.script"] = script_module
-    setattr(components_package, "script", script_module)
+    components_package.script = script_module
 
     script_config_module = ModuleType("homeassistant.components.script.config")
     script_config_module.SCRIPT_ENTITY_SCHEMA = {}
@@ -1066,7 +1076,7 @@ def _install_component_modules() -> None:
 
     binary_sensor_module.BinarySensorDeviceClass = BinarySensorDeviceClass
     sys.modules["homeassistant.components.binary_sensor"] = binary_sensor_module
-    setattr(components_package, "binary_sensor", binary_sensor_module)
+    components_package.binary_sensor = binary_sensor_module
 
     class WeatherEntity(entity_module.Entity):
         pass
@@ -1081,7 +1091,7 @@ def _install_component_modules() -> None:
 
     weather_module.WeatherCondition = WeatherCondition
     sys.modules["homeassistant.components.weather"] = weather_module
-    setattr(components_package, "weather", weather_module)
+    components_package.weather = weather_module
 
     data_entry_flow_module = ModuleType("homeassistant.data_entry_flow")
 

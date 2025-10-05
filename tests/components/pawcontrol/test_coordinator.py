@@ -179,18 +179,18 @@ async def test_async_update_data_propagates_update_failed(
     ]
 
     entry = _create_entry(hass, dogs=dogs)
-    coordinator = PawControlCoordinator(
-        hass, entry, async_get_clientsession(hass)
-    )
+    coordinator = PawControlCoordinator(hass, entry, async_get_clientsession(hass))
 
     await coordinator.async_prepare_entry()
 
-    with patch.object(
-        coordinator._runtime,
-        "execute_cycle",
-        AsyncMock(side_effect=UpdateFailed("boom")),
-    ) as mock_execute:
-        with pytest.raises(UpdateFailed):
-            await coordinator._async_update_data()
+    with (
+        patch.object(
+            coordinator._runtime,
+            "execute_cycle",
+            AsyncMock(side_effect=UpdateFailed("boom")),
+        ) as mock_execute,
+        pytest.raises(UpdateFailed),
+    ):
+        await coordinator._async_update_data()
 
     mock_execute.assert_awaited_once()

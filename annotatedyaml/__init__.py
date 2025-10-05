@@ -2,6 +2,6 @@
 
 from __future__ import annotations
 
-from . import loader  # noqa: F401
+from . import loader
 
 __all__ = ["loader"]

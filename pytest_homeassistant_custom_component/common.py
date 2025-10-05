@@ -42,7 +42,9 @@ def mock_integration(hass, module: ModuleType) -> ModuleType:
     return module
 
 
-def patch_all(mock_config: dict[str, Any]) -> dict[str, Any]:  # pragma: no cover - compat shim
+def patch_all(
+    mock_config: dict[str, Any],
+) -> dict[str, Any]:  # pragma: no cover - compat shim
     """Compatibility helper retained for third-party tests."""
 
     return mock_config

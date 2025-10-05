@@ -26,7 +26,6 @@ from typing import TYPE_CHECKING, Any, Protocol, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
-from .selector_shim import selector
 
 from .const import (
     CONF_MODULES,
@@ -38,6 +37,7 @@ from .const import (
     MODULE_HEALTH,
     SPECIAL_DIET_OPTIONS,
 )
+from .selector_shim import selector
 from .types import DogConfigData
 
 _LOGGER = logging.getLogger(__name__)

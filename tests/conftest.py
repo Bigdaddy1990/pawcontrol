@@ -21,7 +21,6 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 from aiohttp import ClientSession
-
 from homeassistant.core import HomeAssistant
 
 pytest_plugins = (

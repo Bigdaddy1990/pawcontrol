@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
 import logging
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
+import pytest
 from custom_components.pawcontrol.const import (
     CONF_API_TOKEN,
     CONF_DOG_ID,
@@ -15,10 +16,9 @@ from custom_components.pawcontrol.const import (
 from custom_components.pawcontrol.diagnostics import async_get_config_entry_diagnostics
 from custom_components.pawcontrol.types import PawControlRuntimeData
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-
-import pytest
 
 
 @pytest.mark.asyncio

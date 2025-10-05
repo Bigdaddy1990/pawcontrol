@@ -15,7 +15,6 @@ from typing import TYPE_CHECKING, Any
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
-from .selector_shim import selector
 
 from .const import (
     CONF_DASHBOARD_AUTO_CREATE,
@@ -29,6 +28,7 @@ from .const import (
     DEFAULT_DASHBOARD_THEME,
     MODULE_GPS,
 )
+from .selector_shim import selector
 from .types import DogConfigData
 
 

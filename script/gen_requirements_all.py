@@ -42,4 +42,3 @@ def process_action_requirement(requirement: str, integration: str) -> str:
         return requirement
 
     return f"{requirement};{marker}"
-

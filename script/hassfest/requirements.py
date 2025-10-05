@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from importlib.metadata import PackagePath, files
-from typing import Iterable
+from collections.abc import Iterable
+from importlib.metadata import files
 
 from packaging.requirements import Requirement
 from packaging.specifiers import SpecifierSet
@@ -60,7 +60,7 @@ def validate_requirements_format(integration: Integration) -> bool:
             if not equality_specs:
                 integration.add_error(
                     "requirements",
-                    f"Requirement {raw_req} need to be pinned \"<pkg name>==<version>\".",
+                    f'Requirement {raw_req} need to be pinned "<pkg name>==<version>".',
                 )
                 ok = False
             else:
@@ -162,7 +162,9 @@ def check_dependency_files(
     ok = True
     forbidden_hits = top_level & FORBIDDEN_PACKAGE_NAMES
     for entry in forbidden_hits:
-        message = f"Package {pkg} has a forbidden top level directory '{entry}' in {package}"
+        message = (
+            f"Package {pkg} has a forbidden top level directory '{entry}' in {package}"
+        )
         ok = False
         if pkg in package_exceptions:
             integration.add_warning("requirements", message)

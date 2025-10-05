@@ -2,13 +2,20 @@
 
 from __future__ import annotations
 
-from . import conditions, dependencies, manifest, requirements, triggers, translations  # noqa: F401
+from . import (
+    conditions,
+    dependencies,
+    manifest,
+    requirements,
+    translations,
+    triggers,
+)
 
 __all__ = [
     "conditions",
     "dependencies",
     "manifest",
     "requirements",
-    "triggers",
     "translations",
+    "triggers",
 ]

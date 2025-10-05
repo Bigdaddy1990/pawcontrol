@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any, Iterable
+from collections.abc import Iterable
+from typing import Any
 
 import pytest
-
 from homeassistant.core import ConfigEntry, ConfigEntryState, HomeAssistant
 
 __all__ = ["MockConfigEntry", "enable_custom_integrations"]
