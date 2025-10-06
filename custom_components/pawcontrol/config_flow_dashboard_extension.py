@@ -148,7 +148,9 @@ class DashboardFlowMixin:
                 vol.Optional(
                     "show_statistics", default=True
                 ): selector.BooleanSelector(),
-                vol.Optional("show_maps", default=has_gps_enabled): selector.BooleanSelector(),
+                vol.Optional(
+                    "show_maps", default=has_gps_enabled
+                ): selector.BooleanSelector(),
             }
         )
 

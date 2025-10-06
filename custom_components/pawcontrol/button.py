@@ -22,6 +22,7 @@ from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+
 try:  # pragma: no cover - executed in real Home Assistant
     from homeassistant.helpers.service import ServiceRegistry
 except ImportError:  # pragma: no cover - test harness fallback

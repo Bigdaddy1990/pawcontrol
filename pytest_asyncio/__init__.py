@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 import pytest
 
@@ -35,10 +36,12 @@ def pytest_configure(config: pytest.Config) -> None:
     """Store the resolved asyncio mode for debugging parity with pytest-asyncio."""
 
     mode = config.getoption("asyncio_mode") or config.getini("asyncio_mode")
-    setattr(config, "_pawcontrol_asyncio_mode", mode)
+    config._pawcontrol_asyncio_mode = mode
 
 
-def fixture(*args: Any, **kwargs: Any) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
+def fixture(
+    *args: Any, **kwargs: Any
+) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorate async fixtures so they return their resolved value."""
 
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:

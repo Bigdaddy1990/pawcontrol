@@ -892,8 +892,7 @@ class PawControlConfigFlow(
             else:
                 if not (MIN_DOG_WEIGHT <= dog_weight <= MAX_DOG_WEIGHT):
                     field_errors[CONF_DOG_WEIGHT] = (
-                        "Weight must be between "
-                        f"{MIN_DOG_WEIGHT} and {MAX_DOG_WEIGHT}"
+                        f"Weight must be between {MIN_DOG_WEIGHT} and {MAX_DOG_WEIGHT}"
                     )
 
         # Raise single error with all issues

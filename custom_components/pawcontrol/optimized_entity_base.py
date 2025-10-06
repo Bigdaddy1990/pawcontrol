@@ -421,7 +421,7 @@ class OptimizedEntityBase(
                     if inspect.isawaitable(result):
                         return await result
                     return result
-                except Exception as err:  # pragma: no cover - defensive
+                except Exception:  # pragma: no cover - defensive
                     self._performance_tracker.record_error()
                     raise
 
@@ -745,9 +745,7 @@ class OptimizedEntityBase(
             _STATE_CACHE.pop(key, None)
 
         _ATTRIBUTES_CACHE.pop(f"attrs_{self._attr_unique_id}", None)
-        _AVAILABILITY_CACHE.pop(
-            f"available_{self._dog_id}_{self._entity_type}", None
-        )
+        _AVAILABILITY_CACHE.pop(f"available_{self._dog_id}_{self._entity_type}", None)
 
     @callback
     async def _async_invalidate_caches(self) -> None:

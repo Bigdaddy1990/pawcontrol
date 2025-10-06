@@ -13,7 +13,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from homeassistant.components.binary_sensor import (
@@ -54,7 +54,7 @@ def _as_local(dt_value: datetime) -> datetime:
 
     target = dt_value
     if target.tzinfo is None:
-        target = target.replace(tzinfo=timezone.utc)
+        target = target.replace(tzinfo=UTC)
 
     local_tz = getattr(dt_util, "DEFAULT_TIME_ZONE", None)
     if local_tz is None:
@@ -64,6 +64,7 @@ def _as_local(dt_value: datetime) -> datetime:
         return target.astimezone(local_tz)
     except Exception:  # pragma: no cover - defensive fallback
         return target
+
 
 # Type aliases for better code readability (Python 3.13 compatible)
 AttributeDict = dict[str, Any]

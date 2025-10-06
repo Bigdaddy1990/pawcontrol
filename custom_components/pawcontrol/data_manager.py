@@ -11,13 +11,14 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import sys
 from collections import deque
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-import sys
 from time import perf_counter
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -74,7 +75,9 @@ class AdaptiveCache:
     async def cleanup_expired(self) -> int:
         async with self._lock:
             now = dt_util.utcnow()
-            expired = [key for key, meta in self._metadata.items() if now > meta["expiry"]]
+            expired = [
+                key for key, meta in self._metadata.items() if now > meta["expiry"]
+            ]
             for key in expired:
                 self._data.pop(key, None)
                 self._metadata.pop(key, None)
@@ -127,7 +130,7 @@ class DogProfile:
     @classmethod
     def from_storage(
         cls, config: Mapping[str, Any], stored: Mapping[str, Any] | None
-    ) -> "DogProfile":
+    ) -> DogProfile:
         """Restore a profile from persisted JSON data."""
 
         daily_stats_payload = stored.get("daily_stats", {}) if stored else {}
@@ -236,7 +239,7 @@ class PawControlDataManager:
         if not hasattr(self, "_visitor_timings"):
             self._visitor_timings = deque(maxlen=50)
         if not hasattr(self, "_metrics_sink"):
-            self._metrics_sink: "CoordinatorMetrics" | None = None
+            self._metrics_sink: CoordinatorMetrics | None = None
 
     async def async_initialize(self) -> None:
         """Create storage folders and load persisted data."""
@@ -317,7 +320,7 @@ class PawControlDataManager:
         locks = getattr(self, "_namespace_locks", None)
         if locks is None:
             locks = {}
-            setattr(self, "_namespace_locks", locks)
+            self._namespace_locks = locks
         lock = locks.setdefault(namespace, asyncio.Lock())
 
         started = perf_counter()
@@ -344,7 +347,7 @@ class PawControlDataManager:
             self._record_visitor_metrics(perf_counter() - started)
         return True
 
-    def set_metrics_sink(self, metrics: "CoordinatorMetrics" | None) -> None:
+    def set_metrics_sink(self, metrics: CoordinatorMetrics | None) -> None:
         """Register a metrics sink used for coordinator diagnostics."""
 
         self._ensure_metrics_containers()
@@ -382,16 +385,14 @@ class PawControlDataManager:
         feedings_today = [
             entry
             for entry in profile.feeding_history
-            if (
-                timestamp := _deserialize_datetime(entry.get("timestamp"))
-            )
+            if (timestamp := _deserialize_datetime(entry.get("timestamp")))
             and timestamp.date() == today
         ]
 
         total_calories = sum(
             entry["calories"]
             for entry in feedings_today
-            if isinstance(entry.get("calories"), (int, float))
+            if isinstance(entry.get("calories"), int | float)
         )
 
         return {
@@ -482,7 +483,7 @@ class PawControlDataManager:
                 walk.distance = distance
             if walk.duration is None:
                 duration = (end_time - walk.start_time).total_seconds()
-                walk.duration = max(0, int(round(duration)))
+                walk.duration = max(0, round(duration))
 
             profile.walk_history.append(_serialize_walk(walk))
             profile.current_walk = None
@@ -594,9 +595,7 @@ class PawControlDataManager:
             return history[:limit]
         return history
 
-    def get_health_trends(
-        self, dog_id: str, *, days: int = 7
-    ) -> dict[str, Any] | None:
+    def get_health_trends(self, dog_id: str, *, days: int = 7) -> dict[str, Any] | None:
         """Analyse health entries recorded within ``days``."""
 
         profile = self._dog_profiles.get(dog_id)
@@ -608,9 +607,7 @@ class PawControlDataManager:
         relevant = [
             entry
             for entry in profile.health_history
-            if (
-                timestamp := _deserialize_datetime(entry.get("timestamp"))
-            )
+            if (timestamp := _deserialize_datetime(entry.get("timestamp")))
             and timestamp >= cutoff - tolerance
         ]
 
@@ -731,25 +728,31 @@ class PawControlDataManager:
 
         try:
             if Path.exists(self._storage_path):
-                with open(self._storage_path, "r", encoding="utf-8") as handle:
+                with open(self._storage_path, encoding="utf-8") as handle:
                     return json.load(handle)
         except FileNotFoundError:
             return {}
         except json.JSONDecodeError:
-            _LOGGER.warning("Corrupted PawControl data detected at %s", self._storage_path)
+            _LOGGER.warning(
+                "Corrupted PawControl data detected at %s", self._storage_path
+            )
         except OSError as err:
             raise HomeAssistantError(f"Unable to read PawControl data: {err}") from err
 
         try:
             if Path.exists(self._backup_path):
-                with open(self._backup_path, "r", encoding="utf-8") as handle:
+                with open(self._backup_path, encoding="utf-8") as handle:
                     return json.load(handle)
         except FileNotFoundError:
             return {}
         except json.JSONDecodeError:
-            _LOGGER.warning("Backup PawControl data is corrupted at %s", self._backup_path)
+            _LOGGER.warning(
+                "Backup PawControl data is corrupted at %s", self._backup_path
+            )
         except OSError as err:
-            raise HomeAssistantError(f"Unable to read PawControl backup: {err}") from err
+            raise HomeAssistantError(
+                f"Unable to read PawControl backup: {err}"
+            ) from err
 
         return {}
 
@@ -757,11 +760,15 @@ class PawControlDataManager:
         """Persist all dog data to disk."""
 
         async with self._save_lock:
-            payload = {k: profile.as_dict() for k, profile in self._dog_profiles.items()}
+            payload = {
+                k: profile.as_dict() for k, profile in self._dog_profiles.items()
+            }
             try:
                 self._write_storage(payload)
             except OSError as err:
-                raise HomeAssistantError(f"Failed to persist PawControl data: {err}") from err
+                raise HomeAssistantError(
+                    f"Failed to persist PawControl data: {err}"
+                ) from err
 
     def _write_storage(self, payload: dict[str, Any]) -> None:
         """Write data to the JSON storage file."""
@@ -788,4 +795,3 @@ class PawControlDataManager:
         current_day = dt_util.as_utc(timestamp).date()
         if profile.daily_stats.date.date() != current_day:
             profile.daily_stats = DailyStats(date=dt_util.as_utc(timestamp))
-

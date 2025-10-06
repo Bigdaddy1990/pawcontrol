@@ -21,23 +21,28 @@ except (ImportError, ModuleNotFoundError):
 
     if _CompatBase is None:
         try:
-            from homeassistant.exceptions import HomeAssistantError as _HomeAssistantError
-        except (ImportError, ModuleNotFoundError):  # pragma: no cover - optional base missing
+            from homeassistant.exceptions import (
+                HomeAssistantError as _HomeAssistantError,
+            )
+        except (
+            ImportError,
+            ModuleNotFoundError,
+        ):  # pragma: no cover - optional base missing
             _HomeAssistantError = None
 
         if _HomeAssistantError is None:
+
             class _CompatConfigEntryError(RuntimeError):
                 """Fallback ``ConfigEntryError`` stand-in."""
 
-
         else:  # pragma: no cover - executed when HomeAssistantError is available but ConfigEntryError is not
+
             class _CompatConfigEntryError(_HomeAssistantError):
                 """Fallback ``ConfigEntryError`` stand-in inheriting HA base."""
 
-
         _CompatBase = _CompatConfigEntryError
 
-    class ConfigEntryAuthFailed(_CompatBase):  # noqa: N818 - match HA naming
+    class ConfigEntryAuthFailed(_CompatBase):
         """Fallback error mirroring Home Assistant's ``ConfigEntryAuthFailed``."""
 
         __slots__ = ("auth_migration",)
@@ -65,4 +70,3 @@ else:  # pragma: no cover - executed in production Home Assistant environments
     del _ConfigEntryAuthFailed
 
 __all__ = ["ConfigEntryAuthFailed"]
-

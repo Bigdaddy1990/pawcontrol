@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import asyncio
+import importlib
 import sys
 from collections import defaultdict
-import importlib
 from collections.abc import Callable, Iterable, Mapping, MutableMapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta, timezone
@@ -227,7 +227,7 @@ def _install_util_modules() -> None:
     # directly, which requires the attribute to exist on the package object.
     root = sys.modules.get("homeassistant")
     if root is not None:
-        setattr(root, "util", util_module)
+        root.util = util_module
 
 
 def _install_core_module() -> None:
@@ -241,7 +241,7 @@ def _install_core_module() -> None:
     class Context:
         """Minimal stand-in for Home Assistant service context."""
 
-        __slots__ = ("id", "user_id", "parent_id")
+        __slots__ = ("id", "parent_id", "user_id")
 
         def __init__(
             self,
@@ -256,7 +256,7 @@ def _install_core_module() -> None:
     class ServiceCall:
         """Simplified ServiceCall matching the real Home Assistant signature."""
 
-        __slots__ = ("domain", "service", "data", "context", "return_response")
+        __slots__ = ("context", "data", "domain", "return_response", "service")
 
         def __init__(
             self,
@@ -413,7 +413,7 @@ def _install_core_module() -> None:
     class ConfigEntriesFlowManager:
         """Minimal flow manager that mimics Home Assistant's behaviour."""
 
-        def __init__(self, hass: HomeAssistant, manager: "ConfigEntriesManager") -> None:
+        def __init__(self, hass: HomeAssistant, manager: ConfigEntriesManager) -> None:
             self.hass = hass
             self._manager = manager
             self._flows: dict[str, dict[str, Any]] = {}
@@ -599,7 +599,7 @@ def _install_core_module() -> None:
     class ConfigEntriesOptionsManager:
         """Simplified options flow handler used by the PawControl tests."""
 
-        def __init__(self, hass: HomeAssistant, manager: "ConfigEntriesManager") -> None:
+        def __init__(self, hass: HomeAssistant, manager: ConfigEntriesManager) -> None:
             self.hass = hass
             self._manager = manager
             self._flows: dict[str, dict[str, Any]] = {}
@@ -704,9 +704,7 @@ def _install_core_module() -> None:
             if options is not None:
                 entry.options = dict(options)
 
-        async def _async_create_options_flow(
-            self, entry: ConfigEntry
-        ) -> "OptionsFlow":
+        async def _async_create_options_flow(self, entry: ConfigEntry) -> OptionsFlow:
             creator = getattr(entry, "async_create_options_flow", None)
             if creator is not None:
                 flow = creator()
@@ -734,7 +732,7 @@ def _install_core_module() -> None:
             if callable(initializer):
                 initializer(entry)
             else:
-                setattr(flow, "_entry", entry)
+                flow._entry = entry
             return flow
 
         async def async_forward_entry_setups(
@@ -761,7 +759,7 @@ def _install_core_module() -> None:
         async def _finalize_options_flow(
             self,
             entry: ConfigEntry,
-            flow: "OptionsFlow",
+            flow: OptionsFlow,
             result: Mapping[str, Any],
         ) -> None:
             if result.get("type") != "create_entry":
@@ -964,7 +962,9 @@ def _install_helper_modules() -> None:
             if unique_id is None:
                 return
 
-            for entry in self.hass.config_entries.async_entries(getattr(self, "domain", "")):
+            for entry in self.hass.config_entries.async_entries(
+                getattr(self, "domain", "")
+            ):
                 if entry.unique_id == unique_id:
                     raise AbortFlow("already_configured")
 

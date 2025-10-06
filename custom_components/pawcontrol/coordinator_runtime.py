@@ -26,6 +26,7 @@ except ImportError:  # pragma: no cover - support legacy naming
         class UpdateFailed(RuntimeError):  # noqa: N818 - mirror HA class name
             """Fallback error used when Home Assistant isn't available."""
 
+
 try:  # pragma: no cover - prefer Home Assistant's timezone helpers when available
     from homeassistant.util import dt as dt_util
 except (ImportError, ModuleNotFoundError):

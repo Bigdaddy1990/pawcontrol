@@ -4068,6 +4068,7 @@ class PawControlDailyActivityLevelSensor(PawControlSensorBase):
 # Ensure every override inherits a meaningful docstring from its base implementation.
 inherit_missing_docstrings()
 
+
 def _coerce_budget_remaining(budget: Any) -> int | None:
     """Return an integer remaining capacity for arbitrary budget objects."""
 

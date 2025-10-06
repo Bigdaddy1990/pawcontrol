@@ -69,6 +69,7 @@ def _patch_pytest_async_fixture() -> None:
     try:
         import asyncio
         import functools
+
         import pytest  # type: ignore
     except Exception:  # pragma: no cover - pytest not available outside tests
         return

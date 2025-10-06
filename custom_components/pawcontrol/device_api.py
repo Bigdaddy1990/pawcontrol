@@ -8,10 +8,9 @@ from typing import Any
 
 from aiohttp import ClientError, ClientResponse, ClientSession, ClientTimeout
 from aiohttp.client_exceptions import ContentTypeError
-
-from .compat import ConfigEntryAuthFailed
 from yarl import URL
 
+from .compat import ConfigEntryAuthFailed
 from .exceptions import NetworkError, RateLimitError
 from .http_client import ensure_shared_client_session
 from .resilience import ResilienceManager, RetryConfig

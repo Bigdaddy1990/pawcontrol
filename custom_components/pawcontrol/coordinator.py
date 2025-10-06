@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable, Sequence
-from inspect import isawaitable
 from datetime import timedelta
+from inspect import isawaitable
 from time import perf_counter
 from typing import TYPE_CHECKING, Any
 

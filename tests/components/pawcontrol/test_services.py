@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Awaitable, Callable, Mapping
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -26,7 +27,6 @@ from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from pytest_homeassistant_custom_component.common import MockConfigEntry
-from typing import Any
 
 
 @pytest.fixture
@@ -433,11 +433,16 @@ async def test_async_unload_services_cleans_listener_and_resolver(
 
         return _unsubscribe
 
-    with patch.object(
-        services_module, "async_dispatcher_connect", side_effect=_mock_async_dispatcher_connect
-    ), patch.object(
-        type(hass.services), "async_register", autospec=True
-    ) as register_mock:
+    with (
+        patch.object(
+            services_module,
+            "async_dispatcher_connect",
+            side_effect=_mock_async_dispatcher_connect,
+        ),
+        patch.object(
+            type(hass.services), "async_register", autospec=True
+        ) as register_mock,
+    ):
         register_mock.side_effect = lambda *args, **kwargs: None
         await services_module.async_setup_services(hass)
 
@@ -445,9 +450,7 @@ async def test_async_unload_services_cleans_listener_and_resolver(
     assert "_service_coordinator_listener" in domain_data
     assert "_service_coordinator_resolver" in domain_data
 
-    with patch.object(
-        type(hass.services), "async_remove", create=True
-    ) as remove_mock:
+    with patch.object(type(hass.services), "async_remove", create=True) as remove_mock:
         remove_mock.side_effect = lambda *args, **kwargs: None
         await services_module.async_unload_services(hass)
 

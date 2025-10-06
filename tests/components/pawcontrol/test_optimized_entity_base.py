@@ -21,12 +21,12 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from custom_components.pawcontrol.optimized_entity_base import (
+    _ENTITY_REGISTRY,
     OptimizedBinarySensorBase,
     OptimizedEntityBase,
     OptimizedSensorBase,
     OptimizedSwitchBase,
     PerformanceTracker,
-    _ENTITY_REGISTRY,
     _cleanup_global_caches,
     create_optimized_entities_batched,
     get_global_performance_stats,

@@ -15,6 +15,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntry
 
+from .compat import ConfigEntryAuthFailed
 from .const import (
     ALL_MODULES,
     CONF_DOG_ID,
@@ -28,7 +29,6 @@ from .const import (
     MODULE_WALK,
     PLATFORMS,
 )
-from .compat import ConfigEntryAuthFailed
 from .coordinator import PawControlCoordinator
 from .data_manager import PawControlDataManager
 from .door_sensor_manager import DoorSensorManager
@@ -93,7 +93,7 @@ def _trim_async_mock_calls(mock: Any) -> None:
     await_count = getattr(mock, "_mock_await_count", None)
     mock.reset_mock()
     if await_count is not None:
-        setattr(mock, "_mock_await_count", await_count)
+        mock._mock_await_count = await_count
 
 
 def _simulate_async_call(mock: Any) -> bool:
@@ -322,7 +322,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
     setup_start_time = time.time()
     _LOGGER.debug("Setting up PawControl integration entry: %s", entry.entry_id)
 
-
     logger_disabled_prev = _LOGGER.disabled
     disable_logging = False
 
@@ -388,7 +387,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
             original_get_objects = gc.get_objects
 
-            if getattr(original_get_objects, "__name__", "") != "_pawcontrol_filtered_get_objects":
+            if (
+                getattr(original_get_objects, "__name__", "")
+                != "_pawcontrol_filtered_get_objects"
+            ):
 
                 def _pawcontrol_filtered_get_objects() -> list[Any]:
                     objects = original_get_objects()
@@ -414,11 +416,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         )
         async_call = getattr(services, "async_call", None) if services else None
         async_call_module = (
-            getattr(type(async_call), "__module__", "") if async_call is not None else ""
+            getattr(type(async_call), "__module__", "")
+            if async_call is not None
+            else ""
         )
-        skip_optional_setup = service_module.startswith("unittest.mock") or async_call_module.startswith(
+        skip_optional_setup = service_module.startswith(
             "unittest.mock"
-        )
+        ) or async_call_module.startswith("unittest.mock")
 
         if hasattr(services, "has_service"):
             required_helper_services = [
@@ -547,7 +551,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         try:
             initialization_tasks = []
 
-            if not _simulate_async_call(getattr(data_manager, "async_initialize", None)):
+            if not _simulate_async_call(
+                getattr(data_manager, "async_initialize", None)
+            ):
                 initialization_tasks.append(
                     _async_initialize_manager_with_timeout(
                         "data_manager", data_manager.async_initialize()
@@ -723,14 +729,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         store_runtime_data(hass, entry, runtime_data)
 
         try:
-
             # PLATINUM: Enhanced platform setup with timeout and retry logic
             platform_setup_start = time.time()
             max_retries = 2
             for attempt in range(max_retries + 1):
                 try:
                     await asyncio.wait_for(
-                        hass.config_entries.async_forward_entry_setups(entry, PLATFORMS),
+                        hass.config_entries.async_forward_entry_setups(
+                            entry, PLATFORMS
+                        ),
                         timeout=30,  # 30 seconds for platform setup
                     )
                     platform_setup_duration = time.time() - platform_setup_start
@@ -783,7 +790,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                         timeout=20,  # 20 seconds for helper creation
                     )
 
-                    helper_count = sum(len(helpers) for helpers in created_helpers.values())
+                    helper_count = sum(
+                        len(helpers) for helpers in created_helpers.values()
+                    )
                     helpers_duration = time.time() - helpers_start
 
                     if helper_count > 0:
@@ -838,7 +847,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                         timeout=20,
                     )
 
-                    script_count = sum(len(scripts) for scripts in created_scripts.values())
+                    script_count = sum(
+                        len(scripts) for scripts in created_scripts.values()
+                    )
                     scripts_duration = time.time() - scripts_start
 
                     if script_count > 0:
@@ -876,7 +887,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 except (HomeAssistantError, Exception) as script_err:
                     scripts_duration = time.time() - scripts_start
                     error_type = (
-                        "skipped" if isinstance(script_err, HomeAssistantError) else "failed"
+                        "skipped"
+                        if isinstance(script_err, HomeAssistantError)
+                        else "failed"
                     )
                     _LOGGER.warning(
                         "Script creation %s after %.2f seconds (non-critical): %s",
@@ -951,9 +964,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
             setup_duration = time.time() - setup_start_time
             helper_count = (
-                helper_manager.get_helper_count()
-                if helper_manager is not None
-                else 0
+                helper_manager.get_helper_count() if helper_manager is not None else 0
             )
             _LOGGER.info(
                 "PawControl setup completed in %.2f seconds: %d dogs, %d platforms, %d helpers, "
@@ -969,7 +980,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 door_sensors_configured,
             )
             return True
-        except BaseException as setup_err:
+        except BaseException:
             try:
                 await _async_cleanup_runtime_data(runtime_data)
             except Exception as cleanup_err:  # pragma: no cover - defensive logging
@@ -981,7 +992,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             finally:
                 pop_runtime_data(hass, entry)
             raise
-
 
     except (ConfigEntryNotReady, ConfigEntryAuthFailed, PawControlSetupError):
         # Re-raise expected exceptions without modification

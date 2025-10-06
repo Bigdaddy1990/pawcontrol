@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
@@ -1009,10 +1010,8 @@ class FeedingManager:
         age_months = dog.get("age_months") or config.age_months or 24
         breed_size = dog.get("breed_size") or config.breed_size or "medium"
 
-        try:
-            life_stage = HealthCalculator.calculate_life_stage(int(age_months), breed_size)
-        except (ValueError, TypeError):
-            life_stage = LifeStage.ADULT
+        with contextlib.suppress(ValueError, TypeError):
+            HealthCalculator.calculate_life_stage(int(age_months), breed_size)
 
         activity_source = (
             config.activity_level
@@ -1330,9 +1329,15 @@ class FeedingManager:
                 feeder=feeder,
                 scheduled=True,
                 with_medication=True,
-                medication_name=medication_data.get("name") if medication_data else None,
-                medication_dose=medication_data.get("dose") if medication_data else None,
-                medication_time=medication_data.get("time") if medication_data else None,
+                medication_name=medication_data.get("name")
+                if medication_data
+                else None,
+                medication_dose=medication_data.get("dose")
+                if medication_data
+                else None,
+                medication_time=medication_data.get("time")
+                if medication_data
+                else None,
             )
 
         # Combine feeding notes with medication info
@@ -1747,7 +1752,9 @@ class FeedingManager:
             remaining_calories = max(0.0, daily_calorie_target - total_calories_today)
         elif calories_per_gram is not None:
             try:
-                target_calories = float(data["daily_amount_target"]) * float(calories_per_gram)
+                target_calories = float(data["daily_amount_target"]) * float(
+                    calories_per_gram
+                )
                 consumed_calories = daily_amount * float(calories_per_gram)
                 remaining_calories = max(0.0, target_calories - consumed_calories)
             except (TypeError, ValueError):  # pragma: no cover - defensive
@@ -1836,7 +1843,9 @@ class FeedingManager:
         remaining_calories: float | None = None
         if calories_per_gram is not None:
             try:
-                target_calories = float(data["daily_amount_target"]) * float(calories_per_gram)
+                target_calories = float(data["daily_amount_target"]) * float(
+                    calories_per_gram
+                )
                 remaining_calories = max(0.0, target_calories)
             except (TypeError, ValueError):  # pragma: no cover - defensive
                 remaining_calories = None
@@ -1889,10 +1898,8 @@ class FeedingManager:
                     except (TypeError, ValueError):  # pragma: no cover - defensive
                         pass
                 if (ideal_weight := dog_record.get("ideal_weight")) is not None:
-                    try:
+                    with contextlib.suppress(TypeError, ValueError):
                         config.ideal_weight = float(ideal_weight)
-                    except (TypeError, ValueError):
-                        pass
 
                 dog_record.update(
                     {
