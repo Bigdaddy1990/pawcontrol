@@ -29,6 +29,7 @@ else:  # pragma: no cover - runtime fallbacks
 
         pass
 
+
 HomeAssistant = _HAHomeAssistant
 OptionsFlow = _HAOptionsFlow
 from uuid import uuid4
