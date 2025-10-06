@@ -296,7 +296,7 @@ class PawControlCoordinator(
         if not dog_ids:
             raise CoordinatorUpdateFailed("No valid dogs configured")
 
-        data, cycle = await self._execute_cycle(dog_ids)
+        data, _cycle = await self._execute_cycle(dog_ids)
 
         self._data = data
         # Keep the DataUpdateCoordinator state in sync when callers invoke the
