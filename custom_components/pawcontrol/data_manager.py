@@ -22,7 +22,6 @@ from pathlib import Path
 from time import perf_counter
 from typing import TYPE_CHECKING, Any
 
-
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
@@ -149,7 +148,9 @@ def _merge_dicts(base: Mapping[str, Any], updates: Mapping[str, Any]) -> dict[st
     return merged
 
 
-def _limit_entries(entries: list[dict[str, Any]], *, limit: int | None) -> list[dict[str, Any]]:
+def _limit_entries(
+    entries: list[dict[str, Any]], *, limit: int | None
+) -> list[dict[str, Any]]:
     """Return ``entries`` optionally constrained to the most recent ``limit``."""
 
     if limit is None or limit <= 0:
@@ -231,9 +232,7 @@ class DogProfile:
             list(stored.get("medication_history", [])) if stored else []
         )
         poop_history = list(stored.get("poop_history", [])) if stored else []
-        grooming_sessions = (
-            list(stored.get("grooming_sessions", [])) if stored else []
-        )
+        grooming_sessions = list(stored.get("grooming_sessions", [])) if stored else []
 
         try:
             daily_stats = DailyStats.from_dict(daily_stats_payload)
@@ -719,9 +718,7 @@ class PawControlDataManager:
 
         if analysis_type in {"feeding", "comprehensive"}:
             feedings = _filter_entries(profile.feeding_history)
-            total = sum(
-                entry.get("portion_size", 0) or 0 for _, entry in feedings
-            )
+            total = sum(entry.get("portion_size", 0) or 0 for _, entry in feedings)
             result["feeding"] = {
                 "entries": len(feedings),
                 "total_portion_size": round(total, 2),
@@ -731,9 +728,7 @@ class PawControlDataManager:
 
         if analysis_type in {"walking", "comprehensive"}:
             walks = _filter_entries(profile.walk_history, "end_time")
-            total_distance = sum(
-                entry.get("distance", 0) or 0 for _, entry in walks
-            )
+            total_distance = sum(entry.get("distance", 0) or 0 for _, entry in walks)
             result["walking"] = {
                 "entries": len(walks),
                 "total_distance": round(total_distance, 2),
@@ -763,7 +758,9 @@ class PawControlDataManager:
             and hasattr(feeding_manager, "async_analyze_feeding_health")
         ):
             try:
-                advanced = await feeding_manager.async_analyze_feeding_health(dog_id, days)
+                advanced = await feeding_manager.async_analyze_feeding_health(
+                    dog_id, days
+                )
             except Exception:  # pragma: no cover - non-critical fallback
                 advanced = None
             if advanced:
@@ -854,16 +851,22 @@ class PawControlDataManager:
         if include_recommendations:
             recommendations: list[str] = []
             if report.get("feeding", {}).get("entries") == 0:
-                recommendations.append("Log feeding events to improve analysis accuracy.")
+                recommendations.append(
+                    "Log feeding events to improve analysis accuracy."
+                )
             if report.get("walks", {}).get("entries") == 0:
-                recommendations.append("Schedule regular walks to maintain activity levels.")
+                recommendations.append(
+                    "Schedule regular walks to maintain activity levels."
+                )
             report["recommendations"] = recommendations
 
         runtime = self._get_runtime_data()
         feeding_manager = getattr(runtime, "feeding_manager", None)
         if feeding_manager and hasattr(feeding_manager, "async_generate_health_report"):
             try:
-                health_report = await feeding_manager.async_generate_health_report(dog_id)
+                health_report = await feeding_manager.async_generate_health_report(
+                    dog_id
+                )
             except Exception:  # pragma: no cover - optional enhancement
                 health_report = None
             if health_report:
@@ -892,7 +895,9 @@ class PawControlDataManager:
                         priority="normal",
                     )
                 except Exception:  # pragma: no cover - notification best-effort
-                    _LOGGER.debug("Notification dispatch for report failed", exc_info=True)
+                    _LOGGER.debug(
+                        "Notification dispatch for report failed", exc_info=True
+                    )
 
         return report
 
@@ -918,7 +923,9 @@ class PawControlDataManager:
             "entries": len(health_entries),
             "recent_weights": [entry.get("weight") for entry in health_entries],
             "recent_temperatures": [
-                entry.get("temperature") for entry in health_entries if entry.get("temperature")
+                entry.get("temperature")
+                for entry in health_entries
+                if entry.get("temperature")
             ],
         }
 
@@ -926,7 +933,9 @@ class PawControlDataManager:
             medications = [
                 entry
                 for entry in profile.medication_history
-                if (timestamp := _deserialize_datetime(entry.get("administration_time")))
+                if (
+                    timestamp := _deserialize_datetime(entry.get("administration_time"))
+                )
                 and timestamp >= cutoff
             ]
             report["medication"] = {
@@ -990,9 +999,7 @@ class PawControlDataManager:
                 return False
             if start and ts < start:
                 return False
-            if end and ts > end:
-                return False
-            return True
+            return not (end and ts > end)
 
         entries = [dict(item) for item in dataset if _in_window(item)]
 
@@ -1031,7 +1038,9 @@ class PawControlDataManager:
             def _write_markdown() -> None:
                 lines = [f"# {data_type.title()} export for {dog_id}", ""]
                 for entry in entries:
-                    lines.append("- " + ", ".join(f"{k}: {v}" for k, v in entry.items()))
+                    lines.append(
+                        "- " + ", ".join(f"{k}: {v}" for k, v in entry.items())
+                    )
                 export_path.write_text("\n".join(lines), encoding="utf-8")
 
             await asyncio.to_thread(_write_markdown)
