@@ -13,7 +13,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from homeassistant.components.binary_sensor import (
@@ -44,6 +44,27 @@ from .types import PawControlConfigEntry
 from .utils import async_call_add_entities, ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _as_local(dt_value: datetime) -> datetime:
+    """Return a timezone-aware datetime in the local timezone."""
+
+    if hasattr(dt_util, "as_local"):
+        return dt_util.as_local(dt_value)
+
+    target = dt_value
+    if target.tzinfo is None:
+        target = target.replace(tzinfo=UTC)
+
+    local_tz = getattr(dt_util, "DEFAULT_TIME_ZONE", None)
+    if local_tz is None:
+        return target
+
+    try:
+        return target.astimezone(local_tz)
+    except Exception:  # pragma: no cover - defensive fallback
+        return target
+
 
 # Type aliases for better code readability (Python 3.13 compatible)
 AttributeDict = dict[str, Any]
@@ -411,6 +432,12 @@ class PawControlBinarySensorBase(
             return self._icon_off
         else:
             return "mdi:information-outline"
+
+    @property
+    def device_class(self) -> BinarySensorDeviceClass | None:
+        """Expose the configured device class for test doubles."""
+
+        return getattr(self, "_attr_device_class", None)
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
@@ -1388,7 +1415,7 @@ class PawControlVetCheckupDueBinarySensor(PawControlBinarySensorBase):
         if checkup_dt is None:
             return False
 
-        return dt_util.utcnow().date() >= dt_util.as_local(checkup_dt).date()
+        return dt_util.utcnow().date() >= _as_local(checkup_dt).date()
 
 
 class PawControlGroomingDueBinarySensor(PawControlBinarySensorBase):

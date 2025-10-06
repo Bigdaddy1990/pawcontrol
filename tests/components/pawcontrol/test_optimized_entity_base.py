@@ -11,14 +11,17 @@ Python: 3.12+
 from __future__ import annotations
 
 import asyncio
+import gc
 import sys
 import time
+import weakref
 from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from custom_components.pawcontrol.optimized_entity_base import (
+    _ENTITY_REGISTRY,
     OptimizedBinarySensorBase,
     OptimizedEntityBase,
     OptimizedSensorBase,
@@ -607,6 +610,31 @@ class TestGlobalCacheManagement:
         # This test mainly ensures no exceptions during cleanup
         _cleanup_global_caches()
         assert True
+
+    def test_cleanup_preserves_live_entities(self) -> None:
+        """Ensure cache cleanup keeps active entity weak references."""
+
+        live_before = sum(1 for ref in _ENTITY_REGISTRY if ref() is not None)
+
+        entity = TestEntityBase(MockCoordinator(), "live_dog", "Live Dog")
+
+        live_with_entity = sum(1 for ref in _ENTITY_REGISTRY if ref() is not None)
+        assert live_with_entity == live_before + 1
+
+        _cleanup_global_caches()
+
+        live_after_cleanup = sum(1 for ref in _ENTITY_REGISTRY if ref() is not None)
+        assert live_after_cleanup == live_with_entity
+
+        entity_ref = weakref.ref(entity)
+        del entity
+        gc.collect()
+
+        _cleanup_global_caches()
+
+        live_after_release = sum(1 for ref in _ENTITY_REGISTRY if ref() is not None)
+        assert live_after_release == live_before
+        assert entity_ref() is None
 
     def test_get_global_performance_stats(self) -> None:
         """Test global performance statistics retrieval."""

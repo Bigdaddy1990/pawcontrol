@@ -11,7 +11,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -22,6 +22,7 @@ from .const import (
     CONF_DASHBOARD_MODE,
     CONF_DASHBOARD_PER_DOG,
     CONF_DASHBOARD_THEME,
+    CONF_MODULES,
     DASHBOARD_MODE_SELECTOR_OPTIONS,
     DEFAULT_DASHBOARD_AUTO_CREATE,
     DEFAULT_DASHBOARD_MODE,
@@ -72,8 +73,13 @@ class DashboardFlowMixin:
         and displayed, including per-dog dashboards and theme selection.
         """
 
+        has_multiple_dogs = len(self._dogs) > 1
+
         if user_input is not None:
-            has_multiple_dogs = len(self._dogs) > 1
+            has_gps_enabled = self._enabled_modules.get(MODULE_GPS, False) or any(
+                cast(dict[str, bool], dog.get(CONF_MODULES, {})).get(MODULE_GPS, False)
+                for dog in self._dogs
+            )
             self._dashboard_config = {
                 CONF_DASHBOARD_ENABLED: True,
                 CONF_DASHBOARD_AUTO_CREATE: user_input.get(
@@ -93,12 +99,14 @@ class DashboardFlowMixin:
                 "show_maps": user_input.get("show_maps", True),
             }
 
-            if self._enabled_modules.get(MODULE_GPS, False):
+            if bool(has_gps_enabled):
                 return await self.async_step_configure_external_entities()
             return await self.async_step_final_setup()
 
-        has_multiple_dogs = len(self._dogs) > 1
-        has_gps = self._enabled_modules.get(MODULE_GPS, False)
+        has_gps_enabled = self._enabled_modules.get(MODULE_GPS, False) or any(
+            cast(dict[str, bool], dog.get(CONF_MODULES, {})).get(MODULE_GPS, False)
+            for dog in self._dogs
+        )
 
         schema = vol.Schema(
             {
@@ -141,7 +149,9 @@ class DashboardFlowMixin:
                 vol.Optional(
                     "show_statistics", default=True
                 ): selector.BooleanSelector(),
-                vol.Optional("show_maps", default=has_gps): selector.BooleanSelector(),
+                vol.Optional(
+                    "show_maps", default=has_gps_enabled
+                ): selector.BooleanSelector(),
             }
         )
 

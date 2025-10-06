@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -107,6 +108,12 @@ async def _register_services(
     return registered
 
 
+def _service_call(service: str, data: Mapping[str, Any]) -> ServiceCall:
+    """Create a ServiceCall instance mirroring Home Assistant behavior."""
+
+    return ServiceCall(DOMAIN, service, data)
+
+
 @pytest.mark.asyncio
 async def test_start_walk_service_passes_metadata(
     hass: HomeAssistant,
@@ -120,9 +127,7 @@ async def test_start_walk_service_passes_metadata(
     coordinator_mock.walk_manager.async_start_walk.return_value = "session-1"
 
     await handler(
-        ServiceCall(
-            hass,
-            DOMAIN,
+        _service_call(
             SERVICE_START_WALK,
             {
                 "dog_id": "doggo",
@@ -160,9 +165,7 @@ async def test_end_walk_service_updates_stats(
     caplog.set_level(logging.INFO, logger="custom_components.pawcontrol.services")
 
     await handler(
-        ServiceCall(
-            hass,
-            DOMAIN,
+        _service_call(
             SERVICE_END_WALK,
             {
                 "dog_id": "doggo",
@@ -195,9 +198,7 @@ async def test_service_rejects_unknown_dog(
 
     with pytest.raises(ServiceValidationError):
         await handler(
-            ServiceCall(
-                hass,
-                DOMAIN,
+            _service_call(
                 SERVICE_START_WALK,
                 {"dog_id": "unknown"},
             )
@@ -221,9 +222,7 @@ async def test_confirm_garden_poop_requires_pending_confirmation(
 
     with pytest.raises(ServiceValidationError):
         await handler(
-            ServiceCall(
-                hass,
-                DOMAIN,
+            _service_call(
                 SERVICE_CONFIRM_POOP,
                 {"dog_id": "doggo", "confirmed": True},
             )
@@ -258,9 +257,7 @@ async def test_coordinator_lookup_is_cached(
 
         coordinator_mock.walk_manager.async_start_walk.return_value = "session-1"
 
-        call = ServiceCall(
-            hass,
-            DOMAIN,
+        call = _service_call(
             SERVICE_START_WALK,
             {"dog_id": "doggo"},
         )
@@ -293,9 +290,7 @@ async def test_config_entry_state_change_invalidates_cache(
         handlers = await _register_services(hass, coordinator_mock)
         handler = handlers[(DOMAIN, SERVICE_START_WALK)]
 
-        call = ServiceCall(
-            hass,
-            DOMAIN,
+        call = _service_call(
             SERVICE_START_WALK,
             {"dog_id": "doggo"},
         )
@@ -345,9 +340,7 @@ async def test_other_entry_state_change_does_not_invalidate_cache(
         handlers = await _register_services(hass, coordinator_mock)
         handler = handlers[(DOMAIN, SERVICE_START_WALK)]
 
-        call = ServiceCall(
-            hass,
-            DOMAIN,
+        call = _service_call(
             SERVICE_START_WALK,
             {"dog_id": "doggo"},
         )
@@ -387,7 +380,10 @@ async def test_resolver_invalidates_on_config_entry_change(
 
     entry = MockConfigEntry(domain=DOMAIN, data={}, unique_id="resolver-test")
     entry.add_to_hass(hass)
-    entry.mock_state(hass, ConfigEntryState.LOADED)
+    if hasattr(entry, "mock_state"):
+        entry.mock_state(hass, ConfigEntryState.LOADED)
+    else:
+        entry.state = ConfigEntryState.LOADED
 
     runtime = PawControlRuntimeData(
         coordinator=coordinator_mock,
@@ -408,10 +404,57 @@ async def test_resolver_invalidates_on_config_entry_change(
 
     assert resolver.resolve() is coordinator_mock
 
-    entry.mock_state(hass, ConfigEntryState.NOT_LOADED)
+    if hasattr(entry, "mock_state"):
+        entry.mock_state(hass, ConfigEntryState.NOT_LOADED)
+    else:
+        entry.state = ConfigEntryState.NOT_LOADED
     async_dispatcher_send(
         hass, SIGNAL_CONFIG_ENTRY_CHANGED, ConfigEntryChange.REMOVED, entry
     )
 
     with pytest.raises(ServiceValidationError):
         resolver.resolve()
+
+
+@pytest.mark.asyncio
+async def test_async_unload_services_cleans_listener_and_resolver(
+    hass: HomeAssistant,
+) -> None:
+    """Ensure unloading services removes dispatcher hooks and cached resolver."""
+
+    unsub_called = False
+
+    def _mock_async_dispatcher_connect(*_: Any, **__: Any) -> Callable[[], None]:
+        nonlocal unsub_called
+
+        def _unsubscribe() -> None:
+            nonlocal unsub_called
+            unsub_called = True
+
+        return _unsubscribe
+
+    with (
+        patch.object(
+            services_module,
+            "async_dispatcher_connect",
+            side_effect=_mock_async_dispatcher_connect,
+        ),
+        patch.object(
+            type(hass.services), "async_register", autospec=True
+        ) as register_mock,
+    ):
+        register_mock.side_effect = lambda *args, **kwargs: None
+        await services_module.async_setup_services(hass)
+
+    domain_data = hass.data[DOMAIN]
+    assert "_service_coordinator_listener" in domain_data
+    assert "_service_coordinator_resolver" in domain_data
+
+    with patch.object(type(hass.services), "async_remove", create=True) as remove_mock:
+        remove_mock.side_effect = lambda *args, **kwargs: None
+        await services_module.async_unload_services(hass)
+
+    assert unsub_called is True
+    remaining = hass.data.get(DOMAIN, {})
+    assert "_service_coordinator_listener" not in remaining
+    assert "_service_coordinator_resolver" not in remaining

@@ -8,17 +8,9 @@ from typing import Any
 
 from aiohttp import ClientError, ClientResponse, ClientSession, ClientTimeout
 from aiohttp.client_exceptions import ContentTypeError
-
-try:
-    from homeassistant.exceptions import ConfigEntryAuthFailed
-except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
-
-    class ConfigEntryAuthFailed(RuntimeError):  # noqa: N818 - mirror HA class name
-        """Fallback error used when Home Assistant isn't installed."""
-
-
 from yarl import URL
 
+from .compat import ConfigEntryAuthFailed
 from .exceptions import NetworkError, RateLimitError
 from .http_client import ensure_shared_client_session
 from .resilience import ResilienceManager, RetryConfig

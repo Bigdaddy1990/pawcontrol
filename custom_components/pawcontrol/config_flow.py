@@ -8,22 +8,27 @@ import re
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import (
     ConfigEntry,
-    ConfigFlow,
     ConfigFlowResult,
 )
 from homeassistant.core import callback
-from homeassistant.exceptions import ConfigEntryAuthFailed, ConfigEntryNotReady
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 from homeassistant.helpers.service_info.usb import UsbServiceInfo
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from homeassistant.util import dt as dt_util
 
+from .compat import ConfigEntryAuthFailed
+from .config_flow_base import PawControlBaseConfigFlow
+from .config_flow_dashboard_extension import DashboardFlowMixin
+from .config_flow_dogs import DogManagementMixin
+from .config_flow_external import ExternalEntityConfigurationMixin
+from .config_flow_modules import ModuleConfigurationMixin
 from .config_flow_profile import (
     PROFILE_SCHEMA,
     build_profile_summary_text,
@@ -92,6 +97,7 @@ DOG_SCHEMA = vol.Schema(
             vol.Coerce(float), vol.Range(min=MIN_DOG_WEIGHT, max=MAX_DOG_WEIGHT)
         ),
         vol.Optional(CONF_DOG_SIZE, default="medium"): vol.In(VALID_DOG_SIZES),
+        vol.Optional(CONF_MODULES, default={}): dict,
     }
 )
 
@@ -201,7 +207,13 @@ class DogValidationError(Exception):
         return {"base": "invalid_dog_data"}
 
 
-class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
+class PawControlConfigFlow(
+    ModuleConfigurationMixin,
+    DashboardFlowMixin,
+    ExternalEntityConfigurationMixin,
+    DogManagementMixin,
+    PawControlBaseConfigFlow,
+):
     """Enhanced configuration flow for Paw Control integration.
 
     Features:
@@ -217,7 +229,8 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         """Initialize configuration flow with enhanced state management."""
-        self._dogs: list[DogConfigData] = []
+        super().__init__()
+        self._dogs = cast(list[DogConfigData], self._dogs)
         self._integration_name = "Paw Control"
         self._entity_profile = "standard"
         self.reauth_entry: ConfigEntry | None = None
@@ -226,8 +239,12 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         self._entity_factory = EntityFactory(None)
 
         # Validation and estimation caches for improved responsiveness
-        self._validation_cache: dict[str, tuple[dict[str, Any], Any, str]] = {}
+        self._validation_cache = cast(
+            dict[str, tuple[dict[str, Any], Any, str]], self._validation_cache
+        )
         self._profile_estimates_cache: dict[str, int] = {}
+        self._enabled_modules: dict[str, bool] = {}
+        self._external_entities: dict[str, Any] = {}
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -858,6 +875,26 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
         if dog_size not in VALID_DOG_SIZES:
             field_errors[CONF_DOG_SIZE] = f"Invalid dog size: {dog_size}"
 
+        # Normalise and validate weight using schema bounds
+        raw_weight = (
+            user_input.get(CONF_DOG_WEIGHT)
+            if CONF_DOG_WEIGHT in user_input
+            else user_input.get("weight")
+        )
+        dog_weight: float
+        if raw_weight is None:
+            dog_weight = 20.0
+        else:
+            try:
+                dog_weight = float(raw_weight)
+            except (TypeError, ValueError):
+                field_errors[CONF_DOG_WEIGHT] = "Invalid weight"
+            else:
+                if not (MIN_DOG_WEIGHT <= dog_weight <= MAX_DOG_WEIGHT):
+                    field_errors[CONF_DOG_WEIGHT] = (
+                        f"Weight must be between {MIN_DOG_WEIGHT} and {MAX_DOG_WEIGHT}"
+                    )
+
         # Raise single error with all issues
         if field_errors or base_errors:
             raise DogValidationError(
@@ -871,7 +908,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             CONF_DOG_NAME: dog_name,
             CONF_DOG_BREED: user_input.get(CONF_DOG_BREED, "").strip(),
             CONF_DOG_AGE: user_input.get(CONF_DOG_AGE, 3),
-            CONF_DOG_WEIGHT: user_input.get(CONF_DOG_WEIGHT, 20.0),
+            CONF_DOG_WEIGHT: dog_weight,
             CONF_DOG_SIZE: dog_size,
         }
 
@@ -1394,13 +1431,15 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
             ValidationError: If entry is invalid
         """
         # Check basic entry structure
-        if not entry.data.get(CONF_DOGS):
-            raise ValidationError(
-                "entry_dogs", constraint="No dogs found in config entry"
+        dogs = entry.data.get(CONF_DOGS, [])
+        if not dogs:
+            _LOGGER.debug(
+                "Reauthentication proceeding without stored dog data for entry %s",
+                entry.entry_id,
             )
+            return
 
         # Validate dogs configuration with graceful error handling
-        dogs = entry.data.get(CONF_DOGS, [])
         invalid_dogs = []
 
         for dog in dogs:
@@ -1436,6 +1475,34 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                 profile,
             )
             # Don't fail reauth for invalid profile, will be corrected
+
+    def _aggregate_enabled_modules(self) -> dict[str, bool]:
+        """Aggregate enabled modules across all configured dogs."""
+
+        aggregated: dict[str, bool] = {}
+        for dog in self._dogs:
+            modules = cast(dict[str, bool], dog.get(CONF_MODULES, {}))
+            for module, enabled in modules.items():
+                if enabled:
+                    aggregated[module] = True
+                else:
+                    aggregated.setdefault(module, False)
+        return aggregated
+
+    async def async_step_configure_modules(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Update cached module summary before delegating to mixin."""
+
+        self._enabled_modules = self._aggregate_enabled_modules()
+        return await super().async_step_configure_modules(user_input)
+
+    async def async_step_configure_dashboard(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Delegate dashboard configuration to the dashboard mixin implementation."""
+
+        return await DashboardFlowMixin.async_step_configure_dashboard(self, user_input)
 
     async def async_step_reauth_confirm(
         self, user_input: dict[str, Any] | None = None
@@ -1504,13 +1571,14 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                             "health_status": config_health.get("healthy", True),
                         }
 
-                        return self.async_update_reload_and_abort(
+                        return await self.async_update_reload_and_abort(
                             self.reauth_entry,
                             data_updates=data_updates,
                             options_updates={
                                 "last_reauth": dt_util.utcnow().isoformat(),
                                 "reauth_health_issues": config_health.get("issues", []),
                             },
+                            reason="reauth_successful",
                         )
 
                 except TimeoutError as err:
@@ -1704,7 +1772,7 @@ class PawControlConfigFlow(ConfigFlow, domain=DOMAIN):
                     )
 
                 # Update the config entry with enhanced data
-                return self.async_update_reload_and_abort(
+                return await self.async_update_reload_and_abort(
                     entry,
                     data_updates={
                         "entity_profile": new_profile,

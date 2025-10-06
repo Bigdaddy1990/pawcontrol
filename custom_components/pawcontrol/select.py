@@ -481,7 +481,9 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
             merged = updates
         dog_data[module] = merged
         coordinator_data[self._dog_id] = dog_data
-        self.coordinator.async_set_updated_data(coordinator_data)
+        update_result = self.coordinator.async_set_updated_data(coordinator_data)
+        if asyncio.iscoroutine(update_result):
+            await update_result
 
     async def _async_update_gps_settings(
         self,

@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any, NamedTuple
+from uuid import uuid4
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
@@ -315,7 +316,7 @@ class GPSGeofenceManager:
             str, dict[str, bool]
         ] = {}  # dog_id -> zone_name -> inside
         self._last_locations: dict[str, GPSPoint] = {}
-        self._tracking_tasks: dict[str, asyncio.Task] = {}
+        self._tracking_tasks: dict[str, asyncio.Task[Any]] = {}
         self._route_history: dict[str, list[WalkRoute]] = {}
         self._notification_manager: PawControlNotificationManager | None = None
 
@@ -526,7 +527,7 @@ class GPSGeofenceManager:
             if config and config.enabled and track_route:
                 await self._start_tracking_task(dog_id)
 
-            session_id = f"{dog_id}_{int(route.start_time.timestamp())}"
+            session_id = f"{dog_id}_{uuid4().hex}"
 
             _LOGGER.info(
                 "Started GPS tracking for %s: session=%s, route_tracking=%s, alerts=%s",
@@ -581,8 +582,11 @@ class GPSGeofenceManager:
                     self._route_history[dog_id].append(route)
 
                     # Limit history size (keep last 100 routes)
-                    if len(self._route_history[dog_id]) > 100:
-                        self._route_history[dog_id] = self._route_history[dog_id][-100:]
+                    self._enforce_route_history_limit(dog_id)
+
+            # Ensure history never grows beyond the configured limit even when a
+            # route is discarded (for example, when no GPS points were recorded).
+            self._enforce_route_history_limit(dog_id)
 
             # Remove from active routes
             del self._active_routes[dog_id]
@@ -861,6 +865,16 @@ class GPSGeofenceManager:
             ),
         }
 
+    def _enforce_route_history_limit(self, dog_id: str) -> None:
+        """Clamp the stored route history to the most recent 100 entries."""
+
+        history = self._route_history.get(dog_id)
+        if not history:
+            return
+
+        if len(history) > 100:
+            self._route_history[dog_id] = history[-100:]
+
     async def _start_tracking_task(self, dog_id: str) -> None:
         """Start background tracking task for a dog."""
         await self._stop_tracking_task(dog_id)  # Stop any existing task
@@ -884,15 +898,43 @@ class GPSGeofenceManager:
             except Exception as err:
                 _LOGGER.error("GPS tracking task error for %s: %s", dog_id, err)
 
-        task = self.hass.async_create_task(_tracking_loop())
-        self._tracking_tasks[dog_id] = task
+        tracking_coro = _tracking_loop()
+        task_handle: asyncio.Task[Any] | None = None
+        created: Any | None = None
+
+        if hasattr(self.hass, "async_create_task") and callable(
+            self.hass.async_create_task
+        ):
+            created = self.hass.async_create_task(tracking_coro)
+
+        if isinstance(created, asyncio.Task):
+            task_handle = created
+        elif isinstance(created, asyncio.Future):
+            task_handle = asyncio.ensure_future(created)
+        else:
+            if asyncio.iscoroutine(created):
+                created.close()
+            task_handle = asyncio.create_task(tracking_coro)
+
+        self._tracking_tasks[dog_id] = task_handle
 
         _LOGGER.debug("Started GPS tracking task for %s", dog_id)
 
     async def _stop_tracking_task(self, dog_id: str) -> None:
         """Stop background tracking task for a dog."""
         task = self._tracking_tasks.pop(dog_id, None)
-        if task and not task.done():
+        if task is None:
+            return
+
+        if not isinstance(task, asyncio.Task):
+            if isinstance(task, asyncio.Future):
+                task = asyncio.ensure_future(task)
+            elif asyncio.iscoroutine(task):
+                task = asyncio.create_task(task)
+            else:
+                return
+
+        if not task.done():
             task.cancel()
             with contextlib.suppress(asyncio.CancelledError):
                 await task

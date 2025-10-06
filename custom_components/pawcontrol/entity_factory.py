@@ -341,11 +341,17 @@ class EntityFactory:
     based on selected profile and module configuration.
     """
 
-    def __init__(self, coordinator: PawControlCoordinator | None) -> None:
+    def __init__(
+        self,
+        coordinator: PawControlCoordinator | None,
+        *,
+        prewarm: bool = True,
+    ) -> None:
         """Initialize entity factory.
 
         Args:
             coordinator: PawControl coordinator instance (can be None for estimation)
+            prewarm: Whether to pre-populate caches for faster first use
         """
         self.coordinator = coordinator
         self._entity_cache: dict[str, Entity] = {}
@@ -362,7 +368,8 @@ class EntityFactory:
         self._last_triad_score: int = 0
         self._active_budgets: dict[tuple[str, str], EntityBudget] = {}
         self._last_budget_snapshots: dict[str, EntityBudgetSnapshot] = {}
-        self._prewarm_caches()
+        if prewarm:
+            self._prewarm_caches()
 
     def _prewarm_caches(self) -> None:
         """Warm up internal caches for consistent performance."""

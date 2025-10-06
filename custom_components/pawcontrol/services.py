@@ -13,10 +13,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from contextlib import suppress
 from datetime import datetime, timedelta
-from typing import TypeVar, cast
+from typing import Any, TypeVar, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import (
@@ -781,22 +781,27 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         return dog_id, dog_config
 
-    async def add_feeding_service(call: ServiceCall) -> None:
-        """Handle add feeding service call."""
+    async def _async_handle_feeding_request(data: Mapping[str, Any]) -> None:
+        """Shared implementation for feeding-related services."""
+
         coordinator = _get_coordinator()
         feeding_manager = _require_manager(
             coordinator.feeding_manager, "feeding manager"
         )
 
-        raw_dog_id = call.data["dog_id"]
+        payload = dict(data)
+
+        raw_dog_id = payload["dog_id"]
         dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
-        amount = call.data["amount"]
-        meal_type = call.data.get("meal_type")
-        notes = call.data.get("notes")
-        feeder = call.data.get("feeder")
-        scheduled = call.data.get("scheduled", False)
-        with_medication = call.data.get("with_medication", False)
-        medication_data = call.data.get("medication_data")
+        amount = payload["amount"]
+        meal_type = payload.get("meal_type")
+        notes = payload.get("notes")
+        feeder = payload.get("feeder")
+        scheduled = bool(payload.get("scheduled", False))
+        with_medication = bool(payload.get("with_medication", False))
+        medication_data = payload.get("medication_data")
+        if isinstance(medication_data, Mapping):
+            medication_data = dict(medication_data)
 
         try:
             if with_medication and medication_data:
@@ -832,19 +837,18 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 f"Failed to add feeding for {dog_id}. Check the logs for details."
             ) from err
 
+    async def add_feeding_service(call: ServiceCall) -> None:
+        """Handle add feeding service call."""
+
+        await _async_handle_feeding_request(call.data)
+
     async def feed_dog_service(call: ServiceCall) -> None:
         """Handle feed_dog service call (alias for add_feeding)."""
-        # Transform call data to match add_feeding format
-        transformed_call = ServiceCall(
-            domain=call.domain,
-            service=SERVICE_ADD_FEEDING,
-            data={
-                **call.data,
-                "scheduled": False,
-                "with_medication": False,
-            },
-        )
-        await add_feeding_service(transformed_call)
+
+        payload = dict(call.data)
+        payload.setdefault("scheduled", False)
+        payload.setdefault("with_medication", False)
+        await _async_handle_feeding_request(payload)
 
     async def start_walk_service(call: ServiceCall) -> None:
         """Handle start walk service call."""
@@ -2790,6 +2794,22 @@ async def async_unload_services(hass: HomeAssistant) -> None:
 
     for service in services_to_remove:
         hass.services.async_remove(DOMAIN, service)
+
+    domain_data = hass.data.get(DOMAIN)
+    if isinstance(domain_data, dict):
+        listener = domain_data.pop("_service_coordinator_listener", None)
+        if callable(listener):
+            try:
+                listener()
+            except Exception as err:  # pragma: no cover - defensive cleanup
+                _LOGGER.debug(
+                    "Failed to remove coordinator change listener during unload: %s",
+                    err,
+                )
+
+        resolver = domain_data.pop("_service_coordinator_resolver", None)
+        if isinstance(resolver, _CoordinatorResolver):
+            resolver.invalidate()
 
     _LOGGER.info("Unloaded PawControl services")
 

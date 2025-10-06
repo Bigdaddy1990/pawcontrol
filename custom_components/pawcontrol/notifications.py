@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Any
+from uuid import uuid4
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
 from homeassistant.core import HomeAssistant
@@ -711,9 +712,7 @@ class PawControlNotificationManager:
         """
         async with self._lock:
             # Generate notification ID
-            notification_id = (
-                f"{notification_type.value}_{int(dt_util.now().timestamp())}"
-            )
+            notification_id = f"{notification_type.value}_{uuid4().hex}"
 
             # Determine configuration to use
             config_key = dog_id if dog_id else "system"
@@ -1316,12 +1315,16 @@ class PawControlNotificationManager:
 
         timeout_seconds = float(config.custom_settings.get("webhook_timeout", 10))
         try:
-            async with self._session.post(
+            request_ctx = self._session.post(
                 webhook_url,
                 data=payload_bytes,
                 headers=headers,
                 timeout=ClientTimeout(total=timeout_seconds),
-            ) as response:
+            )
+            if asyncio.iscoroutine(request_ctx):
+                request_ctx = await request_ctx
+
+            async with request_ctx as response:
                 if response.status >= 400:
                     body = await response.text()
                     raise WebhookSecurityError(
@@ -1591,15 +1594,23 @@ class PawControlNotificationManager:
         Returns:
             Number of notifications cleaned up
         """
-        now = dt_util.now()
+        now = dt_util.utcnow()
         expired_ids = []
 
         for notification_id, notification in self._notifications.items():
             # Remove if expired or very old acknowledged notifications
-            if (notification.expires_at and notification.expires_at < now) or (
+            expires_at = notification.expires_at
+            if expires_at and expires_at.tzinfo is None:
+                expires_at = dt_util.as_utc(expires_at)
+
+            acknowledged_at = notification.acknowledged_at
+            if acknowledged_at is not None:
+                acknowledged_at = dt_util.as_utc(acknowledged_at)
+
+            if (expires_at and expires_at < now) or (
                 notification.acknowledged
-                and notification.acknowledged_at
-                and (now - notification.acknowledged_at).days > 7
+                and acknowledged_at
+                and (now - acknowledged_at).days > 7
             ):
                 expired_ids.append(notification_id)
 

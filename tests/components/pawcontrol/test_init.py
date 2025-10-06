@@ -142,6 +142,8 @@ class TestPawControlIntegrationSetup:
             options={"entity_profile": "standard"},
         )
         entry.add_to_hass(hass)
+        reload_unsub = Mock()
+        entry.add_update_listener = Mock(return_value=reload_unsub)
 
         # Import here to avoid circular imports during test collection
         from custom_components.pawcontrol import async_setup_entry
@@ -181,6 +183,7 @@ class TestPawControlIntegrationSetup:
             runtime_data = get_runtime_data(hass, entry)
             assert runtime_data is not None
             assert isinstance(runtime_data, PawControlRuntimeData)
+            assert runtime_data.reload_unsub is reload_unsub
 
             mock_coordinator.return_value.async_prepare_entry.assert_awaited_once()
             mock_coordinator.return_value.async_config_entry_first_refresh.assert_awaited_once()
@@ -337,6 +340,7 @@ class TestPawControlIntegrationSetup:
         mock_walk_manager = Mock()
         mock_walk_manager.async_shutdown = AsyncMock()
 
+        reload_unsub = Mock()
         store_runtime_data(
             hass,
             entry,
@@ -350,6 +354,7 @@ class TestPawControlIntegrationSetup:
                 entity_profile="standard",
                 dogs=mock_config_entry_data[CONF_DOGS],
                 script_manager=None,
+                reload_unsub=reload_unsub,
             ),
         )
 
@@ -361,7 +366,15 @@ class TestPawControlIntegrationSetup:
             result = await async_unload_entry(hass, entry)
 
             assert result is True
-            mock_unload.assert_called_once_with(entry, PLATFORMS)
+            from custom_components.pawcontrol import (
+                get_platforms_for_profile_and_modules,
+            )
+
+            expected_platforms = get_platforms_for_profile_and_modules(
+                mock_config_entry_data[CONF_DOGS],
+                entry.options.get("entity_profile", "standard"),
+            )
+            mock_unload.assert_called_once_with(entry, expected_platforms)
 
             # Verify all managers were shut down
             mock_coordinator.async_shutdown.assert_called_once()
@@ -369,6 +382,9 @@ class TestPawControlIntegrationSetup:
             mock_notification_manager.async_shutdown.assert_called_once()
             mock_feeding_manager.async_shutdown.assert_called_once()
             mock_walk_manager.async_shutdown.assert_called_once()
+            reload_unsub.assert_called_once()
+            runtime_data = get_runtime_data(hass, entry)
+            assert runtime_data is None
 
     async def test_async_unload_entry_platform_unload_failure(
         self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]

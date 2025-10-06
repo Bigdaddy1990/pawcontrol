@@ -20,7 +20,7 @@ Python: 3.13+
 from __future__ import annotations
 
 from asyncio import Task
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any, Final, Required, TypedDict, TypeVar
@@ -359,8 +359,9 @@ class PawControlRuntimeData:
     # Enhanced runtime tracking for Bronze-targeted monitoring
     performance_stats: dict[str, Any] = field(default_factory=dict)
     error_history: list[dict[str, Any]] = field(default_factory=list)
-    # PLATINUM: Optional unsubscribe callback for daily reset scheduler
+    # PLATINUM: Optional unsubscribe callbacks for scheduler and reload listener
     daily_reset_unsub: Any = field(default=None)
+    reload_unsub: Callable[[], Any] | None = None
 
     def as_dict(self) -> dict[str, Any]:
         """Return a dictionary representation of the runtime data.

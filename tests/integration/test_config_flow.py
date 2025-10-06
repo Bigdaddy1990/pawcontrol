@@ -9,6 +9,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -18,6 +19,20 @@ from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
+
+DEFAULT_MODULE_SELECTION = {
+    "feeding": True,
+    "walk": True,
+    "health": True,
+    "gps": False,
+    "notifications": True,
+}
+
+
+def _current_step(result: dict[str, Any]) -> str:
+    """Return the underlying flow step identifier."""
+
+    return result.get("__real_step_id", result["step_id"])
 
 
 @pytest.mark.integration
@@ -29,7 +44,7 @@ async def test_user_flow_single_dog(hass: HomeAssistant):
     )
 
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "user"
+    assert _current_step(result) == "add_dog"
 
     # Provide dog configuration
     result = await hass.config_entries.flow.async_configure(
@@ -37,13 +52,34 @@ async def test_user_flow_single_dog(hass: HomeAssistant):
         {
             "dog_name": "Buddy",
             "dog_id": "buddy",
-            "weight": 30.0,
+            "dog_weight": 30.0,
             "breed": "Golden Retriever",
         },
     )
 
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "dog_modules"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], dict(DEFAULT_MODULE_SELECTION)
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "add_another"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"add_another": False}
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "entity_profile"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"entity_profile": "standard"}
+    )
+
     assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["title"] == "Buddy"
+    assert result["title"] == "Paw Control (Standard (≤10 entities))"
     assert result["data"]["dogs"][0]["dog_id"] == "buddy"
 
 
@@ -56,19 +92,35 @@ async def test_user_flow_multiple_dogs(hass: HomeAssistant):
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
 
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "add_dog"
+
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {
             "dog_name": "Buddy",
             "dog_id": "buddy",
-            "weight": 30.0,
+            "dog_weight": 30.0,
         },
     )
+
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "dog_modules"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], dict(DEFAULT_MODULE_SELECTION)
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "add_another"
 
     # User chooses to add another dog
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {"add_another": True}
     )
+
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "add_dog"
 
     # Second dog
     result = await hass.config_entries.flow.async_configure(
@@ -76,8 +128,31 @@ async def test_user_flow_multiple_dogs(hass: HomeAssistant):
         {
             "dog_name": "Max",
             "dog_id": "max",
-            "weight": 15.0,
+            "dog_weight": 15.0,
         },
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "dog_modules"
+
+    second_modules = dict(DEFAULT_MODULE_SELECTION)
+    second_modules["walk"] = False
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], second_modules
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "add_another"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"add_another": False}
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "entity_profile"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"entity_profile": "standard"}
     )
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
@@ -163,31 +238,48 @@ async def test_flow_validates_dog_id_unique(hass: HomeAssistant):
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
 
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "add_dog"
+
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {
             "dog_name": "Buddy",
             "dog_id": "buddy",
-            "weight": 30.0,
+            "dog_weight": 30.0,
         },
     )
+
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "dog_modules"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], dict(DEFAULT_MODULE_SELECTION)
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "add_another"
 
     # Try to add dog with same ID
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], {"add_another": True}
     )
 
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "add_dog"
+
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {
             "dog_name": "Max",
             "dog_id": "buddy",  # Same ID
-            "weight": 15.0,
+            "dog_weight": 15.0,
         },
     )
 
-    # Should show error
+    # Should show error on add_dog step
     assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "add_dog"
     assert "errors" in result
     assert "dog_id" in result["errors"]
 
@@ -200,17 +292,21 @@ async def test_flow_validates_input(hass: HomeAssistant):
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
 
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "add_dog"
+
     # Provide invalid weight
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
         {
             "dog_name": "Buddy",
             "dog_id": "buddy",
-            "weight": -5.0,  # Invalid
+            "dog_weight": -5.0,  # Invalid
         },
     )
 
     assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "add_dog"
     assert "errors" in result
 
 
@@ -226,7 +322,7 @@ async def test_import_flow(hass: HomeAssistant):
                 {
                     "dog_id": "buddy",
                     "dog_name": "Buddy",
-                    "weight": 30.0,
+                    "dog_weight": 30.0,
                 }
             ]
         },
@@ -248,6 +344,7 @@ async def test_reauth_flow(hass: HomeAssistant, mock_config_entry):
             "source": config_entries.SOURCE_REAUTH,
             "entry_id": mock_config_entry.entry_id,
         },
+        data=mock_config_entry.data,
     )
 
     assert result["type"] == FlowResultType.FORM
@@ -258,6 +355,7 @@ async def test_reauth_flow(hass: HomeAssistant, mock_config_entry):
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             {
+                "confirm": True,
                 "api_token": "new_token",
             },
         )
