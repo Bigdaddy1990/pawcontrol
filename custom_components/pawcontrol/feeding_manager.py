@@ -1002,10 +1002,8 @@ class FeedingManager:
         weight_value = float(weight)
         target_weight = config.ideal_weight
         if config.weight_goal in {"lose", "gain"} and target_weight:
-            try:
+            with contextlib.suppress(TypeError, ValueError):
                 weight_value = float(target_weight)
-            except (TypeError, ValueError):  # pragma: no cover - defensive
-                pass
 
         age_months = dog.get("age_months") or config.age_months or 24
         breed_size = dog.get("breed_size") or config.breed_size or "medium"
@@ -1217,13 +1215,14 @@ class FeedingManager:
             Created FeedingEvent
         """
         if not is_number(amount):
-            raise ValueError("Feeding amount must be a number")
+            raise ValueError("Feeding amount must be a numeric value in grams")
 
         amount_value = float(amount)
-        if amount_value <= 0:
-            raise ValueError("Feeding amount must be greater than zero")
-        if amount_value > self._MAX_SINGLE_FEEDING_GRAMS:
-            raise ValueError("Feeding amount exceeds safety threshold")
+        if not (0 < amount_value <= self._MAX_SINGLE_FEEDING_GRAMS):
+            raise ValueError(
+                "Feeding amount must be between 0 and "
+                f"{self._MAX_SINGLE_FEEDING_GRAMS} grams"
+            )
 
         if timestamp is not None:
             time = timestamp
@@ -1239,12 +1238,19 @@ class FeedingManager:
                 event_time = dt_util.as_local(event_time)
 
             meal_type_enum = None
+            is_medication_meal = False
             if meal_type:
+                normalized_meal = meal_type.lower()
                 try:
-                    meal_type_enum = MealType(meal_type)
+                    meal_type_enum = MealType(normalized_meal)
                 except ValueError:
-                    if meal_type != "medication":
+                    if normalized_meal == "medication":
+                        is_medication_meal = True
+                    else:
                         _LOGGER.warning("Invalid meal type: %s", meal_type)
+
+            if is_medication_meal and not with_medication:
+                with_medication = True
 
             config = self._configs.get(dog_id)
             portion_size = None
@@ -1893,10 +1899,8 @@ class FeedingManager:
             dog_record = self._dogs.get(dog_id)
             if dog_record is not None:
                 if (weight := dog_record.get("weight")) is not None:
-                    try:
+                    with contextlib.suppress(TypeError, ValueError):
                         config.dog_weight = float(weight)
-                    except (TypeError, ValueError):  # pragma: no cover - defensive
-                        pass
                 if (ideal_weight := dog_record.get("ideal_weight")) is not None:
                     with contextlib.suppress(TypeError, ValueError):
                         config.ideal_weight = float(ideal_weight)

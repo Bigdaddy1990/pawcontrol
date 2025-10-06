@@ -12,7 +12,25 @@ from datetime import UTC, datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
 from types import MappingProxyType, ModuleType, SimpleNamespace
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
+
+if TYPE_CHECKING:  # pragma: no cover - only used for static analysis
+    from homeassistant.config_entries import OptionsFlow as _HAOptionsFlow
+    from homeassistant.core import HomeAssistant as _HAHomeAssistant
+else:  # pragma: no cover - runtime fallbacks
+
+    class _HAHomeAssistant:  # pylint: disable=too-few-public-methods
+        """Placeholder Home Assistant type for annotations."""
+
+        pass
+
+    class _HAOptionsFlow:  # pylint: disable=too-few-public-methods
+        """Placeholder OptionsFlow type for annotations."""
+
+        pass
+
+HomeAssistant = _HAHomeAssistant
+OptionsFlow = _HAOptionsFlow
 from uuid import uuid4
 
 try:  # pragma: no cover - optional third-party dependency
@@ -816,7 +834,7 @@ def _install_exception_module() -> None:
 
         pass
 
-    class ConfigEntryAuthFailed(ConfigEntryError):
+    class ConfigEntryAuthFailed(ConfigEntryError):  # noqa: N818 - mirror HA naming
         """Raised when authentication to a config entry fails."""
 
         def __init__(
@@ -833,7 +851,7 @@ def _install_exception_module() -> None:
 
         pass
 
-    class ConfigEntryNotReady(ConfigEntryError):
+    class ConfigEntryNotReady(ConfigEntryError):  # noqa: N818 - mirror HA naming
         """Signal that a config entry cannot be set up yet."""
 
         pass
@@ -875,7 +893,7 @@ def _install_helper_modules() -> None:
     config_entries_module = ModuleType("homeassistant.config_entries")
     core_module = sys.modules["homeassistant.core"]
 
-    class AbortFlow(Exception):
+    class AbortFlow(Exception):  # noqa: N818 - mirror HA naming
         """Exception used to abort a config flow."""
 
         def __init__(

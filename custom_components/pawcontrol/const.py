@@ -443,13 +443,14 @@ NOTIFICATION_CHANNELS: Final[tuple[str, ...]] = (
 )
 
 # BRONZE: Update intervals with consistent key naming throughout codebase
-UPDATE_INTERVALS: Final[dict[str, int]] = {
+_BASE_UPDATE_INTERVALS: Final[dict[str, int]] = {
     "minimal": 300,  # 5 minutes - power saving
     "balanced": 120,  # 2 minutes - balanced default cadence
-    "standard": 120,  # Legacy alias kept for backwards compatibility
     "frequent": 60,  # 1 minute - responsive
     "real_time": 30,  # 30 seconds - high performance
 }
+UPDATE_INTERVALS: Final[dict[str, int]] = dict(_BASE_UPDATE_INTERVALS)
+UPDATE_INTERVALS["standard"] = _BASE_UPDATE_INTERVALS["balanced"]
 
 # BRONZE: Cap idle polling to stay within the <15 minute guideline
 MAX_IDLE_POLL_INTERVAL: Final[int] = 900

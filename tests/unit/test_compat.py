@@ -41,7 +41,7 @@ def test_config_entry_auth_failed_fallback_accepts_auth_migration():
     class ConfigEntryError(HomeAssistantError):
         """Stub ConfigEntryError base."""
 
-    class ConfigEntryNotReady(ConfigEntryError):
+    class ConfigEntryNotReady(ConfigEntryError):  # noqa: N818 - mirror HA naming
         """Stub ConfigEntryNotReady error."""
 
     class ServiceValidationError(HomeAssistantError):

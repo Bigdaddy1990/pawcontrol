@@ -181,7 +181,7 @@ def create_device_info(
         if sanitized_microchip:
             identifiers.add(("microchip", sanitized_microchip))
 
-    computed_model = f"{model} - {breed}" if breed else model
+    computed_model = f"{model} ({breed})" if breed else model
 
     device_info: DeviceInfo = {
         "identifiers": identifiers,

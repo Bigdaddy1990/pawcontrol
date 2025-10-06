@@ -103,7 +103,7 @@ from excellent condition to requiring medical attention.
 """
 
 VALID_MOOD_OPTIONS: Final[frozenset[str]] = frozenset(
-    ["happy", "neutral", "normal", "content", "sad", "angry", "anxious", "tired"]
+    ["happy", "neutral", "sad", "angry", "anxious", "tired"]
 )
 """Valid mood states for behavioral tracking.
 

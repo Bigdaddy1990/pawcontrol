@@ -68,8 +68,10 @@ from .const import (
     MODULE_HEALTH,
     MODULE_WALK,
 )
+from .coordinator_support import DogConfigRegistry
 from .device_api import validate_device_endpoint
 from .entity_factory import ENTITY_PROFILES, EntityFactory
+from .exceptions import ValidationError
 from .selector_shim import selector
 from .types import DogConfigData
 
@@ -1424,14 +1426,26 @@ class PawControlOptionsFlow(OptionsFlow):
     ) -> ConfigFlowResult:
         """Configure GPS and location settings with enhanced route recording options."""
         if user_input is not None:
+            gps_interval = user_input.get(
+                "gps_update_interval", DEFAULT_GPS_UPDATE_INTERVAL
+            )
+            try:
+                validated_interval = DogConfigRegistry._validate_gps_interval(
+                    gps_interval
+                )
+            except ValidationError:
+                return self.async_show_form(
+                    step_id="gps_settings",
+                    data_schema=self._get_gps_settings_schema(user_input),
+                    errors={"gps_update_interval": "invalid_interval"},
+                )
+
             try:
                 # Update GPS settings in options
                 new_options = {**self._entry.options}
                 new_options.update(
                     {
-                        CONF_GPS_UPDATE_INTERVAL: user_input.get(
-                            "gps_update_interval", DEFAULT_GPS_UPDATE_INTERVAL
-                        ),
+                        CONF_GPS_UPDATE_INTERVAL: validated_interval,
                         CONF_GPS_ACCURACY_FILTER: user_input.get(
                             "gps_accuracy_filter", DEFAULT_GPS_ACCURACY_FILTER
                         ),

@@ -184,7 +184,25 @@ class DogConfigRegistry:
     def _validate_gps_interval(value: Any) -> int:
         """Validate the GPS interval option and return a positive integer."""
 
-        if isinstance(value, bool) or not isinstance(value, int):
+        if isinstance(value, bool):
+            raise ValidationError(
+                "gps_update_interval", value, "Invalid GPS update interval"
+            )
+
+        if isinstance(value, str):
+            candidate = value.strip()
+            if not candidate:
+                raise ValidationError(
+                    "gps_update_interval", value, "Invalid GPS update interval"
+                )
+            try:
+                value = int(candidate)
+            except ValueError as err:  # pragma: no cover - defensive casting
+                raise ValidationError(
+                    "gps_update_interval", value, "Invalid GPS update interval"
+                ) from err
+
+        if not isinstance(value, int):
             raise ValidationError(
                 "gps_update_interval", value, "Invalid GPS update interval"
             )

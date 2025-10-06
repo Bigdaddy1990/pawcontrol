@@ -44,6 +44,8 @@ class AdaptiveCache:
     """Simple asynchronous cache used by legacy tests."""
 
     def __init__(self, default_ttl: int = 300) -> None:
+        """Initialise the cache with the provided default TTL."""
+
         self._default_ttl = default_ttl
         self._data: dict[str, Any] = {}
         self._metadata: dict[str, dict[str, Any]] = {}
@@ -52,6 +54,8 @@ class AdaptiveCache:
         self._misses = 0
 
     async def get(self, key: str) -> tuple[Any | None, bool]:
+        """Return cached value for ``key`` and whether it was a cache hit."""
+
         async with self._lock:
             entry = self._metadata.get(key)
             if entry is None:
@@ -68,6 +72,8 @@ class AdaptiveCache:
             return self._data[key], True
 
     async def set(self, key: str, value: Any, base_ttl: int = 300) -> None:
+        """Store ``value`` for ``key`` honouring ``base_ttl`` when positive."""
+
         async with self._lock:
             ttl = base_ttl if base_ttl > 0 else self._default_ttl
             expiry = dt_util.utcnow() + timedelta(seconds=ttl)
@@ -75,6 +81,8 @@ class AdaptiveCache:
             self._metadata[key] = {"expiry": expiry}
 
     async def cleanup_expired(self) -> int:
+        """Remove expired cache entries and return the number purged."""
+
         async with self._lock:
             now = dt_util.utcnow()
             expired = [
@@ -86,6 +94,8 @@ class AdaptiveCache:
             return len(expired)
 
     def get_stats(self) -> dict[str, Any]:
+        """Return basic cache statistics used by diagnostics."""
+
         total = self._hits + self._misses
         hit_rate = (self._hits / total * 100) if total else 0
         return {
@@ -301,6 +311,8 @@ class PawControlDataManager:
         coordinator: Any | None = None,
         dogs_config: list[dict[str, Any]] | None = None,
     ) -> None:
+        """Create a new data manager tied to ``entry_id`` and configuration."""
+
         self.hass = hass
         self._coordinator = coordinator
         self._dogs_config = {cfg["dog_id"]: dict(cfg) for cfg in dogs_config or []}
@@ -1037,10 +1049,10 @@ class PawControlDataManager:
 
             def _write_markdown() -> None:
                 lines = [f"# {data_type.title()} export for {dog_id}", ""]
-                for entry in entries:
-                    lines.append(
-                        "- " + ", ".join(f"{k}: {v}" for k, v in entry.items())
-                    )
+                lines.extend(
+                    "- " + ", ".join(f"{k}: {v}" for k, v in entry.items())
+                    for entry in entries
+                )
                 export_path.write_text("\n".join(lines), encoding="utf-8")
 
             await asyncio.to_thread(_write_markdown)
