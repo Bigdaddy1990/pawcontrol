@@ -164,10 +164,10 @@ async def _get_config_entry_diagnostics(entry: ConfigEntry) -> dict[str, Any]:
     created_at = getattr(entry, "created_at", None)
     modified_at = getattr(entry, "modified_at", None)
 
-    supports_options = bool(getattr(entry, "supports_options", False))
-    supports_reconfigure = bool(getattr(entry, "supports_reconfigure", False))
-    supports_remove_device = bool(getattr(entry, "supports_remove_device", False))
-    supports_unload = bool(getattr(entry, "supports_unload", False))
+    supports_options = getattr(entry, "supports_options", False)
+    supports_reconfigure = getattr(entry, "supports_reconfigure", False)
+    supports_remove_device = getattr(entry, "supports_remove_device", False)
+    supports_unload = getattr(entry, "supports_unload", False)
 
     return {
         "entry_id": entry.entry_id,
@@ -212,9 +212,9 @@ async def _get_system_diagnostics(hass: HomeAssistant) -> dict[str, Any]:
         "python_version": getattr(config, "python_version", None),
         "timezone": str(time_zone) if time_zone else None,
         "config_dir": getattr(config, "config_dir", None),
-        "is_running": bool(getattr(hass, "is_running", False)),
-        "safe_mode": bool(safe_mode),
-        "recovery_mode": bool(recovery_mode),
+        "is_running": getattr(hass, "is_running", False),
+        "safe_mode": safe_mode,
+        "recovery_mode": recovery_mode,
         "current_time": dt_util.utcnow().isoformat(),
         "uptime_seconds": uptime_seconds,
     }
