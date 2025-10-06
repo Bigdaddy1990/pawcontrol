@@ -61,6 +61,44 @@ REDACTED_KEYS = {
 _REDACTED_KEY_PATTERNS = compile_redaction_patterns(REDACTED_KEYS)
 
 
+def _entity_registry_entries_for_config_entry(
+    entity_registry: er.EntityRegistry, entry_id: str
+) -> list[er.RegistryEntry]:
+    """Return registry entries associated with a config entry."""
+
+    module_helper = getattr(er, "async_entries_for_config_entry", None)
+    if callable(module_helper):
+        return list(module_helper(entity_registry, entry_id))
+
+    entities = getattr(entity_registry, "entities", {})
+    return [
+        entry
+        for entry in entities.values()
+        if getattr(entry, "config_entry_id", None) == entry_id
+    ]
+
+
+def _device_registry_entries_for_config_entry(
+    device_registry: dr.DeviceRegistry, entry_id: str
+) -> list[dr.DeviceEntry]:
+    """Return device registry entries associated with a config entry."""
+
+    module_helper = getattr(dr, "async_entries_for_config_entry", None)
+    if callable(module_helper):
+        return list(module_helper(device_registry, entry_id))
+
+    devices = getattr(device_registry, "devices", {})
+    return [
+        entry
+        for entry in devices.values()
+        if getattr(entry, "config_entry_id", None) == entry_id
+        or (
+            isinstance(getattr(entry, "config_entries", None), set)
+            and entry_id in entry.config_entries
+        )
+    ]
+
+
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: PawControlConfigEntry
 ) -> dict[str, Any]:
@@ -114,22 +152,39 @@ async def _get_config_entry_diagnostics(entry: ConfigEntry) -> dict[str, Any]:
     Returns:
         Configuration diagnostics
     """
+    version = getattr(entry, "version", None)
+    state = getattr(entry, "state", None)
+    if isinstance(state, ConfigEntryState):
+        state_value: str | None = state.value
+    elif state is None:
+        state_value = None
+    else:
+        state_value = str(state)
+
+    created_at = getattr(entry, "created_at", None)
+    modified_at = getattr(entry, "modified_at", None)
+
+    supports_options = bool(getattr(entry, "supports_options", False))
+    supports_reconfigure = bool(getattr(entry, "supports_reconfigure", False))
+    supports_remove_device = bool(getattr(entry, "supports_remove_device", False))
+    supports_unload = bool(getattr(entry, "supports_unload", False))
+
     return {
         "entry_id": entry.entry_id,
-        "title": entry.title,
-        "version": entry.version,
+        "title": getattr(entry, "title", entry.entry_id),
+        "version": version,
         "domain": entry.domain,
-        "state": entry.state.value,
-        "source": entry.source,
-        "unique_id": entry.unique_id,
-        "created_at": entry.created_at.isoformat() if entry.created_at else None,
-        "modified_at": entry.modified_at.isoformat() if entry.modified_at else None,
+        "state": state_value,
+        "source": getattr(entry, "source", None),
+        "unique_id": getattr(entry, "unique_id", None),
+        "created_at": created_at.isoformat() if created_at else None,
+        "modified_at": modified_at.isoformat() if modified_at else None,
         "data_keys": list(entry.data.keys()),
-        "options_keys": list(entry.options.keys()),
-        "supports_options": entry.supports_options,
-        "supports_reconfigure": entry.supports_reconfigure,
-        "supports_remove_device": entry.supports_remove_device,
-        "supports_unload": entry.supports_unload,
+        "options_keys": list(getattr(entry, "options", {})),
+        "supports_options": supports_options,
+        "supports_reconfigure": supports_reconfigure,
+        "supports_remove_device": supports_remove_device,
+        "supports_unload": supports_unload,
         "dogs_configured": len(entry.data.get(CONF_DOGS, [])),
     }
 
@@ -143,16 +198,25 @@ async def _get_system_diagnostics(hass: HomeAssistant) -> dict[str, Any]:
     Returns:
         System diagnostics
     """
+    config = hass.config
+    time_zone = getattr(config, "time_zone", None)
+    safe_mode = getattr(config, "safe_mode", False)
+    recovery_mode = getattr(config, "recovery_mode", False)
+    start_time = getattr(config, "start_time", None)
+    uptime_seconds: float | None = None
+    if start_time:
+        uptime_seconds = (dt_util.utcnow() - start_time).total_seconds()
+
     return {
-        "ha_version": hass.config.version,
-        "python_version": hass.config.python_version,
-        "timezone": str(hass.config.time_zone),
-        "config_dir": hass.config.config_dir,
-        "is_running": hass.is_running,
-        "safe_mode": hass.config.safe_mode,
-        "recovery_mode": hass.config.recovery_mode,
+        "ha_version": getattr(config, "version", None),
+        "python_version": getattr(config, "python_version", None),
+        "timezone": str(time_zone) if time_zone else None,
+        "config_dir": getattr(config, "config_dir", None),
+        "is_running": bool(getattr(hass, "is_running", False)),
+        "safe_mode": bool(safe_mode),
+        "recovery_mode": bool(recovery_mode),
         "current_time": dt_util.utcnow().isoformat(),
-        "uptime_seconds": (dt_util.utcnow() - hass.config.start_time).total_seconds(),
+        "uptime_seconds": uptime_seconds,
     }
 
 
@@ -252,7 +316,9 @@ async def _get_entities_diagnostics(
     entity_registry = er.async_get(hass)
 
     # Get all entities for this integration
-    entities = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
+    entities = _entity_registry_entries_for_config_entry(
+        entity_registry, entry.entry_id
+    )
 
     # Group entities by platform
     entities_by_platform: dict[str, list[dict[str, Any]]] = {}
@@ -320,7 +386,7 @@ async def _get_devices_diagnostics(
     device_registry = dr.async_get(hass)
 
     # Get all devices for this integration
-    devices = dr.async_entries_for_config_entry(device_registry, entry.entry_id)
+    devices = _device_registry_entries_for_config_entry(device_registry, entry.entry_id)
 
     devices_info = []
     for device in devices:
@@ -542,7 +608,9 @@ async def _get_loaded_platforms(hass: HomeAssistant, entry: ConfigEntry) -> list
     """
     # Check which platforms have been loaded by checking entity registry
     entity_registry = er.async_get(hass)
-    entities = er.async_entries_for_config_entry(entity_registry, entry.entry_id)
+    entities = _entity_registry_entries_for_config_entry(
+        entity_registry, entry.entry_id
+    )
 
     # Get unique platforms
     loaded_platforms = list(set(entity.platform for entity in entities))
