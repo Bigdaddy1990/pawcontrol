@@ -9,16 +9,19 @@ maintainability, and graceful error handling.
 from __future__ import annotations
 
 import asyncio
+import csv
 import json
 import logging
 import sys
 from collections import deque
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
+from itertools import islice
 from pathlib import Path
 from time import perf_counter
 from typing import TYPE_CHECKING, Any
+
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -116,6 +119,90 @@ def _deserialize_datetime(value: Any) -> datetime | None:
     return dt_util.as_utc(parsed)
 
 
+def _serialize_timestamp(value: Any | None) -> str:
+    """Return an ISO timestamp for ``value`` or ``utcnow`` when missing."""
+
+    if isinstance(value, datetime):
+        return dt_util.as_utc(value).isoformat()
+    if value:
+        parsed = _deserialize_datetime(value)
+        if parsed:
+            return parsed.isoformat()
+    return dt_util.utcnow().isoformat()
+
+
+def _coerce_mapping(value: Mapping[str, Any] | None) -> dict[str, Any]:
+    """Return a shallow copy of ``value`` ensuring a mutable mapping."""
+
+    return dict(value) if isinstance(value, Mapping) else {}
+
+
+def _merge_dicts(base: Mapping[str, Any], updates: Mapping[str, Any]) -> dict[str, Any]:
+    """Deep merge ``updates`` into ``base`` using Home Assistant semantics."""
+
+    merged = dict(base) if isinstance(base, Mapping) else {}
+    for key, value in (updates or {}).items():
+        if isinstance(value, Mapping) and isinstance(merged.get(key), Mapping):
+            merged[key] = _merge_dicts(merged[key], value)
+        else:
+            merged[key] = value
+    return merged
+
+
+def _limit_entries(entries: list[dict[str, Any]], *, limit: int | None) -> list[dict[str, Any]]:
+    """Return ``entries`` optionally constrained to the most recent ``limit``."""
+
+    if limit is None or limit <= 0:
+        return entries
+    return list(islice(entries, max(len(entries) - limit, 0), None))
+
+
+def _coerce_health_payload(data: HealthData | Mapping[str, Any]) -> dict[str, Any]:
+    """Return a dict payload from ``data`` regardless of the input type."""
+
+    if isinstance(data, HealthData):
+        payload = {
+            "timestamp": data.timestamp,
+            "weight": data.weight,
+            "temperature": data.temperature,
+            "mood": data.mood,
+            "activity_level": data.activity_level,
+            "health_status": data.health_status,
+            "symptoms": data.symptoms,
+            "medication": data.medication,
+            "note": data.note,
+            "logged_by": data.logged_by,
+            "heart_rate": data.heart_rate,
+            "respiratory_rate": data.respiratory_rate,
+        }
+    elif isinstance(data, Mapping):
+        payload = dict(data)
+    else:  # pragma: no cover - guard for unexpected input
+        raise TypeError("health data must be a mapping or HealthData instance")
+
+    payload["timestamp"] = _serialize_timestamp(payload.get("timestamp"))
+    return payload
+
+
+def _coerce_medication_payload(data: Mapping[str, Any]) -> dict[str, Any]:
+    """Return normalised medication data for persistence."""
+
+    payload = dict(data)
+    payload["administration_time"] = _serialize_timestamp(
+        payload.get("administration_time")
+    )
+    payload.setdefault("logged_at", dt_util.utcnow().isoformat())
+    return payload
+
+
+def _default_session_id_generator() -> str:
+    """Generate a unique identifier for grooming sessions."""
+
+    from uuid import uuid4
+
+    return uuid4().hex
+
+
 @dataclass
 class DogProfile:
     """Representation of all stored data for a single dog."""
@@ -125,6 +212,9 @@ class DogProfile:
     feeding_history: list[dict[str, Any]] = field(default_factory=list)
     walk_history: list[dict[str, Any]] = field(default_factory=list)
     health_history: list[dict[str, Any]] = field(default_factory=list)
+    medication_history: list[dict[str, Any]] = field(default_factory=list)
+    poop_history: list[dict[str, Any]] = field(default_factory=list)
+    grooming_sessions: list[dict[str, Any]] = field(default_factory=list)
     current_walk: WalkData | None = None
 
     @classmethod
@@ -137,6 +227,13 @@ class DogProfile:
         feeding_history = list(stored.get("feeding_history", [])) if stored else []
         walk_history = list(stored.get("walk_history", [])) if stored else []
         health_history = list(stored.get("health_history", [])) if stored else []
+        medication_history = (
+            list(stored.get("medication_history", [])) if stored else []
+        )
+        poop_history = list(stored.get("poop_history", [])) if stored else []
+        grooming_sessions = (
+            list(stored.get("grooming_sessions", [])) if stored else []
+        )
 
         try:
             daily_stats = DailyStats.from_dict(daily_stats_payload)
@@ -149,6 +246,9 @@ class DogProfile:
             feeding_history=feeding_history,
             walk_history=walk_history,
             health_history=health_history,
+            medication_history=medication_history,
+            poop_history=poop_history,
+            grooming_sessions=grooming_sessions,
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -160,6 +260,9 @@ class DogProfile:
             "feeding_history": list(self.feeding_history),
             "walk_history": list(self.walk_history),
             "health_history": list(self.health_history),
+            "medication_history": list(self.medication_history),
+            "poop_history": list(self.poop_history),
+            "grooming_sessions": list(self.grooming_sessions),
         }
 
         if self.current_walk is not None:
@@ -222,8 +325,69 @@ class PawControlDataManager:
         self._save_lock = asyncio.Lock()
         self._initialised = False
         self._namespace_locks: dict[str, asyncio.Lock] = {}
+        self._session_id_factory: Callable[[], str] = _default_session_id_generator
 
         self._ensure_metrics_containers()
+
+    def _get_runtime_data(self) -> Any | None:
+        """Return the runtime data container when available."""
+
+        entry_id = getattr(self, "entry_id", None)
+        if not entry_id:
+            return None
+        try:
+            from .runtime_data import get_runtime_data
+        except ImportError:  # pragma: no cover - defensive
+            return None
+
+        try:
+            return get_runtime_data(self.hass, entry_id)
+        except Exception:  # pragma: no cover - runtime retrieval errors
+            return None
+
+    def _get_namespace_lock(self, namespace: str) -> asyncio.Lock:
+        """Return a lock used to guard namespace updates."""
+
+        lock = self._namespace_locks.get(namespace)
+        if lock is None:
+            lock = asyncio.Lock()
+            self._namespace_locks[namespace] = lock
+        return lock
+
+    async def _update_namespace_for_dog(
+        self,
+        namespace: str,
+        dog_id: str,
+        updater: Callable[[Any | None], Any | None],
+    ) -> Any | None:
+        """Update ``namespace`` payload for ``dog_id`` using ``updater``."""
+
+        lock = self._get_namespace_lock(namespace)
+        async with lock:
+            data = await self._get_namespace_data(namespace)
+            current = data.get(dog_id)
+            updated = updater(current)
+            if updated is None:
+                data.pop(dog_id, None)
+            else:
+                data[dog_id] = updated
+            await self._save_namespace(namespace, data)
+            return updated
+
+    def _ensure_profile(self, dog_id: str) -> DogProfile:
+        """Return the profile for ``dog_id`` or raise ``HomeAssistantError``."""
+
+        profile = self._dog_profiles.get(dog_id)
+        if profile is None:
+            raise HomeAssistantError(f"Unknown PawControl dog: {dog_id}")
+        return profile
+
+    async def _async_save_profile(self, dog_id: str, profile: DogProfile) -> None:
+        """Persist ``profile`` for ``dog_id`` and update cached config."""
+
+        self._dog_profiles[dog_id] = profile
+        self._dogs_config[dog_id] = dict(profile.config)
+        await self._async_save_dog_data(dog_id)
 
     def _ensure_metrics_containers(self) -> None:
         """Initialise in-memory metrics containers if missing."""
@@ -306,35 +470,41 @@ class PawControlDataManager:
         return True
 
     async def async_set_visitor_mode(
-        self, dog_id: str, settings: Mapping[str, Any]
+        self,
+        dog_id: str,
+        settings: Mapping[str, Any] | None = None,
+        **kwargs: Any,
     ) -> bool:
         """Persist visitor mode configuration for ``dog_id``."""
 
         if not dog_id:
             raise ValueError("dog_id is required")
 
-        payload = dict(settings)
+        payload: Mapping[str, Any] | None = settings
+        if payload is None and "visitor_data" in kwargs:
+            payload = kwargs["visitor_data"]
+        elif payload is None and kwargs:
+            payload = kwargs
+
+        if payload is None:
+            raise ValueError("Visitor mode payload is required")
+
+        payload = dict(payload)
+        payload.setdefault("timestamp", dt_util.utcnow())
+        payload["timestamp"] = _serialize_timestamp(payload.get("timestamp"))
 
         namespace = "visitor_mode"
         self._ensure_metrics_containers()
-        locks = getattr(self, "_namespace_locks", None)
-        if locks is None:
-            locks = {}
-            self._namespace_locks = locks
-        lock = locks.setdefault(namespace, asyncio.Lock())
-
         started = perf_counter()
         try:
-            async with lock:
-                data = await self._get_namespace_data(namespace)
-                existing = data.get(dog_id)
-                if isinstance(existing, Mapping):
-                    merged = dict(existing)
-                    merged.update(payload)
-                else:
-                    merged = payload
-                data[dog_id] = merged
-                await self._save_namespace(namespace, data)
+            await self._update_namespace_for_dog(
+                namespace,
+                dog_id,
+                lambda current: _merge_dicts(
+                    _coerce_mapping(current if isinstance(current, Mapping) else {}),
+                    payload,
+                ),
+            )
         except HomeAssistantError:
             self._metrics["errors"] += 1
             raise
@@ -346,6 +516,16 @@ class PawControlDataManager:
         else:
             self._record_visitor_metrics(perf_counter() - started)
         return True
+
+    async def async_get_visitor_mode_status(self, dog_id: str) -> dict[str, Any]:
+        """Return the visitor mode status for ``dog_id``."""
+
+        namespace = "visitor_mode"
+        data = await self._get_namespace_data(namespace)
+        entry = data.get(dog_id)
+        if isinstance(entry, Mapping):
+            return dict(entry)
+        return {"enabled": False}
 
     def set_metrics_sink(self, metrics: CoordinatorMetrics | None) -> None:
         """Register a metrics sink used for coordinator diagnostics."""
@@ -416,6 +596,461 @@ class PawControlDataManager:
         if limit is not None:
             return history[:limit]
         return history
+
+    async def async_reset_dog_daily_stats(self, dog_id: str) -> None:
+        """Reset the daily statistics for ``dog_id``."""
+
+        profile = self._ensure_profile(dog_id)
+        async with self._data_lock:
+            profile.daily_stats = DailyStats(date=dt_util.utcnow())
+        await self._async_save_profile(dog_id, profile)
+
+    async def async_get_module_data(self, dog_id: str) -> dict[str, Any]:
+        """Return merged module configuration for ``dog_id``."""
+
+        profile = self._ensure_profile(dog_id)
+        namespace = await self._get_namespace_data("module_state")
+        overrides = _coerce_mapping(namespace.get(dog_id))
+        modules = _coerce_mapping(profile.config.get("modules"))
+        return _merge_dicts(modules, overrides)
+
+    async def async_set_dog_power_state(self, dog_id: str, enabled: bool) -> None:
+        """Persist the main power state for ``dog_id``."""
+
+        async def updater(current: Any | None) -> dict[str, Any]:
+            payload = _coerce_mapping(current)
+            payload["main_power"] = bool(enabled)
+            payload.setdefault("updated_at", dt_util.utcnow().isoformat())
+            return payload
+
+        await self._update_namespace_for_dog("module_state", dog_id, updater)
+
+    async def async_set_gps_tracking(self, dog_id: str, enabled: bool) -> None:
+        """Persist GPS tracking preference for ``dog_id``."""
+
+        async def updater(current: Any | None) -> dict[str, Any]:
+            payload = _coerce_mapping(current)
+            gps_state = _coerce_mapping(payload.get("gps"))
+            gps_state["enabled"] = bool(enabled)
+            gps_state["updated_at"] = dt_util.utcnow().isoformat()
+            payload["gps"] = gps_state
+            return payload
+
+        await self._update_namespace_for_dog("module_state", dog_id, updater)
+
+    async def async_log_poop_data(
+        self, dog_id: str, poop_data: Mapping[str, Any], *, limit: int = 100
+    ) -> bool:
+        """Store poop events for ``dog_id`` with optional history limit."""
+
+        if dog_id not in self._dog_profiles:
+            return False
+
+        payload = dict(poop_data)
+        payload.setdefault("timestamp", dt_util.utcnow())
+        payload["timestamp"] = _serialize_timestamp(payload.get("timestamp"))
+
+        async with self._data_lock:
+            profile = self._dog_profiles[dog_id]
+            profile.poop_history.append(payload)
+            profile.poop_history[:] = _limit_entries(profile.poop_history, limit=limit)
+
+        try:
+            await self._async_save_profile(dog_id, profile)
+        except HomeAssistantError:
+            return False
+        return True
+
+    async def async_start_grooming_session(
+        self,
+        dog_id: str,
+        session_data: Mapping[str, Any],
+        *,
+        session_id: str | None = None,
+    ) -> str:
+        """Record the start of a grooming session and return the session id."""
+
+        profile = self._ensure_profile(dog_id)
+        payload = dict(session_data)
+        session_identifier = session_id or self._session_id_factory()
+        payload.setdefault("session_id", session_identifier)
+        payload.setdefault("started_at", dt_util.utcnow())
+        payload["started_at"] = _serialize_timestamp(payload.get("started_at"))
+
+        async with self._data_lock:
+            profile.grooming_sessions.append(payload)
+            profile.grooming_sessions[:] = _limit_entries(
+                profile.grooming_sessions, limit=50
+            )
+
+        await self._async_save_profile(dog_id, profile)
+        return session_identifier
+
+    async def async_analyze_patterns(
+        self,
+        dog_id: str,
+        analysis_type: str,
+        *,
+        days: int = 30,
+    ) -> dict[str, Any]:
+        """Analyze historic data for ``dog_id``."""
+
+        profile = self._ensure_profile(dog_id)
+        now = dt_util.utcnow()
+        cutoff = now - timedelta(days=max(days, 1))
+        tolerance = timedelta(seconds=1)
+
+        def _filter_entries(
+            entries: list[dict[str, Any]], timestamp_key: str = "timestamp"
+        ) -> list[tuple[datetime, dict[str, Any]]]:
+            filtered: list[tuple[datetime, dict[str, Any]]] = []
+            for item in entries:
+                ts = _deserialize_datetime(item.get(timestamp_key))
+                if ts and ts >= cutoff - tolerance:
+                    filtered.append((ts, dict(item)))
+            return filtered
+
+        result: dict[str, Any] = {
+            "dog_id": dog_id,
+            "analysis_type": analysis_type,
+            "days": days,
+            "generated_at": now.isoformat(),
+        }
+
+        if analysis_type in {"feeding", "comprehensive"}:
+            feedings = _filter_entries(profile.feeding_history)
+            total = sum(
+                entry.get("portion_size", 0) or 0 for _, entry in feedings
+            )
+            result["feeding"] = {
+                "entries": len(feedings),
+                "total_portion_size": round(total, 2),
+                "first_entry": feedings[0][1] if feedings else None,
+                "last_entry": feedings[-1][1] if feedings else None,
+            }
+
+        if analysis_type in {"walking", "comprehensive"}:
+            walks = _filter_entries(profile.walk_history, "end_time")
+            total_distance = sum(
+                entry.get("distance", 0) or 0 for _, entry in walks
+            )
+            result["walking"] = {
+                "entries": len(walks),
+                "total_distance": round(total_distance, 2),
+            }
+
+        if analysis_type in {"health", "comprehensive"}:
+            health_entries = _filter_entries(profile.health_history)
+            result["health"] = {
+                "entries": len(health_entries),
+                "latest": health_entries[-1][1] if health_entries else None,
+            }
+
+        await self._update_namespace_for_dog(
+            "analysis_cache",
+            dog_id,
+            lambda current: _merge_dicts(
+                _coerce_mapping(current if isinstance(current, Mapping) else {}),
+                {analysis_type: result},
+            ),
+        )
+
+        runtime = self._get_runtime_data()
+        feeding_manager = getattr(runtime, "feeding_manager", None)
+        if (
+            feeding_manager
+            and analysis_type in {"feeding", "comprehensive"}
+            and hasattr(feeding_manager, "async_analyze_feeding_health")
+        ):
+            try:
+                advanced = await feeding_manager.async_analyze_feeding_health(dog_id, days)
+            except Exception:  # pragma: no cover - non-critical fallback
+                advanced = None
+            if advanced:
+                result.setdefault("feeding", {})["health_analysis"] = advanced
+
+        return result
+
+    async def async_generate_report(
+        self,
+        dog_id: str,
+        report_type: str,
+        *,
+        include_recommendations: bool = True,
+        days: int = 30,
+        start_date: datetime | str | None = None,
+        end_date: datetime | str | None = None,
+        include_sections: list[str] | None = None,
+        format: str = "json",
+        send_notification: bool | None = None,
+    ) -> dict[str, Any]:
+        """Generate a summary report for ``dog_id``."""
+
+        profile = self._ensure_profile(dog_id)
+        now = dt_util.utcnow()
+        report_window_start = _deserialize_datetime(start_date) if start_date else None
+        report_window_end = _deserialize_datetime(end_date) if end_date else None
+        if report_window_start is None:
+            report_window_start = now - timedelta(days=max(days, 1))
+        if report_window_end is None:
+            report_window_end = now
+
+        sections = set(include_sections or [])
+        if not sections:
+            sections = {"feeding", "walks", "health"}
+
+        report: dict[str, Any] = {
+            "dog_id": dog_id,
+            "report_type": report_type,
+            "generated_at": now.isoformat(),
+            "range": {
+                "start": report_window_start.isoformat(),
+                "end": report_window_end.isoformat(),
+            },
+            "sections": sorted(sections),
+        }
+
+        def _within_window(timestamp: Any) -> bool:
+            ts = _deserialize_datetime(timestamp)
+            if ts is None:
+                return False
+            return report_window_start <= ts <= report_window_end
+
+        if "feeding" in sections:
+            feedings = [
+                entry
+                for entry in profile.feeding_history
+                if _within_window(entry.get("timestamp"))
+            ]
+            total_portion = sum(entry.get("portion_size", 0) or 0 for entry in feedings)
+            report["feeding"] = {
+                "entries": len(feedings),
+                "total_portion_size": round(total_portion, 2),
+            }
+
+        if "walks" in sections:
+            walks = [
+                entry
+                for entry in profile.walk_history
+                if _within_window(entry.get("end_time"))
+            ]
+            total_distance = sum(entry.get("distance", 0) or 0 for entry in walks)
+            report["walks"] = {
+                "entries": len(walks),
+                "total_distance": round(total_distance, 2),
+            }
+
+        if "health" in sections:
+            health_entries = [
+                entry
+                for entry in profile.health_history
+                if _within_window(entry.get("timestamp"))
+            ]
+            report["health"] = {
+                "entries": len(health_entries),
+                "latest": health_entries[-1] if health_entries else None,
+            }
+
+        if include_recommendations:
+            recommendations: list[str] = []
+            if report.get("feeding", {}).get("entries") == 0:
+                recommendations.append("Log feeding events to improve analysis accuracy.")
+            if report.get("walks", {}).get("entries") == 0:
+                recommendations.append("Schedule regular walks to maintain activity levels.")
+            report["recommendations"] = recommendations
+
+        runtime = self._get_runtime_data()
+        feeding_manager = getattr(runtime, "feeding_manager", None)
+        if feeding_manager and hasattr(feeding_manager, "async_generate_health_report"):
+            try:
+                health_report = await feeding_manager.async_generate_health_report(dog_id)
+            except Exception:  # pragma: no cover - optional enhancement
+                health_report = None
+            if health_report:
+                report.setdefault("health", {})["detailed_report"] = health_report
+
+        await self._update_namespace_for_dog(
+            "reports",
+            dog_id,
+            lambda current: _merge_dicts(
+                _coerce_mapping(current if isinstance(current, Mapping) else {}),
+                {report_type: report},
+            ),
+        )
+
+        if send_notification:
+            runtime = runtime or self._get_runtime_data()
+            notification_manager = getattr(runtime, "notification_manager", None)
+            if notification_manager and hasattr(
+                notification_manager, "async_send_notification"
+            ):
+                try:
+                    await notification_manager.async_send_notification(
+                        notification_type="report_ready",
+                        title=f"{profile.config.get('dog_name', dog_id)} {report_type} report",
+                        message="Your PawControl report is ready for review.",
+                        priority="normal",
+                    )
+                except Exception:  # pragma: no cover - notification best-effort
+                    _LOGGER.debug("Notification dispatch for report failed", exc_info=True)
+
+        return report
+
+    async def async_generate_weekly_health_report(
+        self, dog_id: str, *, include_medication: bool = True
+    ) -> dict[str, Any]:
+        """Generate a weekly health overview for ``dog_id``."""
+
+        profile = self._ensure_profile(dog_id)
+        now = dt_util.utcnow()
+        cutoff = now - timedelta(days=7)
+
+        health_entries = [
+            entry
+            for entry in profile.health_history
+            if (timestamp := _deserialize_datetime(entry.get("timestamp")))
+            and timestamp >= cutoff
+        ]
+
+        report: dict[str, Any] = {
+            "dog_id": dog_id,
+            "generated_at": now.isoformat(),
+            "entries": len(health_entries),
+            "recent_weights": [entry.get("weight") for entry in health_entries],
+            "recent_temperatures": [
+                entry.get("temperature") for entry in health_entries if entry.get("temperature")
+            ],
+        }
+
+        if include_medication:
+            medications = [
+                entry
+                for entry in profile.medication_history
+                if (timestamp := _deserialize_datetime(entry.get("administration_time")))
+                and timestamp >= cutoff
+            ]
+            report["medication"] = {
+                "entries": len(medications),
+                "latest": medications[-1] if medications else None,
+            }
+
+        await self._update_namespace_for_dog(
+            "health_reports",
+            dog_id,
+            lambda current: _merge_dicts(
+                _coerce_mapping(current if isinstance(current, Mapping) else {}),
+                {"weekly": report},
+            ),
+        )
+
+        return report
+
+    async def async_export_data(
+        self,
+        dog_id: str,
+        data_type: str,
+        *,
+        format: str = "json",
+        days: int | None = None,
+        date_from: datetime | str | None = None,
+        date_to: datetime | str | None = None,
+    ) -> Path:
+        """Export stored data for ``dog_id`` and return the export path."""
+
+        profile = self._ensure_profile(dog_id)
+
+        dataset: list[dict[str, Any]]
+        timestamp_key = "timestamp"
+        match data_type:
+            case "feeding":
+                dataset = profile.feeding_history
+                timestamp_key = "timestamp"
+            case "walks" | "walking":
+                dataset = profile.walk_history
+                timestamp_key = "end_time"
+            case "health":
+                dataset = profile.health_history
+                timestamp_key = "timestamp"
+            case "medication":
+                dataset = profile.medication_history
+                timestamp_key = "administration_time"
+            case _:
+                raise HomeAssistantError(f"Unsupported export data type: {data_type}")
+
+        start = _deserialize_datetime(date_from) if date_from else None
+        end = _deserialize_datetime(date_to) if date_to else None
+        if start is None and days is not None:
+            start = dt_util.utcnow() - timedelta(days=max(days, 0))
+        if end is None:
+            end = dt_util.utcnow()
+
+        def _in_window(entry: Mapping[str, Any]) -> bool:
+            ts = _deserialize_datetime(entry.get(timestamp_key))
+            if ts is None:
+                return False
+            if start and ts < start:
+                return False
+            if end and ts > end:
+                return False
+            return True
+
+        entries = [dict(item) for item in dataset if _in_window(item)]
+
+        export_dir = self._storage_dir / "exports"
+        export_dir.mkdir(parents=True, exist_ok=True)
+
+        timestamp = dt_util.utcnow().strftime("%Y%m%d%H%M%S")
+        normalized_format = format.lower()
+        if normalized_format not in {"json", "csv", "markdown", "md", "txt"}:
+            normalized_format = "json"
+
+        extension = "md" if normalized_format == "markdown" else normalized_format
+        filename = (
+            f"{self.entry_id}_{dog_id}_{data_type}_{timestamp}.{extension}".replace(
+                " ", "_"
+            )
+        )
+        export_path = export_dir / filename
+
+        if normalized_format == "csv":
+            if entries:
+                fieldnames = sorted({key for entry in entries for key in entry})
+            else:
+                fieldnames = []
+
+            def _write_csv() -> None:
+                with open(export_path, "w", newline="", encoding="utf-8") as handle:
+                    writer = csv.DictWriter(handle, fieldnames=fieldnames)
+                    if fieldnames:
+                        writer.writeheader()
+                    writer.writerows(entries)
+
+            await asyncio.to_thread(_write_csv)
+        elif normalized_format in {"markdown", "md", "txt"}:
+
+            def _write_markdown() -> None:
+                lines = [f"# {data_type.title()} export for {dog_id}", ""]
+                for entry in entries:
+                    lines.append("- " + ", ".join(f"{k}: {v}" for k, v in entry.items()))
+                export_path.write_text("\n".join(lines), encoding="utf-8")
+
+            await asyncio.to_thread(_write_markdown)
+        else:
+
+            def _write_json() -> None:
+                payload = {
+                    "dog_id": dog_id,
+                    "data_type": data_type,
+                    "generated_at": dt_util.utcnow().isoformat(),
+                    "entries": entries,
+                }
+                export_path.write_text(
+                    json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+                )
+
+            await asyncio.to_thread(_write_json)
+
+        return export_path
 
     async def async_start_walk(
         self,
@@ -547,38 +1182,94 @@ class PawControlDataManager:
             return False
         return True
 
-    async def async_log_health_data(self, dog_id: str, health: HealthData) -> bool:
+    async def async_log_health_data(
+        self, dog_id: str, health: HealthData | Mapping[str, Any]
+    ) -> bool:
         """Record a health measurement."""
 
         if dog_id not in self._dog_profiles:
             return False
 
+        payload = _coerce_health_payload(health)
+        timestamp = _deserialize_datetime(payload.get("timestamp")) or dt_util.utcnow()
+
         async with self._data_lock:
             profile = self._dog_profiles[dog_id]
-            self._maybe_roll_daily_stats(profile, health.timestamp)
+            self._maybe_roll_daily_stats(profile, timestamp)
 
-            entry = {
-                "timestamp": health.timestamp.isoformat(),
-                "weight": health.weight,
-                "temperature": health.temperature,
-                "mood": health.mood,
-                "activity_level": health.activity_level,
-                "health_status": health.health_status,
-                "symptoms": health.symptoms,
-                "medication": health.medication,
-                "note": health.note,
-                "logged_by": health.logged_by,
-                "heart_rate": health.heart_rate,
-                "respiratory_rate": health.respiratory_rate,
-            }
+            entry = dict(payload)
+            entry["timestamp"] = _serialize_timestamp(timestamp)
+
             profile.health_history.append(entry)
-            profile.daily_stats.register_health_event(health.timestamp)
+            profile.daily_stats.register_health_event(timestamp)
 
         try:
             await self._async_save_dog_data(dog_id)
         except HomeAssistantError:
             return False
         return True
+
+    async def async_log_medication(
+        self, dog_id: str, medication_data: Mapping[str, Any]
+    ) -> bool:
+        """Persist medication information for ``dog_id``."""
+
+        if dog_id not in self._dog_profiles:
+            return False
+
+        payload = _coerce_medication_payload(medication_data)
+
+        async with self._data_lock:
+            profile = self._dog_profiles[dog_id]
+            profile.medication_history.append(payload)
+
+        try:
+            await self._async_save_dog_data(dog_id)
+        except HomeAssistantError:
+            return False
+        return True
+
+    async def async_update_dog_data(
+        self, dog_id: str, updates: Mapping[str, Any], *, persist: bool = True
+    ) -> bool:
+        """Merge ``updates`` into the stored dog configuration."""
+
+        if dog_id not in self._dog_profiles:
+            return False
+
+        if not isinstance(updates, Mapping):
+            raise ValueError("updates must be a mapping")
+
+        async with self._data_lock:
+            profile = self._dog_profiles[dog_id]
+            config = dict(profile.config)
+            for section, payload in updates.items():
+                if isinstance(payload, Mapping):
+                    current = _coerce_mapping(config.get(section))
+                    config[section] = _merge_dicts(current, payload)
+                else:
+                    config[section] = payload
+            profile.config = config
+
+        if persist:
+            try:
+                await self._async_save_profile(dog_id, profile)
+            except HomeAssistantError:
+                return False
+        else:
+            self._dog_profiles[dog_id] = profile
+            self._dogs_config[dog_id] = dict(profile.config)
+
+        return True
+
+    async def async_update_dog_profile(
+        self, dog_id: str, profile_updates: Mapping[str, Any], *, persist: bool = True
+    ) -> bool:
+        """Persist profile-specific updates for ``dog_id``."""
+
+        return await self.async_update_dog_data(
+            dog_id, {"profile": profile_updates}, persist=persist
+        )
 
     def get_health_history(
         self, dog_id: str, *, limit: int | None = None
