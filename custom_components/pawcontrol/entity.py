@@ -34,6 +34,11 @@ class PawControlEntity(
             ATTR_DOG_ID: dog_id,
             ATTR_DOG_NAME: dog_name,
         }
+        # The Home Assistant entity base class sets ``hass`` when entities are
+        # added to the registry. The lightweight stubs used in the test suite
+        # instantiate entities directly, so we provide a safe default here to
+        # avoid attribute errors in helper routines that guard on ``self.hass``.
+        self.hass = getattr(self, "hass", None)
 
     @property
     def dog_id(self) -> str:
@@ -46,6 +51,50 @@ class PawControlEntity(
         """Return the friendly dog name."""
 
         return self._dog_name
+
+    @property
+    def has_entity_name(self) -> bool:
+        """Expose the entity-name flag for simplified test doubles."""
+
+        return bool(getattr(self, "_attr_has_entity_name", False))
+
+    @property
+    def name(self) -> str | None:
+        """Return the entity name, defaulting to the dog name when unset."""
+
+        name = getattr(self, "_attr_name", None)
+        return name if name is not None else self._dog_name
+
+    @property
+    def unique_id(self) -> str | None:
+        """Expose the generated unique ID for compatibility with stubs."""
+
+        return getattr(self, "_attr_unique_id", None)
+
+    @property
+    def translation_key(self) -> str | None:
+        """Expose the translation key assigned during entity construction."""
+
+        return getattr(self, "_attr_translation_key", None)
+
+    @property
+    def device_class(self) -> str | None:
+        """Return the configured device class if set.
+
+        The Home Assistant test doubles only expose plain attributes rather
+        than the full entity helper stack. Surfacing the device class through
+        an explicit property keeps the behaviour consistent with Home
+        Assistant's core entity implementation while remaining compatible with
+        the lightweight stubs used in the test harness.
+        """
+
+        return getattr(self, "_attr_device_class", None)
+
+    @property
+    def icon(self) -> str | None:
+        """Return the configured Material Design icon for the entity."""
+
+        return getattr(self, "_attr_icon", None)
 
     @callback
     def update_device_metadata(self, **details: Any) -> None:

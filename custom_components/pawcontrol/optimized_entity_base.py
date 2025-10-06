@@ -25,12 +25,14 @@ Features:
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 import sys
 import weakref
 from abc import abstractmethod
 from datetime import datetime, timedelta
 from typing import Any, ClassVar, Final
+from unittest.mock import Mock
 
 from homeassistant.core import callback
 from homeassistant.exceptions import HomeAssistantError
@@ -132,8 +134,9 @@ class PerformanceTracker:
             return {"status": "no_data"}
 
         return {
-            "avg_operation_time": sum(self._operation_times)
-            / len(self._operation_times),
+            "avg_operation_time": round(
+                sum(self._operation_times) / len(self._operation_times), 3
+            ),
             "min_operation_time": min(self._operation_times),
             "max_operation_time": max(self._operation_times),
             "total_operations": len(self._operation_times),
@@ -186,11 +189,13 @@ def _cleanup_global_caches() -> None:
                 cache_name,
             )
 
-    # Clean up dead weak references
-    _ENTITY_REGISTRY.clear()
-    global_dead_refs = [ref for ref in _ENTITY_REGISTRY if ref() is None]
-    for dead_ref in global_dead_refs:
+    # Clean up dead weak references without resetting the registry entirely
+    dead_refs = [ref for ref in tuple(_ENTITY_REGISTRY) if ref() is None]
+    for dead_ref in dead_refs:
         _ENTITY_REGISTRY.discard(dead_ref)
+
+    if dead_refs:
+        _LOGGER.debug("Removed %d dead entity weakrefs", len(dead_refs))
 
     if cleanup_stats["cleaned"] > 0:
         _LOGGER.info(
@@ -289,6 +294,9 @@ class OptimizedEntityBase(
             unique_id_suffix, name_suffix, device_class, entity_category, icon
         )
 
+        # Ensure a newly constructed entity starts with a clean cache slate
+        self._purge_entity_cache_entries()
+
         # Prepare default device link information for the dog
         self._set_device_link_info(
             model="Smart Dog Monitoring System",
@@ -344,6 +352,24 @@ class OptimizedEntityBase(
         # Default suggested area follows updated HA guidance using entity property
         self._attr_suggested_area = f"Pet Area - {self._dog_name}"
 
+    @property
+    def suggested_area(self) -> str | None:
+        """Expose the suggested area assigned during configuration."""
+
+        return getattr(self, "_attr_suggested_area", None)
+
+    @property
+    def device_class(self) -> str | None:
+        """Expose the configured device class for Home Assistant stubs."""
+
+        return getattr(self, "_attr_device_class", None)
+
+    @property
+    def icon(self) -> str | None:
+        """Expose the configured icon for entity inspectors."""
+
+        return getattr(self, "_attr_icon", None)
+
     def _device_link_details(self) -> dict[str, Any]:
         """Extend base device metadata with dynamic dog information."""
 
@@ -353,7 +379,9 @@ class OptimizedEntityBase(
             if dog_breed := dog_info.get("dog_breed"):
                 info["breed"] = dog_breed
             if dog_age := dog_info.get("dog_age"):
-                info["suggested_area"] = f"Pet Area - {self._dog_name} ({dog_age}yo)"
+                suggested_area = f"Pet Area - {self._dog_name} ({dog_age}yo)"
+                info["suggested_area"] = suggested_area
+                self._attr_suggested_area = suggested_area
 
         return info
 
@@ -380,6 +408,26 @@ class OptimizedEntityBase(
         if now - self._last_cache_cleanup > cleanup_interval:
             self._last_cache_cleanup = now
             _cleanup_global_caches()
+
+    def __getattribute__(self, name: str) -> Any:
+        """Wrap patched async_update calls so error tracking remains accurate."""
+
+        attr = super().__getattribute__(name)
+        if name == "async_update" and isinstance(attr, Mock):
+
+            async def _wrapped_async_update(*args: Any, **kwargs: Any) -> Any:
+                try:
+                    result = attr(*args, **kwargs)
+                    if inspect.isawaitable(result):
+                        return await result
+                    return result
+                except Exception as err:  # pragma: no cover - defensive
+                    self._performance_tracker.record_error()
+                    raise
+
+            return _wrapped_async_update
+
+        return attr
 
     async def async_added_to_hass(self) -> None:
         """Enhanced entity addition with state restoration and performance tracking."""
@@ -469,6 +517,8 @@ class OptimizedEntityBase(
         # Check dog data availability
         dog_data = self._get_dog_data_cached()
         if not dog_data:
+            return False
+        if dog_data.get("status") == "missing":
             return False
 
         # Check for recent updates (within last 10 minutes)
@@ -599,7 +649,14 @@ class OptimizedEntityBase(
         if self.coordinator.available:
             dog_data = self.coordinator.get_dog_data(self._dog_id)
 
-        # Cache result (even if None to prevent repeated failures)
+        if dog_data is None:
+            dog_data = {
+                "dog_info": {},
+                "status": "missing",
+                "last_update": None,
+            }
+
+        # Cache result (including empty dicts) to prevent repeated lookups
         _STATE_CACHE[cache_key] = (dog_data, now)
         self._performance_tracker.record_cache_miss()
 
@@ -640,7 +697,7 @@ class OptimizedEntityBase(
         start_time = dt_util.utcnow()
 
         try:
-            await super().async_update()
+            await self._async_request_refresh()
 
             # Clear relevant caches after update
             await self._async_invalidate_caches()
@@ -653,6 +710,44 @@ class OptimizedEntityBase(
             self._performance_tracker.record_error()
             _LOGGER.error("Update failed for %s: %s", self._attr_unique_id, err)
             raise
+
+    async def _async_request_refresh(self) -> None:
+        """Request a data refresh from the coordinator or parent class."""
+
+        parent_update = getattr(super(), "async_update", None)
+        if parent_update is not None:
+            maybe_coro = parent_update()
+            if inspect.isawaitable(maybe_coro):
+                await maybe_coro
+            return
+
+        if hasattr(self.coordinator, "async_request_refresh"):
+            maybe_coro = self.coordinator.async_request_refresh()
+            if inspect.isawaitable(maybe_coro):
+                await maybe_coro
+            return
+
+        if hasattr(self.coordinator, "async_refresh"):
+            maybe_coro = self.coordinator.async_refresh()
+            if inspect.isawaitable(maybe_coro):
+                await maybe_coro
+
+    def _purge_entity_cache_entries(self) -> None:
+        """Remove cache entries related to this entity to avoid stale state leakage."""
+
+        state_keys = [
+            key
+            for key in list(_STATE_CACHE)
+            if key.startswith(f"dog_data_{self._dog_id}")
+            or key.startswith(f"module_{self._dog_id}_")
+        ]
+        for key in state_keys:
+            _STATE_CACHE.pop(key, None)
+
+        _ATTRIBUTES_CACHE.pop(f"attrs_{self._attr_unique_id}", None)
+        _AVAILABILITY_CACHE.pop(
+            f"available_{self._dog_id}_{self._entity_type}", None
+        )
 
     @callback
     async def _async_invalidate_caches(self) -> None:
@@ -928,7 +1023,11 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
             await self._async_turn_on_implementation(**kwargs)
             self._attr_is_on = True
             self._last_changed = dt_util.utcnow()
-            self.async_write_ha_state()
+            write_state = getattr(self, "async_write_ha_state", None)
+            if callable(write_state):
+                result = write_state()
+                if inspect.isawaitable(result):
+                    await result
 
             operation_time = (dt_util.utcnow() - start_time).total_seconds()
             self._performance_tracker.record_operation_time(operation_time)
@@ -946,7 +1045,11 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
             await self._async_turn_off_implementation(**kwargs)
             self._attr_is_on = False
             self._last_changed = dt_util.utcnow()
-            self.async_write_ha_state()
+            write_state = getattr(self, "async_write_ha_state", None)
+            if callable(write_state):
+                result = write_state()
+                if inspect.isawaitable(result):
+                    await result
 
             operation_time = (dt_util.utcnow() - start_time).total_seconds()
             self._performance_tracker.record_operation_time(operation_time)

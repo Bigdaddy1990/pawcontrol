@@ -14,7 +14,7 @@ from tests.helpers.homeassistant_test_stubs import install_homeassistant_stubs
 
 install_homeassistant_stubs()
 
-from collections.abc import AsyncGenerator, Callable
+from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Any
 from unittest.mock import AsyncMock, Mock
@@ -22,9 +22,13 @@ from unittest.mock import AsyncMock, Mock
 import pytest
 from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant
+from sitecustomize import _patch_pytest_async_fixture
+
+_patch_pytest_async_fixture()
 
 pytest_plugins = (
     "pytest_homeassistant_custom_component",
+    "pytest_asyncio",
     "tests.plugins.asyncio_stub",
 )
 
@@ -113,18 +117,17 @@ def mock_config_entry(mock_dog_config: dict[str, Any]):
     """
     from homeassistant.config_entries import ConfigEntry
 
-    entry = Mock(spec=ConfigEntry)
-    entry.entry_id = "test_entry_id"
-    entry.domain = "pawcontrol"
-    entry.title = "Test PawControl"
-    entry.data = {
-        "dogs": [mock_dog_config],
-    }
-    entry.options = {
-        "entity_profile": "standard",
-        "external_integrations": False,
-        "update_interval": 120,
-    }
+    entry = ConfigEntry(
+        domain="pawcontrol",
+        data={"dogs": [mock_dog_config]},
+        options={
+            "entity_profile": "standard",
+            "external_integrations": False,
+            "update_interval": 120,
+        },
+        title="Test PawControl",
+    )
+
     entry.version = 1
     entry.minor_version = 0
     entry.state = "loaded"
@@ -133,12 +136,8 @@ def mock_config_entry(mock_dog_config: dict[str, Any]):
 
 
 @pytest.fixture
-async def mock_hass() -> AsyncGenerator[Any]:
-    """Mock Home Assistant instance with proper async support.
-
-    Yields:
-        Mock HomeAssistant instance
-    """
+def mock_hass() -> Any:
+    """Mock Home Assistant instance with proper async support."""
     from homeassistant.core import HomeAssistant
 
     hass = Mock(spec=HomeAssistant)
@@ -156,7 +155,7 @@ async def mock_hass() -> AsyncGenerator[Any]:
     hass.services.async_call = AsyncMock()
     hass.bus.async_fire = AsyncMock()
 
-    yield hass
+    return hass
 
 
 class _MockClientSession(Mock):

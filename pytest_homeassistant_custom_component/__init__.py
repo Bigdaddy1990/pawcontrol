@@ -47,7 +47,7 @@ class MockConfigEntry(ConfigEntry):
 
 
 @pytest.fixture
-async def enable_custom_integrations() -> Iterable[None]:
+def enable_custom_integrations() -> Iterable[None]:
     """Compatibility fixture to match the upstream helper library."""
 
     yield

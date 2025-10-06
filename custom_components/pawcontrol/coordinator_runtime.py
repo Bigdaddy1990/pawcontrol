@@ -12,23 +12,23 @@ from datetime import UTC, datetime
 from statistics import fmean
 from typing import Any
 
-try:
-    from homeassistant.exceptions import ConfigEntryAuthFailed
+from .compat import ConfigEntryAuthFailed
 
+try:  # pragma: no cover - exercised when Home Assistant provides the helper
+    from homeassistant.helpers.update_coordinator import UpdateFailed
+except ImportError:  # pragma: no cover - support legacy naming
     try:
-        from homeassistant.helpers.update_coordinator import UpdateFailed
-    except ImportError:  # pragma: no cover - legacy Home Assistant releases
         from homeassistant.helpers.update_coordinator import (
             CoordinatorUpdateFailed as UpdateFailed,
         )
+    except (ImportError, ModuleNotFoundError):
+
+        class UpdateFailed(RuntimeError):  # noqa: N818 - mirror HA class name
+            """Fallback error used when Home Assistant isn't available."""
+
+try:  # pragma: no cover - prefer Home Assistant's timezone helpers when available
     from homeassistant.util import dt as dt_util
-except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
-
-    class ConfigEntryAuthFailed(RuntimeError):  # noqa: N818 - mirror HA class name
-        """Fallback error used when Home Assistant isn't available."""
-
-    class UpdateFailed(RuntimeError):  # noqa: N818 - mirror HA class name
-        """Fallback error used when Home Assistant isn't available."""
+except (ImportError, ModuleNotFoundError):
 
     class _DateTimeModule:
         """Minimal subset of :mod:`homeassistant.util.dt` used in tests."""
@@ -126,7 +126,7 @@ class AdaptivePollingController:
         idle_target = max(idle_interval_seconds, self._min_interval)
         self._max_interval = max(calculated_max, idle_target)
         self._idle_interval = idle_target
-        self._idle_grace = max(idle_grace_seconds, 60.0)
+        self._idle_grace = max(idle_grace_seconds, 0.0)
         self._target_cycle = max(target_cycle_ms / 1000.0, self._min_interval)
         self._current_interval = min(base_interval, self._max_interval)
         self._error_streak = 0
@@ -197,16 +197,14 @@ class AdaptivePollingController:
             if idle_candidate:
                 idle_elapsed = now - self._last_activity
                 if idle_elapsed >= self._idle_grace:
-                    next_interval = max(next_interval, self._current_interval * 1.5)
-                    next_interval = min(next_interval, self._idle_interval)
+                    ramp_target = max(next_interval, self._current_interval * 1.5)
+                    next_interval = min(self._idle_interval, ramp_target)
                 else:
-                    next_interval = min(
-                        self._max_interval,
-                        max(
-                            next_interval,
-                            self._current_interval * (1.0 + load_factor / 4),
-                        ),
+                    gentle_target = max(
+                        next_interval,
+                        self._current_interval * (1.0 + load_factor / 4),
                     )
+                    next_interval = min(self._idle_interval, gentle_target)
             else:
                 self._last_activity = now
 

@@ -67,8 +67,9 @@ def _patch_pytest_async_fixture() -> None:
     """Monkeypatch ``pytest.fixture`` to support async fixtures without warnings."""
 
     try:
+        import asyncio
+        import functools
         import pytest  # type: ignore
-        import pytest_asyncio  # type: ignore
     except Exception:  # pragma: no cover - pytest not available outside tests
         return
 
@@ -79,6 +80,14 @@ def _patch_pytest_async_fixture() -> None:
     if getattr(original_fixture, "__pawcontrol_async_patch__", False):
         return
 
+    def _wrap_coroutine_fixture(func):
+        @functools.wraps(func)
+        def sync_wrapper(*args: object, **kwargs: object):
+            loop = asyncio.get_event_loop()
+            return loop.run_until_complete(func(*args, **kwargs))
+
+        return sync_wrapper
+
     def async_aware_fixture(*fixture_args: object, **fixture_kwargs: object):
         if (
             fixture_args
@@ -88,12 +97,14 @@ def _patch_pytest_async_fixture() -> None:
         ):
             func = fixture_args[0]
             if inspect.iscoroutinefunction(func):
-                return pytest_asyncio.fixture()(func)
+                return original_fixture(_wrap_coroutine_fixture(func))  # type: ignore[misc]
             return original_fixture(func)  # type: ignore[misc]
 
         def decorator(func):
             if inspect.iscoroutinefunction(func):
-                return pytest_asyncio.fixture(*fixture_args, **fixture_kwargs)(func)
+                return original_fixture(*fixture_args, **fixture_kwargs)(
+                    _wrap_coroutine_fixture(func)
+                )  # type: ignore[misc]
             return original_fixture(*fixture_args, **fixture_kwargs)(func)  # type: ignore[misc]
 
         return decorator

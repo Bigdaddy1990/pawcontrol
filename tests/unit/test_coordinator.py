@@ -85,6 +85,38 @@ async def test_async_update_data_uses_runtime(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
+async def test_async_update_data_awaits_set_updated_data(
+    mock_hass, mock_config_entry, mock_session
+):
+    """The coordinator should await async_set_updated_data when available."""
+
+    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+    runtime_cycle = RuntimeCycleInfo(
+        dog_count=1,
+        errors=0,
+        success_rate=1.0,
+        duration=0.05,
+        new_interval=2.0,
+        error_ratio=0.0,
+        success=True,
+    )
+    coordinator._runtime.execute_cycle = AsyncMock(
+        return_value=({"test_dog": {"status": "online"}}, runtime_cycle)
+    )
+
+    async_setter = AsyncMock()
+    coordinator.async_set_updated_data = async_setter  # type: ignore[assignment]
+
+    await coordinator._async_update_data()
+
+    async_setter.assert_awaited_once()
+    args, kwargs = async_setter.await_args
+    assert args[0] == {"test_dog": {"status": "online"}}
+    assert kwargs == {}
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
 async def test_async_update_data_without_dogs(
     mock_hass, mock_config_entry, mock_session
 ):
@@ -120,13 +152,18 @@ async def test_report_entity_budget_updates_snapshot(
         recorded_at=datetime(2024, 1, 1, 12, 0, 0),
     )
 
+    controller_cls = type(coordinator._adaptive_polling)
+    expected_saturation = snapshot.saturation
     with patch.object(
-        coordinator._adaptive_polling,
+        controller_cls,
         "update_entity_saturation",
-        wraps=coordinator._adaptive_polling.update_entity_saturation,
+        autospec=True,
+        wraps=controller_cls.update_entity_saturation,
     ) as mock_update:
         coordinator.report_entity_budget(snapshot)
-        mock_update.assert_called_once()
+        mock_update.assert_called_once_with(
+            coordinator._adaptive_polling, expected_saturation
+        )
 
     performance = coordinator.get_performance_snapshot()
 

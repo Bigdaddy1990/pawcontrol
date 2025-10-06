@@ -181,7 +181,7 @@ def create_device_info(
         if sanitized_microchip:
             identifiers.add(("microchip", sanitized_microchip))
 
-    computed_model = f"{model} ({breed})" if breed else model
+    computed_model = f"{model} - {breed}" if breed else model
 
     device_info: DeviceInfo = {
         "identifiers": identifiers,
@@ -216,7 +216,8 @@ async def async_call_add_entities(
 ) -> None:
     """Invoke Home Assistant's async_add_entities callback and await when needed."""
 
-    result = add_entities_callback(entities, update_before_add=update_before_add)
+    entities_list = list(entities)
+    result = add_entities_callback(entities_list, update_before_add)
 
     if inspect.isawaitable(result):
         await cast(Awaitable[Any], result)

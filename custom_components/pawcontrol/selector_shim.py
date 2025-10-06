@@ -45,6 +45,11 @@ except (ModuleNotFoundError, ImportError):  # pragma: no cover - used in tests
         def __init__(self, config: Any | None = None) -> None:
             self.config = config
 
+        def __call__(self, value: Any) -> Any:
+            """Allow selector instances to act as permissive validators."""
+
+            return value
+
         def __repr__(self) -> str:  # pragma: no cover - debug helper
             return f"{self.__class__.__name__}(config={self.config!r})"
 

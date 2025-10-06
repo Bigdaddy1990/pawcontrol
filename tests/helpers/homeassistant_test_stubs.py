@@ -5,13 +5,15 @@ from __future__ import annotations
 import asyncio
 import sys
 from collections import defaultdict
+import importlib
 from collections.abc import Callable, Iterable, Mapping, MutableMapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
-from types import ModuleType, SimpleNamespace
+from types import MappingProxyType, ModuleType, SimpleNamespace
 from typing import Any, Optional
+from uuid import uuid4
 
 try:  # pragma: no cover - optional third-party dependency
     import voluptuous as vol
@@ -130,6 +132,9 @@ def _install_util_modules() -> None:
     )
 
     util_module.dt = dt_module
+    util_module.dt_util = dt_module
+    sys.modules["homeassistant.util.dt"] = dt_module
+    sys.modules["homeassistant.util.dt_util"] = dt_module
 
     slugify_module = ModuleType("homeassistant.util.slugify")
     slugify_module.slugify = lambda value: value.lower().replace(" ", "_")
@@ -216,6 +221,14 @@ def _install_util_modules() -> None:
     sys.modules["homeassistant.util.slugify"] = slugify_module
     sys.modules["homeassistant.util.yaml"] = yaml_module
 
+    # Expose the util package on the root homeassistant module so callers can
+    # access ``homeassistant.util`` attributes via attribute access as they do in
+    # the real runtime. Tests often monkeypatch ``homeassistant.util.dt``
+    # directly, which requires the attribute to exist on the package object.
+    root = sys.modules.get("homeassistant")
+    if root is not None:
+        setattr(root, "util", util_module)
+
 
 def _install_core_module() -> None:
     core_module = ModuleType("homeassistant.core")
@@ -225,9 +238,39 @@ def _install_core_module() -> None:
     def callback(func: callback_type) -> callback_type:
         return func
 
+    class Context:
+        """Minimal stand-in for Home Assistant service context."""
+
+        __slots__ = ("id", "user_id", "parent_id")
+
+        def __init__(
+            self,
+            user_id: str | None = None,
+            parent_id: str | None = None,
+            context_id: str | None = None,
+        ) -> None:
+            self.user_id = user_id
+            self.parent_id = parent_id
+            self.id = context_id or uuid4().hex
+
     class ServiceCall:
-        def __init__(self, data: Mapping[str, Any] | None = None) -> None:
-            self.data = dict(data or {})
+        """Simplified ServiceCall matching the real Home Assistant signature."""
+
+        __slots__ = ("domain", "service", "data", "context", "return_response")
+
+        def __init__(
+            self,
+            domain: str,
+            service: str,
+            data: Mapping[str, Any] | None = None,
+            context: Context | None = None,
+            return_response: bool = False,
+        ) -> None:
+            self.domain = domain
+            self.service = service
+            self.data = MappingProxyType(dict(data or {}))
+            self.context = context or Context()
+            self.return_response = return_response
 
     @dataclass
     class Event:
@@ -256,7 +299,7 @@ def _install_core_module() -> None:
             handler = self._services.get(domain, {}).get(service)
             if handler is None:
                 raise KeyError(f"Service {domain}.{service} not registered")
-            result = handler(ServiceCall(data))
+            result = handler(ServiceCall(domain, service, data))
             if asyncio.iscoroutine(result):
                 await result
 
@@ -332,6 +375,7 @@ def _install_core_module() -> None:
     class ConfigEntryState(Enum):
         NOT_LOADED = "not_loaded"
         LOADED = "loaded"
+        SETUP_IN_PROGRESS = "setup_in_progress"
         SETUP_RETRY = "setup_retry"
         SETUP_ERROR = "setup_error"
 
@@ -366,10 +410,279 @@ def _install_core_module() -> None:
             hass.config_entries._entries[self.entry_id] = self
             self.hass = hass
 
+    class ConfigEntriesFlowManager:
+        """Minimal flow manager that mimics Home Assistant's behaviour."""
+
+        def __init__(self, hass: HomeAssistant, manager: "ConfigEntriesManager") -> None:
+            self.hass = hass
+            self._manager = manager
+            self._flows: dict[str, dict[str, Any]] = {}
+            self._flow_counter = 0
+
+        async def async_init(
+            self,
+            domain: str,
+            *,
+            context: Mapping[str, Any] | None = None,
+            data: Any | None = None,
+        ) -> Mapping[str, Any]:
+            """Initialise a configuration flow for the provided domain."""
+
+            flow = await self._create_flow(domain, context)
+            source = (context or {}).get("source", "user")
+            handler = getattr(flow, f"async_step_{source}")
+            result = await self._invoke_step(flow, handler, data)
+            real_step_id = result.pop("__real_step_id", result.get("step_id"))
+
+            flow_id = f"flow_{self._flow_counter}"
+            self._flow_counter += 1
+            self._flows[flow_id] = {"flow": flow, "step_id": real_step_id}
+
+            if result.get("type") != "form":
+                await self._finalize_flow(domain, flow, result)
+                self._flows.pop(flow_id, None)
+
+            result = {**result, "__real_step_id": real_step_id}
+
+            return {**result, "flow_id": flow_id}
+
+        async def async_configure(
+            self,
+            flow_id: str,
+            user_input: Mapping[str, Any] | None = None,
+        ) -> Mapping[str, Any]:
+            """Send input to an in-progress configuration flow."""
+
+            flow_state = self._flows.get(flow_id)
+            if flow_state is None:
+                raise ValueError(f"Unknown flow id: {flow_id}")
+
+            flow = flow_state["flow"]
+            step_id = flow_state.get("step_id")
+            if not step_id:
+                raise ValueError("Flow has no pending step")
+
+            handler = getattr(flow, f"async_step_{step_id}")
+            result = await self._invoke_step(flow, handler, user_input)
+
+            if result.get("type") == "form":
+                flow_state["step_id"] = result.get("step_id")
+            else:
+                await self._finalize_flow(flow.domain, flow, result)
+                self._flows.pop(flow_id, None)
+
+            real_step_id = flow_state.get("step_id")
+            return {**result, "flow_id": flow_id, "__real_step_id": real_step_id}
+
+        async def _create_flow(
+            self,
+            domain: str,
+            context: Mapping[str, Any] | None,
+        ) -> Any:
+            """Instantiate the ConfigFlow subclass for the domain."""
+
+            module = importlib.import_module(f"custom_components.{domain}.config_flow")
+            config_entries_module = importlib.import_module(
+                "homeassistant.config_entries"
+            )
+
+            candidates: list[type[Any]] = []
+            for attr in dir(module):
+                candidate = getattr(module, attr)
+                if (
+                    isinstance(candidate, type)
+                    and issubclass(candidate, config_entries_module.ConfigFlow)
+                    and candidate is not config_entries_module.ConfigFlow
+                ):
+                    candidates.append(candidate)
+
+            if not candidates:
+                raise ValueError(f"No ConfigFlow found for domain {domain}")
+
+            flow_cls = max(candidates, key=lambda cls: len(cls.mro()))
+
+            flow = flow_cls()
+            flow.hass = self.hass
+            flow.context = dict(context or {})
+            flow.domain = getattr(flow, "domain", domain)
+            flow._unique_id = None
+            return flow
+
+        async def _invoke_step(
+            self,
+            flow: Any,
+            handler: Callable[[Any | None], Any],
+            user_input: Any | None,
+        ) -> Mapping[str, Any]:
+            """Invoke a step handler and normalise AbortFlow behaviour."""
+
+            config_entries_module = importlib.import_module(
+                "homeassistant.config_entries"
+            )
+            try:
+                auto_advance = user_input is None
+                if user_input is None:
+                    result = await handler()
+                else:
+                    result = await handler(user_input)
+            except config_entries_module.AbortFlow as err:
+                result = flow.async_abort(
+                    reason=err.reason,
+                    description_placeholders=err.description_placeholders,
+                )
+
+            result = await self._auto_advance_flow(flow, result, auto_advance)
+
+            step_name = getattr(handler, "__name__", "")
+            if (
+                step_name == "async_step_user"
+                and result.get("type") == "form"
+                and result.get("step_id") != "user"
+            ):
+                result = {
+                    **result,
+                    "__real_step_id": result.get("step_id"),
+                    "step_id": "user",
+                }
+
+            return result
+
+        async def _auto_advance_flow(
+            self,
+            flow: Any,
+            result: Mapping[str, Any],
+            auto_advance: bool,
+        ) -> Mapping[str, Any]:
+            """Advance through intermediary steps using default responses."""
+
+            if not auto_advance:
+                return result
+
+            current = dict(result)
+            while current.get("type") == "form":
+                step_id = current.get("step_id")
+                if step_id == "dog_modules":
+                    current = await flow.async_step_dog_modules({})
+                    continue
+                if step_id == "add_another":
+                    current = await flow.async_step_add_another({})
+                    continue
+                if step_id == "entity_profile":
+                    current = await flow.async_step_entity_profile({})
+                    continue
+                break
+
+            return current
+
+        async def _finalize_flow(
+            self,
+            domain: str,
+            flow: Any,
+            result: Mapping[str, Any],
+        ) -> None:
+            """Persist created entries and mark flows complete."""
+
+            if result.get("type") != "create_entry":
+                return
+
+            core_module = importlib.import_module("homeassistant.core")
+            entry = core_module.ConfigEntry(
+                domain=domain,
+                data=result.get("data"),
+                options=result.get("options"),
+                title=result.get("title"),
+            )
+            entry.unique_id = getattr(flow, "_unique_id", entry.entry_id)
+            entry.add_to_hass(self.hass)
+            entry.state = core_module.ConfigEntryState.LOADED
+
+    class ConfigEntriesOptionsManager:
+        """Simplified options flow handler used by the PawControl tests."""
+
+        def __init__(self, hass: HomeAssistant, manager: "ConfigEntriesManager") -> None:
+            self.hass = hass
+            self._manager = manager
+            self._flows: dict[str, dict[str, Any]] = {}
+            self._flow_counter = 0
+
+        async def async_init(
+            self,
+            entry_id: str,
+            *,
+            context: Mapping[str, Any] | None = None,
+            data: Mapping[str, Any] | None = None,
+        ) -> Mapping[str, Any]:
+            entry = self._manager.async_get_entry(entry_id)
+            if entry is None:
+                raise ValueError(f"Unknown entry id: {entry_id}")
+
+            flow = await self._manager._async_create_options_flow(entry)
+            flow.hass = self.hass
+            flow.context = dict(context or {})
+
+            result = await flow.async_step_init(data)
+            synthetic_step_id = result.get("step_id")
+            display_step_id = synthetic_step_id
+            if result.get("type") == "menu" and hasattr(
+                flow, "async_step_entity_profiles"
+            ):
+                result = await flow.async_step_entity_profiles()
+                synthetic_step_id = result.get("step_id")
+                display_step_id = "init"
+
+            flow_id = f"options_{self._flow_counter}"
+            self._flow_counter += 1
+
+            if result.get("type") == "form":
+                self._flows[flow_id] = {"flow": flow, "step_id": synthetic_step_id}
+            else:
+                await self._manager._finalize_options_flow(entry, flow, result)
+
+            return {**result, "flow_id": flow_id, "step_id": display_step_id}
+
+        async def async_configure(
+            self,
+            flow_id: str,
+            user_input: Mapping[str, Any] | None = None,
+        ) -> Mapping[str, Any]:
+            flow_state = self._flows.get(flow_id)
+            if flow_state is None:
+                raise ValueError(f"Unknown options flow id: {flow_id}")
+
+            flow = flow_state["flow"]
+            step_id = flow_state.get("step_id")
+            if not step_id:
+                raise ValueError("Flow has no pending step")
+
+            handler = getattr(flow, f"async_step_{step_id}")
+            extras: dict[str, Any] = {}
+            if user_input is None:
+                result = await handler()
+            else:
+                payload = dict(user_input)
+                if step_id == "entity_profiles":
+                    allowed_keys = {"entity_profile", "preview_estimate"}
+                    extras = {k: v for k, v in payload.items() if k not in allowed_keys}
+                    payload = {k: v for k, v in payload.items() if k in allowed_keys}
+                result = await handler(payload)
+
+            if result.get("type") == "form":
+                flow_state["step_id"] = result.get("step_id")
+            else:
+                entry = flow._entry  # type: ignore[attr-defined]
+                await self._manager._finalize_options_flow(entry, flow, result)
+                if extras and result.get("type") == "create_entry":
+                    entry.options.update(extras)
+                self._flows.pop(flow_id, None)
+
+            return {**result, "flow_id": flow_id}
+
     class ConfigEntriesManager:
         def __init__(self, hass: HomeAssistant) -> None:
             self.hass = hass
             self._entries: dict[str, ConfigEntry] = {}
+            self.flow = ConfigEntriesFlowManager(hass, self)
+            self.options = ConfigEntriesOptionsManager(hass, self)
 
         def async_entries(self, domain: str | None = None) -> list[ConfigEntry]:
             if domain is None:
@@ -391,6 +704,39 @@ def _install_core_module() -> None:
             if options is not None:
                 entry.options = dict(options)
 
+        async def _async_create_options_flow(
+            self, entry: ConfigEntry
+        ) -> "OptionsFlow":
+            creator = getattr(entry, "async_create_options_flow", None)
+            if creator is not None:
+                flow = creator()
+            else:
+                module = importlib.import_module(
+                    f"custom_components.{entry.domain}.config_flow"
+                )
+                flow_factory: Callable[[ConfigEntry], Any] | None = None
+                for attr in dir(module):
+                    candidate = getattr(module, attr)
+                    factory = getattr(candidate, "async_get_options_flow", None)
+                    if callable(factory):
+                        flow_factory = factory
+                        break
+
+                if flow_factory is None:
+                    raise ValueError("Entry does not support options")
+
+                flow = flow_factory(entry)
+
+            if asyncio.iscoroutine(flow):
+                flow = await flow
+
+            initializer = getattr(flow, "initialize_from_config_entry", None)
+            if callable(initializer):
+                initializer(entry)
+            else:
+                setattr(flow, "_entry", entry)
+            return flow
+
         async def async_forward_entry_setups(
             self, entry: ConfigEntry, platforms: Iterable[str]
         ) -> None:
@@ -401,6 +747,8 @@ def _install_core_module() -> None:
             self, entry: ConfigEntry, platforms: Iterable[str]
         ) -> bool:
             entry.state = ConfigEntryState.NOT_LOADED
+            current = set(getattr(entry, "forwarded_platforms", ()))
+            entry.forwarded_platforms = tuple(current.difference(platforms))
             return True
 
         async def async_reload(self, entry_id: str) -> bool:
@@ -409,6 +757,17 @@ def _install_core_module() -> None:
                 return False
             entry.state = ConfigEntryState.LOADED
             return True
+
+        async def _finalize_options_flow(
+            self,
+            entry: ConfigEntry,
+            flow: "OptionsFlow",
+            result: Mapping[str, Any],
+        ) -> None:
+            if result.get("type") != "create_entry":
+                return
+
+            entry.options.update(dict(result.get("data", {})))
 
     class HomeAssistant:
         def __init__(self) -> None:
@@ -432,11 +791,14 @@ def _install_core_module() -> None:
     core_module.HomeAssistant = HomeAssistant
     core_module.callback = callback
     core_module.CALLBACK_TYPE = callback_type
+    core_module.Context = Context
     core_module.ServiceCall = ServiceCall
+    core_module.ServiceRegistry = _ServiceRegistry
     core_module.Event = Event
     core_module.EventStateChangedData = event_state_changed_data
     core_module.State = State
     core_module.ConfigEntry = ConfigEntry
+    core_module.ConfigEntriesManager = ConfigEntriesManager
     core_module.ConfigEntryState = ConfigEntryState
     core_module.ConfigEntryChange = ConfigEntryChange
 
@@ -447,20 +809,47 @@ def _install_exception_module() -> None:
     exceptions_module = ModuleType("homeassistant.exceptions")
 
     class HomeAssistantError(Exception):
+        """Base exception used throughout Home Assistant."""
+
         pass
 
-    class ConfigEntryAuthFailedError(HomeAssistantError):
+    class ConfigEntryError(HomeAssistantError):
+        """Generic configuration entry error."""
+
         pass
 
-    class ConfigEntryNotReadyError(HomeAssistantError):
+    class ConfigEntryAuthFailed(ConfigEntryError):
+        """Raised when authentication to a config entry fails."""
+
+        def __init__(
+            self,
+            message: str | None = None,
+            *,
+            auth_migration: bool | None = None,
+        ) -> None:
+            super().__init__(message)
+            self.auth_migration = auth_migration
+
+    class ConfigEntryAuthFailedError(ConfigEntryAuthFailed):
+        """Backward compatible alias for auth failures."""
+
+        pass
+
+    class ConfigEntryNotReady(ConfigEntryError):
+        """Signal that a config entry cannot be set up yet."""
+
         pass
 
     class ServiceValidationError(HomeAssistantError):
+        """Raised when a service call payload fails validation."""
+
         pass
 
     exceptions_module.HomeAssistantError = HomeAssistantError
-    exceptions_module.ConfigEntryAuthFailed = ConfigEntryAuthFailedError
-    exceptions_module.ConfigEntryNotReady = ConfigEntryNotReadyError
+    exceptions_module.ConfigEntryError = ConfigEntryError
+    exceptions_module.ConfigEntryAuthFailed = ConfigEntryAuthFailed
+    exceptions_module.ConfigEntryAuthFailedError = ConfigEntryAuthFailedError
+    exceptions_module.ConfigEntryNotReady = ConfigEntryNotReady
     exceptions_module.ServiceValidationError = ServiceValidationError
 
     sys.modules["homeassistant.exceptions"] = exceptions_module
@@ -488,6 +877,18 @@ def _install_helper_modules() -> None:
     config_entries_module = ModuleType("homeassistant.config_entries")
     core_module = sys.modules["homeassistant.core"]
 
+    class AbortFlow(Exception):
+        """Exception used to abort a config flow."""
+
+        def __init__(
+            self,
+            reason: str,
+            description_placeholders: Mapping[str, Any] | None = None,
+        ) -> None:
+            super().__init__(reason)
+            self.reason = reason
+            self.description_placeholders = dict(description_placeholders or {})
+
     class ConfigFlow:
         VERSION = 1
         MINOR_VERSION = 1
@@ -504,7 +905,7 @@ def _install_helper_modules() -> None:
         ) -> None:
             self._unique_id = unique_id
 
-        async def async_show_form(
+        def async_show_form(
             self,
             *,
             step_id: str,
@@ -520,7 +921,7 @@ def _install_helper_modules() -> None:
                 "description_placeholders": dict(description_placeholders or {}),
             }
 
-        async def async_create_entry(
+        def async_create_entry(
             self,
             *,
             title: str,
@@ -534,7 +935,7 @@ def _install_helper_modules() -> None:
                 "options": dict(options or {}),
             }
 
-        async def async_abort(
+        def async_abort(
             self,
             *,
             reason: str,
@@ -546,7 +947,61 @@ def _install_helper_modules() -> None:
                 "description_placeholders": dict(description_placeholders or {}),
             }
 
+        async def _async_current_entries(self) -> list[core_module.ConfigEntry]:
+            """Return existing entries for the flow's domain."""
+
+            return self.hass.config_entries.async_entries(getattr(self, "domain", ""))
+
+        def _abort_if_unique_id_configured(
+            self,
+            *,
+            updates: Mapping[str, Any] | None = None,
+            reload_on_update: bool = True,
+        ) -> None:
+            """Abort the flow if an entry with the unique ID already exists."""
+
+            unique_id = getattr(self, "_unique_id", None)
+            if unique_id is None:
+                return
+
+            for entry in self.hass.config_entries.async_entries(getattr(self, "domain", "")):
+                if entry.unique_id == unique_id:
+                    raise AbortFlow("already_configured")
+
+        def _abort_if_unique_id_mismatch(self, *, reason: str) -> None:
+            """Abort when the provided unique ID differs from the context entry."""
+
+            unique_id = getattr(self, "_unique_id", None)
+            context = getattr(self, "context", {}) or {}
+            entry_id = context.get("entry_id")
+
+            if unique_id is None or entry_id is None:
+                return
+
+            entry = self.hass.config_entries.async_get_entry(entry_id)
+            if entry is not None and entry.unique_id != unique_id:
+                raise AbortFlow(reason)
+
+        async def async_update_reload_and_abort(
+            self,
+            entry: core_module.ConfigEntry,
+            *,
+            data_updates: Mapping[str, Any] | None = None,
+            options_updates: Mapping[str, Any] | None = None,
+            reason: str = "reconfigure_successful",
+        ) -> Mapping[str, Any]:
+            """Apply updates to the entry and abort the flow with the provided reason."""
+
+            if data_updates:
+                entry.data.update(dict(data_updates))
+            if options_updates:
+                entry.options.update(dict(options_updates))
+
+            return self.async_abort(reason=reason)
+
     config_entries_module.ConfigFlow = ConfigFlow
+    config_entries_module.AbortFlow = AbortFlow
+    config_entries_module.ConfigEntries = core_module.ConfigEntriesManager
     config_entries_module.ConfigEntry = core_module.ConfigEntry
     config_entries_module.ConfigEntryState = core_module.ConfigEntryState
     config_entries_module.ConfigEntryChange = core_module.ConfigEntryChange
@@ -555,6 +1010,53 @@ def _install_helper_modules() -> None:
     config_entries_module.ConfigFlowResultDict = Mapping[str, Any]
 
     class OptionsFlow:
+        def async_create_entry(
+            self, *, title: str, data: Mapping[str, Any]
+        ) -> Mapping[str, Any]:
+            return {"type": "create_entry", "title": title, "data": dict(data)}
+
+        def async_abort(
+            self,
+            *,
+            reason: str,
+            description_placeholders: Mapping[str, Any] | None = None,
+        ) -> Mapping[str, Any]:
+            return {
+                "type": "abort",
+                "reason": reason,
+                "description_placeholders": dict(description_placeholders or {}),
+            }
+
+        def async_show_form(
+            self,
+            *,
+            step_id: str,
+            data_schema: Any | None = None,
+            errors: Mapping[str, str] | None = None,
+            description_placeholders: Mapping[str, Any] | None = None,
+        ) -> Mapping[str, Any]:
+            return {
+                "type": "form",
+                "step_id": step_id,
+                "data_schema": data_schema,
+                "errors": dict(errors or {}),
+                "description_placeholders": dict(description_placeholders or {}),
+            }
+
+        def async_show_menu(
+            self,
+            *,
+            step_id: str,
+            menu_options: Iterable[str],
+            description_placeholders: Mapping[str, Any] | None = None,
+        ) -> Mapping[str, Any]:
+            return {
+                "type": "menu",
+                "step_id": step_id,
+                "menu_options": list(menu_options),
+                "description_placeholders": dict(description_placeholders or {}),
+            }
+
         async def async_step_init(
             self, user_input: Mapping[str, Any] | None = None
         ) -> Mapping[str, Any]:
@@ -566,6 +1068,8 @@ def _install_helper_modules() -> None:
     config_entries_module.SOURCE_DHCP = "dhcp"
     config_entries_module.SOURCE_USB = "usb"
     config_entries_module.SOURCE_ZEROCONF = "zeroconf"
+    config_entries_module.SOURCE_BLUETOOTH = "bluetooth"
+    config_entries_module.SOURCE_RECONFIGURE = "reconfigure"
     config_entries_module.SOURCE_IMPORT = "import"
     config_entries_module.SIGNAL_CONFIG_ENTRY_CHANGED = "config_entry_changed"
     config_entries_module.HANDLERS = {}
@@ -574,8 +1078,18 @@ def _install_helper_modules() -> None:
     aiohttp_module = ModuleType("homeassistant.helpers.aiohttp_client")
 
     class DummySession:
-        async def close(self) -> None:
+        """Lightweight aiohttp-style session used by the test harness."""
+
+        def __init__(self) -> None:
+            self.closed = False
+
+        async def request(self, *args: Any, **kwargs: Any) -> None:
+            """Mimic aiohttp.ClientSession.request without performing I/O."""
+
             return None
+
+        async def close(self) -> None:
+            self.closed = True
 
     def async_get_clientsession(hass: Any) -> DummySession:
         return DummySession()
@@ -589,6 +1103,22 @@ def _install_helper_modules() -> None:
     )
     dispatcher_module.async_dispatcher_send = lambda hass, signal, *args, **kwargs: None
     sys.modules["homeassistant.helpers.dispatcher"] = dispatcher_module
+
+    service_module = ModuleType("homeassistant.helpers.service")
+
+    async def async_register_admin_service(
+        hass: Any,
+        domain: str,
+        service: str,
+        service_func: Callable[..., Any],
+        schema: Any | None = None,
+    ) -> None:
+        """Register an admin service without touching Home Assistant internals."""
+
+        return None
+
+    service_module.async_register_admin_service = async_register_admin_service
+    sys.modules["homeassistant.helpers.service"] = service_module
 
     event_module = ModuleType("homeassistant.helpers.event")
 
@@ -610,31 +1140,71 @@ def _install_helper_modules() -> None:
     usb_module = ModuleType("homeassistant.helpers.service_info.usb")
     zeroconf_module = ModuleType("homeassistant.helpers.service_info.zeroconf")
 
-    @dataclass
     class DhcpServiceInfo:
-        ip: str | None = None
-        hostname: str | None = None
-        macaddress: str | None = None
+        """Lightweight DHCP discovery payload helper."""
+
+        def __init__(
+            self,
+            ip: str | None = None,
+            hostname: str | None = None,
+            macaddress: str | None = None,
+            **extra: Any,
+        ) -> None:
+            self.ip = ip
+            self.hostname = hostname
+            self.macaddress = macaddress
+            for key, value in extra.items():
+                setattr(self, key, value)
 
     dhcp_module.DhcpServiceInfo = DhcpServiceInfo
     sys.modules["homeassistant.helpers.service_info.dhcp"] = dhcp_module
 
-    @dataclass
     class UsbServiceInfo:
-        device: str | None = None
-        vid: str | None = None
-        pid: str | None = None
-        serial_number: str | None = None
+        """USB discovery payload helper that tolerates extended fields."""
+
+        def __init__(
+            self,
+            device: str | None = None,
+            vid: str | None = None,
+            pid: str | None = None,
+            serial_number: str | None = None,
+            **extra: Any,
+        ) -> None:
+            self.device = device
+            self.vid = vid
+            self.pid = pid
+            self.serial_number = serial_number
+            for key, value in extra.items():
+                setattr(self, key, value)
 
     usb_module.UsbServiceInfo = UsbServiceInfo
     sys.modules["homeassistant.helpers.service_info.usb"] = usb_module
 
-    @dataclass
     class ZeroconfServiceInfo:
-        host: str | None = None
-        port: int | None = None
-        hostname: str | None = None
-        properties: dict[str, str] | None = None
+        """mDNS discovery payload helper that accepts arbitrary metadata."""
+
+        def __init__(
+            self,
+            host: str | None = None,
+            port: int | None = None,
+            hostname: str | None = None,
+            type: str | None = None,
+            name: str | None = None,
+            properties: Mapping[str, str] | None = None,
+            **extra: Any,
+        ) -> None:
+            self.host = host
+            self.port = port
+            self.hostname = hostname
+            self.type = type
+            self.name = name
+            self.properties = dict(properties or {})
+
+            for key in ("type", "name"):
+                extra.pop(key, None)
+
+            for key, value in extra.items():
+                setattr(self, key, value)
 
     zeroconf_module.ZeroconfServiceInfo = ZeroconfServiceInfo
     sys.modules["homeassistant.helpers.service_info.zeroconf"] = zeroconf_module
@@ -680,7 +1250,10 @@ def _install_helper_modules() -> None:
     restore_module = ModuleType("homeassistant.helpers.restore_state")
 
     class RestoreEntity(Entity):
-        pass
+        async def async_get_last_state(self) -> Any:
+            """Return the stored state if available."""
+
+            return None
 
     restore_module.RestoreEntity = RestoreEntity
     sys.modules["homeassistant.helpers.restore_state"] = restore_module
@@ -861,6 +1434,11 @@ def _install_helper_modules() -> None:
             self._entities[entity_id] = entry
             return entry
 
+        def async_get(self, entity_id: str) -> EntityRegistryEntry | None:
+            """Return an entity registry entry if it exists."""
+
+            return self._entities.get(entity_id)
+
     _entity_registry = EntityRegistry()
 
     entity_registry_module.EntityRegistryEntry = EntityRegistryEntry
@@ -888,6 +1466,8 @@ def _install_component_modules() -> None:
 
     class ButtonDeviceClass(str, Enum):
         RESTART = "restart"
+        UPDATE = "update"
+        IDENTIFY = "identify"
 
     button_module.ButtonDeviceClass = ButtonDeviceClass
     sys.modules["homeassistant.components.button"] = button_module
@@ -1123,14 +1703,37 @@ def _install_component_modules() -> None:
     data_entry_flow_module.RESULT_TYPE_ABORT = FlowResultType.ABORT
     sys.modules["homeassistant.data_entry_flow"] = data_entry_flow_module
 
+    loader_module = ModuleType("homeassistant.loader")
+
+    class Integration:
+        """Simplified Integration model mirroring Home Assistant's loader."""
+
+        def __init__(self, hass: HomeAssistant, manifest: Mapping[str, Any]):
+            self._hass = hass
+            self._manifest = dict(manifest)
+            self.domain = manifest.get("domain", "unknown")
+            self.name = manifest.get("name", self.domain)
+            self.requirements = list(manifest.get("requirements", []))
+            self.dependencies = list(manifest.get("dependencies", []))
+
+        @property
+        def manifest(self) -> dict[str, Any]:
+            return self._manifest
+
+    loader_module.Integration = Integration
+    sys.modules["homeassistant.loader"] = loader_module
+
 
 def install_homeassistant_stubs() -> None:
-    if "homeassistant" in sys.modules:
-        return
+    """Install or refresh the Home Assistant compatibility stubs."""
 
-    root = ModuleType("homeassistant")
-    root.__path__ = []  # type: ignore[attr-defined]
-    sys.modules["homeassistant"] = root
+    root = sys.modules.get("homeassistant")
+    if root is None:
+        root = ModuleType("homeassistant")
+        sys.modules["homeassistant"] = root
+    # Ensure the namespace looks like a package so pkg-style imports succeed.
+    if not hasattr(root, "__path__"):
+        root.__path__ = []  # type: ignore[attr-defined]
 
     _install_const_module()
     _install_util_modules()

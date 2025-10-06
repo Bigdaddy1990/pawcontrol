@@ -9,14 +9,7 @@ from typing import Any
 from aiohttp import ClientError, ClientResponse, ClientSession, ClientTimeout
 from aiohttp.client_exceptions import ContentTypeError
 
-try:
-    from homeassistant.exceptions import ConfigEntryAuthFailed
-except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
-
-    class ConfigEntryAuthFailed(RuntimeError):  # noqa: N818 - mirror HA class name
-        """Fallback error used when Home Assistant isn't installed."""
-
-
+from .compat import ConfigEntryAuthFailed
 from yarl import URL
 
 from .exceptions import NetworkError, RateLimitError

@@ -132,20 +132,22 @@ class DogConfigRegistry:
 
     def calculate_update_interval(self, options: Mapping[str, Any]) -> int:
         """Derive the polling interval from configuration options."""
+        provided_interval = options.get(CONF_GPS_UPDATE_INTERVAL)
+        validated_interval: int | None = None
+
+        if provided_interval not in (None, ""):
+            validated_interval = self._validate_gps_interval(provided_interval)
+
         if not self._ids:
             interval = UPDATE_INTERVALS.get("minimal", 300)
             return self._enforce_polling_limits(interval)
 
         if self.has_module(MODULE_GPS):
-            gps_interval = options.get(
-                CONF_GPS_UPDATE_INTERVAL, UPDATE_INTERVALS.get("frequent", 60)
+            gps_interval = (
+                validated_interval
+                if validated_interval is not None
+                else UPDATE_INTERVALS.get("frequent", 60)
             )
-            if not isinstance(gps_interval, int) or gps_interval <= 0:
-                raise ValidationError(
-                    "gps_update_interval",
-                    gps_interval,
-                    "Invalid GPS update interval",
-                )
             return self._enforce_polling_limits(gps_interval)
 
         interval: int
@@ -177,6 +179,22 @@ class DogConfigRegistry:
             )
 
         return min(interval, MAX_IDLE_POLL_INTERVAL, MAX_POLLING_INTERVAL_SECONDS)
+
+    @staticmethod
+    def _validate_gps_interval(value: Any) -> int:
+        """Validate the GPS interval option and return a positive integer."""
+
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise ValidationError(
+                "gps_update_interval", value, "Invalid GPS update interval"
+            )
+
+        if value <= 0:
+            raise ValidationError(
+                "gps_update_interval", value, "Invalid GPS update interval"
+            )
+
+        return value
 
 
 @dataclass(slots=True)

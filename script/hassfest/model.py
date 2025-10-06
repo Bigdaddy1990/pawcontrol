@@ -30,7 +30,7 @@ class Integration:
 
     path: Path
     _config: Config
-    _manifest: dict[str, Any]
+    _manifest: dict[str, Any] = field(default_factory=dict)
     errors: list[Any] = field(default_factory=list)
 
     @property

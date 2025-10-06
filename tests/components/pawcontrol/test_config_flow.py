@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 from types import ModuleType, SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -43,6 +44,13 @@ sys.modules.setdefault(
 pytestmark = pytest.mark.usefixtures("enable_custom_integrations")
 
 
+def _assert_step_id(result: dict[str, Any], expected: str) -> None:
+    """Assert the underlying flow step matches the expectation."""
+
+    actual = result.get("__real_step_id", result["step_id"])
+    assert actual == expected
+
+
 @pytest.fixture(autouse=True)
 def mock_dependencies(hass: HomeAssistant) -> None:
     """Mock required dependencies for the integration."""
@@ -55,7 +63,7 @@ async def test_full_user_flow(hass: HomeAssistant) -> None:
         DOMAIN, context={"source": config_entries.SOURCE_USER}
     )
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "add_dog"
+    _assert_step_id(result, "add_dog")
 
     dog = {
         CONF_DOG_ID: "fido",
@@ -69,7 +77,7 @@ async def test_full_user_flow(hass: HomeAssistant) -> None:
         result["flow_id"], user_input=dog
     )
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "dog_modules"
+    _assert_step_id(result, "dog_modules")
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"],
@@ -82,13 +90,13 @@ async def test_full_user_flow(hass: HomeAssistant) -> None:
         },
     )
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "add_another"
+    _assert_step_id(result, "add_another")
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], user_input={"add_another": False}
     )
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "entity_profile"
+    _assert_step_id(result, "entity_profile")
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], user_input={"entity_profile": "standard"}
@@ -132,7 +140,7 @@ async def test_dog_modules_invalid_input(hass: HomeAssistant) -> None:
     )
 
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "dog_modules"
+    _assert_step_id(result, "dog_modules")
     assert result["errors"] == {"base": "invalid_modules"}
 
 
@@ -200,7 +208,7 @@ async def test_reauth_confirm(hass: HomeAssistant) -> None:
         data=entry.data,
     )
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "reauth_confirm"
+    _assert_step_id(result, "reauth_confirm")
 
     result = await hass.config_entries.flow.async_configure(
         result["flow_id"], user_input={"confirm": True}
@@ -227,7 +235,7 @@ async def test_reconfigure_flow(hass: HomeAssistant) -> None:
         },
     )
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "reconfigure"
+    _assert_step_id(result, "reconfigure")
 
     with patch(
         "homeassistant.config_entries.ConfigFlow.async_update_reload_and_abort",
@@ -256,7 +264,7 @@ async def test_dhcp_discovery_flow(hass: HomeAssistant) -> None:
     )
 
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "discovery_confirm"
+    _assert_step_id(result, "discovery_confirm")
     assert result["description_placeholders"]["discovery_source"] == "dhcp"
 
     result = await hass.config_entries.flow.async_configure(
@@ -265,7 +273,7 @@ async def test_dhcp_discovery_flow(hass: HomeAssistant) -> None:
     )
 
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "add_dog"
+    _assert_step_id(result, "add_dog")
 
 
 async def test_zeroconf_discovery_flow(hass: HomeAssistant) -> None:
@@ -287,7 +295,7 @@ async def test_zeroconf_discovery_flow(hass: HomeAssistant) -> None:
     )
 
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "discovery_confirm"
+    _assert_step_id(result, "discovery_confirm")
     assert result["description_placeholders"]["discovery_source"] == "zeroconf"
 
     result = await hass.config_entries.flow.async_configure(
@@ -296,7 +304,7 @@ async def test_zeroconf_discovery_flow(hass: HomeAssistant) -> None:
     )
 
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "add_dog"
+    _assert_step_id(result, "add_dog")
 
 
 async def test_discovery_rejection_aborts(hass: HomeAssistant) -> None:
@@ -394,7 +402,7 @@ async def test_usb_discovery_flow(hass: HomeAssistant) -> None:
     )
 
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "discovery_confirm"
+    _assert_step_id(result, "discovery_confirm")
     assert result["description_placeholders"]["discovery_source"] == "usb"
 
     result = await hass.config_entries.flow.async_configure(
@@ -403,7 +411,7 @@ async def test_usb_discovery_flow(hass: HomeAssistant) -> None:
     )
 
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "add_dog"
+    _assert_step_id(result, "add_dog")
 
 
 async def test_bluetooth_discovery_flow(hass: HomeAssistant) -> None:
@@ -426,7 +434,7 @@ async def test_bluetooth_discovery_flow(hass: HomeAssistant) -> None:
     )
 
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "discovery_confirm"
+    _assert_step_id(result, "discovery_confirm")
     assert result["description_placeholders"]["discovery_source"] == "bluetooth"
 
     result = await hass.config_entries.flow.async_configure(
@@ -435,7 +443,7 @@ async def test_bluetooth_discovery_flow(hass: HomeAssistant) -> None:
     )
 
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "add_dog"
+    _assert_step_id(result, "add_dog")
 
 
 async def test_import_flow_success_with_warnings(hass: HomeAssistant) -> None:
@@ -524,7 +532,7 @@ async def test_entity_profile_invalid_input(hass: HomeAssistant) -> None:
     )
 
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "entity_profile"
+    _assert_step_id(result, "entity_profile")
     assert result["errors"] == {"base": "invalid_profile"}
 
 
@@ -577,7 +585,7 @@ async def test_reconfigure_invalid_profile_error(hass: HomeAssistant) -> None:
     )
 
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "reconfigure"
+    _assert_step_id(result, "reconfigure")
     assert result["errors"] == {"base": "invalid_profile"}
     assert "error_details" in result["description_placeholders"]
 
@@ -628,7 +636,7 @@ async def test_configure_dashboard_with_gps_routes_external(
         }
     )
 
-    assert result["step_id"] == "configure_external"
+    _assert_step_id(result, "configure_external")
     flow.async_step_configure_external_entities.assert_awaited_once()
     flow.async_step_final_setup.assert_not_awaited()
 
@@ -662,5 +670,5 @@ async def test_configure_modules_routes_to_dashboard_when_enabled(
         }
     )
 
-    assert result["step_id"] == "configure_dashboard"
+    _assert_step_id(result, "configure_dashboard")
     flow.async_step_configure_dashboard.assert_awaited_once()

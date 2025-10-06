@@ -223,12 +223,16 @@ class APIValidator:
         try:
             session = self._session
 
-            # Try to connect to the endpoint
-            async with session.get(
+            # Try to connect to the endpoint. ``aiohttp`` returns an awaitable
+            # context manager so we explicitly await it to play nicely with the
+            # ``AsyncMock`` based session doubles used in the tests.
+            response_ctx = await session.get(
                 endpoint,
                 allow_redirects=True,
                 **self._request_kwargs,
-            ):
+            )
+
+            async with response_ctx:
                 # Any response (even 404) means the endpoint is reachable
                 return True
 
