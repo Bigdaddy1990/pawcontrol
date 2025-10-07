@@ -457,10 +457,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
     not_ready_cls = _resolve_config_entry_not_ready()
     not_ready_hierarchy: list[type[BaseException]] = []
     if isinstance(not_ready_cls, type) and issubclass(not_ready_cls, BaseException):
-        for cls in not_ready_cls.__mro__:
+        if not_ready_cls not in not_ready_hierarchy:
+            not_ready_hierarchy.append(not_ready_cls)
+        for cls in not_ready_cls.__mro__[1:]:
             if not isinstance(cls, type) or not issubclass(cls, BaseException):
                 continue
             if cls in (BaseException, Exception):
+                continue
+            if getattr(cls, "__name__", "") != "ConfigEntryNotReady":
                 continue
             if cls not in not_ready_hierarchy:
                 not_ready_hierarchy.append(cls)
