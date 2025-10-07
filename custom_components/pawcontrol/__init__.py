@@ -135,7 +135,7 @@ async def _async_run_manager_method(
     try:
         result = method()
     except Exception as err:  # pragma: no cover - defensive logging
-        _LOGGER.warning("Error starting %s: %s", description, err)
+        _LOGGER.warning("Error starting %s: %s", description, err, exc_info=True)
         return
 
     try:
