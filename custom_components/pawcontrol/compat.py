@@ -330,6 +330,21 @@ def _sync_config_entry_symbols(
 ) -> None:
     """Ensure Home Assistant modules expose the compatibility ConfigEntry types."""
 
+    # The compatibility layer needs to operate in two very different execution
+    # environments:
+    #
+    # 1. When the integration runs inside Home Assistant we should defer to the
+    #    real ``ConfigEntry`` implementation that ships with HA so that we do
+    #    not accidentally diverge from core behaviour.
+    # 2. When tests import PawControl without Home Assistant installed we fall
+    #    back to the lightweight shim defined in this module.  In that
+    #    situation multiple imports may race each other, so we patch both the
+    #    module globals and the ``homeassistant`` namespaces to ensure every
+    #    caller sees the same symbols.
+    #
+    # The branching below therefore checks whether a real Home Assistant
+    # implementation is available and, if not, injects the compatibility
+    # classes in the places the rest of the codebase expects to find them.
     if config_entries_module is not None:
         module_entry_cls = getattr(config_entries_module, "ConfigEntry", None)
         if _should_use_module_entry(module_entry_cls):

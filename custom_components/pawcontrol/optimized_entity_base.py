@@ -153,15 +153,11 @@ class PerformanceTracker:
         Args:
             operation_time: Time taken for the operation in seconds
         """
-        operation_times = [*self._operation_times, operation_time]
+        self._operation_times.append(operation_time)
 
         # Limit memory usage by keeping only recent samples
-        if len(operation_times) > MEMORY_OPTIMIZATION["performance_sample_size"]:
-            operation_times = operation_times[
-                -MEMORY_OPTIMIZATION["performance_sample_size"] :
-            ]
-
-        self._operation_times = operation_times
+        if len(self._operation_times) > MEMORY_OPTIMIZATION["performance_sample_size"]:
+            self._operation_times.pop(0)
 
     def record_error(self) -> None:
         """Record an error occurrence."""

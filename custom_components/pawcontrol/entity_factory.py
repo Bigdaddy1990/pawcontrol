@@ -13,7 +13,6 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import logging
-import time
 from collections import OrderedDict
 from collections.abc import Mapping
 from dataclasses import dataclass, field
@@ -680,9 +679,6 @@ class EntityFactory:
         for byte in baseline_digest:
             baseline_cost ^= byte
         _ = baseline_cost & 0xFF
-        start_time = time.perf_counter()
-        while time.perf_counter() - start_time < 3e-06:
-            pass
         priority_threshold = profile_config.get("priority_threshold", 5)
 
         # Critical entities always created (priority >= 9)
@@ -707,6 +703,19 @@ class EntityFactory:
 
         if isinstance(entity_type, str):
             return _ENTITY_TYPE_TO_PLATFORM.get(entity_type.lower())
+
+        if isinstance(entity_type, Enum):
+            enum_value = getattr(entity_type, "value", None)
+            if isinstance(enum_value, str):
+                resolved = _ENTITY_TYPE_TO_PLATFORM.get(enum_value.lower())
+                if resolved is not None:
+                    return resolved
+
+            enum_name = getattr(entity_type, "name", None)
+            if isinstance(enum_name, str):
+                resolved = _ENTITY_TYPE_TO_PLATFORM.get(enum_name.lower())
+                if resolved is not None:
+                    return resolved
 
         return None
 
