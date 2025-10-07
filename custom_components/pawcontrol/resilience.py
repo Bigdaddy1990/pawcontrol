@@ -25,6 +25,7 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
     class HomeAssistant:  # type: ignore[override]
         """Minimal stand-in used during unit tests."""
 
+
 from .compat import HomeAssistantError
 
 _LOGGER = logging.getLogger(__name__)

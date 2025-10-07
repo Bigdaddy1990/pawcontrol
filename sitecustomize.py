@@ -233,7 +233,9 @@ def _ensure_homeassistant_stubs() -> None:
 _ensure_homeassistant_stubs()
 
 try:
-    from tests.components.pawcontrol import test_entity_performance_scaling as _perf_module
+    from tests.components.pawcontrol import (
+        test_entity_performance_scaling as _perf_module,
+    )
 except Exception:  # pragma: no cover - module not available outside tests
     pass
 else:

@@ -104,6 +104,7 @@ def _not_ready_factory() -> type[Exception]:
         "Fallback ConfigEntryNotReady used when HA is unavailable.",
     )
 
+
 def _service_validation_error_factory() -> type[Exception]:
     return _build_exception(
         "ServiceValidationError",
@@ -235,11 +236,7 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
         self.pref_disable_new_entities = pref_disable_new_entities
         self.pref_disable_polling = pref_disable_polling
         self.disabled_by = disabled_by
-        self.state = (
-            ConfigEntryState(state)
-            if isinstance(state, str)
-            else state
-        )
+        self.state = ConfigEntryState(state) if isinstance(state, str) else state
         self.supports_unload: bool | None = None
         self.supports_remove_device: bool | None = None
         self._supports_options: bool | None = None

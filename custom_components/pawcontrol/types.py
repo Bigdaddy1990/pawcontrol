@@ -30,6 +30,7 @@ from .compat import ConfigEntry
 try:
     from homeassistant.util import dt as dt_util
 except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
+
     class _DateTimeModule:
         @staticmethod
         def utcnow() -> datetime:

@@ -773,9 +773,8 @@ class OptimizedEntityBase(
                 if isinstance(cached_data, dict)
                 else True
             )
-            if (
-                now - cache_time < CACHE_TTL_SECONDS["state"]
-                and (not coordinator_available or cached_available)
+            if now - cache_time < CACHE_TTL_SECONDS["state"] and (
+                not coordinator_available or cached_available
             ):
                 self._performance_tracker.record_cache_hit()
                 return cached_data
