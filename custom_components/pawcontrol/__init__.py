@@ -465,11 +465,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             if cls not in not_ready_hierarchy:
                 not_ready_hierarchy.append(cls)
     compat_not_ready = getattr(compat, "ConfigEntryNotReady", None)
-    if isinstance(compat_not_ready, type) and issubclass(
-        compat_not_ready, BaseException
+    if (
+        isinstance(compat_not_ready, type)
+        and issubclass(compat_not_ready, BaseException)
+        and compat_not_ready not in not_ready_hierarchy
     ):
-        if compat_not_ready not in not_ready_hierarchy:
-            not_ready_hierarchy.append(compat_not_ready)
+        not_ready_hierarchy.append(compat_not_ready)
 
     known_setup_errors: tuple[type[BaseException], ...] = (
         *not_ready_hierarchy,
