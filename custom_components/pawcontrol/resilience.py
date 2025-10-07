@@ -136,8 +136,6 @@ class CircuitBreaker:
                 if self._should_attempt_reset():
                     self._transition_to_half_open()
                 else:
-                    self._stats.total_failures += 1
-                    self._stats.last_failure_time = time.monotonic()
                     raise HomeAssistantError(
                         f"Circuit breaker '{self.name}' is OPEN - calls rejected"
                     )

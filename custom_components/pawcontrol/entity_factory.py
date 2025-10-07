@@ -14,7 +14,7 @@ import asyncio
 import hashlib
 import logging
 from collections import OrderedDict
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
@@ -698,39 +698,96 @@ class EntityFactory:
     def _resolve_platform(entity_type: str | Enum) -> Platform | None:
         """Return the Home Assistant platform for the provided entity type."""
 
-        if isinstance(entity_type, Platform):
-            return entity_type
+        for candidate in EntityFactory._iter_platform_candidates(entity_type):
+            if isinstance(candidate, Platform):
+                return candidate
 
-        if isinstance(entity_type, str):
-            return _ENTITY_TYPE_TO_PLATFORM.get(entity_type.lower())
-
-        if isinstance(entity_type, Enum):
-            enum_value = getattr(entity_type, "value", None)
-            if isinstance(enum_value, Platform):
-                return enum_value
-
-            if isinstance(enum_value, str):
-                resolved = _ENTITY_TYPE_TO_PLATFORM.get(enum_value.lower())
+            if isinstance(candidate, str):
+                resolved = _ENTITY_TYPE_TO_PLATFORM.get(candidate.lower())
                 if resolved is not None:
                     return resolved
-
-            enum_name = getattr(entity_type, "name", None)
-            if isinstance(enum_name, str):
-                resolved = _ENTITY_TYPE_TO_PLATFORM.get(enum_name.lower())
-                if resolved is not None:
-                    return resolved
-
-            if isinstance(enum_value, Enum):
-                nested_value = getattr(enum_value, "value", None)
-                if isinstance(nested_value, str):
-                    resolved = _ENTITY_TYPE_TO_PLATFORM.get(nested_value.lower())
-                    if resolved is not None:
-                        return resolved
-
-                if isinstance(nested_value, Platform):
-                    return nested_value
 
         return None
+
+    @staticmethod
+    def _iter_platform_candidates(value: str | Enum | Platform | None) -> Iterator[str | Platform]:
+        """Yield potential platform identifiers from enums or strings."""
+
+        if value is None:
+            return
+
+        stack: list[str | Platform | Enum] = [value]
+        seen: set[int] = set()
+
+        while stack:
+            current = stack.pop()
+
+            if isinstance(current, Platform):
+                yield current
+                continue
+
+            if isinstance(current, str):
+                yield current
+                continue
+
+            if isinstance(current, Enum):
+                identifier = id(current)
+                if identifier in seen:
+                    continue
+
+                seen.add(identifier)
+
+                enum_name = getattr(current, "name", None)
+                if isinstance(enum_name, str):
+                    yield enum_name
+
+                enum_value = getattr(current, "value", None)
+                if enum_value is not None:
+                    stack.append(enum_value)
+
+    @staticmethod
+    def _enum_contains_platform(enum_value: Enum, resolved: Platform) -> bool:
+        """Return ``True`` if the enum contains the resolved platform value."""
+
+        resolved_value = getattr(resolved, "value", None)
+        target_value = str(resolved_value).lower() if resolved_value is not None else None
+
+        stack: list[Enum | Platform | str | None] = [enum_value]
+        seen: set[int] = set()
+
+        while stack:
+            current = stack.pop()
+
+            if isinstance(current, Platform):
+                if current == resolved:
+                    return True
+                continue
+
+            if isinstance(current, str):
+                if target_value is not None and current.lower() == target_value:
+                    return True
+                continue
+
+            if isinstance(current, Enum):
+                identifier = id(current)
+                if identifier in seen:
+                    continue
+
+                seen.add(identifier)
+
+                enum_inner_value = getattr(current, "value", None)
+                if enum_inner_value is not None:
+                    stack.append(enum_inner_value)
+
+                enum_inner_name = getattr(current, "name", None)
+                if (
+                    isinstance(enum_inner_name, str)
+                    and target_value is not None
+                    and enum_inner_name.lower() == target_value
+                ):
+                    return True
+
+        return False
 
     @staticmethod
     def _coerce_platform_output(
@@ -739,22 +796,10 @@ class EntityFactory:
     ) -> Platform | Enum:
         """Return the platform instance appropriate for the execution context."""
 
-        if isinstance(requested, Enum):
-            requested_value = getattr(requested, "value", None)
-            resolved_value = getattr(resolved, "value", None)
-            if isinstance(requested_value, str) and requested_value == resolved_value:
-                return requested
-
-            if isinstance(requested_value, Platform) and requested_value == resolved:
-                return requested
-
-            if isinstance(requested_value, Enum):
-                nested_value = getattr(requested_value, "value", None)
-                if isinstance(nested_value, str) and nested_value == resolved_value:
-                    return requested
-
-                if isinstance(nested_value, Platform) and nested_value == resolved:
-                    return requested
+        if isinstance(requested, Enum) and EntityFactory._enum_contains_platform(
+            requested, resolved
+        ):
+            return requested
 
         if isinstance(requested, str):
             return resolved
