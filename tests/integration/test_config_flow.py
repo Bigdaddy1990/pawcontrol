@@ -79,7 +79,7 @@ async def test_user_flow_single_dog(hass: HomeAssistant):
     )
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
-    assert result["title"] == "Paw Control (Standard (≤10 entities))"
+    assert result["title"] == "Paw Control (Standard (≤12 entities))"
     assert result["data"]["dogs"][0]["dog_id"] == "buddy"
 
 

@@ -26,7 +26,27 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
         """Minimal stand-in used during unit tests."""
 
 
+from importlib import import_module
+
 from .compat import HomeAssistantError
+
+
+def _resolve_homeassistant_error() -> type[Exception]:
+    """Return the active Home Assistant error type."""
+
+    try:
+        module = import_module("custom_components.pawcontrol.data_manager")
+    except Exception:  # pragma: no cover - fallback when data manager unavailable
+        return HomeAssistantError
+
+    resolver = getattr(module, "_resolve_homeassistant_error", None)
+    if callable(resolver):
+        try:
+            return resolver()
+        except Exception:  # pragma: no cover - defensive fallback
+            return HomeAssistantError
+
+    return HomeAssistantError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -136,7 +156,7 @@ class CircuitBreaker:
                 if self._should_attempt_reset():
                     self._transition_to_half_open()
                 else:
-                    raise HomeAssistantError(
+                    raise _resolve_homeassistant_error()(
                         f"Circuit breaker '{self.name}' is OPEN - calls rejected"
                     )
 
@@ -144,7 +164,7 @@ class CircuitBreaker:
             if self._stats.state == CircuitState.HALF_OPEN:
                 if self._half_open_calls >= self.config.half_open_max_calls:
                     self._stats.total_failures += 1
-                    raise HomeAssistantError(
+                    raise _resolve_homeassistant_error()(
                         f"Circuit breaker '{self.name}' is HALF_OPEN - "
                         f"max concurrent calls reached"
                     )
@@ -322,7 +342,7 @@ async def retry_with_backoff(
     """
     retry_config = config or RetryConfig()
     if retry_config.max_attempts < 1:
-        raise HomeAssistantError("Retry requires at least one attempt")
+        raise _resolve_homeassistant_error()("Retry requires at least one attempt")
     last_exception: Exception | None = None
 
     for attempt in range(1, retry_config.max_attempts + 1):
@@ -386,7 +406,7 @@ async def retry_with_backoff(
     # Should never reach here due to raise in loop, but satisfy type checker
     if last_exception:  # pragma: no cover - defensive safeguard
         raise RetryExhaustedError(retry_config.max_attempts, last_exception)
-    raise HomeAssistantError("Retry failed with no exception recorded")
+    raise _resolve_homeassistant_error()("Retry failed with no exception recorded")
 
 
 class ResilienceManager:

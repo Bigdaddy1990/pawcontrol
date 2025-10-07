@@ -62,7 +62,7 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
         "priority_threshold": 5,  # Essential entities surface at medium priority
     },
     "standard": {
-        "name": "Standard (≤10 entities)",
+        "name": "Standard (≤12 entities)",
         "description": "Balanced monitoring with selective extras",
         "max_entities": 12,
         "performance_impact": "low",
@@ -244,6 +244,19 @@ _COMMON_PROFILE_PRESETS: Final[tuple[tuple[str, Mapping[str, bool]], ...]] = (
         ),
     ),
     (
+        "standard",
+        MappingProxyType(
+            {
+                "feeding": True,
+                "walk": True,
+                "health": True,
+                "gps": True,
+                "notifications": True,
+                "dashboard": True,
+            }
+        ),
+    ),
+    (
         "gps_focus",
         MappingProxyType(
             {
@@ -381,6 +394,9 @@ class EntityFactory:
         self._last_triad_score: int = 0
         self._active_budgets: dict[tuple[str, str], EntityBudget] = {}
         self._last_budget_snapshots: dict[str, EntityBudgetSnapshot] = {}
+        self._loop_ref: asyncio.AbstractEventLoop | None = None
+        self._loop_supports_callbacks: bool | None = None
+        self._ensure_loop_state()
         if prewarm:
             self._prewarm_caches()
 
@@ -489,13 +505,39 @@ class EntityFactory:
     def _enforce_metrics_runtime(self) -> None:
         """Yield control to the event loop after intensive calculations."""
 
+        self._ensure_loop_state()
+        if not self._loop_supports_callbacks or self._loop_ref is None:
+            return
+
+        try:
+            self._loop_ref.call_soon(self._yield_control)
+        except RuntimeError:
+            self._loop_ref = None
+            self._loop_supports_callbacks = False
+
+    def _ensure_loop_state(self) -> None:
+        """Refresh cached event loop information when necessary."""
+
+        if self._loop_supports_callbacks is False:
+            return
+
+        if self._loop_supports_callbacks and self._loop_ref is not None:
+            return
+
         try:
             loop = asyncio.get_running_loop()
         except RuntimeError:
+            self._loop_ref = None
+            self._loop_supports_callbacks = False
             return
 
-        if loop.is_running():
-            loop.call_soon(self._yield_control)
+        if not loop.is_running():
+            self._loop_ref = None
+            self._loop_supports_callbacks = False
+            return
+
+        self._loop_ref = loop
+        self._loop_supports_callbacks = True
 
     @staticmethod
     def _yield_control() -> None:

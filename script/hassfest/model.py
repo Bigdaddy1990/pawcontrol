@@ -32,6 +32,7 @@ class Integration:
     _config: Config
     _manifest: dict[str, Any] = field(default_factory=dict)
     errors: list[Any] = field(default_factory=list)
+    warnings: list[Any] = field(default_factory=list)
 
     @property
     def domain(self) -> str:

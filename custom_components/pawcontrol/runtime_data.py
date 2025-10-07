@@ -102,7 +102,7 @@ def store_runtime_data(
     entry: PawControlConfigEntry,
     runtime_data: PawControlRuntimeData,
 ) -> None:
-    """Attach runtime data to the config entry and clean legacy storage."""
+    """Attach runtime data to the config entry and update compatibility caches."""
 
     entry.runtime_data = runtime_data
 
@@ -110,8 +110,22 @@ def store_runtime_data(
     if store is None:
         return
 
+    # Remove the compatibility payload for the entry we just populated so
+    # ``get_runtime_data`` always prefers the config entry attribute.
     store.pop(entry.entry_id, None)
+
+    # Normalise any remaining compatibility payloads for other entries.
+    for key, value in list(store.items()):
+        resolved, needs_migration = _coerce_runtime_data(value)
+        if resolved is None:
+            if needs_migration:
+                store.pop(key, None)
+            continue
+        if needs_migration:
+            store[key] = {"runtime_data": resolved}
+
     _cleanup_domain_store(hass, store)
+
 
 
 def get_runtime_data(
@@ -130,16 +144,18 @@ def get_runtime_data(
         return None
 
     runtime_data, needs_migration = _coerce_runtime_data(store.get(entry_id))
-    if runtime_data and needs_migration:
+    if runtime_data is not None:
         store.pop(entry_id, None)
         _cleanup_domain_store(hass, store)
         if entry is not None:
             entry.runtime_data = runtime_data
-    elif runtime_data is None and needs_migration:
+        return runtime_data
+
+    if needs_migration:
         store.pop(entry_id, None)
         _cleanup_domain_store(hass, store)
 
-    return runtime_data
+    return None
 
 
 def pop_runtime_data(
@@ -155,14 +171,12 @@ def pop_runtime_data(
 
     entry_id = _resolve_entry_id(entry_or_id)
     store = _get_domain_store(hass, create=False)
-    if store is None:
-        return None
+    store_runtime: PawControlRuntimeData | None = None
+    if store is not None:
+        value = store.pop(entry_id, None)
+        resolved_runtime, _needs_migration = _coerce_runtime_data(value)
+        if resolved_runtime is not None:
+            store_runtime = resolved_runtime
+        _cleanup_domain_store(hass, store)
 
-    value = store.pop(entry_id, None)
-    _cleanup_domain_store(hass, store)
-
-    runtime_data, needs_migration = _coerce_runtime_data(value)
-    if runtime_data and needs_migration:
-        return runtime_data
-
-    return runtime_data
+    return store_runtime

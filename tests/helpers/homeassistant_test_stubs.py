@@ -1761,5 +1761,28 @@ def install_homeassistant_stubs() -> None:
     _install_helper_modules()
     _install_component_modules()
 
+    _refresh_pawcontrol_compat_exports()
+
+
+def _refresh_pawcontrol_compat_exports() -> None:
+    """Notify the PawControl compat layer that Home Assistant stubs loaded."""
+
+    try:
+        from custom_components.pawcontrol import compat
+    except Exception:  # pragma: no cover - integration unavailable in some tests
+        return
+
+    ensure_config_symbols = getattr(
+        compat, "ensure_homeassistant_config_entry_symbols", None
+    )
+    if callable(ensure_config_symbols):
+        ensure_config_symbols()
+
+    ensure_exception_symbols = getattr(
+        compat, "ensure_homeassistant_exception_symbols", None
+    )
+    if callable(ensure_exception_symbols):
+        ensure_exception_symbols()
+
 
 install_homeassistant_stubs()
