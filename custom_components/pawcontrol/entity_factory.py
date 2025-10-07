@@ -706,6 +706,9 @@ class EntityFactory:
 
         if isinstance(entity_type, Enum):
             enum_value = getattr(entity_type, "value", None)
+            if isinstance(enum_value, Platform):
+                return enum_value
+
             if isinstance(enum_value, str):
                 resolved = _ENTITY_TYPE_TO_PLATFORM.get(enum_value.lower())
                 if resolved is not None:
@@ -716,6 +719,16 @@ class EntityFactory:
                 resolved = _ENTITY_TYPE_TO_PLATFORM.get(enum_name.lower())
                 if resolved is not None:
                     return resolved
+
+            if isinstance(enum_value, Enum):
+                nested_value = getattr(enum_value, "value", None)
+                if isinstance(nested_value, str):
+                    resolved = _ENTITY_TYPE_TO_PLATFORM.get(nested_value.lower())
+                    if resolved is not None:
+                        return resolved
+
+                if isinstance(nested_value, Platform):
+                    return nested_value
 
         return None
 
@@ -731,6 +744,17 @@ class EntityFactory:
             resolved_value = getattr(resolved, "value", None)
             if isinstance(requested_value, str) and requested_value == resolved_value:
                 return requested
+
+            if isinstance(requested_value, Platform) and requested_value == resolved:
+                return requested
+
+            if isinstance(requested_value, Enum):
+                nested_value = getattr(requested_value, "value", None)
+                if isinstance(nested_value, str) and nested_value == resolved_value:
+                    return requested
+
+                if isinstance(nested_value, Platform) and nested_value == resolved:
+                    return requested
 
         if isinstance(requested, str):
             return resolved
