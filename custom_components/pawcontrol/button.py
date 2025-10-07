@@ -20,15 +20,10 @@ from typing import Any, cast
 from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-
-try:  # pragma: no cover - executed in real Home Assistant
-    from homeassistant.helpers.service import ServiceRegistry
-except ImportError:  # pragma: no cover - test harness fallback
-    from homeassistant.core import ServiceRegistry  # type: ignore[attr-defined]
 from homeassistant.util import dt as dt_util
 
+from .compat import HomeAssistantError, ServiceRegistry, ServiceValidationError
 from .const import (
     ATTR_DOG_ID,
     ATTR_DOG_NAME,

@@ -11,19 +11,15 @@ from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any, cast
 
 import voluptuous as vol
-from homeassistant.config_entries import (
-    ConfigEntry,
-    ConfigFlowResult,
-)
+from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.core import callback
-from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 from homeassistant.helpers.service_info.usb import UsbServiceInfo
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntryAuthFailed
+from .compat import ConfigEntry, ConfigEntryAuthFailed, ConfigEntryNotReady
 from .config_flow_base import PawControlBaseConfigFlow
 from .config_flow_dashboard_extension import DashboardFlowMixin
 from .config_flow_dogs import DogManagementMixin

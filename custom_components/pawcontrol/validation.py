@@ -14,7 +14,7 @@ import re
 from numbers import Real
 from typing import Any, Final
 
-from homeassistant.exceptions import ServiceValidationError
+from .compat import ServiceValidationError
 
 # Validation constants
 VALID_DOG_ID_PATTERN: Final[str] = r"^[a-zA-Z0-9_-]{1,50}$"

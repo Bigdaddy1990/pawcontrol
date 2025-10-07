@@ -23,19 +23,13 @@ from asyncio import Task
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any, Final, Required, TypedDict, TypeVar
+from typing import TYPE_CHECKING, Any, Final, Required, TypedDict
+
+from .compat import ConfigEntry
 
 try:
-    from homeassistant.config_entries import ConfigEntry
     from homeassistant.util import dt as dt_util
 except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
-    _RuntimeT = TypeVar("_RuntimeT")
-
-    class ConfigEntry[RuntimeT]:  # type: ignore[override]
-        """Lightweight generic stand-in used during unit tests."""
-
-        entry_id: str
-
     class _DateTimeModule:
         @staticmethod
         def utcnow() -> datetime:
@@ -103,7 +97,7 @@ from excellent condition to requiring medical attention.
 """
 
 VALID_MOOD_OPTIONS: Final[frozenset[str]] = frozenset(
-    ["happy", "neutral", "sad", "angry", "anxious", "tired"]
+    ["happy", "neutral", "content", "normal", "sad", "angry", "anxious", "tired"]
 )
 """Valid mood states for behavioral tracking.
 

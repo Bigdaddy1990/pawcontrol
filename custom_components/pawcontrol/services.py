@@ -19,19 +19,20 @@ from datetime import datetime, timedelta
 from typing import Any, TypeVar, cast
 
 import voluptuous as vol
-from homeassistant.config_entries import (
-    SIGNAL_CONFIG_ENTRY_CHANGED,
-    ConfigEntry,
-    ConfigEntryChange,
-    ConfigEntryState,
-)
+from homeassistant.config_entries import SIGNAL_CONFIG_ENTRY_CHANGED
 from homeassistant.core import HomeAssistant, ServiceCall, callback
-from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
+from .compat import (
+    ConfigEntry,
+    ConfigEntryChange,
+    ConfigEntryState,
+    HomeAssistantError,
+    ServiceValidationError,
+)
 from .const import (
     CONF_RESET_TIME,
     DEFAULT_RESET_TIME,

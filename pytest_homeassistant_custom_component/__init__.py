@@ -6,7 +6,8 @@ from collections.abc import Iterable
 from typing import Any
 
 import pytest
-from homeassistant.core import ConfigEntry, ConfigEntryState, HomeAssistant
+from custom_components.pawcontrol.compat import ConfigEntry, ConfigEntryState
+from homeassistant.core import HomeAssistant
 
 __all__ = ["MockConfigEntry", "enable_custom_integrations"]
 
