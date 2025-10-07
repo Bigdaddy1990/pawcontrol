@@ -5,13 +5,13 @@ from __future__ import annotations
 from collections.abc import Iterable
 from importlib.metadata import files
 
-from packaging.requirements import Requirement
+from packaging.requirements import InvalidRequirement, Requirement
 from packaging.specifiers import SpecifierSet
 from packaging.version import InvalidVersion, Version
 
 from .model import Integration
 
-FORBIDDEN_PACKAGE_NAMES: set[str] = {"tests"}
+FORBIDDEN_PACKAGE_NAMES: set[str] = {"tests", "test"}
 FORBIDDEN_TOP_LEVEL_FILES: set[str] = {"py.typed"}
 PACKAGE_CHECK_PREPARE_UPDATE: dict[str, int] = {}
 PACKAGE_CHECK_VERSION_RANGE: dict[str, str] = {}
@@ -47,6 +47,21 @@ def validate_requirements_format(integration: Integration) -> bool:
 
         try:
             requirement = Requirement(raw_req)
+        except InvalidRequirement as err:
+            if "==" in raw_req:
+                name, _, version_part = raw_req.partition("==")
+                candidate = version_part.strip()
+                requirement_name = name.strip() or raw_req
+                integration.add_error(
+                    "requirements",
+                    f"Unable to parse package version ({candidate}) for {requirement_name}.",
+                )
+            else:
+                integration.add_error(
+                    "requirements", f"Unable to parse requirement {raw_req}: {err}"
+                )
+            ok = False
+            continue
         except Exception as err:  # pragma: no cover - defensive
             integration.add_error(
                 "requirements", f"Unable to parse requirement {raw_req}: {err}"
@@ -124,12 +139,18 @@ def check_dependency_version_range(
     return allowed
 
 
+def _normalize_pkg_name(pkg: str) -> set[str]:
+    canonical = pkg.replace("-", "_")
+    return {pkg, canonical}
+
+
 def _compute_package_metadata(pkg: str) -> dict[str, set[str]]:
     cache = _packages_checked_files_cache.get(pkg)
     if cache is not None:
         return cache
 
-    top_level: set[str] = set()
+    normalized_names = _normalize_pkg_name(pkg)
+    directories: set[str] = set()
     file_names: set[str] = set()
     for package_path in files(pkg) or []:
         parts = package_path.parts
@@ -139,9 +160,12 @@ def _compute_package_metadata(pkg: str) -> dict[str, set[str]]:
         if top.endswith(".dist-info"):
             continue
         if "/" in str(package_path):
-            top_level.add(top)
+            if top not in normalized_names:
+                directories.add(top)
         else:
-            file_names.add(top)
+            if top in FORBIDDEN_TOP_LEVEL_FILES:
+                file_names.add(top)
+    top_level = directories & FORBIDDEN_PACKAGE_NAMES
     cache = {"top_level": top_level, "file_names": file_names}
     _packages_checked_files_cache[pkg] = cache
     return cache

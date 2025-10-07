@@ -22,7 +22,7 @@ class ImportCollector(ast.NodeVisitor):
         elif module.startswith("homeassistant.components."):
             component = module.split(".", 2)[2]
             self._add_reference(component.split(".")[0])
-        super().visit_ImportFrom(node)
+        self.generic_visit(node)
 
     def visit_Import(self, node: ast.Import) -> None:  # type: ignore[override]
         for alias in node.names:
@@ -30,7 +30,7 @@ class ImportCollector(ast.NodeVisitor):
             if name.startswith("homeassistant.components."):
                 component = name.split(".", 2)[2]
                 self._add_reference(component.split(".")[0])
-        super().visit_Import(node)
+        self.generic_visit(node)
 
 
 __all__ = ["ImportCollector"]

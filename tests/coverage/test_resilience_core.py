@@ -29,16 +29,19 @@ homeassistant = sys.modules["homeassistant"]
 
 if not hasattr(homeassistant, "exceptions"):
     exceptions_module = types.ModuleType("homeassistant.exceptions")
-
-    class HomeAssistantError(Exception):
-        """Lightweight drop-in replacement used for testing."""
-
-    exceptions_module.HomeAssistantError = HomeAssistantError
-    HomeAssistantError = exceptions_module.HomeAssistantError
-    sys.modules["homeassistant.exceptions"] = exceptions_module
-    homeassistant.exceptions = exceptions_module
+    base_error = Exception
 else:  # pragma: no cover - executed only when real HA is installed
-    HomeAssistantError = homeassistant.exceptions.HomeAssistantError
+    exceptions_module = homeassistant.exceptions
+    base_error = getattr(exceptions_module, "HomeAssistantError", Exception)
+
+
+class HomeAssistantError(base_error):
+    """Lightweight drop-in replacement used for testing."""
+
+
+exceptions_module.HomeAssistantError = HomeAssistantError
+sys.modules["homeassistant.exceptions"] = exceptions_module
+homeassistant.exceptions = exceptions_module
 
 if not hasattr(homeassistant, "core"):
     core_module = types.ModuleType("homeassistant.core")

@@ -17,7 +17,7 @@ import logging
 import math
 from collections import deque
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from html import escape
 from typing import Any
@@ -244,6 +244,7 @@ class WalkManager:
         self._gps_data: dict[str, dict[str, Any]] = {}
         self._current_walks: dict[str, dict[str, Any]] = {}
         self._walk_history: dict[str, list[dict[str, Any]]] = {}
+        self._session_counters: dict[str, int] = {}
         self._data_lock = asyncio.Lock()
 
         # OPTIMIZE: Enhanced caching system
@@ -330,6 +331,7 @@ class WalkManager:
 
                 self._walk_history[dog_id] = []
                 self._location_analysis_queue[dog_id] = []
+                self._session_counters[dog_id] = 0
 
                 self._update_dog_container(dog_id)
 
@@ -535,7 +537,7 @@ class WalkManager:
         async with self._data_lock:
             if dog_id not in self._walk_data:
                 _LOGGER.warning("Dog %s not initialized for walk tracking", dog_id)
-                return None
+                raise KeyError(dog_id)
 
             if dog_id in self._current_walks:
                 _LOGGER.info(
@@ -543,8 +545,10 @@ class WalkManager:
                 )
                 await self._finalize_walk_locked(dog_id)
 
-            now = dt_util.now()
-            walk_id = f"{dog_id}_{int(now.timestamp())}"
+            now = dt_util.utcnow()
+            counter = self._session_counters.get(dog_id, 0) + 1
+            self._session_counters[dog_id] = counter
+            walk_id = f"{dog_id}_{int(now.timestamp())}_{counter}"
 
             weather_condition: WeatherCondition | None = None
             if isinstance(weather, WeatherCondition):
@@ -631,7 +635,7 @@ class WalkManager:
             _LOGGER.warning("No walk in progress for %s", dog_id)
             return None
 
-        now = dt_util.now()
+        now = dt_util.utcnow()
         walk_data = self._current_walks[dog_id]
 
         if notes is not None:
@@ -668,7 +672,11 @@ class WalkManager:
         )
         if start_time is None:
             start_time = now
-        duration = (now - start_time).total_seconds()
+        else:
+            if start_time.tzinfo is None:
+                start_time = start_time.replace(tzinfo=UTC)
+            start_time = dt_util.as_utc(start_time)
+        duration = max(0.0, (now - start_time).total_seconds())
 
         # Update walk data
         walk_data.update(
@@ -900,12 +908,19 @@ class WalkManager:
         # OPTIMIZE: Batch calculate averages from recent walks
         recent_walks = self.get_walk_history(dog_id)
         recent_walks.insert(0, walk_data.copy())
-        cutoff = dt_util.now() - timedelta(days=7)
+        cutoff = dt_util.utcnow() - timedelta(days=7)
 
         def _parse_start(value: Any) -> datetime | None:
-            return (
-                value if isinstance(value, datetime) else dt_util.parse_datetime(value)
-            )
+            if value is None:
+                return None
+            if isinstance(value, datetime):
+                if value.tzinfo is None:
+                    value = value.replace(tzinfo=UTC)
+                return dt_util.as_utc(value)
+            parsed = dt_util.parse_datetime(value)
+            if parsed is None:
+                return None
+            return dt_util.as_utc(parsed)
 
         recent_walks = [
             walk
@@ -1381,6 +1396,7 @@ class WalkManager:
             self._location_analysis_queue.clear()
             self._statistics_cache.clear()
             self._dogs.clear()
+            self._session_counters.clear()
 
             # Clear caches
             self._gps_cache.clear()

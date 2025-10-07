@@ -127,7 +127,7 @@ class AdaptivePollingController:
         idle_target = max(idle_interval_seconds, self._min_interval)
         self._max_interval = max(calculated_max, idle_target)
         self._idle_interval = idle_target
-        self._idle_grace = max(idle_grace_seconds, 10.0)
+        self._idle_grace = max(idle_grace_seconds, 0.0)
         self._target_cycle = max(target_cycle_ms / 1000.0, self._min_interval)
         self._current_interval = min(base_interval, self._max_interval)
         self._error_streak = 0

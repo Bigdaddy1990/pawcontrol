@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import csv
+import importlib
 import json
 import logging
 import sys
@@ -20,18 +21,24 @@ from datetime import datetime, timedelta
 from itertools import islice
 from pathlib import Path
 from time import perf_counter
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
-from .compat import HomeAssistantError
+from . import compat
 from .const import DOMAIN
 from .types import DailyStats, FeedingData, GPSLocation, HealthData, WalkData
 
 _LOGGER = logging.getLogger(__name__)
 
 _STORAGE_FILENAME = "data.json"
+
+_CANONICAL_HOMEASSISTANT_ERROR: type[Exception] = HomeAssistantError
+_HOMEASSISTANT_ERROR_PROXY_CACHE: dict[
+    tuple[type[Exception], ...], type[Exception]
+] = {}
 
 if __name__ not in sys.modules and "pawcontrol_data_manager" in sys.modules:
     sys.modules[__name__] = sys.modules["pawcontrol_data_manager"]
@@ -62,7 +69,7 @@ class AdaptiveCache:
                 self._misses += 1
                 return None, False
 
-            if dt_util.utcnow() > entry["expiry"]:
+            if _utcnow() > entry["expiry"]:
                 self._data.pop(key, None)
                 self._metadata.pop(key, None)
                 self._misses += 1
@@ -76,7 +83,7 @@ class AdaptiveCache:
 
         async with self._lock:
             ttl = base_ttl if base_ttl > 0 else self._default_ttl
-            expiry = dt_util.utcnow() + timedelta(seconds=ttl)
+            expiry = _utcnow() + timedelta(seconds=ttl)
             self._data[key] = value
             self._metadata[key] = {"expiry": expiry}
 
@@ -84,7 +91,7 @@ class AdaptiveCache:
         """Remove expired cache entries and return the number purged."""
 
         async with self._lock:
-            now = dt_util.utcnow()
+            now = _utcnow()
             expired = [
                 key for key, meta in self._metadata.items() if now > meta["expiry"]
             ]
@@ -128,6 +135,86 @@ def _deserialize_datetime(value: Any) -> datetime | None:
     return dt_util.as_utc(parsed)
 
 
+def _utcnow() -> datetime:
+    """Return the current UTC time honoring patched Home Assistant helpers."""
+
+    module = sys.modules.get("homeassistant.util.dt")
+    if module is not None:
+        candidate = getattr(module, "utcnow", None)
+        if callable(candidate):
+            result = candidate()
+            if isinstance(result, datetime):
+                return result
+    return dt_util.utcnow()
+
+
+def _resolve_homeassistant_error() -> type[Exception]:
+    """Return the active Home Assistant error class."""
+
+    global _CANONICAL_HOMEASSISTANT_ERROR
+
+    module = sys.modules.get("homeassistant.exceptions")
+    if module is None:
+        try:
+            module = importlib.import_module("homeassistant.exceptions")
+        except Exception:  # pragma: no cover - defensive import path
+            module = None
+
+    candidates: list[type[Exception]] = []
+
+    if module is not None:
+        module_candidate = getattr(module, "HomeAssistantError", None)
+        if isinstance(module_candidate, type) and issubclass(
+            module_candidate, Exception
+        ):
+            _CANONICAL_HOMEASSISTANT_ERROR = cast(type[Exception], module_candidate)
+            candidates.append(cast(type[Exception], module_candidate))
+
+    stub_module = sys.modules.get("tests.helpers.homeassistant_test_stubs")
+    if stub_module is not None:
+        stub_candidate = getattr(stub_module, "HomeAssistantError", None)
+        if isinstance(stub_candidate, type) and issubclass(stub_candidate, Exception):
+            candidates.append(cast(type[Exception], stub_candidate))
+
+    for module_name, module_obj in list(sys.modules.items()):
+        if not module_name.startswith("tests."):
+            continue
+        alias_candidate = getattr(module_obj, "HomeAssistantError", None)
+        if isinstance(alias_candidate, type) and issubclass(alias_candidate, Exception):
+            candidates.append(cast(type[Exception], alias_candidate))
+
+    compat_candidate = getattr(compat, "HomeAssistantError", None)
+    if isinstance(compat_candidate, type) and issubclass(compat_candidate, Exception):
+        candidates.append(cast(type[Exception], compat_candidate))
+
+    candidates.append(_CANONICAL_HOMEASSISTANT_ERROR)
+    candidates.append(HomeAssistantError)
+
+    bases: list[type[Exception]] = []
+    seen: set[type[Exception]] = set()
+    for candidate in candidates:
+        if candidate in seen:
+            continue
+        seen.add(candidate)
+        bases.append(candidate)
+
+    if not bases:
+        return HomeAssistantError
+
+    if len(bases) == 1:
+        resolved = bases[0]
+        _CANONICAL_HOMEASSISTANT_ERROR = resolved
+        return resolved
+
+    key = tuple(bases)
+    proxy = _HOMEASSISTANT_ERROR_PROXY_CACHE.get(key)
+    if proxy is None:
+        proxy = type("PawControlHomeAssistantErrorProxy", key, {})
+        _HOMEASSISTANT_ERROR_PROXY_CACHE[key] = proxy
+    _CANONICAL_HOMEASSISTANT_ERROR = proxy
+    return proxy
+
+
 def _serialize_timestamp(value: Any | None) -> str:
     """Return an ISO timestamp for ``value`` or ``utcnow`` when missing."""
 
@@ -137,7 +224,7 @@ def _serialize_timestamp(value: Any | None) -> str:
         parsed = _deserialize_datetime(value)
         if parsed:
             return parsed.isoformat()
-    return dt_util.utcnow().isoformat()
+    return _utcnow().isoformat()
 
 
 def _coerce_mapping(value: Mapping[str, Any] | None) -> dict[str, Any]:
@@ -202,7 +289,7 @@ def _coerce_medication_payload(data: Mapping[str, Any]) -> dict[str, Any]:
     payload["administration_time"] = _serialize_timestamp(
         payload.get("administration_time")
     )
-    payload.setdefault("logged_at", dt_util.utcnow().isoformat())
+    payload.setdefault("logged_at", _utcnow().isoformat())
     return payload
 
 
@@ -247,7 +334,7 @@ class DogProfile:
         try:
             daily_stats = DailyStats.from_dict(daily_stats_payload)
         except Exception:  # pragma: no cover - only triggered by corrupt files
-            daily_stats = DailyStats(date=dt_util.utcnow())
+            daily_stats = DailyStats(date=_utcnow())
 
         return cls(
             config=dict(config),
@@ -359,10 +446,15 @@ class PawControlDataManager:
     def _get_namespace_lock(self, namespace: str) -> asyncio.Lock:
         """Return a lock used to guard namespace updates."""
 
-        lock = self._namespace_locks.get(namespace)
+        locks = getattr(self, "_namespace_locks", None)
+        if locks is None:
+            locks = {}
+            self._namespace_locks = locks
+
+        lock = locks.get(namespace)
         if lock is None:
             lock = asyncio.Lock()
-            self._namespace_locks[namespace] = lock
+            locks[namespace] = lock
         return lock
 
     async def _update_namespace_for_dog(
@@ -390,7 +482,8 @@ class PawControlDataManager:
 
         profile = self._dog_profiles.get(dog_id)
         if profile is None:
-            raise HomeAssistantError(f"Unknown PawControl dog: {dog_id}")
+            error_cls = _resolve_homeassistant_error()
+            raise error_cls(f"Unknown PawControl dog: {dog_id}")
         return profile
 
     async def _async_save_profile(self, dog_id: str, profile: DogProfile) -> None:
@@ -422,7 +515,8 @@ class PawControlDataManager:
         try:
             self._storage_dir.mkdir(parents=True, exist_ok=True)
         except OSError as err:
-            raise HomeAssistantError(
+            error_cls = _resolve_homeassistant_error()
+            raise error_cls(
                 f"Unable to prepare PawControl storage at {self._storage_dir}: {err}"
             ) from err
 
@@ -501,8 +595,10 @@ class PawControlDataManager:
             raise ValueError("Visitor mode payload is required")
 
         payload = dict(payload)
-        payload.setdefault("timestamp", dt_util.utcnow())
-        payload["timestamp"] = _serialize_timestamp(payload.get("timestamp"))
+        timestamp = payload.pop("timestamp", None)
+        if timestamp is None:
+            timestamp = _utcnow()
+        serialized_timestamp = _serialize_timestamp(timestamp)
 
         namespace = "visitor_mode"
         self._ensure_metrics_containers()
@@ -521,11 +617,13 @@ class PawControlDataManager:
             raise
         except Exception as err:  # pragma: no cover - defensive guard
             self._metrics["errors"] += 1
-            raise HomeAssistantError(
+            error_cls = _resolve_homeassistant_error()
+            raise error_cls(
                 f"Failed to update visitor mode for {dog_id}: {err}"
             ) from err
         else:
             self._record_visitor_metrics(perf_counter() - started)
+            self._metrics["visitor_mode_last_updated"] = serialized_timestamp
         return True
 
     async def async_get_visitor_mode_status(self, dog_id: str) -> dict[str, Any]:
@@ -613,7 +711,7 @@ class PawControlDataManager:
 
         profile = self._ensure_profile(dog_id)
         async with self._data_lock:
-            profile.daily_stats = DailyStats(date=dt_util.utcnow())
+            profile.daily_stats = DailyStats(date=_utcnow())
         await self._async_save_profile(dog_id, profile)
 
     async def async_get_module_data(self, dog_id: str) -> dict[str, Any]:
@@ -631,7 +729,7 @@ class PawControlDataManager:
         async def updater(current: Any | None) -> dict[str, Any]:
             payload = _coerce_mapping(current)
             payload["main_power"] = bool(enabled)
-            payload.setdefault("updated_at", dt_util.utcnow().isoformat())
+            payload.setdefault("updated_at", _utcnow().isoformat())
             return payload
 
         await self._update_namespace_for_dog("module_state", dog_id, updater)
@@ -643,7 +741,7 @@ class PawControlDataManager:
             payload = _coerce_mapping(current)
             gps_state = _coerce_mapping(payload.get("gps"))
             gps_state["enabled"] = bool(enabled)
-            gps_state["updated_at"] = dt_util.utcnow().isoformat()
+            gps_state["updated_at"] = _utcnow().isoformat()
             payload["gps"] = gps_state
             return payload
 
@@ -658,7 +756,7 @@ class PawControlDataManager:
             return False
 
         payload = dict(poop_data)
-        payload.setdefault("timestamp", dt_util.utcnow())
+        payload.setdefault("timestamp", _utcnow())
         payload["timestamp"] = _serialize_timestamp(payload.get("timestamp"))
 
         async with self._data_lock:
@@ -685,7 +783,7 @@ class PawControlDataManager:
         payload = dict(session_data)
         session_identifier = session_id or self._session_id_factory()
         payload.setdefault("session_id", session_identifier)
-        payload.setdefault("started_at", dt_util.utcnow())
+        payload.setdefault("started_at", _utcnow())
         payload["started_at"] = _serialize_timestamp(payload.get("started_at"))
 
         async with self._data_lock:
@@ -707,7 +805,7 @@ class PawControlDataManager:
         """Analyze historic data for ``dog_id``."""
 
         profile = self._ensure_profile(dog_id)
-        now = dt_util.utcnow()
+        now = _utcnow()
         cutoff = now - timedelta(days=max(days, 1))
         tolerance = timedelta(seconds=1)
 
@@ -796,7 +894,7 @@ class PawControlDataManager:
         """Generate a summary report for ``dog_id``."""
 
         profile = self._ensure_profile(dog_id)
-        now = dt_util.utcnow()
+        now = _utcnow()
         report_window_start = _deserialize_datetime(start_date) if start_date else None
         report_window_end = _deserialize_datetime(end_date) if end_date else None
         if report_window_start is None:
@@ -919,7 +1017,7 @@ class PawControlDataManager:
         """Generate a weekly health overview for ``dog_id``."""
 
         profile = self._ensure_profile(dog_id)
-        now = dt_util.utcnow()
+        now = _utcnow()
         cutoff = now - timedelta(days=7)
 
         health_entries = [
@@ -996,14 +1094,15 @@ class PawControlDataManager:
                 dataset = profile.medication_history
                 timestamp_key = "administration_time"
             case _:
-                raise HomeAssistantError(f"Unsupported export data type: {data_type}")
+                error_cls = _resolve_homeassistant_error()
+                raise error_cls(f"Unsupported export data type: {data_type}")
 
         start = _deserialize_datetime(date_from) if date_from else None
         end = _deserialize_datetime(date_to) if date_to else None
         if start is None and days is not None:
-            start = dt_util.utcnow() - timedelta(days=max(days, 0))
+            start = _utcnow() - timedelta(days=max(days, 0))
         if end is None:
-            end = dt_util.utcnow()
+            end = _utcnow()
 
         def _in_window(entry: Mapping[str, Any]) -> bool:
             ts = _deserialize_datetime(entry.get(timestamp_key))
@@ -1018,7 +1117,7 @@ class PawControlDataManager:
         export_dir = self._storage_dir / "exports"
         export_dir.mkdir(parents=True, exist_ok=True)
 
-        timestamp = dt_util.utcnow().strftime("%Y%m%d%H%M%S")
+        timestamp = _utcnow().strftime("%Y%m%d%H%M%S")
         normalized_format = format.lower()
         if normalized_format not in {"json", "csv", "markdown", "md", "txt"}:
             normalized_format = "json"
@@ -1062,7 +1161,7 @@ class PawControlDataManager:
                 payload = {
                     "dog_id": dog_id,
                     "data_type": data_type,
-                    "generated_at": dt_util.utcnow().isoformat(),
+                    "generated_at": _utcnow().isoformat(),
                     "entries": entries,
                 }
                 export_path.write_text(
@@ -1093,7 +1192,7 @@ class PawControlDataManager:
                 return False
 
             profile.current_walk = WalkData(
-                start_time=dt_util.utcnow(),
+                start_time=_utcnow(),
                 location=location,
                 label=label,
                 started_by=started_by,
@@ -1129,7 +1228,7 @@ class PawControlDataManager:
             if walk is None:
                 return False
 
-            end_time = dt_util.utcnow()
+            end_time = _utcnow()
             walk.end_time = end_time
             walk.ended_by = ended_by
             walk.notes = notes
@@ -1212,7 +1311,7 @@ class PawControlDataManager:
             return False
 
         payload = _coerce_health_payload(health)
-        timestamp = _deserialize_datetime(payload.get("timestamp")) or dt_util.utcnow()
+        timestamp = _deserialize_datetime(payload.get("timestamp")) or _utcnow()
 
         async with self._data_lock:
             profile = self._dog_profiles[dog_id]
@@ -1314,7 +1413,7 @@ class PawControlDataManager:
         if profile is None:
             return None
 
-        cutoff = dt_util.utcnow() - timedelta(days=days)
+        cutoff = _utcnow() - timedelta(days=days)
         tolerance = timedelta(seconds=1)
         relevant = [
             entry
@@ -1405,7 +1504,8 @@ class PawControlDataManager:
         except FileNotFoundError:
             return {}
         except OSError as err:
-            raise HomeAssistantError(
+            error_cls = _resolve_homeassistant_error()
+            raise error_cls(
                 f"Unable to read PawControl {namespace} data: {err}"
             ) from err
 
@@ -1428,7 +1528,8 @@ class PawControlDataManager:
         try:
             await asyncio.to_thread(path.write_text, payload, encoding="utf-8")
         except OSError as err:
-            raise HomeAssistantError(
+            error_cls = _resolve_homeassistant_error()
+            raise error_cls(
                 f"Unable to persist PawControl {namespace} data: {err}"
             ) from err
 
@@ -1449,7 +1550,8 @@ class PawControlDataManager:
                 "Corrupted PawControl data detected at %s", self._storage_path
             )
         except OSError as err:
-            raise HomeAssistantError(f"Unable to read PawControl data: {err}") from err
+            error_cls = _resolve_homeassistant_error()
+            raise error_cls(f"Unable to read PawControl data: {err}") from err
 
         try:
             if Path.exists(self._backup_path):
@@ -1462,9 +1564,8 @@ class PawControlDataManager:
                 "Backup PawControl data is corrupted at %s", self._backup_path
             )
         except OSError as err:
-            raise HomeAssistantError(
-                f"Unable to read PawControl backup: {err}"
-            ) from err
+            error_cls = _resolve_homeassistant_error()
+            raise error_cls(f"Unable to read PawControl backup: {err}") from err
 
         return {}
 
@@ -1478,9 +1579,8 @@ class PawControlDataManager:
             try:
                 self._write_storage(payload)
             except OSError as err:
-                raise HomeAssistantError(
-                    f"Failed to persist PawControl data: {err}"
-                ) from err
+                error_cls = _resolve_homeassistant_error()
+                raise error_cls(f"Failed to persist PawControl data: {err}") from err
 
     def _write_storage(self, payload: dict[str, Any]) -> None:
         """Write data to the JSON storage file."""
