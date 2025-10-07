@@ -143,7 +143,7 @@ async def _async_run_manager_method(
     except TimeoutError:
         _LOGGER.warning("%s timed out", description)
     except Exception as err:  # pragma: no cover - defensive logging
-        _LOGGER.warning("Error during %s: %s", description, err)
+        _LOGGER.warning("Error during %s: %s", description, err, exc_info=True)
     else:
         _LOGGER.debug("%s completed", description)
 
