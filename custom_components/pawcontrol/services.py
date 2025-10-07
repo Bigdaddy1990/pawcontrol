@@ -2105,7 +2105,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         )
 
         raw_dog_id = call.data["dog_id"]
-        dog_id, dog_config = _resolve_dog(coordinator, raw_dog_id)
+        dog_id, _dog_config = _resolve_dog(coordinator, raw_dog_id)
         detection_method = call.data.get("detection_method", "manual")
         weather_conditions = call.data.get("weather_conditions")
         temperature = call.data.get("temperature")
