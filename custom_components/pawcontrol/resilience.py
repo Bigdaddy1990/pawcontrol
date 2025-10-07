@@ -48,6 +48,7 @@ def _resolve_homeassistant_error() -> type[Exception]:
 
     return HomeAssistantError
 
+
 _LOGGER = logging.getLogger(__name__)
 
 # Type variables for generic retry/circuit breaker

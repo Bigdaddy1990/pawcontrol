@@ -127,7 +127,6 @@ def store_runtime_data(
     _cleanup_domain_store(hass, store)
 
 
-
 def get_runtime_data(
     hass: HomeAssistant, entry_or_id: PawControlConfigEntry | str
 ) -> PawControlRuntimeData | None:

@@ -86,7 +86,10 @@ def _service_validation_error(message: str) -> Exception:
         compat_is_fallback = getattr(compat_cls, "__module__", "").startswith(
             "custom_components.pawcontrol"
         )
-        if not compat_is_fallback and compat_cls is not _CANONICAL_SERVICE_VALIDATION_ERROR:
+        if (
+            not compat_is_fallback
+            and compat_cls is not _CANONICAL_SERVICE_VALIDATION_ERROR
+        ):
             _CANONICAL_SERVICE_VALIDATION_ERROR = cast(type[Exception], compat_cls)
 
     module = sys.modules.get("homeassistant.exceptions")
@@ -152,6 +155,7 @@ def _service_validation_error(message: str) -> Exception:
         _SERVICE_VALIDATION_ERROR_CACHE[key] = proxy
     _CANONICAL_SERVICE_VALIDATION_ERROR = proxy
     return proxy(message)
+
 
 # PLATINUM: Enhanced validation ranges for service inputs
 VALID_WEIGHT_RANGE = (0.5, 100.0)  # kg

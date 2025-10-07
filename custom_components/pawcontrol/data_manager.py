@@ -36,7 +36,9 @@ _LOGGER = logging.getLogger(__name__)
 _STORAGE_FILENAME = "data.json"
 
 _CANONICAL_HOMEASSISTANT_ERROR: type[Exception] = HomeAssistantError
-_HOMEASSISTANT_ERROR_PROXY_CACHE: dict[tuple[type[Exception], ...], type[Exception]] = {}
+_HOMEASSISTANT_ERROR_PROXY_CACHE: dict[
+    tuple[type[Exception], ...], type[Exception]
+] = {}
 
 if __name__ not in sys.modules and "pawcontrol_data_manager" in sys.modules:
     sys.modules[__name__] = sys.modules["pawcontrol_data_manager"]
@@ -1563,9 +1565,7 @@ class PawControlDataManager:
             )
         except OSError as err:
             error_cls = _resolve_homeassistant_error()
-            raise error_cls(
-                f"Unable to read PawControl backup: {err}"
-            ) from err
+            raise error_cls(f"Unable to read PawControl backup: {err}") from err
 
         return {}
 
@@ -1580,9 +1580,7 @@ class PawControlDataManager:
                 self._write_storage(payload)
             except OSError as err:
                 error_cls = _resolve_homeassistant_error()
-                raise error_cls(
-                    f"Failed to persist PawControl data: {err}"
-                ) from err
+                raise error_cls(f"Failed to persist PawControl data: {err}") from err
 
     def _write_storage(self, payload: dict[str, Any]) -> None:
         """Write data to the JSON storage file."""

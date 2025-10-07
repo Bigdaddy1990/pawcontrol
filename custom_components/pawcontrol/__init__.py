@@ -71,7 +71,10 @@ def _resolve_config_entry_not_ready() -> type[Exception]:
         compat_is_fallback = getattr(compat_cls, "__module__", "").startswith(
             "custom_components.pawcontrol"
         )
-        if not compat_is_fallback and compat_cls is not _CANONICAL_CONFIG_ENTRY_NOT_READY:
+        if (
+            not compat_is_fallback
+            and compat_cls is not _CANONICAL_CONFIG_ENTRY_NOT_READY
+        ):
             _CANONICAL_CONFIG_ENTRY_NOT_READY = cast(type[Exception], compat_cls)
 
     module = sys.modules.get("homeassistant.exceptions")
