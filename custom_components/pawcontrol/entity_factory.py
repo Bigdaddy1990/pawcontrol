@@ -710,7 +710,9 @@ class EntityFactory:
         return None
 
     @staticmethod
-    def _iter_platform_candidates(value: str | Enum | Platform | None) -> Iterator[str | Platform]:
+    def _iter_platform_candidates(
+        value: str | Enum | Platform | None,
+    ) -> Iterator[str | Platform]:
         """Yield potential platform identifiers from enums or strings."""
 
         if value is None:
@@ -750,7 +752,9 @@ class EntityFactory:
         """Return ``True`` if the enum contains the resolved platform value."""
 
         resolved_value = getattr(resolved, "value", None)
-        target_value = str(resolved_value).lower() if resolved_value is not None else None
+        target_value = (
+            str(resolved_value).lower() if resolved_value is not None else None
+        )
 
         stack: list[Enum | Platform | str | None] = [enum_value]
         seen: set[int] = set()
