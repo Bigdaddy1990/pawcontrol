@@ -6,9 +6,9 @@ from collections.abc import Mapping
 from typing import Any
 
 from homeassistant.components import system_health
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 
+from .compat import ConfigEntry
 from .const import DOMAIN
 from .runtime_data import get_runtime_data
 

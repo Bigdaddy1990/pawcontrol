@@ -35,13 +35,13 @@ from typing import Any, ClassVar, Final
 from unittest.mock import Mock
 
 from homeassistant.core import callback
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import ATTR_DOG_ID, ATTR_DOG_NAME
+from .compat import HomeAssistantError
+from .const import ATTR_DOG_ID, ATTR_DOG_NAME, MANUFACTURER
 from .coordinator import PawControlCoordinator
 from .utils import (
     PawControlDeviceLinkMixin,
@@ -68,11 +68,60 @@ MEMORY_OPTIMIZATION: Final[dict[str, Any]] = {
 # Global caches with memory management
 _STATE_CACHE: dict[str, tuple[Any, float]] = {}
 _ATTRIBUTES_CACHE: dict[str, tuple[dict[str, Any], float]] = {}
-_AVAILABILITY_CACHE: dict[str, tuple[bool, float]] = {}
+_AVAILABILITY_CACHE: dict[str, tuple[bool, float, bool]] = {}
 
 # Performance tracking with weak references to prevent memory leaks
 _PERFORMANCE_METRICS: dict[str, list[float]] = {}
 _ENTITY_REGISTRY: set[weakref.ref] = set()
+
+
+def _coordinator_is_available(coordinator: Any) -> bool:
+    """Return True if the coordinator exposes an available flag set to truthy."""
+
+    if coordinator is None:
+        return True
+
+    available = getattr(coordinator, "available", True)
+
+    if callable(available):
+        try:
+            available = available()
+        except TypeError:
+            return True
+
+    if inspect.isawaitable(available):
+        return True
+
+    try:
+        return bool(available)
+    except Exception:  # pragma: no cover - defensive conversions
+        return True
+
+
+def _call_coordinator_method(
+    coordinator: Any, method: str, *args: Any, **kwargs: Any
+) -> Any | None:
+    """Safely call a coordinator helper if it exists and returns synchronously."""
+
+    if coordinator is None:
+        return None
+
+    target = getattr(coordinator, method, None)
+    if target is None:
+        return None
+
+    try:
+        result = target(*args, **kwargs)
+    except TypeError:
+        return None
+    except Exception as err:  # pragma: no cover - defensive guard
+        _LOGGER.debug("Coordinator method %s failed: %s", method, err)
+        return None
+
+    if inspect.isawaitable(result):
+        return None
+
+    return result
 
 
 class PerformanceTracker:
@@ -108,9 +157,7 @@ class PerformanceTracker:
 
         # Limit memory usage by keeping only recent samples
         if len(self._operation_times) > MEMORY_OPTIMIZATION["performance_sample_size"]:
-            self._operation_times = self._operation_times[
-                -MEMORY_OPTIMIZATION["performance_sample_size"] :
-            ]
+            self._operation_times.pop(0)
 
     def record_error(self) -> None:
         """Record an error occurrence."""
@@ -170,9 +217,13 @@ def _cleanup_global_caches() -> None:
         ("availability", (_AVAILABILITY_CACHE, CACHE_TTL_SECONDS["availability"])),
     ]:
         original_size = len(cache_dict)
-        expired_keys = [
-            key for key, (_, timestamp) in cache_dict.items() if now - timestamp > ttl
-        ]
+        expired_keys = []
+        for key, entry in cache_dict.items():
+            if not isinstance(entry, tuple) or len(entry) < 2:
+                continue
+            timestamp = entry[1]
+            if now - timestamp > ttl:
+                expired_keys.append(key)
 
         for key in expired_keys:
             cache_dict.pop(key, None)
@@ -190,12 +241,20 @@ def _cleanup_global_caches() -> None:
             )
 
     # Clean up dead weak references without resetting the registry entirely
-    dead_refs = [ref for ref in tuple(_ENTITY_REGISTRY) if ref() is None]
-    for dead_ref in dead_refs:
-        _ENTITY_REGISTRY.discard(dead_ref)
+    if _ENTITY_REGISTRY:
+        live_refs: set[weakref.ReferenceType[OptimizedEntityBase]] = set()
+        dead_count = 0
 
-    if dead_refs:
-        _LOGGER.debug("Removed %d dead entity weakrefs", len(dead_refs))
+        for entity_ref in tuple(_ENTITY_REGISTRY):
+            if entity_ref() is None:
+                dead_count += 1
+                continue
+            live_refs.add(entity_ref)
+
+        if dead_count:
+            _ENTITY_REGISTRY.clear()
+            _ENTITY_REGISTRY.update(live_refs)
+            _LOGGER.debug("Removed %d dead entity weakrefs", dead_count)
 
     if cleanup_stats["cleaned"] > 0:
         _LOGGER.info(
@@ -237,6 +296,7 @@ class OptimizedEntityBase(
         "_dog_name",
         "_entity_type",
         "_initialization_time",
+        "_last_coordinator_available",
         "_last_updated",
         "_performance_tracker",
         "_state_change_listeners",
@@ -275,6 +335,8 @@ class OptimizedEntityBase(
         self._dog_name = dog_name
         self._entity_type = entity_type
         self._initialization_time = dt_util.utcnow()
+        self._last_coordinator_available = _coordinator_is_available(coordinator)
+        self._previous_coordinator_available = self._last_coordinator_available
 
         # Performance tracking setup
         entity_key = f"{dog_id}_{entity_type}"
@@ -304,6 +366,7 @@ class OptimizedEntityBase(
             configuration_url=(
                 f"https://github.com/BigDaddy1990/pawcontrol/wiki/dog-{dog_id}"
             ),
+            manufacturer=MANUFACTURER.replace(" ", ""),
         )
 
         # Register entity for cleanup tracking
@@ -488,37 +551,60 @@ class OptimizedEntityBase(
         cache_key = f"available_{self._dog_id}_{self._entity_type}"
         now = dt_util.utcnow().timestamp()
 
+        coordinator_available_now = _coordinator_is_available(self.coordinator)
+
         # Check cache first
         if cache_key in _AVAILABILITY_CACHE:
-            cached_available, cache_time = _AVAILABILITY_CACHE[cache_key]
-            if now - cache_time < CACHE_TTL_SECONDS["availability"]:
+            cached_available, cache_time, cached_coord_available = _AVAILABILITY_CACHE[
+                cache_key
+            ]
+            if (
+                now - cache_time < CACHE_TTL_SECONDS["availability"]
+                and cached_coord_available == coordinator_available_now
+            ):
                 self._performance_tracker.record_cache_hit()
                 return cached_available
 
         # Calculate availability
-        available = self._calculate_availability()
+        available = self._calculate_availability(
+            coordinator_available=coordinator_available_now
+        )
 
         # Cache result
-        _AVAILABILITY_CACHE[cache_key] = (available, now)
+        _AVAILABILITY_CACHE[cache_key] = (
+            available,
+            now,
+            coordinator_available_now,
+        )
         self._performance_tracker.record_cache_miss()
 
         return available
 
-    def _calculate_availability(self) -> bool:
+    def _calculate_availability(
+        self, *, coordinator_available: bool | None = None
+    ) -> bool:
         """Calculate entity availability with comprehensive checks.
 
         Returns:
             True if entity should be considered available
         """
         # Check coordinator availability
-        if not self.coordinator.available:
+        if coordinator_available is None:
+            coordinator_available = _coordinator_is_available(self.coordinator)
+
+        if not coordinator_available:
             return False
 
         # Check dog data availability
         dog_data = self._get_dog_data_cached()
         if not dog_data:
             return False
-        if dog_data.get("status") == "missing":
+        status = dog_data.get("status")
+        if status in {"offline", "error"}:
+            return False
+        if status == "recovering":
+            return True
+        if status == "missing":
             return False
 
         # Check for recent updates (within last 10 minutes)
@@ -579,40 +665,73 @@ class OptimizedEntityBase(
         Returns:
             Dictionary of state attributes
         """
+        coordinator_available = _coordinator_is_available(self.coordinator)
+        previous_available = self._update_coordinator_availability(
+            coordinator_available
+        )
+
+        base_status = "online"
+        if not coordinator_available:
+            base_status = "offline"
+        elif not previous_available:
+            base_status = "recovering"
+
         attributes: dict[str, Any] = {
             ATTR_DOG_ID: self._dog_id,
             ATTR_DOG_NAME: self._dog_name,
             "entity_type": self._entity_type,
             "last_updated": dt_util.utcnow().isoformat(),
+            "status": base_status,
+            "coordinator_available": coordinator_available,
         }
 
         # Add dog information if available
-        if (dog_data := self._get_dog_data_cached()) and (
-            dog_info := dog_data.get("dog_info", {})
-        ):
-            attributes.update(
-                {
-                    "dog_breed": dog_info.get("dog_breed"),
-                    "dog_age": dog_info.get("dog_age"),
-                    "dog_size": dog_info.get("dog_size"),
-                    "dog_weight": dog_info.get("dog_weight"),
-                }
-            )
+        if dog_data := self._get_dog_data_cached():
+            if status := dog_data.get("status"):
+                attributes["status"] = status
+            if last_update := dog_data.get("last_update"):
+                attributes["data_last_update"] = last_update
+            if "coordinator_available" in dog_data:
+                attributes["coordinator_available"] = dog_data["coordinator_available"]
 
-            # Add performance metrics for debugging
-            if (
-                performance_summary
-                := self._performance_tracker.get_performance_summary()
-            ) and performance_summary.get("status") != "no_data":
-                attributes["performance_metrics"] = {
-                    "avg_operation_ms": round(
-                        performance_summary["avg_operation_time"] * 1000, 2
-                    ),
-                    "cache_hit_rate": round(performance_summary["cache_hit_rate"], 1),
-                    "error_rate": round(performance_summary["error_rate"] * 100, 1),
-                }
+            if dog_info := dog_data.get("dog_info", {}):
+                attributes.update(
+                    {
+                        "dog_breed": dog_info.get("dog_breed"),
+                        "dog_age": dog_info.get("dog_age"),
+                        "dog_size": dog_info.get("dog_size"),
+                        "dog_weight": dog_info.get("dog_weight"),
+                    }
+                )
+
+        # Add performance metrics for debugging
+        performance_summary = self._performance_tracker.get_performance_summary()
+        if performance_summary and performance_summary.get("status") != "no_data":
+            attributes["performance_metrics"] = {
+                "avg_operation_ms": round(
+                    performance_summary["avg_operation_time"] * 1000, 2
+                ),
+                "cache_hit_rate": round(performance_summary["cache_hit_rate"], 1),
+                "error_rate": round(performance_summary["error_rate"] * 100, 1),
+            }
 
         return attributes
+
+    def _update_coordinator_availability(self, current: bool) -> bool:
+        """Track coordinator availability transitions and return the previous state."""
+
+        last = getattr(self, "_last_coordinator_available", current)
+        previous = getattr(self, "_previous_coordinator_available", last)
+
+        if last != current:
+            previous = last
+            self._previous_coordinator_available = previous
+            self._last_coordinator_available = current
+        else:
+            if not hasattr(self, "_previous_coordinator_available"):
+                self._previous_coordinator_available = previous
+
+        return getattr(self, "_previous_coordinator_available", current)
 
     def _get_fallback_attributes(self) -> dict[str, Any]:
         """Get minimal fallback attributes when normal generation fails.
@@ -637,24 +756,49 @@ class OptimizedEntityBase(
         cache_key = f"dog_data_{self._dog_id}"
         now = dt_util.utcnow().timestamp()
 
+        coordinator_available = _coordinator_is_available(self.coordinator)
+        previous_available = self._update_coordinator_availability(
+            coordinator_available
+        )
+
         # Check cache first
         if cache_key in _STATE_CACHE:
             cached_data, cache_time = _STATE_CACHE[cache_key]
-            if now - cache_time < CACHE_TTL_SECONDS["state"]:
+            cached_available = (
+                cached_data.get("coordinator_available")
+                if isinstance(cached_data, dict)
+                else True
+            )
+            if now - cache_time < CACHE_TTL_SECONDS["state"] and (
+                not coordinator_available or cached_available
+            ):
                 self._performance_tracker.record_cache_hit()
                 return cached_data
 
-        # Fetch from coordinator
         dog_data = None
-        if self.coordinator.available:
-            dog_data = self.coordinator.get_dog_data(self._dog_id)
+        if coordinator_available:
+            dog_data = _call_coordinator_method(
+                self.coordinator, "get_dog_data", self._dog_id
+            )
 
-        if dog_data is None:
+        if dog_data is not None:
+            dog_data = dict(dog_data)
+        else:
+            if not coordinator_available:
+                status = "offline"
+            elif not previous_available:
+                status = "recovering"
+            else:
+                status = "missing"
             dog_data = {
                 "dog_info": {},
-                "status": "missing",
+                "status": status,
                 "last_update": None,
             }
+
+        dog_data.setdefault("coordinator_available", coordinator_available)
+        dog_data.setdefault("status", "online")
+        dog_data.setdefault("last_update", None)
 
         # Cache result (including empty dicts) to prevent repeated lookups
         _STATE_CACHE[cache_key] = (dog_data, now)
@@ -683,8 +827,12 @@ class OptimizedEntityBase(
 
         # Fetch from coordinator
         module_data = {}
-        if self.coordinator.available:
-            module_data = self.coordinator.get_module_data(self._dog_id, module)
+        if _coordinator_is_available(self.coordinator):
+            result = _call_coordinator_method(
+                self.coordinator, "get_module_data", self._dog_id, module
+            )
+            if isinstance(result, dict):
+                module_data = result
 
         # Cache result
         _STATE_CACHE[cache_key] = (module_data, now)

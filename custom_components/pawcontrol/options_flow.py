@@ -21,8 +21,9 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigEntry, ConfigFlowResult, OptionsFlow
+from homeassistant.config_entries import ConfigFlowResult, OptionsFlow
 
+from .compat import ConfigEntry
 from .config_flow_profile import (
     DEFAULT_PROFILE,
     get_profile_selector_options,

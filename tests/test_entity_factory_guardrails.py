@@ -15,7 +15,7 @@ import sys
 import types
 from collections.abc import Callable
 from datetime import UTC, datetime, timezone
-from enum import StrEnum
+from enum import Enum, StrEnum
 
 
 class _Platform(StrEnum):
@@ -31,6 +31,24 @@ class _Platform(StrEnum):
     DEVICE_TRACKER = "device_tracker"
     DATE = "date"
     DATETIME = "datetime"
+
+
+class _PlatformStringAlias(Enum):
+    """Enum stub exposing string values for compatibility testing."""
+
+    SENSOR = "sensor"
+
+
+class _PlatformEnumAlias(Enum):
+    """Enum stub whose values point to another enum."""
+
+    SENSOR = _Platform.SENSOR
+
+
+class _NestedPlatformAlias(Enum):
+    """Enum stub with nested enum indirection for platform aliases."""
+
+    SENSOR = _PlatformEnumAlias.SENSOR
 
 
 def _install_homeassistant_stubs() -> None:
@@ -455,6 +473,16 @@ def test_should_create_entity_accepts_platform_enum() -> None:
     )
 
 
+def test_should_create_entity_accepts_nested_enum_alias() -> None:
+    """Nested enum aliases should resolve to their underlying platform."""
+
+    factory = EntityFactory(coordinator=None)
+
+    assert factory.should_create_entity(
+        "standard", _NestedPlatformAlias.SENSOR, "feeding", priority=6
+    )
+
+
 def test_should_create_entity_blocks_unknown_module() -> None:
     """Unknown modules are rejected even for high-priority requests."""
 
@@ -480,6 +508,23 @@ def test_create_entity_config_normalises_output() -> None:
     assert config is not None
     assert config["entity_type"] == "button"
     assert config["platform"] is _Platform.BUTTON
+
+
+def test_create_entity_config_preserves_alias_enum_platform() -> None:
+    """Entity configs should preserve alias enums when values match."""
+
+    factory = EntityFactory(coordinator=None)
+
+    config = factory.create_entity_config(
+        dog_id="buddy",
+        entity_type=_NestedPlatformAlias.SENSOR,
+        module="feeding",
+        profile="basic",
+        priority=9,
+    )
+
+    assert config is not None
+    assert config["platform"] is _NestedPlatformAlias.SENSOR
 
 
 def test_create_entity_config_rejects_invalid_type() -> None:

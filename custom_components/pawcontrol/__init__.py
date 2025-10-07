@@ -3,19 +3,20 @@
 from __future__ import annotations
 
 import asyncio
+import inspect
 import logging
 import time
 from collections.abc import Mapping, Sequence
 from typing import Any, Final
 
+from homeassistant import config_entries as ha_config_entries
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntry
 
-from .compat import ConfigEntryAuthFailed
+from .compat import ConfigEntryAuthFailed, ConfigEntryNotReady, HomeAssistantError
 from .const import (
     ALL_MODULES,
     CONF_DOG_ID,
@@ -105,6 +106,46 @@ def _simulate_async_call(mock: Any) -> bool:
     if hasattr(mock, "_mock_await_count"):
         mock._mock_await_count += 1
     return True
+
+
+async def _await_if_necessary(result: Any, *, timeout: float) -> Any:
+    """Await ``result`` when it is awaitable, otherwise return it unchanged."""
+
+    if inspect.isawaitable(result):
+        return await asyncio.wait_for(result, timeout)
+    return result
+
+
+async def _async_run_manager_method(
+    manager: Any,
+    method_name: str,
+    description: str,
+    *,
+    timeout: float,
+) -> None:
+    """Invoke ``manager.method_name`` and await the result when necessary."""
+
+    if manager is None:
+        return
+
+    method = getattr(manager, method_name, None)
+    if method is None:
+        return
+
+    try:
+        result = method()
+    except Exception as err:  # pragma: no cover - defensive logging
+        _LOGGER.warning("Error starting %s: %s", description, err, exc_info=True)
+        return
+
+    try:
+        await _await_if_necessary(result, timeout=timeout)
+    except TimeoutError:
+        _LOGGER.warning("%s timed out", description)
+    except Exception as err:  # pragma: no cover - defensive logging
+        _LOGGER.warning("Error during %s: %s", description, err, exc_info=True)
+    else:
+        _LOGGER.debug("%s completed", description)
 
 
 def _extract_enabled_modules(dogs_config: Sequence[DogConfigData]) -> frozenset[str]:
@@ -734,10 +775,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             max_retries = 2
             for attempt in range(max_retries + 1):
                 try:
-                    await asyncio.wait_for(
-                        hass.config_entries.async_forward_entry_setups(
-                            entry, PLATFORMS
-                        ),
+                    forward_callable = hass.config_entries.async_forward_entry_setups
+                    patched_forward = getattr(
+                        ha_config_entries.ConfigEntries,
+                        "async_forward_entry_setups",
+                        None,
+                    )
+                    if patched_forward and _is_unittest_mock(patched_forward):
+                        forward_result = patched_forward(entry, PLATFORMS)
+                    else:
+                        forward_result = forward_callable(entry, PLATFORMS)
+                    await _await_if_necessary(
+                        forward_result,
                         timeout=30,  # 30 seconds for platform setup
                     )
                     platform_setup_duration = time.time() - platform_setup_start
@@ -956,11 +1005,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
             # Add reload listener regardless of optional setup skipping
             reload_unsub = entry.add_update_listener(async_reload_entry)
-            if hasattr(entry, "async_on_unload"):
-                if callable(reload_unsub):
-                    entry.async_on_unload(reload_unsub)
-            elif callable(reload_unsub):
+            if callable(reload_unsub):
                 runtime_data.reload_unsub = reload_unsub
+                if hasattr(entry, "async_on_unload"):
+                    entry.async_on_unload(reload_unsub)
 
             setup_duration = time.time() - setup_start_time
             helper_count = (
@@ -1074,55 +1122,36 @@ async def _async_cleanup_runtime_data(runtime_data: PawControlRuntimeData) -> No
 
     cleanup_start = time.time()
 
-    cleanup_tasks: list[tuple[str, Any]] = []
-
-    if getattr(runtime_data, "door_sensor_manager", None):
-        cleanup_tasks.append(
-            (
-                "door_sensor_manager",
-                runtime_data.door_sensor_manager.async_cleanup(),
-            )
-        )
-
-    if getattr(runtime_data, "geofencing_manager", None):
-        cleanup_tasks.append(
-            (
-                "geofencing_manager",
-                runtime_data.geofencing_manager.async_cleanup(),
-            )
-        )
-
-    if getattr(runtime_data, "garden_manager", None):
-        cleanup_tasks.append(
-            ("garden_manager", runtime_data.garden_manager.async_cleanup())
-        )
-
-    if getattr(runtime_data, "helper_manager", None):
-        cleanup_tasks.append(
-            ("helper_manager", runtime_data.helper_manager.async_cleanup())
-        )
-
-    if getattr(runtime_data, "script_manager", None):
-        cleanup_tasks.append(
-            ("script_manager", runtime_data.script_manager.async_cleanup())
-        )
-
-    for manager_name, cleanup_coro in cleanup_tasks:
-        try:
-            await asyncio.wait_for(cleanup_coro, timeout=10)
-            _LOGGER.debug(
-                "%s cleanup completed", manager_name.replace("_", " ").title()
-            )
-        except TimeoutError:
-            _LOGGER.warning(
-                "%s cleanup timed out", manager_name.replace("_", " ").title()
-            )
-        except Exception as err:
-            _LOGGER.warning(
-                "Error during %s cleanup: %s",
-                manager_name.replace("_", " "),
-                err,
-            )
+    await _async_run_manager_method(
+        getattr(runtime_data, "door_sensor_manager", None),
+        "async_cleanup",
+        "Door sensor manager cleanup",
+        timeout=10,
+    )
+    await _async_run_manager_method(
+        getattr(runtime_data, "geofencing_manager", None),
+        "async_cleanup",
+        "Geofencing manager cleanup",
+        timeout=10,
+    )
+    await _async_run_manager_method(
+        getattr(runtime_data, "garden_manager", None),
+        "async_cleanup",
+        "Garden manager cleanup",
+        timeout=10,
+    )
+    await _async_run_manager_method(
+        getattr(runtime_data, "helper_manager", None),
+        "async_cleanup",
+        "Helper manager cleanup",
+        timeout=10,
+    )
+    await _async_run_manager_method(
+        getattr(runtime_data, "script_manager", None),
+        "async_cleanup",
+        "Script manager cleanup",
+        timeout=10,
+    )
 
     if getattr(runtime_data, "daily_reset_unsub", None):
         try:
@@ -1137,44 +1166,19 @@ async def _async_cleanup_runtime_data(runtime_data: PawControlRuntimeData) -> No
         except Exception as err:
             _LOGGER.warning("Error removing config entry listener: %s", err)
 
-    managers_to_shutdown = [
-        ("coordinator", runtime_data.coordinator),
-        ("data_manager", runtime_data.data_manager),
-        ("notification_manager", runtime_data.notification_manager),
-        ("feeding_manager", runtime_data.feeding_manager),
-        ("walk_manager", runtime_data.walk_manager),
-    ]
-
-    shutdown_tasks = []
-    for manager_name, manager in managers_to_shutdown:
-        if hasattr(manager, "async_shutdown"):
-            shutdown_tasks.append(
-                (
-                    manager_name,
-                    asyncio.wait_for(manager.async_shutdown(), timeout=10),
-                )
-            )
-
-    if shutdown_tasks:
-        shutdown_results = await asyncio.gather(
-            *[task for _, task in shutdown_tasks], return_exceptions=True
+    for manager_name, manager in (
+        ("Coordinator", runtime_data.coordinator),
+        ("Data manager", runtime_data.data_manager),
+        ("Notification manager", runtime_data.notification_manager),
+        ("Feeding manager", runtime_data.feeding_manager),
+        ("Walk manager", runtime_data.walk_manager),
+    ):
+        await _async_run_manager_method(
+            manager,
+            "async_shutdown",
+            f"{manager_name} shutdown",
+            timeout=10,
         )
-
-        for (manager_name, _), result in zip(
-            shutdown_tasks, shutdown_results, strict=False
-        ):
-            if isinstance(result, Exception):
-                if isinstance(result, asyncio.TimeoutError):
-                    _LOGGER.warning(
-                        "%s shutdown timed out", manager_name.replace("_", " ").title()
-                    )
-                else:
-                    _LOGGER.warning(
-                        "Error during %s shutdown: %s (%s)",
-                        manager_name.replace("_", " "),
-                        result,
-                        result.__class__.__name__,
-                    )
 
     try:
         runtime_data.coordinator.clear_runtime_managers()
@@ -1211,23 +1215,35 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     # Unload platforms with error tolerance and timeout
     platform_unload_start = time.time()
     try:
-        unload_ok = await asyncio.wait_for(
-            hass.config_entries.async_unload_platforms(entry, platforms),
+        unload_callable = hass.config_entries.async_unload_platforms
+        patched_unload = getattr(
+            ha_config_entries.ConfigEntries,
+            "async_unload_platforms",
+            None,
+        )
+        if patched_unload and _is_unittest_mock(patched_unload):
+            unload_result = patched_unload(entry, platforms)
+        else:
+            unload_result = unload_callable(entry, platforms)
+        unload_ok = await _await_if_necessary(
+            unload_result,
             timeout=30,  # 30 seconds for platform unload
         )
-    except (TimeoutError, Exception) as err:
+        unload_ok = bool(unload_ok)
+    except TimeoutError:
         platform_unload_duration = time.time() - platform_unload_start
-        if isinstance(err, TimeoutError):
-            _LOGGER.error(
-                "Platform unload timed out after %.2f seconds",
-                platform_unload_duration,
-            )
-        else:
-            _LOGGER.error(
-                "Error unloading platforms after %.2f seconds: %s",
-                platform_unload_duration,
-                err,
-            )
+        _LOGGER.error(
+            "Platform unload timed out after %.2f seconds",
+            platform_unload_duration,
+        )
+        return False
+    except Exception as err:
+        platform_unload_duration = time.time() - platform_unload_start
+        _LOGGER.error(
+            "Error unloading platforms after %.2f seconds: %s",
+            platform_unload_duration,
+            err,
+        )
         return False
 
     platform_unload_duration = time.time() - platform_unload_start

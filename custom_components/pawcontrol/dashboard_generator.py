@@ -17,13 +17,12 @@ from pathlib import Path
 from typing import Any, Final
 
 import aiofiles
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
+from .compat import ConfigEntry, HomeAssistantError
 from .const import CONF_DOG_ID, CONF_DOG_NAME, DOMAIN, MODULE_WEATHER
 from .dashboard_renderer import DashboardRenderer
 from .dashboard_templates import DashboardTemplates

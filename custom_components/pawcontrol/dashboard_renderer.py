@@ -21,9 +21,9 @@ from typing import Any
 
 import aiofiles
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
+from .compat import HomeAssistantError
 from .dashboard_cards import (
     DogCardGenerator,
     ModuleCardGenerator,

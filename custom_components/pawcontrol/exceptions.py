@@ -18,13 +18,11 @@ from datetime import UTC, datetime
 from enum import Enum
 from typing import Any, Final
 
+from .compat import HomeAssistantError
+
 try:
-    from homeassistant.exceptions import HomeAssistantError
     from homeassistant.util import dt as dt_util
 except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
-
-    class HomeAssistantError(Exception):
-        """Fallback error used when Home Assistant isn't installed."""
 
     class _DateTimeModule:
         @staticmethod

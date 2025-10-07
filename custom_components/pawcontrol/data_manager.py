@@ -23,9 +23,9 @@ from time import perf_counter
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
+from .compat import HomeAssistantError
 from .const import DOMAIN
 from .types import DailyStats, FeedingData, GPSLocation, HealthData, WalkData
 

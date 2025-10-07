@@ -17,7 +17,6 @@ from homeassistant.components.script import DOMAIN as SCRIPT_DOMAIN
 from homeassistant.components.script import ScriptEntity
 from homeassistant.components.script.config import SCRIPT_ENTITY_SCHEMA
 from homeassistant.components.script.const import CONF_FIELDS, CONF_TRACE
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     CONF_ALIAS,
     CONF_DEFAULT,
@@ -26,12 +25,12 @@ from homeassistant.const import (
     CONF_SEQUENCE,
 )
 from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_component import EntityComponent
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import slugify
 
+from .compat import ConfigEntry, HomeAssistantError
 from .const import CONF_DOG_ID, CONF_DOG_NAME, CONF_MODULES, MODULE_NOTIFICATIONS
 from .types import DogConfigData
 

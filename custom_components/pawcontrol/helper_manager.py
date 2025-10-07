@@ -25,14 +25,13 @@ from homeassistant.components import (
     input_number,
     input_select,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
+from .compat import ConfigEntry, HomeAssistantError
 from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,

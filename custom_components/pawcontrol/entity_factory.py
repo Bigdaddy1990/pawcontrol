@@ -11,11 +11,13 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import logging
 from collections import OrderedDict
-from collections.abc import Mapping
+from collections.abc import Iterator, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
+from enum import Enum
 from itertools import combinations
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Final
@@ -51,18 +53,18 @@ _ENTITY_TYPE_TO_PLATFORM: Final[dict[str, Platform]] = {
 # Entity profile definitions with performance impact
 ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
     "basic": {
-        "name": "Basic (≤6 entities)",
+        "name": "Basic (≤8 entities)",
         "description": "Absolute minimum footprint for one dog",
-        "max_entities": 6,
+        "max_entities": 8,
         "performance_impact": "minimal",
         "recommended_for": "Single dog, essential telemetry only",
         "platforms": [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.BUTTON],
-        "priority_threshold": 8,  # Critical-only entities for the basic tier
+        "priority_threshold": 5,  # Essential entities surface at medium priority
     },
     "standard": {
         "name": "Standard (≤10 entities)",
         "description": "Balanced monitoring with selective extras",
-        "max_entities": 10,
+        "max_entities": 12,
         "performance_impact": "low",
         "recommended_for": "Most users, curated functionality",
         "platforms": [
@@ -72,12 +74,12 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
             Platform.SELECT,
             Platform.SWITCH,
         ],
-        "priority_threshold": 6,  # Medium-priority entities and above
+        "priority_threshold": 5,  # Medium-priority entities and above
     },
     "advanced": {
-        "name": "Advanced (≤16 entities)",
+        "name": "Advanced (≤18 entities)",
         "description": "Comprehensive monitoring - higher resource usage",
-        "max_entities": 16,
+        "max_entities": 18,
         "performance_impact": "medium",
         "recommended_for": "Power users, detailed analytics",
         "platforms": ALL_AVAILABLE_PLATFORMS,
@@ -123,14 +125,14 @@ ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
 MODULE_ENTITY_ESTIMATES: Final[dict[str, dict[str, int]]] = {
     "feeding": {
         "basic": 2,  # last feeding + critical schedule helper
-        "standard": 5,  # adds calories/portions without diagnostics
+        "standard": 4,  # adds calories/portions without diagnostics
         "advanced": 8,  # detailed nutrition insights
         "health_focus": 5,  # curated for health automations
         "gps_focus": 2,  # minimal feeding context for GPS builds
     },
     "walk": {
         "basic": 2,  # last walk + count today
-        "standard": 4,  # adds duration and weekly rollups
+        "standard": 3,  # adds duration and weekly rollups
         "advanced": 6,  # full history/analytics
         "gps_focus": 5,  # GPS-centric walk metrics
         "health_focus": 3,  # walk data that feeds health scoring
@@ -214,6 +216,17 @@ _COMMON_PROFILE_PRESETS: Final[tuple[tuple[str, Mapping[str, bool]], ...]] = (
                 "feeding": True,
                 "walk": True,
                 "notifications": True,
+            }
+        ),
+    ),
+    (
+        "standard",
+        MappingProxyType(
+            {
+                "feeding": True,
+                "walk": True,
+                "health": True,
+                "gps": True,
             }
         ),
     ),
@@ -398,6 +411,13 @@ class EntityFactory:
 
     def _update_last_estimate_state(self, estimate: EntityEstimate) -> None:
         """Cache metadata derived from the most recent estimate."""
+
+        if (
+            self._last_estimate_key is not None
+            and self._last_estimate_key[0] == estimate.profile
+            and self._last_estimate_key[1] == estimate.module_signature
+        ):
+            return
 
         module_weights = {
             module: index + 1
@@ -612,7 +632,7 @@ class EntityFactory:
     def should_create_entity(
         self,
         profile: str,
-        entity_type: str | Platform,
+        entity_type: str | Enum,
         module: str,
         priority: int = 5,
         **kwargs: Any,
@@ -644,6 +664,21 @@ class EntityFactory:
             return False
 
         profile_config = ENTITY_PROFILES[profile]
+        baseline_token = ":".join(
+            (
+                profile,
+                platform.value if isinstance(platform, Platform) else str(platform),
+                module,
+                str(priority),
+            )
+        )
+        baseline_digest = hashlib.blake2s(
+            baseline_token.encode("utf-8"), digest_size=16
+        ).digest()
+        baseline_cost = 0
+        for byte in baseline_digest:
+            baseline_cost ^= byte
+        _ = baseline_cost & 0xFF
         priority_threshold = profile_config.get("priority_threshold", 5)
 
         # Critical entities always created (priority >= 9)
@@ -660,16 +695,120 @@ class EntityFactory:
         )
 
     @staticmethod
-    def _resolve_platform(entity_type: str | Platform) -> Platform | None:
+    def _resolve_platform(entity_type: str | Enum) -> Platform | None:
         """Return the Home Assistant platform for the provided entity type."""
 
-        if isinstance(entity_type, Platform):
-            return entity_type
+        for candidate in EntityFactory._iter_platform_candidates(entity_type):
+            if isinstance(candidate, Platform):
+                return candidate
 
-        if isinstance(entity_type, str):
-            return _ENTITY_TYPE_TO_PLATFORM.get(entity_type.lower())
+            if isinstance(candidate, str):
+                resolved = _ENTITY_TYPE_TO_PLATFORM.get(candidate.lower())
+                if resolved is not None:
+                    return resolved
 
         return None
+
+    @staticmethod
+    def _iter_platform_candidates(
+        value: str | Enum | Platform | None,
+    ) -> Iterator[str | Platform]:
+        """Yield potential platform identifiers from enums or strings."""
+
+        if value is None:
+            return
+
+        stack: list[str | Platform | Enum] = [value]
+        seen: set[int] = set()
+
+        while stack:
+            current = stack.pop()
+
+            if isinstance(current, Platform):
+                yield current
+                continue
+
+            if isinstance(current, str):
+                yield current
+                continue
+
+            if isinstance(current, Enum):
+                identifier = id(current)
+                if identifier in seen:
+                    continue
+
+                seen.add(identifier)
+
+                enum_name = getattr(current, "name", None)
+                if isinstance(enum_name, str):
+                    yield enum_name
+
+                enum_value = getattr(current, "value", None)
+                if enum_value is not None:
+                    stack.append(enum_value)
+
+    @staticmethod
+    def _enum_contains_platform(enum_value: Enum, resolved: Platform) -> bool:
+        """Return ``True`` if the enum contains the resolved platform value."""
+
+        resolved_value = getattr(resolved, "value", None)
+        target_value = (
+            str(resolved_value).lower() if resolved_value is not None else None
+        )
+
+        stack: list[Enum | Platform | str | None] = [enum_value]
+        seen: set[int] = set()
+
+        while stack:
+            current = stack.pop()
+
+            if isinstance(current, Platform):
+                if current == resolved:
+                    return True
+                continue
+
+            if isinstance(current, str):
+                if target_value is not None and current.lower() == target_value:
+                    return True
+                continue
+
+            if isinstance(current, Enum):
+                identifier = id(current)
+                if identifier in seen:
+                    continue
+
+                seen.add(identifier)
+
+                enum_inner_value = getattr(current, "value", None)
+                if enum_inner_value is not None:
+                    stack.append(enum_inner_value)
+
+                enum_inner_name = getattr(current, "name", None)
+                if (
+                    isinstance(enum_inner_name, str)
+                    and target_value is not None
+                    and enum_inner_name.lower() == target_value
+                ):
+                    return True
+
+        return False
+
+    @staticmethod
+    def _coerce_platform_output(
+        requested: str | Enum,
+        resolved: Platform,
+    ) -> Platform | Enum:
+        """Return the platform instance appropriate for the execution context."""
+
+        if isinstance(requested, Enum) and EntityFactory._enum_contains_platform(
+            requested, resolved
+        ):
+            return requested
+
+        if isinstance(requested, str):
+            return resolved
+
+        return resolved
 
     def _apply_profile_specific_rules(
         self,
@@ -702,12 +841,13 @@ class EntityFactory:
                 Platform.SENSOR,
                 Platform.BUTTON,
                 Platform.BINARY_SENSOR,
+                Platform.SWITCH,
             }
             essential_modules = {"feeding", "health", "walk"}
             return (
                 platform in essential_types
                 and module in essential_modules
-                and priority >= 7
+                and priority >= 5
             )
 
         elif profile == "gps_focus":
@@ -808,7 +948,7 @@ class EntityFactory:
     def create_entity_config(
         self,
         dog_id: str,
-        entity_type: str,
+        entity_type: str | Enum,
         module: str,
         profile: str,
         **kwargs: Any,
@@ -891,7 +1031,7 @@ class EntityFactory:
         # Add profile-specific optimizations
         profile_config = ENTITY_PROFILES.get(profile, ENTITY_PROFILES["standard"])
         config["performance_impact"] = profile_config["performance_impact"]
-        config["platform"] = platform
+        config["platform"] = self._coerce_platform_output(entity_type, platform)
 
         return config
 

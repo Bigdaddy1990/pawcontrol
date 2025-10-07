@@ -20,15 +20,13 @@ from typing import ParamSpec, TypeVar
 
 try:
     from homeassistant.core import HomeAssistant
-    from homeassistant.exceptions import HomeAssistantError
 except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
 
     class HomeAssistant:  # type: ignore[override]
         """Minimal stand-in used during unit tests."""
 
-    class HomeAssistantError(Exception):
-        """Fallback base error used when Home Assistant isn't installed."""
 
+from .compat import HomeAssistantError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -128,6 +126,8 @@ class CircuitBreaker:
         Raises:
             HomeAssistantError: If circuit is open or call fails
         """
+        incremented_half_open = False
+
         async with self._lock:
             self._stats.total_calls += 1
 
@@ -143,11 +143,13 @@ class CircuitBreaker:
             # Limit calls in half-open state
             if self._stats.state == CircuitState.HALF_OPEN:
                 if self._half_open_calls >= self.config.half_open_max_calls:
+                    self._stats.total_failures += 1
                     raise HomeAssistantError(
                         f"Circuit breaker '{self.name}' is HALF_OPEN - "
                         f"max concurrent calls reached"
                     )
                 self._half_open_calls += 1
+                incremented_half_open = True
 
         # Execute function outside lock to avoid blocking
         try:
@@ -160,9 +162,10 @@ class CircuitBreaker:
             raise
 
         finally:
-            if self._stats.state == CircuitState.HALF_OPEN:
+            if incremented_half_open:
                 async with self._lock:
-                    self._half_open_calls -= 1
+                    if self._half_open_calls > 0:
+                        self._half_open_calls -= 1
 
     async def _record_success(self) -> None:
         """Record successful call and update state."""
@@ -213,10 +216,16 @@ class CircuitBreaker:
         Returns:
             True if timeout has elapsed since last failure
         """
-        if self._stats.last_failure_time is None:
+        reference = (
+            self._stats.last_state_change
+            if self._stats.last_state_change is not None
+            else self._stats.last_failure_time
+        )
+
+        if reference is None:
             return True
 
-        elapsed = time.monotonic() - self._stats.last_failure_time
+        elapsed = time.monotonic() - reference
         return elapsed >= self.config.timeout_seconds
 
     def _transition_to_open(self) -> None:
@@ -312,13 +321,20 @@ async def retry_with_backoff(
         RetryExhaustedError: If all retry attempts fail
     """
     retry_config = config or RetryConfig()
+    if retry_config.max_attempts < 1:
+        raise HomeAssistantError("Retry requires at least one attempt")
     last_exception: Exception | None = None
 
     for attempt in range(1, retry_config.max_attempts + 1):
         try:
             result = await func(*args, **kwargs)
             if attempt > 1:
-                _LOGGER.info(
+                log_method = (
+                    _LOGGER.info
+                    if _LOGGER.isEnabledFor(logging.INFO)
+                    else _LOGGER.warning
+                )
+                log_method(
                     "Retry succeeded on attempt %d/%d for %s",
                     attempt,
                     retry_config.max_attempts,
