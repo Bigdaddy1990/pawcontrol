@@ -55,7 +55,10 @@ class TestCircuitBreaker:
         assert breaker.stats.total_failures == 3
 
         # Next call should be rejected without executing function
-        with pytest.raises(HomeAssistantError, match="Circuit breaker.*OPEN"):
+        with pytest.raises(
+            HomeAssistantError,
+            match=r"Circuit breaker 'test' is OPEN - calls rejected",
+        ):
             await breaker.call(failing_func)
 
         # Total failures should still be 3 (function not executed)

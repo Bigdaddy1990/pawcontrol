@@ -182,6 +182,8 @@ class ConfigEntryState(Enum):
     FAILED_UNLOAD = ("failed_unload", False)
 
     def __new__(cls, value: str, recoverable: bool) -> ConfigEntryState:
+        """Create enum members that store the recoverability flag."""
+
         obj = object.__new__(cls)
         obj._value_ = value
         obj._recoverable = recoverable
@@ -224,6 +226,8 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
         disabled_by: str | None = None,
         state: ConfigEntryState | str = ConfigEntryState.NOT_LOADED,
     ) -> None:
+        """Initialize a shim config entry compatible with Home Assistant tests."""
+
         self.entry_id = entry_id or f"entry_{next(self._id_source)}"
         self.domain = domain or "unknown"
         self.data: dict[str, Any] = dict(data or {})
