@@ -4,13 +4,12 @@
 - `pytest -q` now reports 7 failures focused on runtime-data reuse, optimized cache expiration, and weak-reference cleanup after the new error resolver landed. 【1d35a5†L1-L210】
 - `tests/components/pawcontrol/test_all_platforms.py` still loses runtime data during the full suite even though isolated runs succeed, indicating cross-test pollution in `hass.data` handling. 【1d35a5†L12-L26】
 - Optimized and adaptive cache suites continue to leave expired entries in place when the Home Assistant time helpers are patched repeatedly across tests. 【1d35a5†L29-L54】
-- `tests/components/pawcontrol/test_optimized_entity_base.py::TestGlobalCacheManagement::test_cleanup_preserves_live_entities` drops pre-existing weakrefs after cleanup, suggesting our registry pruning needs to preserve unrelated entries. 【1d35a5†L26-L34】
+- ✅ `tests/components/pawcontrol/test_optimized_entity_base.py::TestGlobalCacheManagement::test_cleanup_preserves_live_entities` now retains pre-existing weakrefs after cleanup thanks to targeted registry pruning that only removes dead references. 【F:custom_components/pawcontrol/optimized_entity_base.py†L241-L269】
 
 ## Action Items
 1. Track and eliminate the cross-test `hass.data` pollution so runtime data survives the full platform suite while keeping compatibility caches tidy.
 2. Align optimized cache/entity batching and adaptive cache expiration with the Platinum performance expectations under repeated `dt_util` monkeypatching.
-3. Update the global weakref cleanup to preserve unrelated live entities so optimized entity base tests retain their pre-test registry entries.
-4. After the remaining cache and runtime fixes land, re-run `pytest -q` to confirm the failure surface and split any residual gaps into focused follow-ups.
+3. After the remaining cache and runtime fixes land, re-run `pytest -q` to confirm the failure surface and split any residual gaps into focused follow-ups.
 
 ## Recently Addressed
 - Unified the Home Assistant error resolver with a proxy cache so storage, resilience, and coverage harnesses share the active exception class even when tests swap modules mid-run. 【F:custom_components/pawcontrol/data_manager.py†L66-L123】
@@ -19,6 +18,7 @@
 - Refreshed the Home Assistant error resolver to always return the active class exported by `homeassistant.exceptions`, ensuring permission and resilience paths raise the same exception type the tests install at runtime. 【F:custom_components/pawcontrol/data_manager.py†L146-L170】【F:custom_components/pawcontrol/resilience.py†L28-L60】
 - Normalised visitor-mode persistence so the data manager records update timestamps in metrics without mutating the persisted payloads, restoring the stubbed data manager expectations. 【F:custom_components/pawcontrol/data_manager.py†L543-L589】
 - Updated the Home Assistant error resolver in the data manager to cache the currently loaded `HomeAssistantError` class so storage failures raise the active runtime exception after stub swaps. 【F:custom_components/pawcontrol/data_manager.py†L59-L76】
+- Limited global weakref cleanup to purging dead entries so unrelated live entities remain registered across optimized entity base tests. 【F:custom_components/pawcontrol/optimized_entity_base.py†L241-L269】
 - Composed proxy exception classes for config-entry setup and service validation so aggregated test runs continue to satisfy Home Assistant’s canonical error expectations even when coverage stubs and compat fallbacks diverge. 【F:custom_components/pawcontrol/__init__.py†L54-L164】【F:custom_components/pawcontrol/services.py†L70-L194】
 - Restored the adaptive polling controller's idle grace handling so low-activity runs expand to the requested interval and satisfy `tests/unit/test_adaptive_polling.py`.
 - Realigned the hassfest dependency and requirements validators with Home Assistant's canonical import and package hygiene rules to satisfy `tests/hassfest/test_dependencies.py` and `tests/hassfest/test_requirements.py`.

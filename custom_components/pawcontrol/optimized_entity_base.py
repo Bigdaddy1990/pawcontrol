@@ -245,19 +245,15 @@ def _cleanup_global_caches() -> None:
 
     # Clean up dead weak references without resetting the registry entirely
     if _ENTITY_REGISTRY:
-        live_refs: set[weakref.ReferenceType[OptimizedEntityBase]] = set()
-        dead_count = 0
+        dead_refs: set[weakref.ReferenceType[Any]] = set()
 
         for entity_ref in tuple(_ENTITY_REGISTRY):
             if entity_ref() is None:
-                dead_count += 1
-                continue
-            live_refs.add(entity_ref)
+                dead_refs.add(entity_ref)
 
-        if dead_count:
-            _ENTITY_REGISTRY.clear()
-            _ENTITY_REGISTRY.update(live_refs)
-            _LOGGER.debug("Removed %d dead entity weakrefs", dead_count)
+        if dead_refs:
+            _ENTITY_REGISTRY.difference_update(dead_refs)
+            _LOGGER.debug("Removed %d dead entity weakrefs", len(dead_refs))
 
     if cleanup_stats["cleaned"] > 0:
         _LOGGER.info(
