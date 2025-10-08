@@ -269,7 +269,9 @@ def _cleanup_global_caches() -> None:
             normalized_time, normalized = _normalize_cache_timestamp(timestamp, now)
             if normalized:
                 if len(entry) == 2:
-                    cache_dict[key] = cast(tuple[Any, float], (entry[0], normalized_time))
+                    cache_dict[key] = cast(
+                        tuple[Any, float], (entry[0], normalized_time)
+                    )
                 elif len(entry) == 3:
                     cache_dict[key] = cast(
                         tuple[Any, float, Any], (entry[0], normalized_time, entry[2])
