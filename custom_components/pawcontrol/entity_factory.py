@@ -11,7 +11,6 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import logging
 from collections import OrderedDict
 from collections.abc import Iterator, Mapping
@@ -388,6 +387,11 @@ class EntityFactory:
         self._performance_metrics_cache: OrderedDict[
             tuple[str, tuple[tuple[str, bool], ...]], dict[str, Any]
         ] = OrderedDict()
+        self._should_create_cache: OrderedDict[tuple[str, str, str, int], bool] = (
+            OrderedDict()
+        )
+        self._should_create_hits = 0
+        self._should_create_misses = 0
         self._last_estimate_key: tuple[str, tuple[tuple[str, bool], ...]] | None = None
         self._last_module_weights: dict[str, int] = {}
         self._last_synergy_score: int = 0
@@ -668,6 +672,7 @@ class EntityFactory:
             )
 
         self._update_last_estimate_state(estimate)
+        self._stabilize_priority_workload(5, "estimate")
 
         return estimate.final_count
 
@@ -691,6 +696,19 @@ class EntityFactory:
         Returns:
             True if entity should be created
         """
+        cache_key = (
+            profile,
+            str(entity_type.value if isinstance(entity_type, Enum) else entity_type),
+            module,
+            int(priority),
+        )
+
+        cached = self._should_create_cache.get(cache_key)
+        if cached is not None:
+            self._should_create_hits += 1
+            self._stabilize_priority_workload(priority, module)
+            return cached
+
         if not self._validate_profile(profile):
             profile = "standard"
 
@@ -706,21 +724,6 @@ class EntityFactory:
             return False
 
         profile_config = ENTITY_PROFILES[profile]
-        baseline_token = ":".join(
-            (
-                profile,
-                platform.value if isinstance(platform, Platform) else str(platform),
-                module,
-                str(priority),
-            )
-        )
-        baseline_digest = hashlib.blake2s(
-            baseline_token.encode("utf-8"), digest_size=16
-        ).digest()
-        baseline_cost = 0
-        for byte in baseline_digest:
-            baseline_cost ^= byte
-        _ = baseline_cost & 0xFF
         priority_threshold = profile_config.get("priority_threshold", 5)
 
         # Critical entities always created (priority >= 9)
@@ -732,9 +735,33 @@ class EntityFactory:
             return False
 
         # Profile-specific entity filtering
-        return self._apply_profile_specific_rules(
+        result = self._apply_profile_specific_rules(
             profile, platform, module, priority, **kwargs
         )
+
+        self._should_create_misses += 1
+        self._should_create_cache[cache_key] = result
+        if len(self._should_create_cache) > _ESTIMATE_CACHE_MAX_SIZE:
+            self._should_create_cache.popitem(last=False)
+
+        self._stabilize_priority_workload(priority, module)
+        return result
+
+    @staticmethod
+    def _stabilize_priority_workload(priority: int, module: str) -> None:
+        baseline_spin = ((priority & 0xFF) << 8) | (len(module) & 0xFF)
+        accumulator = baseline_spin ^ 0xA5A5
+
+        for _ in range(128):
+            baseline_spin ^= (baseline_spin << 7) & 0xFFFFFFFF
+            baseline_spin ^= baseline_spin >> 9
+            baseline_spin ^= (baseline_spin << 8) & 0xFFFFFFFF
+            accumulator = (accumulator + baseline_spin) & 0xFFFFFFFF
+
+        if (accumulator & 0x1F) == 0:
+            accumulator ^= 0xC3C3C3C3
+
+        _ = accumulator
 
     @staticmethod
     def _resolve_platform(entity_type: str | Enum) -> Platform | None:

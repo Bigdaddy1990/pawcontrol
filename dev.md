@@ -1,6 +1,13 @@
 # Development Plan
 
 ## Outstanding Failures and Opportunities
+- `pytest -q` now reports 5 failures concentrated in the adaptive cache expiry helpers, optimized data cache eviction, and the global entity registry clean-up that still purges pre-existing entries after suite-wide garbage collection. 【f41850†L1-L87】
+- Optimized and adaptive cache suites continue to leave expired entries in place when the Home Assistant time helpers are patched repeatedly across tests. 【f41850†L21-L46】
+- `tests/components/pawcontrol/test_optimized_entity_base.py::TestGlobalCacheManagement::test_cleanup_preserves_live_entities` still loses baseline registry entries during the full test run, so we need to guard cross-test weakref churn without regressing the targeted fixture. 【f41850†L12-L18】
+
+## Action Items
+1. Align optimized cache/entity batching and adaptive cache expiration with the Platinum performance expectations under repeated `dt_util` monkeypatching.
+2. Harden the global weakref cleanup so cross-suite garbage collection stops erasing unrelated registry entries while keeping per-test isolation intact.
 - `pytest -q` now reports 6 failures focused on optimized cache expiration and weak-reference cleanup after the new error resolver landed. 【98deda†L1-L120】
 - Optimized and adaptive cache suites continue to leave expired entries in place when the Home Assistant time helpers are patched repeatedly across tests. 【98deda†L18-L47】【98deda†L70-L120】
 - `tests/components/pawcontrol/test_optimized_entity_base.py::TestGlobalCacheManagement::test_cleanup_preserves_live_entities` drops pre-existing weakrefs after cleanup, suggesting our registry pruning needs to preserve unrelated entries. 【98deda†L1-L36】
@@ -36,6 +43,7 @@
 - Normalised runtime data storage to keep the config entry authoritative while scrubbing stale compatibility payloads from `hass.data`. 【F:custom_components/pawcontrol/runtime_data.py†L74-L162】
 - Hardened runtime-data detection so reloaded test modules keep `hass.data` intact across the full suite and added regression coverage for legacy payloads. 【F:custom_components/pawcontrol/runtime_data.py†L54-L193】【F:tests/test_runtime_data.py†L278-L323】
 - Pre-warmed the entity factory with dashboard-enabled presets and cached loop detection to stabilise the performance regression benchmark variance. 【F:custom_components/pawcontrol/entity_factory.py†L202-L237】【F:custom_components/pawcontrol/entity_factory.py†L360-L520】
+- Stabilised the continuous-operation simulation by aligning cache hits and estimation workloads, keeping timing variance below the 10× guardrail. 【F:custom_components/pawcontrol/entity_factory.py†L700-L770】【F:tests/components/pawcontrol/test_entity_performance_scaling.py†L780-L816】
 - Refreshed the Home Assistant error resolver to always return the active class exported by `homeassistant.exceptions`, ensuring permission and resilience paths raise the same exception type the tests install at runtime. 【F:custom_components/pawcontrol/data_manager.py†L146-L170】【F:custom_components/pawcontrol/resilience.py†L28-L60】
 - Normalised visitor-mode persistence so the data manager records update timestamps in metrics without mutating the persisted payloads, restoring the stubbed data manager expectations. 【F:custom_components/pawcontrol/data_manager.py†L543-L589】
 - Updated the Home Assistant error resolver in the data manager to cache the currently loaded `HomeAssistantError` class so storage failures raise the active runtime exception after stub swaps. 【F:custom_components/pawcontrol/data_manager.py†L59-L76】
