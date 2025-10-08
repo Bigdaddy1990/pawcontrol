@@ -8,6 +8,14 @@
 ## Action Items
 1. Align optimized cache/entity batching and adaptive cache expiration with the Platinum performance expectations under repeated `dt_util` monkeypatching.
 2. Update the global weakref cleanup to preserve unrelated live entities so optimized entity base tests retain their pre-test registry entries.
+- `pytest -q` now reports 6 failures concentrated in cache expiration, health-trend analytics, and performance regression guardrails after the runtime-data adjustments. 【1d35a5†L1-L210】
+- `tests/components/pawcontrol/test_all_platforms.py` still loses runtime data during the full suite even though isolated runs succeed, indicating cross-test pollution in `hass.data` handling. 【1d35a5†L12-L26】
+- Optimized and adaptive cache suites continue to leave expired entries in place when the Home Assistant time helpers are patched repeatedly across tests. 【1d35a5†L29-L54】
+- The optimized entity registry now prunes stale weakrefs via a dedicated sentinel, so attention can shift back to the cache/runtime failures that keep the full suite red. 【1d35a5†L26-L34】
+
+## Action Items
+1. Track and eliminate the cross-test `hass.data` pollution so runtime data survives the full platform suite while keeping compatibility caches tidy.
+2. Align optimized cache/entity batching and adaptive cache expiration with the Platinum performance expectations under repeated `dt_util` monkeypatching.
 3. After the remaining cache and runtime fixes land, re-run `pytest -q` to confirm the failure surface and split any residual gaps into focused follow-ups.
 
 ## Recently Addressed
@@ -29,3 +37,4 @@
 - Updated the config entry setup path to resolve the active Home Assistant `ConfigEntryNotReady` class on demand so lifecycle tests use the runtime module even after stub swaps. 【F:custom_components/pawcontrol/__init__.py†L39-L68】【F:custom_components/pawcontrol/__init__.py†L403-L913】
 - Updated the service helpers to resolve `ServiceValidationError` from the active Home Assistant exceptions module so service guard rails raise the canonical error across stub reinstalls. 【F:custom_components/pawcontrol/services.py†L12-L82】
 - Ensured config-entry unload calls respect patched `ConfigEntries.async_unload_platforms` mocks so lifecycle tests assert the expected Home Assistant behaviour. 【F:custom_components/pawcontrol/__init__.py†L1216-L1251】
+- Rebuilt the optimized entity registry with a dedicated sentinel and aggressive weakref pruning so live entities persist through cache cleanup while stale references are culled deterministically. 【F:custom_components/pawcontrol/optimized_entity_base.py†L1158-L1349】
