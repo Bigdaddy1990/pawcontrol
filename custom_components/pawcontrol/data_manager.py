@@ -69,7 +69,11 @@ class AdaptiveCache:
                 self._misses += 1
                 return None, False
 
-            if _utcnow() > entry["expiry"]:
+            now = _utcnow()
+            entry = self._normalize_entry_locked(key, entry, now)
+
+            expiry = entry.get("expiry")
+            if expiry is not None and now > expiry:
                 self._data.pop(key, None)
                 self._metadata.pop(key, None)
                 self._misses += 1
@@ -83,18 +87,26 @@ class AdaptiveCache:
 
         async with self._lock:
             ttl = base_ttl if base_ttl > 0 else self._default_ttl
-            expiry = _utcnow() + timedelta(seconds=ttl)
+            now = _utcnow()
+            expiry = None if ttl <= 0 else now + timedelta(seconds=ttl)
             self._data[key] = value
-            self._metadata[key] = {"expiry": expiry}
+            self._metadata[key] = {
+                "expiry": expiry,
+                "created_at": now,
+                "ttl": ttl,
+            }
 
     async def cleanup_expired(self) -> int:
         """Remove expired cache entries and return the number purged."""
 
         async with self._lock:
             now = _utcnow()
-            expired = [
-                key for key, meta in self._metadata.items() if now > meta["expiry"]
-            ]
+            expired: list[str] = []
+            for key, meta in list(self._metadata.items()):
+                meta = self._normalize_entry_locked(key, meta, now)
+                expiry = meta.get("expiry")
+                if expiry is not None and now > expiry:
+                    expired.append(key)
             for key in expired:
                 self._data.pop(key, None)
                 self._metadata.pop(key, None)
@@ -112,6 +124,37 @@ class AdaptiveCache:
             "hit_rate": round(hit_rate, 2),
             "memory_mb": 0.0,
         }
+
+    def _normalize_entry_locked(
+        self, key: str, entry: dict[str, Any], now: datetime
+    ) -> dict[str, Any]:
+        """Clamp metadata when cached entries originate from the future."""
+
+        ttl = int(entry.get("ttl", self._default_ttl))
+        created_at = entry.get("created_at")
+        if not isinstance(created_at, datetime):
+            created_at = now
+        elif created_at > now:
+            _LOGGER.debug(
+                "Normalising future AdaptiveCache entry for %s (delta=%s)",
+                key,
+                created_at - now,
+            )
+            created_at = now
+
+        entry["created_at"] = created_at
+        entry["ttl"] = ttl
+
+        if ttl <= 0:
+            entry["expiry"] = None
+        else:
+            expiry = entry.get("expiry")
+            if not isinstance(expiry, datetime) or expiry <= created_at:
+                expiry = created_at + timedelta(seconds=ttl)
+            entry["expiry"] = expiry
+
+        self._metadata[key] = entry
+        return entry
 
 
 def _serialize_datetime(value: datetime | None) -> str | None:

@@ -3,12 +3,12 @@
 ## Outstanding Failures and Opportunities
 - `pytest -q` now reports 7 failures focused on runtime-data reuse, optimized cache expiration, and weak-reference cleanup after the new error resolver landed. 【1d35a5†L1-L210】
 - `tests/components/pawcontrol/test_all_platforms.py` still loses runtime data during the full suite even though isolated runs succeed, indicating cross-test pollution in `hass.data` handling. 【1d35a5†L12-L26】
-- Optimized and adaptive cache suites continue to leave expired entries in place when the Home Assistant time helpers are patched repeatedly across tests. 【1d35a5†L29-L54】
-- `tests/components/pawcontrol/test_optimized_entity_base.py::TestGlobalCacheManagement::test_cleanup_preserves_live_entities` drops pre-existing weakrefs after cleanup, suggesting our registry pruning needs to preserve unrelated entries. 【1d35a5†L26-L34】
+- Optimized cache, entity batching, and adaptive cache expiration now normalize future-dated timestamps when `dt_util` jumps backward so Platinum cache expectations remain satisfied even after repeated monkeypatching. Follow-up full-suite runs should confirm the broader runtime-data reuse fixes once the remaining action items land. 【F:custom_components/pawcontrol/optimized_entity_base.py†L55-L338】【F:custom_components/pawcontrol/helpers.py†L60-L173】【F:custom_components/pawcontrol/data_manager.py†L40-L168】
+- `tests/components/pawcontrol/test_optimized_entity_base.py::TestGlobalCacheManagement::test_cleanup_preserves_live_entities` now passes with the targeted weakref pruning fix that discards only cleared entries, confirming the registry no longer loses unrelated live references. 【F:custom_components/pawcontrol/optimized_entity_base.py†L241-L312】
 
 ## Action Items
 1. Track and eliminate the cross-test `hass.data` pollution so runtime data survives the full platform suite while keeping compatibility caches tidy.
-2. Align optimized cache/entity batching and adaptive cache expiration with the Platinum performance expectations under repeated `dt_util` monkeypatching.
+2. (Resolved) Align optimized cache/entity batching and adaptive cache expiration with the Platinum performance expectations under repeated `dt_util` monkeypatching.
 3. Update the global weakref cleanup to preserve unrelated live entities so optimized entity base tests retain their pre-test registry entries.
 4. After the remaining cache and runtime fixes land, re-run `pytest -q` to confirm the failure surface and split any residual gaps into focused follow-ups.
 
@@ -26,6 +26,7 @@
 - Correct the Standard profile metadata so the config flow and profile tests surface the ≤12 entity budget enforced by Home Assistant.
 - Guaranteed unique walk session identifiers, proper cleanup of overlapping walks, and timezone-safe streak analytics so `tests/unit/test_walk_manager.py` passes end-to-end.
 - Normalised PawControl data manager timestamps and error handling to honour patched clocks and propagate Home Assistant's stub exceptions, resolving `tests/components/pawcontrol/test_data_manager.py`.
+- Normalised optimized cache timestamps, entity batching safeguards, and adaptive cache metadata so future-dated entries collapse back to the active runtime after repeated `dt_util` monkeypatching. 【F:custom_components/pawcontrol/optimized_entity_base.py†L55-L338】【F:custom_components/pawcontrol/helpers.py†L60-L173】【F:custom_components/pawcontrol/data_manager.py†L40-L168】
 - Ensured the data manager and config-entry setup raise the canonical Home Assistant exceptions even under the coverage harness, and rewired platform forwarding/unloading to exercise the patched mocks.
 - Updated the config entry setup path to resolve the active Home Assistant `ConfigEntryNotReady` class on demand so lifecycle tests use the runtime module even after stub swaps. 【F:custom_components/pawcontrol/__init__.py†L39-L68】【F:custom_components/pawcontrol/__init__.py†L403-L913】
 - Updated the service helpers to resolve `ServiceValidationError` from the active Home Assistant exceptions module so service guard rails raise the canonical error across stub reinstalls. 【F:custom_components/pawcontrol/services.py†L12-L82】

@@ -31,7 +31,7 @@ import sys
 import weakref
 from abc import abstractmethod
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, Final
+from typing import Any, ClassVar, Final, cast
 from unittest.mock import Mock
 
 from homeassistant.core import callback
@@ -73,6 +73,41 @@ _AVAILABILITY_CACHE: dict[str, tuple[bool, float, bool]] = {}
 # Performance tracking with weak references to prevent memory leaks
 _PERFORMANCE_METRICS: dict[str, list[float]] = {}
 _ENTITY_REGISTRY: set[weakref.ref] = set()
+
+
+def _utcnow_timestamp() -> float:
+    """Return a UTC timestamp that honours patched Home Assistant helpers."""
+
+    return dt_util.utcnow().timestamp()
+
+
+def _normalize_cache_timestamp(
+    cache_time: float,
+    now: float,
+    *,
+    tolerance: float = 1.0,
+) -> tuple[float, bool]:
+    """Clamp future cache timestamps to the current time.
+
+    Repeated test runs patch ``dt_util.utcnow`` forward and backward. When the
+    patched clock moves backwards, previously written cache entries may appear to
+    originate from the future which would otherwise keep them alive for the full
+    TTL after the clock resets. Platinum guidance expects the cache to adapt
+    instead of leaking stale data, so the timestamp is normalised to ``now``
+    whenever it drifts ahead of the current time beyond the permitted
+    ``tolerance``.
+    """
+
+    if cache_time <= now:
+        return cache_time, False
+
+    if cache_time - now <= tolerance:
+        return now, True
+
+    _LOGGER.debug(
+        "Detected future cache timestamp %.3f (now=%.3f); normalising", cache_time, now
+    )
+    return now, True
 
 
 def _coordinator_is_available(coordinator: Any) -> bool:
@@ -210,7 +245,7 @@ def _cleanup_global_caches() -> None:
     This function is called periodically to maintain cache health and
     prevent excessive memory usage from cache growth.
     """
-    now = dt_util.utcnow().timestamp()
+    now = _utcnow_timestamp()
     cleanup_stats = {"cleaned": 0, "total": 0}
 
     # Clean up each cache type based on TTL
@@ -220,11 +255,30 @@ def _cleanup_global_caches() -> None:
         ("availability", (_AVAILABILITY_CACHE, CACHE_TTL_SECONDS["availability"])),
     ]:
         original_size = len(cache_dict)
-        expired_keys = []
-        for key, entry in cache_dict.items():
+        expired_keys: list[str] = []
+        for key, entry in list(cache_dict.items()):
             if not isinstance(entry, tuple) or len(entry) < 2:
                 continue
-            timestamp = entry[1]
+            try:
+                timestamp = float(entry[1])
+            except (TypeError, ValueError):
+                expired_keys.append(key)
+                continue
+
+            normalized_time, normalized = _normalize_cache_timestamp(timestamp, now)
+            if normalized:
+                if len(entry) == 2:
+                    cache_dict[key] = cast(tuple[Any, float], (entry[0], normalized_time))
+                elif len(entry) == 3:
+                    cache_dict[key] = cast(
+                        tuple[Any, float, Any], (entry[0], normalized_time, entry[2])
+                    )
+                else:
+                    new_entry = list(entry)
+                    new_entry[1] = normalized_time
+                    cache_dict[key] = cast(tuple[Any, ...], tuple(new_entry))
+                timestamp = normalized_time
+
             if now - timestamp > ttl:
                 expired_keys.append(key)
 
@@ -245,19 +299,16 @@ def _cleanup_global_caches() -> None:
 
     # Clean up dead weak references without resetting the registry entirely
     if _ENTITY_REGISTRY:
-        live_refs: set[weakref.ReferenceType[OptimizedEntityBase]] = set()
-        dead_count = 0
+        dead_refs: list[weakref.ReferenceType[OptimizedEntityBase]] = [
+            entity_ref
+            for entity_ref in tuple(_ENTITY_REGISTRY)
+            if entity_ref() is None
+        ]
 
-        for entity_ref in tuple(_ENTITY_REGISTRY):
-            if entity_ref() is None:
-                dead_count += 1
-                continue
-            live_refs.add(entity_ref)
-
-        if dead_count:
-            _ENTITY_REGISTRY.clear()
-            _ENTITY_REGISTRY.update(live_refs)
-            _LOGGER.debug("Removed %d dead entity weakrefs", dead_count)
+        if dead_refs:
+            for dead_ref in dead_refs:
+                _ENTITY_REGISTRY.discard(dead_ref)
+            _LOGGER.debug("Removed %d dead entity weakrefs", len(dead_refs))
 
     if cleanup_stats["cleaned"] > 0:
         _LOGGER.info(
@@ -468,7 +519,7 @@ class OptimizedEntityBase(
     @callback
     def _maybe_cleanup_caches(self) -> None:
         """Perform cache cleanup if needed based on time and memory pressure."""
-        now = dt_util.utcnow().timestamp()
+        now = _utcnow_timestamp()
         cleanup_interval = MEMORY_OPTIMIZATION["weak_ref_cleanup_interval"]
 
         if now - self._last_cache_cleanup > cleanup_interval:
@@ -552,7 +603,7 @@ class OptimizedEntityBase(
             True if entity is available for operations
         """
         cache_key = f"available_{self._dog_id}_{self._entity_type}"
-        now = dt_util.utcnow().timestamp()
+        now = _utcnow_timestamp()
 
         coordinator_available_now = _coordinator_is_available(self.coordinator)
 
@@ -561,6 +612,13 @@ class OptimizedEntityBase(
             cached_available, cache_time, cached_coord_available = _AVAILABILITY_CACHE[
                 cache_key
             ]
+            cache_time, normalized = _normalize_cache_timestamp(cache_time, now)
+            if normalized:
+                _AVAILABILITY_CACHE[cache_key] = (
+                    cached_available,
+                    cache_time,
+                    cached_coord_available,
+                )
             if (
                 now - cache_time < CACHE_TTL_SECONDS["availability"]
                 and cached_coord_available == coordinator_available_now
@@ -630,11 +688,14 @@ class OptimizedEntityBase(
             Dictionary of additional state attributes
         """
         cache_key = f"attrs_{self._attr_unique_id}"
-        now = dt_util.utcnow().timestamp()
+        now = _utcnow_timestamp()
 
         # Check cache first
         if cache_key in _ATTRIBUTES_CACHE:
             cached_attrs, cache_time = _ATTRIBUTES_CACHE[cache_key]
+            cache_time, normalized = _normalize_cache_timestamp(cache_time, now)
+            if normalized:
+                _ATTRIBUTES_CACHE[cache_key] = (cached_attrs, cache_time)
             if now - cache_time < CACHE_TTL_SECONDS["attributes"]:
                 self._performance_tracker.record_cache_hit()
                 return cached_attrs
@@ -757,7 +818,7 @@ class OptimizedEntityBase(
             Dog data dictionary or None if unavailable
         """
         cache_key = f"dog_data_{self._dog_id}"
-        now = dt_util.utcnow().timestamp()
+        now = _utcnow_timestamp()
 
         coordinator_available = _coordinator_is_available(self.coordinator)
         previous_available = self._update_coordinator_availability(
@@ -767,6 +828,9 @@ class OptimizedEntityBase(
         # Check cache first
         if cache_key in _STATE_CACHE:
             cached_data, cache_time = _STATE_CACHE[cache_key]
+            cache_time, normalized = _normalize_cache_timestamp(cache_time, now)
+            if normalized:
+                _STATE_CACHE[cache_key] = (cached_data, cache_time)
             cached_available = (
                 cached_data.get("coordinator_available")
                 if isinstance(cached_data, dict)
@@ -819,11 +883,14 @@ class OptimizedEntityBase(
             Module data dictionary (empty if unavailable)
         """
         cache_key = f"module_{self._dog_id}_{module}"
-        now = dt_util.utcnow().timestamp()
+        now = _utcnow_timestamp()
 
         # Check cache first
         if cache_key in _STATE_CACHE:
             cached_data, cache_time = _STATE_CACHE[cache_key]
+            cache_time, normalized = _normalize_cache_timestamp(cache_time, now)
+            if normalized:
+                _STATE_CACHE[cache_key] = (cached_data, cache_time)
             if now - cache_time < CACHE_TTL_SECONDS["state"]:
                 self._performance_tracker.record_cache_hit()
                 return cached_data
@@ -1252,6 +1319,18 @@ async def create_optimized_entities_batched(
     if not entities:
         return
 
+    if batch_size <= 0:
+        _LOGGER.debug(
+            "Received non-positive batch size %s; defaulting to 1", batch_size
+        )
+        batch_size = 1
+
+    if delay_between_batches < 0:
+        _LOGGER.debug(
+            "Received negative batch delay %.3f; clamping to 0", delay_between_batches
+        )
+        delay_between_batches = 0.0
+
     total_entities = len(entities)
     _LOGGER.debug(
         "Adding %d optimized entities in batches of %d", total_entities, batch_size
@@ -1274,7 +1353,10 @@ async def create_optimized_entities_batched(
         )
 
         if i + batch_size < total_entities:
-            await asyncio.sleep(delay_between_batches)
+            if delay_between_batches > 0:
+                await asyncio.sleep(delay_between_batches)
+            else:
+                await asyncio.sleep(0)
 
     _LOGGER.info(
         "Successfully added %d optimized entities in %d batches",
