@@ -290,7 +290,10 @@ def test_runtime_data_roundtrip_survives_module_reload(
     reloaded_cls.__module__ = PawControlRuntimeData.__module__
 
     reloaded_instance = reloaded_cls(
-        **{field.name: getattr(runtime_data, field.name) for field in fields(PawControlRuntimeData)}
+        **{
+            field.name: getattr(runtime_data, field.name)
+            for field in fields(PawControlRuntimeData)
+        }
     )
 
     entry.runtime_data = cast(PawControlRuntimeData, reloaded_instance)
@@ -310,7 +313,10 @@ def test_coerce_runtime_data_handles_reloaded_payload(
     reloaded_cls.__module__ = PawControlRuntimeData.__module__
 
     reloaded_instance = reloaded_cls(
-        **{field.name: getattr(runtime_data, field.name) for field in fields(PawControlRuntimeData)}
+        **{
+            field.name: getattr(runtime_data, field.name)
+            for field in fields(PawControlRuntimeData)
+        }
     )
 
     entry = _entry("reloaded-legacy")

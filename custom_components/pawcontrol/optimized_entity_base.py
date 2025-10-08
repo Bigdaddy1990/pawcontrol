@@ -269,7 +269,9 @@ def _cleanup_global_caches() -> None:
             normalized_time, normalized = _normalize_cache_timestamp(timestamp, now)
             if normalized:
                 if len(entry) == 2:
-                    cache_dict[key] = cast(tuple[Any, float], (entry[0], normalized_time))
+                    cache_dict[key] = cast(
+                        tuple[Any, float], (entry[0], normalized_time)
+                    )
                 elif len(entry) == 3:
                     cache_dict[key] = cast(
                         tuple[Any, float, Any], (entry[0], normalized_time, entry[2])
@@ -300,15 +302,14 @@ def _cleanup_global_caches() -> None:
 
     # Clean up dead weak references without resetting the registry entirely
     if _ENTITY_REGISTRY:
-        dead_refs: list[weakref.ReferenceType[OptimizedEntityBase]] = [
-            entity_ref
-            for entity_ref in tuple(_ENTITY_REGISTRY)
-            if entity_ref() is None
-        ]
+        dead_refs: set[weakref.ReferenceType[Any]] = set()
+
+        for entity_ref in tuple(_ENTITY_REGISTRY):
+            if entity_ref() is None:
+                dead_refs.add(entity_ref)
 
         if dead_refs:
-            for dead_ref in dead_refs:
-                _ENTITY_REGISTRY.discard(dead_ref)
+            _ENTITY_REGISTRY.difference_update(dead_refs)
             _LOGGER.debug("Removed %d dead entity weakrefs", len(dead_refs))
 
     if cleanup_stats["cleaned"] > 0:
