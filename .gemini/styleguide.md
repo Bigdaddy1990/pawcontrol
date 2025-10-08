@@ -1,7 +1,9 @@
 # PawControl Gemini Style Guide
 
 This style guide mirrors the conventions already documented for GitHub Copilot and adapts them for Gemini Code Assist. It
-applies to the entire repository unless a more specific file-level convention is documented elsewhere.
+applies to the entire repository unless a more specific file-level convention is documented elsewhere. Keep the contents of
+this guide aligned with `.github/copilot-instructions.md` so both assistants surface the same Home Assistant expectations for
+PawControl.【F:.github/copilot-instructions.md†L1-L74】
 
 ## Repository context
 - **Domain:** `custom_components/pawcontrol` is a Home Assistant integration that targets the Platinum quality scale.

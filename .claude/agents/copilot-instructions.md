@@ -1,6 +1,10 @@
 # GitHub Copilot & Claude Code Instructions
 
-This repository contains the core of Home Assistant, a Python 3 based home automation application.
+This repository hosts the PawControl custom integration for Home Assistant. The
+codebase targets Python 3.13+, relies on asynchronous I/O, and follows the
+Platinum-tier requirements captured in `.github/copilot-instructions.md` and
+`.gemini/styleguide.md`. Use these instructions to keep Claude’s suggestions in
+sync with the guidance provided to other assistants.【F:.github/copilot-instructions.md†L1-L74】【F:.gemini/styleguide.md†L1-L26】
 
 ## Integration Quality Scale
 
