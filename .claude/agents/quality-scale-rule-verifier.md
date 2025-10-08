@@ -1,5 +1,4 @@
 ---
-# Source: https://github.com/home-assistant/core/blob/80a4115c44e807db57e21a796f97e01beb2ce298/.claude/agents/quality-scale-rule-verifier.md
 name: quality-scale-rule-verifier
 description: |
   Use this agent when you need to verify that a Home Assistant integration follows a specific quality scale rule. This includes checking if the integration implements required patterns, configurations, or code structures defined by the quality scale system.
