@@ -5,6 +5,17 @@ custom integration documentation guidelines and the internal instructions from
 `.github/copilot-instructions.md`, `.gemini/styleguide.md`, and
 `.claude/agents/`.
 
+## Alignment with assistant instruction sets
+- **Copilot** – The rewritten `.github/copilot-instructions.md` now documents the
+  Python toolchain, architecture touchpoints, and review checklist expected for
+  PawControl contributors, replacing the outdated frontend guidance.【F:.github/copilot-instructions.md†L1-L92】
+- **Gemini** – `.gemini/styleguide.md` explicitly references the Copilot guide to
+  keep both assistants synchronized on Platinum standards and repository
+  structure.【F:.gemini/styleguide.md†L1-L26】
+- **Claude** – `.claude/agents/copilot-instructions.md` now identifies PawControl
+  as a Home Assistant custom integration and points Claude back to the shared
+  style guides for consistency.【F:.claude/agents/copilot-instructions.md†L1-L8】
+
 ## Scope of review
 - **Core user documentation** – `README.md`, `info.md`, `INSTALLATION.md`, and
 the documentation portal entry point (`docs/README.md`).
