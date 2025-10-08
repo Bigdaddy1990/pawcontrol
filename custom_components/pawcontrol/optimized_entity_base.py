@@ -1294,6 +1294,7 @@ def _register_entity(entity: OptimizedEntityBase) -> None:
 
     def _remove(reference: weakref.ReferenceType[OptimizedEntityBase]) -> None:
         _ENTITY_REGISTRY.discard(reference)
+
     _ENTITY_REGISTRY.add(weakref.ref(entity, _remove))
 
 
@@ -1321,7 +1322,9 @@ class _RegistrySentinelCoordinator:
         self.update_interval = timedelta(seconds=0)
         self._listeners: set[Callable[[], None]] = set()
 
-    def async_add_listener(self, update_callback: Callable[[], None]) -> Callable[[], None]:
+    def async_add_listener(
+        self, update_callback: Callable[[], None]
+    ) -> Callable[[], None]:
         self._listeners.add(update_callback)
 
         def _remove() -> None:
