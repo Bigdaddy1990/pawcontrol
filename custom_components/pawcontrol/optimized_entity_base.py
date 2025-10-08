@@ -1229,6 +1229,8 @@ class EntityRegistry:
     __slots__ = ("_refs", "_sentinel")
 
     def __init__(self) -> None:
+        """Initialize an empty registry without any tracked entities."""
+
         self._refs: set[weakref.ReferenceType[OptimizedEntityBase]] = set()
         self._sentinel: weakref.ReferenceType[OptimizedEntityBase] | None = None
 
@@ -1241,6 +1243,8 @@ class EntityRegistry:
         return self._sentinel is not None and self._sentinel() is not None
 
     def _prune_dead_refs(self) -> None:
+        """Remove dead references and drop the sentinel if it is gone."""
+
         if self._refs:
             gc.collect()
         for reference in tuple(self._refs):
@@ -1249,20 +1253,30 @@ class EntityRegistry:
                 self._refs.discard(reference)
 
     def add(self, reference: weakref.ReferenceType[OptimizedEntityBase]) -> None:
+        """Track a new entity reference inside the registry."""
+
         self._refs.add(reference)
 
     def discard(self, reference: weakref.ReferenceType[OptimizedEntityBase]) -> None:
+        """Stop tracking a specific entity reference."""
+
         self._refs.discard(reference)
 
     def __iter__(self) -> Iterator[weakref.ReferenceType[OptimizedEntityBase]]:
+        """Iterate over live references after pruning stale entries."""
+
         self._prune_dead_refs()
         yield from tuple(self._refs)
 
     def __len__(self) -> int:
+        """Return the number of live references currently tracked."""
+
         self._prune_dead_refs()
         return len(self._refs)
 
     def __bool__(self) -> bool:
+        """Return True when at least one live reference or sentinel remains."""
+
         return bool(self._refs) or self._sentinel_alive()
 
     def all_refs(self) -> tuple[weakref.ReferenceType[OptimizedEntityBase], ...]:

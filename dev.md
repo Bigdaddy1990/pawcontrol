@@ -11,3 +11,4 @@
 
 ## Recently Addressed
 - Reworked the global entity registry to register entities exactly once and keep the sentinel alive through cleanup, so `test_cleanup_preserves_live_entities` now survives full-suite garbage collection without duplicating weakrefs. 【F:custom_components/pawcontrol/optimized_entity_base.py†L1306-L1399】
+- Documented the entity registry lifecycle helpers to satisfy the docstring baseline and keep the public API discoverable for Home Assistant reviewers. 【F:custom_components/pawcontrol/optimized_entity_base.py†L1227-L1260】
