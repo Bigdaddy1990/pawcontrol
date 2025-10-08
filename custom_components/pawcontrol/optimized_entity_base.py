@@ -72,7 +72,38 @@ _AVAILABILITY_CACHE: dict[str, tuple[bool, float, bool]] = {}
 
 # Performance tracking with weak references to prevent memory leaks
 _PERFORMANCE_METRICS: dict[str, list[float]] = {}
-_ENTITY_REGISTRY: set[weakref.ref] = set()
+class EntityRegistryEntry:
+    """Wrapper around a weak reference providing reference introspection."""
+
+    __slots__ = ("_ref",)
+
+    def __init__(self, entity: OptimizedEntityBase) -> None:
+        self._ref = weakref.ref(entity)
+
+    def __call__(self) -> OptimizedEntityBase | None:
+        entity = self._ref()
+        if entity is None:
+            return None
+        return entity
+
+    def __hash__(self) -> int:
+        return hash(self._ref)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, EntityRegistryEntry):
+            return False
+        return self._ref == other._ref
+
+
+_ENTITY_REGISTRY: set[EntityRegistryEntry] = set()
+_ENTITY_DEBUG_HISTORY: list[list[tuple[str, int]]] = []
+
+
+def clear_global_entity_registry() -> None:
+    """Reset global entity tracking caches."""
+
+    _ENTITY_REGISTRY.clear()
+    _ENTITY_DEBUG_HISTORY.clear()
 
 
 def _coordinator_is_available(coordinator: Any) -> bool:
@@ -245,18 +276,33 @@ def _cleanup_global_caches() -> None:
 
     # Clean up dead weak references without resetting the registry entirely
     if _ENTITY_REGISTRY:
-        live_refs: set[weakref.ReferenceType[OptimizedEntityBase]] = set()
         dead_count = 0
 
+        current_snapshot: list[tuple[str, int]] = []
+
         for entity_ref in tuple(_ENTITY_REGISTRY):
-            if entity_ref() is None:
+            entity = entity_ref()
+            if entity is None:
+                _ENTITY_REGISTRY.discard(entity_ref)
                 dead_count += 1
                 continue
-            live_refs.add(entity_ref)
+
+            _LOGGER.debug(
+                "Preserving live entity weakref %s (%s)",
+                getattr(entity, "entity_id", getattr(entity, "name", "<unknown>")),
+                id(entity),
+            )
+            current_snapshot.append(
+                (
+                    getattr(entity, "entity_id", getattr(entity, "name", "<unknown>")),
+                    id(entity),
+                )
+            )
+
+        if current_snapshot:
+            _ENTITY_DEBUG_HISTORY.append(current_snapshot)
 
         if dead_count:
-            _ENTITY_REGISTRY.clear()
-            _ENTITY_REGISTRY.update(live_refs)
             _LOGGER.debug("Removed %d dead entity weakrefs", dead_count)
 
     if cleanup_stats["cleaned"] > 0:
@@ -302,6 +348,7 @@ class OptimizedEntityBase(
         "_last_coordinator_available",
         "_last_updated",
         "_performance_tracker",
+        "_registry_finalizer",
         "_state_change_listeners",
     )
 
@@ -373,7 +420,11 @@ class OptimizedEntityBase(
         )
 
         # Register entity for cleanup tracking
-        _ENTITY_REGISTRY.add(weakref.ref(self))
+        entity_ref = EntityRegistryEntry(self)
+        _ENTITY_REGISTRY.add(entity_ref)
+        self._registry_finalizer = weakref.finalize(
+            self, _ENTITY_REGISTRY.discard, entity_ref
+        )
 
         # Periodic cache cleanup
         self._maybe_cleanup_caches()
