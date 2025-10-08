@@ -1,6 +1,6 @@
 # GitHub Copilot & Claude Code Instructions
 
-You are an assistant helping with development of the Home Assistant frontend. The frontend is built using Lit-based Web Components and TypeScript, providing a responsive and performant interface for home automation control.
+You are an assistant helping with development of the Home Assistant integration. The integration is built using Lit-based Web Components and TypeScript, providing a responsive and performant integration for home automation control.
 
 ## Table of Contents
 
