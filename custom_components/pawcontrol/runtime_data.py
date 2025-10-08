@@ -51,17 +51,53 @@ def _get_domain_store(
     return cast(DomainRuntimeStore, domain_data)
 
 
+_RUNTIME_REQUIRED_ATTRS: tuple[str, ...] = (
+    "coordinator",
+    "entity_factory",
+    "entity_profile",
+    "dogs",
+)
+
+
+def _as_runtime_data(value: Any) -> PawControlRuntimeData | None:
+    """Return ``value`` when it looks like runtime data, otherwise ``None``."""
+
+    if isinstance(value, PawControlRuntimeData):
+        return value
+
+    if value is None:
+        return None
+
+    value_cls = getattr(value, "__class__", None)
+    if value_cls is None:
+        return None
+
+    if getattr(value_cls, "__name__", "") != "PawControlRuntimeData":
+        return None
+
+    if getattr(value_cls, "__module__", "") != PawControlRuntimeData.__module__:
+        return None
+
+    if not all(hasattr(value, attr) for attr in _RUNTIME_REQUIRED_ATTRS):
+        return None
+
+    return cast(PawControlRuntimeData, value)
+
+
 def _coerce_runtime_data(
     value: Any,
 ) -> tuple[PawControlRuntimeData | None, bool]:
     """Return runtime data and whether the store needs migration."""
 
-    match value:
-        case PawControlRuntimeData() as data:
-            return data, False
+    runtime_data = _as_runtime_data(value)
+    if runtime_data is not None:
+        return runtime_data, False
 
-        case {"runtime_data": PawControlRuntimeData() as data}:
-            return data, True
+    if isinstance(value, Mapping):
+        legacy_value = value.get("runtime_data")
+        runtime_data = _as_runtime_data(legacy_value)
+        if runtime_data is not None:
+            return runtime_data, True
 
     return None, False
 
@@ -84,7 +120,7 @@ def _get_runtime_from_entry(
         return None
 
     runtime = getattr(entry, "runtime_data", None)
-    return runtime if isinstance(runtime, PawControlRuntimeData) else None
+    return _as_runtime_data(runtime)
 
 
 def _detach_runtime_from_entry(entry: PawControlConfigEntry | None) -> None:

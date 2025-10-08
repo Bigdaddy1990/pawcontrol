@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+from dataclasses import fields, make_dataclass
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from typing import cast
@@ -271,4 +272,52 @@ def test_get_runtime_data_discards_uncoercible_legacy_payload(
     )
 
     assert get_runtime_data(hass, "legacy") is None
+    assert DOMAIN not in hass.data
+
+
+def test_runtime_data_roundtrip_survives_module_reload(
+    runtime_data: PawControlRuntimeData,
+) -> None:
+    """Runtime data stored from a previous module load should still resolve."""
+
+    entry = _entry("reloaded-entry")
+    hass = _build_hass(entries={entry.entry_id: entry}, data={})
+
+    reloaded_cls = make_dataclass(
+        "PawControlRuntimeData",
+        [(field.name, object) for field in fields(PawControlRuntimeData)],
+    )
+    reloaded_cls.__module__ = PawControlRuntimeData.__module__
+
+    reloaded_instance = reloaded_cls(
+        **{field.name: getattr(runtime_data, field.name) for field in fields(PawControlRuntimeData)}
+    )
+
+    entry.runtime_data = cast(PawControlRuntimeData, reloaded_instance)
+
+    assert get_runtime_data(hass, entry) is reloaded_instance
+
+
+def test_coerce_runtime_data_handles_reloaded_payload(
+    runtime_data: PawControlRuntimeData,
+) -> None:
+    """Legacy stores containing reloaded runtime data should be accepted."""
+
+    reloaded_cls = make_dataclass(
+        "PawControlRuntimeData",
+        [(field.name, object) for field in fields(PawControlRuntimeData)],
+    )
+    reloaded_cls.__module__ = PawControlRuntimeData.__module__
+
+    reloaded_instance = reloaded_cls(
+        **{field.name: getattr(runtime_data, field.name) for field in fields(PawControlRuntimeData)}
+    )
+
+    entry = _entry("reloaded-legacy")
+    hass = _build_hass(
+        data={DOMAIN: {entry.entry_id: {"runtime_data": reloaded_instance}}},
+        entries={entry.entry_id: entry},
+    )
+
+    assert get_runtime_data(hass, entry.entry_id) is reloaded_instance
     assert DOMAIN not in hass.data
