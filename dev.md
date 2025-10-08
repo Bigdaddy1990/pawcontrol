@@ -1,20 +1,19 @@
 # Development Plan
 
 ## Outstanding Failures and Opportunities
-- `pytest -q` now reports 7 failures focused on runtime-data reuse, optimized cache expiration, and weak-reference cleanup after the new error resolver landed. 【1d35a5†L1-L210】
-- `tests/components/pawcontrol/test_all_platforms.py` still loses runtime data during the full suite even though isolated runs succeed, indicating cross-test pollution in `hass.data` handling. 【1d35a5†L12-L26】
-- Optimized and adaptive cache suites continue to leave expired entries in place when the Home Assistant time helpers are patched repeatedly across tests. 【1d35a5†L29-L54】
-- `tests/components/pawcontrol/test_optimized_entity_base.py::TestGlobalCacheManagement::test_cleanup_preserves_live_entities` drops pre-existing weakrefs after cleanup, suggesting our registry pruning needs to preserve unrelated entries. 【1d35a5†L26-L34】
+- `pytest -q` now reports 6 failures focused on optimized cache expiration and weak-reference cleanup after the new error resolver landed. 【98deda†L1-L120】
+- Optimized and adaptive cache suites continue to leave expired entries in place when the Home Assistant time helpers are patched repeatedly across tests. 【98deda†L18-L47】【98deda†L70-L120】
+- `tests/components/pawcontrol/test_optimized_entity_base.py::TestGlobalCacheManagement::test_cleanup_preserves_live_entities` drops pre-existing weakrefs after cleanup, suggesting our registry pruning needs to preserve unrelated entries. 【98deda†L1-L36】
 
 ## Action Items
-1. Track and eliminate the cross-test `hass.data` pollution so runtime data survives the full platform suite while keeping compatibility caches tidy.
-2. Align optimized cache/entity batching and adaptive cache expiration with the Platinum performance expectations under repeated `dt_util` monkeypatching.
-3. Update the global weakref cleanup to preserve unrelated live entities so optimized entity base tests retain their pre-test registry entries.
-4. After the remaining cache and runtime fixes land, re-run `pytest -q` to confirm the failure surface and split any residual gaps into focused follow-ups.
+1. Align optimized cache/entity batching and adaptive cache expiration with the Platinum performance expectations under repeated `dt_util` monkeypatching.
+2. Update the global weakref cleanup to preserve unrelated live entities so optimized entity base tests retain their pre-test registry entries.
+3. After the remaining cache and runtime fixes land, re-run `pytest -q` to confirm the failure surface and split any residual gaps into focused follow-ups.
 
 ## Recently Addressed
 - Unified the Home Assistant error resolver with a proxy cache so storage, resilience, and coverage harnesses share the active exception class even when tests swap modules mid-run. 【F:custom_components/pawcontrol/data_manager.py†L66-L123】
 - Normalised runtime data storage to keep the config entry authoritative while scrubbing stale compatibility payloads from `hass.data`. 【F:custom_components/pawcontrol/runtime_data.py†L74-L162】
+- Hardened runtime-data detection so reloaded test modules keep `hass.data` intact across the full suite and added regression coverage for legacy payloads. 【F:custom_components/pawcontrol/runtime_data.py†L54-L193】【F:tests/test_runtime_data.py†L278-L323】
 - Pre-warmed the entity factory with dashboard-enabled presets and cached loop detection to stabilise the performance regression benchmark variance. 【F:custom_components/pawcontrol/entity_factory.py†L202-L237】【F:custom_components/pawcontrol/entity_factory.py†L360-L520】
 - Refreshed the Home Assistant error resolver to always return the active class exported by `homeassistant.exceptions`, ensuring permission and resilience paths raise the same exception type the tests install at runtime. 【F:custom_components/pawcontrol/data_manager.py†L146-L170】【F:custom_components/pawcontrol/resilience.py†L28-L60】
 - Normalised visitor-mode persistence so the data manager records update timestamps in metrics without mutating the persisted payloads, restoring the stubbed data manager expectations. 【F:custom_components/pawcontrol/data_manager.py†L543-L589】
