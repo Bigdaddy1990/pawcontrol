@@ -1,6 +1,18 @@
 # Development Plan
 
 ## Outstanding Failures and Opportunities
+- `pytest -q` now reports 8 failures concentrated in runtime data retention, adaptive cache expiration, weak-reference cleanup, and health analysis quality thresholds. 【4a56e9†L1-L92】
+- `tests/components/pawcontrol/test_all_platforms.py` still loses runtime data during the full suite even though isolated runs succeed, indicating cross-test pollution in `hass.data` handling. 【4a56e9†L5-L24】
+- `tests/components/pawcontrol/test_optimized_entity_base.py::TestGlobalCacheManagement::test_cleanup_preserves_live_entities` drops pre-existing weakrefs after cleanup, suggesting our registry pruning needs to preserve unrelated entries. 【4a56e9†L24-L44】
+- Adaptive cache and optimized data cache tests continue to leave expired entries untouched or returned, showing our cleanup path still skips removals when multiple overrides are active. 【4a56e9†L44-L73】
+- `tests/unit/test_health_calculator_quality.py::TestFeedingHistoryAnalysis::test_analyze_feeding_history_balanced_plan` now flags the balanced plan as "underfeeding", so the nutrition scoring regression still needs correction. 【4a56e9†L44-L57】
+
+## Action Items
+1. Track and eliminate the cross-test `hass.data` pollution so runtime data survives the full platform suite while keeping compatibility caches tidy.
+2. Align optimized cache/entity batching and adaptive cache expiration with the Platinum performance expectations under repeated `dt_util` monkeypatching, including ensuring expired entries are removed and stale values are not returned.
+3. Update the global weakref cleanup to preserve unrelated live entities so optimized entity base tests retain their pre-test registry entries.
+4. Restore the health calculator's balanced-plan analysis so the feeding history suite returns "good" status when macro ratios are within range.
+5. Split the remaining runtime, cache, weakref, and health-quality gaps into focused follow-up tasks once fixes are scoped and ready for implementation.
 - `pytest -q` now reports 5 failures concentrated in the adaptive cache expiry helpers, optimized data cache eviction, and the global entity registry clean-up that still purges pre-existing entries after suite-wide garbage collection. 【f41850†L1-L87】
 - Optimized and adaptive cache suites continue to leave expired entries in place when the Home Assistant time helpers are patched repeatedly across tests. 【f41850†L21-L46】
 - `tests/components/pawcontrol/test_optimized_entity_base.py::TestGlobalCacheManagement::test_cleanup_preserves_live_entities` still loses baseline registry entries during the full test run, so we need to guard cross-test weakref churn without regressing the targeted fixture. 【f41850†L12-L18】
