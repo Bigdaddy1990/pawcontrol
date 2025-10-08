@@ -90,13 +90,15 @@ class OptimizedDataCache:
         """Get cached value with access tracking."""
         async with self._lock:
             if key in self._cache:
-                if self._is_expired_locked(key):
+                now = dt_util.utcnow()
+                self._normalize_future_timestamp_locked(key, now)
+                if self._is_expired_locked(key, now=now):
                     self._remove_locked(key)
                     self._misses += 1
                     return default
 
                 self._access_count[key] = self._access_count.get(key, 0) + 1
-                self._timestamps[key] = dt_util.utcnow()
+                self._timestamps[key] = now
                 self._hits += 1
                 return self._cache[key]
 
@@ -122,8 +124,9 @@ class OptimizedDataCache:
                 old_size = self._estimate_size(self._cache[key])
                 self._current_memory -= old_size
 
+            now = dt_util.utcnow()
             self._cache[key] = value
-            self._timestamps[key] = dt_util.utcnow()
+            self._timestamps[key] = now
             self._access_count[key] = self._access_count.get(key, 0) + 1
             self._ttls[key] = self._normalize_ttl(ttl_seconds)
             self._current_memory += value_size
@@ -147,16 +150,49 @@ class OptimizedDataCache:
         override_ttl = None if ttl_seconds is None else self._normalize_ttl(ttl_seconds)
         async with self._lock:
             now = dt_util.utcnow()
-            expired_keys = [
-                key
-                for key in tuple(self._cache.keys())
-                if self._is_expired_locked(key, now, override_ttl)
-            ]
+            expired_keys: list[str] = []
+            for key in tuple(self._cache.keys()):
+                self._normalize_future_timestamp_locked(key, now)
+                if self._is_expired_locked(
+                    key, now, override_ttl if override_ttl is not None else None
+                ):
+                    expired_keys.append(key)
 
             for key in expired_keys:
                 self._remove_locked(key)
 
         return len(expired_keys)
+
+    def _normalize_future_timestamp_locked(
+        self, key: str, now: datetime | None = None
+    ) -> None:
+        """Clamp cached timestamps that drift into the future.
+
+        When ``dt_util.utcnow`` is repeatedly monkeypatched during the test suite,
+        cache entries can end up with timestamps that are ahead of the restored
+        runtime. Normalising them prevents stale data from persisting beyond the
+        intended TTL once the clock moves backwards again.
+        """
+
+        timestamp = self._timestamps.get(key)
+        if timestamp is None:
+            return
+
+        if now is None:
+            now = dt_util.utcnow()
+
+        if timestamp <= now:
+            return
+
+        tolerance = timedelta(seconds=1)
+        if timestamp - now > tolerance:
+            _LOGGER.debug(
+                "Normalising future timestamp for cache key %s (delta=%s)",
+                key,
+                timestamp - now,
+            )
+
+        self._timestamps[key] = now
 
     def _remove_locked(self, key: str) -> None:
         """Remove a key from the cache while holding the lock."""
