@@ -33,7 +33,7 @@ import weakref
 from abc import abstractmethod
 from collections.abc import Callable, Iterator
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, Final, cast
+from typing import Any, ClassVar, Final
 from unittest.mock import Mock
 
 from homeassistant.core import callback
@@ -76,38 +76,7 @@ _AVAILABILITY_CACHE: dict[str, tuple[bool, float, bool]] = {}
 _PERFORMANCE_METRICS: dict[str, list[float]] = {}
 
 
-class EntityRegistryEntry:
-    """Wrapper around a weak reference providing reference introspection."""
-
-    __slots__ = ("_ref",)
-
-    def __init__(self, entity: OptimizedEntityBase) -> None:
-        self._ref = weakref.ref(entity)
-
-    def __call__(self) -> OptimizedEntityBase | None:
-        entity = self._ref()
-        if entity is None:
-            return None
-        return entity
-
-    def __hash__(self) -> int:
-        return hash(self._ref)
-
-    def __eq__(self, other: object) -> bool:
-        if not isinstance(other, EntityRegistryEntry):
-            return False
-        return self._ref == other._ref
-
-
-_ENTITY_REGISTRY: set[EntityRegistryEntry] = set()
-_ENTITY_DEBUG_HISTORY: list[list[tuple[str, int]]] = []
-
-
-def clear_global_entity_registry() -> None:
-    """Reset global entity tracking caches."""
-
-    _ENTITY_REGISTRY.clear()
-    _ENTITY_DEBUG_HISTORY.clear()
+# Utility functions for entity management
 
 
 def _utcnow_timestamp() -> float:
@@ -273,116 +242,6 @@ class PerformanceTracker:
         }
 
 
-@callback
-def _cleanup_global_caches() -> None:
-    """Clean up global caches to prevent memory leaks.
-
-    This function is called periodically to maintain cache health and
-    prevent excessive memory usage from cache growth.
-    """
-    now = _utcnow_timestamp()
-    cleanup_stats = {"cleaned": 0, "total": 0}
-
-    # Clean up each cache type based on TTL
-    for cache_name, (cache_dict, ttl) in [
-        ("state", (_STATE_CACHE, CACHE_TTL_SECONDS["state"])),
-        ("attributes", (_ATTRIBUTES_CACHE, CACHE_TTL_SECONDS["attributes"])),
-        ("availability", (_AVAILABILITY_CACHE, CACHE_TTL_SECONDS["availability"])),
-    ]:
-        original_size = len(cache_dict)
-        expired_keys: list[str] = []
-        for key, entry in list(cache_dict.items()):
-            if not isinstance(entry, tuple) or len(entry) < 2:
-                continue
-            try:
-                timestamp = float(entry[1])
-            except (TypeError, ValueError):
-                expired_keys.append(key)
-                continue
-
-            normalized_time, normalized = _normalize_cache_timestamp(timestamp, now)
-            if normalized:
-                if len(entry) == 2:
-                    cache_dict[key] = cast(
-                        tuple[Any, float], (entry[0], normalized_time)
-                    )
-                elif len(entry) == 3:
-                    cache_dict[key] = cast(
-                        tuple[Any, float, Any], (entry[0], normalized_time, entry[2])
-                    )
-                else:
-                    new_entry = list(entry)
-                    new_entry[1] = normalized_time
-                    cache_dict[key] = cast(tuple[Any, ...], tuple(new_entry))
-                timestamp = normalized_time
-
-            if now - timestamp > ttl:
-                expired_keys.append(key)
-
-        for key in expired_keys:
-            cache_dict.pop(key, None)
-
-        cleaned = len(expired_keys)
-        cleanup_stats["cleaned"] += cleaned
-        cleanup_stats["total"] += original_size
-
-        if cleaned > 0:
-            _LOGGER.debug(
-                "Cleaned %d/%d expired entries from %s cache",
-                cleaned,
-                original_size,
-                cache_name,
-            )
-
-    # Clean up dead weak references without resetting the registry entirely
-    if _ENTITY_REGISTRY:
-        dead_count = 0
-        dead_refs: set[weakref.ReferenceType[Any]] = set()
-
-        current_snapshot: list[tuple[str, int]] = []
-
-        for entity_ref in tuple(_ENTITY_REGISTRY):
-            entity = entity_ref()
-            if entity is None:
-                _ENTITY_REGISTRY.discard(entity_ref)
-                dead_count += 1
-                continue
-
-            _LOGGER.debug(
-                "Preserving live entity weakref %s (%s)",
-                getattr(entity, "entity_id", getattr(entity, "name", "<unknown>")),
-                id(entity),
-            )
-            current_snapshot.append(
-                (
-                    getattr(entity, "entity_id", getattr(entity, "name", "<unknown>")),
-                    id(entity),
-                )
-            )
-
-        if current_snapshot:
-            _ENTITY_DEBUG_HISTORY.append(current_snapshot)
-
-        if dead_count:
-            _LOGGER.debug("Removed %d dead entity weakrefs", dead_count)
-            if entity_ref() is None:
-                dead_refs.add(entity_ref)
-
-        if dead_refs:
-            _ENTITY_REGISTRY.difference_update(dead_refs)
-            _LOGGER.debug("Removed %d dead entity weakrefs", len(dead_refs))
-
-    if cleanup_stats["cleaned"] > 0:
-        _LOGGER.info(
-            "Cache cleanup completed: %d/%d entries cleaned (%.1f%% reduction)",
-            cleanup_stats["cleaned"],
-            cleanup_stats["total"],
-            cleanup_stats["cleaned"] / cleanup_stats["total"] * 100
-            if cleanup_stats["total"] > 0
-            else 0,
-        )
-
-
 class OptimizedEntityBase(
     PawControlDeviceLinkMixin, CoordinatorEntity[PawControlCoordinator], RestoreEntity
 ):
@@ -415,7 +274,6 @@ class OptimizedEntityBase(
         "_last_coordinator_available",
         "_last_updated",
         "_performance_tracker",
-        "_registry_finalizer",
         "_state_change_listeners",
     )
 
@@ -487,11 +345,6 @@ class OptimizedEntityBase(
         )
 
         # Register entity for cleanup tracking
-        entity_ref = EntityRegistryEntry(self)
-        _ENTITY_REGISTRY.add(entity_ref)
-        self._registry_finalizer = weakref.finalize(
-            self, _ENTITY_REGISTRY.discard, entity_ref
-        )
         _register_entity(self)
 
         # Periodic cache cleanup
@@ -1418,6 +1271,12 @@ class EntityRegistry:
         self._prune_dead_refs()
         return tuple(self._refs)
 
+    def clear(self) -> None:
+        """Remove all tracked entity references and forget the sentinel."""
+
+        self._refs.clear()
+        self._sentinel = None
+
 
 _ENTITY_REGISTRY = EntityRegistry()
 
@@ -1579,6 +1438,13 @@ class _RegistrySentinelEntity(OptimizedEntityBase):
 
 _REGISTRY_SENTINEL_COORDINATOR = _RegistrySentinelCoordinator()
 _REGISTRY_SENTINEL_ENTITY = _RegistrySentinelEntity(_REGISTRY_SENTINEL_COORDINATOR)
+
+
+def clear_global_entity_registry() -> None:
+    """Reset the global entity registry while keeping the sentinel active."""
+
+    _ENTITY_REGISTRY.clear()
+    _ENTITY_REGISTRY.set_sentinel(_REGISTRY_SENTINEL_ENTITY)
 
 
 async def create_optimized_entities_batched(
