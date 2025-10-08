@@ -26,8 +26,8 @@ filterwarnings = [
 target-version = "py313"
 line-length = 88
 src = ["custom_components/pawcontrol", "tests"]
-extend-exclude = ["tests", "docs", "scripts"]
-markers = ["asyncio: mark a test as using asyncio"]
+extend-exclude = ["tests", "docs", "scripts", "pylint"]
+exclude = ["pylint/**/*"]
 
 [tool.ruff.lint]
 select = ["E","F","W","I","UP","B","SIM","RUF","PERF","FURB","N"]

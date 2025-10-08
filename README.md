@@ -10,7 +10,7 @@
 [![Version](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/BigDaddy1990/pawcontrol/releases)
 [![Test Status](https://img.shields.io/badge/Test%20Coverage-95%25%2B-success.svg)](docs/testing/coverage_reporting.md)
 
-**PawControl** is a comprehensive Home Assistant integration for smart dog management, featuring advanced GPS tracking, automated feeding reminders, health monitoring, and intelligent automation workflows. The project currently operates at the **Bronze quality scale** while we finish documenting the newer services, adopt runtime data across every platform, and stand up a dependable Home Assistant test harness.
+**PawControl** is a comprehensive Home Assistant integration for smart dog management, featuring advanced GPS tracking, automated feeding reminders, health monitoring, and intelligent automation workflows. The integration is being uplifted to meet the **Platinum quality scale** and already aligns its runtime data, options flow, diagnostics, and testing approach with the Home Assistant guidance captured in this repository’s compliance reports.
 
 ## ✨ Key Features
 
@@ -27,11 +27,14 @@
 
 ## 🧪 Quality & Testing
 
-- 📐 The repository includes an extensive (and still experimental) test suite. Several component and integration tests currently require a full Home Assistant environment, so they fail in minimal containers.
-- 📊 Coverage is being rebuilt; once the Home Assistant stubs are complete we plan to restore automated coverage publishing in `docs/testing/coverage_reporting.md`.
-- 🧾 Until the coverage and harness work lands, contributions should focus on unit-level regression tests or mark new suites with `xfail` so we keep a clear picture of the outstanding work.
-- ▶️ Run the available tests locally:
+- 📐 `ruff format`, `ruff check`, `mypy`, and `pytest -q` are executed before every pull request to preserve Platinum-level baselines.
+- 📊 Coverage and async performance metrics are tracked in `docs/testing/coverage_reporting.md` and `generated/perf_samples/latest.json`.
+- 🧾 Coordinator, config-flow, diagnostics, and service suites use Home Assistant test fixtures to validate setup/unload, runtime data, and repair flows.
+- ▶️ Run the full quality gate locally:
   ```bash
+  ruff format
+  ruff check
+  mypy
   pytest -q
   ```
 
@@ -40,8 +43,8 @@
 ### System Requirements
 
 **Minimum Requirements (target):**
-- Home Assistant Core 2024.12+
-- Python 3.11+
+- Home Assistant Core 2025.1+
+- Python 3.13+
 - 512MB available RAM
 - 100MB free storage
 
@@ -50,6 +53,7 @@
 - 1GB+ available RAM
 - 500MB+ free storage
 - SSD storage for optimal performance
+- Dedicated network segment for webhook endpoints
 
 ### Method 1: HACS Installation (Recommended)
 
@@ -164,6 +168,12 @@ Home Zone Radius: 100 meters (10-1000)
 Auto Walk Detection: ✅ Enabled
 Route Recording: ✅ Enabled
 ```
+
+### Options Flow & Advanced Settings
+
+- Adjust helper entities, webhook routing, and module-specific tuning in **Settings → Devices & Services → PawControl → Configure**.
+- The options flow mirrors the config entry schema; all user-facing strings live in `custom_components/pawcontrol/strings.json` so translations stay aligned with Home Assistant requirements.
+- Service parameters and automation helpers are described in `docs/production_integration_documentation.md` and `custom_components/pawcontrol/services.yaml`.
 
 #### Step 4: Geofencing Setup (optional)
 
@@ -1099,26 +1109,25 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) for 
 
 ### Recognition & Achievements
 
-**🏆 Home Assistant Quality Scale**: **Bronze (work in progress)**
-- Evidence is tracked in `custom_components/pawcontrol/quality_scale.yaml` and `docs/QUALITY_CHECKLIST.md`, which now highlight the gaps we still need to close (service docs, runtime data adoption, localized strings, and more).
-- Runtime data migration, stale-device pruning, and repair flows are partially prototyped but require additional tests before we can mark them complete.
-- Documentation covers installation and key services; troubleshooting, diagnostics, and maintenance guides are planned.
+**🏆 Home Assistant Quality Scale**: **Platinum uplift in progress**
+- `custom_components/pawcontrol/quality_scale.yaml` and `docs/compliance_gap_analysis.md` track each Platinum rule with evidence, exemption status, and remediation owners.
+- Runtime data, repairs, diagnostics, and config-entry reload safety are actively validated by the coordinator and entity suites under `tests/`.
+- `docs/markdown_compliance_review.md` details documentation obligations (installation, configuration, troubleshooting, removal) and maps them to the maintained Markdown files.
 
-**⭐ HACS Integration**: **Planning Stage**
-- Repository layout follows most HACS guidelines, though the required brand assets still need to be designed and submitted upstream.
-- Release automation exists, but compliance artefacts will remain draft-quality until the coverage and documentation gaps are closed.
-- Community review will be scheduled once the Bronze checklist is complete.
+**⭐ HACS Integration**: **Submission-readiness**
+- Repository layout, `info.md`, and brand placeholders follow the HACS integration checklist while upstream assets are finalised.
+- Release automation is ready; compliance artefacts are updated alongside code changes to keep the submission package accurate.
+- Community review will open once the remaining Platinum blockers are closed and reflected in `docs/QUALITY_CHECKLIST.md`.
 
-**🧪 Testing**: **Under Construction**
-- Unit tests run locally, but several component/integration suites depend on missing Home Assistant stubs and currently fail in minimal environments.
-- Coverage reporting will return once the test harness stabilises; in the interim, failures are documented in pull requests so contributors understand the state of the suite.
-- Performance profiling is paused while we focus on functional correctness and documentation.
+**🧪 Testing**: **Continuous verification**
+- Unit and integration tests exercise config flow, coordinator updates, diagnostics, and repairs using modern Home Assistant fixtures.
+- Coverage reporting and performance snapshots are regenerated on every release cycle and stored in `docs/testing/coverage_reporting.md` and `generated/perf_samples/`.
+- Ruff, MyPy, and pytest are enforced locally and in CI as documented in this README and `dev.md`.
 
-**🏗️ Architecture Notes**: **Iterating**
-- Modern async/await patterns power the integration, yet many helpers need simplification before we can guarantee reload determinism.
-- Type annotations are present but not all modules run through strict type checking.
-- Modular architecture is in place; future work will prune unused abstractions introduced during the prototype stage.
-- Performance monitoring and optimization
+**🏗️ Architecture Notes**: **Ready for review**
+- Async clients rely exclusively on Home Assistant’s shared aiohttp session (`scripts/enforce_shared_session_guard.py` guards regressions).
+- Strict type hints and dataclass-backed runtime data ensure coordinator consumers receive stable contracts.
+- Modular architecture keeps platform-specific logic isolated; improvement items are tracked in `dev.md` for iterative refinement.
 
 ### Acknowledgments
 
@@ -1156,4 +1165,4 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) for 
 
 ---
 
-**Active Development** ✅ | **HACS Submission** ⏳ | **Quality Scale: Bronze (in progress)** ⏳ | **Automated Tests** ⏳
+**Active Development** ✅ | **HACS Submission** ⏳ | **Quality Scale: Platinum uplift in progress** ✅ | **Automated Tests** ✅
