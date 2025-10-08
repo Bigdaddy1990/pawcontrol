@@ -387,9 +387,9 @@ class EntityFactory:
         self._performance_metrics_cache: OrderedDict[
             tuple[str, tuple[tuple[str, bool], ...]], dict[str, Any]
         ] = OrderedDict()
-        self._should_create_cache: OrderedDict[
-            tuple[str, str, str, int], bool
-        ] = OrderedDict()
+        self._should_create_cache: OrderedDict[tuple[str, str, str, int], bool] = (
+            OrderedDict()
+        )
         self._should_create_hits = 0
         self._should_create_misses = 0
         self._last_estimate_key: tuple[str, tuple[tuple[str, bool], ...]] | None = None

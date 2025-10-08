@@ -74,6 +74,8 @@ _AVAILABILITY_CACHE: dict[str, tuple[bool, float, bool]] = {}
 
 # Performance tracking with weak references to prevent memory leaks
 _PERFORMANCE_METRICS: dict[str, list[float]] = {}
+
+
 class EntityRegistryEntry:
     """Wrapper around a weak reference providing reference introspection."""
 
