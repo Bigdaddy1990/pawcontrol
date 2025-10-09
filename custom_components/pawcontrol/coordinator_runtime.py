@@ -6,11 +6,11 @@ import asyncio
 import logging
 import time
 from collections import deque
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from statistics import fmean
-from typing import Any
+from typing import Any, cast
 
 from .compat import ConfigEntryAuthFailed
 
@@ -44,6 +44,7 @@ from .coordinator_support import CoordinatorMetrics, DogConfigRegistry
 from .exceptions import GPSUnavailableError, NetworkError, ValidationError
 from .module_adapters import CoordinatorModuleAdapters
 from .resilience import ResilienceManager, RetryConfig
+from .types import ModuleAdapterPayload
 
 CoordinatorUpdateFailed = UpdateFailed
 
@@ -419,7 +420,9 @@ class CoordinatorRuntime:
         }
 
         modules = dog_config.get("modules", {})
-        module_tasks = self._modules.build_tasks(dog_id, modules)
+        module_tasks: list[tuple[str, Awaitable[ModuleAdapterPayload]]] = (
+            self._modules.build_tasks(dog_id, modules)
+        )
         if not module_tasks:
             return payload
 
@@ -452,6 +455,6 @@ class CoordinatorRuntime:
                 )
                 payload[module_name] = {"status": "error"}
             else:
-                payload[module_name] = result
+                payload[module_name] = cast(ModuleAdapterPayload, result)
 
         return payload

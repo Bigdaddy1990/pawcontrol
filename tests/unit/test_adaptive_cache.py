@@ -209,7 +209,7 @@ async def test_cleanup_expired_removes_entries(
     cache = AdaptiveCache()
 
     base_time = datetime(2024, 1, 1, tzinfo=UTC)
-    monkeypatch.setattr(data_manager.dt_util, "utcnow", lambda: base_time)
+    monkeypatch.setattr(data_manager, "_utcnow", lambda: base_time)
 
     await cache.set("dog", {"name": "Otis"}, base_ttl=60)
     value, hit = await cache.get("dog")
@@ -217,12 +217,39 @@ async def test_cleanup_expired_removes_entries(
     assert value == {"name": "Otis"}
 
     monkeypatch.setattr(
-        data_manager.dt_util,
-        "utcnow",
+        data_manager,
+        "_utcnow",
         lambda: base_time + timedelta(minutes=5),
     )
 
     removed = await cache.cleanup_expired()
+    assert removed == 1
+
+    value, hit = await cache.get("dog")
+    assert hit is False
+    assert value is None
+
+
+@pytest.mark.asyncio
+async def test_cleanup_expired_honours_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """cleanup_expired should prefer the shorter override TTL when supplied."""
+
+    cache = AdaptiveCache()
+
+    base_time = datetime(2024, 3, 1, tzinfo=UTC)
+    monkeypatch.setattr(data_manager, "_utcnow", lambda: base_time)
+
+    await cache.set("dog", {"name": "Luna"}, base_ttl=600)
+
+    monkeypatch.setattr(
+        data_manager,
+        "_utcnow",
+        lambda: base_time + timedelta(minutes=3),
+    )
+
+    removed = await cache.cleanup_expired(ttl_seconds=120)
     assert removed == 1
 
     value, hit = await cache.get("dog")
@@ -262,14 +289,14 @@ async def test_cleanup_expired_uses_internal_lock(
     cache._lock = tracking_lock  # type: ignore[attr-defined]
 
     base_time = datetime(2024, 2, 1, tzinfo=UTC)
-    monkeypatch.setattr(data_manager.dt_util, "utcnow", lambda: base_time)
+    monkeypatch.setattr(data_manager, "_utcnow", lambda: base_time)
     await cache.set("dog", {"value": 1}, base_ttl=60)
 
     initial_acquisitions = tracking_lock.acquire_count
 
     monkeypatch.setattr(
-        data_manager.dt_util,
-        "utcnow",
+        data_manager,
+        "_utcnow",
         lambda: base_time + timedelta(hours=2),
     )
 
@@ -277,3 +304,38 @@ async def test_cleanup_expired_uses_internal_lock(
 
     assert removed == 1
     assert tracking_lock.acquire_count == initial_acquisitions + 1
+
+
+@pytest.mark.asyncio
+async def test_cleanup_diagnostics_track_override(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Diagnostics should record override-driven cleanup activity."""
+
+    cache = AdaptiveCache()
+
+    diagnostics = cache.get_diagnostics()
+    assert diagnostics["cleanup_invocations"] == 0
+    assert diagnostics["expired_entries"] == 0
+    assert diagnostics["last_cleanup"] is None
+
+    base_time = datetime(2024, 5, 1, tzinfo=UTC)
+    monkeypatch.setattr(data_manager, "_utcnow", lambda: base_time)
+    await cache.set("dog", {"name": "Bolt"}, base_ttl=600)
+
+    monkeypatch.setattr(
+        data_manager,
+        "_utcnow",
+        lambda: base_time + timedelta(seconds=200),
+    )
+
+    removed = await cache.cleanup_expired(ttl_seconds=90)
+    assert removed == 1
+
+    diagnostics = cache.get_diagnostics()
+    assert diagnostics["cleanup_invocations"] == 1
+    assert diagnostics["expired_entries"] == 1
+    assert diagnostics["expired_via_override"] == 1
+    assert diagnostics["last_expired_count"] == 1
+    assert diagnostics["last_override_ttl"] == 90
+    assert diagnostics["last_cleanup"] is not None

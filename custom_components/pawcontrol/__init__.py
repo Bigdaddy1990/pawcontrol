@@ -50,6 +50,7 @@ from .repairs import async_check_for_issues
 from .runtime_data import get_runtime_data, pop_runtime_data, store_runtime_data
 from .script_manager import PawControlScriptManager
 from .services import PawControlServiceManager, async_setup_daily_reset_scheduler
+from .telemetry import update_runtime_reconfigure_summary
 from .types import DogConfigData, PawControlConfigEntry, PawControlRuntimeData
 from .utils import sanitize_dog_id
 from .walk_manager import WalkManager
@@ -887,6 +888,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         runtime_data.door_sensor_manager = door_sensor_manager
         runtime_data.garden_manager = garden_manager
         runtime_data.device_api_client = coordinator.api_client
+
+        update_runtime_reconfigure_summary(runtime_data)
+
+        if hasattr(data_manager, "register_runtime_cache_monitors"):
+            data_manager.register_runtime_cache_monitors(runtime_data)
 
         store_runtime_data(hass, entry, runtime_data)
 

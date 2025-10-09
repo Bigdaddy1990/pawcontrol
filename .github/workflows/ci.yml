@@ -138,6 +138,46 @@ jobs:
           echo "CodeFactor analysis runs automatically via webhook"
           echo "Visit: https://www.codefactor.io/repository/github/${{ github.repository }}"
 
+  mypy-config:
+    name: Type Check Config Flows
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: Install mypy
+        run: |
+          python -m pip install --upgrade pip
+          pip install mypy
+
+      - name: Run mypy for configuration modules
+        run: |
+          mypy --follow-imports=skip \
+            custom_components/pawcontrol/config_flow.py \
+            custom_components/pawcontrol/config_flow_base.py \
+            custom_components/pawcontrol/config_flow_dogs.py \
+            custom_components/pawcontrol/options_flow.py \
+            custom_components/pawcontrol/config_flow_modules.py \
+            custom_components/pawcontrol/config_flow_external.py \
+            custom_components/pawcontrol/config_flow_dashboard_extension.py \
+            custom_components/pawcontrol/config_flow_profile.py
+
+      - name: Run mypy for telemetry modules
+        run: |
+          mypy --follow-imports=skip \
+            custom_components/pawcontrol/repairs.py \
+            custom_components/pawcontrol/types.py \
+            custom_components/pawcontrol/coordinator_tasks.py \
+            custom_components/pawcontrol/performance.py \
+            custom_components/pawcontrol/services.py \
+            custom_components/pawcontrol/telemetry.py
+
   validate-manifest:
     name: Validate Manifest
     runs-on: ubuntu-latest
@@ -167,7 +207,7 @@ jobs:
   all-checks:
     name: All Checks Passed
     if: always()
-    needs: [lint, test-coverage, code-quality, validate-manifest]
+    needs: [lint, test-coverage, code-quality, mypy-config, validate-manifest]
     runs-on: ubuntu-latest
     steps:
       - name: Check status
@@ -175,6 +215,7 @@ jobs:
           if [[ "${{ needs.lint.result }}" != "success" || \
                 "${{ needs.test-coverage.result }}" != "success" || \
                 "${{ needs.code-quality.result }}" != "success" || \
+                "${{ needs.mypy-config.result }}" != "success" || \
                 "${{ needs.validate-manifest.result }}" != "success" ]]; then
             echo "❌ Some checks failed"
             exit 1

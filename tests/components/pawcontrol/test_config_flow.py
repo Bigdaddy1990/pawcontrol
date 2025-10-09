@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from datetime import UTC, datetime
 from types import ModuleType, SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, patch
@@ -236,16 +237,46 @@ async def test_reconfigure_flow(hass: HomeAssistant) -> None:
     )
     assert result["type"] == FlowResultType.FORM
     _assert_step_id(result, "reconfigure")
+    placeholders = result["description_placeholders"]
+    assert placeholders["current_profile"] == "standard"
+    assert placeholders["dogs_count"] == "0"
 
     with patch(
         "homeassistant.config_entries.ConfigFlow.async_update_reload_and_abort",
-        return_value={"type": FlowResultType.ABORT, "reason": "reconfigure_successful"},
-    ):
+    ) as update_mock:
+        update_mock.return_value = {
+            "type": FlowResultType.ABORT,
+            "reason": "reconfigure_successful",
+        }
         result = await hass.config_entries.flow.async_configure(
             result["flow_id"], user_input={"entity_profile": "basic"}
         )
     assert result["type"] == FlowResultType.ABORT
     assert result["reason"] == "reconfigure_successful"
+
+    update_mock.assert_called_once()
+    call_kwargs = update_mock.call_args.kwargs
+    data_updates = call_kwargs["data_updates"]
+    options_updates = call_kwargs["options_updates"]
+
+    assert data_updates["entity_profile"] == "basic"
+    assert (
+        data_updates["reconfigure_version"] == config_flow.PawControlConfigFlow.VERSION
+    )
+
+    telemetry = options_updates["reconfigure_telemetry"]
+    assert telemetry["requested_profile"] == "basic"
+    assert telemetry["previous_profile"] == "standard"
+    assert telemetry["dogs_count"] == 0
+    assert telemetry["estimated_entities"] == 0
+    assert telemetry["version"] == config_flow.PawControlConfigFlow.VERSION
+    assert telemetry["health_summary"]["healthy"] is True
+
+    timestamp = telemetry["timestamp"]
+    assert timestamp == data_updates["reconfigure_timestamp"]
+    assert timestamp == options_updates["last_reconfigure"]
+    assert options_updates["previous_profile"] == "standard"
+    assert options_updates["entity_profile"] == "basic"
 
 
 async def test_dhcp_discovery_flow(hass: HomeAssistant) -> None:
@@ -381,6 +412,74 @@ async def test_reauth_confirm_fail(hass: HomeAssistant) -> None:
     )
     assert result["type"] == FlowResultType.FORM
     assert result["errors"] == {"base": "reauth_unsuccessful"}
+
+
+@pytest.mark.asyncio
+async def test_reauth_confirm_records_health_summary(hass: HomeAssistant) -> None:
+    """Reauth should persist typed health summaries and sanitise issues."""
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            "name": "Paw Control",
+            "dogs": [{"dog_id": "fido", "dog_name": "Fido"}],
+            "entity_profile": "standard",
+        },
+        options={"entity_profile": "standard"},
+        unique_id=DOMAIN,
+    )
+    entry.add_to_hass(hass)
+
+    with (
+        patch(
+            "custom_components.pawcontrol.config_flow.dt_util.utcnow",
+            return_value=datetime(2024, 1, 1, tzinfo=UTC),
+        ),
+        patch.object(
+            config_flow.PawControlConfigFlow,
+            "_check_config_health_enhanced",
+            return_value={
+                "healthy": False,
+                "issues": ["alpha", 2],
+                "warnings": ["beta", None],
+                "validated_dogs": 1,
+                "total_dogs": 2,
+            },
+        ),
+        patch.object(
+            config_flow.PawControlConfigFlow,
+            "async_update_reload_and_abort",
+            AsyncMock(
+                return_value={
+                    "type": FlowResultType.ABORT,
+                    "reason": "reauth_successful",
+                }
+            ),
+        ) as mock_update,
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={
+                "source": config_entries.SOURCE_REAUTH,
+                "entry_id": entry.entry_id,
+            },
+            data=entry.data,
+        )
+
+        await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={"confirm": True}
+        )
+
+    assert mock_update.call_count == 1
+    update_kwargs = mock_update.call_args.kwargs
+    data_updates = update_kwargs["data_updates"]
+    options_updates = update_kwargs["options_updates"]
+
+    assert data_updates["health_validated_dogs"] == 1
+    assert data_updates["health_total_dogs"] == 2
+    assert options_updates["reauth_health_issues"] == ["alpha", "2"]
+    assert options_updates["reauth_health_warnings"] == ["beta"]
+    assert options_updates["last_reauth_summary"].startswith("Status: ")
 
 
 async def test_usb_discovery_flow(hass: HomeAssistant) -> None:
@@ -588,6 +687,80 @@ async def test_reconfigure_invalid_profile_error(hass: HomeAssistant) -> None:
     _assert_step_id(result, "reconfigure")
     assert result["errors"] == {"base": "invalid_profile"}
     assert "error_details" in result["description_placeholders"]
+
+
+async def test_reconfigure_telemetry_records_warnings(hass: HomeAssistant) -> None:
+    """Compatibility warnings and telemetry metadata are captured during reconfigure."""
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            "name": "Paw Control",
+            "dogs": [{CONF_DOG_ID: "buddy", CONF_DOG_NAME: "Buddy"}],
+            "entity_profile": "standard",
+        },
+        options={"entity_profile": "standard"},
+        unique_id=DOMAIN,
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={
+            "source": config_entries.SOURCE_RECONFIGURE,
+            "entry_id": entry.entry_id,
+        },
+    )
+    assert result["type"] == FlowResultType.FORM
+
+    with (
+        patch(
+            "homeassistant.config_entries.ConfigFlow.async_update_reload_and_abort",
+        ) as update_mock,
+        patch.object(
+            config_flow.PawControlConfigFlow,
+            "_check_profile_compatibility",
+            return_value={
+                "compatible": False,
+                "warnings": ["Profile 'basic' may not be optimal for Buddy"],
+            },
+        ),
+        patch.object(
+            config_flow.PawControlConfigFlow,
+            "_check_config_health_enhanced",
+            AsyncMock(
+                return_value={
+                    "healthy": True,
+                    "issues": [],
+                    "warnings": [],
+                    "validated_dogs": 1,
+                    "total_dogs": 1,
+                }
+            ),
+        ),
+        patch.object(
+            config_flow.PawControlConfigFlow,
+            "_estimate_entities_for_reconfigure",
+            AsyncMock(return_value=3),
+        ),
+    ):
+        update_mock.return_value = {
+            "type": FlowResultType.ABORT,
+            "reason": "reconfigure_successful",
+        }
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={"entity_profile": "basic"}
+        )
+
+    assert result["type"] == FlowResultType.ABORT
+    update_mock.assert_called_once()
+
+    telemetry = update_mock.call_args.kwargs["options_updates"]["reconfigure_telemetry"]
+    assert telemetry["estimated_entities"] == 3
+    assert telemetry["compatibility_warnings"] == [
+        "Profile 'basic' may not be optimal for Buddy"
+    ]
+    assert telemetry["health_summary"]["validated_dogs"] == 1
 
 
 async def test_configure_dashboard_form_includes_context(hass: HomeAssistant) -> None:

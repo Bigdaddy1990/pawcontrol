@@ -560,6 +560,24 @@ start_grooming:
       selector:
         text:
           multiline: true
+    reminder_id:
+      name: Reminder ID
+      description: Optional identifier for the reminder that triggered this grooming
+      required: false
+      selector:
+        text:
+    reminder_type:
+      name: Reminder Type
+      description: Reminder category such as auto_schedule, manual, or vet
+      required: false
+      selector:
+        text:
+    reminder_sent_at:
+      name: Reminder Sent At
+      description: Timestamp indicating when the associated reminder was sent
+      required: false
+      selector:
+        datetime:
 
 end_grooming:
   name: End Grooming
@@ -642,6 +660,25 @@ start_garden_session:
           max: 60
           step: 0.5
           unit_of_measurement: "°C"
+    automation_fallback:
+      name: Automation Fallback
+      description: Mark true when the session starts after an automation failure
+      required: false
+      default: false
+      selector:
+        boolean:
+    fallback_reason:
+      name: Fallback Reason
+      description: Optional reason explaining why automation failed
+      required: false
+      selector:
+        text:
+    automation_source:
+      name: Automation Source
+      description: Automation or sensor that attempted to trigger the session
+      required: false
+      selector:
+        text:
 
 end_garden_session:
   name: End Garden Session

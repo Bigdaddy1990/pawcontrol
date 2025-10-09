@@ -245,7 +245,7 @@
       },
       "entity_profile": {
         "title": "Entity-Profil auswählen",
-        "description": "Wähle das Entity-Profil für {dogs_count} Hund(e).\n\n{profiles_info}\nGeschätzte Entitäten: {estimated_entities}\nEmpfehlung: {recommendation}",
+        "description": "Wähle das Entity-Profil für {dogs_count} Hund(e).\n\n{profiles_info}\n\nLetzte Neukonfiguration: {last_reconfigure}\nAngefordertes Profil: {reconfigure_requested_profile}\nVorheriges Profil: {reconfigure_previous_profile}\nBetroffene Hunde: {reconfigure_dogs}\nGeschätzte Entitäten: {reconfigure_entities}\nStatus nach Neukonfiguration: {reconfigure_health}\nKompatibilitätswarnungen: {reconfigure_warnings}",
         "data": {
           "entity_profile": "Entity-Profil"
         },
@@ -513,7 +513,17 @@
       "invalid_configuration": "Ungültige Konfiguration",
       "weather_entity_not_found": "Wetter-Entität nicht gefunden",
       "invalid_weather_entity": "Ungültige Wetter-Entität ausgewählt",
-      "invalid_api_endpoint": "API-Endpunkt muss eine gültige http- oder https-URL sein"
+      "invalid_api_endpoint": "API-Endpunkt muss eine gültige http- oder https-URL sein",
+      "invalid_payload": "Import-Payload konnte nicht validiert werden",
+      "payload_not_mapping": "Import-Payload muss ein JSON-Objekt sein",
+      "unsupported_version": "Diese Exportdatei wurde mit einer nicht unterstützten Version erstellt",
+      "options_missing": "Import-Payload enthält keine Konfigurationsoptionen",
+      "dogs_invalid": "Import-Payload muss eine Liste von Hunden enthalten",
+      "dog_invalid": "Jeder importierte Hund muss ein JSON-Objekt sein",
+      "dog_missing_id": "Jeder importierte Hund benötigt eine eindeutige ID",
+      "dog_invalid_modules": "Modulkonfiguration des Hundes konnte nicht interpretiert werden",
+      "dog_invalid_config": "Importierte Hundekonfiguration ist ungültig",
+      "dog_duplicate": "Doppelte Hund-IDs in der Importdatei gefunden"
     }
   },
   "entity": {
@@ -1183,6 +1193,14 @@
     "coordinator_error": {
       "title": "Koordinator nicht verfügbar",
       "description": "Paw Control konnte nicht auf den Koordinator zugreifen ({error}). Folge der empfohlenen Maßnahme oder lade die Integration neu."
+    },
+    "reconfigure_warnings": {
+      "title": "Profilwechsel erzeugte Warnungen",
+      "description": "Die letzte Neukonfiguration am {timestamp} wechselte von {previous_profile} zu {requested_profile}. Kompatibilitätswarnungen: {warnings}."
+    },
+    "reconfigure_health": {
+      "title": "Probleme nach der Neukonfiguration",
+      "description": "Die letzte Neukonfiguration am {timestamp} für das Profil {requested_profile} meldete Probleme: {health_issues}. Weitere Hinweise: {health_warnings}."
     }
   }
 }

@@ -13,26 +13,30 @@ Python: 3.13+
 
 from __future__ import annotations
 
+from datetime import timedelta
 from enum import Enum
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
-try:
+if TYPE_CHECKING:
     from homeassistant.const import Platform
-except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
+else:  # pragma: no cover - runtime fallback when Home Assistant isn't installed
+    try:
+        from homeassistant.const import Platform
+    except ModuleNotFoundError:
 
-    class Platform(str, Enum):
-        """Minimal Platform enum used when Home Assistant isn't installed."""
+        class Platform(str, Enum):  # type: ignore[misc]
+            """Minimal Platform enum used when Home Assistant isn't installed."""
 
-        SENSOR = "sensor"
-        BINARY_SENSOR = "binary_sensor"
-        BUTTON = "button"
-        SWITCH = "switch"
-        NUMBER = "number"
-        SELECT = "select"
-        TEXT = "text"
-        DEVICE_TRACKER = "device_tracker"
-        DATE = "date"
-        DATETIME = "datetime"
+            SENSOR = "sensor"
+            BINARY_SENSOR = "binary_sensor"
+            BUTTON = "button"
+            SWITCH = "switch"
+            NUMBER = "number"
+            SELECT = "select"
+            TEXT = "text"
+            DEVICE_TRACKER = "device_tracker"
+            DATE = "date"
+            DATETIME = "datetime"
 
 
 from .selector_shim import selector
@@ -72,6 +76,10 @@ DEVICE_CATEGORIES: Final[tuple[str, ...]] = (
     "camera",
     "door_sensor",
 )
+
+# Cache diagnostics timing thresholds tuned against nightly telemetry
+CACHE_TIMESTAMP_STALE_THRESHOLD: Final[timedelta] = timedelta(hours=36)
+CACHE_TIMESTAMP_FUTURE_THRESHOLD: Final[timedelta] = timedelta(minutes=2)
 
 # OPTIMIZED: Core configuration constants - grouped for better locality
 CONF_NAME: Final[str] = "name"

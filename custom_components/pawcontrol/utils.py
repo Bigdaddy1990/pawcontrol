@@ -17,50 +17,96 @@ import logging
 import math
 import re
 from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime, time, timedelta
 from functools import wraps
 from numbers import Real
 from types import SimpleNamespace
-from typing import TYPE_CHECKING, Any, ParamSpec, TypedDict, TypeGuard, TypeVar, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    ParamSpec,
+    Protocol,
+    TypedDict,
+    TypeGuard,
+    TypeVar,
+    cast,
+)
 
-try:
+if TYPE_CHECKING:  # pragma: no cover - import heavy HA modules for typing only
     from homeassistant.core import HomeAssistant
     from homeassistant.helpers import device_registry as dr
     from homeassistant.helpers import entity_registry as er
     from homeassistant.helpers.device_registry import DeviceEntry, DeviceInfo
     from homeassistant.helpers.entity import Entity
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
     from homeassistant.util import dt as dt_util
-except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
-
-    class HomeAssistant:  # type: ignore[override]
-        """Minimal stand-in for type checking during unit tests."""
-
-    class Entity:  # type: ignore[override]
-        """Lightweight placeholder entity used for tests."""
-
-    if TYPE_CHECKING:
+else:  # pragma: no branch - executed under tests without Home Assistant installed
+    try:
+        from homeassistant.core import HomeAssistant
+        from homeassistant.helpers import device_registry as dr
+        from homeassistant.helpers import entity_registry as er
         from homeassistant.helpers.device_registry import DeviceEntry, DeviceInfo
-        from homeassistant.helpers.entity import Entity as _Entity
+        from homeassistant.helpers.entity import Entity
+        from homeassistant.helpers.entity_platform import AddEntitiesCallback
+        from homeassistant.util import dt as dt_util
+    except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
 
-        Entity = _Entity
-    else:
-        DeviceEntry = dict[str, Any]  # type: ignore[assignment]
-        DeviceInfo = dict[str, Any]  # type: ignore[assignment]
+        class HomeAssistant:  # type: ignore[override]
+            """Minimal stand-in mirroring :class:`homeassistant.core.HomeAssistant`."""
 
-    def _missing_registry(*args: Any, **kwargs: Any) -> Any:
-        raise RuntimeError(
-            "Home Assistant registry helpers are unavailable in this environment"
-        )
+        class Entity:  # type: ignore[override]
+            """Lightweight placeholder entity used for tests."""
 
-    dr = SimpleNamespace(async_get=_missing_registry)
-    er = SimpleNamespace(async_get=_missing_registry)
+        @dataclass(slots=True)
+        class DeviceEntry:  # type: ignore[override]
+            """Fallback representation of Home Assistant's device registry entry."""
 
-    class _DateTimeModule:
-        @staticmethod
-        def utcnow() -> datetime:
-            return datetime.now(UTC)
+            id: str = ""
+            manufacturer: str | None = None
+            model: str | None = None
+            sw_version: str | None = None
+            configuration_url: str | None = None
+            suggested_area: str | None = None
+            serial_number: str | None = None
+            hw_version: str | None = None
 
-    dt_util = _DateTimeModule()
+        class DeviceInfo(TypedDict, total=False):  # type: ignore[override]
+            """Fallback device info payload matching Home Assistant expectations."""
+
+            identifiers: set[tuple[str, str]]
+            name: str
+            manufacturer: str
+            model: str
+            sw_version: str
+            configuration_url: str
+            serial_number: str
+            hw_version: str
+            suggested_area: str
+
+        class _AddEntitiesCallback(Protocol):
+            """Callable signature mirroring ``AddEntitiesCallback``."""
+
+            def __call__(
+                self, entities: Iterable[Entity], update_before_add: bool = ...
+            ) -> Awaitable[Any] | None: ...
+
+        AddEntitiesCallback = _AddEntitiesCallback
+
+        def _missing_registry(*args: Any, **kwargs: Any) -> Any:
+            raise RuntimeError(
+                "Home Assistant registry helpers are unavailable in this environment"
+            )
+
+        dr = SimpleNamespace(async_get=_missing_registry)
+        er = SimpleNamespace(async_get=_missing_registry)
+
+        class _DateTimeModule:
+            @staticmethod
+            def utcnow() -> datetime:
+                return datetime.now(UTC)
+
+        dt_util = _DateTimeModule()
 
 from .const import DEFAULT_MODEL, DOMAIN, MANUFACTURER
 
@@ -209,7 +255,7 @@ def create_device_info(
 
 
 async def async_call_add_entities(
-    add_entities_callback: Callable[[Iterable[Entity], bool], Any],
+    add_entities_callback: AddEntitiesCallback,
     entities: Iterable[Entity],
     *,
     update_before_add: bool = False,

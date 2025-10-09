@@ -301,6 +301,17 @@ pawcontrol.confirm_garden_poop:
     location: "Optional: Ort im Garten"
 ```
 
+#### Telemetrie (ServiceExecutionResult)
+- `pawcontrol.add_health_snack`: `details.snack_type`, `details.amount`, `details.health_benefit`, `details.notes` dokumentieren jeden Snack inklusive Zusatznutzen.【F:custom_components/pawcontrol/services.py†L2896-L2931】
+- `pawcontrol.log_poop`: `details` enthält `quality`, `color`, `size`, `notes` und den normalisierten Zeitstempel (`timestamp`) zur Analyse der Verdauungsroutine.【F:custom_components/pawcontrol/services.py†L2933-L2973】
+- `pawcontrol.start_grooming`: `details.session_id`, `details.grooming_type`, `details.groomer`, `details.location`, `details.estimated_duration_minutes` sowie `details.reminder_attached`/`details.reminder` beschreiben die gestartete Pflegeroutine inklusive zugehöriger Erinnerungs-Telemetrie.【F:custom_components/pawcontrol/services.py†L2975-L3051】
+- `pawcontrol.start_garden_session`: `details.session_id`, `details.detection_method`, `details.weather_conditions`, `details.temperature`, `details.automation_fallback`, `details.fallback_reason` und `details.automation_source` verknüpfen Gartenstarts mit Auslösern, Umgebungsdaten und etwaigen Automations-Fallbacks.【F:custom_components/pawcontrol/services.py†L3042-L3106】
+- `pawcontrol.end_garden_session`: `details.duration_minutes`, `details.activity_count`, `details.poop_count`, `details.notes` fassen abgeschlossene Sessions zusammen oder melden Validierungsfehler über `message` zurück.【F:custom_components/pawcontrol/services.py†L3078-L3124】
+- `pawcontrol.add_garden_activity`: `details.activity_type`, `details.duration_seconds`, `details.location`, `details.notes`, `details.confirmed` halten Aktivitäten fest und signalisieren Validierungsfehler über `message` bei fehlender Session.【F:custom_components/pawcontrol/services.py†L3126-L3172】
+- `pawcontrol.confirm_garden_poop`: `details.confirmed`, `details.quality`, `details.size`, `details.location` zeichnen Bestätigungen auf; `message` beschreibt, wenn kein Pending-Ereignis existiert.【F:custom_components/pawcontrol/services.py†L3174-L3216】
+- `pawcontrol.daily_reset`: `details.walk_cleanup_performed`, `details.notifications_cleaned` und `diagnostics.metadata.refresh_requested` dokumentieren bereinigte Ressourcen sowie Cache-Snapshots; parallel protokollieren die Maintenance-Resultate das Reparaturbild für Repairs/Diagnoseflächen.【F:custom_components/pawcontrol/services.py†L4124-L4182】【F:custom_components/pawcontrol/performance.py†L86-L158】
+- `coordinator_tasks.run_maintenance`: Der stündliche Koordinatorlauf registriert `details.expired_entries`, `details.consecutive_errors_reset` und hinterlegt Cache-Diagnostics samt Zeitstempel zur Auswertung im Hintergrundmonitoring.【F:custom_components/pawcontrol/coordinator_tasks.py†L90-L152】
+
 ### System-Services
 ```yaml
 pawcontrol.daily_reset:
@@ -925,6 +936,7 @@ data:
 
 ### Version 1.3.0 (Latest)
 - ✨ **Erweiterte Options Flow** mit umfassendem Menüsystem
+- 🧮 **Typed Options Flow** speichert Geofencing-, Benachrichtigungs- und Performance-Einstellungen strukturiert, inklusive Tests für die neuen TypedDict-Payloads.【F:custom_components/pawcontrol/options_flow.py†L120-L520】【F:tests/unit/test_options_flow.py†L1-L120】
 - 🗺️ **Verbesserte GPS-Tracking** Performance und Genauigkeit
 - 🏥 **Erweiterte Gesundheitsüberwachung** mit Trends und Alerts
 - 📱 **Mobile App Integration** mit Actionable Notifications

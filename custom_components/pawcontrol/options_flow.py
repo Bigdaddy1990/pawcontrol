@@ -18,10 +18,14 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Any
+from collections.abc import Mapping, Sequence
+from contextlib import suppress
+from datetime import UTC, datetime
+from typing import Any, ClassVar, Literal, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult, OptionsFlow
+from homeassistant.util import dt as dt_util
 
 from .compat import ConfigEntry
 from .config_flow_profile import (
@@ -44,6 +48,7 @@ from .const import (
     CONF_GPS_ACCURACY_FILTER,
     CONF_GPS_DISTANCE_FILTER,
     CONF_GPS_UPDATE_INTERVAL,
+    CONF_MODULES,
     CONF_NOTIFICATIONS,
     CONF_QUIET_END,
     CONF_QUIET_HOURS,
@@ -74,7 +79,25 @@ from .device_api import validate_device_endpoint
 from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .exceptions import ValidationError
 from .selector_shim import selector
-from .types import DogConfigData
+from .types import (
+    AdvancedOptions,
+    DashboardOptions,
+    DogConfigData,
+    DogModulesConfig,
+    DogOptionsEntry,
+    DogOptionsMap,
+    FeedingOptions,
+    GeofenceOptions,
+    GPSOptions,
+    HealthOptions,
+    NotificationOptions,
+    OptionsExportPayload,
+    PawControlOptionsData,
+    ReconfigureTelemetry,
+    SystemOptions,
+    WeatherOptions,
+    is_dog_config_valid,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -91,6 +114,9 @@ class PawControlOptionsFlow(OptionsFlow):
     ENHANCED: GPS and Geofencing configuration per requirements
     """
 
+    _PERFORMANCE_MODES: ClassVar[set[str]] = {"minimal", "balanced", "full"}
+    _EXPORT_VERSION: ClassVar[int] = 1
+
     def __init__(self) -> None:
         """Initialize the options flow with enhanced state management."""
         super().__init__()
@@ -98,7 +124,6 @@ class PawControlOptionsFlow(OptionsFlow):
         self._current_dog: DogConfigData | None = None
         self._dogs: list[DogConfigData] = []
         self._navigation_stack: list[str] = []
-        self._unsaved_changes: dict[str, Any] = {}
 
         # Initialize entity factory and caches for profile calculations
         self._entity_factory = EntityFactory(None)
@@ -119,13 +144,888 @@ class PawControlOptionsFlow(OptionsFlow):
         """Attach the originating config entry to this options flow."""
 
         self._config_entry = config_entry
-        self._dogs = [d.copy() for d in config_entry.data.get(CONF_DOGS, [])]
+        dogs_data = config_entry.data.get(CONF_DOGS, [])
+        self._dogs = [
+            cast(DogConfigData, dict(dog))
+            for dog in dogs_data
+            if isinstance(dog, Mapping)
+        ]
 
     def _invalidate_profile_caches(self) -> None:
         """Clear cached profile data when configuration changes."""
 
         self._profile_cache.clear()
         self._entity_estimates_cache.clear()
+
+    def _current_options(self) -> PawControlOptionsData:
+        """Return the current config entry options as a typed mapping."""
+
+        return cast(PawControlOptionsData, self._entry.options)
+
+    def _clone_options(self) -> PawControlOptionsData:
+        """Return a shallow copy of the current options for mutation."""
+
+        return cast(PawControlOptionsData, dict(self._entry.options))
+
+    def _last_reconfigure_timestamp(self) -> str | None:
+        """Return the ISO timestamp recorded for the last reconfigure run."""
+
+        value = self._entry.options.get("last_reconfigure")
+        return str(value) if isinstance(value, str) and value else None
+
+    def _reconfigure_telemetry(self) -> ReconfigureTelemetry | None:
+        """Return the stored reconfigure telemetry, if available."""
+
+        telemetry = self._entry.options.get("reconfigure_telemetry")
+        if isinstance(telemetry, Mapping):
+            return cast(ReconfigureTelemetry, telemetry)
+        return None
+
+    def _format_local_timestamp(self, timestamp: str | None) -> str:
+        """Return a human-friendly representation for an ISO timestamp."""
+
+        if not timestamp:
+            return "Never reconfigured"
+
+        parsed = dt_util.parse_datetime(timestamp)
+        if parsed is None:
+            return timestamp
+
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=UTC)
+
+        local_dt = dt_util.as_local(parsed)
+        return local_dt.strftime("%Y-%m-%d %H:%M:%S %Z")
+
+    def _summarise_health_summary(self, health: Any) -> str:
+        """Convert a health summary mapping into a user-facing string."""
+
+        if not isinstance(health, Mapping):
+            return "No recent health summary"
+
+        healthy = bool(health.get("healthy", True))
+        issues = self._string_sequence(health.get("issues"))
+        warnings = self._string_sequence(health.get("warnings"))
+
+        if healthy and not issues and not warnings:
+            return "Healthy"
+
+        segments: list[str] = []
+        if not healthy:
+            segments.append("Issues detected")
+        if issues:
+            segments.append(f"Issues: {', '.join(issues)}")
+        if warnings:
+            segments.append(f"Warnings: {', '.join(warnings)}")
+
+        return " | ".join(segments)
+
+    def _string_sequence(self, value: Any) -> list[str]:
+        """Return a normalised list of strings for sequence-based metadata."""
+
+        if isinstance(value, Sequence) and not isinstance(value, str | bytes):
+            return [str(item) for item in value if item not in (None, "")]
+        return []
+
+    def _get_reconfigure_description_placeholders(self) -> dict[str, str]:
+        """Return placeholders describing the latest reconfigure telemetry."""
+
+        telemetry = self._reconfigure_telemetry()
+        timestamp = self._format_local_timestamp(
+            (telemetry or {}).get("timestamp") if telemetry else None
+        )
+        if not telemetry:
+            return {
+                "last_reconfigure": timestamp,
+                "reconfigure_requested_profile": "Not recorded",
+                "reconfigure_previous_profile": "Not recorded",
+                "reconfigure_entities": "0",
+                "reconfigure_dogs": "0",
+                "reconfigure_health": "No recent health summary",
+                "reconfigure_warnings": "None",
+            }
+
+        requested_profile = str(telemetry.get("requested_profile", "")) or "Unknown"
+        previous_profile = str(telemetry.get("previous_profile", "")) or "Unknown"
+        dogs_count = telemetry.get("dogs_count")
+        estimated_entities = telemetry.get("estimated_entities")
+        warnings = self._string_sequence(telemetry.get("compatibility_warnings"))
+        health_summary = telemetry.get("health_summary")
+
+        last_recorded = telemetry.get("timestamp") or self._last_reconfigure_timestamp()
+
+        return {
+            "last_reconfigure": self._format_local_timestamp(
+                str(last_recorded) if last_recorded else None
+            ),
+            "reconfigure_requested_profile": requested_profile,
+            "reconfigure_previous_profile": previous_profile,
+            "reconfigure_entities": (
+                str(int(estimated_entities))
+                if isinstance(estimated_entities, int | float)
+                else "0"
+            ),
+            "reconfigure_dogs": (
+                str(int(dogs_count)) if isinstance(dogs_count, int | float) else "0"
+            ),
+            "reconfigure_health": self._summarise_health_summary(health_summary),
+            "reconfigure_warnings": ", ".join(warnings) if warnings else "None",
+        }
+
+    def _normalise_export_value(self, value: Any) -> Any:
+        """Convert complex values into JSON-serialisable primitives."""
+
+        if isinstance(value, Mapping):
+            return {
+                str(key): self._normalise_export_value(subvalue)
+                for key, subvalue in value.items()
+            }
+        if isinstance(value, list | tuple | set | frozenset):
+            return [self._normalise_export_value(item) for item in value]
+        if isinstance(value, str | int | float | bool) or value is None:
+            return value
+        return str(value)
+
+    def _sanitise_imported_dog(self, raw: Mapping[str, Any]) -> DogConfigData:
+        """Normalise and validate a dog payload from an import file."""
+
+        normalised = cast(
+            DogConfigData,
+            self._normalise_export_value(dict(raw)),
+        )
+
+        modules_raw = normalised.get(CONF_MODULES)
+        if modules_raw is None:
+            modules: DogModulesConfig = {}
+        elif isinstance(modules_raw, Mapping):
+            modules = {
+                str(module): bool(value) for module, value in modules_raw.items()
+            }
+        else:
+            raise ValueError("dog_invalid_modules")
+
+        if modules:
+            normalised[CONF_MODULES] = cast(DogModulesConfig, modules)
+
+        if not is_dog_config_valid(normalised):
+            raise ValueError("dog_invalid_config")
+
+        return normalised
+
+    def _build_export_payload(self) -> OptionsExportPayload:
+        """Serialise the current configuration into an export payload."""
+
+        options = cast(
+            PawControlOptionsData,
+            self._normalise_export_value(self._clone_options()),
+        )
+
+        dogs_payload: list[DogConfigData] = []
+        for raw in self._entry.data.get(CONF_DOGS, []):
+            if not isinstance(raw, Mapping):
+                continue
+            normalised = cast(
+                DogConfigData,
+                self._normalise_export_value(dict(raw)),
+            )
+            dog_id = normalised.get(CONF_DOG_ID)
+            if not isinstance(dog_id, str) or not dog_id.strip():
+                continue
+            dogs_payload.append(normalised)
+
+        payload: OptionsExportPayload = {
+            "version": cast(Literal[1], self._EXPORT_VERSION),
+            "options": options,
+            "dogs": dogs_payload,
+            "created_at": datetime.now(UTC).isoformat(),
+        }
+        return payload
+
+    def _validate_import_payload(self, payload: Any) -> OptionsExportPayload:
+        """Validate and normalise an imported payload."""
+
+        if not isinstance(payload, Mapping):
+            raise ValueError("payload_not_mapping")
+
+        version = payload.get("version")
+        if version != self._EXPORT_VERSION:
+            raise ValueError("unsupported_version")
+
+        options_raw = payload.get("options")
+        if not isinstance(options_raw, Mapping):
+            raise ValueError("options_missing")
+
+        sanitised_options = cast(
+            PawControlOptionsData,
+            self._normalise_export_value(dict(options_raw)),
+        )
+
+        merged_options = cast(PawControlOptionsData, dict(self._clone_options()))
+        merged_options.clear()
+        merged_options.update(sanitised_options)
+
+        dogs_raw = payload.get("dogs", [])
+        if not isinstance(dogs_raw, list):
+            raise ValueError("dogs_invalid")
+
+        dogs_payload: list[DogConfigData] = []
+        seen_ids: set[str] = set()
+        for raw in dogs_raw:
+            if not isinstance(raw, Mapping):
+                raise ValueError("dog_invalid")
+            normalised = self._sanitise_imported_dog(raw)
+            dog_id = normalised.get(CONF_DOG_ID)
+            if not isinstance(dog_id, str) or not dog_id.strip():
+                raise ValueError("dog_missing_id")
+            if dog_id in seen_ids:
+                raise ValueError("dog_duplicate")
+            seen_ids.add(dog_id)
+            dogs_payload.append(normalised)
+
+        created_at = payload.get("created_at")
+        if not isinstance(created_at, str) or not created_at:
+            created_at = datetime.now(UTC).isoformat()
+
+        result: OptionsExportPayload = {
+            "version": cast(Literal[1], self._EXPORT_VERSION),
+            "options": merged_options,
+            "dogs": dogs_payload,
+            "created_at": created_at,
+        }
+        return result
+
+    def _current_geofence_options(self) -> GeofenceOptions:
+        """Fetch the stored geofence configuration as a typed mapping."""
+
+        raw = self._current_options().get("geofence_settings", {})
+        if isinstance(raw, Mapping):
+            return cast(GeofenceOptions, dict(raw))
+        return cast(GeofenceOptions, {})
+
+    def _current_notification_options(self) -> NotificationOptions:
+        """Fetch the stored notification configuration as a typed mapping."""
+
+        raw = self._current_options().get(CONF_NOTIFICATIONS, {})
+        if isinstance(raw, Mapping):
+            return cast(NotificationOptions, dict(raw))
+        return cast(NotificationOptions, {})
+
+    def _current_weather_options(self) -> WeatherOptions:
+        """Return the stored weather configuration with root fallbacks."""
+
+        options = self._current_options()
+        raw = options.get("weather_settings", {})
+        if isinstance(raw, Mapping):
+            current = cast(WeatherOptions, dict(raw))
+        else:
+            current = cast(WeatherOptions, {})
+
+        if (
+            CONF_WEATHER_ENTITY not in current
+            and (entity := options.get(CONF_WEATHER_ENTITY))
+            and isinstance(entity, str)
+            and entity.strip()
+        ):
+            current[CONF_WEATHER_ENTITY] = entity
+
+        return current
+
+    def _current_feeding_options(self) -> FeedingOptions:
+        """Return the stored feeding configuration as a typed mapping."""
+
+        raw = self._current_options().get("feeding_settings", {})
+        if isinstance(raw, Mapping):
+            return cast(FeedingOptions, dict(raw))
+        return cast(FeedingOptions, {})
+
+    def _current_gps_options(self) -> GPSOptions:
+        """Return the stored GPS configuration with legacy fallbacks."""
+
+        options = self._current_options()
+        raw = options.get("gps_settings", {})
+        if isinstance(raw, Mapping):
+            current = cast(GPSOptions, dict(raw))
+        else:
+            current = cast(GPSOptions, {})
+
+        if (
+            CONF_GPS_UPDATE_INTERVAL not in current
+            and (interval := options.get(CONF_GPS_UPDATE_INTERVAL)) is not None
+        ):
+            with suppress(TypeError, ValueError):
+                current[CONF_GPS_UPDATE_INTERVAL] = int(interval)
+
+        if (
+            CONF_GPS_ACCURACY_FILTER not in current
+            and (accuracy := options.get(CONF_GPS_ACCURACY_FILTER)) is not None
+        ):
+            with suppress(TypeError, ValueError):
+                current[CONF_GPS_ACCURACY_FILTER] = float(accuracy)
+
+        if (
+            CONF_GPS_DISTANCE_FILTER not in current
+            and (distance := options.get(CONF_GPS_DISTANCE_FILTER)) is not None
+        ):
+            with suppress(TypeError, ValueError):
+                current[CONF_GPS_DISTANCE_FILTER] = float(distance)
+
+        current.setdefault("gps_enabled", True)
+        current.setdefault("route_recording", True)
+        current.setdefault("route_history_days", 30)
+        current.setdefault("auto_track_walks", True)
+
+        return current
+
+    def _current_dog_options(self) -> DogOptionsMap:
+        """Return the stored per-dog overrides keyed by dog ID."""
+
+        raw = self._current_options().get("dog_options", {})
+        if not isinstance(raw, Mapping):
+            return {}
+
+        dog_options: DogOptionsMap = {}
+        for dog_id, value in raw.items():
+            if not isinstance(value, Mapping):
+                continue
+            entry = cast(DogOptionsEntry, dict(value))
+            if "dog_id" not in entry:
+                entry["dog_id"] = str(dog_id)
+            dog_options[str(dog_id)] = entry
+
+        return dog_options
+
+    def _current_health_options(self) -> HealthOptions:
+        """Return the stored health configuration as a typed mapping."""
+
+        raw = self._current_options().get("health_settings", {})
+        if isinstance(raw, Mapping):
+            return cast(HealthOptions, dict(raw))
+        return cast(HealthOptions, {})
+
+    def _current_system_options(self) -> SystemOptions:
+        """Return persisted system settings metadata."""
+
+        raw = self._current_options().get("system_settings", {})
+        if isinstance(raw, Mapping):
+            return cast(SystemOptions, dict(raw))
+        return cast(SystemOptions, {})
+
+    def _current_dashboard_options(self) -> DashboardOptions:
+        """Return the stored dashboard configuration."""
+
+        raw = self._current_options().get("dashboard_settings", {})
+        if isinstance(raw, Mapping):
+            return cast(DashboardOptions, dict(raw))
+        return cast(DashboardOptions, {})
+
+    def _current_advanced_options(self) -> AdvancedOptions:
+        """Return advanced configuration merged with root fallbacks."""
+
+        options = self._current_options()
+        raw = options.get("advanced_settings", {})
+        if isinstance(raw, Mapping):
+            current = cast(AdvancedOptions, dict(raw))
+        else:
+            current = cast(AdvancedOptions, {})
+
+        current.setdefault(
+            "performance_mode",
+            self._normalize_performance_mode(options.get("performance_mode"), None),
+        )
+        current.setdefault(
+            "debug_logging",
+            self._coerce_bool(options.get("debug_logging"), False),
+        )
+        current.setdefault(
+            "data_retention_days",
+            self._coerce_int(options.get("data_retention_days"), 90),
+        )
+        current.setdefault(
+            "auto_backup",
+            self._coerce_bool(options.get("auto_backup"), False),
+        )
+        current.setdefault(
+            "experimental_features",
+            self._coerce_bool(options.get("experimental_features"), False),
+        )
+        current.setdefault(
+            CONF_EXTERNAL_INTEGRATIONS,
+            self._coerce_bool(options.get(CONF_EXTERNAL_INTEGRATIONS), False),
+        )
+        endpoint = options.get(CONF_API_ENDPOINT, "")
+        if CONF_API_ENDPOINT not in current:
+            current[CONF_API_ENDPOINT] = endpoint if isinstance(endpoint, str) else ""
+        token = options.get(CONF_API_TOKEN, "")
+        if CONF_API_TOKEN not in current:
+            current[CONF_API_TOKEN] = token if isinstance(token, str) else ""
+
+        return current
+
+    @staticmethod
+    def _coerce_bool(value: Any, default: bool) -> bool:
+        """Return a boolean value using Home Assistant style truthiness rules."""
+
+        if value is None:
+            return default
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() in {"1", "true", "on", "yes"}
+        return bool(value)
+
+    @staticmethod
+    def _coerce_int(value: Any, default: int) -> int:
+        """Return an integer, falling back to the provided default on error."""
+
+        if value is None:
+            return default
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            return int(value)
+        if isinstance(value, str):
+            try:
+                return int(value)
+            except ValueError:
+                return default
+        return default
+
+    @staticmethod
+    def _coerce_time_string(value: Any, default: str) -> str:
+        """Normalise selector values into Home Assistant time strings."""
+
+        if value is None:
+            return default
+        if isinstance(value, str):
+            return value
+        iso_format = getattr(value, "isoformat", None)
+        if callable(iso_format):
+            return str(iso_format())
+        return default
+
+    @staticmethod
+    def _coerce_optional_float(value: Any, default: float | None) -> float | None:
+        """Return a float or ``None`` when conversion fails."""
+
+        if value is None:
+            return default
+        if isinstance(value, float | int):
+            return float(value)
+        if isinstance(value, str):
+            try:
+                return float(value)
+            except ValueError:
+                return default
+        return default
+
+    def _normalize_performance_mode(self, value: Any, current: str | None) -> str:
+        """Ensure performance mode selections remain within supported values."""
+
+        if isinstance(value, str):
+            candidate = value.lower()
+            if candidate in self._PERFORMANCE_MODES:
+                return candidate
+
+        if isinstance(current, str):
+            existing = current.lower()
+            if existing in self._PERFORMANCE_MODES:
+                return existing
+
+        return "balanced"
+
+    def _coerce_clamped_int(
+        self, value: Any, default: int, *, minimum: int, maximum: int
+    ) -> int:
+        """Normalise numeric selector input and clamp to an allowed range."""
+
+        candidate = self._coerce_int(value, default)
+        if candidate < minimum:
+            return minimum
+        if candidate > maximum:
+            return maximum
+        return candidate
+
+    @staticmethod
+    def _normalize_choice(value: Any, *, valid: set[str], default: str) -> str:
+        """Return a validated selector choice, falling back to ``default``."""
+
+        if isinstance(value, str):
+            candidate = value.strip().lower()
+            if candidate in valid:
+                return candidate
+
+        if isinstance(default, str):
+            fallback = default.strip().lower()
+            if fallback in valid:
+                return fallback
+
+        return sorted(valid)[0]
+
+    def _build_geofence_settings(
+        self,
+        user_input: Mapping[str, Any],
+        current: GeofenceOptions,
+        *,
+        radius: int,
+        default_lat: float | None,
+        default_lon: float | None,
+    ) -> GeofenceOptions:
+        """Create a typed geofence payload from the submitted form data."""
+
+        lat_source = user_input.get("geofence_lat")
+        lon_source = user_input.get("geofence_lon")
+        lat = self._coerce_optional_float(
+            lat_source, current.get("geofence_lat", default_lat)
+        )
+        lon = self._coerce_optional_float(
+            lon_source, current.get("geofence_lon", default_lon)
+        )
+
+        geofence: GeofenceOptions = {
+            "geofencing_enabled": self._coerce_bool(
+                user_input.get("geofencing_enabled"),
+                current.get("geofencing_enabled", False),
+            ),
+            "use_home_location": self._coerce_bool(
+                user_input.get("use_home_location"),
+                current.get("use_home_location", True),
+            ),
+            "geofence_lat": lat,
+            "geofence_lon": lon,
+            "geofence_radius_m": radius,
+            "geofence_alerts_enabled": self._coerce_bool(
+                user_input.get("geofence_alerts_enabled"),
+                current.get("geofence_alerts_enabled", True),
+            ),
+            "safe_zone_alerts": self._coerce_bool(
+                user_input.get("safe_zone_alerts"),
+                current.get("safe_zone_alerts", True),
+            ),
+            "restricted_zone_alerts": self._coerce_bool(
+                user_input.get("restricted_zone_alerts"),
+                current.get("restricted_zone_alerts", True),
+            ),
+            "zone_entry_notifications": self._coerce_bool(
+                user_input.get("zone_entry_notifications"),
+                current.get("zone_entry_notifications", True),
+            ),
+            "zone_exit_notifications": self._coerce_bool(
+                user_input.get("zone_exit_notifications"),
+                current.get("zone_exit_notifications", True),
+            ),
+        }
+
+        return geofence
+
+    def _build_notification_settings(
+        self,
+        user_input: Mapping[str, Any],
+        current: NotificationOptions,
+    ) -> NotificationOptions:
+        """Create a typed notification payload from submitted form data."""
+
+        notifications: NotificationOptions = {
+            CONF_QUIET_HOURS: self._coerce_bool(
+                user_input.get("quiet_hours"),
+                current.get(CONF_QUIET_HOURS, True),
+            ),
+            CONF_QUIET_START: self._coerce_time_string(
+                user_input.get("quiet_start"),
+                current.get(CONF_QUIET_START, "22:00:00"),
+            ),
+            CONF_QUIET_END: self._coerce_time_string(
+                user_input.get("quiet_end"),
+                current.get(CONF_QUIET_END, "07:00:00"),
+            ),
+            CONF_REMINDER_REPEAT_MIN: self._coerce_int(
+                user_input.get("reminder_repeat_min"),
+                current.get(CONF_REMINDER_REPEAT_MIN, DEFAULT_REMINDER_REPEAT_MIN),
+            ),
+            "priority_notifications": self._coerce_bool(
+                user_input.get("priority_notifications"),
+                current.get("priority_notifications", True),
+            ),
+            "mobile_notifications": self._coerce_bool(
+                user_input.get("mobile_notifications"),
+                current.get("mobile_notifications", True),
+            ),
+        }
+
+        return notifications
+
+    def _build_weather_settings(
+        self,
+        user_input: Mapping[str, Any],
+        current: WeatherOptions,
+    ) -> WeatherOptions:
+        """Create a typed weather configuration payload from submitted data."""
+
+        raw_entity = user_input.get("weather_entity")
+        entity: str | None
+        if isinstance(raw_entity, str):
+            candidate = raw_entity.strip()
+            entity = None if not candidate or candidate.lower() == "none" else candidate
+        else:
+            entity = current.get(CONF_WEATHER_ENTITY)
+
+        interval_default = current.get("weather_update_interval", 60)
+        interval = self._coerce_clamped_int(
+            user_input.get("weather_update_interval"),
+            interval_default,
+            minimum=15,
+            maximum=1440,
+        )
+        threshold = self._normalize_choice(
+            user_input.get("notification_threshold"),
+            valid={"low", "moderate", "high"},
+            default=current.get("notification_threshold", "moderate"),
+        )
+
+        weather: WeatherOptions = {
+            CONF_WEATHER_ENTITY: entity,
+            "weather_health_monitoring": self._coerce_bool(
+                user_input.get("weather_health_monitoring"),
+                current.get(
+                    "weather_health_monitoring", DEFAULT_WEATHER_HEALTH_MONITORING
+                ),
+            ),
+            "weather_alerts": self._coerce_bool(
+                user_input.get("weather_alerts"),
+                current.get("weather_alerts", DEFAULT_WEATHER_ALERTS),
+            ),
+            "weather_update_interval": interval,
+            "temperature_alerts": self._coerce_bool(
+                user_input.get("temperature_alerts"),
+                current.get("temperature_alerts", True),
+            ),
+            "uv_alerts": self._coerce_bool(
+                user_input.get("uv_alerts"),
+                current.get("uv_alerts", True),
+            ),
+            "humidity_alerts": self._coerce_bool(
+                user_input.get("humidity_alerts"),
+                current.get("humidity_alerts", True),
+            ),
+            "wind_alerts": self._coerce_bool(
+                user_input.get("wind_alerts"),
+                current.get("wind_alerts", False),
+            ),
+            "storm_alerts": self._coerce_bool(
+                user_input.get("storm_alerts"),
+                current.get("storm_alerts", True),
+            ),
+            "breed_specific_recommendations": self._coerce_bool(
+                user_input.get("breed_specific_recommendations"),
+                current.get("breed_specific_recommendations", True),
+            ),
+            "health_condition_adjustments": self._coerce_bool(
+                user_input.get("health_condition_adjustments"),
+                current.get("health_condition_adjustments", True),
+            ),
+            "auto_activity_adjustments": self._coerce_bool(
+                user_input.get("auto_activity_adjustments"),
+                current.get("auto_activity_adjustments", False),
+            ),
+            "notification_threshold": threshold,
+        }
+
+        return weather
+
+    def _build_feeding_settings(
+        self,
+        user_input: Mapping[str, Any],
+        current: FeedingOptions,
+    ) -> FeedingOptions:
+        """Create a typed feeding configuration payload from submitted data."""
+
+        meals = self._coerce_clamped_int(
+            user_input.get("meals_per_day"),
+            current.get("default_meals_per_day", 2),
+            minimum=1,
+            maximum=6,
+        )
+
+        feeding: FeedingOptions = {
+            "default_meals_per_day": meals,
+            "feeding_reminders": self._coerce_bool(
+                user_input.get("feeding_reminders"),
+                current.get("feeding_reminders", True),
+            ),
+            "portion_tracking": self._coerce_bool(
+                user_input.get("portion_tracking"),
+                current.get("portion_tracking", True),
+            ),
+            "calorie_tracking": self._coerce_bool(
+                user_input.get("calorie_tracking"),
+                current.get("calorie_tracking", True),
+            ),
+            "auto_schedule": self._coerce_bool(
+                user_input.get("auto_schedule"),
+                current.get("auto_schedule", False),
+            ),
+        }
+
+        return feeding
+
+    def _build_health_settings(
+        self,
+        user_input: Mapping[str, Any],
+        current: HealthOptions,
+    ) -> HealthOptions:
+        """Create a typed health configuration payload from submitted data."""
+
+        health: HealthOptions = {
+            "weight_tracking": self._coerce_bool(
+                user_input.get("weight_tracking"),
+                current.get("weight_tracking", True),
+            ),
+            "medication_reminders": self._coerce_bool(
+                user_input.get("medication_reminders"),
+                current.get("medication_reminders", True),
+            ),
+            "vet_reminders": self._coerce_bool(
+                user_input.get("vet_reminders"),
+                current.get("vet_reminders", True),
+            ),
+            "grooming_reminders": self._coerce_bool(
+                user_input.get("grooming_reminders"),
+                current.get("grooming_reminders", True),
+            ),
+            "health_alerts": self._coerce_bool(
+                user_input.get("health_alerts"),
+                current.get("health_alerts", True),
+            ),
+        }
+
+        return health
+
+    def _build_system_settings(
+        self,
+        user_input: Mapping[str, Any],
+        current: SystemOptions,
+        *,
+        reset_default: str,
+    ) -> tuple[SystemOptions, str]:
+        """Create typed system settings and the reset time string."""
+
+        retention = self._coerce_clamped_int(
+            user_input.get("data_retention_days"),
+            current.get("data_retention_days", 90),
+            minimum=30,
+            maximum=365,
+        )
+        performance_mode = self._normalize_performance_mode(
+            user_input.get("performance_mode"),
+            current.get("performance_mode"),
+        )
+
+        system: SystemOptions = {
+            "data_retention_days": retention,
+            "auto_backup": self._coerce_bool(
+                user_input.get("auto_backup"),
+                current.get("auto_backup", False),
+            ),
+            "performance_mode": performance_mode,
+        }
+
+        reset_time = self._coerce_time_string(
+            user_input.get("reset_time"), reset_default
+        )
+        return system, reset_time
+
+    def _build_dashboard_settings(
+        self,
+        user_input: Mapping[str, Any],
+        current: DashboardOptions,
+        *,
+        default_mode: str,
+    ) -> tuple[DashboardOptions, str]:
+        """Create typed dashboard configuration and selected mode."""
+
+        valid_modes = {option["value"] for option in DASHBOARD_MODE_SELECTOR_OPTIONS}
+        mode = self._normalize_choice(
+            user_input.get("dashboard_mode"),
+            valid=valid_modes,
+            default=default_mode,
+        )
+
+        dashboard: DashboardOptions = {
+            "show_statistics": self._coerce_bool(
+                user_input.get("show_statistics"),
+                current.get("show_statistics", True),
+            ),
+            "show_alerts": self._coerce_bool(
+                user_input.get("show_alerts"),
+                current.get("show_alerts", True),
+            ),
+            "compact_mode": self._coerce_bool(
+                user_input.get("compact_mode"),
+                current.get("compact_mode", False),
+            ),
+            "show_maps": self._coerce_bool(
+                user_input.get("show_maps"),
+                current.get("show_maps", True),
+            ),
+        }
+
+        return dashboard, mode
+
+    def _build_advanced_settings(
+        self,
+        user_input: Mapping[str, Any],
+        current: AdvancedOptions,
+    ) -> AdvancedOptions:
+        """Create typed advanced configuration metadata."""
+
+        retention = self._coerce_clamped_int(
+            user_input.get("data_retention_days"),
+            current.get("data_retention_days", 90),
+            minimum=30,
+            maximum=365,
+        )
+
+        endpoint_raw = user_input.get(
+            CONF_API_ENDPOINT, current.get(CONF_API_ENDPOINT, "")
+        )
+        endpoint = (
+            endpoint_raw.strip()
+            if isinstance(endpoint_raw, str)
+            else current.get(CONF_API_ENDPOINT, "")
+        )
+        token_raw = user_input.get(CONF_API_TOKEN, current.get(CONF_API_TOKEN, ""))
+        token = (
+            token_raw.strip()
+            if isinstance(token_raw, str)
+            else current.get(CONF_API_TOKEN, "")
+        )
+
+        advanced: AdvancedOptions = {
+            "performance_mode": self._normalize_performance_mode(
+                user_input.get("performance_mode"),
+                current.get("performance_mode"),
+            ),
+            "debug_logging": self._coerce_bool(
+                user_input.get("debug_logging"),
+                current.get("debug_logging", False),
+            ),
+            "data_retention_days": retention,
+            "auto_backup": self._coerce_bool(
+                user_input.get("auto_backup"),
+                current.get("auto_backup", False),
+            ),
+            "experimental_features": self._coerce_bool(
+                user_input.get("experimental_features"),
+                current.get("experimental_features", False),
+            ),
+            CONF_EXTERNAL_INTEGRATIONS: self._coerce_bool(
+                user_input.get(CONF_EXTERNAL_INTEGRATIONS),
+                current.get(CONF_EXTERNAL_INTEGRATIONS, False),
+            ),
+            CONF_API_ENDPOINT: endpoint,
+            CONF_API_TOKEN: token,
+        }
+
+        return advanced
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -172,7 +1072,7 @@ class PawControlOptionsFlow(OptionsFlow):
         if user_input is not None:
             try:
                 # Validate geofence radius
-                radius = user_input.get("geofence_radius_m", 50)
+                radius = self._coerce_int(user_input.get("geofence_radius_m"), 50)
                 if radius < MIN_GEOFENCE_RADIUS or radius > MAX_GEOFENCE_RADIUS:
                     return self.async_show_form(
                         step_id="geofence_settings",
@@ -180,37 +1080,24 @@ class PawControlOptionsFlow(OptionsFlow):
                         errors={"geofence_radius_m": "radius_out_of_range"},
                     )
 
-                # Update geofencing settings in options
-                new_options = {**self._entry.options}
-                new_options.update(
-                    {
-                        "geofence_settings": {
-                            "geofencing_enabled": user_input.get(
-                                "geofencing_enabled", False
-                            ),
-                            "geofence_lat": user_input.get("geofence_lat"),
-                            "geofence_lon": user_input.get("geofence_lon"),
-                            "geofence_radius_m": radius,
-                            "geofence_alerts_enabled": user_input.get(
-                                "geofence_alerts_enabled", True
-                            ),
-                            "use_home_location": user_input.get(
-                                "use_home_location", True
-                            ),
-                            "safe_zone_alerts": user_input.get(
-                                "safe_zone_alerts", True
-                            ),
-                            "restricted_zone_alerts": user_input.get(
-                                "restricted_zone_alerts", True
-                            ),
-                            "zone_exit_notifications": user_input.get(
-                                "zone_exit_notifications", True
-                            ),
-                            "zone_entry_notifications": user_input.get(
-                                "zone_entry_notifications", True
-                            ),
-                        }
-                    }
+                new_options = self._clone_options()
+                current_geofence = self._current_geofence_options()
+                default_lat = (
+                    float(self.hass.config.latitude)
+                    if self.hass.config.latitude is not None
+                    else None
+                )
+                default_lon = (
+                    float(self.hass.config.longitude)
+                    if self.hass.config.longitude is not None
+                    else None
+                )
+                new_options["geofence_settings"] = self._build_geofence_settings(
+                    user_input,
+                    current_geofence,
+                    radius=radius,
+                    default_lat=default_lat,
+                    default_lon=default_lon,
                 )
 
                 return self.async_create_entry(title="", data=new_options)
@@ -233,13 +1120,19 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> vol.Schema:
         """Get geofencing settings schema with current values."""
-        current_options = self._entry.options
-        current_geofence = current_options.get("geofence_settings", {})
+        current_geofence = self._current_geofence_options()
         current_values = user_input or {}
 
-        # Get Home Assistant's home location as default
-        home_lat = self.hass.config.latitude
-        home_lon = self.hass.config.longitude
+        home_lat_raw = self.hass.config.latitude
+        home_lon_raw = self.hass.config.longitude
+        home_lat = float(home_lat_raw) if home_lat_raw is not None else 0.0
+        home_lon = float(home_lon_raw) if home_lon_raw is not None else 0.0
+        default_lat = current_geofence.get("geofence_lat")
+        if default_lat is None:
+            default_lat = home_lat
+        default_lon = current_geofence.get("geofence_lon")
+        if default_lon is None:
+            default_lon = home_lon
 
         return vol.Schema(
             {
@@ -259,9 +1152,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     "geofence_lat",
-                    default=current_values.get(
-                        "geofence_lat", current_geofence.get("geofence_lat", home_lat)
-                    ),
+                    default=current_values.get("geofence_lat", default_lat),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=-90.0,
@@ -272,9 +1163,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 ),
                 vol.Optional(
                     "geofence_lon",
-                    default=current_values.get(
-                        "geofence_lon", current_geofence.get("geofence_lon", home_lon)
-                    ),
+                    default=current_values.get("geofence_lon", default_lon),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=-180.0,
@@ -338,18 +1227,25 @@ class PawControlOptionsFlow(OptionsFlow):
 
     def _get_geofence_description_placeholders(self) -> dict[str, str]:
         """Get description placeholders for geofencing configuration."""
-        current_options = self._entry.options
-        current_geofence = current_options.get("geofence_settings", {})
+        current_geofence = self._current_geofence_options()
 
-        # Get Home Assistant's home location
-        home_lat = self.hass.config.latitude
-        home_lon = self.hass.config.longitude
+        home_lat_raw = self.hass.config.latitude
+        home_lon_raw = self.hass.config.longitude
+        home_lat = float(home_lat_raw) if home_lat_raw is not None else 0.0
+        home_lon = float(home_lon_raw) if home_lon_raw is not None else 0.0
 
-        # Current configuration status
         geofencing_enabled = current_geofence.get("geofencing_enabled", False)
-        current_lat = current_geofence.get("geofence_lat", home_lat)
-        current_lon = current_geofence.get("geofence_lon", home_lon)
-        current_radius = current_geofence.get("geofence_radius_m", 50)
+        current_lat = self._coerce_optional_float(
+            current_geofence.get("geofence_lat"), home_lat
+        )
+        if current_lat is None:
+            current_lat = home_lat
+        current_lon = self._coerce_optional_float(
+            current_geofence.get("geofence_lon"), home_lon
+        )
+        if current_lon is None:
+            current_lon = home_lon
+        current_radius = self._coerce_int(current_geofence.get("geofence_radius_m"), 50)
 
         status = "Enabled" if geofencing_enabled else "Disabled"
         location_desc = f"Lat: {current_lat:.6f}, Lon: {current_lon:.6f}"
@@ -456,9 +1352,20 @@ class PawControlOptionsFlow(OptionsFlow):
 
         current_dogs = self._entry.data.get(CONF_DOGS, [])
         current_profile = self._entry.options.get("entity_profile", DEFAULT_PROFILE)
+        telemetry = self._reconfigure_telemetry()
+        telemetry_digest = ""
+        if telemetry:
+            try:
+                telemetry_digest = json.dumps(
+                    self._normalise_export_value(dict(telemetry)), sort_keys=True
+                )
+            except (TypeError, ValueError):
+                telemetry_digest = repr(sorted(telemetry.items()))
         cache_key = (
             f"{current_profile}_{len(current_dogs)}_"
-            f"{hash(json.dumps(current_dogs, sort_keys=True))}"
+            f"{hash(json.dumps(current_dogs, sort_keys=True))}_"
+            f"{self._last_reconfigure_timestamp() or ''}_"
+            f"{hash(telemetry_digest)}"
         )
 
         cached = self._profile_cache.get(cache_key)
@@ -509,6 +1416,8 @@ class PawControlOptionsFlow(OptionsFlow):
             else "No compatibility issues",
             "utilization_percentage": utilization,
         }
+
+        placeholders.update(self._get_reconfigure_description_placeholders())
 
         self._profile_cache[cache_key] = placeholders
         return placeholders
@@ -730,17 +1639,43 @@ class PawControlOptionsFlow(OptionsFlow):
         """
         if user_input is not None:
             try:
-                new_options = {**self._entry.options}
-                new_options.update(
+                current_options = self._current_options()
+                new_options = self._clone_options()
+
+                profile = validate_profile_selection(
                     {
-                        "entity_profile": user_input.get("entity_profile", "standard"),
-                        "performance_mode": user_input.get(
-                            "performance_mode", "balanced"
-                        ),
-                        "batch_size": user_input.get("batch_size", 15),
-                        "cache_ttl": user_input.get("cache_ttl", 300),
-                        "selective_refresh": user_input.get("selective_refresh", True),
+                        "entity_profile": user_input.get(
+                            "entity_profile",
+                            current_options.get("entity_profile", DEFAULT_PROFILE),
+                        )
                     }
+                )
+
+                batch_default = (
+                    current_options.get("batch_size")
+                    if isinstance(current_options.get("batch_size"), int)
+                    else 15
+                )
+                cache_default = (
+                    current_options.get("cache_ttl")
+                    if isinstance(current_options.get("cache_ttl"), int)
+                    else 300
+                )
+                selective_default = bool(current_options.get("selective_refresh", True))
+
+                new_options["entity_profile"] = profile
+                new_options["performance_mode"] = self._normalize_performance_mode(
+                    user_input.get("performance_mode"),
+                    current_options.get("performance_mode"),
+                )
+                new_options["batch_size"] = self._coerce_int(
+                    user_input.get("batch_size"), batch_default
+                )
+                new_options["cache_ttl"] = self._coerce_int(
+                    user_input.get("cache_ttl"), cache_default
+                )
+                new_options["selective_refresh"] = self._coerce_bool(
+                    user_input.get("selective_refresh"), selective_default
                 )
 
                 return self.async_create_entry(title="", data=new_options)
@@ -777,6 +1712,21 @@ class PawControlOptionsFlow(OptionsFlow):
                 }
             )
 
+        stored_mode = self._normalize_performance_mode(
+            current_options.get("performance_mode"), None
+        )
+        stored_batch = (
+            current_options.get("batch_size")
+            if isinstance(current_options.get("batch_size"), int)
+            else 15
+        )
+        stored_cache_ttl = (
+            current_options.get("cache_ttl")
+            if isinstance(current_options.get("cache_ttl"), int)
+            else 300
+        )
+        stored_selective = bool(current_options.get("selective_refresh", True))
+
         return vol.Schema(
             {
                 vol.Required(
@@ -795,7 +1745,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     "performance_mode",
                     default=current_values.get(
                         "performance_mode",
-                        current_options.get("performance_mode", "balanced"),
+                        stored_mode,
                     ),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
@@ -815,9 +1765,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 ),
                 vol.Optional(
                     "batch_size",
-                    default=current_values.get(
-                        "batch_size", current_options.get("batch_size", 15)
-                    ),
+                    default=current_values.get("batch_size", stored_batch),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=5,
@@ -828,9 +1776,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 ),
                 vol.Optional(
                     "cache_ttl",
-                    default=current_values.get(
-                        "cache_ttl", current_options.get("cache_ttl", 300)
-                    ),
+                    default=current_values.get("cache_ttl", stored_cache_ttl),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=60,
@@ -844,7 +1790,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     "selective_refresh",
                     default=current_values.get(
                         "selective_refresh",
-                        current_options.get("selective_refresh", True),
+                        stored_selective,
                     ),
                 ): selector.BooleanSelector(),
             }
@@ -965,46 +1911,49 @@ class PawControlOptionsFlow(OptionsFlow):
             return await self.async_step_manage_dogs()
 
         if user_input is not None:
+            dog_id = self._current_dog.get(CONF_DOG_ID)
+            if not isinstance(dog_id, str):
+                return self.async_show_form(
+                    step_id="configure_dog_modules",
+                    data_schema=self._get_dog_modules_schema(),
+                    errors={"base": "invalid_dog"},
+                )
+
+            updated_modules = {
+                MODULE_FEEDING: bool(user_input.get("module_feeding", True)),
+                MODULE_WALK: bool(user_input.get("module_walk", True)),
+                MODULE_GPS: bool(user_input.get("module_gps", False)),
+                MODULE_GARDEN: bool(user_input.get("module_garden", False)),
+                MODULE_HEALTH: bool(user_input.get("module_health", True)),
+                "notifications": bool(user_input.get("module_notifications", True)),
+                "dashboard": bool(user_input.get("module_dashboard", True)),
+                "visitor": bool(user_input.get("module_visitor", False)),
+                "grooming": bool(user_input.get("module_grooming", False)),
+                "medication": bool(user_input.get("module_medication", False)),
+                "training": bool(user_input.get("module_training", False)),
+            }
+
             try:
-                # Update the dog's modules in the config entry
                 current_dogs = list(self._entry.data.get(CONF_DOGS, []))
                 dog_index = next(
                     (
                         i
                         for i, dog in enumerate(current_dogs)
-                        if dog.get(CONF_DOG_ID) == self._current_dog.get(CONF_DOG_ID)
+                        if dog.get(CONF_DOG_ID) == dog_id
                     ),
                     -1,
                 )
 
                 if dog_index >= 0:
-                    # Update modules
-                    updated_modules = {
-                        MODULE_FEEDING: user_input.get("module_feeding", True),
-                        MODULE_WALK: user_input.get("module_walk", True),
-                        MODULE_GPS: user_input.get("module_gps", False),
-                        MODULE_GARDEN: user_input.get("module_garden", False),
-                        MODULE_HEALTH: user_input.get("module_health", True),
-                        "notifications": user_input.get("module_notifications", True),
-                        "dashboard": user_input.get("module_dashboard", True),
-                        "visitor": user_input.get("module_visitor", False),
-                        "grooming": user_input.get("module_grooming", False),
-                        "medication": user_input.get("module_medication", False),
-                        "training": user_input.get("module_training", False),
-                    }
+                    modules_payload = dict(updated_modules)
+                    current_dogs[dog_index][CONF_MODULES] = modules_payload
 
-                    current_dogs[dog_index]["modules"] = updated_modules
-
-                    # Update config entry
                     new_data = {**self._entry.data}
                     new_data[CONF_DOGS] = current_dogs
 
                     self.hass.config_entries.async_update_entry(
                         self._entry, data=new_data
                     )
-
-                return await self.async_step_manage_dogs()
-
             except Exception as err:
                 _LOGGER.error("Error configuring dog modules: %s", err)
                 return self.async_show_form(
@@ -1012,6 +1961,18 @@ class PawControlOptionsFlow(OptionsFlow):
                     data_schema=self._get_dog_modules_schema(),
                     errors={"base": "module_config_failed"},
                 )
+
+            dog_options = self._current_dog_options()
+            entry = cast(DogOptionsEntry, dict(dog_options.get(dog_id, {})))
+            entry["dog_id"] = dog_id
+            entry["modules"] = dict(updated_modules)
+            dog_options[dog_id] = entry
+
+            new_options = self._clone_options()
+            new_options["dog_options"] = dog_options
+            self._invalidate_profile_caches()
+
+            return self.async_create_entry(title="", data=new_options)
 
         return self.async_show_form(
             step_id="configure_dog_modules",
@@ -1389,6 +2350,21 @@ class PawControlOptionsFlow(OptionsFlow):
                 new_data[CONF_DOGS] = updated_dogs
 
                 self.hass.config_entries.async_update_entry(self._entry, data=new_data)
+                self._dogs = [
+                    cast(DogConfigData, dict(dog))
+                    for dog in updated_dogs
+                    if isinstance(dog, Mapping)
+                ]
+
+                new_options = self._clone_options()
+                dog_options = self._current_dog_options()
+                if isinstance(selected_dog_id, str) and selected_dog_id in dog_options:
+                    dog_options.pop(selected_dog_id, None)
+                    new_options["dog_options"] = dog_options
+
+                self._invalidate_profile_caches()
+
+                return self.async_create_entry(title="", data=new_options)
 
             return await self.async_step_init()
 
@@ -1426,47 +2402,88 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Configure GPS and location settings with enhanced route recording options."""
+
+        current = self._current_gps_options()
+
         if user_input is not None:
-            gps_interval = user_input.get(
-                "gps_update_interval", DEFAULT_GPS_UPDATE_INTERVAL
+            interval_candidate = user_input.get(
+                CONF_GPS_UPDATE_INTERVAL,
+                current.get(CONF_GPS_UPDATE_INTERVAL, DEFAULT_GPS_UPDATE_INTERVAL),
             )
             try:
                 validated_interval = DogConfigRegistry._validate_gps_interval(
-                    gps_interval
+                    interval_candidate
                 )
             except ValidationError:
                 return self.async_show_form(
                     step_id="gps_settings",
                     data_schema=self._get_gps_settings_schema(user_input),
-                    errors={"gps_update_interval": "invalid_interval"},
+                    errors={CONF_GPS_UPDATE_INTERVAL: "invalid_interval"},
                 )
+
+            accuracy_candidate = user_input.get(
+                CONF_GPS_ACCURACY_FILTER,
+                current.get(CONF_GPS_ACCURACY_FILTER, DEFAULT_GPS_ACCURACY_FILTER),
+            )
+            distance_candidate = user_input.get(
+                CONF_GPS_DISTANCE_FILTER,
+                current.get(CONF_GPS_DISTANCE_FILTER, DEFAULT_GPS_DISTANCE_FILTER),
+            )
 
             try:
-                # Update GPS settings in options
-                new_options = {**self._entry.options}
-                new_options.update(
-                    {
-                        CONF_GPS_UPDATE_INTERVAL: validated_interval,
-                        CONF_GPS_ACCURACY_FILTER: user_input.get(
-                            "gps_accuracy_filter", DEFAULT_GPS_ACCURACY_FILTER
-                        ),
-                        CONF_GPS_DISTANCE_FILTER: user_input.get(
-                            "gps_distance_filter", DEFAULT_GPS_DISTANCE_FILTER
-                        ),
-                        "gps_enabled": user_input.get("gps_enabled", True),
-                        "route_recording": user_input.get("route_recording", True),
-                        "route_history_days": user_input.get("route_history_days", 30),
-                        "auto_track_walks": user_input.get("auto_track_walks", True),
-                    }
-                )
-
-                return self.async_create_entry(title="", data=new_options)
-            except Exception:
+                validated_accuracy = float(accuracy_candidate)
+                if validated_accuracy <= 0:
+                    raise ValueError
+            except (TypeError, ValueError):
                 return self.async_show_form(
                     step_id="gps_settings",
                     data_schema=self._get_gps_settings_schema(user_input),
-                    errors={"base": "update_failed"},
+                    errors={CONF_GPS_ACCURACY_FILTER: "invalid_accuracy"},
                 )
+
+            try:
+                validated_distance = float(distance_candidate)
+                if validated_distance <= 0:
+                    raise ValueError
+            except (TypeError, ValueError):
+                return self.async_show_form(
+                    step_id="gps_settings",
+                    data_schema=self._get_gps_settings_schema(user_input),
+                    errors={CONF_GPS_DISTANCE_FILTER: "invalid_distance"},
+                )
+
+            history_candidate = user_input.get(
+                "route_history_days", current.get("route_history_days", 30)
+            )
+            try:
+                route_history_days = int(history_candidate)
+            except (TypeError, ValueError):
+                route_history_days = 30
+            route_history_days = max(1, min(route_history_days, 365))
+
+            gps_settings: GPSOptions = {
+                "gps_enabled": bool(
+                    user_input.get("gps_enabled", current["gps_enabled"])
+                ),
+                CONF_GPS_UPDATE_INTERVAL: validated_interval,
+                CONF_GPS_ACCURACY_FILTER: validated_accuracy,
+                CONF_GPS_DISTANCE_FILTER: validated_distance,
+                "route_recording": bool(
+                    user_input.get("route_recording", current["route_recording"])
+                ),
+                "route_history_days": route_history_days,
+                "auto_track_walks": bool(
+                    user_input.get("auto_track_walks", current["auto_track_walks"])
+                ),
+            }
+
+            new_options = self._clone_options()
+            new_options["gps_settings"] = gps_settings
+            new_options[CONF_GPS_UPDATE_INTERVAL] = validated_interval
+            new_options[CONF_GPS_ACCURACY_FILTER] = validated_accuracy
+            new_options[CONF_GPS_DISTANCE_FILTER] = validated_distance
+
+            return self.async_create_entry(title="", data=new_options)
 
         return self.async_show_form(
             step_id="gps_settings", data_schema=self._get_gps_settings_schema()
@@ -1476,40 +2493,39 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> vol.Schema:
         """Get GPS settings schema with current values and enhanced route options."""
-        current_options = self._entry.options
+
+        current = self._current_gps_options()
         current_values = user_input or {}
 
         return vol.Schema(
             {
                 vol.Optional(
                     "gps_enabled",
-                    default=current_values.get(
-                        "gps_enabled", current_options.get("gps_enabled", True)
-                    ),
+                    default=current_values.get("gps_enabled", current["gps_enabled"]),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "gps_update_interval",
+                    CONF_GPS_UPDATE_INTERVAL,
                     default=current_values.get(
-                        "gps_update_interval",
-                        current_options.get(
+                        CONF_GPS_UPDATE_INTERVAL,
+                        current.get(
                             CONF_GPS_UPDATE_INTERVAL, DEFAULT_GPS_UPDATE_INTERVAL
                         ),
                     ),
                 ): GPS_UPDATE_INTERVAL_SELECTOR,
                 vol.Optional(
-                    "gps_accuracy_filter",
+                    CONF_GPS_ACCURACY_FILTER,
                     default=current_values.get(
-                        "gps_accuracy_filter",
-                        current_options.get(
+                        CONF_GPS_ACCURACY_FILTER,
+                        current.get(
                             CONF_GPS_ACCURACY_FILTER, DEFAULT_GPS_ACCURACY_FILTER
                         ),
                     ),
                 ): GPS_ACCURACY_FILTER_SELECTOR,
                 vol.Optional(
-                    "gps_distance_filter",
+                    CONF_GPS_DISTANCE_FILTER,
                     default=current_values.get(
-                        "gps_distance_filter",
-                        current_options.get(
+                        CONF_GPS_DISTANCE_FILTER,
+                        current.get(
                             CONF_GPS_DISTANCE_FILTER, DEFAULT_GPS_DISTANCE_FILTER
                         ),
                     ),
@@ -1525,15 +2541,13 @@ class PawControlOptionsFlow(OptionsFlow):
                 vol.Optional(
                     "route_recording",
                     default=current_values.get(
-                        "route_recording",
-                        current_options.get("route_recording", True),
+                        "route_recording", current["route_recording"]
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     "route_history_days",
                     default=current_values.get(
-                        "route_history_days",
-                        current_options.get("route_history_days", 30),
+                        "route_history_days", current["route_history_days"]
                     ),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
@@ -1547,8 +2561,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 vol.Optional(
                     "auto_track_walks",
                     default=current_values.get(
-                        "auto_track_walks",
-                        current_options.get("auto_track_walks", True),
+                        "auto_track_walks", current["auto_track_walks"]
                     ),
                 ): selector.BooleanSelector(),
             }
@@ -1567,10 +2580,10 @@ class PawControlOptionsFlow(OptionsFlow):
         if user_input is not None:
             try:
                 # Validate weather entity if specified
-                weather_entity = user_input.get("weather_entity")
-                if weather_entity and weather_entity != "none":
-                    # Check if weather entity exists
-                    weather_state = self.hass.states.get(weather_entity)
+                raw_entity = user_input.get("weather_entity")
+                candidate = raw_entity.strip() if isinstance(raw_entity, str) else None
+                if candidate and candidate.lower() != "none":
+                    weather_state = self.hass.states.get(candidate)
                     if weather_state is None:
                         return self.async_show_form(
                             step_id="weather_settings",
@@ -1579,54 +2592,22 @@ class PawControlOptionsFlow(OptionsFlow):
                         )
 
                     # Check if it's a weather entity
-                    if not weather_entity.startswith("weather."):
+                    if not candidate.startswith("weather."):
                         return self.async_show_form(
                             step_id="weather_settings",
                             data_schema=self._get_weather_settings_schema(user_input),
                             errors={"weather_entity": "invalid_weather_entity"},
                         )
 
-                # Update weather settings in options
-                new_options = {**self._entry.options}
-                new_options.update(
-                    {
-                        "weather_settings": {
-                            CONF_WEATHER_ENTITY: weather_entity
-                            if weather_entity != "none"
-                            else None,
-                            "weather_health_monitoring": user_input.get(
-                                "weather_health_monitoring",
-                                DEFAULT_WEATHER_HEALTH_MONITORING,
-                            ),
-                            "weather_alerts": user_input.get(
-                                "weather_alerts", DEFAULT_WEATHER_ALERTS
-                            ),
-                            "weather_update_interval": user_input.get(
-                                "weather_update_interval", 60
-                            ),
-                            "temperature_alerts": user_input.get(
-                                "temperature_alerts", True
-                            ),
-                            "uv_alerts": user_input.get("uv_alerts", True),
-                            "humidity_alerts": user_input.get("humidity_alerts", True),
-                            "wind_alerts": user_input.get("wind_alerts", False),
-                            "storm_alerts": user_input.get("storm_alerts", True),
-                            "breed_specific_recommendations": user_input.get(
-                                "breed_specific_recommendations", True
-                            ),
-                            "health_condition_adjustments": user_input.get(
-                                "health_condition_adjustments", True
-                            ),
-                            "auto_activity_adjustments": user_input.get(
-                                "auto_activity_adjustments", False
-                            ),
-                            "notification_threshold": user_input.get(
-                                "notification_threshold", "moderate"
-                            ),
-                        }
-                    }
+                current_weather = self._current_weather_options()
+                new_options = self._clone_options()
+                weather_settings = self._build_weather_settings(
+                    user_input, current_weather
                 )
-
+                new_options["weather_settings"] = weather_settings
+                new_options[CONF_WEATHER_ENTITY] = weather_settings.get(
+                    CONF_WEATHER_ENTITY
+                )
                 return self.async_create_entry(title="", data=new_options)
 
             except Exception as err:
@@ -1647,9 +2628,13 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> vol.Schema:
         """Get weather settings schema with current values and entity selection."""
-        current_options = self._entry.options
-        current_weather = current_options.get("weather_settings", {})
+        current_weather = self._current_weather_options()
         current_values = user_input or {}
+
+        stored_entity = current_weather.get(CONF_WEATHER_ENTITY)
+        entity_default = "none"
+        if isinstance(stored_entity, str) and stored_entity.strip():
+            entity_default = stored_entity
 
         # Get available weather entities
         weather_entities = [
@@ -1670,7 +2655,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     "weather_entity",
                     default=current_values.get(
                         "weather_entity",
-                        current_weather.get(CONF_WEATHER_ENTITY, "none"),
+                        entity_default,
                     ),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
@@ -1796,8 +2781,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
     def _get_weather_description_placeholders(self) -> dict[str, str]:
         """Get description placeholders for weather configuration."""
-        current_options = self._entry.options
-        current_weather = current_options.get("weather_settings", {})
+        current_weather = self._current_weather_options()
         current_dogs = self._entry.data.get(CONF_DOGS, [])
 
         # Current weather entity status
@@ -1872,9 +2856,6 @@ class PawControlOptionsFlow(OptionsFlow):
             ),
         }
 
-    # All other existing methods remain unchanged...
-    # (notifications, feeding_settings, health_settings, system_settings, dashboard_settings, advanced_settings, import_export)
-
     async def async_step_notifications(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -1882,24 +2863,10 @@ class PawControlOptionsFlow(OptionsFlow):
         if user_input is not None:
             try:
                 # Update notification settings
-                new_options = {**self._entry.options}
-                new_options.update(
-                    {
-                        CONF_NOTIFICATIONS: {
-                            CONF_QUIET_HOURS: user_input.get("quiet_hours", True),
-                            CONF_QUIET_START: user_input.get("quiet_start", "22:00:00"),
-                            CONF_QUIET_END: user_input.get("quiet_end", "07:00:00"),
-                            CONF_REMINDER_REPEAT_MIN: user_input.get(
-                                "reminder_repeat_min", DEFAULT_REMINDER_REPEAT_MIN
-                            ),
-                            "priority_notifications": user_input.get(
-                                "priority_notifications", True
-                            ),
-                            "mobile_notifications": user_input.get(
-                                "mobile_notifications", True
-                            ),
-                        }
-                    }
+                current_notifications = self._current_notification_options()
+                new_options = self._clone_options()
+                new_options[CONF_NOTIFICATIONS] = self._build_notification_settings(
+                    user_input, current_notifications
                 )
 
                 return self.async_create_entry(title="", data=new_options)
@@ -1918,8 +2885,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> vol.Schema:
         """Get notifications settings schema."""
-        current_options = self._entry.options
-        current_notifications = current_options.get(CONF_NOTIFICATIONS, {})
+        current_notifications = self._current_notification_options()
         current_values = user_input or {}
 
         return vol.Schema(
@@ -1984,23 +2950,10 @@ class PawControlOptionsFlow(OptionsFlow):
         """Configure feeding and nutrition settings."""
         if user_input is not None:
             try:
-                new_options = {**self._entry.options}
-                new_options.update(
-                    {
-                        "feeding_settings": {
-                            "default_meals_per_day": user_input.get("meals_per_day", 2),
-                            "feeding_reminders": user_input.get(
-                                "feeding_reminders", True
-                            ),
-                            "portion_tracking": user_input.get(
-                                "portion_tracking", True
-                            ),
-                            "calorie_tracking": user_input.get(
-                                "calorie_tracking", True
-                            ),
-                            "auto_schedule": user_input.get("auto_schedule", False),
-                        }
-                    }
+                current_feeding = self._current_feeding_options()
+                new_options = self._clone_options()
+                new_options["feeding_settings"] = self._build_feeding_settings(
+                    user_input, current_feeding
                 )
                 return self.async_create_entry(title="", data=new_options)
             except Exception:
@@ -2018,8 +2971,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> vol.Schema:
         """Get feeding settings schema."""
-        current_options = self._entry.options
-        current_feeding = current_options.get("feeding_settings", {})
+        current_feeding = self._current_feeding_options()
         current_values = user_input or {}
 
         return vol.Schema(
@@ -2070,21 +3022,10 @@ class PawControlOptionsFlow(OptionsFlow):
         """Configure health monitoring settings."""
         if user_input is not None:
             try:
-                new_options = {**self._entry.options}
-                new_options.update(
-                    {
-                        "health_settings": {
-                            "weight_tracking": user_input.get("weight_tracking", True),
-                            "medication_reminders": user_input.get(
-                                "medication_reminders", True
-                            ),
-                            "vet_reminders": user_input.get("vet_reminders", True),
-                            "grooming_reminders": user_input.get(
-                                "grooming_reminders", True
-                            ),
-                            "health_alerts": user_input.get("health_alerts", True),
-                        }
-                    }
+                current_health = self._current_health_options()
+                new_options = self._clone_options()
+                new_options["health_settings"] = self._build_health_settings(
+                    user_input, current_health
                 )
                 return self.async_create_entry(title="", data=new_options)
             except Exception:
@@ -2102,8 +3043,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> vol.Schema:
         """Get health settings schema."""
-        current_options = self._entry.options
-        current_health = current_options.get("health_settings", {})
+        current_health = self._current_health_options()
         current_values = user_input or {}
 
         return vol.Schema(
@@ -2149,23 +3089,16 @@ class PawControlOptionsFlow(OptionsFlow):
         """Configure system and performance settings."""
         if user_input is not None:
             try:
-                new_options = {**self._entry.options}
-                new_options.update(
-                    {
-                        CONF_RESET_TIME: user_input.get(
-                            "reset_time", DEFAULT_RESET_TIME
-                        ),
-                        "system_settings": {
-                            "data_retention_days": user_input.get(
-                                "data_retention_days", 90
-                            ),
-                            "auto_backup": user_input.get("auto_backup", False),
-                            "performance_mode": user_input.get(
-                                "performance_mode", "balanced"
-                            ),
-                        },
-                    }
+                current_system = self._current_system_options()
+                reset_default = self._coerce_time_string(
+                    self._current_options().get(CONF_RESET_TIME), DEFAULT_RESET_TIME
                 )
+                new_options = self._clone_options()
+                system_settings, reset_time = self._build_system_settings(
+                    user_input, current_system, reset_default=reset_default
+                )
+                new_options["system_settings"] = system_settings
+                new_options[CONF_RESET_TIME] = reset_time
                 return self.async_create_entry(title="", data=new_options)
             except Exception:
                 return self.async_show_form(
@@ -2182,18 +3115,21 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> vol.Schema:
         """Get system settings schema."""
-        current_options = self._entry.options
-        current_system = current_options.get("system_settings", {})
+        current_system = self._current_system_options()
         current_values = user_input or {}
+        reset_default = self._coerce_time_string(
+            self._current_options().get(CONF_RESET_TIME), DEFAULT_RESET_TIME
+        )
+        mode_default = self._normalize_performance_mode(
+            current_system.get("performance_mode"),
+            self._current_options().get("performance_mode"),
+        )
 
         return vol.Schema(
             {
                 vol.Optional(
                     "reset_time",
-                    default=current_values.get(
-                        "reset_time",
-                        current_options.get(CONF_RESET_TIME, DEFAULT_RESET_TIME),
-                    ),
+                    default=current_values.get("reset_time", reset_default),
                 ): selector.TimeSelector(),
                 vol.Optional(
                     "data_retention_days",
@@ -2220,7 +3156,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     "performance_mode",
                     default=current_values.get(
                         "performance_mode",
-                        current_system.get("performance_mode", "balanced"),
+                        mode_default,
                     ),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
@@ -2250,18 +3186,20 @@ class PawControlOptionsFlow(OptionsFlow):
         """Configure dashboard and display settings."""
         if user_input is not None:
             try:
-                new_options = {**self._entry.options}
-                new_options.update(
-                    {
-                        CONF_DASHBOARD_MODE: user_input.get("dashboard_mode", "full"),
-                        "dashboard_settings": {
-                            "show_statistics": user_input.get("show_statistics", True),
-                            "show_alerts": user_input.get("show_alerts", True),
-                            "compact_mode": user_input.get("compact_mode", False),
-                            "show_maps": user_input.get("show_maps", True),
-                        },
-                    }
+                current_dashboard = self._current_dashboard_options()
+                default_mode = self._normalize_choice(
+                    self._current_options().get(CONF_DASHBOARD_MODE, "full"),
+                    valid={
+                        option["value"] for option in DASHBOARD_MODE_SELECTOR_OPTIONS
+                    },
+                    default="full",
                 )
+                new_options = self._clone_options()
+                dashboard_settings, dashboard_mode = self._build_dashboard_settings(
+                    user_input, current_dashboard, default_mode=default_mode
+                )
+                new_options["dashboard_settings"] = dashboard_settings
+                new_options[CONF_DASHBOARD_MODE] = dashboard_mode
                 return self.async_create_entry(title="", data=new_options)
             except Exception:
                 return self.async_show_form(
@@ -2279,9 +3217,13 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> vol.Schema:
         """Get dashboard settings schema."""
-        current_options = self._entry.options
-        current_dashboard = current_options.get("dashboard_settings", {})
+        current_dashboard = self._current_dashboard_options()
         current_values = user_input or {}
+        default_mode = self._normalize_choice(
+            self._current_options().get(CONF_DASHBOARD_MODE, "full"),
+            valid={option["value"] for option in DASHBOARD_MODE_SELECTOR_OPTIONS},
+            default="full",
+        )
 
         return vol.Schema(
             {
@@ -2289,7 +3231,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     "dashboard_mode",
                     default=current_values.get(
                         "dashboard_mode",
-                        current_options.get(CONF_DASHBOARD_MODE, "full"),
+                        default_mode,
                     ),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
@@ -2349,33 +3291,21 @@ class PawControlOptionsFlow(OptionsFlow):
                 )
 
             try:
-                # Update options with advanced settings
-                self._unsaved_changes.update(
-                    {
-                        "performance_mode": user_input.get(
-                            "performance_mode", "balanced"
-                        ),
-                        "debug_logging": user_input.get("debug_logging", False),
-                        "data_retention_days": user_input.get(
-                            "data_retention_days", 90
-                        ),
-                        "auto_backup": user_input.get("auto_backup", False),
-                        "experimental_features": user_input.get(
-                            "experimental_features", False
-                        ),
-                        CONF_EXTERNAL_INTEGRATIONS: user_input.get(
-                            CONF_EXTERNAL_INTEGRATIONS, False
-                        ),
-                    }
+                current_advanced = self._current_advanced_options()
+                new_options = self._clone_options()
+                advanced_settings = self._build_advanced_settings(
+                    user_input, current_advanced
                 )
                 if CONF_API_ENDPOINT in user_input:
-                    self._unsaved_changes[CONF_API_ENDPOINT] = endpoint_value
+                    advanced_settings[CONF_API_ENDPOINT] = endpoint_value
                 if CONF_API_TOKEN in user_input:
-                    self._unsaved_changes[CONF_API_TOKEN] = user_input[
-                        CONF_API_TOKEN
-                    ].strip()
-                # Save changes and return to main menu
-                return await self._async_save_options()
+                    raw_token = user_input[CONF_API_TOKEN]
+                    advanced_settings[CONF_API_TOKEN] = (
+                        raw_token.strip() if isinstance(raw_token, str) else ""
+                    )
+                new_options["advanced_settings"] = advanced_settings
+                new_options.update(advanced_settings)
+                return self.async_create_entry(title="", data=new_options)
             except Exception as err:
                 _LOGGER.error("Error saving advanced settings: %s", err)
                 return self.async_show_form(
@@ -2393,17 +3323,39 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> vol.Schema:
         """Get schema for advanced settings form."""
-        current_options = self._entry.options
+        current_advanced = self._current_advanced_options()
         current_values = user_input or {}
+        mode_default = self._normalize_performance_mode(
+            current_advanced.get("performance_mode"),
+            self._current_options().get("performance_mode"),
+        )
+        retention_default = self._coerce_int(
+            current_advanced.get("data_retention_days"), 90
+        )
+        debug_default = self._coerce_bool(current_advanced.get("debug_logging"), False)
+        backup_default = self._coerce_bool(current_advanced.get("auto_backup"), False)
+        experimental_default = self._coerce_bool(
+            current_advanced.get("experimental_features"), False
+        )
+        integrations_default = self._coerce_bool(
+            current_advanced.get(CONF_EXTERNAL_INTEGRATIONS), False
+        )
+        endpoint_default = (
+            current_advanced.get(CONF_API_ENDPOINT)
+            if isinstance(current_advanced.get(CONF_API_ENDPOINT), str)
+            else ""
+        )
+        token_default = (
+            current_advanced.get(CONF_API_TOKEN)
+            if isinstance(current_advanced.get(CONF_API_TOKEN), str)
+            else ""
+        )
 
         return vol.Schema(
             {
                 vol.Optional(
                     "performance_mode",
-                    default=current_values.get(
-                        "performance_mode",
-                        current_options.get("performance_mode", "balanced"),
-                    ),
+                    default=current_values.get("performance_mode", mode_default),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
@@ -2425,15 +3377,12 @@ class PawControlOptionsFlow(OptionsFlow):
                 ),
                 vol.Optional(
                     "debug_logging",
-                    default=current_values.get(
-                        "debug_logging", current_options.get("debug_logging", False)
-                    ),
+                    default=current_values.get("debug_logging", debug_default),
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     "data_retention_days",
                     default=current_values.get(
-                        "data_retention_days",
-                        current_options.get("data_retention_days", 90),
+                        "data_retention_days", retention_default
                     ),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
@@ -2446,30 +3395,23 @@ class PawControlOptionsFlow(OptionsFlow):
                 ),
                 vol.Optional(
                     "auto_backup",
-                    default=current_values.get(
-                        "auto_backup", current_options.get("auto_backup", False)
-                    ),
+                    default=current_values.get("auto_backup", backup_default),
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     "experimental_features",
                     default=current_values.get(
-                        "experimental_features",
-                        current_options.get("experimental_features", False),
+                        "experimental_features", experimental_default
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     CONF_EXTERNAL_INTEGRATIONS,
                     default=current_values.get(
-                        CONF_EXTERNAL_INTEGRATIONS,
-                        current_options.get(CONF_EXTERNAL_INTEGRATIONS, False),
+                        CONF_EXTERNAL_INTEGRATIONS, integrations_default
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     CONF_API_ENDPOINT,
-                    default=current_values.get(
-                        CONF_API_ENDPOINT,
-                        current_options.get(CONF_API_ENDPOINT, ""),
-                    ),
+                    default=current_values.get(CONF_API_ENDPOINT, endpoint_default),
                 ): selector.TextSelector(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT,
@@ -2478,10 +3420,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 ),
                 vol.Optional(
                     CONF_API_TOKEN,
-                    default=current_values.get(
-                        CONF_API_TOKEN,
-                        current_options.get(CONF_API_TOKEN, ""),
-                    ),
+                    default=current_values.get(CONF_API_TOKEN, token_default),
                 ): selector.TextSelector(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.PASSWORD,
@@ -2494,38 +3433,149 @@ class PawControlOptionsFlow(OptionsFlow):
     async def async_step_import_export(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Placeholder handler for import/export settings.
+        """Handle selection for the import/export utilities."""
 
-        The import/export feature has not yet been implemented. Instead of
-        raising an UnknownStep error when users navigate to this menu
-        entry, we immediately redirect them back to the main options menu.
-
-        Args:
-            user_input: Not used.
-
-        Returns:
-            Flow result for the initial options step.
-        """
-        return await self.async_step_init()
-
-    async def _async_save_options(self) -> ConfigFlowResult:
-        """Save the current options changes.
-
-        Returns:
-            Configuration flow result indicating successful save
-        """
-        try:
-            # Merge unsaved changes with existing options
-            new_options = {**self._entry.options, **self._unsaved_changes}
-
-            # Clear unsaved changes
-            self._unsaved_changes.clear()
-
-            # Update the config entry
-            return self.async_create_entry(
-                title="",  # Title is not used for options flow
-                data=new_options,
+        if user_input is None:
+            return self.async_show_form(
+                step_id="import_export",
+                data_schema=self._get_import_export_menu_schema(),
+                description_placeholders={
+                    "instructions": (
+                        "Create a JSON backup of the current PawControl options "
+                        "or restore a backup previously exported from this menu."
+                    )
+                },
             )
-        except Exception as err:
-            _LOGGER.error("Failed to save options: %s", err)
+
+        action = user_input.get("action")
+        if action == "export":
+            return await self.async_step_import_export_export()
+        if action == "import":
+            return await self.async_step_import_export_import()
+
+        return self.async_show_form(
+            step_id="import_export",
+            data_schema=self._get_import_export_menu_schema(),
+            errors={"action": "invalid_action"},
+        )
+
+    async def async_step_import_export_export(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Surface a JSON export of the current configuration."""
+
+        if user_input is not None:
             return await self.async_step_init()
+
+        payload = self._build_export_payload()
+        export_blob = json.dumps(payload, indent=2, sort_keys=True)
+
+        return self.async_show_form(
+            step_id="import_export_export",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        "export_blob",
+                        default=export_blob,
+                    ): selector.TextSelector(
+                        selector.TextSelectorConfig(
+                            type=selector.TextSelectorType.TEXT,
+                            multiline=True,
+                        )
+                    )
+                }
+            ),
+            description_placeholders={
+                "export_blob": export_blob,
+                "generated_at": payload["created_at"],
+            },
+        )
+
+    async def async_step_import_export_import(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Import configuration from a JSON payload."""
+
+        errors: dict[str, str] = {}
+        payload_text = ""
+
+        if user_input is not None:
+            payload_text = str(user_input.get("payload", "")).strip()
+            if not payload_text:
+                errors["payload"] = "invalid_payload"
+            else:
+                try:
+                    parsed = json.loads(payload_text)
+                except json.JSONDecodeError:
+                    errors["payload"] = "invalid_json"
+                else:
+                    try:
+                        validated = self._validate_import_payload(parsed)
+                    except ValueError as err:
+                        _LOGGER.debug("Import payload validation failed: %s", err)
+                        error_code = str(err).strip() or "invalid_payload"
+                        if " " in error_code:
+                            error_code = "invalid_payload"
+                        errors["payload"] = error_code
+                    else:
+                        new_options = cast(
+                            PawControlOptionsData,
+                            dict(validated["options"]),
+                        )
+                        new_dogs = [
+                            cast(DogConfigData, dict(dog))
+                            for dog in validated.get("dogs", [])
+                        ]
+
+                        new_data = {**self._entry.data, CONF_DOGS: new_dogs}
+                        self.hass.config_entries.async_update_entry(
+                            self._entry, data=new_data
+                        )
+                        self._dogs = new_dogs
+                        self._current_dog = None
+                        self._invalidate_profile_caches()
+
+                        return self.async_create_entry(title="", data=new_options)
+
+        return self.async_show_form(
+            step_id="import_export_import",
+            data_schema=self._get_import_export_import_schema(payload_text),
+            errors=errors,
+        )
+
+    def _get_import_export_menu_schema(self) -> vol.Schema:
+        """Return the schema for selecting an import/export action."""
+
+        return vol.Schema(
+            {
+                vol.Required("action", default="export"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            {
+                                "value": "export",
+                                "label": "Export current settings",
+                            },
+                            {
+                                "value": "import",
+                                "label": "Import settings from backup",
+                            },
+                        ],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                )
+            }
+        )
+
+    def _get_import_export_import_schema(self, default_payload: str) -> vol.Schema:
+        """Return the schema for the import form."""
+
+        return vol.Schema(
+            {
+                vol.Required("payload", default=default_payload): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT,
+                        multiline=True,
+                    )
+                )
+            }
+        )

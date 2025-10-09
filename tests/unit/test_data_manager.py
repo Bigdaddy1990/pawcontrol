@@ -2,12 +2,39 @@
 
 from __future__ import annotations
 
+import json
 from collections import deque
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
-from custom_components.pawcontrol.coordinator_support import CoordinatorMetrics
+from custom_components.pawcontrol.const import (
+    CACHE_TIMESTAMP_STALE_THRESHOLD,
+    MODULE_FEEDING,
+    MODULE_HEALTH,
+    MODULE_MEDICATION,
+    MODULE_WALK,
+)
+from custom_components.pawcontrol.coordinator_support import (
+    CacheMonitorRegistrar,
+    CoordinatorMetrics,
+    bind_runtime_managers,
+)
 from custom_components.pawcontrol.data_manager import PawControlDataManager
+from custom_components.pawcontrol.door_sensor_manager import (
+    WALK_STATE_ACTIVE,
+    DoorSensorConfig,
+    DoorSensorManager,
+    WalkDetectionState,
+)
+from custom_components.pawcontrol.helper_manager import PawControlHelperManager
+from custom_components.pawcontrol.script_manager import PawControlScriptManager
+from custom_components.pawcontrol.types import FeedingData
+from homeassistant.const import STATE_OFF, STATE_ON
+from homeassistant.util import dt as dt_util
 
 
 class StubDataManager(PawControlDataManager):
@@ -55,3 +82,895 @@ async def test_async_set_visitor_mode_records_metrics() -> None:
     assert manager._metrics["visitor_mode_avg_runtime_ms"] < 3.0
     assert metrics_sink.visitor_mode_timings
     assert metrics_sink.average_visitor_runtime_ms < 3.0
+
+
+@dataclass(slots=True)
+class _DummyMetrics:
+    entries: int
+    hits: int
+    misses: int
+
+    @property
+    def hit_rate(self) -> float:
+        total = self.hits + self.misses
+        return (self.hits / total * 100.0) if total else 0.0
+
+
+class _DummyAdapter:
+    """Return static cache metrics for module adapters."""
+
+    def __init__(self, entries: int, hits: int, misses: int) -> None:
+        self._metrics = _DummyMetrics(entries, hits, misses)
+
+    def cache_metrics(self) -> _DummyMetrics:
+        return self._metrics
+
+
+class _DummyModules:
+    """Expose per-module cache metrics for coordinator diagnostics."""
+
+    def __init__(self) -> None:
+        self.feeding = _DummyAdapter(2, 5, 1)
+        self.walk = _DummyAdapter(1, 1, 2)
+        self.geofencing = _DummyAdapter(0, 0, 0)
+        self.health = _DummyAdapter(3, 4, 0)
+        self.weather = _DummyAdapter(0, 0, 0)
+        self.garden = _DummyAdapter(0, 0, 0)
+
+    def cache_metrics(self) -> _DummyMetrics:
+        total = _DummyMetrics(0, 0, 0)
+        for adapter in (
+            self.feeding,
+            self.walk,
+            self.geofencing,
+            self.health,
+            self.weather,
+            self.garden,
+        ):
+            metrics = adapter.cache_metrics()
+            total.entries += metrics.entries
+            total.hits += metrics.hits
+            total.misses += metrics.misses
+        return total
+
+
+class _RecordingRegistrar(CacheMonitorRegistrar):
+    """Capture cache monitor registrations for assertions."""
+
+    def __init__(self) -> None:
+        self.monitors: dict[str, Any] = {}
+
+    def register_cache_monitor(self, name: str, cache: Any) -> None:
+        self.monitors[name] = cache
+
+
+@dataclass(slots=True)
+class _DummySnapshot:
+    dog_id: str
+    profile: str
+    capacity: int
+    base_allocation: int
+    dynamic_allocation: int
+    requested_entities: tuple[str, ...]
+    denied_requests: tuple[str, ...]
+    recorded_at: datetime
+
+
+class _DummyTracker:
+    """Expose entity budget tracker statistics for diagnostics tests."""
+
+    def __init__(self) -> None:
+        now = datetime.now()
+        self._snapshots = (
+            _DummySnapshot(
+                "buddy",
+                "standard",
+                6,
+                4,
+                1,
+                ("sensor.feeder",),
+                (),
+                now,
+            ),
+            _DummySnapshot(
+                "max",
+                "standard",
+                5,
+                3,
+                1,
+                ("sensor.walk",),
+                ("switch.denied",),
+                now,
+            ),
+        )
+
+    def snapshots(self) -> tuple[_DummySnapshot, ...]:
+        return self._snapshots
+
+    def summary(self) -> dict[str, Any]:
+        return {"peak_utilization": 75.0, "tracked": len(self._snapshots)}
+
+    def saturation(self) -> float:
+        return 0.5
+
+
+@pytest.mark.unit
+def test_auto_registered_cache_monitors(tmp_path: Path) -> None:
+    """Data manager should surface coordinator caches via diagnostics snapshots."""
+
+    hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+    modules = _DummyModules()
+    tracker = _DummyTracker()
+    coordinator = SimpleNamespace(
+        hass=hass,
+        config_entry=SimpleNamespace(entry_id="test-entry"),
+        _modules=modules,
+        _entity_budget=tracker,
+    )
+
+    manager = PawControlDataManager(
+        hass=hass,
+        coordinator=coordinator,
+        dogs_config=[],
+    )
+
+    snapshots = manager.cache_snapshots()
+
+    assert "coordinator_modules" in snapshots
+    module_snapshot = snapshots["coordinator_modules"]
+    assert module_snapshot["stats"]["entries"] == modules.cache_metrics().entries
+    per_module = module_snapshot["diagnostics"]["per_module"]
+    assert per_module["feeding"]["hits"] == 5
+    assert per_module["walk"]["misses"] == 2
+
+    assert "entity_budget_tracker" in snapshots
+    budget_snapshot = snapshots["entity_budget_tracker"]
+    assert budget_snapshot["stats"]["tracked_dogs"] == 2
+    assert budget_snapshot["stats"]["saturation_percent"] == 50.0
+    assert budget_snapshot["diagnostics"]["summary"]["peak_utilization"] == 75.0
+    dog_ids = {entry["dog_id"] for entry in budget_snapshot["diagnostics"]["snapshots"]}
+    assert dog_ids == {"buddy", "max"}
+
+    for name in (
+        "storage_visitor_mode",
+        "storage_module_state",
+        "storage_analysis_cache",
+        "storage_reports",
+        "storage_health_reports",
+    ):
+        assert name in snapshots
+        storage_snapshot = snapshots[name]
+        assert storage_snapshot["stats"]["entries"] == 0
+        assert storage_snapshot["stats"]["dogs"] == 0
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_storage_namespace_monitors_track_updates(tmp_path: Path) -> None:
+    """Namespace cache monitors should reflect persisted updates."""
+
+    hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+    manager = PawControlDataManager(
+        hass=hass,
+        entry_id="storage-test",
+        dogs_config=[{"dog_id": "buddy"}],
+    )
+
+    await manager.async_initialize()
+    await manager.async_set_visitor_mode("buddy", {"enabled": True})
+    await manager.async_set_dog_power_state("buddy", True)
+
+    snapshots = manager.cache_snapshots()
+
+    visitor_snapshot = snapshots["storage_visitor_mode"]
+    assert visitor_snapshot["stats"]["dogs"] == 1
+    assert visitor_snapshot["diagnostics"]["per_dog"]["buddy"]["entries"] >= 1
+    assert "timestamp_issue" not in visitor_snapshot["diagnostics"]["per_dog"]["buddy"]
+    assert "timestamp_anomalies" not in visitor_snapshot["diagnostics"]
+
+    module_state_snapshot = snapshots["storage_module_state"]
+    assert module_state_snapshot["diagnostics"]["per_dog"]["buddy"]["entries"] >= 1
+
+
+@pytest.mark.unit
+def test_storage_namespace_timestamp_anomalies(tmp_path: Path) -> None:
+    """Namespace monitors should flag missing or stale timestamps."""
+
+    hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+    manager = PawControlDataManager(
+        hass=hass,
+        entry_id="storage-test",
+        dogs_config=[{"dog_id": "buddy"}],
+    )
+
+    manager._namespace_state["visitor_mode"] = {
+        "buddy": {"enabled": True, "timestamp": None},
+        "max": {
+            "enabled": True,
+            "timestamp": (dt_util.utcnow() + timedelta(hours=1)).isoformat(),
+        },
+    }
+
+    snapshots = manager.cache_snapshots()
+    diagnostics = snapshots["storage_visitor_mode"]["diagnostics"]
+    anomalies = diagnostics["timestamp_anomalies"]
+    assert anomalies["buddy"] == "missing"
+    assert anomalies["max"] == "future"
+
+
+@pytest.mark.unit
+def test_helper_manager_register_cache_monitor() -> None:
+    """Helper manager should expose diagnostics through the cache registrar."""
+
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(entry_id="entry", data={}, options={})
+    helper_manager = PawControlHelperManager(hass, entry)
+    helper_manager._created_helpers.add("input_boolean.pawcontrol_buddy_breakfast_fed")
+    helper_manager._dog_helpers = {
+        "buddy": ["input_boolean.pawcontrol_buddy_breakfast_fed"],
+    }
+    helper_manager._managed_entities = {
+        "input_boolean.pawcontrol_buddy_breakfast_fed": {"domain": "input_boolean"}
+    }
+    helper_manager._cleanup_listeners = [lambda: None]
+    helper_manager._daily_reset_configured = True
+
+    registrar = _RecordingRegistrar()
+    helper_manager.register_cache_monitors(registrar, prefix="helper_manager")
+
+    assert "helper_manager_cache" in registrar.monitors
+    snapshot = registrar.monitors["helper_manager_cache"].coordinator_snapshot()
+    assert snapshot["stats"]["helpers"] == 1
+    diagnostics = snapshot["diagnostics"]
+    assert diagnostics["per_dog_helpers"]["buddy"] == 1
+    assert diagnostics["entity_domains"]["input_boolean"] == 1
+    assert diagnostics["daily_reset_configured"] is True
+
+
+@pytest.mark.unit
+def test_script_manager_register_cache_monitor() -> None:
+    """Script manager should expose created script diagnostics."""
+
+    hass = SimpleNamespace(data={})
+    entry = SimpleNamespace(entry_id="entry", data={}, options={})
+    script_manager = PawControlScriptManager(hass, entry)
+    script_manager._created_entities.update(
+        {
+            "script.pawcontrol_buddy_reset",
+            "script.pawcontrol_max_reset",
+        }
+    )
+    script_manager._dog_scripts = {
+        "buddy": ["script.pawcontrol_buddy_reset"],
+        "max": ["script.pawcontrol_max_reset"],
+    }
+
+    registrar = _RecordingRegistrar()
+    script_manager.register_cache_monitors(registrar, prefix="script_manager")
+
+    assert "script_manager_cache" in registrar.monitors
+    snapshot = registrar.monitors["script_manager_cache"].coordinator_snapshot()
+    assert snapshot["stats"]["scripts"] == 2
+    diagnostics = snapshot["diagnostics"]
+    assert diagnostics["per_dog"]["buddy"]["count"] == 1
+    assert diagnostics["created_entities"] == sorted(diagnostics["created_entities"])
+
+
+@pytest.mark.unit
+def test_script_manager_timestamp_anomaly() -> None:
+    """Script manager diagnostics should flag stale generations."""
+
+    hass = SimpleNamespace(data={})
+    entry = SimpleNamespace(entry_id="entry", data={}, options={})
+    script_manager = PawControlScriptManager(hass, entry)
+    script_manager._created_entities.add("script.pawcontrol_buddy_reset")
+    script_manager._dog_scripts = {"buddy": ["script.pawcontrol_buddy_reset"]}
+    script_manager._last_generation = dt_util.utcnow() - (
+        CACHE_TIMESTAMP_STALE_THRESHOLD + timedelta(hours=1)
+    )
+
+    registrar = _RecordingRegistrar()
+    script_manager.register_cache_monitors(registrar, prefix="script_manager")
+
+    snapshot = registrar.monitors["script_manager_cache"].coordinator_snapshot()
+    diagnostics = snapshot["diagnostics"]
+    anomalies = diagnostics["timestamp_anomalies"]
+    assert anomalies["manager"] == "stale"
+    assert diagnostics["last_generated"] is not None
+
+
+@pytest.mark.unit
+def test_door_sensor_manager_register_cache_monitor() -> None:
+    """Door sensor manager should publish detection diagnostics."""
+
+    hass = SimpleNamespace()
+    manager = DoorSensorManager(hass, "entry")
+    now = dt_util.utcnow()
+    manager._sensor_configs = {
+        "buddy": DoorSensorConfig(
+            entity_id="binary_sensor.front_door",
+            dog_id="buddy",
+            dog_name="Buddy",
+        )
+    }
+    manager._detection_states = {
+        "buddy": WalkDetectionState(
+            dog_id="buddy",
+            current_state=WALK_STATE_ACTIVE,
+            door_opened_at=now - timedelta(seconds=30),
+            door_closed_at=now,
+            potential_walk_start=now - timedelta(minutes=5),
+            confidence_score=0.85,
+            state_history=[(now - timedelta(seconds=30), STATE_ON), (now, STATE_OFF)],
+        )
+    }
+    manager._detection_stats = {
+        "total_detections": 3,
+        "successful_walks": 2,
+        "false_positives": 1,
+        "false_negatives": 0,
+        "average_confidence": 0.72,
+    }
+
+    registrar = _RecordingRegistrar()
+    manager.register_cache_monitors(registrar, prefix="door_sensor")
+
+    assert "door_sensor_cache" in registrar.monitors
+    snapshot = registrar.monitors["door_sensor_cache"].coordinator_snapshot()
+    stats = snapshot["stats"]
+    assert stats["configured_sensors"] == 1
+    assert stats["active_detections"] == 1
+    diagnostics = snapshot["diagnostics"]
+    assert diagnostics["per_dog"]["buddy"]["entity_id"] == "binary_sensor.front_door"
+    assert diagnostics["detection_stats"]["successful_walks"] == 2
+    assert diagnostics["cleanup_task_active"] is False
+
+
+@pytest.mark.unit
+def test_door_sensor_manager_timestamp_anomaly() -> None:
+    """Door sensor diagnostics should surface stale activity timestamps."""
+
+    hass = SimpleNamespace()
+    manager = DoorSensorManager(hass, "entry")
+    old = dt_util.utcnow() - (CACHE_TIMESTAMP_STALE_THRESHOLD + timedelta(hours=2))
+    manager._sensor_configs = {
+        "buddy": DoorSensorConfig(
+            entity_id="binary_sensor.front_door",
+            dog_id="buddy",
+            dog_name="Buddy",
+        )
+    }
+    manager._detection_states = {
+        "buddy": WalkDetectionState(
+            dog_id="buddy",
+            current_state=WALK_STATE_ACTIVE,
+            door_opened_at=old,
+            door_closed_at=old,
+            potential_walk_start=old,
+            confidence_score=0.42,
+            state_history=[(old, STATE_ON)],
+        )
+    }
+    manager._detection_stats = {
+        "total_detections": 1,
+        "successful_walks": 0,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "average_confidence": 0.42,
+    }
+    manager._last_activity = old
+
+    registrar = _RecordingRegistrar()
+    manager.register_cache_monitors(registrar, prefix="door_sensor")
+
+    snapshot = registrar.monitors["door_sensor_cache"].coordinator_snapshot()
+    diagnostics = snapshot["diagnostics"]
+    anomalies = diagnostics["timestamp_anomalies"]
+    assert anomalies["manager"] == "stale"
+    assert anomalies["buddy"] == "stale"
+
+
+@pytest.mark.unit
+def test_auto_registers_helper_manager_cache(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Data manager should register helper manager caches when available."""
+
+    hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+    entry = SimpleNamespace(entry_id="entry", data={}, options={})
+    helper_manager = PawControlHelperManager(hass, entry)
+    helper_manager._created_helpers.add("input_boolean.pawcontrol_helper_created")
+    script_manager = PawControlScriptManager(SimpleNamespace(data={}), entry)
+    script_manager._created_entities.add("script.pawcontrol_helper_created")
+    door_manager = DoorSensorManager(SimpleNamespace(), "entry")
+    assert callable(door_manager.register_cache_monitors)
+
+    modules = _DummyModules()
+    tracker = _DummyTracker()
+    coordinator = SimpleNamespace(
+        hass=hass,
+        config_entry=SimpleNamespace(entry_id="entry"),
+        _modules=modules,
+        _entity_budget=tracker,
+    )
+    coordinator.helper_manager = helper_manager
+    coordinator.script_manager = script_manager
+    coordinator.door_sensor_manager = door_manager
+
+    manager = PawControlDataManager(
+        hass=hass,
+        coordinator=coordinator,
+        dogs_config=[],
+    )
+
+    script_manager.register_cache_monitors(manager, prefix="script_manager")
+    door_manager.register_cache_monitors(manager, prefix="door_sensor")
+
+    snapshots = manager.cache_snapshots()
+    assert "helper_manager_cache" in snapshots
+    assert "script_manager_cache" in snapshots
+    assert "door_sensor_cache" in snapshots
+
+
+@pytest.mark.unit
+def test_register_runtime_cache_monitors_adds_helper_cache(tmp_path: Path) -> None:
+    """Runtime cache registration should pick up helper manager monitors."""
+
+    hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+    entry = SimpleNamespace(entry_id="entry", data={}, options={})
+    helper_manager = PawControlHelperManager(hass, entry)
+
+    manager = PawControlDataManager(
+        hass=hass,
+        entry_id="entry",
+        dogs_config=[],
+    )
+
+    assert "helper_manager_cache" not in manager.cache_snapshots()
+
+    runtime = SimpleNamespace(
+        notification_manager=None,
+        person_manager=None,
+        helper_manager=helper_manager,
+    )
+
+    manager.register_runtime_cache_monitors(runtime)
+    snapshots = manager.cache_snapshots()
+
+    assert "helper_manager_cache" in snapshots
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_async_get_module_history_respects_limit(tmp_path: Path) -> None:
+    """Module history lookups should return sorted entries with optional limits."""
+
+    hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+    manager = PawControlDataManager(
+        hass=hass,
+        entry_id="history-test",
+        dogs_config=[{"dog_id": "buddy", "modules": {MODULE_HEALTH: True}}],
+    )
+
+    await manager.async_initialize()
+
+    earlier = datetime(2024, 1, 1, 12, 0, tzinfo=UTC)
+    later = datetime(2024, 1, 2, 8, 30, tzinfo=UTC)
+
+    await manager.async_log_health_data(
+        "buddy",
+        {"timestamp": earlier, "weight": 12.5, "health_status": "good"},
+    )
+    await manager.async_log_health_data(
+        "buddy",
+        {"timestamp": later, "weight": 11.8, "health_status": "excellent"},
+    )
+
+    entries = await manager.async_get_module_history(MODULE_HEALTH, "buddy")
+    assert len(entries) == 2
+    assert entries[0]["weight"] == 11.8
+    assert entries[1]["weight"] == 12.5
+    assert entries[0]["timestamp"] > entries[1]["timestamp"]
+
+    limited = await manager.async_get_module_history(MODULE_HEALTH, "buddy", limit=1)
+    assert limited == entries[:1]
+
+    recent_only = await manager.async_get_module_history(
+        MODULE_HEALTH, "buddy", since=later - timedelta(hours=1)
+    )
+    assert len(recent_only) == 1
+    assert recent_only[0]["weight"] == 11.8
+
+    older_only = await manager.async_get_module_history(
+        MODULE_HEALTH, "buddy", until=earlier + timedelta(minutes=1)
+    )
+    assert len(older_only) == 1
+    assert older_only[0]["weight"] == 12.5
+
+    assert await manager.async_get_module_history("unknown", "buddy") == []
+    assert await manager.async_get_module_history(MODULE_HEALTH, "unknown") == []
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_weekly_health_report_filters_old_entries(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Weekly health reports should ignore entries outside the seven-day window."""
+
+    from custom_components.pawcontrol import data_manager as dm
+
+    hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+    manager = PawControlDataManager(
+        hass=hass,
+        entry_id="weekly-health",
+        dogs_config=[{"dog_id": "buddy", "modules": {MODULE_HEALTH: True}}],
+    )
+
+    base_time = datetime(2024, 1, 15, 12, 0, tzinfo=UTC)
+    monkeypatch.setattr(dm, "_utcnow", lambda: base_time)
+
+    await manager.async_initialize()
+
+    older = base_time - timedelta(days=12)
+    recent = base_time - timedelta(days=2)
+
+    await manager.async_log_health_data(
+        "buddy",
+        {
+            "timestamp": older,
+            "weight": 12.0,
+            "temperature": 38.0,
+            "health_status": "ok",
+        },
+    )
+    await manager.async_log_health_data(
+        "buddy",
+        {
+            "timestamp": recent,
+            "weight": 11.5,
+            "temperature": 37.8,
+            "health_status": "excellent",
+        },
+    )
+
+    await manager.async_log_medication(
+        "buddy",
+        {"medication_name": "pain-relief", "dose": "5ml", "administration_time": older},
+    )
+    await manager.async_log_medication(
+        "buddy",
+        {
+            "medication_name": "vitamin",
+            "dose": "2ml",
+            "administration_time": recent,
+        },
+    )
+
+    report = await manager.async_generate_weekly_health_report("buddy")
+
+    assert report["entries"] == 1
+    assert report["recent_weights"] == [11.5]
+    assert report["recent_temperatures"] == [37.8]
+    assert report["medication"]["entries"] == 1
+    assert report["medication"]["latest"]["medication_name"] == "vitamin"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_analyze_patterns_uses_filtered_history(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Pattern analysis should rely on the shared history helpers."""
+
+    from custom_components.pawcontrol import data_manager as dm
+
+    hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+    manager = PawControlDataManager(
+        hass=hass,
+        entry_id="analysis",
+        dogs_config=[
+            {
+                "dog_id": "buddy",
+                "modules": {
+                    MODULE_FEEDING: True,
+                    MODULE_HEALTH: True,
+                    MODULE_WALK: True,
+                },
+            }
+        ],
+    )
+
+    current_time = datetime(2024, 2, 1, 8, 0, tzinfo=UTC)
+
+    def _now() -> datetime:
+        return current_time
+
+    monkeypatch.setattr(dm, "_utcnow", _now)
+
+    await manager.async_initialize()
+
+    older_feed = current_time - timedelta(days=10)
+    recent_feed = current_time - timedelta(days=3)
+
+    await manager.async_log_feeding(
+        "buddy",
+        FeedingData(
+            meal_type="breakfast",
+            portion_size=120.0,
+            food_type="dry_food",
+            timestamp=older_feed,
+        ),
+    )
+    await manager.async_log_feeding(
+        "buddy",
+        FeedingData(
+            meal_type="dinner",
+            portion_size=200.0,
+            food_type="dry_food",
+            timestamp=recent_feed,
+        ),
+    )
+
+    older_health = current_time - timedelta(days=9)
+    recent_health = current_time - timedelta(days=2)
+
+    await manager.async_log_health_data(
+        "buddy", {"timestamp": older_health, "weight": 12.3, "health_status": "ok"}
+    )
+    await manager.async_log_health_data(
+        "buddy",
+        {"timestamp": recent_health, "weight": 11.9, "health_status": "great"},
+    )
+
+    older_walk_start = current_time - timedelta(days=8, hours=1)
+    older_walk_end = current_time - timedelta(days=8)
+    recent_walk_start = current_time - timedelta(days=1, hours=2)
+    recent_walk_end = current_time - timedelta(days=1, hours=1, minutes=30)
+
+    current_time = older_walk_start
+    await manager.async_start_walk("buddy")
+    current_time = older_walk_end
+    await manager.async_end_walk("buddy", distance=2.5, rating=4)
+
+    current_time = recent_walk_start
+    await manager.async_start_walk("buddy")
+    current_time = recent_walk_end
+    await manager.async_end_walk("buddy", distance=3.2, rating=5)
+
+    current_time = datetime(2024, 2, 1, 18, 0, tzinfo=UTC)
+
+    result = await manager.async_analyze_patterns("buddy", "comprehensive", days=7)
+
+    feeding = result["feeding"]
+    assert feeding["entries"] == 1
+    assert feeding["total_portion_size"] == 200.0
+    assert feeding["first_entry"]["portion_size"] == 200.0
+    assert feeding["last_entry"]["portion_size"] == 200.0
+
+    walking = result["walking"]
+    assert walking["entries"] == 1
+    assert walking["total_distance"] == 3.2
+
+    health = result["health"]
+    assert health["entries"] == 1
+    assert health["latest"]["weight"] == 11.9
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_export_data_uses_history_helper(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Exports should reuse history filters and maintain chronological ordering."""
+
+    from custom_components.pawcontrol import data_manager as dm
+
+    hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+    manager = PawControlDataManager(
+        hass=hass,
+        entry_id="export-history",
+        dogs_config=[
+            {
+                "dog_id": "buddy",
+                "modules": {
+                    MODULE_FEEDING: True,
+                    MODULE_MEDICATION: True,
+                },
+            }
+        ],
+    )
+
+    base_time = datetime(2024, 3, 15, 12, 0, tzinfo=UTC)
+
+    def _now() -> datetime:
+        return base_time
+
+    monkeypatch.setattr(dm, "_utcnow", _now)
+
+    await manager.async_initialize()
+
+    older_feed = base_time - timedelta(days=5)
+    first_recent_feed = base_time - timedelta(days=1, hours=3)
+    second_recent_feed = base_time - timedelta(hours=4)
+
+    await manager.async_log_feeding(
+        "buddy",
+        FeedingData(
+            meal_type="breakfast",
+            portion_size=110.0,
+            food_type="dry_food",
+            timestamp=older_feed,
+        ),
+    )
+    await manager.async_log_feeding(
+        "buddy",
+        FeedingData(
+            meal_type="lunch",
+            portion_size=150.0,
+            food_type="wet_food",
+            timestamp=first_recent_feed,
+        ),
+    )
+    await manager.async_log_feeding(
+        "buddy",
+        FeedingData(
+            meal_type="dinner",
+            portion_size=90.0,
+            food_type="dry_food",
+            timestamp=second_recent_feed,
+        ),
+    )
+
+    older_medication = base_time - timedelta(days=4)
+    recent_medication = base_time - timedelta(hours=6)
+
+    await manager.async_log_medication(
+        "buddy",
+        {
+            "medication_name": "pain-relief",
+            "dose": "5ml",
+            "administration_time": older_medication,
+        },
+    )
+    await manager.async_log_medication(
+        "buddy",
+        {
+            "medication_name": "vitamin",
+            "dose": "2ml",
+            "administration_time": recent_medication,
+        },
+    )
+
+    feeding_export = await manager.async_export_data(
+        "buddy", "feeding", format="json", days=2
+    )
+    feeding_payload = json.loads(feeding_export.read_text(encoding="utf-8"))
+    assert feeding_payload["data_type"] == "feeding"
+    feeding_entries = feeding_payload["entries"]
+    assert len(feeding_entries) == 2
+    feeding_timestamps = [entry["timestamp"] for entry in feeding_entries]
+    assert feeding_timestamps == [
+        first_recent_feed.isoformat(),
+        second_recent_feed.isoformat(),
+    ]
+
+    medication_export = await manager.async_export_data(
+        "buddy",
+        "medication",
+        format="json",
+        date_from=(base_time - timedelta(days=1, hours=1)).isoformat(),
+        date_to=(base_time - timedelta(minutes=30)).isoformat(),
+    )
+    medication_payload = json.loads(medication_export.read_text(encoding="utf-8"))
+    medication_entries = medication_payload["entries"]
+    assert len(medication_entries) == 1
+    medication_entry = medication_entries[0]
+    assert medication_entry["medication_name"] == "vitamin"
+    assert medication_entry["administration_time"] == recent_medication.isoformat()
+    assert medication_entry["logged_at"] == base_time.isoformat()
+
+
+class _StaticCache:
+    """Return a static coordinator snapshot for diagnostics registration tests."""
+
+    def __init__(self, marker: str) -> None:
+        self._marker = marker
+
+    def coordinator_snapshot(self) -> dict[str, Any]:
+        return {
+            "stats": {"marker": self._marker},
+            "diagnostics": {"marker": self._marker},
+        }
+
+
+class _DummyNotificationManager:
+    """Expose cache registration hooks for coordinator wiring tests."""
+
+    def __init__(self) -> None:
+        self.person_manager = _DummyPersonManager()
+
+    def register_cache_monitors(self, registrar: CacheMonitorRegistrar) -> None:
+        registrar.register_cache_monitor("notification_cache", _StaticCache("notif"))
+        self.person_manager.register_cache_monitors(registrar, prefix="person_entity")
+
+
+class _DummyPersonManager:
+    """Expose a registrar hook compatible with PersonEntityManager."""
+
+    def register_cache_monitors(
+        self, registrar: CacheMonitorRegistrar, *, prefix: str
+    ) -> None:
+        registrar.register_cache_monitor(f"{prefix}_targets", _StaticCache("person"))
+
+
+class _DummyCoordinator:
+    """Coordinator stub implementing the binding protocol for tests."""
+
+    def __init__(self, hass: Any) -> None:
+        self.hass = hass
+        self.config_entry = SimpleNamespace(entry_id="coordinator-test")
+        self.data_manager = None
+        self.feeding_manager = None
+        self.walk_manager = None
+        self.notification_manager = None
+        self.gps_geofence_manager = None
+        self.geofencing_manager = None
+        self.weather_health_manager = None
+        self.garden_manager = None
+        self._modules = _DummyModules()
+        self._entity_budget = _DummyTracker()
+
+
+class _DummyModulesAdapter:
+    """Adapter stub satisfying the module binding protocol."""
+
+    def __init__(self) -> None:
+        self.attached = False
+        self.detached = False
+
+    def attach_managers(
+        self,
+        *,
+        data_manager: PawControlDataManager | None,
+        feeding_manager: Any | None,
+        walk_manager: Any | None,
+        gps_geofence_manager: Any | None,
+        weather_health_manager: Any | None,
+        garden_manager: Any | None,
+    ) -> None:
+        self.attached = True
+
+    def detach_managers(self) -> None:
+        self.detached = True
+
+
+@pytest.mark.unit
+def test_notification_person_caches_register_via_binding(tmp_path: Path) -> None:
+    """Coordinator binding should surface notification and person cache snapshots."""
+
+    hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+    coordinator = _DummyCoordinator(hass)
+    modules = _DummyModulesAdapter()
+    manager = PawControlDataManager(
+        hass=hass,
+        coordinator=coordinator,
+        dogs_config=[],
+    )
+    notification_manager = _DummyNotificationManager()
+
+    bind_runtime_managers(
+        coordinator,
+        modules,
+        {
+            "data_manager": manager,
+            "notification_manager": notification_manager,
+        },
+    )
+
+    snapshots = manager.cache_snapshots()
+
+    assert "notification_cache" in snapshots
+    assert snapshots["notification_cache"]["stats"]["marker"] == "notif"
+    assert "person_entity_targets" in snapshots
+    assert snapshots["person_entity_targets"]["stats"]["marker"] == "person"

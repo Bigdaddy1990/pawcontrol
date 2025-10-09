@@ -528,7 +528,12 @@ def test_coordinator_error_flow_handles_failed_reload(
     result = asyncio.run(flow.async_step_coordinator_error({"action": "reload"}))
 
     assert reload_mock.await_count == 1
-    assert delete_issue_mock.await_count == 0
+    cache_delete_calls = [
+        call
+        for call in delete_issue_mock.await_args_list
+        if call.args and str(call.args[-1]).endswith("_cache_health")
+    ]
+    assert not cache_delete_calls
     assert result["type"] == "form"
     assert result["errors"]["base"] == "reload_failed"
 
@@ -570,6 +575,346 @@ def test_async_check_for_issues_checks_coordinator_health(
     kwargs = create_issue_mock.await_args.kwargs
     assert kwargs["translation_key"] == module.ISSUE_COORDINATOR_ERROR
     assert kwargs["data"]["error"] == "coordinator_not_initialized"
+
+
+def test_async_check_for_issues_publishes_cache_health_issue(
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+) -> None:
+    """Aggregated cache anomalies should surface as repairs issues."""
+
+    module, create_issue_mock, _, delete_issue_mock = repairs_module
+    create_issue_mock.reset_mock()
+    delete_issue_mock.reset_mock()
+
+    hass = SimpleNamespace()
+    hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
+
+    summary = {
+        "total_caches": 1,
+        "anomaly_count": 1,
+        "severity": "warning",
+        "generated_at": "2024-01-01T00:00:00+00:00",
+        "totals": {
+            "entries": 5,
+            "hits": 3,
+            "misses": 2,
+            "expired_entries": 1,
+            "expired_via_override": 0,
+            "pending_expired_entries": 0,
+            "pending_override_candidates": 0,
+            "active_override_flags": 0,
+        },
+        "issues": [
+            {
+                "cache": "adaptive_cache",
+                "entries": 5,
+                "hits": 3,
+                "misses": 2,
+                "hit_rate": 60.0,
+                "expired_entries": 1,
+            }
+        ],
+        "caches_with_expired_entries": ["adaptive_cache"],
+    }
+
+    class _DataManager:
+        def cache_repair_summary(self) -> dict[str, Any]:
+            return summary
+
+    runtime_data = SimpleNamespace(
+        data_manager=_DataManager(),
+        coordinator=SimpleNamespace(last_update_success=True),
+    )
+
+    entry = SimpleNamespace(
+        entry_id="entry",
+        data={
+            module.CONF_DOGS: [
+                {
+                    module.CONF_DOG_ID: "dog",
+                    module.CONF_DOG_NAME: "Dog",
+                    "modules": {},
+                }
+            ]
+        },
+        options={},
+        version=1,
+    )
+
+    original_get_runtime_data = module.get_runtime_data
+    module.get_runtime_data = lambda _hass, _entry: runtime_data
+
+    try:
+        asyncio.run(module.async_check_for_issues(hass, entry))
+    finally:
+        module.get_runtime_data = original_get_runtime_data
+
+    assert create_issue_mock.await_count == 1
+    kwargs = create_issue_mock.await_args.kwargs
+    assert kwargs["translation_key"] == module.ISSUE_CACHE_HEALTH_SUMMARY
+    assert kwargs["data"]["summary"] == summary
+    cache_delete_calls = [
+        call
+        for call in delete_issue_mock.await_args_list
+        if call.args and str(call.args[-1]).endswith("_cache_health")
+    ]
+    assert not cache_delete_calls
+
+
+def test_async_check_for_issues_clears_cache_issue_without_anomalies(
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+) -> None:
+    """Repairs should clear cache issues when anomalies disappear."""
+
+    module, create_issue_mock, _, delete_issue_mock = repairs_module
+    create_issue_mock.reset_mock()
+    delete_issue_mock.reset_mock()
+
+    hass = SimpleNamespace()
+    hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
+
+    summary = {
+        "total_caches": 1,
+        "anomaly_count": 0,
+        "severity": "info",
+        "generated_at": "2024-01-01T00:00:00+00:00",
+        "totals": {
+            "entries": 2,
+            "hits": 2,
+            "misses": 0,
+            "expired_entries": 0,
+            "expired_via_override": 0,
+            "pending_expired_entries": 0,
+            "pending_override_candidates": 0,
+            "active_override_flags": 0,
+        },
+    }
+
+    class _DataManager:
+        def cache_repair_summary(self) -> dict[str, Any]:
+            return summary
+
+    runtime_data = SimpleNamespace(
+        data_manager=_DataManager(),
+        coordinator=SimpleNamespace(last_update_success=True),
+    )
+
+    entry = SimpleNamespace(
+        entry_id="entry",
+        data={
+            module.CONF_DOGS: [
+                {
+                    module.CONF_DOG_ID: "dog",
+                    module.CONF_DOG_NAME: "Dog",
+                    "modules": {},
+                }
+            ]
+        },
+        options={},
+        version=1,
+    )
+
+    original_get_runtime_data = module.get_runtime_data
+    module.get_runtime_data = lambda _hass, _entry: runtime_data
+
+    try:
+        asyncio.run(module.async_check_for_issues(hass, entry))
+    finally:
+        module.get_runtime_data = original_get_runtime_data
+
+    assert create_issue_mock.await_count == 0
+    cache_delete_calls = [
+        call
+        for call in delete_issue_mock.await_args_list
+        if call.args and str(call.args[-1]).endswith("_cache_health")
+    ]
+    assert len(cache_delete_calls) == 1
+
+
+def test_async_check_for_issues_surfaces_reconfigure_warnings(
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+) -> None:
+    """Reconfigure telemetry warnings should surface as repair issues."""
+
+    module, create_issue_mock, _, delete_issue_mock = repairs_module
+    create_issue_mock.reset_mock()
+    delete_issue_mock.reset_mock()
+
+    hass = SimpleNamespace()
+    hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
+
+    runtime_data = SimpleNamespace(
+        data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
+        coordinator=SimpleNamespace(last_update_success=True),
+    )
+
+    entry = SimpleNamespace(
+        entry_id="entry",
+        data={
+            module.CONF_DOGS: [
+                {
+                    module.CONF_DOG_ID: "dog",
+                    module.CONF_DOG_NAME: "Dog",
+                    "modules": {},
+                }
+            ]
+        },
+        options={
+            "last_reconfigure": "2024-01-02T03:04:05+00:00",
+            "reconfigure_telemetry": {
+                "timestamp": "2024-01-02T03:04:05+00:00",
+                "requested_profile": "balanced",
+                "previous_profile": "advanced",
+                "dogs_count": 1,
+                "estimated_entities": 8,
+                "compatibility_warnings": [
+                    "GPS module disabled for configured dog",
+                ],
+                "health_summary": {"healthy": True, "issues": [], "warnings": []},
+            },
+        },
+        version=1,
+    )
+
+    original_get_runtime_data = module.get_runtime_data
+    module.get_runtime_data = lambda _hass, _entry: runtime_data
+
+    try:
+        asyncio.run(module.async_check_for_issues(hass, entry))
+    finally:
+        module.get_runtime_data = original_get_runtime_data
+
+    assert any(
+        call.kwargs["translation_key"] == module.ISSUE_RECONFIGURE_WARNINGS
+        for call in create_issue_mock.await_args_list
+    )
+
+
+def test_async_check_for_issues_surfaces_reconfigure_health_issue(
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+) -> None:
+    """Health summaries from reconfigure telemetry should raise issues."""
+
+    module, create_issue_mock, _, delete_issue_mock = repairs_module
+    create_issue_mock.reset_mock()
+    delete_issue_mock.reset_mock()
+
+    hass = SimpleNamespace()
+    hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
+
+    runtime_data = SimpleNamespace(
+        data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
+        coordinator=SimpleNamespace(last_update_success=True),
+    )
+
+    entry = SimpleNamespace(
+        entry_id="entry",
+        data={
+            module.CONF_DOGS: [
+                {
+                    module.CONF_DOG_ID: "dog",
+                    module.CONF_DOG_NAME: "Dog",
+                    "modules": {},
+                }
+            ]
+        },
+        options={
+            "last_reconfigure": "2024-01-02T03:04:05+00:00",
+            "reconfigure_telemetry": {
+                "timestamp": "2024-01-02T03:04:05+00:00",
+                "requested_profile": "balanced",
+                "previous_profile": "advanced",
+                "dogs_count": 1,
+                "estimated_entities": 8,
+                "compatibility_warnings": [],
+                "health_summary": {
+                    "healthy": False,
+                    "issues": ["profile missing GPS support"],
+                    "warnings": ["consider reauth"],
+                },
+            },
+        },
+        version=1,
+    )
+
+    original_get_runtime_data = module.get_runtime_data
+    module.get_runtime_data = lambda _hass, _entry: runtime_data
+
+    try:
+        asyncio.run(module.async_check_for_issues(hass, entry))
+    finally:
+        module.get_runtime_data = original_get_runtime_data
+
+    assert any(
+        call.kwargs["translation_key"] == module.ISSUE_RECONFIGURE_HEALTH
+        for call in create_issue_mock.await_args_list
+    )
+
+
+def test_async_check_for_issues_clears_reconfigure_issues_when_clean(
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+) -> None:
+    """Reconfigure telemetry without warnings should clear existing issues."""
+
+    module, create_issue_mock, _, delete_issue_mock = repairs_module
+    create_issue_mock.reset_mock()
+    delete_issue_mock.reset_mock()
+
+    hass = SimpleNamespace()
+    hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
+
+    runtime_data = SimpleNamespace(
+        data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
+        coordinator=SimpleNamespace(last_update_success=True),
+    )
+
+    entry = SimpleNamespace(
+        entry_id="entry",
+        data={
+            module.CONF_DOGS: [
+                {
+                    module.CONF_DOG_ID: "dog",
+                    module.CONF_DOG_NAME: "Dog",
+                    "modules": {},
+                }
+            ]
+        },
+        options={
+            "last_reconfigure": "2024-01-02T03:04:05+00:00",
+            "reconfigure_telemetry": {
+                "timestamp": "2024-01-02T03:04:05+00:00",
+                "requested_profile": "balanced",
+                "previous_profile": "advanced",
+                "dogs_count": 1,
+                "estimated_entities": 8,
+                "compatibility_warnings": [],
+                "health_summary": {"healthy": True, "issues": [], "warnings": []},
+            },
+        },
+        version=1,
+    )
+
+    original_get_runtime_data = module.get_runtime_data
+    module.get_runtime_data = lambda _hass, _entry: runtime_data
+
+    try:
+        asyncio.run(module.async_check_for_issues(hass, entry))
+    finally:
+        module.get_runtime_data = original_get_runtime_data
+
+    assert not any(
+        call.kwargs["translation_key"]
+        in {module.ISSUE_RECONFIGURE_WARNINGS, module.ISSUE_RECONFIGURE_HEALTH}
+        for call in create_issue_mock.await_args_list
+    )
+    assert any(
+        call.args and str(call.args[-1]).endswith("reconfigure_warnings")
+        for call in delete_issue_mock.await_args_list
+    )
+    assert any(
+        call.args and str(call.args[-1]).endswith("reconfigure_health")
+        for call in delete_issue_mock.await_args_list
+    )
 
 
 def test_notification_check_accepts_mobile_app_service_prefix(

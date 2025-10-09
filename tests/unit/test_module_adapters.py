@@ -53,6 +53,10 @@ def module_adapters(monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setitem(sys.modules, "custom_components.pawcontrol", package)
 
     const_stub = ModuleType("custom_components.pawcontrol.const")
+    const_stub.CONF_DOGS = "dogs"
+    const_stub.CONF_DOG_ID = "dog_id"
+    const_stub.CONF_DOG_BREED = "dog_breed"
+    const_stub.CONF_DOG_AGE = "dog_age"
     const_stub.CONF_WEATHER_ENTITY = "weather_entity"
     const_stub.MODULE_FEEDING = "feeding"
     const_stub.MODULE_GARDEN = "garden"

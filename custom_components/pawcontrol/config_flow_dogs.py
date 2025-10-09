@@ -15,7 +15,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 
 import voluptuous as vol
 from custom_components.pawcontrol.config_flow_base import (
@@ -63,7 +63,20 @@ from custom_components.pawcontrol.const import (
     MODULE_WALK,
     SPECIAL_DIET_OPTIONS,
 )
-from custom_components.pawcontrol.types import DogConfigData
+from custom_components.pawcontrol.types import (
+    DietCompatibilityIssue,
+    DietValidationResult,
+    DogConfigData,
+    DogFeedingConfig,
+    DogGPSConfig,
+    DogHealthConfig,
+    DogMedicationEntry,
+    DogModulesConfig,
+    DogSetupStepInput,
+    DogVaccinationRecord,
+    DogValidationCacheEntry,
+    DogValidationResult,
+)
 from homeassistant.config_entries import ConfigFlowResult
 
 from .selector_shim import selector
@@ -96,7 +109,17 @@ DIET_COMPATIBILITY_RULES = {
 }
 
 
-class DogManagementMixin:
+if TYPE_CHECKING:
+    from .config_flow_base import PawControlBaseConfigFlow as DogManagementMixinBase
+else:
+
+    class DogManagementMixinBase:  # pragma: no cover - runtime shim
+        """Runtime stand-in for the config flow base during type checking."""
+
+        pass
+
+
+class DogManagementMixin(DogManagementMixinBase):
     """Mixin for dog management functionality in configuration flow.
 
     This mixin provides all the methods needed for adding, validating,
@@ -104,14 +127,18 @@ class DogManagementMixin:
     validation, per-dog module configuration, and comprehensive health data.
     """
 
+    if TYPE_CHECKING:
+        _current_dog_config: DogConfigData | None
+        _dogs: list[DogConfigData]
+
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize dog management mixin."""
         super().__init__(*args, **kwargs)
-        self._validation_cache: dict[str, Any] = {}
         self._lower_dog_names: set[str] = set()
+        self._global_modules: dict[str, Any] = {}
 
     async def async_step_add_dog(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: DogSetupStepInput | None = None
     ) -> ConfigFlowResult:
         """Handle adding a dog with rate-limited validation.
 
@@ -205,22 +232,31 @@ class DogManagementMixin:
             Configuration flow result for next step
         """
         if user_input is not None:
+            current_dog = self._current_dog_config
+            if current_dog is None:
+                _LOGGER.error(
+                    "Dog modules step received input without active dog context"
+                )
+                return await self.async_step_add_dog()
+
             # Apply module selection to current dog
-            modules = {
-                MODULE_FEEDING: user_input.get("enable_feeding", False),
-                MODULE_WALK: user_input.get("enable_walk", False),
-                MODULE_HEALTH: user_input.get("enable_health", False),
-                MODULE_GPS: user_input.get("enable_gps", False),
-                MODULE_GARDEN: user_input.get("enable_garden", False),
-                MODULE_NOTIFICATIONS: user_input.get("enable_notifications", False),
-                MODULE_DASHBOARD: user_input.get("enable_dashboard", False),
-                MODULE_VISITOR: user_input.get("enable_visitor", False),
-                MODULE_GROOMING: user_input.get("enable_grooming", False),
-                MODULE_MEDICATION: user_input.get("enable_medication", False),
-                MODULE_TRAINING: user_input.get("enable_training", False),
+            modules: DogModulesConfig = {
+                MODULE_FEEDING: bool(user_input.get("enable_feeding", False)),
+                MODULE_WALK: bool(user_input.get("enable_walk", False)),
+                MODULE_HEALTH: bool(user_input.get("enable_health", False)),
+                MODULE_GPS: bool(user_input.get("enable_gps", False)),
+                MODULE_GARDEN: bool(user_input.get("enable_garden", False)),
+                MODULE_NOTIFICATIONS: bool(
+                    user_input.get("enable_notifications", False)
+                ),
+                MODULE_DASHBOARD: bool(user_input.get("enable_dashboard", False)),
+                MODULE_VISITOR: bool(user_input.get("enable_visitor", False)),
+                MODULE_GROOMING: bool(user_input.get("enable_grooming", False)),
+                MODULE_MEDICATION: bool(user_input.get("enable_medication", False)),
+                MODULE_TRAINING: bool(user_input.get("enable_training", False)),
             }
 
-            self._current_dog_config[CONF_MODULES] = modules
+            current_dog[CONF_MODULES] = modules
 
             # Continue to GPS configuration if enabled
             if modules[MODULE_GPS]:
@@ -233,12 +269,19 @@ class DogManagementMixin:
                 return await self.async_step_dog_health()
             else:
                 # No additional configuration needed, finalize dog
-                self._dogs.append(self._current_dog_config)
+                self._dogs.append(current_dog)
                 return await self.async_step_add_another_dog()
 
         # Suggest modules based on dog characteristics
-        dog_size = self._current_dog_config.get(CONF_DOG_SIZE, "medium")
-        dog_age = self._current_dog_config.get(CONF_DOG_AGE, 3)
+        current_dog = self._current_dog_config
+        if current_dog is None:
+            _LOGGER.error(
+                "Dog modules step invoked without an active dog; returning to add_dog"
+            )
+            return await self.async_step_add_dog()
+
+        dog_size = current_dog.get(CONF_DOG_SIZE, "medium")
+        dog_age = current_dog.get(CONF_DOG_AGE, 3)
 
         suggested_gps = dog_size in ("large", "giant")
         suggested_visitor = dog_age >= 2
@@ -287,7 +330,7 @@ class DogManagementMixin:
             step_id="dog_modules",
             data_schema=schema,
             description_placeholders={
-                "dog_name": self._current_dog_config[CONF_DOG_NAME],
+                "dog_name": current_dog[CONF_DOG_NAME],
                 "dog_size": dog_size,
                 "dog_age": dog_age,
             },
@@ -306,30 +349,34 @@ class DogManagementMixin:
         Returns:
             Configuration flow result for next step
         """
-        if self._current_dog_config is None:
-            return self.async_show_form(
-                step_id="dog_gps", data_schema=vol.Schema({}), errors={}
+        current_dog = self._current_dog_config
+        if current_dog is None:
+            _LOGGER.error(
+                "GPS configuration step invoked without active dog; restarting add_dog"
             )
+            return await self.async_step_add_dog()
 
         if user_input is not None:
             # Store GPS configuration for this dog
-            self._current_dog_config["gps_config"] = {
+            gps_config: DogGPSConfig = {
                 CONF_GPS_SOURCE: user_input.get(CONF_GPS_SOURCE, "manual"),
-                "gps_update_interval": user_input.get("gps_update_interval", 60),
+                "gps_update_interval": int(user_input.get("gps_update_interval", 60)),
                 "gps_accuracy_filter": user_input.get("gps_accuracy_filter", 100),
-                "enable_geofencing": user_input.get("enable_geofencing", True),
+                "enable_geofencing": bool(user_input.get("enable_geofencing", True)),
                 "home_zone_radius": user_input.get("home_zone_radius", 50),
             }
 
+            current_dog["gps_config"] = gps_config
+
             # Continue to feeding configuration if enabled
-            if self._current_dog_config[CONF_MODULES].get(MODULE_FEEDING):
+            if current_dog[CONF_MODULES].get(MODULE_FEEDING):
                 return await self.async_step_dog_feeding()
             # Continue to health configuration if enabled
-            elif self._current_dog_config[CONF_MODULES].get(MODULE_HEALTH):
+            elif current_dog[CONF_MODULES].get(MODULE_HEALTH):
                 return await self.async_step_dog_health()
             else:
                 # Finalize dog configuration
-                self._dogs.append(self._current_dog_config)
+                self._dogs.append(current_dog)
                 return await self.async_step_add_another_dog()
 
         # Get available GPS sources
@@ -400,7 +447,7 @@ class DogManagementMixin:
             step_id="dog_gps",
             data_schema=schema,
             description_placeholders={
-                "dog_name": self._current_dog_config[CONF_DOG_NAME],
+                "dog_name": current_dog[CONF_DOG_NAME],
             },
         )
 
@@ -418,22 +465,29 @@ class DogManagementMixin:
         Returns:
             Configuration flow result for next step
         """
+        current_dog = self._current_dog_config
+        if current_dog is None:
+            _LOGGER.error(
+                "Feeding configuration step invoked without active dog; restarting add_dog"
+            )
+            return await self.async_step_add_dog()
+
         if user_input is not None:
             # Calculate portions based on meals per day
-            meals_per_day = user_input.get(CONF_MEALS_PER_DAY, 2)
-            daily_amount = user_input.get(CONF_DAILY_FOOD_AMOUNT, 500)
-            portion_size = daily_amount / meals_per_day
+            meals_per_day = int(user_input.get(CONF_MEALS_PER_DAY, 2))
+            daily_amount = int(user_input.get(CONF_DAILY_FOOD_AMOUNT, 500))
+            portion_size = daily_amount / meals_per_day if meals_per_day else 0
 
             # Store feeding configuration for this dog
-            feeding_config = {
+            feeding_config: DogFeedingConfig = {
                 CONF_MEALS_PER_DAY: meals_per_day,
                 CONF_DAILY_FOOD_AMOUNT: daily_amount,
                 "portion_size": portion_size,
                 CONF_FOOD_TYPE: user_input.get(CONF_FOOD_TYPE, "dry_food"),
                 "feeding_schedule": user_input.get("feeding_schedule", "flexible"),
-                "enable_reminders": user_input.get("enable_reminders", True),
-                "reminder_minutes_before": user_input.get(
-                    "reminder_minutes_before", 15
+                "enable_reminders": bool(user_input.get("enable_reminders", True)),
+                "reminder_minutes_before": int(
+                    user_input.get("reminder_minutes_before", 15)
                 ),
             }
 
@@ -454,24 +508,27 @@ class DogManagementMixin:
                 )
 
             if user_input.get("snacks_enabled", False):
-                feeding_config[CONF_SNACK_TIMES] = ["10:00:00", "15:00:00", "20:00:00"]
+                feeding_config[CONF_SNACK_TIMES] = [
+                    "10:00:00",
+                    "15:00:00",
+                    "20:00:00",
+                ]
 
-            self._current_dog_config["feeding_config"] = feeding_config
+            current_dog["feeding_config"] = feeding_config
 
             # Continue to health configuration if enabled
-            if self._current_dog_config[CONF_MODULES].get(
-                MODULE_HEALTH
-            ) or self._current_dog_config[CONF_MODULES].get(MODULE_MEDICATION):
+            modules = current_dog.get(CONF_MODULES, {})
+            if modules.get(MODULE_HEALTH) or modules.get(MODULE_MEDICATION):
                 return await self.async_step_dog_health()
             else:
                 # Finalize dog configuration
-                self._dogs.append(self._current_dog_config)
+                self._dogs.append(current_dog)
                 self._current_dog_config = None
                 return await self.async_step_add_another_dog()
 
         # Calculate suggested daily food amount based on weight and size
-        dog_weight = self._current_dog_config.get(CONF_DOG_WEIGHT, 20)
-        dog_size = self._current_dog_config.get(CONF_DOG_SIZE, "medium")
+        dog_weight = current_dog.get(CONF_DOG_WEIGHT, 20)
+        dog_size = current_dog.get(CONF_DOG_SIZE, "medium")
         suggested_amount = self._calculate_suggested_food_amount(dog_weight, dog_size)
 
         schema = vol.Schema(
@@ -563,7 +620,7 @@ class DogManagementMixin:
             step_id="dog_feeding",
             data_schema=schema,
             description_placeholders={
-                "dog_name": self._current_dog_config[CONF_DOG_NAME],
+                "dog_name": current_dog[CONF_DOG_NAME],
                 "dog_weight": str(dog_weight),
                 "suggested_amount": str(suggested_amount),
                 "portion_info": f"Automatic portion calculation: {suggested_amount}g per day",
@@ -584,9 +641,16 @@ class DogManagementMixin:
         Returns:
             Configuration flow result for next step
         """
+        current_dog = self._current_dog_config
+        if current_dog is None:
+            _LOGGER.error(
+                "Health configuration step invoked without active dog; restarting add_dog"
+            )
+            return await self.async_step_add_dog()
+
         if user_input is not None:
             # Store comprehensive health configuration for this dog
-            health_config = {
+            health_config: DogHealthConfig = {
                 # Basic vet information
                 "vet_name": user_input.get("vet_name", ""),
                 "vet_phone": user_input.get("vet_phone", ""),
@@ -595,7 +659,7 @@ class DogManagementMixin:
                 "weight_tracking": user_input.get("weight_tracking", True),
                 # Health-aware feeding integration
                 "ideal_weight": user_input.get(
-                    "ideal_weight", self._current_dog_config.get(CONF_DOG_WEIGHT)
+                    "ideal_weight", current_dog.get(CONF_DOG_WEIGHT)
                 ),
                 "body_condition_score": user_input.get("body_condition_score", 5),
                 "activity_level": user_input.get("activity_level", "moderate"),
@@ -607,7 +671,7 @@ class DogManagementMixin:
             }
 
             # Vaccination data
-            vaccinations = {}
+            vaccinations: dict[str, DogVaccinationRecord] = {}
             if user_input.get("rabies_vaccination"):
                 vaccinations["rabies"] = {
                     "date": user_input.get("rabies_vaccination"),
@@ -630,8 +694,8 @@ class DogManagementMixin:
                 health_config["vaccinations"] = vaccinations
 
             # Medication data
-            if self._current_dog_config[CONF_MODULES].get(MODULE_MEDICATION):
-                medications = []
+            if current_dog[CONF_MODULES].get(MODULE_MEDICATION):
+                medications: list[DogMedicationEntry] = []
 
                 if user_input.get("medication_1_name"):
                     medications.append(
@@ -668,15 +732,17 @@ class DogManagementMixin:
                 if medications:
                     health_config["medications"] = medications
 
-            self._current_dog_config["health_config"] = health_config
+            current_dog["health_config"] = health_config
 
             # Update feeding config with health data for portion calculation
-            if "feeding_config" in self._current_dog_config:
-                feeding_config = self._current_dog_config["feeding_config"]
+            if "feeding_config" in current_dog:
+                feeding_config = current_dog["feeding_config"]
 
                 # Validate diet combinations and log results
-                diet_validation = self._validate_diet_combinations(
-                    health_config["special_diet_requirements"]
+                diet_validation: DietValidationResult = (
+                    self._validate_diet_combinations(
+                        health_config["special_diet_requirements"]
+                    )
                 )
 
                 # Add health integration to feeding config
@@ -685,13 +751,10 @@ class DogManagementMixin:
                         "health_aware_portions": user_input.get(
                             "health_aware_portions", True
                         ),
-                        "dog_weight": self._current_dog_config.get(CONF_DOG_WEIGHT),
+                        "dog_weight": current_dog.get(CONF_DOG_WEIGHT),
                         "ideal_weight": health_config["ideal_weight"],
-                        "age_months": self._current_dog_config.get(CONF_DOG_AGE, 3)
-                        * 12,
-                        "breed_size": self._current_dog_config.get(
-                            CONF_DOG_SIZE, "medium"
-                        ),
+                        "age_months": current_dog.get(CONF_DOG_AGE, 3) * 12,
+                        "breed_size": current_dog.get(CONF_DOG_SIZE, "medium"),
                         "activity_level": health_config["activity_level"],
                         "body_condition_score": health_config["body_condition_score"],
                         "health_conditions": health_config["health_conditions"],
@@ -710,19 +773,19 @@ class DogManagementMixin:
                 if diet_validation["recommended_vet_consultation"]:
                     _LOGGER.info(
                         "Diet validation for %s recommends veterinary consultation: %s conflicts, %s warnings",
-                        self._current_dog_config[CONF_DOG_NAME],
+                        current_dog[CONF_DOG_NAME],
                         len(diet_validation["conflicts"]),
                         len(diet_validation["warnings"]),
                     )
 
             # Finalize dog configuration
-            self._dogs.append(self._current_dog_config)
+            self._dogs.append(current_dog)
             return await self.async_step_add_another_dog()
 
         # Calculate suggestions based on dog characteristics
-        dog_age = self._current_dog_config.get(CONF_DOG_AGE, 3)
-        dog_size = self._current_dog_config.get(CONF_DOG_SIZE, "medium")
-        dog_weight = self._current_dog_config.get(CONF_DOG_WEIGHT, 20.0)
+        dog_age = current_dog.get(CONF_DOG_AGE, 3)
+        dog_size = current_dog.get(CONF_DOG_SIZE, "medium")
+        dog_weight = current_dog.get(CONF_DOG_WEIGHT, 20.0)
 
         # Suggest ideal weight (typically 95-105% of current weight for healthy dogs)
         suggested_ideal_weight = round(dog_weight * 1.0, 1)
@@ -887,7 +950,7 @@ class DogManagementMixin:
         )
 
         # Add medication fields if module is enabled
-        if self._current_dog_config[CONF_MODULES].get(MODULE_MEDICATION):
+        if current_dog[CONF_MODULES].get(MODULE_MEDICATION):
             schema_dict.update(
                 {
                     vol.Optional("medication_1_name"): selector.TextSelector(),
@@ -948,13 +1011,13 @@ class DogManagementMixin:
             step_id="dog_health",
             data_schema=schema,
             description_placeholders={
-                "dog_name": self._current_dog_config[CONF_DOG_NAME],
+                "dog_name": current_dog[CONF_DOG_NAME],
                 "dog_age": str(dog_age),
                 "dog_weight": str(dog_weight),
                 "suggested_ideal_weight": str(suggested_ideal_weight),
                 "suggested_activity": suggested_activity,
                 "medication_enabled": "yes"
-                if self._current_dog_config[CONF_MODULES].get(MODULE_MEDICATION)
+                if current_dog[CONF_MODULES].get(MODULE_MEDICATION)
                 else "no",
                 "bcs_info": "Body Condition Score: 1=Emaciated, 5=Ideal, 9=Obese",
                 "special_diet_count": str(len(SPECIAL_DIET_OPTIONS)),
@@ -963,8 +1026,8 @@ class DogManagementMixin:
         )
 
     async def _async_validate_dog_config(
-        self, user_input: dict[str, Any]
-    ) -> dict[str, Any]:
+        self, user_input: DogSetupStepInput
+    ) -> DogValidationResult:
         """Validate dog configuration with rate limiting.
 
         Args:
@@ -976,8 +1039,14 @@ class DogManagementMixin:
         errors: dict[str, str] = {}
 
         try:
-            dog_id = user_input[CONF_DOG_ID].lower().strip().replace(" ", "_")
-            dog_name = user_input[CONF_DOG_NAME].strip()
+            dog_id_raw = user_input.get(CONF_DOG_ID)
+            dog_name_raw = user_input.get(CONF_DOG_NAME)
+
+            if not isinstance(dog_id_raw, str) or not isinstance(dog_name_raw, str):
+                return {"valid": False, "errors": {"base": "invalid_dog_data"}}
+
+            dog_id = dog_id_raw.lower().strip().replace(" ", "_")
+            dog_name = dog_name_raw.strip()
 
             # Add small delay between validations to prevent flooding
             # Increased micro-delay for rate limiting
@@ -1009,7 +1078,7 @@ class DogManagementMixin:
                 errors[CONF_DOG_BREED] = error
 
             # Cache the result for performance
-            result = {
+            result: DogValidationResult = {
                 "valid": len(errors) == 0,
                 "errors": errors,
             }
@@ -1026,27 +1095,32 @@ class DogManagementMixin:
             }
 
     def _create_cache_key(
-        self, dog_id: str, dog_name: str, user_input: dict[str, Any]
+        self, dog_id: str, dog_name: str, user_input: DogSetupStepInput
     ) -> str:
-        weight = user_input.get(CONF_DOG_WEIGHT, "none")
-        age_val = user_input.get(CONF_DOG_AGE, "none")
-        size = user_input.get(CONF_DOG_SIZE, "none")
-        breed = user_input.get(CONF_DOG_BREED, "none")
-        return f"{dog_id}_{dog_name}_{weight}_{age_val}_{size}_{breed}"
+        weight = user_input.get(CONF_DOG_WEIGHT)
+        age_val = user_input.get(CONF_DOG_AGE)
+        size = user_input.get(CONF_DOG_SIZE) or "none"
+        breed = user_input.get(CONF_DOG_BREED) or "none"
+        weight_token = str(weight) if weight is not None else "none"
+        age_token = str(age_val) if age_val is not None else "none"
+        return f"{dog_id}_{dog_name}_{weight_token}_{age_token}_{size}_{breed}"
 
-    def _get_cached_validation(self, cache_key: str) -> dict[str, Any] | None:
-        cached = self._validation_cache.get(cache_key)
+    def _get_cached_validation(self, cache_key: str) -> DogValidationResult | None:
+        cached: DogValidationCacheEntry | None = self._validation_cache.get(cache_key)
         if cached is not None and (
-            cached.get("timestamp", 0) > asyncio.get_running_loop().time() - 5
+            cached["cached_at"] > asyncio.get_running_loop().time() - 5
         ):
             return cached["result"]
         return None
 
-    def _update_validation_cache(self, cache_key: str, result: dict[str, Any]) -> None:
-        self._validation_cache[cache_key] = {
+    def _update_validation_cache(
+        self, cache_key: str, result: DogValidationResult
+    ) -> None:
+        cache_entry: DogValidationCacheEntry = {
             "result": result,
-            "timestamp": asyncio.get_running_loop().time(),
+            "cached_at": asyncio.get_running_loop().time(),
         }
+        self._validation_cache[cache_key] = cache_entry
 
     def _validate_dog_id(self, dog_id: str) -> str | None:
         if not DOG_ID_PATTERN.match(dog_id):
@@ -1072,7 +1146,7 @@ class DogManagementMixin:
             return "dog_name_already_exists"
         return None
 
-    def _validate_weight(self, user_input: dict[str, Any]) -> str | None:
+    def _validate_weight(self, user_input: DogSetupStepInput) -> str | None:
         weight = user_input.get(CONF_DOG_WEIGHT)
         size = user_input.get(CONF_DOG_SIZE, "medium")
         if weight is not None:
@@ -1086,7 +1160,7 @@ class DogManagementMixin:
                 return "invalid_weight_format"
         return None
 
-    def _validate_age(self, user_input: dict[str, Any]) -> str | None:
+    def _validate_age(self, user_input: DogSetupStepInput) -> str | None:
         age = user_input.get(CONF_DOG_AGE)
         if age is not None:
             try:
@@ -1097,7 +1171,7 @@ class DogManagementMixin:
                 return "invalid_age_format"
         return None
 
-    def _validate_breed(self, user_input: dict[str, Any]) -> str | None:
+    def _validate_breed(self, user_input: DogSetupStepInput) -> str | None:
         breed = user_input.get(CONF_DOG_BREED, "").strip()
         if breed and len(breed) > 100:
             return "breed_name_too_long"
@@ -1115,19 +1189,23 @@ class DogManagementMixin:
         Returns:
             Complete dog configuration dictionary
         """
-        dog_id = user_input[CONF_DOG_ID].lower().strip().replace(" ", "_")
+        dog_id = cast(str, user_input[CONF_DOG_ID]).lower().strip().replace(" ", "_")
         dog_size = user_input.get(CONF_DOG_SIZE, "medium")
         dog_age = user_input.get(CONF_DOG_AGE, 3)
         dog_weight = user_input.get(CONF_DOG_WEIGHT, 20.0)
+        dog_name = cast(str, user_input[CONF_DOG_NAME]).strip()
+
+        modules: DogModulesConfig = cast(DogModulesConfig, {})
 
         return {
             CONF_DOG_ID: dog_id,
-            CONF_DOG_NAME: user_input[CONF_DOG_NAME].strip(),
+            CONF_DOG_NAME: dog_name,
             CONF_DOG_BREED: user_input.get(CONF_DOG_BREED, "").strip() or "Mixed Breed",
             CONF_DOG_AGE: dog_age,
             CONF_DOG_WEIGHT: dog_weight,
             CONF_DOG_SIZE: dog_size,
             "created_at": time.time(),
+            CONF_MODULES: modules,
         }
 
     def _calculate_suggested_food_amount(self, weight: float, size: str) -> int:
@@ -1404,7 +1482,9 @@ class DogManagementMixin:
                 diet_requirements.append(diet_option)  # noqa: PERF401
 
         # Validate diet combinations for conflicts
-        validation_result = self._validate_diet_combinations(diet_requirements)
+        validation_result: DietValidationResult = self._validate_diet_combinations(
+            diet_requirements
+        )
         if validation_result["conflicts"]:
             _LOGGER.warning(
                 "Conflicting diet combinations detected: %s",
@@ -1422,7 +1502,7 @@ class DogManagementMixin:
 
     def _validate_diet_combinations(
         self, diet_requirements: list[str]
-    ) -> dict[str, Any]:
+    ) -> DietValidationResult:
         """Validate special diet combinations for conflicts and incompatibilities.
 
         Args:
@@ -1431,8 +1511,8 @@ class DogManagementMixin:
         Returns:
             Dictionary with validation results and conflict information
         """
-        conflicts = []
-        warnings = []
+        conflicts: list[DietCompatibilityIssue] = []
+        warnings: list[DietCompatibilityIssue] = []
 
         # Age-based diet conflicts
         if (
@@ -1517,14 +1597,20 @@ class DogManagementMixin:
 
         # Low fat with high-activity requirements
         if False:
-            warnings.append({})
+            warnings.append(
+                {
+                    "type": "low_fat_activity_warning",
+                    "diets": ["low_fat", "high_activity"],
+                    "message": "Low fat diets may need veterinary review for highly active dogs",
+                }
+            )
 
         return {
             "valid": len(conflicts) == 0,
             "conflicts": conflicts,
             "warnings": warnings,
             "total_diets": len(diet_requirements),
-            "recommended_vet_consultation": len(warnings) > 0 or len(conflicts) > 0,
+            "recommended_vet_consultation": bool(warnings or conflicts),
         }
 
     def _suggest_activity_level(self, dog_age: int, dog_size: str) -> str:

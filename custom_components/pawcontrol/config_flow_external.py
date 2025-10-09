@@ -27,7 +27,7 @@ from .const import (
     MODULE_VISITOR,
 )
 from .selector_shim import selector
-from .types import DogConfigData
+from .types import DogConfigData, DogModulesConfig, ExternalEntityConfig
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -38,8 +38,8 @@ if TYPE_CHECKING:
         """Type-checking protocol describing the config flow host."""
 
         _dogs: list[DogConfigData]
-        _enabled_modules: dict[str, bool]
-        _external_entities: dict[str, Any]
+        _enabled_modules: DogModulesConfig
+        _external_entities: ExternalEntityConfig
         hass: HomeAssistant
 
         async def async_step_final_setup(
@@ -91,8 +91,8 @@ class ExternalEntityConfigurationMixin:
     if TYPE_CHECKING:
         hass: HomeAssistant
         _dogs: list[DogConfigData]
-        _enabled_modules: dict[str, bool]
-        _external_entities: dict[str, Any]
+        _enabled_modules: DogModulesConfig
+        _external_entities: ExternalEntityConfig
 
         def _get_available_device_trackers(self) -> dict[str, str]: ...
 
@@ -256,7 +256,7 @@ class ExternalEntityConfigurationMixin:
         Raises:
             ValueError: If validation fails
         """
-        validated = {}
+        validated: ExternalEntityConfig = {}
 
         validated.update(self._validate_gps_source(user_input.get(CONF_GPS_SOURCE)))
         validated.update(self._validate_door_sensor(user_input.get(CONF_DOOR_SENSOR)))
@@ -266,7 +266,7 @@ class ExternalEntityConfigurationMixin:
 
         return validated
 
-    def _validate_gps_source(self, gps_source: str | None) -> dict[str, str]:
+    def _validate_gps_source(self, gps_source: str | None) -> ExternalEntityConfig:
         """Validate GPS source selection."""
         if not gps_source:
             return {}
@@ -280,7 +280,7 @@ class ExternalEntityConfigurationMixin:
             raise ValueError(f"GPS source entity {gps_source} is unavailable")
         return {CONF_GPS_SOURCE: gps_source}
 
-    def _validate_door_sensor(self, door_sensor: str | None) -> dict[str, str]:
+    def _validate_door_sensor(self, door_sensor: str | None) -> ExternalEntityConfig:
         """Validate door sensor selection."""
         if not door_sensor:
             return {}
@@ -289,7 +289,9 @@ class ExternalEntityConfigurationMixin:
             raise ValueError(f"Door sensor entity {door_sensor} not found")
         return {CONF_DOOR_SENSOR: door_sensor}
 
-    def _validate_notify_service(self, notify_service: str | None) -> dict[str, str]:
+    def _validate_notify_service(
+        self, notify_service: str | None
+    ) -> ExternalEntityConfig:
         """Validate notification service selection."""
         if not notify_service:
             return {}
