@@ -16,9 +16,17 @@ import traceback
 from collections.abc import Callable
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
-from .compat import HomeAssistantError
+if TYPE_CHECKING:
+    from homeassistant.exceptions import HomeAssistantError as HomeAssistantErrorType
+else:  # pragma: no cover - fallback when Home Assistant isn't installed
+    try:
+        from homeassistant.exceptions import (
+            HomeAssistantError as HomeAssistantErrorType,
+        )
+    except ModuleNotFoundError:
+        from .compat import HomeAssistantError as HomeAssistantErrorType
 
 try:
     from homeassistant.util import dt as dt_util
@@ -58,7 +66,7 @@ class ErrorCategory(Enum):
     SYSTEM = "system"  # System and resource errors
 
 
-class PawControlError(HomeAssistantError):
+class PawControlError(HomeAssistantErrorType):
     """Base exception for all Paw Control related errors with enhanced features.
 
     This base class provides structured error information, contextual data,

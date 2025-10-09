@@ -13,10 +13,10 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import Any, Protocol
 
 from homeassistant.const import STATE_HOME
 from homeassistant.core import HomeAssistant, State, callback
@@ -24,6 +24,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt as dt_util
 
+from .coordinator_support import CacheMonitorRegistrar
 from .utils import ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
@@ -105,7 +106,14 @@ class PersonEntityConfig:
     priority_persons: list[str] = field(default_factory=list)  # High priority persons
 
 
-class PersonEntityManager:
+class SupportsCoordinatorSnapshot(Protocol):
+    """Protocol describing the cache snapshot contract."""
+
+    def coordinator_snapshot(self) -> Mapping[str, Any]:
+        """Return a diagnostics payload for coordinator consumption."""
+
+
+class PersonEntityManager(SupportsCoordinatorSnapshot):
     """Manager for person entity discovery and notification targeting."""
 
     def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
@@ -124,6 +132,7 @@ class PersonEntityManager:
         self._state_listeners: list[Callable] = []
         self._discovery_task: asyncio.Task | None = None
         self._lock = asyncio.Lock()
+        self._cache_registrar: CacheMonitorRegistrar | None = None
 
         # Performance tracking
         self._last_discovery = dt_util.now()
@@ -190,6 +199,9 @@ class PersonEntityManager:
                 "Person entity manager initialized: %d persons discovered",
                 len(self._persons),
             )
+
+        if self._cache_registrar is not None:
+            self.register_cache_monitors(self._cache_registrar)
 
     async def _discover_person_entities(self) -> None:
         """Discover all person entities in Home Assistant."""
@@ -680,3 +692,51 @@ class PersonEntityManager:
         self._cache_timestamps.clear()
 
         _LOGGER.info("Person entity manager shutdown complete")
+
+    def get_diagnostics(self) -> dict[str, Any]:
+        """Return diagnostic metadata used by coordinator cache monitors."""
+
+        now = dt_util.now()
+        cache_entries: dict[str, Any] = {}
+        for key, timestamp in self._cache_timestamps.items():
+            cached_targets = list(self._notification_targets_cache.get(key, ()))
+            age_seconds: float | None = None
+            if isinstance(timestamp, datetime):
+                age_seconds = max((now - timestamp).total_seconds(), 0.0)
+            cache_entries[key] = {
+                "targets": cached_targets,
+                "age_seconds": age_seconds,
+                "stale": bool(
+                    age_seconds is not None and age_seconds > self._config.cache_ttl
+                ),
+            }
+
+        discovery_task_state: str
+        if self._discovery_task is None:
+            discovery_task_state = "not_started"
+        elif self._discovery_task.cancelled():
+            discovery_task_state = "cancelled"
+        elif self._discovery_task.done():
+            discovery_task_state = "completed"
+        else:
+            discovery_task_state = "running"
+
+        return {
+            "discovery_task": discovery_task_state,
+            "last_discovery": self._last_discovery.isoformat(),
+            "listener_count": len(self._state_listeners),
+            "cache_entries": cache_entries,
+        }
+
+    def coordinator_snapshot(self) -> dict[str, Any]:
+        """Return a coordinator-friendly snapshot of statistics and diagnostics."""
+
+        return {"stats": self.get_statistics(), "diagnostics": self.get_diagnostics()}
+
+    def register_cache_monitors(
+        self, registrar: CacheMonitorRegistrar, *, prefix: str = "person_entity"
+    ) -> None:
+        """Register the person targeting cache with the data manager registrar."""
+
+        self._cache_registrar = registrar
+        registrar.register_cache_monitor(f"{prefix}_targets", self)

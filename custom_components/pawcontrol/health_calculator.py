@@ -777,18 +777,27 @@ class HealthCalculator:
         now = dt_util.now()
         week_ago = now - timedelta(days=7)
 
+        midpoint_adjustment = timedelta(hours=12)
+
         for event in feeding_events:
             event_time = ensure_local_datetime(event.get("time"))
-            if event_time and event_time > week_ago:
-                date_key = event_time.date()
-                if date_key not in recent_days:
-                    recent_days[date_key] = {"calories": 0, "meals": 0}
+            if event_time is None or event_time <= week_ago:
+                continue
 
-                # Calculate calories from amount
-                amount = event.get("amount", 0)
-                calories = amount * food_calories_per_gram
-                recent_days[date_key]["calories"] += calories
-                recent_days[date_key]["meals"] += 1
+            delta = now - event_time
+            if delta < timedelta(0):
+                day_index = 0
+            else:
+                day_index = int((delta + midpoint_adjustment).total_seconds() // 86400)
+
+            bucket_date = (now - timedelta(days=day_index)).date()
+            if bucket_date not in recent_days:
+                recent_days[bucket_date] = {"calories": 0.0, "meals": 0}
+
+            amount = event.get("amount", 0)
+            calories = amount * food_calories_per_gram
+            recent_days[bucket_date]["calories"] += calories
+            recent_days[bucket_date]["meals"] += 1
 
         if not recent_days:
             return {

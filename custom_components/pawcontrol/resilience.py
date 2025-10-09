@@ -13,20 +13,30 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
 from enum import Enum
-from typing import ParamSpec, TypeVar
-
-try:
-    from homeassistant.core import HomeAssistant
-except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
-
-    class HomeAssistant:  # type: ignore[override]
-        """Minimal stand-in used during unit tests."""
-
-
 from importlib import import_module
+from typing import TYPE_CHECKING, Any, TypeVar
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+    from homeassistant.exceptions import HomeAssistantError as HomeAssistantErrorType
+else:  # pragma: no cover - runtime fallback when Home Assistant is absent
+    try:
+        from homeassistant.core import HomeAssistant
+    except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
+
+        class HomeAssistant:  # type: ignore[override]
+            """Minimal stand-in used during unit tests."""
+
+    try:
+        from homeassistant.exceptions import (
+            HomeAssistantError as HomeAssistantErrorType,
+        )
+    except ModuleNotFoundError:  # pragma: no cover - fallback to compat shim
+        from .compat import HomeAssistantError as HomeAssistantErrorType
+
 
 from .compat import HomeAssistantError
 
@@ -52,8 +62,9 @@ def _resolve_homeassistant_error() -> type[Exception]:
 _LOGGER = logging.getLogger(__name__)
 
 # Type variables for generic retry/circuit breaker
-P = ParamSpec("P")
 T = TypeVar("T")
+
+AsyncCallable = Callable[..., Awaitable[T]]
 
 
 class CircuitState(Enum):
@@ -130,9 +141,9 @@ class CircuitBreaker:
 
     async def call(
         self,
-        func: Callable[P, T],
-        *args: P.args,
-        **kwargs: P.kwargs,
+        func: AsyncCallable[T],
+        *args: Any,
+        **kwargs: Any,
     ) -> T:
         """Execute function with circuit breaker protection.
 
@@ -306,7 +317,7 @@ class RetryConfig:
     random_source: Callable[[], float] | None = None
 
 
-class RetryExhaustedError(HomeAssistantError):
+class RetryExhaustedError(HomeAssistantErrorType):
     """Raised when all retry attempts are exhausted."""
 
     def __init__(self, attempts: int, last_error: Exception) -> None:
@@ -321,11 +332,10 @@ class RetryExhaustedError(HomeAssistantError):
         self.last_error = last_error
 
 
-async def retry_with_backoff(
-    func: Callable[P, T],
-    *args: P.args,
-    config: RetryConfig | None = None,
-    **kwargs: P.kwargs,
+async def retry_with_backoff[T](
+    func: AsyncCallable[T],
+    *args: Any,
+    **kwargs: Any,
 ) -> T:
     """Retry function with exponential backoff.
 
@@ -341,7 +351,8 @@ async def retry_with_backoff(
     Raises:
         RetryExhaustedError: If all retry attempts fail
     """
-    retry_config = config or RetryConfig()
+    retry_config = kwargs.pop("config", None) or kwargs.pop("retry_config", None)
+    retry_config = retry_config or RetryConfig()
     if retry_config.max_attempts < 1:
         raise _resolve_homeassistant_error()("Retry requires at least one attempt")
     last_exception: Exception | None = None
@@ -447,11 +458,11 @@ class ResilienceManager:
 
     async def execute_with_resilience(
         self,
-        func: Callable[P, T],
-        *args: P.args,
+        func: AsyncCallable[T],
+        *args: Any,
         circuit_breaker_name: str | None = None,
         retry_config: RetryConfig | None = None,
-        **kwargs: P.kwargs,
+        **kwargs: Any,
     ) -> T:
         """Execute function with full resilience patterns.
 
@@ -474,10 +485,10 @@ class ResilienceManager:
         if circuit_breaker_name:
             breaker = await self.get_circuit_breaker(circuit_breaker_name)
 
-            async def wrapped_func(*inner_args: P.args, **inner_kwargs: P.kwargs) -> T:
+            async def wrapped_func(*inner_args: Any, **inner_kwargs: Any) -> T:
                 return await breaker.call(func, *inner_args, **inner_kwargs)
 
-            execution_func = wrapped_func
+            execution_func: AsyncCallable[T] = wrapped_func
         else:
             execution_func = func
 

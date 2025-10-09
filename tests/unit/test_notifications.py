@@ -13,6 +13,7 @@ from datetime import UTC, datetime, timedelta, timezone
 from unittest.mock import AsyncMock, Mock, call
 
 import pytest
+from custom_components.pawcontrol.coordinator_support import CacheMonitorRegistrar
 from custom_components.pawcontrol.notifications import (
     NotificationChannel,
     NotificationConfig,
@@ -21,6 +22,30 @@ from custom_components.pawcontrol.notifications import (
     NotificationType,
     PawControlNotificationManager,
 )
+
+
+class _RecorderRegistrar(CacheMonitorRegistrar):
+    """Capture cache monitor registrations for assertions."""
+
+    def __init__(self) -> None:
+        self.caches: dict[str, object] = {}
+
+    def register_cache_monitor(self, name: str, cache: object) -> None:
+        self.caches[name] = cache
+
+
+class _StubPersonManager:
+    """Expose register_cache_monitors compatible with the registrar protocol."""
+
+    def __init__(self) -> None:
+        self.registered_with: CacheMonitorRegistrar | None = None
+        self.prefix: str | None = None
+
+    def register_cache_monitors(
+        self, registrar: CacheMonitorRegistrar, *, prefix: str = "person_entity"
+    ) -> None:
+        self.registered_with = registrar
+        self.prefix = prefix
 
 
 @pytest.mark.unit
@@ -88,6 +113,25 @@ class TestNotificationManagerInitialization:
             PawControlNotificationManager(
                 mock_hass, "test_entry", session=closed_session
             )
+
+    async def test_register_cache_monitors_registers_person_cache(
+        self, mock_hass, mock_session
+    ) -> None:
+        """Cache registration should wire notification and person caches."""
+
+        manager = PawControlNotificationManager(
+            mock_hass, "test_entry", session=mock_session
+        )
+        stub_person = _StubPersonManager()
+        manager._person_manager = stub_person
+        registrar = _RecorderRegistrar()
+
+        manager.register_cache_monitors(registrar)
+
+        assert "notification_cache" in registrar.caches
+        assert registrar.caches["notification_cache"] is manager._cache
+        assert stub_person.registered_with is registrar
+        assert stub_person.prefix == "person_entity"
 
 
 @pytest.mark.unit

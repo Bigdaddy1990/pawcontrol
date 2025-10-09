@@ -30,7 +30,7 @@ from .const import (
     MODULE_GPS,
 )
 from .selector_shim import selector
-from .types import DogConfigData
+from .types import DashboardSetupConfig, DogConfigData, DogModulesConfig
 
 
 class DashboardFlowMixin:
@@ -38,8 +38,8 @@ class DashboardFlowMixin:
 
     if TYPE_CHECKING:
         _dogs: list[DogConfigData]
-        _enabled_modules: dict[str, bool]
-        _dashboard_config: dict[str, Any]
+        _enabled_modules: DogModulesConfig
+        _dashboard_config: DashboardSetupConfig
 
         async def async_step_configure_external_entities(
             self, user_input: dict[str, Any] | None = None
@@ -77,10 +77,10 @@ class DashboardFlowMixin:
 
         if user_input is not None:
             has_gps_enabled = self._enabled_modules.get(MODULE_GPS, False) or any(
-                cast(dict[str, bool], dog.get(CONF_MODULES, {})).get(MODULE_GPS, False)
+                cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(MODULE_GPS, False)
                 for dog in self._dogs
             )
-            self._dashboard_config = {
+            dashboard_config: DashboardSetupConfig = {
                 CONF_DASHBOARD_ENABLED: True,
                 CONF_DASHBOARD_AUTO_CREATE: user_input.get(
                     "auto_create_dashboard", DEFAULT_DASHBOARD_AUTO_CREATE
@@ -98,13 +98,14 @@ class DashboardFlowMixin:
                 "show_statistics": user_input.get("show_statistics", True),
                 "show_maps": user_input.get("show_maps", True),
             }
+            self._dashboard_config = dashboard_config
 
             if bool(has_gps_enabled):
                 return await self.async_step_configure_external_entities()
             return await self.async_step_final_setup()
 
         has_gps_enabled = self._enabled_modules.get(MODULE_GPS, False) or any(
-            cast(dict[str, bool], dog.get(CONF_MODULES, {})).get(MODULE_GPS, False)
+            cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(MODULE_GPS, False)
             for dog in self._dogs
         )
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Collection, Mapping, Sequence
+from datetime import datetime
 from typing import Any, Final
 
 from homeassistant.components.script import DOMAIN as SCRIPT_DOMAIN
@@ -28,13 +29,121 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_component import EntityComponent
 from homeassistant.helpers.typing import ConfigType
+from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
 from .compat import ConfigEntry, HomeAssistantError
-from .const import CONF_DOG_ID, CONF_DOG_NAME, CONF_MODULES, MODULE_NOTIFICATIONS
-from .types import DogConfigData
+from .const import (
+    CACHE_TIMESTAMP_FUTURE_THRESHOLD,
+    CACHE_TIMESTAMP_STALE_THRESHOLD,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_MODULES,
+    MODULE_NOTIFICATIONS,
+)
+from .coordinator_support import CacheMonitorRegistrar
+from .types import (
+    CacheDiagnosticsMetadata,
+    CacheDiagnosticsSnapshot,
+    DogConfigData,
+)
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _serialize_datetime(value: datetime | None) -> str | None:
+    """Return an ISO formatted timestamp for diagnostics payloads."""
+
+    if value is None:
+        return None
+    return dt_util.as_utc(value).isoformat()
+
+
+def _classify_timestamp(value: datetime | None) -> tuple[str | None, int | None]:
+    """Classify ``value`` against the cache timestamp thresholds."""
+
+    if value is None:
+        return None, None
+
+    delta = dt_util.utcnow() - dt_util.as_utc(value)
+    age_seconds = int(delta.total_seconds())
+
+    if delta < -CACHE_TIMESTAMP_FUTURE_THRESHOLD:
+        return "future", age_seconds
+    if delta > CACHE_TIMESTAMP_STALE_THRESHOLD:
+        return "stale", age_seconds
+    return None, age_seconds
+
+
+class _ScriptManagerCacheMonitor:
+    """Expose script manager state for diagnostics snapshots."""
+
+    __slots__ = ("_manager",)
+
+    def __init__(self, manager: PawControlScriptManager) -> None:
+        self._manager = manager
+
+    def _build_payload(
+        self,
+    ) -> tuple[dict[str, Any], dict[str, Any], CacheDiagnosticsMetadata]:
+        manager = self._manager
+        created_entities = getattr(manager, "_created_entities", set())
+        dog_scripts = getattr(manager, "_dog_scripts", {})
+        last_generation = getattr(manager, "_last_generation", None)
+
+        created_list = sorted(
+            entity for entity in created_entities if isinstance(entity, str)
+        )
+        per_dog: dict[str, dict[str, Any]] = {}
+        for dog_id, scripts in dog_scripts.items():
+            if not isinstance(dog_id, str):
+                continue
+            script_list = [entity for entity in scripts if isinstance(entity, str)]
+            per_dog[dog_id] = {
+                "count": len(script_list),
+                "scripts": script_list,
+            }
+
+        stats: dict[str, Any] = {
+            "scripts": len(created_list),
+            "dogs": len(per_dog),
+        }
+
+        timestamp_issue, age_seconds = _classify_timestamp(last_generation)
+        if age_seconds is not None:
+            stats["last_generated_age_seconds"] = age_seconds
+
+        snapshot: dict[str, Any] = {
+            "created_entities": created_list,
+            "per_dog": per_dog,
+            "last_generated": _serialize_datetime(last_generation),
+        }
+
+        diagnostics: CacheDiagnosticsMetadata = {
+            "per_dog": per_dog,
+            "created_entities": created_list,
+            "last_generated": _serialize_datetime(last_generation),
+        }
+
+        if age_seconds is not None:
+            diagnostics["manager_last_generated_age_seconds"] = age_seconds
+
+        if timestamp_issue is not None:
+            diagnostics["timestamp_anomalies"] = {"manager": timestamp_issue}
+
+        return stats, snapshot, diagnostics
+
+    def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
+        stats, snapshot, diagnostics = self._build_payload()
+        return {"stats": stats, "snapshot": snapshot, "diagnostics": diagnostics}
+
+    def get_stats(self) -> dict[str, Any]:
+        stats, _snapshot, _diagnostics = self._build_payload()
+        return stats
+
+    def get_diagnostics(self) -> CacheDiagnosticsMetadata:
+        _stats, _snapshot, diagnostics = self._build_payload()
+        return diagnostics
 
 _SCRIPT_ENTITY_PREFIX: Final[str] = f"{SCRIPT_DOMAIN}."
 
@@ -49,6 +158,7 @@ class PawControlScriptManager:
         self._entry = entry
         self._created_entities: set[str] = set()
         self._dog_scripts: dict[str, list[str]] = {}
+        self._last_generation: datetime | None = None
 
     async def async_initialize(self) -> None:
         """Reset internal tracking structures prior to script generation."""
@@ -56,6 +166,17 @@ class PawControlScriptManager:
         self._created_entities.clear()
         self._dog_scripts.clear()
         _LOGGER.debug("Script manager initialised for entry %s", self._entry.entry_id)
+
+    def register_cache_monitors(
+        self, registrar: CacheMonitorRegistrar, *, prefix: str = "script_manager"
+    ) -> None:
+        """Expose script diagnostics through the shared cache monitor registry."""
+
+        if registrar is None:
+            raise ValueError("registrar is required")
+
+        _LOGGER.debug("Registering script manager cache monitor with prefix %s", prefix)
+        registrar.register_cache_monitor(f"{prefix}_cache", _ScriptManagerCacheMonitor(self))
 
     def _get_component(
         self, *, require_loaded: bool = True
@@ -164,6 +285,8 @@ class PawControlScriptManager:
         for removed_dog in removed_dogs:
             for entity_id in self._dog_scripts.pop(removed_dog, []):
                 await self._async_remove_script_entity(entity_id)
+
+        self._last_generation = dt_util.utcnow()
 
         return created
 

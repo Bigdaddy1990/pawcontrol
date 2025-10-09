@@ -9,7 +9,9 @@ The current focus is reaching the Home Assistant Bronze quality baseline.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from collections.abc import Mapping, Sequence
+from datetime import datetime, timedelta
+from typing import Any, cast
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
@@ -33,7 +35,12 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .diagnostics_redaction import compile_redaction_patterns, redact_sensitive_data
 from .runtime_data import get_runtime_data
-from .types import PawControlConfigEntry, PawControlRuntimeData
+from .types import (
+    CacheDiagnosticsMap,
+    CacheDiagnosticsSnapshot,
+    PawControlConfigEntry,
+    PawControlRuntimeData,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -122,6 +129,8 @@ async def async_get_config_entry_diagnostics(
     coordinator = runtime_data.coordinator if runtime_data else None
 
     # Base diagnostics structure
+    cache_snapshots = _collect_cache_diagnostics(runtime_data)
+
     diagnostics = {
         "config_entry": await _get_config_entry_diagnostics(entry),
         "system_info": await _get_system_diagnostics(hass),
@@ -131,10 +140,13 @@ async def async_get_config_entry_diagnostics(
         "devices": await _get_devices_diagnostics(hass, entry),
         "dogs_summary": await _get_dogs_summary(entry, coordinator),
         "performance_metrics": await _get_performance_metrics(coordinator),
-        "data_statistics": await _get_data_statistics(runtime_data),
+        "data_statistics": await _get_data_statistics(runtime_data, cache_snapshots),
         "error_logs": await _get_recent_errors(entry.entry_id),
         "debug_info": await _get_debug_information(hass, entry),
     }
+
+    if cache_snapshots is not None:
+        diagnostics["cache_diagnostics"] = cache_snapshots
 
     # Redact sensitive information
     redacted_diagnostics = _redact_sensitive_data(diagnostics)
@@ -218,6 +230,116 @@ async def _get_system_diagnostics(hass: HomeAssistant) -> dict[str, Any]:
         "current_time": dt_util.utcnow().isoformat(),
         "uptime_seconds": uptime_seconds,
     }
+
+
+def _collect_cache_diagnostics(
+    runtime_data: PawControlRuntimeData | None,
+) -> CacheDiagnosticsMap | None:
+    """Return cache diagnostics captured by the data manager when available."""
+
+    if runtime_data is None:
+        return None
+
+    data_manager = getattr(runtime_data, "data_manager", None)
+    if data_manager is None:
+        return None
+
+    snapshot_method = getattr(data_manager, "cache_snapshots", None)
+    if not callable(snapshot_method):
+        return None
+
+    try:
+        raw_snapshots = snapshot_method()
+    except Exception as err:  # pragma: no cover - defensive guard
+        _LOGGER.debug("Unable to collect cache diagnostics: %s", err)
+        return None
+
+    if isinstance(raw_snapshots, Mapping):
+        snapshots = dict(raw_snapshots)
+    elif isinstance(raw_snapshots, dict):
+        snapshots = raw_snapshots
+    else:
+        _LOGGER.debug(
+            "Unexpected cache diagnostics payload type: %s",
+            type(raw_snapshots).__name__,
+        )
+        return None
+
+    normalised: CacheDiagnosticsMap = {}
+    for name, payload in snapshots.items():
+        if not isinstance(name, str) or not name:
+            _LOGGER.debug(
+                "Skipping cache diagnostics entry with invalid name: %s", name
+            )
+            continue
+
+        normalised[name] = _normalise_cache_snapshot(payload)
+
+    return normalised or None
+
+
+def _normalise_cache_snapshot(payload: Any) -> CacheDiagnosticsSnapshot:
+    """Coerce arbitrary cache payloads into diagnostics-friendly snapshots."""
+
+    if isinstance(payload, Mapping):
+        mapping_payload = dict(payload)
+    else:
+        return cast(
+            CacheDiagnosticsSnapshot,
+            {
+                "error": f"Unsupported diagnostics payload: {type(payload).__name__}",
+                "snapshot": {"value": _normalise_json(payload)},
+            },
+        )
+
+    snapshot: CacheDiagnosticsSnapshot = {}
+
+    stats = mapping_payload.get("stats")
+    if stats is not None:
+        snapshot["stats"] = cast(dict[str, Any], _normalise_json(stats))
+
+    diagnostics = mapping_payload.get("diagnostics")
+    if diagnostics is not None:
+        snapshot["diagnostics"] = cast(
+            dict[str, Any],
+            _normalise_json(diagnostics),
+        )
+
+    details = mapping_payload.get("snapshot")
+    if details is not None:
+        snapshot["snapshot"] = cast(dict[str, Any], _normalise_json(details))
+
+    error = mapping_payload.get("error")
+    if isinstance(error, str):
+        snapshot["error"] = error
+
+    if not snapshot:
+        snapshot["snapshot"] = {"value": _normalise_json(mapping_payload)}
+
+    return snapshot
+
+
+def _normalise_json(value: Any) -> Any:
+    """Normalise diagnostics payloads into JSON-serialisable data."""
+
+    if isinstance(value, Mapping):
+        return {str(key): _normalise_json(item) for key, item in value.items()}
+
+    if isinstance(value, list | tuple | set | frozenset | Sequence) and not isinstance(
+        value, str | bytes | bytearray
+    ):
+        return [_normalise_json(item) for item in value]
+
+    if isinstance(value, datetime):
+        return value.isoformat()
+
+    if isinstance(value, int | float | str | bool) or value is None:
+        return value
+
+    if isinstance(value, timedelta):
+        return value.total_seconds()
+
+    return repr(value)
 
 
 async def _get_integration_status(
@@ -509,6 +631,7 @@ async def _get_performance_metrics(
 
 async def _get_data_statistics(
     runtime_data: PawControlRuntimeData | None,
+    cache_snapshots: CacheDiagnosticsMap | None,
 ) -> dict[str, Any]:
     """Get data storage statistics.
 
@@ -518,22 +641,41 @@ async def _get_data_statistics(
     Returns:
         Data statistics
     """
-    if not runtime_data:
+    if runtime_data is None:
         return {"available": False}
 
-    data_manager = runtime_data.data_manager if runtime_data else None
-
-    if not data_manager:
+    data_manager = getattr(runtime_data, "data_manager", None)
+    if data_manager is None:
         return {"available": False}
 
-    # This would collect actual storage statistics in a real implementation
+    metrics_payload: dict[str, Any] | None = None
+    metrics_method = getattr(data_manager, "get_metrics", None)
+    if callable(metrics_method):
+        try:
+            metrics_payload = metrics_method()
+        except Exception as err:  # pragma: no cover - defensive guard
+            _LOGGER.debug("Failed to gather data manager metrics: %s", err)
+
+    if isinstance(metrics_payload, Mapping):
+        metrics = {
+            str(key): _normalise_json(value) for key, value in metrics_payload.items()
+        }
+    else:
+        metrics = {}
+
+    if cache_snapshots is None:
+        cache_payload = _collect_cache_diagnostics(runtime_data)
+    else:
+        cache_payload = cache_snapshots
+
+    if cache_payload is not None:
+        metrics["cache_diagnostics"] = cache_payload
+
+    metrics.setdefault("dogs", len(getattr(runtime_data, "dogs", [])))
+
     return {
         "data_manager_available": True,
-        "storage_efficient": True,
-        "cleanup_active": True,
-        "export_supported": True,
-        "backup_supported": True,
-        "retention_policy_active": True,
+        "metrics": metrics,
     }
 
 

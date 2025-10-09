@@ -75,6 +75,68 @@ class MockCoordinator:
         return dog_data.get(module, {})
 
 
+@pytest.fixture(name="mock_coordinator")
+def mock_coordinator_fixture() -> MockCoordinator:
+    """Provide a synchronous coordinator stub for this module's tests."""
+
+    return MockCoordinator()
+
+
+@pytest.fixture
+def test_entity(mock_coordinator: MockCoordinator) -> TestEntityBase:
+    """Create test entity instance."""
+
+    return TestEntityBase(
+        coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+    )
+
+
+@pytest.fixture
+def sensor_entity(mock_coordinator: MockCoordinator) -> OptimizedSensorBase:
+    """Create test sensor entity."""
+
+    return OptimizedSensorBase(
+        coordinator=mock_coordinator,
+        dog_id="test_dog",
+        dog_name="Test Dog",
+        sensor_type="test_sensor",
+        device_class="temperature",
+        state_class="measurement",
+        unit_of_measurement="°C",
+    )
+
+
+@pytest.fixture
+def binary_sensor_entity(
+    mock_coordinator: MockCoordinator,
+) -> OptimizedBinarySensorBase:
+    """Create test binary sensor entity."""
+
+    return OptimizedBinarySensorBase(
+        coordinator=mock_coordinator,
+        dog_id="test_dog",
+        dog_name="Test Dog",
+        sensor_type="test_binary_sensor",
+        device_class="motion",
+        icon_on="mdi:motion-sensor",
+        icon_off="mdi:motion-sensor-off",
+    )
+
+
+@pytest.fixture
+def switch_entity(mock_coordinator: MockCoordinator) -> OptimizedSwitchBase:
+    """Create test switch entity."""
+
+    return OptimizedSwitchBase(
+        coordinator=mock_coordinator,
+        dog_id="test_dog",
+        dog_name="Test Dog",
+        switch_type="test_switch",
+        device_class="switch",
+        initial_state=False,
+    )
+
+
 class TestEntityBase(OptimizedEntityBase):
     """Test implementation of OptimizedEntityBase."""
 
@@ -186,18 +248,6 @@ class TestPerformanceTracker:
 
 class TestOptimizedEntityBase:
     """Test suite for OptimizedEntityBase class."""
-
-    @pytest.fixture
-    def mock_coordinator(self) -> MockCoordinator:
-        """Create mock coordinator."""
-        return MockCoordinator()
-
-    @pytest.fixture
-    def test_entity(self, mock_coordinator) -> TestEntityBase:
-        """Create test entity instance."""
-        return TestEntityBase(
-            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
-        )
 
     def test_entity_initialization(self, test_entity: TestEntityBase) -> None:
         """Test entity initialization."""
@@ -418,19 +468,6 @@ class TestOptimizedEntityBase:
 class TestOptimizedSensorBase:
     """Test suite for OptimizedSensorBase class."""
 
-    @pytest.fixture
-    def sensor_entity(self, mock_coordinator: MockCoordinator) -> OptimizedSensorBase:
-        """Create test sensor entity."""
-        return OptimizedSensorBase(
-            coordinator=mock_coordinator,
-            dog_id="test_dog",
-            dog_name="Test Dog",
-            sensor_type="test_sensor",
-            device_class="temperature",
-            state_class="measurement",
-            unit_of_measurement="°C",
-        )
-
     def test_sensor_initialization(self, sensor_entity: OptimizedSensorBase) -> None:
         """Test sensor entity initialization."""
         assert sensor_entity._entity_type == "sensor_test_sensor"
@@ -455,21 +492,6 @@ class TestOptimizedSensorBase:
 
 class TestOptimizedBinarySensorBase:
     """Test suite for OptimizedBinarySensorBase class."""
-
-    @pytest.fixture
-    def binary_sensor_entity(
-        self, mock_coordinator: MockCoordinator
-    ) -> OptimizedBinarySensorBase:
-        """Create test binary sensor entity."""
-        return OptimizedBinarySensorBase(
-            coordinator=mock_coordinator,
-            dog_id="test_dog",
-            dog_name="Test Dog",
-            sensor_type="test_binary_sensor",
-            device_class="motion",
-            icon_on="mdi:motion-sensor",
-            icon_off="mdi:motion-sensor-off",
-        )
 
     def test_binary_sensor_initialization(
         self, binary_sensor_entity: OptimizedBinarySensorBase
@@ -507,18 +529,6 @@ class TestOptimizedBinarySensorBase:
 
 class TestOptimizedSwitchBase:
     """Test suite for OptimizedSwitchBase class."""
-
-    @pytest.fixture
-    def switch_entity(self, mock_coordinator: MockCoordinator) -> OptimizedSwitchBase:
-        """Create test switch entity."""
-        return OptimizedSwitchBase(
-            coordinator=mock_coordinator,
-            dog_id="test_dog",
-            dog_name="Test Dog",
-            switch_type="test_switch",
-            device_class="switch",
-            initial_state=False,
-        )
 
     def test_switch_initialization(self, switch_entity: OptimizedSwitchBase) -> None:
         """Test switch initialization."""
@@ -718,11 +728,6 @@ class TestOptimizedEntityBatching:
 
 class TestPerformanceOptimizations:
     """Test suite for performance optimizations and memory management."""
-
-    @pytest.fixture
-    def mock_coordinator(self) -> MockCoordinator:
-        """Create mock coordinator for performance tests."""
-        return MockCoordinator()
 
     def test_cache_ttl_behavior(self, mock_coordinator) -> None:
         """Test cache TTL behavior with time manipulation."""

@@ -15,21 +15,43 @@ import json
 import logging
 import sys
 from collections import deque
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from itertools import islice
 from pathlib import Path
 from time import perf_counter
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any, Final, cast
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
 from . import compat
-from .const import DOMAIN
-from .types import DailyStats, FeedingData, GPSLocation, HealthData, WalkData
+from .const import (
+    CACHE_TIMESTAMP_FUTURE_THRESHOLD,
+    CACHE_TIMESTAMP_STALE_THRESHOLD,
+    DOMAIN,
+    MODULE_FEEDING,
+    MODULE_GARDEN,
+    MODULE_GROOMING,
+    MODULE_HEALTH,
+    MODULE_MEDICATION,
+    MODULE_WALK,
+)
+from .coordinator_support import CacheMonitorTarget, CoordinatorMetrics
+from .types import (
+    CacheDiagnosticsMap,
+    CacheDiagnosticsMetadata,
+    CacheDiagnosticsSnapshot,
+    CacheRepairAggregate,
+    CacheRepairIssue,
+    DailyStats,
+    FeedingData,
+    GPSLocation,
+    HealthData,
+    WalkData,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,11 +62,17 @@ _HOMEASSISTANT_ERROR_PROXY_CACHE: dict[
     tuple[type[Exception], ...], type[Exception]
 ] = {}
 
+_MODULE_HISTORY_ATTRS: Final[dict[str, tuple[str, str]]] = {
+    MODULE_FEEDING: ("feeding_history", "timestamp"),
+    MODULE_WALK: ("walk_history", "end_time"),
+    MODULE_HEALTH: ("health_history", "timestamp"),
+    MODULE_MEDICATION: ("medication_history", "administration_time"),
+    MODULE_GARDEN: ("poop_history", "timestamp"),
+    MODULE_GROOMING: ("grooming_sessions", "started_at"),
+}
+
 if __name__ not in sys.modules and "pawcontrol_data_manager" in sys.modules:
     sys.modules[__name__] = sys.modules["pawcontrol_data_manager"]
-
-if TYPE_CHECKING:
-    from .coordinator_support import CoordinatorMetrics
 
 
 class AdaptiveCache:
@@ -59,6 +87,14 @@ class AdaptiveCache:
         self._lock = asyncio.Lock()
         self._hits = 0
         self._misses = 0
+        self._diagnostics: CacheDiagnosticsMetadata = {
+            "cleanup_invocations": 0,
+            "expired_entries": 0,
+            "expired_via_override": 0,
+            "last_cleanup": None,
+            "last_override_ttl": None,
+            "last_expired_count": 0,
+        }
 
     async def get(self, key: str) -> tuple[Any | None, bool]:
         """Return cached value for ``key`` and whether it was a cache hit."""
@@ -76,6 +112,14 @@ class AdaptiveCache:
             if expiry is not None and now > expiry:
                 self._data.pop(key, None)
                 self._metadata.pop(key, None)
+                self._diagnostics["expired_entries"] = (
+                    int(self._diagnostics.get("expired_entries", 0)) + 1
+                )
+                if bool(entry.get("override_applied")):
+                    self._diagnostics["expired_via_override"] = (
+                        int(self._diagnostics.get("expired_via_override", 0)) + 1
+                    )
+                self._diagnostics["last_expired_count"] = 1
                 self._misses += 1
                 return None, False
 
@@ -94,22 +138,74 @@ class AdaptiveCache:
                 "expiry": expiry,
                 "created_at": now,
                 "ttl": ttl,
+                "override_applied": False,
             }
 
-    async def cleanup_expired(self) -> int:
+    async def cleanup_expired(self, ttl_seconds: int | None = None) -> int:
         """Remove expired cache entries and return the number purged."""
 
         async with self._lock:
             now = _utcnow()
+            override_ttl: int | None
+            if ttl_seconds is None:
+                override_ttl = None
+            else:
+                override_ttl = int(ttl_seconds)
+                if override_ttl < 0:
+                    override_ttl = 0
+
             expired: list[str] = []
+            expired_with_override = 0
             for key, meta in list(self._metadata.items()):
                 meta = self._normalize_entry_locked(key, meta, now)
-                expiry = meta.get("expiry")
-                if expiry is not None and now > expiry:
+                created_at = meta.get("created_at")
+                if not isinstance(created_at, datetime):
+                    created_at = now
+
+                stored_ttl = int(meta.get("ttl", self._default_ttl))
+                effective_ttl = stored_ttl
+                override_applied = False
+
+                if override_ttl is not None:
+                    if override_ttl <= 0:
+                        effective_ttl = 0
+                    elif stored_ttl <= 0:
+                        effective_ttl = override_ttl
+                    else:
+                        effective_ttl = min(stored_ttl, override_ttl)
+                    override_applied = effective_ttl != stored_ttl
+
+                expiry: datetime | None
+                if effective_ttl <= 0:
+                    expiry = None
+                else:
+                    expiry = created_at + timedelta(seconds=effective_ttl)
+
+                meta["expiry"] = expiry
+                meta["override_applied"] = override_applied
+                self._metadata[key] = meta
+
+                if expiry is not None and now >= expiry:
                     expired.append(key)
+                    if override_applied:
+                        expired_with_override += 1
+
             for key in expired:
                 self._data.pop(key, None)
                 self._metadata.pop(key, None)
+
+            self._diagnostics["cleanup_invocations"] += 1
+            self._diagnostics["last_cleanup"] = now
+            self._diagnostics["last_override_ttl"] = override_ttl
+            self._diagnostics["last_expired_count"] = len(expired)
+            self._diagnostics["expired_entries"] = int(
+                self._diagnostics.get("expired_entries", 0)
+            ) + len(expired)
+            self._diagnostics["expired_via_override"] = (
+                int(self._diagnostics.get("expired_via_override", 0))
+                + expired_with_override
+            )
+
             return len(expired)
 
     def get_stats(self) -> dict[str, Any]:
@@ -123,6 +219,28 @@ class AdaptiveCache:
             "misses": self._misses,
             "hit_rate": round(hit_rate, 2),
             "memory_mb": 0.0,
+        }
+
+    def get_diagnostics(self) -> CacheDiagnosticsMetadata:
+        """Return cleanup metrics to surface override activity in diagnostics."""
+
+        snapshot = cast(CacheDiagnosticsMetadata, dict(self._diagnostics))
+        last_cleanup = snapshot.get("last_cleanup")
+        snapshot["last_cleanup"] = (
+            last_cleanup.isoformat() if isinstance(last_cleanup, datetime) else None
+        )
+        snapshot["active_override_entries"] = sum(
+            1 for meta in self._metadata.values() if bool(meta.get("override_applied"))
+        )
+        snapshot["tracked_entries"] = len(self._metadata)
+        return snapshot
+
+    def coordinator_snapshot(self) -> dict[str, Any]:
+        """Return a combined statistics/diagnostics payload for coordinators."""
+
+        return {
+            "stats": self.get_stats(),
+            "diagnostics": self.get_diagnostics(),
         }
 
     def _normalize_entry_locked(
@@ -144,6 +262,7 @@ class AdaptiveCache:
 
         entry["created_at"] = created_at
         entry["ttl"] = ttl
+        entry["override_applied"] = bool(entry.get("override_applied", False))
 
         if ttl <= 0:
             entry["expiry"] = None
@@ -155,6 +274,292 @@ class AdaptiveCache:
 
         self._metadata[key] = entry
         return entry
+
+
+class _EntityBudgetMonitor:
+    """Expose entity budget tracker internals to the data manager monitor."""
+
+    __slots__ = ("_tracker",)
+
+    def __init__(self, tracker: Any) -> None:
+        self._tracker = tracker
+
+    def _build_payload(self) -> tuple[dict[str, Any], dict[str, Any]]:
+        tracker = self._tracker
+        try:
+            raw_snapshots = tracker.snapshots()
+        except Exception as err:  # pragma: no cover - diagnostics guard
+            snapshots: Iterable[Any] = ()
+            summary_payload: Mapping[str, Any] | dict[str, Any] = {"error": str(err)}
+        else:
+            snapshots = (
+                raw_snapshots
+                if isinstance(raw_snapshots, Iterable)
+                else (raw_snapshots,)
+            )
+            try:
+                summary = tracker.summary()
+            except Exception as err:  # pragma: no cover - defensive guard
+                summary_payload = {"error": str(err)}
+            else:
+                summary_payload = (
+                    dict(summary)
+                    if isinstance(summary, Mapping)
+                    else {"value": summary}
+                )
+
+        serialised: list[dict[str, Any]] = []
+        for snapshot in snapshots:
+            recorded_at = getattr(snapshot, "recorded_at", None)
+            serialised.append(
+                {
+                    "dog_id": getattr(snapshot, "dog_id", ""),
+                    "profile": getattr(snapshot, "profile", ""),
+                    "capacity": getattr(snapshot, "capacity", 0),
+                    "base_allocation": getattr(snapshot, "base_allocation", 0),
+                    "dynamic_allocation": getattr(snapshot, "dynamic_allocation", 0),
+                    "requested_entities": tuple(
+                        getattr(snapshot, "requested_entities", ())
+                    ),
+                    "denied_requests": tuple(getattr(snapshot, "denied_requests", ())),
+                    "recorded_at": (
+                        recorded_at.isoformat()
+                        if isinstance(recorded_at, datetime)
+                        else None
+                    ),
+                }
+            )
+
+        try:
+            saturation = float(tracker.saturation())
+        except Exception:  # pragma: no cover - defensive fallback
+            saturation = 0.0
+
+        stats = {
+            "tracked_dogs": len(serialised),
+            "saturation_percent": round(max(0.0, min(saturation, 1.0)) * 100.0, 2),
+        }
+
+        diagnostics = {
+            "summary": dict(summary_payload),
+            "snapshots": serialised,
+        }
+        return stats, diagnostics
+
+    def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
+        stats, diagnostics = self._build_payload()
+        return {"stats": stats, "diagnostics": diagnostics}
+
+    def get_stats(self) -> dict[str, Any]:
+        stats, _diagnostics = self._build_payload()
+        return stats
+
+    def get_diagnostics(self) -> CacheDiagnosticsMetadata:
+        _stats, diagnostics = self._build_payload()
+        return cast(CacheDiagnosticsMetadata, diagnostics)
+
+
+class _CoordinatorModuleCacheMonitor:
+    """Wrap coordinator module caches for diagnostics consumption."""
+
+    __slots__ = ("_modules",)
+
+    def __init__(self, modules: Any) -> None:
+        self._modules = modules
+
+    @staticmethod
+    def _metrics_to_dict(metrics: Any) -> dict[str, Any]:
+        entries = int(getattr(metrics, "entries", 0))
+        hits = int(getattr(metrics, "hits", 0))
+        misses = int(getattr(metrics, "misses", 0))
+        hit_rate = getattr(metrics, "hit_rate", None)
+        if hit_rate is None:
+            total = hits + misses
+            hit_rate = (hits / total * 100.0) if total else 0.0
+        return {
+            "entries": entries,
+            "hits": hits,
+            "misses": misses,
+            "hit_rate": round(float(hit_rate), 2),
+        }
+
+    def _aggregate_metrics(self) -> tuple[dict[str, Any], list[str]]:
+        errors: list[str] = []
+        try:
+            metrics = self._modules.cache_metrics()
+        except Exception as err:  # pragma: no cover - diagnostics guard
+            errors.append(str(err))
+            metrics = None
+        return self._metrics_to_dict(metrics), errors
+
+    def _per_module_metrics(self) -> dict[str, Any]:
+        payload: dict[str, Any] = {}
+        for name in ("feeding", "walk", "geofencing", "health", "weather", "garden"):
+            adapter = getattr(self._modules, name, None)
+            if adapter is None:
+                continue
+            metrics_fn = getattr(adapter, "cache_metrics", None)
+            if not callable(metrics_fn):
+                continue
+            try:
+                adapter_metrics = metrics_fn()
+            except Exception as err:  # pragma: no cover - defensive guard
+                payload[name] = {"error": str(err)}
+                continue
+            payload[name] = self._metrics_to_dict(adapter_metrics)
+        return payload
+
+    def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
+        stats, errors = self._aggregate_metrics()
+        diagnostics: dict[str, Any] = {"per_module": self._per_module_metrics()}
+        if errors:
+            diagnostics["errors"] = errors
+        return {"stats": stats, "diagnostics": diagnostics}
+
+    def get_stats(self) -> dict[str, Any]:
+        stats, _errors = self._aggregate_metrics()
+        return stats
+
+    def get_diagnostics(self) -> CacheDiagnosticsMetadata:
+        diagnostics: dict[str, Any] = {"per_module": self._per_module_metrics()}
+        _, errors = self._aggregate_metrics()
+        if errors:
+            diagnostics["errors"] = errors
+        return cast(CacheDiagnosticsMetadata, diagnostics)
+
+
+def _estimate_namespace_entries(payload: Any) -> int:
+    """Return a best-effort entry count for namespace payloads."""
+
+    if isinstance(payload, Mapping):
+        total = 0
+        for value in payload.values():
+            total += _estimate_namespace_entries(value)
+        return total or len(payload)
+
+    if isinstance(payload, Sequence) and not isinstance(payload, str | bytes | bytearray):
+        return len(payload)
+
+    return 1 if payload not in (None, "", (), [], {}) else 0
+
+
+def _find_namespace_timestamp(payload: Any) -> str | None:
+    """Return the first ISO timestamp discovered in ``payload``."""
+
+    if isinstance(payload, Mapping):
+        for key in ("updated_at", "timestamp", "generated_at", "recorded_at"):
+            candidate = payload.get(key)
+            if isinstance(candidate, str):
+                return candidate
+        for value in payload.values():
+            found = _find_namespace_timestamp(value)
+            if found is not None:
+                return found
+    elif isinstance(payload, Sequence) and not isinstance(
+        payload, str | bytes | bytearray
+    ):
+        for item in payload:
+            found = _find_namespace_timestamp(item)
+            if found is not None:
+                return found
+    return None
+
+
+def _namespace_has_timestamp_field(payload: Any) -> bool:
+    """Return ``True`` if ``payload`` exposes a timestamp-like field."""
+
+    if isinstance(payload, Mapping):
+        for key in ("updated_at", "timestamp", "generated_at", "recorded_at"):
+            if key in payload:
+                return True
+        return any(_namespace_has_timestamp_field(value) for value in payload.values())
+    if isinstance(payload, Sequence) and not isinstance(payload, str | bytes | bytearray):
+        return any(_namespace_has_timestamp_field(item) for item in payload)
+    return False
+
+
+class _StorageNamespaceCacheMonitor:
+    """Expose persisted namespace state for coordinator diagnostics."""
+
+    __slots__ = ("_label", "_manager", "_namespace")
+
+    def __init__(self, manager: PawControlDataManager, namespace: str, label: str) -> None:
+        self._manager = manager
+        self._namespace = namespace
+        self._label = label
+
+    def _build_payload(self) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+        state = self._manager._namespace_state.get(self._namespace, {})
+        per_dog: dict[str, dict[str, Any]] = {}
+        timestamp_anomalies: dict[str, str] = {}
+        total_entries = 0
+
+        for key, value in state.items():
+            dog_id = str(key)
+            entry_count = _estimate_namespace_entries(value)
+            total_entries += entry_count
+
+            summary: dict[str, Any] = {
+                "entries": entry_count,
+                "payload_type": type(value).__name__,
+            }
+
+            timestamp = _find_namespace_timestamp(value)
+            if timestamp is not None:
+                summary["timestamp"] = timestamp
+                parsed = dt_util.parse_datetime(timestamp)
+                if parsed is None:
+                    timestamp_anomalies[dog_id] = "unparseable"
+                    summary["timestamp_issue"] = "unparseable"
+                else:
+                    parsed_utc = dt_util.as_utc(parsed)
+                    delta = _utcnow() - parsed_utc
+                    summary["timestamp_age_seconds"] = int(delta.total_seconds())
+                    if delta < -CACHE_TIMESTAMP_FUTURE_THRESHOLD:
+                        timestamp_anomalies[dog_id] = "future"
+                        summary["timestamp_issue"] = "future"
+                    elif delta > CACHE_TIMESTAMP_STALE_THRESHOLD:
+                        timestamp_anomalies[dog_id] = "stale"
+                        summary["timestamp_issue"] = "stale"
+            elif _namespace_has_timestamp_field(value):
+                timestamp_anomalies[dog_id] = "missing"
+                summary["timestamp_issue"] = "missing"
+
+            per_dog[dog_id] = summary
+
+        stats = {
+            "namespace": self._label,
+            "dogs": len(per_dog),
+            "entries": total_entries,
+        }
+
+        snapshot = {
+            "namespace": self._label,
+            "per_dog": per_dog,
+        }
+
+        diagnostics: dict[str, Any] = {
+            "namespace": self._namespace,
+            "storage_path": str(self._manager._namespace_path(self._namespace)),
+            "per_dog": per_dog,
+        }
+
+        if timestamp_anomalies:
+            diagnostics["timestamp_anomalies"] = timestamp_anomalies
+
+        return stats, snapshot, diagnostics
+
+    def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
+        stats, snapshot, diagnostics = self._build_payload()
+        return {"stats": stats, "snapshot": snapshot, "diagnostics": diagnostics}
+
+    def get_stats(self) -> dict[str, Any]:
+        stats, _snapshot, _diagnostics = self._build_payload()
+        return stats
+
+    def get_diagnostics(self) -> CacheDiagnosticsMetadata:
+        _stats, _snapshot, diagnostics = self._build_payload()
+        return cast(CacheDiagnosticsMetadata, diagnostics)
 
 
 def _serialize_datetime(value: datetime | None) -> str | None:
@@ -466,9 +871,13 @@ class PawControlDataManager:
         self._save_lock = asyncio.Lock()
         self._initialised = False
         self._namespace_locks: dict[str, asyncio.Lock] = {}
+        self._namespace_state: dict[str, dict[str, Any]] = {}
         self._session_id_factory: Callable[[], str] = _default_session_id_generator
 
         self._ensure_metrics_containers()
+        self._cache_monitors: dict[str, Callable[[], Mapping[str, Any]]] = {}
+        self._cache_registrar_ids: set[int] = set()
+        self._auto_register_cache_monitors()
 
     def _get_runtime_data(self) -> Any | None:
         """Return the runtime data container when available."""
@@ -548,7 +957,7 @@ class PawControlDataManager:
                 "visitor_mode_avg_runtime_ms": 0.0,
             }
         if not hasattr(self, "_visitor_timings"):
-            self._visitor_timings = deque(maxlen=50)
+            self._visitor_timings: deque[float] = deque(maxlen=50)
         if not hasattr(self, "_metrics_sink"):
             self._metrics_sink: CoordinatorMetrics | None = None
 
@@ -568,6 +977,20 @@ class PawControlDataManager:
             self._dog_profiles[dog_id] = DogProfile.from_storage(
                 config, stored.get(dog_id)
             )
+
+        for namespace in (
+            "visitor_mode",
+            "module_state",
+            "analysis_cache",
+            "reports",
+            "health_reports",
+        ):
+            try:
+                await self._get_namespace_data(namespace)
+            except HomeAssistantError:
+                _LOGGER.debug(
+                    "Failed to preload namespace %s during initialization", namespace
+                )
 
         self._initialised = True
 
@@ -685,6 +1108,428 @@ class PawControlDataManager:
         self._ensure_metrics_containers()
         self._metrics_sink = metrics
 
+    def _auto_register_cache_monitors(self) -> None:
+        """Register known coordinator caches for diagnostics snapshots."""
+
+        coordinator = self._coordinator
+
+        def _try_register(name: str, cache: Any) -> None:
+            try:
+                self.register_cache_monitor(name, cache)
+            except ValueError:  # pragma: no cover - invalid names guarded earlier
+                _LOGGER.debug("Rejected cache monitor %s due to invalid name", name)
+            except Exception as err:  # pragma: no cover - diagnostics guard
+                _LOGGER.debug("Failed to register cache monitor %s: %s", name, err)
+
+        runtime = self._get_runtime_data()
+        self._register_runtime_cache_monitors_internal(runtime)
+        self._register_coordinator_cache_monitors(coordinator)
+
+        storage_monitors = {
+            "storage_visitor_mode": _StorageNamespaceCacheMonitor(
+                self, "visitor_mode", "visitor_mode"
+            ),
+            "storage_module_state": _StorageNamespaceCacheMonitor(
+                self, "module_state", "module_state"
+            ),
+            "storage_analysis_cache": _StorageNamespaceCacheMonitor(
+                self, "analysis_cache", "analysis"
+            ),
+            "storage_reports": _StorageNamespaceCacheMonitor(
+                self, "reports", "reports"
+            ),
+            "storage_health_reports": _StorageNamespaceCacheMonitor(
+                self, "health_reports", "health_reports"
+            ),
+        }
+
+        for name, monitor in storage_monitors.items():
+            _try_register(name, monitor)
+
+    def _register_manager_cache_monitors(
+        self, manager: Any, *, prefix: str | None, label: str
+    ) -> None:
+        """Register cache monitors exposed by ``manager`` if available."""
+
+        if manager is None:
+            _LOGGER.debug("Skipping cache monitor registration for %s: manager missing", label)
+            return
+
+        registrar = getattr(manager, "register_cache_monitors", None)
+        if not callable(registrar):
+            _LOGGER.debug(
+                "Skipping cache monitor registration for %s: registrar unavailable",
+                label,
+            )
+            return
+
+        registrar_id = id(registrar)
+        if registrar_id in self._cache_registrar_ids:
+            _LOGGER.debug("Cache monitors for %s already registered", label)
+            return
+
+        try:
+            if prefix is None:
+                registrar(self)
+            else:
+                registrar(self, prefix=prefix)
+        except Exception as err:  # pragma: no cover - diagnostics guard
+            _LOGGER.debug("%s cache registration failed: %s", label, err)
+        else:
+            self._cache_registrar_ids.add(registrar_id)
+            _LOGGER.debug("Registered cache monitors for %s", label)
+
+    def _register_runtime_cache_monitors_internal(self, runtime: Any | None) -> None:
+        """Register cache monitors exposed by runtime data containers."""
+
+        if runtime is None:
+            return
+
+        self._register_manager_cache_monitors(
+            getattr(runtime, "notification_manager", None),
+            prefix=None,
+            label="Notification",
+        )
+        self._register_manager_cache_monitors(
+            getattr(runtime, "person_manager", None),
+            prefix="person_entity",
+            label="Person",
+        )
+        self._register_manager_cache_monitors(
+            getattr(runtime, "helper_manager", None),
+            prefix="helper_manager",
+            label="Helper",
+        )
+        self._register_manager_cache_monitors(
+            getattr(runtime, "script_manager", None),
+            prefix="script_manager",
+            label="Script",
+        )
+        self._register_manager_cache_monitors(
+            getattr(runtime, "door_sensor_manager", None),
+            prefix="door_sensor",
+            label="Door sensor",
+        )
+
+    def _register_coordinator_cache_monitors(self, coordinator: Any | None) -> None:
+        """Register cache monitors exposed directly on the coordinator."""
+
+        if coordinator is None:
+            return
+
+        modules = getattr(coordinator, "_modules", None)
+        if modules is not None:
+            try:
+                self.register_cache_monitor(
+                    "coordinator_modules", _CoordinatorModuleCacheMonitor(modules)
+                )
+            except Exception as err:  # pragma: no cover - diagnostics guard
+                _LOGGER.debug(
+                    "Failed to register coordinator module cache monitor: %s", err
+                )
+
+        tracker = getattr(coordinator, "_entity_budget", None)
+        if tracker is not None:
+            try:
+                self.register_cache_monitor(
+                    "entity_budget_tracker", _EntityBudgetMonitor(tracker)
+                )
+            except Exception as err:  # pragma: no cover - diagnostics guard
+                _LOGGER.debug(
+                    "Failed to register entity budget cache monitor: %s", err
+                )
+
+        self._register_manager_cache_monitors(
+            getattr(coordinator, "notification_manager", None),
+            prefix=None,
+            label="Notification",
+        )
+        self._register_manager_cache_monitors(
+            getattr(coordinator, "person_manager", None),
+            prefix="person_entity",
+            label="Person",
+        )
+        self._register_manager_cache_monitors(
+            getattr(coordinator, "helper_manager", None),
+            prefix="helper_manager",
+            label="Helper",
+        )
+        self._register_manager_cache_monitors(
+            getattr(coordinator, "script_manager", None),
+            prefix="script_manager",
+            label="Script",
+        )
+        self._register_manager_cache_monitors(
+            getattr(coordinator, "door_sensor_manager", None),
+            prefix="door_sensor",
+            label="Door sensor",
+        )
+
+    def register_runtime_cache_monitors(self, runtime: Any | None = None) -> None:
+        """Register cache monitors from ``runtime`` or the stored runtime data."""
+
+        if runtime is None:
+            runtime = self._get_runtime_data()
+
+        self._register_runtime_cache_monitors_internal(runtime)
+
+    def register_cache_monitor(self, name: str, cache: CacheMonitorTarget) -> None:
+        """Expose cache diagnostics in the format consumed by coordinator snapshots.
+
+        Coordinators expect monitors to provide a structured payload containing a
+        ``stats`` section (hit/miss counters), an optional ``snapshot`` describing
+        the live cache state, and ``diagnostics`` metadata used by Home Assistant
+        repairs. This helper normalises the callable surface offered by legacy
+        caches so all registered providers deliver a consistent structure.
+        """
+
+        if not isinstance(name, str) or not name:
+            raise ValueError("Cache monitor name must be a non-empty string")
+
+        _LOGGER.debug("Registering cache monitor: %s", name)
+        snapshot_method = getattr(cache, "coordinator_snapshot", None)
+        stats_method = getattr(cache, "get_stats", None)
+        if not callable(stats_method):
+            stats_method = getattr(cache, "get_metrics", None)
+        diagnostics_method = getattr(cache, "get_diagnostics", None)
+
+        def _snapshot() -> CacheDiagnosticsSnapshot:
+            try:
+                if callable(snapshot_method):
+                    payload = snapshot_method()
+                    if isinstance(payload, Mapping):
+                        return cast(CacheDiagnosticsSnapshot, dict(payload))
+                    if isinstance(payload, dict):
+                        return cast(CacheDiagnosticsSnapshot, payload)
+                snapshot: CacheDiagnosticsSnapshot = {}
+                if callable(stats_method):
+                    stats_payload = stats_method()
+                    if isinstance(stats_payload, Mapping):
+                        snapshot["stats"] = dict(stats_payload)
+                    elif stats_payload is not None:
+                        snapshot["stats"] = cast(dict[str, Any], stats_payload)
+                if callable(diagnostics_method):
+                    diag_payload = diagnostics_method()
+                    if isinstance(diag_payload, Mapping):
+                        snapshot["diagnostics"] = cast(
+                            CacheDiagnosticsMetadata, dict(diag_payload)
+                        )
+                    elif diag_payload is not None:
+                        snapshot["diagnostics"] = cast(
+                            CacheDiagnosticsMetadata, diag_payload
+                        )
+                return snapshot
+            except Exception as err:  # pragma: no cover - diagnostics guard
+                return cast(CacheDiagnosticsSnapshot, {"error": str(err)})
+
+        self._cache_monitors[name] = _snapshot
+
+    def cache_snapshots(self) -> CacheDiagnosticsMap:
+        """Return registered cache diagnostics for coordinator use."""
+
+        snapshots: CacheDiagnosticsMap = {}
+        for name, provider in self._cache_monitors.items():
+            try:
+                snapshots[name] = provider()
+            except Exception as err:  # pragma: no cover - defensive fallback
+                snapshots[name] = cast(CacheDiagnosticsSnapshot, {"error": str(err)})
+        return snapshots
+
+    def cache_repair_summary(
+        self, snapshots: CacheDiagnosticsMap | None = None
+    ) -> CacheRepairAggregate | None:
+        """Return aggregated cache metrics suitable for Home Assistant repairs."""
+
+        if snapshots is None:
+            snapshots = self.cache_snapshots()
+
+        if not snapshots:
+            return None
+
+        totals: dict[str, int | float] = {
+            "entries": 0,
+            "hits": 0,
+            "misses": 0,
+            "expired_entries": 0,
+            "expired_via_override": 0,
+            "pending_expired_entries": 0,
+            "pending_override_candidates": 0,
+            "active_override_flags": 0,
+        }
+
+        caches_with_errors: list[str] = []
+        caches_with_expired: list[str] = []
+        caches_with_pending: list[str] = []
+        caches_with_override_flags: list[str] = []
+        caches_with_low_hit_rate: list[str] = []
+        caches_with_timestamp_anomalies: list[str] = []
+        anomalies: set[str] = set()
+        issues: list[CacheRepairIssue] = []
+
+        def _as_int(value: Any) -> int:
+            try:
+                if isinstance(value, bool):
+                    return int(value)
+                return int(float(value))
+            except (TypeError, ValueError):
+                return 0
+
+        def _as_float(value: Any) -> float:
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return 0.0
+
+        for name, payload in snapshots.items():
+            if not isinstance(name, str) or not name:
+                continue
+
+            snapshot_payload = payload if isinstance(payload, Mapping) else {}
+
+            stats_payload = snapshot_payload.get("stats")
+            if isinstance(stats_payload, Mapping):
+                entries = _as_int(stats_payload.get("entries"))
+                hits = _as_int(stats_payload.get("hits"))
+                misses = _as_int(stats_payload.get("misses"))
+                hit_rate = _as_float(stats_payload.get("hit_rate"))
+            else:
+                entries = hits = misses = 0
+                hit_rate = 0.0
+
+            if stats_payload is None or "hit_rate" not in stats_payload:
+                loop_total_requests = hits + misses
+                if loop_total_requests:
+                    hit_rate = round(hits / loop_total_requests * 100.0, 2)
+
+            diagnostics_payload = snapshot_payload.get("diagnostics")
+            diagnostics_map = (
+                diagnostics_payload if isinstance(diagnostics_payload, Mapping) else {}
+            )
+
+            expired_entries = _as_int(diagnostics_map.get("expired_entries"))
+            expired_override = _as_int(diagnostics_map.get("expired_via_override"))
+            pending_expired = _as_int(diagnostics_map.get("pending_expired_entries"))
+            pending_overrides = _as_int(
+                diagnostics_map.get("pending_override_candidates")
+            )
+            override_flags = _as_int(diagnostics_map.get("active_override_flags"))
+
+            timestamp_anomalies_payload = diagnostics_map.get("timestamp_anomalies")
+            timestamp_anomaly_map: dict[str, str] = {}
+            if isinstance(timestamp_anomalies_payload, Mapping):
+                timestamp_anomaly_map = {
+                    str(dog_id): str(reason)
+                    for dog_id, reason in timestamp_anomalies_payload.items()
+                    if reason is not None
+                }
+
+            errors_payload = diagnostics_map.get("errors")
+            if isinstance(errors_payload, Sequence) and not isinstance(
+                errors_payload, str | bytes | bytearray
+            ):
+                error_list = [str(item) for item in errors_payload if item is not None]
+            elif isinstance(errors_payload, str):
+                error_list = [errors_payload]
+            elif errors_payload is None:
+                error_list = []
+            else:
+                error_list = [str(errors_payload)]
+
+            totals["entries"] += entries
+            totals["hits"] += hits
+            totals["misses"] += misses
+            totals["expired_entries"] += expired_entries
+            totals["expired_via_override"] += expired_override
+            totals["pending_expired_entries"] += pending_expired
+            totals["pending_override_candidates"] += pending_overrides
+            totals["active_override_flags"] += override_flags
+
+            low_hit_rate = False
+            if hits + misses >= 5 and hit_rate < 60.0:
+                low_hit_rate = True
+
+            if error_list:
+                caches_with_errors.append(name)
+                anomalies.add(name)
+            if expired_entries > 0:
+                caches_with_expired.append(name)
+                anomalies.add(name)
+            if pending_expired > 0:
+                caches_with_pending.append(name)
+                anomalies.add(name)
+            if override_flags > 0:
+                caches_with_override_flags.append(name)
+                anomalies.add(name)
+            if low_hit_rate:
+                caches_with_low_hit_rate.append(name)
+                anomalies.add(name)
+            if timestamp_anomaly_map:
+                caches_with_timestamp_anomalies.append(name)
+                anomalies.add(name)
+
+            if (
+                error_list
+                or expired_entries
+                or pending_expired
+                or override_flags
+                or low_hit_rate
+                or timestamp_anomaly_map
+            ):
+                issue: CacheRepairIssue = {
+                    "cache": name,
+                    "entries": entries,
+                    "hits": hits,
+                    "misses": misses,
+                    "hit_rate": round(hit_rate, 2),
+                    "expired_entries": expired_entries,
+                    "expired_via_override": expired_override,
+                    "pending_expired_entries": pending_expired,
+                    "pending_override_candidates": pending_overrides,
+                    "active_override_flags": override_flags,
+                }
+                if error_list:
+                    issue["errors"] = error_list
+                if timestamp_anomaly_map:
+                    issue["timestamp_anomalies"] = timestamp_anomaly_map
+                issues.append(issue)
+
+        total_requests: float = float(totals["hits"]) + float(totals["misses"])
+        if total_requests:
+            totals["overall_hit_rate"] = round(
+                float(totals["hits"]) / total_requests * 100.0, 2
+            )
+
+        severity = "info"
+        if caches_with_errors:
+            severity = "error"
+        elif anomalies:
+            severity = "warning"
+
+        summary: CacheRepairAggregate = {
+            "total_caches": len(snapshots),
+            "anomaly_count": len(anomalies),
+            "severity": severity,
+            "generated_at": _utcnow().isoformat(),
+            "totals": totals,
+        }
+
+        if caches_with_errors:
+            summary["caches_with_errors"] = caches_with_errors
+        if caches_with_expired:
+            summary["caches_with_expired_entries"] = caches_with_expired
+        if caches_with_pending:
+            summary["caches_with_pending_expired_entries"] = caches_with_pending
+        if caches_with_override_flags:
+            summary["caches_with_override_flags"] = caches_with_override_flags
+        if caches_with_low_hit_rate:
+            summary["caches_with_low_hit_rate"] = caches_with_low_hit_rate
+        if caches_with_timestamp_anomalies:
+            summary["caches_with_timestamp_anomalies"] = caches_with_timestamp_anomalies
+        if issues:
+            summary["issues"] = issues
+
+        return summary
+
     def _record_visitor_metrics(self, duration: float) -> None:
         """Capture visitor-mode runtime metrics and forward to sinks."""
 
@@ -766,10 +1611,88 @@ class PawControlDataManager:
         modules = _coerce_mapping(profile.config.get("modules"))
         return _merge_dicts(modules, overrides)
 
+    async def async_get_module_history(
+        self,
+        module: str,
+        dog_id: str,
+        *,
+        limit: int | None = None,
+        since: datetime | str | None = None,
+        until: datetime | str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return stored history entries for ``module`` and ``dog_id``.
+
+        The entries are normalised dictionaries sorted in reverse chronological
+        order. Optional ``since``/``until`` bounds allow callers to apply window
+        filtering without duplicating the timestamp parsing performed here.
+        """
+
+        module_key = module.lower()
+        attr_info = _MODULE_HISTORY_ATTRS.get(module_key)
+        if attr_info is None:
+            return []
+
+        attribute, timestamp_key = attr_info
+        profile = self._dog_profiles.get(dog_id)
+        if profile is None:
+            return []
+
+        entries = getattr(profile, attribute, None)
+        if not isinstance(entries, list):
+            return []
+
+        since_bound = _deserialize_datetime(since) if since is not None else None
+        until_bound = _deserialize_datetime(until) if until is not None else None
+
+        prepared: list[tuple[datetime | None, dict[str, Any]]] = []
+        for entry in entries:
+            if not isinstance(entry, Mapping):
+                continue
+
+            payload = dict(entry)
+            timestamp = _deserialize_datetime(payload.get(timestamp_key))
+
+            if since_bound is not None and (
+                timestamp is None or timestamp < since_bound
+            ):
+                continue
+            if until_bound is not None and (
+                timestamp is None or timestamp > until_bound
+            ):
+                continue
+
+            prepared.append((timestamp, payload))
+
+        def _sort_key(item: tuple[datetime | None, dict[str, Any]]) -> tuple[int, str]:
+            timestamp, payload = item
+            if timestamp is not None:
+                return (1, timestamp.isoformat())
+
+            raw_value = payload.get(timestamp_key)
+            if isinstance(raw_value, datetime):
+                return (1, raw_value.isoformat())
+            if isinstance(raw_value, int | float):
+                try:
+                    iso = datetime.fromtimestamp(float(raw_value)).isoformat()
+                except (OverflowError, ValueError):
+                    iso = ""
+                return (0, iso)
+            if isinstance(raw_value, str):
+                return (0, raw_value)
+            return (0, "")
+
+        prepared.sort(key=_sort_key, reverse=True)
+
+        ordered = [payload for _timestamp, payload in prepared]
+
+        if limit is not None:
+            return ordered[:limit]
+        return ordered
+
     async def async_set_dog_power_state(self, dog_id: str, enabled: bool) -> None:
         """Persist the main power state for ``dog_id``."""
 
-        async def updater(current: Any | None) -> dict[str, Any]:
+        def updater(current: Any | None) -> dict[str, Any]:
             payload = _coerce_mapping(current)
             payload["main_power"] = bool(enabled)
             payload.setdefault("updated_at", _utcnow().isoformat())
@@ -780,7 +1703,7 @@ class PawControlDataManager:
     async def async_set_gps_tracking(self, dog_id: str, enabled: bool) -> None:
         """Persist GPS tracking preference for ``dog_id``."""
 
-        async def updater(current: Any | None) -> dict[str, Any]:
+        def updater(current: Any | None) -> dict[str, Any]:
             payload = _coerce_mapping(current)
             gps_state = _coerce_mapping(payload.get("gps"))
             gps_state["enabled"] = bool(enabled)
@@ -847,20 +1770,11 @@ class PawControlDataManager:
     ) -> dict[str, Any]:
         """Analyze historic data for ``dog_id``."""
 
-        profile = self._ensure_profile(dog_id)
+        self._ensure_profile(dog_id)
+
         now = _utcnow()
         cutoff = now - timedelta(days=max(days, 1))
         tolerance = timedelta(seconds=1)
-
-        def _filter_entries(
-            entries: list[dict[str, Any]], timestamp_key: str = "timestamp"
-        ) -> list[tuple[datetime, dict[str, Any]]]:
-            filtered: list[tuple[datetime, dict[str, Any]]] = []
-            for item in entries:
-                ts = _deserialize_datetime(item.get(timestamp_key))
-                if ts and ts >= cutoff - tolerance:
-                    filtered.append((ts, dict(item)))
-            return filtered
 
         result: dict[str, Any] = {
             "dog_id": dog_id,
@@ -869,8 +1783,18 @@ class PawControlDataManager:
             "generated_at": now.isoformat(),
         }
 
+        window_start = cutoff - tolerance
+
         if analysis_type in {"feeding", "comprehensive"}:
-            feedings = _filter_entries(profile.feeding_history)
+            feedings_raw = await self.async_get_module_history(
+                MODULE_FEEDING, dog_id, since=window_start
+            )
+            feedings: list[tuple[datetime, dict[str, Any]]] = []
+            for entry in feedings_raw:
+                ts = _deserialize_datetime(entry.get("timestamp"))
+                if ts:
+                    feedings.append((ts, entry))
+            feedings.sort(key=lambda item: item[0])
             total = sum(entry.get("portion_size", 0) or 0 for _, entry in feedings)
             result["feeding"] = {
                 "entries": len(feedings),
@@ -880,7 +1804,15 @@ class PawControlDataManager:
             }
 
         if analysis_type in {"walking", "comprehensive"}:
-            walks = _filter_entries(profile.walk_history, "end_time")
+            walks_raw = await self.async_get_module_history(
+                MODULE_WALK, dog_id, since=window_start
+            )
+            walks: list[tuple[datetime, dict[str, Any]]] = []
+            for entry in walks_raw:
+                ts = _deserialize_datetime(entry.get("end_time"))
+                if ts:
+                    walks.append((ts, entry))
+            walks.sort(key=lambda item: item[0])
             total_distance = sum(entry.get("distance", 0) or 0 for _, entry in walks)
             result["walking"] = {
                 "entries": len(walks),
@@ -888,10 +1820,17 @@ class PawControlDataManager:
             }
 
         if analysis_type in {"health", "comprehensive"}:
-            health_entries = _filter_entries(profile.health_history)
+            health_raw = await self.async_get_module_history(
+                MODULE_HEALTH, dog_id, since=window_start
+            )
+            health_entries = [
+                entry
+                for entry in health_raw
+                if _deserialize_datetime(entry.get("timestamp")) is not None
+            ]
             result["health"] = {
                 "entries": len(health_entries),
-                "latest": health_entries[-1][1] if health_entries else None,
+                "latest": health_entries[0] if health_entries else None,
             }
 
         await self._update_namespace_for_dog(
@@ -1059,22 +1998,23 @@ class PawControlDataManager:
     ) -> dict[str, Any]:
         """Generate a weekly health overview for ``dog_id``."""
 
-        profile = self._ensure_profile(dog_id)
+        self._ensure_profile(dog_id)
         now = _utcnow()
         cutoff = now - timedelta(days=7)
 
-        health_entries = [
-            entry
-            for entry in profile.health_history
-            if (timestamp := _deserialize_datetime(entry.get("timestamp")))
-            and timestamp >= cutoff
-        ]
+        health_entries = await self.async_get_module_history(
+            MODULE_HEALTH, dog_id, since=cutoff
+        )
 
         report: dict[str, Any] = {
             "dog_id": dog_id,
             "generated_at": now.isoformat(),
             "entries": len(health_entries),
-            "recent_weights": [entry.get("weight") for entry in health_entries],
+            "recent_weights": [
+                entry.get("weight")
+                for entry in health_entries
+                if entry.get("weight") is not None
+            ],
             "recent_temperatures": [
                 entry.get("temperature")
                 for entry in health_entries
@@ -1083,17 +2023,12 @@ class PawControlDataManager:
         }
 
         if include_medication:
-            medications = [
-                entry
-                for entry in profile.medication_history
-                if (
-                    timestamp := _deserialize_datetime(entry.get("administration_time"))
-                )
-                and timestamp >= cutoff
-            ]
+            medications = await self.async_get_module_history(
+                MODULE_MEDICATION, dog_id, since=cutoff
+            )
             report["medication"] = {
                 "entries": len(medications),
-                "latest": medications[-1] if medications else None,
+                "latest": medications[0] if medications else None,
             }
 
         await self._update_namespace_for_dog(
@@ -1117,28 +2052,25 @@ class PawControlDataManager:
         date_from: datetime | str | None = None,
         date_to: datetime | str | None = None,
     ) -> Path:
-        """Export stored data for ``dog_id`` and return the export path."""
+        """Export stored data for ``dog_id`` leveraging the shared history helper."""
 
-        profile = self._ensure_profile(dog_id)
+        _ = self._ensure_profile(dog_id)
 
-        dataset: list[dict[str, Any]]
-        timestamp_key = "timestamp"
-        match data_type:
-            case "feeding":
-                dataset = profile.feeding_history
-                timestamp_key = "timestamp"
-            case "walks" | "walking":
-                dataset = profile.walk_history
-                timestamp_key = "end_time"
-            case "health":
-                dataset = profile.health_history
-                timestamp_key = "timestamp"
-            case "medication":
-                dataset = profile.medication_history
-                timestamp_key = "administration_time"
-            case _:
-                error_cls = _resolve_homeassistant_error()
-                raise error_cls(f"Unsupported export data type: {data_type}")
+        module_map: dict[str, tuple[str, str]] = {
+            "feeding": (MODULE_FEEDING, "timestamp"),
+            "walks": (MODULE_WALK, "end_time"),
+            "walking": (MODULE_WALK, "end_time"),
+            "health": (MODULE_HEALTH, "timestamp"),
+            "medication": (MODULE_MEDICATION, "administration_time"),
+        }
+
+        normalized_type = data_type.lower()
+        module_info = module_map.get(normalized_type)
+        if module_info is None:
+            error_cls = _resolve_homeassistant_error()
+            raise error_cls(f"Unsupported export data type: {data_type}")
+
+        module_name, timestamp_key = module_info
 
         start = _deserialize_datetime(date_from) if date_from else None
         end = _deserialize_datetime(date_to) if date_to else None
@@ -1147,15 +2079,20 @@ class PawControlDataManager:
         if end is None:
             end = _utcnow()
 
-        def _in_window(entry: Mapping[str, Any]) -> bool:
-            ts = _deserialize_datetime(entry.get(timestamp_key))
-            if ts is None:
-                return False
-            if start and ts < start:
-                return False
-            return not (end and ts > end)
+        history = await self.async_get_module_history(
+            module_name, dog_id, since=start, until=end
+        )
 
-        entries = [dict(item) for item in dataset if _in_window(item)]
+        def _sort_key(payload: Mapping[str, Any]) -> tuple[int, str]:
+            timestamp = _deserialize_datetime(payload.get(timestamp_key))
+            if timestamp is not None:
+                return (1, timestamp.isoformat())
+            raw_value = payload.get(timestamp_key)
+            if isinstance(raw_value, datetime):
+                return (1, raw_value.isoformat())
+            return (0, str(raw_value))
+
+        entries = [dict(item) for item in sorted(history, key=_sort_key)]
 
         export_dir = self._storage_dir / "exports"
         export_dir.mkdir(parents=True, exist_ok=True)
@@ -1523,6 +2460,7 @@ class PawControlDataManager:
         return {
             "dogs": len(self._dog_profiles),
             "storage_path": str(self._storage_path),
+            "cache_diagnostics": self.cache_snapshots(),
         }
 
     async def async_get_registered_dogs(self) -> list[str]:
@@ -1541,10 +2479,12 @@ class PawControlDataManager:
 
         path = self._namespace_path(namespace)
         try:
-            if not path.exists():
+            if not Path.exists(path):
+                self._namespace_state[namespace] = {}
                 return {}
             contents = await asyncio.to_thread(path.read_text, encoding="utf-8")
         except FileNotFoundError:
+            self._namespace_state[namespace] = {}
             return {}
         except OSError as err:
             error_cls = _resolve_homeassistant_error()
@@ -1553,15 +2493,25 @@ class PawControlDataManager:
             ) from err
 
         if not contents:
+            self._namespace_state[namespace] = {}
             return {}
 
         try:
-            return json.loads(contents)
+            payload = json.loads(contents)
         except json.JSONDecodeError:
             _LOGGER.warning(
                 "Corrupted PawControl %s data detected at %s", namespace, path
             )
+            self._namespace_state[namespace] = {}
             return {}
+
+        if isinstance(payload, dict):
+            snapshot = dict(payload)
+            self._namespace_state[namespace] = snapshot
+            return snapshot
+
+        self._namespace_state[namespace] = {}
+        return {}
 
     async def _save_namespace(self, namespace: str, data: dict[str, Any]) -> None:
         """Persist a JSON payload for ``namespace`` to disk."""
@@ -1578,6 +2528,7 @@ class PawControlDataManager:
 
         self._ensure_metrics_containers()
         self._metrics["saves"] += 1
+        self._namespace_state[namespace] = dict(data)
 
     async def _async_load_storage(self) -> dict[str, Any]:
         """Load stored JSON data, falling back to the backup if required."""

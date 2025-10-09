@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 from itertools import count
 from types import ModuleType
-from typing import Any, TypeVar, cast
+from typing import Any, Protocol, TypeVar, cast
 
 RuntimeT = TypeVar("RuntimeT")
 
@@ -66,6 +66,16 @@ HomeAssistantError: type[Exception] = _FallbackHomeAssistantError
 _HOMEASSISTANT_ERROR_IS_FALLBACK = True
 
 
+# These globals are re-bound as soon as either Home Assistant or the unit test
+# stubs import the integration module. Declaring them up-front keeps MyPy
+# informed about the exported types while still allowing `_refresh_exception_
+# symbols` to swap in the runtime variants when available.
+ConfigEntryError: type[Exception]
+ConfigEntryAuthFailed: type[Exception]
+ConfigEntryNotReady: type[Exception]
+ServiceValidationError: type[Exception]
+
+
 def _config_entry_error_factory() -> type[Exception]:
     base = HomeAssistantError if not _HOMEASSISTANT_ERROR_IS_FALLBACK else RuntimeError
     return _build_exception(
@@ -75,8 +85,12 @@ def _config_entry_error_factory() -> type[Exception]:
     )
 
 
+class _AuthFailedProtocol(Protocol):
+    auth_migration: bool | None
+
+
 def _config_entry_auth_failed_init(
-    self: Exception,
+    self: _AuthFailedProtocol,
     message: str | None = None,
     *,
     auth_migration: bool | None = None,
@@ -167,6 +181,11 @@ def ensure_homeassistant_exception_symbols() -> None:
     _refresh_exception_symbols(sys.modules.get("homeassistant.exceptions"))
 
 
+ConfigEntryError = _config_entry_error_factory()
+ConfigEntryAuthFailed = _auth_failed_factory()
+ConfigEntryNotReady = _not_ready_factory()
+ServiceValidationError = _service_validation_error_factory()
+
 _refresh_exception_symbols(_ha_exceptions)
 
 
@@ -186,14 +205,30 @@ class ConfigEntryState(Enum):
 
         obj = object.__new__(cls)
         obj._value_ = value
-        obj._recoverable = recoverable
         return obj
+
+    def __init__(self, _value: str, recoverable: bool) -> None:
+        """Store whether the state can be automatically recovered."""
+
+        self._recoverable: bool = recoverable
 
     @property
     def recoverable(self) -> bool:
         """Return whether the state can be recovered without user intervention."""
 
         return self._recoverable
+
+    @classmethod
+    def from_value(cls, value: str) -> ConfigEntryState:
+        """Return the enum member matching ``value`` regardless of casing."""
+
+        try:
+            return cls[value.upper()]
+        except KeyError:
+            for member in cls:
+                if member.value == value:
+                    return member
+        raise ValueError(value)
 
 
 class ConfigEntryChange(Enum):
@@ -240,7 +275,13 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
         self.pref_disable_new_entities = pref_disable_new_entities
         self.pref_disable_polling = pref_disable_polling
         self.disabled_by = disabled_by
-        self.state = ConfigEntryState(state) if isinstance(state, str) else state
+        if isinstance(state, str):
+            try:
+                self.state = ConfigEntryState.from_value(state)
+            except ValueError:
+                self.state = ConfigEntryState[state.upper()]
+        else:
+            self.state = state
         self.supports_unload: bool | None = None
         self.supports_remove_device: bool | None = None
         self._supports_options: bool | None = None

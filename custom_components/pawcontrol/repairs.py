@@ -9,7 +9,8 @@ Bronze quality ambitions.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from collections.abc import Mapping, Sequence
+from typing import Any, cast
 
 import voluptuous as vol
 from homeassistant.components.repairs import RepairsFlow
@@ -30,6 +31,7 @@ from .const import (
     MODULE_NOTIFICATIONS,
 )
 from .runtime_data import get_runtime_data
+from .types import CacheRepairAggregate, ReconfigureTelemetry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,6 +51,9 @@ ISSUE_STORAGE_WARNING = "storage_warning"
 ISSUE_MODULE_CONFLICT = "module_configuration_conflict"
 ISSUE_INVALID_DOG_DATA = "invalid_dog_data"
 ISSUE_COORDINATOR_ERROR = "coordinator_error"
+ISSUE_CACHE_HEALTH_SUMMARY = "cache_health_summary"
+ISSUE_RECONFIGURE_WARNINGS = "reconfigure_warnings"
+ISSUE_RECONFIGURE_HEALTH = "reconfigure_health"
 
 # Repair flow types
 REPAIR_FLOW_DOG_CONFIG = "repair_dog_configuration"
@@ -192,11 +197,17 @@ async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> Non
         # Check for outdated configuration
         await _check_outdated_configuration(hass, entry)
 
+        # Check telemetry gathered during reconfigure flows
+        await _check_reconfigure_telemetry_issues(hass, entry)
+
         # Check performance issues
         await _check_performance_issues(hass, entry)
 
         # Check storage issues
         await _check_storage_issues(hass, entry)
+
+        # Publish cache health diagnostics
+        await _publish_cache_health_issue(hass, entry)
 
         # Check coordinator health
         await _check_coordinator_health(hass, entry)
@@ -394,6 +405,90 @@ async def _check_outdated_configuration(
         )
 
 
+async def _check_reconfigure_telemetry_issues(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> None:
+    """Surface reconfigure warnings and health summaries via repairs."""
+
+    options: Mapping[str, Any] = (
+        entry.options if isinstance(entry.options, Mapping) else {}
+    )
+    telemetry_raw = options.get("reconfigure_telemetry")
+
+    delete_issue = getattr(ir, "async_delete_issue", None)
+    warnings_issue_id = f"{entry.entry_id}_reconfigure_warnings"
+    health_issue_id = f"{entry.entry_id}_reconfigure_health"
+
+    if not isinstance(telemetry_raw, Mapping):
+        if callable(delete_issue):
+            await delete_issue(hass, DOMAIN, warnings_issue_id)
+            await delete_issue(hass, DOMAIN, health_issue_id)
+        return
+
+    telemetry = cast(ReconfigureTelemetry, telemetry_raw)
+
+    def _as_list(value: Any) -> list[str]:
+        if isinstance(value, Sequence) and not isinstance(value, str | bytes):
+            return [str(item) for item in value if item is not None]
+        return []
+
+    timestamp = str(
+        telemetry.get("timestamp")
+        or options.get("last_reconfigure")
+        or ""
+    )
+    requested_profile = str(telemetry.get("requested_profile", ""))
+    previous_profile = str(telemetry.get("previous_profile", ""))
+    warnings = _as_list(telemetry.get("compatibility_warnings"))
+
+    if warnings:
+        await async_create_issue(
+            hass,
+            entry,
+            warnings_issue_id,
+            ISSUE_RECONFIGURE_WARNINGS,
+            {
+                "timestamp": timestamp,
+                "requested_profile": requested_profile,
+                "previous_profile": previous_profile,
+                "warnings": warnings,
+            },
+            severity=ir.IssueSeverity.WARNING,
+        )
+    elif callable(delete_issue):
+        await delete_issue(hass, DOMAIN, warnings_issue_id)
+
+    health_summary = telemetry.get("health_summary")
+    if isinstance(health_summary, Mapping):
+        healthy = bool(health_summary.get("healthy", True))
+        health_issues = _as_list(health_summary.get("issues"))
+        health_warnings = _as_list(health_summary.get("warnings"))
+
+        if not healthy or health_issues or health_warnings:
+            severity = (
+                ir.IssueSeverity.ERROR
+                if (not healthy and health_issues)
+                else ir.IssueSeverity.WARNING
+            )
+            await async_create_issue(
+                hass,
+                entry,
+                health_issue_id,
+                ISSUE_RECONFIGURE_HEALTH,
+                {
+                    "timestamp": timestamp,
+                    "requested_profile": requested_profile,
+                    "health_issues": health_issues,
+                    "health_warnings": health_warnings,
+                },
+                severity=severity,
+            )
+        elif callable(delete_issue):
+            await delete_issue(hass, DOMAIN, health_issue_id)
+    elif callable(delete_issue):
+        await delete_issue(hass, DOMAIN, health_issue_id)
+
+
 async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Check for performance-related issues.
 
@@ -467,6 +562,52 @@ async def _check_storage_issues(hass: HomeAssistant, entry: ConfigEntry) -> None
             },
             severity=ir.IssueSeverity.WARNING,
         )
+
+
+async def _publish_cache_health_issue(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Publish aggregated cache diagnostics to the repairs dashboard."""
+
+    issue_id = f"{entry.entry_id}_cache_health"
+    runtime_data = get_runtime_data(hass, entry)
+
+    if runtime_data is None:
+        delete_issue = getattr(ir, "async_delete_issue", None)
+        if callable(delete_issue):
+            await delete_issue(hass, DOMAIN, issue_id)
+        return
+
+    data_manager = getattr(runtime_data, "data_manager", None)
+    if data_manager is None:
+        delete_issue = getattr(ir, "async_delete_issue", None)
+        if callable(delete_issue):
+            await delete_issue(hass, DOMAIN, issue_id)
+        return
+
+    summary_method = getattr(data_manager, "cache_repair_summary", None)
+    if not callable(summary_method):
+        return
+
+    try:
+        summary = cast(CacheRepairAggregate | None, summary_method())
+    except Exception as err:  # pragma: no cover - diagnostics guard
+        _LOGGER.debug("Skipping cache health issue publication: %s", err)
+        return
+
+    if not summary or summary.get("anomaly_count", 0) == 0:
+        delete_issue = getattr(ir, "async_delete_issue", None)
+        if callable(delete_issue):
+            await delete_issue(hass, DOMAIN, issue_id)
+        return
+
+    severity = summary.get("severity", ir.IssueSeverity.WARNING.value)
+    await async_create_issue(
+        hass,
+        entry,
+        issue_id,
+        ISSUE_CACHE_HEALTH_SUMMARY,
+        {"summary": summary},
+        severity=severity,
+    )
 
 
 async def _check_coordinator_health(hass: HomeAssistant, entry: ConfigEntry) -> None:

@@ -44,7 +44,8 @@ from .const import (
     MODULE_HEALTH,
     MODULE_MEDICATION,
 )
-from .types import DogConfigData
+from .coordinator_support import CacheMonitorRegistrar
+from .types import CacheDiagnosticsMetadata, CacheDiagnosticsSnapshot, DogConfigData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -86,6 +87,83 @@ DEFAULT_FEEDING_TIMES: Final[dict[str, str]] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Diagnostics helpers
+
+
+def _collate_entity_domains(entities: Mapping[str, dict[str, Any]]) -> dict[str, int]:
+    """Return a histogram of entity domains managed by the helper manager."""
+
+    domains: dict[str, int] = {}
+    for entity_id in entities:
+        if isinstance(entity_id, str) and "." in entity_id:
+            domain = entity_id.split(".", 1)[0]
+        else:
+            domain = "unknown"
+        domains[domain] = domains.get(domain, 0) + 1
+    return domains
+
+
+class _HelperManagerCacheMonitor:
+    """Expose helper manager state to the cache monitor registry."""
+
+    __slots__ = ("_manager",)
+
+    def __init__(self, manager: PawControlHelperManager) -> None:
+        self._manager = manager
+
+    def _build_payload(
+        self,
+    ) -> tuple[dict[str, Any], dict[str, Any], CacheDiagnosticsMetadata]:
+        manager = self._manager
+        created_helpers = getattr(manager, "_created_helpers", set())
+        managed_entities = getattr(manager, "_managed_entities", {})
+        dog_helpers = getattr(manager, "_dog_helpers", {})
+        cleanup_listeners = getattr(manager, "_cleanup_listeners", [])
+
+        per_dog = {
+            str(dog_id): len(helpers)
+            for dog_id, helpers in dog_helpers.items()
+            if isinstance(helpers, Collection)
+        }
+
+        domains = _collate_entity_domains(managed_entities)
+
+        stats: dict[str, Any] = {
+            "helpers": len(created_helpers),
+            "dogs": len(per_dog),
+            "managed_entities": len(managed_entities),
+        }
+
+        snapshot: dict[str, Any] = {
+            "per_dog": per_dog,
+            "entity_domains": domains,
+        }
+
+        diagnostics: CacheDiagnosticsMetadata = {
+            "per_dog_helpers": per_dog,
+            "entity_domains": domains,
+            "cleanup_listeners": len(cleanup_listeners),
+            "daily_reset_configured": bool(
+                getattr(manager, "_daily_reset_configured", False)
+            ),
+        }
+
+        return stats, snapshot, diagnostics
+
+    def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
+        stats, snapshot, diagnostics = self._build_payload()
+        return {"stats": stats, "snapshot": snapshot, "diagnostics": diagnostics}
+
+    def get_stats(self) -> dict[str, Any]:
+        stats, _snapshot, _diagnostics = self._build_payload()
+        return stats
+
+    def get_diagnostics(self) -> CacheDiagnosticsMetadata:
+        _stats, _snapshot, diagnostics = self._build_payload()
+        return diagnostics
+
+
 class PawControlHelperManager:
     """Manages automatic creation and lifecycle of Home Assistant helpers for PawControl."""
 
@@ -124,6 +202,17 @@ class PawControlHelperManager:
         self._daily_reset_configured = False
 
         _LOGGER.debug("Helper manager initialized for entry %s", self._entry.entry_id)
+
+    def register_cache_monitors(
+        self, registrar: CacheMonitorRegistrar, *, prefix: str = "helpers"
+    ) -> None:
+        """Register helper diagnostics with the data manager cache monitor."""
+
+        if registrar is None:
+            raise ValueError("registrar is required")
+
+        monitor = _HelperManagerCacheMonitor(self)
+        registrar.register_cache_monitor(f"{prefix}_cache", monitor)
 
     @staticmethod
     def _normalize_dogs_config(dogs: Any) -> list[DogConfigData]:

@@ -23,7 +23,15 @@ from asyncio import Task
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any, Final, Required, TypedDict
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Final,
+    Literal,
+    NotRequired,
+    Required,
+    TypedDict,
+)
 
 from .compat import ConfigEntry
 
@@ -191,6 +199,511 @@ Standard entity ID format following Home Assistant conventions for entity
 identification across the platform.
 """
 
+
+class DietCompatibilityIssue(TypedDict):
+    """Structured description of diet compatibility conflicts or warnings."""
+
+    type: str
+    diets: list[str]
+    message: str
+
+
+class DietValidationResult(TypedDict):
+    """Result payload returned by diet validation helpers."""
+
+    valid: bool
+    conflicts: list[DietCompatibilityIssue]
+    warnings: list[DietCompatibilityIssue]
+    recommended_vet_consultation: bool
+    total_diets: int
+
+
+class DogVaccinationRecord(TypedDict, total=False):
+    """Details about a specific vaccination."""
+
+    date: str | None
+    next_due: str | None
+
+
+class DogMedicationEntry(TypedDict, total=False):
+    """Medication reminder entry captured during configuration."""
+
+    name: str
+    dosage: str
+    frequency: str
+    time: str
+    notes: str
+    with_meals: bool
+
+
+class DogHealthConfig(TypedDict, total=False):
+    """Extended health configuration captured during setup."""
+
+    vet_name: str
+    vet_phone: str
+    last_vet_visit: str | None
+    next_checkup: str | None
+    weight_tracking: bool
+    ideal_weight: float | None
+    body_condition_score: int
+    activity_level: str
+    weight_goal: str
+    spayed_neutered: bool
+    health_conditions: list[str]
+    special_diet_requirements: list[str]
+    vaccinations: dict[str, DogVaccinationRecord]
+    medications: list[DogMedicationEntry]
+
+
+class DogModulesConfig(TypedDict, total=False):
+    """Per-dog module enablement settings."""
+
+    feeding: bool
+    walk: bool
+    health: bool
+    gps: bool
+    garden: bool
+    notifications: bool
+    dashboard: bool
+    visitor: bool
+    grooming: bool
+    medication: bool
+    training: bool
+    weather: bool
+
+
+class DogGPSConfig(TypedDict, total=False):
+    """GPS configuration captured during the dog setup flow."""
+
+    gps_source: str
+    gps_update_interval: int
+    gps_accuracy_filter: float | int
+    enable_geofencing: bool
+    home_zone_radius: int | float
+
+
+class DogFeedingConfig(TypedDict, total=False):
+    """Feeding configuration captured during setup."""
+
+    meals_per_day: int
+    daily_food_amount: float | int
+    food_type: str
+    feeding_schedule: str
+    breakfast_time: str
+    lunch_time: str
+    dinner_time: str
+    snack_times: list[str]
+    enable_reminders: bool
+    reminder_minutes_before: int
+    portion_size: float | int
+    health_aware_portions: bool
+    dog_weight: float | int | None
+    ideal_weight: float | int | None
+    age_months: int | None
+    breed_size: str
+    activity_level: str
+    body_condition_score: int
+    health_conditions: list[str]
+    weight_goal: str
+    spayed_neutered: bool
+    special_diet: list[str]
+    diet_validation: DietValidationResult
+    medication_with_meals: bool
+
+
+class GeofenceOptions(TypedDict, total=False):
+    """Options structure describing geofencing configuration for a profile."""
+
+    geofencing_enabled: bool
+    use_home_location: bool
+    geofence_lat: float | None
+    geofence_lon: float | None
+    geofence_radius_m: int
+    geofence_alerts_enabled: bool
+    safe_zone_alerts: bool
+    restricted_zone_alerts: bool
+    zone_entry_notifications: bool
+    zone_exit_notifications: bool
+
+
+class NotificationOptions(TypedDict, total=False):
+    """Structured notification preferences stored in config entry options."""
+
+    quiet_hours: bool
+    quiet_start: str
+    quiet_end: str
+    reminder_repeat_min: int
+    priority_notifications: bool
+    mobile_notifications: bool
+
+
+class WeatherOptions(TypedDict, total=False):
+    """Typed weather monitoring preferences stored in config entry options."""
+
+    weather_entity: str | None
+    weather_health_monitoring: bool
+    weather_alerts: bool
+    weather_update_interval: int
+    temperature_alerts: bool
+    uv_alerts: bool
+    humidity_alerts: bool
+    wind_alerts: bool
+    storm_alerts: bool
+    breed_specific_recommendations: bool
+    health_condition_adjustments: bool
+    auto_activity_adjustments: bool
+    notification_threshold: Literal["low", "moderate", "high"]
+
+
+class FeedingOptions(TypedDict, total=False):
+    """Typed feeding configuration stored in config entry options."""
+
+    default_meals_per_day: int
+    feeding_reminders: bool
+    portion_tracking: bool
+    calorie_tracking: bool
+    auto_schedule: bool
+
+
+class HealthOptions(TypedDict, total=False):
+    """Typed health configuration stored in config entry options."""
+
+    weight_tracking: bool
+    medication_reminders: bool
+    vet_reminders: bool
+    grooming_reminders: bool
+    health_alerts: bool
+
+
+class SystemOptions(TypedDict, total=False):
+    """System-wide maintenance preferences persisted in options."""
+
+    data_retention_days: int
+    auto_backup: bool
+    performance_mode: Literal["minimal", "balanced", "full"]
+
+
+class DashboardOptions(TypedDict, total=False):
+    """Dashboard rendering preferences for the integration."""
+
+    show_statistics: bool
+    show_alerts: bool
+    compact_mode: bool
+    show_maps: bool
+
+
+class AdvancedOptions(TypedDict, total=False):
+    """Advanced diagnostics and integration toggles stored on the entry."""
+
+    performance_mode: Literal["minimal", "balanced", "full"]
+    debug_logging: bool
+    data_retention_days: int
+    auto_backup: bool
+    experimental_features: bool
+    external_integrations: bool
+    api_endpoint: str
+    api_token: str
+
+
+class PerformanceOptions(TypedDict, total=False):
+    """Performance tuning parameters applied through the options flow."""
+
+    entity_profile: str
+    performance_mode: Literal["minimal", "balanced", "full"]
+    batch_size: int
+    cache_ttl: int
+    selective_refresh: bool
+
+
+class GPSOptions(TypedDict, total=False):
+    """Global GPS configuration stored in the options flow."""
+
+    gps_enabled: bool
+    gps_update_interval: int
+    gps_accuracy_filter: float
+    gps_distance_filter: float
+    route_recording: bool
+    route_history_days: int
+    auto_track_walks: bool
+
+
+class DogOptionsEntry(TypedDict, total=False):
+    """Per-dog overrides captured via the options flow."""
+
+    dog_id: str
+    modules: DogModulesConfig
+
+
+type DogOptionsMap = dict[str, DogOptionsEntry]
+
+
+class PawControlOptionsData(PerformanceOptions, total=False):
+    """Complete options mapping persisted on :class:`ConfigEntry` objects."""
+
+    geofence_settings: GeofenceOptions
+    notifications: NotificationOptions
+    weather_settings: WeatherOptions
+    feeding_settings: FeedingOptions
+    health_settings: HealthOptions
+    system_settings: SystemOptions
+    dashboard_settings: DashboardOptions
+    advanced_settings: AdvancedOptions
+    gps_settings: GPSOptions
+    gps_update_interval: int
+    gps_distance_filter: float
+    gps_accuracy_filter: float
+    external_integrations: bool
+    api_endpoint: str
+    api_token: str
+    weather_entity: str | None
+    reset_time: str
+    data_retention_days: int
+    modules: DogModulesConfig
+    dog_options: DogOptionsMap
+    dogs: list[DogConfigData]
+    import_source: str
+    last_reauth: NotRequired[str]
+    reauth_health_issues: NotRequired[list[str]]
+    reauth_health_warnings: NotRequired[list[str]]
+    last_reauth_summary: NotRequired[str]
+
+
+class ConfigFlowDiscoveryData(TypedDict, total=False):
+    """Metadata captured from config flow discovery sources."""
+
+    source: Literal["zeroconf", "dhcp", "usb", "bluetooth", "import", "reauth"]
+    hostname: str
+    host: str
+    port: int
+    ip: str
+    macaddress: str
+    properties: dict[str, Any]
+    type: str
+    name: str
+    description: str
+    manufacturer: str
+    vid: str
+    pid: str
+    serial_number: str
+    device: str
+    address: str
+    service_uuids: list[str]
+
+
+class ConfigFlowGlobalSettings(TypedDict, total=False):
+    """Global configuration captured during the setup flow."""
+
+    performance_mode: Literal["minimal", "balanced", "full"]
+    enable_analytics: bool
+    enable_cloud_backup: bool
+    data_retention_days: int
+    debug_logging: bool
+
+
+class DashboardSetupConfig(TypedDict, total=False):
+    """Dashboard preferences collected during setup before persistence."""
+
+    dashboard_enabled: bool
+    dashboard_auto_create: bool
+    dashboard_per_dog: bool
+    dashboard_theme: str
+    dashboard_mode: str
+    dashboard_template: str
+    show_statistics: bool
+    show_maps: bool
+    show_health_charts: bool
+    show_feeding_schedule: bool
+    show_alerts: bool
+    compact_mode: bool
+    auto_refresh: bool
+    refresh_interval: int
+
+
+class FeedingSetupConfig(TypedDict, total=False):
+    """Feeding defaults gathered while configuring modules during setup."""
+
+    default_daily_food_amount: float | int
+    default_meals_per_day: int
+    default_food_type: str
+    default_special_diet: list[str]
+    default_feeding_schedule_type: str
+    auto_portion_calculation: bool
+    medication_with_meals: bool
+    feeding_reminders: bool
+    portion_tolerance: int
+
+
+class ExternalEntityConfig(TypedDict, total=False):
+    """External entity mappings selected throughout the setup flow."""
+
+    gps_source: str
+    door_sensor: str
+    notify_fallback: str
+
+
+class ModuleConfigurationSummary(TypedDict):
+    """Aggregated per-module counts used while configuring dashboards."""
+
+    total: int
+    gps_dogs: int
+    health_dogs: int
+    feeding_dogs: int
+    counts: dict[str, int]
+    description: str
+
+
+class OptionsExportPayload(TypedDict, total=False):
+    """Structured payload captured by the options import/export tools."""
+
+    version: Literal[1]
+    options: PawControlOptionsData
+    dogs: list[DogConfigData]
+    created_at: str
+
+
+class ReauthHealthSummary(TypedDict, total=False):
+    """Normalised health snapshot gathered during reauthentication."""
+
+    healthy: bool
+    issues: list[str]
+    warnings: list[str]
+    validated_dogs: int
+    total_dogs: int
+    invalid_modules: NotRequired[int]
+    dogs_count: NotRequired[int]
+    valid_dogs: NotRequired[int]
+    profile: NotRequired[str]
+    estimated_entities: NotRequired[int]
+
+
+class ReauthDataUpdates(TypedDict, total=False):
+    """Data fields persisted on the config entry after reauth."""
+
+    reauth_timestamp: str
+    reauth_version: int
+    health_status: bool
+    health_validated_dogs: int
+    health_total_dogs: int
+
+
+class ReauthOptionsUpdates(TypedDict, total=False):
+    """Options fields updated after a successful reauth."""
+
+    last_reauth: str
+    reauth_health_issues: list[str]
+    reauth_health_warnings: list[str]
+    last_reauth_summary: str
+
+
+class ReauthPlaceholders(TypedDict):
+    """Description placeholders rendered on the reauth confirm form."""
+
+    integration_name: str
+    dogs_count: str
+    current_profile: str
+    health_status: str
+
+
+class ReconfigureProfileInput(TypedDict):
+    """Schema-constrained payload submitted by the reconfigure form."""
+
+    entity_profile: str
+
+
+class ReconfigureCompatibilityResult(TypedDict):
+    """Result of validating a profile change against existing dog configs."""
+
+    compatible: bool
+    warnings: list[str]
+
+
+class ReconfigureDataUpdates(TypedDict, total=False):
+    """Config entry data persisted after a successful reconfigure."""
+
+    entity_profile: str
+    reconfigure_timestamp: str
+    reconfigure_version: int
+
+
+class ReconfigureTelemetry(TypedDict, total=False):
+    """Structured telemetry recorded for reconfigure operations."""
+
+    requested_profile: str
+    previous_profile: str
+    dogs_count: int
+    estimated_entities: int
+    timestamp: str
+    version: int
+    compatibility_warnings: NotRequired[list[str]]
+    health_summary: NotRequired[ReauthHealthSummary]
+
+
+class ReconfigureTelemetrySummary(TypedDict, total=False):
+    """Condensed view of reconfigure telemetry for diagnostics pipelines."""
+
+    timestamp: str
+    requested_profile: str
+    previous_profile: str
+    dogs_count: int
+    estimated_entities: int
+    version: int
+    warnings: list[str]
+    warning_count: int
+    healthy: bool
+    health_issues: list[str]
+    health_issue_count: int
+    health_warnings: list[str]
+    health_warning_count: int
+
+
+class ReconfigureOptionsUpdates(TypedDict, total=False):
+    """Config entry options updated after a successful reconfigure."""
+
+    entity_profile: str
+    last_reconfigure: str
+    previous_profile: str
+    reconfigure_telemetry: ReconfigureTelemetry
+
+
+class ReconfigureFormPlaceholders(TypedDict, total=False):
+    """Description placeholders displayed on the reconfigure form."""
+
+    current_profile: str
+    profiles_info: str
+    dogs_count: str
+    compatibility_info: str
+    estimated_entities: str
+    error_details: str
+
+
+class DogValidationResult(TypedDict):
+    """Validation result payload for dog configuration forms."""
+
+    valid: bool
+    errors: dict[str, str]
+
+
+class DogValidationCacheEntry(TypedDict):
+    """Cached validation result metadata for config and options flows."""
+
+    result: DogValidationResult | dict[str, Any] | None
+    cached_at: float
+    state_signature: NotRequired[str]
+
+
+class DogSetupStepInput(TypedDict, total=False):
+    """Minimal dog setup fields collected during the primary form."""
+
+    dog_id: str
+    dog_name: str
+    dog_breed: str | None
+    dog_age: int | float | None
+    dog_weight: float | int | None
+    dog_size: str | None
+
+
+DogValidationCache = dict[str, DogValidationCacheEntry]
+
 Timestamp = datetime
 """Type alias for datetime objects used as timestamps.
 
@@ -213,7 +726,331 @@ is needed with proper type hinting.
 """
 
 
-class DogConfigData(TypedDict):
+class FeedingModulePayload(TypedDict, total=False):
+    """Typed payload exposed by the feeding coordinator module."""
+
+    status: Required[str]
+    last_feeding: Any | None
+    feedings_today: dict[str, Any]
+    total_feedings_today: int
+    daily_amount_consumed: float
+    daily_portions: int
+    feeding_schedule: list[Any]
+    daily_calorie_target: float | None
+    total_calories_today: float | None
+    portion_adjustment_factor: float | None
+    health_feeding_status: str
+    medication_with_meals: bool
+    health_aware_feeding: bool
+    health_conditions: list[Any]
+    daily_activity_level: str | None
+    weight_goal: Any
+    weight_goal_progress: Any
+    health_emergency: bool
+    emergency_mode: Any
+    health_summary: dict[str, Any]
+    message: NotRequired[str]
+
+
+class WalkModulePayload(TypedDict, total=False):
+    """Telemetry returned by the walk adapter."""
+
+    status: Required[str]
+    current_walk: dict[str, Any] | None
+    last_walk: dict[str, Any] | None
+    daily_walks: int
+    total_distance: float
+    message: NotRequired[str]
+
+
+class GPSModulePayload(TypedDict, total=False):
+    """GPS metrics surfaced through the GPS adapter."""
+
+    status: Required[str]
+    latitude: float | None
+    longitude: float | None
+    accuracy: float | None
+    last_update: str | None
+    source: str | None
+    active_route: dict[str, Any] | None
+
+
+class GeofencingModulePayload(TypedDict, total=False):
+    """Structured geofence payload for coordinator consumers."""
+
+    status: Required[str]
+    zones_configured: int
+    zone_status: dict[str, Any]
+    current_location: dict[str, Any] | None
+    safe_zone_breaches: int
+    last_update: Any
+    message: NotRequired[str]
+    error: NotRequired[str]
+
+
+class HealthModulePayload(TypedDict, total=False):
+    """Combined health telemetry exposed by the health adapter."""
+
+    status: Required[str]
+    weight: float | None
+    ideal_weight: float | None
+    last_vet_visit: str | None
+    medications: list[Any]
+    health_alerts: list[Any]
+    life_stage: str | None
+    activity_level: str | None
+    body_condition_score: float | int | None
+    health_conditions: list[Any]
+    emergency: dict[str, Any]
+    medication: dict[str, Any]
+    health_status: str | None
+    daily_calorie_target: float | None
+    total_calories_today: float | None
+    weight_goal_progress: Any
+    weight_goal: Any
+
+
+class WeatherModulePayload(TypedDict, total=False):
+    """Weather-driven health insights returned by the weather adapter."""
+
+    status: Required[str]
+    health_score: float | int | None
+    alerts: list[Any]
+    recommendations: list[Any]
+    conditions: dict[str, Any]
+    message: NotRequired[str]
+
+
+class GardenModulePayload(TypedDict, total=False):
+    """Garden telemetry surfaced to coordinators."""
+
+    status: Required[str]
+    message: NotRequired[str]
+    sessions: list[Any]
+    recent_activity: list[Any]
+    stats: dict[str, Any]
+
+
+ModuleAdapterPayload = (
+    FeedingModulePayload
+    | WalkModulePayload
+    | GPSModulePayload
+    | GeofencingModulePayload
+    | HealthModulePayload
+    | WeatherModulePayload
+    | GardenModulePayload
+)
+
+
+class CacheDiagnosticsMetadata(TypedDict, total=False):
+    """Metadata surfaced by cache diagnostics providers."""
+
+    cleanup_invocations: int
+    last_cleanup: datetime | str | None
+    last_override_ttl: int | float | None
+    last_expired_count: int
+    expired_entries: int
+    expired_via_override: int
+    pending_expired_entries: int
+    pending_override_candidates: int
+    active_override_flags: int
+    per_module: dict[str, Any]
+    per_dog: dict[str, Any]
+    per_dog_helpers: dict[str, Any]
+    entity_domains: dict[str, int]
+    errors: list[str]
+    summary: dict[str, Any]
+    snapshots: list[dict[str, Any]]
+    created_entities: list[str]
+    detection_stats: dict[str, Any]
+    cleanup_task_active: bool
+    cleanup_listeners: int
+    daily_reset_configured: bool
+    namespace: str
+    storage_path: str
+    timestamp_anomalies: dict[str, str]
+    last_generated: str | None
+    manager_last_generated_age_seconds: int | float
+    manager_last_activity: str | None
+    manager_last_activity_age_seconds: int | float
+
+
+class CacheDiagnosticsSnapshot(TypedDict, total=False):
+    """Structured diagnostics snapshot returned by cache monitors."""
+
+    stats: dict[str, Any]
+    diagnostics: CacheDiagnosticsMetadata
+    snapshot: dict[str, Any]
+    error: str
+
+
+CacheDiagnosticsMap = dict[str, CacheDiagnosticsSnapshot]
+"""Mapping from cache identifiers to diagnostics snapshots."""
+
+
+class CacheRepairIssue(TypedDict, total=False):
+    """Per-cache anomaly metadata forwarded to Home Assistant repairs."""
+
+    cache: Required[str]
+    entries: NotRequired[int]
+    hits: NotRequired[int]
+    misses: NotRequired[int]
+    hit_rate: NotRequired[float]
+    expired_entries: NotRequired[int]
+    expired_via_override: NotRequired[int]
+    pending_expired_entries: NotRequired[int]
+    pending_override_candidates: NotRequired[int]
+    active_override_flags: NotRequired[int]
+    errors: NotRequired[list[str]]
+
+
+class CacheRepairAggregate(TypedDict, total=False):
+    """Aggregated cache health metrics surfaced through repairs issues."""
+
+    total_caches: Required[int]
+    anomaly_count: Required[int]
+    severity: Required[str]
+    generated_at: Required[str]
+    caches_with_errors: NotRequired[list[str]]
+    caches_with_expired_entries: NotRequired[list[str]]
+    caches_with_pending_expired_entries: NotRequired[list[str]]
+    caches_with_override_flags: NotRequired[list[str]]
+    caches_with_low_hit_rate: NotRequired[list[str]]
+    totals: NotRequired[dict[str, int | float]]
+    issues: NotRequired[list[CacheRepairIssue]]
+
+
+class CacheDiagnosticsCapture(TypedDict, total=False):
+    """Snapshot captured by services during maintenance routines."""
+
+    snapshots: Required[CacheDiagnosticsMap]
+    repair_summary: NotRequired[CacheRepairAggregate]
+
+
+class MaintenanceExecutionDiagnostics(TypedDict, total=False):
+    """Diagnostics metadata captured by maintenance utilities."""
+
+    cache: NotRequired[CacheDiagnosticsCapture]
+    metadata: NotRequired[dict[str, Any]]
+
+
+class MaintenanceExecutionResult(TypedDict, total=False):
+    """Structured payload appended after running maintenance utilities."""
+
+    task: Required[str]
+    status: Required[Literal["success", "error"]]
+    recorded_at: Required[str]
+    message: NotRequired[str]
+    diagnostics: NotRequired[MaintenanceExecutionDiagnostics]
+    details: NotRequired[dict[str, Any]]
+
+
+class ServiceExecutionDiagnostics(TypedDict, total=False):
+    """Diagnostics metadata captured while executing a service handler."""
+
+    cache: NotRequired[CacheDiagnosticsCapture]
+    metadata: NotRequired[dict[str, Any]]
+
+
+class ServiceExecutionResult(TypedDict, total=False):
+    """Structured payload appended to runtime stats after service execution."""
+
+    service: Required[str]
+    status: Required[Literal["success", "error"]]
+    dog_id: NotRequired[str]
+    message: NotRequired[str]
+    diagnostics: NotRequired[ServiceExecutionDiagnostics]
+    details: NotRequired[dict[str, Any]]
+
+
+class CoordinatorRepairsSummary(TypedDict, total=False):
+    """Condensed repairs telemetry surfaced alongside coordinator statistics."""
+
+    severity: str
+    anomaly_count: int
+    total_caches: int
+    generated_at: str
+    issues: int
+    caches_with_errors: NotRequired[int]
+    caches_with_expired_entries: NotRequired[int]
+    caches_with_pending_expired_entries: NotRequired[int]
+    caches_with_override_flags: NotRequired[int]
+    caches_with_low_hit_rate: NotRequired[int]
+
+
+class CoordinatorUpdateCounts(TypedDict):
+    """Aggregated update counters exposed by coordinator diagnostics."""
+
+    total: int
+    successful: int
+    failed: int
+
+
+class CoordinatorPerformanceMetrics(TypedDict):
+    """Performance metrics captured for coordinator statistics panels."""
+
+    success_rate: float
+    cache_entries: int
+    cache_hit_rate: float
+    consecutive_errors: int
+    last_update: Any
+    update_interval: float
+    api_calls: int
+
+
+class CoordinatorHealthIndicators(TypedDict, total=False):
+    """Health indicator flags surfaced alongside coordinator statistics."""
+
+    consecutive_errors: int
+    stability_window_ok: bool
+
+
+class CoordinatorStatisticsPayload(TypedDict):
+    """Structured payload returned by :class:`CoordinatorMetrics.update_statistics`."""
+
+    update_counts: CoordinatorUpdateCounts
+    performance_metrics: CoordinatorPerformanceMetrics
+    health_indicators: CoordinatorHealthIndicators
+    repairs: NotRequired[CoordinatorRepairsSummary]
+    reconfigure: NotRequired[ReconfigureTelemetrySummary]
+
+
+class CoordinatorRuntimeContext(TypedDict):
+    """Context metadata included in runtime statistics snapshots."""
+
+    total_dogs: int
+    last_update: Any
+    update_interval: float
+
+
+class CoordinatorErrorSummary(TypedDict):
+    """Error summary included with coordinator runtime statistics."""
+
+    consecutive_errors: int
+    error_rate: float
+
+
+class CoordinatorCachePerformance(TypedDict):
+    """Cache performance counters surfaced during runtime diagnostics."""
+
+    hits: int
+    misses: int
+    entries: int
+    hit_rate: float
+
+
+class CoordinatorRuntimeStatisticsPayload(TypedDict):
+    """Payload returned by :class:`CoordinatorMetrics.runtime_statistics`."""
+
+    update_counts: CoordinatorUpdateCounts
+    context: CoordinatorRuntimeContext
+    error_summary: CoordinatorErrorSummary
+    cache_performance: CoordinatorCachePerformance
+    repairs: NotRequired[CoordinatorRepairsSummary]
+    reconfigure: NotRequired[ReconfigureTelemetrySummary]
+
+
+class DogConfigData(TypedDict, total=False):
     """Type definition for comprehensive dog configuration data.
 
     This TypedDict defines the complete structure for dog configuration including
@@ -244,16 +1081,19 @@ class DogConfigData(TypedDict):
     dog_name: Required[str]
 
     # Optional fields with comprehensive coverage for dog characteristics
-    dog_breed: str | None
-    dog_age: int | None
-    dog_weight: float | None
-    dog_size: str | None
-    dog_color: str | None
-    microchip_id: str | None
-    vet_contact: str | None
-    emergency_contact: str | None
-    modules: dict[str, bool]  # Module configuration determines available features
-    discovery_info: dict[str, Any] | None  # Device discovery integration support
+    dog_breed: NotRequired[str | None]
+    dog_age: NotRequired[int | None]
+    dog_weight: NotRequired[float | None]
+    dog_size: NotRequired[str | None]
+    dog_color: NotRequired[str | None]
+    microchip_id: NotRequired[str | None]
+    vet_contact: NotRequired[str | None]
+    emergency_contact: NotRequired[str | None]
+    modules: NotRequired[DogModulesConfig]
+    discovery_info: NotRequired[ConfigFlowDiscoveryData]
+    gps_config: NotRequired[DogGPSConfig]
+    feeding_config: NotRequired[DogFeedingConfig]
+    health_config: NotRequired[DogHealthConfig]
 
 
 class DetectionStatistics(TypedDict):
@@ -1180,7 +2020,14 @@ def is_dog_config_valid(config: Any) -> bool:
         return False
 
     # Validate modules configuration if present
-    return not ("modules" in config and not isinstance(config["modules"], dict))
+    if "modules" in config:
+        modules = config["modules"]
+        if not isinstance(modules, dict):
+            return False
+        if any(not isinstance(enabled, bool) for enabled in modules.values()):
+            return False
+
+    return True
 
 
 def is_gps_location_valid(location: Any) -> bool:

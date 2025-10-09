@@ -38,7 +38,15 @@ from .const import (
     SPECIAL_DIET_OPTIONS,
 )
 from .selector_shim import selector
-from .types import DogConfigData
+from .types import (
+    ConfigFlowGlobalSettings,
+    DashboardSetupConfig,
+    DogConfigData,
+    DogModulesConfig,
+    ExternalEntityConfig,
+    FeedingSetupConfig,
+    ModuleConfigurationSummary,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,9 +57,11 @@ if TYPE_CHECKING:
         """Type-checking protocol describing the module flow host."""
 
         _dogs: list[DogConfigData]
-        _global_settings: dict[str, Any]
-        _dashboard_config: dict[str, Any]
-        _feeding_config: dict[str, Any]
+        _global_settings: ConfigFlowGlobalSettings
+        _dashboard_config: DashboardSetupConfig
+        _feeding_config: FeedingSetupConfig
+        _enabled_modules: DogModulesConfig
+        _external_entities: ExternalEntityConfig
 
         async def async_step_configure_external_entities(
             self, user_input: dict[str, Any] | None = None
@@ -115,17 +125,17 @@ class ModuleConfigurationMixin:
 
         if user_input is not None:
             # Store global settings
-            flow._global_settings = {
-                "performance_mode": user_input.get("performance_mode", "balanced"),
-                "enable_analytics": user_input.get("enable_analytics", False),
-                "enable_cloud_backup": user_input.get("enable_cloud_backup", False),
-                "data_retention_days": user_input.get("data_retention_days", 90),
-                "debug_logging": user_input.get("debug_logging", False),
-            }
+            flow._global_settings = ConfigFlowGlobalSettings(
+                performance_mode=user_input.get("performance_mode", "balanced"),
+                enable_analytics=user_input.get("enable_analytics", False),
+                enable_cloud_backup=user_input.get("enable_cloud_backup", False),
+                data_retention_days=user_input.get("data_retention_days", 90),
+                debug_logging=user_input.get("debug_logging", False),
+            )
 
             # Check if any dog has dashboard enabled
             dashboard_enabled = any(
-                cast(dict[str, Any], dog.get(CONF_MODULES, {})).get(
+                cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
                     MODULE_DASHBOARD, True
                 )
                 for dog in flow._dogs
@@ -136,7 +146,7 @@ class ModuleConfigurationMixin:
 
             # Check if feeding details need configuration
             feeding_enabled = any(
-                cast(dict[str, Any], dog.get(CONF_MODULES, {})).get(
+                cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
                     MODULE_FEEDING, False
                 )
                 for dog in flow._dogs
@@ -147,7 +157,7 @@ class ModuleConfigurationMixin:
 
             # Check if we need external entity configuration
             gps_enabled = any(
-                cast(dict[str, Any], dog.get(CONF_MODULES, {})).get(MODULE_GPS, False)
+                cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(MODULE_GPS, False)
                 for dog in flow._dogs
             )
 
@@ -245,13 +255,13 @@ class ModuleConfigurationMixin:
             dashboard_dogs = [
                 dog
                 for dog in flow._dogs
-                if cast(dict[str, Any], dog.get(CONF_MODULES, {})).get(
+                if cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
                     MODULE_DASHBOARD, True
                 )
             ]
 
             # Store dashboard configuration
-            flow._dashboard_config = {
+            dashboard_config: DashboardSetupConfig = {
                 "dashboard_enabled": True,
                 "dashboard_auto_create": user_input.get("auto_create_dashboard", True),
                 "dashboard_per_dog": user_input.get(
@@ -271,6 +281,7 @@ class ModuleConfigurationMixin:
                 "auto_refresh": user_input.get("auto_refresh", True),
                 "refresh_interval": user_input.get("refresh_interval", 60),
             }
+            flow._dashboard_config = dashboard_config
 
             # Continue to external entities if GPS is enabled
             if self._has_gps_dogs():
@@ -282,7 +293,7 @@ class ModuleConfigurationMixin:
         dashboard_dogs = [
             dog
             for dog in flow._dogs
-            if cast(dict[str, Any], dog.get(CONF_MODULES, {})).get(
+            if cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
                 MODULE_DASHBOARD, True
             )
         ]
@@ -406,7 +417,7 @@ class ModuleConfigurationMixin:
             },
         )
 
-    def _analyze_configured_modules(self) -> dict[str, Any]:
+    def _analyze_configured_modules(self) -> ModuleConfigurationSummary:
         """Analyze which modules are configured across all dogs.
 
         Returns:
@@ -418,7 +429,7 @@ class ModuleConfigurationMixin:
         total_modules = 0
 
         for dog in flow._dogs:
-            modules = cast(dict[str, Any], dog.get(CONF_MODULES, {}))
+            modules = cast(DogModulesConfig, dog.get(CONF_MODULES, {}))
             for module_name, enabled in modules.items():
                 if enabled:
                     module_counts[module_name] = module_counts.get(module_name, 0) + 1
@@ -436,18 +447,20 @@ class ModuleConfigurationMixin:
         if feeding_dogs > 0:
             description_parts.append(f"{feeding_dogs} dogs with feeding tracking")
 
-        return {
-            "total": total_modules,
-            "gps_dogs": gps_dogs,
-            "health_dogs": health_dogs,
-            "feeding_dogs": feeding_dogs,
-            "counts": module_counts,
-            "description": ", ".join(description_parts)
+        return ModuleConfigurationSummary(
+            total=total_modules,
+            gps_dogs=gps_dogs,
+            health_dogs=health_dogs,
+            feeding_dogs=feeding_dogs,
+            counts=module_counts,
+            description=", ".join(description_parts)
             if description_parts
             else "Basic monitoring",
-        }
+        )
 
-    def _suggest_performance_mode(self, module_summary: dict[str, Any]) -> str:
+    def _suggest_performance_mode(
+        self, module_summary: ModuleConfigurationSummary
+    ) -> str:
         """Suggest performance mode based on module complexity.
 
         Args:
@@ -477,7 +490,7 @@ class ModuleConfigurationMixin:
         flow = cast("ModuleFlowHost", self)
 
         return any(
-            cast(dict[str, Any], dog.get(CONF_MODULES, {})).get(MODULE_GPS, False)
+            cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(MODULE_GPS, False)
             for dog in flow._dogs
         )
 
@@ -486,7 +499,7 @@ class ModuleConfigurationMixin:
         flow = cast("ModuleFlowHost", self)
 
         return any(
-            cast(dict[str, Any], dog.get(CONF_MODULES, {})).get(MODULE_HEALTH, False)
+            cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(MODULE_HEALTH, False)
             for dog in flow._dogs
         )
 
@@ -495,7 +508,7 @@ class ModuleConfigurationMixin:
         flow = cast("ModuleFlowHost", self)
 
         return any(
-            cast(dict[str, Any], dog.get(CONF_MODULES, {})).get(MODULE_FEEDING, False)
+            cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(MODULE_FEEDING, False)
             for dog in flow._dogs
         )
 
@@ -559,7 +572,7 @@ class ModuleConfigurationMixin:
 
         if user_input is not None:
             # Store feeding configuration
-            flow._feeding_config = {
+            feeding_config: FeedingSetupConfig = {
                 "default_daily_food_amount": user_input.get("daily_food_amount", 500.0),
                 "default_meals_per_day": user_input.get("meals_per_day", 2),
                 "default_food_type": user_input.get("food_type", "dry_food"),
@@ -574,6 +587,7 @@ class ModuleConfigurationMixin:
                     "portion_tolerance", 10
                 ),  # percentage
             }
+            flow._feeding_config = feeding_config
 
             # Continue to GPS configuration if needed
             if self._has_gps_dogs():
@@ -585,7 +599,7 @@ class ModuleConfigurationMixin:
         feeding_dogs: list[DogConfigData] = [
             dog
             for dog in flow._dogs
-            if cast(dict[str, Any], dog.get(CONF_MODULES, {})).get(
+            if cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
                 MODULE_FEEDING, False
             )
         ]
@@ -707,7 +721,7 @@ class ModuleConfigurationMixin:
         summary_parts: list[str] = []
         for dog in flow._dogs[:3]:  # Show first 3 dogs
             dog_name = dog.get("dog_name", "Unknown")
-            modules = cast(dict[str, Any], dog.get(CONF_MODULES, {}))
+            modules = cast(DogModulesConfig, dog.get(CONF_MODULES, {}))
             enabled_count = sum(1 for enabled in modules.values() if bool(enabled))
             summary_parts.append(f"{dog_name}: {enabled_count} modules")
 

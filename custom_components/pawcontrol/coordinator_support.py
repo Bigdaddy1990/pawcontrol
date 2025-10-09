@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from collections.abc import Mapping as TypingMapping
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 from .const import (
     ALL_MODULES,
@@ -23,7 +23,154 @@ from .const import (
     UPDATE_INTERVALS,
 )
 from .exceptions import ValidationError
-from .types import DogConfigData, PawControlConfigEntry
+from .types import (
+    CacheRepairAggregate,
+    CoordinatorRepairsSummary,
+    CoordinatorRuntimeStatisticsPayload,
+    CoordinatorStatisticsPayload,
+    DogConfigData,
+    PawControlConfigEntry,
+)
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+
+    from .data_manager import PawControlDataManager
+    from .feeding_manager import FeedingManager
+    from .garden_manager import GardenManager
+    from .geofencing import PawControlGeofencing
+    from .gps_manager import GPSGeofenceManager
+    from .notifications import PawControlNotificationManager
+    from .walk_manager import WalkManager
+    from .weather_manager import WeatherHealthManager
+
+
+class SupportsCoordinatorSnapshot(Protocol):
+    """Protocol for caches that expose coordinator diagnostics snapshots."""
+
+    def coordinator_snapshot(self) -> Mapping[str, Any]:
+        """Return a diagnostics snapshot consumable by coordinators."""
+
+
+class SupportsCacheTelemetry(Protocol):
+    """Protocol for caches exposing discrete stats/diagnostics callables."""
+
+    def get_stats(self) -> Mapping[str, Any]:
+        """Return cache statistics used by diagnostics exporters."""
+
+    def get_diagnostics(self) -> Mapping[str, Any]:
+        """Return cache diagnostics used by coordinator panels."""
+
+
+CacheMonitorTarget = SupportsCoordinatorSnapshot | SupportsCacheTelemetry
+
+
+def _build_repair_telemetry(
+    summary: CacheRepairAggregate | None,
+) -> CoordinatorRepairsSummary | None:
+    """Return a condensed repairs payload derived from cache health metadata."""
+
+    if not summary:
+        return None
+
+    def _as_int(value: Any) -> int:
+        try:
+            if isinstance(value, bool):
+                return int(value)
+            return int(float(value))
+        except (TypeError, ValueError):
+            return 0
+
+    def _count_list(key: str) -> int:
+        items = summary.get(key)
+        if isinstance(items, list | tuple | set):
+            return len(tuple(item for item in items if item is not None))
+        return 0
+
+    issues = summary.get("issues")
+    if isinstance(issues, list):
+        issue_count = len([issue for issue in issues if issue is not None])
+    else:
+        issue_count = 0
+
+    severity = str(summary.get("severity", "info"))
+    anomaly_count = _as_int(summary.get("anomaly_count"))
+    total_caches = _as_int(summary.get("total_caches"))
+    generated_at = str(summary.get("generated_at", ""))
+
+    telemetry: CoordinatorRepairsSummary = {
+        "severity": severity,
+        "anomaly_count": anomaly_count,
+        "total_caches": total_caches,
+        "generated_at": generated_at,
+        "issues": issue_count,
+    }
+
+    errors_count = _count_list("caches_with_errors")
+    if errors_count:
+        telemetry["caches_with_errors"] = errors_count
+
+    expired_count = _count_list("caches_with_expired_entries")
+    if expired_count:
+        telemetry["caches_with_expired_entries"] = expired_count
+
+    pending_count = _count_list("caches_with_pending_expired_entries")
+    if pending_count:
+        telemetry["caches_with_pending_expired_entries"] = pending_count
+
+    override_count = _count_list("caches_with_override_flags")
+    if override_count:
+        telemetry["caches_with_override_flags"] = override_count
+
+    low_hit_rate_count = _count_list("caches_with_low_hit_rate")
+    if low_hit_rate_count:
+        telemetry["caches_with_low_hit_rate"] = low_hit_rate_count
+
+    return telemetry
+
+
+@runtime_checkable
+class CacheMonitorRegistrar(Protocol):
+    """Objects that can register cache diagnostics providers."""
+
+    def register_cache_monitor(self, name: str, cache: CacheMonitorTarget) -> None:
+        """Expose ``cache`` under ``name`` for coordinator diagnostics."""
+
+
+@runtime_checkable
+class CoordinatorBindingTarget(Protocol):
+    """Coordinator interface required for runtime manager binding."""
+
+    hass: HomeAssistant
+    config_entry: PawControlConfigEntry
+    data_manager: PawControlDataManager | None
+    feeding_manager: FeedingManager | None
+    walk_manager: WalkManager | None
+    notification_manager: PawControlNotificationManager | None
+    gps_geofence_manager: GPSGeofenceManager | None
+    geofencing_manager: PawControlGeofencing | None
+    weather_health_manager: WeatherHealthManager | None
+    garden_manager: GardenManager | None
+
+
+@runtime_checkable
+class CoordinatorModuleAdapter(Protocol):
+    """Protocol describing the coordinator module adapter surface."""
+
+    def attach_managers(
+        self,
+        *,
+        data_manager: PawControlDataManager | None,
+        feeding_manager: FeedingManager | None,
+        walk_manager: WalkManager | None,
+        gps_geofence_manager: GPSGeofenceManager | None,
+        weather_health_manager: WeatherHealthManager | None,
+        garden_manager: GardenManager | None,
+    ) -> None:
+        """Attach runtime managers used by module adapters."""
+
+    def detach_managers(self) -> None:
+        """Detach previously bound runtime managers."""
 
 
 @dataclass(slots=True)
@@ -139,8 +286,9 @@ class DogConfigRegistry:
             validated_interval = self._validate_gps_interval(provided_interval)
 
         if not self._ids:
-            interval = UPDATE_INTERVALS.get("minimal", 300)
-            return self._enforce_polling_limits(interval)
+            return self._enforce_polling_limits(
+                UPDATE_INTERVALS.get("minimal", 300)
+            )
 
         if self.has_module(MODULE_GPS):
             gps_interval = (
@@ -295,10 +443,11 @@ class CoordinatorMetrics:
         cache_hit_rate: float,
         last_update: Any,
         interval: timedelta | None,
-    ) -> dict[str, Any]:
+        repair_summary: CacheRepairAggregate | None = None,
+    ) -> CoordinatorStatisticsPayload:
         """Return a statistics snapshot for diagnostics panels."""
         update_interval = (interval or timedelta()).total_seconds()
-        return {
+        payload: CoordinatorStatisticsPayload = {
             "update_counts": {
                 "total": self.update_count,
                 "successful": self.successful_cycles,
@@ -319,6 +468,12 @@ class CoordinatorMetrics:
             },
         }
 
+        telemetry = _build_repair_telemetry(repair_summary)
+        if telemetry:
+            payload["repairs"] = telemetry
+
+        return payload
+
     def runtime_statistics(
         self,
         *,
@@ -326,7 +481,8 @@ class CoordinatorMetrics:
         total_dogs: int,
         last_update: Any,
         interval: timedelta | None,
-    ) -> dict[str, Any]:
+        repair_summary: CacheRepairAggregate | None = None,
+    ) -> CoordinatorRuntimeStatisticsPayload:
         """Return runtime statistics derived from cached metrics."""
         update_interval = (interval or timedelta()).total_seconds()
         raw_hit_rate = getattr(cache_metrics, "hit_rate", 0.0)
@@ -335,7 +491,7 @@ class CoordinatorMetrics:
         except (TypeError, ValueError):
             cache_hit_rate = 0.0
         cache_hit_rate = min(max(cache_hit_rate, 0.0), 100.0)
-        return {
+        payload: CoordinatorRuntimeStatisticsPayload = {
             "update_counts": {
                 "total": self.update_count,
                 "successful": self.successful_cycles,
@@ -360,6 +516,12 @@ class CoordinatorMetrics:
             },
         }
 
+        telemetry = _build_repair_telemetry(repair_summary)
+        if telemetry:
+            payload["repairs"] = telemetry
+
+        return payload
+
 
 MANAGER_ATTRIBUTES: tuple[str, ...] = (
     "data_manager",
@@ -374,12 +536,13 @@ MANAGER_ATTRIBUTES: tuple[str, ...] = (
 
 
 def bind_runtime_managers(
-    coordinator: Any,
-    modules: Any,
+    coordinator: CoordinatorBindingTarget,
+    modules: CoordinatorModuleAdapter,
     managers: TypingMapping[str, Any],
 ) -> None:
     """Bind runtime managers to the coordinator and adapters."""
 
+    data_manager = managers.get("data_manager")
     for attr in MANAGER_ATTRIBUTES:
         setattr(coordinator, attr, managers.get(attr))
 
@@ -401,8 +564,19 @@ def bind_runtime_managers(
         garden_manager=managers.get("garden_manager"),
     )
 
+    if (
+        data_manager is not None
+        and notification_manager is not None
+        and isinstance(data_manager, CacheMonitorRegistrar)
+    ):
+        register_method = getattr(notification_manager, "register_cache_monitors", None)
+        if callable(register_method):
+            register_method(data_manager)
 
-def clear_runtime_managers(coordinator: Any, modules: Any) -> None:
+
+def clear_runtime_managers(
+    coordinator: CoordinatorBindingTarget, modules: CoordinatorModuleAdapter
+) -> None:
     """Clear bound runtime managers from the coordinator."""
 
     for attr in MANAGER_ATTRIBUTES:

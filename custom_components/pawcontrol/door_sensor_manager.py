@@ -30,14 +30,19 @@ from homeassistant.helpers.event import (
 from homeassistant.util import dt as dt_util
 
 from .const import (
+    CACHE_TIMESTAMP_FUTURE_THRESHOLD,
+    CACHE_TIMESTAMP_STALE_THRESHOLD,
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOOR_SENSOR,
     EVENT_WALK_ENDED,
     EVENT_WALK_STARTED,
 )
+from .coordinator_support import CacheMonitorRegistrar
 from .notifications import NotificationPriority, NotificationType
 from .types import (
+    CacheDiagnosticsMetadata,
+    CacheDiagnosticsSnapshot,
     DetectionStatistics,
     DetectionStatus,
     DetectionStatusEntry,
@@ -61,6 +66,160 @@ WALK_STATE_IDLE = "idle"
 WALK_STATE_POTENTIAL = "potential"
 WALK_STATE_ACTIVE = "active"
 WALK_STATE_RETURNING = "returning"
+
+
+def _serialize_datetime(value: datetime | None) -> str | None:
+    """Serialize datetimes to ISO format for diagnostics."""
+
+    if value is None:
+        return None
+    return dt_util.as_utc(value).isoformat()
+
+
+def _classify_timestamp(value: datetime | None) -> tuple[str | None, int | None]:
+    """Return anomaly classification for ``value`` if thresholds are crossed."""
+
+    if value is None:
+        return None, None
+
+    delta = dt_util.utcnow() - dt_util.as_utc(value)
+    age_seconds = int(delta.total_seconds())
+
+    if delta < -CACHE_TIMESTAMP_FUTURE_THRESHOLD:
+        return "future", age_seconds
+    if delta > CACHE_TIMESTAMP_STALE_THRESHOLD:
+        return "stale", age_seconds
+    return None, age_seconds
+
+
+class _DoorSensorManagerCacheMonitor:
+    """Expose door sensor manager diagnostics to cache snapshots."""
+
+    __slots__ = ("_manager",)
+
+    def __init__(self, manager: DoorSensorManager) -> None:
+        self._manager = manager
+
+    def _build_payload(
+        self,
+    ) -> tuple[dict[str, Any], dict[str, Any], CacheDiagnosticsMetadata]:
+        manager = self._manager
+        configs = getattr(manager, "_sensor_configs", {})
+        states = getattr(manager, "_detection_states", {})
+        stats_payload = dict(getattr(manager, "_detection_stats", {}))
+        manager_last_activity = getattr(manager, "_last_activity", None)
+
+        per_dog: dict[str, dict[str, Any]] = {}
+        active_detections = 0
+        timestamp_anomalies: dict[str, str] = {}
+
+        for dog_id, config in configs.items():
+            if not isinstance(dog_id, str):
+                continue
+
+            state = states.get(dog_id)
+            if state is not None and state.current_state != WALK_STATE_IDLE:
+                active_detections += 1
+
+            config_payload: dict[str, Any] = {
+                "entity_id": config.entity_id,
+                "enabled": config.enabled,
+                "walk_detection_timeout": config.walk_detection_timeout,
+                "minimum_walk_duration": config.minimum_walk_duration,
+                "maximum_walk_duration": config.maximum_walk_duration,
+                "door_closed_delay": config.door_closed_delay,
+                "require_confirmation": config.require_confirmation,
+                "auto_end_walks": config.auto_end_walks,
+                "confidence_threshold": round(config.confidence_threshold, 3),
+            }
+
+            if state is not None:
+                last_activity_source: datetime | None = state.door_closed_at
+                if last_activity_source is None:
+                    last_activity_source = state.door_opened_at
+                if (
+                    last_activity_source is None
+                    and state.state_history
+                    and isinstance(state.state_history[-1][0], datetime)
+                ):
+                    last_activity_source = state.state_history[-1][0]
+
+                anomaly_reason, state_age = _classify_timestamp(last_activity_source)
+
+                config_payload["state"] = {
+                    "current_state": state.current_state,
+                    "door_opened_at": _serialize_datetime(state.door_opened_at),
+                    "door_closed_at": _serialize_datetime(state.door_closed_at),
+                    "potential_walk_start": _serialize_datetime(
+                        state.potential_walk_start
+                    ),
+                    "active_walk_id": state.active_walk_id,
+                    "confidence_score": round(float(state.confidence_score), 3),
+                    "last_door_state": state.last_door_state,
+                    "consecutive_opens": state.consecutive_opens,
+                    "state_history": [
+                        {
+                            "timestamp": _serialize_datetime(timestamp),
+                            "state": event_state,
+                        }
+                        for timestamp, event_state in getattr(state, "state_history", [])
+                        if isinstance(event_state, str)
+                    ],
+                }
+
+                if state_age is not None:
+                    config_payload["state"]["last_activity_age_seconds"] = state_age
+
+                if anomaly_reason is not None:
+                    timestamp_anomalies[dog_id] = anomaly_reason
+
+            per_dog[dog_id] = config_payload
+
+        stats: dict[str, Any] = {
+            "configured_sensors": len(per_dog),
+            "active_detections": active_detections,
+        }
+        stats.update({k: v for k, v in stats_payload.items() if k not in stats})
+
+        manager_anomaly, manager_age = _classify_timestamp(manager_last_activity)
+        if manager_age is not None:
+            stats["last_activity_age_seconds"] = manager_age
+
+        snapshot: dict[str, Any] = {
+            "per_dog": per_dog,
+            "detection_stats": stats_payload,
+            "manager_last_activity": _serialize_datetime(manager_last_activity),
+        }
+
+        diagnostics: CacheDiagnosticsMetadata = {
+            "per_dog": per_dog,
+            "detection_stats": stats_payload,
+            "cleanup_task_active": getattr(manager, "_cleanup_task", None) is not None,
+            "manager_last_activity": _serialize_datetime(manager_last_activity),
+        }
+
+        if manager_age is not None:
+            diagnostics["manager_last_activity_age_seconds"] = manager_age
+
+        if manager_anomaly is not None:
+            timestamp_anomalies["manager"] = manager_anomaly
+
+        if timestamp_anomalies:
+            diagnostics["timestamp_anomalies"] = timestamp_anomalies
+
+        return stats, snapshot, diagnostics
+
+    def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
+        stats, snapshot, diagnostics = self._build_payload()
+        return {"stats": stats, "snapshot": snapshot, "diagnostics": diagnostics}
+
+    def get_stats(self) -> dict[str, Any]:
+        stats, _snapshot, _diagnostics = self._build_payload()
+        return stats
+
+    def get_diagnostics(self) -> CacheDiagnosticsMetadata:
+        _stats, _snapshot, diagnostics = self._build_payload()
+        return diagnostics
 
 
 @dataclass
@@ -178,6 +337,7 @@ class DoorSensorManager:
         self._detection_states: dict[str, WalkDetectionState] = {}
         self._state_listeners: list[CALLBACK_TYPE] = []
         self._cleanup_task: asyncio.Task | None = None
+        self._last_activity: datetime | None = None
 
         # Dependencies (injected during initialization)
         self._walk_manager: WalkManager | None = None
@@ -191,6 +351,19 @@ class DoorSensorManager:
             "false_negatives": 0,
             "average_confidence": 0.0,
         }
+
+    def register_cache_monitors(
+        self, registrar: CacheMonitorRegistrar, *, prefix: str = "door_sensor"
+    ) -> None:
+        """Register cache diagnostics for the door sensor manager."""
+
+        if registrar is None:
+            raise ValueError("registrar is required")
+
+        _LOGGER.debug("Registering door sensor cache monitor with prefix %s", prefix)
+        registrar.register_cache_monitor(
+            f"{prefix}_cache", _DoorSensorManagerCacheMonitor(self)
+        )
 
     async def async_initialize(
         self,
@@ -354,6 +527,7 @@ class DoorSensorManager:
         # Update state tracking
         detection_state.last_door_state = new_state.state
         detection_state.add_state_event(new_state.state)
+        self._last_activity = dt_util.utcnow()
 
         # Handle door opening
         if old_state.state == STATE_OFF and new_state.state == STATE_ON:

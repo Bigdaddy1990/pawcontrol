@@ -39,7 +39,7 @@ from .const import (
     EVENT_WALK_ENDED,
     EVENT_WALK_STARTED,
 )
-from .types import HealthEvent, WalkEvent
+from .types import CacheDiagnosticsMetadata, HealthEvent, WalkEvent
 from .utils import ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
@@ -85,6 +85,16 @@ class OptimizedDataCache:
         self._hits = 0
         self._misses = 0
         self._lock = asyncio.Lock()
+        self._override_flags: dict[str, bool] = {}
+        self._pending_expired: dict[str, bool] = {}
+        self._diagnostics: CacheDiagnosticsMetadata = {
+            "cleanup_invocations": 0,
+            "expired_entries": 0,
+            "expired_via_override": 0,
+            "last_cleanup": None,
+            "last_override_ttl": None,
+            "last_expired_count": 0,
+        }
 
     async def get(self, key: str, default: Any = None) -> Any:
         """Get cached value with access tracking."""
@@ -158,8 +168,22 @@ class OptimizedDataCache:
                 ):
                     expired_keys.append(key)
 
+            override_expired = 0
             for key in expired_keys:
-                self._remove_locked(key)
+                if self._pending_expired.pop(key, False):
+                    override_expired += 1
+                self._remove_locked(key, record_expiration=False)
+
+            self._diagnostics["cleanup_invocations"] += 1
+            self._diagnostics["last_cleanup"] = now
+            self._diagnostics["last_override_ttl"] = override_ttl
+            self._diagnostics["last_expired_count"] = len(expired_keys)
+            self._diagnostics["expired_entries"] = int(
+                self._diagnostics.get("expired_entries", 0)
+            ) + len(expired_keys)
+            self._diagnostics["expired_via_override"] = (
+                int(self._diagnostics.get("expired_via_override", 0)) + override_expired
+            )
 
         return len(expired_keys)
 
@@ -194,7 +218,7 @@ class OptimizedDataCache:
 
         self._timestamps[key] = now
 
-    def _remove_locked(self, key: str) -> None:
+    def _remove_locked(self, key: str, *, record_expiration: bool = True) -> None:
         """Remove a key from the cache while holding the lock."""
         if key in self._cache:
             value_size = self._estimate_size(self._cache[key])
@@ -204,6 +228,19 @@ class OptimizedDataCache:
         self._timestamps.pop(key, None)
         self._access_count.pop(key, None)
         self._ttls.pop(key, None)
+        self._override_flags.pop(key, None)
+
+        if record_expiration:
+            expired_flag = self._pending_expired.pop(key, None)
+            if expired_flag is not None:
+                self._diagnostics["expired_entries"] = (
+                    int(self._diagnostics.get("expired_entries", 0)) + 1
+                )
+                if expired_flag:
+                    self._diagnostics["expired_via_override"] = (
+                        int(self._diagnostics.get("expired_via_override", 0)) + 1
+                    )
+                self._diagnostics["last_expired_count"] = 1
 
     def _is_expired_locked(
         self,
@@ -215,21 +252,39 @@ class OptimizedDataCache:
 
         timestamp = self._timestamps.get(key)
         if timestamp is None:
+            override_applied = override_ttl is not None
+            self._override_flags[key] = override_applied
+            self._pending_expired[key] = override_applied
             return True
 
-        ttl = (
-            override_ttl
-            if override_ttl is not None
-            else self._ttls.get(key, self._default_ttl_seconds)
-        )
+        stored_ttl = self._ttls.get(key, self._default_ttl_seconds)
+        ttl = stored_ttl
+        override_applied = False
+
+        if override_ttl is not None:
+            if override_ttl <= 0:
+                ttl = 0
+            elif stored_ttl <= 0:
+                ttl = override_ttl
+            else:
+                ttl = min(stored_ttl, override_ttl)
+            override_applied = ttl != stored_ttl
 
         if ttl <= 0:
+            self._override_flags[key] = override_applied
+            self._pending_expired.pop(key, None)
             return False
 
         if now is None:
             now = dt_util.utcnow()
 
-        return now >= timestamp + timedelta(seconds=ttl)
+        expired = now >= timestamp + timedelta(seconds=ttl)
+        self._override_flags[key] = override_applied
+        if expired:
+            self._pending_expired[key] = override_applied
+        else:
+            self._pending_expired.pop(key, None)
+        return expired
 
     def _normalize_ttl(self, ttl_seconds: int) -> int:
         """Normalize TTL seconds to a non-negative integer."""
@@ -278,6 +333,46 @@ class OptimizedDataCache:
             "hit_rate": round(hit_rate, 1),
         }
 
+    def get_metrics(self) -> dict[str, Any]:
+        """Return an extended metrics payload for coordinator diagnostics."""
+
+        metrics = self.get_stats()
+        metrics.update(
+            {
+                "default_ttl_seconds": self._default_ttl_seconds,
+                "tracked_keys": len(self._timestamps),
+                "override_candidates": sum(
+                    1 for flag in self._override_flags.values() if flag
+                ),
+            }
+        )
+        return metrics
+
+    def get_diagnostics(self) -> CacheDiagnosticsMetadata:
+        """Return override-aware cleanup metrics for diagnostics panels."""
+
+        snapshot = cast(CacheDiagnosticsMetadata, dict(self._diagnostics))
+        last_cleanup = snapshot.get("last_cleanup")
+        snapshot["last_cleanup"] = (
+            last_cleanup.isoformat() if isinstance(last_cleanup, datetime) else None
+        )
+        snapshot["pending_expired_entries"] = len(self._pending_expired)
+        snapshot["pending_override_candidates"] = sum(
+            1 for pending in self._pending_expired.values() if pending
+        )
+        snapshot["active_override_flags"] = sum(
+            1 for flag in self._override_flags.values() if flag
+        )
+        return snapshot
+
+    def coordinator_snapshot(self) -> dict[str, Any]:
+        """Return a combined metrics/diagnostics payload for coordinators."""
+
+        return {
+            "stats": self.get_metrics(),
+            "diagnostics": self.get_diagnostics(),
+        }
+
 
 class PawControlDataStorage:
     """OPTIMIZED: Manages persistent data storage with batching and caching."""
@@ -293,6 +388,12 @@ class PawControlDataStorage:
         self._dirty_stores: set[str] = set()
         self._save_task: asyncio.Task | None = None
         self._save_lock = asyncio.Lock()
+
+        runtime_data = getattr(config_entry, "runtime_data", None)
+        manager = getattr(runtime_data, "data_manager", None)
+        register_monitor = getattr(manager, "register_cache_monitor", None)
+        if callable(register_monitor):
+            register_monitor("storage_cache", self._cache)
 
         # Initialize storage for each data type
         self._initialize_stores()

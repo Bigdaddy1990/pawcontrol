@@ -146,6 +146,7 @@ def mock_hass() -> Any:
     hass.services = Mock()
     hass.bus = Mock()
     hass.config_entries = Mock()
+    hass.config_entries.async_update_entry = Mock()
     hass.config = Mock()
     hass.config.latitude = 52.5200
     hass.config.longitude = 13.4050

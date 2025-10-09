@@ -25,6 +25,7 @@ from aiohttp import ClientError, ClientSession, ClientTimeout
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
+from .coordinator_support import CacheMonitorRegistrar
 from .http_client import ensure_shared_client_session
 from .person_entity_manager import PersonEntityManager
 from .resilience import CircuitBreakerConfig, ResilienceManager
@@ -210,6 +211,11 @@ class NotificationCache:
         self._person_targeting_cache: dict[str, tuple[list[str], datetime]] = {}  # NEW
         self._max_size = max_size
         self._access_order: deque[str] = deque()
+        self._diagnostics: dict[str, Any] = {
+            "cleanup_runs": 0,
+            "last_cleanup": None,
+            "last_removed_entries": 0,
+        }
 
     def get_config(self, config_key: str) -> NotificationConfig | None:
         """Get cached configuration.
@@ -371,6 +377,11 @@ class NotificationCache:
                 del channels[channel]
                 cleaned += 1
 
+        self._diagnostics["cleanup_runs"] = (
+            int(self._diagnostics.get("cleanup_runs", 0)) + 1
+        )
+        self._diagnostics["last_cleanup"] = now
+        self._diagnostics["last_removed_entries"] = cleaned
         return cleaned
 
     def get_stats(self) -> dict[str, Any]:
@@ -384,6 +395,27 @@ class NotificationCache:
             "person_targeting_entries": len(self._person_targeting_cache),
             "cache_utilization": len(self._config_cache) / self._max_size * 100,
         }
+
+    def get_diagnostics(self) -> dict[str, Any]:
+        """Return diagnostics metadata consumed by coordinator snapshots."""
+
+        diagnostics = dict(self._diagnostics)
+        last_cleanup = diagnostics.get("last_cleanup")
+        diagnostics["last_cleanup"] = (
+            last_cleanup.isoformat() if isinstance(last_cleanup, datetime) else None
+        )
+        diagnostics["lru_order"] = list(self._access_order)
+        diagnostics["quiet_time_keys"] = list(self._quiet_time_cache)
+        diagnostics["person_targeting_keys"] = list(self._person_targeting_cache)
+        diagnostics["rate_limit_keys"] = {
+            key: len(channels) for key, channels in self._rate_limit_cache.items()
+        }
+        return diagnostics
+
+    def coordinator_snapshot(self) -> dict[str, Any]:
+        """Return a coordinator-friendly snapshot of cache telemetry."""
+
+        return {"stats": self.get_stats(), "diagnostics": self.get_diagnostics()}
 
 
 class PawControlNotificationManager:
@@ -452,6 +484,7 @@ class PawControlNotificationManager:
             "static_fallback_notifications": 0,  # NEW
             "config_updates": 0,  # NEW: track configuration changes
         }
+        self._cache_monitor_registrar: CacheMonitorRegistrar | None = None
 
         # OPTIMIZE: Template system for customizable notifications
         self._templates: dict[str, str] = {
@@ -627,6 +660,7 @@ class PawControlNotificationManager:
             }
 
             await self._person_manager.async_initialize(person_config)
+            self._register_person_cache_monitor()
 
             _LOGGER.info("Person entity manager initialized for notification targeting")
 
@@ -1703,6 +1737,23 @@ class PawControlNotificationManager:
                 # NEW: Person targeting stats
                 "person_entity_stats": person_stats,
             }
+
+    def register_cache_monitors(self, registrar: CacheMonitorRegistrar) -> None:
+        """Register notification-centric caches with the provided registrar."""
+
+        self._cache_monitor_registrar = registrar
+        registrar.register_cache_monitor("notification_cache", self._cache)
+        self._register_person_cache_monitor()
+
+    def _register_person_cache_monitor(self) -> None:
+        """Register the person entity targeting cache when available."""
+
+        if self._cache_monitor_registrar is None or self._person_manager is None:
+            return
+
+        self._person_manager.register_cache_monitors(
+            self._cache_monitor_registrar, prefix="person_entity"
+        )
 
     def webhook_security_status(self) -> dict[str, Any]:
         """Return aggregated HMAC webhook security information."""

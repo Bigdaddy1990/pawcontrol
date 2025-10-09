@@ -92,11 +92,39 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
                 "status": "active",
             }
 
+    class DummyDataManager:
+        def __init__(self) -> None:
+            timestamp = datetime.now(UTC)
+            self._snapshots = {
+                "notification_cache": {
+                    "stats": {
+                        "entries": 2,
+                        "hits": 5,
+                        "api_token": "cache-secret",
+                    },
+                    "diagnostics": {
+                        "cleanup_invocations": 3,
+                        "last_cleanup": timestamp,
+                    },
+                }
+            }
+
+        def cache_snapshots(self) -> dict[str, dict[str, object]]:
+            return self._snapshots
+
+        def get_metrics(self) -> dict[str, object]:
+            return {
+                "dogs": 1,
+                "storage_path": "/tmp/pawcontrol",  # simulate real path data
+                "cache_diagnostics": self._snapshots,
+            }
+
     coordinator = DummyCoordinator()
+    data_manager = DummyDataManager()
 
     runtime = PawControlRuntimeData(
         coordinator=coordinator,
-        data_manager=SimpleNamespace(),
+        data_manager=data_manager,
         notification_manager=SimpleNamespace(),
         feeding_manager=SimpleNamespace(),
         walk_manager=SimpleNamespace(),
@@ -123,3 +151,14 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
 
     debug_info = diagnostics["debug_info"]
     assert debug_info["quality_scale"] == "bronze"
+
+    cache_diagnostics = diagnostics["cache_diagnostics"]
+    cache_entry = cache_diagnostics["notification_cache"]
+    assert cache_entry["stats"]["api_token"] == "**REDACTED**"
+    assert isinstance(cache_entry["diagnostics"]["last_cleanup"], str)
+
+    data_stats = diagnostics["data_statistics"]
+    metrics = data_stats["metrics"]
+    assert metrics["dogs"] == 1
+    cache_stats = metrics["cache_diagnostics"]["notification_cache"]["stats"]
+    assert cache_stats["entries"] == 2

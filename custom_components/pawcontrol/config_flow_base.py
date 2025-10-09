@@ -15,7 +15,7 @@ import asyncio
 import logging
 import re
 import time
-from typing import Any, Final
+from typing import Any, ClassVar, Final
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow
@@ -38,7 +38,14 @@ from .const import (
     MIN_DOG_NAME_LENGTH,
     MIN_DOG_WEIGHT,
 )
-from .types import DogConfigData
+from .types import (
+    ConfigFlowGlobalSettings,
+    DashboardSetupConfig,
+    DogConfigData,
+    DogSetupStepInput,
+    DogValidationCache,
+    FeedingSetupConfig,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -93,7 +100,7 @@ DOG_BASE_SCHEMA: Final = vol.Schema(
 )
 
 
-class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
+class PawControlBaseConfigFlow(ConfigFlow):
     """Base configuration flow with common functionality.
 
     This base class provides shared validation, error handling, and utility
@@ -101,21 +108,24 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
     rate limiting and caching for optimal performance.
     """
 
-    VERSION: Final = 1
-    MINOR_VERSION: Final = 2  # Increased for new per-dog configuration features
+    domain = DOMAIN
+    VERSION: ClassVar[int] = 1
+    MINOR_VERSION: ClassVar[int] = 2  # Increased for new per-dog configuration features
 
     def __init__(self) -> None:
         """Initialize base configuration flow."""
         self._dogs: list[DogConfigData] = []
         self._integration_name = "Paw Control"
         self._errors: dict[str, str] = {}
-        self._validation_cache: dict[str, dict[str, Any]] = {}
+        self._validation_cache: DogValidationCache = {}
         # New: Current dog being configured
         self._current_dog_config: DogConfigData | None = None
         # New: Global settings
-        self._global_settings: dict[str, Any] = {}
+        self._global_settings: ConfigFlowGlobalSettings = {}
         # New: Dashboard configuration
-        self._dashboard_config: dict[str, Any] = {}
+        self._dashboard_config: DashboardSetupConfig = {}
+        # Feeding defaults captured when configuring modules
+        self._feeding_config: FeedingSetupConfig = {}
 
     def _generate_unique_id(self, integration_name: str) -> str:
         """Generate a unique ID for the integration with collision avoidance.
@@ -309,7 +319,7 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
 
         return "\n\n".join(dogs_list)
 
-    async def _suggest_dog_breed(self, user_input: dict[str, Any] | None) -> str:
+    async def _suggest_dog_breed(self, user_input: DogSetupStepInput | None) -> str:
         """Suggest dog breed based on name and characteristics.
 
         Args:
@@ -360,7 +370,7 @@ class PawControlBaseConfigFlow(ConfigFlow, domain=DOMAIN):
         return ""
 
     async def _generate_smart_dog_id_suggestion(
-        self, user_input: dict[str, Any] | None
+        self, user_input: DogSetupStepInput | None
     ) -> str:
         """Generate intelligent dog ID suggestion with ML-style optimization.
 

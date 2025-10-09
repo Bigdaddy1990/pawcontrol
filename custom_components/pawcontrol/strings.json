@@ -277,7 +277,7 @@
       },
       "entity_profile": {
         "title": "Select Entity Profile",
-        "description": "Choose an entity profile for {dogs_count} dog(s). This determines which entities are created.\n\n{profiles_info}",
+        "description": "Choose an entity profile for {dogs_count} dog(s). This determines which entities are created.\n\n{profiles_info}\n\nLast reconfigure: {last_reconfigure}\nRequested profile: {reconfigure_requested_profile}\nPrevious profile: {reconfigure_previous_profile}\nDogs impacted: {reconfigure_dogs}\nEstimated entities: {reconfigure_entities}\nReconfigure health: {reconfigure_health}\nCompatibility warnings: {reconfigure_warnings}",
         "data": {
           "entity_profile": "Entity Profile"
         },
@@ -467,7 +467,17 @@
     "error": {
       "invalid_dog_selection": "Please select a valid dog",
       "cannot_delete_last_dog": "Cannot delete the last configured dog",
-      "invalid_notification_service": "Selected notification service is not available"
+      "invalid_notification_service": "Selected notification service is not available",
+      "invalid_payload": "Import payload could not be validated",
+      "payload_not_mapping": "Import payload must be a JSON object",
+      "unsupported_version": "This export file was created with an unsupported version",
+      "options_missing": "Import payload is missing configuration options",
+      "dogs_invalid": "Import payload must include a list of dogs",
+      "dog_invalid": "Each imported dog entry must be a JSON object",
+      "dog_missing_id": "Each imported dog must include a unique ID",
+      "dog_invalid_modules": "Dog module settings could not be interpreted",
+      "dog_invalid_config": "Imported dog configuration is invalid",
+      "dog_duplicate": "Duplicate dog IDs detected in the import file"
     }
   },
   "entity": {
@@ -1334,6 +1344,14 @@
     "coordinator_error": {
       "title": "Coordinator is unavailable",
       "description": "Paw Control could not access its coordinator ({error}). Follow the suggested action or reload the integration."
+    },
+    "reconfigure_warnings": {
+      "title": "Profile change produced warnings",
+      "description": "The last reconfigure at {timestamp} switched from {previous_profile} to {requested_profile}, but compatibility checks reported: {warnings}."
+    },
+    "reconfigure_health": {
+      "title": "Health issues after reconfigure",
+      "description": "The last reconfigure at {timestamp} for profile {requested_profile} reported issues: {health_issues}. Additional warnings: {health_warnings}."
     }
   }
 }
