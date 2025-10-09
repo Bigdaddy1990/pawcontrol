@@ -3028,7 +3028,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         reminder_sent_at_iso: str | None = None
         if reminder_sent_at_input is not None:
             if isinstance(reminder_sent_at_input, datetime):
-                reminder_sent_at_iso = dt_util.as_utc(reminder_sent_at_input).isoformat()
+                reminder_sent_at_iso = dt_util.as_utc(
+                    reminder_sent_at_input
+                ).isoformat()
             else:
                 parsed_dt = dt_util.parse_datetime(str(reminder_sent_at_input))
                 if parsed_dt is not None:
@@ -3204,11 +3206,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     "weather_conditions": weather_conditions,
                     "temperature": temperature,
                     "automation_fallback": automation_fallback,
-                    **(
-                        {"fallback_reason": fallback_reason}
-                        if fallback_reason
-                        else {}
-                    ),
+                    **({"fallback_reason": fallback_reason} if fallback_reason else {}),
                     **(
                         {"automation_source": automation_source}
                         if automation_source
@@ -3237,9 +3235,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             raise
         except Exception as err:
             _LOGGER.error("Failed to start garden session for %s: %s", dog_id, err)
-            error_message = (
-                f"Failed to start garden session for {dog_id}. Check the logs for details."
-            )
+            error_message = f"Failed to start garden session for {dog_id}. Check the logs for details."
             _record_service_result(
                 runtime_data,
                 service=SERVICE_START_GARDEN,
@@ -3320,9 +3316,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             raise
         except Exception as err:
             _LOGGER.error("Failed to end garden session for %s: %s", dog_id, err)
-            error_message = (
-                f"Failed to end garden session for {dog_id}. Check the logs for details."
-            )
+            error_message = f"Failed to end garden session for {dog_id}. Check the logs for details."
             _record_service_result(
                 runtime_data,
                 service=SERVICE_END_GARDEN,
@@ -3407,9 +3401,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             raise
         except Exception as err:
             _LOGGER.error("Failed to add garden activity for %s: %s", dog_id, err)
-            error_message = (
-                f"Failed to add garden activity for {dog_id}. Check the logs for details."
-            )
+            error_message = f"Failed to add garden activity for {dog_id}. Check the logs for details."
             _record_service_result(
                 runtime_data,
                 service=SERVICE_ADD_GARDEN_ACTIVITY,
@@ -3492,9 +3484,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             raise
         except Exception as err:
             _LOGGER.error("Failed to confirm garden poop for %s: %s", dog_id, err)
-            error_message = (
-                f"Failed to confirm garden poop for {dog_id}. Check the logs for details."
-            )
+            error_message = f"Failed to confirm garden poop for {dog_id}. Check the logs for details."
             _record_service_result(
                 runtime_data,
                 service=SERVICE_CONFIRM_POOP,
@@ -4141,7 +4131,9 @@ async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
                 "cache_snapshot": diagnostics is not None,
             }
             service_details = {
-                key: value for key, value in service_details.items() if value is not None
+                key: value
+                for key, value in service_details.items()
+                if value is not None
             }
             _record_service_result(
                 runtime_data,
@@ -4171,7 +4163,9 @@ async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
                 "cache_snapshot": diagnostics is not None,
             }
             failure_details = {
-                key: value for key, value in failure_details.items() if value is not None
+                key: value
+                for key, value in failure_details.items()
+                if value is not None
             }
             record_maintenance_result(
                 runtime_data,

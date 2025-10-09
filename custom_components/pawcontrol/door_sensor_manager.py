@@ -162,7 +162,9 @@ class _DoorSensorManagerCacheMonitor:
                             "timestamp": _serialize_datetime(timestamp),
                             "state": event_state,
                         }
-                        for timestamp, event_state in getattr(state, "state_history", [])
+                        for timestamp, event_state in getattr(
+                            state, "state_history", []
+                        )
                         if isinstance(event_state, str)
                     ],
                 }

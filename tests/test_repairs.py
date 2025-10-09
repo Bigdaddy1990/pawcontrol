@@ -916,6 +916,7 @@ def test_async_check_for_issues_clears_reconfigure_issues_when_clean(
         for call in delete_issue_mock.await_args_list
     )
 
+
 def test_notification_check_accepts_mobile_app_service_prefix(
     repairs_module: tuple[ModuleType, AsyncMock, type[Any]],
 ) -> None:

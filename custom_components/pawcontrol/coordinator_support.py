@@ -286,9 +286,7 @@ class DogConfigRegistry:
             validated_interval = self._validate_gps_interval(provided_interval)
 
         if not self._ids:
-            return self._enforce_polling_limits(
-                UPDATE_INTERVALS.get("minimal", 300)
-            )
+            return self._enforce_polling_limits(UPDATE_INTERVALS.get("minimal", 300))
 
         if self.has_module(MODULE_GPS):
             gps_interval = (

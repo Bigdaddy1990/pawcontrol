@@ -432,11 +432,7 @@ async def _check_reconfigure_telemetry_issues(
             return [str(item) for item in value if item is not None]
         return []
 
-    timestamp = str(
-        telemetry.get("timestamp")
-        or options.get("last_reconfigure")
-        or ""
-    )
+    timestamp = str(telemetry.get("timestamp") or options.get("last_reconfigure") or "")
     requested_profile = str(telemetry.get("requested_profile", ""))
     previous_profile = str(telemetry.get("previous_profile", ""))
     warnings = _as_list(telemetry.get("compatibility_warnings"))

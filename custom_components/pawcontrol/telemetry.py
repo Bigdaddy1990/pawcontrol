@@ -57,16 +57,10 @@ def summarise_reconfigure_options(
         health_issues = _as_list(health_summary.get("issues"))
         health_warnings = _as_list(health_summary.get("warnings"))
 
-    timestamp = str(
-        telemetry.get("timestamp")
-        or options.get("last_reconfigure")
-        or ""
-    )
+    timestamp = str(telemetry.get("timestamp") or options.get("last_reconfigure") or "")
     requested_profile = str(telemetry.get("requested_profile", ""))
     previous_profile = str(
-        telemetry.get("previous_profile")
-        or options.get("previous_profile")
-        or ""
+        telemetry.get("previous_profile") or options.get("previous_profile") or ""
     )
 
     summary: ReconfigureTelemetrySummary = {

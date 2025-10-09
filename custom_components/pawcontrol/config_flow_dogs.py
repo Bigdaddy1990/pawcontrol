@@ -112,6 +112,7 @@ DIET_COMPATIBILITY_RULES = {
 if TYPE_CHECKING:
     from .config_flow_base import PawControlBaseConfigFlow as DogManagementMixinBase
 else:
+
     class DogManagementMixinBase:  # pragma: no cover - runtime shim
         """Runtime stand-in for the config flow base during type checking."""
 
@@ -129,7 +130,6 @@ class DogManagementMixin(DogManagementMixinBase):
     if TYPE_CHECKING:
         _current_dog_config: DogConfigData | None
         _dogs: list[DogConfigData]
-
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize dog management mixin."""
@@ -753,11 +753,8 @@ class DogManagementMixin(DogManagementMixinBase):
                         ),
                         "dog_weight": current_dog.get(CONF_DOG_WEIGHT),
                         "ideal_weight": health_config["ideal_weight"],
-                        "age_months": current_dog.get(CONF_DOG_AGE, 3)
-                        * 12,
-                        "breed_size": current_dog.get(
-                            CONF_DOG_SIZE, "medium"
-                        ),
+                        "age_months": current_dog.get(CONF_DOG_AGE, 3) * 12,
+                        "breed_size": current_dog.get(CONF_DOG_SIZE, "medium"),
                         "activity_level": health_config["activity_level"],
                         "body_condition_score": health_config["body_condition_score"],
                         "health_conditions": health_config["health_conditions"],

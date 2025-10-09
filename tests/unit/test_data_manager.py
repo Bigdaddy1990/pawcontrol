@@ -353,9 +353,7 @@ def test_script_manager_register_cache_monitor() -> None:
     assert snapshot["stats"]["scripts"] == 2
     diagnostics = snapshot["diagnostics"]
     assert diagnostics["per_dog"]["buddy"]["count"] == 1
-    assert diagnostics["created_entities"] == sorted(
-        diagnostics["created_entities"]
-    )
+    assert diagnostics["created_entities"] == sorted(diagnostics["created_entities"])
 
 
 @pytest.mark.unit
@@ -473,7 +471,9 @@ def test_door_sensor_manager_timestamp_anomaly() -> None:
 
 
 @pytest.mark.unit
-def test_auto_registers_helper_manager_cache(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_auto_registers_helper_manager_cache(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     """Data manager should register helper manager caches when available."""
 
     hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))

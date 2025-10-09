@@ -437,7 +437,9 @@ def _estimate_namespace_entries(payload: Any) -> int:
             total += _estimate_namespace_entries(value)
         return total or len(payload)
 
-    if isinstance(payload, Sequence) and not isinstance(payload, str | bytes | bytearray):
+    if isinstance(payload, Sequence) and not isinstance(
+        payload, str | bytes | bytearray
+    ):
         return len(payload)
 
     return 1 if payload not in (None, "", (), [], {}) else 0
@@ -473,7 +475,9 @@ def _namespace_has_timestamp_field(payload: Any) -> bool:
             if key in payload:
                 return True
         return any(_namespace_has_timestamp_field(value) for value in payload.values())
-    if isinstance(payload, Sequence) and not isinstance(payload, str | bytes | bytearray):
+    if isinstance(payload, Sequence) and not isinstance(
+        payload, str | bytes | bytearray
+    ):
         return any(_namespace_has_timestamp_field(item) for item in payload)
     return False
 
@@ -483,7 +487,9 @@ class _StorageNamespaceCacheMonitor:
 
     __slots__ = ("_label", "_manager", "_namespace")
 
-    def __init__(self, manager: PawControlDataManager, namespace: str, label: str) -> None:
+    def __init__(
+        self, manager: PawControlDataManager, namespace: str, label: str
+    ) -> None:
         self._manager = manager
         self._namespace = namespace
         self._label = label
@@ -1152,7 +1158,9 @@ class PawControlDataManager:
         """Register cache monitors exposed by ``manager`` if available."""
 
         if manager is None:
-            _LOGGER.debug("Skipping cache monitor registration for %s: manager missing", label)
+            _LOGGER.debug(
+                "Skipping cache monitor registration for %s: manager missing", label
+            )
             return
 
         registrar = getattr(manager, "register_cache_monitors", None)
@@ -1235,9 +1243,7 @@ class PawControlDataManager:
                     "entity_budget_tracker", _EntityBudgetMonitor(tracker)
                 )
             except Exception as err:  # pragma: no cover - diagnostics guard
-                _LOGGER.debug(
-                    "Failed to register entity budget cache monitor: %s", err
-                )
+                _LOGGER.debug("Failed to register entity budget cache monitor: %s", err)
 
         self._register_manager_cache_monitors(
             getattr(coordinator, "notification_manager", None),

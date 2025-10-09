@@ -145,6 +145,7 @@ class _ScriptManagerCacheMonitor:
         _stats, _snapshot, diagnostics = self._build_payload()
         return diagnostics
 
+
 _SCRIPT_ENTITY_PREFIX: Final[str] = f"{SCRIPT_DOMAIN}."
 
 
@@ -176,7 +177,9 @@ class PawControlScriptManager:
             raise ValueError("registrar is required")
 
         _LOGGER.debug("Registering script manager cache monitor with prefix %s", prefix)
-        registrar.register_cache_monitor(f"{prefix}_cache", _ScriptManagerCacheMonitor(self))
+        registrar.register_cache_monitor(
+            f"{prefix}_cache", _ScriptManagerCacheMonitor(self)
+        )
 
     def _get_component(
         self, *, require_loaded: bool = True

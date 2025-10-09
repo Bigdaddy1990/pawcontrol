@@ -299,8 +299,7 @@ class PawControlOptionsFlow(OptionsFlow):
             modules: DogModulesConfig = {}
         elif isinstance(modules_raw, Mapping):
             modules = {
-                str(module): bool(value)
-                for module, value in modules_raw.items()
+                str(module): bool(value) for module, value in modules_raw.items()
             }
         else:
             raise ValueError("dog_invalid_modules")

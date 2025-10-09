@@ -188,6 +188,8 @@ def test_build_update_statistics_summarises_options_when_uncached(monkeypatch) -
     assert summary["warning_count"] == 1
     assert summary["health_issue_count"] == 1
     assert summary["healthy"] is False
+
+
 @pytest.mark.asyncio
 async def test_run_maintenance_records_success(monkeypatch) -> None:
     """Coordinator maintenance should record structured telemetry on success."""

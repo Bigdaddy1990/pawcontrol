@@ -155,9 +155,7 @@ async def run_maintenance(coordinator: PawControlCoordinator) -> None:
         try:
             expired = coordinator._modules.cleanup_expired(now)
             if expired:
-                coordinator.logger.debug(
-                    "Cleaned %d expired cache entries", expired
-                )
+                coordinator.logger.debug("Cleaned %d expired cache entries", expired)
                 details["expired_entries"] = expired
 
             if (

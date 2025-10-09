@@ -130,7 +130,9 @@ class _DataManagerStub:
         if self.fail_groom:
             raise self.fail_groom
 
-        self.groom_calls.append({"dog_id": dog_id, "grooming_data": dict(grooming_data)})
+        self.groom_calls.append(
+            {"dog_id": dog_id, "grooming_data": dict(grooming_data)}
+        )
         return self.next_session_id
 
 
@@ -633,7 +635,10 @@ async def test_perform_daily_reset_records_failure(
     failure_metadata = maintenance_last["diagnostics"]["metadata"]
     assert failure_metadata["refresh_requested"] is False
     assert failure_metadata["reconfigure"]["requested_profile"] == "advanced"
-    assert runtime_data.performance_stats["reconfigure_summary"]["requested_profile"] == "advanced"
+    assert (
+        runtime_data.performance_stats["reconfigure_summary"]["requested_profile"]
+        == "advanced"
+    )
 
 
 @pytest.mark.unit
@@ -934,7 +939,9 @@ async def test_log_poop_service_records_success(
     assert result["service"] == services.SERVICE_LOG_POOP
     assert result["status"] == "success"
     details = result.get("details")
-    assert details is not None and details["timestamp"].startswith("2024-01-01T00:00:00")
+    assert details is not None and details["timestamp"].startswith(
+        "2024-01-01T00:00:00"
+    )
     assert data_manager.poop_calls and data_manager.poop_calls[0]["dog_id"] == "buddy"
 
 
@@ -1040,7 +1047,9 @@ async def test_start_grooming_records_failure(
     handler = hass.services.handlers[services.SERVICE_START_GROOMING]
 
     with pytest.raises(services.HomeAssistantError, match="groom failed"):
-        await handler(SimpleNamespace(data={"dog_id": "buddy", "grooming_type": "bath"}))
+        await handler(
+            SimpleNamespace(data={"dog_id": "buddy", "grooming_type": "bath"})
+        )
 
     result = runtime_data.performance_stats["last_service_result"]
     assert result["service"] == services.SERVICE_START_GROOMING
@@ -1097,7 +1106,10 @@ async def test_start_garden_session_records_success(
     assert metadata["automation_fallback"] is True
     assert metadata["fallback_reason"] == "door_sensor_offline"
     assert metadata["automation_source"] == "garden_automation"
-    assert garden_manager.start_calls and garden_manager.start_calls[0]["dog_id"] == "buddy"
+    assert (
+        garden_manager.start_calls
+        and garden_manager.start_calls[0]["dog_id"] == "buddy"
+    )
 
 
 @pytest.mark.unit
@@ -1146,7 +1158,9 @@ async def test_end_garden_session_records_validation_error(
     hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
     handler = hass.services.handlers[services.SERVICE_END_GARDEN]
 
-    with pytest.raises(Exception, match="No active garden session is currently running"):
+    with pytest.raises(
+        Exception, match="No active garden session is currently running"
+    ):
         await handler(SimpleNamespace(data={"dog_id": "buddy"}))
 
     result = runtime_data.performance_stats["last_service_result"]
@@ -1186,7 +1200,10 @@ async def test_add_garden_activity_records_success(
     assert result["status"] == "success"
     details = result.get("details")
     assert details is not None and details["activity_type"] == "play"
-    assert garden_manager.activity_calls and garden_manager.activity_calls[0]["dog_id"] == "buddy"
+    assert (
+        garden_manager.activity_calls
+        and garden_manager.activity_calls[0]["dog_id"] == "buddy"
+    )
 
 
 @pytest.mark.unit
@@ -1205,8 +1222,12 @@ async def test_add_garden_activity_records_validation_error(
     hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
     handler = hass.services.handlers[services.SERVICE_ADD_GARDEN_ACTIVITY]
 
-    with pytest.raises(Exception, match="No active garden session is currently running"):
-        await handler(SimpleNamespace(data={"dog_id": "buddy", "activity_type": "play"}))
+    with pytest.raises(
+        Exception, match="No active garden session is currently running"
+    ):
+        await handler(
+            SimpleNamespace(data={"dog_id": "buddy", "activity_type": "play"})
+        )
 
     result = runtime_data.performance_stats["last_service_result"]
     assert result["service"] == services.SERVICE_ADD_GARDEN_ACTIVITY
@@ -1246,7 +1267,10 @@ async def test_confirm_garden_poop_records_success(
     assert result["status"] == "success"
     details = result.get("details")
     assert details is not None and details["confirmed"] is True
-    assert garden_manager.confirm_calls and garden_manager.confirm_calls[0]["dog_id"] == "buddy"
+    assert (
+        garden_manager.confirm_calls
+        and garden_manager.confirm_calls[0]["dog_id"] == "buddy"
+    )
 
 
 @pytest.mark.unit
@@ -1266,11 +1290,7 @@ async def test_confirm_garden_poop_records_missing_pending(
     handler = hass.services.handlers[services.SERVICE_CONFIRM_POOP]
 
     with pytest.raises(Exception, match="No pending garden poop confirmation"):
-        await handler(
-            SimpleNamespace(
-                data={"dog_id": "buddy", "confirmed": True}
-            )
-        )
+        await handler(SimpleNamespace(data={"dog_id": "buddy", "confirmed": True}))
 
     result = runtime_data.performance_stats["last_service_result"]
     assert result["service"] == services.SERVICE_CONFIRM_POOP
