@@ -1352,6 +1352,14 @@
     "reconfigure_health": {
       "title": "Health issues after reconfigure",
       "description": "The last reconfigure at {timestamp} for profile {requested_profile} reported issues: {health_issues}. Additional warnings: {health_warnings}."
+    },
+    "feeding_compliance_alert": {
+      "title": "Feeding compliance issues for {dog_name}",
+      "description": "The latest feeding compliance check covering {days_to_check} days scored {compliance_score}% with {issue_count} issue(s) and {missed_meal_count} missed meal(s). Key findings: {issue_summary}. Missed meals: {missed_meal_summary}. Next steps: {recommendations_summary}. Checked at {checked_at}."
+    },
+    "feeding_compliance_no_data": {
+      "title": "Feeding telemetry missing for {dog_name}",
+      "description": "The latest feeding compliance check covering {days_to_check} days could not generate a report: {message}."
     }
   }
 }

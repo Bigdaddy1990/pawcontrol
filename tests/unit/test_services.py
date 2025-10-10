@@ -8,7 +8,19 @@ from types import SimpleNamespace
 
 import pytest
 from custom_components.pawcontrol import services
-from custom_components.pawcontrol.const import SERVICE_DAILY_RESET
+from custom_components.pawcontrol.const import (
+    EVENT_FEEDING_COMPLIANCE_CHECKED,
+    SERVICE_CHECK_FEEDING_COMPLIANCE,
+    SERVICE_DAILY_RESET,
+)
+
+try:  # pragma: no cover - runtime fallback for stubbed environments
+    from homeassistant.core import Context
+except ImportError:  # pragma: no cover - ensure stubs are available for tests
+    from tests.helpers.homeassistant_test_stubs import install_homeassistant_stubs
+
+    install_homeassistant_stubs()
+    from homeassistant.core import Context
 
 
 class _DummyCoordinator:
@@ -54,6 +66,27 @@ class _DummyNotificationManager:
         return self.cleaned_count
 
 
+class _BusStub:
+    """Capture Home Assistant bus events for verification."""
+
+    def __init__(self) -> None:
+        self.fired: list[dict[str, object]] = []
+
+    async def async_fire(
+        self,
+        event_type: str,
+        event_data: object | None = None,
+        **kwargs: object,
+    ) -> None:
+        self.fired.append(
+            {
+                "event_type": event_type,
+                "event_data": event_data,
+                "kwargs": dict(kwargs),
+            }
+        )
+
+
 class _DummyDataManager:
     """Expose deterministic cache diagnostics payloads for tests."""
 
@@ -82,6 +115,12 @@ class _FeedingManagerStub:
     def __init__(self) -> None:
         self.calls: list[dict[str, object]] = []
         self.fail_with: Exception | None = None
+        self.compliance_calls: list[dict[str, object]] = []
+        self.compliance_result: dict[str, object] = {
+            "status": "no_data",
+            "message": "No feeding data available",
+        }
+        self.compliance_error: Exception | None = None
 
     async def async_add_health_snack(
         self,
@@ -104,6 +143,25 @@ class _FeedingManagerStub:
                 "notes": notes,
             }
         )
+
+    async def async_check_feeding_compliance(
+        self,
+        *,
+        dog_id: str,
+        days_to_check: int,
+        notify_on_issues: bool,
+    ) -> dict[str, object]:
+        if self.compliance_error:
+            raise self.compliance_error
+
+        self.compliance_calls.append(
+            {
+                "dog_id": dog_id,
+                "days_to_check": days_to_check,
+                "notify_on_issues": notify_on_issues,
+            }
+        )
+        return self.compliance_result
 
 
 class _DataManagerStub:
@@ -286,12 +344,45 @@ class _NotificationManagerStub:
         self.fail_ack = False
         self.ack_exists = True
         self.sent: list[dict[str, object]] = []
+        self.compliance_calls: list[dict[str, object]] = []
+        self.fail_compliance = False
 
     async def async_send_notification(self, **kwargs: object) -> str:
         if self.fail_send:
             raise services.HomeAssistantError("send failed")
         self.sent.append(kwargs)
         return "notif-1"
+
+    async def async_send_feeding_compliance_summary(
+        self,
+        *,
+        dog_id: str,
+        dog_name: str | None,
+        compliance: dict[str, object],
+    ) -> str | None:
+        if self.fail_compliance:
+            raise services.HomeAssistantError("compliance failed")
+
+        status = compliance.get("status")
+        if status == "completed":
+            score = float(compliance.get("compliance_score", 100))
+            has_issues = bool(
+                compliance.get("days_with_issues")
+                or compliance.get("compliance_issues")
+                or compliance.get("missed_meals")
+                or score < 100
+            )
+            if not has_issues:
+                return None
+
+        self.compliance_calls.append(
+            {
+                "dog_id": dog_id,
+                "dog_name": dog_name,
+                "compliance": compliance,
+            }
+        )
+        return "compliance-1"
 
     async def async_acknowledge_notification(self, notification_id: str) -> bool:
         if self.fail_ack:
@@ -394,6 +485,7 @@ async def _setup_service_environment(
         services=_ServiceRegistryStub(),
         data={},
         config=SimpleNamespace(latitude=1.0, longitude=2.0),
+        bus=_BusStub(),
     )
     hass.config_entries = SimpleNamespace(async_entries=lambda domain: [])
     coordinator.hass = hass
@@ -909,6 +1001,510 @@ async def test_add_health_snack_records_failure(
 
 @pytest.mark.unit
 @pytest.mark.asyncio
+async def test_check_feeding_compliance_notifies_on_issues(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Compliance service should forward typed payloads to notifications."""
+
+    feeding_manager = _FeedingManagerStub()
+    feeding_manager.compliance_result = {
+        "status": "completed",
+        "dog_id": "buddy",
+        "compliance_score": 72,
+        "compliance_rate": 72.5,
+        "days_analyzed": 3,
+        "days_with_issues": 2,
+        "compliance_issues": [
+            {
+                "date": "2024-05-01",
+                "issues": ["Underfed by 20%"],
+                "severity": "high",
+            }
+        ],
+        "missed_meals": [
+            {"date": "2024-05-01", "expected": 2, "actual": 1},
+        ],
+        "daily_analysis": {
+            "2024-05-01": {
+                "date": "2024-05-01",
+                "feedings": [
+                    {
+                        "time": "2024-05-01T08:00:00+00:00",
+                        "amount": 100.0,
+                        "meal_type": "breakfast",
+                    }
+                ],
+                "total_amount": 200.0,
+                "meal_types": ["breakfast"],
+                "scheduled_feedings": 2,
+            }
+        },
+        "recommendations": ["Consider setting up feeding reminders"],
+        "summary": {
+            "average_daily_amount": 210.0,
+            "average_meals_per_day": 1.5,
+            "expected_daily_amount": 250.0,
+            "expected_meals_per_day": 2,
+        },
+        "checked_at": "2024-05-03T10:00:00+00:00",
+    }
+
+    notification_manager = _NotificationManagerStub()
+    coordinator = _CoordinatorStub(
+        SimpleNamespace(),
+        notification_manager=notification_manager,
+        feeding_manager=feeding_manager,
+    )
+    coordinator.register_dog("buddy", name="Buddy")
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+    handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
+
+    context = Context(user_id="user-1", parent_id="parent-1", context_id="ctx-1")
+
+    await handler(
+        SimpleNamespace(
+            data={
+                "dog_id": "buddy",
+                "days_to_check": 3,
+                "notify_on_issues": True,
+            },
+            context=context,
+        )
+    )
+
+    assert feeding_manager.compliance_calls == [
+        {"dog_id": "buddy", "days_to_check": 3, "notify_on_issues": True}
+    ]
+    assert notification_manager.compliance_calls
+    compliance_payload = notification_manager.compliance_calls[0]
+    assert compliance_payload["dog_id"] == "buddy"
+    assert compliance_payload["dog_name"] == "Buddy"
+    assert compliance_payload["compliance"]["status"] == "completed"
+
+    fired_events = hass.bus.fired
+    assert len(fired_events) == 1
+    event = fired_events[0]
+    assert event["event_type"] == EVENT_FEEDING_COMPLIANCE_CHECKED
+    event_data = event["event_data"]
+    assert isinstance(event_data, dict)
+    assert event_data["dog_id"] == "buddy"
+    assert event_data["dog_name"] == "Buddy"
+    assert event_data["notification_sent"] is True
+    assert event_data["result"] is not feeding_manager.compliance_result
+    assert event_data["result"]["compliance_score"] == 72
+    kwargs = event["kwargs"]
+    assert kwargs.get("context") is context
+    time_fired = kwargs.get("time_fired")
+    assert isinstance(time_fired, datetime)
+    assert time_fired.tzinfo is not None
+    assert event_data["context_id"] == context.id
+    assert event_data["parent_id"] == context.parent_id
+    assert event_data["user_id"] == context.user_id
+
+    last_result = runtime_data.performance_stats["last_service_result"]
+    assert last_result["service"] == services.SERVICE_CHECK_FEEDING_COMPLIANCE
+    assert last_result["status"] == "success"
+    details = last_result["details"]
+    assert details["score"] == 72
+    diagnostics = last_result.get("diagnostics")
+    assert diagnostics is not None
+    metadata = diagnostics.get("metadata")
+    assert metadata is not None
+    assert metadata["notification_sent"] is True
+    assert metadata["days_to_check"] == 3
+    assert metadata["context_id"] == context.id
+    assert metadata["parent_id"] == context.parent_id
+    assert metadata["user_id"] == context.user_id
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_check_feeding_compliance_skips_when_clean(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Clean compliance results should not trigger notifications."""
+
+    feeding_manager = _FeedingManagerStub()
+    feeding_manager.compliance_result = {
+        "status": "completed",
+        "dog_id": "buddy",
+        "compliance_score": 100,
+        "compliance_rate": 100.0,
+        "days_analyzed": 5,
+        "days_with_issues": 0,
+        "compliance_issues": [],
+        "missed_meals": [],
+        "daily_analysis": {},
+        "recommendations": [],
+        "summary": {
+            "average_daily_amount": 250.0,
+            "average_meals_per_day": 2.0,
+            "expected_daily_amount": 250.0,
+            "expected_meals_per_day": 2,
+        },
+        "checked_at": "2024-05-03T12:00:00+00:00",
+    }
+
+    notification_manager = _NotificationManagerStub()
+    coordinator = _CoordinatorStub(
+        SimpleNamespace(),
+        notification_manager=notification_manager,
+        feeding_manager=feeding_manager,
+    )
+    coordinator.register_dog("buddy", name="Buddy")
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+    handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
+
+    await handler(
+        SimpleNamespace(
+            data={
+                "dog_id": "buddy",
+                "days_to_check": 5,
+                "notify_on_issues": True,
+            }
+        )
+    )
+
+    assert notification_manager.compliance_calls == []
+
+    fired_events = hass.bus.fired
+    assert len(fired_events) == 1
+    event = fired_events[0]
+    assert event["event_type"] == EVENT_FEEDING_COMPLIANCE_CHECKED
+    event_data = event["event_data"]
+    assert isinstance(event_data, dict)
+    assert event_data["dog_id"] == "buddy"
+    assert event_data["notification_sent"] is False
+    assert event_data["result"]["compliance_score"] == 100
+
+    last_result = runtime_data.performance_stats["last_service_result"]
+    assert last_result["service"] == services.SERVICE_CHECK_FEEDING_COMPLIANCE
+    assert last_result["status"] == "success"
+    assert last_result["details"]["score"] == 100
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_check_feeding_compliance_respects_notify_toggle(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Notifications are skipped when notify_on_issues is False."""
+
+    feeding_manager = _FeedingManagerStub()
+    feeding_manager.compliance_result = {
+        "status": "completed",
+        "dog_id": "buddy",
+        "compliance_score": 50,
+        "compliance_rate": 50.0,
+        "days_analyzed": 2,
+        "days_with_issues": 2,
+        "compliance_issues": [
+            {
+                "date": "2024-05-01",
+                "issues": ["Missed scheduled lunch"],
+                "severity": "medium",
+            }
+        ],
+        "missed_meals": [{"date": "2024-05-01", "expected": 2, "actual": 1}],
+        "daily_analysis": {},
+        "recommendations": ["Enable reminders"],
+        "summary": {
+            "average_daily_amount": 150.0,
+            "average_meals_per_day": 1.0,
+            "expected_daily_amount": 300.0,
+            "expected_meals_per_day": 2,
+        },
+        "checked_at": "2024-05-03T15:00:00+00:00",
+    }
+
+    notification_manager = _NotificationManagerStub()
+    coordinator = _CoordinatorStub(
+        SimpleNamespace(),
+        notification_manager=notification_manager,
+        feeding_manager=feeding_manager,
+    )
+    coordinator.register_dog("buddy", name="Buddy")
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+    handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
+
+    await handler(
+        SimpleNamespace(
+            data={
+                "dog_id": "buddy",
+                "days_to_check": 2,
+                "notify_on_issues": False,
+            }
+        )
+    )
+
+    assert notification_manager.compliance_calls == []
+
+    fired_events = hass.bus.fired
+    assert len(fired_events) == 1
+    event = fired_events[0]
+    assert event["event_type"] == EVENT_FEEDING_COMPLIANCE_CHECKED
+    event_data = event["event_data"]
+    assert isinstance(event_data, dict)
+    assert event_data["notify_on_issues"] is False
+    assert event_data["notification_sent"] is False
+
+    last_result = runtime_data.performance_stats["last_service_result"]
+    assert last_result["status"] == "success"
+    diagnostics = last_result.get("diagnostics")
+    assert diagnostics is not None
+    metadata = diagnostics.get("metadata")
+    assert metadata is not None and metadata["notify_on_issues"] is False
+
+
+@pytest.mark.unit
+def test_merge_service_context_metadata_respects_include_none() -> None:
+    """Helper should optionally persist ``None`` metadata values."""
+
+    target: dict[str, object] = {"existing": True}
+    metadata = {"context_id": None, "parent_id": "parent-123"}
+
+    services._merge_service_context_metadata(target, metadata)
+
+    assert "context_id" not in target
+    assert target["parent_id"] == "parent-123"
+
+    services._merge_service_context_metadata(target, metadata, include_none=True)
+
+    assert target["context_id"] is None
+    assert target["parent_id"] == "parent-123"
+
+
+@pytest.mark.unit
+def test_merge_service_context_metadata_preserves_additional_keys() -> None:
+    """Additional context metadata should be forwarded unchanged."""
+
+    target: dict[str, object] = {}
+    metadata = {"context_id": "ctx-123", "source": "stub"}
+
+    services._merge_service_context_metadata(target, metadata)
+
+    assert target["context_id"] == "ctx-123"
+    assert target["source"] == "stub"
+
+
+@pytest.mark.unit
+def test_merge_service_context_metadata_ignores_non_string_keys() -> None:
+    """Non-string metadata keys are ignored for safety."""
+
+    target: dict[str, object] = {}
+    metadata = {"context_id": "ctx-123", 42: "skip-me"}
+
+    services._merge_service_context_metadata(target, metadata)
+
+    assert target == {"context_id": "ctx-123"}
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_check_feeding_compliance_builds_context_from_stub(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Context metadata should be normalised when Home Assistant provides stubs."""
+
+    feeding_manager = _FeedingManagerStub()
+    feeding_manager.compliance_result = {
+        "status": "completed",
+        "dog_id": "buddy",
+        "compliance_score": 82,
+        "compliance_rate": 82.0,
+        "days_analyzed": 4,
+        "days_with_issues": 1,
+        "compliance_issues": [],
+        "missed_meals": [],
+        "daily_analysis": {},
+        "recommendations": [],
+        "summary": {
+            "average_daily_amount": 180.0,
+            "average_meals_per_day": 1.5,
+            "expected_daily_amount": 200.0,
+            "expected_meals_per_day": 2,
+        },
+        "checked_at": "2024-05-04T09:00:00+00:00",
+    }
+
+    coordinator = _CoordinatorStub(
+        SimpleNamespace(),
+        notification_manager=_NotificationManagerStub(),
+        feeding_manager=feeding_manager,
+    )
+    coordinator.register_dog("buddy", name="Buddy")
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+    handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
+
+    context_stub = SimpleNamespace(
+        id="ctx-stub",
+        parent_id="parent-stub",
+        user_id="user-stub",
+    )
+
+    await handler(
+        SimpleNamespace(
+            data={
+                "dog_id": "buddy",
+                "days_to_check": 4,
+                "notify_on_issues": True,
+            },
+            context=context_stub,
+        )
+    )
+
+    event = hass.bus.fired[0]
+    kwargs = event["kwargs"]
+    event_context = kwargs.get("context")
+    assert event_context is not context_stub
+    assert getattr(event_context, "id", None) == "ctx-stub"
+    assert getattr(event_context, "parent_id", None) == "parent-stub"
+    assert getattr(event_context, "user_id", None) == "user-stub"
+
+    event_data = event["event_data"]
+    assert event_data["context_id"] == "ctx-stub"
+    assert event_data["parent_id"] == "parent-stub"
+    assert event_data["user_id"] == "user-stub"
+
+    metadata = runtime_data.performance_stats["last_service_result"]["diagnostics"][
+        "metadata"
+    ]
+    assert metadata["context_id"] == "ctx-stub"
+    assert metadata["parent_id"] == "parent-stub"
+    assert metadata["user_id"] == "user-stub"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_check_feeding_compliance_builds_context_from_mapping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Mapping-based service contexts should be normalised for telemetry."""
+
+    feeding_manager = _FeedingManagerStub()
+    feeding_manager.compliance_result = {
+        "status": "completed",
+        "dog_id": "buddy",
+        "compliance_score": 92,
+        "compliance_rate": 92.0,
+        "days_analyzed": 5,
+        "days_with_issues": 0,
+        "compliance_issues": [],
+        "missed_meals": [],
+        "daily_analysis": {},
+        "recommendations": [],
+        "summary": {
+            "average_daily_amount": 200.0,
+            "average_meals_per_day": 2.0,
+            "expected_daily_amount": 200.0,
+            "expected_meals_per_day": 2,
+        },
+        "checked_at": "2024-05-05T11:00:00+00:00",
+    }
+
+    coordinator = _CoordinatorStub(
+        SimpleNamespace(),
+        notification_manager=_NotificationManagerStub(),
+        feeding_manager=feeding_manager,
+    )
+    coordinator.register_dog("buddy", name="Buddy")
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+    handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
+
+    context_mapping = {
+        "context_id": "ctx-mapping",
+        "parent_id": "parent-mapping",
+        "user_id": "user-mapping",
+    }
+
+    await handler(
+        SimpleNamespace(
+            data={
+                "dog_id": "buddy",
+                "days_to_check": 5,
+                "notify_on_issues": True,
+            },
+            context=context_mapping,
+        )
+    )
+
+    event = hass.bus.fired[0]
+    kwargs = event["kwargs"]
+    event_context = kwargs.get("context")
+    assert event_context is not None
+    assert getattr(event_context, "id", None) == "ctx-mapping"
+    assert getattr(event_context, "parent_id", None) == "parent-mapping"
+    assert getattr(event_context, "user_id", None) == "user-mapping"
+
+    event_data = event["event_data"]
+    assert event_data["context_id"] == "ctx-mapping"
+    assert event_data["parent_id"] == "parent-mapping"
+    assert event_data["user_id"] == "user-mapping"
+
+    metadata = runtime_data.performance_stats["last_service_result"]["diagnostics"][
+        "metadata"
+    ]
+    assert metadata["context_id"] == "ctx-mapping"
+    assert metadata["parent_id"] == "parent-mapping"
+    assert metadata["user_id"] == "user-mapping"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_check_feeding_compliance_records_errors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Service should capture telemetry when compliance checks fail."""
+
+    feeding_manager = _FeedingManagerStub()
+    feeding_manager.compliance_error = services.HomeAssistantError("compliance failed")
+    notification_manager = _NotificationManagerStub()
+    coordinator = _CoordinatorStub(
+        SimpleNamespace(),
+        notification_manager=notification_manager,
+        feeding_manager=feeding_manager,
+    )
+    coordinator.register_dog("buddy", name="Buddy")
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+    handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
+
+    with pytest.raises(services.HomeAssistantError, match="compliance failed"):
+        await handler(
+            SimpleNamespace(
+                data={
+                    "dog_id": "buddy",
+                    "days_to_check": 3,
+                    "notify_on_issues": True,
+                }
+            )
+        )
+
+    assert hass.bus.fired == []
+    result = runtime_data.performance_stats["last_service_result"]
+    assert result["service"] == services.SERVICE_CHECK_FEEDING_COMPLIANCE
+    assert result["status"] == "error"
+    assert result["message"] == "compliance failed"
+    diagnostics = result.get("diagnostics")
+    assert diagnostics is not None
+    metadata = diagnostics.get("metadata")
+    assert metadata is not None
+    assert metadata["days_to_check"] == 3
+    assert metadata["notify_on_issues"] is True
+    assert "context_id" not in metadata
+
+
 async def test_log_poop_service_records_success(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

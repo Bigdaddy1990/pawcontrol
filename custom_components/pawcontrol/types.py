@@ -55,7 +55,7 @@ if TYPE_CHECKING:
     from .device_api import PawControlDeviceClient
     from .door_sensor_manager import DoorSensorManager
     from .entity_factory import EntityFactory
-    from .feeding_manager import FeedingManager
+    from .feeding_manager import FeedingComplianceResult, FeedingManager
     from .garden_manager import GardenManager
     from .geofencing import PawControlGeofencing
     from .gps_manager import GPSGeofenceManager
@@ -963,6 +963,29 @@ class ServiceExecutionResult(TypedDict, total=False):
     message: NotRequired[str]
     diagnostics: NotRequired[ServiceExecutionDiagnostics]
     details: NotRequired[dict[str, Any]]
+
+
+class ServiceContextMetadata(TypedDict, total=False):
+    """Service context identifiers captured for telemetry."""
+
+    context_id: str | None
+    parent_id: str | None
+    user_id: str | None
+
+
+class FeedingComplianceEventPayload(TypedDict, total=False):
+    """Structured event payload emitted after running feeding compliance checks."""
+
+    dog_id: str
+    dog_name: str | None
+    days_to_check: int
+    notify_on_issues: bool
+    notification_sent: bool
+    result: FeedingComplianceResult
+    notification_id: NotRequired[str]
+    context_id: NotRequired[str]
+    parent_id: NotRequired[str]
+    user_id: NotRequired[str | None]
 
 
 class CoordinatorRepairsSummary(TypedDict, total=False):

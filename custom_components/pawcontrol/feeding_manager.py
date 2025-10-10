@@ -7,10 +7,10 @@ import contextlib
 import logging
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
-from datetime import datetime, time, timedelta
+from datetime import date, datetime, time, timedelta
 from enum import Enum
 from time import perf_counter
-from typing import Any, TypeVar
+from typing import Any, Literal, TypedDict, TypeVar, cast
 
 from homeassistant.util import dt as dt_util
 
@@ -104,6 +104,17 @@ class FeedingEvent:
 
 
 @dataclass(slots=True)
+class _DailyComplianceAccumulator:
+    """Internal accumulator for per-day compliance statistics."""
+
+    date: str
+    feedings: list[FeedingEvent] = field(default_factory=list)
+    total_amount: float = 0.0
+    meal_types: set[str] = field(default_factory=set)
+    scheduled_feedings: int = 0
+
+
+@dataclass(slots=True)
 class MealSchedule:
     """Scheduled meal with configuration."""
 
@@ -153,6 +164,99 @@ class MealSchedule:
         return next_feeding - timedelta(minutes=self.reminder_minutes_before)
 
 
+class FeedingTransitionData(TypedDict):
+    """Telemetry describing an in-progress feeding transition."""
+
+    active: bool
+    start_date: str
+    old_food_type: str
+    new_food_type: str
+    transition_days: int
+    gradual_increase_percent: int
+    schedule: list[dict[str, Any]]
+    current_day: int
+
+
+class ComplianceIssue(TypedDict):
+    """Structured compliance issue telemetry."""
+
+    date: str
+    issues: list[str]
+    severity: str
+
+
+class MissedMealEntry(TypedDict):
+    """Metadata describing a missed scheduled meal."""
+
+    date: str
+    expected: int
+    actual: int
+
+
+class FeedingEventTelemetry(TypedDict, total=False):
+    """Serialized telemetry describing a recorded feeding event."""
+
+    time: str
+    amount: float
+    meal_type: str | None
+    portion_size: float | None
+    food_type: str | None
+    notes: str | None
+    feeder: str | None
+    scheduled: bool
+    skipped: bool
+    with_medication: bool
+    medication_name: str | None
+    medication_dose: str | None
+    medication_time: str | None
+
+
+class DailyComplianceTelemetry(TypedDict):
+    """Telemetry summarising compliance statistics for a day."""
+
+    date: str
+    feedings: list[FeedingEventTelemetry]
+    total_amount: float
+    meal_types: list[str]
+    scheduled_feedings: int
+
+
+class FeedingComplianceSummary(TypedDict):
+    """Summary metrics for the compliance analysis window."""
+
+    average_daily_amount: float
+    average_meals_per_day: float
+    expected_daily_amount: float
+    expected_meals_per_day: int
+
+
+class FeedingComplianceCompleted(TypedDict):
+    """Successful compliance analysis payload."""
+
+    status: Literal["completed"]
+    dog_id: str
+    compliance_score: int
+    compliance_rate: float
+    days_analyzed: int
+    days_with_issues: int
+    compliance_issues: list[ComplianceIssue]
+    missed_meals: list[MissedMealEntry]
+    daily_analysis: dict[str, DailyComplianceTelemetry]
+    recommendations: list[str]
+    summary: FeedingComplianceSummary
+    checked_at: str
+
+
+class FeedingComplianceNoData(TypedDict):
+    """Compliance analysis result when insufficient telemetry exists."""
+
+    status: Literal["no_data", "no_recent_data"]
+    message: str
+
+
+FeedingComplianceResult = FeedingComplianceCompleted | FeedingComplianceNoData
+
+
 @dataclass
 class FeedingConfig:
     """Enhanced feeding configuration with health integration."""
@@ -187,6 +291,7 @@ class FeedingConfig:
 
     # Diet validation integration
     diet_validation: dict[str, Any] | None = None
+    transition_data: FeedingTransitionData | None = None
 
     def calculate_portion_size(
         self,
@@ -1521,9 +1626,9 @@ class FeedingManager:
         today = now.date()
 
         # OPTIMIZATION: Single pass data collection
-        feedings_today = {}
+        feedings_today: dict[str, int] = {}
         daily_amount = 0.0
-        last_feeding = None
+        last_feeding: FeedingEvent | None = None
         scheduled_count = 0
 
         for event in reversed(feedings):
@@ -1544,7 +1649,7 @@ class FeedingManager:
 
         # Calculate schedule adherence and missed feedings
         adherence = 100
-        missed_feedings = []
+        missed_feedings: list[dict[str, Any]] = []
 
         if config and config.schedule_type != FeedingScheduleType.FLEXIBLE:
             todays_schedules = config.get_todays_schedules()
@@ -2001,9 +2106,9 @@ class FeedingManager:
             }
 
         # OPTIMIZATION: Single pass aggregation
-        daily_counts = {}
-        daily_amounts = {}
-        meal_counts = {}
+        daily_counts: dict[date, int] = {}
+        daily_amounts: dict[date, float] = {}
+        meal_counts: dict[str, int] = {}
 
         for feeding in recent_feedings:
             if feeding.skipped:
@@ -2026,7 +2131,9 @@ class FeedingManager:
         )
 
         most_common_meal = (
-            max(meal_counts, key=meal_counts.get) if meal_counts else None
+            max(meal_counts.items(), key=lambda item: item[1])[0]
+            if meal_counts
+            else None
         )
 
         # Calculate adherence
@@ -2953,7 +3060,7 @@ class FeedingManager:
             )
 
             # Schedule automatic restoration
-            async def _restore_normal_feeding():
+            async def _restore_normal_feeding() -> None:
                 await asyncio.sleep(
                     duration_days * 24 * 3600
                 )  # Convert days to seconds
@@ -3041,7 +3148,7 @@ class FeedingManager:
             )
 
             # Store transition info in config
-            transition_data = {
+            transition_data: FeedingTransitionData = {
                 "active": True,
                 "start_date": dt_util.now().date().isoformat(),
                 "old_food_type": old_food_type,
@@ -3057,9 +3164,6 @@ class FeedingManager:
                 config.health_conditions.append("diet_transition")
 
             # Store transition data (would normally be in a separate storage)
-            # For now, we'll use a simple approach
-            if not hasattr(config, "transition_data"):
-                config.transition_data = {}
             config.transition_data = transition_data
 
             # Invalidate caches
@@ -3132,7 +3236,7 @@ class FeedingManager:
         dog_id: str,
         days_to_check: int = 7,
         notify_on_issues: bool = True,
-    ) -> dict[str, Any]:
+    ) -> FeedingComplianceResult:
         """Check feeding compliance against schedule and health requirements.
 
         Args:
@@ -3150,10 +3254,10 @@ class FeedingManager:
 
             feedings = self._feedings.get(dog_id, [])
             if not feedings:
-                return {
-                    "status": "no_data",
-                    "message": "No feeding history available",
-                }
+                return FeedingComplianceNoData(
+                    status="no_data",
+                    message="No feeding history available",
+                )
 
             # Get recent feedings
             since = dt_util.now() - timedelta(days=days_to_check)
@@ -3162,71 +3266,69 @@ class FeedingManager:
             ]
 
             if not recent_feedings:
-                return {
-                    "status": "no_recent_data",
-                    "message": f"No feeding data in last {days_to_check} days",
-                }
+                return FeedingComplianceNoData(
+                    status="no_recent_data",
+                    message=f"No feeding data in last {days_to_check} days",
+                )
 
             # Analyze compliance
-            compliance_issues = []
-            daily_analysis = {}
-            missed_meals: list[dict[str, Any]] = []
+            compliance_issues: list[ComplianceIssue] = []
+            daily_accumulators: dict[str, _DailyComplianceAccumulator] = {}
+            missed_meals: list[MissedMealEntry] = []
 
             # Group feedings by date
             for event in recent_feedings:
                 date_str = event.time.date().isoformat()
-                if date_str not in daily_analysis:
-                    daily_analysis[date_str] = {
-                        "date": date_str,
-                        "feedings": [],
-                        "total_amount": 0.0,
-                        "meal_types": set(),
-                        "scheduled_feedings": 0,
-                    }
+                accumulator = daily_accumulators.get(date_str)
+                if accumulator is None:
+                    accumulator = _DailyComplianceAccumulator(date=date_str)
+                    daily_accumulators[date_str] = accumulator
 
-                daily_analysis[date_str]["feedings"].append(event)
-                daily_analysis[date_str]["total_amount"] += event.amount
+                accumulator.feedings.append(event)
+                accumulator.total_amount += event.amount
                 if event.meal_type:
-                    daily_analysis[date_str]["meal_types"].add(event.meal_type.value)
+                    accumulator.meal_types.add(event.meal_type.value)
                 if event.scheduled:
-                    daily_analysis[date_str]["scheduled_feedings"] += 1
+                    accumulator.scheduled_feedings += 1
 
             # Check each day for compliance issues
             expected_daily_amount = config.daily_food_amount
             expected_meals_per_day = config.meals_per_day
             tolerance_percent = config.portion_tolerance
 
-            for date_str, day_data in daily_analysis.items():
-                day_issues = []
+            for date_str, accumulator in daily_accumulators.items():
+                day_issues: list[str] = []
 
                 # Check daily amount
                 amount_deviation = (
-                    abs(day_data["total_amount"] - expected_daily_amount)
+                    abs(accumulator.total_amount - expected_daily_amount)
                     / expected_daily_amount
                     * 100
+                    if expected_daily_amount > 0
+                    else 0.0
                 )
                 if amount_deviation > tolerance_percent:
-                    if day_data["total_amount"] < expected_daily_amount:
+                    if accumulator.total_amount < expected_daily_amount:
                         day_issues.append(
-                            f"Underfed by {amount_deviation:.1f}% ({day_data['total_amount']:.0f}g vs {expected_daily_amount:.0f}g)"
+                            f"Underfed by {amount_deviation:.1f}% ({accumulator.total_amount:.0f}g vs {expected_daily_amount:.0f}g)"
                         )
                     else:
                         day_issues.append(
-                            f"Overfed by {amount_deviation:.1f}% ({day_data['total_amount']:.0f}g vs {expected_daily_amount:.0f}g)"
+                            f"Overfed by {amount_deviation:.1f}% ({accumulator.total_amount:.0f}g vs {expected_daily_amount:.0f}g)"
                         )
 
                 # Check meal frequency
-                actual_meals = len(day_data["feedings"])
+                actual_meals = len(accumulator.feedings)
                 if actual_meals < expected_meals_per_day:
                     day_issues.append(
                         f"Too few meals: {actual_meals} vs expected {expected_meals_per_day}"
                     )
                     missed_meals.append(
-                        {
-                            "date": date_str,
-                            "expected": expected_meals_per_day,
-                            "actual": actual_meals,
-                        }
+                        MissedMealEntry(
+                            date=date_str,
+                            expected=expected_meals_per_day,
+                            actual=actual_meals,
+                        )
                     )
                 elif (
                     actual_meals > expected_meals_per_day + 2
@@ -3240,31 +3342,34 @@ class FeedingManager:
                     expected_scheduled = len(
                         [s for s in config.get_active_schedules() if s.is_due_today()]
                     )
-                    if day_data["scheduled_feedings"] < expected_scheduled:
+                    if accumulator.scheduled_feedings < expected_scheduled:
                         day_issues.append(
-                            f"Missed scheduled feedings: {day_data['scheduled_feedings']} vs {expected_scheduled}"
+                            f"Missed scheduled feedings: {accumulator.scheduled_feedings} vs {expected_scheduled}"
                         )
 
                 if day_issues:
+                    severity = (
+                        "high"
+                        if any(
+                            "Overfed" in issue or "Underfed" in issue
+                            for issue in day_issues
+                        )
+                        else "medium"
+                    )
                     compliance_issues.append(
-                        {
-                            "date": date_str,
-                            "issues": day_issues,
-                            "severity": "high"
-                            if any(
-                                "Overfed" in issue or "Underfed" in issue
-                                for issue in day_issues
-                            )
-                            else "medium",
-                        }
+                        ComplianceIssue(
+                            date=date_str,
+                            issues=day_issues,
+                            severity=severity,
+                        )
                     )
 
             # Calculate overall compliance score
-            total_days = len(daily_analysis)
+            total_days = len(daily_accumulators)
             days_with_issues = len(compliance_issues)
             expected_feedings = expected_meals_per_day * total_days
             actual_feedings = sum(
-                len(day_data["feedings"]) for day_data in daily_analysis.values()
+                len(acc.feedings) for acc in daily_accumulators.values()
             )
             if expected_feedings > 0:
                 compliance_rate = round((actual_feedings / expected_feedings) * 100, 1)
@@ -3274,16 +3379,51 @@ class FeedingManager:
             compliance_score = int(min(100, max(0, compliance_rate)))
 
             # Generate recommendations
-            recommendations = []
+            recommendations: list[str] = []
             if compliance_score < 80:
                 recommendations.append("Consider setting up feeding reminders")
                 recommendations.append("Review portion sizes and meal timing")
-            if any("Overfed" in str(issue) for issue in compliance_issues):
+            if any(
+                "Overfed" in entry or "Underfed" in entry
+                for issue in compliance_issues
+                for entry in issue["issues"]
+            ):
                 recommendations.append("Reduce portion sizes to prevent weight gain")
-            if any("schedule" in str(issue).lower() for issue in compliance_issues):
+            if any(
+                "schedule" in entry.lower()
+                for issue in compliance_issues
+                for entry in issue["issues"]
+            ):
                 recommendations.append("Enable automatic reminders for scheduled meals")
 
-            result = {
+            daily_analysis_payload: dict[str, DailyComplianceTelemetry] = {
+                date: {
+                    "date": accumulator.date,
+                    "feedings": [
+                        cast(FeedingEventTelemetry, event.to_dict())
+                        for event in accumulator.feedings
+                    ],
+                    "total_amount": accumulator.total_amount,
+                    "meal_types": sorted(accumulator.meal_types),
+                    "scheduled_feedings": accumulator.scheduled_feedings,
+                }
+                for date, accumulator in sorted(daily_accumulators.items())
+            }
+
+            average_daily_amount = (
+                sum(acc.total_amount for acc in daily_accumulators.values())
+                / total_days
+                if total_days > 0
+                else 0.0
+            )
+            average_meals_per_day = (
+                sum(len(acc.feedings) for acc in daily_accumulators.values())
+                / total_days
+                if total_days > 0
+                else 0.0
+            )
+
+            result: FeedingComplianceCompleted = {
                 "status": "completed",
                 "dog_id": dog_id,
                 "compliance_score": compliance_score,
@@ -3292,24 +3432,11 @@ class FeedingManager:
                 "days_with_issues": days_with_issues,
                 "compliance_issues": compliance_issues,
                 "missed_meals": missed_meals,
-                "daily_analysis": {
-                    k: {**v, "meal_types": list(v["meal_types"])}
-                    for k, v in daily_analysis.items()
-                },
+                "daily_analysis": daily_analysis_payload,
                 "recommendations": recommendations,
                 "summary": {
-                    "average_daily_amount": sum(
-                        d["total_amount"] for d in daily_analysis.values()
-                    )
-                    / total_days
-                    if total_days > 0
-                    else 0,
-                    "average_meals_per_day": sum(
-                        len(d["feedings"]) for d in daily_analysis.values()
-                    )
-                    / total_days
-                    if total_days > 0
-                    else 0,
+                    "average_daily_amount": average_daily_amount,
+                    "average_meals_per_day": average_meals_per_day,
                     "expected_daily_amount": expected_daily_amount,
                     "expected_meals_per_day": expected_meals_per_day,
                 },

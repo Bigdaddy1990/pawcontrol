@@ -18,7 +18,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
@@ -26,10 +26,18 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from .coordinator_support import CacheMonitorRegistrar
+from .feeding_translations import build_feeding_compliance_notification
 from .http_client import ensure_shared_client_session
 from .person_entity_manager import PersonEntityManager
 from .resilience import CircuitBreakerConfig, ResilienceManager
 from .webhook_security import WebhookSecurityError, WebhookSecurityManager
+
+if TYPE_CHECKING:
+    from .feeding_manager import (
+        FeedingComplianceCompleted,
+        FeedingComplianceNoData,
+        FeedingComplianceResult,
+    )
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -59,6 +67,7 @@ class NotificationType(Enum):
     SYSTEM_ERROR = "system_error"
     GEOFENCE_ALERT = "geofence_alert"  # OPTIMIZE: Added geofence alerts
     BATTERY_LOW = "battery_low"  # OPTIMIZE: Added battery alerts
+    FEEDING_COMPLIANCE = "feeding_compliance"
 
 
 class NotificationPriority(Enum):
@@ -1856,6 +1865,80 @@ class PawControlNotificationManager:
                 break
             except Exception as err:
                 _LOGGER.error("Error in retry task: %s", err)
+
+    async def async_send_feeding_compliance_summary(
+        self,
+        *,
+        dog_id: str,
+        dog_name: str | None,
+        compliance: FeedingComplianceResult,
+    ) -> str | None:
+        """Send structured compliance telemetry when feeding gaps appear."""
+
+        display_name = dog_name or dog_id
+
+        language = getattr(getattr(self._hass, "config", None), "language", None)
+
+        if compliance["status"] != "completed":
+            no_data = cast("FeedingComplianceNoData", compliance)
+            title, message = build_feeding_compliance_notification(
+                language,
+                display_name=display_name,
+                compliance=dict(no_data),
+            )
+
+            return await self.async_send_notification(
+                notification_type=NotificationType.FEEDING_COMPLIANCE,
+                title=title,
+                message=message,
+                dog_id=dog_id,
+                priority=NotificationPriority.HIGH,
+                data={
+                    "dog_id": dog_id,
+                    "dog_name": dog_name,
+                    "compliance": dict(no_data),
+                },
+                allow_batching=False,
+            )
+
+        completed = cast("FeedingComplianceCompleted", compliance)
+        has_issues = bool(
+            completed["days_with_issues"]
+            or completed["compliance_issues"]
+            or completed["missed_meals"]
+            or completed["compliance_score"] < 100
+        )
+
+        if not has_issues:
+            return None
+
+        priority = NotificationPriority.HIGH
+        if completed["compliance_score"] < 70:
+            priority = NotificationPriority.URGENT
+        elif completed["compliance_score"] >= 90:
+            priority = NotificationPriority.NORMAL
+
+        title, message = build_feeding_compliance_notification(
+            language,
+            display_name=display_name,
+            compliance=dict(completed),
+        )
+
+        return await self.async_send_notification(
+            notification_type=NotificationType.FEEDING_COMPLIANCE,
+            title=title,
+            message=message,
+            dog_id=dog_id,
+            priority=priority,
+            data={
+                "dog_id": dog_id,
+                "dog_name": dog_name,
+                "compliance": dict(completed),
+                "issues": [dict(issue) for issue in completed["compliance_issues"]],
+                "missed_meals": [dict(entry) for entry in completed["missed_meals"]],
+            },
+            allow_batching=False,
+        )
 
     # Additional convenience methods for specific notification types
     async def async_send_feeding_reminder(

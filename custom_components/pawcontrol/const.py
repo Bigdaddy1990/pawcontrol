@@ -398,6 +398,7 @@ ENTITY_ID_FORMAT: Final[str] = "pawcontrol_{dog_id}_{entity_type}_{purpose}"
 EVENT_WALK_STARTED: Final[str] = "pawcontrol_walk_started"
 EVENT_WALK_ENDED: Final[str] = "pawcontrol_walk_ended"
 EVENT_FEEDING_LOGGED: Final[str] = "pawcontrol_feeding_logged"
+EVENT_FEEDING_COMPLIANCE_CHECKED: Final[str] = "pawcontrol_feeding_compliance_checked"
 EVENT_HEALTH_LOGGED: Final[str] = "pawcontrol_health_logged"
 EVENT_GEOFENCE_ENTERED: Final[str] = "pawcontrol_geofence_entered"
 EVENT_GEOFENCE_LEFT: Final[str] = "pawcontrol_geofence_left"
@@ -514,6 +515,7 @@ __all__ = (
     "DOG_SIZES",
     "DOG_SIZE_WEIGHT_RANGES",
     "DOMAIN",
+    "EVENT_FEEDING_COMPLIANCE_CHECKED",
     "EVENT_FEEDING_LOGGED",
     "EVENT_HEALTH_LOGGED",
     "EVENT_WALK_STARTED",

@@ -17,12 +17,13 @@ import logging
 import sys
 from collections.abc import Callable, Mapping
 from contextlib import suppress
+from copy import deepcopy
 from datetime import datetime, timedelta
 from typing import Any, Literal, TypeVar, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import SIGNAL_CONFIG_ENTRY_CHANGED
-from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.core import Context, HomeAssistant, ServiceCall, callback
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.event import async_track_time_change
@@ -34,6 +35,7 @@ from .const import (
     CONF_RESET_TIME,
     DEFAULT_RESET_TIME,
     DOMAIN,
+    EVENT_FEEDING_COMPLIANCE_CHECKED,
     MAX_GEOFENCE_RADIUS,
     MIN_GEOFENCE_RADIUS,
     SERVICE_ACTIVATE_DIABETIC_FEEDING_MODE,
@@ -62,19 +64,24 @@ from .const import (
     SERVICE_UPDATE_WEATHER,
 )
 from .coordinator import PawControlCoordinator
+from .feeding_manager import FeedingComplianceCompleted, FeedingComplianceNoData
 from .performance import (
     capture_cache_diagnostics,
     performance_tracker,
     record_maintenance_result,
 )
+from .repairs import async_publish_feeding_compliance_issue
 from .runtime_data import get_runtime_data
 from .telemetry import update_runtime_reconfigure_summary
 from .types import (
     CacheDiagnosticsCapture,
     DogConfigData,
+    FeedingComplianceEventPayload,
+    ServiceContextMetadata,
     ServiceExecutionDiagnostics,
     ServiceExecutionResult,
 )
+from .utils import async_fire_event
 from .walk_manager import WeatherCondition
 
 _LOGGER = logging.getLogger(__name__)
@@ -391,6 +398,127 @@ def _record_service_result(
         performance_stats["service_results"] = [result]
 
     performance_stats["last_service_result"] = result
+
+
+def _normalise_context_identifier(value: Any) -> str | None:
+    """Return a normalised context identifier string or ``None``."""
+
+    if value is None:
+        return None
+
+    if isinstance(value, str):
+        trimmed = value.strip()
+        return trimmed or None
+
+    try:
+        text = str(value)
+    except Exception:  # pragma: no cover - defensive guard
+        return None
+
+    trimmed = text.strip()
+    return trimmed or None
+
+
+def _merge_service_context_metadata(
+    target: dict[str, Any],
+    metadata: Mapping[str, Any] | None,
+    *,
+    include_none: bool = False,
+) -> None:
+    """Merge captured service context identifiers into ``target``."""
+
+    if not metadata:
+        return
+
+    for key, value in metadata.items():
+        if not isinstance(key, str):
+            continue
+
+        if value is None and not include_none:
+            continue
+
+        target[key] = value
+
+
+def _extract_service_context(
+    call: ServiceCall,
+) -> tuple[Context | None, ServiceContextMetadata | None]:
+    """Normalise service call context metadata for telemetry surfaces."""
+
+    context_like: Any = getattr(call, "context", None)
+    if context_like is None:
+        return None, None
+
+    mapping_source: Mapping[str, Any] | None = None
+    if isinstance(context_like, Mapping):
+        mapping_source = context_like
+
+    metadata: ServiceContextMetadata = {}
+
+    def _capture(*attributes: str) -> tuple[bool, str | None]:
+        present = False
+        captured: str | None = None
+
+        for attribute in attributes:
+            if mapping_source is not None and attribute in mapping_source:
+                present = True
+                raw_value = mapping_source.get(attribute)
+                normalised = _normalise_context_identifier(raw_value)
+                if normalised is not None:
+                    return True, normalised
+                if raw_value is None:
+                    captured = None
+                continue
+
+            if hasattr(context_like, attribute):
+                present = True
+                try:
+                    raw_value = getattr(context_like, attribute)
+                except Exception:  # pragma: no cover - defensive guard
+                    continue
+
+                normalised = _normalise_context_identifier(raw_value)
+                if normalised is not None:
+                    return True, normalised
+                if raw_value is None:
+                    captured = None
+
+        return present, captured
+
+    id_present, context_id = _capture("id", "context_id")
+    if id_present:
+        metadata["context_id"] = context_id
+
+    parent_present, parent_id = _capture("parent_id")
+    if parent_present:
+        metadata["parent_id"] = parent_id
+
+    user_present, user_id = _capture("user_id")
+    if user_present:
+        metadata["user_id"] = user_id
+
+    context: Context | None
+    if isinstance(context_like, Context):
+        context = context_like
+    elif (
+        getattr(getattr(context_like, "__class__", None), "__name__", None) == "Context"
+    ):
+        context = cast(Context, context_like)
+    else:
+        has_identifier = any(value is not None for value in metadata.values())
+        if has_identifier:
+            context = Context(
+                context_id=metadata.get("context_id"),
+                parent_id=metadata.get("parent_id"),
+                user_id=metadata.get("user_id"),
+            )
+        else:
+            context = None
+
+    if not metadata:
+        return context, None
+
+    return context, metadata
 
 
 # Service schemas
@@ -2796,15 +2924,102 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         )
 
         raw_dog_id = call.data["dog_id"]
-        dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
+        dog_id, dog_config = _resolve_dog(coordinator, raw_dog_id)
         days_to_check = call.data.get("days_to_check", 7)
         notify_on_issues = call.data.get("notify_on_issues", True)
+        dog_name_value = dog_config.get("name")
+        dog_name = (
+            dog_name_value
+            if isinstance(dog_name_value, str) and dog_name_value
+            else None
+        )
+        runtime_data = _get_runtime_data_for_coordinator(coordinator)
+        context, context_metadata = _extract_service_context(call)
+        notification_id: str | None = None
+        request_metadata: dict[str, Any] = {
+            "days_to_check": days_to_check,
+            "notify_on_issues": notify_on_issues,
+        }
+        _merge_service_context_metadata(
+            request_metadata, context_metadata, include_none=True
+        )
 
         try:
             compliance_result = await feeding_manager.async_check_feeding_compliance(
                 dog_id=dog_id,
                 days_to_check=days_to_check,
                 notify_on_issues=notify_on_issues,
+            )
+
+            if notify_on_issues and coordinator.notification_manager:
+                notification_id = await coordinator.notification_manager.async_send_feeding_compliance_summary(
+                    dog_id=dog_id,
+                    dog_name=dog_name,
+                    compliance=compliance_result,
+                )
+
+            event_payload: FeedingComplianceEventPayload = {
+                "dog_id": dog_id,
+                "dog_name": dog_name,
+                "days_to_check": days_to_check,
+                "notify_on_issues": notify_on_issues,
+                "notification_sent": notification_id is not None,
+                "result": deepcopy(compliance_result),
+            }
+            if notification_id is not None:
+                event_payload["notification_id"] = notification_id
+            _merge_service_context_metadata(event_payload, context_metadata)
+
+            await async_publish_feeding_compliance_issue(
+                hass,
+                coordinator.config_entry,
+                event_payload,
+                context_metadata=context_metadata,
+            )
+
+            await async_fire_event(
+                hass,
+                EVENT_FEEDING_COMPLIANCE_CHECKED,
+                event_payload,
+                context=context,
+                time_fired=dt_util.utcnow(),
+            )
+
+            status = str(compliance_result.get("status"))
+            details: dict[str, Any] = {"status": status}
+            if status == "completed":
+                completed = cast(FeedingComplianceCompleted, compliance_result)
+                details.update(
+                    {
+                        "score": completed["compliance_score"],
+                        "rate": completed["compliance_rate"],
+                        "days_analyzed": completed["days_analyzed"],
+                        "days_with_issues": completed["days_with_issues"],
+                        "issue_count": len(completed["compliance_issues"]),
+                        "missed_meal_count": len(completed["missed_meals"]),
+                    }
+                )
+            else:
+                no_data = cast(FeedingComplianceNoData, compliance_result)
+                message = no_data.get("message")
+                if isinstance(message, str):
+                    details["message"] = message
+
+            metadata: dict[str, Any] = dict(request_metadata)
+            metadata["notification_sent"] = notification_id is not None
+            if notification_id is not None:
+                metadata["notification_id"] = notification_id
+            _merge_service_context_metadata(
+                metadata, context_metadata, include_none=True
+            )
+
+            _record_service_result(
+                runtime_data,
+                service=SERVICE_CHECK_FEEDING_COMPLIANCE,
+                status="success",
+                dog_id=dog_id,
+                details=details,
+                metadata=metadata,
             )
 
             _LOGGER.info(
@@ -2814,10 +3029,28 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 compliance_result,
             )
 
-        except HomeAssistantError:
+        except HomeAssistantError as err:
+            error_metadata = dict(request_metadata)
+            _record_service_result(
+                runtime_data,
+                service=SERVICE_CHECK_FEEDING_COMPLIANCE,
+                status="error",
+                dog_id=dog_id,
+                message=str(err),
+                metadata=error_metadata,
+            )
             raise
         except Exception as err:
             _LOGGER.error("Failed to check feeding compliance for %s: %s", dog_id, err)
+            error_metadata = dict(request_metadata)
+            _record_service_result(
+                runtime_data,
+                service=SERVICE_CHECK_FEEDING_COMPLIANCE,
+                status="error",
+                dog_id=dog_id,
+                message=str(err),
+                metadata=error_metadata,
+            )
             raise HomeAssistantError(
                 f"Failed to check feeding compliance for {dog_id}. Check the logs for details."
             ) from err
