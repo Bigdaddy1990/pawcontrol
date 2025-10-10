@@ -1201,6 +1201,14 @@
     "reconfigure_health": {
       "title": "Probleme nach der Neukonfiguration",
       "description": "Die letzte Neukonfiguration am {timestamp} für das Profil {requested_profile} meldete Probleme: {health_issues}. Weitere Hinweise: {health_warnings}."
+    },
+    "feeding_compliance_alert": {
+      "title": "Fütterungs-Compliance-Probleme für {dog_name}",
+      "description": "Die letzte Fütterungs-Compliance-Prüfung über {days_to_check} Tage erzielte {compliance_score}% mit {issue_count} Problem(en) und {missed_meal_count} verpassten Mahlzeiten. Wichtige Erkenntnisse: {issue_summary}. Verpasste Mahlzeiten: {missed_meal_summary}. Nächste Schritte: {recommendations_summary}. Zeitpunkt: {checked_at}."
+    },
+    "feeding_compliance_no_data": {
+      "title": "Fütterungstelemetrie fehlt für {dog_name}",
+      "description": "Die letzte Fütterungs-Compliance-Prüfung über {days_to_check} Tage konnte keinen Bericht erstellen: {message}."
     }
   }
 }

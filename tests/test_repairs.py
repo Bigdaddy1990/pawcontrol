@@ -949,3 +949,151 @@ def test_notification_check_accepts_mobile_app_service_prefix(
     asyncio.run(module._check_notification_configuration_issues(hass, entry))
 
     assert create_issue_mock.await_count == 0
+
+
+def test_async_publish_feeding_compliance_issue_creates_alert(
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+) -> None:
+    """Feeding compliance issues should create repair alerts with metadata."""
+
+    module, create_issue_mock, issue_severity_cls, delete_issue_mock = repairs_module
+    create_issue_mock.reset_mock()
+    delete_issue_mock.reset_mock()
+
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+
+    payload = {
+        "dog_id": "buddy",
+        "dog_name": "Buddy",
+        "days_to_check": 5,
+        "notify_on_issues": True,
+        "notification_sent": True,
+        "notification_id": "notif-1",
+        "result": {
+            "status": "completed",
+            "compliance_score": 65,
+            "compliance_rate": 65.0,
+            "days_analyzed": 5,
+            "days_with_issues": 2,
+            "checked_at": "2024-05-05T10:00:00+00:00",
+            "compliance_issues": [
+                {
+                    "date": "2024-05-04",
+                    "issues": ["Missed breakfast"],
+                    "severity": "high",
+                }
+            ],
+            "missed_meals": [{"date": "2024-05-03", "actual": 1, "expected": 2}],
+            "recommendations": ["Schedule a vet visit"],
+        },
+    }
+
+    asyncio.run(
+        module.async_publish_feeding_compliance_issue(
+            hass,
+            entry,
+            payload,
+            context_metadata={"context_id": "ctx-1"},
+        )
+    )
+
+    assert create_issue_mock.await_count == 1
+    kwargs = create_issue_mock.await_args.kwargs
+    assert kwargs["translation_key"] == module.ISSUE_FEEDING_COMPLIANCE_ALERT
+    assert kwargs["severity"] == issue_severity_cls.CRITICAL
+    data = kwargs["data"]
+    assert data["dog_id"] == "buddy"
+    assert data["issue_count"] == 1
+    assert data["missed_meal_count"] == 1
+    assert data["context_metadata"]["context_id"] == "ctx-1"
+    assert data["notification_sent"] is True
+
+
+def test_async_publish_feeding_compliance_issue_clears_resolved_alert(
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+) -> None:
+    """Resolved compliance checks should clear existing repair issues."""
+
+    module, create_issue_mock, _, delete_issue_mock = repairs_module
+    create_issue_mock.reset_mock()
+    delete_issue_mock.reset_mock()
+
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+
+    payload = {
+        "dog_id": "buddy",
+        "dog_name": "Buddy",
+        "days_to_check": 5,
+        "notify_on_issues": True,
+        "notification_sent": False,
+        "result": {
+            "status": "completed",
+            "compliance_score": 100,
+            "compliance_rate": 100.0,
+            "days_analyzed": 5,
+            "days_with_issues": 0,
+            "compliance_issues": [],
+            "missed_meals": [],
+            "recommendations": [],
+        },
+    }
+
+    asyncio.run(
+        module.async_publish_feeding_compliance_issue(
+            hass,
+            entry,
+            payload,
+            context_metadata=None,
+        )
+    )
+
+    assert create_issue_mock.await_count == 0
+    assert delete_issue_mock.await_count == 1
+    args = delete_issue_mock.await_args.args
+    assert args[0] == hass
+    assert args[1] == module.DOMAIN
+
+
+def test_async_publish_feeding_compliance_issue_handles_no_data(
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+) -> None:
+    """No-data results should raise a warning issue."""
+
+    module, create_issue_mock, issue_severity_cls, delete_issue_mock = repairs_module
+    create_issue_mock.reset_mock()
+    delete_issue_mock.reset_mock()
+
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+
+    payload = {
+        "dog_id": "buddy",
+        "dog_name": None,
+        "days_to_check": 3,
+        "notify_on_issues": False,
+        "notification_sent": False,
+        "result": {
+            "status": "no_data",
+            "message": "Telemetry unavailable",
+        },
+    }
+
+    asyncio.run(
+        module.async_publish_feeding_compliance_issue(
+            hass,
+            entry,
+            payload,
+            context_metadata={"context_id": None},
+        )
+    )
+
+    assert create_issue_mock.await_count == 1
+    kwargs = create_issue_mock.await_args.kwargs
+    assert kwargs["translation_key"] == module.ISSUE_FEEDING_COMPLIANCE_NO_DATA
+    assert kwargs["severity"] == issue_severity_cls.WARNING
+    data = kwargs["data"]
+    assert data["dog_name"] == "buddy"
+    assert data["message"] == "Telemetry unavailable"
+    assert delete_issue_mock.await_count == 0

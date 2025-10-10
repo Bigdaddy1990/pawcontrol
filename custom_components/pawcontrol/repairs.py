@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
+from inspect import isawaitable
 from typing import Any, cast
 
 import voluptuous as vol
@@ -31,7 +32,12 @@ from .const import (
     MODULE_NOTIFICATIONS,
 )
 from .runtime_data import get_runtime_data
-from .types import CacheRepairAggregate, ReconfigureTelemetry
+from .types import (
+    CacheRepairAggregate,
+    FeedingComplianceEventPayload,
+    ReconfigureTelemetry,
+    ServiceContextMetadata,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -54,6 +60,8 @@ ISSUE_COORDINATOR_ERROR = "coordinator_error"
 ISSUE_CACHE_HEALTH_SUMMARY = "cache_health_summary"
 ISSUE_RECONFIGURE_WARNINGS = "reconfigure_warnings"
 ISSUE_RECONFIGURE_HEALTH = "reconfigure_health"
+ISSUE_FEEDING_COMPLIANCE_ALERT = "feeding_compliance_alert"
+ISSUE_FEEDING_COMPLIANCE_NO_DATA = "feeding_compliance_no_data"
 
 # Repair flow types
 REPAIR_FLOW_DOG_CONFIG = "repair_dog_configuration"
@@ -107,6 +115,15 @@ async def async_create_issue(
     """
     issue_severity = _normalise_issue_severity(severity)
 
+    create_issue = getattr(ir, "async_create_issue", None)
+    if not callable(create_issue):
+        _LOGGER.debug(
+            "Issue registry unavailable; skipping issue %s (type %s)",
+            issue_id,
+            issue_type,
+        )
+        return
+
     issue_data = {
         "config_entry_id": entry.entry_id,
         "issue_type": issue_type,
@@ -156,7 +173,7 @@ async def async_create_issue(
         if value is not None
     }
 
-    await ir.async_create_issue(
+    result = create_issue(
         hass,
         DOMAIN,
         issue_id,
@@ -169,7 +186,126 @@ async def async_create_issue(
         data=serialised_issue_data,
     )
 
+    if not isawaitable(result):
+        _LOGGER.debug(
+            "Issue registry create_issue returned non-awaitable result for %s", issue_id
+        )
+        return
+
+    await result
+
     _LOGGER.info("Created repair issue: %s (%s)", issue_id, issue_type)
+
+
+async def async_publish_feeding_compliance_issue(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    payload: FeedingComplianceEventPayload,
+    *,
+    context_metadata: ServiceContextMetadata | None = None,
+) -> None:
+    """Create or clear feeding compliance repair issues based on telemetry."""
+
+    dog_id = payload["dog_id"]
+    dog_name = payload.get("dog_name") or dog_id
+    issue_id = f"{entry.entry_id}_feeding_compliance_{dog_id}"
+    result = payload["result"]
+
+    issue_data: dict[str, Any] = {
+        "dog_id": dog_id,
+        "dog_name": dog_name,
+        "days_to_check": payload.get("days_to_check"),
+        "notify_on_issues": payload.get("notify_on_issues"),
+        "notification_sent": payload.get("notification_sent"),
+        "notification_id": payload.get("notification_id"),
+        "result": result,
+    }
+
+    if context_metadata:
+        issue_data["context_metadata"] = dict(context_metadata)
+
+    if cast(str, result.get("status")) != "completed":
+        issue_data.update(
+            {
+                "status": result.get("status"),
+                "message": result.get("message"),
+                "checked_at": result.get("checked_at"),
+            }
+        )
+
+        await async_create_issue(
+            hass,
+            entry,
+            issue_id,
+            ISSUE_FEEDING_COMPLIANCE_NO_DATA,
+            issue_data,
+            severity=ir.IssueSeverity.WARNING,
+        )
+        return
+
+    completed = cast(dict[str, Any], result)
+    missed_meals = [dict(entry) for entry in completed.get("missed_meals", [])]
+    issues = [dict(issue) for issue in completed.get("compliance_issues", [])]
+    recommendations = list(completed.get("recommendations", []))
+
+    score = float(completed.get("compliance_score", 0))
+    has_issues = bool(
+        completed.get("days_with_issues") or issues or missed_meals or score < 100
+    )
+
+    delete_issue = getattr(ir, "async_delete_issue", None)
+    if not has_issues:
+        if callable(delete_issue):
+            await delete_issue(hass, DOMAIN, issue_id)
+        return
+
+    severity = ir.IssueSeverity.ERROR
+    if score < 70:
+        severity = ir.IssueSeverity.CRITICAL
+    elif score >= 90:
+        severity = ir.IssueSeverity.WARNING
+
+    issue_summaries: list[str] = []
+    for item in issues[:3]:
+        issue_list = item.get("issues")
+        if isinstance(issue_list, list) and issue_list:
+            description = str(issue_list[0])
+        else:
+            description = str(item.get("severity", "issue"))
+        issue_summaries.append(f"{item.get('date', 'unknown')}: {description}")
+
+    missed_summaries = [
+        f"{item.get('date', 'unknown')}: {item.get('actual', '?')}/{item.get('expected', '?')}"
+        for item in missed_meals[:3]
+    ]
+
+    issue_data.update(
+        {
+            "status": completed.get("status"),
+            "checked_at": completed.get("checked_at"),
+            "compliance_score": score,
+            "compliance_rate": completed.get("compliance_rate"),
+            "days_analyzed": completed.get("days_analyzed"),
+            "days_with_issues": completed.get("days_with_issues"),
+            "issue_count": len(issues),
+            "missed_meal_count": len(missed_meals),
+            "issues": issues,
+            "missed_meals": missed_meals,
+            "recommendations": recommendations,
+            "issue_summary": issue_summaries,
+            "missed_meal_summary": missed_summaries,
+            "recommendations_summary": recommendations[:2],
+        }
+    )
+
+    await async_create_issue(
+        hass,
+        entry,
+        issue_id,
+        ISSUE_FEEDING_COMPLIANCE_ALERT,
+        issue_data,
+        severity=severity,
+    )
 
 
 async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> None:
