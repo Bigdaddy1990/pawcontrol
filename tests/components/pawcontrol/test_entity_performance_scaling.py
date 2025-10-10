@@ -594,7 +594,8 @@ class TestEntityPerformanceScaling:
         metrics = performance_monitor.finish()
 
         # Cache efficiency assertions
-        assert cache_hit_time <= cache_populate_time  # Cache should be faster or equal
+        tolerance = 2e-4  # absorb perf counter jitter on shared runners
+        assert cache_hit_time <= cache_populate_time + tolerance
         assert stress_time < 0.5  # 100 cached operations should be fast
         assert metrics["execution_time"] < PERFORMANCE_TIMEOUT
         assert metrics["operations_per_second"] > 200  # High throughput with cache

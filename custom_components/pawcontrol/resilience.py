@@ -14,7 +14,8 @@ import asyncio
 import logging
 import time
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from enum import Enum
 from importlib import import_module
 from typing import TYPE_CHECKING, Any, TypeVar
@@ -37,6 +38,29 @@ else:  # pragma: no cover - runtime fallback when Home Assistant is absent
     except ModuleNotFoundError:  # pragma: no cover - fallback to compat shim
         from .compat import HomeAssistantError as HomeAssistantErrorType
 
+
+try:
+    from homeassistant.util import dt as dt_util
+except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
+
+    class _DateTimeModule:
+        @staticmethod
+        def utcnow() -> datetime:
+            return datetime.now(UTC)
+
+        @staticmethod
+        def as_timestamp(value: datetime) -> float:
+            if value.tzinfo is None:
+                value = value.replace(tzinfo=UTC)
+            return value.timestamp()
+
+        @staticmethod
+        def as_utc(value: datetime) -> datetime:
+            if value.tzinfo is None:
+                return value.replace(tzinfo=UTC)
+            return value.astimezone(UTC)
+
+    dt_util = _DateTimeModule()
 
 from .compat import HomeAssistantError
 
@@ -94,9 +118,35 @@ class CircuitBreakerStats:
     success_count: int = 0
     last_failure_time: float | None = None
     last_state_change: float | None = None
+    last_success_time: float | None = None
     total_calls: int = 0
     total_failures: int = 0
     total_successes: int = 0
+    _last_failure_monotonic: float | None = field(default=None, init=False, repr=False)
+    _last_state_change_monotonic: float | None = field(
+        default=None, init=False, repr=False
+    )
+    _last_success_monotonic: float | None = field(default=None, init=False, repr=False)
+
+
+def _utc_timestamp() -> float:
+    """Return the current UTC timestamp as a float."""
+
+    now = dt_util.utcnow()
+    convert = getattr(dt_util, "as_timestamp", None)
+    if callable(convert):
+        try:
+            return float(convert(now))
+        except (TypeError, ValueError, OverflowError):
+            pass
+
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=UTC)
+
+    try:
+        return float(now.timestamp())
+    except (OverflowError, OSError, ValueError):  # pragma: no cover - fallback
+        return time.time()
 
 
 class CircuitBreaker:
@@ -204,6 +254,9 @@ class CircuitBreaker:
         async with self._lock:
             self._stats.total_successes += 1
             self._stats.success_count += 1
+            now_monotonic = time.monotonic()
+            self._stats.last_success_time = _utc_timestamp()
+            self._stats._last_success_monotonic = now_monotonic
 
             if self._stats.state == CircuitState.HALF_OPEN:
                 if self._stats.success_count >= self.config.success_threshold:
@@ -222,7 +275,9 @@ class CircuitBreaker:
         async with self._lock:
             self._stats.total_failures += 1
             self._stats.failure_count += 1
-            self._stats.last_failure_time = time.monotonic()
+            now_monotonic = time.monotonic()
+            self._stats._last_failure_monotonic = now_monotonic
+            self._stats.last_failure_time = _utc_timestamp()
 
             _LOGGER.warning(
                 "Circuit breaker '%s' recorded failure (%d/%d): %s",
@@ -249,9 +304,9 @@ class CircuitBreaker:
             True if timeout has elapsed since last failure
         """
         reference = (
-            self._stats.last_state_change
-            if self._stats.last_state_change is not None
-            else self._stats.last_failure_time
+            self._stats._last_state_change_monotonic
+            if self._stats._last_state_change_monotonic is not None
+            else self._stats._last_failure_monotonic
         )
 
         if reference is None:
@@ -263,7 +318,9 @@ class CircuitBreaker:
     def _transition_to_open(self) -> None:
         """Transition circuit to OPEN state."""
         self._stats.state = CircuitState.OPEN
-        self._stats.last_state_change = time.monotonic()
+        now_monotonic = time.monotonic()
+        self._stats._last_state_change_monotonic = now_monotonic
+        self._stats.last_state_change = _utc_timestamp()
         self._stats.failure_count = 0
         self._stats.success_count = 0
 
@@ -276,7 +333,9 @@ class CircuitBreaker:
     def _transition_to_half_open(self) -> None:
         """Transition circuit to HALF_OPEN state."""
         self._stats.state = CircuitState.HALF_OPEN
-        self._stats.last_state_change = time.monotonic()
+        now_monotonic = time.monotonic()
+        self._stats._last_state_change_monotonic = now_monotonic
+        self._stats.last_state_change = _utc_timestamp()
         self._stats.failure_count = 0
         self._stats.success_count = 0
         self._half_open_calls = 0
@@ -289,7 +348,9 @@ class CircuitBreaker:
     def _transition_to_closed(self) -> None:
         """Transition circuit to CLOSED state."""
         self._stats.state = CircuitState.CLOSED
-        self._stats.last_state_change = time.monotonic()
+        now_monotonic = time.monotonic()
+        self._stats._last_state_change_monotonic = now_monotonic
+        self._stats.last_state_change = _utc_timestamp()
         self._stats.failure_count = 0
         self._stats.success_count = 0
 

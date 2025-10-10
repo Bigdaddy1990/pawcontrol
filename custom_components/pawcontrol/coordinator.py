@@ -55,6 +55,7 @@ from .coordinator_support import (
 from .coordinator_tasks import (
     build_runtime_statistics,
     build_update_statistics,
+    collect_resilience_diagnostics,
     ensure_background_task,
     run_maintenance,
 )
@@ -131,6 +132,12 @@ class PawControlCoordinator(
             update_interval=timedelta(seconds=base_interval),
             config_entry=entry,
         )
+
+        # DataUpdateCoordinator initialises ``update_interval`` but MyPy cannot
+        # determine the attribute on subclasses without an explicit assignment.
+        # Re-assign the value here to make the attribute type explicit for
+        # downstream telemetry helpers.
+        self.update_interval = timedelta(seconds=base_interval)
 
         self._modules = CoordinatorModuleAdapters(
             session=self.session,
@@ -453,6 +460,8 @@ class PawControlCoordinator(
         )
         last_update_time = getattr(self, "last_update_time", None)
 
+        resilience = collect_resilience_diagnostics(self)
+
         snapshot = build_observability_snapshot(
             metrics=self._metrics,
             adaptive=adaptive,
@@ -461,7 +470,11 @@ class PawControlCoordinator(
             last_update_time=last_update_time,
             last_update_success=self.last_update_success,
             webhook_status=self._webhook_security_status(),
+            resilience=resilience.get("summary") if resilience else None,
         )
+
+        if resilience:
+            snapshot["resilience"] = resilience
 
         if self._last_cycle is not None:
             snapshot["last_cycle"] = self._last_cycle.to_dict()

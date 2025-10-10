@@ -40,7 +40,7 @@ from .const import (
     EVENT_WALK_STARTED,
 )
 from .types import CacheDiagnosticsMetadata, HealthEvent, WalkEvent
-from .utils import ensure_utc_datetime
+from .utils import async_fire_event, ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -1071,7 +1071,8 @@ class PawControlData:
 
             # Fire events for each feeding
             for event in events:
-                self.hass.bus.async_fire(
+                await async_fire_event(
+                    self.hass,
                     EVENT_FEEDING_LOGGED,
                     {
                         "dog_id": event["dog_id"],
@@ -1136,7 +1137,8 @@ class PawControlData:
             )
 
             for health_event in new_events:
-                self.hass.bus.async_fire(
+                await async_fire_event(
+                    self.hass,
                     EVENT_HEALTH_LOGGED,
                     {"dog_id": dog_id, **health_event.as_dict()},
                 )
@@ -1199,7 +1201,8 @@ class PawControlData:
                     dog_walks["active"] = walk_event
                     active_session = walk_event
                     updated = True
-                    self.hass.bus.async_fire(
+                    await async_fire_event(
+                        self.hass,
                         EVENT_WALK_STARTED,
                         {"dog_id": dog_id, **walk_event.as_dict()},
                     )
@@ -1222,7 +1225,8 @@ class PawControlData:
                         history.append(walk_event)
 
                     updated = True
-                    self.hass.bus.async_fire(
+                    await async_fire_event(
+                        self.hass,
                         EVENT_WALK_ENDED,
                         {"dog_id": dog_id, **walk_event.as_dict()},
                     )
@@ -1288,7 +1292,8 @@ class PawControlData:
             )
 
             # Fire event
-            self.hass.bus.async_fire(
+            await async_fire_event(
+                self.hass,
                 EVENT_WALK_STARTED,
                 {"dog_id": dog_id, **active_walk.as_dict()},
             )

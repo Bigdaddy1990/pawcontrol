@@ -854,6 +854,8 @@ class CacheDiagnosticsMetadata(TypedDict, total=False):
     pending_expired_entries: int
     pending_override_candidates: int
     active_override_flags: int
+    active_override_entries: int
+    tracked_entries: int
     per_module: dict[str, Any]
     per_dog: dict[str, Any]
     per_dog_helpers: dict[str, Any]
@@ -1005,6 +1007,90 @@ class CoordinatorHealthIndicators(TypedDict, total=False):
     stability_window_ok: bool
 
 
+class EntityBudgetSummary(TypedDict):
+    """Aggregate entity budget metrics exposed via diagnostics."""
+
+    active_dogs: int
+    total_capacity: int
+    total_allocated: int
+    total_remaining: int
+    average_utilization: float
+    peak_utilization: float
+    denied_requests: int
+
+
+class AdaptivePollingDiagnostics(TypedDict):
+    """Runtime diagnostics captured from the adaptive polling controller."""
+
+    target_cycle_ms: float
+    current_interval_ms: float
+    average_cycle_ms: float
+    history_samples: int
+    error_streak: int
+    entity_saturation: float
+    idle_interval_ms: float
+    idle_grace_ms: float
+
+
+class CircuitBreakerStatsPayload(TypedDict, total=False):
+    """Circuit breaker statistics forwarded to diagnostics panels."""
+
+    breaker_id: str
+    state: str
+    failure_count: int
+    success_count: int
+    last_failure_time: float | None
+    last_state_change: float | None
+    last_success_time: float
+    total_calls: int
+    total_failures: int
+    total_successes: int
+
+
+class CircuitBreakerStateSummary(TypedDict):
+    """Aggregated state counters across all circuit breakers."""
+
+    closed: int
+    open: int
+    half_open: int
+    unknown: int
+    other: int
+
+
+class CoordinatorResilienceSummary(TypedDict):
+    """Condensed view of coordinator resilience health."""
+
+    total_breakers: int
+    states: CircuitBreakerStateSummary
+    failure_count: int
+    success_count: int
+    total_calls: int
+    total_failures: int
+    total_successes: int
+    last_failure_time: float | None
+    last_state_change: float | None
+    last_success_time: float | None
+    recovery_latency: float | None
+    recovery_breaker_id: str | None
+    recovery_breaker_name: NotRequired[str | None]
+    open_breaker_count: int
+    half_open_breaker_count: int
+    unknown_breaker_count: int
+    open_breakers: list[str]
+    open_breaker_ids: list[str]
+    half_open_breakers: list[str]
+    half_open_breaker_ids: list[str]
+    unknown_breakers: list[str]
+    unknown_breaker_ids: list[str]
+
+
+class CoordinatorResilienceDiagnostics(TypedDict, total=False):
+    """Structured resilience payload surfaced through coordinator statistics."""
+
+    breakers: dict[str, CircuitBreakerStatsPayload]
+    summary: CoordinatorResilienceSummary
+
+
 class CoordinatorStatisticsPayload(TypedDict):
     """Structured payload returned by :class:`CoordinatorMetrics.update_statistics`."""
 
@@ -1013,6 +1099,9 @@ class CoordinatorStatisticsPayload(TypedDict):
     health_indicators: CoordinatorHealthIndicators
     repairs: NotRequired[CoordinatorRepairsSummary]
     reconfigure: NotRequired[ReconfigureTelemetrySummary]
+    entity_budget: NotRequired[EntityBudgetSummary]
+    adaptive_polling: NotRequired[AdaptivePollingDiagnostics]
+    resilience: NotRequired[CoordinatorResilienceDiagnostics]
 
 
 class CoordinatorRuntimeContext(TypedDict):
@@ -1048,6 +1137,9 @@ class CoordinatorRuntimeStatisticsPayload(TypedDict):
     cache_performance: CoordinatorCachePerformance
     repairs: NotRequired[CoordinatorRepairsSummary]
     reconfigure: NotRequired[ReconfigureTelemetrySummary]
+    entity_budget: NotRequired[EntityBudgetSummary]
+    adaptive_polling: NotRequired[AdaptivePollingDiagnostics]
+    resilience: NotRequired[CoordinatorResilienceDiagnostics]
 
 
 class DogConfigData(TypedDict, total=False):

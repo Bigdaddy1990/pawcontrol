@@ -48,6 +48,7 @@ from .types import (
     DetectionStatusEntry,
     DogConfigData,
 )
+from .utils import async_fire_event
 
 if TYPE_CHECKING:
     from .notifications import PawControlNotificationManager
@@ -721,7 +722,8 @@ class DoorSensorManager:
             self._detection_stats["successful_walks"] += 1
 
             # Fire walk started event
-            self.hass.bus.async_fire(
+            await async_fire_event(
+                self.hass,
                 EVENT_WALK_STARTED,
                 {
                     "dog_id": config.dog_id,
@@ -818,7 +820,8 @@ class DoorSensorManager:
             state.consecutive_opens = 0
 
             # Fire walk ended event
-            self.hass.bus.async_fire(
+            await async_fire_event(
+                self.hass,
                 EVENT_WALK_ENDED,
                 {
                     "dog_id": config.dog_id,

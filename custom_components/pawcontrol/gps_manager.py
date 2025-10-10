@@ -38,6 +38,7 @@ from .notifications import (
     PawControlNotificationManager,
 )
 from .resilience import ResilienceManager, RetryConfig
+from .utils import async_fire_event
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -1071,7 +1072,7 @@ class GPSGeofenceManager:
                 GeofenceEventType.BREACH: EVENT_GEOFENCE_BREACH,
                 GeofenceEventType.RETURN: EVENT_GEOFENCE_RETURN,
             }[event.event_type]
-            self.hass.bus.async_fire(hass_event, event_payload)
+            await async_fire_event(self.hass, hass_event, event_payload)
 
             title = f"Geofence alert • {event.dog_id}"
             zone_name = event.zone.name

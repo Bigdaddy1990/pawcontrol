@@ -13,6 +13,7 @@ import importlib.machinery
 import importlib.util
 import pathlib
 import sys
+import time
 import types
 from collections.abc import Callable
 from unittest.mock import AsyncMock
@@ -379,6 +380,8 @@ def test_record_success_resets_failure_count() -> None:
         breaker._stats.failure_count = 5  # type: ignore[attr-defined]
         await breaker._record_success()
         assert breaker.stats.failure_count == 0
+        assert breaker.stats.last_success_time is not None
+        assert abs(breaker.stats.last_success_time - time.time()) < 5
 
     asyncio.run(scenario())
 
@@ -395,6 +398,19 @@ def test_record_success_noop_while_open() -> None:
 
         assert breaker.stats.state is CircuitState.OPEN
         assert breaker.stats.failure_count == 3
+
+    asyncio.run(scenario())
+
+
+def test_record_failure_tracks_epoch_timestamp() -> None:
+    """Failure recording should capture a wall-clock timestamp."""
+
+    async def scenario() -> None:
+        breaker = CircuitBreaker("failure")
+        await breaker._record_failure(RuntimeError("boom"))
+        snapshot = breaker.stats.last_failure_time
+        assert snapshot is not None
+        assert abs(snapshot - time.time()) < 5
 
     asyncio.run(scenario())
 

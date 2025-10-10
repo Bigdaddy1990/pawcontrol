@@ -17,8 +17,9 @@ import logging
 import math
 import re
 from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
+from contextlib import suppress
 from dataclasses import dataclass
-from datetime import UTC, datetime, time, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from functools import wraps
 from numbers import Real
 from types import SimpleNamespace
@@ -32,9 +33,10 @@ from typing import (
     TypeVar,
     cast,
 )
+from weakref import WeakKeyDictionary
 
 if TYPE_CHECKING:  # pragma: no cover - import heavy HA modules for typing only
-    from homeassistant.core import HomeAssistant
+    from homeassistant.core import Context, EventOrigin, HomeAssistant
     from homeassistant.helpers import device_registry as dr
     from homeassistant.helpers import entity_registry as er
     from homeassistant.helpers.device_registry import DeviceEntry, DeviceInfo
@@ -43,7 +45,12 @@ if TYPE_CHECKING:  # pragma: no cover - import heavy HA modules for typing only
     from homeassistant.util import dt as dt_util
 else:  # pragma: no branch - executed under tests without Home Assistant installed
     try:
-        from homeassistant.core import HomeAssistant
+        from homeassistant.core import Context, HomeAssistant
+
+        try:
+            from homeassistant.core import EventOrigin
+        except ImportError:  # pragma: no cover - EventOrigin missing on older cores
+            EventOrigin = object  # type: ignore[assignment]
         from homeassistant.helpers import device_registry as dr
         from homeassistant.helpers import entity_registry as er
         from homeassistant.helpers.device_registry import DeviceEntry, DeviceInfo
@@ -51,6 +58,12 @@ else:  # pragma: no branch - executed under tests without Home Assistant install
         from homeassistant.helpers.entity_platform import AddEntitiesCallback
         from homeassistant.util import dt as dt_util
     except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
+
+        class Context:  # type: ignore[override]
+            """Placeholder for Home Assistant's request context."""
+
+        class EventOrigin:  # type: ignore[override]
+            """Enum stand-in representing the origin of a Home Assistant event."""
 
         class HomeAssistant:  # type: ignore[override]
             """Minimal stand-in mirroring :class:`homeassistant.core.HomeAssistant`."""
@@ -106,6 +119,38 @@ else:  # pragma: no branch - executed under tests without Home Assistant install
             def utcnow() -> datetime:
                 return datetime.now(UTC)
 
+            @staticmethod
+            def now() -> datetime:
+                return datetime.now(UTC)
+
+            @staticmethod
+            def as_utc(value: datetime) -> datetime:
+                if value.tzinfo is None:
+                    return value.replace(tzinfo=UTC)
+                return value.astimezone(UTC)
+
+            @staticmethod
+            def as_local(value: datetime) -> datetime:
+                if value.tzinfo is None:
+                    return value.replace(tzinfo=UTC)
+                return value.astimezone(UTC)
+
+            @staticmethod
+            def parse_datetime(value: str) -> datetime | None:
+                with suppress(ValueError):
+                    return datetime.fromisoformat(value)
+                return None
+
+            @staticmethod
+            def parse_date(value: str) -> date | None:
+                with suppress(ValueError):
+                    return date.fromisoformat(value)
+                return None
+
+            @staticmethod
+            def utc_from_timestamp(timestamp: float) -> datetime:
+                return datetime.fromtimestamp(timestamp, UTC)
+
         dt_util = _DateTimeModule()
 
 from .const import DEFAULT_MODEL, DOMAIN, MANUFACTURER
@@ -128,6 +173,101 @@ class PortionValidationResult(TypedDict):
     warnings: list[str]
     recommendations: list[str]
     percentage_of_daily: float
+
+
+async def async_fire_event(
+    hass: HomeAssistant,
+    event_type: str,
+    event_data: Mapping[str, Any] | None = None,
+    *,
+    context: Context | None = None,
+    origin: EventOrigin | None = None,
+    time_fired: datetime | date | str | float | int | None = None,
+) -> Any:
+    """Fire a Home Assistant bus event and await coroutine-based mocks.
+
+    Home Assistant's ``Bus.async_fire`` returns ``None`` but unit tests frequently
+    replace it with :class:`unittest.mock.AsyncMock`. Awaiting the mock keeps the
+    helper compatible with coroutine-based fakes while only forwarding optional
+    keyword arguments that the active Home Assistant core accepts. Metadata such
+    as ``context``, ``origin``, and ``time_fired`` is therefore passed through when
+    provided (supporting :class:`datetime.datetime`, :class:`datetime.date`, ISO
+    strings, or Unix epoch numbers), but gracefully omitted on legacy cores whose
+    bus implementation predates those parameters. The awaited or direct return
+    value is propagated so call sites that previously consumed the bus result keep
+    functioning unchanged.
+    """
+
+    bus_async_fire = hass.bus.async_fire
+
+    accepts_any_kw, supported_keywords = _get_bus_keyword_support(bus_async_fire)
+
+    def _supports(keyword: str) -> bool:
+        return accepts_any_kw or keyword in supported_keywords
+
+    kwargs: dict[str, Any] = {}
+    if context is not None and _supports("context"):
+        kwargs["context"] = context
+    if origin is not None and _supports("origin"):
+        kwargs["origin"] = origin
+    sanitized_time_fired: datetime | None = None
+    if time_fired is not None:
+        sanitized_time_fired = ensure_utc_datetime(time_fired)
+        if sanitized_time_fired is None:
+            _LOGGER.debug(
+                "Dropping invalid time_fired payload %r for %s event",
+                time_fired,
+                event_type,
+            )
+    if sanitized_time_fired is not None and _supports("time_fired"):
+        kwargs["time_fired"] = sanitized_time_fired
+
+    result = bus_async_fire(event_type, event_data, **kwargs)
+    if inspect.isawaitable(result):
+        return await cast(Awaitable[Any], result)
+    return result
+
+
+# Cache Home Assistant bus signature support to avoid repeated inspection.
+_SIGNATURE_SUPPORT_CACHE: WeakKeyDictionary[object, tuple[bool, frozenset[str]]] = (
+    WeakKeyDictionary()
+)
+
+
+def _get_bus_keyword_support(
+    bus_async_fire: Callable[..., Any],
+) -> tuple[bool, frozenset[str]]:
+    """Return metadata describing which keywords the bus supports."""
+
+    cache_key: object = getattr(bus_async_fire, "__func__", bus_async_fire)
+
+    try:
+        return _SIGNATURE_SUPPORT_CACHE[cache_key]
+    except KeyError:
+        support = _introspect_bus_keywords(bus_async_fire)
+        with suppress(TypeError):  # pragma: no cover - object not weak-referenceable
+            _SIGNATURE_SUPPORT_CACHE[cache_key] = support
+        return support
+
+
+def _introspect_bus_keywords(
+    bus_async_fire: Callable[..., Any],
+) -> tuple[bool, frozenset[str]]:
+    """Inspect the bus callable for supported keyword arguments."""
+
+    try:
+        signature = inspect.signature(bus_async_fire)
+    except (TypeError, ValueError):
+        return True, frozenset()
+
+    parameters = signature.parameters
+    accepts_any_kw = any(
+        parameter.kind is inspect.Parameter.VAR_KEYWORD
+        for parameter in parameters.values()
+    )
+
+    supported_keywords = frozenset(parameters)
+    return accepts_any_kw, supported_keywords
 
 
 def is_number(value: Any) -> TypeGuard[Number]:
@@ -1174,7 +1314,9 @@ def format_relative_time(dt: datetime) -> str:
         return f"{months} month{'s' if months > 1 else ''} ago"
 
 
-def ensure_utc_datetime(value: datetime | str | None) -> datetime | None:
+def ensure_utc_datetime(
+    value: datetime | date | str | float | int | None,
+) -> datetime | None:
     """Return a timezone-aware UTC datetime from various input formats."""
 
     if value is None:
@@ -1182,10 +1324,33 @@ def ensure_utc_datetime(value: datetime | str | None) -> datetime | None:
 
     if isinstance(value, datetime):
         dt_value = value
+    elif isinstance(value, date):
+        dt_value = datetime.combine(value, datetime.min.time())
+    elif is_number(value):
+        try:
+            timestamp = float(value)
+        except (TypeError, ValueError):
+            return None
+        try:
+            dt_value = datetime.fromtimestamp(timestamp, UTC)
+        except (OverflowError, OSError, ValueError):
+            return None
     elif isinstance(value, str) and value:
-        dt_value = dt_util.parse_datetime(value)
+        try:
+            dt_value = dt_util.parse_datetime(value)
+        except ValueError:
+            dt_value = None
         if dt_value is None:
-            date_value = dt_util.parse_date(value)
+            date_parser = getattr(dt_util, "parse_date", None)
+            date_value: date | None = None
+            if callable(date_parser):
+                try:
+                    date_value = date_parser(value)
+                except ValueError:
+                    date_value = None
+            if date_value is None:
+                with suppress(ValueError):
+                    date_value = date.fromisoformat(value)
             if date_value is None:
                 return None
             dt_value = datetime.combine(date_value, datetime.min.time())
