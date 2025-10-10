@@ -6,6 +6,7 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, cast
 
 from .types import (
+    CoordinatorResilienceSummary,
     PawControlRuntimeData,
     ReconfigureTelemetry,
     ReconfigureTelemetrySummary,
@@ -119,4 +120,39 @@ def update_runtime_reconfigure_summary(
         return None
 
     performance_stats["reconfigure_summary"] = summary
+    return summary
+
+
+def get_runtime_resilience_summary(
+    runtime_data: PawControlRuntimeData,
+) -> CoordinatorResilienceSummary | None:
+    """Return the cached resilience summary from performance statistics."""
+
+    performance_stats = getattr(runtime_data, "performance_stats", None)
+    if not isinstance(performance_stats, Mapping):
+        return None
+
+    summary = performance_stats.get("resilience_summary")
+    if not isinstance(summary, Mapping):
+        return None
+
+    return cast(CoordinatorResilienceSummary, dict(summary))
+
+
+def update_runtime_resilience_summary(
+    runtime_data: PawControlRuntimeData,
+    summary: CoordinatorResilienceSummary | None,
+) -> CoordinatorResilienceSummary | None:
+    """Persist the latest resilience summary in runtime performance stats."""
+
+    performance_stats = getattr(runtime_data, "performance_stats", None)
+    if not isinstance(performance_stats, MutableMapping):
+        runtime_data.performance_stats = {}
+        performance_stats = runtime_data.performance_stats
+
+    if summary is None:
+        performance_stats.pop("resilience_summary", None)
+        return None
+
+    performance_stats["resilience_summary"] = dict(summary)
     return summary

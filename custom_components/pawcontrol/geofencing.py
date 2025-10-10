@@ -34,6 +34,7 @@ from .const import (
 )
 from .notifications import NotificationPriority, NotificationType
 from .types import GPSLocation
+from .utils import async_fire_event
 
 if TYPE_CHECKING:
     from .notifications import PawControlNotificationManager
@@ -489,9 +490,9 @@ class PawControlGeofencing:
 
         # Fire Home Assistant event
         if event == GeofenceEvent.ENTERED:
-            self.hass.bus.async_fire(EVENT_GEOFENCE_ENTERED, event_data)
+            await async_fire_event(self.hass, EVENT_GEOFENCE_ENTERED, event_data)
         elif event == GeofenceEvent.LEFT:
-            self.hass.bus.async_fire(EVENT_GEOFENCE_LEFT, event_data)
+            await async_fire_event(self.hass, EVENT_GEOFENCE_LEFT, event_data)
 
         _LOGGER.info(
             "Geofence event: %s %s %s zone '%s'",

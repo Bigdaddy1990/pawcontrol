@@ -62,12 +62,13 @@ def build_performance_snapshot(
     last_update_time: datetime | None,
     last_update_success: bool,
     webhook_status: Mapping[str, Any],
+    resilience: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Generate the coordinator performance snapshot payload."""
 
     last_update = last_update_time.isoformat() if last_update_time else None
 
-    return {
+    snapshot = {
         "update_counts": {
             "total": metrics.update_count,
             "successful": metrics.successful_cycles,
@@ -85,6 +86,36 @@ def build_performance_snapshot(
         "entity_budget": dict(entity_budget),
         "webhook_security": dict(webhook_status),
     }
+
+    if resilience:
+        resilience_payload = dict(resilience)
+
+        list_fields = (
+            "open_breakers",
+            "open_breaker_ids",
+            "half_open_breakers",
+            "half_open_breaker_ids",
+            "unknown_breakers",
+            "unknown_breaker_ids",
+        )
+
+        for field in list_fields:
+            value = resilience_payload.get(field)
+            if isinstance(value, list):
+                continue
+            if value is None:
+                resilience_payload[field] = []
+                continue
+            if isinstance(value, Iterable) and not isinstance(
+                value, str | bytes | bytearray
+            ):
+                resilience_payload[field] = list(value)
+            else:
+                resilience_payload[field] = [value]
+
+        snapshot["resilience_summary"] = resilience_payload
+
+    return snapshot
 
 
 def _coerce_float(value: Any, default: float) -> float:

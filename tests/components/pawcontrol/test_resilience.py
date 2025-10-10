@@ -8,6 +8,7 @@ Quality Scale: Bronze target
 from __future__ import annotations
 
 import asyncio
+import time
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -168,6 +169,49 @@ class TestCircuitBreaker:
         assert stats.total_successes == 3
         assert stats.total_failures == 2
         assert stats.state == CircuitState.CLOSED
+        assert stats.last_success_time is not None
+        assert stats.last_failure_time is not None
+        now = time.time()
+        assert abs(stats.last_success_time - now) < 5
+        assert abs(stats.last_failure_time - now) < 5
+
+    async def test_circuit_breaker_records_timestamps(self) -> None:
+        """Circuit breaker should capture epoch timestamps for telemetry."""
+
+        config = CircuitBreakerConfig(
+            failure_threshold=1,
+            timeout_seconds=0.05,
+            success_threshold=2,
+        )
+        breaker = CircuitBreaker("timestamp", config)
+
+        async def failing() -> None:
+            raise ValueError("boom")
+
+        async def succeeding() -> str:
+            return "ok"
+
+        with pytest.raises(ValueError):
+            await breaker.call(failing)
+
+        failure_snapshot = breaker.stats.last_failure_time
+        assert failure_snapshot is not None
+        assert abs(failure_snapshot - time.time()) < 5
+
+        await asyncio.sleep(0.06)
+
+        assert breaker.state is CircuitState.OPEN
+
+        # Two successful calls transition HALF_OPEN -> CLOSED
+        assert await breaker.call(succeeding) == "ok"
+        assert breaker.state is CircuitState.HALF_OPEN
+        assert await breaker.call(succeeding) == "ok"
+        assert breaker.state is CircuitState.CLOSED
+
+        success_snapshot = breaker.stats.last_success_time
+        assert success_snapshot is not None
+        assert abs(success_snapshot - time.time()) < 5
+        assert success_snapshot >= failure_snapshot
 
 
 class TestRetryLogic:

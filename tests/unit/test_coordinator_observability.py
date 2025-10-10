@@ -59,6 +59,33 @@ def test_build_performance_snapshot_includes_metrics() -> None:
     entity_budget = {"active_dogs": 1}
     webhook_status = {"configured": False, "secure": True, "hmac_ready": False}
 
+    resilience_summary = {
+        "total_breakers": 2,
+        "states": {
+            "closed": 1,
+            "open": 1,
+            "half_open": 0,
+            "unknown": 0,
+            "other": 0,
+        },
+        "failure_count": 4,
+        "success_count": 6,
+        "total_calls": 10,
+        "total_failures": 4,
+        "total_successes": 6,
+        "last_failure_time": 1700000000.0,
+        "last_state_change": 1700000100.0,
+        "last_success_time": 1700000200.0,
+        "recovery_latency": 200.0,
+        "recovery_breaker_id": "api",
+        "recovery_breaker_name": "api",
+        "open_breakers": ["api"],
+        "open_breaker_count": 1,
+        "open_breaker_ids": ["api"],
+        "half_open_breaker_count": 0,
+        "unknown_breaker_count": 0,
+    }
+
     snapshot = build_performance_snapshot(
         metrics=metrics,
         adaptive=adaptive,
@@ -67,12 +94,27 @@ def test_build_performance_snapshot_includes_metrics() -> None:
         last_update_time=datetime(2024, 1, 1, 0, 0, 0),
         last_update_success=True,
         webhook_status=webhook_status,
+        resilience=resilience_summary,
     )
 
     assert snapshot["update_counts"]["total"] == 3
     assert snapshot["performance_metrics"]["update_interval_s"] == 2.5
     assert snapshot["adaptive_polling"]["current_interval_ms"] == 120.0
     assert snapshot["webhook_security"]["secure"] is True
+    resilience = snapshot["resilience_summary"]
+    assert resilience["total_breakers"] == 2
+    assert resilience["open_breaker_count"] == 1
+    assert resilience["last_success_time"] == 1700000200.0
+    assert resilience["recovery_latency"] == 200.0
+    assert resilience["recovery_breaker_id"] == "api"
+    assert resilience["recovery_breaker_name"] == "api"
+    assert resilience["open_breaker_ids"] == ["api"]
+    assert resilience["unknown_breaker_count"] == 0
+    assert resilience["unknown_breakers"] == []
+    assert resilience["unknown_breaker_ids"] == []
+    assert resilience["half_open_breaker_count"] == 0
+    assert resilience["half_open_breakers"] == []
+    assert resilience["half_open_breaker_ids"] == []
 
 
 @pytest.mark.unit

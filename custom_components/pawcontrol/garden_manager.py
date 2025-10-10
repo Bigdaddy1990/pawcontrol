@@ -28,6 +28,7 @@ from .const import (
     STORAGE_VERSION,
 )
 from .notifications import NotificationPriority, NotificationType
+from .utils import async_fire_event
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -404,7 +405,8 @@ class GardenManager:
         self._active_sessions[dog_id] = session
 
         # Fire garden entered event
-        self.hass.bus.async_fire(
+        await async_fire_event(
+            self.hass,
             EVENT_GARDEN_ENTERED,
             {
                 "dog_id": dog_id,
@@ -492,7 +494,8 @@ class GardenManager:
         await self._update_dog_statistics(dog_id)
 
         # Fire garden left event
-        self.hass.bus.async_fire(
+        await async_fire_event(
+            self.hass,
             EVENT_GARDEN_LEFT,
             {
                 "dog_id": dog_id,
