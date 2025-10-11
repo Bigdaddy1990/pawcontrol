@@ -122,7 +122,9 @@ def _normalise_sequence(
     if isinstance(value, str | bytes | bytearray | memoryview):
         return None
 
-    max_allowed = _SEQUENCE_SCAN_LIMIT if limit is None else min(limit, _SEQUENCE_SCAN_LIMIT)
+    max_allowed = (
+        _SEQUENCE_SCAN_LIMIT if limit is None else min(limit, _SEQUENCE_SCAN_LIMIT)
+    )
     max_items = max(max_allowed, 0)
     if max_items == 0:
         return ()
@@ -439,9 +441,7 @@ def _collect_recommendations(
         text = _first_text_candidate(entry)
         if not text:
             continue
-        summary.append(
-            translations["recommendation_item"].format(recommendation=text)
-        )
+        summary.append(translations["recommendation_item"].format(recommendation=text))
         if len(summary) >= _MAX_RECOMMENDATIONS:
             break
     return summary
@@ -453,9 +453,7 @@ def _build_localised_sections(
 ) -> tuple[list[str], list[str], list[str]]:
     """Return localised summary sections for missed meals, issues, and recommendations."""
 
-    missed_summary = _collect_missed_meals(
-        translations, compliance.get("missed_meals")
-    )
+    missed_summary = _collect_missed_meals(translations, compliance.get("missed_meals"))
     issue_summary = _collect_issue_summaries(
         translations, compliance.get("compliance_issues")
     )
@@ -603,4 +601,3 @@ class _BoundedSequenceSnapshot(Sequence[Any]):
             or len(self._cache) == start_len
         ):
             self._iterator = None
-

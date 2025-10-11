@@ -1172,12 +1172,13 @@ def test_async_publish_feeding_compliance_issue_handles_no_data(
     assert data["issue_summary"] == []
     assert delete_issue_mock.await_count == 0
 
+
 def test_async_publish_feeding_compliance_issue_sanitises_mapping_message(
     repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
 ) -> None:
     """Structured messages should fall back to the localised summary text."""
 
-    module, create_issue_mock, issue_severity_cls, delete_issue_mock = repairs_module
+    module, create_issue_mock, _issue_severity_cls, delete_issue_mock = repairs_module
     create_issue_mock.reset_mock()
     delete_issue_mock.reset_mock()
 
