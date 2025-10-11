@@ -1094,6 +1094,12 @@ async def test_check_feeding_compliance_notifies_on_issues(
     assert event_data["notification_sent"] is True
     assert event_data["result"] is not feeding_manager.compliance_result
     assert event_data["result"]["compliance_score"] == 72
+    summary = event_data.get("localized_summary")
+    assert summary is not None
+    assert summary["title"].startswith("🍽️ Feeding compliance alert")
+    assert summary["score_line"].startswith("Score: 72")
+    assert summary["issues"] == ["2024-05-01: Underfed by 20%"]
+    assert summary["missed_meals"] == ["2024-05-01: 1/2 meals"]
     kwargs = event["kwargs"]
     assert kwargs.get("context") is context
     time_fired = kwargs.get("time_fired")
@@ -1108,6 +1114,10 @@ async def test_check_feeding_compliance_notifies_on_issues(
     assert last_result["status"] == "success"
     details = last_result["details"]
     assert details["score"] == 72
+    details_summary = details.get("localized_summary")
+    assert details_summary is not None
+    assert details_summary["title"] == summary["title"]
+    assert details_summary["issues"] == summary["issues"]
     diagnostics = last_result.get("diagnostics")
     assert diagnostics is not None
     metadata = diagnostics.get("metadata")
@@ -1180,10 +1190,18 @@ async def test_check_feeding_compliance_skips_when_clean(
     assert event_data["dog_id"] == "buddy"
     assert event_data["notification_sent"] is False
     assert event_data["result"]["compliance_score"] == 100
+    summary = event_data.get("localized_summary")
+    assert summary is not None
+    assert summary["score_line"].startswith("Score: 100")
+    assert summary["issues"] == []
+    assert summary["missed_meals"] == []
 
     last_result = runtime_data.performance_stats["last_service_result"]
     assert last_result["service"] == services.SERVICE_CHECK_FEEDING_COMPLIANCE
     assert last_result["status"] == "success"
+    details_summary = last_result["details"].get("localized_summary")
+    assert details_summary is not None
+    assert details_summary["score_line"].startswith("Score: 100")
     assert last_result["details"]["score"] == 100
 
 
@@ -1260,6 +1278,77 @@ async def test_check_feeding_compliance_respects_notify_toggle(
     assert diagnostics is not None
     metadata = diagnostics.get("metadata")
     assert metadata is not None and metadata["notify_on_issues"] is False
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_check_feeding_compliance_sanitises_structured_messages(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Structured compliance messages should be normalised to readable text."""
+
+    feeding_manager = _FeedingManagerStub()
+    feeding_manager.compliance_result = {
+        "status": "no_data",
+        "message": {"description": "Telemetry offline", "code": 503},
+    }
+
+    notification_manager = _NotificationManagerStub()
+    coordinator = _CoordinatorStub(
+        SimpleNamespace(),
+        notification_manager=notification_manager,
+        feeding_manager=feeding_manager,
+    )
+    coordinator.register_dog("buddy", name="Buddy")
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    published_payloads: list[dict[str, object]] = []
+
+    async def _capture_publish(
+        hass: object,
+        entry: object,
+        payload: dict[str, object],
+        *,
+        context_metadata: dict[str, object] | None = None,
+    ) -> None:
+        published_payloads.append(payload)
+
+    monkeypatch.setattr(
+        services,
+        "async_publish_feeding_compliance_issue",
+        _capture_publish,
+    )
+
+    hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+    handler = hass.services.handlers[SERVICE_CHECK_FEEDING_COMPLIANCE]
+
+    await handler(
+        SimpleNamespace(
+            data={
+                "dog_id": "buddy",
+                "days_to_check": 3,
+                "notify_on_issues": True,
+            }
+        )
+    )
+
+    assert notification_manager.compliance_calls
+    assert published_payloads
+
+    event = hass.bus.fired[0]
+    event_data = event["event_data"]
+    assert event_data["result"]["message"] == "Telemetry offline"
+
+    summary = event_data["localized_summary"]
+    assert summary["message"] == "Telemetry offline"
+
+    recorded = runtime_data.performance_stats["last_service_result"]
+    details = recorded["details"]
+    assert details["message"] == "Telemetry offline"
+    assert details["localized_summary"]["message"] == "Telemetry offline"
+
+    published = published_payloads[0]
+    assert published["result"]["message"] == "Telemetry offline"
 
 
 @pytest.mark.unit
