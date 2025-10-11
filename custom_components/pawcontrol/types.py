@@ -5,14 +5,14 @@ functions for the PawControl Home Assistant integration. It implements strict ty
 performance-optimized validation, and comprehensive data modeling for all aspects
 of dog care management.
 
-The module is designed for Bronze-targeted quality with:
+The module is designed for Platinum-targeted quality with:
 - Comprehensive type definitions using TypedDict and dataclasses
 - Performance-optimized validation with frozenset lookups
 - Extensive error handling and data validation
 - Memory-efficient data structures using __slots__ where appropriate
 - Complete documentation for all public APIs
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """
@@ -986,6 +986,18 @@ class FeedingComplianceEventPayload(TypedDict, total=False):
     context_id: NotRequired[str]
     parent_id: NotRequired[str]
     user_id: NotRequired[str | None]
+    localized_summary: NotRequired[FeedingComplianceLocalizedSummary]
+
+
+class FeedingComplianceLocalizedSummary(TypedDict):
+    """Localised representation of a feeding compliance result."""
+
+    title: str
+    message: str | None
+    score_line: str | None
+    missed_meals: list[str]
+    issues: list[str]
+    recommendations: list[str]
 
 
 class CoordinatorRepairsSummary(TypedDict, total=False):

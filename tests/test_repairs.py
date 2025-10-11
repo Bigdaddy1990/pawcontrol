@@ -1008,6 +1008,76 @@ def test_async_publish_feeding_compliance_issue_creates_alert(
     assert data["missed_meal_count"] == 1
     assert data["context_metadata"]["context_id"] == "ctx-1"
     assert data["notification_sent"] is True
+    summary = data["localized_summary"]
+    assert summary["title"].startswith("🍽️ Feeding compliance alert")
+    assert summary["score_line"].startswith("Score: 65")
+    assert data["notification_title"] == summary["title"]
+    assert data["notification_message"] is not None
+    assert data["issue_summary"] == ["2024-05-04: Missed breakfast"]
+    assert data["missed_meal_summary"] == ["2024-05-03: 1/2 meals"]
+    assert data["recommendations_summary"] == ["Schedule a vet visit"]
+
+
+def test_async_publish_feeding_compliance_issue_falls_back_without_critical(
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Severity should fall back when CRITICAL is unavailable."""
+
+    module, create_issue_mock, _, delete_issue_mock = repairs_module
+    create_issue_mock.reset_mock()
+    delete_issue_mock.reset_mock()
+
+    class LimitedSeverity(StrEnum):
+        ERROR = "error"
+        WARNING = "warning"
+
+    monkeypatch.setattr(module.ir, "IssueSeverity", LimitedSeverity, raising=False)
+    monkeypatch.setattr(
+        module.ir, "async_create_issue", create_issue_mock, raising=False
+    )
+
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+
+    payload = {
+        "dog_id": "buddy",
+        "dog_name": "Buddy",
+        "days_to_check": 5,
+        "notify_on_issues": True,
+        "notification_sent": False,
+        "result": {
+            "status": "completed",
+            "compliance_score": 65,
+            "compliance_rate": 65.0,
+            "days_analyzed": 5,
+            "days_with_issues": 2,
+            "compliance_issues": [
+                {
+                    "date": "2024-05-04",
+                    "issues": ["Missed breakfast"],
+                    "severity": "high",
+                }
+            ],
+            "missed_meals": [
+                {"date": "2024-05-03", "actual": 1, "expected": 2},
+            ],
+            "recommendations": ["Schedule a vet visit"],
+        },
+    }
+
+    asyncio.run(
+        module.async_publish_feeding_compliance_issue(
+            hass,
+            entry,
+            payload,
+            context_metadata=None,
+        )
+    )
+
+    assert create_issue_mock.await_count == 1
+    kwargs = create_issue_mock.await_args.kwargs
+    assert kwargs["severity"] == LimitedSeverity.ERROR
 
 
 def test_async_publish_feeding_compliance_issue_clears_resolved_alert(
@@ -1096,4 +1166,53 @@ def test_async_publish_feeding_compliance_issue_handles_no_data(
     data = kwargs["data"]
     assert data["dog_name"] == "buddy"
     assert data["message"] == "Telemetry unavailable"
+    summary = data["localized_summary"]
+    assert summary["title"].startswith("🍽️ Feeding telemetry missing")
+    assert summary["message"] == "Telemetry unavailable"
+    assert data["issue_summary"] == []
     assert delete_issue_mock.await_count == 0
+
+def test_async_publish_feeding_compliance_issue_sanitises_mapping_message(
+    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+) -> None:
+    """Structured messages should fall back to the localised summary text."""
+
+    module, create_issue_mock, issue_severity_cls, delete_issue_mock = repairs_module
+    create_issue_mock.reset_mock()
+    delete_issue_mock.reset_mock()
+
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+
+    payload = {
+        "dog_id": "buddy",
+        "dog_name": None,
+        "days_to_check": 2,
+        "notify_on_issues": False,
+        "notification_sent": False,
+        "result": {
+            "status": "no_data",
+            "message": {"description": "Telemetry offline"},
+        },
+        "localized_summary": {
+            "title": "🍽️ Feeding telemetry missing for Buddy",
+            "message": "Telemetry offline",
+            "score_line": None,
+            "missed_meals": [],
+            "issues": [],
+            "recommendations": [],
+        },
+    }
+
+    asyncio.run(
+        module.async_publish_feeding_compliance_issue(
+            hass,
+            entry,
+            payload,
+            context_metadata=None,
+        )
+    )
+
+    data = create_issue_mock.await_args.kwargs["data"]
+    assert data["message"] == "Telemetry offline"
+    assert data["localized_summary"]["message"] == "Telemetry offline"

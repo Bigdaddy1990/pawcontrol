@@ -64,7 +64,8 @@ from .const import (
     SERVICE_UPDATE_WEATHER,
 )
 from .coordinator import PawControlCoordinator
-from .feeding_manager import FeedingComplianceCompleted, FeedingComplianceNoData
+from .feeding_manager import FeedingComplianceCompleted
+from .feeding_translations import build_feeding_compliance_summary
 from .performance import (
     capture_cache_diagnostics,
     performance_tracker,
@@ -77,6 +78,7 @@ from .types import (
     CacheDiagnosticsCapture,
     DogConfigData,
     FeedingComplianceEventPayload,
+    FeedingComplianceLocalizedSummary,
     ServiceContextMetadata,
     ServiceExecutionDiagnostics,
     ServiceExecutionResult,
@@ -2958,13 +2960,31 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     compliance=compliance_result,
                 )
 
+            compliance_payload = deepcopy(compliance_result)
+            display_name = dog_name or dog_id
+            language = getattr(getattr(hass, "config", None), "language", None)
+            localized_summary: FeedingComplianceLocalizedSummary = (
+                build_feeding_compliance_summary(
+                    language,
+                    display_name=display_name,
+                    compliance=compliance_payload,
+                )
+            )
+
+            status = str(compliance_result.get("status"))
+
+            sanitized_message = localized_summary.get("message")
+            if sanitized_message and status != "completed":
+                compliance_payload["message"] = sanitized_message
+
             event_payload: FeedingComplianceEventPayload = {
                 "dog_id": dog_id,
                 "dog_name": dog_name,
                 "days_to_check": days_to_check,
                 "notify_on_issues": notify_on_issues,
                 "notification_sent": notification_id is not None,
-                "result": deepcopy(compliance_result),
+                "result": compliance_payload,
+                "localized_summary": localized_summary,
             }
             if notification_id is not None:
                 event_payload["notification_id"] = notification_id
@@ -2984,9 +3004,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 context=context,
                 time_fired=dt_util.utcnow(),
             )
-
-            status = str(compliance_result.get("status"))
-            details: dict[str, Any] = {"status": status}
+            details: dict[str, Any] = {
+                "status": status,
+                "localized_summary": dict(localized_summary),
+            }
             if status == "completed":
                 completed = cast(FeedingComplianceCompleted, compliance_result)
                 details.update(
@@ -3000,8 +3021,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     }
                 )
             else:
-                no_data = cast(FeedingComplianceNoData, compliance_result)
-                message = no_data.get("message")
+                message: Any = compliance_payload.get("message")
+                if not isinstance(message, str):
+                    message = localized_summary.get("message")
                 if isinstance(message, str):
                     details["message"] = message
 

@@ -31,10 +31,12 @@ from .const import (
     MODULE_HEALTH,
     MODULE_NOTIFICATIONS,
 )
+from .feeding_translations import build_feeding_compliance_summary
 from .runtime_data import get_runtime_data
 from .types import (
     CacheRepairAggregate,
     FeedingComplianceEventPayload,
+    FeedingComplianceLocalizedSummary,
     ReconfigureTelemetry,
     ServiceContextMetadata,
 )
@@ -211,6 +213,24 @@ async def async_publish_feeding_compliance_issue(
     issue_id = f"{entry.entry_id}_feeding_compliance_{dog_id}"
     result = payload["result"]
 
+    language = getattr(getattr(hass, "config", None), "language", None)
+    localized_summary = payload.get("localized_summary")
+    if localized_summary is None:
+        localized_summary = build_feeding_compliance_summary(
+            language,
+            display_name=dog_name,
+            compliance=dict(result),
+        )
+
+    summary_copy: FeedingComplianceLocalizedSummary = {
+        "title": localized_summary["title"],
+        "message": localized_summary.get("message"),
+        "score_line": localized_summary.get("score_line"),
+        "missed_meals": list(localized_summary.get("missed_meals", [])),
+        "issues": list(localized_summary.get("issues", [])),
+        "recommendations": list(localized_summary.get("recommendations", [])),
+    }
+
     issue_data: dict[str, Any] = {
         "dog_id": dog_id,
         "dog_name": dog_name,
@@ -219,16 +239,28 @@ async def async_publish_feeding_compliance_issue(
         "notification_sent": payload.get("notification_sent"),
         "notification_id": payload.get("notification_id"),
         "result": result,
+        "localized_summary": summary_copy,
+        "notification_title": summary_copy["title"],
+        "notification_message": summary_copy["message"],
+        "score_line": summary_copy["score_line"],
+        "issue_summary": summary_copy["issues"],
+        "missed_meal_summary": summary_copy["missed_meals"],
+        "recommendations_summary": summary_copy["recommendations"],
     }
 
     if context_metadata:
         issue_data["context_metadata"] = dict(context_metadata)
 
+    summary_message = summary_copy.get("message")
+
     if cast(str, result.get("status")) != "completed":
+        message_value: Any = result.get("message")
+        if not isinstance(message_value, str):
+            message_value = summary_message
         issue_data.update(
             {
                 "status": result.get("status"),
-                "message": result.get("message"),
+                "message": message_value,
                 "checked_at": result.get("checked_at"),
             }
         )
@@ -256,28 +288,46 @@ async def async_publish_feeding_compliance_issue(
     delete_issue = getattr(ir, "async_delete_issue", None)
     if not has_issues:
         if callable(delete_issue):
-            await delete_issue(hass, DOMAIN, issue_id)
+            delete_result = delete_issue(hass, DOMAIN, issue_id)
+            if isawaitable(delete_result):
+                await delete_result
         return
 
-    severity = ir.IssueSeverity.ERROR
+    severity_enum = getattr(ir, "IssueSeverity", None)
+    error_severity: str | ir.IssueSeverity
+    warning_severity: str | ir.IssueSeverity
+    critical_severity: str | ir.IssueSeverity | None
+    warning_candidate: str | ir.IssueSeverity | None = None
+
+    if severity_enum is None:
+        error_severity = "error"
+        warning_severity = "warning"
+        critical_severity = None
+    else:
+        error_severity = getattr(severity_enum, "ERROR", "error")
+        warning_candidate = getattr(severity_enum, "WARNING", None)
+        warning_severity = (
+            warning_candidate if warning_candidate is not None else error_severity
+        )
+        critical_severity = getattr(severity_enum, "CRITICAL", None)
+
+    severity: str | ir.IssueSeverity = error_severity
     if score < 70:
-        severity = ir.IssueSeverity.CRITICAL
-    elif score >= 90:
-        severity = ir.IssueSeverity.WARNING
-
-    issue_summaries: list[str] = []
-    for item in issues[:3]:
-        issue_list = item.get("issues")
-        if isinstance(issue_list, list) and issue_list:
-            description = str(issue_list[0])
+        if critical_severity is not None:
+            severity = critical_severity
         else:
-            description = str(item.get("severity", "issue"))
-        issue_summaries.append(f"{item.get('date', 'unknown')}: {description}")
-
-    missed_summaries = [
-        f"{item.get('date', 'unknown')}: {item.get('actual', '?')}/{item.get('expected', '?')}"
-        for item in missed_meals[:3]
-    ]
+            _LOGGER.debug(
+                "IssueSeverity.CRITICAL unavailable; defaulting to %s severity",
+                getattr(error_severity, "value", error_severity),
+            )
+            severity = error_severity
+    elif score >= 90:
+        if warning_candidate is None and severity_enum is not None:
+            _LOGGER.debug(
+                "IssueSeverity.WARNING unavailable; defaulting to %s severity",
+                getattr(error_severity, "value", error_severity),
+            )
+        severity = warning_severity
 
     issue_data.update(
         {
@@ -292,9 +342,6 @@ async def async_publish_feeding_compliance_issue(
             "issues": issues,
             "missed_meals": missed_meals,
             "recommendations": recommendations,
-            "issue_summary": issue_summaries,
-            "missed_meal_summary": missed_summaries,
-            "recommendations_summary": recommendations[:2],
         }
     )
 
