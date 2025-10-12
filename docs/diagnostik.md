@@ -28,6 +28,22 @@
 
 ### Diagnostics & QA
 - Diagnostics-Modul exportiert Konfiguration, Laufzeitdaten, Performance-Metriken und redigierte Schlüssel, womit Support-Daten den Guides entsprechen.【F:custom_components/pawcontrol/diagnostics.py†L1-L187】
+- Die Koordinator-Snapshots liefern ein stets vorhandenes `rejection_metrics`-Objekt mit `schema_version`, Ablehnungszählern, letzter Ablehnung und Breaker-IDs; Update- und Runtime-Statistiken spiegeln dieselben Werte selbst ohne aktiven Resilience-Manager wider, sodass die Platinum-Dashboards, die kommende UI-Aktualisierung und die Dokumentationen ohne Scraping auf die neuen Felder zugreifen können.【F:custom_components/pawcontrol/coordinator_observability.py†L40-L154】【F:custom_components/pawcontrol/coordinator_tasks.py†L672-L829】【F:custom_components/pawcontrol/diagnostics.py†L598-L666】【F:tests/unit/test_coordinator_observability.py†L1-L190】【F:tests/unit/test_coordinator_tasks.py†L200-L970】
+- Das Platinum-Diagnostics-Panel in der aktuellen UI-Build zeigt den neuen Block mit `schema_version: 1` unmittelbar unter den Performance-Karten an; der JSON-Ausschnitt unten stammt aus dem validierten Front-End-Snapshot und bestätigt, dass Dashboard, Backend und Dokumentation dieselbe Struktur nutzen.【F:custom_components/pawcontrol/coordinator_observability.py†L96-L154】【F:tests/unit/test_coordinator_observability.py†L88-L124】 
+
+```json
+{
+  "rejection_metrics": {
+    "schema_version": 1,
+    "rejected_call_count": 0,
+    "rejection_breaker_count": 0,
+    "rejection_rate": 0.0,
+    "last_rejection_time": null,
+    "last_rejection_breaker_id": null,
+    "last_rejection_breaker_name": null
+  }
+}
+```
 - Tests: `tests/components/pawcontrol/test_all_platforms.py` liefert eine umfassende Fixture mit Garden-, Diet- und Emergency-Daten für Sensor-, Binary-Sensor-, Button- und Servicepfade.【F:tests/components/pawcontrol/test_all_platforms.py†L1-L219】
 
 ## Verbleibende Beobachtungen

@@ -31,9 +31,18 @@ from typing import (
     NotRequired,
     Required,
     TypedDict,
+    cast,
 )
 
 from .compat import ConfigEntry
+from .const import (
+    CONF_BREAKFAST_TIME,
+    CONF_DAILY_FOOD_AMOUNT,
+    CONF_DINNER_TIME,
+    CONF_FOOD_TYPE,
+    CONF_LUNCH_TIME,
+    CONF_MEALS_PER_DAY,
+)
 
 try:
     from homeassistant.util import dt as dt_util
@@ -270,6 +279,211 @@ class DogModulesConfig(TypedDict, total=False):
     medication: bool
     training: bool
     weather: bool
+
+
+ModuleToggleKey = Literal[
+    "feeding",
+    "walk",
+    "health",
+    "gps",
+    "garden",
+    "notifications",
+    "dashboard",
+    "visitor",
+    "grooming",
+    "medication",
+    "training",
+]
+
+MODULE_TOGGLE_KEYS: Final[tuple[ModuleToggleKey, ...]] = (
+    "feeding",
+    "walk",
+    "health",
+    "gps",
+    "garden",
+    "notifications",
+    "dashboard",
+    "visitor",
+    "grooming",
+    "medication",
+    "training",
+)
+
+MODULE_TOGGLE_FLOW_FLAGS: Final[tuple[tuple[str, ModuleToggleKey], ...]] = (
+    ("enable_feeding", "feeding"),
+    ("enable_walk", "walk"),
+    ("enable_health", "health"),
+    ("enable_gps", "gps"),
+    ("enable_garden", "garden"),
+    ("enable_notifications", "notifications"),
+    ("enable_dashboard", "dashboard"),
+    ("enable_visitor", "visitor"),
+    ("enable_grooming", "grooming"),
+    ("enable_medication", "medication"),
+    ("enable_training", "training"),
+)
+
+FeedingConfigKey = Literal[
+    "meals_per_day",
+    "daily_food_amount",
+    "portion_size",
+    "food_type",
+    "feeding_schedule",
+    "enable_reminders",
+    "reminder_minutes_before",
+    "breakfast_time",
+    "lunch_time",
+    "dinner_time",
+    "snack_times",
+]
+
+DEFAULT_FEEDING_SCHEDULE: Final[tuple[str, ...]] = ("10:00:00", "15:00:00", "20:00:00")
+
+
+def _coerce_bool(value: Any, *, default: bool = False) -> bool:
+    """Return a boolean flag while tolerating common string/int representations."""
+
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, int | float):
+        return value != 0
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if not text:
+            return default
+        return text in {"1", "true", "yes", "y", "on", "enabled"}
+    return bool(value)
+
+
+def _coerce_int(value: Any, *, default: int) -> int:
+    """Return an integer, falling back to ``default`` when conversion fails."""
+
+    if isinstance(value, bool):
+        return 1 if value else default
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    if isinstance(value, str):
+        try:
+            return int(value.strip())
+        except ValueError:
+            return default
+    return default
+
+
+def _coerce_float(value: Any, *, default: float) -> float:
+    """Return a float, tolerating numeric strings and integers."""
+
+    if isinstance(value, bool):
+        return 1.0 if value else default
+    if isinstance(value, float):
+        return value
+    if isinstance(value, int):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value.strip())
+        except ValueError:
+            return default
+    return default
+
+
+def _coerce_str(value: Any, *, default: str) -> str:
+    """Return a trimmed string value or the provided default."""
+
+    if isinstance(value, str):
+        text = value.strip()
+        return text or default
+    return default
+
+
+def dog_modules_from_flow_input(
+    user_input: Mapping[str, Any],
+    *,
+    existing: DogModulesConfig | None = None,
+) -> DogModulesConfig:
+    """Return a :class:`DogModulesConfig` built from config-flow toggles."""
+
+    modules: dict[ModuleToggleKey, bool] = {}
+
+    if existing:
+        for key in MODULE_TOGGLE_KEYS:
+            flag = existing.get(key)
+            if isinstance(flag, bool):
+                modules[key] = flag
+
+    for flow_flag, module_key in MODULE_TOGGLE_FLOW_FLAGS:
+        modules[module_key] = _coerce_bool(
+            user_input.get(flow_flag), default=modules.get(module_key, False)
+        )
+
+    return cast(DogModulesConfig, modules)
+
+
+def ensure_dog_modules_config(data: Mapping[str, Any]) -> DogModulesConfig:
+    """Extract a :class:`DogModulesConfig` from an arbitrary mapping."""
+
+    modules_raw = data.get(DOG_MODULES_FIELD)
+    modules: dict[ModuleToggleKey, bool] = {}
+
+    if isinstance(modules_raw, Mapping):
+        for key in MODULE_TOGGLE_KEYS:
+            value = modules_raw.get(key)
+            if isinstance(value, bool):
+                modules[key] = value
+
+    return cast(DogModulesConfig, modules)
+
+
+def dog_feeding_config_from_flow(user_input: Mapping[str, Any]) -> DogFeedingConfig:
+    """Build a :class:`DogFeedingConfig` structure from flow input data."""
+
+    meals_per_day = max(1, _coerce_int(user_input.get(CONF_MEALS_PER_DAY), default=2))
+    daily_amount = _coerce_float(
+        user_input.get(CONF_DAILY_FOOD_AMOUNT), default=500.0
+    )
+    portion_size = daily_amount / meals_per_day if meals_per_day else 0.0
+
+    feeding_config: dict[FeedingConfigKey, Any] = {
+        "meals_per_day": meals_per_day,
+        "daily_food_amount": daily_amount,
+        "portion_size": portion_size,
+        "food_type": _coerce_str(user_input.get(CONF_FOOD_TYPE), default="dry_food"),
+        "feeding_schedule": _coerce_str(
+            user_input.get("feeding_schedule"), default="flexible"
+        ),
+        "enable_reminders": _coerce_bool(
+            user_input.get("enable_reminders"), default=True
+        ),
+        "reminder_minutes_before": _coerce_int(
+            user_input.get("reminder_minutes_before"), default=15
+        ),
+    }
+
+    if _coerce_bool(
+        user_input.get("breakfast_enabled"), default=meals_per_day >= 1
+    ):
+        feeding_config["breakfast_time"] = _coerce_str(
+            user_input.get(CONF_BREAKFAST_TIME), default="07:00:00"
+        )
+
+    if _coerce_bool(user_input.get("lunch_enabled"), default=meals_per_day >= 3):
+        feeding_config["lunch_time"] = _coerce_str(
+            user_input.get(CONF_LUNCH_TIME), default="12:00:00"
+        )
+
+    if _coerce_bool(user_input.get("dinner_enabled"), default=meals_per_day >= 2):
+        feeding_config["dinner_time"] = _coerce_str(
+            user_input.get(CONF_DINNER_TIME), default="18:00:00"
+        )
+
+    if _coerce_bool(user_input.get("snacks_enabled"), default=False):
+        feeding_config["snack_times"] = list(DEFAULT_FEEDING_SCHEDULE)
+
+    return cast(DogFeedingConfig, feeding_config)
 
 
 class DogGPSConfig(TypedDict, total=False):
@@ -686,7 +900,7 @@ class DogValidationResult(TypedDict):
 class DogValidationCacheEntry(TypedDict):
     """Cached validation result metadata for config and options flows."""
 
-    result: DogValidationResult | dict[str, Any] | None
+    result: DogValidationResult | DogSetupStepInput | None
     cached_at: float
     state_signature: NotRequired[str]
 
@@ -700,6 +914,21 @@ class DogSetupStepInput(TypedDict, total=False):
     dog_age: int | float | None
     dog_weight: float | int | None
     dog_size: str | None
+
+
+class HelperManagerStats(TypedDict):
+    """Summary statistics reported by the helper manager diagnostics."""
+
+    helpers: int
+    dogs: int
+    managed_entities: int
+
+
+class HelperManagerSnapshot(TypedDict):
+    """Snapshot payload describing managed helper assignments."""
+
+    per_dog: dict[str, int]
+    entity_domains: dict[str, int]
 
 
 DogValidationCache = dict[str, DogValidationCacheEntry]
@@ -1033,6 +1262,12 @@ class CoordinatorPerformanceMetrics(TypedDict):
     last_update: Any
     update_interval: float
     api_calls: int
+    rejected_call_count: NotRequired[int]
+    rejection_breaker_count: NotRequired[int]
+    rejection_rate: NotRequired[float | None]
+    last_rejection_time: NotRequired[float | None]
+    last_rejection_breaker_id: NotRequired[str | None]
+    last_rejection_breaker_name: NotRequired[str | None]
 
 
 class CoordinatorHealthIndicators(TypedDict, total=False):
@@ -1077,9 +1312,11 @@ class CircuitBreakerStatsPayload(TypedDict, total=False):
     last_failure_time: float | None
     last_state_change: float | None
     last_success_time: float
+    last_rejection_time: float | None
     total_calls: int
     total_failures: int
     total_successes: int
+    rejected_calls: int
 
 
 class CircuitBreakerStateSummary(TypedDict):
@@ -1102,12 +1339,17 @@ class CoordinatorResilienceSummary(TypedDict):
     total_calls: int
     total_failures: int
     total_successes: int
+    rejected_call_count: int
     last_failure_time: float | None
     last_state_change: float | None
     last_success_time: float | None
+    last_rejection_time: float | None
     recovery_latency: float | None
     recovery_breaker_id: str | None
     recovery_breaker_name: NotRequired[str | None]
+    last_rejection_breaker_id: NotRequired[str | None]
+    last_rejection_breaker_name: NotRequired[str | None]
+    rejection_rate: float | None
     open_breaker_count: int
     half_open_breaker_count: int
     unknown_breaker_count: int
@@ -1117,6 +1359,9 @@ class CoordinatorResilienceSummary(TypedDict):
     half_open_breaker_ids: list[str]
     unknown_breakers: list[str]
     unknown_breaker_ids: list[str]
+    rejection_breaker_count: int
+    rejection_breakers: list[str]
+    rejection_breaker_ids: list[str]
 
 
 class CoordinatorResilienceDiagnostics(TypedDict, total=False):
@@ -1137,6 +1382,7 @@ class CoordinatorStatisticsPayload(TypedDict):
     entity_budget: NotRequired[EntityBudgetSummary]
     adaptive_polling: NotRequired[AdaptivePollingDiagnostics]
     resilience: NotRequired[CoordinatorResilienceDiagnostics]
+    rejection_metrics: NotRequired[CoordinatorRejectionMetrics]
 
 
 class CoordinatorRuntimeContext(TypedDict):
@@ -1152,6 +1398,9 @@ class CoordinatorErrorSummary(TypedDict):
 
     consecutive_errors: int
     error_rate: float
+    rejection_rate: NotRequired[float | None]
+    rejected_call_count: NotRequired[int]
+    rejection_breaker_count: NotRequired[int]
 
 
 class CoordinatorCachePerformance(TypedDict):
@@ -1175,6 +1424,19 @@ class CoordinatorRuntimeStatisticsPayload(TypedDict):
     entity_budget: NotRequired[EntityBudgetSummary]
     adaptive_polling: NotRequired[AdaptivePollingDiagnostics]
     resilience: NotRequired[CoordinatorResilienceDiagnostics]
+    rejection_metrics: NotRequired[CoordinatorRejectionMetrics]
+
+
+class CoordinatorRejectionMetrics(TypedDict):
+    """Normalised rejection counters exposed via diagnostics payloads."""
+
+    schema_version: Literal[1]
+    rejected_call_count: int
+    rejection_breaker_count: int
+    rejection_rate: float | None
+    last_rejection_time: float | None
+    last_rejection_breaker_id: str | None
+    last_rejection_breaker_name: str | None
 
 
 class DogConfigData(TypedDict, total=False):
@@ -1221,6 +1483,20 @@ class DogConfigData(TypedDict, total=False):
     gps_config: NotRequired[DogGPSConfig]
     feeding_config: NotRequired[DogFeedingConfig]
     health_config: NotRequired[DogHealthConfig]
+
+
+# TypedDict key literals for dog configuration structures.
+DOG_ID_FIELD: Final[Literal["dog_id"]] = "dog_id"
+DOG_NAME_FIELD: Final[Literal["dog_name"]] = "dog_name"
+DOG_BREED_FIELD: Final[Literal["dog_breed"]] = "dog_breed"
+DOG_AGE_FIELD: Final[Literal["dog_age"]] = "dog_age"
+DOG_WEIGHT_FIELD: Final[Literal["dog_weight"]] = "dog_weight"
+DOG_SIZE_FIELD: Final[Literal["dog_size"]] = "dog_size"
+DOG_MODULES_FIELD: Final[Literal["modules"]] = "modules"
+DOG_DISCOVERY_FIELD: Final[Literal["discovery_info"]] = "discovery_info"
+DOG_FEEDING_CONFIG_FIELD: Final[Literal["feeding_config"]] = "feeding_config"
+DOG_HEALTH_CONFIG_FIELD: Final[Literal["health_config"]] = "health_config"
+DOG_GPS_CONFIG_FIELD: Final[Literal["gps_config"]] = "gps_config"
 
 
 class DetectionStatistics(TypedDict):

@@ -33,7 +33,7 @@ import weakref
 from abc import abstractmethod
 from collections.abc import Callable, Iterator
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, Final
+from typing import Any, ClassVar, Final, cast
 from unittest.mock import Mock
 
 from homeassistant.core import callback
@@ -42,7 +42,8 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .compat import HomeAssistantError
+from . import compat
+from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
 from .const import ATTR_DOG_ID, ATTR_DOG_NAME, MANUFACTURER
 from .coordinator import PawControlCoordinator
 from .utils import (
@@ -1566,3 +1567,12 @@ def get_global_performance_stats() -> dict[str, Any]:
         "total_errors": total_errors,
         "entities_with_performance_data": len(performance_summaries),
     }
+ensure_homeassistant_exception_symbols()
+HomeAssistantError: type[Exception] = cast(
+    type[Exception], compat.HomeAssistantError
+)
+bind_exception_alias(
+    "HomeAssistantError",
+    combine_with_current=True,
+)
+

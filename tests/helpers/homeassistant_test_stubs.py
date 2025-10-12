@@ -12,7 +12,7 @@ from datetime import UTC, datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
 from types import MappingProxyType, ModuleType, SimpleNamespace
-from typing import TYPE_CHECKING, Any, Optional
+from typing import TYPE_CHECKING, Any, Optional, cast
 
 if TYPE_CHECKING:  # pragma: no cover - only used for static analysis
     from homeassistant.config_entries import OptionsFlow as _HAOptionsFlow
@@ -505,15 +505,47 @@ def _install_core_module() -> None:
                 "homeassistant.config_entries"
             )
 
+            def _is_flow_class(candidate: Any) -> bool:
+                """Return True if the candidate looks like a ConfigFlow subclass."""
+
+                return (
+                    isinstance(candidate, type)
+                    and candidate is not config_entries_module.ConfigFlow
+                    and hasattr(candidate, "async_step_user")
+                    and hasattr(candidate, "async_abort")
+                )
+
             candidates: list[type[Any]] = []
+            seen: set[type[Any]] = set()
+
+            def _register(candidate: Any) -> None:
+                if not isinstance(candidate, type):
+                    return
+                if candidate in seen:
+                    return
+                seen.add(candidate)
+                candidates.append(candidate)
+
+            alias = getattr(module, "ConfigFlow", None)
+            if _is_flow_class(alias):
+                _register(alias)
+
             for attr in dir(module):
                 candidate = getattr(module, attr)
-                if (
-                    isinstance(candidate, type)
-                    and issubclass(candidate, config_entries_module.ConfigFlow)
-                    and candidate is not config_entries_module.ConfigFlow
-                ):
-                    candidates.append(candidate)
+                try:
+                    if (
+                        isinstance(candidate, type)
+                        and issubclass(candidate, config_entries_module.ConfigFlow)
+                        and candidate is not config_entries_module.ConfigFlow
+                    ):
+                        _register(candidate)
+                        continue
+                except TypeError:
+                    # ``issubclass`` can raise TypeError when dealing with mocks.
+                    pass
+
+                if _is_flow_class(candidate):
+                    _register(candidate)
 
             if not candidates:
                 raise ValueError(f"No ConfigFlow found for domain {domain}")
@@ -821,55 +853,139 @@ def _install_core_module() -> None:
 
     sys.modules["homeassistant.core"] = core_module
 
+    # Ensure the package attribute points at the refreshed module as well. When
+    # other test helpers pre-create ``homeassistant.core`` before calling this
+    # installer the attribute can remain bound to the old placeholder module,
+    # leaving consumers without ``Context`` even though ``sys.modules`` was
+    # replaced. Synchronising the attribute keeps repeated installs idempotent
+    # without re-creating the classes or breaking existing references.
+    root = sys.modules.get("homeassistant")
+    if root is not None:
+        root.core = core_module
+
 
 def _install_exception_module() -> None:
-    exceptions_module = ModuleType("homeassistant.exceptions")
+    exceptions_module = sys.modules.get("homeassistant.exceptions")
+    if exceptions_module is None:
+        exceptions_module = ModuleType("homeassistant.exceptions")
+        sys.modules["homeassistant.exceptions"] = exceptions_module
 
-    class HomeAssistantError(Exception):
-        """Base exception used throughout Home Assistant."""
+    homeassistant_error_type = getattr(exceptions_module, "HomeAssistantError", None)
+    if not (
+        isinstance(homeassistant_error_type, type)
+        and issubclass(homeassistant_error_type, Exception)
+    ):
 
-        pass
+        class _HomeAssistantError(Exception):
+            """Base exception used throughout Home Assistant."""
 
-    class ConfigEntryError(HomeAssistantError):
-        """Generic configuration entry error."""
+            pass
 
-        pass
+        homeassistant_error_type = _HomeAssistantError
+        exceptions_module.HomeAssistantError = _HomeAssistantError
+    else:
+        homeassistant_error_type = cast(type[Exception], homeassistant_error_type)
 
-    class ConfigEntryAuthFailed(ConfigEntryError):  # noqa: N818 - mirror HA naming
-        """Raised when authentication to a config entry fails."""
+    config_entry_error_type = getattr(exceptions_module, "ConfigEntryError", None)
+    if not (
+        isinstance(config_entry_error_type, type)
+        and issubclass(config_entry_error_type, homeassistant_error_type)
+    ):
 
-        def __init__(
-            self,
-            message: str | None = None,
-            *,
-            auth_migration: bool | None = None,
-        ) -> None:
-            super().__init__(message)
-            self.auth_migration = auth_migration
+        class _ConfigEntryError(homeassistant_error_type):
+            """Generic configuration entry error."""
 
-    class ConfigEntryAuthFailedError(ConfigEntryAuthFailed):
-        """Backward compatible alias for auth failures."""
+            pass
 
-        pass
+        config_entry_error_type = _ConfigEntryError
+        exceptions_module.ConfigEntryError = _ConfigEntryError
+    else:
+        config_entry_error_type = cast(type[Exception], config_entry_error_type)
 
-    class ConfigEntryNotReady(ConfigEntryError):  # noqa: N818 - mirror HA naming
-        """Signal that a config entry cannot be set up yet."""
+    config_entry_auth_failed_type = getattr(
+        exceptions_module, "ConfigEntryAuthFailed", None
+    )
+    if not (
+        isinstance(config_entry_auth_failed_type, type)
+        and issubclass(config_entry_auth_failed_type, config_entry_error_type)
+    ):
 
-        pass
+        class _ConfigEntryAuthFailed(config_entry_error_type):
+            """Raised when authentication to a config entry fails."""
 
-    class ServiceValidationError(HomeAssistantError):
-        """Raised when a service call payload fails validation."""
+            def __init__(
+                self,
+                message: str | None = None,
+                *,
+                auth_migration: bool | None = None,
+            ) -> None:
+                super().__init__(message)
+                self.auth_migration = auth_migration
 
-        pass
+        config_entry_auth_failed_type = _ConfigEntryAuthFailed
+        exceptions_module.ConfigEntryAuthFailed = _ConfigEntryAuthFailed
+    else:
+        config_entry_auth_failed_type = cast(
+            type[Exception], config_entry_auth_failed_type
+        )
 
-    exceptions_module.HomeAssistantError = HomeAssistantError
-    exceptions_module.ConfigEntryError = ConfigEntryError
-    exceptions_module.ConfigEntryAuthFailed = ConfigEntryAuthFailed
-    exceptions_module.ConfigEntryAuthFailedError = ConfigEntryAuthFailedError
-    exceptions_module.ConfigEntryNotReady = ConfigEntryNotReady
-    exceptions_module.ServiceValidationError = ServiceValidationError
+    config_entry_auth_failed_error_type = getattr(
+        exceptions_module, "ConfigEntryAuthFailedError", None
+    )
+    if not (
+        isinstance(config_entry_auth_failed_error_type, type)
+        and issubclass(config_entry_auth_failed_error_type, config_entry_auth_failed_type)
+    ):
 
-    sys.modules["homeassistant.exceptions"] = exceptions_module
+        class _ConfigEntryAuthFailedError(config_entry_auth_failed_type):
+            """Backward compatible alias for auth failures."""
+
+            pass
+
+        config_entry_auth_failed_error_type = _ConfigEntryAuthFailedError
+        exceptions_module.ConfigEntryAuthFailedError = _ConfigEntryAuthFailedError
+    else:
+        config_entry_auth_failed_error_type = cast(
+            type[Exception], config_entry_auth_failed_error_type
+        )
+
+    config_entry_not_ready_type = getattr(
+        exceptions_module, "ConfigEntryNotReady", None
+    )
+    if not (
+        isinstance(config_entry_not_ready_type, type)
+        and issubclass(config_entry_not_ready_type, config_entry_error_type)
+    ):
+
+        class _ConfigEntryNotReady(config_entry_error_type):
+            """Signal that a config entry cannot be set up yet."""
+
+            pass
+
+        config_entry_not_ready_type = _ConfigEntryNotReady
+        exceptions_module.ConfigEntryNotReady = _ConfigEntryNotReady
+    else:
+        config_entry_not_ready_type = cast(type[Exception], config_entry_not_ready_type)
+
+    service_validation_error_type = getattr(
+        exceptions_module, "ServiceValidationError", None
+    )
+    if not (
+        isinstance(service_validation_error_type, type)
+        and issubclass(service_validation_error_type, homeassistant_error_type)
+    ):
+
+        class _ServiceValidationError(homeassistant_error_type):
+            """Raised when a service call payload fails validation."""
+
+            pass
+
+        service_validation_error_type = _ServiceValidationError
+        exceptions_module.ServiceValidationError = _ServiceValidationError
+    else:
+        service_validation_error_type = cast(
+            type[Exception], service_validation_error_type
+        )
 
 
 def _install_helper_modules() -> None:
@@ -1754,6 +1870,10 @@ def install_homeassistant_stubs() -> None:
     if not hasattr(root, "__path__"):
         root.__path__ = []  # type: ignore[attr-defined]
 
+    if getattr(root, "_pawcontrol_stubs_ready", False):
+        _refresh_pawcontrol_compat_exports()
+        return
+
     _install_const_module()
     _install_util_modules()
     _install_core_module()
@@ -1761,6 +1881,7 @@ def install_homeassistant_stubs() -> None:
     _install_helper_modules()
     _install_component_modules()
 
+    root._pawcontrol_stubs_ready = True
     _refresh_pawcontrol_compat_exports()
 
 

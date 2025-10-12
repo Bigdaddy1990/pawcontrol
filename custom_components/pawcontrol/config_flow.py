@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+__all__ = ["ConfigFlow", "PawControlConfigFlow"]
+
 import asyncio
 import logging
 import re
@@ -19,7 +21,13 @@ from homeassistant.helpers.service_info.usb import UsbServiceInfo
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry, ConfigEntryAuthFailed, ConfigEntryNotReady
+from . import compat as compat_module
+from .compat import (
+    ConfigEntry,
+    ConfigEntryAuthFailed,
+    bind_exception_alias,
+    ensure_homeassistant_exception_symbols,
+)
 from .config_flow_base import PawControlBaseConfigFlow
 from .config_flow_dashboard_extension import DashboardFlowMixin
 from .config_flow_dogs import DogManagementMixin
@@ -60,9 +68,13 @@ from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .exceptions import ConfigurationError, PawControlSetupError, ValidationError
 from .options_flow import PawControlOptionsFlow
 from .types import (
+    DOG_ID_FIELD,
+    DOG_MODULES_FIELD,
+    DOG_NAME_FIELD,
     ConfigFlowDiscoveryData,
     DogConfigData,
     DogModulesConfig,
+    DogSetupStepInput,
     DogValidationCacheEntry,
     ExternalEntityConfig,
     ReauthDataUpdates,
@@ -77,6 +89,14 @@ from .types import (
     ReconfigureTelemetry,
     is_dog_config_valid,
 )
+
+ensure_homeassistant_exception_symbols()
+
+
+ConfigEntryNotReady: type[Exception] = cast(
+    type[Exception], compat_module.ConfigEntryNotReady
+)
+bind_exception_alias("ConfigEntryNotReady")
 
 if TYPE_CHECKING:
     from homeassistant.components.bluetooth import BluetoothServiceInfoBleak
@@ -728,9 +748,9 @@ class PawControlConfigFlow(
                 try:
                     validated_input = await self._validate_dog_input_cached(user_input)
                     if validated_input:
-                        dog_config = self._create_dog_config(validated_input)
+                        dog_config = await self._create_dog_config(validated_input)
                         self._dogs.append(dog_config)
-                        self._existing_dog_ids.add(dog_config[CONF_DOG_ID])
+                        self._existing_dog_ids.add(dog_config[DOG_ID_FIELD])
                         self._invalidate_profile_caches()
                         return await self.async_step_dog_modules()
 
@@ -763,7 +783,7 @@ class PawControlConfigFlow(
 
     async def _validate_dog_input_cached(
         self, user_input: dict[str, Any]
-    ) -> dict[str, Any] | None:
+    ) -> DogSetupStepInput | None:
         """Validate dog input with caching for repeated validations."""
 
         config_flow_monitor.record_validation("dog_input_attempt")
@@ -780,7 +800,7 @@ class PawControlConfigFlow(
         now_ts = dt_util.utcnow().timestamp()
 
         if cached_entry is not None:
-            cached_result = cached_entry["result"]
+            cached_result = cast(DogSetupStepInput | None, cached_entry["result"])
             cached_state = cached_entry.get("state_signature")
             cached_at = cached_entry["cached_at"]
             if (
@@ -789,7 +809,7 @@ class PawControlConfigFlow(
                 and now_ts - cached_at < 60
             ):
                 config_flow_monitor.record_validation("dog_input_cache_hit")
-                return cached_result.copy()
+                return cast(DogSetupStepInput, dict(cached_result))
 
         try:
             result = await self._validate_dog_input_optimized(user_input)
@@ -797,14 +817,20 @@ class PawControlConfigFlow(
             config_flow_monitor.record_validation("dog_input_error")
             raise
 
+        cloned_result: DogSetupStepInput | None
+        if result is None:
+            cloned_result = None
+        else:
+            cloned_result = cast(DogSetupStepInput, dict(result))
+
         cache_payload: DogValidationCacheEntry = {
-            "result": result.copy() if result is not None else None,
+            "result": cloned_result,
             "cached_at": now_ts,
             "state_signature": state_signature,
         }
         self._validation_cache[cache_key] = cache_payload
         config_flow_monitor.record_validation("dog_input_validated")
-        return result
+        return cloned_result
 
     def _invalidate_profile_caches(self) -> None:
         """Invalidate cached profile estimates when configuration changes."""
@@ -833,9 +859,15 @@ class PawControlConfigFlow(
 
         total = 0
         for dog in self._dogs:
-            modules = dog.get("modules", {})
+            modules_payload = dog.get("modules")
+            if isinstance(modules_payload, Mapping):
+                module_flags = {
+                    str(key): bool(value) for key, value in modules_payload.items()
+                }
+            else:
+                module_flags = {}
             total += self._entity_factory.estimate_entity_count(
-                self._entity_profile, modules
+                self._entity_profile, module_flags
             )
 
         self._profile_estimates_cache[cache_key] = total
@@ -855,7 +887,7 @@ class PawControlConfigFlow(
 
     async def _validate_dog_input_optimized(
         self, user_input: dict[str, Any]
-    ) -> dict[str, Any] | None:
+    ) -> DogSetupStepInput | None:
         """Validate dog input data with optimized performance.
 
         Uses set operations and pre-compiled regex for better performance.
@@ -870,8 +902,9 @@ class PawControlConfigFlow(
             DogValidationError: If validation fails
         """
         # Sanitize inputs with optimized string operations
-        dog_id = user_input[CONF_DOG_ID].lower().strip()
-        dog_name = user_input[CONF_DOG_NAME].strip()
+        raw_dog_id = str(user_input[CONF_DOG_ID])
+        dog_id = raw_dog_id.lower().strip()
+        dog_name = str(user_input[CONF_DOG_NAME]).strip()
 
         # Batch validation for better performance
         field_errors: dict[str, str] = {}
@@ -903,7 +936,7 @@ class PawControlConfigFlow(
             )
 
         # Validate dog size (O(1) frozenset lookup)
-        dog_size = user_input.get(CONF_DOG_SIZE, "medium")
+        dog_size = str(user_input.get(CONF_DOG_SIZE, "medium"))
         if dog_size not in VALID_DOG_SIZES:
             field_errors[CONF_DOG_SIZE] = f"Invalid dog size: {dog_size}"
 
@@ -935,37 +968,79 @@ class PawControlConfigFlow(
             )
 
         # Return validated data
-        return {
-            CONF_DOG_ID: dog_id,
-            CONF_DOG_NAME: dog_name,
-            CONF_DOG_BREED: user_input.get(CONF_DOG_BREED, "").strip(),
-            CONF_DOG_AGE: user_input.get(CONF_DOG_AGE, 3),
-            CONF_DOG_WEIGHT: dog_weight,
-            CONF_DOG_SIZE: dog_size,
+        raw_breed = user_input.get(CONF_DOG_BREED, "")
+        dog_breed = raw_breed.strip() if isinstance(raw_breed, str) else ""
+        breed_value: str | None = dog_breed or None
+
+        age_value = user_input.get(CONF_DOG_AGE, 3)
+        if isinstance(age_value, int | float):
+            dog_age: int | None = int(age_value)
+        else:
+            dog_age = None
+
+        validated: DogSetupStepInput = {
+            "dog_id": dog_id,
+            "dog_name": dog_name,
         }
+        if breed_value is not None:
+            validated["dog_breed"] = breed_value
+        if dog_age is not None:
+            validated["dog_age"] = dog_age
+        validated["dog_weight"] = dog_weight
+        validated["dog_size"] = dog_size
 
-    def _create_dog_config(self, validated_input: dict[str, Any]) -> DogConfigData:
-        """Create dog configuration from validated input.
+        return validated
 
-        Args:
-            validated_input: Validated user input
+    async def _create_dog_config(
+        self, validated_input: DogSetupStepInput
+    ) -> DogConfigData:
+        """Create dog configuration from validated input."""
 
-        Returns:
-            Dog configuration data
-        """
+        dog_id = cast(str, validated_input.get("dog_id", "")).strip()
+        dog_name = cast(str, validated_input.get("dog_name", "")).strip()
+
+        breed_raw = validated_input.get("dog_breed")
+        dog_breed: str | None
+        if isinstance(breed_raw, str):
+            stripped = breed_raw.strip()
+            dog_breed = stripped or None
+        else:
+            dog_breed = None
+
+        age_raw = validated_input.get("dog_age")
+        dog_age: int | None = (
+            int(age_raw) if isinstance(age_raw, int | float) else None
+        )
+
+        weight_raw = validated_input.get("dog_weight")
+        dog_weight: float | None = (
+            float(weight_raw) if isinstance(weight_raw, int | float) else None
+        )
+
+        size_raw = validated_input.get("dog_size")
+        dog_size: str | None = size_raw if isinstance(size_raw, str) else None
+
+        modules: DogModulesConfig = cast(DogModulesConfig, {})
+
         config: DogConfigData = {
-            "dog_id": validated_input[CONF_DOG_ID],
-            "dog_name": validated_input[CONF_DOG_NAME],
-            "dog_breed": validated_input[CONF_DOG_BREED] or None,
-            "dog_age": validated_input[CONF_DOG_AGE],
-            "dog_weight": validated_input[CONF_DOG_WEIGHT],
-            "dog_size": validated_input[CONF_DOG_SIZE],
-            "modules": {},  # Will be set in next step
+            "dog_id": dog_id,
+            "dog_name": dog_name,
+            "modules": modules,
         }
 
-        # Add discovery info if available
+        if dog_breed is not None:
+            config["dog_breed"] = dog_breed
+        if dog_age is not None:
+            config["dog_age"] = dog_age
+        if dog_weight is not None:
+            config["dog_weight"] = dog_weight
+        if dog_size is not None:
+            config["dog_size"] = dog_size
+
         if self._discovery_info:
-            config["discovery_info"] = self._discovery_info.copy()
+            config["discovery_info"] = cast(
+                ConfigFlowDiscoveryData, dict(self._discovery_info)
+            )
 
         return config
 
@@ -989,7 +1064,8 @@ class PawControlConfigFlow(
             try:
                 # Validate modules configuration
                 modules = MODULES_SCHEMA(user_input or {})
-                current_dog[CONF_MODULES] = modules
+                typed_modules = cast(DogModulesConfig, dict(modules))
+                current_dog[DOG_MODULES_FIELD] = typed_modules
                 self._invalidate_profile_caches()
                 return await self.async_step_add_another()
 
@@ -1000,7 +1076,7 @@ class PawControlConfigFlow(
                     data_schema=MODULES_SCHEMA,
                     errors={"base": "invalid_modules"},
                     description_placeholders={
-                        "dog_name": current_dog[CONF_DOG_NAME],
+                        "dog_name": current_dog[DOG_NAME_FIELD],
                         "dogs_configured": str(len(self._dogs)),
                         "smart_defaults": self._get_smart_module_defaults(current_dog),
                     },
@@ -1013,7 +1089,7 @@ class PawControlConfigFlow(
             step_id="dog_modules",
             data_schema=enhanced_schema,
             description_placeholders={
-                "dog_name": current_dog[CONF_DOG_NAME],
+                "dog_name": current_dog[DOG_NAME_FIELD],
                 "dogs_configured": str(len(self._dogs)),
                 "smart_defaults": self._get_smart_module_defaults(current_dog),
             },
@@ -1374,7 +1450,7 @@ class PawControlConfigFlow(
             module_summary = ", ".join(enabled_modules) if enabled_modules else "none"
 
             dogs_list.append(
-                f"{i}. {dog[CONF_DOG_NAME]} ({dog[CONF_DOG_ID]})\n"
+                f"{i}. {dog[DOG_NAME_FIELD]} ({dog[DOG_ID_FIELD]})\n"
                 f"   Size: {dog.get(CONF_DOG_SIZE, 'unknown')}, "
                 f"Weight: {dog.get(CONF_DOG_WEIGHT, 0)}kg\n"
                 f"   Modules: {module_summary}"
@@ -1763,7 +1839,9 @@ class PawControlConfigFlow(
                 }
             ),
             errors=errors,
-            description_placeholders=self._build_reauth_placeholders(summary),
+            description_placeholders=dict(
+                self._build_reauth_placeholders(summary)
+            ),
         )
 
     async def _check_config_health_enhanced(
@@ -1976,7 +2054,7 @@ class PawControlConfigFlow(
         return self.async_show_form(
             step_id="reconfigure",
             data_schema=form_schema,
-            description_placeholders=base_placeholders,
+            description_placeholders=dict(base_placeholders),
         )
 
     def _extract_entry_dogs(self, entry: ConfigEntry) -> list[DogConfigData]:
@@ -2103,3 +2181,7 @@ class PawControlConfigFlow(
         flow = PawControlOptionsFlow()
         flow.initialize_from_config_entry(config_entry)
         return flow
+
+
+ConfigFlow = PawControlConfigFlow
+ConfigFlow.__doc__ = "Compatibility alias for Home Assistant's config flow loader."

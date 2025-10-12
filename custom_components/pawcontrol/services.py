@@ -12,9 +12,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
-import importlib
 import logging
-import sys
 from collections.abc import Callable, Mapping
 from contextlib import suppress
 from copy import deepcopy
@@ -30,7 +28,12 @@ from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
 from . import compat
-from .compat import ConfigEntry, ConfigEntryChange, ConfigEntryState, HomeAssistantError
+from .compat import (
+    ConfigEntry,
+    ConfigEntryChange,
+    ConfigEntryState,
+    bind_exception_alias,
+)
 from .const import (
     CONF_RESET_TIME,
     DEFAULT_RESET_TIME,
@@ -73,7 +76,10 @@ from .performance import (
 )
 from .repairs import async_publish_feeding_compliance_issue
 from .runtime_data import get_runtime_data
-from .telemetry import update_runtime_reconfigure_summary
+from .telemetry import (
+    get_runtime_resilience_summary,
+    update_runtime_reconfigure_summary,
+)
 from .types import (
     CacheDiagnosticsCapture,
     DogConfigData,
@@ -88,92 +94,97 @@ from .walk_manager import WeatherCondition
 
 _LOGGER = logging.getLogger(__name__)
 
-_CANONICAL_SERVICE_VALIDATION_ERROR: type[Exception] | None = getattr(
-    compat, "ServiceValidationError", None
+compat.ensure_homeassistant_exception_symbols()
+HomeAssistantError: type[Exception] = cast(
+    type[Exception], compat.HomeAssistantError,
 )
-_SERVICE_VALIDATION_ERROR_CACHE: dict[tuple[type[Exception], ...], type[Exception]] = {}
+ServiceValidationError: type[Exception] = cast(
+    type[Exception], compat.ServiceValidationError,
+)
+bind_exception_alias("HomeAssistantError", combine_with_current=True)
+bind_exception_alias("ServiceValidationError")
+
+_FALLBACK_EXCEPTION_MODULE = "custom_components.pawcontrol.compat"
+_CACHED_SERVICE_VALIDATION_ERROR: type[Exception] | None
+_SERVICE_VALIDATION_ALIAS_CACHE: dict[
+    tuple[type[Exception], type[Exception]], type[Exception]
+] = {}
+if (
+    isinstance(ServiceValidationError, type)
+    and issubclass(ServiceValidationError, compat.HomeAssistantError)
+    and ServiceValidationError.__module__ != _FALLBACK_EXCEPTION_MODULE
+):
+    _CACHED_SERVICE_VALIDATION_ERROR = ServiceValidationError
+else:
+    _CACHED_SERVICE_VALIDATION_ERROR = None
+
+
+def __getattr__(name: str) -> object:
+    """Expose compat-managed exception aliases at module scope."""
+
+    if name == "HomeAssistantError":
+        compat.ensure_homeassistant_exception_symbols()
+        return HomeAssistantError
+    raise AttributeError(name)
 
 
 def _service_validation_error(message: str) -> Exception:
-    """Return a ``ServiceValidationError`` instance using the active Home Assistant class."""
+    """Return a ``ServiceValidationError`` that mirrors Home Assistant's class."""
 
-    global _CANONICAL_SERVICE_VALIDATION_ERROR
+    compat.ensure_homeassistant_exception_symbols()
 
-    compat_cls = getattr(compat, "ServiceValidationError", None)
-    compat_is_fallback = False
-    if isinstance(compat_cls, type) and issubclass(compat_cls, Exception):
-        compat_is_fallback = getattr(compat_cls, "__module__", "").startswith(
-            "custom_components.pawcontrol"
-        )
+    global _CACHED_SERVICE_VALIDATION_ERROR
+    candidate: type[Exception] | None = None
+    if isinstance(ServiceValidationError, type) and issubclass(
+        ServiceValidationError, compat.HomeAssistantError
+    ):
+        if ServiceValidationError.__module__ != _FALLBACK_EXCEPTION_MODULE:
+            _CACHED_SERVICE_VALIDATION_ERROR = ServiceValidationError
+            candidate = ServiceValidationError
+        elif _CACHED_SERVICE_VALIDATION_ERROR is not None:
+            candidate = _CACHED_SERVICE_VALIDATION_ERROR
+
+    override = getattr(compat, "ServiceValidationError", None)
+    if (
+        isinstance(override, type)
+        and issubclass(override, Exception)
+        and (override.__module__ != _FALLBACK_EXCEPTION_MODULE or candidate is None)
+    ):
+        candidate = override
         if (
-            not compat_is_fallback
-            and compat_cls is not _CANONICAL_SERVICE_VALIDATION_ERROR
+            override.__module__ != _FALLBACK_EXCEPTION_MODULE
+            and issubclass(override, compat.HomeAssistantError)
         ):
-            _CANONICAL_SERVICE_VALIDATION_ERROR = cast(type[Exception], compat_cls)
+            _CACHED_SERVICE_VALIDATION_ERROR = override
 
-    module = sys.modules.get("homeassistant.exceptions")
-    if module is None:
-        try:
-            module = importlib.import_module("homeassistant.exceptions")
-        except Exception:  # pragma: no cover - defensive import path
-            module = None
-    candidates: list[type[Exception]] = []
+    if candidate is None:
+        cached = _CACHED_SERVICE_VALIDATION_ERROR
+        candidate = cached if cached is not None else compat.ServiceValidationError
 
-    if module is not None:
-        candidate = getattr(module, "ServiceValidationError", None)
-        if isinstance(candidate, type) and issubclass(candidate, Exception):
-            _CANONICAL_SERVICE_VALIDATION_ERROR = cast(type[Exception], candidate)
-        elif _CANONICAL_SERVICE_VALIDATION_ERROR is not None and candidate is None:
-            module.ServiceValidationError = (  # type: ignore[attr-defined]
-                _CANONICAL_SERVICE_VALIDATION_ERROR
-            )
-        if isinstance(candidate, type) and issubclass(candidate, Exception):
-            candidates.append(cast(type[Exception], candidate))
+    candidate = _ensure_service_validation_alias(candidate)
+    return candidate(message)
 
-    stub_module = sys.modules.get("tests.helpers.homeassistant_test_stubs")
-    if stub_module is not None:
-        stub_candidate = getattr(stub_module, "ServiceValidationError", None)
-        if isinstance(stub_candidate, type) and issubclass(stub_candidate, Exception):
-            candidates.append(cast(type[Exception], stub_candidate))
 
-    for module_name, module_obj in list(sys.modules.items()):
-        if not module_name.startswith("tests."):
-            continue
-        alias_candidate = getattr(module_obj, "ServiceValidationError", None)
-        if isinstance(alias_candidate, type) and issubclass(alias_candidate, Exception):
-            candidates.append(cast(type[Exception], alias_candidate))
+def _ensure_service_validation_alias(
+    candidate: type[Exception],
+) -> type[Exception]:
+    """Ensure ``candidate`` inherits from :class:`HomeAssistantError`."""
 
-    if _CANONICAL_SERVICE_VALIDATION_ERROR is not None:
-        candidates.append(_CANONICAL_SERVICE_VALIDATION_ERROR)
+    if issubclass(candidate, HomeAssistantError):
+        return candidate
 
-    if isinstance(compat_cls, type) and issubclass(compat_cls, Exception):
-        candidates.append(cast(type[Exception], compat_cls))
-    else:
-        candidates.append(compat.ServiceValidationError)
+    cache_key = (candidate, HomeAssistantError)
+    alias = _SERVICE_VALIDATION_ALIAS_CACHE.get(cache_key)
+    if alias is not None:
+        return alias
 
-    bases: list[type[Exception]] = []
-    seen: set[type[Exception]] = set()
-    for candidate in candidates:
-        if candidate in seen:
-            continue
-        seen.add(candidate)
-        bases.append(candidate)
-
-    if not bases:
-        return compat.ServiceValidationError(message)
-
-    if len(bases) == 1:
-        resolved = bases[0]
-        _CANONICAL_SERVICE_VALIDATION_ERROR = resolved
-        return resolved(message)
-
-    key = tuple(bases)
-    proxy = _SERVICE_VALIDATION_ERROR_CACHE.get(key)
-    if proxy is None:
-        proxy = type("PawControlServiceValidationErrorProxy", key, {})
-        _SERVICE_VALIDATION_ERROR_CACHE[key] = proxy
-    _CANONICAL_SERVICE_VALIDATION_ERROR = proxy
-    return proxy(message)
+    alias = type(
+        "PawControlServiceValidationErrorAlias",
+        (candidate, HomeAssistantError),
+        {"__module__": candidate.__module__},
+    )
+    _SERVICE_VALIDATION_ALIAS_CACHE[cache_key] = alias
+    return alias
 
 
 # PLATINUM: Enhanced validation ranges for service inputs
@@ -370,6 +381,25 @@ def _record_service_result(
 
     result: ServiceExecutionResult = {"service": service, "status": status}
 
+    resilience_summary = (
+        get_runtime_resilience_summary(runtime_data)
+        if runtime_data is not None
+        else None
+    )
+    rejection_snapshot: dict[str, Any] | None = None
+    if isinstance(resilience_summary, Mapping):
+        rejection_snapshot = {
+            "rejected_call_count": resilience_summary.get("rejected_call_count", 0),
+            "rejection_breaker_count": resilience_summary.get(
+                "rejection_breaker_count", 0
+            ),
+            "last_rejection_time": resilience_summary.get("last_rejection_time"),
+            "last_rejection_breaker_id": resilience_summary.get(
+                "last_rejection_breaker_id"
+            ),
+            "rejection_rate": resilience_summary.get("rejection_rate"),
+        }
+
     if dog_id:
         result["dog_id"] = dog_id
 
@@ -387,11 +417,38 @@ def _record_service_result(
         else:
             diagnostics_payload["metadata"] = metadata_payload
 
+    if isinstance(resilience_summary, Mapping):
+        resilience_payload = dict(resilience_summary)
+        if diagnostics_payload is None:
+            diagnostics_payload = {"resilience_summary": resilience_payload}
+        else:
+            diagnostics_payload.setdefault(
+                "resilience_summary", resilience_payload
+            )
+
     if diagnostics_payload:
         result["diagnostics"] = diagnostics_payload
 
+    details_payload: dict[str, Any] | None = None
     if details:
-        result["details"] = details
+        details_payload = dict(details)
+
+    if rejection_snapshot is not None:
+        rejected = rejection_snapshot.get("rejected_call_count", 0) or 0
+        breaker_count = rejection_snapshot.get("rejection_breaker_count", 0) or 0
+        if rejected > 0 or breaker_count > 0:
+            filtered_rejection = {
+                key: value
+                for key, value in rejection_snapshot.items()
+                if value not in (None, [], {}, 0)
+            }
+            if filtered_rejection:
+                if details_payload is None:
+                    details_payload = {}
+                details_payload.setdefault("resilience", filtered_rejection)
+
+    if details_payload:
+        result["details"] = details_payload
 
     existing = performance_stats.setdefault("service_results", [])
     if isinstance(existing, list):

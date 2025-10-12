@@ -33,6 +33,7 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .coordinator_tasks import default_rejection_metrics
 from .diagnostics_redaction import compile_redaction_patterns, redact_sensitive_data
 from .runtime_data import get_runtime_data
 from .types import (
@@ -612,8 +613,52 @@ async def _get_performance_metrics(
     try:
         stats = coordinator.get_update_statistics()
         error_rate = 0.0
-        if stats.get("total_updates"):
-            error_rate = stats.get("failed", 0) / stats["total_updates"]
+        total_updates = stats.get("total_updates")
+        if total_updates:
+            error_rate = stats.get("failed", 0) / total_updates
+
+        rejection_metrics = default_rejection_metrics()
+        rejection_payload = stats.get("rejection_metrics")
+        if isinstance(rejection_payload, Mapping):
+            rejected_raw = rejection_payload.get("rejected_call_count")
+            if isinstance(rejected_raw, int):
+                rejection_metrics["rejected_call_count"] = rejected_raw
+
+            breaker_count_raw = rejection_payload.get("rejection_breaker_count")
+            if isinstance(breaker_count_raw, int):
+                rejection_metrics["rejection_breaker_count"] = breaker_count_raw
+
+            rate_raw = rejection_payload.get("rejection_rate")
+            if isinstance(rate_raw, int | float):
+                rejection_metrics["rejection_rate"] = float(rate_raw)
+
+            time_raw = rejection_payload.get("last_rejection_time")
+            if isinstance(time_raw, int | float):
+                rejection_metrics["last_rejection_time"] = float(time_raw)
+
+            breaker_id_raw = rejection_payload.get("last_rejection_breaker_id")
+            if isinstance(breaker_id_raw, str):
+                rejection_metrics["last_rejection_breaker_id"] = breaker_id_raw
+
+            breaker_name_raw = rejection_payload.get("last_rejection_breaker_name")
+            if isinstance(breaker_name_raw, str):
+                rejection_metrics["last_rejection_breaker_name"] = breaker_name_raw
+
+            schema_raw = rejection_payload.get("schema_version")
+            if schema_raw == 1:
+                rejection_metrics["schema_version"] = 1
+        stats["rejection_metrics"] = rejection_metrics
+
+        performance_metrics = stats.get("performance_metrics")
+        if isinstance(performance_metrics, dict):
+            performance_metrics.update(
+                {
+                    key: value
+                    for key, value in rejection_metrics.items()
+                    if key != "schema_version"
+                }
+            )
+
         return {
             "update_frequency": stats.get("update_interval"),
             "data_freshness": "fresh" if coordinator.last_update_success else "stale",
@@ -622,6 +667,7 @@ async def _get_performance_metrics(
             "network_efficient": True,  # Placeholder - could add network usage stats
             "error_rate": error_rate,
             "response_time": "fast",  # Placeholder - could track actual response times
+            "rejection_metrics": rejection_metrics,
             "statistics": stats,
         }
     except Exception as err:

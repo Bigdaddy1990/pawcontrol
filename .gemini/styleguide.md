@@ -65,6 +65,11 @@ PawControl.【F:.github/copilot-instructions.md†L1-L74】
 - Instantiate `_LOGGER` with `logging.getLogger(__name__)` and use structured messages (`_LOGGER.warning("Dog %s", dog_id)`).
 - Downgrade log severity when handling expected states (for example, temporary connectivity issues) but raise `UpdateFailed`
   when the coordinator cannot deliver fresh data.
+- Ensure diagnostics payloads always expose a defaulted `rejection_metrics` block
+  with a `schema_version` so dashboards and docs can consume rejection telemetry
+  without scraping nested resilience summaries; update coordinator tests,
+  documentation, and front-end schemas together when the structure changes and
+  revalidate the diagnostics UI afterwards.
 - Provide guard clauses before mutating shared caches like `_PLATFORM_CACHE` to keep setup deterministic.
 
 ## Testing expectations

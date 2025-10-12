@@ -12,9 +12,16 @@ from __future__ import annotations
 
 import re
 from numbers import Real
-from typing import Any, Final
+from typing import Any, Final, cast
 
-from .compat import ServiceValidationError
+from . import compat
+from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
+
+ensure_homeassistant_exception_symbols()
+ServiceValidationError: type[Exception] = cast(
+    type[Exception], compat.ServiceValidationError
+)
+bind_exception_alias("ServiceValidationError")
 
 # Validation constants
 VALID_DOG_ID_PATTERN: Final[str] = r"^[a-zA-Z0-9_-]{1,50}$"

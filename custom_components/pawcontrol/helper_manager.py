@@ -34,7 +34,6 @@ from homeassistant.util import slugify
 from .compat import ConfigEntry, HomeAssistantError
 from .const import (
     CONF_DOG_ID,
-    CONF_DOG_NAME,
     CONF_DOGS,
     CONF_MODULES,
     DEFAULT_RESET_TIME,
@@ -45,7 +44,19 @@ from .const import (
     MODULE_MEDICATION,
 )
 from .coordinator_support import CacheMonitorRegistrar
-from .types import CacheDiagnosticsMetadata, CacheDiagnosticsSnapshot, DogConfigData
+from .types import (
+    DOG_ID_FIELD,
+    DOG_NAME_FIELD,
+    MODULE_TOGGLE_KEYS,
+    CacheDiagnosticsMetadata,
+    CacheDiagnosticsSnapshot,
+    DogConfigData,
+    DogModulesConfig,
+    HelperManagerSnapshot,
+    HelperManagerStats,
+    ModuleToggleKey,
+    ensure_dog_modules_config,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -114,14 +125,20 @@ class _HelperManagerCacheMonitor:
 
     def _build_payload(
         self,
-    ) -> tuple[dict[str, Any], dict[str, Any], CacheDiagnosticsMetadata]:
+    ) -> tuple[HelperManagerStats, HelperManagerSnapshot, CacheDiagnosticsMetadata]:
         manager = self._manager
-        created_helpers = getattr(manager, "_created_helpers", set())
-        managed_entities = getattr(manager, "_managed_entities", {})
-        dog_helpers = getattr(manager, "_dog_helpers", {})
-        cleanup_listeners = getattr(manager, "_cleanup_listeners", [])
+        created_helpers: Collection[str] = getattr(manager, "_created_helpers", set())
+        managed_entities: Mapping[str, dict[str, Any]] = getattr(
+            manager, "_managed_entities", {}
+        )
+        dog_helpers: Mapping[str, Collection[str]] = getattr(
+            manager, "_dog_helpers", {}
+        )
+        cleanup_listeners: Sequence[Callable[[], None]] = getattr(
+            manager, "_cleanup_listeners", []
+        )
 
-        per_dog = {
+        per_dog: dict[str, int] = {
             str(dog_id): len(helpers)
             for dog_id, helpers in dog_helpers.items()
             if isinstance(helpers, Collection)
@@ -129,13 +146,13 @@ class _HelperManagerCacheMonitor:
 
         domains = _collate_entity_domains(managed_entities)
 
-        stats: dict[str, Any] = {
+        stats: HelperManagerStats = {
             "helpers": len(created_helpers),
             "dogs": len(per_dog),
             "managed_entities": len(managed_entities),
         }
 
-        snapshot: dict[str, Any] = {
+        snapshot: HelperManagerSnapshot = {
             "per_dog": per_dog,
             "entity_domains": domains,
         }
@@ -153,11 +170,15 @@ class _HelperManagerCacheMonitor:
 
     def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         stats, snapshot, diagnostics = self._build_payload()
-        return {"stats": stats, "snapshot": snapshot, "diagnostics": diagnostics}
+        return {
+            "stats": cast(dict[str, Any], dict(stats)),
+            "snapshot": cast(dict[str, Any], dict(snapshot)),
+            "diagnostics": diagnostics,
+        }
 
     def get_stats(self) -> dict[str, Any]:
         stats, _snapshot, _diagnostics = self._build_payload()
-        return stats
+        return cast(dict[str, Any], dict(stats))
 
     def get_diagnostics(self) -> CacheDiagnosticsMetadata:
         _stats, _snapshot, diagnostics = self._build_payload()
@@ -225,8 +246,10 @@ class PawControlHelperManager:
                 if not isinstance(dog_config, Mapping):
                     continue
                 dog_dict: dict[str, Any] = dict(dog_config)
-                dog_dict.setdefault(CONF_DOG_ID, str(dog_id))
-                dog_dict.setdefault(CONF_DOG_NAME, str(dog_dict[CONF_DOG_ID]))
+                dog_dict.setdefault(DOG_ID_FIELD, str(dog_id))
+                dog_dict.setdefault(
+                    DOG_NAME_FIELD, str(dog_dict[DOG_ID_FIELD])
+                )
                 normalized.append(cast(DogConfigData, dog_dict))
             return normalized
 
@@ -235,11 +258,11 @@ class PawControlHelperManager:
                 if not isinstance(dog_config, Mapping):
                     continue
                 dog_dict = dict(dog_config)
-                dog_id = dog_dict.get(CONF_DOG_ID)
+                dog_id = dog_dict.get(DOG_ID_FIELD)
                 if not isinstance(dog_id, str):
                     continue
-                if not isinstance(dog_dict.get(CONF_DOG_NAME), str):
-                    dog_dict[CONF_DOG_NAME] = dog_id
+                if not isinstance(dog_dict.get(DOG_NAME_FIELD), str):
+                    dog_dict[DOG_NAME_FIELD] = dog_id
                 normalized.append(cast(DogConfigData, dog_dict))
 
         return normalized
@@ -248,17 +271,25 @@ class PawControlHelperManager:
     def _normalize_enabled_modules(modules: Any) -> frozenset[str]:
         """Return a normalized set of enabled module identifiers."""
 
+        normalized: set[str] = set()
+
         if isinstance(modules, Mapping):
-            return frozenset(
-                module
-                for module, enabled in modules.items()
-                if isinstance(module, str) and bool(enabled)
-            )
+            for module, enabled in modules.items():
+                if (
+                    isinstance(module, str)
+                    and module in MODULE_TOGGLE_KEYS
+                    and bool(enabled)
+                ):
+                    normalized.add(module)
+            return frozenset(normalized)
 
         if isinstance(modules, Sequence) and not isinstance(modules, str | bytes):
-            return frozenset(str(module) for module in modules)
+            for module in modules:
+                if isinstance(module, str) and module in MODULE_TOGGLE_KEYS:
+                    normalized.add(module)
+            return frozenset(normalized)
 
-        if isinstance(modules, str):
+        if isinstance(modules, str) and modules in MODULE_TOGGLE_KEYS:
             return frozenset({modules})
 
         return frozenset()
@@ -301,37 +332,31 @@ class PawControlHelperManager:
         """Create helpers for all provided dogs and return created entity IDs."""
 
         created: dict[str, list[str]] = {}
+        enabled_lookup: dict[str, bool] = {}
         if isinstance(enabled_modules, Mapping):
-            enabled_lookup = {
-                module: bool(value)
-                for module, value in enabled_modules.items()
-                if isinstance(module, str)
-            }
+            for module, value in enabled_modules.items():
+                if isinstance(module, str) and module in MODULE_TOGGLE_KEYS:
+                    enabled_lookup[module] = bool(value)
         else:
-            enabled_lookup = {module: True for module in enabled_modules}
+            for module in enabled_modules:
+                if isinstance(module, str) and module in MODULE_TOGGLE_KEYS:
+                    enabled_lookup[module] = True
 
         for dog in dogs:
-            dog_id = dog.get(CONF_DOG_ID)
+            dog_id = dog.get(DOG_ID_FIELD)
             if not isinstance(dog_id, str) or not dog_id:
                 _LOGGER.debug(
                     "Skipping helper creation for dog without valid id: %s", dog
                 )
                 continue
 
-            modules_config_raw = dog.get(CONF_MODULES, {})
-            if isinstance(modules_config_raw, Mapping):
-                modules_config = {
-                    module: bool(value)
-                    for module, value in modules_config_raw.items()
-                    if isinstance(module, str)
-                }
-            else:
-                modules_config = {}
-
-            modules_config.update(enabled_lookup)
+            modules_config = ensure_dog_modules_config(dog)
+            for module, enabled in enabled_lookup.items():
+                module_key = cast(ModuleToggleKey, module)
+                modules_config[module_key] = enabled
 
             before_creation = set(self._created_helpers)
-            await self._async_create_helpers_for_dog(dog_id, dict(dog), modules_config)
+            await self._async_create_helpers_for_dog(dog_id, dog, modules_config)
             new_helpers = sorted(self._created_helpers - before_creation)
 
             if not new_helpers:
@@ -351,7 +376,10 @@ class PawControlHelperManager:
         return created
 
     async def _async_create_helpers_for_dog(
-        self, dog_id: str, dog_config: dict[str, Any], enabled_modules: dict[str, bool]
+        self,
+        dog_id: str,
+        dog_config: DogConfigData,
+        enabled_modules: DogModulesConfig,
     ) -> None:
         """Create all required helpers for a specific dog.
 
@@ -360,7 +388,8 @@ class PawControlHelperManager:
             dog_config: Dog configuration dictionary
             enabled_modules: Dictionary of enabled modules
         """
-        dog_name = dog_config.get(CONF_DOG_NAME, dog_id)
+        dog_name_raw = dog_config.get(DOG_NAME_FIELD)
+        dog_name = dog_name_raw if isinstance(dog_name_raw, str) and dog_name_raw else dog_id
 
         # Create feeding helpers if feeding module is enabled
         if enabled_modules.get(MODULE_FEEDING, False):
@@ -823,7 +852,7 @@ class PawControlHelperManager:
             _LOGGER.error("Failed to reset feeding toggles: %s", err)
 
     async def async_add_dog_helpers(
-        self, dog_id: str, dog_config: dict[str, Any]
+        self, dog_id: str, dog_config: Mapping[str, Any]
     ) -> None:
         """Add helpers for a newly added dog.
 
@@ -831,9 +860,13 @@ class PawControlHelperManager:
             dog_id: Unique identifier for the dog
             dog_config: Dog configuration dictionary
         """
-        dog_data: dict[str, Any] = dict(dog_config)
-        dog_data[CONF_DOG_ID] = dog_id
-        dog_data.setdefault(CONF_DOG_NAME, dog_id)
+        dog_data_raw: dict[str, Any] = dict(dog_config)
+        dog_data_raw[DOG_ID_FIELD] = dog_id
+        dog_name_value = dog_data_raw.get(DOG_NAME_FIELD)
+        if not isinstance(dog_name_value, str) or not dog_name_value:
+            dog_data_raw[DOG_NAME_FIELD] = dog_id
+
+        dog_data = cast(DogConfigData, dog_data_raw)
 
         modules_option = (
             self._entry.options.get(CONF_MODULES)
@@ -843,7 +876,7 @@ class PawControlHelperManager:
         enabled_modules = self._normalize_enabled_modules(modules_option)
 
         await self.async_create_helpers_for_dogs(
-            [cast(DogConfigData, dog_data)], enabled_modules
+            [dog_data], enabled_modules
         )
 
         _LOGGER.info("Created helpers for new dog: %s", dog_id)
@@ -881,7 +914,7 @@ class PawControlHelperManager:
         _LOGGER.info("Removed %d helpers for dog: %s", removed_count, dog_id)
 
     async def async_update_dog_helpers(
-        self, dog_id: str, dog_config: dict[str, Any]
+        self, dog_id: str, dog_config: Mapping[str, Any]
     ) -> None:
         """Update helpers when dog configuration changes.
 

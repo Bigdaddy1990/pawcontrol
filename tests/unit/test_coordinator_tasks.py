@@ -27,13 +27,30 @@ class _DummyModules:
 
 
 class _DummyBudget:
-    def summary(self) -> dict[str, int]:
-        return {"active_dogs": 1, "peak_utilization": 40}
+    def summary(self) -> dict[str, float | int]:
+        return {
+            "active_dogs": 1,
+            "total_capacity": 10,
+            "total_allocated": 4,
+            "total_remaining": 6,
+            "average_utilization": 40.0,
+            "peak_utilization": 60.0,
+            "denied_requests": 0,
+        }
 
 
 class _DummyAdaptivePolling:
-    def as_diagnostics(self) -> dict[str, str]:
-        return {"mode": "balanced"}
+    def as_diagnostics(self) -> dict[str, float | int]:
+        return {
+            "target_cycle_ms": 200.0,
+            "current_interval_ms": 150.0,
+            "average_cycle_ms": 175.0,
+            "history_samples": 5,
+            "error_streak": 0,
+            "entity_saturation": 0.25,
+            "idle_interval_ms": 300.0,
+            "idle_grace_ms": 45.0,
+        }
 
 
 class _DummyResilience:
@@ -169,6 +186,8 @@ def test_build_update_statistics_serialises_resilience_payload(monkeypatch) -> N
         total_calls=10,
         total_failures=2,
         total_successes=8,
+        rejected_calls=0,
+        last_rejection_time=None,
     )
     resilience_manager = _DummyResilience({"api": breaker})
     coordinator = _build_coordinator(resilience_manager=resilience_manager)
@@ -186,10 +205,60 @@ def test_build_update_statistics_serialises_resilience_payload(monkeypatch) -> N
     assert resilience["breakers"]["api"]["breaker_id"] == "api"
     assert resilience["breakers"]["api"]["state"] == "closed"
     assert resilience["breakers"]["api"]["failure_count"] == 2
+    assert resilience["breakers"]["api"]["rejected_calls"] == 0
     assert resilience["summary"]["total_breakers"] == 1
     assert resilience["summary"]["states"]["closed"] == 1
     assert resilience["summary"]["open_breaker_count"] == 0
     assert resilience["summary"]["half_open_breaker_count"] == 0
+    assert resilience["summary"]["rejected_call_count"] == 0
+    assert resilience["summary"]["rejection_breaker_count"] == 0
+    assert resilience["summary"]["rejection_breakers"] == []
+    assert resilience["summary"]["rejection_breaker_ids"] == []
+    assert resilience["summary"]["rejection_rate"] == 0.0
+    assert resilience["summary"]["last_rejection_time"] is None
+    assert "last_rejection_breaker_id" not in resilience["summary"]
+    performance_metrics = stats["performance_metrics"]
+    assert performance_metrics["rejected_call_count"] == 0
+    assert performance_metrics["rejection_breaker_count"] == 0
+    assert performance_metrics["rejection_rate"] == 0.0
+    assert performance_metrics["last_rejection_time"] is None
+    assert performance_metrics.get("last_rejection_breaker_id") is None
+    assert "schema_version" not in performance_metrics
+    assert "rejection_metrics" in stats
+    assert stats["rejection_metrics"]["schema_version"] == 1
+    assert stats["rejection_metrics"]["rejected_call_count"] == 0
+    assert stats["rejection_metrics"]["rejection_rate"] == 0.0
+
+
+def test_build_update_statistics_defaults_rejection_metrics(monkeypatch) -> None:
+    """Update statistics should provide default rejection metrics without resilience data."""
+
+    coordinator = _build_coordinator(resilience_manager=None)
+
+    runtime_data = SimpleNamespace(
+        data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
+        performance_stats={},
+    )
+    monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
+    monkeypatch.setattr(tasks, "collect_resilience_diagnostics", lambda *_: None)
+
+    stats = tasks.build_update_statistics(coordinator)
+
+    assert "rejection_metrics" in stats
+    metrics = stats["rejection_metrics"]
+    assert metrics["schema_version"] == 1
+    assert metrics["rejected_call_count"] == 0
+    assert metrics["rejection_breaker_count"] == 0
+    assert metrics["rejection_rate"] == 0.0
+    assert metrics["last_rejection_time"] is None
+    assert metrics["last_rejection_breaker_id"] is None
+    assert metrics["last_rejection_breaker_name"] is None
+
+    performance_metrics = stats.get("performance_metrics")
+    if isinstance(performance_metrics, dict):
+        assert performance_metrics["rejected_call_count"] == 0
+        assert performance_metrics["rejection_rate"] == 0.0
+        assert "schema_version" not in performance_metrics
 
 
 def test_collect_resilience_diagnostics_persists_summary(monkeypatch) -> None:
@@ -204,6 +273,8 @@ def test_collect_resilience_diagnostics_persists_summary(monkeypatch) -> None:
         total_calls=6,
         total_failures=5,
         total_successes=1,
+        rejected_calls=2,
+        last_rejection_time=1700000350.0,
     )
     resilience_manager = _DummyResilience({"automation": breaker})
     coordinator = _build_coordinator(resilience_manager=resilience_manager)
@@ -217,8 +288,14 @@ def test_collect_resilience_diagnostics_persists_summary(monkeypatch) -> None:
     assert stored["total_breakers"] == 1
     assert stored["open_breaker_count"] == 1
     assert stored["half_open_breaker_count"] == 0
+    assert stored["rejected_call_count"] == 2
+    assert stored["last_rejection_time"] == 1700000350.0
+    assert stored["rejection_breaker_ids"] == ["automation"]
+    assert stored["rejection_rate"] == pytest.approx(0.25)
     assert payload["breakers"]["automation"]["breaker_id"] == "automation"
     assert payload["summary"]["open_breakers"] == ["automation"]
+    assert payload["summary"]["rejection_breakers"] == ["automation"]
+    assert payload["summary"]["rejection_rate"] == pytest.approx(0.25)
 
 
 def test_collect_resilience_diagnostics_clears_summary_when_no_breakers(
@@ -240,10 +317,16 @@ def test_collect_resilience_diagnostics_clears_summary_when_no_breakers(
         "total_calls": 0,
         "total_failures": 0,
         "total_successes": 0,
+        "rejected_call_count": 0,
         "last_failure_time": None,
         "last_state_change": None,
         "open_breaker_count": 0,
         "half_open_breaker_count": 0,
+        "last_rejection_time": None,
+        "rejection_breaker_count": 0,
+        "rejection_breakers": [],
+        "rejection_breaker_ids": [],
+        "rejection_rate": None,
     }
 
     runtime_data = SimpleNamespace(
@@ -285,6 +368,12 @@ def test_collect_resilience_diagnostics_clears_summary_without_manager(
         "open_breaker_ids": ["api"],
         "open_breaker_count": 1,
         "half_open_breaker_count": 0,
+        "rejected_call_count": 0,
+        "last_rejection_time": None,
+        "rejection_breaker_count": 0,
+        "rejection_breakers": [],
+        "rejection_breaker_ids": [],
+        "rejection_rate": None,
     }
 
     runtime_data = SimpleNamespace(
@@ -324,6 +413,12 @@ def test_collect_resilience_diagnostics_clears_summary_on_error(monkeypatch) -> 
         "open_breaker_ids": ["api"],
         "open_breaker_count": 1,
         "half_open_breaker_count": 0,
+        "rejected_call_count": 0,
+        "last_rejection_time": None,
+        "rejection_breaker_count": 0,
+        "rejection_breakers": [],
+        "rejection_breaker_ids": [],
+        "rejection_rate": None,
     }
 
     runtime_data = SimpleNamespace(
@@ -365,6 +460,12 @@ def test_collect_resilience_diagnostics_clears_summary_on_invalid_payload(
         "open_breaker_count": 1,
         "half_open_breakers": [],
         "half_open_breaker_count": 0,
+        "rejected_call_count": 0,
+        "last_rejection_time": None,
+        "rejection_breaker_count": 0,
+        "rejection_breakers": [],
+        "rejection_breaker_ids": [],
+        "rejection_rate": None,
     }
 
     runtime_data = SimpleNamespace(
@@ -401,6 +502,9 @@ def test_collect_resilience_diagnostics_coerces_stats_values(monkeypatch) -> Non
                 total_calls="12",
                 total_failures="4",
                 total_successes=None,
+                last_success_time=datetime(2024, 1, 2, tzinfo=UTC),
+                rejected_calls="2",
+                last_rejection_time="2024-01-02T11:00:00+00:00",
             )
 
     resilience_manager = _DummyResilience({"mixed": _MixedStats()})
@@ -418,6 +522,18 @@ def test_collect_resilience_diagnostics_coerces_stats_values(monkeypatch) -> Non
     assert entry["total_successes"] == 0
     assert entry["last_failure_time"] == pytest.approx(1700000000.5)
     assert entry["last_state_change"] is None
+    assert entry["last_success_time"] is not None
+    assert entry["rejected_calls"] == 2
+    assert entry["last_rejection_time"] is not None
+
+    summary = payload["summary"]
+    assert summary["total_calls"] == 12
+    assert summary["total_failures"] == 4
+    assert summary["total_successes"] == 0
+    assert summary["rejected_call_count"] == 2
+    assert summary["rejection_breaker_count"] == 1
+    assert summary["rejection_breakers"] == ["mixed"]
+    assert summary["rejection_rate"] == pytest.approx(2 / (12 + 2))
 
 
 def test_collect_resilience_diagnostics_defaults_unknown_state(monkeypatch) -> None:
@@ -526,6 +642,8 @@ def test_collect_resilience_diagnostics_prefers_breaker_metadata(monkeypatch) ->
                 total_failures=2,
                 total_successes=0,
                 last_failure_time=100.0,
+                rejected_calls=1,
+                last_rejection_time=150.0,
             )
 
     resilience_manager = _DummyResilience({"api": _MetadataStats()})
@@ -546,6 +664,10 @@ def test_collect_resilience_diagnostics_prefers_breaker_metadata(monkeypatch) ->
     assert summary["unknown_breakers"] == []
     assert summary["unknown_breaker_ids"] == []
     assert "recovery_breaker_name" not in summary
+    assert summary["rejected_call_count"] == 1
+    assert summary["rejection_breakers"] == ["api"]
+    assert summary["rejection_breaker_ids"] == ["api-primary"]
+    assert summary["rejection_rate"] == pytest.approx(1 / (2 + 1))
 
     stored = runtime_data.performance_stats["resilience_summary"]
     assert stored["open_breakers"] == ["api"]
@@ -555,6 +677,10 @@ def test_collect_resilience_diagnostics_prefers_breaker_metadata(monkeypatch) ->
     assert stored["unknown_breakers"] == []
     assert stored["unknown_breaker_ids"] == []
     assert "recovery_breaker_name" not in stored
+    assert stored["rejected_call_count"] == 1
+    assert stored["rejection_breakers"] == ["api"]
+    assert stored["rejection_breaker_ids"] == ["api-primary"]
+    assert stored["rejection_rate"] == pytest.approx(1 / (2 + 1))
 
 
 def test_collect_resilience_diagnostics_converts_temporal_values(monkeypatch) -> None:
@@ -616,6 +742,9 @@ def test_collect_resilience_diagnostics_converts_temporal_values(monkeypatch) ->
     assert summary["recovery_breaker_id"] == "temporal"
     assert summary["recovery_breaker_name"] == "temporal"
     assert summary["open_breaker_ids"] == ["temporal"]
+    assert summary["rejected_call_count"] == 0
+    assert summary["rejection_breaker_count"] == 0
+    assert summary["last_rejection_time"] is None
 
     stored = runtime_data.performance_stats["resilience_summary"]
     assert stored["last_failure_time"] == pytest.approx(expected_failure)
@@ -627,6 +756,9 @@ def test_collect_resilience_diagnostics_converts_temporal_values(monkeypatch) ->
     assert stored["recovery_breaker_id"] == "temporal"
     assert stored["recovery_breaker_name"] == "temporal"
     assert stored["open_breaker_ids"] == ["temporal"]
+    assert stored["rejected_call_count"] == 0
+    assert stored["rejection_breaker_count"] == 0
+    assert stored["last_rejection_time"] is None
 
 
 def test_collect_resilience_diagnostics_handles_unrecovered_breaker(
@@ -660,12 +792,18 @@ def test_collect_resilience_diagnostics_handles_unrecovered_breaker(
     assert summary["recovery_breaker_id"] is None
     assert "recovery_breaker_name" not in summary
     assert summary["open_breaker_ids"] == ["api"]
+    assert summary["rejected_call_count"] == 0
+    assert summary["rejection_breaker_count"] == 0
+    assert summary["last_rejection_time"] is None
 
     stored = runtime_data.performance_stats["resilience_summary"]
     assert stored["recovery_latency"] is None
     assert stored["recovery_breaker_id"] is None
     assert "recovery_breaker_name" not in stored
     assert stored["open_breaker_ids"] == ["api"]
+    assert stored["rejected_call_count"] == 0
+    assert stored["rejection_breaker_count"] == 0
+    assert stored["last_rejection_time"] is None
 
 
 def test_collect_resilience_diagnostics_pairs_latest_recovery(
@@ -682,6 +820,8 @@ def test_collect_resilience_diagnostics_pairs_latest_recovery(
         "total_successes": 2,
         "last_failure_time": 200.0,
         "last_success_time": 100.0,
+        "rejected_calls": 1,
+        "last_rejection_time": 50.0,
     }
     recovered_breaker = {
         "state": "CLOSED",
@@ -692,6 +832,8 @@ def test_collect_resilience_diagnostics_pairs_latest_recovery(
         "total_successes": 9,
         "last_failure_time": 150.0,
         "last_success_time": 300.0,
+        "rejected_calls": 4,
+        "last_rejection_time": 275.0,
     }
 
     resilience_manager = _DummyResilience(
@@ -711,12 +853,23 @@ def test_collect_resilience_diagnostics_pairs_latest_recovery(
     assert summary["recovery_breaker_id"] == "recovered"
     assert summary["recovery_breaker_name"] == "recovered"
     assert summary["open_breaker_ids"] == ["stale"]
+    assert summary["rejected_call_count"] == 5
+    assert summary["last_rejection_time"] == 275.0
+    assert summary["last_rejection_breaker_id"] == "recovered"
+    assert summary["rejection_breaker_count"] == 2
+    assert sorted(summary["rejection_breakers"]) == ["recovered", "stale"]
+    assert summary["rejection_rate"] == pytest.approx(5 / (18 + 5))
 
     stored = runtime_data.performance_stats["resilience_summary"]
     assert stored["recovery_latency"] == pytest.approx(150.0)
     assert stored["recovery_breaker_id"] == "recovered"
     assert stored["recovery_breaker_name"] == "recovered"
     assert stored["open_breaker_ids"] == ["stale"]
+    assert stored["rejected_call_count"] == 5
+    assert stored["last_rejection_time"] == 275.0
+    assert stored["last_rejection_breaker_id"] == "recovered"
+    assert stored["rejection_breaker_count"] == 2
+    assert stored["rejection_rate"] == pytest.approx(5 / (18 + 5))
 
 
 def test_build_runtime_statistics_omits_empty_repair_summary(monkeypatch) -> None:
@@ -746,6 +899,79 @@ def test_build_runtime_statistics_omits_empty_resilience(monkeypatch) -> None:
     stats = tasks.build_runtime_statistics(coordinator)
 
     assert "resilience" not in stats
+
+
+def test_build_runtime_statistics_defaults_rejection_metrics(monkeypatch) -> None:
+    """Runtime statistics should include default rejection metrics when none recorded."""
+
+    coordinator = _build_coordinator(resilience_manager=None)
+    runtime_data = SimpleNamespace(
+        data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
+        performance_stats={},
+    )
+    monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
+    monkeypatch.setattr(tasks, "collect_resilience_diagnostics", lambda *_: None)
+
+    stats = tasks.build_runtime_statistics(coordinator)
+
+    metrics = stats["rejection_metrics"]
+    assert metrics["schema_version"] == 1
+    assert metrics["rejected_call_count"] == 0
+    assert metrics["rejection_breaker_count"] == 0
+    assert metrics["rejection_rate"] == 0.0
+    assert metrics["last_rejection_time"] is None
+    assert metrics["last_rejection_breaker_id"] is None
+    assert metrics["last_rejection_breaker_name"] is None
+
+    error_summary = stats["error_summary"]
+    assert error_summary["rejection_rate"] == 0.0
+    assert error_summary["rejected_call_count"] == 0
+    assert error_summary["rejection_breaker_count"] == 0
+
+    performance_metrics = stats.get("performance_metrics")
+    if isinstance(performance_metrics, dict):
+        assert "schema_version" not in performance_metrics
+
+
+def test_build_runtime_statistics_threads_rejection_metrics(monkeypatch) -> None:
+    """Runtime statistics should expose rejection metrics within error summaries."""
+
+    breaker = SimpleNamespace(
+        state=SimpleNamespace(value="open"),
+        failure_count=3,
+        success_count=5,
+        last_failure_time=1700000000.0,
+        last_state_change=1700000100.0,
+        total_calls=10,
+        total_failures=3,
+        total_successes=7,
+        rejected_calls=2,
+        last_rejection_time=1700000150.0,
+    )
+    resilience_manager = _DummyResilience({"api": breaker})
+    coordinator = _build_coordinator(resilience_manager=resilience_manager)
+
+    runtime_data = SimpleNamespace(
+        data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
+        performance_stats={},
+    )
+    monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
+
+    stats = tasks.build_runtime_statistics(coordinator)
+
+    rejection_metrics = stats["rejection_metrics"]
+    assert rejection_metrics["schema_version"] == 1
+    assert stats["error_summary"]["rejected_call_count"] == 2
+    assert stats["error_summary"]["rejection_breaker_count"] == 1
+    assert (
+        stats["error_summary"]["rejection_rate"] == rejection_metrics["rejection_rate"]
+    )
+    assert rejection_metrics["rejected_call_count"] == 2
+    assert rejection_metrics["rejection_breaker_count"] == 1
+    assert pytest.approx(
+        rejection_metrics["rejection_rate"], rel=1e-6
+    ) == pytest.approx(2 / 12, rel=1e-6)
+    assert rejection_metrics["last_rejection_time"] == 1700000150.0
 
 
 def test_build_update_statistics_handles_missing_resilience_manager(
