@@ -17,6 +17,10 @@
 4. **Options flow typed dict drift** – Module toggles and advanced options still mutate `TypedDict` payloads with dynamic keys and raw `object` coercions, keeping hundreds of literal/arg-type errors alive across the options flow scaffolding.【c56f1c†L1-L90】
 
 ### Immediate Remediation Targets
+- Keep the mapping adapters documented so Ruff's `D105` guard stays green; the
+  cache diagnostics and repair aggregates now expose docstrings on their magic
+  methods, and the remaining mapping wrappers should receive the same audit
+  before the next lint sweep.【F:custom_components/pawcontrol/types.py†L1214-L1250】【F:custom_components/pawcontrol/types.py†L1285-L1321】
 - Extend `_unwrap_async_result` coverage across the remaining dashboard card helpers so every gather branch returns typed card dictionaries instead of `BaseException` fallbacks.【72c5cd†L1-L11】
 - Align `cache_repair_summary` inputs with the new `CacheDiagnosticsSnapshot`/`CacheRepairAggregate` dataclasses and teach downstream telemetry writers to operate on the dataclass surfaces directly.【694b87†L38-L65】
 - Replace compat `ServiceRegistry` usages with the active Home Assistant service helper types (or shim protocols) so button handlers expose concrete async call signatures to mypy.【edb0a2†L1-L27】

@@ -1216,12 +1216,15 @@ class CacheDiagnosticsSnapshot(Mapping[str, Any]):
         )
 
     def __getitem__(self, key: str) -> Any:
+        """Return the value associated with ``key`` from the mapping view."""
         return self.to_mapping()[key]
 
     def __iter__(self) -> Iterator[str]:
+        """Yield cache diagnostic mapping keys in iteration order."""
         return iter(self.to_mapping())
 
     def __len__(self) -> int:
+        """Return the number of items exposed by the mapping view."""
         return len(self.to_mapping())
 
 
@@ -1399,12 +1402,15 @@ class CacheRepairAggregate(Mapping[str, Any]):
         )
 
     def __getitem__(self, key: str) -> Any:
+        """Return the value associated with ``key`` from the mapping view."""
         return self.to_mapping()[key]
 
     def __iter__(self) -> Iterator[str]:
+        """Yield cache repair aggregate keys in iteration order."""
         return iter(self.to_mapping())
 
     def __len__(self) -> int:
+        """Return the number of items exposed by the mapping view."""
         return len(self.to_mapping())
 
 
