@@ -39,6 +39,7 @@ from .runtime_data import get_runtime_data
 from .types import (
     CacheDiagnosticsMap,
     CacheDiagnosticsSnapshot,
+    CacheRepairAggregate,
     PawControlConfigEntry,
     PawControlRuntimeData,
 )
@@ -147,7 +148,9 @@ async def async_get_config_entry_diagnostics(
     }
 
     if cache_snapshots is not None:
-        diagnostics["cache_diagnostics"] = cache_snapshots
+        diagnostics["cache_diagnostics"] = _serialise_cache_diagnostics_payload(
+            cache_snapshots
+        )
 
     # Redact sensitive information
     redacted_diagnostics = _redact_sensitive_data(diagnostics)
@@ -307,6 +310,38 @@ def _normalise_cache_snapshot(payload: Any) -> CacheDiagnosticsSnapshot:
         snapshot.snapshot = {"value": _normalise_json(payload)}
 
     return snapshot
+
+
+def _serialise_cache_diagnostics_payload(
+    payload: Mapping[str, Any] | CacheDiagnosticsMap,
+) -> dict[str, Any]:
+    """Convert cache diagnostics snapshots into JSON-safe payloads."""
+
+    serialised: dict[str, Any] = {}
+    for name, snapshot in payload.items():
+        serialised[str(name)] = _serialise_cache_snapshot(snapshot)
+    return serialised
+
+
+def _serialise_cache_snapshot(snapshot: Any) -> dict[str, Any]:
+    """Return a JSON-serialisable payload for a cache diagnostics snapshot."""
+
+    snapshot_input: Any
+    if isinstance(snapshot, CacheDiagnosticsSnapshot):
+        snapshot_input = CacheDiagnosticsSnapshot.from_mapping(snapshot.to_mapping())
+    else:
+        snapshot_input = snapshot
+
+    normalised_snapshot = _normalise_cache_snapshot(snapshot_input)
+    snapshot_payload = normalised_snapshot.to_mapping()
+
+    repair_summary = snapshot_payload.get("repair_summary")
+    if isinstance(repair_summary, CacheRepairAggregate):
+        snapshot_payload["repair_summary"] = repair_summary.to_mapping()
+    elif isinstance(repair_summary, Mapping):
+        snapshot_payload["repair_summary"] = dict(repair_summary)
+
+    return cast(dict[str, Any], _normalise_json(snapshot_payload))
 
 
 def _normalise_json(value: Any) -> Any:
@@ -679,7 +714,9 @@ async def _get_data_statistics(
         cache_payload = cache_snapshots
 
     if cache_payload is not None:
-        metrics["cache_diagnostics"] = cache_payload
+        metrics["cache_diagnostics"] = _serialise_cache_diagnostics_payload(
+            cache_payload
+        )
 
     metrics.setdefault("dogs", len(getattr(runtime_data, "dogs", [])))
 
