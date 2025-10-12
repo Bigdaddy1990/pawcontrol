@@ -40,7 +40,7 @@ from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
 from .entity_factory import EntityFactory
 from .runtime_data import get_runtime_data
-from .types import PawControlConfigEntry
+from .types import PawControlConfigEntry, ensure_dog_modules_mapping
 from .utils import async_call_add_entities, ensure_utc_datetime, is_number
 
 _LOGGER = logging.getLogger(__name__)
@@ -225,7 +225,7 @@ async def _create_profile_entities(
     for dog in dogs:
         dog_id = dog[CONF_DOG_ID]
         dog_name = dog[CONF_DOG_NAME]
-        modules = dog.get("modules", {})
+        modules = ensure_dog_modules_mapping(dog)
 
         # Create core entities (always included)
         core_entities = _create_core_entities(coordinator, dog_id, dog_name)

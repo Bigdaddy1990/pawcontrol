@@ -149,13 +149,12 @@ class BaseCardGenerator:
 
                     # Process batch results
                     for entity_id, result in zip(batch, batch_results, strict=False):
-                        if isinstance(result, Exception):
-                            _LOGGER.debug(
-                                "Entity validation error for %s: %s", entity_id, result
-                            )
-                            cached_results[entity_id] = False
-                        else:
-                            cached_results[entity_id] = result
+                        validation_result = _unwrap_async_result(
+                            result,
+                            context=f"Entity validation error for {entity_id}",
+                            level=logging.DEBUG,
+                        )
+                        cached_results[entity_id] = bool(validation_result)
 
                         # Update cache
                         if use_cache:
@@ -554,18 +553,19 @@ class DogCardGenerator(BaseCardGenerator):
 
             # Process results in order
             for (card_type, _), result in zip(card_tasks, results, strict=False):
-                if isinstance(result, Exception):
-                    _LOGGER.warning(
-                        "Card generation failed for %s: %s", card_type, result
-                    )
+                card_payload = _unwrap_async_result(
+                    result,
+                    context=f"Card generation failed for {card_type}",
+                )
+                if card_payload is None:
                     self._performance_stats["errors_handled"] += 1
-                elif result is not None:
-                    if card_type == "actions":
-                        # Special handling for action buttons
-                        action_cards = self._build_action_button_cards(result)
-                        cards.extend(action_cards)
-                    else:
-                        cards.append(result)
+                    continue
+                if card_type == "actions":
+                    # Special handling for action buttons
+                    action_cards = self._build_action_button_cards(card_payload)
+                    cards.extend(action_cards)
+                else:
+                    cards.append(card_payload)
 
         except TimeoutError:
             _LOGGER.error("Dog overview card generation timeout for %s", dog_name)
@@ -745,15 +745,14 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
 
             cards: list[CardConfigType] = []
             for (card_type, _), result in zip(card_generators, results, strict=False):
-                if isinstance(result, Exception):
-                    _LOGGER.warning(
-                        "Health feeding card %s generation failed: %s",
-                        card_type,
-                        result,
-                    )
+                card_payload = _unwrap_async_result(
+                    result,
+                    context=f"Health feeding card {card_type} generation failed",
+                )
+                if card_payload is None:
                     self._performance_stats["errors_handled"] += 1
-                elif result is not None:
-                    cards.append(result)
+                    continue
+                cards.append(card_payload)
 
             return cards
 
@@ -1020,23 +1019,23 @@ class ModuleCardGenerator(BaseCardGenerator):
             )
 
             try:
-                health_overview, health_controls = await asyncio.gather(
-                    health_overview_task, health_controls_task, return_exceptions=True
+                overview_result, controls_result = await asyncio.gather(
+                    health_overview_task,
+                    health_controls_task,
+                    return_exceptions=True,
                 )
 
-                if not isinstance(health_overview, Exception):
-                    cards.extend(health_overview)
-                else:
-                    _LOGGER.warning(
-                        "Health overview generation failed: %s", health_overview
-                    )
+                health_overview_cards = _unwrap_async_result(
+                    overview_result, context="Health overview generation failed"
+                )
+                if health_overview_cards is not None:
+                    cards.extend(health_overview_cards)
 
-                if not isinstance(health_controls, Exception):
-                    cards.extend(health_controls)
-                else:
-                    _LOGGER.warning(
-                        "Health controls generation failed: %s", health_controls
-                    )
+                health_control_cards = _unwrap_async_result(
+                    controls_result, context="Health controls generation failed"
+                )
+                if health_control_cards is not None:
+                    cards.extend(health_control_cards)
 
             except Exception as err:
                 _LOGGER.error("Health-aware feeding generation error: %s", err)
@@ -1256,12 +1255,28 @@ class ModuleCardGenerator(BaseCardGenerator):
         dates_task = self._validate_entities_batch(date_entities)
         weight_entity_task = self._entity_exists_cached(f"sensor.{dog_id}_weight")
 
-        valid_metrics, valid_dates, weight_exists = await asyncio.gather(
+        metrics_result, dates_result, weight_result = await asyncio.gather(
             metrics_task, dates_task, weight_entity_task, return_exceptions=True
         )
 
+        valid_metrics = _unwrap_async_result(
+            metrics_result,
+            context="Health metrics validation failed",
+            level=logging.DEBUG,
+        )
+        valid_dates = _unwrap_async_result(
+            dates_result,
+            context="Health schedule validation failed",
+            level=logging.DEBUG,
+        )
+        weight_exists = _unwrap_async_result(
+            weight_result,
+            context="Weight entity validation failed",
+            level=logging.DEBUG,
+        )
+
         # Process results with error handling
-        if not isinstance(valid_metrics, Exception) and valid_metrics:
+        if valid_metrics:
             cards.append(
                 {
                     "type": "entities",
@@ -1276,7 +1291,7 @@ class ModuleCardGenerator(BaseCardGenerator):
         cards.append(health_buttons)
 
         # Weight tracking graph
-        if not isinstance(weight_exists, Exception) and weight_exists:
+        if weight_exists:
             try:
                 weight_card = await self.templates.get_history_graph_template(
                     [f"sensor.{dog_id}_weight"], "Weight Tracking (30 days)", 720
@@ -1286,7 +1301,7 @@ class ModuleCardGenerator(BaseCardGenerator):
                 _LOGGER.debug("Weight tracking card generation failed: %s", err)
 
         # Health schedule dates
-        if not isinstance(valid_dates, Exception) and valid_dates:
+        if valid_dates:
             cards.append(
                 {
                     "type": "entities",
@@ -1376,12 +1391,23 @@ class ModuleCardGenerator(BaseCardGenerator):
         gps_valid_task = self._validate_entities_batch(gps_entities)
         geofence_valid_task = self._validate_entities_batch(geofence_entities)
 
-        valid_gps, valid_geofence = await asyncio.gather(
+        gps_result, geofence_result = await asyncio.gather(
             gps_valid_task, geofence_valid_task, return_exceptions=True
         )
 
+        valid_gps = _unwrap_async_result(
+            gps_result,
+            context="GPS status validation failed",
+            level=logging.DEBUG,
+        )
+        valid_geofence = _unwrap_async_result(
+            geofence_result,
+            context="Geofence validation failed",
+            level=logging.DEBUG,
+        )
+
         # Build cards based on validation results
-        if not isinstance(valid_gps, Exception) and valid_gps:
+        if valid_gps:
             cards.append(
                 {
                     "type": "entities",
@@ -1391,7 +1417,7 @@ class ModuleCardGenerator(BaseCardGenerator):
                 }
             )
 
-        if not isinstance(valid_geofence, Exception) and valid_geofence:
+        if valid_geofence:
             cards.append(
                 {
                     "type": "entities",
@@ -1506,16 +1532,14 @@ class WeatherCardGenerator(BaseCardGenerator):
             for (card_type, _), result in zip(
                 weather_card_tasks, results, strict=False
             ):
-                if isinstance(result, Exception):
-                    _LOGGER.warning(
-                        "Weather card %s generation failed for %s: %s",
-                        card_type,
-                        dog_name,
-                        result,
-                    )
+                card_payload = _unwrap_async_result(
+                    result,
+                    context=f"Weather card {card_type} generation failed for {dog_name}",
+                )
+                if card_payload is None:
                     self._performance_stats["errors_handled"] += 1
-                elif result is not None:
-                    cards.append(result)
+                    continue
+                cards.append(card_payload)
 
         except TimeoutError:
             _LOGGER.error("Weather cards generation timeout for %s", dog_name)
@@ -2033,13 +2057,14 @@ class StatisticsCardGenerator(BaseCardGenerator):
 
             # Process results with error handling
             for (stats_type, _), result in zip(stats_generators, results, strict=False):
-                if isinstance(result, Exception):
-                    _LOGGER.warning(
-                        "Statistics card %s generation failed: %s", stats_type, result
-                    )
+                card_payload = _unwrap_async_result(
+                    result,
+                    context=f"Statistics card {stats_type} generation failed",
+                )
+                if card_payload is None:
                     self._performance_stats["errors_handled"] += 1
-                elif result is not None:
-                    cards.append(result)
+                    continue
+                cards.append(card_payload)
 
         except TimeoutError:
             _LOGGER.error("Statistics cards generation timeout")
@@ -2235,3 +2260,18 @@ def get_global_performance_stats() -> dict[str, Any]:
         "validation_timeout": ENTITY_VALIDATION_TIMEOUT,
         "card_generation_timeout": CARD_GENERATION_TIMEOUT,
     }
+
+
+def _unwrap_async_result[T](
+    result: T | Exception,
+    *,
+    context: str,
+    level: int = logging.WARNING,
+) -> T | None:
+    """Return ``result`` when successful, logging and returning ``None`` otherwise."""
+
+    if isinstance(result, Exception):
+        _LOGGER.log(level, "%s: %s", context, result)
+        return None
+    return result
+

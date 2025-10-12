@@ -82,6 +82,9 @@ from .telemetry import (
 )
 from .types import (
     CacheDiagnosticsCapture,
+    CacheDiagnosticsMap,
+    CacheDiagnosticsSnapshot,
+    CacheRepairAggregate,
     DogConfigData,
     FeedingComplianceEventPayload,
     FeedingComplianceLocalizedSummary,
@@ -331,7 +334,37 @@ def _coordinator_resolver(hass: HomeAssistant) -> _CoordinatorResolver:
 def _capture_cache_diagnostics(runtime_data: Any) -> CacheDiagnosticsCapture | None:
     """Return the most recent cache diagnostics snapshot if available."""
 
-    return capture_cache_diagnostics(runtime_data)
+    capture = capture_cache_diagnostics(runtime_data)
+    if capture is None:
+        return None
+
+    snapshots_raw = capture.get("snapshots")
+    normalised_snapshots: CacheDiagnosticsMap = {}
+    if isinstance(snapshots_raw, Mapping):
+        for name, payload in snapshots_raw.items():
+            if not isinstance(name, str):
+                continue
+            if isinstance(payload, CacheDiagnosticsSnapshot):
+                normalised_snapshots[name] = payload
+            elif isinstance(payload, Mapping):
+                normalised_snapshots[name] = CacheDiagnosticsSnapshot.from_mapping(
+                    payload
+                )
+            else:
+                normalised_snapshots[name] = CacheDiagnosticsSnapshot(
+                    error=str(payload)
+                )
+
+    result: CacheDiagnosticsCapture = {"snapshots": normalised_snapshots}
+
+    summary = capture.get("repair_summary")
+    if summary is not None:
+        if isinstance(summary, CacheRepairAggregate):
+            result["repair_summary"] = summary
+        elif isinstance(summary, Mapping):
+            result["repair_summary"] = CacheRepairAggregate.from_mapping(summary)
+
+    return result
 
 
 def _get_runtime_data_for_coordinator(

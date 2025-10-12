@@ -604,11 +604,15 @@ class PawControlDashboardGenerator:
 
             # Process results
             for (url, _, _), result in zip(batch, batch_results, strict=False):
-                if isinstance(result, Exception):
+                resolved = _unwrap_async_result(
+                    result,
+                    context=f"Batch update failed for {url}",
+                    level=logging.ERROR,
+                )
+                if resolved is None:
                     results[url] = False
-                    _LOGGER.error("Batch update failed for %s: %s", url, result)
-                else:
-                    results[url] = result
+                    continue
+                results[url] = resolved
 
         batch_time = asyncio.get_event_loop().time() - start_time
         _LOGGER.info("Batch updated %d dashboards in %.2fs", len(updates), batch_time)
@@ -746,10 +750,11 @@ class PawControlDashboardGenerator:
         for (url, dashboard_info), result in zip(  # noqa: B007
             self._dashboards.items(), validation_results, strict=False
         ):
-            if isinstance(result, Exception):
-                _LOGGER.warning("Error validating dashboard %s: %s", url, result)
-                invalid_dashboards.append(url)
-            elif not result:
+            resolved = _unwrap_async_result(
+                result,
+                context=f"Error validating dashboard {url}",
+            )
+            if resolved is None or not resolved:
                 invalid_dashboards.append(url)
 
         # Remove invalid dashboards
@@ -1198,16 +1203,22 @@ class PawControlDashboardGenerator:
             # Process results
             for dog, result in zip(batch, batch_results, strict=False):
                 dog_id = dog.get(CONF_DOG_ID)
-                if dog_id:
-                    if isinstance(result, Exception):
-                        _LOGGER.error(
-                            "Weather dashboard creation failed for %s: %s",
-                            dog_id,
-                            result,
-                        )
-                        results[dog_id] = f"Error: {result}"
-                    else:
-                        results[dog_id] = result
+                if not dog_id:
+                    continue
+
+                resolved = _unwrap_async_result(
+                    result,
+                    context=f"Weather dashboard creation failed for {dog_id}",
+                    level=logging.ERROR,
+                )
+                if resolved is None:
+                    error_message = (
+                        str(result) if isinstance(result, Exception) else "unknown error"
+                    )
+                    results[dog_id] = f"Error: {error_message}"
+                    continue
+
+                results[dog_id] = resolved
 
         batch_time = asyncio.get_event_loop().time() - start_time
         _LOGGER.info(
@@ -1248,3 +1259,16 @@ class PawControlDashboardGenerator:
             ):
                 return True
         return False
+def _unwrap_async_result[T](
+    result: T | Exception,
+    *,
+    context: str,
+    level: int = logging.WARNING,
+) -> T | None:
+    """Return ``result`` when successful, logging ``context`` on failure."""
+
+    if isinstance(result, Exception):
+        _LOGGER.log(level, "%s: %s", context, result)
+        return None
+    return result
+

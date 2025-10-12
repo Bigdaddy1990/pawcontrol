@@ -44,7 +44,7 @@ from .coordinator_support import CoordinatorMetrics, DogConfigRegistry
 from .exceptions import GPSUnavailableError, NetworkError, ValidationError
 from .module_adapters import CoordinatorModuleAdapters
 from .resilience import ResilienceManager, RetryConfig
-from .types import ModuleAdapterPayload
+from .types import ModuleAdapterPayload, ensure_dog_modules_mapping
 
 CoordinatorUpdateFailed = UpdateFailed
 
@@ -419,7 +419,7 @@ class CoordinatorRuntime:
             "last_update": dt_util.utcnow().isoformat(),
         }
 
-        modules = dog_config.get("modules", {})
+        modules = ensure_dog_modules_mapping(dog_config)
         module_tasks: list[tuple[str, Awaitable[ModuleAdapterPayload]]] = (
             self._modules.build_tasks(dog_id, modules)
         )

@@ -170,11 +170,11 @@ class _HelperManagerCacheMonitor:
 
     def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         stats, snapshot, diagnostics = self._build_payload()
-        return {
-            "stats": cast(dict[str, Any], dict(stats)),
-            "snapshot": cast(dict[str, Any], dict(snapshot)),
-            "diagnostics": diagnostics,
-        }
+        return CacheDiagnosticsSnapshot(
+            stats=cast(dict[str, Any], dict(stats)),
+            snapshot=cast(dict[str, Any], dict(snapshot)),
+            diagnostics=diagnostics,
+        )
 
     def get_stats(self) -> dict[str, Any]:
         stats, _snapshot, _diagnostics = self._build_payload()

@@ -16,6 +16,7 @@ import json
 import logging
 import math
 from collections import deque
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
@@ -200,6 +201,9 @@ class WalkSession:
     safety_alerts: bool = True
     start_location: dict[str, Any] | None = None
     path: list[dict[str, Any]] = field(default_factory=list)
+    detection_confidence: float | None = None
+    door_sensor: str | None = None
+    detection_metadata: dict[str, Any] | None = None
 
     def as_dict(self) -> dict[str, Any]:
         """Convert the session to a mutable dictionary."""
@@ -227,6 +231,11 @@ class WalkSession:
             "path": list(self.path),
             "notes": None,
             "dog_weight_kg": None,
+            "detection_confidence": self.detection_confidence,
+            "door_sensor": self.door_sensor,
+            "detection_metadata": dict(self.detection_metadata)
+            if self.detection_metadata
+            else None,
         }
 
 
@@ -522,6 +531,9 @@ class WalkManager:
         weather: WeatherCondition | str | None = None,
         track_route: bool = True,
         safety_alerts: bool = True,
+        detection_confidence: float | None = None,
+        door_sensor: str | None = None,
+        detection_metadata: Mapping[str, Any] | None = None,
     ) -> str | None:
         """Start a walk with optimized data structure.
 
@@ -530,6 +542,9 @@ class WalkManager:
         Args:
             dog_id: Dog identifier
             walk_type: Type of walk (manual, auto_detected)
+            detection_confidence: Normalised confidence score for automatic detection
+            door_sensor: Entity ID of the triggering door sensor when available
+            detection_metadata: Additional detection metadata forwarded by callers
 
         Returns:
             Walk ID if successful, None otherwise
@@ -565,6 +580,23 @@ class WalkManager:
 
             leash_flag = True if leash_used is None else bool(leash_used)
 
+            confidence_value: float | None = None
+            if detection_confidence is not None:
+                try:
+                    confidence_value = max(0.0, min(float(detection_confidence), 1.0))
+                except (TypeError, ValueError):
+                    confidence_value = None
+
+            detection_payload: dict[str, Any] | None = None
+            if detection_metadata:
+                try:
+                    detection_payload = {
+                        str(key): value
+                        for key, value in dict(detection_metadata).items()
+                    }
+                except Exception:  # pragma: no cover - defensive
+                    detection_payload = None
+
             # OPTIMIZE: Get current location from cache first
             start_location = None
             cached_location = self._gps_cache.get_location(dog_id)
@@ -595,12 +627,21 @@ class WalkManager:
                 track_route=track_route,
                 safety_alerts=safety_alerts,
                 start_location=start_location,
+                detection_confidence=confidence_value,
+                door_sensor=door_sensor,
+                detection_metadata=detection_payload,
             )
 
             walk_data = session.as_dict()
             walk_data["path_optimization_applied"] = False
             walk_data["track_route"] = track_route
             walk_data["safety_alerts"] = safety_alerts
+            if confidence_value is not None:
+                walk_data["detection_confidence"] = confidence_value
+            if door_sensor is not None:
+                walk_data["door_sensor"] = door_sensor
+            if detection_payload is not None:
+                walk_data["detection_metadata"] = detection_payload
 
             self._current_walks[dog_id] = walk_data
 
@@ -1342,36 +1383,55 @@ class WalkManager:
     # Keep existing utility methods
     def _calculate_average_speed(self, walk_data: dict[str, Any]) -> float | None:
         """Calculate average speed for a walk."""
-        if walk_data["duration"] <= 0:
+
+        duration_raw = walk_data.get("duration")
+        duration_seconds = float(duration_raw) if is_number(duration_raw) else 0.0
+        if duration_seconds <= 0.0:
             return None
 
-        distance_km = walk_data["distance"] / 1000
-        duration_hours = walk_data["duration"] / 3600
+        distance_raw = walk_data.get("distance")
+        distance_meters = float(distance_raw) if is_number(distance_raw) else 0.0
+        if distance_meters <= 0.0:
+            return None
 
-        return distance_km / duration_hours if duration_hours > 0 else None
+        distance_km = distance_meters / 1000.0
+        duration_hours = duration_seconds / 3600.0
+        if duration_hours <= 0.0:
+            return None
+
+        return distance_km / duration_hours
 
     def _calculate_max_speed(self, path: list[dict[str, Any]]) -> float | None:
         """Calculate maximum speed from path."""
-        speeds = [
-            point.get("speed") for point in path if point.get("speed") is not None
-        ]
+        speeds: list[float] = []
+        for point in path:
+            speed = point.get("speed")
+            if is_number(speed):
+                speeds.append(float(speed))
         return max(speeds) if speeds else None
 
     def _estimate_calories_burned(
         self, dog_id: str, walk_data: dict[str, Any]
     ) -> float | None:
         """Estimate calories burned during walk."""
-        if walk_data["duration"] <= 0:
+        duration_raw = walk_data.get("duration")
+        duration_seconds = float(duration_raw) if is_number(duration_raw) else 0.0
+        if duration_seconds <= 0.0:
             return None
 
         # Enhanced calorie estimation with elevation
         weight = walk_data.get("dog_weight_kg")
-        estimated_weight = float(weight) if is_number(weight) and weight > 0 else 20.0
-        duration_minutes = walk_data["duration"] / 60
+        estimated_weight = (
+            float(weight) if is_number(weight) and float(weight) > 0 else 20.0
+        )
+        duration_minutes = duration_seconds / 60.0
         base_calories = estimated_weight * duration_minutes * 0.5
 
         # Add elevation bonus
-        elevation_gain = walk_data.get("elevation_gain", 0)
+        elevation_gain_raw = walk_data.get("elevation_gain", 0)
+        elevation_gain = (
+            float(elevation_gain_raw) if is_number(elevation_gain_raw) else 0.0
+        )
         elevation_bonus = elevation_gain * 0.1  # 0.1 cal per meter elevation gain
 
         return base_calories + elevation_bonus

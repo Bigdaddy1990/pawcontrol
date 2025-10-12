@@ -1252,15 +1252,16 @@ class PawControlNotificationManager:
             # Execute all sends in parallel
             results = await asyncio.gather(*send_tasks, return_exceptions=True)
 
-            # Process results
+            # Process results using shared gather guard
             for channel, result in zip(task_channels, results, strict=True):
-                if isinstance(result, Exception):
-                    _LOGGER.error(
-                        "Failed to send notification %s to channel %s: %s",
-                        notification.id,
-                        channel.value,
-                        result,
-                    )
+                _unwrap_async_result(
+                    result,
+                    context=(
+                        f"Failed to send notification {notification.id} "
+                        f"to channel {channel.value}"
+                    ),
+                    level=logging.ERROR,
+                )
 
     async def _send_to_channel_safe(
         self,
@@ -1291,14 +1292,10 @@ class PawControlNotificationManager:
                 notification.send_attempts.get(channel_key, 0) + 1
             )
 
-        except Exception as err:
-            notification.failed_channels.append(channel)
-            _LOGGER.error(
-                "Failed to send notification %s to channel %s: %s",
-                notification.id,
-                channel.value,
-                err,
-            )
+        except Exception:
+            if channel not in notification.failed_channels:
+                notification.failed_channels.append(channel)
+            raise
 
     def _build_webhook_payload(self, notification: NotificationEvent) -> dict[str, Any]:
         """Build a structured payload for webhook delivery."""
@@ -2042,3 +2039,17 @@ class PawControlNotificationManager:
         if self._person_manager:
             return self._person_manager.get_notification_context()
         return {"persons_home": 0, "persons_away": 0, "has_anyone_home": False}
+
+
+def _unwrap_async_result[T](
+    result: T | Exception,
+    *,
+    context: str,
+    level: int = logging.WARNING,
+) -> T | None:
+    """Return ``result`` when successful, logging ``context`` on failure."""
+
+    if isinstance(result, Exception):
+        _LOGGER.log(level, "%s: %s", context, result)
+        return None
+    return result

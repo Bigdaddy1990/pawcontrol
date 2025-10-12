@@ -96,6 +96,8 @@ from .types import (
     ReconfigureTelemetry,
     SystemOptions,
     WeatherOptions,
+    ensure_dog_modules_config,
+    ensure_dog_modules_mapping,
     is_dog_config_valid,
 )
 
@@ -295,17 +297,11 @@ class PawControlOptionsFlow(OptionsFlow):
         )
 
         modules_raw = normalised.get(CONF_MODULES)
-        if modules_raw is None:
-            modules: DogModulesConfig = {}
-        elif isinstance(modules_raw, Mapping):
-            modules = {
-                str(module): bool(value) for module, value in modules_raw.items()
-            }
-        else:
+        if modules_raw is not None and not isinstance(modules_raw, Mapping):
             raise ValueError("dog_invalid_modules")
 
-        if modules:
-            normalised[CONF_MODULES] = cast(DogModulesConfig, modules)
+        modules = ensure_dog_modules_config(normalised)
+        normalised[CONF_MODULES] = modules
 
         if not is_dog_config_valid(normalised):
             raise ValueError("dog_invalid_config")
@@ -331,6 +327,11 @@ class PawControlOptionsFlow(OptionsFlow):
             dog_id = normalised.get(CONF_DOG_ID)
             if not isinstance(dog_id, str) or not dog_id.strip():
                 continue
+            modules_mapping = ensure_dog_modules_mapping(normalised)
+            if modules_mapping:
+                normalised[CONF_MODULES] = cast(DogModulesConfig, dict(modules_mapping))
+            elif CONF_MODULES in normalised:
+                normalised.pop(CONF_MODULES, None)
             dogs_payload.append(normalised)
 
         payload: OptionsExportPayload = {
@@ -1257,12 +1258,10 @@ class PawControlOptionsFlow(OptionsFlow):
             "home_location": f"Lat: {home_lat:.6f}, Lon: {home_lon:.6f}",
             "radius_range": f"{MIN_GEOFENCE_RADIUS}-{MAX_GEOFENCE_RADIUS}",
             "dogs_with_gps": str(
-                len(
-                    [
-                        dog
-                        for dog in self._dogs
-                        if dog.get("modules", {}).get(MODULE_GPS, False)
-                    ]
+                sum(
+                    1
+                    for dog in self._dogs
+                    if ensure_dog_modules_mapping(dog).get(MODULE_GPS, False)
                 )
             ),
         }
@@ -1381,7 +1380,7 @@ class PawControlOptionsFlow(OptionsFlow):
         max_entities = profile_info["max_entities"]
 
         for dog in current_dogs:
-            modules = dog.get("modules", {})
+            modules = ensure_dog_modules_mapping(dog)
             estimate = self._entity_factory.estimate_entity_count(
                 current_profile, modules
             )
@@ -1463,7 +1462,7 @@ class PawControlOptionsFlow(OptionsFlow):
         for dog in current_dogs:
             dog_name = dog.get(CONF_DOG_NAME, "Unknown")
             dog_id = dog.get(CONF_DOG_ID, "unknown")
-            modules = dog.get("modules", {})
+            modules = ensure_dog_modules_mapping(dog)
 
             estimate = self._entity_factory.estimate_entity_count(profile, modules)
             total_entities += estimate
@@ -1492,7 +1491,7 @@ class PawControlOptionsFlow(OptionsFlow):
         else:
             current_total = 0
             for dog in current_dogs:
-                modules = dog.get("modules", {})
+                modules = ensure_dog_modules_mapping(dog)
                 current_total += self._entity_factory.estimate_entity_count(
                     current_profile, modules
                 )
@@ -1536,7 +1535,7 @@ class PawControlOptionsFlow(OptionsFlow):
         warnings: list[str] = []
 
         for dog in dogs:
-            modules = dog.get("modules", {})
+            modules = ensure_dog_modules_mapping(dog)
             dog_name = dog.get(CONF_DOG_NAME, "Unknown")
 
             if profile == "gps_focus" and not modules.get(MODULE_GPS, False):
@@ -1945,7 +1944,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 )
 
                 if dog_index >= 0:
-                    modules_payload = dict(updated_modules)
+                    modules_payload = cast(DogModulesConfig, dict(updated_modules))
                     current_dogs[dog_index][CONF_MODULES] = modules_payload
 
                     new_data = {**self._entry.data}
@@ -1985,7 +1984,7 @@ class PawControlOptionsFlow(OptionsFlow):
         if not self._current_dog:
             return vol.Schema({})
 
-        current_modules = self._current_dog.get("modules", {})
+        current_modules = ensure_dog_modules_mapping(self._current_dog)
 
         return vol.Schema(
             {
@@ -2042,7 +2041,7 @@ class PawControlOptionsFlow(OptionsFlow):
             return {}
 
         current_profile = self._entry.options.get("entity_profile", "standard")
-        current_modules = self._current_dog.get("modules", {})
+        current_modules = ensure_dog_modules_mapping(self._current_dog)
 
         # Calculate current entity count
         current_estimate = self._entity_factory.estimate_entity_count(

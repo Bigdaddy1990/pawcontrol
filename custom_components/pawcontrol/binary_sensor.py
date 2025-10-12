@@ -40,7 +40,7 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
 from .runtime_data import get_runtime_data
-from .types import PawControlConfigEntry
+from .types import PawControlConfigEntry, ensure_dog_modules_mapping
 from .utils import async_call_add_entities, ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
@@ -219,7 +219,7 @@ async def async_setup_entry(
     for dog in dogs:
         dog_id: str = dog[CONF_DOG_ID]
         dog_name: str = dog[CONF_DOG_NAME]
-        modules: dict[str, bool] = dog.get("modules", {})
+        modules = ensure_dog_modules_mapping(dog)
 
         _LOGGER.debug("Creating binary sensors for dog: %s (%s)", dog_name, dog_id)
 

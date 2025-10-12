@@ -43,7 +43,7 @@ from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
 from .notifications import NotificationPriority
 from .runtime_data import get_runtime_data
-from .types import PawControlRuntimeData
+from .types import PawControlRuntimeData, ensure_dog_modules_mapping
 from .utils import async_call_add_entities, deep_merge_dicts
 
 _LOGGER = logging.getLogger(__name__)
@@ -225,7 +225,7 @@ async def async_setup_entry(
     for dog in dogs:
         dog_id: str = dog[CONF_DOG_ID]
         dog_name: str = dog[CONF_DOG_NAME]
-        modules: dict[str, bool] = dog.get("modules", {})
+        modules = ensure_dog_modules_mapping(dog)
 
         _LOGGER.debug("Creating select entities for dog: %s (%s)", dog_name, dog_id)
 

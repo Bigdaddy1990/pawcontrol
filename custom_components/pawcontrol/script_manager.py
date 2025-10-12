@@ -10,7 +10,7 @@ automation flows without manual YAML editing.
 from __future__ import annotations
 
 import logging
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Collection, Sequence
 from datetime import datetime
 from typing import Any, Final
 
@@ -38,7 +38,6 @@ from .const import (
     CACHE_TIMESTAMP_STALE_THRESHOLD,
     CONF_DOG_ID,
     CONF_DOG_NAME,
-    CONF_MODULES,
     MODULE_NOTIFICATIONS,
 )
 from .coordinator_support import CacheMonitorRegistrar
@@ -46,6 +45,7 @@ from .types import (
     CacheDiagnosticsMetadata,
     CacheDiagnosticsSnapshot,
     DogConfigData,
+    ensure_dog_modules_mapping,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -135,7 +135,11 @@ class _ScriptManagerCacheMonitor:
 
     def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         stats, snapshot, diagnostics = self._build_payload()
-        return {"stats": stats, "snapshot": snapshot, "diagnostics": diagnostics}
+        return CacheDiagnosticsSnapshot(
+            stats=stats,
+            snapshot=snapshot,
+            diagnostics=diagnostics,
+        )
 
     def get_stats(self) -> dict[str, Any]:
         stats, _snapshot, _diagnostics = self._build_payload()
@@ -230,17 +234,10 @@ class PawControlScriptManager:
             existing_for_dog = set(self._dog_scripts.get(dog_id, []))
             new_for_dog: list[str] = []
 
-            dog_modules = dog.get(CONF_MODULES, {})
-            dog_notifications_enabled = global_notifications_enabled
-            if isinstance(dog_modules, Mapping) and MODULE_NOTIFICATIONS in dog_modules:
-                dog_notifications_enabled = bool(dog_modules.get(MODULE_NOTIFICATIONS))
-            elif dog_modules:
-                _LOGGER.warning(
-                    "Invalid 'modules' format for dog %s (expected a mapping, got %s). "
-                    "Falling back to global notification setting.",
-                    dog_id,
-                    type(dog_modules).__name__,
-                )
+            dog_modules = ensure_dog_modules_mapping(dog)
+            dog_notifications_enabled = dog_modules.get(
+                MODULE_NOTIFICATIONS, global_notifications_enabled
+            )
 
             script_definitions = self._build_scripts_for_dog(
                 slug, dog_id, dog_name, dog_notifications_enabled
