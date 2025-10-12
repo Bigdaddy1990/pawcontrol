@@ -263,7 +263,9 @@ def _config_entry_error_factory() -> type[Exception]:
 def _auth_failed_factory() -> type[Exception]:
     base = cast(type[Exception], ConfigEntryError)
 
-    def _init(self: Any, message: str | None = None, *, auth_migration: bool | None = None) -> None:
+    def _init(
+        self: Any, message: str | None = None, *, auth_migration: bool | None = None
+    ) -> None:
         base.__init__(self, message)
         self.auth_migration = auth_migration
 

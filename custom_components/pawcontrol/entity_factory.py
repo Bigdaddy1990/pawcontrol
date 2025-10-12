@@ -1182,9 +1182,7 @@ class EntityFactory:
             enabled_preferred = sum(
                 1 for mod in preferred_modules if modules_mapping.get(mod, False)
             )
-            enabled_total = sum(
-                1 for enabled in modules_mapping.values() if enabled
-            )
+            enabled_total = sum(1 for enabled in modules_mapping.values() if enabled)
 
             # At least 50% of enabled modules should align with preferred modules
             if enabled_total > 0 and (enabled_preferred / enabled_total) < 0.5:

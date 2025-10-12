@@ -2274,4 +2274,3 @@ def _unwrap_async_result[T](
         _LOGGER.log(level, "%s: %s", context, result)
         return None
     return result
-

@@ -664,8 +664,7 @@ async def test_perform_daily_reset_records_cache_diagnostics(
     snapshots = last_cache_capture["snapshots"]
     assert hasattr(snapshots["coordinator_modules"], "to_mapping")
     assert (
-        snapshots["coordinator_modules"].to_mapping()
-        == payload["coordinator_modules"]
+        snapshots["coordinator_modules"].to_mapping() == payload["coordinator_modules"]
     )
     summary_obj = last_cache_capture.get("repair_summary")
     assert summary_obj is not None
@@ -682,8 +681,7 @@ async def test_perform_daily_reset_records_cache_diagnostics(
     snapshots = cache_capture["snapshots"]
     assert hasattr(snapshots["coordinator_modules"], "to_mapping")
     assert (
-        snapshots["coordinator_modules"].to_mapping()
-        == payload["coordinator_modules"]
+        snapshots["coordinator_modules"].to_mapping() == payload["coordinator_modules"]
     )
     summary_obj = cache_capture.get("repair_summary")
     assert summary_obj is not None

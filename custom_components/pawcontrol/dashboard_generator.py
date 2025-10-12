@@ -1213,7 +1213,9 @@ class PawControlDashboardGenerator:
                 )
                 if resolved is None:
                     error_message = (
-                        str(result) if isinstance(result, Exception) else "unknown error"
+                        str(result)
+                        if isinstance(result, Exception)
+                        else "unknown error"
                     )
                     results[dog_id] = f"Error: {error_message}"
                     continue
@@ -1259,6 +1261,8 @@ class PawControlDashboardGenerator:
             ):
                 return True
         return False
+
+
 def _unwrap_async_result[T](
     result: T | Exception,
     *,
@@ -1271,4 +1275,3 @@ def _unwrap_async_result[T](
         _LOGGER.log(level, "%s: %s", context, result)
         return None
     return result
-
