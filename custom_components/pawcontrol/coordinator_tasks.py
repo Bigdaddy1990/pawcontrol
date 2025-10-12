@@ -69,8 +69,11 @@ def _fetch_cache_repair_summary(
     if summary is None:
         return None
 
+    if isinstance(summary, CacheRepairAggregate):
+        return summary
+
     if isinstance(summary, Mapping):
-        return cast(CacheRepairAggregate, dict(summary))
+        return CacheRepairAggregate.from_mapping(summary)
 
     coordinator.logger.debug(
         "Unexpected cache repair summary payload type: %s",
@@ -154,42 +157,39 @@ def _summarise_resilience(
             half_open_breakers.append(breaker_name)
             half_open_breaker_ids.append(breaker_id)
 
-        failure_count += stats.get("failure_count", 0)
-        success_count += stats.get("success_count", 0)
-        total_calls += stats.get("total_calls", 0)
-        total_failures += stats.get("total_failures", 0)
-        total_successes += stats.get("total_successes", 0)
-        rejected_calls = stats.get("rejected_calls", 0)
+        failure_count += _coerce_int(stats.get("failure_count"))
+        success_count += _coerce_int(stats.get("success_count"))
+        total_calls += _coerce_int(stats.get("total_calls"))
+        total_failures += _coerce_int(stats.get("total_failures"))
+        total_successes += _coerce_int(stats.get("total_successes"))
+        rejected_calls = _coerce_int(stats.get("rejected_calls"))
         rejected_call_count += rejected_calls
         if rejected_calls > 0:
             rejection_breakers.append(breaker_name)
             rejection_breaker_ids.append(breaker_id)
 
-        last_failure = stats.get("last_failure_time")
-        failure_value: float | None = None
-        if isinstance(last_failure, int | float):
-            failure_value = float(last_failure)
+        failure_value = _coerce_float(stats.get("last_failure_time"))
+        if failure_value is not None:
             latest_failure = (
-                max(latest_failure, failure_value)
-                if latest_failure is not None
-                else failure_value
+                failure_value
+                if latest_failure is None
+                else max(latest_failure, failure_value)
             )
 
-        last_state_change = stats.get("last_state_change")
-        if isinstance(last_state_change, int | float):
+        state_change_value = _coerce_float(stats.get("last_state_change"))
+        if state_change_value is not None:
             latest_state_change = (
-                max(latest_state_change, float(last_state_change))
-                if latest_state_change is not None
-                else float(last_state_change)
+                state_change_value
+                if latest_state_change is None
+                else max(latest_state_change, state_change_value)
             )
 
-        last_success = stats.get("last_success_time")
-        if isinstance(last_success, int | float):
-            success_value = float(last_success)
+        success_value = _coerce_float(stats.get("last_success_time"))
+        if success_value is not None:
             latest_success = (
-                max(latest_success, success_value)
-                if latest_success is not None
-                else success_value
+                success_value
+                if latest_success is None
+                else max(latest_success, success_value)
             )
 
             if (
@@ -207,13 +207,12 @@ def _summarise_resilience(
                     failure_value,
                 )
 
-        last_rejection = stats.get("last_rejection_time")
-        if isinstance(last_rejection, int | float):
-            rejection_value = float(last_rejection)
+        rejection_value = _coerce_float(stats.get("last_rejection_time"))
+        if rejection_value is not None:
             latest_rejection = (
-                max(latest_rejection, rejection_value)
-                if latest_rejection is not None
-                else rejection_value
+                rejection_value
+                if latest_rejection is None
+                else max(latest_rejection, rejection_value)
             )
             if (
                 latest_rejection_pair is None
@@ -419,31 +418,49 @@ def default_rejection_metrics() -> CoordinatorRejectionMetrics:
     }
 
 
-def _derive_rejection_metrics(
-    summary: Mapping[str, Any],
+def derive_rejection_metrics(
+    summary: Mapping[str, Any] | CoordinatorResilienceSummary | None,
 ) -> CoordinatorRejectionMetrics:
     """Return rejection counters extracted from a resilience summary."""
 
     metrics = default_rejection_metrics()
 
-    metrics["rejected_call_count"] = _coerce_int(summary.get("rejected_call_count"))
-    metrics["rejection_breaker_count"] = _coerce_int(
-        summary.get("rejection_breaker_count")
-    )
-    metrics["rejection_rate"] = _coerce_float(summary.get("rejection_rate"))
-    metrics["last_rejection_time"] = _coerce_float(summary.get("last_rejection_time"))
+    if not summary:
+        return metrics
+
+    rejected_calls = summary.get("rejected_call_count")
+    if rejected_calls is not None:
+        metrics["rejected_call_count"] = _coerce_int(rejected_calls)
+
+    rejection_breakers = summary.get("rejection_breaker_count")
+    if rejection_breakers is not None:
+        metrics["rejection_breaker_count"] = _coerce_int(rejection_breakers)
+
+    rejection_rate = _coerce_float(summary.get("rejection_rate"))
+    if rejection_rate is not None:
+        metrics["rejection_rate"] = rejection_rate
+
+    last_rejection_time = _coerce_float(summary.get("last_rejection_time"))
+    if last_rejection_time is not None:
+        metrics["last_rejection_time"] = last_rejection_time
 
     breaker_id_raw = summary.get("last_rejection_breaker_id")
-    metrics["last_rejection_breaker_id"] = (
-        breaker_id_raw if isinstance(breaker_id_raw, str) else None
-    )
+    if isinstance(breaker_id_raw, str):
+        metrics["last_rejection_breaker_id"] = breaker_id_raw
 
     breaker_name_raw = summary.get("last_rejection_breaker_name")
-    metrics["last_rejection_breaker_name"] = (
-        breaker_name_raw if isinstance(breaker_name_raw, str) else None
-    )
+    if isinstance(breaker_name_raw, str):
+        metrics["last_rejection_breaker_name"] = breaker_name_raw
 
     return metrics
+
+
+def _derive_rejection_metrics(
+    summary: Mapping[str, Any],
+) -> CoordinatorRejectionMetrics:
+    """Backwards-compatible wrapper for legacy imports."""
+
+    return derive_rejection_metrics(summary)
 
 
 def _normalise_breaker_state(value: Any) -> str:
@@ -730,7 +747,7 @@ def build_update_statistics(
         stats["resilience"] = resilience
         summary_payload = resilience.get("summary")
         if isinstance(summary_payload, Mapping):
-            rejection_metrics.update(_derive_rejection_metrics(summary_payload))
+            rejection_metrics = derive_rejection_metrics(summary_payload)
 
     stats["rejection_metrics"] = rejection_metrics
 
@@ -776,7 +793,7 @@ def build_runtime_statistics(
         stats["resilience"] = resilience
         summary_payload = resilience.get("summary")
         if isinstance(summary_payload, Mapping):
-            rejection_metrics.update(_derive_rejection_metrics(summary_payload))
+            rejection_metrics = derive_rejection_metrics(summary_payload)
 
     stats["rejection_metrics"] = rejection_metrics
 

@@ -291,7 +291,7 @@ class DashboardRenderer:
         # Filter successful results and handle exceptions
         cards: list[dict[str, Any]] = []
         for result in results:
-            if isinstance(result, BaseException):
+            if isinstance(result, Exception):
                 _LOGGER.warning("Overview card generation failed: %s", result)
                 continue
 
@@ -370,7 +370,7 @@ class DashboardRenderer:
 
             # Add successful results
             for result in batch_results:
-                if isinstance(result, BaseException):
+                if isinstance(result, Exception):
                     _LOGGER.warning("Dog view generation failed: %s", result)
                     continue
 
@@ -512,7 +512,7 @@ class DashboardRenderer:
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
             for result in results:
-                if isinstance(result, BaseException):
+                if isinstance(result, Exception):
                     _LOGGER.warning("Module view generation failed: %s", result)
                     continue
 

@@ -9,7 +9,7 @@ from math import isfinite
 from typing import Any
 
 from .coordinator_runtime import EntityBudgetSnapshot, summarize_entity_budgets
-from .coordinator_tasks import default_rejection_metrics
+from .coordinator_tasks import default_rejection_metrics, derive_rejection_metrics
 
 _LOGGER = getLogger(__name__)
 
@@ -118,34 +118,7 @@ def build_performance_snapshot(
             else:
                 resilience_payload[field] = [value]
 
-        rejection_rate_raw = resilience_payload.get("rejection_rate")
-        if isinstance(rejection_rate_raw, int | float):
-            rejection_rate: float | None = float(rejection_rate_raw)
-        else:
-            rejection_rate = None
-
-        rejected_count = int(resilience_payload.get("rejected_call_count", 0) or 0)
-        rejection_breakers = int(
-            resilience_payload.get("rejection_breaker_count", 0) or 0
-        )
-        last_rejection_time = resilience_payload.get("last_rejection_time")
-        breaker_id = resilience_payload.get("last_rejection_breaker_id")
-        if not isinstance(breaker_id, str):
-            breaker_id = None
-        breaker_name = resilience_payload.get("last_rejection_breaker_name")
-        if not isinstance(breaker_name, str):
-            breaker_name = None
-
-        rejection_metrics.update(
-            {
-                "rejected_call_count": rejected_count,
-                "rejection_breaker_count": rejection_breakers,
-                "rejection_rate": rejection_rate,
-                "last_rejection_time": last_rejection_time,
-                "last_rejection_breaker_id": breaker_id,
-                "last_rejection_breaker_name": breaker_name,
-            }
-        )
+        rejection_metrics.update(derive_rejection_metrics(resilience_payload))
         snapshot["resilience_summary"] = resilience_payload
 
     snapshot["rejection_metrics"] = rejection_metrics

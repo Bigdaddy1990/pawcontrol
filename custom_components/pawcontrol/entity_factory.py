@@ -25,6 +25,7 @@ from homeassistant.const import Platform
 from homeassistant.helpers.entity import Entity
 
 from .coordinator_runtime import EntityBudgetSnapshot
+from .types import DOG_MODULES_FIELD, DogModulesProjection, ensure_dog_modules_mapping
 
 if TYPE_CHECKING:
     from .coordinator import PawControlCoordinator
@@ -1136,7 +1137,7 @@ class EntityFactory:
         )
 
     def validate_profile_for_modules(
-        self, profile: str, modules: dict[str, bool]
+        self, profile: str, modules: Mapping[str, Any] | DogModulesProjection
     ) -> bool:
         """Validate if a profile is suitable for the given modules.
 
@@ -1147,7 +1148,30 @@ class EntityFactory:
         Returns:
             True if profile is suitable
         """
-        if not self._validate_profile(profile) or not self._validate_modules(modules):
+        modules_mapping = ensure_dog_modules_mapping(modules)
+
+        original_modules: Mapping[str, Any] | None = None
+        if isinstance(modules, DogModulesProjection):
+            original_modules = modules.mapping
+        elif isinstance(modules, Mapping):
+            nested_modules = modules.get(DOG_MODULES_FIELD)
+            if isinstance(nested_modules, Mapping):
+                original_modules = nested_modules
+            else:
+                original_modules = modules
+
+        if original_modules is not None:
+            unknown_modules = [
+                str(module)
+                for module in original_modules
+                if module not in KNOWN_MODULES
+            ]
+            if unknown_modules:
+                return False
+
+        if not self._validate_profile(profile) or not self._validate_modules(
+            modules_mapping
+        ):
             return False
 
         profile_config = ENTITY_PROFILES[profile]
@@ -1156,9 +1180,9 @@ class EntityFactory:
         preferred_modules = profile_config.get("preferred_modules", [])
         if preferred_modules:
             enabled_preferred = sum(
-                1 for mod in preferred_modules if modules.get(mod, False)
+                1 for mod in preferred_modules if modules_mapping.get(mod, False)
             )
-            enabled_total = sum(1 for enabled in modules.values() if enabled)
+            enabled_total = sum(1 for enabled in modules_mapping.values() if enabled)
 
             # At least 50% of enabled modules should align with preferred modules
             if enabled_total > 0 and (enabled_preferred / enabled_total) < 0.5:
@@ -1216,7 +1240,7 @@ class EntityFactory:
         }
 
     def get_performance_metrics(
-        self, profile: str, modules: dict[str, bool]
+        self, profile: str, modules: Mapping[str, Any] | DogModulesProjection
     ) -> dict[str, Any]:
         """Get performance metrics for a profile and module combination.
 
@@ -1227,7 +1251,11 @@ class EntityFactory:
         Returns:
             Performance metrics dictionary
         """
-        estimate = self._get_entity_estimate(profile, modules, log_invalid_inputs=False)
+        modules_mapping = ensure_dog_modules_mapping(modules)
+
+        estimate = self._get_entity_estimate(
+            profile, modules_mapping, log_invalid_inputs=False
+        )
         cache_key = (estimate.profile, estimate.module_signature)
 
         cached_metrics = self._performance_metrics_cache.get(cache_key)

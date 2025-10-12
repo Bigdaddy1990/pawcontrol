@@ -20,7 +20,7 @@ Python: 3.13+
 from __future__ import annotations
 
 from asyncio import Task
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import (
@@ -340,6 +340,24 @@ FeedingConfigKey = Literal[
 DEFAULT_FEEDING_SCHEDULE: Final[tuple[str, ...]] = ("10:00:00", "15:00:00", "20:00:00")
 
 
+@dataclass(slots=True)
+class DogModulesProjection:
+    """Expose both typed and plain module toggle representations."""
+
+    config: DogModulesConfig
+    mapping: dict[str, bool]
+
+    def as_config(self) -> DogModulesConfig:
+        """Return a ``DogModulesConfig`` copy suitable for storage."""
+
+        return cast(DogModulesConfig, dict(self.config))
+
+    def as_mapping(self) -> dict[str, bool]:
+        """Return a plain mapping for platform factories."""
+
+        return dict(self.mapping)
+
+
 def _coerce_bool(value: Any, *, default: bool = False) -> bool:
     """Return a boolean flag while tolerating common string/int representations."""
 
@@ -400,12 +418,22 @@ def _coerce_str(value: Any, *, default: str) -> str:
     return default
 
 
-def dog_modules_from_flow_input(
+def _project_modules_mapping(config: Mapping[str, Any]) -> dict[str, bool]:
+    """Return a stable ``dict[str, bool]`` projection for module toggles."""
+
+    mapping: dict[str, bool] = {}
+    for key_literal in MODULE_TOGGLE_KEYS:
+        key = cast(str, key_literal)
+        mapping[key] = bool(config.get(key_literal, False))
+    return mapping
+
+
+def dog_modules_projection_from_flow_input(
     user_input: Mapping[str, Any],
     *,
     existing: DogModulesConfig | None = None,
-) -> DogModulesConfig:
-    """Return a :class:`DogModulesConfig` built from config-flow toggles."""
+) -> DogModulesProjection:
+    """Return module toggle projections built from config-flow toggles."""
 
     modules: dict[ModuleToggleKey, bool] = {}
 
@@ -420,22 +448,62 @@ def dog_modules_from_flow_input(
             user_input.get(flow_flag), default=modules.get(module_key, False)
         )
 
-    return cast(DogModulesConfig, modules)
+    config = cast(DogModulesConfig, dict(modules))
+    mapping = _project_modules_mapping(config)
+    return DogModulesProjection(config=config, mapping=mapping)
+
+
+def dog_modules_from_flow_input(
+    user_input: Mapping[str, Any],
+    *,
+    existing: DogModulesConfig | None = None,
+) -> DogModulesConfig:
+    """Return a :class:`DogModulesConfig` built from config-flow toggles."""
+
+    return dog_modules_projection_from_flow_input(user_input, existing=existing).config
+
+
+def ensure_dog_modules_projection(
+    data: Mapping[str, Any] | DogModulesProjection,
+) -> DogModulesProjection:
+    """Extract module toggle projections from ``data``.
+
+    ``data`` may already be a :class:`DogModulesProjection`, a mapping containing a
+    ``modules`` key, or a raw mapping of module toggle flags. The helper normalises
+    all variants into the projection structure used throughout the integration so
+    downstream consumers can rely on a consistent schema when static typing is
+    enforced.
+    """
+
+    if isinstance(data, DogModulesProjection):
+        return data
+
+    modules: dict[ModuleToggleKey, bool] = {}
+    modules_raw = data.get(DOG_MODULES_FIELD)
+    candidate = modules_raw if isinstance(modules_raw, Mapping) else data
+
+    for key in MODULE_TOGGLE_KEYS:
+        value = candidate.get(key)
+        if value is not None:
+            modules[key] = _coerce_bool(value)
+
+    config = cast(DogModulesConfig, dict(modules))
+    mapping = _project_modules_mapping(config)
+    return DogModulesProjection(config=config, mapping=mapping)
 
 
 def ensure_dog_modules_config(data: Mapping[str, Any]) -> DogModulesConfig:
     """Extract a :class:`DogModulesConfig` from an arbitrary mapping."""
 
-    modules_raw = data.get(DOG_MODULES_FIELD)
-    modules: dict[ModuleToggleKey, bool] = {}
+    return ensure_dog_modules_projection(data).config
 
-    if isinstance(modules_raw, Mapping):
-        for key in MODULE_TOGGLE_KEYS:
-            value = modules_raw.get(key)
-            if isinstance(value, bool):
-                modules[key] = value
 
-    return cast(DogModulesConfig, modules)
+def ensure_dog_modules_mapping(
+    data: Mapping[str, Any] | DogModulesProjection,
+) -> dict[str, bool]:
+    """Return a ``dict[str, bool]`` projection from ``data``."""
+
+    return ensure_dog_modules_projection(data).mapping
 
 
 def dog_feeding_config_from_flow(user_input: Mapping[str, Any]) -> DogFeedingConfig:
@@ -1102,13 +1170,62 @@ class CacheDiagnosticsMetadata(TypedDict, total=False):
     manager_last_activity_age_seconds: int | float
 
 
-class CacheDiagnosticsSnapshot(TypedDict, total=False):
+@dataclass(slots=True)
+class CacheDiagnosticsSnapshot(Mapping[str, Any]):
     """Structured diagnostics snapshot returned by cache monitors."""
 
-    stats: dict[str, Any]
-    diagnostics: CacheDiagnosticsMetadata
-    snapshot: dict[str, Any]
-    error: str
+    stats: dict[str, Any] | None = None
+    diagnostics: CacheDiagnosticsMetadata | None = None
+    snapshot: dict[str, Any] | None = None
+    error: str | None = None
+
+    def to_mapping(self) -> dict[str, Any]:
+        """Return a mapping representation for downstream consumers."""
+
+        payload: dict[str, Any] = {}
+        if self.stats is not None:
+            payload["stats"] = dict(self.stats)
+        if self.diagnostics is not None:
+            payload["diagnostics"] = dict(self.diagnostics)
+        if self.snapshot is not None:
+            payload["snapshot"] = dict(self.snapshot)
+        if self.error is not None:
+            payload["error"] = self.error
+        return payload
+
+    @classmethod
+    def from_mapping(cls, payload: Mapping[str, Any]) -> CacheDiagnosticsSnapshot:
+        """Create a snapshot payload from an arbitrary mapping."""
+
+        stats = payload.get("stats")
+        diagnostics = payload.get("diagnostics")
+        snapshot = payload.get("snapshot")
+        error = payload.get("error")
+        return cls(
+            stats=dict(stats) if isinstance(stats, Mapping) else None,
+            diagnostics=cast(
+                CacheDiagnosticsMetadata | None,
+                dict(diagnostics)
+                if isinstance(diagnostics, Mapping)
+                else diagnostics
+                if isinstance(diagnostics, dict)
+                else None,
+            ),
+            snapshot=dict(snapshot) if isinstance(snapshot, Mapping) else None,
+            error=cast(str | None, error if isinstance(error, str) else None),
+        )
+
+    def __getitem__(self, key: str) -> Any:
+        """Return the value associated with ``key`` from the mapping view."""
+        return self.to_mapping()[key]
+
+    def __iter__(self) -> Iterator[str]:
+        """Yield cache diagnostic mapping keys in iteration order."""
+        return iter(self.to_mapping())
+
+    def __len__(self) -> int:
+        """Return the number of items exposed by the mapping view."""
+        return len(self.to_mapping())
 
 
 CacheDiagnosticsMap = dict[str, CacheDiagnosticsSnapshot]
@@ -1131,20 +1248,170 @@ class CacheRepairIssue(TypedDict, total=False):
     errors: NotRequired[list[str]]
 
 
-class CacheRepairAggregate(TypedDict, total=False):
+@dataclass(slots=True)
+class CacheRepairTotals:
+    """Summarised cache counters shared across diagnostics and repairs."""
+
+    entries: int = 0
+    hits: int = 0
+    misses: int = 0
+    expired_entries: int = 0
+    expired_via_override: int = 0
+    pending_expired_entries: int = 0
+    pending_override_candidates: int = 0
+    active_override_flags: int = 0
+    overall_hit_rate: float | None = None
+
+    def as_dict(self) -> dict[str, int | float]:
+        """Return a JSON-serialisable view of the totals."""
+
+        payload: dict[str, int | float] = {
+            "entries": self.entries,
+            "hits": self.hits,
+            "misses": self.misses,
+            "expired_entries": self.expired_entries,
+            "expired_via_override": self.expired_via_override,
+            "pending_expired_entries": self.pending_expired_entries,
+            "pending_override_candidates": self.pending_override_candidates,
+            "active_override_flags": self.active_override_flags,
+        }
+        if self.overall_hit_rate is not None:
+            payload["overall_hit_rate"] = round(self.overall_hit_rate, 2)
+        return payload
+
+
+@dataclass(slots=True)
+class CacheRepairAggregate(Mapping[str, Any]):
     """Aggregated cache health metrics surfaced through repairs issues."""
 
-    total_caches: Required[int]
-    anomaly_count: Required[int]
-    severity: Required[str]
-    generated_at: Required[str]
-    caches_with_errors: NotRequired[list[str]]
-    caches_with_expired_entries: NotRequired[list[str]]
-    caches_with_pending_expired_entries: NotRequired[list[str]]
-    caches_with_override_flags: NotRequired[list[str]]
-    caches_with_low_hit_rate: NotRequired[list[str]]
-    totals: NotRequired[dict[str, int | float]]
-    issues: NotRequired[list[CacheRepairIssue]]
+    total_caches: int
+    anomaly_count: int
+    severity: str
+    generated_at: str
+    caches_with_errors: list[str] | None = None
+    caches_with_expired_entries: list[str] | None = None
+    caches_with_pending_expired_entries: list[str] | None = None
+    caches_with_override_flags: list[str] | None = None
+    caches_with_low_hit_rate: list[str] | None = None
+    totals: CacheRepairTotals | None = None
+    issues: list[CacheRepairIssue] | None = None
+
+    def to_mapping(self) -> dict[str, Any]:
+        """Return a mapping representation for Home Assistant repairs."""
+
+        payload: dict[str, Any] = {
+            "total_caches": self.total_caches,
+            "anomaly_count": self.anomaly_count,
+            "severity": self.severity,
+            "generated_at": self.generated_at,
+        }
+        if self.caches_with_errors:
+            payload["caches_with_errors"] = list(self.caches_with_errors)
+        if self.caches_with_expired_entries:
+            payload["caches_with_expired_entries"] = list(
+                self.caches_with_expired_entries
+            )
+        if self.caches_with_pending_expired_entries:
+            payload["caches_with_pending_expired_entries"] = list(
+                self.caches_with_pending_expired_entries
+            )
+        if self.caches_with_override_flags:
+            payload["caches_with_override_flags"] = list(
+                self.caches_with_override_flags
+            )
+        if self.caches_with_low_hit_rate:
+            payload["caches_with_low_hit_rate"] = list(self.caches_with_low_hit_rate)
+        if self.totals is not None:
+            payload["totals"] = self.totals.as_dict()
+        if self.issues:
+            payload["issues"] = list(self.issues)
+        return payload
+
+    @classmethod
+    def from_mapping(cls, payload: Mapping[str, Any]) -> CacheRepairAggregate:
+        """Return a :class:`CacheRepairAggregate` constructed from a mapping."""
+
+        totals_payload = payload.get("totals")
+        totals = None
+        if isinstance(totals_payload, Mapping):
+            overall_hit_rate_value = totals_payload.get("overall_hit_rate")
+            overall_hit_rate: float | None
+            if isinstance(overall_hit_rate_value, int | float):
+                overall_hit_rate = float(overall_hit_rate_value)
+            elif isinstance(overall_hit_rate_value, str):
+                try:
+                    overall_hit_rate = float(overall_hit_rate_value)
+                except ValueError:
+                    overall_hit_rate = None
+            else:
+                overall_hit_rate = None
+
+            totals = CacheRepairTotals(
+                entries=int(totals_payload.get("entries", 0) or 0),
+                hits=int(totals_payload.get("hits", 0) or 0),
+                misses=int(totals_payload.get("misses", 0) or 0),
+                expired_entries=int(totals_payload.get("expired_entries", 0) or 0),
+                expired_via_override=int(
+                    totals_payload.get("expired_via_override", 0) or 0
+                ),
+                pending_expired_entries=int(
+                    totals_payload.get("pending_expired_entries", 0) or 0
+                ),
+                pending_override_candidates=int(
+                    totals_payload.get("pending_override_candidates", 0) or 0
+                ),
+                active_override_flags=int(
+                    totals_payload.get("active_override_flags", 0) or 0
+                ),
+                overall_hit_rate=overall_hit_rate,
+            )
+
+        def _string_list(field: str) -> list[str] | None:
+            value = payload.get(field)
+            if isinstance(value, list):
+                return [str(item) for item in value if isinstance(item, str)]
+            if isinstance(value, tuple | set | frozenset):
+                return [str(item) for item in value if isinstance(item, str)]
+            return None
+
+        issues_payload = payload.get("issues")
+        issues: list[CacheRepairIssue] | None = None
+        if isinstance(issues_payload, list):
+            filtered = [
+                cast(CacheRepairIssue, dict(issue))
+                for issue in issues_payload
+                if isinstance(issue, Mapping)
+            ]
+            if filtered:
+                issues = filtered
+
+        return cls(
+            total_caches=int(payload.get("total_caches", 0) or 0),
+            anomaly_count=int(payload.get("anomaly_count", 0) or 0),
+            severity=str(payload.get("severity", "unknown")),
+            generated_at=str(payload.get("generated_at", "")),
+            caches_with_errors=_string_list("caches_with_errors"),
+            caches_with_expired_entries=_string_list("caches_with_expired_entries"),
+            caches_with_pending_expired_entries=_string_list(
+                "caches_with_pending_expired_entries"
+            ),
+            caches_with_override_flags=_string_list("caches_with_override_flags"),
+            caches_with_low_hit_rate=_string_list("caches_with_low_hit_rate"),
+            totals=totals,
+            issues=issues,
+        )
+
+    def __getitem__(self, key: str) -> Any:
+        """Return the value associated with ``key`` from the mapping view."""
+        return self.to_mapping()[key]
+
+    def __iter__(self) -> Iterator[str]:
+        """Yield cache repair aggregate keys in iteration order."""
+        return iter(self.to_mapping())
+
+    def __len__(self) -> int:
+        """Return the number of items exposed by the mapping view."""
+        return len(self.to_mapping())
 
 
 class CacheDiagnosticsCapture(TypedDict, total=False):

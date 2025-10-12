@@ -11,6 +11,8 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from homeassistant.util import dt as dt_util
 
+from .types import CacheDiagnosticsMap, CacheDiagnosticsSnapshot, CacheRepairAggregate
+
 if TYPE_CHECKING:
     from .types import (
         CacheDiagnosticsCapture,
@@ -125,18 +127,38 @@ def capture_cache_diagnostics(
     if not isinstance(snapshots, Mapping):
         return None
 
-    snapshot_payload = dict(snapshots)
-    capture: CacheDiagnosticsCapture = {"snapshots": snapshot_payload}
+    normalised: CacheDiagnosticsMap = {}
+    for name, payload in snapshots.items():
+        if not isinstance(name, str) or not name:
+            continue
+        if isinstance(payload, CacheDiagnosticsSnapshot):
+            normalised[name] = payload
+        elif isinstance(payload, Mapping):
+            snapshot_obj = CacheDiagnosticsSnapshot.from_mapping(payload)
+            normalised[name] = snapshot_obj
+        else:
+            snapshot_obj = CacheDiagnosticsSnapshot(error=str(payload))
+            normalised[name] = snapshot_obj
+
+    if not normalised:
+        return None
+
+    capture: CacheDiagnosticsCapture = {"snapshots": normalised}
 
     summary_method = getattr(data_manager, "cache_repair_summary", None)
     if callable(summary_method):
         try:
-            summary = summary_method(snapshot_payload)
+            summary = summary_method(normalised)
         except Exception as err:  # pragma: no cover - diagnostics guard
             _LOGGER.debug("Skipping cache repair summary capture: %s", err)
         else:
             if summary is not None:
-                capture["repair_summary"] = summary
+                if isinstance(summary, CacheRepairAggregate):
+                    capture["repair_summary"] = summary
+                elif isinstance(summary, Mapping):
+                    capture["repair_summary"] = CacheRepairAggregate.from_mapping(
+                        summary
+                    )
 
     return capture
 

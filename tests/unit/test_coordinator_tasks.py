@@ -261,6 +261,36 @@ def test_build_update_statistics_defaults_rejection_metrics(monkeypatch) -> None
         assert "schema_version" not in performance_metrics
 
 
+def test_derive_rejection_metrics_preserves_defaults() -> None:
+    """Derived metrics should keep seeded defaults when resilience payload omits values."""
+
+    metrics = tasks.derive_rejection_metrics(
+        {
+            "rejected_call_count": None,
+            "rejection_breaker_count": None,
+            "rejection_rate": None,
+            "last_rejection_time": None,
+            "last_rejection_breaker_id": None,
+            "last_rejection_breaker_name": None,
+        }
+    )
+
+    assert metrics["schema_version"] == 1
+    assert metrics["rejected_call_count"] == 0
+    assert metrics["rejection_breaker_count"] == 0
+    assert metrics["rejection_rate"] == 0.0
+    assert metrics["last_rejection_time"] is None
+    assert metrics["last_rejection_breaker_id"] is None
+    assert metrics["last_rejection_breaker_name"] is None
+
+
+def test_derive_rejection_metrics_handles_missing_summary() -> None:
+    """Passing ``None`` or an empty summary returns seeded defaults."""
+
+    assert tasks.derive_rejection_metrics(None) == tasks.default_rejection_metrics()
+    assert tasks.derive_rejection_metrics({}) == tasks.default_rejection_metrics()
+
+
 def test_collect_resilience_diagnostics_persists_summary(monkeypatch) -> None:
     """Collected resilience summaries should persist into runtime performance stats."""
 

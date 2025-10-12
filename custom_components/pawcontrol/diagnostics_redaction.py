@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from typing import Any
 
 __all__ = [
@@ -25,9 +25,9 @@ def compile_redaction_patterns(keys: Iterable[str]) -> tuple[re.Pattern[str], ..
 def redact_sensitive_data(data: Any, *, patterns: tuple[re.Pattern[str], ...]) -> Any:
     """Recursively redact sensitive data using precompiled ``patterns``."""
 
-    if isinstance(data, dict):
+    if isinstance(data, Mapping):
         redacted: dict[str, Any] = {}
-        for key, value in data.items():
+        for key, value in dict(data).items():
             key_lower = key.lower()
             if any(pattern.search(key_lower) for pattern in patterns):
                 redacted[key] = "**REDACTED**"

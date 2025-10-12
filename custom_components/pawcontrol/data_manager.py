@@ -19,6 +19,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from itertools import islice
+from math import isfinite
 from pathlib import Path
 from time import perf_counter
 from typing import Any, Final, cast
@@ -46,12 +47,14 @@ from .types import (
     CacheDiagnosticsSnapshot,
     CacheRepairAggregate,
     CacheRepairIssue,
+    CacheRepairTotals,
     DailyStats,
     FeedingData,
     GPSLocation,
     HealthData,
     WalkData,
 )
+from .utils import is_number
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -235,13 +238,13 @@ class AdaptiveCache:
         snapshot["tracked_entries"] = len(self._metadata)
         return snapshot
 
-    def coordinator_snapshot(self) -> dict[str, Any]:
+    def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         """Return a combined statistics/diagnostics payload for coordinators."""
 
-        return {
-            "stats": self.get_stats(),
-            "diagnostics": self.get_diagnostics(),
-        }
+        return CacheDiagnosticsSnapshot(
+            stats=self.get_stats(),
+            diagnostics=self.get_diagnostics(),
+        )
 
     def _normalize_entry_locked(
         self, key: str, entry: dict[str, Any], now: datetime
@@ -348,7 +351,8 @@ class _EntityBudgetMonitor:
 
     def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         stats, diagnostics = self._build_payload()
-        return {"stats": stats, "diagnostics": diagnostics}
+        diagnostics_payload = cast(CacheDiagnosticsMetadata, diagnostics)
+        return CacheDiagnosticsSnapshot(stats=stats, diagnostics=diagnostics_payload)
 
     def get_stats(self) -> dict[str, Any]:
         stats, _diagnostics = self._build_payload()
@@ -411,21 +415,27 @@ class _CoordinatorModuleCacheMonitor:
 
     def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         stats, errors = self._aggregate_metrics()
-        diagnostics: dict[str, Any] = {"per_module": self._per_module_metrics()}
+        diagnostics_payload: CacheDiagnosticsMetadata = cast(
+            CacheDiagnosticsMetadata,
+            {"per_module": self._per_module_metrics()},
+        )
         if errors:
-            diagnostics["errors"] = errors
-        return {"stats": stats, "diagnostics": diagnostics}
+            diagnostics_payload["errors"] = errors
+        return CacheDiagnosticsSnapshot(stats=stats, diagnostics=diagnostics_payload)
 
     def get_stats(self) -> dict[str, Any]:
         stats, _errors = self._aggregate_metrics()
         return stats
 
     def get_diagnostics(self) -> CacheDiagnosticsMetadata:
-        diagnostics: dict[str, Any] = {"per_module": self._per_module_metrics()}
+        diagnostics_payload: CacheDiagnosticsMetadata = cast(
+            CacheDiagnosticsMetadata,
+            {"per_module": self._per_module_metrics()},
+        )
         _, errors = self._aggregate_metrics()
         if errors:
-            diagnostics["errors"] = errors
-        return cast(CacheDiagnosticsMetadata, diagnostics)
+            diagnostics_payload["errors"] = errors
+        return diagnostics_payload
 
 
 def _estimate_namespace_entries(payload: Any) -> int:
@@ -557,7 +567,12 @@ class _StorageNamespaceCacheMonitor:
 
     def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         stats, snapshot, diagnostics = self._build_payload()
-        return {"stats": stats, "snapshot": snapshot, "diagnostics": diagnostics}
+        diagnostics_payload = cast(CacheDiagnosticsMetadata, diagnostics)
+        return CacheDiagnosticsSnapshot(
+            stats=stats,
+            snapshot=snapshot,
+            diagnostics=diagnostics_payload,
+        )
 
     def get_stats(self) -> dict[str, Any]:
         stats, _snapshot, _diagnostics = self._build_payload()
@@ -1303,30 +1318,37 @@ class PawControlDataManager:
             try:
                 if callable(snapshot_method):
                     payload = snapshot_method()
+                    if isinstance(payload, CacheDiagnosticsSnapshot):
+                        return payload
                     if isinstance(payload, Mapping):
-                        return cast(CacheDiagnosticsSnapshot, dict(payload))
-                    if isinstance(payload, dict):
-                        return cast(CacheDiagnosticsSnapshot, payload)
-                snapshot: CacheDiagnosticsSnapshot = {}
+                        return CacheDiagnosticsSnapshot.from_mapping(payload)
+
+                stats_payload: dict[str, Any] | None = None
                 if callable(stats_method):
-                    stats_payload = stats_method()
-                    if isinstance(stats_payload, Mapping):
-                        snapshot["stats"] = dict(stats_payload)
-                    elif stats_payload is not None:
-                        snapshot["stats"] = cast(dict[str, Any], stats_payload)
+                    raw_stats = stats_method()
+                    if isinstance(raw_stats, Mapping):
+                        stats_payload = dict(raw_stats)
+                    elif raw_stats is not None:
+                        stats_payload = cast(dict[str, Any], raw_stats)
+
+                diagnostics_payload: CacheDiagnosticsMetadata | None = None
                 if callable(diagnostics_method):
-                    diag_payload = diagnostics_method()
-                    if isinstance(diag_payload, Mapping):
-                        snapshot["diagnostics"] = cast(
-                            CacheDiagnosticsMetadata, dict(diag_payload)
+                    raw_diagnostics = diagnostics_method()
+                    if isinstance(raw_diagnostics, Mapping):
+                        diagnostics_payload = cast(
+                            CacheDiagnosticsMetadata, dict(raw_diagnostics)
                         )
-                    elif diag_payload is not None:
-                        snapshot["diagnostics"] = cast(
-                            CacheDiagnosticsMetadata, diag_payload
+                    elif raw_diagnostics is not None:
+                        diagnostics_payload = cast(
+                            CacheDiagnosticsMetadata, raw_diagnostics
                         )
-                return snapshot
+
+                return CacheDiagnosticsSnapshot(
+                    stats=stats_payload,
+                    diagnostics=diagnostics_payload,
+                )
             except Exception as err:  # pragma: no cover - diagnostics guard
-                return cast(CacheDiagnosticsSnapshot, {"error": str(err)})
+                return CacheDiagnosticsSnapshot(error=str(err))
 
         self._cache_monitors[name] = _snapshot
 
@@ -1338,7 +1360,7 @@ class PawControlDataManager:
             try:
                 snapshots[name] = provider()
             except Exception as err:  # pragma: no cover - defensive fallback
-                snapshots[name] = cast(CacheDiagnosticsSnapshot, {"error": str(err)})
+                snapshots[name] = CacheDiagnosticsSnapshot(error=str(err))
         return snapshots
 
     def cache_repair_summary(
@@ -1352,16 +1374,7 @@ class PawControlDataManager:
         if not snapshots:
             return None
 
-        totals: dict[str, int | float] = {
-            "entries": 0,
-            "hits": 0,
-            "misses": 0,
-            "expired_entries": 0,
-            "expired_via_override": 0,
-            "pending_expired_entries": 0,
-            "pending_override_candidates": 0,
-            "active_override_flags": 0,
-        }
+        totals = CacheRepairTotals()
 
         caches_with_errors: list[str] = []
         caches_with_expired: list[str] = []
@@ -1373,26 +1386,51 @@ class PawControlDataManager:
         issues: list[CacheRepairIssue] = []
 
         def _as_int(value: Any) -> int:
-            try:
-                if isinstance(value, bool):
-                    return int(value)
-                return int(float(value))
-            except (TypeError, ValueError):
+            number: float | None
+            if is_number(value):
+                number = float(value)
+            elif isinstance(value, str):
+                try:
+                    number = float(value.strip())
+                except ValueError:
+                    number = None
+            else:
+                number = None
+
+            if number is None or not isfinite(number):
                 return 0
 
+            return int(number)
+
         def _as_float(value: Any) -> float:
-            try:
-                return float(value)
-            except (TypeError, ValueError):
+            number: float | None
+            if is_number(value):
+                number = float(value)
+            elif isinstance(value, str):
+                try:
+                    number = float(value.strip())
+                except ValueError:
+                    number = None
+            else:
+                number = None
+
+            if number is None or not isfinite(number):
                 return 0.0
+
+            return number
 
         for name, payload in snapshots.items():
             if not isinstance(name, str) or not name:
                 continue
 
-            snapshot_payload = payload if isinstance(payload, Mapping) else {}
+            if isinstance(payload, CacheDiagnosticsSnapshot):
+                snapshot_payload = payload
+            elif isinstance(payload, Mapping):
+                snapshot_payload = CacheDiagnosticsSnapshot.from_mapping(payload)
+            else:
+                snapshot_payload = CacheDiagnosticsSnapshot()
 
-            stats_payload = snapshot_payload.get("stats")
+            stats_payload = snapshot_payload.stats
             if isinstance(stats_payload, Mapping):
                 entries = _as_int(stats_payload.get("entries"))
                 hits = _as_int(stats_payload.get("hits"))
@@ -1407,7 +1445,7 @@ class PawControlDataManager:
                 if loop_total_requests:
                     hit_rate = round(hits / loop_total_requests * 100.0, 2)
 
-            diagnostics_payload = snapshot_payload.get("diagnostics")
+            diagnostics_payload = snapshot_payload.diagnostics
             diagnostics_map = (
                 diagnostics_payload if isinstance(diagnostics_payload, Mapping) else {}
             )
@@ -1441,14 +1479,14 @@ class PawControlDataManager:
             else:
                 error_list = [str(errors_payload)]
 
-            totals["entries"] += entries
-            totals["hits"] += hits
-            totals["misses"] += misses
-            totals["expired_entries"] += expired_entries
-            totals["expired_via_override"] += expired_override
-            totals["pending_expired_entries"] += pending_expired
-            totals["pending_override_candidates"] += pending_overrides
-            totals["active_override_flags"] += override_flags
+            totals.entries += entries
+            totals.hits += hits
+            totals.misses += misses
+            totals.expired_entries += expired_entries
+            totals.expired_via_override += expired_override
+            totals.pending_expired_entries += pending_expired
+            totals.pending_override_candidates += pending_overrides
+            totals.active_override_flags += override_flags
 
             low_hit_rate = False
             if hits + misses >= 5 and hit_rate < 60.0:
@@ -1499,10 +1537,10 @@ class PawControlDataManager:
                     issue["timestamp_anomalies"] = timestamp_anomaly_map
                 issues.append(issue)
 
-        total_requests: float = float(totals["hits"]) + float(totals["misses"])
+        total_requests: float = float(totals.hits) + float(totals.misses)
         if total_requests:
-            totals["overall_hit_rate"] = round(
-                float(totals["hits"]) / total_requests * 100.0, 2
+            totals.overall_hit_rate = round(
+                float(totals.hits) / total_requests * 100.0, 2
             )
 
         severity = "info"
@@ -1511,30 +1549,19 @@ class PawControlDataManager:
         elif anomalies:
             severity = "warning"
 
-        summary: CacheRepairAggregate = {
-            "total_caches": len(snapshots),
-            "anomaly_count": len(anomalies),
-            "severity": severity,
-            "generated_at": _utcnow().isoformat(),
-            "totals": totals,
-        }
-
-        if caches_with_errors:
-            summary["caches_with_errors"] = caches_with_errors
-        if caches_with_expired:
-            summary["caches_with_expired_entries"] = caches_with_expired
-        if caches_with_pending:
-            summary["caches_with_pending_expired_entries"] = caches_with_pending
-        if caches_with_override_flags:
-            summary["caches_with_override_flags"] = caches_with_override_flags
-        if caches_with_low_hit_rate:
-            summary["caches_with_low_hit_rate"] = caches_with_low_hit_rate
-        if caches_with_timestamp_anomalies:
-            summary["caches_with_timestamp_anomalies"] = caches_with_timestamp_anomalies
-        if issues:
-            summary["issues"] = issues
-
-        return summary
+        return CacheRepairAggregate(
+            total_caches=len(snapshots),
+            anomaly_count=len(anomalies),
+            severity=severity,
+            generated_at=_utcnow().isoformat(),
+            totals=totals,
+            caches_with_errors=caches_with_errors or None,
+            caches_with_expired_entries=caches_with_expired or None,
+            caches_with_pending_expired_entries=caches_with_pending or None,
+            caches_with_override_flags=caches_with_override_flags or None,
+            caches_with_low_hit_rate=caches_with_low_hit_rate or None,
+            issues=issues or None,
+        )
 
     def _record_visitor_metrics(self, duration: float) -> None:
         """Capture visitor-mode runtime metrics and forward to sinks."""

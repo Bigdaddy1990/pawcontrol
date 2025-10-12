@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any, cast
 
@@ -54,7 +55,11 @@ from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
 from .exceptions import WalkAlreadyInProgressError, WalkNotInProgressError
 from .runtime_data import get_runtime_data
-from .types import PawControlConfigEntry
+from .types import (
+    DogModulesProjection,
+    PawControlConfigEntry,
+    ensure_dog_modules_mapping,
+)
 from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
@@ -442,7 +447,10 @@ class ProfileAwareButtonFactory:
         return [rule for rule in rules if self.profile in rule["profiles"]]
 
     def create_buttons_for_dog(
-        self, dog_id: str, dog_name: str, modules: dict[str, bool]
+        self,
+        dog_id: str,
+        dog_name: str,
+        modules: Mapping[str, Any] | DogModulesProjection,
     ) -> list[PawControlButtonBase]:
         """Create profile-optimized buttons for a dog with improved performance.
 
@@ -454,6 +462,8 @@ class ProfileAwareButtonFactory:
         Returns:
             List of button entities (limited by profile)
         """
+        modules_mapping = ensure_dog_modules_mapping(modules)
+
         # Create all possible button candidates using pre-calculated rules
         button_candidates = []
 
@@ -492,7 +502,7 @@ class ProfileAwareButtonFactory:
         )
 
         # OPTIMIZED: Use pre-calculated rules instead of creating them on-demand
-        for module, enabled in modules.items():
+        for module, enabled in modules_mapping.items():
             if not enabled or module not in self._button_rules_cache:
                 continue
 
@@ -588,10 +598,9 @@ async def async_setup_entry(
     for dog in dogs:
         dog_id = dog[CONF_DOG_ID]
         dog_name = dog[CONF_DOG_NAME]
-        modules = dog.get("modules", {})
 
         # Create profile-optimized buttons
-        dog_buttons = button_factory.create_buttons_for_dog(dog_id, dog_name, modules)
+        dog_buttons = button_factory.create_buttons_for_dog(dog_id, dog_name, dog)
         all_entities.extend(dog_buttons)
         total_buttons_created += len(dog_buttons)
 

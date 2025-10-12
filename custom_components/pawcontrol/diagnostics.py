@@ -33,12 +33,13 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .coordinator_tasks import default_rejection_metrics
+from .coordinator_tasks import default_rejection_metrics, derive_rejection_metrics
 from .diagnostics_redaction import compile_redaction_patterns, redact_sensitive_data
 from .runtime_data import get_runtime_data
 from .types import (
     CacheDiagnosticsMap,
     CacheDiagnosticsSnapshot,
+    CacheRepairAggregate,
     PawControlConfigEntry,
     PawControlRuntimeData,
 )
@@ -147,7 +148,9 @@ async def async_get_config_entry_diagnostics(
     }
 
     if cache_snapshots is not None:
-        diagnostics["cache_diagnostics"] = cache_snapshots
+        diagnostics["cache_diagnostics"] = _serialise_cache_diagnostics_payload(
+            cache_snapshots
+        )
 
     # Redact sensitive information
     redacted_diagnostics = _redact_sensitive_data(diagnostics)
@@ -282,42 +285,63 @@ def _collect_cache_diagnostics(
 def _normalise_cache_snapshot(payload: Any) -> CacheDiagnosticsSnapshot:
     """Coerce arbitrary cache payloads into diagnostics-friendly snapshots."""
 
-    if isinstance(payload, Mapping):
-        mapping_payload = dict(payload)
+    if isinstance(payload, CacheDiagnosticsSnapshot):
+        snapshot = payload
+    elif isinstance(payload, Mapping):
+        snapshot = CacheDiagnosticsSnapshot.from_mapping(payload)
     else:
-        return cast(
-            CacheDiagnosticsSnapshot,
-            {
-                "error": f"Unsupported diagnostics payload: {type(payload).__name__}",
-                "snapshot": {"value": _normalise_json(payload)},
-            },
+        return CacheDiagnosticsSnapshot(
+            error=f"Unsupported diagnostics payload: {type(payload).__name__}",
+            snapshot={"value": _normalise_json(payload)},
         )
 
-    snapshot: CacheDiagnosticsSnapshot = {}
+    if snapshot.stats is not None:
+        snapshot.stats = cast(dict[str, Any], _normalise_json(snapshot.stats))
 
-    stats = mapping_payload.get("stats")
-    if stats is not None:
-        snapshot["stats"] = cast(dict[str, Any], _normalise_json(stats))
-
-    diagnostics = mapping_payload.get("diagnostics")
-    if diagnostics is not None:
-        snapshot["diagnostics"] = cast(
-            dict[str, Any],
-            _normalise_json(diagnostics),
+    if snapshot.diagnostics is not None:
+        snapshot.diagnostics = cast(
+            dict[str, Any], _normalise_json(snapshot.diagnostics)
         )
 
-    details = mapping_payload.get("snapshot")
-    if details is not None:
-        snapshot["snapshot"] = cast(dict[str, Any], _normalise_json(details))
+    if snapshot.snapshot is not None:
+        snapshot.snapshot = cast(dict[str, Any], _normalise_json(snapshot.snapshot))
 
-    error = mapping_payload.get("error")
-    if isinstance(error, str):
-        snapshot["error"] = error
-
-    if not snapshot:
-        snapshot["snapshot"] = {"value": _normalise_json(mapping_payload)}
+    if not snapshot.to_mapping():
+        snapshot.snapshot = {"value": _normalise_json(payload)}
 
     return snapshot
+
+
+def _serialise_cache_diagnostics_payload(
+    payload: Mapping[str, Any] | CacheDiagnosticsMap,
+) -> dict[str, Any]:
+    """Convert cache diagnostics snapshots into JSON-safe payloads."""
+
+    serialised: dict[str, Any] = {}
+    for name, snapshot in payload.items():
+        serialised[str(name)] = _serialise_cache_snapshot(snapshot)
+    return serialised
+
+
+def _serialise_cache_snapshot(snapshot: Any) -> dict[str, Any]:
+    """Return a JSON-serialisable payload for a cache diagnostics snapshot."""
+
+    snapshot_input: Any
+    if isinstance(snapshot, CacheDiagnosticsSnapshot):
+        snapshot_input = CacheDiagnosticsSnapshot.from_mapping(snapshot.to_mapping())
+    else:
+        snapshot_input = snapshot
+
+    normalised_snapshot = _normalise_cache_snapshot(snapshot_input)
+    snapshot_payload = normalised_snapshot.to_mapping()
+
+    repair_summary = snapshot_payload.get("repair_summary")
+    if isinstance(repair_summary, CacheRepairAggregate):
+        snapshot_payload["repair_summary"] = repair_summary.to_mapping()
+    elif isinstance(repair_summary, Mapping):
+        snapshot_payload["repair_summary"] = dict(repair_summary)
+
+    return cast(dict[str, Any], _normalise_json(snapshot_payload))
 
 
 def _normalise_json(value: Any) -> Any:
@@ -617,36 +641,11 @@ async def _get_performance_metrics(
         if total_updates:
             error_rate = stats.get("failed", 0) / total_updates
 
-        rejection_metrics = default_rejection_metrics()
         rejection_payload = stats.get("rejection_metrics")
         if isinstance(rejection_payload, Mapping):
-            rejected_raw = rejection_payload.get("rejected_call_count")
-            if isinstance(rejected_raw, int):
-                rejection_metrics["rejected_call_count"] = rejected_raw
-
-            breaker_count_raw = rejection_payload.get("rejection_breaker_count")
-            if isinstance(breaker_count_raw, int):
-                rejection_metrics["rejection_breaker_count"] = breaker_count_raw
-
-            rate_raw = rejection_payload.get("rejection_rate")
-            if isinstance(rate_raw, int | float):
-                rejection_metrics["rejection_rate"] = float(rate_raw)
-
-            time_raw = rejection_payload.get("last_rejection_time")
-            if isinstance(time_raw, int | float):
-                rejection_metrics["last_rejection_time"] = float(time_raw)
-
-            breaker_id_raw = rejection_payload.get("last_rejection_breaker_id")
-            if isinstance(breaker_id_raw, str):
-                rejection_metrics["last_rejection_breaker_id"] = breaker_id_raw
-
-            breaker_name_raw = rejection_payload.get("last_rejection_breaker_name")
-            if isinstance(breaker_name_raw, str):
-                rejection_metrics["last_rejection_breaker_name"] = breaker_name_raw
-
-            schema_raw = rejection_payload.get("schema_version")
-            if schema_raw == 1:
-                rejection_metrics["schema_version"] = 1
+            rejection_metrics = derive_rejection_metrics(rejection_payload)
+        else:
+            rejection_metrics = default_rejection_metrics()
         stats["rejection_metrics"] = rejection_metrics
 
         performance_metrics = stats.get("performance_metrics")
@@ -715,7 +714,9 @@ async def _get_data_statistics(
         cache_payload = cache_snapshots
 
     if cache_payload is not None:
-        metrics["cache_diagnostics"] = cache_payload
+        metrics["cache_diagnostics"] = _serialise_cache_diagnostics_payload(
+            cache_payload
+        )
 
     metrics.setdefault("dogs", len(getattr(runtime_data, "dogs", [])))
 

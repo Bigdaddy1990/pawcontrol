@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from enum import Enum
 from itertools import count
 from types import ModuleType
-from typing import Any, Protocol, TypeVar, cast
+from typing import Any, TypeVar, cast
 
 RuntimeT = TypeVar("RuntimeT")
 
@@ -233,7 +233,7 @@ def _get_exception(
     return default_factory()
 
 
-class _FallbackHomeAssistantError(Exception):
+class _FallbackHomeAssistantError(RuntimeError):
     """Fallback base error used when Home Assistant isn't installed."""
 
 
@@ -252,53 +252,46 @@ ServiceValidationError: type[Exception]
 
 
 def _config_entry_error_factory() -> type[Exception]:
-    base = HomeAssistantError if not _HOMEASSISTANT_ERROR_IS_FALLBACK else RuntimeError
-    return _build_exception(
+    base = cast(type[Exception], HomeAssistantError)
+    return type(
         "ConfigEntryError",
-        base,
-        "Fallback ConfigEntry error used outside Home Assistant.",
+        (base,),
+        {"__doc__": "Fallback ConfigEntry error used outside Home Assistant."},
     )
-
-
-class _AuthFailedProtocol(Protocol):
-    auth_migration: bool | None
-
-
-def _config_entry_auth_failed_init(
-    self: _AuthFailedProtocol,
-    message: str | None = None,
-    *,
-    auth_migration: bool | None = None,
-) -> None:
-    ConfigEntryError.__init__(self, message)
-    self.auth_migration = auth_migration
 
 
 def _auth_failed_factory() -> type[Exception]:
-    return _build_exception(
-        "ConfigEntryAuthFailed",
-        ConfigEntryError,
-        "Fallback ConfigEntryAuthFailed stand-in.",
-        extra_attrs={
-            "__slots__": ("auth_migration",),
-            "__init__": _config_entry_auth_failed_init,
-        },
-    )
+    base = cast(type[Exception], ConfigEntryError)
+
+    def _init(
+        self: Any, message: str | None = None, *, auth_migration: bool | None = None
+    ) -> None:
+        base.__init__(self, message)
+        self.auth_migration = auth_migration
+
+    namespace = {
+        "__doc__": "Fallback ConfigEntryAuthFailed stand-in.",
+        "__slots__": ("auth_migration",),
+        "__init__": _init,
+    }
+    return type("ConfigEntryAuthFailed", (base,), namespace)
 
 
 def _not_ready_factory() -> type[Exception]:
-    return _build_exception(
+    base = cast(type[Exception], ConfigEntryError)
+    return type(
         "ConfigEntryNotReady",
-        ConfigEntryError,
-        "Fallback ConfigEntryNotReady used when HA is unavailable.",
+        (base,),
+        {"__doc__": "Fallback ConfigEntryNotReady used when HA is unavailable."},
     )
 
 
 def _service_validation_error_factory() -> type[Exception]:
-    return _build_exception(
+    base = cast(type[Exception], HomeAssistantError)
+    return type(
         "ServiceValidationError",
-        HomeAssistantError,
-        "Fallback validation error raised for invalid service payloads.",
+        (base,),
+        {"__doc__": "Fallback validation error raised for invalid service payloads."},
     )
 
 

@@ -87,6 +87,7 @@ from .types import (
     ReconfigureOptionsUpdates,
     ReconfigureProfileInput,
     ReconfigureTelemetry,
+    ensure_dog_modules_mapping,
     is_dog_config_valid,
 )
 
@@ -638,7 +639,7 @@ class PawControlConfigFlow(
                     profile = "standard"
 
                 for dog in validated_dogs:
-                    modules = dog.get("modules", {})
+                    modules = ensure_dog_modules_mapping(dog)
                     if not self._entity_factory.validate_profile_for_modules(
                         profile, modules
                     ):
@@ -845,7 +846,7 @@ class PawControlConfigFlow(
                 [
                     (
                         dog.get("dog_id"),
-                        tuple(sorted(dog.get("modules", {}).items())),
+                        tuple(sorted(ensure_dog_modules_mapping(dog).items())),
                     )
                     for dog in self._dogs
                 ]
@@ -859,13 +860,7 @@ class PawControlConfigFlow(
 
         total = 0
         for dog in self._dogs:
-            modules_payload = dog.get("modules")
-            if isinstance(modules_payload, Mapping):
-                module_flags = {
-                    str(key): bool(value) for key, value in modules_payload.items()
-                }
-            else:
-                module_flags = {}
+            module_flags = ensure_dog_modules_mapping(dog)
             total += self._entity_factory.estimate_entity_count(
                 self._entity_profile, module_flags
             )
@@ -1271,7 +1266,7 @@ class PawControlConfigFlow(
         """
         dog_count = len(self._dogs)
         total_modules = sum(
-            len([m for m, e in dog.get("modules", {}).items() if e])
+            sum(1 for enabled in ensure_dog_modules_mapping(dog).values() if enabled)
             for dog in self._dogs
         )
 
@@ -1361,7 +1356,7 @@ class PawControlConfigFlow(
             True if profile is compatible
         """
         for dog in self._dogs:
-            modules = dog.get("modules", {})
+            modules = ensure_dog_modules_mapping(dog)
             if not self._entity_factory.validate_profile_for_modules(
                 self._entity_profile, modules
             ):
@@ -1443,7 +1438,7 @@ class PawControlConfigFlow(
 
         dogs_list = []
         for i, dog in enumerate(self._dogs, 1):
-            modules = dog.get("modules", {})
+            modules = ensure_dog_modules_mapping(dog)
             enabled_modules = [name for name, enabled in modules.items() if enabled]
             module_summary = ", ".join(enabled_modules) if enabled_modules else "none"
 
@@ -1466,7 +1461,7 @@ class PawControlConfigFlow(
         for config in ENTITY_PROFILES.values():
             estimated_for_profile = 0
             for dog in self._dogs:
-                modules = dog.get("modules", {})
+                modules = ensure_dog_modules_mapping(dog)
                 # Rough estimation without full factory
                 estimated_for_profile += sum(
                     3 if enabled else 0 for enabled in modules.values()
@@ -1682,7 +1677,7 @@ class PawControlConfigFlow(
 
         aggregated: dict[str, bool] = {}
         for dog in self._dogs:
-            modules = cast(dict[str, bool], dog.get(CONF_MODULES, {}))
+            modules = ensure_dog_modules_mapping(dog)
             for module, enabled in modules.items():
                 if enabled:
                     aggregated[module] = True

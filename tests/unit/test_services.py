@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
@@ -12,6 +12,10 @@ from custom_components.pawcontrol.const import (
     EVENT_FEEDING_COMPLIANCE_CHECKED,
     SERVICE_CHECK_FEEDING_COMPLIANCE,
     SERVICE_DAILY_RESET,
+)
+from custom_components.pawcontrol.types import (
+    CacheDiagnosticsSnapshot,
+    CacheRepairAggregate,
 )
 
 try:  # pragma: no cover - runtime fallback for stubbed environments
@@ -121,10 +125,27 @@ class _DummyDataManager:
         return self._payload
 
     def cache_repair_summary(
-        self, snapshots: dict[str, dict[str, object]] | None = None
+        self, snapshots: dict[str, object] | None = None
     ) -> dict[str, object] | None:
         if snapshots is not None:
-            assert snapshots == self._payload
+            self._last_snapshots = snapshots
+            normalised: dict[str, object] = {}
+            for key, payload in snapshots.items():
+                if hasattr(payload, "to_mapping"):
+                    try:
+                        candidate = payload.to_mapping()  # type: ignore[call-arg]
+                    except Exception:
+                        candidate = None
+                    else:
+                        if isinstance(candidate, Mapping):
+                            normalised[key] = dict(candidate)
+                            continue
+                if isinstance(payload, Mapping):
+                    normalised[key] = dict(payload)
+                else:
+                    normalised[key] = payload
+            self._normalised_payload = normalised
+            assert normalised == self._payload
         return self._summary
 
 
@@ -559,7 +580,17 @@ def test_capture_cache_diagnostics_returns_snapshot() -> None:
 
     diagnostics = services._capture_cache_diagnostics(runtime_data)
 
-    assert diagnostics == {"snapshots": payload, "repair_summary": summary}
+    assert diagnostics is not None
+    snapshots = diagnostics["snapshots"]
+    assert "coordinator_modules" in snapshots
+    coordinator_snapshot = snapshots["coordinator_modules"]
+    assert hasattr(coordinator_snapshot, "to_mapping")
+    assert coordinator_snapshot.to_mapping() == payload["coordinator_modules"]
+
+    summary_obj = diagnostics.get("repair_summary")
+    assert summary_obj is not None
+    assert hasattr(summary_obj, "to_mapping")
+    assert summary_obj.to_mapping() == summary
 
 
 @pytest.mark.unit
@@ -629,20 +660,33 @@ async def test_perform_daily_reset_records_cache_diagnostics(
     assert runtime_data.walk_manager.cleaned
     assert runtime_data.notification_manager.cleaned
     assert runtime_data.performance_stats["daily_resets"] == 1
-    assert runtime_data.performance_stats["last_cache_diagnostics"] == {
-        "snapshots": payload,
-        "repair_summary": summary,
-    }
+    last_cache_capture = runtime_data.performance_stats["last_cache_diagnostics"]
+    snapshots = last_cache_capture["snapshots"]
+    assert hasattr(snapshots["coordinator_modules"], "to_mapping")
+    assert (
+        snapshots["coordinator_modules"].to_mapping() == payload["coordinator_modules"]
+    )
+    summary_obj = last_cache_capture.get("repair_summary")
+    assert summary_obj is not None
+    assert hasattr(summary_obj, "to_mapping")
+    assert summary_obj.to_mapping() == summary
     assert runtime_data.performance_stats["reconfigure_summary"]["warning_count"] == 1
     last_result = runtime_data.performance_stats["last_service_result"]
     assert last_result["service"] == SERVICE_DAILY_RESET
     assert last_result["status"] == "success"
     diagnostics = last_result.get("diagnostics")
     assert diagnostics is not None
-    assert diagnostics.get("cache") == {
-        "snapshots": payload,
-        "repair_summary": summary,
-    }
+    cache_capture = diagnostics.get("cache")
+    assert cache_capture is not None
+    snapshots = cache_capture["snapshots"]
+    assert hasattr(snapshots["coordinator_modules"], "to_mapping")
+    assert (
+        snapshots["coordinator_modules"].to_mapping() == payload["coordinator_modules"]
+    )
+    summary_obj = cache_capture.get("repair_summary")
+    assert summary_obj is not None
+    assert hasattr(summary_obj, "to_mapping")
+    assert summary_obj.to_mapping() == summary
     metadata = diagnostics.get("metadata")
     assert metadata is not None
     assert metadata["refresh_requested"] is True
@@ -668,10 +712,16 @@ async def test_perform_daily_reset_records_cache_diagnostics(
         "notifications_cleaned": 2,
         "cache_snapshot": True,
     }
-    assert maintenance_last["diagnostics"]["cache"] == {
-        "snapshots": payload,
-        "repair_summary": summary,
-    }
+    cache_metrics = maintenance_last["diagnostics"]["cache"]
+    assert hasattr(cache_metrics["snapshots"]["coordinator_modules"], "to_mapping")
+    assert (
+        cache_metrics["snapshots"]["coordinator_modules"].to_mapping()
+        == payload["coordinator_modules"]
+    )
+    repair_summary = cache_metrics.get("repair_summary")
+    assert repair_summary is not None
+    assert hasattr(repair_summary, "to_mapping")
+    assert repair_summary.to_mapping() == summary
     maintenance_metadata = maintenance_last["diagnostics"]["metadata"]
     assert maintenance_metadata["refresh_requested"] is True
     assert maintenance_metadata["reconfigure"]["requested_profile"] == "advanced"

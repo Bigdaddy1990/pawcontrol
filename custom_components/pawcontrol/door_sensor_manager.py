@@ -214,7 +214,11 @@ class _DoorSensorManagerCacheMonitor:
 
     def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         stats, snapshot, diagnostics = self._build_payload()
-        return {"stats": stats, "snapshot": snapshot, "diagnostics": diagnostics}
+        return CacheDiagnosticsSnapshot(
+            stats=stats,
+            snapshot=snapshot,
+            diagnostics=diagnostics,
+        )
 
     def get_stats(self) -> dict[str, Any]:
         stats, _snapshot, _diagnostics = self._build_payload()

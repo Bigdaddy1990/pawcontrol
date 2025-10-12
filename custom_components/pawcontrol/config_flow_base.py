@@ -37,6 +37,9 @@ from .const import (
     MIN_DOG_AGE,
     MIN_DOG_NAME_LENGTH,
     MIN_DOG_WEIGHT,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
 )
 from .types import (
     ConfigFlowGlobalSettings,
@@ -45,6 +48,7 @@ from .types import (
     DogSetupStepInput,
     DogValidationCache,
     FeedingSetupConfig,
+    ensure_dog_modules_mapping,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -295,8 +299,9 @@ class PawControlBaseConfigFlow(ConfigFlow):
             size_emoji = size_emojis.get(dog.get(CONF_DOG_SIZE, "medium"), "🐶")
 
             # Enabled modules count
-            modules = dog.get("modules", {})
-            enabled_count = sum(1 for enabled in modules.values() if enabled)
+            modules_mapping = ensure_dog_modules_mapping(dog)
+            enabled_count = sum(1 for enabled in modules_mapping.values() if enabled)
+            total_modules = len(modules_mapping)
 
             # Special configurations
             special_configs = []
@@ -313,7 +318,7 @@ class PawControlBaseConfigFlow(ConfigFlow):
                 f"{i}. {size_emoji} **{dog[CONF_DOG_NAME]}** ({dog[CONF_DOG_ID]})\n"
                 f"   {dog.get(CONF_DOG_SIZE, 'medium').title()} {breed_info}, "
                 f"{dog.get(CONF_DOG_AGE, 'unknown')} years, {dog.get(CONF_DOG_WEIGHT, 'unknown')}kg\n"
-                f"   {enabled_count}/{len(modules)} modules enabled"
+                f"   {enabled_count}/{total_modules} modules enabled"
                 + (f"\n   {special_text}" if special_text else "")
             )
 
@@ -513,7 +518,7 @@ class PawControlBaseConfigFlow(ConfigFlow):
         """
         summaries = []
         for dog in self._dogs:
-            modules = dog.get("modules", {})
+            modules = ensure_dog_modules_mapping(dog)
             enabled_modules = [name for name, enabled in modules.items() if enabled]
 
             if enabled_modules:
@@ -558,15 +563,18 @@ class PawControlBaseConfigFlow(ConfigFlow):
 
         # Check enabled modules across all dogs
         has_gps = any(
-            dog.get("modules", {}).get("gps", False) or dog.get("gps_config")
+            ensure_dog_modules_mapping(dog).get(MODULE_GPS, False)
+            or dog.get("gps_config")
             for dog in self._dogs
         )
         has_feeding = any(
-            dog.get("modules", {}).get("feeding", False) or dog.get("feeding_config")
+            ensure_dog_modules_mapping(dog).get(MODULE_FEEDING, False)
+            or dog.get("feeding_config")
             for dog in self._dogs
         )
         has_health = any(
-            dog.get("modules", {}).get("health", False) or dog.get("health_config")
+            ensure_dog_modules_mapping(dog).get(MODULE_HEALTH, False)
+            or dog.get("health_config")
             for dog in self._dogs
         )
 
