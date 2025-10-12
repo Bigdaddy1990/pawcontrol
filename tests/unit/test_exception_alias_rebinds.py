@@ -64,7 +64,9 @@ def test_button_homeassistant_error_alias_tracks_rebind() -> None:
         _restore_exceptions(original_module)
 
 
-def test_bind_exception_alias_infers_calling_module(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_bind_exception_alias_infers_calling_module(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Bindings should succeed without explicitly passing a module handle."""
 
     module_name = "tests.unit.dynamic_alias_module"
@@ -84,7 +86,9 @@ def test_bind_exception_alias_infers_calling_module(monkeypatch: pytest.MonkeyPa
         monkeypatch.delitem(sys.modules, module_name, raising=False)
 
 
-def test_bind_exception_alias_traverses_call_stack(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_bind_exception_alias_traverses_call_stack(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Bindings should resolve the module even when called from helpers."""
 
     module_name = "tests.unit.dynamic_alias_module_nested"
@@ -105,7 +109,9 @@ def test_bind_exception_alias_traverses_call_stack(monkeypatch: pytest.MonkeyPat
         monkeypatch.delitem(sys.modules, module_name, raising=False)
 
 
-def test_bind_exception_alias_accepts_module_name(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_bind_exception_alias_accepts_module_name(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Bindings should allow passing the module name directly."""
 
     module_name = "tests.unit.dynamic_alias_module_named"

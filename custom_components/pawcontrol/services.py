@@ -96,10 +96,12 @@ _LOGGER = logging.getLogger(__name__)
 
 compat.ensure_homeassistant_exception_symbols()
 HomeAssistantError: type[Exception] = cast(
-    type[Exception], compat.HomeAssistantError,
+    type[Exception],
+    compat.HomeAssistantError,
 )
 ServiceValidationError: type[Exception] = cast(
-    type[Exception], compat.ServiceValidationError,
+    type[Exception],
+    compat.ServiceValidationError,
 )
 bind_exception_alias("HomeAssistantError", combine_with_current=True)
 bind_exception_alias("ServiceValidationError")
@@ -151,9 +153,8 @@ def _service_validation_error(message: str) -> Exception:
         and (override.__module__ != _FALLBACK_EXCEPTION_MODULE or candidate is None)
     ):
         candidate = override
-        if (
-            override.__module__ != _FALLBACK_EXCEPTION_MODULE
-            and issubclass(override, compat.HomeAssistantError)
+        if override.__module__ != _FALLBACK_EXCEPTION_MODULE and issubclass(
+            override, compat.HomeAssistantError
         ):
             _CACHED_SERVICE_VALIDATION_ERROR = override
 
@@ -422,9 +423,7 @@ def _record_service_result(
         if diagnostics_payload is None:
             diagnostics_payload = {"resilience_summary": resilience_payload}
         else:
-            diagnostics_payload.setdefault(
-                "resilience_summary", resilience_payload
-            )
+            diagnostics_payload.setdefault("resilience_summary", resilience_payload)
 
     if diagnostics_payload:
         result["diagnostics"] = diagnostics_payload

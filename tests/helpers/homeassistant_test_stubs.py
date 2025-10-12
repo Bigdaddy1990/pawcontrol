@@ -934,7 +934,9 @@ def _install_exception_module() -> None:
     )
     if not (
         isinstance(config_entry_auth_failed_error_type, type)
-        and issubclass(config_entry_auth_failed_error_type, config_entry_auth_failed_type)
+        and issubclass(
+            config_entry_auth_failed_error_type, config_entry_auth_failed_type
+        )
     ):
 
         class _ConfigEntryAuthFailedError(config_entry_auth_failed_type):

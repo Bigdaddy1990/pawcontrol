@@ -442,9 +442,7 @@ def dog_feeding_config_from_flow(user_input: Mapping[str, Any]) -> DogFeedingCon
     """Build a :class:`DogFeedingConfig` structure from flow input data."""
 
     meals_per_day = max(1, _coerce_int(user_input.get(CONF_MEALS_PER_DAY), default=2))
-    daily_amount = _coerce_float(
-        user_input.get(CONF_DAILY_FOOD_AMOUNT), default=500.0
-    )
+    daily_amount = _coerce_float(user_input.get(CONF_DAILY_FOOD_AMOUNT), default=500.0)
     portion_size = daily_amount / meals_per_day if meals_per_day else 0.0
 
     feeding_config: dict[FeedingConfigKey, Any] = {
@@ -463,9 +461,7 @@ def dog_feeding_config_from_flow(user_input: Mapping[str, Any]) -> DogFeedingCon
         ),
     }
 
-    if _coerce_bool(
-        user_input.get("breakfast_enabled"), default=meals_per_day >= 1
-    ):
+    if _coerce_bool(user_input.get("breakfast_enabled"), default=meals_per_day >= 1):
         feeding_config["breakfast_time"] = _coerce_str(
             user_input.get(CONF_BREAKFAST_TIME), default="07:00:00"
         )

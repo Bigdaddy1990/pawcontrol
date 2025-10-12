@@ -60,9 +60,7 @@ from .utils import async_call_add_entities
 _LOGGER = logging.getLogger(__name__)
 
 ensure_homeassistant_exception_symbols()
-HomeAssistantError: type[Exception] = cast(
-    type[Exception], compat.HomeAssistantError
-)
+HomeAssistantError: type[Exception] = cast(type[Exception], compat.HomeAssistantError)
 ServiceValidationError: type[Exception] = cast(
     type[Exception], compat.ServiceValidationError
 )

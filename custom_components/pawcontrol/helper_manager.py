@@ -247,9 +247,7 @@ class PawControlHelperManager:
                     continue
                 dog_dict: dict[str, Any] = dict(dog_config)
                 dog_dict.setdefault(DOG_ID_FIELD, str(dog_id))
-                dog_dict.setdefault(
-                    DOG_NAME_FIELD, str(dog_dict[DOG_ID_FIELD])
-                )
+                dog_dict.setdefault(DOG_NAME_FIELD, str(dog_dict[DOG_ID_FIELD]))
                 normalized.append(cast(DogConfigData, dog_dict))
             return normalized
 
@@ -389,7 +387,9 @@ class PawControlHelperManager:
             enabled_modules: Dictionary of enabled modules
         """
         dog_name_raw = dog_config.get(DOG_NAME_FIELD)
-        dog_name = dog_name_raw if isinstance(dog_name_raw, str) and dog_name_raw else dog_id
+        dog_name = (
+            dog_name_raw if isinstance(dog_name_raw, str) and dog_name_raw else dog_id
+        )
 
         # Create feeding helpers if feeding module is enabled
         if enabled_modules.get(MODULE_FEEDING, False):
@@ -875,9 +875,7 @@ class PawControlHelperManager:
         )
         enabled_modules = self._normalize_enabled_modules(modules_option)
 
-        await self.async_create_helpers_for_dogs(
-            [dog_data], enabled_modules
-        )
+        await self.async_create_helpers_for_dogs([dog_data], enabled_modules)
 
         _LOGGER.info("Created helpers for new dog: %s", dog_id)
 

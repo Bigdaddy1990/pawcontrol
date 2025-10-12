@@ -1567,12 +1567,11 @@ def get_global_performance_stats() -> dict[str, Any]:
         "total_errors": total_errors,
         "entities_with_performance_data": len(performance_summaries),
     }
+
+
 ensure_homeassistant_exception_symbols()
-HomeAssistantError: type[Exception] = cast(
-    type[Exception], compat.HomeAssistantError
-)
+HomeAssistantError: type[Exception] = cast(type[Exception], compat.HomeAssistantError)
 bind_exception_alias(
     "HomeAssistantError",
     combine_with_current=True,
 )
-

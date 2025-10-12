@@ -23,13 +23,17 @@ except ImportError:  # pragma: no cover - ensure stubs are available for tests
     from homeassistant.core import Context
 
 
-def test_service_validation_error_uses_compat_alias(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_service_validation_error_uses_compat_alias(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """``_service_validation_error`` should emit the compat-managed alias."""
 
     class SentinelServiceValidationError(Exception):
         pass
 
-    monkeypatch.setattr(compat, "ServiceValidationError", SentinelServiceValidationError)
+    monkeypatch.setattr(
+        compat, "ServiceValidationError", SentinelServiceValidationError
+    )
     monkeypatch.setattr(compat, "ensure_homeassistant_exception_symbols", lambda: None)
 
     error = services._service_validation_error("boom")

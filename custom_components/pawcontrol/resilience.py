@@ -66,9 +66,7 @@ from . import compat
 from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
 
 ensure_homeassistant_exception_symbols()
-HomeAssistantError: type[Exception] = cast(
-    type[Exception], compat.HomeAssistantError
-)
+HomeAssistantError: type[Exception] = cast(type[Exception], compat.HomeAssistantError)
 bind_exception_alias("HomeAssistantError", combine_with_current=True)
 
 

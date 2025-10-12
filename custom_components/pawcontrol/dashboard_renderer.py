@@ -732,9 +732,8 @@ class DashboardRenderer:
             "total_jobs_processed": self._job_counter,
             "template_cache": template_stats,
         }
-ensure_homeassistant_exception_symbols()
-HomeAssistantError: type[Exception] = cast(
-    type[Exception], compat.HomeAssistantError
-)
-bind_exception_alias("HomeAssistantError", combine_with_current=True)
 
+
+ensure_homeassistant_exception_symbols()
+HomeAssistantError: type[Exception] = cast(type[Exception], compat.HomeAssistantError)
+bind_exception_alias("HomeAssistantError", combine_with_current=True)

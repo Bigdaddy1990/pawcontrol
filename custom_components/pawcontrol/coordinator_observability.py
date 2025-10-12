@@ -150,7 +150,11 @@ def build_performance_snapshot(
 
     snapshot["rejection_metrics"] = rejection_metrics
     snapshot["performance_metrics"].update(
-        {key: value for key, value in rejection_metrics.items() if key != "schema_version"}
+        {
+            key: value
+            for key, value in rejection_metrics.items()
+            if key != "schema_version"
+        }
     )
 
     return snapshot

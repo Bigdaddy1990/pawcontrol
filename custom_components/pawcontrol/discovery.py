@@ -540,9 +540,8 @@ async def async_shutdown_discovery_manager() -> None:
     if _discovery_manager:
         await _discovery_manager.async_shutdown()
         _discovery_manager = None
-ensure_homeassistant_exception_symbols()
-HomeAssistantError: type[Exception] = cast(
-    type[Exception], compat.HomeAssistantError
-)
-bind_exception_alias("HomeAssistantError", combine_with_current=True)
 
+
+ensure_homeassistant_exception_symbols()
+HomeAssistantError: type[Exception] = cast(type[Exception], compat.HomeAssistantError)
+bind_exception_alias("HomeAssistantError", combine_with_current=True)

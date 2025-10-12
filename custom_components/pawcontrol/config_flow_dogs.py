@@ -733,9 +733,7 @@ class DogManagementMixin(DogManagementMixinBase):
                 "weight_tracking": _coerce_bool(
                     user_input.get("weight_tracking"), default=True
                 ),
-                "ideal_weight": _coerce_optional_float(
-                    user_input.get("ideal_weight")
-                )
+                "ideal_weight": _coerce_optional_float(user_input.get("ideal_weight"))
                 or _coerce_optional_float(current_dog.get(CONF_DOG_WEIGHT)),
                 "body_condition_score": _coerce_int(
                     user_input.get("body_condition_score"), default=5
@@ -776,12 +774,12 @@ class DogManagementMixin(DogManagementMixinBase):
                 dog_weight_update = _coerce_optional_float(
                     current_dog.get(DOG_WEIGHT_FIELD)
                 )
-                dog_age_update = _coerce_optional_int(
-                    current_dog.get(DOG_AGE_FIELD)
-                )
+                dog_age_update = _coerce_optional_int(current_dog.get(DOG_AGE_FIELD))
                 dog_size_update_raw = current_dog.get(DOG_SIZE_FIELD)
                 dog_size_update = (
-                    dog_size_update_raw if isinstance(dog_size_update_raw, str) else "medium"
+                    dog_size_update_raw
+                    if isinstance(dog_size_update_raw, str)
+                    else "medium"
                 )
 
                 # Validate diet combinations and log results
@@ -836,7 +834,9 @@ class DogManagementMixin(DogManagementMixinBase):
         dog_size = dog_size_raw if isinstance(dog_size_raw, str) else "medium"
 
         dog_weight_raw = current_dog.get(DOG_WEIGHT_FIELD)
-        dog_weight = float(dog_weight_raw) if isinstance(dog_weight_raw, int | float) else 20.0
+        dog_weight = (
+            float(dog_weight_raw) if isinstance(dog_weight_raw, int | float) else 20.0
+        )
 
         # Suggest ideal weight (typically 95-105% of current weight for healthy dogs)
         suggested_ideal_weight = round(dog_weight * 1.0, 1)
@@ -1069,7 +1069,9 @@ class DogManagementMixin(DogManagementMixinBase):
                 "dog_weight": str(dog_weight),
                 "suggested_ideal_weight": str(suggested_ideal_weight),
                 "suggested_activity": suggested_activity,
-                "medication_enabled": "yes" if modules.get(MODULE_MEDICATION, False) else "no",
+                "medication_enabled": "yes"
+                if modules.get(MODULE_MEDICATION, False)
+                else "no",
                 "bcs_info": "Body Condition Score: 1=Emaciated, 5=Ideal, 9=Obese",
                 "special_diet_count": str(len(SPECIAL_DIET_OPTIONS)),
                 "health_diet_info": f"Select all special diet requirements that apply to optimize feeding calculations\n\n⚠️ Compatibility Info:\n{diet_compatibility_info}",
@@ -1507,9 +1509,7 @@ class DogManagementMixin(DogManagementMixinBase):
     ) -> dict[str, DogVaccinationRecord]:
         """Build vaccination records from user form input."""
 
-        def _build_record(
-            date_key: str, next_key: str
-        ) -> DogVaccinationRecord | None:
+        def _build_record(date_key: str, next_key: str) -> DogVaccinationRecord | None:
             date_value = _coerce_optional_str(user_input.get(date_key))
             next_value = _coerce_optional_str(user_input.get(next_key))
             if date_value is None and next_value is None:
@@ -1546,17 +1546,23 @@ class DogManagementMixin(DogManagementMixinBase):
 
             entry: DogMedicationEntry = {"name": name}
 
-            if dosage := _coerce_optional_str(user_input.get(f"medication_{slot}_dosage")):
+            if dosage := _coerce_optional_str(
+                user_input.get(f"medication_{slot}_dosage")
+            ):
                 entry["dosage"] = dosage
 
-            frequency = _coerce_optional_str(user_input.get(f"medication_{slot}_frequency"))
+            frequency = _coerce_optional_str(
+                user_input.get(f"medication_{slot}_frequency")
+            )
             if frequency is not None:
                 entry["frequency"] = frequency or "daily"
 
             time_value = _coerce_optional_str(user_input.get(f"medication_{slot}_time"))
             entry["time"] = time_value or ("08:00:00" if slot == "1" else "20:00:00")
 
-            if notes := _coerce_optional_str(user_input.get(f"medication_{slot}_notes")):
+            if notes := _coerce_optional_str(
+                user_input.get(f"medication_{slot}_notes")
+            ):
                 entry["notes"] = notes
 
             entry["with_meals"] = _coerce_bool(
@@ -1566,7 +1572,6 @@ class DogManagementMixin(DogManagementMixinBase):
             medications.append(entry)
 
         return medications
-
 
     def _collect_health_conditions(self, user_input: Mapping[str, Any]) -> list[str]:
         """Collect health conditions from user input for feeding calculations."""

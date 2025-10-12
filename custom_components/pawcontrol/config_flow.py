@@ -1008,9 +1008,7 @@ class PawControlConfigFlow(
             dog_breed = None
 
         age_raw = validated_input.get("dog_age")
-        dog_age: int | None = (
-            int(age_raw) if isinstance(age_raw, int | float) else None
-        )
+        dog_age: int | None = int(age_raw) if isinstance(age_raw, int | float) else None
 
         weight_raw = validated_input.get("dog_weight")
         dog_weight: float | None = (
@@ -1839,9 +1837,7 @@ class PawControlConfigFlow(
                 }
             ),
             errors=errors,
-            description_placeholders=dict(
-                self._build_reauth_placeholders(summary)
-            ),
+            description_placeholders=dict(self._build_reauth_placeholders(summary)),
         )
 
     async def _check_config_health_enhanced(

@@ -43,6 +43,8 @@ _ha_core = _import_optional("homeassistant.core")
 type _ExceptionRebindCallback = Callable[[dict[str, type[Exception]]], None]
 
 _EXCEPTION_REBIND_CALLBACKS: list[_ExceptionRebindCallback] = []
+
+
 @dataclass(slots=True)
 class _BoundExceptionAlias:
     """Container describing an installed exception alias binding."""
@@ -131,9 +133,7 @@ def _resolve_binding_module(module: ModuleType | str | None) -> ModuleType:
     finally:
         del frame
 
-    raise RuntimeError(
-        "bind_exception_alias could not determine the caller module"
-    )
+    raise RuntimeError("bind_exception_alias could not determine the caller module")
 
 
 def bind_exception_alias(
@@ -206,7 +206,9 @@ def bind_exception_alias(
 
         namespace[target] = candidate
 
-    bound = _BoundExceptionAlias(name, module_name, target, combine_with_current, _apply)
+    bound = _BoundExceptionAlias(
+        name, module_name, target, combine_with_current, _apply
+    )
     _BOUND_EXCEPTION_ALIASES[key] = bound
     _apply(_current_exception_mapping())
     _EXCEPTION_REBIND_CALLBACKS.append(_apply)
