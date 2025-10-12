@@ -5,6 +5,7 @@ from __future__ import annotations
 import inspect
 import sys
 from collections.abc import Awaitable, Callable, Coroutine, Mapping
+from contextlib import suppress
 from dataclasses import dataclass
 from enum import Enum
 from itertools import count
@@ -38,6 +39,180 @@ def _import_optional(module: str) -> Any:
 _ha_exceptions = _import_optional("homeassistant.exceptions")
 _ha_config_entries = _import_optional("homeassistant.config_entries")
 _ha_core = _import_optional("homeassistant.core")
+
+type _ExceptionRebindCallback = Callable[[dict[str, type[Exception]]], None]
+
+_EXCEPTION_REBIND_CALLBACKS: list[_ExceptionRebindCallback] = []
+
+
+@dataclass(slots=True)
+class _BoundExceptionAlias:
+    """Container describing an installed exception alias binding."""
+
+    source: str
+    module_name: str
+    target: str
+    combine_with_current: bool
+    callback: _ExceptionRebindCallback
+
+
+_BOUND_EXCEPTION_ALIASES: dict[tuple[str, str], _BoundExceptionAlias] = {}
+
+
+def _current_exception_mapping() -> dict[str, type[Exception]]:
+    """Return the latest Home Assistant exception bindings."""
+
+    return {
+        "HomeAssistantError": HomeAssistantError,
+        "ConfigEntryError": ConfigEntryError,
+        "ConfigEntryAuthFailed": ConfigEntryAuthFailed,
+        "ConfigEntryNotReady": ConfigEntryNotReady,
+        "ServiceValidationError": ServiceValidationError,
+    }
+
+
+def _notify_exception_callbacks() -> None:
+    """Invoke registered callbacks with the refreshed exception mapping."""
+
+    if not _EXCEPTION_REBIND_CALLBACKS:
+        return
+
+    mapping = _current_exception_mapping()
+    for callback in tuple(_EXCEPTION_REBIND_CALLBACKS):
+        try:
+            callback(mapping)
+        except Exception:  # pragma: no cover - defensive guard for test hooks
+            continue
+
+
+def register_exception_rebind_callback(
+    callback: _ExceptionRebindCallback,
+) -> Callable[[], None]:
+    """Register a callback that fires whenever exception bindings change."""
+
+    _EXCEPTION_REBIND_CALLBACKS.append(callback)
+    callback(_current_exception_mapping())
+
+    def _unregister() -> None:
+        with suppress(ValueError):  # pragma: no branch - suppress missing callback
+            _EXCEPTION_REBIND_CALLBACKS.remove(callback)
+
+    return _unregister
+
+
+def _resolve_binding_module(module: ModuleType | str | None) -> ModuleType:
+    """Return the module that should receive a rebound alias."""
+
+    if isinstance(module, ModuleType):
+        return module
+
+    if isinstance(module, str):
+        resolved = sys.modules.get(module)
+        if resolved is None:
+            raise RuntimeError(
+                f"bind_exception_alias could not locate module '{module}'"
+            )
+        return resolved
+
+    frame = None
+    try:
+        frame = sys._getframe(2)
+    except ValueError as exc:  # pragma: no cover - extremely defensive
+        raise RuntimeError(
+            "bind_exception_alias could not determine the caller module"
+        ) from exc
+
+    try:
+        while frame is not None:
+            module_name = frame.f_globals.get("__name__")
+            if module_name and module_name != __name__:
+                candidate = sys.modules.get(module_name)
+                if candidate is not None:
+                    return candidate
+            frame = frame.f_back
+    finally:
+        del frame
+
+    raise RuntimeError("bind_exception_alias could not determine the caller module")
+
+
+def bind_exception_alias(
+    name: str,
+    *,
+    module: ModuleType | str | None = None,
+    attr: str | None = None,
+    combine_with_current: bool = False,
+) -> Callable[[], None]:
+    """Keep ``module.attr`` in sync with the active Home Assistant class."""
+
+    # ``module`` may be supplied as a module object, a module name, or omitted to
+    # infer the caller.  The binding survives module reloads by resolving fresh
+    # module objects from :data:`sys.modules` each time the callback fires.
+
+    # Default to the caller's module so integration files can bind aliases
+    # without importing ``sys`` purely for ``sys.modules[__name__]``.
+
+    module_obj = _resolve_binding_module(module)
+
+    target = attr or name
+    module_name = getattr(module_obj, "__name__", None)
+    if not module_name:
+        raise RuntimeError("bind_exception_alias requires a named module")
+
+    key = (module_name, target)
+
+    previous = _BOUND_EXCEPTION_ALIASES.pop(key, None)
+    if previous is not None:
+        with suppress(ValueError):
+            _EXCEPTION_REBIND_CALLBACKS.remove(previous.callback)
+
+    bound: _BoundExceptionAlias | None = None
+
+    def _unregister() -> None:
+        stored = _BOUND_EXCEPTION_ALIASES.get(key)
+        if stored is bound:
+            _BOUND_EXCEPTION_ALIASES.pop(key, None)
+        with suppress(ValueError):
+            _EXCEPTION_REBIND_CALLBACKS.remove(_apply)
+
+    def _apply(mapping: dict[str, type[Exception]]) -> None:
+        current_module = sys.modules.get(module_name)
+        if not isinstance(current_module, ModuleType):
+            return
+
+        namespace = current_module.__dict__
+        candidate = mapping.get(name)
+        if not isinstance(candidate, type) or not issubclass(candidate, Exception):
+            return
+
+        if combine_with_current:
+            current = namespace.get(target)
+            if isinstance(current, type) and current is not candidate:
+                if issubclass(candidate, current):
+                    namespace[target] = candidate
+                    return
+                if issubclass(current, candidate):
+                    namespace[target] = current
+                    return
+                try:
+                    namespace[target] = type(
+                        f"PawControl{name}Alias",
+                        (candidate, current),
+                        {"__module__": module_name},
+                    )
+                except TypeError:
+                    namespace[target] = candidate
+                return
+
+        namespace[target] = candidate
+
+    bound = _BoundExceptionAlias(
+        name, module_name, target, combine_with_current, _apply
+    )
+    _BOUND_EXCEPTION_ALIASES[key] = bound
+    _apply(_current_exception_mapping())
+    _EXCEPTION_REBIND_CALLBACKS.append(_apply)
+    return _unregister
 
 
 def _get_exception(
@@ -173,6 +348,8 @@ def _refresh_exception_symbols(exceptions_module: ModuleType | None) -> None:
         _service_validation_error_factory,
         exceptions_module,
     )
+
+    _notify_exception_callbacks()
 
 
 def ensure_homeassistant_exception_symbols() -> None:
@@ -503,6 +680,8 @@ __all__ = [
     "HomeAssistantError",
     "ServiceRegistry",
     "ServiceValidationError",
+    "bind_exception_alias",
     "ensure_homeassistant_config_entry_symbols",
     "ensure_homeassistant_exception_symbols",
+    "register_exception_rebind_callback",
 ]

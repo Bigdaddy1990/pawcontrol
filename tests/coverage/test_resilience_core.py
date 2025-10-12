@@ -93,6 +93,7 @@ ResilienceManager = resilience.ResilienceManager
 RetryConfig = resilience.RetryConfig
 RetryExhaustedError = resilience.RetryExhaustedError
 retry_with_backoff = resilience.retry_with_backoff
+CircuitBreakerStateError = resilience.CircuitBreakerStateError
 
 
 @pytest.fixture()
@@ -155,8 +156,13 @@ def test_circuit_breaker_open_and_recover(fake_time: Callable[[float], None]) ->
         assert breaker.state is CircuitState.OPEN
 
         # Additional call while open should be rejected immediately
-        with pytest.raises(HomeAssistantError):
+        with pytest.raises(CircuitBreakerStateError) as rejection:
             await breaker.call(failing)
+
+        stats = breaker.stats
+        assert stats.rejected_calls == 1
+        assert stats.last_rejection_time is not None
+        assert "OPEN".lower() in str(rejection.value).lower()
 
         # Advance time to allow half-open transition and verify it closes again
         fake_time(31.0)
@@ -192,8 +198,9 @@ def test_circuit_breaker_half_open_limits(monkeypatch: pytest.MonkeyPatch) -> No
         breaker._stats.state = CircuitState.HALF_OPEN  # type: ignore[attr-defined]
         breaker._half_open_calls = config.half_open_max_calls  # type: ignore[attr-defined]
 
-        with pytest.raises(HomeAssistantError, match="max concurrent calls"):
+        with pytest.raises(CircuitBreakerStateError, match="max concurrent calls"):
             await breaker.call(failing)
+        assert breaker.stats.rejected_calls == 1
 
         # Allow a single call in half-open and ensure a failure re-opens the circuit
         breaker._half_open_calls = 0  # type: ignore[attr-defined]

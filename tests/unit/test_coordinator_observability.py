@@ -73,17 +73,25 @@ def test_build_performance_snapshot_includes_metrics() -> None:
         "total_calls": 10,
         "total_failures": 4,
         "total_successes": 6,
+        "rejected_call_count": 3,
         "last_failure_time": 1700000000.0,
         "last_state_change": 1700000100.0,
         "last_success_time": 1700000200.0,
+        "last_rejection_time": 1700000250.0,
         "recovery_latency": 200.0,
         "recovery_breaker_id": "api",
         "recovery_breaker_name": "api",
+        "last_rejection_breaker_id": "web",
+        "last_rejection_breaker_name": "web",
+        "rejection_rate": 0.3,
         "open_breakers": ["api"],
         "open_breaker_count": 1,
         "open_breaker_ids": ["api"],
         "half_open_breaker_count": 0,
         "unknown_breaker_count": 0,
+        "rejection_breaker_count": 1,
+        "rejection_breakers": ["api"],
+        "rejection_breaker_ids": ["api"],
     }
 
     snapshot = build_performance_snapshot(
@@ -101,6 +109,14 @@ def test_build_performance_snapshot_includes_metrics() -> None:
     assert snapshot["performance_metrics"]["update_interval_s"] == 2.5
     assert snapshot["adaptive_polling"]["current_interval_ms"] == 120.0
     assert snapshot["webhook_security"]["secure"] is True
+    performance_metrics = snapshot["performance_metrics"]
+    assert performance_metrics["rejected_call_count"] == 3
+    assert performance_metrics["rejection_breaker_count"] == 1
+    assert performance_metrics["rejection_rate"] == 0.3
+    assert performance_metrics["last_rejection_time"] == 1700000250.0
+    assert performance_metrics["last_rejection_breaker_id"] == "web"
+    assert performance_metrics["last_rejection_breaker_name"] == "web"
+    assert "schema_version" not in performance_metrics
     resilience = snapshot["resilience_summary"]
     assert resilience["total_breakers"] == 2
     assert resilience["open_breaker_count"] == 1
@@ -115,6 +131,54 @@ def test_build_performance_snapshot_includes_metrics() -> None:
     assert resilience["half_open_breaker_count"] == 0
     assert resilience["half_open_breakers"] == []
     assert resilience["half_open_breaker_ids"] == []
+    assert resilience["rejected_call_count"] == 3
+    assert resilience["last_rejection_time"] == 1700000250.0
+    assert resilience["last_rejection_breaker_id"] == "web"
+    assert resilience["rejection_breaker_ids"] == ["api"]
+    assert resilience["rejection_breakers"] == ["api"]
+    assert resilience["rejection_breaker_count"] == 1
+    assert resilience["rejection_rate"] == 0.3
+    rejection_metrics = snapshot["rejection_metrics"]
+    assert rejection_metrics["schema_version"] == 1
+    assert rejection_metrics["rejected_call_count"] == 3
+    assert rejection_metrics["rejection_breaker_count"] == 1
+    assert rejection_metrics["rejection_rate"] == 0.3
+    assert rejection_metrics["last_rejection_time"] == 1700000250.0
+    assert rejection_metrics["last_rejection_breaker_id"] == "web"
+    assert rejection_metrics["last_rejection_breaker_name"] == "web"
+
+
+@pytest.mark.unit
+def test_build_performance_snapshot_defaults_rejection_metrics() -> None:
+    metrics = CoordinatorMetrics(update_count=2, failed_cycles=0, consecutive_errors=0)
+    adaptive = {"current_interval_ms": 90.0, "target_cycle_ms": 180.0}
+    entity_budget = {"active_dogs": 1}
+    webhook_status = {"configured": True, "secure": True, "hmac_ready": True}
+
+    snapshot = build_performance_snapshot(
+        metrics=metrics,
+        adaptive=adaptive,
+        entity_budget=entity_budget,
+        update_interval=2.0,
+        last_update_time=datetime(2024, 1, 2, 0, 0, tzinfo=UTC),
+        last_update_success=True,
+        webhook_status=webhook_status,
+        resilience=None,
+    )
+
+    rejection_metrics = snapshot["rejection_metrics"]
+    assert rejection_metrics["schema_version"] == 1
+    assert rejection_metrics["rejected_call_count"] == 0
+    assert rejection_metrics["rejection_breaker_count"] == 0
+    assert rejection_metrics["rejection_rate"] == 0.0
+    assert rejection_metrics["last_rejection_time"] is None
+    assert rejection_metrics["last_rejection_breaker_id"] is None
+    assert rejection_metrics["last_rejection_breaker_name"] is None
+
+    performance_metrics = snapshot["performance_metrics"]
+    assert performance_metrics["rejected_call_count"] == 0
+    assert performance_metrics["rejection_rate"] == 0.0
+    assert "resilience_summary" not in snapshot
 
 
 @pytest.mark.unit

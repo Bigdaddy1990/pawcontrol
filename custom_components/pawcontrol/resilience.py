@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
 from importlib import import_module
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -62,7 +62,12 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
 
     dt_util = _DateTimeModule()
 
-from .compat import HomeAssistantError
+from . import compat
+from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
+
+ensure_homeassistant_exception_symbols()
+HomeAssistantError: type[Exception] = cast(type[Exception], compat.HomeAssistantError)
+bind_exception_alias("HomeAssistantError", combine_with_current=True)
 
 
 def _resolve_homeassistant_error() -> type[Exception]:
@@ -89,6 +94,10 @@ _LOGGER = logging.getLogger(__name__)
 T = TypeVar("T")
 
 AsyncCallable = Callable[..., Awaitable[T]]
+
+
+class CircuitBreakerStateError(HomeAssistantError):
+    """Raised when a circuit breaker rejects a call due to its state."""
 
 
 class CircuitState(Enum):
@@ -122,6 +131,8 @@ class CircuitBreakerStats:
     total_calls: int = 0
     total_failures: int = 0
     total_successes: int = 0
+    rejected_calls: int = 0
+    last_rejection_time: float | None = None
     _last_failure_monotonic: float | None = field(default=None, init=False, repr=False)
     _last_state_change_monotonic: float | None = field(
         default=None, init=False, repr=False
@@ -218,18 +229,20 @@ class CircuitBreaker:
                 if self._should_attempt_reset():
                     self._transition_to_half_open()
                 else:
-                    raise _resolve_homeassistant_error()(
-                        f"Circuit breaker '{self.name}' is OPEN - calls rejected"
-                    )
+                    message = f"Circuit breaker '{self.name}' is OPEN - calls rejected"
+                    self._record_rejection(message)
+                    raise CircuitBreakerStateError(message)
 
             # Limit calls in half-open state
             if self._stats.state == CircuitState.HALF_OPEN:
                 if self._half_open_calls >= self.config.half_open_max_calls:
                     self._stats.total_failures += 1
-                    raise _resolve_homeassistant_error()(
+                    message = (
                         f"Circuit breaker '{self.name}' is HALF_OPEN - "
                         f"max concurrent calls reached"
                     )
+                    self._record_rejection(message)
+                    raise CircuitBreakerStateError(message)
                 self._half_open_calls += 1
                 incremented_half_open = True
 
@@ -296,6 +309,18 @@ class CircuitBreaker:
                 and self._stats.failure_count >= self.config.failure_threshold
             ):
                 self._transition_to_open()
+
+    def _record_rejection(self, message: str) -> None:
+        """Record a rejected call for telemetry purposes."""
+
+        self._stats.rejected_calls += 1
+        self._stats.last_rejection_time = _utc_timestamp()
+        _LOGGER.debug(
+            "Circuit breaker '%s' rejected call while %s: %s",
+            self.name,
+            self._stats.state.value,
+            message,
+        )
 
     def _should_attempt_reset(self) -> bool:
         """Check if circuit should attempt reset from open to half-open.

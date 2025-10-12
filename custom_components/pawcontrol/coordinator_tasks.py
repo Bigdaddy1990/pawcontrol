@@ -24,13 +24,16 @@ from .telemetry import (
     update_runtime_resilience_summary,
 )
 from .types import (
+    AdaptivePollingDiagnostics,
     CacheRepairAggregate,
     CircuitBreakerStateSummary,
     CircuitBreakerStatsPayload,
+    CoordinatorRejectionMetrics,
     CoordinatorResilienceDiagnostics,
     CoordinatorResilienceSummary,
     CoordinatorRuntimeStatisticsPayload,
     CoordinatorStatisticsPayload,
+    EntityBudgetSummary,
     ReconfigureTelemetrySummary,
 )
 
@@ -110,19 +113,26 @@ def _summarise_resilience(
     total_calls = 0
     total_failures = 0
     total_successes = 0
+    rejected_call_count = 0
     latest_failure: float | None = None
     latest_state_change: float | None = None
     latest_success: float | None = None
+    latest_rejection: float | None = None
     latest_recovered_pair: tuple[str, str, float, float] | None = None
+    latest_rejection_pair: tuple[str, str, float] | None = None
     recovery_latency: float | None = None
     recovery_breaker_id: str | None = None
     recovery_breaker_name: str | None = None
+    rejection_breaker_id: str | None = None
+    rejection_breaker_name: str | None = None
     open_breakers: list[str] = []
     half_open_breakers: list[str] = []
     unknown_breakers: list[str] = []
     open_breaker_ids: list[str] = []
     half_open_breaker_ids: list[str] = []
     unknown_breaker_ids: list[str] = []
+    rejection_breakers: list[str] = []
+    rejection_breaker_ids: list[str] = []
 
     for name, stats in breakers.items():
         breaker_name = _stringify_breaker_name(name)
@@ -149,6 +159,11 @@ def _summarise_resilience(
         total_calls += stats.get("total_calls", 0)
         total_failures += stats.get("total_failures", 0)
         total_successes += stats.get("total_successes", 0)
+        rejected_calls = stats.get("rejected_calls", 0)
+        rejected_call_count += rejected_calls
+        if rejected_calls > 0:
+            rejection_breakers.append(breaker_name)
+            rejection_breaker_ids.append(breaker_id)
 
         last_failure = stats.get("last_failure_time")
         failure_value: float | None = None
@@ -192,6 +207,24 @@ def _summarise_resilience(
                     failure_value,
                 )
 
+        last_rejection = stats.get("last_rejection_time")
+        if isinstance(last_rejection, int | float):
+            rejection_value = float(last_rejection)
+            latest_rejection = (
+                max(latest_rejection, rejection_value)
+                if latest_rejection is not None
+                else rejection_value
+            )
+            if (
+                latest_rejection_pair is None
+                or rejection_value > latest_rejection_pair[2]
+            ):
+                latest_rejection_pair = (
+                    breaker_id,
+                    breaker_name,
+                    rejection_value,
+                )
+
     open_breaker_count = len(open_breakers)
     half_open_breaker_count = len(half_open_breakers)
     unknown_breaker_count = len(unknown_breakers)
@@ -208,6 +241,18 @@ def _summarise_resilience(
             recovery_breaker_id = recovered_breaker_id
             recovery_breaker_name = recovered_breaker_name
 
+    if latest_rejection_pair is not None:
+        rejection_breaker_id, rejection_breaker_name, latest_rejection = (
+            latest_rejection_pair
+        )
+
+    rejection_rate: float | None
+    total_attempts = total_calls + rejected_call_count
+    if total_attempts > 0:
+        rejection_rate = rejected_call_count / total_attempts
+    else:
+        rejection_rate = None
+
     summary: CoordinatorResilienceSummary = {
         "total_breakers": len(breakers),
         "states": cast(CircuitBreakerStateSummary, state_counts),
@@ -216,9 +261,11 @@ def _summarise_resilience(
         "total_calls": total_calls,
         "total_failures": total_failures,
         "total_successes": total_successes,
+        "rejected_call_count": rejected_call_count,
         "last_failure_time": latest_failure,
         "last_state_change": latest_state_change,
         "last_success_time": latest_success,
+        "last_rejection_time": latest_rejection,
         "recovery_latency": recovery_latency,
         "recovery_breaker_id": recovery_breaker_id,
         "open_breaker_count": open_breaker_count,
@@ -230,10 +277,20 @@ def _summarise_resilience(
         "half_open_breaker_ids": list(half_open_breaker_ids),
         "unknown_breakers": list(unknown_breakers),
         "unknown_breaker_ids": list(unknown_breaker_ids),
+        "rejection_breaker_count": len(rejection_breakers),
+        "rejection_breakers": list(rejection_breakers),
+        "rejection_breaker_ids": list(rejection_breaker_ids),
+        "rejection_rate": rejection_rate,
     }
 
     if recovery_breaker_name is not None:
         summary["recovery_breaker_name"] = recovery_breaker_name
+
+    if rejection_breaker_name is not None:
+        summary["last_rejection_breaker_name"] = rejection_breaker_name
+
+    if rejection_breaker_id is not None:
+        summary["last_rejection_breaker_id"] = rejection_breaker_id
 
     return summary
 
@@ -269,6 +326,124 @@ def _normalise_breaker_id(name: Any, stats: Any) -> str:
         breaker_id = str(name)
 
     return breaker_id
+
+
+def _normalise_entity_budget_summary(data: Any) -> EntityBudgetSummary:
+    """Return an entity budget summary with guaranteed diagnostics keys."""
+
+    summary: EntityBudgetSummary = {
+        "active_dogs": 0,
+        "total_capacity": 0,
+        "total_allocated": 0,
+        "total_remaining": 0,
+        "average_utilization": 0.0,
+        "peak_utilization": 0.0,
+        "denied_requests": 0,
+    }
+
+    if isinstance(data, Mapping):
+        summary["active_dogs"] = _coerce_int(data.get("active_dogs"))
+        summary["total_capacity"] = _coerce_int(data.get("total_capacity"))
+        summary["total_allocated"] = _coerce_int(data.get("total_allocated"))
+        summary["total_remaining"] = _coerce_int(data.get("total_remaining"))
+
+        average = _coerce_float(data.get("average_utilization"))
+        if average is not None:
+            summary["average_utilization"] = average
+
+        peak = _coerce_float(data.get("peak_utilization"))
+        if peak is not None:
+            summary["peak_utilization"] = peak
+
+        summary["denied_requests"] = _coerce_int(data.get("denied_requests"))
+
+    return summary
+
+
+def _normalise_adaptive_diagnostics(data: Any) -> AdaptivePollingDiagnostics:
+    """Return adaptive polling diagnostics with consistent numeric types."""
+
+    diagnostics: AdaptivePollingDiagnostics = {
+        "target_cycle_ms": 0.0,
+        "current_interval_ms": 0.0,
+        "average_cycle_ms": 0.0,
+        "history_samples": 0,
+        "error_streak": 0,
+        "entity_saturation": 0.0,
+        "idle_interval_ms": 0.0,
+        "idle_grace_ms": 0.0,
+    }
+
+    if isinstance(data, Mapping):
+        target = _coerce_float(data.get("target_cycle_ms"))
+        if target is not None:
+            diagnostics["target_cycle_ms"] = target
+
+        current = _coerce_float(data.get("current_interval_ms"))
+        if current is not None:
+            diagnostics["current_interval_ms"] = current
+
+        average = _coerce_float(data.get("average_cycle_ms"))
+        if average is not None:
+            diagnostics["average_cycle_ms"] = average
+
+        diagnostics["history_samples"] = _coerce_int(data.get("history_samples"))
+        diagnostics["error_streak"] = _coerce_int(data.get("error_streak"))
+
+        saturation = _coerce_float(data.get("entity_saturation"))
+        if saturation is not None:
+            diagnostics["entity_saturation"] = saturation
+
+        idle_interval = _coerce_float(data.get("idle_interval_ms"))
+        if idle_interval is not None:
+            diagnostics["idle_interval_ms"] = idle_interval
+
+        idle_grace = _coerce_float(data.get("idle_grace_ms"))
+        if idle_grace is not None:
+            diagnostics["idle_grace_ms"] = idle_grace
+
+    return diagnostics
+
+
+def default_rejection_metrics() -> CoordinatorRejectionMetrics:
+    """Return a baseline rejection metric payload for diagnostics consumers."""
+
+    return {
+        "schema_version": 1,
+        "rejected_call_count": 0,
+        "rejection_breaker_count": 0,
+        "rejection_rate": 0.0,
+        "last_rejection_time": None,
+        "last_rejection_breaker_id": None,
+        "last_rejection_breaker_name": None,
+    }
+
+
+def _derive_rejection_metrics(
+    summary: Mapping[str, Any],
+) -> CoordinatorRejectionMetrics:
+    """Return rejection counters extracted from a resilience summary."""
+
+    metrics = default_rejection_metrics()
+
+    metrics["rejected_call_count"] = _coerce_int(summary.get("rejected_call_count"))
+    metrics["rejection_breaker_count"] = _coerce_int(
+        summary.get("rejection_breaker_count")
+    )
+    metrics["rejection_rate"] = _coerce_float(summary.get("rejection_rate"))
+    metrics["last_rejection_time"] = _coerce_float(summary.get("last_rejection_time"))
+
+    breaker_id_raw = summary.get("last_rejection_breaker_id")
+    metrics["last_rejection_breaker_id"] = (
+        breaker_id_raw if isinstance(breaker_id_raw, str) else None
+    )
+
+    breaker_name_raw = summary.get("last_rejection_breaker_name")
+    metrics["last_rejection_breaker_name"] = (
+        breaker_name_raw if isinstance(breaker_name_raw, str) else None
+    )
+
+    return metrics
 
 
 def _normalise_breaker_state(value: Any) -> str:
@@ -497,6 +672,9 @@ def collect_resilience_diagnostics(
             "total_successes": _coerce_int(
                 _extract_stat_value(stats, "total_successes", 0)
             ),
+            "rejected_calls": _coerce_int(
+                _extract_stat_value(stats, "rejected_calls", 0)
+            ),
         }
 
         last_success_time = _coerce_float(
@@ -504,6 +682,12 @@ def collect_resilience_diagnostics(
         )
         if last_success_time is not None:
             entry["last_success_time"] = last_success_time
+
+        last_rejection_time = _coerce_float(
+            _extract_stat_value(stats, "last_rejection_time")
+        )
+        if last_rejection_time is not None:
+            entry["last_rejection_time"] = last_rejection_time
 
         breakers[mapping_key] = entry
 
@@ -533,11 +717,32 @@ def build_update_statistics(
         interval=coordinator.update_interval,
         repair_summary=repair_summary,
     )
-    stats["entity_budget"] = coordinator._entity_budget.summary()
-    stats["adaptive_polling"] = coordinator._adaptive_polling.as_diagnostics()
+    stats["entity_budget"] = _normalise_entity_budget_summary(
+        coordinator._entity_budget.summary()
+    )
+    stats["adaptive_polling"] = _normalise_adaptive_diagnostics(
+        coordinator._adaptive_polling.as_diagnostics()
+    )
+    rejection_metrics = default_rejection_metrics()
+
     resilience = collect_resilience_diagnostics(coordinator)
     if resilience:
         stats["resilience"] = resilience
+        summary_payload = resilience.get("summary")
+        if isinstance(summary_payload, Mapping):
+            rejection_metrics.update(_derive_rejection_metrics(summary_payload))
+
+    stats["rejection_metrics"] = rejection_metrics
+
+    performance_metrics = stats.get("performance_metrics")
+    if isinstance(performance_metrics, dict):
+        performance_metrics.update(
+            {
+                key: value
+                for key, value in rejection_metrics.items()
+                if key != "schema_version"
+            }
+        )
     if reconfigure_summary is not None:
         stats["reconfigure"] = reconfigure_summary
     return stats
@@ -558,11 +763,40 @@ def build_runtime_statistics(
         interval=coordinator.update_interval,
         repair_summary=repair_summary,
     )
-    stats["entity_budget"] = coordinator._entity_budget.summary()
-    stats["adaptive_polling"] = coordinator._adaptive_polling.as_diagnostics()
+    stats["entity_budget"] = _normalise_entity_budget_summary(
+        coordinator._entity_budget.summary()
+    )
+    stats["adaptive_polling"] = _normalise_adaptive_diagnostics(
+        coordinator._adaptive_polling.as_diagnostics()
+    )
+    rejection_metrics = default_rejection_metrics()
+
     resilience = collect_resilience_diagnostics(coordinator)
     if resilience:
         stats["resilience"] = resilience
+        summary_payload = resilience.get("summary")
+        if isinstance(summary_payload, Mapping):
+            rejection_metrics.update(_derive_rejection_metrics(summary_payload))
+
+    stats["rejection_metrics"] = rejection_metrics
+
+    performance_metrics = stats.get("performance_metrics")
+    if isinstance(performance_metrics, dict):
+        performance_metrics.update(
+            {
+                key: value
+                for key, value in rejection_metrics.items()
+                if key != "schema_version"
+            }
+        )
+
+    error_summary = stats.get("error_summary")
+    if isinstance(error_summary, dict):
+        error_summary["rejection_rate"] = rejection_metrics["rejection_rate"]
+        error_summary["rejected_call_count"] = rejection_metrics["rejected_call_count"]
+        error_summary["rejection_breaker_count"] = rejection_metrics[
+            "rejection_breaker_count"
+        ]
     if reconfigure_summary is not None:
         stats["reconfigure"] = reconfigure_summary
     return stats

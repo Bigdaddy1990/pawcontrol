@@ -17,13 +17,14 @@ import logging
 from collections.abc import Awaitable, Callable
 from functools import partial
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import aiofiles
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-from .compat import HomeAssistantError
+from . import compat
+from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
 from .dashboard_cards import (
     DogCardGenerator,
     ModuleCardGenerator,
@@ -731,3 +732,8 @@ class DashboardRenderer:
             "total_jobs_processed": self._job_counter,
             "template_cache": template_stats,
         }
+
+
+ensure_homeassistant_exception_symbols()
+HomeAssistantError: type[Exception] = cast(type[Exception], compat.HomeAssistantError)
+bind_exception_alias("HomeAssistantError", combine_with_current=True)

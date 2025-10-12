@@ -669,6 +669,11 @@ rules:
           "data": entry.runtime_data.data,
       }
   ```
+- **Schema guardrail**: Diagnostics payloads must expose a `rejection_metrics`
+  object with defaulted counters and a `schema_version` so Platinum dashboards
+  can consume rejection telemetry without scraping nested resilience summaries.
+  Update coordinator tests, docs, and front-end schemas together and rerun the
+  Platinum UI validation once the panel update ships.
 - **Security**: Never expose passwords, tokens, or sensitive coordinates
 
 ### Repair Issues

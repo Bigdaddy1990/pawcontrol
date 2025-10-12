@@ -23,7 +23,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .compat import HomeAssistantError, ServiceRegistry, ServiceValidationError
+from . import compat
+from .compat import (
+    ServiceRegistry,
+    bind_exception_alias,
+    ensure_homeassistant_exception_symbols,
+)
 from .const import (
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
@@ -53,6 +58,14 @@ from .types import PawControlConfigEntry
 from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
+
+ensure_homeassistant_exception_symbols()
+HomeAssistantError: type[Exception] = cast(type[Exception], compat.HomeAssistantError)
+ServiceValidationError: type[Exception] = cast(
+    type[Exception], compat.ServiceValidationError
+)
+bind_exception_alias("HomeAssistantError", combine_with_current=True)
+bind_exception_alias("ServiceValidationError")
 
 if not hasattr(HomeAssistant, "services"):
     HomeAssistant.services = None  # type: ignore[attr-defined]

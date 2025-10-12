@@ -9,7 +9,7 @@ from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from custom_components.pawcontrol import config_flow
+from custom_components.pawcontrol import compat, config_flow
 from custom_components.pawcontrol.const import (
     CONF_DOG_AGE,
     CONF_DOG_BREED,
@@ -27,7 +27,11 @@ from custom_components.pawcontrol.exceptions import PawControlSetupError
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
-from homeassistant.exceptions import ConfigEntryNotReady
+
+try:  # pragma: no cover - Home Assistant import path available in full test runs
+    from homeassistant.exceptions import ConfigEntryNotReady
+except Exception:  # pragma: no cover - fall back to compat alias
+    from custom_components.pawcontrol.compat import ConfigEntryNotReady
 from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 from homeassistant.helpers.service_info.usb import UsbServiceInfo
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
@@ -43,6 +47,54 @@ sys.modules.setdefault(
 )
 
 pytestmark = pytest.mark.usefixtures("enable_custom_integrations")
+
+
+def test_config_flow_alias_exports() -> None:
+    """Ensure the compatibility ConfigFlow alias remains intact."""
+
+    assert config_flow.ConfigFlow is config_flow.PawControlConfigFlow
+    assert "ConfigFlow" in config_flow.__all__
+
+
+def test_config_flow_not_ready_alias_rebinds() -> None:
+    """The config flow updates its not-ready alias when exceptions refresh."""
+
+    original_module = sys.modules.get("homeassistant.exceptions")
+    original_class = config_flow.ConfigEntryNotReady
+
+    sentinel_module = ModuleType("homeassistant.exceptions")
+
+    base_error = type("_SentinelHomeAssistantError", (Exception,), {})
+    entry_error = type("_SentinelConfigEntryError", (base_error,), {})
+    auth_failed = type("_SentinelConfigEntryAuthFailed", (entry_error,), {})
+    not_ready = type("_SentinelConfigEntryNotReady", (entry_error,), {})
+    service_validation = type("_SentinelServiceValidationError", (base_error,), {})
+
+    sentinel_module.HomeAssistantError = base_error
+    sentinel_module.ConfigEntryError = entry_error
+    sentinel_module.ConfigEntryAuthFailed = auth_failed
+    sentinel_module.ConfigEntryNotReady = not_ready
+    sentinel_module.ServiceValidationError = service_validation
+
+    try:
+        sys.modules["homeassistant.exceptions"] = sentinel_module
+        compat.ensure_homeassistant_exception_symbols()
+
+        assert config_flow.ConfigEntryNotReady is not original_class
+        assert config_flow.ConfigEntryNotReady is sentinel_module.ConfigEntryNotReady
+    finally:
+        if original_module is None:
+            sys.modules.pop("homeassistant.exceptions", None)
+        else:
+            sys.modules["homeassistant.exceptions"] = original_module
+        compat.ensure_homeassistant_exception_symbols()
+
+    restored = config_flow.ConfigEntryNotReady
+    assert restored.__name__.endswith("ConfigEntryNotReady")
+    if original_module is not None:
+        original_candidate = getattr(original_module, "ConfigEntryNotReady", None)
+        if isinstance(original_candidate, type):
+            assert restored is original_candidate
 
 
 def _assert_step_id(result: dict[str, Any], expected: str) -> None:
@@ -593,8 +645,11 @@ async def test_import_flow_without_valid_dogs(hass: HomeAssistant) -> None:
     flow.hass = hass
     flow.context = {}
 
-    with pytest.raises(ConfigEntryNotReady):
+    with pytest.raises(Exception) as excinfo:
         await flow.async_step_import({"dogs": []})
+
+    error_type = excinfo.value.__class__
+    assert error_type.__name__.endswith("ConfigEntryNotReady")
 
 
 async def test_entity_profile_invalid_input(hass: HomeAssistant) -> None:

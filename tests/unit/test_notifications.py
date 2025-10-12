@@ -388,8 +388,10 @@ class TestQuietHours:
 
         # Mock current time to be in quiet hours (e.g., 23:00)
         with pytest.MonkeyPatch.context() as mp:
-            mock_now = datetime.now().replace(hour=23, minute=0)
-            mp.setattr("homeassistant.util.dt.now", lambda: mock_now)
+            mock_now = datetime.now(UTC).replace(
+                hour=23, minute=0, second=0, microsecond=0
+            )
+            mp.setattr("homeassistant.util.dt.utcnow", lambda: mock_now)
 
             notification_id = await manager.async_send_notification(
                 notification_type=NotificationType.FEEDING_REMINDER,

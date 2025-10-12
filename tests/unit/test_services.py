@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import pytest
-from custom_components.pawcontrol import services
+from custom_components.pawcontrol import compat, services
 from custom_components.pawcontrol.const import (
     EVENT_FEEDING_COMPLIANCE_CHECKED,
     SERVICE_CHECK_FEEDING_COMPLIANCE,
@@ -21,6 +21,25 @@ except ImportError:  # pragma: no cover - ensure stubs are available for tests
 
     install_homeassistant_stubs()
     from homeassistant.core import Context
+
+
+def test_service_validation_error_uses_compat_alias(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """``_service_validation_error`` should emit the compat-managed alias."""
+
+    class SentinelServiceValidationError(Exception):
+        pass
+
+    monkeypatch.setattr(
+        compat, "ServiceValidationError", SentinelServiceValidationError
+    )
+    monkeypatch.setattr(compat, "ensure_homeassistant_exception_symbols", lambda: None)
+
+    error = services._service_validation_error("boom")
+
+    assert isinstance(error, SentinelServiceValidationError)
+    assert str(error) == "boom"
 
 
 class _DummyCoordinator:

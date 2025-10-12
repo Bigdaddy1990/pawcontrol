@@ -73,6 +73,11 @@ matching helpers before creating entries.
 - Initialise loggers with `_LOGGER = logging.getLogger(__name__)` and use lazy
 string formatting. Promote repeated failure information to repairs
 (`repairs.py`) and diagnostics exports (`diagnostics.py`).
+- Diagnostics payloads must always include the `rejection_metrics` structure with
+  zeroed defaults and `schema_version` so Platinum dashboards and docs can ingest
+  the counters without bespoke scraping; update coordinator observability tests,
+  docs, and front-end schema references together and revalidate the diagnostics
+  panel once UI updates land.
 - Mark entities with `_attr_has_entity_name = True` and populate `device_info`
 using identifiers from `const.py`.
 
