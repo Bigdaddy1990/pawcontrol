@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
@@ -138,6 +139,10 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     hass.services.async_register(DOMAIN, "sync", lambda call: None)
 
     diagnostics = await async_get_config_entry_diagnostics(hass, entry)
+
+    # Diagnostics payloads should be JSON serialisable once normalised.
+    serialised = json.dumps(diagnostics)
+    assert "notification_cache" in serialised
 
     stats = diagnostics["performance_metrics"]["statistics"]
     assert stats["api_token"] == "**REDACTED**"
