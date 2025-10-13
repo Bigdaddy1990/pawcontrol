@@ -1974,7 +1974,7 @@ class WeatherCardGenerator(BaseCardGenerator):
 
 ### 🌡️ Temperature Guidance
 **Current Feel:** {{{{ states('sensor.{dog_id}_weather_feels_like') }}}}°C
-**Recommendation:** {{{{ states('sensor.{dog_id}_weather_activity_recommendation') }}}}}
+**Recommendation:** {{{{ states('sensor.{dog_id}_weather_activity_recommendation') }}}}
 
 ### 🚶 Activity Suggestions
 {bullet_section}
