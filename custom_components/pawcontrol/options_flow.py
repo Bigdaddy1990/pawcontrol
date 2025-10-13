@@ -800,9 +800,7 @@ class PawControlOptionsFlow(OptionsFlow):
             ),
             REMINDER_REPEAT_MIN_FIELD: self._coerce_int(
                 user_input.get("reminder_repeat_min"),
-                current.get(
-                    REMINDER_REPEAT_MIN_FIELD, DEFAULT_REMINDER_REPEAT_MIN
-                ),
+                current.get(REMINDER_REPEAT_MIN_FIELD, DEFAULT_REMINDER_REPEAT_MIN),
             ),
             "priority_notifications": self._coerce_bool(
                 user_input.get("priority_notifications"),

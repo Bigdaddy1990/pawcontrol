@@ -305,9 +305,7 @@ class DashboardRenderer:
         )
 
         cards: list[dict[str, Any]] = []
-        for (task_name, _), result in zip(
-            task_definitions, results, strict=False
-        ):
+        for (task_name, _), result in zip(task_definitions, results, strict=False):
             card_payload = _unwrap_async_result(
                 result,
                 context=f"Overview card generation failed ({task_name})",
@@ -379,7 +377,9 @@ class DashboardRenderer:
             batch = dogs_config[i : i + batch_size]
 
             # Process batch concurrently
-            batch_jobs: list[tuple[dict[str, Any], Awaitable[dict[str, Any] | None]]] = [
+            batch_jobs: list[
+                tuple[dict[str, Any], Awaitable[dict[str, Any] | None]]
+            ] = [
                 (
                     dog,
                     self._render_single_dog_view(dog, i + idx, options),
@@ -395,9 +395,7 @@ class DashboardRenderer:
             for (dog, _), result in zip(batch_jobs, batch_results, strict=False):
                 dog_identifier = cast(
                     str,
-                    dog.get("dog_name")
-                    or dog.get("dog_id")
-                    or f"dog_{id(dog)}",
+                    dog.get("dog_name") or dog.get("dog_id") or f"dog_{id(dog)}",
                 )
                 view_payload = _unwrap_async_result(
                     result,
@@ -547,9 +545,7 @@ class DashboardRenderer:
                 return_exceptions=True,
             )
 
-            for (module_key, _), result in zip(
-                task_definitions, results, strict=False
-            ):
+            for (module_key, _), result in zip(task_definitions, results, strict=False):
                 view_payload = _unwrap_async_result(
                     result,
                     context=f"Module view generation failed ({module_key})",

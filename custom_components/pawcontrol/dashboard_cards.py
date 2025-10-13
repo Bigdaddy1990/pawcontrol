@@ -555,9 +555,7 @@ class DogCardGenerator(BaseCardGenerator):
         card_tasks.append(
             (
                 "actions",
-                asyncio.create_task(
-                    self._collect_action_buttons(dog_id, modules)
-                ),
+                asyncio.create_task(self._collect_action_buttons(dog_id, modules)),
             )
         )
 
@@ -589,7 +587,9 @@ class DogCardGenerator(BaseCardGenerator):
         # OPTIMIZED: Execute card generation concurrently with timeout
         try:
             results = await asyncio.wait_for(
-                asyncio.gather(*(task for _, task in card_tasks), return_exceptions=True),
+                asyncio.gather(
+                    *(task for _, task in card_tasks), return_exceptions=True
+                ),
                 timeout=CARD_GENERATION_TIMEOUT,
             )
 
@@ -811,7 +811,9 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
 
         try:
             results = await asyncio.wait_for(
-                asyncio.gather(*(task for _, task in card_generators), return_exceptions=True),
+                asyncio.gather(
+                    *(task for _, task in card_generators), return_exceptions=True
+                ),
                 timeout=CARD_GENERATION_TIMEOUT,
             )
 
@@ -2352,7 +2354,6 @@ def get_global_performance_stats() -> dict[str, Any]:
         "validation_timeout": ENTITY_VALIDATION_TIMEOUT,
         "card_generation_timeout": CARD_GENERATION_TIMEOUT,
     }
-
 
 
 def _unwrap_async_result[T](

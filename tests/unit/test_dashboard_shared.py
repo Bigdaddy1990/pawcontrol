@@ -17,14 +17,15 @@ def fixture_test_logger() -> logging.Logger:
     return logger
 
 
-def test_unwrap_async_result_returns_success_payload(test_logger: logging.Logger) -> None:
+def test_unwrap_async_result_returns_success_payload(
+    test_logger: logging.Logger,
+) -> None:
     """Ensure successful gather results are returned unchanged."""
 
     payload = {"card": "overview"}
 
     assert (
-        unwrap_async_result(payload, context="overview", logger=test_logger)
-        == payload
+        unwrap_async_result(payload, context="overview", logger=test_logger) == payload
     )
 
 
@@ -81,4 +82,3 @@ def test_unwrap_async_result_cancelled_behaviour(
             context="renderer job",
             logger=test_logger,
         )
-

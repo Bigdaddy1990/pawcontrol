@@ -731,7 +731,9 @@ class PawControlDashboardGenerator:
                     *(job for _, job in cleanup_jobs),
                     return_exceptions=True,
                 )
-                for (path, _), result in zip(cleanup_jobs, cleanup_results, strict=False):
+                for (path, _), result in zip(
+                    cleanup_jobs, cleanup_results, strict=False
+                ):
                     _unwrap_async_result(
                         result,
                         context=f"Dashboard file cleanup failed for {path}",
