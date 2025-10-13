@@ -53,18 +53,9 @@ from .types import (
     DOG_ID_FIELD,
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
-from .types import (
-    DOG_ID_FIELD,
-    DOG_MODULES_FIELD,
-    DOG_NAME_FIELD,
     DogConfigData,
     PawControlConfigEntry,
     ensure_dog_config_data,
-    ensure_dog_modules_mapping,
-)
-    PawControlConfigEntry,
-    ensure_dog_config_data,
-    ensure_dog_modules_mapping,
     ensure_dog_modules_projection,
 )
 from .utils import async_call_add_entities
@@ -511,7 +502,8 @@ class ProfileAwareButtonFactory:
         dog_id = dog[DOG_ID_FIELD]
         dog_name = dog[DOG_NAME_FIELD]
 
-        modules_mapping = ensure_dog_modules_mapping(dog)
+        modules_projection = ensure_dog_modules_projection(dog)
+        modules_mapping = modules_projection.mapping
 
         # Create all possible button candidates using pre-calculated rules
         button_candidates: list[ButtonCandidate] = []
