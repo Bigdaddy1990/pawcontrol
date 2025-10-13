@@ -14,21 +14,89 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import weakref
+from collections.abc import Mapping, Sequence
 from functools import lru_cache
-from typing import Any, Final, cast
+from typing import Any, Final, NotRequired, TypedDict, cast
 
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
+from .const import (
+    DOMAIN,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+    MODULE_WALK,
+)
 from .dashboard_shared import CardCollection, CardConfig
+from .types import DogConfigData
+
+
+class WeatherThemeConfig(TypedDict):
+    """Color palette for weather dashboards."""
+
+    primary_color: str
+    accent_color: str
+    success_color: str
+    warning_color: str
+    danger_color: str
+
+
+class CardModConfig(TypedDict, total=False):
+    """card-mod styling payload shared across templates."""
+
+    style: str
+
+
+class ThemeIconStyle(TypedDict, total=False):
+    """Icon styling flags used by themed dashboards."""
+
+    style: str
+    animated: bool
+    bounce: bool
+    glow: bool
+
+
+class ThemeColorPalette(TypedDict):
+    """Named colors exposed to templates and helper methods."""
+
+    primary: str
+    accent: str
+    background: str
+    text: str
+
+
+class ThemeStyles(TypedDict):
+    """Theme metadata applied to generated card templates."""
+
+    colors: ThemeColorPalette
+    card_mod: NotRequired[CardModConfig]
+    icons: NotRequired[ThemeIconStyle]
+
+
+class TemplateCacheStats(TypedDict):
+    """Statistics returned by the in-memory template cache."""
+
+    hits: int
+    misses: int
+    hit_rate: str
+    cached_items: int
+    max_size: int
+
+
+class MapCardOptions(TypedDict, total=False):
+    """Options that adjust the generated map card template."""
+
+    zoom: int
+    dark_mode: bool
+    hours_to_show: int
 
 _LOGGER = logging.getLogger(__name__)
 
 # Weather dashboard constants
-WEATHER_THEMES: Final[dict[str, dict[str, Any]]] = {
+WEATHER_THEMES: Final[dict[str, WeatherThemeConfig]] = {
     "modern": {
         "primary_color": "#2196F3",
         "accent_color": "#FF5722",
@@ -75,6 +143,17 @@ TEMPLATE_TTL_SECONDS: Final[int] = 300  # 5 minutes
 MAX_TEMPLATE_SIZE: Final[int] = 1024 * 1024  # 1MB per template
 
 
+type CardTemplatePayload = CardConfig | CardCollection
+
+
+def _clone_template(template: CardTemplatePayload) -> CardTemplatePayload:
+    """Return a shallow copy of a cached template payload."""
+
+    if isinstance(template, list):
+        return [card.copy() for card in template]
+    return template.copy()
+
+
 class TemplateCache:
     """High-performance template cache with LRU eviction and TTL.
 
@@ -88,14 +167,14 @@ class TemplateCache:
         Args:
             maxsize: Maximum number of templates to cache
         """
-        self._cache: dict[str, dict[str, Any]] = {}
+        self._cache: dict[str, CardTemplatePayload] = {}
         self._access_times: dict[str, float] = {}
         self._maxsize = maxsize
         self._hits = 0
         self._misses = 0
         self._lock = asyncio.Lock()
 
-    async def get(self, key: str) -> dict[str, Any] | None:
+    async def get(self, key: str) -> CardTemplatePayload | None:
         """Get template from cache.
 
         Args:
@@ -122,9 +201,9 @@ class TemplateCache:
             self._access_times[key] = current_time
             self._hits += 1
 
-            return self._cache[key].copy()  # Return copy to prevent mutation
+            return _clone_template(self._cache[key])
 
-    async def set(self, key: str, template: dict[str, Any]) -> None:
+    async def set(self, key: str, template: CardTemplatePayload) -> None:
         """Store template in cache.
 
         Args:
@@ -146,7 +225,7 @@ class TemplateCache:
             while len(self._cache) >= self._maxsize:
                 await self._evict_lru()
 
-            self._cache[key] = template.copy()
+            self._cache[key] = _clone_template(template)
             self._access_times[key] = current_time
 
     async def _evict_lru(self) -> None:
@@ -165,18 +244,18 @@ class TemplateCache:
             self._access_times.clear()
 
     @callback
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> TemplateCacheStats:
         """Get cache statistics."""
         total = self._hits + self._misses
         hit_rate = (self._hits / total * 100) if total > 0 else 0
 
-        return {
-            "hits": self._hits,
-            "misses": self._misses,
-            "hit_rate": f"{hit_rate:.1f}%",
-            "cached_items": len(self._cache),
-            "max_size": self._maxsize,
-        }
+        return TemplateCacheStats(
+            hits=self._hits,
+            misses=self._misses,
+            hit_rate=f"{hit_rate:.1f}%",
+            cached_items=len(self._cache),
+            max_size=self._maxsize,
+        )
 
 
 class DashboardTemplates:
@@ -194,9 +273,6 @@ class DashboardTemplates:
         """
         self.hass = hass
         self._cache = TemplateCache()
-        self._weak_refs: weakref.WeakValueDictionary[str, dict[str, Any]] = (
-            weakref.WeakValueDictionary()
-        )
 
     @lru_cache(maxsize=64)  # noqa: B019
     def _get_base_card_template(self, card_type: str) -> CardConfig:
@@ -286,7 +362,7 @@ class DashboardTemplates:
 
         return template.copy()
 
-    def _get_theme_styles(self, theme: str = "modern") -> dict[str, Any]:
+    def _get_theme_styles(self, theme: str = "modern") -> ThemeStyles:
         """Get theme-specific styling options.
 
         Args:
@@ -295,7 +371,7 @@ class DashboardTemplates:
         Returns:
             Theme styling dictionary
         """
-        themes = {
+        themes: dict[str, ThemeStyles] = {
             "modern": {
                 "card_mod": {
                     "style": """
@@ -401,6 +477,14 @@ class DashboardTemplates:
 
         return themes.get(theme, themes["modern"])
 
+    def _card_mod(self, theme_styles: ThemeStyles) -> CardModConfig:
+        """Return a mutable card-mod payload for template assembly."""
+
+        card_mod = theme_styles.get("card_mod")
+        if card_mod is None:
+            return cast(CardModConfig, {})
+        return cast(CardModConfig, card_mod.copy())
+
     async def get_dog_status_card_template(
         self,
         dog_id: str,
@@ -423,7 +507,7 @@ class DashboardTemplates:
 
         # Try cache first
         cached = await self._cache.get(cache_key)
-        if cached is not None:
+        if isinstance(cached, dict):
             return cached
 
         # Generate template
@@ -505,7 +589,7 @@ class DashboardTemplates:
             **base_template,
             "title": f"{self._get_dog_emoji(theme)} {dog_name} Status",
             "entities": entities,
-            "card_mod": theme_styles.get("card_mod", {}),
+            "card_mod": self._card_mod(theme_styles),
         }
 
         # Add theme-specific enhancements
@@ -546,11 +630,8 @@ class DashboardTemplates:
         cache_key = f"action_buttons_{dog_id}_{hash(frozenset(modules.items()))}_{theme}_{layout}"
 
         cached = await self._cache.get(cache_key)
-        if cached is not None:
-            buttons_payload = cached.get("buttons")
-            if isinstance(buttons_payload, list):
-                return cast(CardCollection, list(buttons_payload))
-            return []
+        if isinstance(cached, list):
+            return cached
 
         base_button = self._get_base_card_template("button")
         theme_styles = self._get_theme_styles(theme)
@@ -582,7 +663,7 @@ class DashboardTemplates:
         if result is None:
             result = buttons
 
-        await self._cache.set(cache_key, {"buttons": result})
+        await self._cache.set(cache_key, result)
         return result
 
     def _gradient_style(self, primary: str, secondary: str) -> CardConfig:
@@ -632,7 +713,7 @@ class DashboardTemplates:
         dog_id: str,
         base_button: CardConfig,
         button_style: CardConfig,
-        theme_styles: dict[str, Any],
+        theme_styles: ThemeStyles,
         theme: str,
     ) -> CardConfig:
         """Create feeding button card."""
@@ -654,7 +735,7 @@ class DashboardTemplates:
         dog_id: str,
         base_button: CardConfig,
         button_style: CardConfig,
-        theme_styles: dict[str, Any],
+        theme_styles: ThemeStyles,
         theme: str,
     ) -> CardCollection:
         """Create start/end walk buttons."""
@@ -708,7 +789,7 @@ class DashboardTemplates:
         dog_id: str,
         base_button: CardConfig,
         button_style: CardConfig,
-        theme_styles: dict[str, Any],
+        theme_styles: ThemeStyles,
         theme: str,
     ) -> CardConfig:
         """Create health check button."""
@@ -744,7 +825,7 @@ class DashboardTemplates:
     async def get_map_card_template(
         self,
         dog_id: str,
-        options: dict[str, Any] | None = None,
+        options: MapCardOptions | None = None,
         theme: str = "modern",
     ) -> CardConfig:
         """Get themed GPS map card template.
@@ -757,15 +838,17 @@ class DashboardTemplates:
         Returns:
             Map card template with theme styling
         """
-        options = options or {}
+        resolved_options: MapCardOptions = (
+            options if options is not None else cast(MapCardOptions, {})
+        )
         self._get_theme_styles(theme)
 
         template = {
             **self._get_base_card_template("map"),
             "entities": [f"device_tracker.{dog_id}_location"],
-            "default_zoom": options.get("zoom", 15),
-            "dark_mode": theme == "dark" or options.get("dark_mode", False),
-            "hours_to_show": options.get("hours_to_show", 2),
+            "default_zoom": resolved_options.get("zoom", 15),
+            "dark_mode": theme == "dark" or resolved_options.get("dark_mode", False),
+            "hours_to_show": resolved_options.get("hours_to_show", 2),
         }
 
         # Add theme-specific map styling
@@ -796,7 +879,7 @@ class DashboardTemplates:
         dog_name: str,
         modules: dict[str, bool],
         theme: str = "modern",
-    ) -> dict[str, Any]:
+    ) -> CardConfig:
         """Get themed statistics card template.
 
         Args:
@@ -837,17 +920,209 @@ class DashboardTemplates:
 - **Activity Level**: {{{{ states('sensor.{dog_id}_activity_level') }}}}
 """
 
-        template = {
+        template: CardConfig = {
             "type": "markdown",
             "content": stats_content,
-            "card_mod": theme_styles.get("card_mod", {}),
+            "card_mod": self._card_mod(theme_styles),
         }
 
         return template
 
+    async def get_statistics_graph_template(
+        self,
+        title: str,
+        entities: Sequence[str],
+        stat_types: Sequence[str],
+        *,
+        days_to_show: int,
+        theme: str = "modern",
+    ) -> CardConfig | None:
+        """Return a typed statistics-graph card for analytics dashboards."""
+
+        if not entities:
+            return None
+
+        theme_styles = self._get_theme_styles(theme)
+        card_mod = self._card_mod(theme_styles)
+
+        template: CardConfig = {
+            "type": "statistics-graph",
+            "title": title,
+            "entities": list(entities),
+            "stat_types": list(stat_types),
+            "days_to_show": days_to_show,
+        }
+
+        if card_mod:
+            template["card_mod"] = card_mod
+
+        return template
+
+    def get_statistics_summary_template(
+        self, dogs: Sequence[DogConfigData], theme: str = "modern"
+    ) -> CardConfig:
+        """Return a summary markdown card for analytics dashboards."""
+
+        module_counts = {
+            MODULE_FEEDING: 0,
+            MODULE_WALK: 0,
+            MODULE_HEALTH: 0,
+            MODULE_GPS: 0,
+            MODULE_NOTIFICATIONS: 0,
+        }
+
+        for dog in dogs:
+            modules = dog.get("modules", {})
+            for module_name in module_counts:
+                if modules.get(module_name):
+                    module_counts[module_name] += 1
+
+        content_lines = [
+            "## Paw Control Statistics",
+            "",
+            f"**Dogs managed:** {len(dogs)}",
+            "",
+            "**Active modules:**",
+            f"- Feeding: {module_counts[MODULE_FEEDING]}",
+            f"- Walks: {module_counts[MODULE_WALK]}",
+            f"- Health: {module_counts[MODULE_HEALTH]}",
+            f"- GPS: {module_counts[MODULE_GPS]}",
+            f"- Notifications: {module_counts[MODULE_NOTIFICATIONS]}",
+            "",
+            "*Last updated: {{ now().strftime('%Y-%m-%d %H:%M') }}*",
+        ]
+
+        theme_styles = self._get_theme_styles(theme)
+
+        return {
+            "type": "markdown",
+            "title": "Summary",
+            "content": "\n".join(content_lines),
+            "card_mod": self._card_mod(theme_styles),
+        }
+
+    async def get_notification_settings_card_template(
+        self,
+        dog_id: str,
+        dog_name: str,
+        entities: Sequence[str],
+        theme: str = "modern",
+    ) -> CardConfig | None:
+        """Return the notification control entities card."""
+
+        if not entities:
+            return None
+
+        theme_styles = self._get_theme_styles(theme)
+
+        return {
+            "type": "entities",
+            "title": f"🔔 {dog_name} Notification Controls",
+            "entities": list(entities),
+            "state_color": True,
+            "card_mod": self._card_mod(theme_styles),
+        }
+
+    async def get_notifications_overview_card_template(
+        self,
+        dog_id: str,
+        dog_name: str,
+        theme: str = "modern",
+    ) -> CardConfig:
+        """Return a markdown overview for the notification dashboard."""
+
+        theme_styles = self._get_theme_styles(theme)
+        card_mod = self._card_mod(theme_styles)
+
+        content = f"""
+## 🔔 Notification Overview for {dog_name}
+
+{{% set metrics = state_attr('sensor.pawcontrol_notifications', 'performance_metrics') or {{}} %}}
+{{% set per_dog = state_attr('sensor.pawcontrol_notifications', 'per_dog') or {{}} %}}
+{{% set dog_stats = per_dog.get('{dog_id}', {{}}) %}}
+
+**Notifications Sent Today:** {{{{ dog_stats.get('sent_today', 0) }}}}
+**Failed Deliveries:** {{{{ metrics.get('notifications_failed', 0) }}}}
+**Quiet Hours Active:** {{{{ '✅' if dog_stats.get('quiet_hours_active') else '❌' }}}}
+
+### Preferred Channels
+{{%- set channels = dog_stats.get('channels', []) -%}}
+{{%- if channels -%}}
+{{{{ '\\n'.join(['• ' + channel | capitalize for channel in channels]) }}}}
+{{%- else -%}}
+• Using default integration channels
+{{%- endif -%}}
+
+### Recent Notification
+{{%- set last_notification = dog_stats.get('last_notification') -%}}
+{{%- if last_notification -%}}
+- **Type:** {{{{ last_notification.get('type', 'unknown') }}}}
+- **Priority:** {{{{ last_notification.get('priority', 'normal') | capitalize }}}}
+- **Sent:** {{{{ last_notification.get('sent_at', 'unknown') }}}}
+{{%- else -%}}
+No notifications recorded for this dog yet.
+{{%- endif -%}}
+"""
+
+        return {
+            "type": "markdown",
+            "content": content,
+            "card_mod": card_mod,
+        }
+
+    async def get_notifications_actions_card_template(
+        self,
+        dog_id: str,
+        theme: str = "modern",
+    ) -> CardConfig:
+        """Return quick action buttons for notification workflows."""
+
+        theme_styles = self._get_theme_styles(theme)
+        base_button = self._get_base_card_template("button")
+
+        buttons: CardCollection = [
+            {
+                **base_button,
+                "name": "Send Test Notification",
+                "icon": "mdi:bell-check",
+                "tap_action": {
+                    "action": "call-service",
+                    "service": f"{DOMAIN}.send_notification",
+                    "service_data": {
+                        "dog_id": dog_id,
+                        "notification_type": "system_info",
+                        "title": "PawControl Diagnostics",
+                        "message": "Test notification from dashboard",
+                    },
+                },
+            },
+            {
+                **base_button,
+                "name": "Reset Quiet Hours",
+                "icon": "mdi:weather-night",
+                "tap_action": {
+                    "action": "call-service",
+                    "service": f"{DOMAIN}.configure_alerts",
+                    "service_data": {
+                        "dog_id": dog_id,
+                        "feeding_alerts": True,
+                        "walk_alerts": True,
+                        "health_alerts": True,
+                        "gps_alerts": True,
+                    },
+                },
+            },
+        ]
+
+        return {
+            "type": "horizontal-stack",
+            "cards": buttons,
+            "card_mod": self._card_mod(theme_styles),
+        }
+
     async def get_feeding_schedule_template(
         self, dog_id: str, theme: str = "modern"
-    ) -> dict[str, Any]:
+    ) -> CardConfig:
         """Get themed feeding schedule template.
 
         Args:
@@ -859,6 +1134,7 @@ class DashboardTemplates:
         """
         theme_styles = self._get_theme_styles(theme)
 
+        template: CardConfig
         if theme == "modern":
             # Use a clean timeline view
             template = {
@@ -867,7 +1143,7 @@ class DashboardTemplates:
                 "discover_existing": False,
                 "standard_configuration": True,
                 "entities": [f"sensor.{dog_id}_feeding_schedule"],
-                "card_mod": theme_styles.get("card_mod", {}),
+                "card_mod": self._card_mod(theme_styles),
             }
         elif theme == "playful":
             # Use colorful meal buttons
@@ -888,7 +1164,7 @@ class DashboardTemplates:
 
     async def get_feeding_controls_template(
         self, dog_id: str, theme: str = "modern"
-    ) -> dict[str, Any]:
+    ) -> CardConfig:
         """Get themed feeding control buttons template.
 
         Args:
@@ -908,7 +1184,7 @@ class DashboardTemplates:
             ("snack", "Snack", "mdi:cookie", "#EC407A"),
         ]
 
-        buttons = []
+        buttons: CardCollection = []
         for meal_type, name, icon, color in meal_types:
             button_style = {}
 
@@ -970,7 +1246,7 @@ class DashboardTemplates:
             }
         else:
             # Grid arrangement
-            grouped_buttons = []
+            grouped_buttons: CardCollection = []
             for i in range(0, len(buttons), 2):
                 button_pair = buttons[i : i + 2]
                 grouped_buttons.append(
@@ -987,7 +1263,7 @@ class DashboardTemplates:
 
     async def get_health_charts_template(
         self, dog_id: str, theme: str = "modern"
-    ) -> dict[str, Any]:
+    ) -> CardConfig:
         """Get themed health charts template.
 
         Args:
@@ -999,6 +1275,7 @@ class DashboardTemplates:
         """
         theme_styles = self._get_theme_styles(theme)
 
+        template: CardConfig
         if theme in ["modern", "dark"]:
             # Use advanced graph card
             template = {
@@ -1028,7 +1305,7 @@ class DashboardTemplates:
                     "average": True,
                     "extrema": True,
                 },
-                "card_mod": theme_styles.get("card_mod", {}),
+                "card_mod": self._card_mod(theme_styles),
             }
         elif theme == "playful":
             # Use colorful gauge cards
@@ -1093,7 +1370,7 @@ class DashboardTemplates:
 
     async def get_timeline_template(
         self, dog_id: str, dog_name: str, theme: str = "modern"
-    ) -> dict[str, Any]:
+    ) -> CardConfig:
         """Get activity timeline template.
 
         Args:
@@ -1118,10 +1395,10 @@ class DashboardTemplates:
 - **Last Health Check**: {{{{ states('sensor.{dog_id}_last_health_check') }}}}
 """
 
-        template = {
+        template: CardConfig = {
             "type": "markdown",
             "content": timeline_content,
-            "card_mod": theme_styles.get("card_mod", {}),
+            "card_mod": self._card_mod(theme_styles),
         }
 
         return template
@@ -1132,7 +1409,7 @@ class DashboardTemplates:
         dog_name: str,
         theme: str = "modern",
         compact: bool = False,
-    ) -> dict[str, Any]:
+    ) -> CardConfig:
         """Get weather status card template for dog health monitoring.
 
         Args:
@@ -1146,12 +1423,13 @@ class DashboardTemplates:
         """
         cache_key = f"weather_status_{dog_id}_{theme}_{compact}"
         cached = await self._cache.get(cache_key)
-        if cached is not None:
+        if isinstance(cached, dict):
             return cached
 
         theme_styles = self._get_theme_styles(theme)
         weather_icon = self._get_weather_icon(theme)
 
+        template: CardConfig
         if compact:
             # Compact card for mobile/small spaces
             template = {
@@ -1164,7 +1442,7 @@ class DashboardTemplates:
                 "tap_action": {
                     "action": "more-info",
                 },
-                "card_mod": theme_styles.get("card_mod", {}),
+                "card_mod": self._card_mod(theme_styles),
             }
         else:
             # Full weather status card
@@ -1197,7 +1475,7 @@ class DashboardTemplates:
                 "entities": entities,
                 "state_color": True,
                 "show_header_toggle": False,
-                "card_mod": theme_styles.get("card_mod", {}),
+                "card_mod": self._card_mod(theme_styles),
             }
 
             # Add theme-specific styling
@@ -1233,7 +1511,7 @@ class DashboardTemplates:
         dog_name: str,
         theme: str = "modern",
         max_alerts: int = 3,
-    ) -> dict[str, Any]:
+    ) -> CardConfig:
         """Get weather alerts card template.
 
         Args:
@@ -1310,9 +1588,9 @@ class DashboardTemplates:
                 }
             """.replace("{dog_id}", dog_id)
         else:
-            card_mod_style = theme_styles.get("card_mod", {}).get("style", "")
+            card_mod_style = self._card_mod(theme_styles).get("style", "")
 
-        template = {
+        template: CardConfig = {
             "type": "markdown",
             "content": alerts_content,
             "card_mod": {
@@ -1328,7 +1606,7 @@ class DashboardTemplates:
         dog_name: str,
         theme: str = "modern",
         include_breed_specific: bool = True,
-    ) -> dict[str, Any]:
+    ) -> CardConfig:
         """Get weather recommendations card template.
 
         Args:
@@ -1376,10 +1654,10 @@ class DashboardTemplates:
 **Last Updated:** {{{{ states('sensor.{dog_id}_weather_last_update') }}}}
 """
 
-        template = {
+        template: CardConfig = {
             "type": "markdown",
             "content": recommendations_content,
-            "card_mod": theme_styles.get("card_mod", {}),
+            "card_mod": self._card_mod(theme_styles),
         }
 
         # Add interactive buttons for weather services
@@ -1412,7 +1690,7 @@ class DashboardTemplates:
         chart_type: str = "health_score",
         theme: str = "modern",
         time_range: str = "24h",
-    ) -> dict[str, Any]:
+    ) -> CardConfig:
         """Get weather impact chart template.
 
         Args:
@@ -1432,6 +1710,8 @@ class DashboardTemplates:
             "30d": 720,
         }
         hours_to_show = hours_map.get(time_range, 24)
+
+        entities: list[dict[str, Any]]
 
         if chart_type == "health_score":
             entities = [
@@ -1483,6 +1763,7 @@ class DashboardTemplates:
             ]
             chart_title = "Activity vs Weather"
 
+        template: CardConfig
         if theme in ["modern", "dark"]:
             template = {
                 "type": "custom:mini-graph-card",
@@ -1505,7 +1786,7 @@ class DashboardTemplates:
                     {"value": 60, "color": "#FF9800"},
                     {"value": 80, "color": "#F44336"},
                 ],
-                "card_mod": theme_styles.get("card_mod", {}),
+                "card_mod": self._card_mod(theme_styles),
             }
         else:
             # Fallback to simple history graph
@@ -1514,7 +1795,7 @@ class DashboardTemplates:
                 "title": chart_title,
                 "entities": [entity["entity"] for entity in entities],
                 "hours_to_show": hours_to_show,
-                "card_mod": theme_styles.get("card_mod", {}),
+                "card_mod": self._card_mod(theme_styles),
             }
 
         return template
@@ -1525,7 +1806,7 @@ class DashboardTemplates:
         dog_name: str,
         breed: str,
         theme: str = "modern",
-    ) -> dict[str, Any]:
+    ) -> CardConfig:
         """Get breed-specific weather advisory template.
 
         Args:
@@ -1578,25 +1859,31 @@ class DashboardTemplates:
         breed_advice_state = self.hass.states.get(
             f"sensor.{dog_id}_breed_weather_advice"
         )
-        breed_advice_attrs: dict[str, Any] = {}
+        breed_advice_attrs: Mapping[str, object] = {}
         if breed_advice_state is not None:
             attrs = getattr(breed_advice_state, "attributes", {})
-            if isinstance(attrs, dict):
+            if isinstance(attrs, Mapping):
                 breed_advice_attrs = attrs
 
-        comfort_range = breed_advice_attrs.get("comfort_range", {})
-        if not isinstance(comfort_range, dict):
+        comfort_range_obj = breed_advice_attrs.get("comfort_range", {})
+        comfort_range: Mapping[str, object]
+        if isinstance(comfort_range_obj, Mapping):
+            comfort_range = comfort_range_obj
+        else:
             comfort_range = {}
 
-        try:
-            comfort_min_value = float(comfort_range.get("min", 10))
-        except (TypeError, ValueError):
-            comfort_min_value = 10.0
+        def _coerce_temperature(value: object, fallback: float) -> float:
+            if isinstance(value, int | float):
+                return float(value)
+            if isinstance(value, str):
+                try:
+                    return float(value)
+                except ValueError:
+                    return fallback
+            return fallback
 
-        try:
-            comfort_max_value = float(comfort_range.get("max", 25))
-        except (TypeError, ValueError):
-            comfort_max_value = 25.0
+        comfort_min_value = _coerce_temperature(comfort_range.get("min"), 10.0)
+        comfort_max_value = _coerce_temperature(comfort_range.get("max"), 25.0)
 
         # Breed-specific styling
         if theme == "modern":
@@ -1626,9 +1913,9 @@ class DashboardTemplates:
                 .replace("breed_comfort_max", str(comfort_max_value))
             )
         else:
-            card_style = theme_styles.get("card_mod", {}).get("style", "")
+            card_style = self._card_mod(theme_styles).get("style", "")
 
-        template = {
+        template: CardConfig = {
             "type": "markdown",
             "content": advisory_content,
             "card_mod": {
@@ -1643,7 +1930,7 @@ class DashboardTemplates:
         dog_id: str,
         theme: str = "modern",
         layout: str = "horizontal",
-    ) -> dict[str, Any]:
+    ) -> CardConfig:
         """Get weather action buttons template.
 
         Args:
@@ -1699,7 +1986,7 @@ class DashboardTemplates:
             },
         }
 
-        buttons = [update_button, alerts_button, recommendations_button]
+        buttons: CardCollection = [update_button, alerts_button, recommendations_button]
 
         # Apply theme styling to buttons
         if theme == "modern":
@@ -1851,7 +2138,7 @@ class DashboardTemplates:
             "title": title,
             "entities": valid_entities,
             "hours_to_show": hours_to_show,
-            "card_mod": theme_styles.get("card_mod", {}),
+            "card_mod": self._card_mod(theme_styles),
         }
 
         return template
@@ -1877,7 +2164,6 @@ class DashboardTemplates:
     async def cleanup(self) -> None:
         """Clean up template cache and resources."""
         await self._cache.clear()
-        self._weak_refs.clear()
 
     async def get_weather_dashboard_layout_template(
         self,
@@ -1886,7 +2172,7 @@ class DashboardTemplates:
         breed: str,
         theme: str = "modern",
         layout: str = "full",
-    ) -> dict[str, Any]:
+    ) -> CardConfig:
         """Get complete weather dashboard layout template.
 
         Args:
@@ -1901,7 +2187,7 @@ class DashboardTemplates:
         """
         if layout == "compact":
             # Compact layout for smaller screens
-            cards = [
+            compact_cards: CardCollection = [
                 await self.get_weather_status_card_template(
                     dog_id, dog_name, theme, compact=True
                 ),
@@ -1915,12 +2201,12 @@ class DashboardTemplates:
 
             return {
                 "type": "vertical-stack",
-                "cards": cards,
+                "cards": compact_cards,
             }
 
         elif layout == "mobile":
             # Mobile-optimized layout
-            cards = [
+            mobile_cards: CardCollection = [
                 await self.get_weather_status_card_template(
                     dog_id, dog_name, theme, compact=True
                 ),
@@ -1934,12 +2220,12 @@ class DashboardTemplates:
 
             return {
                 "type": "vertical-stack",
-                "cards": cards,
+                "cards": mobile_cards,
             }
 
         else:  # full layout
             # Full desktop layout with all weather components
-            cards = [
+            full_cards: CardCollection = [
                 # Top row: Status and alerts
                 {
                     "type": "horizontal-stack",
@@ -1984,10 +2270,10 @@ class DashboardTemplates:
 
             return {
                 "type": "vertical-stack",
-                "cards": cards,
+                "cards": full_cards,
             }
 
     @callback
-    def get_cache_stats(self) -> dict[str, Any]:
+    def get_cache_stats(self) -> TemplateCacheStats:
         """Get template cache statistics."""
         return self._cache.get_stats()

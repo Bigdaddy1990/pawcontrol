@@ -51,7 +51,12 @@ from .runtime_data import get_runtime_data, pop_runtime_data, store_runtime_data
 from .script_manager import PawControlScriptManager
 from .services import PawControlServiceManager, async_setup_daily_reset_scheduler
 from .telemetry import update_runtime_reconfigure_summary
-from .types import DogConfigData, PawControlConfigEntry, PawControlRuntimeData
+from .types import (
+    DogConfigData,
+    PawControlConfigEntry,
+    PawControlRuntimeData,
+    ensure_dog_config_data,
+)
 from .utils import sanitize_dog_id
 from .walk_manager import WalkManager
 
@@ -499,13 +504,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 )
 
             for i, dog in enumerate(dogs_config_raw):
-                if not isinstance(dog, dict) or not dog.get(CONF_DOG_ID):
+                if not isinstance(dog, Mapping):
                     raise ConfigurationError(
                         f"dog_config_{i}",
                         dog,
-                        f"Invalid dog configuration at index {i}: missing or invalid dog_id",
+                        "Dog configuration entries must be mappings",
                     )
-                dogs_config.append(dog)
+
+                normalised = ensure_dog_config_data(dog)
+                if normalised is None:
+                    raise ConfigurationError(
+                        f"dog_config_{i}",
+                        dog,
+                        (
+                            "Invalid dog configuration: each entry must include "
+                            "non-empty dog_id and dog_name"
+                        ),
+                    )
+                dogs_config.append(normalised)
         except ConfigurationError as err:
             raise not_ready_cls(str(err)) from err
 
@@ -739,9 +755,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 initialization_tasks.append(
                     _async_initialize_manager_with_timeout(
                         "feeding_manager",
-                        feeding_manager.async_initialize(
-                            [dict(dog) for dog in dogs_config]
-                        ),
+                        feeding_manager.async_initialize(dogs_config),
                     )
                 )
 

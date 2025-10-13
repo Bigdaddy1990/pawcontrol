@@ -33,6 +33,7 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .coordinator_support import ensure_cache_repair_aggregate
 from .coordinator_tasks import default_rejection_metrics, derive_rejection_metrics
 from .diagnostics_redaction import compile_redaction_patterns, redact_sensitive_data
 from .runtime_data import get_runtime_data
@@ -295,6 +296,20 @@ def _normalise_cache_snapshot(payload: Any) -> CacheDiagnosticsSnapshot:
             snapshot={"value": _normalise_json(payload)},
         )
 
+    repair_summary = snapshot.repair_summary
+    resolved_summary = ensure_cache_repair_aggregate(repair_summary)
+    if resolved_summary is not None:
+        snapshot.repair_summary = resolved_summary
+    elif isinstance(repair_summary, Mapping):
+        try:
+            snapshot.repair_summary = CacheRepairAggregate.from_mapping(
+                repair_summary
+            )
+        except Exception:  # pragma: no cover - defensive fallback
+            snapshot.repair_summary = None
+    else:
+        snapshot.repair_summary = None
+
     if snapshot.stats is not None:
         snapshot.stats = cast(dict[str, Any], _normalise_json(snapshot.stats))
 
@@ -333,13 +348,17 @@ def _serialise_cache_snapshot(snapshot: Any) -> dict[str, Any]:
         snapshot_input = snapshot
 
     normalised_snapshot = _normalise_cache_snapshot(snapshot_input)
+    summary = (
+        normalised_snapshot.repair_summary
+        if isinstance(normalised_snapshot.repair_summary, CacheRepairAggregate)
+        else None
+    )
     snapshot_payload = normalised_snapshot.to_mapping()
 
-    repair_summary = snapshot_payload.get("repair_summary")
-    if isinstance(repair_summary, CacheRepairAggregate):
-        snapshot_payload["repair_summary"] = repair_summary.to_mapping()
-    elif isinstance(repair_summary, Mapping):
-        snapshot_payload["repair_summary"] = dict(repair_summary)
+    if summary is not None:
+        snapshot_payload["repair_summary"] = summary.to_mapping()
+    else:
+        snapshot_payload.pop("repair_summary", None)
 
     return cast(dict[str, Any], _normalise_json(snapshot_payload))
 

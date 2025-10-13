@@ -11,6 +11,7 @@ from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 
+from .coordinator_support import ensure_cache_repair_aggregate
 from .performance import (
     capture_cache_diagnostics,
     performance_tracker,
@@ -66,10 +67,12 @@ def _fetch_cache_repair_summary(
         coordinator.logger.debug("Failed to collect cache repair summary: %s", err)
         return None
 
-    if isinstance(summary, CacheRepairAggregate):
-        return summary
-    if isinstance(summary, Mapping):
-        return CacheRepairAggregate.from_mapping(summary)
+    resolved_summary = ensure_cache_repair_aggregate(summary)
+    if resolved_summary is not None:
+        return resolved_summary
+    coordinator.logger.debug(
+        "Cache repair summary did not return CacheRepairAggregate: %r", summary
+    )
     return None
 
 

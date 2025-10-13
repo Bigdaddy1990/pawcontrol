@@ -519,6 +519,12 @@ class DashboardRenderer:
                 self.module_generator.generate_health_cards,
             ),
             (
+                "notifications",
+                "Notifications",
+                "mdi:bell",
+                self.module_generator.generate_notification_cards,
+            ),
+            (
                 "gps",
                 "Location",
                 "mdi:map-marker",

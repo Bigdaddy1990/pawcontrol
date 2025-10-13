@@ -67,6 +67,7 @@ from .const import (
     SERVICE_UPDATE_WEATHER,
 )
 from .coordinator import PawControlCoordinator
+from .coordinator_support import ensure_cache_repair_aggregate
 from .feeding_manager import FeedingComplianceCompleted
 from .feeding_translations import build_feeding_compliance_summary
 from .performance import (
@@ -84,7 +85,6 @@ from .types import (
     CacheDiagnosticsCapture,
     CacheDiagnosticsMap,
     CacheDiagnosticsSnapshot,
-    CacheRepairAggregate,
     DogConfigData,
     FeedingComplianceEventPayload,
     FeedingComplianceLocalizedSummary,
@@ -358,10 +358,9 @@ def _capture_cache_diagnostics(runtime_data: Any) -> CacheDiagnosticsCapture | N
     result: CacheDiagnosticsCapture = {"snapshots": normalised_snapshots}
 
     summary = capture.get("repair_summary")
-    if isinstance(summary, CacheRepairAggregate):
-        result["repair_summary"] = summary
-    elif isinstance(summary, Mapping):
-        result["repair_summary"] = CacheRepairAggregate.from_mapping(summary)
+    resolved_summary = ensure_cache_repair_aggregate(summary)
+    if resolved_summary is not None:
+        result["repair_summary"] = resolved_summary
 
     return result
 

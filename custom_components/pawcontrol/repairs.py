@@ -31,10 +31,10 @@ from .const import (
     MODULE_HEALTH,
     MODULE_NOTIFICATIONS,
 )
+from .coordinator_support import ensure_cache_repair_aggregate
 from .feeding_translations import build_feeding_compliance_summary
 from .runtime_data import get_runtime_data
 from .types import (
-    CacheRepairAggregate,
     FeedingComplianceEventPayload,
     FeedingComplianceLocalizedSummary,
     ReconfigureTelemetry,
@@ -778,10 +778,14 @@ async def _publish_cache_health_issue(hass: HomeAssistant, entry: ConfigEntry) -
             await delete_issue(hass, DOMAIN, issue_id)
         return
 
-    if isinstance(summary, Mapping):
-        summary = CacheRepairAggregate.from_mapping(summary)
-    elif not isinstance(summary, CacheRepairAggregate):
+    resolved_summary = ensure_cache_repair_aggregate(summary)
+    if resolved_summary is None:
+        _LOGGER.debug(
+            "Cache repair summary returned unexpected payload: %r", summary
+        )
         return
+
+    summary = resolved_summary
 
     if summary.anomaly_count == 0:
         delete_issue = getattr(ir, "async_delete_issue", None)

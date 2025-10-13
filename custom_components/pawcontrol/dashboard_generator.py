@@ -12,11 +12,13 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import json
 import logging
-from collections.abc import Awaitable
+import time
+from collections.abc import Awaitable, Mapping, Sequence
 from functools import partial
 from pathlib import Path
-from typing import Any, Final
+from typing import Any, Final, NotRequired, TypedDict
 
 import aiofiles
 from homeassistant.core import HomeAssistant, callback
@@ -25,7 +27,13 @@ from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
 from .compat import ConfigEntry, HomeAssistantError
-from .const import CONF_DOG_ID, CONF_DOG_NAME, DOMAIN, MODULE_WEATHER
+from .const import (
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    DOMAIN,
+    MODULE_NOTIFICATIONS,
+    MODULE_WEATHER,
+)
 from .dashboard_renderer import DashboardRenderer
 from .dashboard_shared import unwrap_async_result
 from .dashboard_templates import DashboardTemplates
@@ -40,11 +48,25 @@ DASHBOARD_STORAGE_VERSION: Final[int] = (
 DEFAULT_DASHBOARD_TITLE: Final[str] = "🐕 Paw Control"
 DEFAULT_DASHBOARD_ICON: Final[str] = "mdi:dog"
 DEFAULT_DASHBOARD_URL: Final[str] = "paw-control"
+NON_MODULE_VIEW_PATHS: Final[frozenset[str]] = frozenset(
+    {"overview", "statistics", "settings", "weather-overview"}
+)
 
 # OPTIMIZED: Performance monitoring constants
 DASHBOARD_GENERATION_TIMEOUT: Final[float] = 30.0
 MAX_CONCURRENT_DASHBOARD_OPERATIONS: Final[int] = 3
 PERFORMANCE_LOG_THRESHOLD: Final[float] = 2.0  # Log if operation takes > 2s
+
+
+class DashboardViewSummary(TypedDict):
+    """Summary describing an exported Lovelace view."""
+
+    path: str
+    title: str
+    icon: str
+    card_count: int
+    module: NotRequired[str]
+    notifications: NotRequired[bool]
 
 
 class PawControlDashboardGenerator:
@@ -100,12 +122,134 @@ class PawControlDashboardGenerator:
         # OPTIMIZED: Resource cleanup tracking
         self._cleanup_tasks: set[asyncio.Task] = set()
 
+    @staticmethod
+    def _monotonic_time() -> float:
+        """Return monotonic time for performance tracking."""
+
+        try:
+            return asyncio.get_running_loop().time()
+        except RuntimeError:
+            return time.perf_counter()
+
+    @staticmethod
+    def _summarise_dashboard_views(
+        dashboard_config: Mapping[str, Any]
+    ) -> list[DashboardViewSummary]:
+        """Return a compact summary of the Lovelace views in ``dashboard_config``."""
+
+        views = dashboard_config.get("views")
+        if not isinstance(views, Sequence) or isinstance(views, str | bytes):
+            return []
+
+        summaries: list[DashboardViewSummary] = []
+        for view in views:
+            if not isinstance(view, Mapping):
+                continue
+
+            path = str(view.get("path", ""))
+            title_value = view.get("title", "")
+            icon_value = view.get("icon", "")
+            cards = view.get("cards")
+
+            summary: DashboardViewSummary = {
+                "path": path,
+                "title": str(title_value) if title_value is not None else "",
+                "icon": str(icon_value) if icon_value is not None else "",
+                "card_count": (
+                    len(cards)
+                    if isinstance(cards, Sequence)
+                    and not isinstance(cards, str | bytes)
+                    else 0
+                ),
+            }
+
+            if path and path not in NON_MODULE_VIEW_PATHS:
+                summary["module"] = path
+
+            if path == MODULE_NOTIFICATIONS:
+                summary["notifications"] = True
+
+            summaries.append(summary)
+
+        return summaries
+
+    @staticmethod
+    def _normalize_view_summaries(
+        value: Any,
+    ) -> list[DashboardViewSummary] | None:
+        """Return a normalised ``DashboardViewSummary`` list when ``value`` is valid."""
+
+        if not isinstance(value, Sequence) or isinstance(value, str | bytes):
+            return None
+
+        normalised: list[DashboardViewSummary] = []
+        for item in value:
+            if not isinstance(item, Mapping):
+                return None
+
+            card_count_raw = item.get("card_count")
+            try:
+                card_count = int(card_count_raw)
+            except (TypeError, ValueError):
+                card_count = 0
+
+            path_value = str(item.get("path", ""))
+
+            summary: DashboardViewSummary = {
+                "path": path_value,
+                "title": str(item.get("title", "")),
+                "icon": str(item.get("icon", "")),
+                "card_count": max(card_count, 0),
+            }
+
+            module = item.get("module")
+            if isinstance(module, str) and module:
+                summary["module"] = module
+            elif path_value and path_value not in NON_MODULE_VIEW_PATHS:
+                summary["module"] = path_value
+
+            notifications = item.get("notifications")
+            if isinstance(notifications, bool):
+                summary["notifications"] = notifications
+            elif path_value == MODULE_NOTIFICATIONS:
+                summary["notifications"] = True
+
+            normalised.append(summary)
+
+        return normalised
+
+    async def _load_dashboard_config(self, path: Path) -> Mapping[str, Any] | None:
+        """Load the stored Lovelace config from ``path`` if the file exists."""
+
+        try:
+            async with aiofiles.open(path, encoding="utf-8") as file_handle:
+                data = json.loads(await file_handle.read())
+        except FileNotFoundError:
+            return None
+        except json.JSONDecodeError as err:
+            _LOGGER.debug("Invalid dashboard JSON at %s: %s", path, err)
+            return None
+        except OSError as err:
+            _LOGGER.debug("Unable to read dashboard file %s: %s", path, err)
+            return None
+
+        config = data.get("data", {}).get("config") if isinstance(data, Mapping) else None
+        return config if isinstance(config, Mapping) else None
+
+    @staticmethod
+    def _has_notifications_view(
+        view_summaries: Sequence[DashboardViewSummary],
+    ) -> bool:
+        """Return True when a notifications module view is present."""
+
+        return any(view.get("path") == MODULE_NOTIFICATIONS for view in view_summaries)
+
     async def async_initialize(self) -> None:
         """Initialize with enhanced error recovery and performance monitoring."""
         if self._initialized:
             return
 
-        start_time = asyncio.get_event_loop().time()
+        start_time = self._monotonic_time()
 
         async with self._lock:
             if self._initialized:
@@ -141,7 +285,7 @@ class PawControlDashboardGenerator:
                 self._dashboards = {}
             finally:
                 self._initialized = True
-                init_time = asyncio.get_event_loop().time() - start_time
+                init_time = self._monotonic_time() - start_time
                 if init_time > PERFORMANCE_LOG_THRESHOLD:
                     _LOGGER.info("Dashboard init took %.2fs", init_time)
 
@@ -195,7 +339,7 @@ class PawControlDashboardGenerator:
             raise ValueError("At least one dog configuration is required")
 
         options = options or {}
-        start_time = asyncio.get_event_loop().time()
+        start_time = self._monotonic_time()
 
         async with self._operation_semaphore:  # OPTIMIZED: Control concurrency
             try:
@@ -218,7 +362,7 @@ class PawControlDashboardGenerator:
                 )
 
                 # OPTIMIZED: Update performance metrics
-                generation_time = asyncio.get_event_loop().time() - start_time
+                generation_time = self._monotonic_time() - start_time
                 await self._update_performance_metrics("generation", generation_time)
 
                 if generation_time > PERFORMANCE_LOG_THRESHOLD:
@@ -268,6 +412,7 @@ class PawControlDashboardGenerator:
                     dashboard_url,
                     dashboard_title,
                     str(dashboard_path),
+                    dashboard_config,
                     dogs_config,
                     options,
                 )
@@ -315,8 +460,6 @@ class PawControlDashboardGenerator:
         # OPTIMIZED: Async file writing with proper encoding
         try:
             async with aiofiles.open(dashboard_file, "w", encoding="utf-8") as f:
-                import json
-
                 json_str = json.dumps(dashboard_data, indent=2, ensure_ascii=False)
                 await f.write(json_str)
 
@@ -335,10 +478,13 @@ class PawControlDashboardGenerator:
         dashboard_url: str,
         title: str,
         path: str,
+        dashboard_config: Mapping[str, Any],
         dogs_config: list[dict[str, Any]],
         options: dict[str, Any],
     ) -> None:
         """Store dashboard metadata with batching."""
+        view_summaries = self._summarise_dashboard_views(dashboard_config)
+
         self._dashboards[dashboard_url] = {
             "url": dashboard_url,
             "title": title,
@@ -350,9 +496,11 @@ class PawControlDashboardGenerator:
             "entry_id": self.entry.entry_id,
             "version": DASHBOARD_STORAGE_VERSION,
             "performance": {
-                "generation_time": asyncio.get_event_loop().time(),
+                "generation_time": self._monotonic_time(),
                 "entity_count": sum(len(dog.get("modules", {})) for dog in dogs_config),
             },
+            "views": view_summaries,
+            "has_notifications_view": self._has_notifications_view(view_summaries),
         }
 
         await self._save_dashboard_metadata_async()
@@ -373,7 +521,7 @@ class PawControlDashboardGenerator:
             raise ValueError("Dog ID and name are required")
 
         options = options or {}
-        start_time = asyncio.get_event_loop().time()
+        start_time = self._monotonic_time()
 
         async with self._operation_semaphore:
             try:
@@ -397,6 +545,8 @@ class PawControlDashboardGenerator:
                 )
 
                 # Store metadata
+                view_summaries = self._summarise_dashboard_views(dashboard_config)
+
                 async with self._lock:
                     self._dashboards[dashboard_url] = {
                         "url": dashboard_url,
@@ -409,11 +559,15 @@ class PawControlDashboardGenerator:
                         "options": options,
                         "entry_id": self.entry.entry_id,
                         "version": DASHBOARD_STORAGE_VERSION,
+                        "views": view_summaries,
+                        "has_notifications_view": self._has_notifications_view(
+                            view_summaries
+                        ),
                     }
 
                     await self._save_dashboard_metadata_async()
 
-                generation_time = asyncio.get_event_loop().time() - start_time
+                generation_time = self._monotonic_time() - start_time
                 await self._update_performance_metrics(
                     "dog_generation", generation_time
                 )
@@ -451,26 +605,25 @@ class PawControlDashboardGenerator:
             return False
 
         dashboard_info = self._dashboards[dashboard_url]
-        start_time = asyncio.get_event_loop().time()
+        start_time = self._monotonic_time()
 
         async with self._operation_semaphore:
             try:
-                # OPTIMIZED: Async config generation
-                if dashboard_info["type"] == "main":
-                    options_merged = {
-                        **(options or {}),
-                        **dashboard_info.get("options", {}),
-                    }
-                dashboard_config = await self._renderer.render_main_dashboard(
-                    dogs_config, options_merged
-                )
+                dashboard_type = dashboard_info.get("type", "main")
+                stored_options = dashboard_info.get("options", {})
+                options_merged = {**(options or {}), **stored_options}
 
-                # Add weather components if weather module is enabled
-                if self._has_weather_module(dogs_config):
-                    await self._add_weather_components_to_dashboard(
-                        dashboard_config, dogs_config, options_merged
+                if dashboard_type == "main":
+                    dashboard_config = await self._renderer.render_main_dashboard(
+                        dogs_config, options_merged
                     )
-                else:
+
+                    if self._has_weather_module(dogs_config):
+                        await self._add_weather_components_to_dashboard(
+                            dashboard_config, dogs_config, options_merged
+                        )
+
+                elif dashboard_type == "dog":
                     dog_id = dashboard_info.get("dog_id")
                     dog_config = next(
                         (d for d in dogs_config if d.get(CONF_DOG_ID) == dog_id), None
@@ -479,19 +632,64 @@ class PawControlDashboardGenerator:
                         _LOGGER.warning("Dog %s not found for update", dog_id)
                         return False
 
-                    options_merged = {
-                        **(options or {}),
-                        **dashboard_info.get("options", {}),
-                    }
                     dashboard_config = await self._renderer.render_dog_dashboard(
                         dog_config, options_merged
                     )
 
-                    # Add weather components if weather module is enabled for this dog
                     if self._has_weather_module([dog_config]):
                         await self._add_weather_components_to_dog_dashboard(
                             dashboard_config, dog_config, options_merged
                         )
+
+                elif dashboard_type == "weather":
+                    dog_id = dashboard_info.get("dog_id")
+                    dog_name = dashboard_info.get("dog_name")
+                    if not dog_id or not dog_name:
+                        _LOGGER.warning(
+                            "Weather dashboard %s is missing dog metadata", dashboard_url
+                        )
+                        return False
+
+                    dog_config = next(
+                        (d for d in dogs_config if d.get(CONF_DOG_ID) == dog_id), None
+                    )
+                    breed = (
+                        dog_config.get("breed")
+                        if isinstance(dog_config, Mapping)
+                        else dashboard_info.get("breed", "Mixed")
+                    )
+                    theme = options_merged.get("theme", dashboard_info.get("theme", "modern"))
+                    layout = options_merged.get(
+                        "layout", dashboard_info.get("layout", "full")
+                    )
+
+                    weather_layout = (
+                        await self._dashboard_templates.get_weather_dashboard_layout_template(
+                            dog_id, dog_name, breed, theme, layout
+                        )
+                    )
+                    dashboard_config = {
+                        "views": [
+                            {
+                                "title": f"🌤️ {dog_name} Weather",
+                                "icon": "mdi:weather-partly-cloudy",
+                                "path": "weather",
+                                "type": "panel",
+                                "cards": [weather_layout],
+                            }
+                        ]
+                    }
+
+                    dashboard_info["theme"] = theme
+                    dashboard_info["layout"] = layout
+
+                else:
+                    _LOGGER.warning(
+                        "Unsupported dashboard type %s for %s",
+                        dashboard_type,
+                        dashboard_url,
+                    )
+                    return False
 
                 # OPTIMIZED: Async file update
                 dashboard_path = Path(dashboard_info["path"])
@@ -500,14 +698,21 @@ class PawControlDashboardGenerator:
                 )
 
                 # Update metadata
+                view_summaries = self._summarise_dashboard_views(dashboard_config)
+
                 async with self._lock:
                     dashboard_info["updated"] = dt_util.utcnow().isoformat()
-                    if options:
-                        dashboard_info["options"] = options
+                    dashboard_info["views"] = view_summaries
+                    dashboard_info["has_notifications_view"] = (
+                        self._has_notifications_view(view_summaries)
+                    )
+
+                    if options is not None:
+                        dashboard_info["options"] = options_merged
 
                     await self._save_dashboard_metadata_async()
 
-                update_time = asyncio.get_event_loop().time() - start_time
+                update_time = self._monotonic_time() - start_time
                 await self._update_performance_metrics("update", update_time)
 
                 _LOGGER.info(
@@ -548,8 +753,6 @@ class PawControlDashboardGenerator:
 
         try:
             async with aiofiles.open(dashboard_path, "w", encoding="utf-8") as f:
-                import json
-
                 json_str = json.dumps(dashboard_data, indent=2, ensure_ascii=False)
                 await f.write(json_str)
 
@@ -598,7 +801,7 @@ class PawControlDashboardGenerator:
             await self.async_initialize()
 
         results = {}
-        start_time = asyncio.get_event_loop().time()
+        start_time = self._monotonic_time()
 
         # OPTIMIZED: Process updates in controlled batches
         batch_size = MAX_CONCURRENT_DASHBOARD_OPERATIONS
@@ -627,7 +830,7 @@ class PawControlDashboardGenerator:
                     continue
                 results[url] = resolved
 
-        batch_time = asyncio.get_event_loop().time() - start_time
+        batch_time = self._monotonic_time() - start_time
         _LOGGER.info("Batch updated %d dashboards in %.2fs", len(updates), batch_time)
 
         return results
@@ -770,8 +973,9 @@ class PawControlDashboardGenerator:
         if not self._dashboards:
             return
 
-        invalid_dashboards = []
+        invalid_dashboards: list[str] = []
         validation_tasks = []
+        metadata_updated = False
 
         # OPTIMIZED: Prepare validation tasks
         for url, dashboard_info in self._dashboards.items():
@@ -792,37 +996,53 @@ class PawControlDashboardGenerator:
                 result,
                 context=f"Error validating dashboard {url}",
             )
-            if resolved is None or not resolved:
+
+            if resolved is None:
                 invalid_dashboards.append(url)
+                continue
+
+            if isinstance(resolved, tuple):
+                valid, changed = resolved
+            else:
+                valid, changed = (bool(resolved), False)
+
+            if not valid:
+                invalid_dashboards.append(url)
+                continue
+
+            if changed:
+                metadata_updated = True
 
         # Remove invalid dashboards
         for url in invalid_dashboards:
             _LOGGER.info("Removing invalid dashboard: %s", url)
             self._dashboards.pop(url, None)
+            metadata_updated = True
 
-        if invalid_dashboards:
+        if metadata_updated:
             await self._save_dashboard_metadata_async()
 
     async def _validate_single_dashboard(
         self, url: str, dashboard_info: dict[str, Any]
-    ) -> bool:
+    ) -> tuple[bool, bool]:
         """Validate single dashboard asynchronously."""
+
+        metadata_updated = False
+
         try:
-            # Check if file exists
             dashboard_path = dashboard_info.get("path")
             if not dashboard_path:
-                return False
+                return (False, metadata_updated)
 
-            exists = await asyncio.to_thread(Path(dashboard_path).exists)
+            path_obj = Path(dashboard_path)
+            exists = await asyncio.to_thread(path_obj.exists)
             if not exists:
-                return False
+                return (False, metadata_updated)
 
-            # Validate required fields
             required_fields = ["title", "created", "type"]
             if not all(field in dashboard_info for field in required_fields):
-                return False
+                return (False, metadata_updated)
 
-            # Check version compatibility
             stored_version = dashboard_info.get("version", 1)
             if stored_version < DASHBOARD_STORAGE_VERSION:
                 _LOGGER.info(
@@ -830,14 +1050,35 @@ class PawControlDashboardGenerator:
                     url,
                     stored_version,
                 )
-                # Return True but mark for regeneration
                 dashboard_info["needs_regeneration"] = True
+                metadata_updated = True
 
-            return True
+            view_summaries = self._normalize_view_summaries(
+                dashboard_info.get("views")
+            )
+            if view_summaries is None:
+                config = await self._load_dashboard_config(path_obj)
+                config_mapping: Mapping[str, Any] = (
+                    config if config is not None else {"views": []}
+                )
+                view_summaries = self._summarise_dashboard_views(config_mapping)
+                dashboard_info["views"] = view_summaries
+                metadata_updated = True
+            elif dashboard_info.get("views") != view_summaries:
+                dashboard_info["views"] = view_summaries
+                metadata_updated = True
+
+            notifications_view = self._has_notifications_view(view_summaries)
+            stored_notifications = dashboard_info.get("has_notifications_view")
+            if stored_notifications is not notifications_view:
+                dashboard_info["has_notifications_view"] = notifications_view
+                metadata_updated = True
+
+            return (True, metadata_updated)
 
         except Exception as err:
             _LOGGER.warning("Dashboard validation error for %s: %s", url, err)
-            return False
+            return (False, metadata_updated)
 
     # OPTIMIZED: Enhanced callback methods with performance data
     @callback
@@ -940,7 +1181,7 @@ class PawControlDashboardGenerator:
             raise ValueError(f"Weather module not enabled for {dog_name}")
 
         options = options or {}
-        start_time = asyncio.get_event_loop().time()
+        start_time = self._monotonic_time()
 
         async with self._operation_semaphore:
             try:
@@ -979,6 +1220,8 @@ class PawControlDashboardGenerator:
                 )
 
                 # Store metadata
+                view_summaries = self._summarise_dashboard_views(dashboard_config)
+
                 async with self._lock:
                     self._dashboards[dashboard_url] = {
                         "url": dashboard_url,
@@ -1000,11 +1243,15 @@ class PawControlDashboardGenerator:
                             "interactive_charts": True,
                             "recommendations": True,
                         },
+                        "views": view_summaries,
+                        "has_notifications_view": self._has_notifications_view(
+                            view_summaries
+                        ),
                     }
 
                     await self._save_dashboard_metadata_async()
 
-                generation_time = asyncio.get_event_loop().time() - start_time
+                generation_time = self._monotonic_time() - start_time
                 await self._update_performance_metrics(
                     "weather_generation", generation_time
                 )
@@ -1222,7 +1469,7 @@ class PawControlDashboardGenerator:
 
         options = options or {}
         results = {}
-        start_time = asyncio.get_event_loop().time()
+        start_time = self._monotonic_time()
 
         # Process in batches to avoid overwhelming the system
         batch_size = MAX_CONCURRENT_DASHBOARD_OPERATIONS
@@ -1260,7 +1507,7 @@ class PawControlDashboardGenerator:
 
                 results[dog_id] = resolved
 
-        batch_time = asyncio.get_event_loop().time() - start_time
+        batch_time = self._monotonic_time() - start_time
         _LOGGER.info(
             "Batch created %d weather dashboards in %.2fs",
             len([r for r in results.values() if not r.startswith("Error:")]),

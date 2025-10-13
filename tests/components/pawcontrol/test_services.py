@@ -10,14 +10,26 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from custom_components.pawcontrol import services as services_module
-from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.const import (
+    DOMAIN,
+    MODULE_FEEDING,
+    MODULE_HEALTH,
+    MODULE_WALK,
+)
 from custom_components.pawcontrol.services import (
     SERVICE_CONFIRM_POOP,
     SERVICE_END_WALK,
     SERVICE_START_WALK,
     ConfigEntryState,
 )
-from custom_components.pawcontrol.types import PawControlRuntimeData
+from custom_components.pawcontrol.types import (
+    DOG_ID_FIELD,
+    DOG_MODULES_FIELD,
+    DOG_NAME_FIELD,
+    PawControlRuntimeData,
+    ensure_dog_config_data,
+    ensure_dog_modules_config,
+)
 from custom_components.pawcontrol.walk_manager import WeatherCondition
 from homeassistant.config_entries import (
     SIGNAL_CONFIG_ENTRY_CHANGED,
@@ -33,17 +45,34 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 def coordinator_mock() -> SimpleNamespace:
     """Return a coordinator-like object with async mocks."""
 
+    dog_config_raw = {
+        DOG_ID_FIELD: "doggo",
+        DOG_NAME_FIELD: "Doggo",
+        DOG_MODULES_FIELD: ensure_dog_modules_config(
+            {
+                MODULE_FEEDING: True,
+                MODULE_WALK: True,
+                MODULE_HEALTH: True,
+            }
+        ),
+    }
+
+    dog_config = ensure_dog_config_data(dog_config_raw)
+    if dog_config is None:  # pragma: no cover - guard for static typing expectations
+        raise AssertionError("dog fixture must normalise to DogConfigData")
+
     return SimpleNamespace(
         walk_manager=AsyncMock(),
         async_request_refresh=AsyncMock(),
         feeding_manager=None,
         data_manager=None,
         garden_manager=None,
-        get_dog_config=lambda dog_id: {"dog_name": "Doggo"}
-        if dog_id == "doggo"
+        get_dog_config=lambda dog_id: dog_config if dog_id == "doggo" else None,
+        get_configured_dog_ids=lambda: [dog_config[DOG_ID_FIELD]],
+        get_configured_dog_name=lambda dog_id: dog_config[DOG_NAME_FIELD]
+        if dog_id == dog_config[DOG_ID_FIELD]
         else None,
-        get_configured_dog_ids=lambda: ["doggo"],
-        get_configured_dog_name=lambda dog_id: "Doggo" if dog_id == "doggo" else None,
+        dogs=[dog_config],
     )
 
 
@@ -80,7 +109,7 @@ async def _register_services(
             walk_manager=getattr(coordinator, "walk_manager", SimpleNamespace()),
             entity_factory=getattr(coordinator, "entity_factory", SimpleNamespace()),
             entity_profile=getattr(coordinator, "entity_profile", "standard"),
-            dogs=[],
+            dogs=list(getattr(coordinator, "dogs", [])),
         )
         entry.runtime_data = runtime
     else:

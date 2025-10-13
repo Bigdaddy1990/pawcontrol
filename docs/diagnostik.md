@@ -45,6 +45,7 @@
 }
 ```
 - Tests: `tests/components/pawcontrol/test_all_platforms.py` liefert eine umfassende Fixture mit Garden-, Diet- und Emergency-Daten für Sensor-, Binary-Sensor-, Button- und Servicepfade.【F:tests/components/pawcontrol/test_all_platforms.py†L1-L219】
+- Cache-Reparatur-Telemetrie wird vor dem Export über `ensure_cache_repair_aggregate` in das `CacheRepairAggregate`-Dataclass-Format überführt, sodass Performance-, Services-, Koordinator- **und Diagnostik**-Pfad ausschließlich typisierte Payloads serialisieren und Reloads keinen Mapping-Fallback mehr zulassen.【F:custom_components/pawcontrol/coordinator_support.py†L132-L147】【F:custom_components/pawcontrol/performance.py†L149-L158】【F:custom_components/pawcontrol/services.py†L360-L363】【F:custom_components/pawcontrol/diagnostics.py†L300-L359】
 
 ## Verbleibende Beobachtungen
 

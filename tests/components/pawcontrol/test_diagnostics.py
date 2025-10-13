@@ -15,7 +15,10 @@ from custom_components.pawcontrol.const import (
     MODULE_GPS,
 )
 from custom_components.pawcontrol.diagnostics import async_get_config_entry_diagnostics
-from custom_components.pawcontrol.types import PawControlRuntimeData
+from custom_components.pawcontrol.types import (
+    CacheRepairAggregate,
+    PawControlRuntimeData,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -109,9 +112,24 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
                     },
                 }
             }
+            summary_payload = {
+                "total_caches": 1,
+                "anomaly_count": 0,
+                "severity": "info",
+                "generated_at": timestamp.isoformat(),
+            }
+            self._summary = CacheRepairAggregate.from_mapping(summary_payload)
+            self._snapshots["notification_cache"]["repair_summary"] = (
+                self._summary
+            )
 
         def cache_snapshots(self) -> dict[str, dict[str, object]]:
             return self._snapshots
+
+        def cache_repair_summary(
+            self, snapshots: dict[str, object] | None = None
+        ) -> CacheRepairAggregate:
+            return self._summary
 
         def get_metrics(self) -> dict[str, object]:
             return {
@@ -161,6 +179,10 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     cache_entry = cache_diagnostics["notification_cache"]
     assert cache_entry["stats"]["api_token"] == "**REDACTED**"
     assert isinstance(cache_entry["diagnostics"]["last_cleanup"], str)
+    repair_summary = cache_entry["repair_summary"]
+    assert isinstance(repair_summary, dict)
+    assert repair_summary["total_caches"] == 1
+    assert repair_summary["severity"] == "info"
 
     data_stats = diagnostics["data_statistics"]
     metrics = data_stats["metrics"]

@@ -16,8 +16,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Awaitable
-from typing import TYPE_CHECKING, Any, Final, TypeVar
+from collections.abc import Awaitable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Final, TypeVar, cast
 
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
@@ -30,9 +30,12 @@ from .const import (
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
     MODULE_WALK,
 )
 from .dashboard_shared import CardCollection, CardConfig, unwrap_async_result
+from .dashboard_templates import MapCardOptions
+from .types import DogConfigData, ensure_dog_config_data
 
 if TYPE_CHECKING:
     from .dashboard_templates import DashboardTemplates
@@ -59,6 +62,29 @@ T = TypeVar("T", bound="BaseCardGenerator")
 # OPTIMIZED: Entity validation cache for performance
 _entity_validation_cache: dict[str, tuple[float, bool]] = {}
 _cache_cleanup_threshold = 300  # 5 minutes
+
+
+def _coerce_map_options(options: OptionsConfigType) -> MapCardOptions | None:
+    """Extract typed map options from the generic options payload."""
+
+    map_options: dict[str, object] = {}
+
+    zoom = options.get("zoom")
+    if isinstance(zoom, int):
+        map_options["zoom"] = zoom
+
+    dark_mode = options.get("dark_mode")
+    if isinstance(dark_mode, bool):
+        map_options["dark_mode"] = dark_mode
+
+    hours_to_show = options.get("hours_to_show")
+    if isinstance(hours_to_show, int):
+        map_options["hours_to_show"] = hours_to_show
+
+    if not map_options:
+        return None
+
+    return cast(MapCardOptions, map_options)
 
 
 class BaseCardGenerator:
@@ -716,7 +742,8 @@ class DogCardGenerator(BaseCardGenerator):
         if not await self._entity_exists_cached(tracker_entity):
             return None
 
-        return await self.templates.get_map_card_template(dog_id, options)
+        map_options = _coerce_map_options(options)
+        return await self.templates.get_map_card_template(dog_id, map_options)
 
     async def _generate_activity_graph_card(
         self, dog_config: DogConfigType, options: OptionsConfigType
@@ -1401,6 +1428,49 @@ class ModuleCardGenerator(BaseCardGenerator):
 
         return cards
 
+    async def generate_notification_cards(
+        self, dog_config: DogConfigType, options: OptionsConfigType
+    ) -> list[CardConfigType]:
+        """Generate notification module cards using typed templates."""
+
+        dog_id = dog_config[CONF_DOG_ID]
+        dog_name = dog_config[CONF_DOG_NAME]
+        modules = dog_config.get("modules", {})
+
+        if not modules.get(MODULE_NOTIFICATIONS):
+            return []
+
+        theme_option = options.get("theme") if isinstance(options, dict) else None
+        theme = theme_option if isinstance(theme_option, str) and theme_option else "modern"
+
+        status_entities = [
+            f"switch.{dog_id}_notifications_enabled",
+            f"select.{dog_id}_notification_priority",
+            f"binary_sensor.{dog_id}_notifications_quiet_hours_active",
+        ]
+
+        valid_entities = await self._validate_entities_batch(status_entities)
+
+        cards: list[CardConfigType] = []
+
+        settings_card = await self.templates.get_notification_settings_card_template(
+            dog_id, dog_name, valid_entities, theme=theme
+        )
+        if settings_card is not None:
+            cards.append(settings_card)
+
+        overview_card = await self.templates.get_notifications_overview_card_template(
+            dog_id, dog_name, theme=theme
+        )
+        cards.append(overview_card)
+
+        actions_card = await self.templates.get_notifications_actions_card_template(
+            dog_id, theme=theme
+        )
+        cards.append(actions_card)
+
+        return cards
+
     def _generate_health_management_buttons(self, dog_id: str) -> CardConfigType:
         """Generate optimized health management buttons."""
         return {
@@ -1455,7 +1525,8 @@ class ModuleCardGenerator(BaseCardGenerator):
 
         # OPTIMIZED: Generate main GPS map
         try:
-            map_card = await self.templates.get_map_card_template(dog_id, options)
+            map_options = _coerce_map_options(options)
+            map_card = await self.templates.get_map_card_template(dog_id, map_options)
             cards.append(map_card)
         except Exception as err:
             _LOGGER.warning("GPS map card generation failed: %s", err)
@@ -1549,6 +1620,74 @@ class WeatherCardGenerator(BaseCardGenerator):
     Quality Scale: Bronze target
     Weather Integration: v1.0.0
     """
+
+    @staticmethod
+    def _normalise_recommendations(source: object) -> list[str]:
+        """Return a flat list of recommendation strings from arbitrary payloads."""
+
+        if source is None:
+            return []
+
+        if isinstance(source, str):
+            cleaned = source.replace("\r", "\n")
+            items: list[str] = []
+            for chunk in cleaned.split("\n"):
+                for part in chunk.split(";"):
+                    candidate = part.strip()
+                    if candidate:
+                        items.append(candidate)
+            return items
+
+        if isinstance(source, Mapping):
+            mapping_results: list[str] = []
+            for key in ("recommendations", "items", "values", "text", "message", "detail"):
+                if key in source:
+                    mapping_results.extend(
+                        WeatherCardGenerator._normalise_recommendations(source[key])
+                    )
+            return mapping_results
+
+        if isinstance(source, Sequence):
+            sequence_results: list[str] = []
+            for item in source:
+                sequence_results.extend(
+                    WeatherCardGenerator._normalise_recommendations(item)
+                )
+            return sequence_results
+
+        candidate = str(source).strip()
+        return [candidate] if candidate else []
+
+    def _collect_weather_recommendations(self, entity_id: str) -> list[str]:
+        """Gather structured weather recommendations from Home Assistant state."""
+
+        state = self.hass.states.get(entity_id)
+        if state is None:
+            return []
+
+        collected: list[str] = []
+
+        attributes = getattr(state, "attributes", {})
+        if isinstance(attributes, Mapping):
+            collected.extend(
+                self._normalise_recommendations(attributes.get("recommendations"))
+            )
+
+        collected.extend(self._normalise_recommendations(getattr(state, "state", "")))
+
+        deduplicated: list[str] = []
+        seen: set[str] = set()
+        for recommendation in collected:
+            entry = recommendation.strip()
+            if not entry:
+                continue
+            key = entry.casefold()
+            if key in seen:
+                continue
+            seen.add(key)
+            deduplicated.append(entry)
+
+        return deduplicated
 
     async def generate_weather_overview_cards(
         self,
@@ -1796,6 +1935,20 @@ class WeatherCardGenerator(BaseCardGenerator):
         if not await self._entity_exists_cached(recommendations_entity):
             return None
 
+        recommendations = self._collect_weather_recommendations(
+            recommendations_entity
+        )
+        primary_recommendations = recommendations[:5]
+
+        if primary_recommendations:
+            bullet_lines = "\n".join(f"• {item}" for item in primary_recommendations)
+            if len(recommendations) > 5:
+                bullet_lines += (
+                    f"\n*... and {len(recommendations) - 5} more recommendations*"
+                )
+        else:
+            bullet_lines = "*No specific recommendations at this time*"
+
         return {
             "type": "vertical-stack",
             "cards": [
@@ -1806,22 +1959,31 @@ class WeatherCardGenerator(BaseCardGenerator):
                 },
                 {
                     "type": "markdown",
-                    "content": f"""
-{{% set recommendations = states('sensor.{dog_id}_weather_recommendations') %}}
-{{% if recommendations and recommendations != 'unknown' %}}
-{{% set rec_list = recommendations.split(';') %}}
-{{% for rec in rec_list[:5] %}}
-• {{{{ rec.strip() }}}}
-{{% endfor %}}
-{{% if rec_list|length > 5 %}}
-*... and {{{{ rec_list|length - 5 }}}} more recommendations*
-{{% endif %}}
-{{% else %}}
-*No specific recommendations at this time*
-{{% endif %}}
+                    "content": (
+                        """
+## 💡 {dog_name} Weather Advice
 
-*Updated: {{{{ states.sensor.{dog_id}_weather_recommendations.last_updated.strftime('%H:%M') }}}}*
-                    """,
+{{%- set breed = states.sensor.{dog_id}_breed.state | default('Mixed') -%}}
+
+### 🌡️ Temperature Guidance
+**Current Feel:** {{{{ states('sensor.{dog_id}_weather_feels_like') }}}}°C
+**Recommendation:** {{{{ states('sensor.{dog_id}_weather_activity_recommendation') }}}}}
+
+### 🚶 Activity Suggestions
+{bullet_section}
+
+{{%- if include_breed_specific -%}}
+### 🐕 Breed-Specific Advice for {{ breed }}
+{{{{ states.sensor.{dog_id}_breed_weather_advice.attributes.advice | default('No specific advice available for this breed.') }}}}
+{{%- endif -%}}
+
+### ⏰ Best Activity Times
+**Optimal Walk Time:** {{{{ states('sensor.{dog_id}_optimal_walk_time') }}}}
+**Avoid Outdoors:** {{{{ states('sensor.{dog_id}_weather_avoid_times') }}}}
+
+**Last Updated:** {{{{ states.sensor.{dog_id}_weather_recommendations.last_updated.strftime('%H:%M') }}}}
+                        """.replace("{bullet_section}", bullet_lines)
+                    ),
                 },
                 {
                     "type": "horizontal-stack",
@@ -2133,12 +2295,15 @@ class StatisticsCardGenerator(BaseCardGenerator):
 
         cards: list[CardConfigType] = []
 
+        theme_option = options.get("theme") if isinstance(options, dict) else None
+        theme = theme_option if isinstance(theme_option, str) and theme_option else "modern"
+
         # OPTIMIZED: Generate all statistics cards concurrently
         stats_generators = [
-            ("activity", self._generate_activity_statistics(dogs_config)),
-            ("feeding", self._generate_feeding_statistics(dogs_config)),
-            ("walk", self._generate_walk_statistics(dogs_config)),
-            ("health", self._generate_health_statistics(dogs_config)),
+            ("activity", self._generate_activity_statistics(dogs_config, theme)),
+            ("feeding", self._generate_feeding_statistics(dogs_config, theme)),
+            ("walk", self._generate_walk_statistics(dogs_config, theme)),
+            ("health", self._generate_health_statistics(dogs_config, theme)),
         ]
 
         try:
@@ -2165,13 +2330,13 @@ class StatisticsCardGenerator(BaseCardGenerator):
             self._performance_stats["errors_handled"] += 1
 
         # Add summary card (always include)
-        summary_card = self._generate_summary_card(dogs_config)
+        summary_card = self._generate_summary_card(dogs_config, theme)
         cards.append(summary_card)
 
         return cards
 
     async def _generate_activity_statistics(
-        self, dogs_config: list[DogConfigType]
+        self, dogs_config: list[DogConfigType], theme: str
     ) -> CardConfigType | None:
         """Generate optimized activity statistics card."""
         # OPTIMIZED: Build entity list efficiently
@@ -2188,20 +2353,16 @@ class StatisticsCardGenerator(BaseCardGenerator):
         # OPTIMIZED: Batch validate all activity entities
         valid_entities = await self._validate_entities_batch(activity_entities)
 
-        return (
-            {
-                "type": "statistics-graph",
-                "title": "Activity Statistics (30 days)",
-                "entities": valid_entities,
-                "stat_types": ["mean", "min", "max"],
-                "days_to_show": 30,
-            }
-            if valid_entities
-            else None
+        return await self.templates.get_statistics_graph_template(
+            "Activity Statistics (30 days)",
+            valid_entities,
+            ["mean", "min", "max"],
+            days_to_show=30,
+            theme=theme,
         )
 
     async def _generate_feeding_statistics(
-        self, dogs_config: list[DogConfigType]
+        self, dogs_config: list[DogConfigType], theme: str
     ) -> CardConfigType | None:
         """Generate optimized feeding statistics card."""
         feeding_entities = []
@@ -2217,20 +2378,16 @@ class StatisticsCardGenerator(BaseCardGenerator):
         # OPTIMIZED: Batch validate feeding entities
         valid_entities = await self._validate_entities_batch(feeding_entities)
 
-        return (
-            {
-                "type": "statistics-graph",
-                "title": "Feeding Statistics (30 days)",
-                "entities": valid_entities,
-                "stat_types": ["sum", "mean"],
-                "days_to_show": 30,
-            }
-            if valid_entities
-            else None
+        return await self.templates.get_statistics_graph_template(
+            "Feeding Statistics (30 days)",
+            valid_entities,
+            ["sum", "mean"],
+            days_to_show=30,
+            theme=theme,
         )
 
     async def _generate_walk_statistics(
-        self, dogs_config: list[DogConfigType]
+        self, dogs_config: list[DogConfigType], theme: str
     ) -> CardConfigType | None:
         """Generate optimized walk statistics card."""
         walk_entities = []
@@ -2246,20 +2403,16 @@ class StatisticsCardGenerator(BaseCardGenerator):
         # OPTIMIZED: Batch validate walk entities
         valid_entities = await self._validate_entities_batch(walk_entities)
 
-        return (
-            {
-                "type": "statistics-graph",
-                "title": "Walk Statistics (30 days)",
-                "entities": valid_entities,
-                "stat_types": ["sum", "mean", "max"],
-                "days_to_show": 30,
-            }
-            if valid_entities
-            else None
+        return await self.templates.get_statistics_graph_template(
+            "Walk Statistics (30 days)",
+            valid_entities,
+            ["sum", "mean", "max"],
+            days_to_show=30,
+            theme=theme,
         )
 
     async def _generate_health_statistics(
-        self, dogs_config: list[DogConfigType]
+        self, dogs_config: list[DogConfigType], theme: str
     ) -> CardConfigType | None:
         """Generate optimized health statistics card."""
         weight_entities = []
@@ -2275,55 +2428,27 @@ class StatisticsCardGenerator(BaseCardGenerator):
         # OPTIMIZED: Batch validate weight entities
         valid_entities = await self._validate_entities_batch(weight_entities)
 
-        return (
-            {
-                "type": "statistics-graph",
-                "title": "Weight Trends (60 days)",
-                "entities": valid_entities,
-                "stat_types": ["mean", "min", "max"],
-                "days_to_show": 60,
-            }
-            if valid_entities
-            else None
+        return await self.templates.get_statistics_graph_template(
+            "Weight Trends (60 days)",
+            valid_entities,
+            ["mean", "min", "max"],
+            days_to_show=60,
+            theme=theme,
         )
 
     def _generate_summary_card(
-        self, dogs_config: list[DogConfigType]
+        self, dogs_config: list[DogConfigType], theme: str
     ) -> CardConfigType:
         """Generate optimized statistics summary card."""
-        # OPTIMIZED: Single-pass module counting
-        module_counts = {
-            MODULE_FEEDING: 0,
-            MODULE_WALK: 0,
-            MODULE_HEALTH: 0,
-            MODULE_GPS: 0,
-        }
+        typed_dogs: list[DogConfigData] = []
 
         for dog in dogs_config:
-            modules = dog.get("modules", {})
-            for module_name in module_counts:
-                if modules.get(module_name):
-                    module_counts[module_name] += 1
+            typed = ensure_dog_config_data(dog)
+            if typed is None:
+                continue
+            typed_dogs.append(typed)
 
-        content = [
-            "## Paw Control Statistics",
-            "",
-            f"**Dogs managed:** {len(dogs_config)}",
-            "",
-            "**Active modules:**",
-            f"- Feeding: {module_counts[MODULE_FEEDING]}",
-            f"- Walks: {module_counts[MODULE_WALK]}",
-            f"- Health: {module_counts[MODULE_HEALTH]}",
-            f"- GPS: {module_counts[MODULE_GPS]}",
-            "",
-            "*Last updated: {{ now().strftime('%Y-%m-%d %H:%M') }}*",
-        ]
-
-        return {
-            "type": "markdown",
-            "title": "Summary",
-            "content": "\n".join(content),
-        }
+        return self.templates.get_statistics_summary_template(typed_dogs, theme)
 
 
 # OPTIMIZED: Global cache cleanup function
