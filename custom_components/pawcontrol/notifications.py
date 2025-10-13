@@ -18,6 +18,7 @@ from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
+from functools import partial
 from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
@@ -26,6 +27,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
 from .coordinator_support import CacheMonitorRegistrar
+from .dashboard_shared import unwrap_async_result
 from .feeding_translations import build_feeding_compliance_notification
 from .http_client import ensure_shared_client_session
 from .person_entity_manager import PersonEntityManager
@@ -2041,15 +2043,4 @@ class PawControlNotificationManager:
         return {"persons_home": 0, "persons_away": 0, "has_anyone_home": False}
 
 
-def _unwrap_async_result[T](
-    result: T | Exception,
-    *,
-    context: str,
-    level: int = logging.WARNING,
-) -> T | None:
-    """Return ``result`` when successful, logging ``context`` on failure."""
-
-    if isinstance(result, Exception):
-        _LOGGER.log(level, "%s: %s", context, result)
-        return None
-    return result
+_unwrap_async_result = partial(unwrap_async_result, logger=_LOGGER)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections import deque
 from collections.abc import Mapping
 from collections.abc import Mapping as TypingMapping
@@ -25,12 +26,15 @@ from .const import (
 from .exceptions import ValidationError
 from .types import (
     CacheRepairAggregate,
+    CacheRepairIssue,
     CoordinatorRepairsSummary,
     CoordinatorRuntimeStatisticsPayload,
     CoordinatorStatisticsPayload,
     DogConfigData,
     PawControlConfigEntry,
 )
+
+_LOGGER = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -73,60 +77,73 @@ def _build_repair_telemetry(
     if not summary:
         return None
 
-    def _as_int(value: Any) -> int:
-        try:
-            if isinstance(value, bool):
-                return int(value)
-            return int(float(value))
-        except (TypeError, ValueError):
+    def _count_strings(values: list[str] | None) -> int:
+        if not values:
             return 0
+        return sum(1 for value in values if isinstance(value, str) and value)
 
-    def _count_list(key: str) -> int:
-        items = summary.get(key)
-        if isinstance(items, list | tuple | set):
-            return len(tuple(item for item in items if item is not None))
-        return 0
+    def _count_issues(values: list[CacheRepairIssue] | None) -> int:
+        if not values:
+            return 0
+        return sum(1 for issue in values if issue is not None)
 
-    issues = summary.get("issues")
-    if isinstance(issues, list):
-        issue_count = len([issue for issue in issues if issue is not None])
-    else:
-        issue_count = 0
-
-    severity = str(summary.get("severity", "info"))
-    anomaly_count = _as_int(summary.get("anomaly_count"))
-    total_caches = _as_int(summary.get("total_caches"))
-    generated_at = str(summary.get("generated_at", ""))
+    severity = summary.severity or "info"
+    anomaly_count = int(summary.anomaly_count)
+    total_caches = int(summary.total_caches)
+    generated_at = summary.generated_at
 
     telemetry: CoordinatorRepairsSummary = {
         "severity": severity,
         "anomaly_count": anomaly_count,
         "total_caches": total_caches,
         "generated_at": generated_at,
-        "issues": issue_count,
+        "issues": _count_issues(summary.issues),
     }
 
-    errors_count = _count_list("caches_with_errors")
+    errors_count = _count_strings(summary.caches_with_errors)
     if errors_count:
         telemetry["caches_with_errors"] = errors_count
 
-    expired_count = _count_list("caches_with_expired_entries")
+    expired_count = _count_strings(summary.caches_with_expired_entries)
     if expired_count:
         telemetry["caches_with_expired_entries"] = expired_count
 
-    pending_count = _count_list("caches_with_pending_expired_entries")
+    pending_count = _count_strings(summary.caches_with_pending_expired_entries)
     if pending_count:
         telemetry["caches_with_pending_expired_entries"] = pending_count
 
-    override_count = _count_list("caches_with_override_flags")
+    override_count = _count_strings(summary.caches_with_override_flags)
     if override_count:
         telemetry["caches_with_override_flags"] = override_count
 
-    low_hit_rate_count = _count_list("caches_with_low_hit_rate")
+    low_hit_rate_count = _count_strings(summary.caches_with_low_hit_rate)
     if low_hit_rate_count:
         telemetry["caches_with_low_hit_rate"] = low_hit_rate_count
 
     return telemetry
+
+
+def coerce_cache_repair_summary(
+    summary: CacheRepairAggregate | Mapping[str, Any] | None,
+    *,
+    logger: logging.Logger | None = None,
+) -> CacheRepairAggregate | None:
+    """Return ``summary`` as a :class:`CacheRepairAggregate` when possible."""
+
+    if logger is not None:
+        # Logger retained for backward compatibility; no additional output.
+        pass
+
+    if summary is None:
+        return None
+
+    if isinstance(summary, CacheRepairAggregate):
+        return summary
+
+    if isinstance(summary, Mapping):
+        return CacheRepairAggregate.from_mapping(summary)
+
+    return None
 
 
 @runtime_checkable

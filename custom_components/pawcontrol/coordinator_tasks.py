@@ -66,19 +66,10 @@ def _fetch_cache_repair_summary(
         coordinator.logger.debug("Failed to collect cache repair summary: %s", err)
         return None
 
-    if summary is None:
-        return None
-
     if isinstance(summary, CacheRepairAggregate):
         return summary
-
     if isinstance(summary, Mapping):
         return CacheRepairAggregate.from_mapping(summary)
-
-    coordinator.logger.debug(
-        "Unexpected cache repair summary payload type: %s",
-        type(summary).__name__,
-    )
     return None
 
 

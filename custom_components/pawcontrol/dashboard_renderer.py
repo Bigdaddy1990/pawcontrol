@@ -31,6 +31,7 @@ from .dashboard_cards import (
     OverviewCardGenerator,
     StatisticsCardGenerator,
 )
+from .dashboard_shared import unwrap_async_result
 from .dashboard_templates import DashboardTemplates
 
 _LOGGER = logging.getLogger(__name__)
@@ -273,30 +274,45 @@ class DashboardRenderer:
             Overview view configuration
         """
         # Process cards in parallel for better performance
-        tasks = [
-            self.overview_generator.generate_welcome_card(dogs_config, options),
-            self.overview_generator.generate_dogs_grid(
-                dogs_config, options.get("dashboard_url", "/paw-control")
+        task_definitions: list[tuple[str, Awaitable[dict[str, Any] | None]]] = [
+            (
+                "welcome",
+                self.overview_generator.generate_welcome_card(dogs_config, options),
             ),
-            self.overview_generator.generate_quick_actions(dogs_config),
+            (
+                "dog_grid",
+                self.overview_generator.generate_dogs_grid(
+                    dogs_config, options.get("dashboard_url", "/paw-control")
+                ),
+            ),
+            (
+                "quick_actions",
+                self.overview_generator.generate_quick_actions(dogs_config),
+            ),
         ]
 
-        # Add activity summary if enabled
         if options.get("show_activity_summary", True):
-            tasks.append(self._render_activity_summary(dogs_config))
+            task_definitions.append(
+                (
+                    "activity_summary",
+                    self._render_activity_summary(dogs_config),
+                )
+            )
 
-        # Execute tasks concurrently
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        results = await asyncio.gather(
+            *(task for _, task in task_definitions),
+            return_exceptions=True,
+        )
 
-        # Filter successful results and handle exceptions
         cards: list[dict[str, Any]] = []
-        for result in results:
-            if isinstance(result, Exception):
-                _LOGGER.warning("Overview card generation failed: %s", result)
+        for (task_name, _), result in zip(task_definitions, results, strict=False):
+            card_payload = _unwrap_async_result(
+                result,
+                context=f"Overview card generation failed ({task_name})",
+            )
+            if card_payload is None:
                 continue
-
-            if isinstance(result, dict):
-                cards.append(result)
+            cards.append(card_payload)
 
         return {
             "title": "Overview",
@@ -361,21 +377,33 @@ class DashboardRenderer:
             batch = dogs_config[i : i + batch_size]
 
             # Process batch concurrently
-            batch_tasks = [
-                self._render_single_dog_view(dog, i + idx, options)
+            batch_jobs: list[
+                tuple[dict[str, Any], Awaitable[dict[str, Any] | None]]
+            ] = [
+                (
+                    dog,
+                    self._render_single_dog_view(dog, i + idx, options),
+                )
                 for idx, dog in enumerate(batch)
             ]
 
-            batch_results = await asyncio.gather(*batch_tasks, return_exceptions=True)
+            batch_results = await asyncio.gather(
+                *(job for _, job in batch_jobs),
+                return_exceptions=True,
+            )
 
-            # Add successful results
-            for result in batch_results:
-                if isinstance(result, Exception):
-                    _LOGGER.warning("Dog view generation failed: %s", result)
+            for (dog, _), result in zip(batch_jobs, batch_results, strict=False):
+                dog_identifier = cast(
+                    str,
+                    dog.get("dog_name") or dog.get("dog_id") or f"dog_{id(dog)}",
+                )
+                view_payload = _unwrap_async_result(
+                    result,
+                    context=f"Dog view generation failed for {dog_identifier}",
+                )
+                if view_payload is None:
                     continue
-
-                if isinstance(result, dict):
-                    views.append(result)
+                views.append(view_payload)
 
         return views
 
@@ -499,25 +527,32 @@ class DashboardRenderer:
         ]
 
         # Generate views for enabled modules concurrently
-        tasks = []
+        task_definitions: list[tuple[str, Awaitable[dict[str, Any] | None]]] = []
         for module_key, title, icon, generator in module_configs:
             if modules.get(module_key):
-                tasks.append(
-                    self._render_module_view(
-                        dog_config, options, module_key, title, icon, generator
+                task_definitions.append(
+                    (
+                        module_key,
+                        self._render_module_view(
+                            dog_config, options, module_key, title, icon, generator
+                        ),
                     )
                 )
 
-        if tasks:
-            results = await asyncio.gather(*tasks, return_exceptions=True)
+        if task_definitions:
+            results = await asyncio.gather(
+                *(task for _, task in task_definitions),
+                return_exceptions=True,
+            )
 
-            for result in results:
-                if isinstance(result, Exception):
-                    _LOGGER.warning("Module view generation failed: %s", result)
+            for (module_key, _), result in zip(task_definitions, results, strict=False):
+                view_payload = _unwrap_async_result(
+                    result,
+                    context=f"Module view generation failed ({module_key})",
+                )
+                if view_payload is None:
                     continue
-
-                if isinstance(result, dict):
-                    views.append(result)
+                views.append(view_payload)
 
         return views
 
@@ -732,6 +767,9 @@ class DashboardRenderer:
             "total_jobs_processed": self._job_counter,
             "template_cache": template_stats,
         }
+
+
+_unwrap_async_result = partial(unwrap_async_result, logger=_LOGGER)
 
 
 ensure_homeassistant_exception_symbols()

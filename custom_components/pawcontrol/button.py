@@ -14,27 +14,21 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
-from typing import Any, cast
+from typing import Any, Protocol, TypedDict, cast, runtime_checkable
 
 from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
 from homeassistant.const import STATE_UNKNOWN
-from homeassistant.core import HomeAssistant
+from homeassistant.core import Context, HomeAssistant, ServiceRegistry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from . import compat
-from .compat import (
-    ServiceRegistry,
-    bind_exception_alias,
-    ensure_homeassistant_exception_symbols,
-)
+from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
 from .const import (
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
     MODULE_FEEDING,
     MODULE_GARDEN,
     MODULE_GPS,
@@ -56,8 +50,13 @@ from .entity import PawControlEntity
 from .exceptions import WalkAlreadyInProgressError, WalkNotInProgressError
 from .runtime_data import get_runtime_data
 from .types import (
-    DogModulesProjection,
+    DOG_ID_FIELD,
+    DOG_MODULES_FIELD,
+    DOG_NAME_FIELD,
+    DogConfigData,
     PawControlConfigEntry,
+    ensure_dog_config_data,
+    ensure_dog_modules_config,
     ensure_dog_modules_mapping,
 )
 from .utils import async_call_add_entities
@@ -76,14 +75,63 @@ if not hasattr(HomeAssistant, "services"):
     HomeAssistant.services = None  # type: ignore[attr-defined]
 
 
-class _ServiceRegistryProxy:
+@runtime_checkable
+class ServiceRegistryLike(Protocol):
+    """Protocol describing the Home Assistant service registry surface."""
+
+    async def async_call(
+        self,
+        domain: str,
+        service: str,
+        service_data: Mapping[str, Any] | None = None,
+        blocking: bool = False,
+        context: Context | None = None,
+    ) -> None:
+        """Invoke a Home Assistant service call."""
+
+
+type ServiceRegistryType = ServiceRegistry | ServiceRegistryLike
+
+
+class ButtonRule(TypedDict, total=False):
+    """Typed metadata describing how to build a button for a module."""
+
+    factory: type[PawControlButtonBase]
+    type: str
+    priority: int
+    profiles: Sequence[str]
+    args: Sequence[str]
+
+
+class ButtonCandidate(TypedDict):
+    """Candidate button produced by a rule before profile filtering."""
+
+    button: PawControlButtonBase
+    type: str
+    priority: int
+
+
+class _ServiceRegistryProxy(ServiceRegistryLike):
     """Proxy around Home Assistant's service registry to allow patching."""
 
-    def __init__(self, registry: ServiceRegistry) -> None:
+    def __init__(self, registry: ServiceRegistryType) -> None:
         self._registry = registry
 
-    async def async_call(self, *args: Any, **kwargs: Any) -> None:
-        await self._registry.async_call(*args, **kwargs)
+    async def async_call(
+        self,
+        domain: str,
+        service: str,
+        service_data: Mapping[str, Any] | None = None,
+        blocking: bool = False,
+        context: Context | None = None,
+    ) -> None:
+        await self._registry.async_call(
+            domain,
+            service,
+            service_data,
+            blocking,
+            context,
+        )
 
     def __getattr__(self, item: str) -> Any:
         return getattr(self._registry, item)
@@ -91,7 +139,7 @@ class _ServiceRegistryProxy:
 
 def _prepare_service_proxy(
     hass: HomeAssistant,
-) -> ServiceRegistry | _ServiceRegistryProxy | None:
+) -> ServiceRegistryLike | None:
     """Ensure the hass instance exposes a patchable services object."""
 
     services = getattr(hass, "services", None)
@@ -113,7 +161,10 @@ def _prepare_service_proxy(
         hass.services = proxy
         return proxy
 
-    return cast(ServiceRegistry | _ServiceRegistryProxy | None, services)
+    if isinstance(services, ServiceRegistryLike):
+        return services
+
+    return None
 
 
 # Home Assistant platform configuration
@@ -186,7 +237,7 @@ class ProfileAwareButtonFactory:
         self.max_buttons = PROFILE_BUTTON_LIMITS.get(profile, 6)
 
         # OPTIMIZED: Pre-calculate button rules for performance
-        self._button_rules_cache: dict[str, list[dict[str, Any]]] = {}
+        self._button_rules_cache: dict[str, list[ButtonRule]] = {}
         self._initialize_button_rules()
 
         _LOGGER.debug(
@@ -205,17 +256,17 @@ class ProfileAwareButtonFactory:
             MODULE_GARDEN: self._get_garden_button_rules(),
         }
 
-    def _get_feeding_button_rules(self) -> list[dict[str, Any]]:
+    def _get_feeding_button_rules(self) -> list[ButtonRule]:
         """Get feeding button creation rules based on profile."""
-        rules = [
+        rules: list[ButtonRule] = [
             {
-                "class": PawControlFeedNowButton,
+                "factory": PawControlFeedNowButton,
                 "type": "feed_now",
                 "priority": BUTTON_PRIORITIES["feed_now"],
                 "profiles": ["basic", "standard", "advanced", "health_focus"],
             },
             {
-                "class": PawControlMarkFedButton,
+                "factory": PawControlMarkFedButton,
                 "type": "mark_fed",
                 "priority": BUTTON_PRIORITIES["mark_fed"],
                 "profiles": ["basic", "standard", "advanced", "health_focus"],
@@ -226,18 +277,18 @@ class ProfileAwareButtonFactory:
             rules.extend(
                 [
                     {
-                        "class": PawControlFeedMealButton,
+                        "factory": PawControlFeedMealButton,
                         "type": "feed_breakfast",
                         "priority": BUTTON_PRIORITIES["feed_breakfast"],
                         "profiles": ["standard", "advanced", "health_focus"],
-                        "args": ["breakfast"],
+                        "args": ("breakfast",),
                     },
                     {
-                        "class": PawControlFeedMealButton,
+                        "factory": PawControlFeedMealButton,
                         "type": "feed_dinner",
                         "priority": BUTTON_PRIORITIES["feed_dinner"],
                         "profiles": ["standard", "advanced", "health_focus"],
-                        "args": ["dinner"],
+                        "args": ("dinner",),
                     },
                 ]
             )
@@ -246,14 +297,14 @@ class ProfileAwareButtonFactory:
             rules.extend(
                 [
                     {
-                        "class": PawControlFeedMealButton,
+                        "factory": PawControlFeedMealButton,
                         "type": "feed_lunch",
                         "priority": BUTTON_PRIORITIES["feed_lunch"],
                         "profiles": ["advanced"],
-                        "args": ["lunch"],
+                        "args": ("lunch",),
                     },
                     {
-                        "class": PawControlLogCustomFeedingButton,
+                        "factory": PawControlLogCustomFeedingButton,
                         "type": "log_custom_feeding",
                         "priority": BUTTON_PRIORITIES["log_custom_feeding"],
                         "profiles": ["advanced"],
@@ -263,17 +314,17 @@ class ProfileAwareButtonFactory:
 
         return [rule for rule in rules if self.profile in rule["profiles"]]
 
-    def _get_walk_button_rules(self) -> list[dict[str, Any]]:
+    def _get_walk_button_rules(self) -> list[ButtonRule]:
         """Get walk button creation rules based on profile."""
-        rules = [
+        rules: list[ButtonRule] = [
             {
-                "class": PawControlStartWalkButton,
+                "factory": PawControlStartWalkButton,
                 "type": "start_walk",
                 "priority": BUTTON_PRIORITIES["start_walk"],
                 "profiles": ["basic", "standard", "advanced", "gps_focus"],
             },
             {
-                "class": PawControlEndWalkButton,
+                "factory": PawControlEndWalkButton,
                 "type": "end_walk",
                 "priority": BUTTON_PRIORITIES["end_walk"],
                 "profiles": ["basic", "standard", "advanced", "gps_focus"],
@@ -283,7 +334,7 @@ class ProfileAwareButtonFactory:
         if self.profile in ["standard", "advanced", "gps_focus"]:
             rules.append(
                 {
-                    "class": PawControlQuickWalkButton,
+                    "factory": PawControlQuickWalkButton,
                     "type": "quick_walk",
                     "priority": BUTTON_PRIORITIES["quick_walk"],
                     "profiles": ["standard", "advanced", "gps_focus"],
@@ -293,7 +344,7 @@ class ProfileAwareButtonFactory:
         if self.profile == "advanced":
             rules.append(
                 {
-                    "class": PawControlLogWalkManuallyButton,
+                    "factory": PawControlLogWalkManuallyButton,
                     "type": "log_walk_manually",
                     "priority": BUTTON_PRIORITIES["log_walk_manually"],
                     "profiles": ["advanced"],
@@ -302,11 +353,11 @@ class ProfileAwareButtonFactory:
 
         return [rule for rule in rules if self.profile in rule["profiles"]]
 
-    def _get_gps_button_rules(self) -> list[dict[str, Any]]:
+    def _get_gps_button_rules(self) -> list[ButtonRule]:
         """Get GPS button creation rules based on profile."""
-        rules = [
+        rules: list[ButtonRule] = [
             {
-                "class": PawControlRefreshLocationButton,
+                "factory": PawControlRefreshLocationButton,
                 "type": "refresh_location",
                 "priority": BUTTON_PRIORITIES["refresh_location"],
                 "profiles": ["basic", "standard", "advanced", "gps_focus"],
@@ -316,7 +367,7 @@ class ProfileAwareButtonFactory:
         if self.profile in ["standard", "advanced", "gps_focus"]:
             rules.append(
                 {
-                    "class": PawControlCenterMapButton,
+                    "factory": PawControlCenterMapButton,
                     "type": "center_map",
                     "priority": BUTTON_PRIORITIES["center_map"],
                     "profiles": ["standard", "advanced", "gps_focus"],
@@ -327,13 +378,13 @@ class ProfileAwareButtonFactory:
             rules.extend(
                 [
                     {
-                        "class": PawControlExportRouteButton,
+                        "factory": PawControlExportRouteButton,
                         "type": "export_route",
                         "priority": BUTTON_PRIORITIES["export_route"],
                         "profiles": ["advanced", "gps_focus"],
                     },
                     {
-                        "class": PawControlCallDogButton,
+                        "factory": PawControlCallDogButton,
                         "type": "call_dog",
                         "priority": BUTTON_PRIORITIES["call_dog"],
                         "profiles": ["advanced", "gps_focus"],
@@ -343,11 +394,11 @@ class ProfileAwareButtonFactory:
 
         return [rule for rule in rules if self.profile in rule["profiles"]]
 
-    def _get_health_button_rules(self) -> list[dict[str, Any]]:
+    def _get_health_button_rules(self) -> list[ButtonRule]:
         """Get health button creation rules based on profile."""
-        rules = [
+        rules: list[ButtonRule] = [
             {
-                "class": PawControlLogWeightButton,
+                "factory": PawControlLogWeightButton,
                 "type": "log_weight",
                 "priority": BUTTON_PRIORITIES["log_weight"],
                 "profiles": ["basic", "standard", "advanced", "health_focus"],
@@ -357,7 +408,7 @@ class ProfileAwareButtonFactory:
         if self.profile in ["standard", "advanced", "health_focus"]:
             rules.append(
                 {
-                    "class": PawControlLogMedicationButton,
+                    "factory": PawControlLogMedicationButton,
                     "type": "log_medication",
                     "priority": BUTTON_PRIORITIES["log_medication"],
                     "profiles": ["standard", "advanced", "health_focus"],
@@ -368,13 +419,13 @@ class ProfileAwareButtonFactory:
             rules.extend(
                 [
                     {
-                        "class": PawControlStartGroomingButton,
+                        "factory": PawControlStartGroomingButton,
                         "type": "start_grooming",
                         "priority": BUTTON_PRIORITIES["start_grooming"],
                         "profiles": ["advanced", "health_focus"],
                     },
                     {
-                        "class": PawControlScheduleVetButton,
+                        "factory": PawControlScheduleVetButton,
                         "type": "schedule_vet",
                         "priority": BUTTON_PRIORITIES["schedule_vet"],
                         "profiles": ["advanced", "health_focus"],
@@ -385,7 +436,7 @@ class ProfileAwareButtonFactory:
         if self.profile == "advanced":
             rules.append(
                 {
-                    "class": PawControlHealthCheckButton,
+                    "factory": PawControlHealthCheckButton,
                     "type": "health_check",
                     "priority": BUTTON_PRIORITIES["health_check"],
                     "profiles": ["advanced"],
@@ -394,12 +445,12 @@ class ProfileAwareButtonFactory:
 
         return [rule for rule in rules if self.profile in rule["profiles"]]
 
-    def _get_garden_button_rules(self) -> list[dict[str, Any]]:
+    def _get_garden_button_rules(self) -> list[ButtonRule]:
         """Get garden button creation rules based on profile."""
 
-        rules = [
+        rules: list[ButtonRule] = [
             {
-                "class": PawControlStartGardenSessionButton,
+                "factory": PawControlStartGardenSessionButton,
                 "type": "start_garden_session",
                 "priority": BUTTON_PRIORITIES["start_garden_session"],
                 "profiles": [
@@ -411,7 +462,7 @@ class ProfileAwareButtonFactory:
                 ],
             },
             {
-                "class": PawControlEndGardenSessionButton,
+                "factory": PawControlEndGardenSessionButton,
                 "type": "end_garden_session",
                 "priority": BUTTON_PRIORITIES["end_garden_session"],
                 "profiles": [
@@ -427,7 +478,7 @@ class ProfileAwareButtonFactory:
         if self.profile in ["standard", "advanced", "gps_focus", "health_focus"]:
             rules.append(
                 {
-                    "class": PawControlLogGardenActivityButton,
+                    "factory": PawControlLogGardenActivityButton,
                     "type": "log_garden_activity",
                     "priority": BUTTON_PRIORITIES["log_garden_activity"],
                     "profiles": ["standard", "advanced", "gps_focus", "health_focus"],
@@ -437,7 +488,7 @@ class ProfileAwareButtonFactory:
         if self.profile in ["advanced", "health_focus"]:
             rules.append(
                 {
-                    "class": PawControlConfirmGardenPoopButton,
+                    "factory": PawControlConfirmGardenPoopButton,
                     "type": "confirm_garden_poop",
                     "priority": BUTTON_PRIORITIES["confirm_garden_poop"],
                     "profiles": ["advanced", "health_focus"],
@@ -446,26 +497,20 @@ class ProfileAwareButtonFactory:
 
         return [rule for rule in rules if self.profile in rule["profiles"]]
 
-    def create_buttons_for_dog(
-        self,
-        dog_id: str,
-        dog_name: str,
-        modules: Mapping[str, Any] | DogModulesProjection,
-    ) -> list[PawControlButtonBase]:
-        """Create profile-optimized buttons for a dog with improved performance.
+    def create_buttons_for_dog(self, dog: DogConfigData) -> list[PawControlButtonBase]:
+        """Create profile-optimized buttons for ``dog`` with strict typing."""
 
-        Args:
-            dog_id: Dog identifier
-            dog_name: Dog name
-            modules: Enabled modules
+        dog_id = dog[DOG_ID_FIELD]
+        dog_name = dog[DOG_NAME_FIELD]
 
-        Returns:
-            List of button entities (limited by profile)
-        """
-        modules_mapping = ensure_dog_modules_mapping(modules)
+        modules_payload = dog.get(DOG_MODULES_FIELD)
+        if isinstance(modules_payload, Mapping):
+            modules_mapping = ensure_dog_modules_mapping(modules_payload)
+        else:
+            modules_mapping = ensure_dog_modules_mapping(dog)
 
         # Create all possible button candidates using pre-calculated rules
-        button_candidates = []
+        button_candidates: list[ButtonCandidate] = []
 
         # Core buttons (always created)
         button_candidates.extend(
@@ -509,13 +554,10 @@ class ProfileAwareButtonFactory:
             module_rules = self._button_rules_cache[module]
             for rule in module_rules:
                 try:
-                    button_class = rule["class"]
-                    args = rule.get("args", [])
+                    button_class = rule["factory"]
+                    args = tuple(rule.get("args", ()))
 
-                    if args:
-                        button = button_class(self.coordinator, dog_id, dog_name, *args)
-                    else:
-                        button = button_class(self.coordinator, dog_id, dog_name)
+                    button = button_class(self.coordinator, dog_id, dog_name, *args)
 
                     button_candidates.append(
                         {
@@ -577,16 +619,35 @@ async def async_setup_entry(
         _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
         return
     coordinator = runtime_data.coordinator
-    dogs = runtime_data.dogs
+    raw_dogs = getattr(runtime_data, "dogs", [])
+    dog_configs: list[DogConfigData] = []
+    for dog in raw_dogs:
+        if isinstance(dog, Mapping):
+            normalised = ensure_dog_config_data(dog)
+        elif isinstance(dog, DogConfigData):
+            normalised = dog
+        else:
+            continue
 
-    if not dogs:
+        if normalised is None:
+            continue
+
+        modules_payload = normalised.get(DOG_MODULES_FIELD)
+        if isinstance(modules_payload, Mapping):
+            normalised[DOG_MODULES_FIELD] = ensure_dog_modules_config(modules_payload)
+
+        dog_configs.append(normalised)
+
+    if not dog_configs:
         _LOGGER.warning("No dogs configured for button platform")
         return
 
     # Get profile from runtime data (consistent with other platforms)
     profile = runtime_data.entity_profile
 
-    _LOGGER.info("Setting up buttons with profile '%s' for %d dogs", profile, len(dogs))
+    _LOGGER.info(
+        "Setting up buttons with profile '%s' for %d dogs", profile, len(dog_configs)
+    )
 
     # Initialize profile-aware factory
     button_factory = ProfileAwareButtonFactory(coordinator, profile)
@@ -595,12 +656,11 @@ async def async_setup_entry(
     all_entities: list[PawControlButtonBase] = []
     total_buttons_created = 0
 
-    for dog in dogs:
-        dog_id = dog[CONF_DOG_ID]
-        dog_name = dog[CONF_DOG_NAME]
+    for dog in dog_configs:
+        dog_id = dog[DOG_ID_FIELD]
+        dog_name = dog[DOG_NAME_FIELD]
 
-        # Create profile-optimized buttons
-        dog_buttons = button_factory.create_buttons_for_dog(dog_id, dog_name, dog)
+        dog_buttons = button_factory.create_buttons_for_dog(dog)
         all_entities.extend(dog_buttons)
         total_buttons_created += len(dog_buttons)
 
@@ -644,23 +704,23 @@ async def async_setup_entry(
         _LOGGER.info(
             "Created %d button entities for %d dogs (profile-based batching)",
             total_buttons_created,
-            len(dogs),
+            len(dog_configs),
         )
 
     # Log profile statistics
     max_possible = PROFILE_BUTTON_LIMITS.get(profile, 6)
     efficiency = (
-        (max_possible * len(dogs) - total_buttons_created)
-        / (max_possible * len(dogs))
+        (max_possible * len(dog_configs) - total_buttons_created)
+        / (max_possible * len(dog_configs))
         * 100
-        if max_possible * len(dogs) > 0
+        if max_possible * len(dog_configs) > 0
         else 0
     )
 
     _LOGGER.info(
         "Profile '%s': avg %.1f buttons/dog (max %d) - %.1f%% entity reduction efficiency",
         profile,
-        total_buttons_created / len(dogs),
+        total_buttons_created / len(dog_configs),
         max_possible,
         efficiency,
     )
@@ -775,20 +835,23 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
 
     def _ensure_patchable_services(
         self,
-    ) -> ServiceRegistry | _ServiceRegistryProxy | None:
+    ) -> ServiceRegistryLike | None:
         """Return a service registry object that supports attribute patching."""
 
         if self.hass is None:
-            return getattr(HomeAssistant, "services", None)
+            services = getattr(HomeAssistant, "services", None)
+            if isinstance(services, ServiceRegistryLike):
+                return services
+            return None
 
         proxy = _prepare_service_proxy(self.hass)
         if proxy is not None:
             return proxy
 
-        return cast(
-            ServiceRegistry | _ServiceRegistryProxy | None,
-            getattr(self.hass, "services", None),
-        )
+        services = getattr(self.hass, "services", None)
+        if isinstance(services, ServiceRegistryLike):
+            return services
+        return None
 
     async def _async_service_call(
         self, domain: str, service: str, data: dict[str, Any], **kwargs: Any

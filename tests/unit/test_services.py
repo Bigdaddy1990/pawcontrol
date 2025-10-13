@@ -116,17 +116,22 @@ class _DummyDataManager:
     def __init__(
         self,
         payload: dict[str, dict[str, object]],
-        summary: dict[str, object] | None = None,
+        summary: CacheRepairAggregate | Mapping[str, object] | None = None,
     ) -> None:
         self._payload = payload
-        self._summary = summary
+        if isinstance(summary, CacheRepairAggregate):
+            self._summary: CacheRepairAggregate | None = summary
+        elif isinstance(summary, Mapping):
+            self._summary = CacheRepairAggregate.from_mapping(summary)
+        else:
+            self._summary = None
 
     def cache_snapshots(self) -> dict[str, dict[str, object]]:
         return self._payload
 
     def cache_repair_summary(
         self, snapshots: dict[str, object] | None = None
-    ) -> dict[str, object] | None:
+    ) -> CacheRepairAggregate | None:
         if snapshots is not None:
             self._last_snapshots = snapshots
             normalised: dict[str, object] = {}
