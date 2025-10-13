@@ -188,6 +188,7 @@ class BaseCardGenerator:
                         validation_result = _unwrap_async_result(
                             result,
                             context=f"Entity validation error for {entity_id}",
+                            logger=_LOGGER,
                             level=logging.DEBUG,
                         )
                         cached_results[entity_id] = bool(validation_result)
@@ -624,6 +625,7 @@ class DogCardGenerator(BaseCardGenerator):
                 card_payloads = _unwrap_async_result(
                     result,
                     context=f"Card generation failed for {card_type}",
+                    logger=_LOGGER,
                 )
                 if card_payloads is None:
                     self._performance_stats["errors_handled"] += 1
@@ -849,6 +851,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                 card_payload = _unwrap_async_result(
                     result,
                     context=f"Health feeding card {card_type} generation failed",
+                    logger=_LOGGER,
                 )
                 if card_payload is None:
                     self._performance_stats["errors_handled"] += 1
@@ -1131,6 +1134,7 @@ class ModuleCardGenerator(BaseCardGenerator):
                 health_overview_cards = _unwrap_async_result(
                     overview_result,
                     context="Health overview generation failed",
+                    logger=_LOGGER,
                 )
                 if health_overview_cards is None:
                     self._performance_stats["errors_handled"] += 1
@@ -1140,6 +1144,7 @@ class ModuleCardGenerator(BaseCardGenerator):
                 health_control_cards = _unwrap_async_result(
                     controls_result,
                     context="Health controls generation failed",
+                    logger=_LOGGER,
                 )
                 if health_control_cards is None:
                     self._performance_stats["errors_handled"] += 1
@@ -1372,6 +1377,7 @@ class ModuleCardGenerator(BaseCardGenerator):
             _unwrap_async_result(
                 metrics_result,
                 context="Health metrics validation failed",
+                logger=_LOGGER,
                 level=logging.DEBUG,
             )
             or []
@@ -1381,6 +1387,7 @@ class ModuleCardGenerator(BaseCardGenerator):
             _unwrap_async_result(
                 dates_result,
                 context="Health schedule validation failed",
+                logger=_LOGGER,
                 level=logging.DEBUG,
             )
             or []
@@ -1389,6 +1396,7 @@ class ModuleCardGenerator(BaseCardGenerator):
         weight_check = _unwrap_async_result(
             weight_result,
             context="Weight entity validation failed",
+            logger=_LOGGER,
             level=logging.DEBUG,
         )
         weight_exists = bool(weight_check)
@@ -1563,6 +1571,7 @@ class ModuleCardGenerator(BaseCardGenerator):
             _unwrap_async_result(
                 gps_result,
                 context="GPS status validation failed",
+                logger=_LOGGER,
                 level=logging.DEBUG,
             )
             or []
@@ -1572,6 +1581,7 @@ class ModuleCardGenerator(BaseCardGenerator):
             _unwrap_async_result(
                 geofence_result,
                 context="Geofence validation failed",
+                logger=_LOGGER,
                 level=logging.DEBUG,
             )
             or []
@@ -1781,6 +1791,7 @@ class WeatherCardGenerator(BaseCardGenerator):
                 card_payload = _unwrap_async_result(
                     result,
                     context=f"Weather card {card_type} generation failed for {dog_name}",
+                    logger=_LOGGER,
                 )
                 if card_payload is None:
                     self._performance_stats["errors_handled"] += 1
@@ -2332,6 +2343,7 @@ class StatisticsCardGenerator(BaseCardGenerator):
                 card_payload = _unwrap_async_result(
                     result,
                     context=f"Statistics card {stats_type} generation failed",
+                    logger=_LOGGER,
                 )
                 if card_payload is None:
                     self._performance_stats["errors_handled"] += 1
@@ -2498,6 +2510,7 @@ def _unwrap_async_result[T](
     result: T | BaseException,
     *,
     context: str,
+    logger: logging.Logger = _LOGGER,
     level: int = logging.WARNING,
     suppress_cancelled: bool = False,
 ) -> T | None:
@@ -2506,7 +2519,7 @@ def _unwrap_async_result[T](
     return unwrap_async_result(
         result,
         context=context,
-        logger=_LOGGER,
+        logger=logger,
         level=level,
         suppress_cancelled=suppress_cancelled,
     )
