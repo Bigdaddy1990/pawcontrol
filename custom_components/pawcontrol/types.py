@@ -42,6 +42,10 @@ from .const import (
     CONF_FOOD_TYPE,
     CONF_LUNCH_TIME,
     CONF_MEALS_PER_DAY,
+    CONF_QUIET_END,
+    CONF_QUIET_HOURS,
+    CONF_QUIET_START,
+    CONF_REMINDER_REPEAT_MIN,
 )
 
 try:
@@ -621,6 +625,80 @@ class NotificationOptions(TypedDict, total=False):
     mobile_notifications: bool
 
 
+def ensure_notification_options(
+    value: Mapping[str, Any],
+    /,
+    *,
+    defaults: Mapping[str, Any] | None = None,
+) -> NotificationOptions:
+    """Normalise a mapping into :class:`NotificationOptions`.
+
+    The options flow historically stored quiet-hour fields as loose mappings that
+    could drift to strings or numbers. This helper coerces supported values,
+    clamps reminder intervals to the selector range, and overlays optional
+    defaults so downstream callers always receive a typed payload.
+    """
+
+    options: NotificationOptions = {}
+
+    def _coerce_bool(candidate: Any) -> bool | None:
+        if isinstance(candidate, bool):
+            return candidate
+        if isinstance(candidate, int | float):
+            return bool(candidate)
+        if isinstance(candidate, str):
+            lowered = candidate.strip().lower()
+            if lowered in {"true", "yes", "on", "1"}:
+                return True
+            if lowered in {"false", "no", "off", "0"}:
+                return False
+        return None
+
+    def _coerce_time(candidate: Any) -> str | None:
+        if isinstance(candidate, str):
+            trimmed = candidate.strip()
+            if trimmed:
+                return trimmed
+        return None
+
+    def _coerce_interval(candidate: Any) -> int | None:
+        working = candidate
+        if isinstance(working, str):
+            working = working.strip()
+            if not working:
+                return None
+            try:
+                working = int(working)
+            except ValueError:
+                return None
+        if isinstance(working, int | float):
+            interval = int(working)
+            interval = max(5, min(180, interval))
+            return interval
+        return None
+
+    def _apply(
+        key: str,
+        converter: Callable[[Any], Any | None],
+    ) -> None:
+        if defaults is not None:
+            default_value = converter(defaults.get(key))
+            if default_value is not None:
+                options[key] = default_value
+        override = converter(value.get(key))
+        if override is not None:
+            options[key] = override
+
+    _apply(CONF_QUIET_HOURS, _coerce_bool)
+    _apply(CONF_QUIET_START, _coerce_time)
+    _apply(CONF_QUIET_END, _coerce_time)
+    _apply(CONF_REMINDER_REPEAT_MIN, _coerce_interval)
+    _apply("priority_notifications", _coerce_bool)
+    _apply("mobile_notifications", _coerce_bool)
+
+    return options
+
+
 class WeatherOptions(TypedDict, total=False):
     """Typed weather monitoring preferences stored in config entry options."""
 
@@ -1184,6 +1262,7 @@ class CacheDiagnosticsSnapshot(Mapping[str, Any]):
     diagnostics: CacheDiagnosticsMetadata | None = None
     snapshot: dict[str, Any] | None = None
     error: str | None = None
+    repair_summary: CacheRepairAggregate | None = None
 
     def to_mapping(self) -> dict[str, Any]:
         """Return a mapping representation for downstream consumers."""
@@ -1197,6 +1276,8 @@ class CacheDiagnosticsSnapshot(Mapping[str, Any]):
             payload["snapshot"] = dict(self.snapshot)
         if self.error is not None:
             payload["error"] = self.error
+        if isinstance(self.repair_summary, CacheRepairAggregate):
+            payload["repair_summary"] = self.repair_summary.to_mapping()
         return payload
 
     @classmethod
@@ -1207,6 +1288,21 @@ class CacheDiagnosticsSnapshot(Mapping[str, Any]):
         diagnostics = payload.get("diagnostics")
         snapshot = payload.get("snapshot")
         error = payload.get("error")
+        repair_summary_payload = payload.get("repair_summary")
+
+        repair_summary: CacheRepairAggregate | None
+        if isinstance(repair_summary_payload, CacheRepairAggregate):
+            repair_summary = repair_summary_payload
+        elif isinstance(repair_summary_payload, Mapping):
+            try:
+                repair_summary = CacheRepairAggregate.from_mapping(
+                    repair_summary_payload
+                )
+            except Exception:  # pragma: no cover - defensive fallback
+                repair_summary = None
+        else:
+            repair_summary = None
+
         return cls(
             stats=dict(stats) if isinstance(stats, Mapping) else None,
             diagnostics=cast(
@@ -1219,6 +1315,7 @@ class CacheDiagnosticsSnapshot(Mapping[str, Any]):
             ),
             snapshot=dict(snapshot) if isinstance(snapshot, Mapping) else None,
             error=cast(str | None, error if isinstance(error, str) else None),
+            repair_summary=repair_summary,
         )
 
     def __getitem__(self, key: str) -> Any:

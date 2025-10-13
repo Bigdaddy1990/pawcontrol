@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import logging
+import sys
 from collections import deque
 from collections.abc import Mapping
 from collections.abc import Mapping as TypingMapping
 from dataclasses import dataclass, field
 from datetime import timedelta
-from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 from .const import (
     ALL_MODULES,
@@ -123,25 +124,25 @@ def _build_repair_telemetry(
     return telemetry
 
 
-def coerce_cache_repair_summary(
-    summary: CacheRepairAggregate | Mapping[str, Any] | None,
-    *,
-    logger: logging.Logger | None = None,
+def ensure_cache_repair_aggregate(
+    summary: Any,
 ) -> CacheRepairAggregate | None:
-    """Return ``summary`` as a :class:`CacheRepairAggregate` when possible."""
-
-    if logger is not None:
-        # Logger retained for backward compatibility; no additional output.
-        pass
+    """Return ``summary`` when it matches the active dataclass implementation."""
 
     if summary is None:
         return None
 
-    if isinstance(summary, CacheRepairAggregate):
-        return summary
+    types_module = sys.modules.get("custom_components.pawcontrol.types")
+    aggregate_cls = getattr(types_module, "CacheRepairAggregate", CacheRepairAggregate)
 
-    if isinstance(summary, Mapping):
-        return CacheRepairAggregate.from_mapping(summary)
+    candidate_classes: list[type[CacheRepairAggregate]] = []
+    if isinstance(aggregate_cls, type):
+        candidate_classes.append(aggregate_cls)
+    candidate_classes.append(CacheRepairAggregate)
+
+    for candidate in dict.fromkeys(candidate_classes):
+        if isinstance(summary, candidate):
+            return cast(CacheRepairAggregate, summary)
 
     return None
 

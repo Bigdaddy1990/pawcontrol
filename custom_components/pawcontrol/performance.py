@@ -11,11 +11,8 @@ from typing import TYPE_CHECKING, Any, Literal
 
 from homeassistant.util import dt as dt_util
 
-from .types import (
-    CacheDiagnosticsMap,
-    CacheDiagnosticsSnapshot,
-    CacheRepairAggregate,
-)
+from .coordinator_support import ensure_cache_repair_aggregate
+from .types import CacheDiagnosticsMap, CacheDiagnosticsSnapshot
 
 if TYPE_CHECKING:
     from .types import (
@@ -156,10 +153,9 @@ def capture_cache_diagnostics(
         except Exception as err:  # pragma: no cover - diagnostics guard
             _LOGGER.debug("Skipping cache repair summary capture: %s", err)
         else:
-            if isinstance(summary, CacheRepairAggregate):
-                capture["repair_summary"] = summary
-            elif isinstance(summary, Mapping):
-                capture["repair_summary"] = CacheRepairAggregate.from_mapping(summary)
+            resolved_summary = ensure_cache_repair_aggregate(summary)
+            if resolved_summary is not None:
+                capture["repair_summary"] = resolved_summary
 
     return capture
 

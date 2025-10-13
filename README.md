@@ -416,6 +416,7 @@ PawControl automatically creates beautiful, responsive dashboards optimized for 
 - **🎯 Quick Action Buttons**: One-tap feeding, walks, health logging
 - **⚠️ Alert Panel**: Important notifications and overdue reminders
 - **📱 Mobile Optimization**: Touch-friendly interface for smartphones
+- **🔔 Notifications View**: Channel health, quiet hours, and priority tuning in one place
 
 ### Dashboard Components
 
@@ -442,6 +443,13 @@ Walk Actions: [Start Walk] [End Walk] [Log Activity]
 Feeding Actions: [Mark Fed] [Schedule Meal] [Log Special Diet]
 Health Actions: [Log Weight] [Add Note] [Schedule Vet]
 Emergency: [Send Alert] [Emergency Mode] [Contact Vet]
+```
+
+**Notification Center**:
+```yaml
+Settings Card: switch.{dog_id}_notifications_enabled, select.{dog_id}_notification_priority
+Overview Markdown: sensor.pawcontrol_notifications → per-dog delivery stats
+Action Buttons: [Send Test Notification] [Reset Quiet Hours]
 ```
 
 ## 🔔 Intelligent Notification System

@@ -15,12 +15,12 @@ Python: 3.13+
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 from collections.abc import Mapping, Sequence
 from contextlib import suppress
 from datetime import UTC, datetime
+from types import MappingProxyType
 from typing import Any, ClassVar, Final, Literal, cast
 
 import voluptuous as vol
@@ -80,9 +80,13 @@ from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .exceptions import ValidationError
 from .selector_shim import selector
 from .types import (
+    DOG_AGE_FIELD,
+    DOG_BREED_FIELD,
     DOG_ID_FIELD,
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
+    DOG_SIZE_FIELD,
+    DOG_WEIGHT_FIELD,
     AdvancedOptions,
     DashboardOptions,
     DogConfigData,
@@ -102,6 +106,7 @@ from .types import (
     ensure_dog_modules_config,
     ensure_dog_modules_mapping,
     ensure_dog_options_entry,
+    ensure_notification_options,
     is_dog_config_valid,
 )
 
@@ -120,6 +125,16 @@ QUIET_END_FIELD: Final[Literal["quiet_end"]] = cast(
 )
 REMINDER_REPEAT_MIN_FIELD: Final[Literal["reminder_repeat_min"]] = cast(
     Literal["reminder_repeat_min"], CONF_REMINDER_REPEAT_MIN
+)
+_NOTIFICATION_DEFAULTS: Final[Mapping[str, Any]] = MappingProxyType(
+    {
+        CONF_QUIET_HOURS: True,
+        CONF_QUIET_START: "22:00:00",
+        CONF_QUIET_END: "07:00:00",
+        CONF_REMINDER_REPEAT_MIN: DEFAULT_REMINDER_REPEAT_MIN,
+        "priority_notifications": True,
+        "mobile_notifications": True,
+    }
 )
 EXTERNAL_INTEGRATIONS_FIELD: Final[Literal["external_integrations"]] = cast(
     Literal["external_integrations"], CONF_EXTERNAL_INTEGRATIONS
@@ -214,6 +229,57 @@ class PawControlOptionsFlow(OptionsFlow):
         """Return a shallow copy of the current options for mutation."""
 
         return cast(PawControlOptionsData, dict(self._entry.options))
+
+    def _normalise_options_snapshot(
+        self, options: Mapping[str, Any]
+    ) -> PawControlOptionsData:
+        """Return a typed options mapping with notifications and dog entries coerced."""
+
+        snapshot = cast(PawControlOptionsData, dict(options))
+
+        if CONF_NOTIFICATIONS in snapshot:
+            raw_notifications = snapshot.get(CONF_NOTIFICATIONS)
+            notifications_source = (
+                cast(Mapping[str, Any], raw_notifications)
+                if isinstance(raw_notifications, Mapping)
+                else {}
+            )
+            snapshot[CONF_NOTIFICATIONS] = ensure_notification_options(
+                notifications_source,
+                defaults=_NOTIFICATION_DEFAULTS,
+            )
+
+        if "dog_options" in snapshot:
+            raw_dog_options = snapshot.get("dog_options")
+            typed_dog_options: DogOptionsMap = {}
+            if isinstance(raw_dog_options, Mapping):
+                for raw_id, raw_entry in raw_dog_options.items():
+                    dog_id = str(raw_id)
+                    entry_source = (
+                        cast(Mapping[str, Any], raw_entry)
+                        if isinstance(raw_entry, Mapping)
+                        else {}
+                    )
+                    entry = ensure_dog_options_entry(entry_source, dog_id=dog_id)
+                    if dog_id and entry.get(DOG_ID_FIELD) != dog_id:
+                        entry[DOG_ID_FIELD] = dog_id
+                    typed_dog_options[dog_id] = entry
+            snapshot["dog_options"] = typed_dog_options
+
+        return snapshot
+
+    def _normalise_entry_dogs(
+        self, dogs: Sequence[Mapping[str, Any]]
+    ) -> list[DogConfigData]:
+        """Return typed dog configurations for entry persistence."""
+
+        typed_dogs: list[DogConfigData] = []
+        for dog in dogs:
+            normalised = ensure_dog_config_data(dog)
+            if normalised is None:
+                raise ValueError("invalid_dog_config")
+            typed_dogs.append(normalised)
+        return typed_dogs
 
     def _last_reconfigure_timestamp(self) -> str | None:
         """Return the ISO timestamp recorded for the last reconfigure run."""
@@ -357,9 +423,10 @@ class PawControlOptionsFlow(OptionsFlow):
     def _build_export_payload(self) -> OptionsExportPayload:
         """Serialise the current configuration into an export payload."""
 
+        typed_options = self._normalise_options_snapshot(self._clone_options())
         options = cast(
             PawControlOptionsData,
-            self._normalise_export_value(self._clone_options()),
+            self._normalise_export_value(typed_options),
         )
 
         dogs_payload: list[DogConfigData] = []
@@ -409,8 +476,9 @@ class PawControlOptionsFlow(OptionsFlow):
             self._normalise_export_value(dict(options_raw)),
         )
 
-        merged_options = cast(PawControlOptionsData, dict(self._clone_options()))
-        merged_options.update(sanitised_options)
+        merged_candidate: dict[str, Any] = dict(self._clone_options())
+        merged_candidate.update(sanitised_options)
+        merged_options = self._normalise_options_snapshot(merged_candidate)
 
         dogs_raw = payload.get("dogs", [])
         if not isinstance(dogs_raw, list):
@@ -454,9 +522,10 @@ class PawControlOptionsFlow(OptionsFlow):
         """Fetch the stored notification configuration as a typed mapping."""
 
         raw = self._current_options().get(CONF_NOTIFICATIONS, {})
-        if isinstance(raw, Mapping):
-            return cast(NotificationOptions, dict(raw))
-        return cast(NotificationOptions, {})
+        payload: Mapping[str, Any] = (
+            cast(Mapping[str, Any], raw) if isinstance(raw, Mapping) else {}
+        )
+        return ensure_notification_options(payload, defaults=_NOTIFICATION_DEFAULTS)
 
     def _current_weather_options(self) -> WeatherOptions:
         """Return the stored weather configuration with root fallbacks."""
@@ -1161,7 +1230,9 @@ class PawControlOptionsFlow(OptionsFlow):
                     default_lon=default_lon,
                 )
 
-                return self.async_create_entry(title="", data=new_options)
+                typed_options = self._normalise_options_snapshot(new_options)
+
+                return self.async_create_entry(title="", data=typed_options)
 
             except Exception as err:
                 _LOGGER.error("Error updating geofence settings: %s", err)
@@ -1346,12 +1417,14 @@ class PawControlOptionsFlow(OptionsFlow):
                     )
 
                 # Save the profile selection
-                new_options = {**self._entry.options}
-                new_options["entity_profile"] = current_profile
-
+                merged_options = {
+                    **self._entry.options,
+                    "entity_profile": current_profile,
+                }
+                typed_options = self._normalise_options_snapshot(merged_options)
                 self._invalidate_profile_caches()
 
-                return self.async_create_entry(title="", data=new_options)
+                return self.async_create_entry(title="", data=typed_options)
 
             except vol.Invalid as err:
                 _LOGGER.warning("Invalid profile selection in options flow: %s", err)
@@ -1626,10 +1699,11 @@ class PawControlOptionsFlow(OptionsFlow):
 
         if user_input is not None:
             if user_input.get("apply_profile"):
-                new_options = {**self._entry.options}
+                new_options = self._clone_options()
                 new_options["entity_profile"] = profile
+                typed_options = self._normalise_options_snapshot(new_options)
                 self._invalidate_profile_caches()
-                return self.async_create_entry(title="", data=new_options)
+                return self.async_create_entry(title="", data=typed_options)
 
             return await self.async_step_entity_profiles()
 
@@ -1737,7 +1811,9 @@ class PawControlOptionsFlow(OptionsFlow):
                     user_input.get("selective_refresh"), selective_default
                 )
 
-                return self.async_create_entry(title="", data=new_options)
+                typed_options = self._normalise_options_snapshot(new_options)
+
+                return self.async_create_entry(title="", data=typed_options)
 
             except Exception as err:
                 _LOGGER.error("Error updating performance settings: %s", err)
@@ -2004,19 +2080,24 @@ class PawControlOptionsFlow(OptionsFlow):
                 )
 
                 if dog_index >= 0:
-                    updated_dog = cast(
-                        DogConfigData,
-                        {**self._dogs[dog_index], DOG_MODULES_FIELD: modules_payload},
-                    )
-                    self._dogs[dog_index] = updated_dog
-                    self._current_dog = updated_dog
+                    candidate: dict[str, Any] = {
+                        **self._dogs[dog_index],
+                        DOG_MODULES_FIELD: modules_payload,
+                    }
+                    normalised = ensure_dog_config_data(candidate)
+                    if normalised is None:
+                        raise ValueError("invalid_dog_config")
 
-                    new_data = {**self._entry.data}
-                    new_data[CONF_DOGS] = [dict(dog) for dog in self._dogs]
+                    self._dogs[dog_index] = normalised
+                    self._current_dog = normalised
+
+                    typed_dogs = self._normalise_entry_dogs(self._dogs)
+                    new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
 
                     self.hass.config_entries.async_update_entry(
                         self._entry, data=new_data
                     )
+                    self._dogs = typed_dogs
             except Exception as err:
                 _LOGGER.error("Error configuring dog modules: %s", err)
                 return self.async_show_form(
@@ -2150,42 +2231,61 @@ class PawControlOptionsFlow(OptionsFlow):
         """Add a new dog to the configuration."""
         if user_input is not None:
             try:
-                # Create the new dog config
-                new_dog = {
-                    CONF_DOG_ID: user_input[CONF_DOG_ID]
-                    .lower()
-                    .strip()
-                    .replace(" ", "_"),
-                    CONF_DOG_NAME: user_input[CONF_DOG_NAME].strip(),
-                    CONF_DOG_BREED: user_input.get(CONF_DOG_BREED, "").strip()
-                    or "Mixed Breed",
-                    CONF_DOG_AGE: user_input.get(CONF_DOG_AGE, 3),
-                    CONF_DOG_WEIGHT: user_input.get(CONF_DOG_WEIGHT, 20.0),
-                    CONF_DOG_SIZE: user_input.get(CONF_DOG_SIZE, "medium"),
-                    "modules": {
+                dog_id_input = str(user_input[CONF_DOG_ID])
+                dog_id = dog_id_input.strip().lower().replace(" ", "_")
+                dog_name = str(user_input[CONF_DOG_NAME]).strip()
+
+                if not dog_id or not dog_name:
+                    raise ValueError("invalid_dog_identifiers")
+
+                modules_config = ensure_dog_modules_config(
+                    {
                         MODULE_FEEDING: True,
                         MODULE_WALK: True,
                         MODULE_HEALTH: True,
+                        MODULE_GPS: False,
+                        MODULE_GARDEN: False,
                         "notifications": True,
                         "dashboard": True,
-                        MODULE_GPS: False,
                         "visitor": False,
                         "grooming": False,
                         "medication": False,
                         "training": False,
-                    },
-                    "created_at": asyncio.get_running_loop().time(),
+                    }
+                )
+
+                candidate: dict[str, Any] = {
+                    DOG_ID_FIELD: dog_id,
+                    DOG_NAME_FIELD: dog_name,
+                    DOG_MODULES_FIELD: modules_config,
                 }
 
-                # Add to existing dogs
-                current_dogs = list(self._entry.data.get(CONF_DOGS, []))
-                current_dogs.append(new_dog)
+                breed = str(user_input.get(CONF_DOG_BREED, "")).strip()
+                candidate[DOG_BREED_FIELD] = breed or "Mixed Breed"
 
-                # Update the config entry data
-                new_data = {**self._entry.data}
-                new_data[CONF_DOGS] = current_dogs
+                age = user_input.get(CONF_DOG_AGE, 3)
+                candidate[DOG_AGE_FIELD] = int(age)
+
+                weight = user_input.get(CONF_DOG_WEIGHT, 20.0)
+                candidate[DOG_WEIGHT_FIELD] = float(weight)
+
+                size = user_input.get(CONF_DOG_SIZE, "medium")
+                if isinstance(size, str) and size:
+                    candidate[DOG_SIZE_FIELD] = size
+
+                normalised = ensure_dog_config_data(candidate)
+                if normalised is None:
+                    raise ValueError("invalid_dog_config")
+
+                new_dogs: list[DogConfigData] = [*self._dogs, normalised]
+                typed_dogs = self._normalise_entry_dogs(new_dogs)
+                self._dogs = typed_dogs
+                self._current_dog = normalised
+
+                new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
 
                 self.hass.config_entries.async_update_entry(self._entry, data=new_data)
+                self._invalidate_profile_caches()
 
                 return await self.async_step_init()
             except Exception as err:
@@ -2246,6 +2346,38 @@ class PawControlOptionsFlow(OptionsFlow):
             }
         )
 
+    def _get_remove_dog_schema(self, dogs: Sequence[Mapping[str, Any]]) -> vol.Schema:
+        """Build the removal confirmation schema for the provided dog list."""
+
+        dog_options: list[dict[str, str]] = []
+        for dog in dogs:
+            dog_id = dog.get(DOG_ID_FIELD)
+            dog_name = dog.get(DOG_NAME_FIELD)
+            if not isinstance(dog_id, str) or not dog_id:
+                continue
+            label_name = dog_name if isinstance(dog_name, str) and dog_name else dog_id
+            dog_options.append(
+                {
+                    "value": dog_id,
+                    "label": f"{label_name} ({dog_id})",
+                }
+            )
+
+        return vol.Schema(
+            {
+                vol.Required("dog_id"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=dog_options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Required(
+                    "confirm_remove",
+                    default=False,
+                ): selector.BooleanSelector(),
+            }
+        )
+
     async def async_step_select_dog_to_edit(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -2302,30 +2434,66 @@ class PawControlOptionsFlow(OptionsFlow):
 
         if user_input is not None:
             try:
-                # Update the dog in the config entry
-                current_dogs = list(self._entry.data.get(CONF_DOGS, []))
+                target_id = self._current_dog[DOG_ID_FIELD]
                 dog_index = next(
                     (
                         i
-                        for i, dog in enumerate(current_dogs)
-                        if dog.get(CONF_DOG_ID) == self._current_dog.get(CONF_DOG_ID)
+                        for i, dog in enumerate(self._dogs)
+                        if dog[DOG_ID_FIELD] == target_id
                     ),
                     -1,
                 )
 
                 if dog_index >= 0:
-                    # Update the dog with new values
-                    updated_dog = {**current_dogs[dog_index]}
-                    updated_dog.update(user_input)
-                    current_dogs[dog_index] = updated_dog
+                    candidate: dict[str, Any] = dict(self._dogs[dog_index])
 
-                    # Update config entry
-                    new_data = {**self._entry.data}
-                    new_data[CONF_DOGS] = current_dogs
+                    name = user_input.get(
+                        CONF_DOG_NAME, candidate.get(DOG_NAME_FIELD, "")
+                    )
+                    if isinstance(name, str) and name.strip():
+                        candidate[DOG_NAME_FIELD] = name.strip()
+
+                    breed = user_input.get(
+                        CONF_DOG_BREED, candidate.get(DOG_BREED_FIELD, "")
+                    )
+                    if isinstance(breed, str):
+                        candidate[DOG_BREED_FIELD] = breed.strip()
+
+                    age = user_input.get(CONF_DOG_AGE)
+                    if age is None:
+                        candidate.pop(DOG_AGE_FIELD, None)
+                    else:
+                        candidate[DOG_AGE_FIELD] = int(age)
+
+                    weight = user_input.get(CONF_DOG_WEIGHT)
+                    if weight is None:
+                        candidate.pop(DOG_WEIGHT_FIELD, None)
+                    else:
+                        candidate[DOG_WEIGHT_FIELD] = float(weight)
+
+                    size = user_input.get(CONF_DOG_SIZE, candidate.get(DOG_SIZE_FIELD))
+                    if isinstance(size, str):
+                        cleaned_size = size.strip()
+                        if cleaned_size:
+                            candidate[DOG_SIZE_FIELD] = cleaned_size
+                        else:
+                            candidate.pop(DOG_SIZE_FIELD, None)
+
+                    normalised = ensure_dog_config_data(candidate)
+                    if normalised is None:
+                        raise ValueError("invalid_dog_config")
+
+                    self._dogs[dog_index] = normalised
+                    typed_dogs = self._normalise_entry_dogs(self._dogs)
+                    self._dogs = typed_dogs
+                    self._current_dog = normalised
+
+                    new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
 
                     self.hass.config_entries.async_update_entry(
                         self._entry, data=new_data
                     )
+                    self._invalidate_profile_caches()
 
                 return await self.async_step_init()
             except Exception as err:
@@ -2409,12 +2577,25 @@ class PawControlOptionsFlow(OptionsFlow):
                     if dog.get(DOG_ID_FIELD) != selected_dog_id
                 ]
 
+                try:
+                    typed_dogs = self._normalise_entry_dogs(updated_dogs)
+                except ValueError as err:  # pragma: no cover - defensive guard
+                    _LOGGER.error("Invalid dog configuration during removal: %s", err)
+                    return self.async_show_form(
+                        step_id="select_dog_to_remove",
+                        data_schema=self._get_remove_dog_schema(current_dogs),
+                        errors={"base": "dog_remove_failed"},
+                    )
+
                 # Update config entry
-                new_data = {**self._entry.data}
-                new_data[CONF_DOGS] = [dict(dog) for dog in updated_dogs]
+                new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
 
                 self.hass.config_entries.async_update_entry(self._entry, data=new_data)
-                self._dogs = updated_dogs
+                self._dogs = typed_dogs
+                if self._current_dog and (
+                    self._current_dog.get(DOG_ID_FIELD) == selected_dog_id
+                ):
+                    self._current_dog = typed_dogs[0] if typed_dogs else None
 
                 new_options = self._clone_options()
                 dog_options = self._current_dog_options()
@@ -2424,34 +2605,16 @@ class PawControlOptionsFlow(OptionsFlow):
 
                 self._invalidate_profile_caches()
 
-                return self.async_create_entry(title="", data=new_options)
+                typed_options = self._normalise_options_snapshot(new_options)
+
+                return self.async_create_entry(title="", data=typed_options)
 
             return await self.async_step_init()
 
         # Create removal confirmation form
-        dog_options = [
-            {
-                "value": dog.get(DOG_ID_FIELD),
-                "label": f"{dog.get(DOG_NAME_FIELD)} ({dog.get(DOG_ID_FIELD)})",
-            }
-            for dog in current_dogs
-        ]
-
         return self.async_show_form(
             step_id="select_dog_to_remove",
-            data_schema=vol.Schema(
-                {
-                    vol.Required("dog_id"): selector.SelectSelector(
-                        selector.SelectSelectorConfig(
-                            options=dog_options,
-                            mode=selector.SelectSelectorMode.DROPDOWN,
-                        )
-                    ),
-                    vol.Required(
-                        "confirm_remove", default=False
-                    ): selector.BooleanSelector(),
-                }
-            ),
+            data_schema=self._get_remove_dog_schema(current_dogs),
             description_placeholders={
                 "warning": "This will permanently remove the selected dog and all associated data!"
             },
@@ -2543,7 +2706,9 @@ class PawControlOptionsFlow(OptionsFlow):
             new_options[CONF_GPS_ACCURACY_FILTER] = validated_accuracy
             new_options[CONF_GPS_DISTANCE_FILTER] = validated_distance
 
-            return self.async_create_entry(title="", data=new_options)
+            typed_options = self._normalise_options_snapshot(new_options)
+
+            return self.async_create_entry(title="", data=typed_options)
 
         return self.async_show_form(
             step_id="gps_settings", data_schema=self._get_gps_settings_schema()
@@ -2925,8 +3090,11 @@ class PawControlOptionsFlow(OptionsFlow):
                 # Update notification settings
                 current_notifications = self._current_notification_options()
                 new_options = self._clone_options()
-                new_options[CONF_NOTIFICATIONS] = self._build_notification_settings(
+                notification_settings = self._build_notification_settings(
                     user_input, current_notifications
+                )
+                new_options[CONF_NOTIFICATIONS] = ensure_notification_options(
+                    notification_settings, defaults=_NOTIFICATION_DEFAULTS
                 )
 
                 return self.async_create_entry(title="", data=new_options)
@@ -3015,7 +3183,8 @@ class PawControlOptionsFlow(OptionsFlow):
                 new_options["feeding_settings"] = self._build_feeding_settings(
                     user_input, current_feeding
                 )
-                return self.async_create_entry(title="", data=new_options)
+                typed_options = self._normalise_options_snapshot(new_options)
+                return self.async_create_entry(title="", data=typed_options)
             except Exception:
                 return self.async_show_form(
                     step_id="feeding_settings",
@@ -3087,7 +3256,8 @@ class PawControlOptionsFlow(OptionsFlow):
                 new_options["health_settings"] = self._build_health_settings(
                     user_input, current_health
                 )
-                return self.async_create_entry(title="", data=new_options)
+                typed_options = self._normalise_options_snapshot(new_options)
+                return self.async_create_entry(title="", data=typed_options)
             except Exception:
                 return self.async_show_form(
                     step_id="health_settings",
@@ -3159,7 +3329,8 @@ class PawControlOptionsFlow(OptionsFlow):
                 )
                 new_options["system_settings"] = system_settings
                 new_options[CONF_RESET_TIME] = reset_time
-                return self.async_create_entry(title="", data=new_options)
+                typed_options = self._normalise_options_snapshot(new_options)
+                return self.async_create_entry(title="", data=typed_options)
             except Exception:
                 return self.async_show_form(
                     step_id="system_settings",
@@ -3260,7 +3431,8 @@ class PawControlOptionsFlow(OptionsFlow):
                 )
                 new_options["dashboard_settings"] = dashboard_settings
                 new_options[CONF_DASHBOARD_MODE] = dashboard_mode
-                return self.async_create_entry(title="", data=new_options)
+                typed_options = self._normalise_options_snapshot(new_options)
+                return self.async_create_entry(title="", data=typed_options)
             except Exception:
                 return self.async_show_form(
                     step_id="dashboard_settings",
@@ -3365,7 +3537,10 @@ class PawControlOptionsFlow(OptionsFlow):
                     )
                 new_options["advanced_settings"] = advanced_settings
                 new_options.update(advanced_settings)
-                return self.async_create_entry(title="", data=new_options)
+                return self.async_create_entry(
+                    title="",
+                    data=self._normalise_options_snapshot(new_options),
+                )
             except Exception as err:
                 _LOGGER.error("Error saving advanced settings: %s", err)
                 return self.async_show_form(
@@ -3578,9 +3753,8 @@ class PawControlOptionsFlow(OptionsFlow):
                             error_code = "invalid_payload"
                         errors["payload"] = error_code
                     else:
-                        new_options = cast(
-                            PawControlOptionsData,
-                            dict(validated["options"]),
+                        new_options = self._normalise_options_snapshot(
+                            validated["options"]
                         )
                         new_dogs: list[DogConfigData] = []
                         for dog in validated.get("dogs", []):

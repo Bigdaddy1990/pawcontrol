@@ -149,6 +149,11 @@ class TestPawControlIntegrationSetup:
         from custom_components.pawcontrol import async_setup_entry
 
         # Mock all the managers and coordinators
+        captured_feeding_calls: list[list[dict[str, Any]]] = []
+
+        async def _capture_feeding_init(dogs: list[dict[str, Any]]) -> None:
+            captured_feeding_calls.append(dogs)
+
         with (
             patch(
                 "custom_components.pawcontrol.PawControlCoordinator"
@@ -171,7 +176,7 @@ class TestPawControlIntegrationSetup:
             mock_coordinator.return_value.async_start_background_tasks = Mock()
             mock_data_manager.return_value.async_initialize = AsyncMock()
             mock_notification_manager.return_value.async_initialize = AsyncMock()
-            mock_feeding_manager.return_value.async_initialize = AsyncMock()
+            mock_feeding_manager.return_value.async_initialize = _capture_feeding_init
             mock_walk_manager.return_value.async_initialize = AsyncMock()
             mock_entity_factory.return_value.validate_profile = Mock(return_value=True)
 
@@ -187,6 +192,15 @@ class TestPawControlIntegrationSetup:
 
             mock_coordinator.return_value.async_prepare_entry.assert_awaited_once()
             mock_coordinator.return_value.async_config_entry_first_refresh.assert_awaited_once()
+
+            assert len(captured_feeding_calls) == 1
+            typed_dogs = captured_feeding_calls[0]
+            assert isinstance(typed_dogs, list)
+            for dog in typed_dogs:
+                assert isinstance(dog, dict)
+                assert dog[CONF_DOG_ID]
+                assert dog[CONF_DOG_NAME]
+                assert isinstance(dog.get("modules"), dict)
 
             # Verify platform forwarding was initiated
             # Note: We can't easily test platform loading completion in unit tests
@@ -314,6 +328,30 @@ class TestPawControlIntegrationSetup:
             # Test setup failure
             with pytest.raises(ConfigEntryNotReady):
                 await async_setup_entry(hass, entry)
+
+    async def test_async_setup_entry_invalid_dog_configuration(
+        self, hass: HomeAssistant
+    ) -> None:
+        """Dog entries missing required fields should block setup."""
+
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={
+                CONF_DOGS: [
+                    {
+                        CONF_DOG_ID: "buddy",
+                        # dog_name intentionally omitted to trigger validation
+                    }
+                ]
+            },
+            options={},
+        )
+        entry.add_to_hass(hass)
+
+        from custom_components.pawcontrol import async_setup_entry
+
+        with pytest.raises(ConfigEntryNotReady):
+            await async_setup_entry(hass, entry)
 
     async def test_async_unload_entry_success(
         self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]

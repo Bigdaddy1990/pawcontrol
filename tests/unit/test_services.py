@@ -116,15 +116,12 @@ class _DummyDataManager:
     def __init__(
         self,
         payload: dict[str, dict[str, object]],
-        summary: CacheRepairAggregate | Mapping[str, object] | None = None,
+        summary: CacheRepairAggregate | None = None,
     ) -> None:
         self._payload = payload
-        if isinstance(summary, CacheRepairAggregate):
-            self._summary: CacheRepairAggregate | None = summary
-        elif isinstance(summary, Mapping):
-            self._summary = CacheRepairAggregate.from_mapping(summary)
-        else:
-            self._summary = None
+        if summary is not None and not isinstance(summary, CacheRepairAggregate):
+            raise TypeError("summary must be CacheRepairAggregate or None")
+        self._summary = summary
 
     def cache_snapshots(self) -> dict[str, dict[str, object]]:
         return self._payload
@@ -564,7 +561,7 @@ def test_capture_cache_diagnostics_returns_snapshot() -> None:
         }
     }
 
-    summary = {
+    summary_payload = {
         "total_caches": 1,
         "anomaly_count": 0,
         "severity": "info",
@@ -581,6 +578,8 @@ def test_capture_cache_diagnostics_returns_snapshot() -> None:
         },
     }
 
+    summary = CacheRepairAggregate.from_mapping(summary_payload)
+
     runtime_data = SimpleNamespace(data_manager=_DummyDataManager(payload, summary))
 
     diagnostics = services._capture_cache_diagnostics(runtime_data)
@@ -595,7 +594,7 @@ def test_capture_cache_diagnostics_returns_snapshot() -> None:
     summary_obj = diagnostics.get("repair_summary")
     assert summary_obj is not None
     assert hasattr(summary_obj, "to_mapping")
-    assert summary_obj.to_mapping() == summary
+    assert summary_obj.to_mapping() == summary_payload
 
 
 @pytest.mark.unit
@@ -612,7 +611,7 @@ async def test_perform_daily_reset_records_cache_diagnostics(
         }
     }
 
-    summary = {
+    summary_payload = {
         "total_caches": 1,
         "anomaly_count": 0,
         "severity": "info",
@@ -629,6 +628,8 @@ async def test_perform_daily_reset_records_cache_diagnostics(
             "overall_hit_rate": 100.0,
         },
     }
+
+    summary = CacheRepairAggregate.from_mapping(summary_payload)
 
     telemetry = {
         "requested_profile": "advanced",
@@ -674,7 +675,7 @@ async def test_perform_daily_reset_records_cache_diagnostics(
     summary_obj = last_cache_capture.get("repair_summary")
     assert summary_obj is not None
     assert hasattr(summary_obj, "to_mapping")
-    assert summary_obj.to_mapping() == summary
+    assert summary_obj.to_mapping() == summary_payload
     assert runtime_data.performance_stats["reconfigure_summary"]["warning_count"] == 1
     last_result = runtime_data.performance_stats["last_service_result"]
     assert last_result["service"] == SERVICE_DAILY_RESET
@@ -691,7 +692,7 @@ async def test_perform_daily_reset_records_cache_diagnostics(
     summary_obj = cache_capture.get("repair_summary")
     assert summary_obj is not None
     assert hasattr(summary_obj, "to_mapping")
-    assert summary_obj.to_mapping() == summary
+    assert summary_obj.to_mapping() == summary_payload
     metadata = diagnostics.get("metadata")
     assert metadata is not None
     assert metadata["refresh_requested"] is True
@@ -726,7 +727,7 @@ async def test_perform_daily_reset_records_cache_diagnostics(
     repair_summary = cache_metrics.get("repair_summary")
     assert repair_summary is not None
     assert hasattr(repair_summary, "to_mapping")
-    assert repair_summary.to_mapping() == summary
+    assert repair_summary.to_mapping() == summary_payload
     maintenance_metadata = maintenance_last["diagnostics"]["metadata"]
     assert maintenance_metadata["refresh_requested"] is True
     assert maintenance_metadata["reconfigure"]["requested_profile"] == "advanced"
