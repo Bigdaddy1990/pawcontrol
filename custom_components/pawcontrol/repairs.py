@@ -767,24 +767,35 @@ async def _publish_cache_health_issue(hass: HomeAssistant, entry: ConfigEntry) -
         return
 
     try:
-        summary = cast(CacheRepairAggregate | None, summary_method())
+        summary = summary_method()
     except Exception as err:  # pragma: no cover - diagnostics guard
         _LOGGER.debug("Skipping cache health issue publication: %s", err)
         return
 
-    if not summary or summary.get("anomaly_count", 0) == 0:
+    if summary is None:
         delete_issue = getattr(ir, "async_delete_issue", None)
         if callable(delete_issue):
             await delete_issue(hass, DOMAIN, issue_id)
         return
 
-    severity = summary.get("severity", ir.IssueSeverity.WARNING.value)
+    if isinstance(summary, Mapping):
+        summary = CacheRepairAggregate.from_mapping(summary)
+    elif not isinstance(summary, CacheRepairAggregate):
+        return
+
+    if summary.anomaly_count == 0:
+        delete_issue = getattr(ir, "async_delete_issue", None)
+        if callable(delete_issue):
+            await delete_issue(hass, DOMAIN, issue_id)
+        return
+
+    severity = summary.severity or ir.IssueSeverity.WARNING.value
     await async_create_issue(
         hass,
         entry,
         issue_id,
         ISSUE_CACHE_HEALTH_SUMMARY,
-        {"summary": summary},
+        {"summary": summary.to_mapping()},
         severity=severity,
     )
 

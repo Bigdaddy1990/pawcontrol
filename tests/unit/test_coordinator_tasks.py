@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 from custom_components.pawcontrol import coordinator_tasks as tasks
 from custom_components.pawcontrol.coordinator_support import CoordinatorMetrics
+from custom_components.pawcontrol.types import CacheRepairAggregate
 from homeassistant.util import dt as dt_util
 
 
@@ -127,15 +128,15 @@ def _build_coordinator(
 def test_build_update_statistics_includes_repair_summary(monkeypatch) -> None:
     """Coordinator update statistics should surface repair telemetry."""
 
-    summary = {
-        "total_caches": 3,
-        "anomaly_count": 2,
-        "severity": "warning",
-        "generated_at": "2024-01-02T00:00:00+00:00",
-        "issues": [{"cache": "adaptive_cache"}],
-        "caches_with_errors": ["adaptive_cache"],
-        "caches_with_override_flags": ["optimized_cache"],
-    }
+    summary = CacheRepairAggregate(
+        total_caches=3,
+        anomaly_count=2,
+        severity="warning",
+        generated_at="2024-01-02T00:00:00+00:00",
+        issues=[{"cache": "adaptive_cache"}],
+        caches_with_errors=["adaptive_cache"],
+        caches_with_override_flags=["optimized_cache"],
+    )
 
     coordinator = _build_coordinator()
     reconfigure_summary = {

@@ -448,7 +448,10 @@ def dog_modules_projection_from_flow_input(
             user_input.get(flow_flag), default=modules.get(module_key, False)
         )
 
-    config = cast(DogModulesConfig, dict(modules))
+    config: DogModulesConfig = {}
+    for key in MODULE_TOGGLE_KEYS:
+        if key in modules:
+            config[key] = modules[key]
     mapping = _project_modules_mapping(config)
     return DogModulesProjection(config=config, mapping=mapping)
 
@@ -487,7 +490,10 @@ def ensure_dog_modules_projection(
         if value is not None:
             modules[key] = _coerce_bool(value)
 
-    config = cast(DogModulesConfig, dict(modules))
+    config: DogModulesConfig = {}
+    for key in MODULE_TOGGLE_KEYS:
+        if key in modules:
+            config[key] = modules[key]
     mapping = _project_modules_mapping(config)
     return DogModulesProjection(config=config, mapping=mapping)
 
@@ -1760,6 +1766,93 @@ DOG_DISCOVERY_FIELD: Final[Literal["discovery_info"]] = "discovery_info"
 DOG_FEEDING_CONFIG_FIELD: Final[Literal["feeding_config"]] = "feeding_config"
 DOG_HEALTH_CONFIG_FIELD: Final[Literal["health_config"]] = "health_config"
 DOG_GPS_CONFIG_FIELD: Final[Literal["gps_config"]] = "gps_config"
+
+
+def ensure_dog_config_data(data: Mapping[str, Any]) -> DogConfigData | None:
+    """Return a ``DogConfigData`` structure extracted from ``data`` mappings."""
+
+    dog_id = data.get(DOG_ID_FIELD)
+    dog_name = data.get(DOG_NAME_FIELD)
+
+    if not isinstance(dog_id, str) or not dog_id:
+        return None
+    if not isinstance(dog_name, str) or not dog_name:
+        return None
+
+    config: DogConfigData = {
+        DOG_ID_FIELD: dog_id,
+        DOG_NAME_FIELD: dog_name,
+    }
+
+    breed = data.get(DOG_BREED_FIELD)
+    if isinstance(breed, str):
+        config[DOG_BREED_FIELD] = breed
+
+    age = data.get(DOG_AGE_FIELD)
+    if isinstance(age, int):
+        config[DOG_AGE_FIELD] = age
+
+    weight = data.get(DOG_WEIGHT_FIELD)
+    if isinstance(weight, int | float):
+        config[DOG_WEIGHT_FIELD] = float(weight)
+
+    size = data.get(DOG_SIZE_FIELD)
+    if isinstance(size, str):
+        config[DOG_SIZE_FIELD] = size
+
+    modules_payload = data.get(DOG_MODULES_FIELD)
+    if isinstance(modules_payload, Mapping):
+        config[DOG_MODULES_FIELD] = ensure_dog_modules_config(modules_payload)
+
+    discovery_info = data.get(DOG_DISCOVERY_FIELD)
+    if isinstance(discovery_info, Mapping):
+        config[DOG_DISCOVERY_FIELD] = cast(
+            ConfigFlowDiscoveryData,
+            dict(discovery_info),
+        )
+
+    gps_config = data.get(DOG_GPS_CONFIG_FIELD)
+    if isinstance(gps_config, Mapping):
+        config[DOG_GPS_CONFIG_FIELD] = cast(DogGPSConfig, dict(gps_config))
+
+    feeding_config = data.get(DOG_FEEDING_CONFIG_FIELD)
+    if isinstance(feeding_config, Mapping):
+        config[DOG_FEEDING_CONFIG_FIELD] = cast(
+            DogFeedingConfig,
+            dict(feeding_config),
+        )
+
+    health_config = data.get(DOG_HEALTH_CONFIG_FIELD)
+    if isinstance(health_config, Mapping):
+        config[DOG_HEALTH_CONFIG_FIELD] = cast(
+            DogHealthConfig,
+            dict(health_config),
+        )
+
+    return config
+
+
+def ensure_dog_options_entry(
+    value: Mapping[str, Any],
+    /,
+    *,
+    dog_id: str | None = None,
+) -> DogOptionsEntry:
+    """Return a normalised :class:`DogOptionsEntry` built from ``value``."""
+
+    entry: DogOptionsEntry = {}
+
+    raw_dog_id = value.get(DOG_ID_FIELD)
+    if isinstance(raw_dog_id, str) and raw_dog_id:
+        entry["dog_id"] = raw_dog_id
+    elif isinstance(dog_id, str) and dog_id:
+        entry["dog_id"] = dog_id
+
+    modules_payload = value.get(DOG_MODULES_FIELD)
+    if isinstance(modules_payload, Mapping):
+        entry["modules"] = ensure_dog_modules_config(modules_payload)
+
+    return entry
 
 
 class DetectionStatistics(TypedDict):

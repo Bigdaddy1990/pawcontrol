@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Awaitable
 from typing import TYPE_CHECKING, Any, Final, TypeVar
 
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
@@ -31,6 +32,7 @@ from .const import (
     MODULE_HEALTH,
     MODULE_WALK,
 )
+from .dashboard_shared import CardCollection, CardConfig, unwrap_async_result
 
 if TYPE_CHECKING:
     from .dashboard_templates import DashboardTemplates
@@ -44,7 +46,7 @@ CARD_GENERATION_TIMEOUT: Final[float] = 15.0
 VALIDATION_CACHE_SIZE: Final[int] = 200
 
 # OPTIMIZED: Type definitions for better performance
-CardConfigType = dict[str, Any]
+CardConfigType = CardConfig
 EntityListType = list[str]
 ModulesConfigType = dict[str, bool]
 DogConfigType = dict[str, Any]
@@ -85,6 +87,14 @@ class BaseCardGenerator:
             "generation_time_total": 0.0,
             "errors_handled": 0,
         }
+
+    async def _collect_single_card(
+        self, card_coro: Awaitable[CardConfigType | None]
+    ) -> CardCollection:
+        """Resolve ``card_coro`` and wrap the payload in a list for gather usage."""
+
+        card = await card_coro
+        return [card] if card is not None else []
 
     async def _validate_entities_batch(
         self, entities: EntityListType, use_cache: bool = True
@@ -513,61 +523,90 @@ class DogCardGenerator(BaseCardGenerator):
         cards: list[CardConfigType] = []
 
         # OPTIMIZED: Generate cards in parallel for better performance
-        card_tasks = []
+        card_tasks: list[tuple[str, asyncio.Task[CardCollection]]] = []
 
         # Dog header card
         card_tasks.append(
-            ("header", self._generate_dog_header_card(dog_config, options))
+            (
+                "header",
+                asyncio.create_task(
+                    self._collect_single_card(
+                        self._generate_dog_header_card(dog_config, options)
+                    )
+                ),
+            )
         )
 
         # Status card
         card_tasks.append(
             (
                 "status",
-                self.templates.get_dog_status_card_template(dog_id, dog_name, modules),
+                asyncio.create_task(
+                    self._collect_single_card(
+                        self.templates.get_dog_status_card_template(
+                            dog_id, dog_name, modules
+                        )
+                    )
+                ),
             )
         )
 
         # Action buttons
         card_tasks.append(
-            ("actions", self.templates.get_action_buttons_template(dog_id, modules))
+            (
+                "actions",
+                asyncio.create_task(
+                    self._collect_action_buttons(dog_id, modules)
+                ),
+            )
         )
 
         # Conditional cards
         if modules.get(MODULE_GPS):
-            card_tasks.append(("gps_map", self._generate_gps_map_card(dog_id, options)))
+            card_tasks.append(
+                (
+                    "gps_map",
+                    asyncio.create_task(
+                        self._collect_single_card(
+                            self._generate_gps_map_card(dog_id, options)
+                        )
+                    ),
+                )
+            )
 
         if options.get("show_activity_graph", True):
             card_tasks.append(
-                ("activity", self._generate_activity_graph_card(dog_config, options))
+                (
+                    "activity",
+                    asyncio.create_task(
+                        self._collect_single_card(
+                            self._generate_activity_graph_card(dog_config, options)
+                        )
+                    ),
+                )
             )
 
         # OPTIMIZED: Execute card generation concurrently with timeout
         try:
             results = await asyncio.wait_for(
-                asyncio.gather(
-                    *(task for _, task in card_tasks), return_exceptions=True
-                ),
+                asyncio.gather(*(task for _, task in card_tasks), return_exceptions=True),
                 timeout=CARD_GENERATION_TIMEOUT,
             )
 
             # Process results in order
             for (card_type, _), result in zip(card_tasks, results, strict=False):
-                card_payload = _unwrap_async_result(
+                card_payloads = _unwrap_async_result(
                     result,
                     context=f"Card generation failed for {card_type}",
                 )
-                if card_payload is None:
+                if card_payloads is None:
                     self._performance_stats["errors_handled"] += 1
                     continue
-                if card_type == "actions":
-                    # Special handling for action buttons
-                    action_cards = self._build_action_button_cards(card_payload)
-                    cards.extend(action_cards)
-                else:
-                    cards.append(card_payload)
+                cards.extend(card_payloads)
 
         except TimeoutError:
+            for _, task in card_tasks:
+                task.cancel()
             _LOGGER.error("Dog overview card generation timeout for %s", dog_name)
             self._performance_stats["errors_handled"] += 1
             # Return minimal cards on timeout
@@ -587,6 +626,14 @@ class DogCardGenerator(BaseCardGenerator):
             )
 
         return cards
+
+    async def _collect_action_buttons(
+        self, dog_id: str, modules: ModulesConfigType
+    ) -> CardCollection:
+        """Return rendered action buttons for gather pipelines."""
+
+        buttons = await self.templates.get_action_buttons_template(dog_id, modules)
+        return self._build_action_button_cards(buttons)
 
     def _build_action_button_cards(
         self, action_buttons: list[CardConfigType] | None
@@ -725,21 +772,46 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
         dog_name = dog_config[CONF_DOG_NAME]
 
         # OPTIMIZED: Generate all cards concurrently
-        card_generators = [
+        card_generators: list[tuple[str, asyncio.Task[CardCollection]]] = [
             (
                 "health_status",
-                self._generate_health_feeding_status_card(dog_id, dog_name, options),
+                asyncio.create_task(
+                    self._collect_single_card(
+                        self._generate_health_feeding_status_card(
+                            dog_id, dog_name, options
+                        )
+                    )
+                ),
             ),
-            ("calorie", self._generate_calorie_tracking_card(dog_id, options)),
-            ("weight", self._generate_weight_management_card(dog_id, options)),
-            ("portion", self._generate_portion_calculator_card(dog_id, options)),
+            (
+                "calorie",
+                asyncio.create_task(
+                    self._collect_single_card(
+                        self._generate_calorie_tracking_card(dog_id, options)
+                    )
+                ),
+            ),
+            (
+                "weight",
+                asyncio.create_task(
+                    self._collect_single_card(
+                        self._generate_weight_management_card(dog_id, options)
+                    )
+                ),
+            ),
+            (
+                "portion",
+                asyncio.create_task(
+                    self._collect_single_card(
+                        self._generate_portion_calculator_card(dog_id, options)
+                    )
+                ),
+            ),
         ]
 
         try:
             results = await asyncio.wait_for(
-                asyncio.gather(
-                    *(task for _, task in card_generators), return_exceptions=True
-                ),
+                asyncio.gather(*(task for _, task in card_generators), return_exceptions=True),
                 timeout=CARD_GENERATION_TIMEOUT,
             )
 
@@ -752,11 +824,13 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                 if card_payload is None:
                     self._performance_stats["errors_handled"] += 1
                     continue
-                cards.append(card_payload)
+                cards.extend(card_payload)
 
             return cards
 
         except TimeoutError:
+            for _, task in card_generators:
+                task.cancel()
             _LOGGER.error("Health feeding overview generation timeout for %s", dog_name)
             self._performance_stats["errors_handled"] += 1
             return []
@@ -1011,11 +1085,11 @@ class ModuleCardGenerator(BaseCardGenerator):
             )
 
             # OPTIMIZED: Generate health cards concurrently
-            health_overview_task = health_generator.generate_health_feeding_overview(
-                dog_config, options
+            health_overview_task = asyncio.create_task(
+                health_generator.generate_health_feeding_overview(dog_config, options)
             )
-            health_controls_task = health_generator.generate_health_feeding_controls(
-                dog_config, options
+            health_controls_task = asyncio.create_task(
+                health_generator.generate_health_feeding_controls(dog_config, options)
             )
 
             try:
@@ -1026,15 +1100,21 @@ class ModuleCardGenerator(BaseCardGenerator):
                 )
 
                 health_overview_cards = _unwrap_async_result(
-                    overview_result, context="Health overview generation failed"
+                    overview_result,
+                    context="Health overview generation failed",
                 )
-                if health_overview_cards is not None:
+                if health_overview_cards is None:
+                    self._performance_stats["errors_handled"] += 1
+                else:
                     cards.extend(health_overview_cards)
 
                 health_control_cards = _unwrap_async_result(
-                    controls_result, context="Health controls generation failed"
+                    controls_result,
+                    context="Health controls generation failed",
                 )
-                if health_control_cards is not None:
+                if health_control_cards is None:
+                    self._performance_stats["errors_handled"] += 1
+                else:
                     cards.extend(health_control_cards)
 
             except Exception as err:
@@ -1264,16 +1344,23 @@ class ModuleCardGenerator(BaseCardGenerator):
             context="Health metrics validation failed",
             level=logging.DEBUG,
         )
+        if not isinstance(valid_metrics, list):
+            valid_metrics = []
+
         valid_dates = _unwrap_async_result(
             dates_result,
             context="Health schedule validation failed",
             level=logging.DEBUG,
         )
-        weight_exists = _unwrap_async_result(
+        if not isinstance(valid_dates, list):
+            valid_dates = []
+
+        weight_check = _unwrap_async_result(
             weight_result,
             context="Weight entity validation failed",
             level=logging.DEBUG,
         )
+        weight_exists = bool(weight_check)
 
         # Process results with error handling
         if valid_metrics:
@@ -1395,15 +1482,20 @@ class ModuleCardGenerator(BaseCardGenerator):
             gps_valid_task, geofence_valid_task, return_exceptions=True
         )
 
-        valid_gps = _unwrap_async_result(
+        valid_gps_payload = _unwrap_async_result(
             gps_result,
             context="GPS status validation failed",
             level=logging.DEBUG,
         )
-        valid_geofence = _unwrap_async_result(
+        valid_gps = valid_gps_payload if isinstance(valid_gps_payload, list) else []
+
+        valid_geofence_payload = _unwrap_async_result(
             geofence_result,
             context="Geofence validation failed",
             level=logging.DEBUG,
+        )
+        valid_geofence = (
+            valid_geofence_payload if isinstance(valid_geofence_payload, list) else []
         )
 
         # Build cards based on validation results
@@ -2262,15 +2354,20 @@ def get_global_performance_stats() -> dict[str, Any]:
     }
 
 
+
 def _unwrap_async_result[T](
-    result: T | Exception,
+    result: T | BaseException,
     *,
     context: str,
     level: int = logging.WARNING,
+    suppress_cancelled: bool = False,
 ) -> T | None:
-    """Return ``result`` when successful, logging and returning ``None`` otherwise."""
+    """Wrap :func:`unwrap_async_result` with module logging defaults."""
 
-    if isinstance(result, Exception):
-        _LOGGER.log(level, "%s: %s", context, result)
-        return None
-    return result
+    return unwrap_async_result(
+        result,
+        context=context,
+        logger=_LOGGER,
+        level=level,
+        suppress_cancelled=suppress_cancelled,
+    )

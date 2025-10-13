@@ -13,6 +13,8 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+from collections.abc import Awaitable
+from functools import partial
 from pathlib import Path
 from typing import Any, Final
 
@@ -25,6 +27,7 @@ from homeassistant.util import slugify
 from .compat import ConfigEntry, HomeAssistantError
 from .const import CONF_DOG_ID, CONF_DOG_NAME, DOMAIN, MODULE_WEATHER
 from .dashboard_renderer import DashboardRenderer
+from .dashboard_shared import unwrap_async_result
 from .dashboard_templates import DashboardTemplates
 
 _LOGGER = logging.getLogger(__name__)
@@ -161,13 +164,23 @@ class PawControlDashboardGenerator:
 
     async def _cleanup_failed_initialization(self) -> None:
         """Cleanup resources after failed initialization."""
-        cleanup_tasks = []
+        cleanup_jobs: list[tuple[str, Awaitable[Any]]] = []
 
         if hasattr(self, "_renderer"):
-            cleanup_tasks.append(self._renderer.cleanup())
+            cleanup_jobs.append(("renderer cleanup", self._renderer.cleanup()))
 
-        if cleanup_tasks:
-            await asyncio.gather(*cleanup_tasks, return_exceptions=True)
+        if cleanup_jobs:
+            results = await asyncio.gather(
+                *(job for _, job in cleanup_jobs),
+                return_exceptions=True,
+            )
+            for (label, _), result in zip(cleanup_jobs, results, strict=False):
+                _unwrap_async_result(
+                    result,
+                    context=f"Failed during {label}",
+                    level=logging.DEBUG,
+                    suppress_cancelled=True,
+                )
 
     async def async_create_dashboard(
         self,
@@ -684,24 +697,47 @@ class PawControlDashboardGenerator:
 
         # Wait for cancellation
         if self._cleanup_tasks:
-            await asyncio.gather(*self._cleanup_tasks, return_exceptions=True)
+            cancellation_results = await asyncio.gather(
+                *self._cleanup_tasks,
+                return_exceptions=True,
+            )
+            for result in cancellation_results:
+                _unwrap_async_result(
+                    result,
+                    context="Cleanup task finalisation",
+                    level=logging.DEBUG,
+                    suppress_cancelled=True,
+                )
             self._cleanup_tasks.clear()
 
         async with self._lock:
             # OPTIMIZED: Concurrent file cleanup
-            cleanup_tasks = []
+            cleanup_jobs: list[tuple[str, Awaitable[Any]]] = []
             for dashboard_info in self._dashboards.values():
                 try:
                     dashboard_path = Path(dashboard_info["path"])
-                    cleanup_tasks.append(
-                        asyncio.to_thread(dashboard_path.unlink, missing_ok=True)
+                    cleanup_jobs.append(
+                        (
+                            str(dashboard_path),
+                            asyncio.to_thread(dashboard_path.unlink, missing_ok=True),
+                        )
                     )
                 except Exception as err:
                     _LOGGER.warning("Error preparing dashboard cleanup: %s", err)
 
             # Execute cleanup concurrently
-            if cleanup_tasks:
-                await asyncio.gather(*cleanup_tasks, return_exceptions=True)
+            if cleanup_jobs:
+                cleanup_results = await asyncio.gather(
+                    *(job for _, job in cleanup_jobs),
+                    return_exceptions=True,
+                )
+                for (path, _), result in zip(cleanup_jobs, cleanup_results, strict=False):
+                    _unwrap_async_result(
+                        result,
+                        context=f"Dashboard file cleanup failed for {path}",
+                        level=logging.DEBUG,
+                        suppress_cancelled=True,
+                    )
 
             # Remove storage
             try:
@@ -1263,15 +1299,4 @@ class PawControlDashboardGenerator:
         return False
 
 
-def _unwrap_async_result[T](
-    result: T | Exception,
-    *,
-    context: str,
-    level: int = logging.WARNING,
-) -> T | None:
-    """Return ``result`` when successful, logging ``context`` on failure."""
-
-    if isinstance(result, Exception):
-        _LOGGER.log(level, "%s: %s", context, result)
-        return None
-    return result
+_unwrap_async_result = partial(unwrap_async_result, logger=_LOGGER)

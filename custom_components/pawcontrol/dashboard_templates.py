@@ -16,13 +16,14 @@ import json
 import logging
 import weakref
 from functools import lru_cache
-from typing import Any, Final
+from typing import Any, Final, cast
 
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
+from .dashboard_shared import CardCollection, CardConfig
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -198,7 +199,7 @@ class DashboardTemplates:
         )
 
     @lru_cache(maxsize=64)  # noqa: B019
-    def _get_base_card_template(self, card_type: str) -> dict[str, Any]:
+    def _get_base_card_template(self, card_type: str) -> CardConfig:
         """Get base template for card type with LRU caching.
 
         Args:
@@ -207,7 +208,7 @@ class DashboardTemplates:
         Returns:
             Base card template
         """
-        base_templates: dict[str, dict[str, Any]] = {
+        base_templates: dict[str, CardConfig] = {
             "status": {
                 "type": "entities",
                 "state_color": True,
@@ -406,7 +407,7 @@ class DashboardTemplates:
         dog_name: str,
         modules: dict[str, bool],
         theme: str = "modern",
-    ) -> dict[str, Any]:
+    ) -> CardConfig:
         """Get themed dog status card template.
 
         Args:
@@ -441,7 +442,7 @@ class DashboardTemplates:
         dog_name: str,
         modules: dict[str, bool],
         theme: str = "modern",
-    ) -> dict[str, Any]:
+    ) -> CardConfig:
         """Generate themed dog status card template.
 
         Args:
@@ -540,19 +541,22 @@ class DashboardTemplates:
         modules: dict[str, bool],
         theme: str = "modern",
         layout: str = "cards",
-    ) -> list[dict[str, Any]]:
+    ) -> CardCollection:
         """Get themed action buttons template for dog."""
         cache_key = f"action_buttons_{dog_id}_{hash(frozenset(modules.items()))}_{theme}_{layout}"
 
         cached = await self._cache.get(cache_key)
         if cached is not None:
-            return cached.get("buttons", [])
+            buttons_payload = cached.get("buttons")
+            if isinstance(buttons_payload, list):
+                return cast(CardCollection, list(buttons_payload))
+            return []
 
         base_button = self._get_base_card_template("button")
         theme_styles = self._get_theme_styles(theme)
         button_style = self._get_button_style(theme)
 
-        buttons: list[dict[str, Any]] = []
+        buttons: CardCollection = []
         if modules.get("feeding"):
             buttons.append(
                 self._create_feeding_button(
@@ -581,7 +585,7 @@ class DashboardTemplates:
         await self._cache.set(cache_key, {"buttons": result})
         return result
 
-    def _gradient_style(self, primary: str, secondary: str) -> dict[str, Any]:
+    def _gradient_style(self, primary: str, secondary: str) -> CardConfig:
         """Return gradient card_mod style with provided colors."""
         return {
             "card_mod": {
@@ -599,7 +603,7 @@ class DashboardTemplates:
             }
         }
 
-    def _get_button_style(self, theme: str) -> dict[str, Any]:
+    def _get_button_style(self, theme: str) -> CardConfig:
         """Return card style based on theme."""
         if theme == "modern":
             return self._gradient_style("#667eea", "#764ba2")
@@ -626,11 +630,11 @@ class DashboardTemplates:
     def _create_feeding_button(
         self,
         dog_id: str,
-        base_button: dict[str, Any],
-        button_style: dict[str, Any],
+        base_button: CardConfig,
+        button_style: CardConfig,
         theme_styles: dict[str, Any],
         theme: str,
-    ) -> dict[str, Any]:
+    ) -> CardConfig:
         """Create feeding button card."""
         return {
             **base_button,
@@ -648,11 +652,11 @@ class DashboardTemplates:
     def _create_walk_buttons(
         self,
         dog_id: str,
-        base_button: dict[str, Any],
-        button_style: dict[str, Any],
+        base_button: CardConfig,
+        button_style: CardConfig,
         theme_styles: dict[str, Any],
         theme: str,
-    ) -> list[dict[str, Any]]:
+    ) -> CardCollection:
         """Create start/end walk buttons."""
         walk_style = (
             self._gradient_style("#00bfa5", "#00acc1")
@@ -702,11 +706,11 @@ class DashboardTemplates:
     def _create_health_button(
         self,
         dog_id: str,
-        base_button: dict[str, Any],
-        button_style: dict[str, Any],
+        base_button: CardConfig,
+        button_style: CardConfig,
         theme_styles: dict[str, Any],
         theme: str,
-    ) -> dict[str, Any]:
+    ) -> CardConfig:
         """Create health check button."""
         health_style = (
             self._gradient_style("#e91e63", "#f06292")
@@ -728,8 +732,8 @@ class DashboardTemplates:
         }
 
     def _wrap_buttons_layout(
-        self, buttons: list[dict[str, Any]], layout: str
-    ) -> list[dict[str, Any]] | None:
+        self, buttons: CardCollection, layout: str
+    ) -> CardCollection | None:
         """Wrap buttons in layout-specific containers."""
         if layout == "grid":
             return [{"type": "grid", "columns": 3, "cards": buttons}]
@@ -738,8 +742,11 @@ class DashboardTemplates:
         return None
 
     async def get_map_card_template(
-        self, dog_id: str, options: dict[str, Any] | None = None, theme: str = "modern"
-    ) -> dict[str, Any]:
+        self,
+        dog_id: str,
+        options: dict[str, Any] | None = None,
+        theme: str = "modern",
+    ) -> CardConfig:
         """Get themed GPS map card template.
 
         Args:
@@ -1815,7 +1822,7 @@ class DashboardTemplates:
         title: str,
         hours_to_show: int = 24,
         theme: str = "modern",
-    ) -> dict[str, Any]:
+    ) -> CardConfig:
         """Get themed history graph template.
 
         Args:

@@ -19,6 +19,7 @@ from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
+from custom_components.pawcontrol.types import CacheRepairAggregate
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -589,22 +590,12 @@ def test_async_check_for_issues_publishes_cache_health_issue(
     hass = SimpleNamespace()
     hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
 
-    summary = {
-        "total_caches": 1,
-        "anomaly_count": 1,
-        "severity": "warning",
-        "generated_at": "2024-01-01T00:00:00+00:00",
-        "totals": {
-            "entries": 5,
-            "hits": 3,
-            "misses": 2,
-            "expired_entries": 1,
-            "expired_via_override": 0,
-            "pending_expired_entries": 0,
-            "pending_override_candidates": 0,
-            "active_override_flags": 0,
-        },
-        "issues": [
+    summary = CacheRepairAggregate(
+        total_caches=1,
+        anomaly_count=1,
+        severity="warning",
+        generated_at="2024-01-01T00:00:00+00:00",
+        issues=[
             {
                 "cache": "adaptive_cache",
                 "entries": 5,
@@ -614,11 +605,11 @@ def test_async_check_for_issues_publishes_cache_health_issue(
                 "expired_entries": 1,
             }
         ],
-        "caches_with_expired_entries": ["adaptive_cache"],
-    }
+        caches_with_expired_entries=["adaptive_cache"],
+    )
 
     class _DataManager:
-        def cache_repair_summary(self) -> dict[str, Any]:
+        def cache_repair_summary(self) -> CacheRepairAggregate:
             return summary
 
     runtime_data = SimpleNamespace(
@@ -652,7 +643,7 @@ def test_async_check_for_issues_publishes_cache_health_issue(
     assert create_issue_mock.await_count == 1
     kwargs = create_issue_mock.await_args.kwargs
     assert kwargs["translation_key"] == module.ISSUE_CACHE_HEALTH_SUMMARY
-    assert kwargs["data"]["summary"] == summary
+    assert kwargs["data"]["summary"] == summary.to_mapping()
     cache_delete_calls = [
         call
         for call in delete_issue_mock.await_args_list
@@ -673,25 +664,15 @@ def test_async_check_for_issues_clears_cache_issue_without_anomalies(
     hass = SimpleNamespace()
     hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
 
-    summary = {
-        "total_caches": 1,
-        "anomaly_count": 0,
-        "severity": "info",
-        "generated_at": "2024-01-01T00:00:00+00:00",
-        "totals": {
-            "entries": 2,
-            "hits": 2,
-            "misses": 0,
-            "expired_entries": 0,
-            "expired_via_override": 0,
-            "pending_expired_entries": 0,
-            "pending_override_candidates": 0,
-            "active_override_flags": 0,
-        },
-    }
+    summary = CacheRepairAggregate(
+        total_caches=1,
+        anomaly_count=0,
+        severity="info",
+        generated_at="2024-01-01T00:00:00+00:00",
+    )
 
     class _DataManager:
-        def cache_repair_summary(self) -> dict[str, Any]:
+        def cache_repair_summary(self) -> CacheRepairAggregate:
             return summary
 
     runtime_data = SimpleNamespace(

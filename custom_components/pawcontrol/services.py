@@ -358,11 +358,10 @@ def _capture_cache_diagnostics(runtime_data: Any) -> CacheDiagnosticsCapture | N
     result: CacheDiagnosticsCapture = {"snapshots": normalised_snapshots}
 
     summary = capture.get("repair_summary")
-    if summary is not None:
-        if isinstance(summary, CacheRepairAggregate):
-            result["repair_summary"] = summary
-        elif isinstance(summary, Mapping):
-            result["repair_summary"] = CacheRepairAggregate.from_mapping(summary)
+    if isinstance(summary, CacheRepairAggregate):
+        result["repair_summary"] = summary
+    elif isinstance(summary, Mapping):
+        result["repair_summary"] = CacheRepairAggregate.from_mapping(summary)
 
     return result
 

@@ -5,26 +5,22 @@
 - Target Python 3.13+ typing throughout the integration; keep new helpers within the existing Platinum-quality architecture under `custom_components/pawcontrol`.【F:pyproject.toml†L37-L72】【F:custom_components/pawcontrol/__init__.py†L1-L213】
 
 ## Latest Tooling Snapshot
-- ✅ `ruff check` (passes cleanly).【ea27c3†L1-L2】
-- ✅ `pytest -q` (810 passed, 1 skipped for optional dependency).【bf359e†L1-L5】
-- ❌ `mypy custom_components/pawcontrol` (314 errors across 42 files; key buckets tracked below).【eeb40b†L1-L120】
-- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol`.【a6e015†L1-L1】
+- ✅ `ruff check` (passes cleanly).【5e972e†L1-L2】
+- ✅ `pytest -q` (814 passed, 1 skipped for optional dependency).【6ad7a3†L1-L5】
+- ❌ `mypy custom_components/pawcontrol` (271 issues remain; sample failure set shown below).【2e5441†L1-L69】
+- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol`.【ffee6d†L1-L1】
 
 ### Error Inventory (mypy)
-1. **Dashboard gather hygiene** – `dashboard_cards` still propagates `BaseException` unions through button builders and extension hooks, so list mutations and `append` calls accept `Exception` payloads instead of typed card dictionaries.【72c5cd†L1-L11】
-2. **Cache repair dataclass adoption** – `cache_repair_summary` consumers mix raw mappings and dataclass instances, triggering assignment errors and missing keys when snapshots are normalised for coordinator telemetry.【694b87†L38-L65】
-3. **Service registry typing** – Button factories reference the compat `ServiceRegistry` runtime object as a type, leaving mypy unable to resolve call signatures for `async_call` and other helpers across the button suite.【edb0a2†L1-L27】
-4. **Options flow typed dict drift** – Module toggles and advanced options still mutate `TypedDict` payloads with dynamic keys and raw `object` coercions, keeping hundreds of literal/arg-type errors alive across the options flow scaffolding.【c56f1c†L1-L90】
+1. **Dashboard template typing** – Card gatherers and template providers now share the `CardConfig`/`CardCollection` aliases, removing the last `dict[str, Any]` widenings inside the button/action flows. Follow-ups should audit the remaining theme/style helpers so secondary templates (weather, history, analytics) also surface literal keys for mypy before retiring the `CardConfigType` shim entirely.【F:custom_components/pawcontrol/dashboard_cards.py†L64-L145】【F:custom_components/pawcontrol/dashboard_templates.py†L360-L780】
+2. **Cache repair dataclass adoption** – Telemetry producers now emit `CacheRepairAggregate` instances directly and the coercion helper has been reduced to a defensive pass-through. The next sweep should drop the helper from call sites, refresh documentation, and ensure fixture payloads assert the dataclass surface so mapping fallbacks cannot regress silently.【F:custom_components/pawcontrol/coordinator_support.py†L64-L140】【F:custom_components/pawcontrol/performance.py†L120-L168】【F:custom_components/pawcontrol/repairs.py†L750-L806】【F:custom_components/pawcontrol/services.py†L320-L380】
+3. **Service registry typing** – Button setup normalises runtime dogs through `ensure_dog_config_data` and rebuilds module flags with `ensure_dog_modules_config`, keeping `create_buttons_for_dog` on the `DogConfigData` surface. Remaining work includes pushing the typed dog records into the button rule tests and trimming legacy casts around rule metadata so mypy can narrow arguments end-to-end.【F:custom_components/pawcontrol/button.py†L60-L360】【F:custom_components/pawcontrol/button.py†L618-L726】
+4. **Options flow typed dict drift** – Module toggles, removal, and export/import handlers now reuse `ensure_dog_options_entry` and `DogConfigData`, but the add/edit dog wizards still clone raw mappings before writing back to the entry. Converting those paths to the typed helpers should eliminate the lingering literal-key noise before the next mypy sweep.【F:custom_components/pawcontrol/types.py†L1760-L1832】【F:custom_components/pawcontrol/options_flow.py†L160-L2440】【F:custom_components/pawcontrol/options_flow.py†L3520-L3603】
 
 ### Immediate Remediation Targets
-- Keep the mapping adapters documented so Ruff's `D105` guard stays green; the
-  cache diagnostics and repair aggregates now expose docstrings on their magic
-  methods, and the remaining mapping wrappers should receive the same audit
-  before the next lint sweep.【F:custom_components/pawcontrol/types.py†L1214-L1250】【F:custom_components/pawcontrol/types.py†L1285-L1321】
-- Extend `_unwrap_async_result` coverage across the remaining dashboard card helpers so every gather branch returns typed card dictionaries instead of `BaseException` fallbacks.【72c5cd†L1-L11】
-- Align `cache_repair_summary` inputs with the new `CacheDiagnosticsSnapshot`/`CacheRepairAggregate` dataclasses and teach downstream telemetry writers to operate on the dataclass surfaces directly.【694b87†L38-L65】
-- Replace compat `ServiceRegistry` usages with the active Home Assistant service helper types (or shim protocols) so button handlers expose concrete async call signatures to mypy.【edb0a2†L1-L27】
-- Rework the options flow typed dict helpers to use literal keys and typed coercion functions, eliminating the dynamic `object` casts that fuel the remaining options flow error backlog.【c56f1c†L1-L90】
+- Audit secondary dashboard templates (weather, analytics, notifications) to ensure every helper returns a `CardConfig`/`CardCollection` so gatherers never fall back to untyped dictionaries.【F:custom_components/pawcontrol/dashboard_templates.py†L720-L1985】
+- Remove the remaining `coerce_cache_repair_summary` imports after fixtures and documentation are updated to expect `CacheRepairAggregate`, letting `_build_repair_telemetry` operate solely on dataclasses.【F:custom_components/pawcontrol/performance.py†L120-L180】【F:custom_components/pawcontrol/services.py†L320-L380】
+- Push typed `DogConfigData` usage into button tests and rule helpers so priority sorting and filtering logic no longer widens metadata to `Mapping[str, Any]` mid-pipeline.【F:custom_components/pawcontrol/button.py†L200-L520】【F:tests/components/pawcontrol/test_services.py†L190-L235】
+- Convert the add/edit dog options steps to normalise through `ensure_dog_config_data`/`ensure_dog_options_entry`, then regenerate exports to verify the advanced options wizards maintain typed surfaces across reloads.【F:custom_components/pawcontrol/options_flow.py†L1870-L2320】【F:custom_components/pawcontrol/options_flow.py†L3520-L3603】
 
 ## Current Failure Backlog
 - **Diagnostics front-end alignment:** Coordinator snapshots, runtime statistics, and diagnostics seed a default `rejection_metrics` payload with `schema_version`, and the Platinum dashboard now renders the block directly—documentation has been refreshed with the validated JSON extract so future UI drops can be spot-checked without scraping.【F:custom_components/pawcontrol/coordinator_observability.py†L80-L133】【F:custom_components/pawcontrol/coordinator_tasks.py†L410-L453】【F:custom_components/pawcontrol/diagnostics.py†L602-L635】【F:tests/unit/test_coordinator_observability.py†L55-L149】【F:tests/unit/test_coordinator_tasks.py†L200-L970】【F:docs/diagnostik.md†L64-L90】
@@ -39,6 +35,8 @@
 - Preserve the expanded `_format_structured_message` scenarios as guardrails while iterating on notification payload sanitisation; the tests already cover recursive mappings and mixed iterables, so future refactors should extend, not replace, these fixtures.【F:custom_components/pawcontrol/feeding_translations.py†L327-L350】【F:tests/unit/test_feeding_translations.py†L98-L160】
 - Config flow harness stability is now protected by regression tests that assert the exported `ConfigFlow` alias continues to reference `PawControlConfigFlow`, that compat broadcasts refreshes across modules, that validation/service helpers emit the rebound Home Assistant exceptions when stubs change mid-run, that dynamic module imports trigger the automatic `bind_exception_alias` inference without explicit module handles—even when the binding is triggered from helper functions or via an explicit module name hint—and that bindings persist after module reloads so fixtures can hot-swap Home Assistant stubs mid-test.【F:tests/components/pawcontrol/test_config_flow.py†L43-L108】【F:tests/unit/test_exception_alias_rebinds.py†L1-L184】【F:custom_components/pawcontrol/compat.py†L93-L218】
 - Regression coverage now includes explicit guards around `derive_rejection_metrics` so resilience summaries that omit counters or provide empty payloads continue to surface schema-aligned defaults for dashboards and diagnostics.【F:tests/unit/test_coordinator_tasks.py†L264-L292】
+- Added unit coverage for `dashboard_shared.unwrap_async_result` to enforce cancellation propagation and logging semantics across future gather pipeline refactors.【F:tests/unit/test_dashboard_shared.py†L1-L71】
+- Updated repairs and coordinator statistics tests to assert `CacheRepairAggregate` surfaces remain the canonical interface for cache anomaly telemetry, preventing regressions back to untyped mappings.【F:tests/unit/test_coordinator_tasks.py†L128-L175】【F:tests/test_repairs.py†L581-L712】【F:tests/unit/test_services.py†L113-L154】
 
 ## Near-term Focus
 1. Monitor the Platinum diagnostics panel for future UI schema bumps and keep the docs snippet aligned with the live `rejection_metrics` payload so dashboards stay audit-ready.【F:docs/diagnostik.md†L64-L90】【F:docs/portal/traceability_matrix.md†L1-L80】
