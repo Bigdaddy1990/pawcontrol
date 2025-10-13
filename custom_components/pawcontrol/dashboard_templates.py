@@ -1035,35 +1035,114 @@ class DashboardTemplates:
         theme_styles = self._get_theme_styles(theme)
         card_mod = self._card_mod(theme_styles)
 
-        content = f"""
-## 🔔 Notification Overview for {dog_name}
+        notifications_state = self.hass.states.get("sensor.pawcontrol_notifications")
+        metrics: Mapping[str, Any] = {}
+        per_dog: Mapping[str, Any] = {}
 
-{{% set metrics = state_attr('sensor.pawcontrol_notifications', 'performance_metrics') or {{}} %}}
-{{% set per_dog = state_attr('sensor.pawcontrol_notifications', 'per_dog') or {{}} %}}
-{{% set dog_stats = per_dog.get('{dog_id}', {{}}) %}}
+        if notifications_state is not None:
+            attrs = getattr(notifications_state, "attributes", {})
+            if isinstance(attrs, Mapping):
+                metrics_candidate = attrs.get("performance_metrics", {})
+                if isinstance(metrics_candidate, Mapping):
+                    metrics = cast(Mapping[str, Any], metrics_candidate)
 
-**Notifications Sent Today:** {{{{ dog_stats.get('sent_today', 0) }}}}
-**Failed Deliveries:** {{{{ metrics.get('notifications_failed', 0) }}}}
-**Quiet Hours Active:** {{{{ '✅' if dog_stats.get('quiet_hours_active') else '❌' }}}}
+                per_dog_candidate = attrs.get("per_dog", {})
+                if isinstance(per_dog_candidate, Mapping):
+                    per_dog = cast(Mapping[str, Any], per_dog_candidate)
 
-### Preferred Channels
-{{%- set channels = dog_stats.get('channels', []) -%}}
-{{%- if channels -%}}
-{{{{ '\\n'.join(['• ' + channel | capitalize for channel in channels]) }}}}
-{{%- else -%}}
-• Using default integration channels
-{{%- endif -%}}
+        dog_stats_candidate = per_dog.get(dog_id) if per_dog else None
+        dog_stats: Mapping[str, Any]
+        if isinstance(dog_stats_candidate, Mapping):
+            dog_stats = cast(Mapping[str, Any], dog_stats_candidate)
+        else:
+            dog_stats = {}
 
-### Recent Notification
-{{%- set last_notification = dog_stats.get('last_notification') -%}}
-{{%- if last_notification -%}}
-- **Type:** {{{{ last_notification.get('type', 'unknown') }}}}
-- **Priority:** {{{{ last_notification.get('priority', 'normal') | capitalize }}}}
-- **Sent:** {{{{ last_notification.get('sent_at', 'unknown') }}}}
-{{%- else -%}}
-No notifications recorded for this dog yet.
-{{%- endif -%}}
-"""
+        def _coerce_int(value: object, fallback: int) -> int:
+            if isinstance(value, bool):
+                return int(value)
+            if isinstance(value, int):
+                return value
+            if isinstance(value, float):
+                return int(value)
+            if isinstance(value, str):
+                try:
+                    return int(float(value))
+                except ValueError:
+                    return fallback
+            return fallback
+
+        def _coerce_bool(value: object) -> bool:
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, int | float):
+                return value != 0
+            if isinstance(value, str):
+                return value.strip().lower() in {"1", "true", "yes", "on"}
+            return False
+
+        sent_today = _coerce_int(dog_stats.get("sent_today"), 0)
+        failed_deliveries = _coerce_int(metrics.get("notifications_failed"), 0)
+        quiet_hours_active = _coerce_bool(dog_stats.get("quiet_hours_active"))
+
+        channels: list[str] = []
+        raw_channels = dog_stats.get("channels")
+        if isinstance(raw_channels, Sequence) and not isinstance(
+            raw_channels, str | bytes | bytearray
+        ):
+            for raw_channel in raw_channels:
+                if isinstance(raw_channel, str):
+                    channel_name = raw_channel.strip()
+                else:
+                    channel_name = str(raw_channel)
+                if channel_name:
+                    channels.append(channel_name)
+
+        last_notification: Mapping[str, Any] | None = None
+        raw_last_notification = dog_stats.get("last_notification")
+        if isinstance(raw_last_notification, Mapping):
+            last_notification = cast(Mapping[str, Any], raw_last_notification)
+
+        quiet_hours_display = "✅" if quiet_hours_active else "❌"
+
+        content_lines = [
+            f"## 🔔 Notification Overview for {dog_name}",
+            "",
+            f"**Notifications Sent Today:** {sent_today}",
+            f"**Failed Deliveries:** {failed_deliveries}",
+            f"**Quiet Hours Active:** {quiet_hours_display}",
+            "",
+            "### Preferred Channels",
+        ]
+
+        if channels:
+            content_lines.extend(f"• {channel.capitalize()}" for channel in channels)
+        else:
+            content_lines.append("• Using default integration channels")
+
+        content_lines.append("")
+        content_lines.append("### Recent Notification")
+        if last_notification:
+            notification_type = str(
+                last_notification.get("type", "unknown") or "unknown"
+            )
+            priority_raw = last_notification.get("priority", "normal")
+            priority = (
+                str(priority_raw).capitalize() if priority_raw is not None else "Normal"
+            )
+            sent_at_raw = last_notification.get("sent_at", "unknown")
+            sent_at = str(sent_at_raw) if sent_at_raw is not None else "unknown"
+
+            content_lines.extend(
+                [
+                    f"- **Type:** {notification_type}",
+                    f"- **Priority:** {priority}",
+                    f"- **Sent:** {sent_at}",
+                ]
+            )
+        else:
+            content_lines.append("No notifications recorded for this dog yet.")
+
+        content = "\n".join(content_lines)
 
         return {
             "type": "markdown",

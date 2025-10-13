@@ -2273,14 +2273,10 @@ class PawControlOptionsFlow(OptionsFlow):
                 if isinstance(size, str) and size:
                     candidate[DOG_SIZE_FIELD] = size
 
-                normalised = ensure_dog_config_data(candidate)
-                if normalised is None:
-                    raise ValueError("invalid_dog_config")
-
-                new_dogs: list[DogConfigData] = [*self._dogs, normalised]
-                typed_dogs = self._normalise_entry_dogs(new_dogs)
+                new_dogs_raw: list[Mapping[str, Any]] = [*self._dogs, candidate]
+                typed_dogs = self._normalise_entry_dogs(new_dogs_raw)
                 self._dogs = typed_dogs
-                self._current_dog = normalised
+                self._current_dog = typed_dogs[-1]
 
                 new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
 
