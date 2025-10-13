@@ -41,7 +41,9 @@ def test_summarise_dashboard_views_marks_notifications() -> None:
         ]
     }
 
-    summaries = PawControlDashboardGenerator._summarise_dashboard_views(dashboard_config)
+    summaries = PawControlDashboardGenerator._summarise_dashboard_views(
+        dashboard_config
+    )
 
     assert any(summary["path"] == "overview" for summary in summaries)
 

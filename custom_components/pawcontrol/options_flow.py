@@ -1417,7 +1417,10 @@ class PawControlOptionsFlow(OptionsFlow):
                     )
 
                 # Save the profile selection
-                merged_options = {**self._entry.options, "entity_profile": current_profile}
+                merged_options = {
+                    **self._entry.options,
+                    "entity_profile": current_profile,
+                }
                 typed_options = self._normalise_options_snapshot(merged_options)
                 self._invalidate_profile_caches()
 
@@ -2343,9 +2346,7 @@ class PawControlOptionsFlow(OptionsFlow):
             }
         )
 
-    def _get_remove_dog_schema(
-        self, dogs: Sequence[Mapping[str, Any]]
-    ) -> vol.Schema:
+    def _get_remove_dog_schema(self, dogs: Sequence[Mapping[str, Any]]) -> vol.Schema:
         """Build the removal confirmation schema for the provided dog list."""
 
         dog_options: list[dict[str, str]] = []
@@ -2446,7 +2447,9 @@ class PawControlOptionsFlow(OptionsFlow):
                 if dog_index >= 0:
                     candidate: dict[str, Any] = dict(self._dogs[dog_index])
 
-                    name = user_input.get(CONF_DOG_NAME, candidate.get(DOG_NAME_FIELD, ""))
+                    name = user_input.get(
+                        CONF_DOG_NAME, candidate.get(DOG_NAME_FIELD, "")
+                    )
                     if isinstance(name, str) and name.strip():
                         candidate[DOG_NAME_FIELD] = name.strip()
 
@@ -2468,9 +2471,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     else:
                         candidate[DOG_WEIGHT_FIELD] = float(weight)
 
-                    size = user_input.get(
-                        CONF_DOG_SIZE, candidate.get(DOG_SIZE_FIELD)
-                    )
+                    size = user_input.get(CONF_DOG_SIZE, candidate.get(DOG_SIZE_FIELD))
                     if isinstance(size, str):
                         cleaned_size = size.strip()
                         if cleaned_size:

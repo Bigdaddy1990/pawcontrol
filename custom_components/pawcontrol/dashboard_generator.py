@@ -133,7 +133,7 @@ class PawControlDashboardGenerator:
 
     @staticmethod
     def _summarise_dashboard_views(
-        dashboard_config: Mapping[str, Any]
+        dashboard_config: Mapping[str, Any],
     ) -> list[DashboardViewSummary]:
         """Return a compact summary of the Lovelace views in ``dashboard_config``."""
 
@@ -233,7 +233,9 @@ class PawControlDashboardGenerator:
             _LOGGER.debug("Unable to read dashboard file %s: %s", path, err)
             return None
 
-        config = data.get("data", {}).get("config") if isinstance(data, Mapping) else None
+        config = (
+            data.get("data", {}).get("config") if isinstance(data, Mapping) else None
+        )
         return config if isinstance(config, Mapping) else None
 
     @staticmethod
@@ -646,7 +648,8 @@ class PawControlDashboardGenerator:
                     dog_name = dashboard_info.get("dog_name")
                     if not dog_id or not dog_name:
                         _LOGGER.warning(
-                            "Weather dashboard %s is missing dog metadata", dashboard_url
+                            "Weather dashboard %s is missing dog metadata",
+                            dashboard_url,
                         )
                         return False
 
@@ -658,15 +661,15 @@ class PawControlDashboardGenerator:
                         if isinstance(dog_config, Mapping)
                         else dashboard_info.get("breed", "Mixed")
                     )
-                    theme = options_merged.get("theme", dashboard_info.get("theme", "modern"))
+                    theme = options_merged.get(
+                        "theme", dashboard_info.get("theme", "modern")
+                    )
                     layout = options_merged.get(
                         "layout", dashboard_info.get("layout", "full")
                     )
 
-                    weather_layout = (
-                        await self._dashboard_templates.get_weather_dashboard_layout_template(
-                            dog_id, dog_name, breed, theme, layout
-                        )
+                    weather_layout = await self._dashboard_templates.get_weather_dashboard_layout_template(
+                        dog_id, dog_name, breed, theme, layout
                     )
                     dashboard_config = {
                         "views": [
@@ -1053,9 +1056,7 @@ class PawControlDashboardGenerator:
                 dashboard_info["needs_regeneration"] = True
                 metadata_updated = True
 
-            view_summaries = self._normalize_view_summaries(
-                dashboard_info.get("views")
-            )
+            view_summaries = self._normalize_view_summaries(dashboard_info.get("views"))
             if view_summaries is None:
                 config = await self._load_dashboard_config(path_obj)
                 config_mapping: Mapping[str, Any] = (

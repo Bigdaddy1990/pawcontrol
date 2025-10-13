@@ -780,9 +780,7 @@ async def _publish_cache_health_issue(hass: HomeAssistant, entry: ConfigEntry) -
 
     resolved_summary = ensure_cache_repair_aggregate(summary)
     if resolved_summary is None:
-        _LOGGER.debug(
-            "Cache repair summary returned unexpected payload: %r", summary
-        )
+        _LOGGER.debug("Cache repair summary returned unexpected payload: %r", summary)
         return
 
     summary = resolved_summary

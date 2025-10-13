@@ -1441,7 +1441,9 @@ class ModuleCardGenerator(BaseCardGenerator):
             return []
 
         theme_option = options.get("theme") if isinstance(options, dict) else None
-        theme = theme_option if isinstance(theme_option, str) and theme_option else "modern"
+        theme = (
+            theme_option if isinstance(theme_option, str) and theme_option else "modern"
+        )
 
         status_entities = [
             f"switch.{dog_id}_notifications_enabled",
@@ -1640,7 +1642,14 @@ class WeatherCardGenerator(BaseCardGenerator):
 
         if isinstance(source, Mapping):
             mapping_results: list[str] = []
-            for key in ("recommendations", "items", "values", "text", "message", "detail"):
+            for key in (
+                "recommendations",
+                "items",
+                "values",
+                "text",
+                "message",
+                "detail",
+            ):
                 if key in source:
                     mapping_results.extend(
                         WeatherCardGenerator._normalise_recommendations(source[key])
@@ -1935,9 +1944,7 @@ class WeatherCardGenerator(BaseCardGenerator):
         if not await self._entity_exists_cached(recommendations_entity):
             return None
 
-        recommendations = self._collect_weather_recommendations(
-            recommendations_entity
-        )
+        recommendations = self._collect_weather_recommendations(recommendations_entity)
         primary_recommendations = recommendations[:5]
 
         if primary_recommendations:
@@ -2296,7 +2303,9 @@ class StatisticsCardGenerator(BaseCardGenerator):
         cards: list[CardConfigType] = []
 
         theme_option = options.get("theme") if isinstance(options, dict) else None
-        theme = theme_option if isinstance(theme_option, str) and theme_option else "modern"
+        theme = (
+            theme_option if isinstance(theme_option, str) and theme_option else "modern"
+        )
 
         # OPTIMIZED: Generate all statistics cards concurrently
         stats_generators = [

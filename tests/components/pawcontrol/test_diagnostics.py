@@ -119,9 +119,7 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
                 "generated_at": timestamp.isoformat(),
             }
             self._summary = CacheRepairAggregate.from_mapping(summary_payload)
-            self._snapshots["notification_cache"]["repair_summary"] = (
-                self._summary
-            )
+            self._snapshots["notification_cache"]["repair_summary"] = self._summary
 
         def cache_snapshots(self) -> dict[str, dict[str, object]]:
             return self._snapshots

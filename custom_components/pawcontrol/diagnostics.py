@@ -302,9 +302,7 @@ def _normalise_cache_snapshot(payload: Any) -> CacheDiagnosticsSnapshot:
         snapshot.repair_summary = resolved_summary
     elif isinstance(repair_summary, Mapping):
         try:
-            snapshot.repair_summary = CacheRepairAggregate.from_mapping(
-                repair_summary
-            )
+            snapshot.repair_summary = CacheRepairAggregate.from_mapping(repair_summary)
         except Exception:  # pragma: no cover - defensive fallback
             snapshot.repair_summary = None
     else:

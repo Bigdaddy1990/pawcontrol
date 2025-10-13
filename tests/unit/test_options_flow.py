@@ -1398,9 +1398,7 @@ def test_export_payload_normalises_legacy_options(mock_config_entry) -> None:
 
     payload = flow._build_export_payload()
 
-    notifications = cast(
-        NotificationOptions, payload["options"][CONF_NOTIFICATIONS]
-    )
+    notifications = cast(NotificationOptions, payload["options"][CONF_NOTIFICATIONS])
     assert notifications[CONF_QUIET_HOURS] is False
     assert notifications[CONF_QUIET_START] == "18:45:00"
     assert notifications[CONF_QUIET_END] == "07:00:00"

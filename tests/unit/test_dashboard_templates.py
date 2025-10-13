@@ -120,9 +120,7 @@ async def test_weather_recommendations_card_parses_structured_data(
         },
     )
 
-    card = await generator._generate_weather_recommendations_card(
-        "fido", "Fido", {}
-    )
+    card = await generator._generate_weather_recommendations_card("fido", "Fido", {})
     assert card is not None
     markdown = card["cards"][1]["content"]
     assert "• Hydrate" in markdown
@@ -155,4 +153,3 @@ async def test_generate_notification_cards_uses_templates(
     assert any(card["type"] == "entities" for card in cards)
     assert any(card["type"] == "markdown" for card in cards)
     assert any(card["type"] == "horizontal-stack" for card in cards)
-

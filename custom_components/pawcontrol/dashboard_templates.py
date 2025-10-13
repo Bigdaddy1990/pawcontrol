@@ -93,6 +93,7 @@ class MapCardOptions(TypedDict, total=False):
     dark_mode: bool
     hours_to_show: int
 
+
 _LOGGER = logging.getLogger(__name__)
 
 # Weather dashboard constants
