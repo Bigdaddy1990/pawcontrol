@@ -1368,21 +1368,23 @@ class ModuleCardGenerator(BaseCardGenerator):
             metrics_task, dates_task, weight_entity_task, return_exceptions=True
         )
 
-        valid_metrics = _unwrap_async_result(
-            metrics_result,
-            context="Health metrics validation failed",
-            level=logging.DEBUG,
+        valid_metrics: EntityListType = (
+            _unwrap_async_result(
+                metrics_result,
+                context="Health metrics validation failed",
+                level=logging.DEBUG,
+            )
+            or []
         )
-        if not isinstance(valid_metrics, list):
-            valid_metrics = []
 
-        valid_dates = _unwrap_async_result(
-            dates_result,
-            context="Health schedule validation failed",
-            level=logging.DEBUG,
+        valid_dates: EntityListType = (
+            _unwrap_async_result(
+                dates_result,
+                context="Health schedule validation failed",
+                level=logging.DEBUG,
+            )
+            or []
         )
-        if not isinstance(valid_dates, list):
-            valid_dates = []
 
         weight_check = _unwrap_async_result(
             weight_result,
@@ -1557,20 +1559,22 @@ class ModuleCardGenerator(BaseCardGenerator):
             gps_valid_task, geofence_valid_task, return_exceptions=True
         )
 
-        valid_gps_payload = _unwrap_async_result(
-            gps_result,
-            context="GPS status validation failed",
-            level=logging.DEBUG,
+        valid_gps: EntityListType = (
+            _unwrap_async_result(
+                gps_result,
+                context="GPS status validation failed",
+                level=logging.DEBUG,
+            )
+            or []
         )
-        valid_gps = valid_gps_payload if isinstance(valid_gps_payload, list) else []
 
-        valid_geofence_payload = _unwrap_async_result(
-            geofence_result,
-            context="Geofence validation failed",
-            level=logging.DEBUG,
-        )
-        valid_geofence = (
-            valid_geofence_payload if isinstance(valid_geofence_payload, list) else []
+        valid_geofence: EntityListType = (
+            _unwrap_async_result(
+                geofence_result,
+                context="Geofence validation failed",
+                level=logging.DEBUG,
+            )
+            or []
         )
 
         # Build cards based on validation results
