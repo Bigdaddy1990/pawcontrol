@@ -11,6 +11,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
+import inspect
 import json
 import logging
 from collections import deque
@@ -1356,23 +1357,96 @@ class PawControlNotificationManager:
             )
 
         timeout_seconds = float(config.custom_settings.get("webhook_timeout", 10))
+        async def _maybe_await(value: Any) -> Any:
+            if inspect.isawaitable(value):
+                return await value
+            return value
+
+        async def _response_status(response: Any) -> int:
+            raw_status = await _maybe_await(getattr(response, "status", None))
+            if raw_status is None:
+                raise WebhookSecurityError("Webhook delivery failed: missing status")
+            try:
+                return int(raw_status)
+            except (TypeError, ValueError) as err:  # pragma: no cover - defensive guard
+                raise WebhookSecurityError(
+                    f"Webhook delivery failed: invalid status {raw_status!r}"
+                ) from err
+
+        async def _response_text(response: Any) -> str:
+            text_attr = getattr(response, "text", None)
+            if text_attr is None:
+                return ""
+            text_result = text_attr() if callable(text_attr) else text_attr
+            text_payload = await _maybe_await(text_result)
+            return "" if text_payload is None else str(text_payload)
+
+        async def _validate_response(response: Any) -> None:
+            status_code = await _response_status(response)
+            if status_code >= 400:
+                body = await _response_text(response)
+                raise WebhookSecurityError(
+                    f"Webhook delivery failed with status {status_code}: {body[:200]}"
+                )
+
+        async def _finalize_response(response: Any) -> None:
+            release = getattr(response, "release", None)
+            if callable(release):
+                try:
+                    release_result = release()
+                except Exception as err:  # pragma: no cover - defensive guard
+                    _LOGGER.debug("Webhook response release failed: %s", err)
+                else:
+                    if inspect.isawaitable(release_result):
+                        try:
+                            await release_result
+                        except Exception as err:  # pragma: no cover - defensive guard
+                            _LOGGER.debug("Webhook response release await failed: %s", err)
+
+            close = getattr(response, "close", None)
+            if callable(close):
+                try:
+                    close_result = close()
+                except Exception as err:  # pragma: no cover - defensive guard
+                    _LOGGER.debug("Webhook response close failed: %s", err)
+                else:
+                    if inspect.isawaitable(close_result):
+                        try:
+                            await close_result
+                        except Exception as err:  # pragma: no cover - defensive guard
+                            _LOGGER.debug("Webhook response close await failed: %s", err)
+
+        async def _deliver_webhook(call_result: Any) -> None:
+            candidate = call_result
+            while True:
+                if hasattr(candidate, "__aenter__"):
+                    response: Any | None = None
+                    try:
+                        async with candidate as context_response:
+                            response = await _maybe_await(context_response)
+                            await _validate_response(response)
+                    finally:
+                        if response is not None:
+                            await _finalize_response(response)
+                    return
+                if inspect.isawaitable(candidate):
+                    candidate = await candidate
+                    continue
+                try:
+                    await _validate_response(candidate)
+                finally:
+                    await _finalize_response(candidate)
+                return
+
         try:
-            request_ctx = self._session.post(
+            post_call = self._session.post(
                 webhook_url,
                 data=payload_bytes,
                 headers=headers,
                 timeout=ClientTimeout(total=timeout_seconds),
             )
-            if asyncio.iscoroutine(request_ctx):
-                request_ctx = await request_ctx
-
-            async with request_ctx as response:
-                if response.status >= 400:
-                    body = await response.text()
-                    raise WebhookSecurityError(
-                        f"Webhook delivery failed with status {response.status}: {body[:200]}"
-                    )
-        except ClientError as err:
+            await _deliver_webhook(post_call)
+        except (TimeoutError, ClientError) as err:
             raise WebhookSecurityError(f"Webhook delivery failed: {err}") from err
 
     # OPTIMIZE: Enhanced notification handlers with better error handling and features
@@ -1399,7 +1473,7 @@ class PawControlNotificationManager:
             # Send to each targeted service
             for service_name in notification.notification_services:
                 try:
-                    service_data = {
+                    service_data: dict[str, Any] = {
                         "title": notification.title,
                         "message": notification.message,
                         "data": {
@@ -1448,7 +1522,7 @@ class PawControlNotificationManager:
 
             mobile_service = config.custom_settings.get("mobile_service", "mobile_app")
 
-            service_data = {
+            fallback_service_data: dict[str, Any] = {
                 "title": notification.title,
                 "message": notification.message,
                 "data": {
@@ -1466,7 +1540,7 @@ class PawControlNotificationManager:
                 NotificationType.WALK_REMINDER,
                 NotificationType.MEDICATION_REMINDER,
             ]:
-                service_data["data"]["actions"] = [
+                fallback_service_data["data"]["actions"] = [
                     {
                         "action": f"acknowledge_{notification.id}",
                         "title": "Mark as Done",
@@ -1482,7 +1556,7 @@ class PawControlNotificationManager:
             await self._hass.services.async_call(
                 "notify",
                 mobile_service,
-                service_data,
+                fallback_service_data,
             )
 
     async def _send_tts_notification(self, notification: NotificationEvent) -> None:
@@ -1712,8 +1786,8 @@ class PawControlNotificationManager:
             )
 
             # Calculate type and priority distribution
-            type_counts = {}
-            priority_counts = {}
+            type_counts: dict[str, int] = {}
+            priority_counts: dict[str, int] = {}
 
             for notification in self._notifications.values():
                 ntype = notification.notification_type.value
@@ -1889,7 +1963,7 @@ class PawControlNotificationManager:
             return await self.async_send_notification(
                 notification_type=NotificationType.FEEDING_COMPLIANCE,
                 title=title,
-                message=message,
+                message=message or "",
                 dog_id=dog_id,
                 priority=NotificationPriority.HIGH,
                 data={
@@ -1926,7 +2000,7 @@ class PawControlNotificationManager:
         return await self.async_send_notification(
             notification_type=NotificationType.FEEDING_COMPLIANCE,
             title=title,
-            message=message,
+            message=message or "",
             dog_id=dog_id,
             priority=priority,
             data={

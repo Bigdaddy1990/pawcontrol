@@ -174,6 +174,71 @@ class TestNotificationWebhooks:
         called_kwargs = custom_session.post.call_args.kwargs
         assert called_kwargs["timeout"].total == pytest.approx(10.0)
 
+    async def test_webhook_releases_direct_response(self, mock_hass, session_factory):
+        """Direct ClientResponse objects should be released after validation."""
+
+        custom_session = session_factory()
+        response = Mock()
+        response.status = 200
+        response.release = AsyncMock()
+        custom_session.post = AsyncMock(return_value=response)
+
+        manager = PawControlNotificationManager(
+            mock_hass, "test_entry", session=custom_session
+        )
+        manager._configs["system"] = NotificationConfig(
+            channels=[NotificationChannel.WEBHOOK],
+            custom_settings={"webhook_url": "https://example.invalid"},
+        )
+
+        notification = NotificationEvent(
+            id="notif-1",
+            dog_id=None,
+            notification_type=NotificationType.SYSTEM_INFO,
+            priority=NotificationPriority.NORMAL,
+            title="Title",
+            message="Body",
+            created_at=datetime.now(UTC),
+            channels=[NotificationChannel.WEBHOOK],
+        )
+
+        await manager._send_webhook_notification(notification)
+
+        response.release.assert_awaited()
+
+    async def test_webhook_closes_response_without_release(self, mock_hass, session_factory):
+        """Responses lacking release should still close the transport."""
+
+        custom_session = session_factory()
+        response = Mock()
+        response.status = 200
+        response.release = None
+        response.close = Mock()
+        custom_session.post = AsyncMock(return_value=response)
+
+        manager = PawControlNotificationManager(
+            mock_hass, "test_entry", session=custom_session
+        )
+        manager._configs["system"] = NotificationConfig(
+            channels=[NotificationChannel.WEBHOOK],
+            custom_settings={"webhook_url": "https://example.invalid"},
+        )
+
+        notification = NotificationEvent(
+            id="notif-2",
+            dog_id=None,
+            notification_type=NotificationType.SYSTEM_INFO,
+            priority=NotificationPriority.NORMAL,
+            title="Title",
+            message="Body",
+            created_at=datetime.now(UTC),
+            channels=[NotificationChannel.WEBHOOK],
+        )
+
+        await manager._send_webhook_notification(notification)
+
+        response.close.assert_called_once()
+
     async def test_initialization_validates_channels(self, mock_hass, mock_session):
         """Test that initialization validates channel names."""
         manager = PawControlNotificationManager(

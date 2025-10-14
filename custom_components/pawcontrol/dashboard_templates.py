@@ -19,7 +19,7 @@ from functools import lru_cache
 from typing import Any, Final, NotRequired, TypedDict, cast
 
 from homeassistant.const import STATE_UNKNOWN
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant, State, callback
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -31,7 +31,11 @@ from .const import (
     MODULE_WALK,
 )
 from .dashboard_shared import CardCollection, CardConfig
-from .types import DogConfigData
+from .types import (
+    DogConfigData,
+    DogModulesConfig,
+    coerce_dog_modules_config,
+)
 
 
 class WeatherThemeConfig(TypedDict):
@@ -92,6 +96,40 @@ class MapCardOptions(TypedDict, total=False):
     zoom: int
     dark_mode: bool
     hours_to_show: int
+
+
+class NotificationLastEvent(TypedDict, total=False):
+    """Details about the most recent notification sent for a dog."""
+
+    type: str
+    priority: str
+    sent_at: str
+    title: str
+    message: str
+    channel: str
+    status: str
+
+
+class NotificationDogOverview(TypedDict, total=False):
+    """Per-dog delivery metrics tracked by the notifications dashboard."""
+
+    sent_today: int
+    quiet_hours_active: bool
+    channels: list[str]
+    last_notification: NotRequired[NotificationLastEvent]
+
+
+class NotificationPerformanceMetrics(TypedDict, total=False):
+    """High-level delivery metrics exported by the notifications sensor."""
+
+    notifications_failed: int
+
+
+class NotificationOverviewAttributes(TypedDict, total=False):
+    """Attributes exposed by ``sensor.pawcontrol_notifications``."""
+
+    performance_metrics: NotificationPerformanceMetrics
+    per_dog: dict[str, NotificationDogOverview]
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -486,11 +524,138 @@ class DashboardTemplates:
             return cast(CardModConfig, {})
         return cast(CardModConfig, card_mod.copy())
 
+    @staticmethod
+    def _parse_int(value: object, *, default: int = 0) -> int:
+        """Return an integer coerced from ``value`` with ``default`` fallback."""
+
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            return int(value)
+        if isinstance(value, str):
+            try:
+                return int(float(value))
+            except ValueError:
+                return default
+        return default
+
+    @staticmethod
+    def _parse_bool(value: object) -> bool:
+        """Return a boolean coerced from arbitrary payloads."""
+
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, int | float):
+            return value != 0
+        if isinstance(value, str):
+            return value.strip().lower() in {"1", "true", "yes", "on"}
+        return False
+
+    @staticmethod
+    def _parse_channels(value: object) -> list[str]:
+        """Return a list of channel labels extracted from ``value``."""
+
+        if isinstance(value, str):
+            return [
+                chunk
+                for chunk in (part.strip() for part in value.split(","))
+                if chunk
+            ]
+
+        if isinstance(value, Sequence) and not isinstance(
+            value, str | bytes | bytearray
+        ):
+            channels: list[str] = []
+            for item in value:
+                candidate = item.strip() if isinstance(item, str) else str(item).strip()
+                if candidate:
+                    channels.append(candidate)
+            return channels
+
+        return []
+
+    @staticmethod
+    def _parse_last_notification(value: object) -> NotificationLastEvent | None:
+        """Return a structured notification payload extracted from ``value``."""
+
+        if not isinstance(value, Mapping):
+            return None
+
+        event: NotificationLastEvent = {}
+
+        for key in ("type", "priority", "title", "message", "channel", "status"):
+            raw = value.get(key)
+            if raw is None:
+                continue
+            event[key] = str(raw)
+
+        sent_at = value.get("sent_at")
+        if isinstance(sent_at, str):
+            event["sent_at"] = sent_at
+        elif sent_at is not None:
+            event["sent_at"] = str(sent_at)
+
+        return event or None
+
+    @staticmethod
+    def _normalise_notifications_state(
+        state: State | None,
+    ) -> tuple[NotificationPerformanceMetrics, dict[str, NotificationDogOverview]]:
+        """Return typed metrics extracted from ``sensor.pawcontrol_notifications``."""
+
+        metrics: NotificationPerformanceMetrics = {"notifications_failed": 0}
+        per_dog: dict[str, NotificationDogOverview] = {}
+
+        if state is None:
+            return metrics, per_dog
+
+        attributes = getattr(state, "attributes", None)
+        if not isinstance(attributes, Mapping):
+            return metrics, per_dog
+
+        raw_metrics = attributes.get("performance_metrics")
+        if isinstance(raw_metrics, Mapping):
+            metrics["notifications_failed"] = DashboardTemplates._parse_int(
+                raw_metrics.get("notifications_failed"),
+                default=0,
+            )
+
+        raw_per_dog = attributes.get("per_dog")
+        if isinstance(raw_per_dog, Mapping):
+            for dog_id, raw_stats in raw_per_dog.items():
+                if not isinstance(dog_id, str) or not isinstance(raw_stats, Mapping):
+                    continue
+
+                dog_overview: NotificationDogOverview = {
+                    "sent_today": DashboardTemplates._parse_int(
+                        raw_stats.get("sent_today"),
+                        default=0,
+                    ),
+                    "quiet_hours_active": DashboardTemplates._parse_bool(
+                        raw_stats.get("quiet_hours_active")
+                    ),
+                    "channels": DashboardTemplates._parse_channels(
+                        raw_stats.get("channels")
+                    ),
+                }
+
+                last_notification = DashboardTemplates._parse_last_notification(
+                    raw_stats.get("last_notification")
+                )
+                if last_notification is not None:
+                    dog_overview["last_notification"] = last_notification
+
+                per_dog[dog_id] = dog_overview
+
+        return metrics, per_dog
+
     async def get_dog_status_card_template(
         self,
         dog_id: str,
         dog_name: str,
-        modules: dict[str, bool],
+        modules: DogModulesConfig,
         theme: str = "modern",
     ) -> CardConfig:
         """Get themed dog status card template.
@@ -525,7 +690,7 @@ class DashboardTemplates:
         self,
         dog_id: str,
         dog_name: str,
-        modules: dict[str, bool],
+        modules: DogModulesConfig,
         theme: str = "modern",
     ) -> CardConfig:
         """Generate themed dog status card template.
@@ -623,7 +788,7 @@ class DashboardTemplates:
     async def get_action_buttons_template(
         self,
         dog_id: str,
-        modules: dict[str, bool],
+        modules: DogModulesConfig,
         theme: str = "modern",
         layout: str = "cards",
     ) -> CardCollection:
@@ -878,7 +1043,7 @@ class DashboardTemplates:
         self,
         dog_id: str,
         dog_name: str,
-        modules: dict[str, bool],
+        modules: DogModulesConfig,
         theme: str = "modern",
     ) -> CardConfig:
         """Get themed statistics card template.
@@ -973,7 +1138,7 @@ class DashboardTemplates:
         }
 
         for dog in dogs:
-            modules = dog.get("modules", {})
+            modules = coerce_dog_modules_config(dog.get("modules"))
             for module_name in module_counts:
                 if modules.get(module_name):
                     module_counts[module_name] += 1
@@ -1036,71 +1201,20 @@ class DashboardTemplates:
         card_mod = self._card_mod(theme_styles)
 
         notifications_state = self.hass.states.get("sensor.pawcontrol_notifications")
-        metrics: Mapping[str, Any] = {}
-        per_dog: Mapping[str, Any] = {}
+        metrics, per_dog = self._normalise_notifications_state(notifications_state)
 
-        if notifications_state is not None:
-            attrs = getattr(notifications_state, "attributes", {})
-            if isinstance(attrs, Mapping):
-                metrics_candidate = attrs.get("performance_metrics", {})
-                if isinstance(metrics_candidate, Mapping):
-                    metrics = cast(Mapping[str, Any], metrics_candidate)
+        default_overview: NotificationDogOverview = {
+            "sent_today": 0,
+            "quiet_hours_active": False,
+            "channels": [],
+        }
+        dog_overview = per_dog.get(dog_id, default_overview)
 
-                per_dog_candidate = attrs.get("per_dog", {})
-                if isinstance(per_dog_candidate, Mapping):
-                    per_dog = cast(Mapping[str, Any], per_dog_candidate)
-
-        dog_stats_candidate = per_dog.get(dog_id) if per_dog else None
-        dog_stats: Mapping[str, Any]
-        if isinstance(dog_stats_candidate, Mapping):
-            dog_stats = cast(Mapping[str, Any], dog_stats_candidate)
-        else:
-            dog_stats = {}
-
-        def _coerce_int(value: object, fallback: int) -> int:
-            if isinstance(value, bool):
-                return int(value)
-            if isinstance(value, int):
-                return value
-            if isinstance(value, float):
-                return int(value)
-            if isinstance(value, str):
-                try:
-                    return int(float(value))
-                except ValueError:
-                    return fallback
-            return fallback
-
-        def _coerce_bool(value: object) -> bool:
-            if isinstance(value, bool):
-                return value
-            if isinstance(value, int | float):
-                return value != 0
-            if isinstance(value, str):
-                return value.strip().lower() in {"1", "true", "yes", "on"}
-            return False
-
-        sent_today = _coerce_int(dog_stats.get("sent_today"), 0)
-        failed_deliveries = _coerce_int(metrics.get("notifications_failed"), 0)
-        quiet_hours_active = _coerce_bool(dog_stats.get("quiet_hours_active"))
-
-        channels: list[str] = []
-        raw_channels = dog_stats.get("channels")
-        if isinstance(raw_channels, Sequence) and not isinstance(
-            raw_channels, str | bytes | bytearray
-        ):
-            for raw_channel in raw_channels:
-                if isinstance(raw_channel, str):
-                    channel_name = raw_channel.strip()
-                else:
-                    channel_name = str(raw_channel)
-                if channel_name:
-                    channels.append(channel_name)
-
-        last_notification: Mapping[str, Any] | None = None
-        raw_last_notification = dog_stats.get("last_notification")
-        if isinstance(raw_last_notification, Mapping):
-            last_notification = cast(Mapping[str, Any], raw_last_notification)
+        sent_today = dog_overview.get("sent_today", 0)
+        failed_deliveries = metrics.get("notifications_failed", 0)
+        quiet_hours_active = dog_overview.get("quiet_hours_active", False)
+        channels = dog_overview.get("channels", [])
+        last_notification = dog_overview.get("last_notification")
 
         quiet_hours_display = "✅" if quiet_hours_active else "❌"
 

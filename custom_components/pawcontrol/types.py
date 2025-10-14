@@ -502,10 +502,38 @@ def ensure_dog_modules_projection(
     return DogModulesProjection(config=config, mapping=mapping)
 
 
-def ensure_dog_modules_config(data: Mapping[str, Any]) -> DogModulesConfig:
-    """Extract a :class:`DogModulesConfig` from an arbitrary mapping."""
+def ensure_dog_modules_config(
+    data: Mapping[str, Any] | DogModulesProjection,
+) -> DogModulesConfig:
+    """Extract a :class:`DogModulesConfig` from supported module payloads."""
 
     return ensure_dog_modules_projection(data).config
+
+
+def _is_modules_projection_like(value: Any) -> bool:
+    """Return ``True`` when ``value`` resembles a modules projection payload."""
+
+    if isinstance(value, DogModulesProjection):
+        return True
+
+    return hasattr(value, "config") and hasattr(value, "mapping")
+
+
+def coerce_dog_modules_config(
+    payload: Mapping[str, Any] | DogModulesProjection | None,
+) -> DogModulesConfig:
+    """Return a defensive ``DogModulesConfig`` copy tolerant of projections."""
+
+    if _is_modules_projection_like(payload):
+        config_attr = getattr(payload, "config", None)
+        if isinstance(config_attr, Mapping):
+            return cast(DogModulesConfig, dict(config_attr))
+
+    if isinstance(payload, Mapping):
+        config = ensure_dog_modules_config(payload)
+        return cast(DogModulesConfig, dict(config))
+
+    return cast(DogModulesConfig, {})
 
 
 def ensure_dog_modules_mapping(
@@ -1796,7 +1824,7 @@ class CoordinatorRuntimeStatisticsPayload(TypedDict):
 class CoordinatorRejectionMetrics(TypedDict):
     """Normalised rejection counters exposed via diagnostics payloads."""
 
-    schema_version: Literal[1]
+    schema_version: Literal[2]
     rejected_call_count: int
     rejection_breaker_count: int
     rejection_rate: float | None
@@ -1860,6 +1888,10 @@ DOG_WEIGHT_FIELD: Final[Literal["dog_weight"]] = "dog_weight"
 DOG_SIZE_FIELD: Final[Literal["dog_size"]] = "dog_size"
 DOG_MODULES_FIELD: Final[Literal["modules"]] = "modules"
 DOG_DISCOVERY_FIELD: Final[Literal["discovery_info"]] = "discovery_info"
+DOG_COLOR_FIELD: Final[Literal["dog_color"]] = "dog_color"
+DOG_MICROCHIP_ID_FIELD: Final[Literal["microchip_id"]] = "microchip_id"
+DOG_VET_CONTACT_FIELD: Final[Literal["vet_contact"]] = "vet_contact"
+DOG_EMERGENCY_CONTACT_FIELD: Final[Literal["emergency_contact"]] = "emergency_contact"
 DOG_FEEDING_CONFIG_FIELD: Final[Literal["feeding_config"]] = "feeding_config"
 DOG_HEALTH_CONFIG_FIELD: Final[Literal["health_config"]] = "health_config"
 DOG_GPS_CONFIG_FIELD: Final[Literal["gps_config"]] = "gps_config"
@@ -1897,9 +1929,25 @@ def ensure_dog_config_data(data: Mapping[str, Any]) -> DogConfigData | None:
     if isinstance(size, str):
         config[DOG_SIZE_FIELD] = size
 
+    color = data.get(DOG_COLOR_FIELD)
+    if isinstance(color, str) and color:
+        config[DOG_COLOR_FIELD] = color
+
+    microchip_id = data.get(DOG_MICROCHIP_ID_FIELD)
+    if isinstance(microchip_id, str) and microchip_id:
+        config[DOG_MICROCHIP_ID_FIELD] = microchip_id
+
+    vet_contact = data.get(DOG_VET_CONTACT_FIELD)
+    if isinstance(vet_contact, str) and vet_contact:
+        config[DOG_VET_CONTACT_FIELD] = vet_contact
+
+    emergency_contact = data.get(DOG_EMERGENCY_CONTACT_FIELD)
+    if isinstance(emergency_contact, str) and emergency_contact:
+        config[DOG_EMERGENCY_CONTACT_FIELD] = emergency_contact
+
     modules_payload = data.get(DOG_MODULES_FIELD)
-    if isinstance(modules_payload, Mapping):
-        config[DOG_MODULES_FIELD] = ensure_dog_modules_config(modules_payload)
+    if _is_modules_projection_like(modules_payload) or isinstance(modules_payload, Mapping):
+        config[DOG_MODULES_FIELD] = coerce_dog_modules_config(modules_payload)
 
     discovery_info = data.get(DOG_DISCOVERY_FIELD)
     if isinstance(discovery_info, Mapping):
@@ -1929,6 +1977,9 @@ def ensure_dog_config_data(data: Mapping[str, Any]) -> DogConfigData | None:
     return config
 
 
+RawDogConfig = Mapping[str, Any] | DogConfigData
+
+
 def ensure_dog_options_entry(
     value: Mapping[str, Any],
     /,
@@ -1946,8 +1997,8 @@ def ensure_dog_options_entry(
         entry["dog_id"] = dog_id
 
     modules_payload = value.get(DOG_MODULES_FIELD)
-    if isinstance(modules_payload, Mapping):
-        entry["modules"] = ensure_dog_modules_config(modules_payload)
+    if _is_modules_projection_like(modules_payload) or isinstance(modules_payload, Mapping):
+        entry["modules"] = coerce_dog_modules_config(modules_payload)
 
     return entry
 

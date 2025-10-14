@@ -33,9 +33,20 @@ from .const import (
     MODULE_NOTIFICATIONS,
     MODULE_WALK,
 )
-from .dashboard_shared import CardCollection, CardConfig, unwrap_async_result
+from .dashboard_shared import (
+    CardCollection,
+    CardConfig,
+    coerce_dog_config,
+    coerce_dog_configs,
+    unwrap_async_result,
+)
 from .dashboard_templates import MapCardOptions
-from .types import DogConfigData, ensure_dog_config_data
+from .types import (
+    DogConfigData,
+    DogModulesConfig,
+    RawDogConfig,
+    coerce_dog_modules_config,
+)
 
 if TYPE_CHECKING:
     from .dashboard_templates import DashboardTemplates
@@ -51,8 +62,8 @@ VALIDATION_CACHE_SIZE: Final[int] = 200
 # OPTIMIZED: Type definitions for better performance
 CardConfigType = CardConfig
 EntityListType = list[str]
-ModulesConfigType = dict[str, bool]
-DogConfigType = dict[str, Any]
+ModulesConfigType = DogModulesConfig
+DogConfigType = DogConfigData
 ThemeConfigType = dict[str, str]
 OptionsConfigType = dict[str, Any]
 
@@ -113,6 +124,19 @@ class BaseCardGenerator:
             "generation_time_total": 0.0,
             "errors_handled": 0,
         }
+
+    @staticmethod
+    def _ensure_dog_config(dog_config: RawDogConfig) -> DogConfigData | None:
+        """Return a typed dog configuration extracted from ``dog_config``."""
+
+        return coerce_dog_config(dog_config)
+
+    def _ensure_dog_configs(
+        self, dogs_config: Sequence[RawDogConfig]
+    ) -> list[DogConfigData]:
+        """Return typed dog configurations for downstream processing."""
+
+        return coerce_dog_configs(dogs_config)
 
     async def _collect_single_card(
         self, card_coro: Awaitable[CardConfigType | None]
@@ -297,7 +321,7 @@ class OverviewCardGenerator(BaseCardGenerator):
     """Generator for overview dashboard cards with enhanced performance."""
 
     async def generate_welcome_card(
-        self, dogs_config: list[DogConfigType], options: OptionsConfigType
+        self, dogs_config: Sequence[RawDogConfig], options: OptionsConfigType
     ) -> CardConfigType:
         """Generate optimized welcome/summary card.
 
@@ -308,13 +332,14 @@ class OverviewCardGenerator(BaseCardGenerator):
         Returns:
             Welcome card configuration
         """
-        dog_count = len(dogs_config)
+        typed_dogs = self._ensure_dog_configs(dogs_config)
+        dog_count = len(typed_dogs)
         title = options.get("title", "Paw Control")
 
         # OPTIMIZED: Async active dog counting with timeout
         try:
             active_dogs = await asyncio.wait_for(
-                self._count_active_dogs(dogs_config), timeout=3.0
+                self._count_active_dogs(typed_dogs), timeout=3.0
             )
         except TimeoutError:
             _LOGGER.debug("Active dog counting timeout, using total count")
@@ -342,7 +367,7 @@ class OverviewCardGenerator(BaseCardGenerator):
             "content": "\n".join(content_parts),
         }
 
-    async def _count_active_dogs(self, dogs_config: list[DogConfigType]) -> int:
+    async def _count_active_dogs(self, dogs_config: Sequence[DogConfigData]) -> int:
         """Count dogs that are currently active with optimized batch processing.
 
         Args:
@@ -370,7 +395,7 @@ class OverviewCardGenerator(BaseCardGenerator):
         return len(valid_entities)
 
     async def generate_dogs_grid(
-        self, dogs_config: list[DogConfigType], dashboard_url: str
+        self, dogs_config: Sequence[RawDogConfig], dashboard_url: str
     ) -> CardConfigType | None:
         """Generate optimized grid of dog navigation buttons.
 
@@ -381,13 +406,14 @@ class OverviewCardGenerator(BaseCardGenerator):
         Returns:
             Dog grid card or None if no valid dogs
         """
-        if not dogs_config:
+        typed_dogs = self._ensure_dog_configs(dogs_config)
+        if not typed_dogs:
             return None
 
         # OPTIMIZED: Pre-filter dogs and prepare entities for batch validation
         dog_candidates: list[tuple[str, str, str]] = []  # (dog_id, dog_name, entity_id)
 
-        for dog in dogs_config:
+        for dog in typed_dogs:
             dog_id = dog.get(CONF_DOG_ID)
             dog_name = dog.get(CONF_DOG_NAME)
 
@@ -434,7 +460,7 @@ class OverviewCardGenerator(BaseCardGenerator):
         }
 
     async def generate_quick_actions(
-        self, dogs_config: list[DogConfigType]
+        self, dogs_config: Sequence[RawDogConfig]
     ) -> CardConfigType | None:
         """Generate quick action buttons with optimized module detection.
 
@@ -444,15 +470,16 @@ class OverviewCardGenerator(BaseCardGenerator):
         Returns:
             Quick actions card or None if no actions available
         """
-        if not dogs_config:
+        typed_dogs = self._ensure_dog_configs(dogs_config)
+        if not typed_dogs:
             return None
 
         # OPTIMIZED: Single-pass module detection
         has_feeding = False
         has_walking = False
 
-        for dog in dogs_config:
-            modules = dog.get("modules", {})
+        for dog in typed_dogs:
+            modules = coerce_dog_modules_config(dog.get("modules"))
             if not has_feeding and modules.get(MODULE_FEEDING):
                 has_feeding = True
             if not has_walking and modules.get(MODULE_WALK):
@@ -528,7 +555,7 @@ class DogCardGenerator(BaseCardGenerator):
 
     async def generate_dog_overview_cards(
         self,
-        dog_config: DogConfigType,
+        dog_config: RawDogConfig,
         theme: ThemeConfigType,
         options: OptionsConfigType,
     ) -> list[CardConfigType]:
@@ -542,9 +569,14 @@ class DogCardGenerator(BaseCardGenerator):
         Returns:
             List of overview cards
         """
+        typed_dog = self._ensure_dog_config(dog_config)
+        if typed_dog is None:
+            return []
+
+        dog_config = typed_dog
         dog_id = dog_config[CONF_DOG_ID]
         dog_name = dog_config[CONF_DOG_NAME]
-        modules = dog_config.get("modules", {})
+        modules = coerce_dog_modules_config(dog_config.get("modules"))
 
         start_time = asyncio.get_event_loop().time()
         cards: list[CardConfigType] = []
@@ -694,7 +726,7 @@ class DogCardGenerator(BaseCardGenerator):
         return cards
 
     async def _generate_dog_header_card(
-        self, dog_config: DogConfigType, options: OptionsConfigType
+        self, dog_config: RawDogConfig, options: OptionsConfigType
     ) -> CardConfigType | None:
         """Generate optimized dog header card with picture.
 
@@ -705,8 +737,12 @@ class DogCardGenerator(BaseCardGenerator):
         Returns:
             Header card or None if not applicable
         """
-        dog_id = dog_config[CONF_DOG_ID]
-        dog_name = dog_config[CONF_DOG_NAME]
+        typed_dog = self._ensure_dog_config(dog_config)
+        if typed_dog is None:
+            return None
+
+        dog_id = typed_dog[CONF_DOG_ID]
+        dog_name = typed_dog[CONF_DOG_NAME]
 
         # OPTIMIZED: Quick entity existence check with cache
         status_entity = f"sensor.{dog_id}_status"
@@ -714,7 +750,7 @@ class DogCardGenerator(BaseCardGenerator):
             return None
 
         # Use custom image if provided, otherwise default
-        dog_image = dog_config.get("dog_image", f"/local/paw_control/{dog_id}.jpg")
+        dog_image = typed_dog.get("dog_image", f"/local/paw_control/{dog_id}.jpg")
 
         return {
             "type": "picture-entity",
@@ -748,7 +784,7 @@ class DogCardGenerator(BaseCardGenerator):
         return await self.templates.get_map_card_template(dog_id, map_options)
 
     async def _generate_activity_graph_card(
-        self, dog_config: DogConfigType, options: OptionsConfigType
+        self, dog_config: RawDogConfig, options: OptionsConfigType
     ) -> CardConfigType | None:
         """Generate optimized activity graph card.
 
@@ -762,8 +798,13 @@ class DogCardGenerator(BaseCardGenerator):
         if not options.get("show_activity_graph", True):
             return None
 
+        typed_dog = self._ensure_dog_config(dog_config)
+        if typed_dog is None:
+            return None
+
+        dog_config = typed_dog
         dog_id = dog_config[CONF_DOG_ID]
-        modules = dog_config.get("modules", {})
+        modules = coerce_dog_modules_config(dog_config.get("modules"))
 
         # OPTIMIZED: Build entity list efficiently
         activity_entities = [f"sensor.{dog_id}_activity_level"]
@@ -786,7 +827,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
     """Generator for health-integrated feeding dashboard cards with optimization."""
 
     async def generate_health_feeding_overview(
-        self, dog_config: DogConfigType, options: OptionsConfigType
+        self, dog_config: RawDogConfig, options: OptionsConfigType
     ) -> list[CardConfigType]:
         """Generate optimized comprehensive health-aware feeding overview cards.
 
@@ -797,6 +838,11 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
         Returns:
             List of health feeding overview cards
         """
+        typed_dog = self._ensure_dog_config(dog_config)
+        if typed_dog is None:
+            return []
+
+        dog_config = typed_dog
         dog_id = dog_config[CONF_DOG_ID]
         dog_name = dog_config[CONF_DOG_NAME]
 
@@ -1041,9 +1087,14 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
         }
 
     async def generate_health_feeding_controls(
-        self, dog_config: DogConfigType, options: OptionsConfigType
+        self, dog_config: RawDogConfig, options: OptionsConfigType
     ) -> list[CardConfigType]:
         """Generate optimized health-aware feeding control cards."""
+        typed_dog = self._ensure_dog_config(dog_config)
+        if typed_dog is None:
+            return []
+
+        dog_config = typed_dog
         dog_id = dog_config[CONF_DOG_ID]
 
         # OPTIMIZED: Direct card generation without unnecessary async calls
@@ -1094,7 +1145,7 @@ class ModuleCardGenerator(BaseCardGenerator):
     """Generator for module-specific dashboard cards with performance optimization."""
 
     async def generate_feeding_cards(
-        self, dog_config: DogConfigType, options: OptionsConfigType
+        self, dog_config: RawDogConfig, options: OptionsConfigType
     ) -> list[CardConfigType]:
         """Generate optimized feeding module cards with health-aware integration.
 
@@ -1105,8 +1156,13 @@ class ModuleCardGenerator(BaseCardGenerator):
         Returns:
             List of feeding cards
         """
+        typed_dog = self._ensure_dog_config(dog_config)
+        if typed_dog is None:
+            return []
+
+        dog_config = typed_dog
         dog_id = dog_config[CONF_DOG_ID]
-        modules = dog_config.get("modules", {})
+        modules = coerce_dog_modules_config(dog_config.get("modules"))
         cards: list[CardConfigType] = []
 
         # OPTIMIZED: Check if health-aware feeding is enabled
@@ -1222,7 +1278,7 @@ class ModuleCardGenerator(BaseCardGenerator):
         return history_card if history_card.get("entities") else None
 
     async def generate_walk_cards(
-        self, dog_config: DogConfigType, options: OptionsConfigType
+        self, dog_config: RawDogConfig, options: OptionsConfigType
     ) -> list[CardConfigType]:
         """Generate optimized walk module cards.
 
@@ -1233,6 +1289,11 @@ class ModuleCardGenerator(BaseCardGenerator):
         Returns:
             List of walk cards
         """
+        typed_dog = self._ensure_dog_config(dog_config)
+        if typed_dog is None:
+            return []
+
+        dog_config = typed_dog
         dog_id = dog_config[CONF_DOG_ID]
         cards: list[CardConfigType] = []
 
@@ -1335,7 +1396,7 @@ class ModuleCardGenerator(BaseCardGenerator):
         return history_card if history_card.get("entities") else None
 
     async def generate_health_cards(
-        self, dog_config: DogConfigType, options: OptionsConfigType
+        self, dog_config: RawDogConfig, options: OptionsConfigType
     ) -> list[CardConfigType]:
         """Generate optimized health module cards.
 
@@ -1346,6 +1407,11 @@ class ModuleCardGenerator(BaseCardGenerator):
         Returns:
             List of health cards
         """
+        typed_dog = self._ensure_dog_config(dog_config)
+        if typed_dog is None:
+            return []
+
+        dog_config = typed_dog
         dog_id = dog_config[CONF_DOG_ID]
         cards: list[CardConfigType] = []
 
@@ -1439,13 +1505,18 @@ class ModuleCardGenerator(BaseCardGenerator):
         return cards
 
     async def generate_notification_cards(
-        self, dog_config: DogConfigType, options: OptionsConfigType
+        self, dog_config: RawDogConfig, options: OptionsConfigType
     ) -> list[CardConfigType]:
         """Generate notification module cards using typed templates."""
 
+        typed_dog = self._ensure_dog_config(dog_config)
+        if typed_dog is None:
+            return []
+
+        dog_config = typed_dog
         dog_id = dog_config[CONF_DOG_ID]
         dog_name = dog_config[CONF_DOG_NAME]
-        modules = dog_config.get("modules", {})
+        modules = coerce_dog_modules_config(dog_config.get("modules"))
 
         if not modules.get(MODULE_NOTIFICATIONS):
             return []
@@ -1516,7 +1587,7 @@ class ModuleCardGenerator(BaseCardGenerator):
         }
 
     async def generate_gps_cards(
-        self, dog_config: DogConfigType, options: OptionsConfigType
+        self, dog_config: RawDogConfig, options: OptionsConfigType
     ) -> list[CardConfigType]:
         """Generate optimized GPS module cards.
 
@@ -1527,6 +1598,11 @@ class ModuleCardGenerator(BaseCardGenerator):
         Returns:
             List of GPS cards
         """
+        typed_dog = self._ensure_dog_config(dog_config)
+        if typed_dog is None:
+            return []
+
+        dog_config = typed_dog
         dog_id = dog_config[CONF_DOG_ID]
         cards: list[CardConfigType] = []
 
@@ -1714,7 +1790,7 @@ class WeatherCardGenerator(BaseCardGenerator):
 
     async def generate_weather_overview_cards(
         self,
-        dog_config: DogConfigType,
+        dog_config: RawDogConfig,
         options: OptionsConfigType,
     ) -> list[CardConfigType]:
         """Generate comprehensive weather overview cards for dog health monitoring.
@@ -1726,9 +1802,14 @@ class WeatherCardGenerator(BaseCardGenerator):
         Returns:
             List of weather overview cards
         """
+        typed_dog = self._ensure_dog_config(dog_config)
+        if typed_dog is None:
+            return []
+
+        dog_config = typed_dog
         dog_id = dog_config[CONF_DOG_ID]
         dog_name = dog_config[CONF_DOG_NAME]
-        modules = dog_config.get("modules", {})
+        modules = coerce_dog_modules_config(dog_config.get("modules"))
 
         # Check if weather module is enabled
         if not modules.get("weather"):
@@ -2100,9 +2181,14 @@ class WeatherCardGenerator(BaseCardGenerator):
         }
 
     async def _generate_breed_weather_advice_card(
-        self, dog_config: DogConfigType, options: OptionsConfigType
+        self, dog_config: RawDogConfig, options: OptionsConfigType
     ) -> CardConfigType | None:
         """Generate breed-specific weather advice card."""
+        typed_dog = self._ensure_dog_config(dog_config)
+        if typed_dog is None:
+            return None
+
+        dog_config = typed_dog
         dog_id = dog_config[CONF_DOG_ID]
         dog_name = dog_config[CONF_DOG_NAME]
         dog_breed = dog_config.get("breed", "Mixed Breed")
@@ -2200,9 +2286,14 @@ class WeatherCardGenerator(BaseCardGenerator):
         }
 
     async def generate_weather_controls_card(
-        self, dog_config: DogConfigType, options: OptionsConfigType
+        self, dog_config: RawDogConfig, options: OptionsConfigType
     ) -> CardConfigType | None:
         """Generate weather control buttons and settings card."""
+        typed_dog = self._ensure_dog_config(dog_config)
+        if typed_dog is None:
+            return None
+
+        dog_config = typed_dog
         dog_id = dog_config[CONF_DOG_ID]
         dog_name = dog_config[CONF_DOG_NAME]
 
@@ -2270,9 +2361,14 @@ class WeatherCardGenerator(BaseCardGenerator):
         }
 
     async def generate_weather_history_card(
-        self, dog_config: DogConfigType, options: OptionsConfigType
+        self, dog_config: RawDogConfig, options: OptionsConfigType
     ) -> CardConfigType | None:
         """Generate weather history and trends card."""
+        typed_dog = self._ensure_dog_config(dog_config)
+        if typed_dog is None:
+            return None
+
+        dog_config = typed_dog
         dog_id = dog_config[CONF_DOG_ID]
         dog_name = dog_config[CONF_DOG_NAME]
 
@@ -2301,7 +2397,7 @@ class StatisticsCardGenerator(BaseCardGenerator):
     """Generator for statistics dashboard cards with performance optimization."""
 
     async def generate_statistics_cards(
-        self, dogs_config: list[DogConfigType], options: OptionsConfigType
+        self, dogs_config: Sequence[RawDogConfig], options: OptionsConfigType
     ) -> list[CardConfigType]:
         """Generate optimized statistics cards for all dogs.
 
@@ -2312,7 +2408,8 @@ class StatisticsCardGenerator(BaseCardGenerator):
         Returns:
             List of statistics cards
         """
-        if not dogs_config:
+        typed_dogs = self._ensure_dog_configs(dogs_config)
+        if not typed_dogs:
             return []
 
         cards: list[CardConfigType] = []
@@ -2324,10 +2421,10 @@ class StatisticsCardGenerator(BaseCardGenerator):
 
         # OPTIMIZED: Generate all statistics cards concurrently
         stats_generators = [
-            ("activity", self._generate_activity_statistics(dogs_config, theme)),
-            ("feeding", self._generate_feeding_statistics(dogs_config, theme)),
-            ("walk", self._generate_walk_statistics(dogs_config, theme)),
-            ("health", self._generate_health_statistics(dogs_config, theme)),
+            ("activity", self._generate_activity_statistics(typed_dogs, theme)),
+            ("feeding", self._generate_feeding_statistics(typed_dogs, theme)),
+            ("walk", self._generate_walk_statistics(typed_dogs, theme)),
+            ("health", self._generate_health_statistics(typed_dogs, theme)),
         ]
 
         try:
@@ -2355,13 +2452,13 @@ class StatisticsCardGenerator(BaseCardGenerator):
             self._performance_stats["errors_handled"] += 1
 
         # Add summary card (always include)
-        summary_card = self._generate_summary_card(dogs_config, theme)
+        summary_card = self._generate_summary_card(typed_dogs, theme)
         cards.append(summary_card)
 
         return cards
 
     async def _generate_activity_statistics(
-        self, dogs_config: list[DogConfigType], theme: str
+        self, dogs_config: Sequence[DogConfigData], theme: str
     ) -> CardConfigType | None:
         """Generate optimized activity statistics card."""
         # OPTIMIZED: Build entity list efficiently
@@ -2387,14 +2484,15 @@ class StatisticsCardGenerator(BaseCardGenerator):
         )
 
     async def _generate_feeding_statistics(
-        self, dogs_config: list[DogConfigType], theme: str
+        self, dogs_config: Sequence[DogConfigData], theme: str
     ) -> CardConfigType | None:
         """Generate optimized feeding statistics card."""
         feeding_entities = []
 
         for dog in dogs_config:
             dog_id = dog.get(CONF_DOG_ID)
-            if dog_id and dog.get("modules", {}).get(MODULE_FEEDING):
+            modules = coerce_dog_modules_config(dog.get("modules"))
+            if dog_id and modules.get(MODULE_FEEDING):
                 feeding_entities.append(f"sensor.{dog_id}_meals_today")
 
         if not feeding_entities:
@@ -2412,14 +2510,15 @@ class StatisticsCardGenerator(BaseCardGenerator):
         )
 
     async def _generate_walk_statistics(
-        self, dogs_config: list[DogConfigType], theme: str
+        self, dogs_config: Sequence[DogConfigData], theme: str
     ) -> CardConfigType | None:
         """Generate optimized walk statistics card."""
         walk_entities = []
 
         for dog in dogs_config:
             dog_id = dog.get(CONF_DOG_ID)
-            if dog_id and dog.get("modules", {}).get(MODULE_WALK):
+            modules = coerce_dog_modules_config(dog.get("modules"))
+            if dog_id and modules.get(MODULE_WALK):
                 walk_entities.append(f"sensor.{dog_id}_walk_distance_today")
 
         if not walk_entities:
@@ -2437,14 +2536,15 @@ class StatisticsCardGenerator(BaseCardGenerator):
         )
 
     async def _generate_health_statistics(
-        self, dogs_config: list[DogConfigType], theme: str
+        self, dogs_config: Sequence[DogConfigData], theme: str
     ) -> CardConfigType | None:
         """Generate optimized health statistics card."""
         weight_entities = []
 
         for dog in dogs_config:
             dog_id = dog.get(CONF_DOG_ID)
-            if dog_id and dog.get("modules", {}).get(MODULE_HEALTH):
+            modules = coerce_dog_modules_config(dog.get("modules"))
+            if dog_id and modules.get(MODULE_HEALTH):
                 weight_entities.append(f"sensor.{dog_id}_weight")
 
         if not weight_entities:
@@ -2462,18 +2562,12 @@ class StatisticsCardGenerator(BaseCardGenerator):
         )
 
     def _generate_summary_card(
-        self, dogs_config: list[DogConfigType], theme: str
+        self, dogs_config: Sequence[DogConfigData], theme: str
     ) -> CardConfigType:
         """Generate optimized statistics summary card."""
-        typed_dogs: list[DogConfigData] = []
-
-        for dog in dogs_config:
-            typed = ensure_dog_config_data(dog)
-            if typed is None:
-                continue
-            typed_dogs.append(typed)
-
-        return self.templates.get_statistics_summary_template(typed_dogs, theme)
+        return self.templates.get_statistics_summary_template(
+            list(dogs_config), theme
+        )
 
 
 # OPTIMIZED: Global cache cleanup function

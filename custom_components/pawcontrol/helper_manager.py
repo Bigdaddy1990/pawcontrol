@@ -55,6 +55,7 @@ from .types import (
     HelperManagerSnapshot,
     HelperManagerStats,
     ModuleToggleKey,
+    ensure_dog_config_data,
     ensure_dog_modules_config,
 )
 
@@ -241,14 +242,20 @@ class PawControlHelperManager:
 
         normalized: list[DogConfigData] = []
 
+        def _append(candidate: Mapping[str, Any]) -> None:
+            typed = ensure_dog_config_data(candidate)
+            if typed is not None:
+                normalized.append(typed)
+
         if isinstance(dogs, Mapping):
             for dog_id, dog_config in dogs.items():
                 if not isinstance(dog_config, Mapping):
                     continue
                 dog_dict: dict[str, Any] = dict(dog_config)
                 dog_dict.setdefault(DOG_ID_FIELD, str(dog_id))
-                dog_dict.setdefault(DOG_NAME_FIELD, str(dog_dict[DOG_ID_FIELD]))
-                normalized.append(cast(DogConfigData, dog_dict))
+                if not isinstance(dog_dict.get(DOG_NAME_FIELD), str):
+                    dog_dict[DOG_NAME_FIELD] = cast(str, dog_dict[DOG_ID_FIELD])
+                _append(dog_dict)
             return normalized
 
         if isinstance(dogs, Sequence) and not isinstance(dogs, str | bytes):
@@ -257,11 +264,11 @@ class PawControlHelperManager:
                     continue
                 dog_dict = dict(dog_config)
                 dog_id = dog_dict.get(DOG_ID_FIELD)
-                if not isinstance(dog_id, str):
+                if not isinstance(dog_id, str) or not dog_id:
                     continue
                 if not isinstance(dog_dict.get(DOG_NAME_FIELD), str):
                     dog_dict[DOG_NAME_FIELD] = dog_id
-                normalized.append(cast(DogConfigData, dog_dict))
+                _append(dog_dict)
 
         return normalized
 

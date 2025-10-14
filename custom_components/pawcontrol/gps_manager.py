@@ -13,12 +13,14 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import inspect
 import logging
 import math
+from collections.abc import Coroutine
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, cast
 from uuid import uuid4
 
 from homeassistant.core import HomeAssistant
@@ -807,7 +809,7 @@ class GPSGeofenceManager:
         zone_status = self._zone_status.get(dog_id, {})
         current_location = self._last_locations.get(dog_id)
 
-        status = {
+        status: dict[str, Any] = {
             "dog_id": dog_id,
             "zones_configured": len(zones),
             "current_location": None,
@@ -899,23 +901,69 @@ class GPSGeofenceManager:
             except Exception as err:
                 _LOGGER.error("GPS tracking task error for %s: %s", dog_id, err)
 
-        tracking_coro = _tracking_loop()
+        async def _resolve_task(candidate: Any) -> asyncio.Task[Any] | None:
+            """Coerce scheduler return values into asyncio tasks."""
+
+            current: Any = candidate
+            while True:
+                if isinstance(current, asyncio.Task):
+                    return current
+                if isinstance(current, asyncio.Future):
+                    return cast(asyncio.Task[Any], current)
+                if inspect.isawaitable(current):
+                    try:
+                        current = await current
+                    except Exception as err:  # pragma: no cover - defensive guard
+                        _LOGGER.debug(
+                            "Awaiting scheduled task wrapper failed for %s: %s",
+                            dog_id,
+                            err,
+                        )
+                        return None
+                    continue
+                return None
+
+        def _loop_factory() -> Coroutine[Any, Any, None]:
+            return _tracking_loop()
+
+        task_name = f"pawcontrol_gps_tracking_{dog_id}"
         task_handle: asyncio.Task[Any] | None = None
-        created: Any | None = None
 
-        if hasattr(self.hass, "async_create_task") and callable(
-            self.hass.async_create_task
-        ):
-            created = self.hass.async_create_task(tracking_coro)
+        hass_create_task = getattr(self.hass, "async_create_task", None)
+        hass_coroutine: Coroutine[Any, Any, None] | None = None
+        if callable(hass_create_task):
+            hass_coroutine = _loop_factory()
+            try:
+                scheduled = hass_create_task(hass_coroutine, name=task_name)
+            except TypeError:
+                scheduled = hass_create_task(hass_coroutine)
+            except Exception as err:  # pragma: no cover - defensive guard
+                _LOGGER.debug(
+                    "Home Assistant task scheduling failed for %s: %s", dog_id, err
+                )
+                scheduled = None
+            else:
+                task_handle = await _resolve_task(scheduled)
 
-        if isinstance(created, asyncio.Task):
-            task_handle = created
-        elif isinstance(created, asyncio.Future):
-            task_handle = asyncio.ensure_future(created)
-        else:
-            if asyncio.iscoroutine(created):
-                created.close()
-            task_handle = asyncio.create_task(tracking_coro)
+            if task_handle is None and hass_coroutine is not None:
+                hass_coroutine.close()
+                hass_coroutine = None
+
+        if task_handle is None:
+            loop = getattr(self.hass, "loop", None)
+            if loop is not None:
+                try:
+                    task_handle = loop.create_task(_loop_factory(), name=task_name)
+                except TypeError:
+                    task_handle = loop.create_task(_loop_factory())
+            else:
+                try:
+                    task_handle = asyncio.create_task(_loop_factory(), name=task_name)
+                except TypeError:  # pragma: no cover - <3.8 compatibility guard
+                    task_handle = asyncio.create_task(_loop_factory())
+
+        if task_handle is None:
+            raise RuntimeError(f"Failed to schedule GPS tracking task for {dog_id}")
 
         self._tracking_tasks[dog_id] = task_handle
 
@@ -926,14 +974,6 @@ class GPSGeofenceManager:
         task = self._tracking_tasks.pop(dog_id, None)
         if task is None:
             return
-
-        if not isinstance(task, asyncio.Task):
-            if isinstance(task, asyncio.Future):
-                task = asyncio.ensure_future(task)
-            elif asyncio.iscoroutine(task):
-                task = asyncio.create_task(task)
-            else:
-                return
 
         if not task.done():
             task.cancel()

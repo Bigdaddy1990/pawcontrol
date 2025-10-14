@@ -9,7 +9,8 @@ Python: 3.13+
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+import asyncio
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -72,6 +73,57 @@ class TestGPSManagerInitialization:
         assert dog_config.update_interval == 30
         assert dog_config.min_distance_for_point == 5.0
 
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+class TestGPSTrackingTasks:
+    """Validate GPS tracking background task scheduling."""
+
+    async def test_start_tracking_task_handles_asyncmock_scheduler(
+        self, mock_gps_manager
+    ) -> None:
+        """Ensure fallback scheduling engages when hass returns AsyncMock."""
+
+        manager = mock_gps_manager
+        await manager.async_configure_dog_gps(
+            "test_dog",
+            {
+                "enabled": True,
+                "track_route": True,
+                "update_interval_seconds": 0,
+            },
+        )
+
+        manager._active_routes["test_dog"] = WalkRoute(
+            dog_id="test_dog",
+            start_time=datetime.now(UTC),
+        )
+
+        loop = asyncio.get_running_loop()
+
+        async def _fast_sleep(_: float) -> None:
+            return None
+
+        manager.hass.async_create_task.return_value = None
+
+        with patch(
+            "custom_components.pawcontrol.gps_manager.asyncio.sleep",
+            new=AsyncMock(side_effect=_fast_sleep),
+        ), patch(
+            "custom_components.pawcontrol.gps_manager.asyncio.create_task"
+        ) as create_task:
+            create_task.side_effect = (
+                lambda coro, *, name=None: loop.create_task(coro, name=name)
+            )
+
+            await manager._start_tracking_task("test_dog")
+
+        assert create_task.called
+        task = manager._tracking_tasks.get("test_dog")
+        assert isinstance(task, asyncio.Task)
+        manager._active_routes.pop("test_dog", None)
+        await asyncio.sleep(0)
+        await manager._stop_tracking_task("test_dog")
 
 @pytest.mark.unit
 class TestDistanceCalculations:
