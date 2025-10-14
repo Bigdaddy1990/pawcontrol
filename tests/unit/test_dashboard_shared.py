@@ -157,7 +157,9 @@ def test_coerce_dog_config_preserves_profile_metadata() -> None:
 def test_coerce_dog_config_accepts_module_projection() -> None:
     """Dog module projections should retain toggles during coercion."""
 
-    projection = DogModulesProjection(config={MODULE_WALK: True}, mapping={MODULE_WALK: True})
+    projection = DogModulesProjection(
+        config={MODULE_WALK: True}, mapping={MODULE_WALK: True}
+    )
 
     raw_config = {
         CONF_DOG_ID: "delta",

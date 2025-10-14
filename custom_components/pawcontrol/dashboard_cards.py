@@ -2565,9 +2565,7 @@ class StatisticsCardGenerator(BaseCardGenerator):
         self, dogs_config: Sequence[DogConfigData], theme: str
     ) -> CardConfigType:
         """Generate optimized statistics summary card."""
-        return self.templates.get_statistics_summary_template(
-            list(dogs_config), theme
-        )
+        return self.templates.get_statistics_summary_template(list(dogs_config), theme)
 
 
 # OPTIMIZED: Global cache cleanup function

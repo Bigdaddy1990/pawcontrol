@@ -1946,7 +1946,9 @@ def ensure_dog_config_data(data: Mapping[str, Any]) -> DogConfigData | None:
         config[DOG_EMERGENCY_CONTACT_FIELD] = emergency_contact
 
     modules_payload = data.get(DOG_MODULES_FIELD)
-    if _is_modules_projection_like(modules_payload) or isinstance(modules_payload, Mapping):
+    if _is_modules_projection_like(modules_payload) or isinstance(
+        modules_payload, Mapping
+    ):
         config[DOG_MODULES_FIELD] = coerce_dog_modules_config(modules_payload)
 
     discovery_info = data.get(DOG_DISCOVERY_FIELD)
@@ -1997,7 +1999,9 @@ def ensure_dog_options_entry(
         entry["dog_id"] = dog_id
 
     modules_payload = value.get(DOG_MODULES_FIELD)
-    if _is_modules_projection_like(modules_payload) or isinstance(modules_payload, Mapping):
+    if _is_modules_projection_like(modules_payload) or isinstance(
+        modules_payload, Mapping
+    ):
         entry["modules"] = coerce_dog_modules_config(modules_payload)
 
     return entry

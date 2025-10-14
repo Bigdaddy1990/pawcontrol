@@ -1357,6 +1357,7 @@ class PawControlNotificationManager:
             )
 
         timeout_seconds = float(config.custom_settings.get("webhook_timeout", 10))
+
         async def _maybe_await(value: Any) -> Any:
             if inspect.isawaitable(value):
                 return await value
@@ -1401,7 +1402,9 @@ class PawControlNotificationManager:
                         try:
                             await release_result
                         except Exception as err:  # pragma: no cover - defensive guard
-                            _LOGGER.debug("Webhook response release await failed: %s", err)
+                            _LOGGER.debug(
+                                "Webhook response release await failed: %s", err
+                            )
 
             close = getattr(response, "close", None)
             if callable(close):
@@ -1414,7 +1417,9 @@ class PawControlNotificationManager:
                         try:
                             await close_result
                         except Exception as err:  # pragma: no cover - defensive guard
-                            _LOGGER.debug("Webhook response close await failed: %s", err)
+                            _LOGGER.debug(
+                                "Webhook response close await failed: %s", err
+                            )
 
         async def _deliver_webhook(call_result: Any) -> None:
             candidate = call_result

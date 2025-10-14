@@ -185,7 +185,9 @@ class DashboardRenderer:
         """
         typed_dog = self._ensure_dog_config(dog_config)
         if typed_dog is None:
-            _LOGGER.warning("Dog dashboard render skipped: configuration payload is empty")
+            _LOGGER.warning(
+                "Dog dashboard render skipped: configuration payload is empty"
+            )
             return {"views": []}
 
         job = RenderJob(
@@ -263,7 +265,9 @@ class DashboardRenderer:
             cast(Sequence[RawDogConfig] | None, job.config.get("dogs"))
         )
         if not dogs_config:
-            _LOGGER.warning("Main dashboard job aborted: typed dog configurations missing")
+            _LOGGER.warning(
+                "Main dashboard job aborted: typed dog configurations missing"
+            )
             return {"views": []}
         options = job.options or {}
 
@@ -298,11 +302,11 @@ class DashboardRenderer:
         Returns:
             Dog dashboard configuration
         """
-        dog_config = self._ensure_dog_config(
-            cast(RawDogConfig, job.config.get("dog"))
-        )
+        dog_config = self._ensure_dog_config(cast(RawDogConfig, job.config.get("dog")))
         if dog_config is None:
-            _LOGGER.warning("Dog dashboard job aborted: typed dog configuration missing")
+            _LOGGER.warning(
+                "Dog dashboard job aborted: typed dog configuration missing"
+            )
             return {"views": []}
         options = job.options or {}
 
@@ -437,9 +441,7 @@ class DashboardRenderer:
             batch = dogs_list[i : i + batch_size]
 
             # Process batch concurrently
-            batch_jobs: list[
-                tuple[DogConfigData, Awaitable[dict[str, Any] | None]]
-            ] = [
+            batch_jobs: list[tuple[DogConfigData, Awaitable[dict[str, Any] | None]]] = [
                 (
                     dog,
                     self._render_single_dog_view(dog, i + idx, options),
@@ -454,11 +456,7 @@ class DashboardRenderer:
 
             for (dog, _), result in zip(batch_jobs, batch_results, strict=False):
                 dog_name = dog.get(DOG_NAME_FIELD)
-                dog_identifier = (
-                    dog_name
-                    or dog.get(DOG_ID_FIELD)
-                    or f"dog_{id(dog)}"
-                )
+                dog_identifier = dog_name or dog.get(DOG_ID_FIELD) or f"dog_{id(dog)}"
                 view_payload = _unwrap_async_result(
                     result,
                     context=f"Dog view generation failed for {dog_identifier}",
