@@ -106,14 +106,17 @@ class TestGPSTrackingTasks:
 
         manager.hass.async_create_task.return_value = None
 
-        with patch(
-            "custom_components.pawcontrol.gps_manager.asyncio.sleep",
-            new=AsyncMock(side_effect=_fast_sleep),
-        ), patch(
-            "custom_components.pawcontrol.gps_manager.asyncio.create_task"
-        ) as create_task:
-            create_task.side_effect = (
-                lambda coro, *, name=None: loop.create_task(coro, name=name)
+        with (
+            patch(
+                "custom_components.pawcontrol.gps_manager.asyncio.sleep",
+                new=AsyncMock(side_effect=_fast_sleep),
+            ),
+            patch(
+                "custom_components.pawcontrol.gps_manager.asyncio.create_task"
+            ) as create_task,
+        ):
+            create_task.side_effect = lambda coro, *, name=None: loop.create_task(
+                coro, name=name
             )
 
             await manager._start_tracking_task("test_dog")
@@ -124,6 +127,7 @@ class TestGPSTrackingTasks:
         manager._active_routes.pop("test_dog", None)
         await asyncio.sleep(0)
         await manager._stop_tracking_task("test_dog")
+
 
 @pytest.mark.unit
 class TestDistanceCalculations:

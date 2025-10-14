@@ -559,9 +559,7 @@ class DashboardTemplates:
 
         if isinstance(value, str):
             return [
-                chunk
-                for chunk in (part.strip() for part in value.split(","))
-                if chunk
+                chunk for chunk in (part.strip() for part in value.split(",")) if chunk
             ]
 
         if isinstance(value, Sequence) and not isinstance(

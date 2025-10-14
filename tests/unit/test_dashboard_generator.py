@@ -77,7 +77,9 @@ async def test_generator_initialises_cleanup_tracking(
 
 @pytest.mark.asyncio
 @patch("custom_components.pawcontrol.dashboard_generator.Store")
-async def test_track_task_registers_and_clears(mock_store: MagicMock, hass, mock_config_entry) -> None:
+async def test_track_task_registers_and_clears(
+    mock_store: MagicMock, hass, mock_config_entry
+) -> None:
     """Tracked tasks should be cancelled during cleanup and removed on completion."""
 
     mock_store.return_value = MagicMock()
@@ -190,7 +192,9 @@ async def test_track_task_handles_helper_runtime_error(mock_config_entry) -> Non
     """Gracefully fall back when Home Assistant helper raises ``RuntimeError``."""
 
     class HassStub(SimpleNamespace):
-        def async_create_task(self, awaitable: Awaitable[None], *, name: str | None = None) -> asyncio.Task[None]:
+        def async_create_task(
+            self, awaitable: Awaitable[None], *, name: str | None = None
+        ) -> asyncio.Task[None]:
             raise RuntimeError("loop closed")
 
     generator = object.__new__(PawControlDashboardGenerator)

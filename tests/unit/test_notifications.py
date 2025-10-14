@@ -206,7 +206,9 @@ class TestNotificationWebhooks:
 
         response.release.assert_awaited()
 
-    async def test_webhook_closes_response_without_release(self, mock_hass, session_factory):
+    async def test_webhook_closes_response_without_release(
+        self, mock_hass, session_factory
+    ):
         """Responses lacking release should still close the transport."""
 
         custom_session = session_factory()
