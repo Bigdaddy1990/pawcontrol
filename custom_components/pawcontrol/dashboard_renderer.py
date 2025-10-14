@@ -14,7 +14,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 from functools import partial
 from pathlib import Path
 from typing import Any, cast
@@ -25,14 +25,34 @@ from homeassistant.util import dt as dt_util
 
 from . import compat
 from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
+from .const import (
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+    MODULE_VISITOR,
+    MODULE_WALK,
+)
 from .dashboard_cards import (
     DogCardGenerator,
     ModuleCardGenerator,
     OverviewCardGenerator,
     StatisticsCardGenerator,
 )
-from .dashboard_shared import unwrap_async_result
+from .dashboard_shared import (
+    coerce_dog_config,
+    coerce_dog_configs,
+    unwrap_async_result,
+)
 from .dashboard_templates import DashboardTemplates
+from .types import (
+    DOG_ID_FIELD,
+    DOG_MODULES_FIELD,
+    DOG_NAME_FIELD,
+    DogConfigData,
+    RawDogConfig,
+    coerce_dog_modules_config,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -98,9 +118,26 @@ class DashboardRenderer:
         self._active_jobs: dict[str, RenderJob] = {}
         self._job_counter = 0
 
+    @staticmethod
+    def _ensure_dog_config(dog_config: RawDogConfig) -> DogConfigData | None:
+        """Return a typed dog configuration for downstream rendering."""
+
+        return coerce_dog_config(dog_config)
+
+    @staticmethod
+    def _ensure_dog_configs(
+        dogs_config: Sequence[RawDogConfig] | None,
+    ) -> list[DogConfigData]:
+        """Return typed dog configurations from ``dogs_config`` when possible."""
+
+        if not dogs_config or isinstance(dogs_config, str | bytes):
+            return []
+
+        return coerce_dog_configs(dogs_config)
+
     async def render_main_dashboard(
         self,
-        dogs_config: list[dict[str, Any]],
+        dogs_config: Sequence[RawDogConfig],
         options: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Render main dashboard configuration.
@@ -115,10 +152,15 @@ class DashboardRenderer:
         Raises:
             HomeAssistantError: If rendering fails
         """
+        typed_dogs = self._ensure_dog_configs(dogs_config)
+        if not typed_dogs:
+            _LOGGER.warning("No valid dog configurations supplied for dashboard render")
+            return {"views": []}
+
         job = RenderJob(
             job_id=self._generate_job_id(),
             job_type="main_dashboard",
-            config={"dogs": dogs_config},
+            config={"dogs": typed_dogs},
             options=options,
         )
 
@@ -126,7 +168,7 @@ class DashboardRenderer:
 
     async def render_dog_dashboard(
         self,
-        dog_config: dict[str, Any],
+        dog_config: RawDogConfig,
         options: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Render individual dog dashboard configuration.
@@ -141,10 +183,15 @@ class DashboardRenderer:
         Raises:
             HomeAssistantError: If rendering fails
         """
+        typed_dog = self._ensure_dog_config(dog_config)
+        if typed_dog is None:
+            _LOGGER.warning("Dog dashboard render skipped: configuration payload is empty")
+            return {"views": []}
+
         job = RenderJob(
             job_id=self._generate_job_id(),
             job_type="dog_dashboard",
-            config={"dog": dog_config},
+            config={"dog": typed_dog},
             options=options,
         )
 
@@ -212,8 +259,13 @@ class DashboardRenderer:
         Returns:
             Main dashboard configuration
         """
-        dogs_config = job.config["dogs"]
-        options = job.options
+        dogs_config = self._ensure_dog_configs(
+            cast(Sequence[RawDogConfig] | None, job.config.get("dogs"))
+        )
+        if not dogs_config:
+            _LOGGER.warning("Main dashboard job aborted: typed dog configurations missing")
+            return {"views": []}
+        options = job.options or {}
 
         views = []
 
@@ -246,8 +298,13 @@ class DashboardRenderer:
         Returns:
             Dog dashboard configuration
         """
-        dog_config = job.config["dog"]
-        options = job.options
+        dog_config = self._ensure_dog_config(
+            cast(RawDogConfig, job.config.get("dog"))
+        )
+        if dog_config is None:
+            _LOGGER.warning("Dog dashboard job aborted: typed dog configuration missing")
+            return {"views": []}
+        options = job.options or {}
 
         views = []
 
@@ -262,7 +319,7 @@ class DashboardRenderer:
         return {"views": views}
 
     async def _render_overview_view(
-        self, dogs_config: list[dict[str, Any]], options: dict[str, Any]
+        self, dogs_config: Sequence[DogConfigData], options: dict[str, Any]
     ) -> dict[str, Any]:
         """Render overview view asynchronously.
 
@@ -322,7 +379,7 @@ class DashboardRenderer:
         }
 
     async def _render_activity_summary(
-        self, dogs_config: list[dict[str, Any]]
+        self, dogs_config: Sequence[DogConfigData]
     ) -> dict[str, Any] | None:
         """Render activity summary card.
 
@@ -335,12 +392,14 @@ class DashboardRenderer:
         activity_entities = []
 
         for dog in dogs_config:
-            dog_id = dog.get("dog_id")
-            if dog_id:
-                entity_id = f"sensor.{dog_id}_activity_level"
-                # Check if entity exists before adding
-                if self.hass.states.get(entity_id):
-                    activity_entities.append(entity_id)
+            dog_id = dog.get(DOG_ID_FIELD)
+            if not dog_id:
+                continue
+
+            entity_id = f"sensor.{dog_id}_activity_level"
+            # Check if entity exists before adding
+            if self.hass.states.get(entity_id):
+                activity_entities.append(entity_id)
 
         if not activity_entities:
             return None
@@ -350,7 +409,7 @@ class DashboardRenderer:
         )
 
     async def _render_dog_views_batch(
-        self, dogs_config: list[dict[str, Any]], options: dict[str, Any]
+        self, dogs_config: Sequence[DogConfigData], options: dict[str, Any]
     ) -> list[dict[str, Any]]:
         """Render dog views in batches for performance.
 
@@ -365,20 +424,21 @@ class DashboardRenderer:
             # Nothing to render; avoid zero batch size that would break range.
             return []
 
+        dogs_list = list(dogs_config)
         views: list[dict[str, Any]] = []
 
         # Process dogs in batches to prevent memory issues
         estimated_cards_per_dog = max(1, MAX_CARDS_PER_BATCH // 10)
         batch_size = min(
-            estimated_cards_per_dog, len(dogs_config)
+            estimated_cards_per_dog, len(dogs_list)
         )  # Estimate cards per dog
 
-        for i in range(0, len(dogs_config), batch_size):
-            batch = dogs_config[i : i + batch_size]
+        for i in range(0, len(dogs_list), batch_size):
+            batch = dogs_list[i : i + batch_size]
 
             # Process batch concurrently
             batch_jobs: list[
-                tuple[dict[str, Any], Awaitable[dict[str, Any] | None]]
+                tuple[DogConfigData, Awaitable[dict[str, Any] | None]]
             ] = [
                 (
                     dog,
@@ -393,9 +453,11 @@ class DashboardRenderer:
             )
 
             for (dog, _), result in zip(batch_jobs, batch_results, strict=False):
-                dog_identifier = cast(
-                    str,
-                    dog.get("dog_name") or dog.get("dog_id") or f"dog_{id(dog)}",
+                dog_name = dog.get(DOG_NAME_FIELD)
+                dog_identifier = (
+                    dog_name
+                    or dog.get(DOG_ID_FIELD)
+                    or f"dog_{id(dog)}"
                 )
                 view_payload = _unwrap_async_result(
                     result,
@@ -408,7 +470,7 @@ class DashboardRenderer:
         return views
 
     async def _render_single_dog_view(
-        self, dog_config: dict[str, Any], index: int, options: dict[str, Any]
+        self, dog_config: DogConfigData, index: int, options: dict[str, Any]
     ) -> dict[str, Any] | None:
         """Render view for a single dog.
 
@@ -420,8 +482,8 @@ class DashboardRenderer:
         Returns:
             Dog view configuration or None if invalid
         """
-        dog_id = dog_config.get("dog_id")
-        dog_name = dog_config.get("dog_name")
+        dog_id = dog_config.get(DOG_ID_FIELD)
+        dog_name = dog_config.get(DOG_NAME_FIELD)
 
         if not dog_id or not dog_name:
             return None
@@ -464,7 +526,7 @@ class DashboardRenderer:
         return themes[index % len(themes)]
 
     async def _render_dog_overview_view(
-        self, dog_config: dict[str, Any], options: dict[str, Any]
+        self, dog_config: DogConfigData, options: dict[str, Any]
     ) -> dict[str, Any]:
         """Render dog overview view.
 
@@ -489,7 +551,7 @@ class DashboardRenderer:
         }
 
     async def _render_module_views(
-        self, dog_config: dict[str, Any], options: dict[str, Any]
+        self, dog_config: DogConfigData, options: dict[str, Any]
     ) -> list[dict[str, Any]]:
         """Render module-specific views for dog.
 
@@ -501,34 +563,45 @@ class DashboardRenderer:
             List of module view configurations
         """
         views: list[dict[str, Any]] = []
-        modules = dog_config.get("modules", {})
+        modules = coerce_dog_modules_config(dog_config.get(DOG_MODULES_FIELD))
 
         # Define module views with their generators
         module_configs = [
             (
-                "feeding",
+                MODULE_FEEDING,
                 "Feeding",
                 "mdi:food-drumstick",
                 self.module_generator.generate_feeding_cards,
             ),
-            ("walk", "Walks", "mdi:walk", self.module_generator.generate_walk_cards),
             (
-                "health",
+                MODULE_WALK,
+                "Walks",
+                "mdi:walk",
+                self.module_generator.generate_walk_cards,
+            ),
+            (
+                MODULE_HEALTH,
                 "Health",
                 "mdi:heart-pulse",
                 self.module_generator.generate_health_cards,
             ),
             (
-                "notifications",
+                MODULE_NOTIFICATIONS,
                 "Notifications",
                 "mdi:bell",
                 self.module_generator.generate_notification_cards,
             ),
             (
-                "gps",
+                MODULE_GPS,
                 "Location",
                 "mdi:map-marker",
                 self.module_generator.generate_gps_cards,
+            ),
+            (
+                MODULE_VISITOR,
+                "Visitors",
+                "mdi:home-account",
+                self.module_generator.generate_visitor_cards,
             ),
         ]
 
@@ -564,13 +637,13 @@ class DashboardRenderer:
 
     async def _render_module_view(
         self,
-        dog_config: dict[str, Any],
+        dog_config: DogConfigData,
         options: dict[str, Any],
         module_key: str,
         title: str,
         icon: str,
         generator: Callable[
-            [dict[str, Any], dict[str, Any]],
+            [DogConfigData, dict[str, Any]],
             Awaitable[list[dict[str, Any]]],
         ],
     ) -> dict[str, Any] | None:
@@ -604,13 +677,13 @@ class DashboardRenderer:
             _LOGGER.warning(
                 "Failed to render %s view for dog %s: %s",
                 module_key,
-                dog_config.get("dog_name", "unknown"),
+                dog_config.get(DOG_NAME_FIELD, "unknown"),
                 err,
             )
             return None
 
     async def _render_statistics_view(
-        self, dogs_config: list[dict[str, Any]], options: dict[str, Any]
+        self, dogs_config: Sequence[DogConfigData], options: dict[str, Any]
     ) -> dict[str, Any]:
         """Render statistics view.
 
@@ -633,7 +706,7 @@ class DashboardRenderer:
         }
 
     async def _render_settings_view(
-        self, dogs_config: list[dict[str, Any]], options: dict[str, Any]
+        self, dogs_config: Sequence[DogConfigData], options: dict[str, Any]
     ) -> dict[str, Any]:
         """Render settings view.
 
@@ -661,8 +734,8 @@ class DashboardRenderer:
 
         # Per-dog settings
         for dog in dogs_config:
-            dog_id = dog.get("dog_id")
-            dog_name = dog.get("dog_name")
+            dog_id = dog.get(DOG_ID_FIELD)
+            dog_name = dog.get(DOG_NAME_FIELD)
 
             if not dog_id or not dog_name:
                 continue
@@ -670,12 +743,12 @@ class DashboardRenderer:
             dog_entities = [f"switch.{dog_id}_notifications_enabled"]
 
             # Add module-specific settings
-            modules = dog.get("modules", {})
-            if modules.get("gps"):
+            modules = coerce_dog_modules_config(dog.get(DOG_MODULES_FIELD))
+            if modules.get(MODULE_GPS):
                 dog_entities.append(f"switch.{dog_id}_gps_tracking_enabled")
-            if modules.get("visitor"):
+            if modules.get(MODULE_VISITOR):
                 dog_entities.append(f"switch.{dog_id}_visitor_mode")
-            if modules.get("notifications"):
+            if modules.get(MODULE_NOTIFICATIONS):
                 dog_entities.append(f"select.{dog_id}_notification_priority")
 
             cards.append(

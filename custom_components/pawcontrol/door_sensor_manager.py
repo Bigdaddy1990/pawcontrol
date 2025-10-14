@@ -32,8 +32,6 @@ from homeassistant.util import dt as dt_util
 from .const import (
     CACHE_TIMESTAMP_FUTURE_THRESHOLD,
     CACHE_TIMESTAMP_STALE_THRESHOLD,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
     CONF_DOOR_SENSOR,
     EVENT_WALK_ENDED,
     EVENT_WALK_STARTED,
@@ -41,6 +39,8 @@ from .const import (
 from .coordinator_support import CacheMonitorRegistrar
 from .notifications import NotificationPriority, NotificationType
 from .types import (
+    DOG_ID_FIELD,
+    DOG_NAME_FIELD,
     CacheDiagnosticsMetadata,
     CacheDiagnosticsSnapshot,
     DetectionStatistics,
@@ -390,8 +390,8 @@ class DoorSensorManager:
 
         # Configure door sensors for each dog
         for dog in dogs:
-            dog_id = dog[CONF_DOG_ID]
-            dog_name = dog[CONF_DOG_NAME]
+            dog_id = dog[DOG_ID_FIELD]
+            dog_name = dog[DOG_NAME_FIELD]
 
             # Check if door sensor is configured for this dog
             door_sensor = dog.get(CONF_DOOR_SENSOR)

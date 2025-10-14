@@ -18,7 +18,7 @@ import time
 from collections.abc import Awaitable, Mapping, Sequence
 from functools import partial
 from pathlib import Path
-from typing import Any, Final, NotRequired, TypedDict
+from typing import Any, Final, NotRequired, TypedDict, TypeVar
 
 import aiofiles
 from homeassistant.core import HomeAssistant, callback
@@ -35,8 +35,18 @@ from .const import (
     MODULE_WEATHER,
 )
 from .dashboard_renderer import DashboardRenderer
-from .dashboard_shared import unwrap_async_result
+from .dashboard_shared import (
+    coerce_dog_config,
+    coerce_dog_configs,
+    unwrap_async_result,
+)
 from .dashboard_templates import DashboardTemplates
+from .types import (
+    DogConfigData,
+    DogModulesConfig,
+    RawDogConfig,
+    coerce_dog_modules_config,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -67,6 +77,9 @@ class DashboardViewSummary(TypedDict):
     card_count: int
     module: NotRequired[str]
     notifications: NotRequired[bool]
+
+
+_TrackedResultT = TypeVar("_TrackedResultT")
 
 
 class PawControlDashboardGenerator:
@@ -118,9 +131,114 @@ class PawControlDashboardGenerator:
             "file_operations": 0,
             "errors": 0,
         }
+        # OPTIMIZED: Track pending cleanup tasks for asynchronous resource release
+        self._cleanup_tasks: set[asyncio.Task[Any]] = set()
 
-        # OPTIMIZED: Resource cleanup tracking
-        self._cleanup_tasks: set[asyncio.Task] = set()
+    def _track_task(
+        self,
+        awaitable: Awaitable[_TrackedResultT] | asyncio.Task[_TrackedResultT],
+        *,
+        name: str | None = None,
+        log_exceptions: bool = False,
+    ) -> asyncio.Task[_TrackedResultT]:
+        """Create, name, and track a task for later cleanup."""
+
+        def _set_task_name(task_to_name: asyncio.Task[Any]) -> None:
+            if not name or not hasattr(task_to_name, "set_name"):
+                return
+
+            with contextlib.suppress(Exception):
+                task_to_name.set_name(name)
+
+        if isinstance(awaitable, asyncio.Task):
+            task: asyncio.Task[_TrackedResultT] = awaitable
+        else:
+            scheduled: asyncio.Task[_TrackedResultT] | None = None
+            hass = getattr(self, "hass", None)
+
+            if hass is not None:
+                create_task = getattr(hass, "async_create_task", None)
+                if callable(create_task):
+                    try:
+                        scheduled = create_task(awaitable, name=name)
+                    except TypeError:
+                        scheduled = create_task(awaitable)
+                    except RuntimeError:
+                        scheduled = None
+
+                if scheduled is None:
+                    loop = getattr(hass, "loop", None)
+                    if loop is not None:
+                        try:
+                            scheduled = loop.create_task(awaitable, name=name)
+                        except TypeError:
+                            scheduled = loop.create_task(awaitable)
+                        except RuntimeError:
+                            scheduled = None
+
+            if scheduled is None:
+                try:
+                    scheduled = asyncio.create_task(awaitable, name=name)
+                except TypeError:
+                    scheduled = asyncio.create_task(awaitable)
+                except RuntimeError as err:
+                    raise RuntimeError(
+                        "Unable to schedule dashboard background task"
+                    ) from err
+
+            if scheduled is None:
+                raise RuntimeError("Unable to schedule dashboard background task")
+
+            task = scheduled
+
+        _set_task_name(task)
+
+        self._cleanup_tasks.add(task)
+
+        def _on_task_done(completed: asyncio.Task[_TrackedResultT]) -> None:
+            self._cleanup_tasks.discard(completed)
+
+            if completed.cancelled():
+                return
+
+            try:
+                exception = completed.exception()
+            except asyncio.CancelledError:
+                return
+
+            if exception is not None and log_exceptions:
+                context = name or completed.get_name() or "dashboard background task"
+                _unwrap_async_result(
+                    exception,
+                    context=f"Unhandled error in {context}",
+                    level=logging.ERROR,
+                    suppress_cancelled=True,
+                )
+
+        task.add_done_callback(_on_task_done)
+        return task
+
+    @staticmethod
+    def _ensure_dog_config(dog_config: RawDogConfig) -> DogConfigData | None:
+        """Return a typed dog configuration extracted from ``dog_config``."""
+
+        return coerce_dog_config(dog_config)
+
+    def _ensure_dog_configs(
+        self, dogs_config: Sequence[RawDogConfig]
+    ) -> list[DogConfigData]:
+        """Return typed dog configurations for downstream operations."""
+
+        return coerce_dog_configs(dogs_config)
+
+    @staticmethod
+    def _ensure_modules_config(
+        dog: Mapping[str, Any] | DogConfigData,
+    ) -> DogModulesConfig:
+        """Return a typed modules payload extracted from ``dog``."""
+
+        modules_payload = dog.get("modules") if isinstance(dog, Mapping) else None
+        return coerce_dog_modules_config(modules_payload)
 
     @staticmethod
     def _monotonic_time() -> float:
@@ -259,11 +377,18 @@ class PawControlDashboardGenerator:
 
             try:
                 # OPTIMIZED: Parallel initialization of renderer, templates, and storage
-                renderer_task = asyncio.create_task(self._renderer.async_initialize())
-                templates_task = asyncio.create_task(
-                    self._dashboard_templates.async_initialize()
+                renderer_task = self._track_task(
+                    self._renderer.async_initialize(),
+                    name="pawcontrol_dashboard_renderer_init",
                 )
-                storage_task = asyncio.create_task(self._load_stored_data())
+                templates_task = self._track_task(
+                    self._dashboard_templates.async_initialize(),
+                    name="pawcontrol_dashboard_templates_init",
+                )
+                storage_task = self._track_task(
+                    self._load_stored_data(),
+                    name="pawcontrol_dashboard_load_stored_data",
+                )
 
                 # Wait for all with timeout
                 await asyncio.wait_for(
@@ -298,7 +423,10 @@ class PawControlDashboardGenerator:
             self._dashboards = stored_data.get("dashboards", {})
 
             # OPTIMIZED: Async validation to prevent blocking
-            validation_task = asyncio.create_task(self._validate_stored_dashboards())
+            validation_task = self._track_task(
+                self._validate_stored_dashboards(),
+                name="pawcontrol_dashboard_validate_stored",
+            )
             await asyncio.wait_for(validation_task, timeout=10.0)
 
         except TimeoutError:
@@ -330,7 +458,7 @@ class PawControlDashboardGenerator:
 
     async def async_create_dashboard(
         self,
-        dogs_config: list[dict[str, Any]],
+        dogs_config: Sequence[RawDogConfig],
         options: dict[str, Any] | None = None,
     ) -> str:
         """Create dashboard with enhanced performance monitoring."""
@@ -340,18 +468,24 @@ class PawControlDashboardGenerator:
         if not dogs_config:
             raise ValueError("At least one dog configuration is required")
 
+        typed_dogs = self._ensure_dog_configs(dogs_config)
+        if not typed_dogs:
+            raise ValueError("At least one valid dog configuration is required")
+
         options = options or {}
         start_time = self._monotonic_time()
 
         async with self._operation_semaphore:  # OPTIMIZED: Control concurrency
             try:
                 # OPTIMIZED: Parallel config generation and URL preparation
-                config_task = asyncio.create_task(
-                    self._renderer.render_main_dashboard(dogs_config, options)
+                config_task = self._track_task(
+                    self._renderer.render_main_dashboard(typed_dogs, options),
+                    name="pawcontrol_dashboard_render_main",
                 )
 
-                url_task = asyncio.create_task(
-                    self._generate_unique_dashboard_url(options)
+                url_task = self._track_task(
+                    self._generate_unique_dashboard_url(options),
+                    name="pawcontrol_dashboard_generate_url",
                 )
 
                 dashboard_config, dashboard_url = await asyncio.gather(
@@ -360,7 +494,7 @@ class PawControlDashboardGenerator:
 
                 # OPTIMIZED: Async dashboard creation with batching
                 result_url = await self._create_dashboard_optimized(
-                    dashboard_url, dashboard_config, dogs_config, options
+                    dashboard_url, dashboard_config, typed_dogs, options
                 )
 
                 # OPTIMIZED: Update performance metrics
@@ -371,7 +505,7 @@ class PawControlDashboardGenerator:
                     _LOGGER.info(
                         "Dashboard creation took %.2fs for %d dogs",
                         generation_time,
-                        len(dogs_config),
+                        len(typed_dogs),
                     )
 
                 return result_url
@@ -391,10 +525,12 @@ class PawControlDashboardGenerator:
         self,
         dashboard_url: str,
         dashboard_config: dict[str, Any],
-        dogs_config: list[dict[str, Any]],
+        dogs_config: Sequence[RawDogConfig],
         options: dict[str, Any],
     ) -> str:
         """Create dashboard with optimized file operations."""
+        typed_dogs = self._ensure_dog_configs(dogs_config)
+
         async with self._lock:
             dashboard_title = options.get("title", DEFAULT_DASHBOARD_TITLE)
             dashboard_icon = options.get("icon", DEFAULT_DASHBOARD_ICON)
@@ -415,7 +551,7 @@ class PawControlDashboardGenerator:
                     dashboard_title,
                     str(dashboard_path),
                     dashboard_config,
-                    dogs_config,
+                    typed_dogs,
                     options,
                 )
 
@@ -423,7 +559,7 @@ class PawControlDashboardGenerator:
                     "Created dashboard '%s' at /%s for %d dogs",
                     dashboard_title,
                     dashboard_url,
-                    len(dogs_config),
+                    len(typed_dogs),
                 )
 
                 return f"/{dashboard_url}"
@@ -481,10 +617,11 @@ class PawControlDashboardGenerator:
         title: str,
         path: str,
         dashboard_config: Mapping[str, Any],
-        dogs_config: list[dict[str, Any]],
+        dogs_config: Sequence[RawDogConfig],
         options: dict[str, Any],
     ) -> None:
         """Store dashboard metadata with batching."""
+        typed_dogs = self._ensure_dog_configs(dogs_config)
         view_summaries = self._summarise_dashboard_views(dashboard_config)
 
         self._dashboards[dashboard_url] = {
@@ -493,13 +630,15 @@ class PawControlDashboardGenerator:
             "path": path,
             "created": dt_util.utcnow().isoformat(),
             "type": "main",
-            "dogs": [dog[CONF_DOG_ID] for dog in dogs_config if dog.get(CONF_DOG_ID)],
+            "dogs": [dog[CONF_DOG_ID] for dog in typed_dogs],
             "options": options,
             "entry_id": self.entry.entry_id,
             "version": DASHBOARD_STORAGE_VERSION,
             "performance": {
                 "generation_time": self._monotonic_time(),
-                "entity_count": sum(len(dog.get("modules", {})) for dog in dogs_config),
+                "entity_count": sum(
+                    len(self._ensure_modules_config(dog)) for dog in typed_dogs
+                ),
             },
             "views": view_summaries,
             "has_notifications_view": self._has_notifications_view(view_summaries),
@@ -509,15 +648,20 @@ class PawControlDashboardGenerator:
 
     async def async_create_dog_dashboard(
         self,
-        dog_config: dict[str, Any],
+        dog_config: RawDogConfig,
         options: dict[str, Any] | None = None,
     ) -> str:
         """Create optimized dog dashboard with performance tracking."""
         if not self._initialized:
             await self.async_initialize()
 
-        dog_id = dog_config.get(CONF_DOG_ID)
-        dog_name = dog_config.get(CONF_DOG_NAME)
+        typed_dog = self._ensure_dog_config(dog_config)
+        if typed_dog is None:
+            raise ValueError("Dog configuration is invalid")
+
+        dog_config = typed_dog
+        dog_id = dog_config[CONF_DOG_ID]
+        dog_name = dog_config[CONF_DOG_NAME]
 
         if not dog_id or not dog_name:
             raise ValueError("Dog ID and name are required")
@@ -528,8 +672,9 @@ class PawControlDashboardGenerator:
         async with self._operation_semaphore:
             try:
                 # OPTIMIZED: Concurrent rendering and URL generation
-                render_task = asyncio.create_task(
-                    self._renderer.render_dog_dashboard(dog_config, options)
+                render_task = self._track_task(
+                    self._renderer.render_dog_dashboard(dog_config, options),
+                    name=f"pawcontrol_dashboard_render_dog_{slugify(dog_id)}",
                 )
 
                 dashboard_url = f"paw-{slugify(dog_id)}"
@@ -595,7 +740,7 @@ class PawControlDashboardGenerator:
     async def async_update_dashboard(
         self,
         dashboard_url: str,
-        dogs_config: list[dict[str, Any]],
+        dogs_config: Sequence[RawDogConfig],
         options: dict[str, Any] | None = None,
     ) -> bool:
         """Update dashboard with optimized async operations."""
@@ -813,8 +958,9 @@ class PawControlDashboardGenerator:
 
             # Process batch concurrently
             batch_tasks = [
-                asyncio.create_task(
-                    self.async_update_dashboard(url, dogs_config, options)
+                self._track_task(
+                    self.async_update_dashboard(url, dogs_config, options),
+                    name=f"pawcontrol_dashboard_update_{slugify(url)}",
                 )
                 for url, dogs_config, options in batch
             ]
@@ -1150,7 +1296,7 @@ class PawControlDashboardGenerator:
 
     async def async_create_weather_dashboard(
         self,
-        dog_config: dict[str, Any],
+        dog_config: RawDogConfig,
         options: dict[str, Any] | None = None,
     ) -> str:
         """Create dedicated weather dashboard for a dog.
@@ -1169,15 +1315,18 @@ class PawControlDashboardGenerator:
         if not self._initialized:
             await self.async_initialize()
 
-        dog_id = dog_config.get(CONF_DOG_ID)
-        dog_name = dog_config.get(CONF_DOG_NAME)
-        breed = dog_config.get("breed", "Mixed")
+        typed_dog = self._ensure_dog_config(dog_config)
+        if typed_dog is None:
+            raise ValueError("Dog configuration is invalid")
+
+        dog_id = typed_dog.get(CONF_DOG_ID)
+        dog_name = typed_dog.get(CONF_DOG_NAME)
+        breed = typed_dog.get("breed", "Mixed")
 
         if not dog_id or not dog_name:
             raise ValueError("Dog ID and name are required")
 
-        # Check if weather module is enabled
-        modules = dog_config.get("modules", {})
+        modules = self._ensure_modules_config(typed_dog)
         if not modules.get(MODULE_WEATHER, False):
             raise ValueError(f"Weather module not enabled for {dog_name}")
 
@@ -1279,7 +1428,7 @@ class PawControlDashboardGenerator:
                     f"Weather dashboard creation failed: {err}"
                 ) from err
 
-    def _has_weather_module(self, dogs_config: list[dict[str, Any]]) -> bool:
+    def _has_weather_module(self, dogs_config: Sequence[RawDogConfig]) -> bool:
         """Check if any dog has weather module enabled.
 
         Args:
@@ -1288,8 +1437,8 @@ class PawControlDashboardGenerator:
         Returns:
             True if weather module is enabled for any dog
         """
-        for dog in dogs_config:
-            modules = dog.get("modules", {})
+        for dog in self._ensure_dog_configs(dogs_config):
+            modules = self._ensure_modules_config(dog)
             if modules.get(MODULE_WEATHER, False):
                 return True
         return False
@@ -1297,7 +1446,7 @@ class PawControlDashboardGenerator:
     async def _add_weather_components_to_dashboard(
         self,
         dashboard_config: dict[str, Any],
-        dogs_config: list[dict[str, Any]],
+        dogs_config: Sequence[RawDogConfig],
         options: dict[str, Any],
     ) -> None:
         """Add weather components to main dashboard.
@@ -1307,15 +1456,16 @@ class PawControlDashboardGenerator:
             dogs_config: List of dog configurations
             options: Dashboard options
         """
+        typed_dogs = self._ensure_dog_configs(dogs_config)
         theme = options.get("theme", "modern")
         views = dashboard_config.setdefault("views", [])
 
         # Create weather overview view for all dogs with weather enabled
-        weather_dogs = [
-            dog
-            for dog in dogs_config
-            if dog.get("modules", {}).get(MODULE_WEATHER, False)
-        ]
+        weather_dogs: list[DogConfigData] = []
+        for dog in typed_dogs:
+            modules = self._ensure_modules_config(dog)
+            if modules.get(MODULE_WEATHER, False):
+                weather_dogs.append(dog)
 
         if not weather_dogs:
             return
@@ -1378,7 +1528,7 @@ class PawControlDashboardGenerator:
     async def _add_weather_components_to_dog_dashboard(
         self,
         dashboard_config: dict[str, Any],
-        dog_config: dict[str, Any],
+        dog_config: RawDogConfig,
         options: dict[str, Any],
     ) -> None:
         """Add weather components to individual dog dashboard.
@@ -1388,6 +1538,11 @@ class PawControlDashboardGenerator:
             dog_config: Dog configuration
             options: Dashboard options
         """
+        typed_dog = self._ensure_dog_config(dog_config)
+        if typed_dog is None:
+            return
+
+        dog_config = typed_dog
         dog_id = dog_config.get(CONF_DOG_ID)
         dog_name = dog_config.get(CONF_DOG_NAME)
         breed = dog_config.get("breed", "Mixed")
@@ -1442,7 +1597,7 @@ class PawControlDashboardGenerator:
 
     async def async_batch_create_weather_dashboards(
         self,
-        dogs_config: list[dict[str, Any]],
+        dogs_config: Sequence[RawDogConfig],
         options: dict[str, Any] | None = None,
     ) -> dict[str, str]:
         """Create weather dashboards for multiple dogs in batch.
@@ -1458,11 +1613,12 @@ class PawControlDashboardGenerator:
             await self.async_initialize()
 
         # Filter dogs with weather module enabled
-        weather_dogs = [
-            dog
-            for dog in dogs_config
-            if dog.get("modules", {}).get(MODULE_WEATHER, False)
-        ]
+        typed_dogs = self._ensure_dog_configs(dogs_config)
+        weather_dogs: list[DogConfigData] = []
+        for dog in typed_dogs:
+            modules = self._ensure_modules_config(dog)
+            if modules.get(MODULE_WEATHER, False):
+                weather_dogs.append(dog)
 
         if not weather_dogs:
             _LOGGER.info("No dogs with weather module enabled")
@@ -1479,7 +1635,10 @@ class PawControlDashboardGenerator:
 
             # Create batch tasks
             batch_tasks = [
-                asyncio.create_task(self.async_create_weather_dashboard(dog, options))
+                self._track_task(
+                    self.async_create_weather_dashboard(dog, options),
+                    name=f"pawcontrol_dashboard_weather_{dog.get(CONF_DOG_ID, 'unknown')}",
+                )
                 for dog in batch
             ]
 
@@ -1550,3 +1709,5 @@ class PawControlDashboardGenerator:
 
 
 _unwrap_async_result = partial(unwrap_async_result, logger=_LOGGER)
+# Typed dog configuration input accepted by the generator is provided via the
+# shared ``RawDogConfig`` alias imported from ``types``.

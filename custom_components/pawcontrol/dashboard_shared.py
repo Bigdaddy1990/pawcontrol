@@ -4,12 +4,47 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Mapping, Sequence
 from typing import Any
+
+from .types import DogConfigData, RawDogConfig, ensure_dog_config_data
 
 type CardConfig = dict[str, Any]
 type CardCollection = list[CardConfig]
 
-__all__ = ["CardCollection", "CardConfig", "unwrap_async_result"]
+__all__ = [
+    "CardCollection",
+    "CardConfig",
+    "coerce_dog_config",
+    "coerce_dog_configs",
+    "unwrap_async_result",
+]
+
+
+def coerce_dog_config(dog_config: RawDogConfig) -> DogConfigData | None:
+    """Return a typed dog configuration for dashboard rendering.
+
+    Card gatherers receive a mix of raw dictionaries (from legacy storage) and
+    ``DogConfigData`` typed dictionaries. Normalising the payload here keeps the
+    helpers focused on rendering logic and guarantees downstream consumers work
+    with typed metadata only.
+    """
+
+    if isinstance(dog_config, Mapping):
+        return ensure_dog_config_data(dog_config)
+
+    return None
+
+
+def coerce_dog_configs(dogs_config: Sequence[RawDogConfig]) -> list[DogConfigData]:
+    """Return a typed ``DogConfigData`` list extracted from ``dogs_config``."""
+
+    typed: list[DogConfigData] = []
+    for dog_config in dogs_config:
+        typed_dog = coerce_dog_config(dog_config)
+        if typed_dog is not None:
+            typed.append(typed_dog)
+    return typed
 
 
 def unwrap_async_result[T](

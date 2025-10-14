@@ -224,14 +224,14 @@ class GardenManager:
         self._stats_update_task: asyncio.Task | None = None
 
         # Dependencies (injected during initialization)
-        self._notification_manager = None
-        self._door_sensor_manager = None
+        self._notification_manager: Any | None = None
+        self._door_sensor_manager: Any | None = None
 
     async def async_initialize(
         self,
         dogs: list[str],
-        notification_manager=None,
-        door_sensor_manager=None,
+        notification_manager: Any | None = None,
+        door_sensor_manager: Any | None = None,
         config: dict[str, Any] | None = None,
     ) -> None:
         """Initialize garden manager with dependencies.
@@ -840,7 +840,7 @@ class GardenManager:
         stats.total_activities = sum(len(s.activities) for s in dog_sessions)
 
         # Find most active time of day (simplified)
-        hour_counts = {}
+        hour_counts: dict[int, int] = {}
         for session in dog_sessions:
             hour = session.start_time.hour
             hour_counts[hour] = hour_counts.get(hour, 0) + 1
@@ -857,7 +857,7 @@ class GardenManager:
                 stats.most_active_time_of_day = "night"
 
         # Find favorite activities
-        activity_counts = {}
+        activity_counts: dict[str, int] = {}
         for session in dog_sessions:
             for activity in session.activities:
                 activity_type = activity.activity_type.value

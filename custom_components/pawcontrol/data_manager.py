@@ -42,6 +42,8 @@ from .const import (
 )
 from .coordinator_support import CacheMonitorTarget, CoordinatorMetrics
 from .types import (
+    DOG_ID_FIELD,
+    DOG_NAME_FIELD,
     CacheDiagnosticsMap,
     CacheDiagnosticsMetadata,
     CacheDiagnosticsSnapshot,
@@ -49,10 +51,12 @@ from .types import (
     CacheRepairIssue,
     CacheRepairTotals,
     DailyStats,
+    DogConfigData,
     FeedingData,
     GPSLocation,
     HealthData,
     WalkData,
+    ensure_dog_config_data,
 )
 from .utils import is_number
 
@@ -774,7 +778,7 @@ def _default_session_id_generator() -> str:
 class DogProfile:
     """Representation of all stored data for a single dog."""
 
-    config: dict[str, Any]
+    config: DogConfigData
     daily_stats: DailyStats
     feeding_history: list[dict[str, Any]] = field(default_factory=list)
     walk_history: list[dict[str, Any]] = field(default_factory=list)
@@ -805,8 +809,12 @@ class DogProfile:
         except Exception:  # pragma: no cover - only triggered by corrupt files
             daily_stats = DailyStats(date=_utcnow())
 
+        typed_config = ensure_dog_config_data(config)
+        if typed_config is None:
+            raise HomeAssistantError("Invalid dog configuration in storage")
+
         return cls(
-            config=dict(config),
+            config=typed_config,
             daily_stats=daily_stats,
             feeding_history=feeding_history,
             walk_history=walk_history,
@@ -871,7 +879,22 @@ class PawControlDataManager:
 
         self.hass = hass
         self._coordinator = coordinator
-        self._dogs_config = {cfg["dog_id"]: dict(cfg) for cfg in dogs_config or []}
+        typed_configs: dict[str, DogConfigData] = {}
+        for config in dogs_config or []:
+            if not isinstance(config, Mapping):
+                continue
+            candidate: dict[str, Any] = dict(config)
+            dog_id = candidate.get(DOG_ID_FIELD)
+            if not isinstance(dog_id, str) or not dog_id:
+                continue
+            if not isinstance(candidate.get(DOG_NAME_FIELD), str):
+                candidate[DOG_NAME_FIELD] = dog_id
+            typed = ensure_dog_config_data(candidate)
+            if typed is None:
+                continue
+            typed_configs[typed[DOG_ID_FIELD]] = typed
+
+        self._dogs_config: dict[str, DogConfigData] = typed_configs
 
         if entry_id is None and coordinator is not None:
             entry = getattr(coordinator, "config_entry", None)
@@ -963,7 +986,13 @@ class PawControlDataManager:
         """Persist ``profile`` for ``dog_id`` and update cached config."""
 
         self._dog_profiles[dog_id] = profile
-        self._dogs_config[dog_id] = dict(profile.config)
+        typed_config = ensure_dog_config_data(profile.config)
+        if typed_config is None:
+            error_cls = _resolve_homeassistant_error()
+            raise error_cls(f"Invalid PawControl profile for {dog_id}")
+
+        profile.config = typed_config
+        self._dogs_config[dog_id] = typed_config
         await self._async_save_dog_data(dog_id)
 
     def _ensure_metrics_containers(self) -> None:
@@ -2382,7 +2411,12 @@ class PawControlDataManager:
                     config[section] = _merge_dicts(current, payload)
                 else:
                     config[section] = payload
-            profile.config = config
+            typed_config = ensure_dog_config_data(config)
+            if typed_config is None:
+                error_cls = _resolve_homeassistant_error()
+                raise error_cls(f"Invalid PawControl update for {dog_id}")
+
+            profile.config = typed_config
 
         if persist:
             try:
@@ -2391,7 +2425,7 @@ class PawControlDataManager:
                 return False
         else:
             self._dog_profiles[dog_id] = profile
-            self._dogs_config[dog_id] = dict(profile.config)
+            self._dogs_config[dog_id] = profile.config
 
         return True
 

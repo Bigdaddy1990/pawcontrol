@@ -191,8 +191,8 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     performance_metrics = diagnostics["performance_metrics"]
     assert "schema_version" not in performance_metrics
     rejection_metrics = performance_metrics["rejection_metrics"]
-    assert rejection_metrics["schema_version"] == 1
+    assert rejection_metrics["schema_version"] == 2
     assert rejection_metrics["rejected_call_count"] == 0
     assert rejection_metrics["rejection_breaker_count"] == 0
     stats_block = performance_metrics["statistics"]["rejection_metrics"]
-    assert stats_block["schema_version"] == 1
+    assert stats_block["schema_version"] == 2

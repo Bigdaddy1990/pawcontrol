@@ -139,7 +139,7 @@ def test_build_performance_snapshot_includes_metrics() -> None:
     assert resilience["rejection_breaker_count"] == 1
     assert resilience["rejection_rate"] == 0.3
     rejection_metrics = snapshot["rejection_metrics"]
-    assert rejection_metrics["schema_version"] == 1
+    assert rejection_metrics["schema_version"] == 2
     assert rejection_metrics["rejected_call_count"] == 3
     assert rejection_metrics["rejection_breaker_count"] == 1
     assert rejection_metrics["rejection_rate"] == 0.3
@@ -167,7 +167,7 @@ def test_build_performance_snapshot_defaults_rejection_metrics() -> None:
     )
 
     rejection_metrics = snapshot["rejection_metrics"]
-    assert rejection_metrics["schema_version"] == 1
+    assert rejection_metrics["schema_version"] == 2
     assert rejection_metrics["rejected_call_count"] == 0
     assert rejection_metrics["rejection_breaker_count"] == 0
     assert rejection_metrics["rejection_rate"] == 0.0

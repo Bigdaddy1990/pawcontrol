@@ -226,7 +226,7 @@ def test_build_update_statistics_serialises_resilience_payload(monkeypatch) -> N
     assert performance_metrics.get("last_rejection_breaker_id") is None
     assert "schema_version" not in performance_metrics
     assert "rejection_metrics" in stats
-    assert stats["rejection_metrics"]["schema_version"] == 1
+    assert stats["rejection_metrics"]["schema_version"] == 2
     assert stats["rejection_metrics"]["rejected_call_count"] == 0
     assert stats["rejection_metrics"]["rejection_rate"] == 0.0
 
@@ -247,7 +247,7 @@ def test_build_update_statistics_defaults_rejection_metrics(monkeypatch) -> None
 
     assert "rejection_metrics" in stats
     metrics = stats["rejection_metrics"]
-    assert metrics["schema_version"] == 1
+    assert metrics["schema_version"] == 2
     assert metrics["rejected_call_count"] == 0
     assert metrics["rejection_breaker_count"] == 0
     assert metrics["rejection_rate"] == 0.0
@@ -276,7 +276,7 @@ def test_derive_rejection_metrics_preserves_defaults() -> None:
         }
     )
 
-    assert metrics["schema_version"] == 1
+    assert metrics["schema_version"] == 2
     assert metrics["rejected_call_count"] == 0
     assert metrics["rejection_breaker_count"] == 0
     assert metrics["rejection_rate"] == 0.0
@@ -946,7 +946,7 @@ def test_build_runtime_statistics_defaults_rejection_metrics(monkeypatch) -> Non
     stats = tasks.build_runtime_statistics(coordinator)
 
     metrics = stats["rejection_metrics"]
-    assert metrics["schema_version"] == 1
+    assert metrics["schema_version"] == 2
     assert metrics["rejected_call_count"] == 0
     assert metrics["rejection_breaker_count"] == 0
     assert metrics["rejection_rate"] == 0.0
@@ -991,7 +991,7 @@ def test_build_runtime_statistics_threads_rejection_metrics(monkeypatch) -> None
     stats = tasks.build_runtime_statistics(coordinator)
 
     rejection_metrics = stats["rejection_metrics"]
-    assert rejection_metrics["schema_version"] == 1
+    assert rejection_metrics["schema_version"] == 2
     assert stats["error_summary"]["rejected_call_count"] == 2
     assert stats["error_summary"]["rejection_breaker_count"] == 1
     assert (
