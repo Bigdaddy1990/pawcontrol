@@ -1200,13 +1200,13 @@ class DashboardTemplates:
 
         final_zoom = resolved_zoom if resolved_zoom is not None else DEFAULT_MAP_ZOOM
         final_default_zoom = (
-            resolved_default_zoom
-            if resolved_default_zoom is not None
-            else final_zoom
+            resolved_default_zoom if resolved_default_zoom is not None else final_zoom
         )
 
         dark_mode_override = resolved_options.get("dark_mode")
-        dark_mode_enabled = theme == "dark" if dark_mode_override is None else dark_mode_override
+        dark_mode_enabled = (
+            theme == "dark" if dark_mode_override is None else dark_mode_override
+        )
 
         template = {
             **self._get_base_card_template("map"),
@@ -1997,6 +1997,7 @@ class DashboardTemplates:
         }
 
         return template
+
     async def get_weather_recommendations_card_template(
         self,
         dog_id: str,
