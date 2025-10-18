@@ -178,9 +178,7 @@ class EnhancedHealthProfile:
         return [
             v
             for v in self.vaccinations
-            if (
-                due := v.days_until_due()
-            ) is not None and 0 <= due <= days_ahead
+            if (due := v.days_until_due()) is not None and 0 <= due <= days_ahead
         ]
 
     def get_overdue_dewormings(self) -> list[DewormingRecord]:
@@ -192,9 +190,7 @@ class EnhancedHealthProfile:
         return [
             d
             for d in self.dewormings
-            if (
-                due := d.days_until_due()
-            ) is not None and 0 <= due <= days_ahead
+            if (due := d.days_until_due()) is not None and 0 <= due <= days_ahead
         ]
 
 

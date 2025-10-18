@@ -575,7 +575,9 @@ class _BoundedSequenceSnapshot(Sequence[Any]):
         """Return the cached item at ``index``."""
 
     @overload
-    def __getitem__(self, index: slice, /) -> Sequence[Any]:  # pragma: no cover - defensive
+    def __getitem__(
+        self, index: slice, /
+    ) -> Sequence[Any]:  # pragma: no cover - defensive
         """Return a sliced view of the cached items."""
 
     def __getitem__(self, index: int | slice, /) -> Any | Sequence[Any]:

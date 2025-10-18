@@ -57,9 +57,7 @@ if TYPE_CHECKING:
     from .dashboard_templates import DashboardTemplates
 
 _LOGGER = logging.getLogger(__name__)
-_TEMPLATE_LOGGER = logging.getLogger(
-    "custom_components.pawcontrol.dashboard_templates"
-)
+_TEMPLATE_LOGGER = logging.getLogger("custom_components.pawcontrol.dashboard_templates")
 
 # OPTIMIZED: Performance constants for batch processing
 MAX_CONCURRENT_VALIDATIONS: Final[int] = 10
@@ -97,9 +95,7 @@ def _coerce_map_options(options: MapOptionsInput) -> MapCardOptions:
 
         if isinstance(nested, Mapping):
             nested_entries.extend(
-                (key, value)
-                for key, value in nested.items()
-                if isinstance(key, str)
+                (key, value) for key, value in nested.items() if isinstance(key, str)
             )
             continue
 

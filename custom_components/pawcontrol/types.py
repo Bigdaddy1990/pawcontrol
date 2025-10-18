@@ -664,7 +664,9 @@ NotificationOptionsField = Literal[
 NOTIFICATION_QUIET_HOURS_FIELD: Final[NotificationOptionsField] = "quiet_hours"
 NOTIFICATION_QUIET_START_FIELD: Final[NotificationOptionsField] = "quiet_start"
 NOTIFICATION_QUIET_END_FIELD: Final[NotificationOptionsField] = "quiet_end"
-NOTIFICATION_REMINDER_REPEAT_FIELD: Final[NotificationOptionsField] = "reminder_repeat_min"
+NOTIFICATION_REMINDER_REPEAT_FIELD: Final[NotificationOptionsField] = (
+    "reminder_repeat_min"
+)
 NOTIFICATION_PRIORITY_FIELD: Final[NotificationOptionsField] = "priority_notifications"
 NOTIFICATION_MOBILE_FIELD: Final[NotificationOptionsField] = "mobile_notifications"
 
@@ -737,7 +739,9 @@ def ensure_notification_options(
     _apply(CONF_QUIET_HOURS, NOTIFICATION_QUIET_HOURS_FIELD, _coerce_bool)
     _apply(CONF_QUIET_START, NOTIFICATION_QUIET_START_FIELD, _coerce_time)
     _apply(CONF_QUIET_END, NOTIFICATION_QUIET_END_FIELD, _coerce_time)
-    _apply(CONF_REMINDER_REPEAT_MIN, NOTIFICATION_REMINDER_REPEAT_FIELD, _coerce_interval)
+    _apply(
+        CONF_REMINDER_REPEAT_MIN, NOTIFICATION_REMINDER_REPEAT_FIELD, _coerce_interval
+    )
     _apply("priority_notifications", NOTIFICATION_PRIORITY_FIELD, _coerce_bool)
     _apply("mobile_notifications", NOTIFICATION_MOBILE_FIELD, _coerce_bool)
 

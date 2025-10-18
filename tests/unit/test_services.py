@@ -408,7 +408,9 @@ class _NotificationManagerStub:
         force_channels = kwargs.get("force_channels")
         if force_channels is not None:
             assert isinstance(force_channels, list)
-            assert all(isinstance(channel, NotificationChannel) for channel in force_channels)
+            assert all(
+                isinstance(channel, NotificationChannel) for channel in force_channels
+            )
         self.sent.append(kwargs)
         return "notif-1"
 

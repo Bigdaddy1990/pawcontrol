@@ -283,7 +283,9 @@ def test_coerce_map_options_prefers_top_level_over_nested() -> None:
     assert result["default_zoom"] == 4
 
 
-def test_coerce_map_options_ignores_invalid_iterables(caplog: pytest.LogCaptureFixture) -> None:
+def test_coerce_map_options_ignores_invalid_iterables(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """Unsupported iterable entries should be skipped with defaults preserved."""
 
     caplog.set_level(
