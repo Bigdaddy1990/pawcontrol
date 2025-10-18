@@ -14,8 +14,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from functools import lru_cache
+from math import isfinite
 from typing import Any, Final, NotRequired, TypedDict, cast
 
 from homeassistant.const import STATE_UNKNOWN
@@ -30,12 +31,8 @@ from .const import (
     MODULE_NOTIFICATIONS,
     MODULE_WALK,
 )
-from .dashboard_shared import CardCollection, CardConfig
-from .types import (
-    DogConfigData,
-    DogModulesConfig,
-    coerce_dog_modules_config,
-)
+from .dashboard_shared import CardCollection, CardConfig, coerce_dog_configs
+from .types import DogModulesConfig, RawDogConfig, coerce_dog_modules_config
 
 
 class WeatherThemeConfig(TypedDict):
@@ -94,8 +91,13 @@ class MapCardOptions(TypedDict, total=False):
     """Options that adjust the generated map card template."""
 
     zoom: int
+    default_zoom: int
     dark_mode: bool
     hours_to_show: int
+
+
+type _MapOptionPairs = Iterable[tuple[str, object]]
+type MapOptionsInput = MapCardOptions | Mapping[str, object] | _MapOptionPairs | None
 
 
 class NotificationLastEvent(TypedDict, total=False):
@@ -180,6 +182,16 @@ WEATHER_CARD_TYPES: Final[list[str]] = [
 TEMPLATE_CACHE_SIZE: Final[int] = 128
 TEMPLATE_TTL_SECONDS: Final[int] = 300  # 5 minutes
 MAX_TEMPLATE_SIZE: Final[int] = 1024 * 1024  # 1MB per template
+
+MAP_ZOOM_MIN: Final[int] = 1
+MAP_ZOOM_MAX: Final[int] = 20
+DEFAULT_MAP_ZOOM: Final[int] = 15
+DEFAULT_MAP_HOURS_TO_SHOW: Final[int] = 2
+MAP_HISTORY_MIN_HOURS: Final[int] = 1
+MAP_HISTORY_MAX_HOURS: Final[int] = 168
+MAP_OPTION_KEYS: Final[frozenset[str]] = frozenset(
+    {"zoom", "default_zoom", "dark_mode", "hours_to_show"}
+)
 
 
 type CardTemplatePayload = CardConfig | CardCollection
@@ -288,13 +300,15 @@ class TemplateCache:
         total = self._hits + self._misses
         hit_rate = (self._hits / total * 100) if total > 0 else 0
 
-        return TemplateCacheStats(
-            hits=self._hits,
-            misses=self._misses,
-            hit_rate=f"{hit_rate:.1f}%",
-            cached_items=len(self._cache),
-            max_size=self._maxsize,
-        )
+        stats: TemplateCacheStats = {
+            "hits": self._hits,
+            "misses": self._misses,
+            "hit_rate": f"{hit_rate:.1f}%",
+            "cached_items": len(self._cache),
+            "max_size": self._maxsize,
+        }
+
+        return stats
 
 
 class DashboardTemplates:
@@ -349,9 +363,9 @@ class DashboardTemplates:
             },
             "map": {
                 "type": "map",
-                "default_zoom": 15,
+                "default_zoom": DEFAULT_MAP_ZOOM,
                 "dark_mode": False,
-                "hours_to_show": 2,
+                "hours_to_show": DEFAULT_MAP_HOURS_TO_SHOW,
             },
             "history_graph": {
                 "type": "history-graph",
@@ -986,10 +1000,181 @@ class DashboardTemplates:
             return [{"type": "horizontal-stack", "cards": buttons[:3]}]
         return None
 
+    @staticmethod
+    def _normalise_map_options(
+        options: MapOptionsInput,
+    ) -> MapCardOptions:
+        """Return a typed ``MapCardOptions`` payload extracted from ``options``."""
+
+        resolved: MapCardOptions = {
+            "zoom": DEFAULT_MAP_ZOOM,
+            "default_zoom": DEFAULT_MAP_ZOOM,
+            "hours_to_show": DEFAULT_MAP_HOURS_TO_SHOW,
+        }
+
+        if not options:
+            return resolved
+
+        options_mapping: Mapping[str, object]
+
+        if isinstance(options, Mapping):
+            filtered_options: dict[str, object] = {}
+            for key, value in options.items():
+                if not isinstance(key, str):
+                    _LOGGER.debug(
+                        "Skipping map option entry with non-string key from mapping: %r",
+                        key,
+                    )
+                    continue
+
+                if key not in MAP_OPTION_KEYS:
+                    _LOGGER.debug(
+                        "Ignoring unsupported map option key '%s' from mapping payload",
+                        key,
+                    )
+                    continue
+
+                filtered_options[key] = value
+
+            if not filtered_options:
+                _LOGGER.debug(
+                    "Ignoring map options mapping payload without supported entries: %s",
+                    type(options).__name__,
+                )
+                return resolved
+
+            options_mapping = filtered_options
+        elif isinstance(options, Iterable) and not isinstance(options, str | bytes):
+            candidate_pairs: list[tuple[str, object]] = []
+            for item in options:
+                if isinstance(item, Mapping):
+                    for key, value in item.items():
+                        if not isinstance(key, str):
+                            _LOGGER.debug(
+                                "Skipping map option entry with non-string key from mapping: %r",
+                                key,
+                            )
+                            continue
+
+                        if key not in MAP_OPTION_KEYS:
+                            _LOGGER.debug(
+                                "Ignoring unsupported map option key '%s' from iterable mapping",
+                                key,
+                            )
+                            continue
+
+                        candidate_pairs.append((key, value))
+                    continue
+
+                if (
+                    isinstance(item, Sequence)
+                    and not isinstance(item, str | bytes)
+                    and len(item) == 2
+                ):
+                    key, value = item
+                    if isinstance(key, str):
+                        if key not in MAP_OPTION_KEYS:
+                            _LOGGER.debug(
+                                "Ignoring unsupported map option key '%s' from iterable pair",
+                                key,
+                            )
+                            continue
+
+                        candidate_pairs.append((key, value))
+                    else:
+                        _LOGGER.debug(
+                            "Skipping map option entry with non-string key: %r", key
+                        )
+                else:
+                    _LOGGER.debug(
+                        "Skipping unsupported map option entry: %s", type(item).__name__
+                    )
+
+            if not candidate_pairs:
+                _LOGGER.debug(
+                    "Ignoring map options iterable payload without usable entries: %s",
+                    type(options).__name__,
+                )
+                return resolved
+
+            options_mapping = dict(candidate_pairs)
+        else:
+            _LOGGER.debug(
+                "Ignoring map options payload with unsupported type: %s",
+                type(options).__name__,
+            )
+            return resolved
+
+        def _coerce_int(candidate: object | None) -> int | None:
+            """Convert ``candidate`` to ``int`` when possible."""
+
+            if candidate is None:
+                return None
+            if isinstance(candidate, bool):
+                return None
+            if isinstance(candidate, int):
+                return candidate
+            if isinstance(candidate, float):
+                if not isfinite(candidate):
+                    return None
+                return int(candidate)
+            if isinstance(candidate, str):
+                stripped = candidate.strip()
+                if not stripped:
+                    return None
+                try:
+                    numeric = float(stripped)
+                except ValueError:
+                    return None
+                if not isfinite(numeric):
+                    return None
+                return int(numeric)
+            return None
+
+        zoom_candidate = options_mapping.get("zoom")
+        zoom_value = _coerce_int(zoom_candidate)
+        if zoom_value is not None:
+            resolved_zoom = max(MAP_ZOOM_MIN, min(MAP_ZOOM_MAX, zoom_value))
+            resolved["zoom"] = resolved_zoom
+
+        default_zoom_candidate = options_mapping.get("default_zoom")
+        default_zoom_value = _coerce_int(default_zoom_candidate)
+        if default_zoom_value is not None:
+            resolved_default_zoom = max(
+                MAP_ZOOM_MIN, min(MAP_ZOOM_MAX, default_zoom_value)
+            )
+            resolved["default_zoom"] = resolved_default_zoom
+            if zoom_value is None:
+                resolved["zoom"] = resolved_default_zoom
+        elif zoom_value is not None:
+            # Mirror the explicitly provided zoom when no default override exists.
+            resolved["default_zoom"] = resolved["zoom"]
+
+        dark_mode = options_mapping.get("dark_mode")
+        if isinstance(dark_mode, bool):
+            resolved["dark_mode"] = dark_mode
+        elif isinstance(dark_mode, int | float):
+            resolved["dark_mode"] = bool(dark_mode)
+        elif isinstance(dark_mode, str):
+            lowered = dark_mode.strip().casefold()
+            if lowered in {"1", "true", "yes", "on"}:
+                resolved["dark_mode"] = True
+            elif lowered in {"0", "false", "no", "off"}:
+                resolved["dark_mode"] = False
+
+        hours_candidate = options_mapping.get("hours_to_show")
+        hours_value = _coerce_int(hours_candidate)
+        if hours_value is not None:
+            resolved["hours_to_show"] = max(
+                MAP_HISTORY_MIN_HOURS, min(MAP_HISTORY_MAX_HOURS, hours_value)
+            )
+
+        return resolved
+
     async def get_map_card_template(
         self,
         dog_id: str,
-        options: MapCardOptions | None = None,
+        options: MapOptionsInput = None,
         theme: str = "modern",
     ) -> CardConfig:
         """Get themed GPS map card template.
@@ -1002,17 +1187,36 @@ class DashboardTemplates:
         Returns:
             Map card template with theme styling
         """
-        resolved_options: MapCardOptions = (
-            options if options is not None else cast(MapCardOptions, {})
-        )
+        resolved_options = self._normalise_map_options(options)
         self._get_theme_styles(theme)
+
+        resolved_zoom = resolved_options.get("zoom")
+        resolved_default_zoom = resolved_options.get("default_zoom")
+
+        if resolved_zoom is None and resolved_default_zoom is not None:
+            resolved_zoom = resolved_default_zoom
+        elif resolved_zoom is not None and resolved_default_zoom is None:
+            resolved_default_zoom = resolved_zoom
+
+        final_zoom = resolved_zoom if resolved_zoom is not None else DEFAULT_MAP_ZOOM
+        final_default_zoom = (
+            resolved_default_zoom
+            if resolved_default_zoom is not None
+            else final_zoom
+        )
+
+        dark_mode_override = resolved_options.get("dark_mode")
+        dark_mode_enabled = theme == "dark" if dark_mode_override is None else dark_mode_override
 
         template = {
             **self._get_base_card_template("map"),
             "entities": [f"device_tracker.{dog_id}_location"],
-            "default_zoom": resolved_options.get("zoom", 15),
-            "dark_mode": theme == "dark" or resolved_options.get("dark_mode", False),
-            "hours_to_show": resolved_options.get("hours_to_show", 2),
+            "default_zoom": final_default_zoom,
+            "zoom": final_zoom,
+            "dark_mode": dark_mode_enabled,
+            "hours_to_show": resolved_options.get(
+                "hours_to_show", DEFAULT_MAP_HOURS_TO_SHOW
+            ),
         }
 
         # Add theme-specific map styling
@@ -1123,9 +1327,11 @@ class DashboardTemplates:
         return template
 
     def get_statistics_summary_template(
-        self, dogs: Sequence[DogConfigData], theme: str = "modern"
+        self, dogs: Sequence[RawDogConfig], theme: str = "modern"
     ) -> CardConfig:
         """Return a summary markdown card for analytics dashboards."""
+
+        typed_dogs = coerce_dog_configs(dogs)
 
         module_counts = {
             MODULE_FEEDING: 0,
@@ -1135,7 +1341,7 @@ class DashboardTemplates:
             MODULE_NOTIFICATIONS: 0,
         }
 
-        for dog in dogs:
+        for dog in typed_dogs:
             modules = coerce_dog_modules_config(dog.get("modules"))
             for module_name in module_counts:
                 if modules.get(module_name):
@@ -1144,7 +1350,7 @@ class DashboardTemplates:
         content_lines = [
             "## Paw Control Statistics",
             "",
-            f"**Dogs managed:** {len(dogs)}",
+            f"**Dogs managed:** {len(typed_dogs)}",
             "",
             "**Active modules:**",
             f"- Feeding: {module_counts[MODULE_FEEDING]}",
@@ -1791,13 +1997,15 @@ class DashboardTemplates:
         }
 
         return template
-
     async def get_weather_recommendations_card_template(
         self,
         dog_id: str,
         dog_name: str,
         theme: str = "modern",
         include_breed_specific: bool = True,
+        recommendations: Sequence[str] | None = None,
+        *,
+        overflow_recommendations: int = 0,
     ) -> CardConfig:
         """Get weather recommendations card template.
 
@@ -1806,45 +2014,71 @@ class DashboardTemplates:
             dog_name: Dog display name
             theme: Visual theme
             include_breed_specific: Whether to include breed-specific advice
+            recommendations: Sanitised recommendation strings to embed in content
+            overflow_recommendations: Number of hidden recommendations to note in output
 
         Returns:
             Weather recommendations card template
         """
+
         theme_styles = self._get_theme_styles(theme)
         rec_icon = "💡" if theme == "playful" else "mdi:lightbulb-on"
 
-        recommendations_content = f"""
-## {rec_icon} Weather Recommendations for {dog_name}
+        bullet_lines: list[str] = []
+        if recommendations:
+            for item in recommendations:
+                entry = item.strip()
+                if entry:
+                    bullet_lines.append(f"• {entry}")
 
-{{%- set recommendations = states.sensor.{dog_id}_weather_recommendations.attributes.recommendations | default([]) -%}}
-{{%- set breed = states.sensor.{dog_id}_breed.state | default('Mixed') -%}}
+        if not bullet_lines:
+            bullet_lines.extend(
+                [
+                    "• Perfect weather for normal activities!",
+                    "• Maintain regular exercise schedule",
+                    "• Keep hydration available",
+                ]
+            )
 
-### 🌡️ Temperature Guidance
-**Current Feel:** {{{{ states('sensor.{dog_id}_weather_feels_like') }}}}°C
-**Recommendation:** {{{{ states('sensor.{dog_id}_weather_activity_recommendation') }}}}
+        if overflow_recommendations > 0:
+            bullet_lines.append(
+                f"*... and {overflow_recommendations} more recommendations*"
+            )
 
-### 🚶 Activity Suggestions
-{{%- if recommendations | length > 0 -%}}
-{{%- for rec in recommendations[:4] -%}}
-• {{ rec }}
-{{%- endfor -%}}
-{{%- else -%}}
-• Perfect weather for normal activities!
-• Maintain regular exercise schedule
-• Keep hydration available
-{{%- endif -%}}
+        breed_section: list[str] = []
+        if include_breed_specific:
+            breed_section = [
+                "### 🐕 Breed-Specific Advice",
+                "{{%- set breed = states.sensor.{dog_id}_breed.state | default('Mixed') -%}}",
+                "{{{{ states.sensor.{dog_id}_breed_weather_advice.attributes.advice | default('No specific advice available for this breed.') }}}}",
+            ]
 
-{{%- if include_breed_specific -%}}
-### 🐕 Breed-Specific Advice for {{ breed }}
-{{{{ states.sensor.{dog_id}_breed_weather_advice.attributes.advice | default('No specific advice available for this breed.') }}}}
-{{%- endif -%}}
+        lines = [
+            f"## {rec_icon} Weather Recommendations for {dog_name}",
+            "",
+            "### 🌡️ Temperature Guidance",
+            f"**Current Feel:** {{{{ states('sensor.{dog_id}_weather_feels_like') }}}}°C",
+            f"**Recommendation:** {{{{ states('sensor.{dog_id}_weather_activity_recommendation') }}}}",
+            "",
+            "### 🚶 Activity Suggestions",
+            *bullet_lines,
+        ]
 
-### ⏰ Best Activity Times
-**Optimal Walk Time:** {{{{ states('sensor.{dog_id}_optimal_walk_time') }}}}
-**Avoid Outdoors:** {{{{ states('sensor.{dog_id}_weather_avoid_times') }}}}
+        if breed_section:
+            lines.extend(["", *breed_section])
 
-**Last Updated:** {{{{ states('sensor.{dog_id}_weather_last_update') }}}}
-"""
+        lines.extend(
+            [
+                "",
+                "### ⏰ Best Activity Times",
+                f"**Optimal Walk Time:** {{{{ states('sensor.{dog_id}_optimal_walk_time') }}}}",
+                f"**Avoid Outdoors:** {{{{ states('sensor.{dog_id}_weather_avoid_times') }}}}",
+                "",
+                f"**Last Updated:** {{{{ states('sensor.{dog_id}_weather_last_update') }}}}",
+            ]
+        )
+
+        recommendations_content = "\n".join(lines).replace("{dog_id}", dog_id)
 
         template: CardConfig = {
             "type": "markdown",
@@ -1852,10 +2086,10 @@ class DashboardTemplates:
             "card_mod": self._card_mod(theme_styles),
         }
 
-        # Add interactive buttons for weather services
         if theme == "modern":
-            # Add action buttons at the bottom
-            template["card_mod"]["style"] += """
+            card_mod = template.setdefault("card_mod", {})
+            style = card_mod.get("style", "")
+            style += """
                 .card-content {
                     padding-bottom: 60px;
                 }
@@ -1873,6 +2107,7 @@ class DashboardTemplates:
                     justify-content: center;
                 }
             """
+            card_mod["style"] = style
 
         return template
 

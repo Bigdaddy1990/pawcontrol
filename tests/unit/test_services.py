@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Awaitable, Callable, Mapping
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
@@ -12,6 +13,11 @@ from custom_components.pawcontrol.const import (
     EVENT_FEEDING_COMPLIANCE_CHECKED,
     SERVICE_CHECK_FEEDING_COMPLIANCE,
     SERVICE_DAILY_RESET,
+)
+from custom_components.pawcontrol.notifications import (
+    NotificationChannel,
+    NotificationPriority,
+    NotificationType,
 )
 from custom_components.pawcontrol.types import (
     CacheDiagnosticsSnapshot,
@@ -392,6 +398,17 @@ class _NotificationManagerStub:
     async def async_send_notification(self, **kwargs: object) -> str:
         if self.fail_send:
             raise services.HomeAssistantError("send failed")
+        notification_type = kwargs.get("notification_type")
+        assert isinstance(notification_type, NotificationType)
+
+        priority = kwargs.get("priority")
+        if priority is not None:
+            assert isinstance(priority, NotificationPriority)
+
+        force_channels = kwargs.get("force_channels")
+        if force_channels is not None:
+            assert isinstance(force_channels, list)
+            assert all(isinstance(channel, NotificationChannel) for channel in force_channels)
         self.sent.append(kwargs)
         return "notif-1"
 
@@ -844,6 +861,297 @@ async def test_send_notification_service_records_success(
     assert details is not None
     assert details["priority"] == "normal"
     assert runtime_data.performance_stats["service_results"][-1] is result
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_send_notification_service_recovers_from_invalid_payloads(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Notification service should fall back to defaults for invalid inputs."""
+
+    notification_manager = _NotificationManagerStub()
+    coordinator = _CoordinatorStub(
+        SimpleNamespace(), notification_manager=notification_manager
+    )
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+    handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+
+    with caplog.at_level(logging.WARNING):
+        await handler(
+            SimpleNamespace(
+                data={
+                    "title": "Status",
+                    "message": "All good",
+                    "notification_type": "custom_type",
+                    "priority": "critical",
+                    "channels": ["mobile", "pager"],
+                }
+            )
+        )
+
+    assert "Unknown notification type" in caplog.text
+    assert "Unknown notification priority" in caplog.text
+    assert "Ignoring unsupported notification channel" in caplog.text
+
+    assert notification_manager.sent, "notification manager should receive a call"
+    sent_payload = notification_manager.sent[-1]
+    assert sent_payload["notification_type"] is NotificationType.SYSTEM_INFO
+    assert sent_payload["priority"] is NotificationPriority.NORMAL
+    force_channels = sent_payload["force_channels"]
+    assert isinstance(force_channels, list)
+    assert force_channels == [NotificationChannel.MOBILE]
+
+    result = runtime_data.performance_stats["last_service_result"]
+    details = result.get("details")
+    assert details is not None
+    assert details["notification_type"] == NotificationType.SYSTEM_INFO.value
+    assert details["priority"] == NotificationPriority.NORMAL.value
+    assert details["channels"] == [NotificationChannel.MOBILE.value]
+    assert details["ignored_channels"] == ["pager"]
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_send_notification_service_accepts_enum_inputs(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Notification service should accept enum values directly."""
+
+    notification_manager = _NotificationManagerStub()
+    coordinator = _CoordinatorStub(
+        SimpleNamespace(), notification_manager=notification_manager
+    )
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+    handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+
+    await handler(
+        SimpleNamespace(
+            data={
+                "title": "Status",
+                "message": "All good",
+                "notification_type": NotificationType.SYSTEM_INFO,
+                "priority": NotificationPriority.HIGH,
+                "channels": [NotificationChannel.MOBILE, "discord"],
+            }
+        )
+    )
+
+    sent_payload = notification_manager.sent[-1]
+    assert sent_payload["notification_type"] is NotificationType.SYSTEM_INFO
+    assert sent_payload["priority"] is NotificationPriority.HIGH
+    force_channels = sent_payload["force_channels"]
+    assert force_channels == [NotificationChannel.MOBILE, NotificationChannel.DISCORD]
+
+    details = runtime_data.performance_stats["last_service_result"]["details"]
+    assert details is not None
+    assert details["notification_type"] == NotificationType.SYSTEM_INFO.value
+    assert details["priority"] == NotificationPriority.HIGH.value
+    assert details["channels"] == [
+        NotificationChannel.MOBILE.value,
+        NotificationChannel.DISCORD.value,
+    ]
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_send_notification_service_accepts_string_channel(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Single string channel inputs should normalise to enum lists."""
+
+    notification_manager = _NotificationManagerStub()
+    coordinator = _CoordinatorStub(
+        SimpleNamespace(), notification_manager=notification_manager
+    )
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+    handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+
+    await handler(
+        SimpleNamespace(
+            data={
+                "title": "Update",
+                "message": "Telemetry refreshed",
+                "notification_type": NotificationType.SYSTEM_INFO,
+                "priority": NotificationPriority.NORMAL,
+                "channels": "mobile",
+            }
+        )
+    )
+
+    sent_payload = notification_manager.sent[-1]
+    assert sent_payload["force_channels"] == [NotificationChannel.MOBILE]
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_send_notification_service_deduplicates_channels(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Duplicate channel inputs should collapse to a single entry."""
+
+    notification_manager = _NotificationManagerStub()
+    coordinator = _CoordinatorStub(
+        SimpleNamespace(), notification_manager=notification_manager
+    )
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+    handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+
+    with caplog.at_level(logging.WARNING):
+        await handler(
+            SimpleNamespace(
+                data={
+                    "title": "Alert",
+                    "message": "Duplicates trimmed",
+                    "notification_type": NotificationType.SYSTEM_INFO,
+                    "priority": NotificationPriority.NORMAL,
+                    "channels": [
+                        "mobile",
+                        NotificationChannel.MOBILE,
+                        "discord",
+                        "pager",
+                        "discord",
+                    ],
+                }
+            )
+        )
+
+    sent_payload = notification_manager.sent[-1]
+    assert sent_payload["force_channels"] == [
+        NotificationChannel.MOBILE,
+        NotificationChannel.DISCORD,
+    ]
+
+    # Invalid channels are still reported once for diagnostics
+    assert "Ignoring unsupported notification channel(s): pager" in caplog.text
+
+    details = runtime_data.performance_stats["last_service_result"]["details"]
+    assert details is not None
+    assert details["channels"] == [
+        NotificationChannel.MOBILE.value,
+        NotificationChannel.DISCORD.value,
+    ]
+    assert details["ignored_channels"] == ["pager"]
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_send_notification_service_ignores_invalid_expiry(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Invalid expiry overrides should be ignored with a warning."""
+
+    notification_manager = _NotificationManagerStub()
+    coordinator = _CoordinatorStub(
+        SimpleNamespace(), notification_manager=notification_manager
+    )
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+    handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+
+    with caplog.at_level(logging.WARNING):
+        await handler(
+            SimpleNamespace(
+                data={
+                    "title": "Invalid expiry",
+                    "message": "Ignored override",
+                    "expires_in_hours": "later",
+                }
+            )
+        )
+
+    sent_payload = notification_manager.sent[-1]
+    assert sent_payload["expires_in"] is None
+    assert "Invalid expires_in_hours" in caplog.text
+
+    details = runtime_data.performance_stats["last_service_result"]["details"]
+    assert details is not None
+    assert details["expires_in_hours"] is None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_send_notification_service_rejects_non_positive_expiry(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Non-positive expiry overrides should be ignored."""
+
+    notification_manager = _NotificationManagerStub()
+    coordinator = _CoordinatorStub(
+        SimpleNamespace(), notification_manager=notification_manager
+    )
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+    handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+
+    with caplog.at_level(logging.WARNING):
+        await handler(
+            SimpleNamespace(
+                data={
+                    "title": "Non-positive expiry",
+                    "message": "Ignored override",
+                    "expires_in_hours": -1,
+                }
+            )
+        )
+
+    sent_payload = notification_manager.sent[-1]
+    assert sent_payload["expires_in"] is None
+    assert "Non-positive expires_in_hours" in caplog.text
+
+    details = runtime_data.performance_stats["last_service_result"]["details"]
+    assert details is not None
+    assert details["expires_in_hours"] is None
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_send_notification_service_accepts_valid_expiry(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Valid expiry overrides should be converted to timedeltas."""
+
+    notification_manager = _NotificationManagerStub()
+    coordinator = _CoordinatorStub(
+        SimpleNamespace(), notification_manager=notification_manager
+    )
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+    handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+
+    await handler(
+        SimpleNamespace(
+            data={
+                "title": "Expires soon",
+                "message": "Override respected",
+                "expires_in_hours": "1.5",
+            }
+        )
+    )
+
+    sent_payload = notification_manager.sent[-1]
+    expires_in = sent_payload["expires_in"]
+    assert isinstance(expires_in, timedelta)
+    assert expires_in == timedelta(hours=1.5)
+
+    details = runtime_data.performance_stats["last_service_result"]["details"]
+    assert details is not None
+    assert details["expires_in_hours"] == pytest.approx(1.5)
 
 
 @pytest.mark.unit

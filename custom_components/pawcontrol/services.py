@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from contextlib import suppress
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -70,6 +70,7 @@ from .coordinator import PawControlCoordinator
 from .coordinator_support import ensure_cache_repair_aggregate
 from .feeding_manager import FeedingComplianceCompleted
 from .feeding_translations import build_feeding_compliance_summary
+from .notifications import NotificationChannel, NotificationPriority, NotificationType
 from .performance import (
     capture_cache_diagnostics,
     performance_tracker,
@@ -2046,9 +2047,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 notification_manager = coordinator.notification_manager
                 if notification_manager:
                     await notification_manager.async_send_notification(
-                        notification_type="system_info",
+                        notification_type=NotificationType.SYSTEM_INFO,
                         title="Route Export Complete",
-                        message=f"Exported {export_data.get('routes_count', 0)} route(s) for {dog_id} in {export_format} format",
+                        message=(
+                            f"Exported {export_data.get('routes_count', 0)} route(s) "
+                            f"for {dog_id} in {export_format} format"
+                        ),
                         dog_id=dog_id,
                     )
                 details_result = "exported"
@@ -2175,11 +2179,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             notification_manager = coordinator.notification_manager
             if notification_manager:
                 await notification_manager.async_send_notification(
-                    notification_type="system_info",
+                    notification_type=NotificationType.SYSTEM_INFO,
                     title=f"🛰️ GPS Setup Complete: {dog_id}",
-                    message=f"Automatic GPS tracking configured for {dog_id}. "
-                    f"Safe zone: {safe_zone_radius}m radius. "
-                    f"Auto-walk detection: {'enabled' if auto_start_walk else 'disabled'}.",
+                    message=(
+                        f"Automatic GPS tracking configured for {dog_id}. "
+                        f"Safe zone: {safe_zone_radius}m radius. "
+                        f"Auto-walk detection: {'enabled' if auto_start_walk else 'disabled'}."
+                    ),
                     dog_id=dog_id,
                 )
 
@@ -2235,28 +2241,92 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         title = call.data["title"]
         message = call.data["message"]
         dog_id = call.data.get("dog_id")
-        notification_type = call.data.get("notification_type", "system_info")
-        priority = call.data.get("priority", "normal")
+        notification_type_raw = call.data.get(
+            "notification_type", NotificationType.SYSTEM_INFO
+        )
+        priority_raw = call.data.get("priority", NotificationPriority.NORMAL)
         channels = call.data.get("channels")
-        expires_in_hours = call.data.get("expires_in_hours")
+        expires_in_hours_raw = call.data.get("expires_in_hours")
 
         try:
-            from .notifications import (  # Local import keeps startup fast
-                NotificationChannel,
-                NotificationPriority,
-                NotificationType,
-            )
+            try:
+                notification_type_enum = NotificationType(notification_type_raw)
+            except (TypeError, ValueError):
+                _LOGGER.warning(
+                    "Unknown notification type '%s'; defaulting to %s",
+                    notification_type_raw,
+                    NotificationType.SYSTEM_INFO.value,
+                )
+                notification_type_enum = NotificationType.SYSTEM_INFO
 
-            notification_type_enum = NotificationType(notification_type)
-            priority_enum = NotificationPriority(priority)
+            try:
+                priority_enum = NotificationPriority(priority_raw)
+            except (TypeError, ValueError):
+                _LOGGER.warning(
+                    "Unknown notification priority '%s'; defaulting to %s",
+                    priority_raw,
+                    NotificationPriority.NORMAL.value,
+                )
+                priority_enum = NotificationPriority.NORMAL
 
             channel_enums = None
-            if channels:
-                channel_enums = [NotificationChannel(channel) for channel in channels]
+            invalid_channels: list[str] = []
+            normalised_channels: list[NotificationChannel] = []
+            if channels is not None:
+                candidate_channels: Iterable[Any]
+                if isinstance(channels, NotificationChannel | str):
+                    candidate_channels = [channels]
+                elif isinstance(channels, Iterable) and not isinstance(
+                    channels, str | bytes | bytearray
+                ):
+                    candidate_channels = channels
+                else:
+                    candidate_channels = [channels]
+
+                seen_channels: set[NotificationChannel] = set()
+                for channel in candidate_channels:
+                    try:
+                        channel_enum = NotificationChannel(channel)
+                    except (TypeError, ValueError):
+                        invalid_channels.append(str(channel))
+                        continue
+
+                    if channel_enum in seen_channels:
+                        continue
+
+                    seen_channels.add(channel_enum)
+                    normalised_channels.append(channel_enum)
+
+            if invalid_channels:
+                invalid_channels = list(dict.fromkeys(invalid_channels))
+                _LOGGER.warning(
+                    "Ignoring unsupported notification channel(s): %s",
+                    ", ".join(invalid_channels),
+                )
+
+            if normalised_channels:
+                channel_enums = normalised_channels
 
             expires_in = None
-            if expires_in_hours:
-                expires_in = timedelta(hours=expires_in_hours)
+            expires_in_hours: float | None = None
+            if expires_in_hours_raw is not None:
+                expires_in_hours_candidate: float
+                try:
+                    expires_in_hours_candidate = float(expires_in_hours_raw)
+                except (TypeError, ValueError):
+                    _LOGGER.warning(
+                        "Invalid expires_in_hours '%s'; ignoring override",
+                        expires_in_hours_raw,
+                    )
+                else:
+                    if expires_in_hours_candidate <= 0:
+                        _LOGGER.warning(
+                            "Non-positive expires_in_hours '%s'; ignoring override",
+                            expires_in_hours_raw,
+                        )
+                    else:
+                        expires_in_hours = expires_in_hours_candidate
+                        expires_in = timedelta(hours=expires_in_hours_candidate)
 
             notification_id = await notification_manager.async_send_notification(
                 notification_type=notification_type_enum,
@@ -2270,15 +2340,19 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
             _LOGGER.info("Sent notification %s: %s", notification_id, title)
 
-            details = _normalise_service_details(
-                {
-                    "notification_id": notification_id,
-                    "notification_type": notification_type_enum.value,
-                    "priority": priority_enum.value,
-                    "channels": channels,
-                    "expires_in_hours": expires_in_hours,
-                }
-            )
+            details_payload: dict[str, Any] = {
+                "notification_id": notification_id,
+                "notification_type": notification_type_enum.value,
+                "priority": priority_enum.value,
+                "channels": [channel.value for channel in channel_enums]
+                if channel_enums
+                else None,
+                "expires_in_hours": expires_in_hours,
+            }
+            if invalid_channels:
+                details_payload["ignored_channels"] = invalid_channels
+
+            details = _normalise_service_details(details_payload)
             _record_service_result(
                 runtime_data,
                 service=SERVICE_SEND_NOTIFICATION,
@@ -3423,14 +3497,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             notification_manager = coordinator.notification_manager
             if notification_manager:
                 await notification_manager.async_send_notification(
-                    notification_type="system_info",
+                    notification_type=NotificationType.SYSTEM_INFO,
                     title=f"🛁 Grooming started: {dog_id}",
-                    message=f"Started {grooming_type} for {dog_id}"
-                    + (f" with {groomer}" if groomer else "")
-                    + (
-                        f" (est. {estimated_duration} min)"
-                        if estimated_duration
-                        else ""
+                    message=(
+                        f"Started {grooming_type} for {dog_id}"
+                        + (f" with {groomer}" if groomer else "")
+                        + (
+                            f" (est. {estimated_duration} min)"
+                            if estimated_duration
+                            else ""
+                        )
                     ),
                     dog_id=dog_id,
                 )
@@ -3875,12 +3951,14 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     if high_severity_alerts:
                         alert = high_severity_alerts[0]  # Most severe
                         await coordinator.notification_manager.async_send_notification(
-                            notification_type="health_alert",
+                            notification_type=NotificationType.HEALTH_ALERT,
                             title=f"🌡️ Weather Alert: {alert.title}",
                             message=alert.message,
-                            priority="high"
-                            if alert.severity.value == "extreme"
-                            else "normal",
+                            priority=(
+                                NotificationPriority.HIGH
+                                if alert.severity.value == "extreme"
+                                else NotificationPriority.NORMAL
+                            ),
                         )
             else:
                 _LOGGER.warning("Weather update failed or returned invalid data")
@@ -3936,7 +4014,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     alert_summary += f"• {alert.title}\n"
 
                 await coordinator.notification_manager.async_send_notification(
-                    notification_type="system_info",
+                    notification_type=NotificationType.SYSTEM_INFO,
                     title=f"🌤️ Weather Alerts for {dog_id}",
                     message=alert_summary.strip(),
                     dog_id=dog_id,
@@ -3997,7 +4075,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     rec_message += f"{i}. {rec}\n"
 
                 await coordinator.notification_manager.async_send_notification(
-                    notification_type="system_info",
+                    notification_type=NotificationType.SYSTEM_INFO,
                     title=f"🐕 Weather Tips: {dog_id}",
                     message=rec_message.strip(),
                     dog_id=dog_id,

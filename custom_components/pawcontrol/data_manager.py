@@ -41,6 +41,7 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator_support import CacheMonitorTarget, CoordinatorMetrics
+from .notifications import NotificationPriority, NotificationType
 from .types import (
     DOG_ID_FIELD,
     DOG_NAME_FIELD,
@@ -2043,10 +2044,13 @@ class PawControlDataManager:
             ):
                 try:
                     await notification_manager.async_send_notification(
-                        notification_type="report_ready",
-                        title=f"{profile.config.get('dog_name', dog_id)} {report_type} report",
+                        notification_type=NotificationType.REPORT_READY,
+                        title=(
+                            f"{profile.config.get('dog_name', dog_id)} "
+                            f"{report_type} report"
+                        ),
                         message="Your PawControl report is ready for review.",
-                        priority="normal",
+                        priority=NotificationPriority.NORMAL,
                     )
                 except Exception:  # pragma: no cover - notification best-effort
                     _LOGGER.debug(

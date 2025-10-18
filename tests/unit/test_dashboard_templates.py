@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Sequence
 
 import pytest
@@ -16,11 +17,15 @@ from custom_components.pawcontrol.dashboard_cards import (
     ModuleCardGenerator,
     StatisticsCardGenerator,
     WeatherCardGenerator,
+    _coerce_map_options,
 )
-from custom_components.pawcontrol.dashboard_templates import DashboardTemplates
+from custom_components.pawcontrol.dashboard_templates import (
+    DEFAULT_MAP_HOURS_TO_SHOW,
+    DEFAULT_MAP_ZOOM,
+    DashboardTemplates,
+)
 from custom_components.pawcontrol.types import (
     DogConfigData,
-    ensure_dog_config_data,
     ensure_dog_modules_config,
 )
 from homeassistant.core import HomeAssistant
@@ -107,18 +112,282 @@ def test_statistics_summary_template_counts_modules(hass: HomeAssistant) -> None
         },
     ]
 
-    dogs: list[DogConfigData] = []
-    for raw in raw_dogs:
-        typed = ensure_dog_config_data(raw)
-        assert typed is not None
-        dogs.append(typed)
-
-    card = templates.get_statistics_summary_template(dogs, theme="dark")
+    card = templates.get_statistics_summary_template(raw_dogs, theme="dark")
 
     content = card["content"]
     assert "**Dogs managed:** 2" in content
     assert "Feeding: 1" in content
     assert "Notifications: 1" in content
+
+
+@pytest.mark.asyncio
+async def test_map_card_template_normalises_options(hass: HomeAssistant) -> None:
+    """Map card helper should coerce raw option payloads."""
+
+    templates = DashboardTemplates(hass)
+    card = await templates.get_map_card_template(
+        "alpha",
+        {"zoom": "12", "hours_to_show": "4", "dark_mode": "true"},
+        theme="dark",
+    )
+
+    assert card["default_zoom"] == 12
+    assert card["zoom"] == 12
+    assert card["hours_to_show"] == 4
+    assert card["dark_mode"] is True
+
+
+@pytest.mark.asyncio
+async def test_map_card_template_clamps_and_accepts_default_zoom(
+    hass: HomeAssistant,
+) -> None:
+    """Legacy ``default_zoom`` keys should be recognised and values clamped."""
+
+    templates = DashboardTemplates(hass)
+    card = await templates.get_map_card_template(
+        "alpha",
+        {"default_zoom": "25", "hours_to_show": "-6", "dark_mode": 0},
+        theme="modern",
+    )
+
+    assert card["default_zoom"] == 20
+    assert card["zoom"] == 20
+    assert card["hours_to_show"] == 1
+    assert card["dark_mode"] is False
+
+
+@pytest.mark.asyncio
+async def test_map_card_template_applies_default_zoom_when_missing(
+    hass: HomeAssistant,
+) -> None:
+    """Missing zoom options should fall back to ``DEFAULT_MAP_ZOOM``."""
+
+    templates = DashboardTemplates(hass)
+    card = await templates.get_map_card_template(
+        "alpha",
+        {"dark_mode": True},
+        theme="modern",
+    )
+
+    assert card["default_zoom"] == DEFAULT_MAP_ZOOM
+    assert card["zoom"] == DEFAULT_MAP_ZOOM
+    assert card["hours_to_show"] == DEFAULT_MAP_HOURS_TO_SHOW
+    assert card["dark_mode"] is True
+
+
+def test_coerce_map_options_reuses_normaliser() -> None:
+    """The card generator should rely on the shared map option normaliser."""
+
+    options = {"default_zoom": "1", "hours_to_show": 200, "dark_mode": "yes"}
+
+    result = _coerce_map_options(options)
+
+    assert result == {
+        "zoom": 1,
+        "default_zoom": 1,
+        "dark_mode": True,
+        "hours_to_show": 168,
+    }
+
+
+def test_coerce_map_options_applies_defaults_when_not_provided() -> None:
+    """Map option normaliser should emit defaults when values are missing."""
+
+    result = _coerce_map_options({"dark_mode": False})
+
+    assert result is not None
+    assert result["zoom"] == DEFAULT_MAP_ZOOM
+    assert result["default_zoom"] == DEFAULT_MAP_ZOOM
+    assert result["hours_to_show"] == DEFAULT_MAP_HOURS_TO_SHOW
+
+
+def test_coerce_map_options_defaults_when_no_payload() -> None:
+    """Passing an empty payload should still include typed defaults."""
+
+    result = _coerce_map_options({})
+
+    assert result is not None
+    assert result["zoom"] == DEFAULT_MAP_ZOOM
+    assert result["default_zoom"] == DEFAULT_MAP_ZOOM
+    assert result["hours_to_show"] == DEFAULT_MAP_HOURS_TO_SHOW
+
+
+def test_coerce_map_options_defaults_when_none() -> None:
+    """None payloads should be normalised to typed defaults."""
+
+    result = _coerce_map_options(None)
+
+    assert result["zoom"] == DEFAULT_MAP_ZOOM
+    assert result["default_zoom"] == DEFAULT_MAP_ZOOM
+    assert result["hours_to_show"] == DEFAULT_MAP_HOURS_TO_SHOW
+
+
+def test_coerce_map_options_iterable_pairs() -> None:
+    """Iterable payloads of string-keyed pairs should be supported."""
+
+    result = _coerce_map_options(
+        [("zoom", "6"), ("hours_to_show", 12.7), ("dark_mode", "ON")]
+    )
+
+    assert result["zoom"] == 6
+    assert result["default_zoom"] == 6
+    assert result["hours_to_show"] == 12
+    assert result["dark_mode"] is True
+
+
+def test_coerce_map_options_nested_mapping_payload() -> None:
+    """Nested map option payloads should be unwrapped before normalisation."""
+
+    result = _coerce_map_options(
+        {
+            "map_options": {"zoom": 5, "dark_mode": "off"},
+            "show_activity_graph": False,
+        }
+    )
+
+    assert result["zoom"] == 5
+    assert result["default_zoom"] == 5
+    assert result.get("dark_mode") is False
+
+
+def test_coerce_map_options_map_key_alias() -> None:
+    """`map` aliases should be treated as map options input."""
+
+    result = _coerce_map_options({"map": {"default_zoom": 8}})
+
+    assert result["zoom"] == 8
+    assert result["default_zoom"] == 8
+
+
+def test_coerce_map_options_merges_nested_and_top_level() -> None:
+    """Nested payloads should augment top-level overrides instead of replacing them."""
+
+    result = _coerce_map_options(
+        {"zoom": 9, "map_options": {"hours_to_show": 48, "dark_mode": True}}
+    )
+
+    assert result["zoom"] == 9
+    assert result["default_zoom"] == 9
+    assert result["hours_to_show"] == 48
+    assert result.get("dark_mode") is True
+
+
+def test_coerce_map_options_prefers_top_level_over_nested() -> None:
+    """Top-level overrides should take precedence over nested aliases."""
+
+    result = _coerce_map_options(
+        {"zoom": 12, "map_options": {"zoom": 3, "default_zoom": 4}}
+    )
+
+    assert result["zoom"] == 12
+    assert result["default_zoom"] == 4
+
+
+def test_coerce_map_options_ignores_invalid_iterables(caplog: pytest.LogCaptureFixture) -> None:
+    """Unsupported iterable entries should be skipped with defaults preserved."""
+
+    caplog.set_level(
+        logging.DEBUG, logger="custom_components.pawcontrol.dashboard_templates"
+    )
+
+    result = _coerce_map_options(
+        [
+            (123, 4),  # invalid key type
+            ("zoom", "3"),
+            "zoom",  # unsupported entry
+            {"hours_to_show": "72"},
+        ]
+    )
+
+    assert result["zoom"] == 3
+    assert result["default_zoom"] == 3
+    assert result["hours_to_show"] == 72
+    assert "Skipping map option entry" in caplog.text
+
+
+def test_coerce_map_options_ignores_unsupported_mapping_entries(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Mappings with unsupported keys should be filtered while keeping defaults."""
+
+    caplog.set_level(
+        logging.DEBUG, logger="custom_components.pawcontrol.dashboard_templates"
+    )
+
+    result = _coerce_map_options(
+        {
+            "zoom": 7,
+            "unsupported": "value",
+            123: "bad",  # type: ignore[dict-item]
+        }
+    )
+
+    assert result["zoom"] == 7
+    assert result["default_zoom"] == 7
+    assert result["hours_to_show"] == DEFAULT_MAP_HOURS_TO_SHOW
+    assert "unsupported map option key" in caplog.text
+
+
+def test_coerce_map_options_rejects_bool_numeric_values() -> None:
+    """Boolean values should not coerce into zoom or history integers."""
+
+    result = _coerce_map_options({"zoom": True, "hours_to_show": False})
+
+    assert result["zoom"] == DEFAULT_MAP_ZOOM
+    assert result["default_zoom"] == DEFAULT_MAP_ZOOM
+    assert result["hours_to_show"] == DEFAULT_MAP_HOURS_TO_SHOW
+
+
+def test_coerce_map_options_respects_separate_zoom_and_default() -> None:
+    """Explicit zoom and default zoom values should remain distinct when valid."""
+
+    result = _coerce_map_options({"zoom": 14, "default_zoom": 9})
+
+    assert result["zoom"] == 14
+    assert result["default_zoom"] == 9
+
+
+def test_coerce_map_options_mirrors_default_when_zoom_missing() -> None:
+    """Providing only default zoom should update both zoom fields."""
+
+    result = _coerce_map_options({"default_zoom": 11})
+
+    assert result["zoom"] == 11
+    assert result["default_zoom"] == 11
+
+
+@pytest.mark.asyncio
+async def test_map_card_template_respects_dark_mode_override(
+    hass: HomeAssistant,
+) -> None:
+    """Explicit dark-mode overrides should take precedence over theme defaults."""
+
+    templates = DashboardTemplates(hass)
+
+    card = await templates.get_map_card_template(
+        "alpha",
+        options={"dark_mode": False},
+        theme="dark",
+    )
+
+    assert card["dark_mode"] is False
+
+
+@pytest.mark.asyncio
+async def test_map_card_template_accepts_dark_mode_enable_override(
+    hass: HomeAssistant,
+) -> None:
+    """Explicitly enabling dark mode should apply even when theme is light."""
+
+    templates = DashboardTemplates(hass)
+
+    card = await templates.get_map_card_template(
+        "beta",
+        options={"dark_mode": True},
+        theme="modern",
+    )
+
+    assert card["dark_mode"] is True
 
 
 @pytest.mark.asyncio
@@ -262,6 +531,27 @@ async def test_weather_recommendations_card_parses_structured_data(
     assert "• Hydrate" in markdown
     assert "Limit midday walks" in markdown
     assert "Bring water" in markdown
+
+
+@pytest.mark.asyncio
+async def test_weather_recommendations_template_includes_overflow(
+    hass: HomeAssistant,
+) -> None:
+    """Weather recommendations template should embed overflow notes."""
+
+    templates = DashboardTemplates(hass)
+
+    card = await templates.get_weather_recommendations_card_template(
+        "fido",
+        "Fido",
+        recommendations=["Stay hydrated", "Avoid midday sun"],
+        overflow_recommendations=2,
+    )
+
+    markdown = card["content"]
+    assert "• Stay hydrated" in markdown
+    assert "• Avoid midday sun" in markdown
+    assert "*... and 2 more recommendations*" in markdown
 
 
 @pytest.mark.asyncio

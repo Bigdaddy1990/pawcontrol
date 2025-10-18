@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
+    CONF_DOG_NAME,
     CONF_DOGS,
     CONF_EXTERNAL_INTEGRATIONS,
     CONF_GPS_UPDATE_INTERVAL,
@@ -64,6 +65,7 @@ async def test_update_interval_balanced_for_medium_complexity(
     dogs = [
         {
             CONF_DOG_ID: "dog_1",
+            CONF_DOG_NAME: "Dog 1",
             "modules": {
                 MODULE_FEEDING: True,
                 MODULE_HEALTH: True,
@@ -72,6 +74,7 @@ async def test_update_interval_balanced_for_medium_complexity(
         },
         {
             CONF_DOG_ID: "dog_2",
+            CONF_DOG_NAME: "Dog 2",
             "modules": {
                 MODULE_FEEDING: True,
                 MODULE_HEALTH: True,
@@ -80,6 +83,7 @@ async def test_update_interval_balanced_for_medium_complexity(
         },
         {
             CONF_DOG_ID: "dog_3",
+            CONF_DOG_NAME: "Dog 3",
             "modules": {
                 MODULE_FEEDING: True,
                 MODULE_WALK: True,
@@ -102,6 +106,7 @@ async def test_update_interval_real_time_for_high_complexity(
     dogs = [
         {
             CONF_DOG_ID: f"dog_{index}",
+            CONF_DOG_NAME: f"Dog {index}",
             "modules": {
                 MODULE_FEEDING: True,
                 MODULE_WALK: True,
@@ -123,7 +128,13 @@ async def test_update_interval_honors_gps_option(hass: HomeAssistant) -> None:
 
     entry = _create_entry(
         hass,
-        dogs=[{CONF_DOG_ID: "gps_dog", "modules": {MODULE_GPS: True}}],
+        dogs=[
+            {
+                CONF_DOG_ID: "gps_dog",
+                CONF_DOG_NAME: "GPS Dog",
+                "modules": {MODULE_GPS: True},
+            }
+        ],
         options={CONF_GPS_UPDATE_INTERVAL: 45},
     )
     coordinator = PawControlCoordinator(hass, entry, async_get_clientsession(hass))
@@ -136,7 +147,13 @@ async def test_update_interval_capped_for_idle_configs(hass: HomeAssistant) -> N
 
     entry = _create_entry(
         hass,
-        dogs=[{CONF_DOG_ID: "gps_dog", "modules": {MODULE_GPS: True}}],
+        dogs=[
+            {
+                CONF_DOG_ID: "gps_dog",
+                CONF_DOG_NAME: "GPS Dog",
+                "modules": {MODULE_GPS: True},
+            }
+        ],
         options={CONF_GPS_UPDATE_INTERVAL: 3600},
     )
 
@@ -174,6 +191,7 @@ async def test_async_update_data_propagates_update_failed(
     dogs = [
         {
             CONF_DOG_ID: "failure_dog",
+            CONF_DOG_NAME: "Failure Dog",
             "modules": {MODULE_FEEDING: True},
         }
     ]

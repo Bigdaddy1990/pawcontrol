@@ -653,6 +653,22 @@ class NotificationOptions(TypedDict, total=False):
     mobile_notifications: bool
 
 
+NotificationOptionsField = Literal[
+    "quiet_hours",
+    "quiet_start",
+    "quiet_end",
+    "reminder_repeat_min",
+    "priority_notifications",
+    "mobile_notifications",
+]
+NOTIFICATION_QUIET_HOURS_FIELD: Final[NotificationOptionsField] = "quiet_hours"
+NOTIFICATION_QUIET_START_FIELD: Final[NotificationOptionsField] = "quiet_start"
+NOTIFICATION_QUIET_END_FIELD: Final[NotificationOptionsField] = "quiet_end"
+NOTIFICATION_REMINDER_REPEAT_FIELD: Final[NotificationOptionsField] = "reminder_repeat_min"
+NOTIFICATION_PRIORITY_FIELD: Final[NotificationOptionsField] = "priority_notifications"
+NOTIFICATION_MOBILE_FIELD: Final[NotificationOptionsField] = "mobile_notifications"
+
+
 def ensure_notification_options(
     value: Mapping[str, Any],
     /,
@@ -706,23 +722,24 @@ def ensure_notification_options(
         return None
 
     def _apply(
-        key: str,
+        source_key: str,
+        target_key: NotificationOptionsField,
         converter: Callable[[Any], Any | None],
     ) -> None:
         if defaults is not None:
-            default_value = converter(defaults.get(key))
+            default_value = converter(defaults.get(source_key))
             if default_value is not None:
-                options[key] = default_value
-        override = converter(value.get(key))
+                options[target_key] = default_value
+        override = converter(value.get(source_key))
         if override is not None:
-            options[key] = override
+            options[target_key] = override
 
-    _apply(CONF_QUIET_HOURS, _coerce_bool)
-    _apply(CONF_QUIET_START, _coerce_time)
-    _apply(CONF_QUIET_END, _coerce_time)
-    _apply(CONF_REMINDER_REPEAT_MIN, _coerce_interval)
-    _apply("priority_notifications", _coerce_bool)
-    _apply("mobile_notifications", _coerce_bool)
+    _apply(CONF_QUIET_HOURS, NOTIFICATION_QUIET_HOURS_FIELD, _coerce_bool)
+    _apply(CONF_QUIET_START, NOTIFICATION_QUIET_START_FIELD, _coerce_time)
+    _apply(CONF_QUIET_END, NOTIFICATION_QUIET_END_FIELD, _coerce_time)
+    _apply(CONF_REMINDER_REPEAT_MIN, NOTIFICATION_REMINDER_REPEAT_FIELD, _coerce_interval)
+    _apply("priority_notifications", NOTIFICATION_PRIORITY_FIELD, _coerce_bool)
+    _apply("mobile_notifications", NOTIFICATION_MOBILE_FIELD, _coerce_bool)
 
     return options
 
