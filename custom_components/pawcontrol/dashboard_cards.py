@@ -16,8 +16,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Awaitable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Final, TypeVar, cast
+from collections.abc import Awaitable, Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, Final, TypeVar
 
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
@@ -40,7 +40,12 @@ from .dashboard_shared import (
     coerce_dog_configs,
     unwrap_async_result,
 )
-from .dashboard_templates import MapCardOptions
+from .dashboard_templates import (
+    MAP_OPTION_KEYS,
+    DashboardTemplates,
+    MapCardOptions,
+    MapOptionsInput,
+)
 from .types import (
     DogConfigData,
     DogModulesConfig,
@@ -52,6 +57,9 @@ if TYPE_CHECKING:
     from .dashboard_templates import DashboardTemplates
 
 _LOGGER = logging.getLogger(__name__)
+_TEMPLATE_LOGGER = logging.getLogger(
+    "custom_components.pawcontrol.dashboard_templates"
+)
 
 # OPTIMIZED: Performance constants for batch processing
 MAX_CONCURRENT_VALIDATIONS: Final[int] = 10
@@ -75,27 +83,66 @@ _entity_validation_cache: dict[str, tuple[float, bool]] = {}
 _cache_cleanup_threshold = 300  # 5 minutes
 
 
-def _coerce_map_options(options: OptionsConfigType) -> MapCardOptions | None:
+def _coerce_map_options(options: MapOptionsInput) -> MapCardOptions:
     """Extract typed map options from the generic options payload."""
 
-    map_options: dict[str, object] = {}
+    if not isinstance(options, Mapping):
+        return DashboardTemplates._normalise_map_options(options)
 
-    zoom = options.get("zoom")
-    if isinstance(zoom, int):
-        map_options["zoom"] = zoom
+    nested_entries: list[tuple[str, object]] = []
+    for candidate_key in ("map_options", "map", "map_card"):
+        nested = options.get(candidate_key)
+        if nested is None:
+            continue
 
-    dark_mode = options.get("dark_mode")
-    if isinstance(dark_mode, bool):
-        map_options["dark_mode"] = dark_mode
+        if isinstance(nested, Mapping):
+            nested_entries.extend(
+                (key, value)
+                for key, value in nested.items()
+                if isinstance(key, str)
+            )
+            continue
 
-    hours_to_show = options.get("hours_to_show")
-    if isinstance(hours_to_show, int):
-        map_options["hours_to_show"] = hours_to_show
+        if isinstance(nested, Iterable) and not isinstance(nested, str | bytes):
+            nested_entries.extend(nested)  # validation occurs in the normaliser
+            continue
 
-    if not map_options:
-        return None
+        _TEMPLATE_LOGGER.debug(
+            "Ignoring map options alias '%s' with unsupported type: %s",
+            candidate_key,
+            type(nested).__name__,
+        )
 
-    return cast(MapCardOptions, map_options)
+    top_level_entries: list[tuple[str, object]] = []
+    for key, value in options.items():
+        if not isinstance(key, str):
+            _TEMPLATE_LOGGER.debug(
+                "Skipping map option entry with non-string key from mapping: %r",
+                key,
+            )
+            continue
+
+        if key in {"map_options", "map", "map_card"}:
+            continue
+
+        if key not in MAP_OPTION_KEYS:
+            _TEMPLATE_LOGGER.debug(
+                "Ignoring unsupported map option key '%s' from mapping payload",
+                key,
+            )
+            continue
+
+        top_level_entries.append((key, value))
+
+    if nested_entries:
+        return DashboardTemplates._normalise_map_options(
+            [*nested_entries, *top_level_entries]
+        )
+
+    if top_level_entries:
+        return DashboardTemplates._normalise_map_options(top_level_entries)
+
+    return DashboardTemplates._normalise_map_options(options)
 
 
 class BaseCardGenerator:
@@ -2042,15 +2089,20 @@ class WeatherCardGenerator(BaseCardGenerator):
 
         recommendations = self._collect_weather_recommendations(recommendations_entity)
         primary_recommendations = recommendations[:5]
+        overflow = max(len(recommendations) - len(primary_recommendations), 0)
 
-        if primary_recommendations:
-            bullet_lines = "\n".join(f"• {item}" for item in primary_recommendations)
-            if len(recommendations) > 5:
-                bullet_lines += (
-                    f"\n*... and {len(recommendations) - 5} more recommendations*"
-                )
-        else:
-            bullet_lines = "*No specific recommendations at this time*"
+        theme_option = options.get("theme") if isinstance(options, dict) else None
+        theme = (
+            theme_option if isinstance(theme_option, str) and theme_option else "modern"
+        )
+
+        markdown_card = await self.templates.get_weather_recommendations_card_template(
+            dog_id,
+            dog_name,
+            theme=theme,
+            recommendations=primary_recommendations,
+            overflow_recommendations=overflow,
+        )
 
         return {
             "type": "vertical-stack",
@@ -2060,34 +2112,7 @@ class WeatherCardGenerator(BaseCardGenerator):
                     "title": f"💡 {dog_name} Weather Advice",
                     "subtitle": "Personalized recommendations based on current conditions",
                 },
-                {
-                    "type": "markdown",
-                    "content": (
-                        """
-## 💡 {dog_name} Weather Advice
-
-{{%- set breed = states.sensor.{dog_id}_breed.state | default('Mixed') -%}}
-
-### 🌡️ Temperature Guidance
-**Current Feel:** {{{{ states('sensor.{dog_id}_weather_feels_like') }}}}°C
-**Recommendation:** {{{{ states('sensor.{dog_id}_weather_activity_recommendation') }}}}
-
-### 🚶 Activity Suggestions
-{bullet_section}
-
-{{%- if include_breed_specific -%}}
-### 🐕 Breed-Specific Advice for {{ breed }}
-{{{{ states.sensor.{dog_id}_breed_weather_advice.attributes.advice | default('No specific advice available for this breed.') }}}}
-{{%- endif -%}}
-
-### ⏰ Best Activity Times
-**Optimal Walk Time:** {{{{ states('sensor.{dog_id}_optimal_walk_time') }}}}
-**Avoid Outdoors:** {{{{ states('sensor.{dog_id}_weather_avoid_times') }}}}
-
-**Last Updated:** {{{{ states.sensor.{dog_id}_weather_recommendations.last_updated.strftime('%H:%M') }}}}
-                        """.replace("{bullet_section}", bullet_lines)
-                    ),
-                },
+                markdown_card,
                 {
                     "type": "horizontal-stack",
                     "cards": [

@@ -45,7 +45,11 @@ from .garden_manager import GardenManager
 from .geofencing import PawControlGeofencing
 from .gps_manager import GPSGeofenceManager
 from .helper_manager import PawControlHelperManager
-from .notifications import PawControlNotificationManager
+from .notifications import (
+    NotificationPriority,
+    NotificationType,
+    PawControlNotificationManager,
+)
 from .repairs import async_check_for_issues
 from .runtime_data import get_runtime_data, pop_runtime_data, store_runtime_data
 from .script_manager import PawControlScriptManager
@@ -1006,11 +1010,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                         if notification_manager:
                             try:
                                 await notification_manager.async_send_notification(
-                                    notification_type="system_info",
+                                    notification_type=NotificationType.SYSTEM_INFO,
                                     title="PawControl Helper Setup Complete",
-                                    message=f"Created {helper_count} helpers for automated feeding schedules, "
-                                    f"health reminders, and other dog management tasks.",
-                                    priority="normal",
+                                    message=(
+                                        f"Created {helper_count} helpers for automated feeding schedules, "
+                                        "health reminders, and other dog management tasks."
+                                    ),
+                                    priority=NotificationPriority.NORMAL,
                                 )
                             except Exception as notification_err:
                                 _LOGGER.debug(
@@ -1062,13 +1068,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                         if notification_manager:
                             try:
                                 await notification_manager.async_send_notification(
-                                    notification_type="system_info",
+                                    notification_type=NotificationType.SYSTEM_INFO,
                                     title="PawControl scripts ready",
                                     message=(
                                         "Generated PawControl confirmation, reset, and setup scripts "
                                         f"for {script_count} automation step(s)."
                                     ),
-                                    priority="normal",
+                                    priority=NotificationPriority.NORMAL,
                                 )
                             except Exception as notification_err:
                                 _LOGGER.debug(

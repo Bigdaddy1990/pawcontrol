@@ -40,6 +40,12 @@ from custom_components.pawcontrol.types import (
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
     DOG_WEIGHT_FIELD,
+    NOTIFICATION_MOBILE_FIELD,
+    NOTIFICATION_PRIORITY_FIELD,
+    NOTIFICATION_QUIET_END_FIELD,
+    NOTIFICATION_QUIET_HOURS_FIELD,
+    NOTIFICATION_QUIET_START_FIELD,
+    NOTIFICATION_REMINDER_REPEAT_FIELD,
     AdvancedOptions,
     DashboardOptions,
     DogConfigData,
@@ -53,9 +59,62 @@ from custom_components.pawcontrol.types import (
     PawControlOptionsData,
     SystemOptions,
     WeatherOptions,
+    ensure_notification_options,
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
+
+
+def test_ensure_notification_options_normalises_values() -> None:
+    """Notification options should coerce overrides and preserve defaults."""
+
+    defaults = {
+        CONF_QUIET_HOURS: True,
+        CONF_QUIET_START: "21:00",
+        CONF_QUIET_END: "06:30",
+        CONF_REMINDER_REPEAT_MIN: 30,
+        "priority_notifications": False,
+        "mobile_notifications": True,
+    }
+    payload = {
+        CONF_QUIET_HOURS: "no",
+        CONF_QUIET_START: " 20:45 ",
+        CONF_QUIET_END: "   ",
+        CONF_REMINDER_REPEAT_MIN: "45",
+        "priority_notifications": "yes",
+        "mobile_notifications": 0,
+    }
+
+    options = ensure_notification_options(payload, defaults=defaults)
+
+    assert options[NOTIFICATION_QUIET_HOURS_FIELD] is False
+    assert options[NOTIFICATION_QUIET_START_FIELD] == "20:45"
+    assert options[NOTIFICATION_QUIET_END_FIELD] == "06:30"
+    assert options[NOTIFICATION_REMINDER_REPEAT_FIELD] == 45
+    assert options[NOTIFICATION_PRIORITY_FIELD] is True
+    assert options[NOTIFICATION_MOBILE_FIELD] is False
+
+
+def test_ensure_notification_options_ignores_invalid_entries() -> None:
+    """Invalid overrides should be dropped from the normalised payload."""
+
+    payload = {
+        CONF_QUIET_HOURS: "maybe",
+        CONF_QUIET_START: None,
+        CONF_QUIET_END: "",
+        CONF_REMINDER_REPEAT_MIN: "fast",
+        "priority_notifications": None,
+        "mobile_notifications": " ",
+    }
+
+    options = ensure_notification_options(payload)
+
+    assert NOTIFICATION_QUIET_HOURS_FIELD not in options
+    assert NOTIFICATION_QUIET_START_FIELD not in options
+    assert NOTIFICATION_QUIET_END_FIELD not in options
+    assert NOTIFICATION_REMINDER_REPEAT_FIELD not in options
+    assert NOTIFICATION_PRIORITY_FIELD not in options
+    assert NOTIFICATION_MOBILE_FIELD not in options
 
 
 @pytest.mark.asyncio

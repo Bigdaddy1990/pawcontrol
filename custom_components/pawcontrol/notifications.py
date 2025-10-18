@@ -71,6 +71,7 @@ class NotificationType(Enum):
     GEOFENCE_ALERT = "geofence_alert"  # OPTIMIZE: Added geofence alerts
     BATTERY_LOW = "battery_low"  # OPTIMIZE: Added battery alerts
     FEEDING_COMPLIANCE = "feeding_compliance"
+    REPORT_READY = "report_ready"
 
 
 class NotificationPriority(Enum):

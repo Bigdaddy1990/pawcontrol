@@ -8,7 +8,7 @@ from itertools import islice
 from math import isfinite
 from numbers import Real
 from os import PathLike, fspath
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any, Final, overload
 
 if TYPE_CHECKING:
     from .types import FeedingComplianceLocalizedSummary
@@ -230,15 +230,15 @@ def _iter_text_candidates(
             return
 
         if isinstance(value, bytes | bytearray):
-            text = value.decode("utf-8", "ignore").strip()
-            if text:
-                yield text
+            candidate = value.decode("utf-8", "ignore").strip()
+            if candidate:
+                yield candidate
             return
 
         if isinstance(value, memoryview):
-            text = value.tobytes().decode("utf-8", "ignore").strip()
-            if text:
-                yield text
+            candidate = value.tobytes().decode("utf-8", "ignore").strip()
+            if candidate:
+                yield candidate
             return
 
         sequence = _normalise_sequence(value)
@@ -249,9 +249,9 @@ def _iter_text_candidates(
                 yield from _iter_text_candidates(item, _visited=_visited)
             return
 
-        text = _normalise_text(value)
-        if text:
-            yield text
+        normalized_text = _normalise_text(value)
+        if normalized_text:
+            yield normalized_text
     finally:
         _visited.remove(obj_id)
 
@@ -570,7 +570,21 @@ class _BoundedSequenceSnapshot(Sequence[Any]):
         self._consume_to(self._limit)
         return len(self._cache)
 
-    def __getitem__(self, index: int) -> Any:  # pragma: no cover - defensive
+    @overload
+    def __getitem__(self, index: int, /) -> Any:  # pragma: no cover - defensive
+        """Return the cached item at ``index``."""
+
+    @overload
+    def __getitem__(self, index: slice, /) -> Sequence[Any]:  # pragma: no cover - defensive
+        """Return a sliced view of the cached items."""
+
+    def __getitem__(self, index: int | slice, /) -> Any | Sequence[Any]:
+        """Return cached values, supporting both index and slice access."""
+
+        if isinstance(index, slice):
+            self._consume_to(self._limit)
+            return self._cache[index]
+
         if index < 0:
             self._consume_to(self._limit)
         else:

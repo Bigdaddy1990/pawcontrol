@@ -16,6 +16,7 @@ from custom_components.pawcontrol.feeding_translations import (
     _collect_missed_meals,
     _collect_recommendations,
     _format_structured_message,
+    _iter_text_candidates,
     _normalise_sequence,
     build_feeding_compliance_notification,
     build_feeding_compliance_summary,
@@ -218,6 +219,28 @@ def test_build_notification_handles_case_variant_keys() -> None:
     )
 
     assert message == "Telemetry offline"
+
+
+def test_iter_text_candidates_skips_none_values() -> None:
+    """Iterators should not yield ``None`` even when mappings contain null entries."""
+
+    payload = {"primary": None, "secondary": "ok"}
+
+    candidates = list(_iter_text_candidates(payload))
+
+    assert "ok" in candidates
+    assert all(candidate is not None for candidate in candidates)
+
+
+def test_bounded_sequence_snapshot_supports_slices() -> None:
+    """Bounded snapshots should support slicing semantics."""
+
+    generator = (value for value in range(_SEQUENCE_SCAN_LIMIT + 3))
+    snapshot = _normalise_sequence(generator)
+    assert snapshot is not None
+
+    sliced = snapshot[1:4]
+    assert list(sliced) == [1, 2, 3]
 
 
 def test_build_notification_falls_back_for_collection_without_text() -> None:

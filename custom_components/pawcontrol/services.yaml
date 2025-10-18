@@ -1355,6 +1355,10 @@ send_notification:
             - "system_info"
             - "system_warning"
             - "system_error"
+            - "geofence_alert"
+            - "battery_low"
+            - "feeding_compliance"
+            - "report_ready"
     priority:
       name: Priority
       description: Importance level for downstream channels

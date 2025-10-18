@@ -6,15 +6,12 @@ import logging
 import sys
 from collections import deque
 from collections.abc import Mapping
-from collections.abc import Mapping as TypingMapping
 from dataclasses import dataclass, field
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 from .const import (
     ALL_MODULES,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
     CONF_DOGS,
     CONF_GPS_UPDATE_INTERVAL,
     CONF_MODULES,
@@ -26,6 +23,8 @@ from .const import (
 )
 from .exceptions import ValidationError
 from .types import (
+    DOG_ID_FIELD,
+    DOG_NAME_FIELD,
     CacheRepairAggregate,
     CacheRepairIssue,
     CoordinatorRepairsSummary,
@@ -33,6 +32,7 @@ from .types import (
     CoordinatorStatisticsPayload,
     DogConfigData,
     PawControlConfigEntry,
+    ensure_dog_config_data,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -203,23 +203,27 @@ class DogConfigRegistry:
         """Normalise the provided dog configuration list."""
         cleaned: list[DogConfigData] = []
         for raw_config in self.configs:
-            if not isinstance(raw_config, dict):
+            if not isinstance(raw_config, Mapping):
                 continue
 
-            config = dict(raw_config)
-            modules = config.get(CONF_MODULES)
-            if not isinstance(modules, dict):
-                config[CONF_MODULES] = {}
-
-            dog_id = config.get(CONF_DOG_ID)
-            if not isinstance(dog_id, str):
+            candidate = ensure_dog_config_data(raw_config)
+            if candidate is None:
                 continue
 
+            dog_id = candidate[DOG_ID_FIELD]
             normalized = dog_id.strip()
             if not normalized or normalized in self._by_id:
                 continue
 
-            config[CONF_DOG_ID] = normalized
+            config = cast(DogConfigData, dict(candidate))
+            config[DOG_ID_FIELD] = normalized
+            dog_name = config.get(DOG_NAME_FIELD, "")
+            if isinstance(dog_name, str):
+                stripped_name = dog_name.strip()
+                if not stripped_name:
+                    continue
+                config[DOG_NAME_FIELD] = stripped_name
+
             self._by_id[normalized] = config
             self._ids.append(normalized)
             cleaned.append(config)
@@ -260,7 +264,7 @@ class DogConfigRegistry:
         config = self.get(dog_id)
         if not config:
             return None
-        dog_name = config.get(CONF_DOG_NAME)
+        dog_name = config.get(DOG_NAME_FIELD)
         if isinstance(dog_name, str) and dog_name.strip():
             return dog_name
         return None
@@ -554,7 +558,7 @@ MANAGER_ATTRIBUTES: tuple[str, ...] = (
 def bind_runtime_managers(
     coordinator: CoordinatorBindingTarget,
     modules: CoordinatorModuleAdapter,
-    managers: TypingMapping[str, Any],
+    managers: Mapping[str, Any],
 ) -> None:
     """Bind runtime managers to the coordinator and adapters."""
 

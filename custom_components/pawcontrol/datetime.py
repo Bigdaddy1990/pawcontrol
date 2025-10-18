@@ -25,6 +25,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
+from .notifications import NotificationPriority, NotificationType
 from .runtime_data import get_runtime_data
 from .utils import async_call_add_entities, ensure_utc_datetime
 
@@ -655,8 +656,12 @@ class PawControlEmergencyDateTime(PawControlDateTimeBase):
         notification_manager = getattr(runtime_data, "notification_manager", None)
         if notification_manager:
             await notification_manager.async_send_notification(
-                self._dog_id,
-                "🚨 Emergency Event Logged",
-                f"Emergency event logged for {self._dog_name} on {value.strftime('%Y-%m-%d %H:%M')}",
-                priority="urgent",
+                notification_type=NotificationType.HEALTH_ALERT,
+                title="🚨 Emergency Event Logged",
+                message=(
+                    f"Emergency event logged for {self._dog_name} on "
+                    f"{value.strftime('%Y-%m-%d %H:%M')}"
+                ),
+                dog_id=self._dog_id,
+                priority=NotificationPriority.URGENT,
             )

@@ -6,6 +6,7 @@ pytest.importorskip("homeassistant")
 
 from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
+    CONF_DOG_NAME,
     CONF_MODULES,
     MAX_POLLING_INTERVAL_SECONDS,
     MODULE_GPS,
@@ -33,6 +34,7 @@ class TestDogConfigRegistry:
             [
                 {
                     CONF_DOG_ID: "buddy",
+                    CONF_DOG_NAME: "Buddy",
                     CONF_MODULES: {MODULE_GPS: True},
                 }
             ]
@@ -51,6 +53,7 @@ class TestDogConfigRegistry:
             [
                 {
                     CONF_DOG_ID: f"dog_{idx}",
+                    CONF_DOG_NAME: f"Dog {idx}",
                     CONF_MODULES: {MODULE_HEALTH: True},
                 }
                 for idx in range(10)
@@ -67,6 +70,7 @@ class TestDogConfigRegistry:
             [
                 {
                     CONF_DOG_ID: "buddy",
+                    CONF_DOG_NAME: "Buddy",
                     CONF_MODULES: {MODULE_HEALTH: True},
                 }
             ]
@@ -82,6 +86,7 @@ class TestDogConfigRegistry:
             [
                 {
                     CONF_DOG_ID: "buddy",
+                    CONF_DOG_NAME: "Buddy",
                     CONF_MODULES: {MODULE_GPS: True},
                 }
             ]
@@ -89,3 +94,28 @@ class TestDogConfigRegistry:
 
         with pytest.raises(ValidationError):
             registry.calculate_update_interval(options={"gps_update_interval": -5})
+
+    def test_registry_trims_identifiers_and_names(self) -> None:
+        """Whitespace-only identifiers and names are discarded during normalisation."""
+
+        registry = DogConfigRegistry(
+            [
+                {
+                    CONF_DOG_ID: "  luna  ",
+                    CONF_DOG_NAME: "  Luna  ",
+                    CONF_MODULES: {MODULE_HEALTH: True},
+                },
+                {
+                    CONF_DOG_ID: "   ",
+                    CONF_DOG_NAME: "Unnamed",
+                },
+                {
+                    CONF_DOG_ID: "luna",
+                    CONF_DOG_NAME: "   ",
+                },
+            ]
+        )
+
+        assert registry.ids() == ["luna"]
+        assert registry.get("luna") is not None
+        assert registry.get_name("luna") == "Luna"
