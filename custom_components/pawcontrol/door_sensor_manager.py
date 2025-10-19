@@ -244,19 +244,31 @@ def ensure_door_sensor_settings_config(
         maximum=21600,
     )
     minimum_duration = _coerce_int(
-        pick("minimum_walk_duration", "min_walk_duration", "minimum_duration", "min_duration"),
+        pick(
+            "minimum_walk_duration",
+            "min_walk_duration",
+            "minimum_duration",
+            "min_duration",
+        ),
         default=base_settings.minimum_walk_duration,
         minimum=60,
         maximum=21600,
     )
     maximum_duration = _coerce_int(
-        pick("maximum_walk_duration", "max_walk_duration", "maximum_duration", "max_duration"),
+        pick(
+            "maximum_walk_duration",
+            "max_walk_duration",
+            "maximum_duration",
+            "max_duration",
+        ),
         default=base_settings.maximum_walk_duration,
         minimum=minimum_duration,
         maximum=43200,
     )
     door_delay = _coerce_int(
-        pick("door_closed_delay", "door_closed_timeout", "close_delay", "close_timeout"),
+        pick(
+            "door_closed_delay", "door_closed_timeout", "close_delay", "close_timeout"
+        ),
         default=base_settings.door_closed_delay,
         minimum=0,
         maximum=1800,
@@ -305,6 +317,7 @@ def _apply_settings_to_config(
     config.require_confirmation = settings.require_confirmation
     config.auto_end_walks = settings.auto_end_walks
     config.confidence_threshold = settings.confidence_threshold
+
 
 # Walk detection states
 WALK_STATE_IDLE = "idle"
@@ -683,7 +696,10 @@ class DoorSensorManager:
         else:
             current_payload = None
 
-        if current_payload is None and desired_payload == DEFAULT_DOOR_SENSOR_SETTINGS_PAYLOAD:
+        if (
+            current_payload is None
+            and desired_payload == DEFAULT_DOOR_SENSOR_SETTINGS_PAYLOAD
+        ):
             return _UNSET
 
         if current_payload == desired_payload:
@@ -755,7 +771,10 @@ class DoorSensorManager:
             stored_sensor = dog.get(CONF_DOOR_SENSOR)
             if isinstance(stored_sensor, str):
                 trimmed_stored = stored_sensor.strip()
-                if trimmed_stored != stored_sensor or trimmed_stored != config.entity_id:
+                if (
+                    trimmed_stored != stored_sensor
+                    or trimmed_stored != config.entity_id
+                ):
                     persist_sensor = config.entity_id
             elif stored_sensor is not None:
                 persist_sensor = config.entity_id

@@ -133,7 +133,9 @@ def test_settings_clamp_extreme_values() -> None:
         (0, True, False),
     ],
 )
-def test_coerce_bool_numeric_inputs(value: object, default: bool, expected: bool) -> None:
+def test_coerce_bool_numeric_inputs(
+    value: object, default: bool, expected: bool
+) -> None:
     """Numeric strings and numbers should coerce using non-zero semantics."""
 
     assert _coerce_bool(value, default=default) is expected
@@ -147,7 +149,9 @@ def test_coerce_bool_invalid_strings_use_default() -> None:
 
 
 @pytest.mark.asyncio
-async def test_update_settings_without_entity_change(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_update_settings_without_entity_change(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Settings updates should preserve the entity and restart monitoring when changed."""
 
     hass = Mock()
@@ -160,7 +164,9 @@ async def test_update_settings_without_entity_change(monkeypatch: pytest.MonkeyP
     manager._sensor_configs["dog-1"] = config
     manager._detection_states["dog-1"] = WalkDetectionState(dog_id="dog-1")
 
-    monkeypatch.setattr(manager, "_validate_sensor_entity", AsyncMock(return_value=True))
+    monkeypatch.setattr(
+        manager, "_validate_sensor_entity", AsyncMock(return_value=True)
+    )
     stop_mock = AsyncMock()
     start_mock = AsyncMock()
     monkeypatch.setattr(manager, "_stop_sensor_monitoring", stop_mock)
@@ -213,7 +219,9 @@ async def test_update_with_blank_sensor_removes_configuration(
 
 
 @pytest.mark.asyncio
-async def test_update_without_changes_does_not_restart(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_update_without_changes_does_not_restart(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """No-op updates should avoid restarting monitoring."""
 
     hass = Mock()
@@ -247,13 +255,17 @@ def test_default_settings_constants() -> None:
 
 
 @pytest.mark.asyncio
-async def test_initialize_persists_trimmed_payload(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_initialize_persists_trimmed_payload(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Initialisation should persist trimmed sensor IDs and clamped settings."""
 
     hass = Mock()
     manager = DoorSensorManager(hass, "entry")
     data_manager = AsyncMock()
-    monkeypatch.setattr(manager, "_validate_sensor_entity", AsyncMock(return_value=True))
+    monkeypatch.setattr(
+        manager, "_validate_sensor_entity", AsyncMock(return_value=True)
+    )
 
     dog: DogConfigData = {
         "dog_id": "dog-1",
@@ -289,7 +301,9 @@ async def test_update_persists_changes(monkeypatch: pytest.MonkeyPatch) -> None:
         dog_name="Buddy",
     )
     manager._sensor_configs["dog-1"] = config
-    monkeypatch.setattr(manager, "_validate_sensor_entity", AsyncMock(return_value=True))
+    monkeypatch.setattr(
+        manager, "_validate_sensor_entity", AsyncMock(return_value=True)
+    )
 
     await manager.async_update_dog_configuration(
         "dog-1",
