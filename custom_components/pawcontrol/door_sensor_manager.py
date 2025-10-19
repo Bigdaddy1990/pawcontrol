@@ -42,21 +42,20 @@ from .coordinator_support import CacheMonitorRegistrar
 from .notifications import NotificationPriority, NotificationType
 from .runtime_data import get_runtime_data
 from .types import (
-    DOG_ID_FIELD,
-    DOG_NAME_FIELD,
-    CacheDiagnosticsMetadata,
-    CacheDiagnosticsSnapshot,
-    DEFAULT_CONFIDENCE_THRESHOLD,
     DEFAULT_DOOR_CLOSED_DELAY,
     DEFAULT_DOOR_SENSOR_SETTINGS,
     DEFAULT_MAXIMUM_WALK_DURATION,
     DEFAULT_MINIMUM_WALK_DURATION,
     DEFAULT_WALK_DETECTION_TIMEOUT,
+    DOG_ID_FIELD,
+    DOG_NAME_FIELD,
+    CacheDiagnosticsMetadata,
+    CacheDiagnosticsSnapshot,
     DetectionStatistics,
     DetectionStatus,
     DetectionStatusEntry,
-    DoorSensorSettingsConfig,
     DogConfigData,
+    DoorSensorSettingsConfig,
 )
 from .utils import async_fire_event
 
