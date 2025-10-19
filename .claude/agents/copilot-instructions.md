@@ -80,6 +80,10 @@ rules:
 - **Type Checking**: MyPy
 - **Testing**: pytest with plain functions and fixtures
 - **Language**: American English for all code, comments, and documentation (use sentence case, including titles)
+- **Door sensor helpers**: Normalise overrides with
+  `ensure_door_sensor_settings_config`, keep runtime payloads under
+  `CONF_DOOR_SENSOR_SETTINGS`, trim/validate sensor entity IDs before persisting
+  them, and only restart monitoring listeners when the effective snapshot changes.
 
 ### Writing Style Guidelines
 - **Tone**: Friendly and informative
@@ -285,6 +289,15 @@ rules:
 - **Purpose**: Allow configuration updates without removing device
 - **Implementation**: Add `async_step_reconfigure` method
 - **Validation**: Prevent changing underlying account with `_abort_if_unique_id_mismatch`
+
+### Managers and sensors
+- **Door sensor overrides**: Normalise overrides with `ensure_door_sensor_settings_config`
+  before mutating `DoorSensorConfig`. The helper clamps durations, delays, and
+  confidence thresholds and should be used for both initial setup and
+  settings-only updates so listeners restart only when the effective snapshot
+  changes, while the normalised payload must be persisted via
+  `PawControlDataManager.async_update_dog_data` under
+  `CONF_DOOR_SENSOR_SETTINGS` so reloads reuse the clamped values.
 
 ### Device Discovery
 - **Manifest Configuration**: Add discovery method (zeroconf, dhcp, etc.)

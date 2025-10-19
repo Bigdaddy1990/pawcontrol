@@ -12,7 +12,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from dataclasses import dataclass, field
+from collections.abc import Mapping
+from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
@@ -33,11 +34,13 @@ from .const import (
     CACHE_TIMESTAMP_FUTURE_THRESHOLD,
     CACHE_TIMESTAMP_STALE_THRESHOLD,
     CONF_DOOR_SENSOR,
+    CONF_DOOR_SENSOR_SETTINGS,
     EVENT_WALK_ENDED,
     EVENT_WALK_STARTED,
 )
 from .coordinator_support import CacheMonitorRegistrar
 from .notifications import NotificationPriority, NotificationType
+from .runtime_data import get_runtime_data
 from .types import (
     DOG_ID_FIELD,
     DOG_NAME_FIELD,
@@ -51,16 +54,257 @@ from .types import (
 from .utils import async_fire_event
 
 if TYPE_CHECKING:
+    from .data_manager import PawControlDataManager
     from .notifications import PawControlNotificationManager
     from .walk_manager import WalkManager
 
 _LOGGER = logging.getLogger(__name__)
+
+_UNSET: object = object()
 
 # Door sensor configuration
 DEFAULT_WALK_DETECTION_TIMEOUT = 300  # 5 minutes
 DEFAULT_MINIMUM_WALK_DURATION = 180  # 3 minutes
 DEFAULT_MAXIMUM_WALK_DURATION = 7200  # 2 hours
 DEFAULT_DOOR_CLOSED_DELAY = 60  # 1 minute
+DEFAULT_CONFIDENCE_THRESHOLD = 0.7
+
+
+@dataclass(slots=True, frozen=True)
+class DoorSensorSettingsConfig:
+    """Normalised configuration values applied to door sensor tracking."""
+
+    walk_detection_timeout: int = DEFAULT_WALK_DETECTION_TIMEOUT
+    minimum_walk_duration: int = DEFAULT_MINIMUM_WALK_DURATION
+    maximum_walk_duration: int = DEFAULT_MAXIMUM_WALK_DURATION
+    door_closed_delay: int = DEFAULT_DOOR_CLOSED_DELAY
+    require_confirmation: bool = True
+    auto_end_walks: bool = True
+    confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD
+
+
+DEFAULT_DOOR_SENSOR_SETTINGS = DoorSensorSettingsConfig()
+DEFAULT_DOOR_SENSOR_SETTINGS_PAYLOAD = asdict(DEFAULT_DOOR_SENSOR_SETTINGS)
+
+
+def _coerce_int(
+    value: Any,
+    *,
+    default: int,
+    minimum: int | None = None,
+    maximum: int | None = None,
+) -> int:
+    """Coerce ``value`` to an integer within optional bounds."""
+
+    if isinstance(value, bool) or value is None:
+        return default
+
+    candidate: int
+    if isinstance(value, int | float):
+        candidate = int(value)
+    elif isinstance(value, str):
+        value = value.strip()
+        if not value:
+            return default
+        try:
+            candidate = int(float(value))
+        except ValueError:
+            return default
+    else:
+        return default
+
+    if minimum is not None and candidate < minimum:
+        candidate = minimum
+    if maximum is not None and candidate > maximum:
+        candidate = maximum
+    return candidate
+
+
+def _coerce_float(
+    value: Any,
+    *,
+    default: float,
+    minimum: float | None = None,
+    maximum: float | None = None,
+) -> float:
+    """Coerce ``value`` to a float within optional bounds."""
+
+    if isinstance(value, bool) or value is None:
+        return default
+
+    candidate: float
+    if isinstance(value, int | float):
+        candidate = float(value)
+    elif isinstance(value, str):
+        value = value.strip()
+        if not value:
+            return default
+        try:
+            candidate = float(value)
+        except ValueError:
+            return default
+    else:
+        return default
+
+    if minimum is not None and candidate < minimum:
+        candidate = minimum
+    if maximum is not None and candidate > maximum:
+        candidate = maximum
+    return candidate
+
+
+def _coerce_bool(value: Any, *, default: bool) -> bool:
+    """Normalise ``value`` to a boolean."""
+
+    if isinstance(value, bool):
+        return value
+
+    if isinstance(value, int | float):
+        # Treat numeric inputs as truthy when non-zero to support options payloads
+        # that pass integers (for example, 0/1 toggles from legacy configs).
+        return bool(value)
+
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped:
+            return default
+
+        lowered = stripped.lower()
+        if lowered in {"true", "1", "yes", "on"}:
+            return True
+        if lowered in {"false", "0", "no", "off"}:
+            return False
+
+        try:
+            numeric = float(stripped)
+        except ValueError:
+            return default
+        return bool(numeric)
+
+    return default
+
+
+def _settings_from_config(
+    config: DoorSensorConfig | DoorSensorSettingsConfig | None,
+) -> DoorSensorSettingsConfig:
+    """Return a normalised settings snapshot for ``config``."""
+
+    if isinstance(config, DoorSensorSettingsConfig):
+        return config
+    if config is None:
+        return DEFAULT_DOOR_SENSOR_SETTINGS
+    return DoorSensorSettingsConfig(
+        walk_detection_timeout=config.walk_detection_timeout,
+        minimum_walk_duration=config.minimum_walk_duration,
+        maximum_walk_duration=config.maximum_walk_duration,
+        door_closed_delay=config.door_closed_delay,
+        require_confirmation=config.require_confirmation,
+        auto_end_walks=config.auto_end_walks,
+        confidence_threshold=config.confidence_threshold,
+    )
+
+
+def ensure_door_sensor_settings_config(
+    overrides: Mapping[str, Any] | DoorSensorSettingsConfig | None,
+    *,
+    base: DoorSensorSettingsConfig | DoorSensorConfig | None = None,
+) -> DoorSensorSettingsConfig:
+    """Return a normalised ``DoorSensorSettingsConfig`` from ``overrides``."""
+
+    base_settings = _settings_from_config(base)
+
+    if overrides is None:
+        return base_settings
+
+    if isinstance(overrides, DoorSensorSettingsConfig):
+        raw: Mapping[str, Any] = asdict(overrides)
+    elif isinstance(overrides, Mapping):
+        raw = overrides
+    else:
+        raise TypeError(
+            "door sensor settings must be a mapping or DoorSensorSettingsConfig"
+        )
+
+    normalised: dict[str, Any] = {}
+    for key, value in raw.items():
+        if isinstance(key, str):
+            normalised[key.strip().lower()] = value
+
+    def pick(*aliases: str) -> Any:
+        for alias in aliases:
+            alias_key = alias.lower()
+            if alias_key in normalised:
+                return normalised[alias_key]
+        return None
+
+    timeout = _coerce_int(
+        pick("timeout", "walk_detection_timeout", "walk_timeout"),
+        default=base_settings.walk_detection_timeout,
+        minimum=30,
+        maximum=21600,
+    )
+    minimum_duration = _coerce_int(
+        pick("minimum_walk_duration", "min_walk_duration", "minimum_duration", "min_duration"),
+        default=base_settings.minimum_walk_duration,
+        minimum=60,
+        maximum=21600,
+    )
+    maximum_duration = _coerce_int(
+        pick("maximum_walk_duration", "max_walk_duration", "maximum_duration", "max_duration"),
+        default=base_settings.maximum_walk_duration,
+        minimum=minimum_duration,
+        maximum=43200,
+    )
+    door_delay = _coerce_int(
+        pick("door_closed_delay", "door_closed_timeout", "close_delay", "close_timeout"),
+        default=base_settings.door_closed_delay,
+        minimum=0,
+        maximum=1800,
+    )
+    require_confirmation = _coerce_bool(
+        pick("require_confirmation", "confirmation_required"),
+        default=base_settings.require_confirmation,
+    )
+    auto_end_walks = _coerce_bool(
+        pick("auto_end_walks", "auto_end_walk", "auto_close"),
+        default=base_settings.auto_end_walks,
+    )
+    confidence_threshold = _coerce_float(
+        pick("confidence_threshold", "confidence", "threshold"),
+        default=base_settings.confidence_threshold,
+        minimum=0.0,
+        maximum=1.0,
+    )
+
+    return DoorSensorSettingsConfig(
+        walk_detection_timeout=timeout,
+        minimum_walk_duration=minimum_duration,
+        maximum_walk_duration=maximum_duration,
+        door_closed_delay=door_delay,
+        require_confirmation=require_confirmation,
+        auto_end_walks=auto_end_walks,
+        confidence_threshold=confidence_threshold,
+    )
+
+
+def _settings_to_payload(settings: DoorSensorSettingsConfig) -> dict[str, Any]:
+    """Return a serialisable payload for ``settings``."""
+
+    return asdict(settings)
+
+
+def _apply_settings_to_config(
+    config: DoorSensorConfig, settings: DoorSensorSettingsConfig
+) -> None:
+    """Apply ``settings`` to ``config`` in-place."""
+
+    config.walk_detection_timeout = settings.walk_detection_timeout
+    config.minimum_walk_duration = settings.minimum_walk_duration
+    config.maximum_walk_duration = settings.maximum_walk_duration
+    config.door_closed_delay = settings.door_closed_delay
+    config.require_confirmation = settings.require_confirmation
+    config.auto_end_walks = settings.auto_end_walks
+    config.confidence_threshold = settings.confidence_threshold
 
 # Walk detection states
 WALK_STATE_IDLE = "idle"
@@ -349,6 +593,7 @@ class DoorSensorManager:
         # Dependencies (injected during initialization)
         self._walk_manager: WalkManager | None = None
         self._notification_manager: PawControlNotificationManager | None = None
+        self._data_manager: PawControlDataManager | None = None
 
         # Performance tracking
         self._detection_stats: DetectionStatistics = {
@@ -372,11 +617,87 @@ class DoorSensorManager:
             f"{prefix}_cache", _DoorSensorManagerCacheMonitor(self)
         )
 
+    def _ensure_data_manager(self) -> PawControlDataManager | None:
+        """Return the active data manager when available."""
+
+        if self._data_manager is not None:
+            return self._data_manager
+
+        runtime_data = get_runtime_data(self.hass, self.entry_id)
+        if runtime_data is None:
+            return None
+
+        self._data_manager = runtime_data.data_manager
+        return self._data_manager
+
+    async def _async_persist_door_sensor(
+        self,
+        dog_id: str,
+        *,
+        sensor: object = _UNSET,
+        settings: object = _UNSET,
+    ) -> None:
+        """Persist normalised door sensor overrides when they change."""
+
+        data_manager = self._ensure_data_manager()
+        if data_manager is None:
+            return
+
+        updates: dict[str, Any] = {}
+
+        if sensor is not _UNSET:
+            updates[CONF_DOOR_SENSOR] = sensor
+
+        if settings is not _UNSET:
+            if isinstance(settings, DoorSensorSettingsConfig):
+                payload = _settings_to_payload(settings)
+                if payload and payload != DEFAULT_DOOR_SENSOR_SETTINGS_PAYLOAD:
+                    updates[CONF_DOOR_SENSOR_SETTINGS] = payload
+                else:
+                    updates[CONF_DOOR_SENSOR_SETTINGS] = None
+            else:
+                updates[CONF_DOOR_SENSOR_SETTINGS] = settings
+
+        if not updates:
+            return
+
+        try:
+            await data_manager.async_update_dog_data(dog_id, updates)
+        except Exception as err:  # pragma: no cover - defensive guard
+            _LOGGER.error(
+                "Failed to persist door sensor overrides for %s: %s", dog_id, err
+            )
+
+    @staticmethod
+    def _settings_for_persistence(
+        raw_settings: Any, normalised: DoorSensorSettingsConfig
+    ) -> object:
+        """Return payload to persist when ``raw_settings`` differs from ``normalised``."""
+
+        desired_payload = _settings_to_payload(normalised)
+
+        if isinstance(raw_settings, DoorSensorSettingsConfig):
+            current_payload = _settings_to_payload(raw_settings)
+        elif isinstance(raw_settings, Mapping):
+            current_payload = dict(raw_settings)
+        else:
+            current_payload = None
+
+        if current_payload is None and desired_payload == DEFAULT_DOOR_SENSOR_SETTINGS_PAYLOAD:
+            return _UNSET
+
+        if current_payload == desired_payload:
+            return _UNSET
+
+        return normalised
+
     async def async_initialize(
         self,
         dogs: list[DogConfigData],
         walk_manager: WalkManager | None = None,
         notification_manager: PawControlNotificationManager | None = None,
+        *,
+        data_manager: PawControlDataManager | None = None,
     ) -> None:
         """Initialize door sensor monitoring for configured dogs.
 
@@ -387,6 +708,10 @@ class DoorSensorManager:
         """
         self._walk_manager = walk_manager
         self._notification_manager = notification_manager
+        if data_manager is not None:
+            self._data_manager = data_manager
+        else:
+            self._ensure_data_manager()
 
         # Configure door sensors for each dog
         for dog in dogs:
@@ -400,7 +725,12 @@ class DoorSensorManager:
                 continue
 
             # Validate door sensor entity exists
-            if not await self._validate_sensor_entity(door_sensor):
+            trimmed_sensor = door_sensor.strip()
+            if not trimmed_sensor:
+                _LOGGER.debug("Door sensor entry for %s is blank", dog_name)
+                continue
+
+            if not await self._validate_sensor_entity(trimmed_sensor):
                 _LOGGER.warning(
                     "Door sensor %s for %s is not available", door_sensor, dog_name
                 )
@@ -408,24 +738,35 @@ class DoorSensorManager:
 
             # Create configuration
             config = DoorSensorConfig(
-                entity_id=door_sensor,
+                entity_id=trimmed_sensor,
                 dog_id=dog_id,
                 dog_name=dog_name,
                 enabled=True,
             )
 
             # Apply any custom settings from dog configuration
-            door_settings = dog.get("door_sensor_settings", {})
-            if door_settings:
-                config.walk_detection_timeout = door_settings.get(
-                    "timeout", config.walk_detection_timeout
-                )
-                config.require_confirmation = door_settings.get(
-                    "require_confirmation", config.require_confirmation
-                )
-                config.confidence_threshold = door_settings.get(
-                    "confidence_threshold", config.confidence_threshold
-                )
+            settings_config = ensure_door_sensor_settings_config(
+                dog.get(CONF_DOOR_SENSOR_SETTINGS),
+                base=config,
+            )
+            _apply_settings_to_config(config, settings_config)
+
+            persist_sensor = _UNSET
+            stored_sensor = dog.get(CONF_DOOR_SENSOR)
+            if isinstance(stored_sensor, str):
+                trimmed_stored = stored_sensor.strip()
+                if trimmed_stored != stored_sensor or trimmed_stored != config.entity_id:
+                    persist_sensor = config.entity_id
+            elif stored_sensor is not None:
+                persist_sensor = config.entity_id
+
+            await self._async_persist_door_sensor(
+                dog_id,
+                sensor=persist_sensor,
+                settings=self._settings_for_persistence(
+                    dog.get(CONF_DOOR_SENSOR_SETTINGS), settings_config
+                ),
+            )
 
             self._sensor_configs[dog_id] = config
             self._detection_states[dog_id] = WalkDetectionState(dog_id=dog_id)
@@ -983,44 +1324,72 @@ class DoorSensorManager:
         Returns:
             True if configuration was updated
         """
-        if door_sensor:  # noqa: SIM102
-            # Validate new sensor
-            if not await self._validate_sensor_entity(door_sensor):
+        trimmed_sensor: str | None = None
+        removing = False
+
+        if door_sensor is not None:
+            trimmed_sensor = door_sensor.strip()
+            if not trimmed_sensor:
+                removing = True
+            elif not await self._validate_sensor_entity(trimmed_sensor):
                 _LOGGER.warning("Invalid door sensor entity: %s", door_sensor)
                 return False
+        elif settings is None:
+            removing = True
 
-        # Update or remove configuration
-        if dog_id in self._sensor_configs:
-            config = self._sensor_configs[dog_id]
+        changed = False
 
-            if door_sensor:
-                config.entity_id = door_sensor
+        persist_sensor: object = _UNSET
+        persist_settings: object = _UNSET
 
-                # Update settings if provided
-                if settings:
-                    config.walk_detection_timeout = settings.get(
-                        "timeout", config.walk_detection_timeout
-                    )
-                    config.require_confirmation = settings.get(
-                        "require_confirmation", config.require_confirmation
-                    )
-                    config.confidence_threshold = settings.get(
-                        "confidence_threshold", config.confidence_threshold
-                    )
+        if removing:
+            if dog_id in self._sensor_configs:
+                del self._sensor_configs[dog_id]
+                self._detection_states.pop(dog_id, None)
+                changed = True
+                _LOGGER.info("Removed door sensor config for dog %s", dog_id)
+                persist_sensor = None
+                persist_settings = None
+            else:
+                _LOGGER.debug(
+                    "Removal requested for unknown door sensor configuration: %s",
+                    dog_id,
+                )
+        else:
+            config = self._sensor_configs.get(dog_id)
+            if not config:
+                _LOGGER.warning("No door sensor configuration found for dog %s", dog_id)
+                return False
 
+            if trimmed_sensor and config.entity_id != trimmed_sensor:
+                config.entity_id = trimmed_sensor
+                changed = True
+                persist_sensor = trimmed_sensor
+
+            if settings is not None:
+                before = _settings_from_config(config)
+                normalised = ensure_door_sensor_settings_config(settings, base=before)
+                if normalised != before:
+                    _apply_settings_to_config(config, normalised)
+                    changed = True
+                    persist_settings = normalised
+
+            if changed:
                 _LOGGER.info("Updated door sensor config for %s", config.dog_name)
             else:
-                # Remove configuration
-                del self._sensor_configs[dog_id]
-                if dog_id in self._detection_states:
-                    del self._detection_states[dog_id]
+                _LOGGER.debug(
+                    "Door sensor configuration for %s unchanged", config.dog_name
+                )
 
-                _LOGGER.info("Removed door sensor config for dog %s", dog_id)
-
-        # Restart monitoring with new configuration
-        await self._stop_sensor_monitoring()
-        if self._sensor_configs:
-            await self._start_sensor_monitoring()
+        if changed:
+            await self._async_persist_door_sensor(
+                dog_id,
+                sensor=persist_sensor,
+                settings=persist_settings,
+            )
+            await self._stop_sensor_monitoring()
+            if self._sensor_configs:
+                await self._start_sensor_monitoring()
 
         return True
 

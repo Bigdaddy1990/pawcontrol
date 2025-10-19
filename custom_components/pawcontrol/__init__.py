@@ -803,6 +803,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                             dogs=dogs_config,
                             walk_manager=walk_manager,
                             notification_manager=notification_manager,
+                            data_manager=data_manager,
                         ),
                     )
                 )

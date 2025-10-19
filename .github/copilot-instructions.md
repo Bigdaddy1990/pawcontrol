@@ -47,11 +47,19 @@ work with `hass.async_add_executor_job` if an async variant is unavailable.
 ### Coordinators, managers, and services
 
 - Use the existing managers (`FeedingManager`, `WalkManager`, etc.) to store
-per-dog logic; entities should subscribe to coordinator data instead of calling
-clients directly.【F:custom_components/pawcontrol/__init__.py†L149-L213】
+  per-dog logic; entities should subscribe to coordinator data instead of calling
+  clients directly.【F:custom_components/pawcontrol/__init__.py†L149-L213】
+- Normalise door sensor overrides with `ensure_door_sensor_settings_config` so
+  timeouts, durations, delays, and confirmation toggles remain clamped before
+  mutating `DoorSensorConfig`. Trim and validate sensor entity IDs before
+  persisting them. Settings-only updates should leave monitoring listeners
+  untouched when the effective snapshot is unchanged, stored payloads must travel
+  under `CONF_DOOR_SENSOR_SETTINGS`, and the normalised snapshot has to be
+  persisted through `PawControlDataManager.async_update_dog_data` so config-entry
+  reloads retain the clamped values.
 - Always pass the active config entry into new `DataUpdateCoordinator` instances
-and surface API errors via `UpdateFailed` or `ConfigEntryAuthFailed` as shown in
-`coordinator.py` and `exceptions.py`.
+  and surface API errors via `UpdateFailed` or `ConfigEntryAuthFailed` as shown in
+  `coordinator.py` and `exceptions.py`.
 - Service handlers must live in `services.py`/`script_manager.py` and be
 validated in `services.yaml`. Keep the scheduler wiring in
 `async_setup_daily_reset_scheduler` intact when extending services.
