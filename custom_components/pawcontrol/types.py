@@ -192,6 +192,29 @@ Multiple channel support ensures notifications can reach users through their
 preferred communication methods and backup channels for critical alerts.
 """
 
+# Door sensor configuration defaults shared across the integration.
+DEFAULT_WALK_DETECTION_TIMEOUT: Final[int] = 300  # 5 minutes
+DEFAULT_MINIMUM_WALK_DURATION: Final[int] = 180  # 3 minutes
+DEFAULT_MAXIMUM_WALK_DURATION: Final[int] = 7200  # 2 hours
+DEFAULT_DOOR_CLOSED_DELAY: Final[int] = 60  # 1 minute
+DEFAULT_CONFIDENCE_THRESHOLD: Final[float] = 0.7
+
+
+@dataclass(slots=True, frozen=True)
+class DoorSensorSettingsConfig:
+    """Normalised configuration values applied to door sensor tracking."""
+
+    walk_detection_timeout: int = DEFAULT_WALK_DETECTION_TIMEOUT
+    minimum_walk_duration: int = DEFAULT_MINIMUM_WALK_DURATION
+    maximum_walk_duration: int = DEFAULT_MAXIMUM_WALK_DURATION
+    door_closed_delay: int = DEFAULT_DOOR_CLOSED_DELAY
+    require_confirmation: bool = True
+    auto_end_walks: bool = True
+    confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD
+
+
+DEFAULT_DOOR_SENSOR_SETTINGS = DoorSensorSettingsConfig()
+
 # Type aliases for improved code readability and maintainability
 DogId = str
 """Type alias for dog identifier strings.
@@ -2027,13 +2050,9 @@ def _normalise_door_sensor_settings_payload(
     if payload is None:
         return None
 
-    from .door_sensor_manager import (  # Local import to avoid a circular dependency.
-        DEFAULT_DOOR_SENSOR_SETTINGS,
-        ensure_door_sensor_settings_config,
-    )
-    from .door_sensor_manager import DoorSensorSettingsConfig as _SettingsConfig
+    from .door_sensor_manager import ensure_door_sensor_settings_config
 
-    if isinstance(payload, _SettingsConfig):
+    if isinstance(payload, DoorSensorSettingsConfig):
         settings = payload
     elif isinstance(payload, Mapping):
         settings = ensure_door_sensor_settings_config(payload)

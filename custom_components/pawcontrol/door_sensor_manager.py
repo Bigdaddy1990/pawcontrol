@@ -46,9 +46,16 @@ from .types import (
     DOG_NAME_FIELD,
     CacheDiagnosticsMetadata,
     CacheDiagnosticsSnapshot,
+    DEFAULT_CONFIDENCE_THRESHOLD,
+    DEFAULT_DOOR_CLOSED_DELAY,
+    DEFAULT_DOOR_SENSOR_SETTINGS,
+    DEFAULT_MAXIMUM_WALK_DURATION,
+    DEFAULT_MINIMUM_WALK_DURATION,
+    DEFAULT_WALK_DETECTION_TIMEOUT,
     DetectionStatistics,
     DetectionStatus,
     DetectionStatusEntry,
+    DoorSensorSettingsConfig,
     DogConfigData,
 )
 from .utils import async_fire_event
@@ -62,28 +69,6 @@ _LOGGER = logging.getLogger(__name__)
 
 _UNSET: object = object()
 
-# Door sensor configuration
-DEFAULT_WALK_DETECTION_TIMEOUT = 300  # 5 minutes
-DEFAULT_MINIMUM_WALK_DURATION = 180  # 3 minutes
-DEFAULT_MAXIMUM_WALK_DURATION = 7200  # 2 hours
-DEFAULT_DOOR_CLOSED_DELAY = 60  # 1 minute
-DEFAULT_CONFIDENCE_THRESHOLD = 0.7
-
-
-@dataclass(slots=True, frozen=True)
-class DoorSensorSettingsConfig:
-    """Normalised configuration values applied to door sensor tracking."""
-
-    walk_detection_timeout: int = DEFAULT_WALK_DETECTION_TIMEOUT
-    minimum_walk_duration: int = DEFAULT_MINIMUM_WALK_DURATION
-    maximum_walk_duration: int = DEFAULT_MAXIMUM_WALK_DURATION
-    door_closed_delay: int = DEFAULT_DOOR_CLOSED_DELAY
-    require_confirmation: bool = True
-    auto_end_walks: bool = True
-    confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD
-
-
-DEFAULT_DOOR_SENSOR_SETTINGS = DoorSensorSettingsConfig()
 DEFAULT_DOOR_SENSOR_SETTINGS_PAYLOAD = asdict(DEFAULT_DOOR_SENSOR_SETTINGS)
 
 
@@ -654,6 +639,10 @@ class DoorSensorManager:
 
         data_manager = self._ensure_data_manager()
         if data_manager is None:
+            _LOGGER.error(
+                "Data manager unavailable, cannot persist door sensor changes for %s",
+                dog_id,
+            )
             return
 
         updates: dict[str, Any] = {}
