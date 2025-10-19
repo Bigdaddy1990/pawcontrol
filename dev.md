@@ -1,135 +1,42 @@
-# Development Plan
+# Development plan
 
-## Quality Gate Expectations
-- Run `ruff check`, `pytest -q`, `mypy custom_components/pawcontrol`, and `python -m script.hassfest --integration-path custom_components/pawcontrol` before opening a pull request so every change meets the repository guardrails.【F:.github/copilot-instructions.md†L10-L28】
-- Target Python 3.13+ typing across the integration and reuse the shared PawControl helpers to sustain the Platinum architecture expectations.【F:.github/copilot-instructions.md†L29-L70】
+## Quality gate expectations
+- Run `ruff check`, `pytest -q`, `mypy custom_components/pawcontrol`, and `python -m script.hassfest --integration-path custom_components/pawcontrol` before opening a pull request so Platinum-level guardrails stay enforced.【F:.github/copilot-instructions.md†L10-L28】
+- Target Python 3.13+ features and reuse PawControl helpers (coordinators, managers, and typed constants) to keep runtime data on the typed surface.【F:.github/copilot-instructions.md†L29-L94】
 
-## Latest Tooling Snapshot
-- ✅ `ruff check` – lint passes after tightening the nested map-option
-  unwrapping logic inside the card helpers.【ada971†L1-L2】
-- ✅ `pytest -q` – all 888 tests succeed, covering iterable payloads,
-  unsupported keys, boolean coercion guardrails, merged nested/top-level
-  overrides, alias handling, distinct zoom/default zoom combinations, mirrored
-  defaults, and explicit dark-mode overrides for map templates.【F:tests/unit/test_dashboard_templates.py†L204-L366】【5caab5†L1-L5】
-- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol`
-  – manifest and translation metadata remain valid following the helper
-  refinements.【7dc162†L1-L2】
-- ❌ `mypy custom_components/pawcontrol` – the long-standing backlog persists
-  (279 errors across legacy helpers, config flows, and adapters) and still
-  requires a dedicated typing sweep before strict gates can be restored.【b790c1†L1-L120】
+## Latest tooling snapshot
+- ✅ `ruff check` – passes without lint findings.【c60abc†L1-L2】
+- ✅ `pytest -q` – 906 tests (one skipped) succeed in 37.52 seconds.【11bdc2†L1-L6】
+- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – manifest and translation validation succeed.【393618†L1-L1】
+- ❌ `mypy custom_components/pawcontrol` – 278 legacy strict-typing errors persist across 37 files (see excerpt).【2721df†L1-L120】
 
-## Error Inventory (mypy)
-1. **Dashboard template typing** – Weather helpers now expose an optional `MapOptionsInput` alias that accepts dicts or iterable key/value payloads, mirror clamped zoom values onto both `zoom` and `default_zoom`, and centralise the fallback constants so Lovelace exports stay typed even when callers pass `None` or heterogeneous iterables. The shared normaliser filters unsupported entries, applies history bounds, preserves distinct `zoom`/`default_zoom` inputs, merges nested map options with top-level overrides, and surfaces the defaults, while the new regression tests cover iterable payloads, unsupported keys, boolean coercion guardrails, alias unwrapping, mirrored defaults when only `default_zoom` is supplied, and explicit dark-mode overrides on the map card template.【F:custom_components/pawcontrol/dashboard_templates.py†L90-L194】【F:custom_components/pawcontrol/dashboard_templates.py†L1003-L1211】【F:custom_components/pawcontrol/dashboard_cards.py†L43-L81】【F:tests/unit/test_dashboard_templates.py†L204-L366】
-2. **Cache repair dataclass adoption** – Cache diagnostics now funnel through `ensure_cache_repair_aggregate`, and the snapshot helpers normalise both inbound payloads and serialisation so only `CacheRepairAggregate` instances survive the pipeline while unit tests guard against mapping fallbacks.【F:custom_components/pawcontrol/coordinator_support.py†L132-L147】【F:custom_components/pawcontrol/performance.py†L149-L158】【F:custom_components/pawcontrol/services.py†L360-L363】【F:custom_components/pawcontrol/types.py†L1180-L1241】【F:custom_components/pawcontrol/diagnostics.py†L300-L359】【F:custom_components/pawcontrol/coordinator_tasks.py†L47-L75】【F:custom_components/pawcontrol/repairs.py†L746-L804】【F:tests/unit/test_services.py†L564-L705】【F:tests/test_repairs.py†L600-L646】【F:tests/unit/test_diagnostics_cache.py†L32-L91】
-3. **Service registry typing** – Profile button gatherers now consume `DogModulesProjection` and reuse typed fixtures inside the service tests, eliminating the mid-pipeline `Mapping[str, Any]` widenings. Follow-ups should propagate the typed dog payloads into the entity performance helpers so the rest of the registry stack sheds its legacy casts.【F:custom_components/pawcontrol/button.py†L502-L634】【F:tests/components/pawcontrol/test_services.py†L13-L137】
-4. **Options flow typed dict drift** – `_normalise_options_snapshot` and the new `_normalise_entry_dogs` helper keep both options snapshots and config-entry rewrites on the `DogConfigData` surface during add, edit, module toggle, and removal flows.【F:custom_components/pawcontrol/options_flow.py†L271-L282】【F:custom_components/pawcontrol/options_flow.py†L2091-L2097】【F:custom_components/pawcontrol/options_flow.py†L2277-L2284】【F:custom_components/pawcontrol/options_flow.py†L2481-L2495】【F:custom_components/pawcontrol/options_flow.py†L2579-L2616】 Regression coverage still guards performance and removal flows so typed notifications persist across saves.【F:tests/unit/test_options_flow.py†L251-L310】【F:tests/unit/test_options_flow.py†L1216-L1289】 Latest update normalises `_async_save_profile` and `async_update_dog_data` through `ensure_dog_config_data`, removing raw dict clones from persistence; follow-ups will audit the remaining namespace caches before the next mypy sweep.【F:custom_components/pawcontrol/data_manager.py†L985-L996】【F:custom_components/pawcontrol/data_manager.py†L2394-L2429】 The current pass also introduces literal-backed notification option keys so the TypedDict helpers stay mypy-safe while coercing defaults and overrides.【F:custom_components/pawcontrol/types.py†L640-L716】
-5. **Feeding translations iterable contract** – `_iter_text_candidates` now
-   filters out `None` before yielding candidates and
-   `_BoundedSequenceSnapshot.__getitem__` implements the slice overload expected
-   by `Sequence`. Fresh regression tests confirm structured message gathering
-   never leaks `None` values and that bounded snapshots behave like native
-   sequences when sliced.【F:custom_components/pawcontrol/feeding_translations.py†L244-L312】【F:custom_components/pawcontrol/feeding_translations.py†L520-L575】【F:tests/unit/test_feeding_translations.py†L170-L225】
-6. **Dog configuration registry normalisation** – `DogConfigRegistry` ingests
-   config entry payloads through `ensure_dog_config_data`, trims identifiers and
-   names, and surfaces typed lookups to the coordinator accessors. Updated tests
-   exercise the stricter contract so module interval calculations operate on
-   canonical `DogConfigData` snapshots while whitespace-only entries are pruned
-   before the registry exposes dog IDs or display names.【F:custom_components/pawcontrol/coordinator_support.py†L195-L276】【F:custom_components/pawcontrol/coordinator_accessors.py†L1-L74】【F:tests/components/pawcontrol/test_coordinator_support.py†L83-L132】
-7. **Notification service typing** – Service, bootstrap, reporting, and
-   emergency flows now coerce payloads through `NotificationType` and
-   `NotificationPriority` so runtime dispatch stays on the typed surface while
-   the send-notification handler backfills missing/invalid enum values, accepts
-   enum instances from callers, normalises raw string channel overrides,
-   deduplicates forced channels, sanitises invalid expiry overrides, and
-   exposes the extended notification catalogue. Follow-ups should extend the
-   typed payload models into the remaining UI helpers before the next mypy
-   sweep.【F:custom_components/pawcontrol/services.py†L2233-L2339】【F:custom_components/pawcontrol/services.py†L3422-L3438】【F:custom_components/pawcontrol/services.py†L3870-L4008】【F:custom_components/pawcontrol/services.yaml†L1334-L1357】【F:custom_components/pawcontrol/data_manager.py†L2039-L2059】【F:custom_components/pawcontrol/__init__.py†L1011-L1074】【F:custom_components/pawcontrol/datetime.py†L654-L669】【F:custom_components/pawcontrol/notifications.py†L70-L77】【F:tests/unit/test_services.py†L886-L1169】
+## Recent improvements
+- Shared `CONF_DOOR_SENSOR_SETTINGS` across helpers so stored overrides no longer rely on bespoke keys.【F:custom_components/pawcontrol/const.py†L129-L142】
+- Normalised door sensor overrides through `_coerce_bool` and companion helpers before persisting them, ensuring reloads retain clamped values without restarting monitors unnecessarily.【F:custom_components/pawcontrol/door_sensor_manager.py†L40-L347】【F:custom_components/pawcontrol/types.py†L1921-L1995】
+- Expanded regression coverage to assert alias handling, numeric toggle coercion, persistence, removals, and no-op updates for the door sensor manager workflow.【F:tests/unit/test_door_sensor_manager.py†L23-L310】
 
-## Immediate Remediation Targets
-- [x] Ensure secondary dashboard templates return `CardConfig`/`CardCollection` and expose typed cache/options helpers; analytics and notification dashboards now rely on dedicated wrappers and the generator renders the new notification view via typed cards.【F:custom_components/pawcontrol/dashboard_templates.py†L748-L2073】【F:custom_components/pawcontrol/dashboard_cards.py†L700-L2445】【F:custom_components/pawcontrol/dashboard_renderer.py†L500-L535】
-- [x] Remove the remaining `coerce_cache_repair_summary` imports and enforce the dataclass helper across cache telemetry so reloads still yield typed summaries; documentation now highlights the guardrail across diagnostics and regression tests lock the JSON export to the dataclass surface.【F:custom_components/pawcontrol/coordinator_support.py†L132-L147】【F:custom_components/pawcontrol/performance.py†L149-L158】【F:custom_components/pawcontrol/services.py†L360-L363】【F:custom_components/pawcontrol/types.py†L1180-L1241】【F:custom_components/pawcontrol/diagnostics.py†L300-L359】【F:docs/diagnostik.md†L45-L48】【F:tests/unit/test_diagnostics_cache.py†L32-L91】
-- [x] Backfill front-end coverage for the analytics/notification dashboards: the generator now publishes typed view summaries (including notifications) for Lovelace exports and README/docs highlight the new view while we monitor Platinum UI snapshots before removing the legacy cache shim.【F:custom_components/pawcontrol/dashboard_generator.py†L240-L520】【F:README.md†L402-L448】
-- [x] Rehydrate stored dashboard metadata to normalise view summaries and flag the notifications view after reloads, keeping Lovelace exports aligned even for legacy dashboards.【F:custom_components/pawcontrol/dashboard_generator.py†L120-L220】【F:custom_components/pawcontrol/dashboard_generator.py†L880-L980】【F:tests/unit/test_dashboard_generator.py†L244-L360】
-- [x] Replace deprecated event loop timing calls with a loop-safe monotonic helper so dashboard performance metrics remain Python 3.13 compliant during generation and validation flows.【F:custom_components/pawcontrol/dashboard_generator.py†L70-L160】【F:custom_components/pawcontrol/dashboard_generator.py†L240-L560】【F:custom_components/pawcontrol/dashboard_generator.py†L780-L1510】
-- [x] Continue normalising the remaining config/menu flows (`async_step_notifications`, module reconfigure) so `DogConfigData`/`DogOptionsEntry` updates leverage the typed helpers before revisiting `mypy`.【F:custom_components/pawcontrol/options_flow.py†L117-L138】【F:custom_components/pawcontrol/options_flow.py†L1997-L2038】【F:custom_components/pawcontrol/options_flow.py†L2993-L3007】
-- [x] Extend the reconfigure summary and advanced menus to normalise their payloads through `ensure_notification_options`/`ensure_dog_options_entry`, keeping export/import metadata aligned with the typed helpers ahead of the next mypy sweep.【F:custom_components/pawcontrol/options_flow.py†L228-L269】【F:custom_components/pawcontrol/options_flow.py†L410-L468】【F:custom_components/pawcontrol/options_flow.py†L3450-L3488】【F:custom_components/pawcontrol/options_flow.py†L3684-L3720】
-- [x] Audit the remaining system and dashboard menus so `_normalise_options_snapshot` guards every `PawControlOptionsData` mutation before the follow-up mypy pass; new regression tests assert notifications and dog options stay typed when those menus save changes.【F:custom_components/pawcontrol/options_flow.py†L3263-L3382】【F:tests/unit/test_options_flow.py†L351-L490】
-- [x] Extend the legacy health and feeding menus to normalise their cloned snapshots through `_normalise_options_snapshot` so notification and dog overrides remain typed regardless of which form saves last.【F:custom_components/pawcontrol/options_flow.py†L3124-L3209】【F:tests/unit/test_options_flow.py†L351-L490】
-- [x] Route the remaining legacy menus (for example geofence settings and entity profiles) through `_normalise_options_snapshot` so cloned snapshots never bypass the typed helpers before the next mypy sweep.【F:custom_components/pawcontrol/options_flow.py†L1181-L1222】【F:custom_components/pawcontrol/options_flow.py†L1395-L1411】【F:tests/unit/test_options_flow.py†L103-L181】【F:tests/unit/test_options_flow.py†L317-L370】
-- [x] Normalise the entity profile preview apply path and GPS settings so `_normalise_options_snapshot` handles every cloned snapshot before the next mypy sweep.【F:custom_components/pawcontrol/options_flow.py†L1685-L1690】【F:custom_components/pawcontrol/options_flow.py†L2656-L2664】
-- [x] Normalise the remaining legacy flows (performance settings, dog removal) so every `self._clone_options()` caller reuses the typed helper before the next mypy sweep.【F:custom_components/pawcontrol/options_flow.py†L1750-L1800】【F:custom_components/pawcontrol/options_flow.py†L2579-L2616】【F:tests/unit/test_options_flow.py†L251-L310】【F:tests/unit/test_options_flow.py†L1216-L1289】
-- [x] Route config-entry rewrites that previously cloned raw dog dictionaries through `ensure_dog_config_data` so removal and similar flows keep entry data typed before the next mypy pass.【F:custom_components/pawcontrol/options_flow.py†L271-L282】【F:custom_components/pawcontrol/options_flow.py†L2579-L2616】
-- [x] Normalise the integration bootstrap so manager initialisers consume typed dog payloads and setup fails fast when names are missing.【F:custom_components/pawcontrol/__init__.py†L488-L524】【F:custom_components/pawcontrol/__init__.py†L752-L759】【F:tests/components/pawcontrol/test_init.py†L135-L205】【F:tests/components/pawcontrol/test_init.py†L332-L354】
-- [x] Align `rejection_metrics` with the Platinum dashboard schema (version 2) and propagate the bump through coordinators, diagnostics, docs, and regression tests.【F:custom_components/pawcontrol/coordinator_tasks.py†L402-L410】【F:custom_components/pawcontrol/types.py†L1788-L1803】【F:tests/unit/test_coordinator_observability.py†L115-L188】【F:tests/components/pawcontrol/test_diagnostics.py†L190-L208】【F:docs/diagnostik.md†L24-L44】
-- [x] Replace helper and data manager dog clones with the shared typed helpers so runtime caches stay on the `DogConfigData` surface ahead of the next typing sweep.【F:custom_components/pawcontrol/helper_manager.py†L239-L273】【F:custom_components/pawcontrol/data_manager.py†L985-L996】【F:custom_components/pawcontrol/data_manager.py†L2394-L2429】
-- [x] Harden `_iter_text_candidates` and the bounded sequence snapshot
-  overrides so feeding translations never emit `None` within an
-  `Iterable[str]` contract and the proxy respects Python's slicing
-  semantics.【F:custom_components/pawcontrol/feeding_translations.py†L244-L312】【F:custom_components/pawcontrol/feeding_translations.py†L520-L575】【F:tests/unit/test_feeding_translations.py†L170-L225】
-- [x] Normalise `DogConfigRegistry` inputs through `ensure_dog_config_data`
-  (and mirror that behaviour in coordinator helpers) so registry lookups no
-  longer downcast to `object` during mypy analysis.【F:custom_components/pawcontrol/coordinator_support.py†L195-L272】【F:custom_components/pawcontrol/coordinator_accessors.py†L1-L74】【F:tests/components/pawcontrol/test_coordinator_support.py†L20-L81】
-- [x] Replace raw notification constants with enum-aware calls throughout the
-  service layer and coordinator bootstrap so the typed notification payloads
-  survive mypy's strict argument checks.【F:custom_components/pawcontrol/services.py†L2233-L2305】【F:custom_components/pawcontrol/services.py†L3422-L3438】【F:custom_components/pawcontrol/services.py†L3870-L4008】【F:custom_components/pawcontrol/data_manager.py†L2039-L2059】【F:custom_components/pawcontrol/__init__.py†L1011-L1074】【F:custom_components/pawcontrol/datetime.py†L654-L669】
+## Error backlog
+1. **Strict typing debt** – mypy still reports hundreds of errors across helpers, dashboards, services, and config flows; reducing this backlog is the primary blocker to restoring strict gates.【2721df†L1-L120】
+2. **Diagnostics schema monitoring** – coordinator and diagnostics payloads must keep the rejection metrics schema aligned with the Platinum dashboard expectations; continue validating telemetry and docs whenever payloads evolve.【F:custom_components/pawcontrol/coordinator_observability.py†L82-L150】【F:custom_components/pawcontrol/diagnostics.py†L602-L666】【F:docs/diagnostik.md†L24-L48】
+3. **Config-flow harness stability** – compat shims and tests ensure exception aliases stay rebound after reloads; reconfigure/update flows still need focused validation work.【F:custom_components/pawcontrol/compat.py†L93-L218】【F:tests/components/pawcontrol/test_config_flow.py†L40-L120】【F:tests/helpers/homeassistant_test_stubs.py†L1852-L1875】
+4. **Resilience telemetry follow-up** – circuit breaker metrics now surface rejection counters, but the front-end still lacks validation once the updated dashboards land in Platinum builds.【F:custom_components/pawcontrol/resilience.py†L200-L312】【F:custom_components/pawcontrol/coordinator_tasks.py†L672-L829】【F:tests/unit/test_coordinator_observability.py†L1-L138】
+5. **Notification quiet-hours fixture** – the time patch remains critical for Python 3.13 compatibility; audit remaining call sites for naive `dt.now` usage before expanding automation coverage.【F:tests/unit/test_notifications.py†L371-L404】
+6. **Service validation telemetry** – `_service_validation_error` still needs richer assertions so telemetry captures payloads during garden service failures.【F:custom_components/pawcontrol/services.py†L90-L127】【F:tests/components/pawcontrol/test_services.py†L190-L235】
 
-## Current Failure Backlog
-- **Diagnostics front-end alignment:** Schema version 2 now ships across coordinator snapshots, runtime statistics, and diagnostics, with docs and regression tests updated; continue monitoring Platinum UI drops for further payload revisions.【F:custom_components/pawcontrol/coordinator_observability.py†L88-L154】【F:custom_components/pawcontrol/coordinator_tasks.py†L402-L829】【F:custom_components/pawcontrol/diagnostics.py†L602-L666】【F:tests/unit/test_coordinator_observability.py†L55-L188】【F:tests/unit/test_coordinator_tasks.py†L200-L994】【F:docs/diagnostik.md†L24-L44】
-- **Config flow harness stabilisation:** Compat exports continue to broadcast rebind events so flows, validators, and services use the active Home Assistant exceptions even after stub reloads. Reconfigure/update logic is the next focus now that alias lookups are stable.【F:custom_components/pawcontrol/compat.py†L101-L212】【F:tests/components/pawcontrol/conftest.py†L1-L36】【F:tests/integration/conftest.py†L1-L36】【F:tests/helpers/homeassistant_test_stubs.py†L1852-L1875】【F:tests/components/pawcontrol/test_config_flow.py†L40-L112】【F:tests/components/pawcontrol/test_config_flow.py†L600-L616】
-- **Resilience telemetry follow-up:** The circuit breaker surfaces `CircuitBreakerStateError`, increments rejection counters, and logs transitions instead of raising proxy errors. Front-end validation remains pending until the updated dashboard lands in Platinum builds.【F:custom_components/pawcontrol/resilience.py†L200-L312】【F:custom_components/pawcontrol/coordinator_tasks.py†L672-L829】【F:custom_components/pawcontrol/coordinator_observability.py†L40-L154】【F:custom_components/pawcontrol/services.py†L320-L420】【F:tests/unit/test_coordinator_tasks.py†L200-L940】【F:tests/unit/test_coordinator_observability.py†L1-L138】
-- **Notification quiet hours fixture:** Tests patch `dt.utcnow` with timezone-aware datetimes so Home Assistant time helpers behave under Python 3.13. Keep auditing notification call sites for `dt.now` usage before expanding automation coverage.【F:tests/unit/test_notifications.py†L371-L404】
-- **Garden service validation propagation:** `_service_validation_error` honours compat overrides while preferring the active `homeassistant.exceptions.ServiceValidationError`; telemetry assertions should capture validation payloads once the performance sweep is complete.【F:custom_components/pawcontrol/services.py†L90-L127】【F:tests/components/pawcontrol/test_services.py†L190-L235】【F:tests/unit/test_services.py†L1-L38】
-- **Type-checking debt:** A fresh `mypy custom_components/pawcontrol` run still reports hundreds of errors across compatibility shims, coordinators, entity factories, and config flows. Upcoming sweeps should focus on the remaining config-flow mixins and helper factories before re-enabling strict gates.【F:custom_components/pawcontrol/config_flow_dogs.py†L200-L760】【F:custom_components/pawcontrol/helper_manager.py†L200-L560】
+## Improvement opportunities
+- Prioritise mypy remediation on coordinator mixins and module adapters to shrink the failure surface before touching peripheral helpers.【2721df†L1-L120】
+- Keep Copilot, Claude, and Gemini contributor instructions synchronised whenever workflows (such as door sensor overrides) change so community PRs follow the same Platinum guardrails.【F:.github/copilot-instructions.md†L1-L110】【F:.claude/agents/copilot-instructions.md†L1-L120】【F:.gemini/styleguide.md†L1-L40】
+- Continue monitoring `_coerce_bool` telemetry for unexpected payloads and extend regression coverage if new shapes surface from legacy options.【F:custom_components/pawcontrol/door_sensor_manager.py†L90-L180】【F:tests/unit/test_door_sensor_manager.py†L86-L170】
+- Track resilience UI updates so diagnostics, docs, and coordinator observability stay aligned with the latest rejection metrics schema.【F:custom_components/pawcontrol/coordinator_observability.py†L82-L150】【F:docs/diagnostik.md†L24-L48】
 
-## Regression Coverage and Opportunities
-- Feeding compliance aggregation tests exercise nested, recursive, and parallel iteration so `_normalise_sequence` snapshots stay reusable without over-consuming telemetry sources.【F:custom_components/pawcontrol/feeding_translations.py†L320-L369】【F:tests/unit/test_feeding_translations.py†L1-L160】
-- Preserve the expanded `_format_structured_message` scenarios as guardrails while iterating on notification payload sanitisation; fixtures already cover recursive mappings and mixed iterables.【F:custom_components/pawcontrol/feeding_translations.py†L327-L350】【F:tests/unit/test_feeding_translations.py†L98-L160】
-- Config flow harness stability is protected by regression tests that assert the exported `ConfigFlow` alias tracks `PawControlConfigFlow`, that compat rebroadcasts refresh modules, and that bindings persist after reloads so stubs can hot-swap mid-test.【F:tests/components/pawcontrol/test_config_flow.py†L43-L108】【F:tests/unit/test_exception_alias_rebinds.py†L1-L184】【F:custom_components/pawcontrol/compat.py†L93-L218】
-- Regression coverage asserts `CacheRepairAggregate` remains the canonical interface for cache anomaly telemetry, preventing regressions toward untyped mappings.【F:tests/unit/test_coordinator_tasks.py†L128-L175】【F:tests/test_repairs.py†L581-L712】【F:tests/unit/test_services.py†L113-L154】
-- Diagnostics cache regression tests ensure snapshots parsed from mappings and existing dataclass instances continue to serialise literal repair summary keys, drop invalid payloads, and reuse the reload-safe helper when summaries arrive from reloaded modules.【F:tests/unit/test_diagnostics_cache.py†L32-L91】
-- Added regression tests for the add/edit dog options paths so typed `DogConfigData` surfaces are validated each time the wizards write back to the entry or options cache.【F:tests/unit/test_options_flow.py†L513-L591】
-- Added advanced-settings, system, dashboard, feeding, health, and export payload regressions to ensure `_normalise_options_snapshot` keeps notification and dog options typed across reconfigure menus, backups, and reloads.【F:tests/unit/test_options_flow.py†L351-L531】【F:tests/unit/test_options_flow.py†L774-L826】
-- Added performance settings and dog removal regression tests so the typed snapshot helper covers tuning menus and removal workflows that previously cloned raw mappings.【F:tests/unit/test_options_flow.py†L251-L310】【F:tests/unit/test_options_flow.py†L1216-L1289】
-- Added geofence and entity profile snapshot regressions so `_normalise_options_snapshot` remains on the typed surface when those menus persist changes.【F:tests/unit/test_options_flow.py†L103-L181】【F:tests/unit/test_options_flow.py†L317-L370】
-- Added profile preview apply and GPS settings regression tests so cloned snapshots are retyped before being written back to the entry.【F:tests/unit/test_options_flow.py†L373-L427】【F:tests/unit/test_options_flow.py†L983-L1048】
-- Added coverage that exercises notification option normalisation when legacy quiet-hour payloads are reloaded into the options flow.【F:tests/unit/test_options_flow.py†L137-L161】
-- New dashboard template tests cover analytics graphs, notification overviews, statistics generator normalisation, map option coercion with legacy default zoom clamping, mirrored `zoom` exports, default zoom fallbacks, and weather recommendation overflow messaging to guard the typed helpers going forward.【F:tests/unit/test_dashboard_templates.py†L118-L205】
-- Dashboard shared helper tests now assert optional metadata (colour, microchip IDs, contacts) survives repeated coercion so future refactors cannot drop profile context inadvertently.【F:tests/unit/test_dashboard_shared.py†L1-L152】
-- Dashboard generator metadata tests ensure both fresh exports and stored dashboards surface the notifications view metadata for front-end consumers.【F:tests/unit/test_dashboard_generator.py†L24-L360】
-- New generator tests patch the storage backend, verify `_track_task` removes completed work, confirm `async_cleanup` cancels pending tasks before delegating to renderer/template cleanups, and assert the asyncio fallback still drains the cleanup registry when Home Assistant helpers are missing.【F:tests/unit/test_dashboard_generator.py†L62-L215】
-- GPS tracking fallback tests ensure mocked Home Assistant schedulers that return bare `AsyncMock` objects close unscheduled coroutines and fall back to native loop scheduling without leaking tasks.【F:tests/unit/test_gps_manager.py†L90-L131】
-- Notification webhook regression tests confirm injected sessions, async context managers, coroutine fallbacks, and the new response finaliser releasing/closing behaviour all function as expected.【F:tests/unit/test_notifications.py†L130-L240】
-- Service telemetry regressions now validate that notification dispatch uses
-  `NotificationType`/`NotificationPriority` enums, that the send notification
-  service accepts enum instances directly, falls back to defaults when
-  automations supply invalid inputs, normalises single-string channel
-  overrides, deduplicates forced channel lists, and sanitises invalid or
-  non-positive expiry overrides while respecting valid ones so downstream
-  dispatch remains predictable as the enums propagate through the stack.【F:tests/unit/test_services.py†L61-L114】【F:tests/unit/test_services.py†L886-L1169】
-- Added notification option helper coverage to assert defaults persist when
-  overrides are blank and that invalid payloads are dropped during coercion.
-  【F:tests/unit/test_options_flow.py†L1-L120】
-- Extended registry coverage to confirm dog identifiers and names are trimmed,
-  with whitespace-only configurations removed before coordinator helpers run.
-  【F:tests/components/pawcontrol/test_coordinator_support.py†L83-L132】
+## Next sprint priorities
+1. **Coordinators & adapters typing sweep** – Carve down the mypy backlog by introducing `TypedDict` wrappers for coordinator payloads and updating module adapters to stop cloning `object`-typed payloads before binding managers.【2721df†L1-L120】【F:custom_components/pawcontrol/coordinator.py†L200-L460】
+2. **Resilience UI parity** – Extend dashboard generators so rejection metrics surface typed `CoordinatorStatisticsPayload` snapshots and add docs/tests for the updated schema to keep Platinum dashboards aligned.【F:custom_components/pawcontrol/coordinator_tasks.py†L672-L829】【F:custom_components/pawcontrol/dashboard_generator.py†L120-L520】【F:docs/diagnostik.md†L24-L48】
+3. **Options flow data hygiene** – Replace residual `object` fallbacks in the advanced options menus with helpers from `types.py` to prevent malformed snapshots from bypassing `_normalise_options_snapshot`.【2721df†L1-L120】【F:custom_components/pawcontrol/options_flow.py†L3124-L3382】【F:custom_components/pawcontrol/types.py†L1900-L1990】
+4. **Door sensor lifecycle integration** – Wire `ensure_door_sensor_settings_config` into config-flow save paths and persist the normalised snapshot through `PawControlDataManager.async_update_dog_data` so reloads keep clamped overrides without manual restarts.【F:custom_components/pawcontrol/options_flow.py†L2579-L2616】【F:custom_components/pawcontrol/data_manager.py†L985-L1030】【F:custom_components/pawcontrol/door_sensor_manager.py†L600-L760】
+5. **Documentation sync** – Capture the outstanding Platinum gaps (typing debt, diagnostics telemetry, resilience UI) in `docs/compliance_gap_analysis.md` and surface callouts in `README.md` so partners can monitor readiness.【F:docs/compliance_gap_analysis.md†L1-L58】【F:README.md†L402-L448】
 
-## Near-term Focus
-1. Monitor the Platinum diagnostics panel for schema bumps and keep the documentation snippet aligned with the live `rejection_metrics` payload so dashboards stay audit-ready.【F:docs/diagnostik.md†L64-L90】【F:docs/portal/traceability_matrix.md†L1-L80】
-2. Deliver the remediation targets above, then re-run `mypy` to confirm the error count drops before tightening repository gates.【F:.github/copilot-instructions.md†L10-L28】
-3. Continue reducing typing debt in the remaining config-flow mixins and helper factories (module toggles, feeding schedulers) ahead of re-enabling strict typing.【F:custom_components/pawcontrol/config_flow_dogs.py†L200-L760】【F:custom_components/pawcontrol/helper_manager.py†L200-L560】
-4. Keep `.github/copilot-instructions.md`, `.claude/agents/copilot-instructions.md`, and `.gemini/styleguide.md` aligned whenever requirements change so assistant guidance stays consistent.【F:.github/copilot-instructions.md†L1-L110】【F:.claude/agents/copilot-instructions.md†L1-L120】【F:.gemini/styleguide.md†L1-L200】
-5. Monitor webhook delivery telemetry under Platinum builds to confirm the async unwrap pipeline continues handling coroutine-based sessions and update diagnostics if additional headers are required.【F:custom_components/pawcontrol/notifications.py†L1333-L1449】【F:tests/unit/test_notifications.py†L130-L240】
-6. Add integration-level dashboard coverage to verify stored `DogModulesProjection` payloads still render correctly now that the generator normalises modules via `coerce_dog_modules_config`.【F:custom_components/pawcontrol/dashboard_generator.py†L222-L241】【F:tests/unit/test_dashboard_shared.py†L157-L171】
+## Regression coverage highlights
+- `tests/unit/test_door_sensor_manager.py` protects alias handling, numeric toggle coercion, persistence through the data manager, removals, and monitoring restarts for the door sensor manager helpers.【F:tests/unit/test_door_sensor_manager.py†L23-L310】
+- Config flow and compat tests safeguard the exception rebinding harness so reloads keep using the active Home Assistant exceptions.【F:tests/components/pawcontrol/test_config_flow.py†L40-L120】【F:tests/unit/test_exception_alias_rebinds.py†L1-L184】
 
-## Tooling Checklist
-- `ruff check`
-- `pytest tests/unit/test_coordinator_observability.py -q`
-- `pytest tests/unit/test_coordinator_tasks.py::test_build_update_statistics_defaults_rejection_metrics -q`
-- `pytest tests/unit/test_coordinator_tasks.py::test_derive_rejection_metrics_preserves_defaults -q`
-- `pytest tests/unit/test_feeding_translations.py -q`
-- `pytest tests/unit/test_services.py::test_check_feeding_compliance_sanitises_structured_messages -q`
-- `pytest tests/unit/test_services.py::test_service_validation_error_uses_compat_alias -q`
-- `pytest tests/test_repairs.py::test_async_publish_feeding_compliance_issue_sanitises_mapping_message -q`
-- `python -m script.hassfest --integration-path custom_components/pawcontrol`
-
-Record outcomes for each run so we maintain an auditable trail before broadening the Platinum gates.【F:.github/copilot-instructions.md†L10-L28】

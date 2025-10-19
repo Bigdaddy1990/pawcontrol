@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from asyncio import Task
 from collections.abc import Callable, Iterator, Mapping
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from typing import (
     TYPE_CHECKING,
@@ -39,6 +39,8 @@ from .const import (
     CONF_BREAKFAST_TIME,
     CONF_DAILY_FOOD_AMOUNT,
     CONF_DINNER_TIME,
+    CONF_DOOR_SENSOR,
+    CONF_DOOR_SENSOR_SETTINGS,
     CONF_FOOD_TYPE,
     CONF_LUNCH_TIME,
     CONF_MEALS_PER_DAY,
@@ -1898,6 +1900,8 @@ class DogConfigData(TypedDict, total=False):
     gps_config: NotRequired[DogGPSConfig]
     feeding_config: NotRequired[DogFeedingConfig]
     health_config: NotRequired[DogHealthConfig]
+    door_sensor: NotRequired[str | None]
+    door_sensor_settings: NotRequired[dict[str, Any]]
 
 
 # TypedDict key literals for dog configuration structures.
@@ -1997,10 +2001,53 @@ def ensure_dog_config_data(data: Mapping[str, Any]) -> DogConfigData | None:
             dict(health_config),
         )
 
+    door_sensor = data.get(CONF_DOOR_SENSOR)
+    if isinstance(door_sensor, str):
+        trimmed_sensor = door_sensor.strip()
+        if trimmed_sensor:
+            config[CONF_DOOR_SENSOR] = trimmed_sensor
+
+    normalised_settings = _normalise_door_sensor_settings_payload(
+        data.get(CONF_DOOR_SENSOR_SETTINGS)
+    )
+    if normalised_settings is not None:
+        config[CONF_DOOR_SENSOR_SETTINGS] = normalised_settings
+
     return config
 
 
 RawDogConfig = Mapping[str, Any] | DogConfigData
+
+
+def _normalise_door_sensor_settings_payload(
+    payload: Any,
+) -> dict[str, Any] | None:
+    """Return a stored payload for door sensor overrides when available."""
+
+    if payload is None:
+        return None
+
+    from .door_sensor_manager import (  # Local import to avoid a circular dependency.
+        DEFAULT_DOOR_SENSOR_SETTINGS,
+        ensure_door_sensor_settings_config,
+    )
+    from .door_sensor_manager import DoorSensorSettingsConfig as _SettingsConfig
+
+    if isinstance(payload, _SettingsConfig):
+        settings = payload
+    elif isinstance(payload, Mapping):
+        settings = ensure_door_sensor_settings_config(payload)
+    else:
+        return None
+
+    settings_payload = asdict(settings)
+    if not settings_payload:
+        return None
+
+    if settings_payload == asdict(DEFAULT_DOOR_SENSOR_SETTINGS):
+        return None
+
+    return settings_payload
 
 
 def ensure_dog_options_entry(

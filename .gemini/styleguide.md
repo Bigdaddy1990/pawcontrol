@@ -24,6 +24,10 @@ PawControl.【F:.github/copilot-instructions.md†L1-L74】
    `CoordinatorEntity`.
 5. **Fail loudly but clearly.** Raise specific exceptions such as `PawControlSetupError` and log actionable context with the
    module-level `_LOGGER`.
+6. **Normalise door sensor overrides.** Pass payloads through `ensure_door_sensor_settings_config` before mutating
+   `DoorSensorConfig` so clamping, alias handling, and listener restarts remain consistent across helpers and managers. Trim
+   and validate entity IDs before persisting them, keep stored payloads under `CONF_DOOR_SENSOR_SETTINGS`, and persist the
+   normalised snapshot via `PawControlDataManager.async_update_dog_data` so config-entry reloads reuse the clamped values.
 
 ## Python guidelines
 ### Language level & formatting

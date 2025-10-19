@@ -129,6 +129,7 @@ ALL_MODULES: Final[frozenset[str]] = frozenset(
 # OPTIMIZED: Source entities configuration
 CONF_SOURCES: Final[str] = "sources"
 CONF_DOOR_SENSOR: Final[str] = "door_sensor"
+CONF_DOOR_SENSOR_SETTINGS: Final[str] = "door_sensor_settings"
 CONF_PERSON_ENTITIES: Final[str] = "person_entities"
 CONF_DEVICE_TRACKERS: Final[str] = "device_trackers"
 CONF_NOTIFY_FALLBACK: Final[str] = "notify_fallback"
