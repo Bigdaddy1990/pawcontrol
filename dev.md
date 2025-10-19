@@ -39,4 +39,3 @@
 ## Regression coverage highlights
 - `tests/unit/test_door_sensor_manager.py` protects alias handling, numeric toggle coercion, persistence through the data manager, removals, and monitoring restarts for the door sensor manager helpers.【F:tests/unit/test_door_sensor_manager.py†L23-L310】
 - Config flow and compat tests safeguard the exception rebinding harness so reloads keep using the active Home Assistant exceptions.【F:tests/components/pawcontrol/test_config_flow.py†L40-L120】【F:tests/unit/test_exception_alias_rebinds.py†L1-L184】
-
