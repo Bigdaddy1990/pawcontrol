@@ -19,7 +19,7 @@ from datetime import datetime
 from typing import Any, Protocol
 
 from homeassistant.const import STATE_HOME
-from homeassistant.core import HomeAssistant, State, callback
+from homeassistant.core import Event, EventStateChangedData, HomeAssistant, State
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt as dt_util
@@ -330,7 +330,9 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
         person_entity_ids = list(self._persons.keys())
 
-        async def handle_person_state_change(event):
+        async def handle_person_state_change(
+            event: Event[EventStateChangedData],
+        ) -> None:
             await self._handle_person_state_change(event)
 
         # Track state changes for all person entities
@@ -344,8 +346,9 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             "Set up state tracking for %d person entities", len(person_entity_ids)
         )
 
-    @callback
-    async def _handle_person_state_change(self, event) -> None:
+    async def _handle_person_state_change(
+        self, event: Event[EventStateChangedData]
+    ) -> None:
         """Handle person entity state changes.
 
         Args:
@@ -383,7 +386,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         if self._discovery_task is not None:
             return
 
-        async def discovery_loop():
+        async def discovery_loop() -> None:
             while True:
                 try:
                     await asyncio.sleep(self._config.discovery_interval)

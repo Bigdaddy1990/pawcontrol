@@ -294,7 +294,7 @@
           "debug_logging": "Enable Debug Logging"
         },
         "data_description": {
-          "performance_mode": "Select how resource-intensive Paw Control should be for this installation.",
+          "performance_mode": "Select how resource-intensive Paw Control should be for this installation. Defaults to balanced and automatically normalises legacy \"standard\" entries.",
           "enable_analytics": "Collect anonymous trend data to power overview widgets and reports.",
           "enable_cloud_backup": "Upload Paw Control configuration and history to your configured cloud target.",
           "data_retention_days": "Number of days to keep historical metrics before pruning old entries.",
@@ -384,6 +384,7 @@
       "gps_entity_not_found": "The selected GPS source entity was not found",
       "gps_entity_unavailable": "The selected GPS source entity is currently unavailable",
       "door_sensor_not_found": "The selected door sensor entity was not found",
+      "door_sensor_update_failed": "Unable to save the door sensor configuration",
       "notification_service_not_found": "The selected notification service was not found",
       "invalid_notification_service": "The notification service format is invalid",
       "invalid_profile": "You need to select a valid profile",
@@ -1161,6 +1162,10 @@
     "invalid_dog_data": {
       "title": "Incomplete dog details",
       "description": "Some dogs are missing required information: {invalid_dogs}. Provide a name and ID for each of the {total_dogs} dogs."
+    },
+    "door_sensor_persistence_failure": {
+      "title": "Door sensor settings could not be saved",
+      "description": "Paw Control could not persist the door sensor configuration for {dog_name} ({dog_id}). Sensor: {door_sensor}. Error: {error}. Last attempt: {timestamp}."
     },
     "invalid_gps_configuration": {
       "title": "GPS source missing",

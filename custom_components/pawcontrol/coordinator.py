@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import timedelta
 from inspect import isawaitable
 from time import perf_counter
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, overload
 
 from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant, callback
@@ -44,7 +44,6 @@ from .coordinator_runtime import (
     RuntimeCycleInfo,
 )
 from .coordinator_support import (
-    MANAGER_ATTRIBUTES,
     CoordinatorMetrics,
     DogConfigRegistry,
     bind_runtime_managers,
@@ -67,7 +66,16 @@ from .exceptions import ValidationError
 from .http_client import ensure_shared_client_session
 from .module_adapters import CoordinatorModuleAdapters
 from .resilience import ResilienceManager, RetryConfig
-from .types import PawControlConfigEntry
+from .types import (
+    CoordinatorDataPayload,
+    CoordinatorDogData,
+    CoordinatorModuleState,
+    CoordinatorRuntimeManagers,
+    CoordinatorRuntimeStatisticsPayload,
+    CoordinatorStatisticsPayload,
+    CoordinatorTypedModuleName,
+    PawControlConfigEntry,
+)
 
 # Maintain the legacy name to avoid touching the rest of the module logic
 CoordinatorUpdateFailed = UpdateFailed
@@ -92,7 +100,7 @@ __all__ = ["EntityBudgetSnapshot", "PawControlCoordinator", "RuntimeCycleInfo"]
 
 
 class PawControlCoordinator(
-    CoordinatorDataAccessMixin, DataUpdateCoordinator[dict[str, Any]]
+    CoordinatorDataAccessMixin, DataUpdateCoordinator[CoordinatorDataPayload]
 ):
     """Central orchestrator that keeps runtime logic in dedicated helpers."""
 
@@ -147,7 +155,7 @@ class PawControlCoordinator(
             api_client=self._api_client,
         )
 
-        self._data: dict[str, dict[str, Any]] = {
+        self._data: CoordinatorDataPayload = {
             dog_id: self.registry.empty_payload() for dog_id in self.registry.ids()
         }
         self._metrics = CoordinatorMetrics()
@@ -155,17 +163,16 @@ class PawControlCoordinator(
         self._setup_complete = False
         self._maintenance_unsub: callback | None = None
 
-        self.data_manager: PawControlDataManager | None
-        self.feeding_manager: FeedingManager | None
-        self.walk_manager: WalkManager | None
-        self.notification_manager: PawControlNotificationManager | None
-        self.gps_geofence_manager: GPSGeofenceManager | None
-        self.geofencing_manager: PawControlGeofencing | None
-        self.weather_health_manager: WeatherHealthManager | None
-        self.garden_manager: GardenManager | None
+        self.data_manager: PawControlDataManager | None = None
+        self.feeding_manager: FeedingManager | None = None
+        self.walk_manager: WalkManager | None = None
+        self.notification_manager: PawControlNotificationManager | None = None
+        self.gps_geofence_manager: GPSGeofenceManager | None = None
+        self.geofencing_manager: PawControlGeofencing | None = None
+        self.weather_health_manager: WeatherHealthManager | None = None
+        self.garden_manager: GardenManager | None = None
 
-        for attr in MANAGER_ATTRIBUTES:
-            setattr(self, attr, None)
+        self._runtime_managers = CoordinatorRuntimeManagers()
 
         self.resilience_manager = ResilienceManager(hass)
         self._retry_config = RetryConfig(
@@ -252,20 +259,19 @@ class PawControlCoordinator(
         garden_manager: GardenManager | None = None,
     ) -> None:
         """Bind manager instances to the module adapters."""
-        bind_runtime_managers(
-            self,
-            self._modules,
-            {
-                "data_manager": data_manager,
-                "feeding_manager": feeding_manager,
-                "walk_manager": walk_manager,
-                "notification_manager": notification_manager,
-                "gps_geofence_manager": gps_geofence_manager,
-                "geofencing_manager": geofencing_manager,
-                "weather_health_manager": weather_health_manager,
-                "garden_manager": garden_manager,
-            },
+        managers = CoordinatorRuntimeManagers(
+            data_manager=data_manager,
+            feeding_manager=feeding_manager,
+            walk_manager=walk_manager,
+            notification_manager=notification_manager,
+            gps_geofence_manager=gps_geofence_manager,
+            geofencing_manager=geofencing_manager,
+            weather_health_manager=weather_health_manager,
+            garden_manager=garden_manager,
         )
+        self._runtime_managers = managers
+
+        bind_runtime_managers(self, self._modules, managers)
 
         if hasattr(data_manager, "set_metrics_sink"):
             data_manager.set_metrics_sink(self._metrics)
@@ -273,6 +279,19 @@ class PawControlCoordinator(
     def clear_runtime_managers(self) -> None:
         """Detach runtime managers during teardown or reload."""
         unbind_runtime_managers(self, self._modules)
+        self._runtime_managers = CoordinatorRuntimeManagers()
+
+    @property
+    def runtime_managers(self) -> CoordinatorRuntimeManagers:
+        """Return the currently attached runtime managers."""
+
+        return self._runtime_managers
+
+    @runtime_managers.setter
+    def runtime_managers(self, managers: CoordinatorRuntimeManagers) -> None:
+        """Replace the cached runtime manager container."""
+
+        self._runtime_managers = managers
 
     async def async_prepare_entry(self) -> None:
         """Public hook to initialize coordinator state for a config entry."""
@@ -294,7 +313,7 @@ class PawControlCoordinator(
         )
         await self.async_prepare_entry()
 
-    async def _async_update_data(self) -> dict[str, Any]:
+    async def _async_update_data(self) -> CoordinatorDataPayload:
         if len(self.registry) == 0:
             return {}
 
@@ -322,12 +341,12 @@ class PawControlCoordinator(
             self.data = updated_payload
         return self._data
 
-    async def _fetch_dog_data_protected(self, dog_id: str) -> dict[str, Any]:
+    async def _fetch_dog_data_protected(self, dog_id: str) -> CoordinatorDogData:
         """Delegate to the runtime's protected fetch for legacy callers."""
 
         return await self._runtime._fetch_dog_data_protected(dog_id)
 
-    async def _fetch_dog_data(self, dog_id: str) -> dict[str, Any]:
+    async def _fetch_dog_data(self, dog_id: str) -> CoordinatorDogData:
         """Delegate to the runtime fetch implementation."""
 
         return await self._runtime._fetch_dog_data(dog_id)
@@ -346,7 +365,7 @@ class PawControlCoordinator(
 
     async def _execute_cycle(
         self, dog_ids: Sequence[str]
-    ) -> tuple[dict[str, dict[str, Any]], RuntimeCycleInfo]:
+    ) -> tuple[CoordinatorDataPayload, RuntimeCycleInfo]:
         data, cycle = await self._runtime.execute_cycle(
             dog_ids,
             self._data,
@@ -392,7 +411,8 @@ class PawControlCoordinator(
 
     def get_dog_config(self, dog_id: str) -> Any:
         """Return the raw configuration for the specified dog."""
-        return self.registry.get(dog_id)
+
+        return CoordinatorDataAccessMixin.get_dog_config(self, dog_id)
 
     def get_enabled_modules(self, dog_id: str) -> frozenset[str]:
         """Return the modules enabled for the given dog."""
@@ -404,39 +424,51 @@ class PawControlCoordinator(
 
     def get_dog_ids(self) -> list[str]:
         """Return identifiers for all configured dogs."""
-        return self.registry.ids()
+
+        return CoordinatorDataAccessMixin.get_dog_ids(self)
 
     get_configured_dog_ids = get_dog_ids
 
-    def get_dog_data(self, dog_id: str) -> dict[str, Any] | None:
+    def get_dog_data(self, dog_id: str) -> CoordinatorDogData | None:
         """Return the coordinator data payload for the dog."""
-        return self._data.get(dog_id)
 
-    def get_module_data(self, dog_id: str, module: str) -> dict[str, Any]:
+        return CoordinatorDataAccessMixin.get_dog_data(self, dog_id)
+
+    @overload
+    def get_module_data(
+        self, dog_id: str, module: CoordinatorTypedModuleName
+    ) -> CoordinatorModuleState:
+        """Return typed module data for the dog."""
+
+    @overload
+    def get_module_data(self, dog_id: str, module: str) -> Mapping[str, Any]:
         """Return module-specific data for the dog."""
-        return self._data.get(dog_id, {}).get(module, {})
+
+    def get_module_data(self, dog_id: str, module: str) -> Mapping[str, Any]:
+        """Return module-specific data for the dog."""
+
+        return CoordinatorDataAccessMixin.get_module_data(self, dog_id, module)
 
     def get_configured_dog_name(self, dog_id: str) -> str | None:
         """Return the configured display name for the dog."""
-        return self.registry.get_name(dog_id)
 
-    def get_dog_info(self, dog_id: str) -> dict[str, Any]:
+        return CoordinatorDataAccessMixin.get_configured_dog_name(self, dog_id)
+
+    def get_dog_info(self, dog_id: str) -> Mapping[str, Any]:
         """Return core dog information from the coordinator cache."""
-        dog_data = self.get_dog_data(dog_id)
-        if dog_data and isinstance(dog_data.get("dog_info"), dict):
-            return dog_data["dog_info"]
-        return self.registry.get(dog_id) or {}
+
+        return CoordinatorDataAccessMixin.get_dog_info(self, dog_id)
 
     @property
     def available(self) -> bool:
         """Return True if the coordinator considers itself healthy."""
         return self.last_update_success and self._metrics.consecutive_errors < 5
 
-    def get_update_statistics(self) -> dict[str, Any]:
+    def get_update_statistics(self) -> CoordinatorStatisticsPayload:
         """Return statistics for the most recent update cycle."""
         return build_update_statistics(self)
 
-    def get_statistics(self) -> dict[str, Any]:
+    def get_statistics(self) -> CoordinatorRuntimeStatisticsPayload:
         """Return cumulative runtime statistics for diagnostics."""
         start = perf_counter()
         stats = build_runtime_statistics(self)
@@ -462,15 +494,17 @@ class PawControlCoordinator(
 
         resilience = collect_resilience_diagnostics(self)
 
-        snapshot = build_observability_snapshot(
-            metrics=self._metrics,
-            adaptive=adaptive,
-            entity_budget=entity_budget,
-            update_interval=update_interval,
-            last_update_time=last_update_time,
-            last_update_success=self.last_update_success,
-            webhook_status=self._webhook_security_status(),
-            resilience=resilience.get("summary") if resilience else None,
+        snapshot = dict(
+            build_observability_snapshot(
+                metrics=self._metrics,
+                adaptive=adaptive,
+                entity_budget=entity_budget,
+                update_interval=update_interval,
+                last_update_time=last_update_time,
+                last_update_success=self.last_update_success,
+                webhook_status=self._webhook_security_status(),
+                resilience=resilience.get("summary") if resilience else None,
+            )
         )
 
         if resilience:

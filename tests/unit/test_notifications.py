@@ -734,6 +734,27 @@ class TestNotificationAcknowledgment:
         assert notification.acknowledged is True
         assert notification.acknowledged_at is not None
 
+    async def test_acknowledge_notification_without_services(
+        self, mock_notification_manager
+    ) -> None:
+        """Notification acknowledgment should short-circuit when hass services missing."""
+
+        notification_id = await mock_notification_manager.async_send_notification(
+            notification_type=NotificationType.FEEDING_REMINDER,
+            title="Test",
+            message="Test",
+        )
+
+        notification = mock_notification_manager._notifications[notification_id]
+        notification.sent_to.append(NotificationChannel.PERSISTENT)
+        mock_notification_manager._hass.services = None
+
+        success = await mock_notification_manager.async_acknowledge_notification(
+            notification_id
+        )
+
+        assert success is True
+
     async def test_acknowledge_nonexistent_notification(
         self, mock_notification_manager
     ):

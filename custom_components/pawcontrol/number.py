@@ -604,13 +604,8 @@ class PawControlDogAgeNumber(PawControlNumberBase):
         dog_data.setdefault("profile", {})[CONF_DOG_AGE] = int_value
 
         # Persist the change if the data manager is available
-        runtime_data = (
-            get_runtime_data(self.hass, self.coordinator.config_entry)
-            if self.hass
-            else None
-        )
-        data_manager = getattr(runtime_data, "data_manager", None)
-        if data_manager:
+        data_manager = self._get_data_manager()
+        if data_manager is not None:
             try:
                 await data_manager.async_update_dog_data(
                     self._dog_id, {"profile": {CONF_DOG_AGE: int_value}}

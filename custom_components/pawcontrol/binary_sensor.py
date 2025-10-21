@@ -14,7 +14,7 @@ import asyncio
 import logging
 import os
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -42,6 +42,10 @@ from .entity import PawControlEntity
 from .runtime_data import get_runtime_data
 from .types import PawControlConfigEntry, ensure_dog_modules_mapping
 from .utils import async_call_add_entities, ensure_utc_datetime
+
+if TYPE_CHECKING:
+    from .garden_manager import GardenManager
+
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -533,6 +537,11 @@ class PawControlBinarySensorBase(
 class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
     """Base class for garden binary sensors."""
 
+    def _get_garden_manager(self) -> GardenManager | None:
+        """Return the configured garden manager when available."""
+
+        return self._get_runtime_managers().garden_manager
+
     def _get_garden_data(self) -> dict[str, Any]:
         """Return garden snapshot data for the dog."""
 
@@ -541,8 +550,8 @@ class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
         if isinstance(module_data, dict) and module_data:
             return module_data
 
-        garden_manager = getattr(self.coordinator, "garden_manager", None)
-        if garden_manager:
+        garden_manager = self._get_garden_manager()
+        if garden_manager is not None:
             try:
                 return garden_manager.build_garden_snapshot(self._dog_id)
             except Exception as err:  # pragma: no cover - defensive logging
@@ -1643,8 +1652,8 @@ class PawControlGardenSessionActiveBinarySensor(PawControlGardenBinarySensorBase
         if data.get("status") == "active":
             return True
 
-        garden_manager = getattr(self.coordinator, "garden_manager", None)
-        if garden_manager:
+        garden_manager = self._get_garden_manager()
+        if garden_manager is not None:
             return garden_manager.is_dog_in_garden(self._dog_id)
 
         return False
@@ -1667,8 +1676,8 @@ class PawControlInGardenBinarySensor(PawControlGardenBinarySensorBase):
         )
 
     def _get_is_on_state(self) -> bool:
-        garden_manager = getattr(self.coordinator, "garden_manager", None)
-        if garden_manager:
+        garden_manager = self._get_garden_manager()
+        if garden_manager is not None:
             return garden_manager.is_dog_in_garden(self._dog_id)
 
         data = self._get_garden_data()
@@ -1692,8 +1701,8 @@ class PawControlGardenPoopPendingBinarySensor(PawControlGardenBinarySensorBase):
         )
 
     def _get_is_on_state(self) -> bool:
-        garden_manager = getattr(self.coordinator, "garden_manager", None)
-        if garden_manager:
+        garden_manager = self._get_garden_manager()
+        if garden_manager is not None:
             return garden_manager.has_pending_confirmation(self._dog_id)
 
         data = self._get_garden_data()

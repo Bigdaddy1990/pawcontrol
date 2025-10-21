@@ -215,11 +215,14 @@ async def test_manager_lifecycle(mock_hass, mock_config_entry, mock_session):
     }
 
     coordinator.attach_runtime_managers(**managers)
-    assert coordinator.data_manager is managers["data_manager"]
+    container = coordinator.runtime_managers
+    assert container.data_manager is managers["data_manager"]
+    assert container.notification_manager is managers["notification_manager"]
 
     coordinator.clear_runtime_managers()
-    assert coordinator.data_manager is None
-    assert coordinator.notification_manager is None
+    empty_container = coordinator.runtime_managers
+    assert empty_container.data_manager is None
+    assert empty_container.notification_manager is None
 
 
 @pytest.mark.unit

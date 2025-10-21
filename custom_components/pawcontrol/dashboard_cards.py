@@ -47,6 +47,7 @@ from .dashboard_templates import (
     MapOptionsInput,
 )
 from .types import (
+    CoordinatorStatisticsPayload,
     DogConfigData,
     DogModulesConfig,
     RawDogConfig,
@@ -2418,7 +2419,13 @@ class StatisticsCardGenerator(BaseCardGenerator):
     """Generator for statistics dashboard cards with performance optimization."""
 
     async def generate_statistics_cards(
-        self, dogs_config: Sequence[RawDogConfig], options: OptionsConfigType
+        self,
+        dogs_config: Sequence[RawDogConfig],
+        options: OptionsConfigType,
+        *,
+        coordinator_statistics: CoordinatorStatisticsPayload
+        | Mapping[str, Any]
+        | None = None,
     ) -> list[CardConfigType]:
         """Generate optimized statistics cards for all dogs.
 
@@ -2473,7 +2480,11 @@ class StatisticsCardGenerator(BaseCardGenerator):
             self._performance_stats["errors_handled"] += 1
 
         # Add summary card (always include)
-        summary_card = self._generate_summary_card(typed_dogs, theme)
+        summary_card = self._generate_summary_card(
+            typed_dogs,
+            theme,
+            coordinator_statistics=coordinator_statistics,
+        )
         cards.append(summary_card)
 
         return cards
@@ -2583,10 +2594,20 @@ class StatisticsCardGenerator(BaseCardGenerator):
         )
 
     def _generate_summary_card(
-        self, dogs_config: Sequence[DogConfigData], theme: str
+        self,
+        dogs_config: Sequence[DogConfigData],
+        theme: str,
+        *,
+        coordinator_statistics: CoordinatorStatisticsPayload
+        | Mapping[str, Any]
+        | None = None,
     ) -> CardConfigType:
         """Generate optimized statistics summary card."""
-        return self.templates.get_statistics_summary_template(list(dogs_config), theme)
+        return self.templates.get_statistics_summary_template(
+            list(dogs_config),
+            theme,
+            coordinator_statistics=coordinator_statistics,
+        )
 
 
 # OPTIMIZED: Global cache cleanup function

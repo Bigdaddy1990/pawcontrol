@@ -294,7 +294,7 @@
           "debug_logging": "Debug-Logging aktivieren"
         },
         "data_description": {
-          "performance_mode": "Wählen Sie, wie ressourcenintensiv Paw Control arbeiten soll.",
+          "performance_mode": "Wählen Sie, wie ressourcenintensiv Paw Control für diese Installation sein soll. Standard ist der Modus 'balanced'; bestehende Einträge mit 'standard' werden automatisch darauf normalisiert.",
           "enable_analytics": "Aggregierte Trenddaten über alle Hunde sammeln.",
           "enable_cloud_backup": "Paw-Control-Daten automatisch in Ihrem Cloud-Ziel sichern.",
           "data_retention_days": "Anzahl der Tage, die Verlaufsdaten gespeichert bleiben.",
@@ -384,6 +384,7 @@
       "gps_entity_not_found": "Die ausgewählte GPS-Quellenentität wurde nicht gefunden",
       "gps_entity_unavailable": "Die ausgewählte GPS-Quellenentität ist derzeit nicht verfügbar",
       "door_sensor_not_found": "Die ausgewählte Türsensor-Entität wurde nicht gefunden",
+      "door_sensor_update_failed": "Türsensor-Konfiguration konnte nicht gespeichert werden",
       "notification_service_not_found": "Der ausgewählte Benachrichtigungsdienst wurde nicht gefunden",
       "invalid_notification_service": "Das Format des Benachrichtigungsdienstes ist ungültig",
       "invalid_profile": "Du musst ein gültiges Profil auswählen",
@@ -1161,6 +1162,10 @@
     "invalid_dog_data": {
       "title": "Unvollständige Hundedaten",
       "description": "Für einige Hunde fehlen Pflichtangaben: {invalid_dogs}. Vergib für alle {total_dogs} Hunde einen Namen und eine ID."
+    },
+    "door_sensor_persistence_failure": {
+      "title": "Türsensor-Einstellungen konnten nicht gespeichert werden",
+      "description": "Paw Control konnte die Türsensor-Konfiguration für {dog_name} ({dog_id}) nicht speichern. Sensor: {door_sensor}. Fehler: {error}. Letzter Versuch: {timestamp}."
     },
     "invalid_gps_configuration": {
       "title": "GPS-Quelle fehlt",

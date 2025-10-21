@@ -19,6 +19,7 @@ import json
 import logging
 from collections.abc import Mapping, Sequence
 from contextlib import suppress
+from dataclasses import asdict
 from datetime import UTC, datetime
 from types import MappingProxyType
 from typing import Any, ClassVar, Final, Literal, cast
@@ -44,6 +45,8 @@ from .const import (
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
     CONF_DOGS,
+    CONF_DOOR_SENSOR,
+    CONF_DOOR_SENSOR_SETTINGS,
     CONF_EXTERNAL_INTEGRATIONS,
     CONF_GPS_ACCURACY_FILTER,
     CONF_GPS_DISTANCE_FILTER,
@@ -76,10 +79,19 @@ from .const import (
 )
 from .coordinator_support import DogConfigRegistry
 from .device_api import validate_device_endpoint
+from .door_sensor_manager import ensure_door_sensor_settings_config
 from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .exceptions import ValidationError
+from .repairs import (
+    ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE,
+    async_create_issue,
+    async_schedule_repair_evaluation,  # noqa: F401 - imported for flow-side effects
+)
+from .runtime_data import get_runtime_data
 from .selector_shim import selector
+from .telemetry import record_door_sensor_persistence_failure
 from .types import (
+    DEFAULT_DOOR_SENSOR_SETTINGS,
     DOG_AGE_FIELD,
     DOG_BREED_FIELD,
     DOG_ID_FIELD,
@@ -92,6 +104,7 @@ from .types import (
     DogConfigData,
     DogModulesConfig,
     DogOptionsMap,
+    DoorSensorSettingsConfig,
     FeedingOptions,
     GeofenceOptions,
     GPSOptions,
@@ -102,17 +115,24 @@ from .types import (
     ReconfigureTelemetry,
     SystemOptions,
     WeatherOptions,
+    ensure_advanced_options,
     ensure_dog_config_data,
     ensure_dog_modules_config,
     ensure_dog_modules_mapping,
     ensure_dog_options_entry,
     ensure_notification_options,
     is_dog_config_valid,
+    normalize_performance_mode,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
-PerformanceMode = Literal["minimal", "balanced", "full"]
+DOOR_SENSOR_DEVICE_CLASSES: Final[tuple[str, ...]] = (
+    "door",
+    "window",
+    "opening",
+    "garage_door",
+)
 
 QUIET_HOURS_FIELD: Final[Literal["quiet_hours"]] = cast(
     Literal["quiet_hours"], CONF_QUIET_HOURS
@@ -171,11 +191,6 @@ class PawControlOptionsFlow(OptionsFlow):
     ENHANCED: GPS and Geofencing configuration per requirements
     """
 
-    _PERFORMANCE_MODES: ClassVar[set[PerformanceMode]] = {
-        "minimal",
-        "balanced",
-        "full",
-    }
     _EXPORT_VERSION: ClassVar[int] = 1
 
     def __init__(self) -> None:
@@ -265,6 +280,18 @@ class PawControlOptionsFlow(OptionsFlow):
                         entry[DOG_ID_FIELD] = dog_id
                     typed_dog_options[dog_id] = entry
             snapshot["dog_options"] = typed_dog_options
+
+        if "advanced_settings" in snapshot:
+            raw_advanced = snapshot.get("advanced_settings")
+            advanced_source = (
+                cast(Mapping[str, Any], raw_advanced)
+                if isinstance(raw_advanced, Mapping)
+                else {}
+            )
+            snapshot["advanced_settings"] = ensure_advanced_options(
+                advanced_source,
+                defaults=snapshot,
+            )
 
         return snapshot
 
@@ -650,44 +677,10 @@ class PawControlOptionsFlow(OptionsFlow):
         """Return advanced configuration merged with root fallbacks."""
 
         options = self._current_options()
-        raw = options.get("advanced_settings", {})
-        if isinstance(raw, Mapping):
-            current = cast(AdvancedOptions, dict(raw))
-        else:
-            current = cast(AdvancedOptions, {})
-
-        if "performance_mode" not in current:
-            current["performance_mode"] = self._normalize_performance_mode(
-                options.get("performance_mode"), None
-            )
-        if "debug_logging" not in current:
-            current["debug_logging"] = self._coerce_bool(
-                options.get("debug_logging"), False
-            )
-        if "data_retention_days" not in current:
-            current["data_retention_days"] = self._coerce_int(
-                options.get("data_retention_days"), 90
-            )
-        if "auto_backup" not in current:
-            current["auto_backup"] = self._coerce_bool(
-                options.get("auto_backup"), False
-            )
-        if "experimental_features" not in current:
-            current["experimental_features"] = self._coerce_bool(
-                options.get("experimental_features"), False
-            )
-        if EXTERNAL_INTEGRATIONS_FIELD not in current:
-            current[EXTERNAL_INTEGRATIONS_FIELD] = self._coerce_bool(
-                options.get(CONF_EXTERNAL_INTEGRATIONS), False
-            )
-        endpoint = options.get(CONF_API_ENDPOINT, "")
-        if API_ENDPOINT_FIELD not in current:
-            current[API_ENDPOINT_FIELD] = endpoint if isinstance(endpoint, str) else ""
-        token = options.get(CONF_API_TOKEN, "")
-        if API_TOKEN_FIELD not in current:
-            current[API_TOKEN_FIELD] = token if isinstance(token, str) else ""
-
-        return current
+        raw = options.get("advanced_settings")
+        source = cast(Mapping[str, Any], raw) if isinstance(raw, Mapping) else {}
+        defaults: dict[str, Any] = dict(options)
+        return ensure_advanced_options(source, defaults=defaults)
 
     @staticmethod
     def _coerce_bool(value: Any, default: bool) -> bool:
@@ -745,23 +738,6 @@ class PawControlOptionsFlow(OptionsFlow):
             except ValueError:
                 return default
         return default
-
-    def _normalize_performance_mode(
-        self, value: Any, current: str | None
-    ) -> PerformanceMode:
-        """Ensure performance mode selections remain within supported values."""
-
-        if isinstance(value, str):
-            candidate = value.lower()
-            if candidate in self._PERFORMANCE_MODES:
-                return cast(PerformanceMode, candidate)
-
-        if isinstance(current, str):
-            existing = current.lower()
-            if existing in self._PERFORMANCE_MODES:
-                return cast(PerformanceMode, existing)
-
-        return "balanced"
 
     def _coerce_clamped_int(
         self, value: Any, default: int, *, minimum: int, maximum: int
@@ -1044,9 +1020,9 @@ class PawControlOptionsFlow(OptionsFlow):
             minimum=30,
             maximum=365,
         )
-        performance_mode = self._normalize_performance_mode(
+        performance_mode = normalize_performance_mode(
             user_input.get("performance_mode"),
-            current.get("performance_mode"),
+            current=current.get("performance_mode"),
         )
 
         system: SystemOptions = {
@@ -1107,13 +1083,6 @@ class PawControlOptionsFlow(OptionsFlow):
     ) -> AdvancedOptions:
         """Create typed advanced configuration metadata."""
 
-        retention = self._coerce_clamped_int(
-            user_input.get("data_retention_days"),
-            current.get("data_retention_days", 90),
-            minimum=30,
-            maximum=365,
-        )
-
         endpoint_raw = user_input.get(
             CONF_API_ENDPOINT, current.get(CONF_API_ENDPOINT, "")
         )
@@ -1129,33 +1098,15 @@ class PawControlOptionsFlow(OptionsFlow):
             else current.get(CONF_API_TOKEN, "")
         )
 
-        advanced: AdvancedOptions = {
-            "performance_mode": self._normalize_performance_mode(
-                user_input.get("performance_mode"),
-                current.get("performance_mode"),
-            ),
-            "debug_logging": self._coerce_bool(
-                user_input.get("debug_logging"),
-                current.get("debug_logging", False),
-            ),
-            "data_retention_days": retention,
-            "auto_backup": self._coerce_bool(
-                user_input.get("auto_backup"),
-                current.get("auto_backup", False),
-            ),
-            "experimental_features": self._coerce_bool(
-                user_input.get("experimental_features"),
-                current.get("experimental_features", False),
-            ),
-            EXTERNAL_INTEGRATIONS_FIELD: self._coerce_bool(
-                user_input.get(CONF_EXTERNAL_INTEGRATIONS),
-                current.get(EXTERNAL_INTEGRATIONS_FIELD, False),
-            ),
-            API_ENDPOINT_FIELD: endpoint,
-            API_TOKEN_FIELD: token,
-        }
+        sanitized_input = dict(user_input)
+        if CONF_API_ENDPOINT in user_input:
+            sanitized_input[CONF_API_ENDPOINT] = endpoint
+        if CONF_API_TOKEN in user_input:
+            sanitized_input[CONF_API_TOKEN] = token
 
-        return advanced
+        defaults: dict[str, Any] = dict(self._current_options())
+        defaults.update(current)
+        return ensure_advanced_options(sanitized_input, defaults=defaults)
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -1797,9 +1748,9 @@ class PawControlOptionsFlow(OptionsFlow):
                 selective_default = bool(current_options.get("selective_refresh", True))
 
                 new_options["entity_profile"] = profile
-                new_options["performance_mode"] = self._normalize_performance_mode(
+                new_options["performance_mode"] = normalize_performance_mode(
                     user_input.get("performance_mode"),
-                    current_options.get("performance_mode"),
+                    current=current_options.get("performance_mode"),
                 )
                 new_options["batch_size"] = self._coerce_int(
                     user_input.get("batch_size"), batch_default
@@ -1847,8 +1798,9 @@ class PawControlOptionsFlow(OptionsFlow):
                 }
             )
 
-        stored_mode = self._normalize_performance_mode(
-            current_options.get("performance_mode"), None
+        stored_mode = normalize_performance_mode(
+            current_options.get("performance_mode"),
+            current=self._entry.options.get("performance_mode"),
         )
         stored_batch = (
             current_options.get("batch_size")
@@ -1945,6 +1897,8 @@ class PawControlOptionsFlow(OptionsFlow):
                 return await self.async_step_select_dog_to_remove()
             elif action == "configure_modules":  # NEW: Module configuration
                 return await self.async_step_select_dog_for_modules()
+            elif action == "configure_door_sensor":
+                return await self.async_step_select_dog_for_door_sensor()
             else:
                 return await self.async_step_init()
 
@@ -1964,6 +1918,9 @@ class PawControlOptionsFlow(OptionsFlow):
                             "configure_modules": "Configure dog modules"  # NEW
                             if current_dogs
                             else "No dogs to configure",
+                            "configure_door_sensor": "Configure door sensors"
+                            if current_dogs
+                            else "No door sensors to configure",
                             "remove_dog": "Remove dog"
                             if current_dogs
                             else "No dogs to remove",
@@ -2033,6 +1990,265 @@ class PawControlOptionsFlow(OptionsFlow):
                     )
                 }
             ),
+        )
+
+    async def async_step_select_dog_for_door_sensor(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Select a dog for door sensor configuration."""
+
+        current_dogs = list(self._dogs)
+        if not current_dogs:
+            return await self.async_step_manage_dogs()
+
+        if user_input is not None:
+            selected_dog_id = user_input.get("dog_id")
+            self._current_dog = next(
+                (
+                    dog
+                    for dog in current_dogs
+                    if dog.get(DOG_ID_FIELD) == selected_dog_id
+                ),
+                None,
+            )
+            if self._current_dog:
+                return await self.async_step_configure_door_sensor()
+            return await self.async_step_manage_dogs()
+
+        dog_options = [
+            {
+                "value": dog.get(DOG_ID_FIELD),
+                "label": f"{dog.get(DOG_NAME_FIELD)} ({dog.get(DOG_ID_FIELD)})",
+            }
+            for dog in current_dogs
+        ]
+
+        return self.async_show_form(
+            step_id="select_dog_for_door_sensor",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("dog_id"): selector.SelectSelector(
+                        selector.SelectSelectorConfig(
+                            options=dog_options,
+                            mode=selector.SelectSelectorMode.DROPDOWN,
+                        )
+                    )
+                }
+            ),
+        )
+
+    async def async_step_configure_door_sensor(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Configure door sensor entity and overrides for the current dog."""
+
+        if not self._current_dog:
+            return await self.async_step_manage_dogs()
+
+        dog_id = cast(str | None, self._current_dog.get(DOG_ID_FIELD))
+        if not isinstance(dog_id, str) or not dog_id:
+            return await self.async_step_manage_dogs()
+
+        raw_dog_name = self._current_dog.get(CONF_DOG_NAME)
+        if isinstance(raw_dog_name, str) and raw_dog_name.strip():
+            dog_name = raw_dog_name.strip()
+        else:
+            dog_name = dog_id
+
+        available_sensors = self._get_available_door_sensors()
+        existing_sensor = cast(str | None, self._current_dog.get(CONF_DOOR_SENSOR))
+        existing_payload = self._current_dog.get(CONF_DOOR_SENSOR_SETTINGS)
+        existing_settings = (
+            dict(cast(Mapping[str, Any], existing_payload))
+            if isinstance(existing_payload, Mapping)
+            else None
+        )
+        base_settings = (
+            ensure_door_sensor_settings_config(existing_settings)
+            if isinstance(existing_settings, Mapping)
+            else ensure_door_sensor_settings_config(None)
+        )
+        default_payload = asdict(DEFAULT_DOOR_SENSOR_SETTINGS)
+
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            sensor_value = user_input.get(CONF_DOOR_SENSOR)
+            trimmed_sensor: str | None
+            if isinstance(sensor_value, str):
+                trimmed_sensor = sensor_value.strip()
+                if not trimmed_sensor:
+                    trimmed_sensor = None
+            else:
+                trimmed_sensor = None
+
+            if trimmed_sensor:
+                state = self.hass.states.get(trimmed_sensor)
+                device_class = state.attributes.get("device_class") if state else None
+                if device_class not in DOOR_SENSOR_DEVICE_CLASSES:
+                    errors[CONF_DOOR_SENSOR] = "door_sensor_not_found"
+
+            settings_overrides = {
+                "walk_detection_timeout": user_input.get("walk_detection_timeout"),
+                "minimum_walk_duration": user_input.get("minimum_walk_duration"),
+                "maximum_walk_duration": user_input.get("maximum_walk_duration"),
+                "door_closed_delay": user_input.get("door_closed_delay"),
+                "require_confirmation": user_input.get("require_confirmation"),
+                "auto_end_walks": user_input.get("auto_end_walks"),
+                "confidence_threshold": user_input.get("confidence_threshold"),
+            }
+
+            if not errors:
+                normalised_settings = ensure_door_sensor_settings_config(
+                    settings_overrides,
+                    base=base_settings,
+                )
+                settings_payload = asdict(normalised_settings)
+
+                sensor_store = trimmed_sensor
+                settings_store: dict[str, Any] | None
+                if not sensor_store or settings_payload == default_payload:
+                    settings_store = None
+                else:
+                    settings_store = settings_payload
+
+                existing_sensor_trimmed = (
+                    existing_sensor.strip()
+                    if isinstance(existing_sensor, str) and existing_sensor.strip()
+                    else None
+                )
+
+                updated_dog: dict[str, Any] = dict(self._current_dog)
+                if sensor_store is None:
+                    updated_dog.pop(CONF_DOOR_SENSOR, None)
+                    updated_dog.pop(CONF_DOOR_SENSOR_SETTINGS, None)
+                else:
+                    updated_dog[CONF_DOOR_SENSOR] = sensor_store
+                    if settings_store is None:
+                        updated_dog.pop(CONF_DOOR_SENSOR_SETTINGS, None)
+                    else:
+                        updated_dog[CONF_DOOR_SENSOR_SETTINGS] = settings_store
+
+                try:
+                    normalised_dog = ensure_dog_config_data(updated_dog)
+                    if normalised_dog is None:
+                        raise ValueError
+                except ValueError:
+                    errors["base"] = "door_sensor_not_found"
+                else:
+                    persist_updates: dict[str, Any] = {}
+                    if existing_sensor_trimmed != sensor_store:
+                        persist_updates[CONF_DOOR_SENSOR] = sensor_store
+
+                    existing_settings_payload = existing_settings
+                    if isinstance(existing_settings_payload, Mapping):
+                        existing_settings_payload = dict(existing_settings_payload)
+
+                    if (
+                        existing_settings_payload is not None
+                        or settings_store is not None
+                    ) and existing_settings_payload != settings_store:
+                        persist_updates[CONF_DOOR_SENSOR_SETTINGS] = settings_store
+
+                    runtime = get_runtime_data(self.hass, self._entry)
+                    data_manager = (
+                        getattr(runtime, "data_manager", None)
+                        if runtime is not None
+                        else None
+                    )
+                    if data_manager and persist_updates:
+                        try:
+                            await data_manager.async_update_dog_data(
+                                dog_id, persist_updates
+                            )
+                        except Exception as err:  # pragma: no cover - defensive
+                            _LOGGER.error(
+                                "Failed to persist door sensor overrides for %s: %s",
+                                dog_id,
+                                err,
+                            )
+                            failure = record_door_sensor_persistence_failure(
+                                runtime,
+                                dog_id=dog_id,
+                                dog_name=dog_name,
+                                door_sensor=sensor_store or existing_sensor_trimmed,
+                                settings=settings_store,
+                                error=err,
+                            )
+                            issue_timestamp = (
+                                failure["recorded_at"]
+                                if failure and "recorded_at" in failure
+                                else dt_util.utcnow().isoformat()
+                            )
+                            issue_payload = {
+                                "dog_id": dog_id,
+                                "dog_name": dog_name,
+                                "door_sensor": sensor_store
+                                or existing_sensor_trimmed
+                                or "",
+                                "settings": settings_store,
+                                "error": str(err),
+                                "timestamp": issue_timestamp,
+                            }
+                            try:
+                                await async_create_issue(
+                                    self.hass,
+                                    self._entry,
+                                    f"{self._entry.entry_id}_door_sensor_{dog_id}",
+                                    ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE,
+                                    issue_payload,
+                                    severity="error",
+                                )
+                            except Exception as issue_err:  # pragma: no cover
+                                _LOGGER.debug(
+                                    "Skipping repair issue publication for %s: %s",
+                                    dog_id,
+                                    issue_err,
+                                )
+                            errors["base"] = "door_sensor_update_failed"
+                    elif persist_updates:
+                        _LOGGER.debug(
+                            "Data manager unavailable while updating door sensor for %s",
+                            dog_id,
+                        )
+
+                    if not errors:
+                        dog_index = next(
+                            (
+                                i
+                                for i, dog in enumerate(self._dogs)
+                                if dog.get(DOG_ID_FIELD) == dog_id
+                            ),
+                            -1,
+                        )
+                        if dog_index >= 0:
+                            self._dogs[dog_index] = normalised_dog
+                            typed_dogs = self._normalise_entry_dogs(self._dogs)
+                            self._dogs = typed_dogs
+                            self._current_dog = typed_dogs[dog_index]
+
+                            new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
+                            self.hass.config_entries.async_update_entry(
+                                self._entry, data=new_data
+                            )
+                            self._invalidate_profile_caches()
+                        return await self.async_step_manage_dogs()
+
+        description_placeholders = {
+            "dog_name": self._current_dog.get(CONF_DOG_NAME, dog_id),
+            "current_sensor": existing_sensor or "None",
+        }
+
+        return self.async_show_form(
+            step_id="configure_door_sensor",
+            data_schema=self._get_door_sensor_settings_schema(
+                available_sensors,
+                current_sensor=existing_sensor,
+                defaults=base_settings,
+                user_input=user_input,
+            ),
+            errors=errors,
+            description_placeholders=description_placeholders,
         )
 
     async def async_step_configure_dog_modules(
@@ -2125,6 +2341,139 @@ class PawControlOptionsFlow(OptionsFlow):
             description_placeholders=self._get_module_description_placeholders(),
         )
 
+    def _get_door_sensor_settings_schema(
+        self,
+        available: Mapping[str, str],
+        *,
+        current_sensor: str | None,
+        defaults: DoorSensorSettingsConfig,
+        user_input: Mapping[str, Any] | None = None,
+    ) -> vol.Schema:
+        """Build schema for configuring per-dog door sensor overrides."""
+
+        values = dict(user_input or {})
+        sensor_default = values.get(CONF_DOOR_SENSOR)
+        if not isinstance(sensor_default, str):
+            sensor_default = current_sensor or ""
+
+        schema_dict: dict[Any, Any] = {}
+
+        if available:
+            options = [{"value": "", "label": "None (disable)"}]
+            options.extend(
+                {
+                    "value": entity_id,
+                    "label": f"🚪 {name}",
+                }
+                for entity_id, name in sorted(available.items())
+            )
+            schema_dict[vol.Optional(CONF_DOOR_SENSOR, default=sensor_default)] = (
+                selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=options,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                )
+            )
+        else:
+            schema_dict[vol.Optional(CONF_DOOR_SENSOR, default=sensor_default)] = (
+                selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT,
+                        autocomplete="off",
+                    )
+                )
+            )
+
+        def _value(key: str, fallback: Any) -> Any:
+            return values.get(key, fallback)
+
+        schema_dict[
+            vol.Optional(
+                "walk_detection_timeout",
+                default=_value(
+                    "walk_detection_timeout", defaults.walk_detection_timeout
+                ),
+            )
+        ] = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=30,
+                max=21600,
+                step=30,
+                mode=selector.NumberSelectorMode.BOX,
+                unit_of_measurement="seconds",
+            )
+        )
+        schema_dict[
+            vol.Optional(
+                "minimum_walk_duration",
+                default=_value("minimum_walk_duration", defaults.minimum_walk_duration),
+            )
+        ] = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=60,
+                max=21600,
+                step=30,
+                mode=selector.NumberSelectorMode.BOX,
+                unit_of_measurement="seconds",
+            )
+        )
+        schema_dict[
+            vol.Optional(
+                "maximum_walk_duration",
+                default=_value("maximum_walk_duration", defaults.maximum_walk_duration),
+            )
+        ] = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=120,
+                max=43200,
+                step=60,
+                mode=selector.NumberSelectorMode.BOX,
+                unit_of_measurement="seconds",
+            )
+        )
+        schema_dict[
+            vol.Optional(
+                "door_closed_delay",
+                default=_value("door_closed_delay", defaults.door_closed_delay),
+            )
+        ] = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=0,
+                max=1800,
+                step=5,
+                mode=selector.NumberSelectorMode.BOX,
+                unit_of_measurement="seconds",
+            )
+        )
+        schema_dict[
+            vol.Optional(
+                "require_confirmation",
+                default=_value("require_confirmation", defaults.require_confirmation),
+            )
+        ] = selector.BooleanSelector()
+        schema_dict[
+            vol.Optional(
+                "auto_end_walks",
+                default=_value("auto_end_walks", defaults.auto_end_walks),
+            )
+        ] = selector.BooleanSelector()
+        schema_dict[
+            vol.Optional(
+                "confidence_threshold",
+                default=_value("confidence_threshold", defaults.confidence_threshold),
+            )
+        ] = selector.NumberSelector(
+            selector.NumberSelectorConfig(
+                min=0.0,
+                max=1.0,
+                step=0.05,
+                mode=selector.NumberSelectorMode.BOX,
+            )
+        )
+
+        return vol.Schema(schema_dict)
+
     def _get_dog_modules_schema(self) -> vol.Schema:
         """Get modules configuration schema for current dog."""
         if not self._current_dog:
@@ -2180,6 +2529,21 @@ class PawControlOptionsFlow(OptionsFlow):
                 ): selector.BooleanSelector(),
             }
         )
+
+    def _get_available_door_sensors(self) -> dict[str, str]:
+        """Return mapping of available door sensors by friendly name."""
+
+        sensors: dict[str, str] = {}
+        for entity_id in self.hass.states.async_entity_ids("binary_sensor"):
+            state = self.hass.states.get(entity_id)
+            if state is None:
+                continue
+            device_class = state.attributes.get("device_class")
+            if device_class not in DOOR_SENSOR_DEVICE_CLASSES:
+                continue
+            friendly_name = state.attributes.get("friendly_name", entity_id)
+            sensors[entity_id] = str(friendly_name)
+        return sensors
 
     def _get_module_description_placeholders(self) -> dict[str, str]:
         """Get description placeholders for module configuration."""
@@ -3347,9 +3711,9 @@ class PawControlOptionsFlow(OptionsFlow):
         reset_default = self._coerce_time_string(
             self._current_options().get(CONF_RESET_TIME), DEFAULT_RESET_TIME
         )
-        mode_default = self._normalize_performance_mode(
+        mode_default = normalize_performance_mode(
             current_system.get("performance_mode"),
-            self._current_options().get("performance_mode"),
+            current=self._current_options().get("performance_mode"),
         )
 
         return vol.Schema(
@@ -3524,13 +3888,6 @@ class PawControlOptionsFlow(OptionsFlow):
                 advanced_settings = self._build_advanced_settings(
                     user_input, current_advanced
                 )
-                if CONF_API_ENDPOINT in user_input:
-                    advanced_settings[CONF_API_ENDPOINT] = endpoint_value
-                if CONF_API_TOKEN in user_input:
-                    raw_token = user_input[CONF_API_TOKEN]
-                    advanced_settings[CONF_API_TOKEN] = (
-                        raw_token.strip() if isinstance(raw_token, str) else ""
-                    )
                 new_options["advanced_settings"] = advanced_settings
                 new_options.update(advanced_settings)
                 return self.async_create_entry(
@@ -3556,9 +3913,9 @@ class PawControlOptionsFlow(OptionsFlow):
         """Get schema for advanced settings form."""
         current_advanced = self._current_advanced_options()
         current_values = user_input or {}
-        mode_default = self._normalize_performance_mode(
+        mode_default = normalize_performance_mode(
             current_advanced.get("performance_mode"),
-            self._current_options().get("performance_mode"),
+            current=self._current_options().get("performance_mode"),
         )
         retention_default = self._coerce_int(
             current_advanced.get("data_retention_days"), 90

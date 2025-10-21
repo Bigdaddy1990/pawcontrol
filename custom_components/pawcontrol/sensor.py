@@ -913,8 +913,8 @@ class PawControlGardenSensorBase(PawControlSensorBase):
         if module_data:
             return module_data
 
-        garden_manager = getattr(self.coordinator, "garden_manager", None)
-        if garden_manager:
+        garden_manager = self._get_runtime_managers().garden_manager
+        if garden_manager is not None:
             try:
                 return garden_manager.build_garden_snapshot(self._dog_id)
             except Exception as err:  # pragma: no cover - defensive logging

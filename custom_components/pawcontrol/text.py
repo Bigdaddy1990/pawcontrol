@@ -24,6 +24,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
+from .notifications import NotificationPriority, NotificationType
 from .runtime_data import get_runtime_data
 from .types import DogConfigData, PawControlConfigEntry
 from .utils import async_call_add_entities
@@ -288,15 +289,16 @@ class PawControlDogNotesText(PawControlTextBase):
         await super().async_set_value(value)
 
         # Log notes update as health data if meaningful content
-        if len(value.strip()) > 10:
-            await self.hass.services.async_call(
-                DOMAIN,
-                "log_health_data",
-                {
-                    ATTR_DOG_ID: self._dog_id,
-                    "note": f"Notes updated: {value[:100]}",
-                },
-            )
+        trimmed_value = value.strip()
+        if len(trimmed_value) > 10 and not await self._async_call_hass_service(
+            DOMAIN,
+            "log_health_data",
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "note": f"Notes updated: {value[:100]}",
+            },
+        ):
+            return
 
 
 class PawControlCustomLabelText(PawControlTextBase):
@@ -382,15 +384,16 @@ class PawControlHealthNotesText(PawControlTextBase):
         await super().async_set_value(value)
 
         # Log health notes
-        if value.strip():
-            await self.hass.services.async_call(
-                DOMAIN,
-                "log_health_data",
-                {
-                    ATTR_DOG_ID: self._dog_id,
-                    "note": value,
-                },
-            )
+        trimmed_value = value.strip()
+        if trimmed_value and not await self._async_call_hass_service(
+            DOMAIN,
+            "log_health_data",
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "note": value,
+            },
+        ):
+            return
 
 
 class PawControlMedicationNotesText(PawControlTextBase):
@@ -415,8 +418,11 @@ class PawControlMedicationNotesText(PawControlTextBase):
         await super().async_set_value(value)
 
         # Log medication if notes contain meaningful information
-        if value.strip() and len(value.strip()) > 5:
-            await self.hass.services.async_call(
+        trimmed_value = value.strip()
+        if (
+            trimmed_value
+            and len(trimmed_value) > 5
+            and not await self._async_call_hass_service(
                 DOMAIN,
                 "log_medication",
                 {
@@ -425,6 +431,8 @@ class PawControlMedicationNotesText(PawControlTextBase):
                     "dose": value,
                 },
             )
+        ):
+            return
 
 
 class PawControlVetNotesText(PawControlTextBase):
@@ -449,15 +457,16 @@ class PawControlVetNotesText(PawControlTextBase):
         await super().async_set_value(value)
 
         # Log as health data with vet context
-        if value.strip():
-            await self.hass.services.async_call(
-                DOMAIN,
-                "log_health_data",
-                {
-                    ATTR_DOG_ID: self._dog_id,
-                    "note": f"Vet notes: {value}",
-                },
-            )
+        trimmed_value = value.strip()
+        if trimmed_value and not await self._async_call_hass_service(
+            DOMAIN,
+            "log_health_data",
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "note": f"Vet notes: {value}",
+            },
+        ):
+            return
 
 
 class PawControlGroomingNotesText(PawControlTextBase):
@@ -482,8 +491,11 @@ class PawControlGroomingNotesText(PawControlTextBase):
         await super().async_set_value(value)
 
         # Start grooming session if notes are added
-        if value.strip() and len(value.strip()) > 10:
-            await self.hass.services.async_call(
+        trimmed_value = value.strip()
+        if (
+            trimmed_value
+            and len(trimmed_value) > 10
+            and not await self._async_call_hass_service(
                 DOMAIN,
                 "start_grooming",
                 {
@@ -492,6 +504,8 @@ class PawControlGroomingNotesText(PawControlTextBase):
                     "notes": value,
                 },
             )
+        ):
+            return
 
 
 class PawControlCustomMessageText(PawControlTextBase):
@@ -517,14 +531,30 @@ class PawControlCustomMessageText(PawControlTextBase):
 
         # Send custom message as notification if not empty
         if value.strip():
-            await self.hass.services.async_call(
+            message = value.strip()
+            notification_manager = self._get_notification_manager()
+
+            if notification_manager is not None:
+                await notification_manager.async_send_notification(
+                    notification_type=NotificationType.SYSTEM_INFO,
+                    title=f"Custom message for {self._dog_name}",
+                    message=message,
+                    dog_id=self._dog_id,
+                    priority=NotificationPriority.NORMAL,
+                    data={"source": "text.custom_message"},
+                    allow_batching=False,
+                )
+                return
+
+            if not await self._async_call_hass_service(
                 DOMAIN,
                 "notify_test",
                 {
                     ATTR_DOG_ID: self._dog_id,
-                    "message": value,
+                    "message": message,
                 },
-            )
+            ):
+                return
 
 
 class PawControlEmergencyContactText(PawControlTextBase):
@@ -626,15 +656,16 @@ class PawControlAllergiesText(PawControlTextBase):
         await super().async_set_value(value)
 
         # Log allergies as important health data
-        if value.strip():
-            await self.hass.services.async_call(
-                DOMAIN,
-                "log_health_data",
-                {
-                    ATTR_DOG_ID: self._dog_id,
-                    "note": f"Allergies/Restrictions updated: {value}",
-                },
-            )
+        trimmed_value = value.strip()
+        if trimmed_value and not await self._async_call_hass_service(
+            DOMAIN,
+            "log_health_data",
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "note": f"Allergies/Restrictions updated: {value}",
+            },
+        ):
+            return
 
 
 class PawControlTrainingNotesText(PawControlTextBase):
@@ -677,8 +708,11 @@ class PawControlBehaviorNotesText(PawControlTextBase):
         await super().async_set_value(value)
 
         # Log behavior changes as health data
-        if value.strip() and len(value.strip()) > 10:
-            await self.hass.services.async_call(
+        trimmed_value = value.strip()
+        if (
+            trimmed_value
+            and len(trimmed_value) > 10
+            and not await self._async_call_hass_service(
                 DOMAIN,
                 "log_health_data",
                 {
@@ -686,6 +720,8 @@ class PawControlBehaviorNotesText(PawControlTextBase):
                     "note": f"Behavior notes: {value}",
                 },
             )
+        ):
+            return
 
 
 class PawControlLocationDescriptionText(PawControlTextBase):

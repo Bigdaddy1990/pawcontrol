@@ -17,6 +17,7 @@ from custom_components.pawcontrol.const import (
     MODULE_WALK,
 )
 from custom_components.pawcontrol.services import (
+    SERVICE_ADD_GARDEN_ACTIVITY,
     SERVICE_CONFIRM_POOP,
     SERVICE_END_WALK,
     SERVICE_START_WALK,
@@ -261,6 +262,60 @@ async def test_confirm_garden_poop_requires_pending_confirmation(
         "doggo"
     )
     coordinator_mock.garden_manager.async_handle_poop_confirmation.assert_not_awaited()
+
+    runtime_data = coordinator_mock.config_entry.runtime_data
+    stats = runtime_data.performance_stats
+    assert stats["service_results"], "service results should capture validation failure"
+    result = stats["service_results"][-1]
+    assert result["service"] == SERVICE_CONFIRM_POOP
+    assert result["status"] == "error"
+    assert result["message"].startswith("No pending garden poop confirmation")
+    details = result.get("details")
+    assert isinstance(details, dict)
+    assert details.get("confirmed") is True
+    assert "quality" not in details
+    assert "size" not in details
+
+
+@pytest.mark.asyncio
+async def test_add_garden_activity_requires_active_session(
+    hass: HomeAssistant,
+    coordinator_mock: SimpleNamespace,
+) -> None:
+    """Ensure add garden activity surfaces payload telemetry on failure."""
+
+    coordinator_mock.garden_manager = SimpleNamespace(
+        async_add_activity=AsyncMock(return_value=False),
+    )
+
+    handlers = await _register_services(hass, coordinator_mock)
+    handler = handlers[(DOMAIN, SERVICE_ADD_GARDEN_ACTIVITY)]
+
+    with pytest.raises(ServiceValidationError):
+        await handler(
+            _service_call(
+                SERVICE_ADD_GARDEN_ACTIVITY,
+                {
+                    "dog_id": "doggo",
+                    "activity_type": "poop",
+                    "confirmed": False,
+                    "notes": "test",
+                },
+            )
+        )
+
+    runtime_data = coordinator_mock.config_entry.runtime_data
+    stats = runtime_data.performance_stats
+    assert stats["service_results"], "service results should capture activity failure"
+    result = stats["service_results"][-1]
+    assert result["service"] == SERVICE_ADD_GARDEN_ACTIVITY
+    assert result["status"] == "error"
+    assert "Start a garden session before adding activities" in result["message"]
+    details = result.get("details")
+    assert isinstance(details, dict)
+    assert details.get("activity_type") == "poop"
+    assert details.get("confirmed") is False
+    assert details.get("notes") == "test"
 
 
 @pytest.mark.asyncio

@@ -1041,3 +1041,76 @@ class TestPawControlDeviceRemoval:
         result = await async_remove_config_entry_device(hass, entry, device_entry)
 
         assert result is True
+
+    async def test_async_remove_config_entry_device_blocks_runtime_dog(
+        self, hass: HomeAssistant
+    ) -> None:
+        """Runtime data dogs should prevent removal until cleanup completes."""
+
+        from custom_components.pawcontrol import async_remove_config_entry_device
+
+        entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
+        entry.add_to_hass(hass)
+
+        runtime_data = PawControlRuntimeData(
+            coordinator=Mock(),
+            data_manager=Mock(),
+            notification_manager=Mock(),
+            feeding_manager=Mock(),
+            walk_manager=Mock(),
+            entity_factory=Mock(),
+            entity_profile="standard",
+            dogs=[{CONF_DOG_ID: "Buddy"}],
+            script_manager=None,
+        )
+        store_runtime_data(hass, entry, runtime_data)
+
+        device_entry = MagicMock()
+        device_entry.identifiers = {(DOMAIN, sanitize_dog_id("buddy"))}
+        device_entry.id = "pawcontrol-device-buddy"
+
+        result = await async_remove_config_entry_device(hass, entry, device_entry)
+
+        assert result is False
+
+    async def test_async_remove_config_entry_device_blocks_option_dog(
+        self, hass: HomeAssistant
+    ) -> None:
+        """Dogs stored in options should also block removal attempts."""
+
+        from custom_components.pawcontrol import async_remove_config_entry_device
+
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={},
+            options={
+                CONF_DOGS: {"buddy": {CONF_DOG_ID: "buddy", CONF_DOG_NAME: "Buddy"}}
+            },
+        )
+        entry.add_to_hass(hass)
+
+        device_entry = MagicMock()
+        device_entry.identifiers = {(DOMAIN, sanitize_dog_id("buddy"))}
+        device_entry.id = "pawcontrol-device-buddy"
+
+        result = await async_remove_config_entry_device(hass, entry, device_entry)
+
+        assert result is False
+
+    async def test_async_remove_config_entry_device_ignores_foreign_device(
+        self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]
+    ) -> None:
+        """Devices from other domains should be ignored for removal decisions."""
+
+        from custom_components.pawcontrol import async_remove_config_entry_device
+
+        entry = MockConfigEntry(domain=DOMAIN, data=mock_config_entry_data, options={})
+        entry.add_to_hass(hass)
+
+        device_entry = MagicMock()
+        device_entry.identifiers = {("other", "buddy")}
+        device_entry.id = "foreign-device-buddy"
+
+        result = await async_remove_config_entry_device(hass, entry, device_entry)
+
+        assert result is False

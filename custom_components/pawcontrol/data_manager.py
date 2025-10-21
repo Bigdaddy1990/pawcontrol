@@ -40,7 +40,11 @@ from .const import (
     MODULE_MEDICATION,
     MODULE_WALK,
 )
-from .coordinator_support import CacheMonitorTarget, CoordinatorMetrics
+from .coordinator_support import (
+    CacheMonitorTarget,
+    CoordinatorMetrics,
+    CoordinatorModuleAdapter,
+)
 from .notifications import NotificationPriority, NotificationType
 from .types import (
     DOG_ID_FIELD,
@@ -56,7 +60,9 @@ from .types import (
     FeedingData,
     GPSLocation,
     HealthData,
+    ModuleCacheMetrics,
     WalkData,
+    WalkRoutePoint,
     ensure_dog_config_data,
 )
 from .utils import is_number
@@ -373,18 +379,18 @@ class _CoordinatorModuleCacheMonitor:
 
     __slots__ = ("_modules",)
 
-    def __init__(self, modules: Any) -> None:
-        self._modules = modules
+    def __init__(self, modules: CoordinatorModuleAdapter) -> None:
+        self._modules: CoordinatorModuleAdapter = modules
 
     @staticmethod
-    def _metrics_to_dict(metrics: Any) -> dict[str, Any]:
-        entries = int(getattr(metrics, "entries", 0))
-        hits = int(getattr(metrics, "hits", 0))
-        misses = int(getattr(metrics, "misses", 0))
-        hit_rate = getattr(metrics, "hit_rate", None)
-        if hit_rate is None:
-            total = hits + misses
-            hit_rate = (hits / total * 100.0) if total else 0.0
+    def _metrics_to_dict(metrics: ModuleCacheMetrics | None) -> dict[str, Any]:
+        if metrics is None:
+            return {"entries": 0, "hits": 0, "misses": 0, "hit_rate": 0.0}
+
+        entries = int(metrics.entries)
+        hits = int(metrics.hits)
+        misses = int(metrics.misses)
+        hit_rate = metrics.hit_rate
         return {
             "entries": entries,
             "hits": hits,
@@ -411,7 +417,7 @@ class _CoordinatorModuleCacheMonitor:
             if not callable(metrics_fn):
                 continue
             try:
-                adapter_metrics = metrics_fn()
+                adapter_metrics = cast(ModuleCacheMetrics | None, metrics_fn())
             except Exception as err:  # pragma: no cover - defensive guard
                 payload[name] = {"error": str(err)}
                 continue
@@ -899,9 +905,9 @@ class PawControlDataManager:
 
         if entry_id is None and coordinator is not None:
             entry = getattr(coordinator, "config_entry", None)
-            candidate = getattr(entry, "entry_id", None)
-            if isinstance(candidate, str):
-                entry_id = candidate
+            entry_id_candidate = getattr(entry, "entry_id", None)
+            if isinstance(entry_id_candidate, str):
+                entry_id = entry_id_candidate
 
         self.entry_id = entry_id or "default"
         config_dir = Path(getattr(hass.config, "config_dir", "."))
@@ -920,7 +926,7 @@ class PawControlDataManager:
         self._session_id_factory: Callable[[], str] = _default_session_id_generator
 
         self._ensure_metrics_containers()
-        self._cache_monitors: dict[str, Callable[[], Mapping[str, Any]]] = {}
+        self._cache_monitors: dict[str, Callable[[], CacheDiagnosticsSnapshot]] = {}
         self._cache_registrar_ids: set[int] = set()
         self._auto_register_cache_monitors()
 
@@ -2325,18 +2331,22 @@ class PawControlDataManager:
             walk = profile.current_walk
             if walk is None:
                 return False
-            walk.route.append(
-                {
-                    "latitude": location.latitude,
-                    "longitude": location.longitude,
-                    "accuracy": location.accuracy,
-                    "altitude": location.altitude,
-                    "timestamp": location.timestamp.isoformat(),
-                    "source": location.source,
-                    "battery_level": location.battery_level,
-                    "signal_strength": location.signal_strength,
-                }
-            )
+            route_point: WalkRoutePoint = {
+                "latitude": location.latitude,
+                "longitude": location.longitude,
+                "timestamp": location.timestamp.isoformat(),
+                "source": location.source,
+            }
+            if location.accuracy is not None:
+                route_point["accuracy"] = location.accuracy
+            if location.altitude is not None:
+                route_point["altitude"] = location.altitude
+            if location.battery_level is not None:
+                route_point["battery_level"] = location.battery_level
+            if location.signal_strength is not None:
+                route_point["signal_strength"] = location.signal_strength
+
+            walk.route.append(route_point)
             profile.daily_stats.register_gps_update()
 
         try:
@@ -2411,7 +2421,10 @@ class PawControlDataManager:
             config = dict(profile.config)
             for section, payload in updates.items():
                 if isinstance(payload, Mapping):
-                    current = _coerce_mapping(config.get(section))
+                    existing = config.get(section)
+                    current = _coerce_mapping(
+                        existing if isinstance(existing, Mapping) else None
+                    )
                     config[section] = _merge_dicts(current, payload)
                 else:
                     config[section] = payload

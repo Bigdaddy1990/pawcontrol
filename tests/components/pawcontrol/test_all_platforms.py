@@ -24,7 +24,10 @@ from custom_components.pawcontrol.const import (
     DOMAIN,
 )
 from custom_components.pawcontrol.runtime_data import store_runtime_data
-from custom_components.pawcontrol.types import PawControlRuntimeData
+from custom_components.pawcontrol.types import (
+    CoordinatorRuntimeManagers,
+    PawControlRuntimeData,
+)
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
 from homeassistant.components.button import ButtonDeviceClass
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
@@ -219,6 +222,9 @@ def mock_coordinator() -> Mock:
         has_pending_confirmation=lambda dog_id: bool(
             garden_data.get("pending_confirmations")
         ),
+    )
+    coordinator.runtime_managers = CoordinatorRuntimeManagers(
+        garden_manager=coordinator.garden_manager,
     )
 
     return coordinator

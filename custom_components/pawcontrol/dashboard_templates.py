@@ -15,6 +15,7 @@ import asyncio
 import json
 import logging
 from collections.abc import Iterable, Mapping, Sequence
+from datetime import UTC, datetime
 from functools import lru_cache
 from math import isfinite
 from typing import Any, Final, NotRequired, TypedDict, cast
@@ -31,8 +32,14 @@ from .const import (
     MODULE_NOTIFICATIONS,
     MODULE_WALK,
 )
+from .coordinator_tasks import default_rejection_metrics
 from .dashboard_shared import CardCollection, CardConfig, coerce_dog_configs
-from .types import DogModulesConfig, RawDogConfig, coerce_dog_modules_config
+from .types import (
+    CoordinatorStatisticsPayload,
+    DogModulesConfig,
+    RawDogConfig,
+    coerce_dog_modules_config,
+)
 
 
 class WeatherThemeConfig(TypedDict):
@@ -1327,7 +1334,13 @@ class DashboardTemplates:
         return template
 
     def get_statistics_summary_template(
-        self, dogs: Sequence[RawDogConfig], theme: str = "modern"
+        self,
+        dogs: Sequence[RawDogConfig],
+        theme: str = "modern",
+        *,
+        coordinator_statistics: CoordinatorStatisticsPayload
+        | Mapping[str, Any]
+        | None = None,
     ) -> CardConfig:
         """Return a summary markdown card for analytics dashboards."""
 
@@ -1361,6 +1374,62 @@ class DashboardTemplates:
             "",
             "*Last updated: {{ now().strftime('%Y-%m-%d %H:%M') }}*",
         ]
+
+        metrics_payload: dict[str, Any] | None = None
+        if isinstance(coordinator_statistics, Mapping):
+            raw_metrics = coordinator_statistics.get("rejection_metrics")
+            if isinstance(raw_metrics, Mapping):
+                metrics_payload = default_rejection_metrics()
+                for key, value in raw_metrics.items():
+                    if key not in metrics_payload:
+                        continue
+                    if value is None:
+                        continue
+                    metrics_payload[key] = value
+
+        if metrics_payload is not None:
+            rejection_rate = metrics_payload.get("rejection_rate")
+            if isinstance(rejection_rate, int | float):
+                rate_display = f"{rejection_rate * 100:.2f}%"
+            else:
+                rate_display = "n/a"
+
+            last_rejection_value = metrics_payload.get("last_rejection_time")
+            if isinstance(last_rejection_value, int | float):
+                try:
+                    last_rejection_iso = datetime.fromtimestamp(
+                        float(last_rejection_value),
+                        tz=UTC,
+                    ).isoformat()
+                except Exception:  # pragma: no cover - defensive guard
+                    last_rejection_iso = str(last_rejection_value)
+            else:
+                last_rejection_iso = "never"
+
+            breaker_label = (
+                metrics_payload.get("last_rejection_breaker_name")
+                or metrics_payload.get("last_rejection_breaker_id")
+                or "n/a"
+            )
+
+            content_lines.extend(
+                [
+                    "",
+                    "### Resilience metrics",
+                    (
+                        f"- Rejected calls: {metrics_payload.get('rejected_call_count', 0)}"
+                    ),
+                    (
+                        "- Rejecting breakers: "
+                        f"{metrics_payload.get('rejection_breaker_count', 0)}"
+                    ),
+                    f"- Rejection rate: {rate_display}",
+                    f"- Last rejection: {last_rejection_iso}",
+                ]
+            )
+
+            if breaker_label != "n/a":
+                content_lines.append(f"- Last rejecting breaker: {breaker_label}")
 
         theme_styles = self._get_theme_styles(theme)
 

@@ -15,6 +15,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import logging
+from collections import deque
 from collections.abc import Callable, Collection, Mapping, Sequence
 from datetime import datetime
 from typing import Any, Final, cast
@@ -44,6 +45,7 @@ from .const import (
     MODULE_MEDICATION,
 )
 from .coordinator_support import CacheMonitorRegistrar
+from .service_guard import ServiceGuardResult
 from .types import (
     DOG_ID_FIELD,
     DOG_NAME_FIELD,
@@ -52,14 +54,18 @@ from .types import (
     CacheDiagnosticsSnapshot,
     DogConfigData,
     DogModulesConfig,
+    HelperManagerGuardMetrics,
     HelperManagerSnapshot,
     HelperManagerStats,
     ModuleToggleKey,
     ensure_dog_config_data,
     ensure_dog_modules_config,
 )
+from .utils import async_call_hass_service_if_available
 
 _LOGGER = logging.getLogger(__name__)
+
+_MAX_GUARD_RESULTS: Final[int] = 25
 
 # Helper entity ID templates
 HELPER_FEEDING_MEAL_TEMPLATE: Final[str] = (
@@ -158,6 +164,11 @@ class _HelperManagerCacheMonitor:
             "entity_domains": domains,
         }
 
+        raw_guard_metrics = getattr(manager, "guard_metrics", None)
+        guard_metrics: HelperManagerGuardMetrics | None = None
+        if isinstance(raw_guard_metrics, Mapping):
+            guard_metrics = cast(HelperManagerGuardMetrics, raw_guard_metrics)
+
         diagnostics: CacheDiagnosticsMetadata = {
             "per_dog_helpers": per_dog,
             "entity_domains": domains,
@@ -166,6 +177,9 @@ class _HelperManagerCacheMonitor:
                 getattr(manager, "_daily_reset_configured", False)
             ),
         }
+
+        if guard_metrics is not None:
+            diagnostics["service_guard_metrics"] = guard_metrics
 
         return stats, snapshot, diagnostics
 
@@ -205,6 +219,65 @@ class PawControlHelperManager:
         self._managed_entities: dict[str, dict[str, Any]] = {}
         self._dog_helpers: dict[str, list[str]] = {}
         self._daily_reset_configured = False
+        self._guard_metrics: dict[str, Any] = {}
+        self._reset_guard_metrics()
+
+    def _reset_guard_metrics(self) -> None:
+        """Reset aggregated guard telemetry for helper service calls."""
+
+        self._guard_metrics = {
+            "executed": 0,
+            "skipped": 0,
+            "reasons": {},
+            "last_results": deque(maxlen=_MAX_GUARD_RESULTS),
+        }
+
+    def _record_guard_result(self, result: ServiceGuardResult) -> None:
+        """Store guard telemetry for diagnostics and cache exports."""
+
+        metrics = self._guard_metrics
+        if result.executed:
+            metrics["executed"] = int(metrics.get("executed", 0)) + 1
+        else:
+            metrics["skipped"] = int(metrics.get("skipped", 0)) + 1
+            reasons = metrics.setdefault("reasons", {})
+            reason_key = result.reason or "unknown"
+            reasons[reason_key] = int(reasons.get(reason_key, 0)) + 1
+
+        last_results = metrics.get("last_results")
+        if not isinstance(last_results, deque):
+            last_results = deque(maxlen=_MAX_GUARD_RESULTS)
+            metrics["last_results"] = last_results
+
+        last_results.append(result.to_mapping())
+
+    @property
+    def guard_metrics(self) -> HelperManagerGuardMetrics:
+        """Return a copy of aggregated guard telemetry."""
+
+        last_results = self._guard_metrics.get("last_results")
+        if isinstance(last_results, deque):
+            results_list = list(last_results)
+        else:
+            results_list = [
+                cast(dict[str, Any], entry) for entry in list(last_results or [])
+            ]
+
+        raw_reasons = self._guard_metrics.get("reasons", {})
+        reasons: dict[str, int] = {}
+        if isinstance(raw_reasons, Mapping):
+            reasons = {
+                str(key): int(value)
+                for key, value in raw_reasons.items()
+                if isinstance(key, str)
+            }
+
+        return {
+            "executed": int(self._guard_metrics.get("executed", 0)),
+            "skipped": int(self._guard_metrics.get("skipped", 0)),
+            "reasons": reasons,
+            "last_results": results_list,
+        }
 
     async def async_initialize(self) -> None:
         """Reset internal state prior to creating helpers."""
@@ -222,6 +295,7 @@ class PawControlHelperManager:
         self._managed_entities.clear()
         self._dog_helpers.clear()
         self._daily_reset_configured = False
+        self._reset_guard_metrics()
 
         _LOGGER.debug("Helper manager initialized for entry %s", self._entry.entry_id)
 
@@ -567,7 +641,8 @@ class PawControlHelperManager:
                 return
 
             # Create the helper
-            await self._hass.services.async_call(
+            guard_result = await async_call_hass_service_if_available(
+                self._hass,
                 input_boolean.DOMAIN,
                 "create",
                 {
@@ -577,7 +652,14 @@ class PawControlHelperManager:
                 },
                 target={"entity_id": entity_id},
                 blocking=True,
+                description=f"creating helper {entity_id}",
+                logger=_LOGGER,
             )
+
+            self._record_guard_result(guard_result)
+
+            if not guard_result:
+                return
 
             self._created_helpers.add(entity_id)
             self._managed_entities[entity_id] = {
@@ -626,13 +708,21 @@ class PawControlHelperManager:
                 service_data["initial"] = initial
 
             # Create the helper
-            await self._hass.services.async_call(
+            guard_result = await async_call_hass_service_if_available(
+                self._hass,
                 input_datetime.DOMAIN,
                 "create",
                 service_data,
                 target={"entity_id": entity_id},
                 blocking=True,
+                description=f"creating helper {entity_id}",
+                logger=_LOGGER,
             )
+
+            self._record_guard_result(guard_result)
+
+            if not guard_result:
+                return
 
             self._created_helpers.add(entity_id)
             self._managed_entities[entity_id] = {
@@ -696,13 +786,21 @@ class PawControlHelperManager:
                 service_data["initial"] = initial
 
             # Create the helper
-            await self._hass.services.async_call(
+            guard_result = await async_call_hass_service_if_available(
+                self._hass,
                 input_number.DOMAIN,
                 "create",
                 service_data,
                 target={"entity_id": entity_id},
                 blocking=True,
+                description=f"creating helper {entity_id}",
+                logger=_LOGGER,
             )
+
+            self._record_guard_result(guard_result)
+
+            if not guard_result:
+                return
 
             self._created_helpers.add(entity_id)
             self._managed_entities[entity_id] = {
@@ -757,13 +855,21 @@ class PawControlHelperManager:
                 service_data["icon"] = icon
 
             # Create the helper
-            await self._hass.services.async_call(
+            guard_result = await async_call_hass_service_if_available(
+                self._hass,
                 input_select.DOMAIN,
                 "create",
                 service_data,
                 target={"entity_id": entity_id},
                 blocking=True,
+                description=f"creating helper {entity_id}",
+                logger=_LOGGER,
             )
+
+            self._record_guard_result(guard_result)
+
+            if not guard_result:
+                return
 
             self._created_helpers.add(entity_id)
             self._managed_entities[entity_id] = {
@@ -846,12 +952,19 @@ class PawControlHelperManager:
                         dog_id=slug_dog_id, meal=meal_type
                     )
 
-                    await self._hass.services.async_call(
+                    guard_result = await async_call_hass_service_if_available(
+                        self._hass,
                         input_boolean.DOMAIN,
                         "turn_off",
                         target={"entity_id": entity_id},
                         blocking=False,
+                        description=f"resetting helper {entity_id}",
+                        logger=_LOGGER,
                     )
+                    self._record_guard_result(guard_result)
+
+                    if not guard_result:
+                        return
 
             _LOGGER.info("Reset feeding toggles for %d dogs", len(dog_ids))
 
@@ -900,12 +1013,20 @@ class PawControlHelperManager:
             if f"pawcontrol_{slug_dog_id}_" in entity_id:
                 try:
                     domain = entity_id.split(".")[0]
-                    await self._hass.services.async_call(
+                    guard_result = await async_call_hass_service_if_available(
+                        self._hass,
                         domain,
                         "delete",
                         target={"entity_id": entity_id},
                         blocking=True,
+                        description=f"removing helper {entity_id}",
+                        logger=_LOGGER,
                     )
+
+                    self._record_guard_result(guard_result)
+
+                    if not guard_result:
+                        continue
 
                     self._created_helpers.discard(entity_id)
                     self._managed_entities.pop(entity_id, None)

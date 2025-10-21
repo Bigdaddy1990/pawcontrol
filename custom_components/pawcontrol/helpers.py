@@ -40,7 +40,11 @@ from .const import (
     EVENT_WALK_STARTED,
 )
 from .types import CacheDiagnosticsMetadata, HealthEvent, WalkEvent
-from .utils import async_fire_event, ensure_utc_datetime
+from .utils import (
+    async_call_hass_service_if_available,
+    async_fire_event,
+    ensure_utc_datetime,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -1445,14 +1449,26 @@ class PawControlNotificationManager:
                     service_data["message"] = f"⚠️ {service_data['message']}"
 
                 # Send with timeout to prevent blocking
-                await asyncio.wait_for(
-                    self.hass.services.async_call(
+                executed = await asyncio.wait_for(
+                    async_call_hass_service_if_available(
+                        self.hass,
                         "persistent_notification",
                         "create",
                         service_data,
+                        description=(
+                            f"queued notification for {notification['dog_id']}"
+                        ),
+                        logger=_LOGGER,
                     ),
                     timeout=5.0,
                 )
+
+                if not executed:
+                    _LOGGER.debug(
+                        "Skipping persistent notification for %s because Home Assistant is not available",
+                        notification["dog_id"],
+                    )
+                    return
 
                 _LOGGER.debug(
                     "Sent %s priority notification for %s",

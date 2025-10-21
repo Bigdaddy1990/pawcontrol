@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from contextlib import suppress
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -78,6 +78,7 @@ from .performance import (
 )
 from .repairs import async_publish_feeding_compliance_issue
 from .runtime_data import get_runtime_data
+from .service_guard import ServiceGuardResult, ServiceGuardSummary
 from .telemetry import (
     get_runtime_resilience_summary,
     update_runtime_reconfigure_summary,
@@ -86,6 +87,8 @@ from .types import (
     CacheDiagnosticsCapture,
     CacheDiagnosticsMap,
     CacheDiagnosticsSnapshot,
+    CoordinatorResilienceSummary,
+    CoordinatorRuntimeManagers,
     DogConfigData,
     FeedingComplianceEventPayload,
     FeedingComplianceLocalizedSummary,
@@ -93,7 +96,7 @@ from .types import (
     ServiceExecutionDiagnostics,
     ServiceExecutionResult,
 )
-from .utils import async_fire_event
+from .utils import async_capture_service_guard_results, async_fire_event
 from .walk_manager import WeatherCondition
 
 _LOGGER = logging.getLogger(__name__)
@@ -136,6 +139,14 @@ def __getattr__(name: str) -> object:
 
 def _service_validation_error(message: str) -> Exception:
     """Return a ``ServiceValidationError`` that mirrors Home Assistant's class."""
+
+    normalised_message = message.strip()
+    if not normalised_message:
+        raise AssertionError(
+            "_service_validation_error requires a non-empty message",
+        )
+
+    message = normalised_message
 
     compat.ensure_homeassistant_exception_symbols()
 
@@ -402,6 +413,7 @@ def _record_service_result(
     diagnostics: CacheDiagnosticsCapture | None = None,
     metadata: Mapping[str, Any] | None = None,
     details: dict[str, Any] | None = None,
+    guard: ServiceGuardResult | Sequence[ServiceGuardResult] | None = None,
 ) -> None:
     """Append a service execution result to runtime performance statistics."""
 
@@ -419,18 +431,24 @@ def _record_service_result(
         if runtime_data is not None
         else None
     )
-    rejection_snapshot: dict[str, Any] | None = None
+    resilience_payload: CoordinatorResilienceSummary | None = None
     if isinstance(resilience_summary, Mapping):
+        resilience_payload = cast(
+            CoordinatorResilienceSummary, dict(resilience_summary)
+        )
+
+    rejection_snapshot: dict[str, Any] | None = None
+    if resilience_payload is not None:
         rejection_snapshot = {
-            "rejected_call_count": resilience_summary.get("rejected_call_count", 0),
-            "rejection_breaker_count": resilience_summary.get(
+            "rejected_call_count": resilience_payload.get("rejected_call_count", 0),
+            "rejection_breaker_count": resilience_payload.get(
                 "rejection_breaker_count", 0
             ),
-            "last_rejection_time": resilience_summary.get("last_rejection_time"),
-            "last_rejection_breaker_id": resilience_summary.get(
+            "last_rejection_time": resilience_payload.get("last_rejection_time"),
+            "last_rejection_breaker_id": resilience_payload.get(
                 "last_rejection_breaker_id"
             ),
-            "rejection_rate": resilience_summary.get("rejection_rate"),
+            "rejection_rate": resilience_payload.get("rejection_rate"),
         }
 
     if dog_id:
@@ -439,7 +457,7 @@ def _record_service_result(
     if message:
         result["message"] = message
 
-    diagnostics_payload: ServiceExecutionDiagnostics | None = None
+    diagnostics_payload: dict[str, Any] | None = None
     if diagnostics is not None:
         diagnostics_payload = {"cache": diagnostics}
 
@@ -450,19 +468,64 @@ def _record_service_result(
         else:
             diagnostics_payload["metadata"] = metadata_payload
 
-    if isinstance(resilience_summary, Mapping):
-        resilience_payload = dict(resilience_summary)
+    if resilience_payload is not None:
         if diagnostics_payload is None:
             diagnostics_payload = {"resilience_summary": resilience_payload}
         else:
             diagnostics_payload.setdefault("resilience_summary", resilience_payload)
 
     if diagnostics_payload:
-        result["diagnostics"] = diagnostics_payload
+        result["diagnostics"] = cast(ServiceExecutionDiagnostics, diagnostics_payload)
 
     details_payload: dict[str, Any] | None = None
     if details:
         details_payload = dict(details)
+
+    guard_results: tuple[ServiceGuardResult, ...] = ()
+    if guard is not None:
+        if isinstance(guard, ServiceGuardResult):
+            guard_results = (guard,)
+        else:
+            guard_results = tuple(
+                entry for entry in guard if isinstance(entry, ServiceGuardResult)
+            )
+
+    guard_summary: ServiceGuardSummary | None = None
+    if guard_results:
+        executed_count = sum(1 for entry in guard_results if entry.executed)
+        skipped_count = len(guard_results) - executed_count
+        reason_counts: dict[str, int] = {}
+        for entry in guard_results:
+            if entry.executed:
+                continue
+            reason_key = entry.reason or "unknown"
+            reason_counts[reason_key] = reason_counts.get(reason_key, 0) + 1
+
+        guard_summary = {
+            "executed": executed_count,
+            "skipped": skipped_count,
+            "results": [entry.to_mapping() for entry in guard_results],
+            "reasons": reason_counts,
+        }
+
+        if details_payload is None:
+            details_payload = {}
+        details_payload.setdefault("guard", guard_summary)
+
+        if diagnostics_payload is None:
+            diagnostics_payload = {}
+        diagnostics_payload.setdefault("guard", guard_summary)
+
+        guard_metrics = performance_stats.setdefault(
+            "service_guard_metrics",
+            {"executed": 0, "skipped": 0, "reasons": {}},
+        )
+        guard_metrics["executed"] = guard_metrics.get("executed", 0) + executed_count
+        guard_metrics["skipped"] = guard_metrics.get("skipped", 0) + skipped_count
+        reason_bucket = guard_metrics.setdefault("reasons", {})
+        for reason_key, count in reason_counts.items():
+            reason_bucket[reason_key] = reason_bucket.get(reason_key, 0) + count
+        guard_metrics["last_results"] = [entry.to_mapping() for entry in guard_results]
 
     if rejection_snapshot is not None:
         rejected = rejection_snapshot.get("rejected_call_count", 0) or 0
@@ -480,6 +543,9 @@ def _record_service_result(
 
     if details_payload:
         result["details"] = details_payload
+
+    if guard_summary is not None:
+        result["guard"] = guard_summary
 
     existing = performance_stats.setdefault("service_results", [])
     if isinstance(existing, list):
@@ -510,7 +576,7 @@ def _normalise_context_identifier(value: Any) -> str | None:
 
 
 def _merge_service_context_metadata(
-    target: dict[str, Any],
+    target: MutableMapping[str, Any],
     metadata: Mapping[str, Any] | None,
     *,
     include_none: bool = False,
@@ -1150,6 +1216,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         return resolver.resolve()
 
+    def _get_runtime_manager(
+        coordinator: PawControlCoordinator, attribute: str
+    ) -> Any | None:
+        """Return a runtime manager from the coordinator container when available."""
+
+        managers = getattr(coordinator, "runtime_managers", None)
+        if isinstance(managers, CoordinatorRuntimeManagers):
+            return getattr(managers, attribute)
+        return getattr(coordinator, attribute, None)
+
     def _require_manager(manager: _ManagerT | None, description: str) -> _ManagerT:
         """Ensure a runtime manager is available before using it."""
 
@@ -1194,7 +1270,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         coordinator = _get_coordinator()
         feeding_manager = _require_manager(
-            coordinator.feeding_manager, "feeding manager"
+            _get_runtime_manager(coordinator, "feeding_manager"), "feeding manager"
         )
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
 
@@ -1296,7 +1372,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def start_walk_service(call: ServiceCall) -> None:
         """Handle start walk service call."""
         coordinator = _get_coordinator()
-        walk_manager = _require_manager(coordinator.walk_manager, "walk manager")
+        walk_manager = _require_manager(
+            _get_runtime_manager(coordinator, "walk_manager"),
+            "walk manager",
+        )
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
 
         raw_dog_id = call.data["dog_id"]
@@ -1376,7 +1455,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def end_walk_service(call: ServiceCall) -> None:
         """Handle end walk service call."""
         coordinator = _get_coordinator()
-        walk_manager = _require_manager(coordinator.walk_manager, "walk manager")
+        walk_manager = _require_manager(
+            _get_runtime_manager(coordinator, "walk_manager"),
+            "walk manager",
+        )
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
 
         raw_dog_id = call.data["dog_id"]
@@ -1460,7 +1542,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def add_gps_point_service(call: ServiceCall) -> None:
         """Handle add GPS point service call."""
         coordinator = _get_coordinator()
-        walk_manager = _require_manager(coordinator.walk_manager, "walk manager")
+        walk_manager = _require_manager(
+            _get_runtime_manager(coordinator, "walk_manager"),
+            "walk manager",
+        )
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
 
         raw_dog_id = call.data["dog_id"]
@@ -1536,7 +1621,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle update health service call."""
         coordinator = _get_coordinator()
         feeding_manager = _require_manager(
-            coordinator.feeding_manager, "feeding manager"
+            _get_runtime_manager(coordinator, "feeding_manager"), "feeding manager"
         )
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
 
@@ -1597,7 +1682,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def log_health_service(call: ServiceCall) -> None:
         """Handle log health service call."""
         coordinator = _get_coordinator()
-        data_manager = _require_manager(coordinator.data_manager, "data manager")
+        data_manager = _require_manager(
+            _get_runtime_manager(coordinator, "data_manager"),
+            "data manager",
+        )
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
 
         raw_dog_id = call.data["dog_id"]
@@ -1650,7 +1738,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def log_medication_service(call: ServiceCall) -> None:
         """Handle log medication service call."""
         coordinator = _get_coordinator()
-        data_manager = _require_manager(coordinator.data_manager, "data manager")
+        data_manager = _require_manager(
+            _get_runtime_manager(coordinator, "data_manager"),
+            "data manager",
+        )
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
 
         raw_dog_id = call.data["dog_id"]
@@ -1710,7 +1801,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def toggle_visitor_mode_service(call: ServiceCall) -> None:
         """Handle toggle visitor mode service call."""
         coordinator = _get_coordinator()
-        data_manager = _require_manager(coordinator.data_manager, "data manager")
+        data_manager = _require_manager(
+            _get_runtime_manager(coordinator, "data_manager"),
+            "data manager",
+        )
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
 
         raw_dog_id = call.data["dog_id"]
@@ -2044,17 +2138,22 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 )
 
                 # Send notification with export result
-                notification_manager = coordinator.notification_manager
+                notification_manager = _get_runtime_manager(
+                    coordinator, "notification_manager"
+                )
+                guard_snapshot: tuple[ServiceGuardResult, ...] = ()
                 if notification_manager:
-                    await notification_manager.async_send_notification(
-                        notification_type=NotificationType.SYSTEM_INFO,
-                        title="Route Export Complete",
-                        message=(
-                            f"Exported {export_data.get('routes_count', 0)} route(s) "
-                            f"for {dog_id} in {export_format} format"
-                        ),
-                        dog_id=dog_id,
-                    )
+                    async with async_capture_service_guard_results() as captured_guards:
+                        await notification_manager.async_send_notification(
+                            notification_type=NotificationType.SYSTEM_INFO,
+                            title="Route Export Complete",
+                            message=(
+                                f"Exported {export_data.get('routes_count', 0)} route(s) "
+                                f"for {dog_id} in {export_format} format"
+                            ),
+                            dog_id=dog_id,
+                        )
+                        guard_snapshot = tuple(captured_guards)
                 details_result = "exported"
             else:
                 _LOGGER.warning("No routes found for export for %s", dog_id)
@@ -2077,6 +2176,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 status="success",
                 dog_id=dog_id,
                 details=details,
+                guard=guard_snapshot if guard_snapshot else None,
             )
 
         except HomeAssistantError as err:
@@ -2125,6 +2225,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         auto_detect_home = call.data.get("auto_detect_home", True)
         gps_accuracy_threshold = call.data.get("gps_accuracy_threshold", 50)
         update_interval_seconds = call.data.get("update_interval_seconds", 60)
+
+        guard_results: list[ServiceGuardResult] = []
+        guard_snapshot: tuple[ServiceGuardResult, ...] = ()
 
         try:
             # Configure automatic GPS settings for the dog
@@ -2176,18 +2279,23 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             )
 
             # Send notification about GPS setup
-            notification_manager = coordinator.notification_manager
+            notification_manager = _get_runtime_manager(
+                coordinator, "notification_manager"
+            )
             if notification_manager:
-                await notification_manager.async_send_notification(
-                    notification_type=NotificationType.SYSTEM_INFO,
-                    title=f"🛰️ GPS Setup Complete: {dog_id}",
-                    message=(
-                        f"Automatic GPS tracking configured for {dog_id}. "
-                        f"Safe zone: {safe_zone_radius}m radius. "
-                        f"Auto-walk detection: {'enabled' if auto_start_walk else 'disabled'}."
-                    ),
-                    dog_id=dog_id,
-                )
+                async with async_capture_service_guard_results() as captured_guards:
+                    guard_results = captured_guards
+                    await notification_manager.async_send_notification(
+                        notification_type=NotificationType.SYSTEM_INFO,
+                        title=f"🛰️ GPS Setup Complete: {dog_id}",
+                        message=(
+                            f"Automatic GPS tracking configured for {dog_id}. "
+                            f"Safe zone: {safe_zone_radius}m radius. "
+                            f"Auto-walk detection: {'enabled' if auto_start_walk else 'disabled'}."
+                        ),
+                        dog_id=dog_id,
+                    )
+                guard_snapshot = tuple(guard_results)
 
             details = _normalise_service_details(
                 {
@@ -2207,26 +2315,31 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 status="success",
                 dog_id=dog_id,
                 details=details,
+                guard=guard_snapshot if guard_snapshot else None,
             )
 
         except HomeAssistantError as err:
+            guard_snapshot = tuple(guard_results)
             _record_service_result(
                 runtime_data,
                 service=SERVICE_SETUP_AUTOMATIC_GPS,
                 status="error",
                 dog_id=dog_id,
                 message=str(err),
+                guard=guard_snapshot if guard_snapshot else None,
             )
             raise
         except Exception as err:
             _LOGGER.error("Failed to setup automatic GPS for %s: %s", dog_id, err)
             error_message = f"Failed to setup automatic GPS for {dog_id}. Check the logs for details."
+            guard_snapshot = tuple(guard_results)
             _record_service_result(
                 runtime_data,
                 service=SERVICE_SETUP_AUTOMATIC_GPS,
                 status="error",
                 dog_id=dog_id,
                 message=error_message,
+                guard=guard_snapshot if guard_snapshot else None,
             )
             raise HomeAssistantError(error_message) from err
 
@@ -2234,7 +2347,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle send notification service call."""
         coordinator = _get_coordinator()
         notification_manager = _require_manager(
-            coordinator.notification_manager, "notification manager"
+            _get_runtime_manager(coordinator, "notification_manager"),
+            "notification manager",
         )
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
 
@@ -2247,6 +2361,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         priority_raw = call.data.get("priority", NotificationPriority.NORMAL)
         channels = call.data.get("channels")
         expires_in_hours_raw = call.data.get("expires_in_hours")
+
+        guard_results: list[ServiceGuardResult] = []
+        guard_snapshot: tuple[ServiceGuardResult, ...] = ()
 
         try:
             try:
@@ -2328,15 +2445,18 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                         expires_in_hours = expires_in_hours_candidate
                         expires_in = timedelta(hours=expires_in_hours_candidate)
 
-            notification_id = await notification_manager.async_send_notification(
-                notification_type=notification_type_enum,
-                title=title,
-                message=message,
-                dog_id=dog_id,
-                priority=priority_enum,
-                expires_in=expires_in,
-                force_channels=channel_enums,
-            )
+            async with async_capture_service_guard_results() as captured_guards:
+                guard_results = captured_guards
+                notification_id = await notification_manager.async_send_notification(
+                    notification_type=notification_type_enum,
+                    title=title,
+                    message=message,
+                    dog_id=dog_id,
+                    priority=priority_enum,
+                    expires_in=expires_in,
+                    force_channels=channel_enums,
+                )
+            guard_snapshot = tuple(guard_results)
 
             _LOGGER.info("Sent notification %s: %s", notification_id, title)
 
@@ -2359,26 +2479,31 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 status="success",
                 dog_id=dog_id,
                 details=details,
+                guard=guard_snapshot,
             )
 
         except HomeAssistantError as err:
+            guard_snapshot = tuple(guard_results)
             _record_service_result(
                 runtime_data,
                 service=SERVICE_SEND_NOTIFICATION,
                 status="error",
                 dog_id=dog_id,
                 message=str(err),
+                guard=guard_snapshot if guard_snapshot else None,
             )
             raise
         except Exception as err:
             _LOGGER.error("Failed to send notification: %s", err)
             error_message = "Failed to send the PawControl notification. Check the logs for details."
+            guard_snapshot = tuple(guard_results)
             _record_service_result(
                 runtime_data,
                 service=SERVICE_SEND_NOTIFICATION,
                 status="error",
                 dog_id=dog_id,
                 message=error_message,
+                guard=guard_snapshot if guard_snapshot else None,
             )
             raise HomeAssistantError(error_message) from err
 
@@ -2386,17 +2511,27 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle acknowledge notification service call."""
         coordinator = _get_coordinator()
         notification_manager = _require_manager(
-            coordinator.notification_manager, "notification manager"
+            _get_runtime_manager(coordinator, "notification_manager"),
+            "notification manager",
         )
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
 
         notification_id = call.data["notification_id"]
 
+        guard_results: list[ServiceGuardResult] = []
+        guard_snapshot: tuple[ServiceGuardResult, ...] = ()
+
         try:
-            acknowledged = await notification_manager.async_acknowledge_notification(
-                notification_id
-            )
+            async with async_capture_service_guard_results() as captured_guards:
+                guard_results = captured_guards
+                acknowledged = (
+                    await notification_manager.async_acknowledge_notification(
+                        notification_id
+                    )
+                )
+            guard_snapshot = tuple(guard_results)
         except HomeAssistantError as err:
+            guard_snapshot = tuple(guard_results)
             _record_service_result(
                 runtime_data,
                 service=SERVICE_ACKNOWLEDGE_NOTIFICATION,
@@ -2405,6 +2540,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 details=_normalise_service_details(
                     {"notification_id": notification_id}
                 ),
+                guard=guard_snapshot if guard_snapshot else None,
             )
             raise
         except Exception as err:  # pragma: no cover - defensive guard
@@ -2412,6 +2548,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 "Failed to acknowledge notification %s: %s", notification_id, err
             )
             error_message = "Failed to acknowledge the PawControl notification. Check the logs for details."
+            guard_snapshot = tuple(guard_results)
             _record_service_result(
                 runtime_data,
                 service=SERVICE_ACKNOWLEDGE_NOTIFICATION,
@@ -2420,6 +2557,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 details=_normalise_service_details(
                     {"notification_id": notification_id}
                 ),
+                guard=guard_snapshot if guard_snapshot else None,
             )
             raise HomeAssistantError(error_message) from err
 
@@ -2427,6 +2565,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             error_message = (
                 f"No PawControl notification with ID {notification_id} exists."
             )
+            guard_snapshot = tuple(guard_results)
             _record_service_result(
                 runtime_data,
                 service=SERVICE_ACKNOWLEDGE_NOTIFICATION,
@@ -2435,6 +2574,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 details=_normalise_service_details(
                     {"notification_id": notification_id}
                 ),
+                guard=guard_snapshot if guard_snapshot else None,
             )
             raise HomeAssistantError(error_message)
 
@@ -2444,18 +2584,20 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         details = _normalise_service_details(
             {"notification_id": notification_id, "acknowledged": True}
         )
+        guard_snapshot = tuple(guard_results)
         _record_service_result(
             runtime_data,
             service=SERVICE_ACKNOWLEDGE_NOTIFICATION,
             status="success",
             details=details,
+            guard=guard_snapshot if guard_snapshot else None,
         )
 
     async def calculate_portion_service(call: ServiceCall) -> None:
         """Handle calculate portion service call."""
         coordinator = _get_coordinator()
         feeding_manager = _require_manager(
-            coordinator.feeding_manager, "feeding manager"
+            _get_runtime_manager(coordinator, "feeding_manager"), "feeding manager"
         )
 
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
@@ -2510,7 +2652,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def export_data_service(call: ServiceCall) -> None:
         """Handle export data service call."""
         coordinator = _get_coordinator()
-        data_manager = _require_manager(coordinator.data_manager, "data manager")
+        data_manager = _require_manager(
+            _get_runtime_manager(coordinator, "data_manager"),
+            "data manager",
+        )
 
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
 
@@ -2578,7 +2723,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def analyze_patterns_service(call: ServiceCall) -> None:
         """Handle analyze patterns service call."""
         coordinator = _get_coordinator()
-        data_manager = _require_manager(coordinator.data_manager, "data manager")
+        data_manager = _require_manager(
+            _get_runtime_manager(coordinator, "data_manager"),
+            "data manager",
+        )
 
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
 
@@ -2634,7 +2782,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def generate_report_service(call: ServiceCall) -> None:
         """Handle generate report service call."""
         coordinator = _get_coordinator()
-        data_manager = _require_manager(coordinator.data_manager, "data manager")
+        data_manager = _require_manager(
+            _get_runtime_manager(coordinator, "data_manager"),
+            "data manager",
+        )
 
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
 
@@ -2718,7 +2869,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle recalculate health portions service call."""
         coordinator = _get_coordinator()
         feeding_manager = _require_manager(
-            coordinator.feeding_manager, "feeding manager"
+            _get_runtime_manager(coordinator, "feeding_manager"), "feeding manager"
         )
 
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
@@ -2776,7 +2927,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle adjust calories for activity service call."""
         coordinator = _get_coordinator()
         feeding_manager = _require_manager(
-            coordinator.feeding_manager, "feeding manager"
+            _get_runtime_manager(coordinator, "feeding_manager"), "feeding manager"
         )
 
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
@@ -2848,7 +2999,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle activate diabetic feeding mode service call."""
         coordinator = _get_coordinator()
         feeding_manager = _require_manager(
-            coordinator.feeding_manager, "feeding manager"
+            _get_runtime_manager(coordinator, "feeding_manager"), "feeding manager"
         )
 
         raw_dog_id = call.data["dog_id"]
@@ -2888,7 +3039,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle feed with medication service call."""
         coordinator = _get_coordinator()
         feeding_manager = _require_manager(
-            coordinator.feeding_manager, "feeding manager"
+            _get_runtime_manager(coordinator, "feeding_manager"), "feeding manager"
         )
 
         raw_dog_id = call.data["dog_id"]
@@ -2937,7 +3088,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def generate_weekly_health_report_service(call: ServiceCall) -> None:
         """Handle generate weekly health report service call."""
         coordinator = _get_coordinator()
-        data_manager = _require_manager(coordinator.data_manager, "data manager")
+        data_manager = _require_manager(
+            _get_runtime_manager(coordinator, "data_manager"),
+            "data manager",
+        )
 
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
 
@@ -3004,7 +3158,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle activate emergency feeding mode service call."""
         coordinator = _get_coordinator()
         feeding_manager = _require_manager(
-            coordinator.feeding_manager, "feeding manager"
+            _get_runtime_manager(coordinator, "feeding_manager"), "feeding manager"
         )
 
         raw_dog_id = call.data["dog_id"]
@@ -3045,7 +3199,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle start diet transition service call."""
         coordinator = _get_coordinator()
         feeding_manager = _require_manager(
-            coordinator.feeding_manager, "feeding manager"
+            _get_runtime_manager(coordinator, "feeding_manager"), "feeding manager"
         )
 
         raw_dog_id = call.data["dog_id"]
@@ -3083,7 +3237,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle check feeding compliance service call."""
         coordinator = _get_coordinator()
         feeding_manager = _require_manager(
-            coordinator.feeding_manager, "feeding manager"
+            _get_runtime_manager(coordinator, "feeding_manager"), "feeding manager"
         )
 
         raw_dog_id = call.data["dog_id"]
@@ -3114,11 +3268,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 notify_on_issues=notify_on_issues,
             )
 
-            if notify_on_issues and coordinator.notification_manager:
-                notification_id = await coordinator.notification_manager.async_send_feeding_compliance_summary(
-                    dog_id=dog_id,
-                    dog_name=dog_name,
-                    compliance=compliance_result,
+            notification_manager = _get_runtime_manager(
+                coordinator, "notification_manager"
+            )
+            if notify_on_issues and notification_manager:
+                notification_id = (
+                    await notification_manager.async_send_feeding_compliance_summary(
+                        dog_id=dog_id,
+                        dog_name=dog_name,
+                        compliance=compliance_result,
+                    )
                 )
 
             compliance_payload = deepcopy(compliance_result)
@@ -3149,7 +3308,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             }
             if notification_id is not None:
                 event_payload["notification_id"] = notification_id
-            _merge_service_context_metadata(event_payload, context_metadata)
+            _merge_service_context_metadata(
+                cast(MutableMapping[str, Any], event_payload), context_metadata
+            )
 
             await async_publish_feeding_compliance_issue(
                 hass,
@@ -3242,7 +3403,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle adjust daily portions service call."""
         coordinator = _get_coordinator()
         feeding_manager = _require_manager(
-            coordinator.feeding_manager, "feeding manager"
+            _get_runtime_manager(coordinator, "feeding_manager"), "feeding manager"
         )
 
         raw_dog_id = call.data["dog_id"]
@@ -3283,7 +3444,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle add health snack service call."""
         coordinator = _get_coordinator()
         feeding_manager = _require_manager(
-            coordinator.feeding_manager, "feeding manager"
+            _get_runtime_manager(coordinator, "feeding_manager"), "feeding manager"
         )
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
 
@@ -3355,7 +3516,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def log_poop_service(call: ServiceCall) -> None:
         """Handle log poop service call."""
         coordinator = _get_coordinator()
-        data_manager = _require_manager(coordinator.data_manager, "data manager")
+        data_manager = _require_manager(
+            _get_runtime_manager(coordinator, "data_manager"),
+            "data manager",
+        )
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
 
         raw_dog_id = call.data["dog_id"]
@@ -3427,7 +3591,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
     async def start_grooming_service(call: ServiceCall) -> None:
         """Handle start grooming service call."""
         coordinator = _get_coordinator()
-        data_manager = _require_manager(coordinator.data_manager, "data manager")
+        data_manager = _require_manager(
+            _get_runtime_manager(coordinator, "data_manager"),
+            "data manager",
+        )
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
 
         raw_dog_id = call.data["dog_id"]
@@ -3467,6 +3634,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         if reminder_sent_at_iso is not None:
             reminder_metadata["reminder_sent_at"] = reminder_sent_at_iso
 
+        guard_results: list[ServiceGuardResult] = []
+        guard_snapshot: tuple[ServiceGuardResult, ...] = ()
+
         try:
             grooming_data = {
                 "grooming_type": grooming_type,
@@ -3494,22 +3664,27 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             )
 
             # Send notification about grooming start
-            notification_manager = coordinator.notification_manager
+            notification_manager = _get_runtime_manager(
+                coordinator, "notification_manager"
+            )
             if notification_manager:
-                await notification_manager.async_send_notification(
-                    notification_type=NotificationType.SYSTEM_INFO,
-                    title=f"🛁 Grooming started: {dog_id}",
-                    message=(
-                        f"Started {grooming_type} for {dog_id}"
-                        + (f" with {groomer}" if groomer else "")
-                        + (
-                            f" (est. {estimated_duration} min)"
-                            if estimated_duration
-                            else ""
-                        )
-                    ),
-                    dog_id=dog_id,
-                )
+                async with async_capture_service_guard_results() as captured_guards:
+                    guard_results = captured_guards
+                    await notification_manager.async_send_notification(
+                        notification_type=NotificationType.SYSTEM_INFO,
+                        title=f"🛁 Grooming started: {dog_id}",
+                        message=(
+                            f"Started {grooming_type} for {dog_id}"
+                            + (f" with {groomer}" if groomer else "")
+                            + (
+                                f" (est. {estimated_duration} min)"
+                                if estimated_duration
+                                else ""
+                            )
+                        ),
+                        dog_id=dog_id,
+                    )
+                guard_snapshot = tuple(guard_results)
 
             details_payload: dict[str, Any] = {
                 "session_id": session_id,
@@ -3539,9 +3714,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 dog_id=dog_id,
                 metadata=reminder_metadata,
                 details=details,
+                guard=guard_snapshot if guard_snapshot else None,
             )
 
         except HomeAssistantError as err:
+            guard_snapshot = tuple(guard_results)
             _record_service_result(
                 runtime_data,
                 service=SERVICE_START_GROOMING,
@@ -3549,6 +3726,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 dog_id=dog_id,
                 message=str(err),
                 metadata=reminder_metadata,
+                guard=guard_snapshot if guard_snapshot else None,
             )
             raise
         except Exception as err:
@@ -3556,6 +3734,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             error_message = (
                 f"Failed to start grooming for {dog_id}. Check the logs for details."
             )
+            guard_snapshot = tuple(guard_results)
             _record_service_result(
                 runtime_data,
                 service=SERVICE_START_GROOMING,
@@ -3563,6 +3742,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 dog_id=dog_id,
                 message=error_message,
                 metadata=reminder_metadata,
+                guard=guard_snapshot if guard_snapshot else None,
             )
             raise HomeAssistantError(error_message) from err
 
@@ -3677,6 +3857,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         notes = call.data.get("notes")
         activities = call.data.get("activities")
 
+        failure_details: dict[str, Any] | None = None
+
         try:
             session = await garden_manager.async_end_garden_session(
                 dog_id=dog_id,
@@ -3714,12 +3896,23 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 error_message = (
                     f"No active garden session is currently running for {dog_id}."
                 )
+                failure_payload: dict[str, Any] = {}
+                if notes is not None:
+                    failure_payload["notes"] = notes
+                if activities is not None:
+                    failure_payload["activities"] = activities
+                failure_details = (
+                    _normalise_service_details(failure_payload)
+                    if failure_payload
+                    else None
+                )
                 _record_service_result(
                     runtime_data,
                     service=SERVICE_END_GARDEN,
                     status="error",
                     dog_id=dog_id,
                     message=error_message,
+                    details=failure_details,
                 )
                 raise _service_validation_error(error_message)
 
@@ -3730,6 +3923,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 status="error",
                 dog_id=dog_id,
                 message=str(err),
+                details=failure_details,
             )
             raise
         except Exception as err:
@@ -3741,6 +3935,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 status="error",
                 dog_id=dog_id,
                 message=error_message,
+                details=failure_details,
             )
             raise HomeAssistantError(error_message) from err
 
@@ -3760,6 +3955,19 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         notes = call.data.get("notes")
         confirmed = call.data.get("confirmed", True)
 
+        details_payload: dict[str, Any] = {
+            "activity_type": activity_type,
+            "confirmed": confirmed,
+        }
+        if duration_seconds is not None:
+            details_payload["duration_seconds"] = duration_seconds
+        if location is not None:
+            details_payload["location"] = location
+        if notes is not None:
+            details_payload["notes"] = notes
+
+        request_details = _normalise_service_details(details_payload)
+
         try:
             success = await garden_manager.async_add_activity(
                 dog_id=dog_id,
@@ -3778,21 +3986,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     location or "unspecified",
                 )
 
-                details = _normalise_service_details(
-                    {
-                        "activity_type": activity_type,
-                        "duration_seconds": duration_seconds,
-                        "location": location,
-                        "notes": notes,
-                        "confirmed": confirmed,
-                    }
-                )
                 _record_service_result(
                     runtime_data,
                     service=SERVICE_ADD_GARDEN_ACTIVITY,
                     status="success",
                     dog_id=dog_id,
-                    details=details,
+                    details=request_details,
                 )
             else:
                 error_message = (
@@ -3805,6 +4004,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     status="error",
                     dog_id=dog_id,
                     message=error_message,
+                    details=request_details,
                 )
                 raise _service_validation_error(error_message)
 
@@ -3815,6 +4015,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 status="error",
                 dog_id=dog_id,
                 message=str(err),
+                details=request_details,
             )
             raise
         except Exception as err:
@@ -3826,6 +4027,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 status="error",
                 dog_id=dog_id,
                 message=error_message,
+                details=request_details,
             )
             raise HomeAssistantError(error_message) from err
 
@@ -3844,6 +4046,16 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         size = call.data.get("size")
         location = call.data.get("location")
 
+        details_payload: dict[str, Any] = {"confirmed": confirmed}
+        if quality is not None:
+            details_payload["quality"] = quality
+        if size is not None:
+            details_payload["size"] = size
+        if location is not None:
+            details_payload["location"] = location
+
+        request_details = _normalise_service_details(details_payload)
+
         if not garden_manager.has_pending_confirmation(dog_id):
             error_message = (
                 f"No pending garden poop confirmation found for {dog_id}. "
@@ -3855,6 +4067,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 status="error",
                 dog_id=dog_id,
                 message=error_message,
+                details=request_details,
             )
             raise _service_validation_error(error_message)
 
@@ -3875,20 +4088,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 size or "not_specified",
             )
 
-            details = _normalise_service_details(
-                {
-                    "confirmed": confirmed,
-                    "quality": quality,
-                    "size": size,
-                    "location": location,
-                }
-            )
             _record_service_result(
                 runtime_data,
                 service=SERVICE_CONFIRM_POOP,
                 status="success",
                 dog_id=dog_id,
-                details=details,
+                details=request_details,
             )
 
         except HomeAssistantError as err:
@@ -3898,6 +4103,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 status="error",
                 dog_id=dog_id,
                 message=str(err),
+                details=request_details,
             )
             raise
         except Exception as err:
@@ -3909,6 +4115,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 status="error",
                 dog_id=dog_id,
                 message=error_message,
+                details=request_details,
             )
             raise HomeAssistantError(error_message) from err
 
@@ -3917,7 +4124,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle update weather service call."""
         coordinator = _get_coordinator()
         weather_manager = _require_manager(
-            coordinator.weather_health_manager, "weather health manager"
+            _get_runtime_manager(coordinator, "weather_health_manager"),
+            "weather health manager",
         )
 
         weather_entity_id = call.data.get("weather_entity_id")
@@ -3941,7 +4149,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
                 # Send notification about weather update if there are alerts
                 active_alerts = weather_manager.get_active_alerts()
-                if active_alerts and coordinator.notification_manager:
+                notification_manager = _get_runtime_manager(
+                    coordinator, "notification_manager"
+                )
+                if active_alerts and notification_manager:
                     high_severity_alerts = [
                         alert
                         for alert in active_alerts
@@ -3950,7 +4161,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
                     if high_severity_alerts:
                         alert = high_severity_alerts[0]  # Most severe
-                        await coordinator.notification_manager.async_send_notification(
+                        await notification_manager.async_send_notification(
                             notification_type=NotificationType.HEALTH_ALERT,
                             title=f"🌡️ Weather Alert: {alert.title}",
                             message=alert.message,
@@ -3975,7 +4186,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle get weather alerts service call."""
         coordinator = _get_coordinator()
         weather_manager = _require_manager(
-            coordinator.weather_health_manager, "weather health manager"
+            _get_runtime_manager(coordinator, "weather_health_manager"),
+            "weather health manager",
         )
 
         dog_id = call.data.get("dog_id")
@@ -4008,12 +4220,15 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             )
 
             # Send notification with alert summary if requested for specific dog
-            if dog_id and alerts and coordinator.notification_manager:
+            notification_manager = _get_runtime_manager(
+                coordinator, "notification_manager"
+            )
+            if dog_id and alerts and notification_manager:
                 alert_summary = f"Found {len(alerts)} weather alerts:\n"
                 for alert in alerts[:3]:  # Limit to 3 for notification
                     alert_summary += f"• {alert.title}\n"
 
-                await coordinator.notification_manager.async_send_notification(
+                await notification_manager.async_send_notification(
                     notification_type=NotificationType.SYSTEM_INFO,
                     title=f"🌤️ Weather Alerts for {dog_id}",
                     message=alert_summary.strip(),
@@ -4032,7 +4247,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         """Handle get weather recommendations service call."""
         coordinator = _get_coordinator()
         weather_manager = _require_manager(
-            coordinator.weather_health_manager, "weather health manager"
+            _get_runtime_manager(coordinator, "weather_health_manager"),
+            "weather health manager",
         )
 
         raw_dog_id = call.data["dog_id"]
@@ -4067,14 +4283,17 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             )
 
             # Send notification with recommendations
-            if recommendations and coordinator.notification_manager:
+            notification_manager = _get_runtime_manager(
+                coordinator, "notification_manager"
+            )
+            if recommendations and notification_manager:
                 rec_message = f"Weather recommendations for {dog_id}:\n"
                 for i, rec in enumerate(
                     recommendations[:3], 1
                 ):  # Limit to 3 for notification
                     rec_message += f"{i}. {rec}\n"
 
-                await coordinator.notification_manager.async_send_notification(
+                await notification_manager.async_send_notification(
                     notification_type=NotificationType.SYSTEM_INFO,
                     title=f"🐕 Weather Tips: {dog_id}",
                     message=rec_message.strip(),

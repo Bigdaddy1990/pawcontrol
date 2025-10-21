@@ -504,8 +504,7 @@ class PawControlMainPowerSwitch(OptimizedSwitchBase):
             return
 
         try:
-            runtime_data = get_runtime_data(self.hass, self.coordinator.config_entry)
-            data_manager = getattr(runtime_data, "data_manager", None)
+            data_manager = self._get_data_manager()
 
             if data_manager is not None:
                 await data_manager.async_set_dog_power_state(self._dog_id, state)
@@ -542,8 +541,7 @@ class PawControlDoNotDisturbSwitch(OptimizedSwitchBase):
             return
 
         try:
-            runtime_data = get_runtime_data(self.hass, self.coordinator.config_entry)
-            notification_manager = getattr(runtime_data, "notification_manager", None)
+            notification_manager = self._get_notification_manager()
 
             if notification_manager and hasattr(
                 notification_manager, "async_set_dnd_mode"
@@ -579,11 +577,7 @@ class PawControlVisitorModeSwitch(OptimizedSwitchBase):
 
     async def _async_set_state(self, state: bool) -> None:
         """Set visitor mode with service call."""
-        if self.hass is None:
-            _LOGGER.debug("Skipping visitor mode service call; hass not available")
-            return
-
-        await self.hass.services.async_call(
+        if not await self._async_call_hass_service(
             DOMAIN,
             "set_visitor_mode",
             {
@@ -593,7 +587,8 @@ class PawControlVisitorModeSwitch(OptimizedSwitchBase):
                 "reduced_alerts": state,
             },
             blocking=False,
-        )
+        ):
+            return
 
 
 # Module switch (only for enabled modules)
@@ -627,7 +622,8 @@ class PawControlModuleSwitch(OptimizedSwitchBase):
 
     async def _async_set_state(self, state: bool) -> None:
         """Set module state with config update."""
-        if self.hass is None:
+        hass = self.hass
+        if hass is None:
             _LOGGER.debug("Skipping module state update; hass not available")
             return
 
@@ -642,7 +638,7 @@ class PawControlModuleSwitch(OptimizedSwitchBase):
                     new_data["dogs"][i]["modules"][self._module_id] = state
                     break
 
-            self.hass.config_entries.async_update_entry(
+            hass.config_entries.async_update_entry(
                 self.coordinator.config_entry, data=new_data
             )
 
@@ -750,8 +746,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
     async def _set_gps_tracking(self, state: bool) -> None:
         """Handle GPS tracking state."""
         try:
-            runtime_data = get_runtime_data(self.hass, self.coordinator.config_entry)
-            data_manager = getattr(runtime_data, "data_manager", None)
+            data_manager = self._get_data_manager()
 
             if data_manager is not None:
                 await data_manager.async_set_gps_tracking(self._dog_id, state)
@@ -761,7 +756,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
 
     async def _set_notifications(self, state: bool) -> None:
         """Handle notifications state."""
-        await self.hass.services.async_call(
+        await self._async_call_hass_service(
             DOMAIN,
             "configure_alerts",
             {
@@ -776,7 +771,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
 
     async def _set_feeding_schedule(self, state: bool) -> None:
         """Handle feeding schedule state."""
-        await self.hass.services.async_call(
+        await self._async_call_hass_service(
             DOMAIN,
             "set_feeding_schedule",
             {
@@ -788,7 +783,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
 
     async def _set_health_monitoring(self, state: bool) -> None:
         """Handle health monitoring state."""
-        await self.hass.services.async_call(
+        await self._async_call_hass_service(
             DOMAIN,
             "configure_health_monitoring",
             {
@@ -800,7 +795,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
 
     async def _set_medication_reminders(self, state: bool) -> None:
         """Handle medication reminders state."""
-        await self.hass.services.async_call(
+        await self._async_call_hass_service(
             DOMAIN,
             "configure_medication_reminders",
             {

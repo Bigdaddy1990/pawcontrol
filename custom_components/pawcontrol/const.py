@@ -339,7 +339,12 @@ DEFAULT_DASHBOARD_THEME: Final[str] = "default"
 DEFAULT_DASHBOARD_MODE: Final[str] = "full"
 
 # OPTIMIZED: Performance modes as tuple
-PERFORMANCE_MODES: Final[tuple[str, ...]] = ("minimal", "standard", "full")
+DEFAULT_PERFORMANCE_MODE: Final[str] = "balanced"
+PERFORMANCE_MODES: Final[tuple[str, ...]] = (
+    "minimal",
+    DEFAULT_PERFORMANCE_MODE,
+    "full",
+)
 
 # NEW: Weather services
 SERVICE_UPDATE_WEATHER: Final[str] = "update_weather_data"
@@ -513,6 +518,7 @@ __all__ = (
     "CORE_SERVICES",
     "DEFAULT_DASHBOARD_ENABLED",
     "DEFAULT_GPS_UPDATE_INTERVAL",
+    "DEFAULT_PERFORMANCE_MODE",
     "DOG_SIZES",
     "DOG_SIZE_WEIGHT_RANGES",
     "DOMAIN",
@@ -533,6 +539,7 @@ __all__ = (
     "MODULE_NOTIFICATIONS",
     "MODULE_VISITOR",
     "MODULE_WALK",
+    "PERFORMANCE_MODES",
     "PERFORMANCE_THRESHOLDS",
     "PLATFORMS",
     "SERVICE_ADD_GARDEN_ACTIVITY",

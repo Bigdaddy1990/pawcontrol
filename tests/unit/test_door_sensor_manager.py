@@ -289,6 +289,57 @@ async def test_initialize_persists_trimmed_payload(
 
 
 @pytest.mark.asyncio
+async def test_initialize_ignores_non_string_sensor(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Non-string sensor entries should be ignored safely."""
+
+    hass = Mock()
+    manager = DoorSensorManager(hass, "entry")
+    data_manager = AsyncMock()
+    validate_mock = AsyncMock(side_effect=AssertionError("should not validate"))
+    monkeypatch.setattr(manager, "_validate_sensor_entity", validate_mock)
+
+    dog: DogConfigData = {
+        "dog_id": "dog-1",
+        "dog_name": "Buddy",
+        CONF_DOOR_SENSOR: 42,
+    }
+
+    await manager.async_initialize([dog], data_manager=data_manager)
+
+    validate_mock.assert_not_called()
+    data_manager.async_update_dog_data.assert_not_awaited()
+    assert "dog-1" not in manager._sensor_configs
+
+
+@pytest.mark.asyncio
+async def test_initialize_discards_non_mapping_settings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Settings objects that are not mappings should be ignored."""
+
+    hass = Mock()
+    manager = DoorSensorManager(hass, "entry")
+    data_manager = AsyncMock()
+    monkeypatch.setattr(
+        manager, "_validate_sensor_entity", AsyncMock(return_value=True)
+    )
+
+    dog: DogConfigData = {
+        "dog_id": "dog-1",
+        "dog_name": "Buddy",
+        CONF_DOOR_SENSOR: "binary_sensor.back_door",
+        CONF_DOOR_SENSOR_SETTINGS: object(),
+    }
+
+    await manager.async_initialize([dog], data_manager=data_manager)
+
+    data_manager.async_update_dog_data.assert_not_awaited()
+    assert manager._sensor_configs["dog-1"].entity_id == "binary_sensor.back_door"
+
+
+@pytest.mark.asyncio
 async def test_update_persists_changes(monkeypatch: pytest.MonkeyPatch) -> None:
     """Runtime updates should push normalised payloads into the data manager."""
 

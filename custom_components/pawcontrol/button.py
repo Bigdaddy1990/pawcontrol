@@ -935,7 +935,10 @@ class PawControlResetDailyStatsButton(PawControlButtonBase):
             if runtime_data is None:
                 raise HomeAssistantError("Runtime data not available")
 
-            data_manager = getattr(runtime_data, "data_manager", None)
+            managers = runtime_data.runtime_managers
+            data_manager = managers.data_manager or getattr(
+                runtime_data, "data_manager", None
+            )
             if data_manager is None:
                 raise HomeAssistantError("Data manager not available")
 
@@ -1886,7 +1889,7 @@ class PawControlConfirmGardenPoopButton(PawControlButtonBase):
         await super().async_press()
 
         try:
-            await self.hass.services.async_call(
+            if not await self._async_call_hass_service(
                 "pawcontrol",
                 SERVICE_CONFIRM_GARDEN_POOP,
                 {
@@ -1896,7 +1899,8 @@ class PawControlConfirmGardenPoopButton(PawControlButtonBase):
                     "size": "normal",
                 },
                 blocking=False,
-            )
+            ):
+                return
         except ServiceValidationError as err:
             raise HomeAssistantError(str(err)) from err
         except Exception as err:  # pragma: no cover - defensive logging

@@ -745,15 +745,23 @@ def build_update_statistics(
 
     stats["rejection_metrics"] = rejection_metrics
 
-    performance_metrics = stats.get("performance_metrics")
-    if isinstance(performance_metrics, dict):
-        performance_metrics.update(
-            {
-                key: value
-                for key, value in rejection_metrics.items()
-                if key != "schema_version"
-            }
-        )
+    performance_metrics = stats["performance_metrics"]
+    performance_metrics["rejected_call_count"] = rejection_metrics[
+        "rejected_call_count"
+    ]
+    performance_metrics["rejection_breaker_count"] = rejection_metrics[
+        "rejection_breaker_count"
+    ]
+    performance_metrics["rejection_rate"] = rejection_metrics["rejection_rate"]
+    performance_metrics["last_rejection_time"] = rejection_metrics[
+        "last_rejection_time"
+    ]
+    performance_metrics["last_rejection_breaker_id"] = rejection_metrics[
+        "last_rejection_breaker_id"
+    ]
+    performance_metrics["last_rejection_breaker_name"] = rejection_metrics[
+        "last_rejection_breaker_name"
+    ]
     if reconfigure_summary is not None:
         stats["reconfigure"] = reconfigure_summary
     return stats

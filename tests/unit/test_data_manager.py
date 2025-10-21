@@ -32,7 +32,10 @@ from custom_components.pawcontrol.door_sensor_manager import (
 )
 from custom_components.pawcontrol.helper_manager import PawControlHelperManager
 from custom_components.pawcontrol.script_manager import PawControlScriptManager
-from custom_components.pawcontrol.types import FeedingData
+from custom_components.pawcontrol.types import (
+    CoordinatorRuntimeManagers,
+    FeedingData,
+)
 from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.util import dt as dt_util
 
@@ -325,6 +328,102 @@ def test_helper_manager_register_cache_monitor() -> None:
     assert diagnostics["per_dog_helpers"]["buddy"] == 1
     assert diagnostics["entity_domains"]["input_boolean"] == 1
     assert diagnostics["daily_reset_configured"] is True
+    guard_metrics = diagnostics["service_guard_metrics"]
+    assert guard_metrics == {
+        "executed": 0,
+        "skipped": 0,
+        "reasons": {},
+        "last_results": [],
+    }
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_helper_manager_skips_helper_creation_without_services(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Helper manager should short-circuit helper creation when hass services missing."""
+
+    hass = SimpleNamespace(data={})
+    entry = SimpleNamespace(entry_id="entry", data={}, options={})
+    helper_manager = PawControlHelperManager(hass, entry)
+
+    class _DummyRegistry:
+        def async_get(self, entity_id: str) -> None:
+            return None
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.helper_manager.er.async_get",
+        lambda hass_instance: _DummyRegistry(),
+    )
+
+    # Simulate Home Assistant instance without the services API.
+    helper_manager._hass = None
+
+    await helper_manager._async_create_input_boolean(
+        "input_boolean.pawcontrol_test_breakfast_fed",
+        "Test Helper",
+        initial=True,
+    )
+
+    assert (
+        "input_boolean.pawcontrol_test_breakfast_fed"
+        not in helper_manager._created_helpers
+    )
+
+    guard_metrics = helper_manager.guard_metrics
+    assert guard_metrics["executed"] == 0
+    assert guard_metrics["skipped"] == 1
+    assert guard_metrics["reasons"]["missing_instance"] == 1
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_helper_manager_guard_metrics_accumulate_skips(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Helper manager should aggregate guard skips across lifecycle services."""
+
+    hass = SimpleNamespace(data={})
+    entry = SimpleNamespace(entry_id="entry", data={}, options={})
+    helper_manager = PawControlHelperManager(hass, entry)
+
+    class _DummyRegistry:
+        def async_get(self, entity_id: str) -> None:
+            return None
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.helper_manager.er.async_get",
+        lambda hass_instance: _DummyRegistry(),
+    )
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.helper_manager.slugify",
+        lambda value: value,
+    )
+
+    helper_manager._hass = None
+
+    await helper_manager._async_create_input_boolean(
+        "input_boolean.pawcontrol_buddy_breakfast_fed",
+        "Buddy Breakfast",
+        initial=False,
+    )
+
+    helper_manager._created_helpers = {
+        "input_boolean.pawcontrol_buddy_breakfast_fed",
+    }
+    helper_manager._managed_entities = {
+        "input_boolean.pawcontrol_buddy_breakfast_fed": {"domain": "input_boolean"},
+    }
+
+    await helper_manager.async_remove_dog_helpers("buddy")
+
+    guard_metrics = helper_manager.guard_metrics
+    assert guard_metrics["executed"] == 0
+    assert guard_metrics["skipped"] == 2
+    assert guard_metrics["reasons"]["missing_instance"] == 2
+    assert len(guard_metrics["last_results"]) == 2
 
 
 @pytest.mark.unit
@@ -962,10 +1061,10 @@ def test_notification_person_caches_register_via_binding(tmp_path: Path) -> None
     bind_runtime_managers(
         coordinator,
         modules,
-        {
-            "data_manager": manager,
-            "notification_manager": notification_manager,
-        },
+        CoordinatorRuntimeManagers(
+            data_manager=manager,
+            notification_manager=notification_manager,
+        ),
     )
 
     snapshots = manager.cache_snapshots()

@@ -64,6 +64,7 @@ ISSUE_RECONFIGURE_WARNINGS = "reconfigure_warnings"
 ISSUE_RECONFIGURE_HEALTH = "reconfigure_health"
 ISSUE_FEEDING_COMPLIANCE_ALERT = "feeding_compliance_alert"
 ISSUE_FEEDING_COMPLIANCE_NO_DATA = "feeding_compliance_no_data"
+ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE = "door_sensor_persistence_failure"
 
 # Repair flow types
 REPAIR_FLOW_DOG_CONFIG = "repair_dog_configuration"
@@ -399,6 +400,23 @@ async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> Non
 
     except Exception as err:
         _LOGGER.error("Error during issue check for entry %s: %s", entry.entry_id, err)
+
+
+async def async_schedule_repair_evaluation(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> None:
+    """Schedule an asynchronous evaluation of repair issues for ``entry``."""
+
+    async def _async_run_checks() -> None:
+        try:
+            await async_check_for_issues(hass, entry)
+        except Exception as err:  # pragma: no cover - defensive guard
+            _LOGGER.debug("Repair evaluation skipped due to error: %s", err)
+
+    hass.async_create_task(
+        _async_run_checks(),
+        name=f"{DOMAIN}-{entry.entry_id}-repair-evaluation",
+    )
 
 
 async def _check_dog_configuration_issues(

@@ -20,9 +20,10 @@ Python: 3.13+
 from __future__ import annotations
 
 from asyncio import Task
-from collections.abc import Callable, Iterator, Mapping
+from collections.abc import Awaitable, Callable, Iterator, Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
+from types import MappingProxyType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -36,11 +37,14 @@ from typing import (
 
 from .compat import ConfigEntry
 from .const import (
+    CONF_API_ENDPOINT,
+    CONF_API_TOKEN,
     CONF_BREAKFAST_TIME,
     CONF_DAILY_FOOD_AMOUNT,
     CONF_DINNER_TIME,
     CONF_DOOR_SENSOR,
     CONF_DOOR_SENSOR_SETTINGS,
+    CONF_EXTERNAL_INTEGRATIONS,
     CONF_FOOD_TYPE,
     CONF_LUNCH_TIME,
     CONF_MEALS_PER_DAY,
@@ -49,6 +53,7 @@ from .const import (
     CONF_QUIET_START,
     CONF_REMINDER_REPEAT_MIN,
 )
+from .service_guard import ServiceGuardSummary
 
 try:
     from homeassistant.util import dt as dt_util
@@ -78,6 +83,7 @@ if TYPE_CHECKING:
     from .notifications import PawControlNotificationManager
     from .script_manager import PawControlScriptManager
     from .walk_manager import WalkManager
+    from .weather_manager import WeatherHealthManager
 
 # OPTIMIZE: Use literal constants for performance - frozensets provide O(1) lookups
 # and are immutable, preventing accidental modification while ensuring fast validation
@@ -447,6 +453,111 @@ def _coerce_str(value: Any, *, default: str) -> str:
     return default
 
 
+PerformanceMode = Literal["minimal", "balanced", "full"]
+"""Accepted performance mode values for coordinator tuning."""
+
+
+PERFORMANCE_MODE_VALUES: Final[frozenset[PerformanceMode]] = frozenset(
+    ("minimal", "balanced", "full")
+)
+"""Canonical performance mode options for the integration."""
+
+
+PERFORMANCE_MODE_ALIASES: Final[Mapping[str, PerformanceMode]] = MappingProxyType(
+    {"standard": "balanced"}
+)
+"""Backward-compatible aliases mapped to canonical performance modes."""
+
+
+def _coerce_clamped_int(value: Any, *, default: int, minimum: int, maximum: int) -> int:
+    """Return an integer constrained to the provided inclusive bounds."""
+
+    candidate = _coerce_int(value, default=default)
+    if candidate < minimum:
+        return minimum
+    if candidate > maximum:
+        return maximum
+    return candidate
+
+
+def normalize_performance_mode(
+    value: Any,
+    *,
+    current: str | None = None,
+    fallback: PerformanceMode = "balanced",
+) -> PerformanceMode:
+    """Return a supported performance mode string."""
+
+    if isinstance(value, str):
+        candidate = value.strip().lower()
+        if candidate in PERFORMANCE_MODE_VALUES:
+            return cast(PerformanceMode, candidate)
+        alias = PERFORMANCE_MODE_ALIASES.get(candidate)
+        if alias is not None:
+            return alias
+
+    if isinstance(current, str):
+        existing = current.strip().lower()
+        if existing in PERFORMANCE_MODE_VALUES:
+            return cast(PerformanceMode, existing)
+        alias = PERFORMANCE_MODE_ALIASES.get(existing)
+        if alias is not None:
+            return alias
+
+    return fallback
+
+
+def ensure_advanced_options(
+    source: Mapping[str, Any],
+    *,
+    defaults: Mapping[str, Any] | None = None,
+) -> AdvancedOptions:
+    """Normalise advanced options payloads for config entry storage."""
+
+    baseline = defaults or {}
+
+    retention_default = _coerce_int(baseline.get("data_retention_days"), default=90)
+    debug_default = _coerce_bool(baseline.get("debug_logging"), default=False)
+    backup_default = _coerce_bool(baseline.get("auto_backup"), default=False)
+    experimental_default = _coerce_bool(
+        baseline.get("experimental_features"), default=False
+    )
+    integrations_default = _coerce_bool(
+        baseline.get(CONF_EXTERNAL_INTEGRATIONS), default=False
+    )
+    endpoint_default = _coerce_str(baseline.get(CONF_API_ENDPOINT), default="")
+    token_default = _coerce_str(baseline.get(CONF_API_TOKEN), default="")
+
+    advanced: AdvancedOptions = {
+        "performance_mode": normalize_performance_mode(
+            source.get("performance_mode"),
+            current=cast(str | None, baseline.get("performance_mode")),
+        ),
+        "debug_logging": _coerce_bool(
+            source.get("debug_logging"), default=debug_default
+        ),
+        "data_retention_days": _coerce_clamped_int(
+            source.get("data_retention_days"),
+            default=retention_default,
+            minimum=30,
+            maximum=365,
+        ),
+        "auto_backup": _coerce_bool(source.get("auto_backup"), default=backup_default),
+        "experimental_features": _coerce_bool(
+            source.get("experimental_features"), default=experimental_default
+        ),
+        "external_integrations": _coerce_bool(
+            source.get(CONF_EXTERNAL_INTEGRATIONS), default=integrations_default
+        ),
+        "api_endpoint": _coerce_str(
+            source.get(CONF_API_ENDPOINT), default=endpoint_default
+        ),
+        "api_token": _coerce_str(source.get(CONF_API_TOKEN), default=token_default),
+    }
+
+    return advanced
+
+
 def _project_modules_mapping(config: Mapping[str, Any]) -> dict[str, bool]:
     """Return a stable ``dict[str, bool]`` projection for module toggles."""
 
@@ -563,8 +674,8 @@ def coerce_dog_modules_config(
 
 def ensure_dog_modules_mapping(
     data: Mapping[str, Any] | DogModulesProjection,
-) -> dict[str, bool]:
-    """Return a ``dict[str, bool]`` projection from ``data``."""
+) -> DogModulesMapping:
+    """Return a ``DogModulesMapping`` projection from ``data``."""
 
     return ensure_dog_modules_projection(data).mapping
 
@@ -816,7 +927,7 @@ class SystemOptions(TypedDict, total=False):
 
     data_retention_days: int
     auto_backup: bool
-    performance_mode: Literal["minimal", "balanced", "full"]
+    performance_mode: PerformanceMode
 
 
 class DashboardOptions(TypedDict, total=False):
@@ -831,7 +942,7 @@ class DashboardOptions(TypedDict, total=False):
 class AdvancedOptions(TypedDict, total=False):
     """Advanced diagnostics and integration toggles stored on the entry."""
 
-    performance_mode: Literal["minimal", "balanced", "full"]
+    performance_mode: PerformanceMode
     debug_logging: bool
     data_retention_days: int
     auto_backup: bool
@@ -845,7 +956,7 @@ class PerformanceOptions(TypedDict, total=False):
     """Performance tuning parameters applied through the options flow."""
 
     entity_profile: str
-    performance_mode: Literal["minimal", "balanced", "full"]
+    performance_mode: PerformanceMode
     batch_size: int
     cache_ttl: int
     selective_refresh: bool
@@ -929,7 +1040,7 @@ class ConfigFlowDiscoveryData(TypedDict, total=False):
 class ConfigFlowGlobalSettings(TypedDict, total=False):
     """Global configuration captured during the setup flow."""
 
-    performance_mode: Literal["minimal", "balanced", "full"]
+    performance_mode: PerformanceMode
     enable_analytics: bool
     enable_cloud_backup: bool
     data_retention_days: int
@@ -1153,6 +1264,15 @@ class HelperManagerSnapshot(TypedDict):
     entity_domains: dict[str, int]
 
 
+class HelperManagerGuardMetrics(TypedDict):
+    """Aggregated guard telemetry captured by the helper manager."""
+
+    executed: int
+    skipped: int
+    reasons: dict[str, int]
+    last_results: list[dict[str, Any]]
+
+
 DogValidationCache = dict[str, DogValidationCacheEntry]
 
 Timestamp = datetime
@@ -1292,6 +1412,63 @@ ModuleAdapterPayload = (
     | GardenModulePayload
 )
 
+type DogModulesMapping = Mapping[str, bool]
+
+
+@dataclass(slots=True)
+class ModuleCacheMetrics:
+    """Cache metrics exposed by coordinator module adapters."""
+
+    entries: int = 0
+    hits: int = 0
+    misses: int = 0
+
+    @property
+    def hit_rate(self) -> float:
+        """Return the cache hit rate as a percentage."""
+
+        total = self.hits + self.misses
+        if total <= 0:
+            return 0.0
+        return (self.hits / total) * 100.0
+
+
+@dataclass(slots=True)
+class CoordinatorModuleTask:
+    """Wrapper describing a coroutine used to fetch module payloads."""
+
+    module: CoordinatorTypedModuleName
+    coroutine: Awaitable[ModuleAdapterPayload]
+
+
+@dataclass(slots=True)
+class CoordinatorRuntimeManagers:
+    """Typed container describing runtime manager dependencies."""
+
+    data_manager: PawControlDataManager | None = None
+    feeding_manager: FeedingManager | None = None
+    walk_manager: WalkManager | None = None
+    notification_manager: PawControlNotificationManager | None = None
+    gps_geofence_manager: GPSGeofenceManager | None = None
+    geofencing_manager: PawControlGeofencing | None = None
+    weather_health_manager: WeatherHealthManager | None = None
+    garden_manager: GardenManager | None = None
+
+    @classmethod
+    def attribute_names(cls) -> tuple[str, ...]:
+        """Return the coordinator attribute names mirrored by this container."""
+
+        return (
+            "data_manager",
+            "feeding_manager",
+            "garden_manager",
+            "geofencing_manager",
+            "gps_geofence_manager",
+            "notification_manager",
+            "walk_manager",
+            "weather_health_manager",
+        )
+
 
 class CacheDiagnosticsMetadata(TypedDict, total=False):
     """Metadata surfaced by cache diagnostics providers."""
@@ -1326,6 +1503,7 @@ class CacheDiagnosticsMetadata(TypedDict, total=False):
     manager_last_generated_age_seconds: int | float
     manager_last_activity: str | None
     manager_last_activity_age_seconds: int | float
+    service_guard_metrics: HelperManagerGuardMetrics
 
 
 @dataclass(slots=True)
@@ -1423,6 +1601,7 @@ class CacheRepairIssue(TypedDict, total=False):
     pending_override_candidates: NotRequired[int]
     active_override_flags: NotRequired[int]
     errors: NotRequired[list[str]]
+    timestamp_anomalies: NotRequired[dict[str, str]]
 
 
 @dataclass(slots=True)
@@ -1621,6 +1800,8 @@ class ServiceExecutionDiagnostics(TypedDict, total=False):
 
     cache: NotRequired[CacheDiagnosticsCapture]
     metadata: NotRequired[dict[str, Any]]
+    guard: NotRequired[ServiceGuardSummary]
+    resilience_summary: NotRequired[CoordinatorResilienceSummary]
 
 
 class ServiceExecutionResult(TypedDict, total=False):
@@ -1632,6 +1813,7 @@ class ServiceExecutionResult(TypedDict, total=False):
     message: NotRequired[str]
     diagnostics: NotRequired[ServiceExecutionDiagnostics]
     details: NotRequired[dict[str, Any]]
+    guard: NotRequired[ServiceGuardSummary]
 
 
 class ServiceContextMetadata(TypedDict, total=False):
@@ -1867,6 +2049,52 @@ class CoordinatorRuntimeStatisticsPayload(TypedDict):
     rejection_metrics: NotRequired[CoordinatorRejectionMetrics]
 
 
+class CoordinatorModuleErrorPayload(TypedDict, total=False):
+    """Fallback payload recorded when a module cannot provide telemetry."""
+
+    status: Required[str]
+    reason: NotRequired[str]
+    message: NotRequired[str]
+
+
+CoordinatorModuleState = ModuleAdapterPayload | CoordinatorModuleErrorPayload
+
+
+CoordinatorTypedModuleName = Literal[
+    "feeding",
+    "garden",
+    "geofencing",
+    "gps",
+    "health",
+    "walk",
+    "weather",
+]
+
+
+class CoordinatorDogData(TypedDict, total=False):
+    """Runtime payload stored by the coordinator for a single dog."""
+
+    dog_info: DogConfigData
+    status: str
+    last_update: str | None
+    gps: NotRequired[CoordinatorModuleState]
+    geofencing: NotRequired[CoordinatorModuleState]
+    feeding: NotRequired[CoordinatorModuleState]
+    walk: NotRequired[CoordinatorModuleState]
+    health: NotRequired[CoordinatorModuleState]
+    weather: NotRequired[CoordinatorModuleState]
+    garden: NotRequired[CoordinatorModuleState]
+    notifications: NotRequired[dict[str, Any]]
+    dashboard: NotRequired[dict[str, Any]]
+    visitor: NotRequired[dict[str, Any]]
+    grooming: NotRequired[dict[str, Any]]
+    medication: NotRequired[dict[str, Any]]
+    training: NotRequired[dict[str, Any]]
+
+
+CoordinatorDataPayload = dict[str, CoordinatorDogData]
+
+
 class CoordinatorRejectionMetrics(TypedDict):
     """Normalised rejection counters exposed via diagnostics payloads."""
 
@@ -2028,13 +2256,13 @@ def ensure_dog_config_data(data: Mapping[str, Any]) -> DogConfigData | None:
     if isinstance(door_sensor, str):
         trimmed_sensor = door_sensor.strip()
         if trimmed_sensor:
-            config[CONF_DOOR_SENSOR] = trimmed_sensor
+            config["door_sensor"] = trimmed_sensor
 
     normalised_settings = _normalise_door_sensor_settings_payload(
         data.get(CONF_DOOR_SENSOR_SETTINGS)
     )
     if normalised_settings is not None:
-        config[CONF_DOOR_SENSOR_SETTINGS] = normalised_settings
+        config["door_sensor_settings"] = normalised_settings
 
     return config
 
@@ -2138,6 +2366,17 @@ class DetectionStatus(TypedDict):
     statistics: DetectionStatistics
 
 
+class DoorSensorPersistenceFailure(TypedDict, total=False):
+    """Telemetry entry captured when door sensor persistence fails."""
+
+    dog_id: Required[str]
+    recorded_at: Required[str]
+    dog_name: NotRequired[str | None]
+    door_sensor: NotRequired[str | None]
+    settings: NotRequired[dict[str, Any] | None]
+    error: NotRequired[str]
+
+
 @dataclass
 class PawControlRuntimeData:
     """Comprehensive runtime data container for the PawControl integration.
@@ -2195,6 +2434,35 @@ class PawControlRuntimeData:
     # PLATINUM: Optional unsubscribe callbacks for scheduler and reload listener
     daily_reset_unsub: Any = field(default=None)
     reload_unsub: Callable[[], Any] | None = None
+    _runtime_managers_cache: CoordinatorRuntimeManagers | None = field(
+        default=None, init=False, repr=False
+    )
+
+    @property
+    def runtime_managers(self) -> CoordinatorRuntimeManagers:
+        """Return the runtime manager container associated with this entry."""
+
+        cached = self._runtime_managers_cache
+        if cached is not None:
+            return cached
+
+        coordinator_managers = getattr(self.coordinator, "runtime_managers", None)
+        if isinstance(coordinator_managers, CoordinatorRuntimeManagers):
+            self._runtime_managers_cache = coordinator_managers
+            return coordinator_managers
+
+        container = CoordinatorRuntimeManagers(
+            data_manager=getattr(self, "data_manager", None),
+            feeding_manager=getattr(self, "feeding_manager", None),
+            walk_manager=getattr(self, "walk_manager", None),
+            notification_manager=getattr(self, "notification_manager", None),
+            gps_geofence_manager=getattr(self, "gps_geofence_manager", None),
+            geofencing_manager=getattr(self, "geofencing_manager", None),
+            weather_health_manager=getattr(self, "weather_health_manager", None),
+            garden_manager=getattr(self, "garden_manager", None),
+        )
+        self._runtime_managers_cache = container
+        return container
 
     def as_dict(self) -> dict[str, Any]:
         """Return a dictionary representation of the runtime data.
@@ -2212,6 +2480,7 @@ class PawControlRuntimeData:
             "notification_manager": self.notification_manager,
             "feeding_manager": self.feeding_manager,
             "walk_manager": self.walk_manager,
+            "runtime_managers": self.runtime_managers,
             "entity_factory": self.entity_factory,
             "entity_profile": self.entity_profile,
             "dogs": self.dogs,
@@ -2465,6 +2734,19 @@ class FeedingData:
             raise ValueError("Calories cannot be negative")
 
 
+class WalkRoutePoint(TypedDict, total=False):
+    """Normalised GPS sample recorded during a walk."""
+
+    latitude: float
+    longitude: float
+    accuracy: float
+    altitude: float
+    timestamp: str
+    source: str
+    battery_level: int
+    signal_strength: int
+
+
 @dataclass
 class WalkData:
     """Data structure for walk tracking with comprehensive route and environmental data.
@@ -2496,7 +2778,7 @@ class WalkData:
     end_time: datetime | None = None
     duration: int | None = None  # seconds
     distance: float | None = None  # meters
-    route: list[dict[str, float]] = field(default_factory=list)
+    route: list[WalkRoutePoint] = field(default_factory=list)
     label: str = ""
     location: str = ""
     notes: str = ""

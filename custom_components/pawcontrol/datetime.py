@@ -329,14 +329,15 @@ class PawControlLastFeedingDateTime(PawControlDateTimeBase):
         await super().async_set_value(value)
 
         # Log feeding event
-        await self.hass.services.async_call(
+        if not await self._async_call_hass_service(
             DOMAIN,
             "feed_dog",
             {
                 ATTR_DOG_ID: self._dog_id,
                 "meal_type": "snack",  # Default to snack for manual entries
             },
-        )
+        ):
+            return
 
 
 class PawControlNextFeedingDateTime(PawControlDateTimeBase):
@@ -387,14 +388,15 @@ class PawControlLastVetVisitDateTime(PawControlDateTimeBase):
         await super().async_set_value(value)
 
         # Log vet visit
-        await self.hass.services.async_call(
+        if not await self._async_call_hass_service(
             DOMAIN,
             "log_health_data",
             {
                 ATTR_DOG_ID: self._dog_id,
                 "note": f"Vet visit recorded for {value.strftime('%Y-%m-%d')}",
             },
-        )
+        ):
+            return
 
 
 class PawControlNextVetAppointmentDateTime(PawControlDateTimeBase):
@@ -447,7 +449,7 @@ class PawControlLastGroomingDateTime(PawControlDateTimeBase):
         await super().async_set_value(value)
 
         # Log grooming session
-        await self.hass.services.async_call(
+        if not await self._async_call_hass_service(
             DOMAIN,
             "start_grooming",
             {
@@ -455,7 +457,8 @@ class PawControlLastGroomingDateTime(PawControlDateTimeBase):
                 "type": "full_grooming",
                 "notes": f"Grooming session on {value.strftime('%Y-%m-%d')}",
             },
-        )
+        ):
+            return
 
 
 class PawControlNextGroomingDateTime(PawControlDateTimeBase):
@@ -484,7 +487,7 @@ class PawControlLastMedicationDateTime(PawControlDateTimeBase):
         await super().async_set_value(value)
 
         # Log medication
-        await self.hass.services.async_call(
+        if not await self._async_call_hass_service(
             DOMAIN,
             "log_medication",
             {
@@ -492,7 +495,8 @@ class PawControlLastMedicationDateTime(PawControlDateTimeBase):
                 "medication_name": "Manual Entry",
                 "dose": "As scheduled",
             },
-        )
+        ):
+            return
 
 
 class PawControlNextMedicationDateTime(PawControlDateTimeBase):
@@ -545,18 +549,20 @@ class PawControlLastWalkDateTime(PawControlDateTimeBase):
         await super().async_set_value(value)
 
         # Start and immediately end a walk for historical entry
-        await self.hass.services.async_call(
+        if not await self._async_call_hass_service(
             DOMAIN,
             "start_walk",
             {ATTR_DOG_ID: self._dog_id},
-        )
+        ):
+            return
 
         # End the walk
-        await self.hass.services.async_call(
+        if not await self._async_call_hass_service(
             DOMAIN,
             "end_walk",
             {ATTR_DOG_ID: self._dog_id},
-        )
+        ):
+            return
 
 
 class PawControlNextWalkReminderDateTime(PawControlDateTimeBase):
@@ -592,14 +598,15 @@ class PawControlVaccinationDateDateTime(PawControlDateTimeBase):
         await super().async_set_value(value)
 
         # Log vaccination
-        await self.hass.services.async_call(
+        if not await self._async_call_hass_service(
             DOMAIN,
             "log_health_data",
             {
                 ATTR_DOG_ID: self._dog_id,
                 "note": f"Vaccination recorded for {value.strftime('%Y-%m-%d')}",
             },
-        )
+        ):
+            return
 
 
 class PawControlTrainingSessionDateTime(PawControlDateTimeBase):
@@ -617,14 +624,15 @@ class PawControlTrainingSessionDateTime(PawControlDateTimeBase):
         await super().async_set_value(value)
 
         # Log training session
-        await self.hass.services.async_call(
+        if not await self._async_call_hass_service(
             DOMAIN,
             "log_health_data",
             {
                 ATTR_DOG_ID: self._dog_id,
                 "note": f"Training session on {value.strftime('%Y-%m-%d')}",
             },
-        )
+        ):
+            return
 
 
 class PawControlEmergencyDateTime(PawControlDateTimeBase):
@@ -642,19 +650,19 @@ class PawControlEmergencyDateTime(PawControlDateTimeBase):
         await super().async_set_value(value)
 
         # Log emergency event
-        await self.hass.services.async_call(
+        if not await self._async_call_hass_service(
             DOMAIN,
             "log_health_data",
             {
                 ATTR_DOG_ID: self._dog_id,
                 "note": f"EMERGENCY EVENT recorded for {value.strftime('%Y-%m-%d %H:%M')}",
             },
-        )
+        ):
+            return
 
         # Send urgent notification
-        runtime_data = get_runtime_data(self.hass, self.coordinator.config_entry)
-        notification_manager = getattr(runtime_data, "notification_manager", None)
-        if notification_manager:
+        notification_manager = self._get_notification_manager()
+        if notification_manager is not None:
             await notification_manager.async_send_notification(
                 notification_type=NotificationType.HEALTH_ALERT,
                 title="🚨 Emergency Event Logged",
