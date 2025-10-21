@@ -2423,7 +2423,9 @@ class StatisticsCardGenerator(BaseCardGenerator):
         dogs_config: Sequence[RawDogConfig],
         options: OptionsConfigType,
         *,
-        coordinator_statistics: CoordinatorStatisticsPayload | Mapping[str, Any] | None = None,
+        coordinator_statistics: CoordinatorStatisticsPayload
+        | Mapping[str, Any]
+        | None = None,
     ) -> list[CardConfigType]:
         """Generate optimized statistics cards for all dogs.
 
@@ -2596,7 +2598,9 @@ class StatisticsCardGenerator(BaseCardGenerator):
         dogs_config: Sequence[DogConfigData],
         theme: str,
         *,
-        coordinator_statistics: CoordinatorStatisticsPayload | Mapping[str, Any] | None = None,
+        coordinator_statistics: CoordinatorStatisticsPayload
+        | Mapping[str, Any]
+        | None = None,
     ) -> CardConfigType:
         """Generate optimized statistics summary card."""
         return self.templates.get_statistics_summary_template(

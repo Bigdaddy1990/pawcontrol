@@ -365,7 +365,9 @@ class GeofencingModuleAdapter(_BaseModuleAdapter[GeofencingModulePayload]):
             try:
                 geofence_status = await self._manager.async_get_geofence_status(dog_id)
             except Exception as err:  # pragma: no cover - defensive logging
-                _LOGGER.warning("Failed to fetch geofence status for %s: %s", dog_id, err)
+                _LOGGER.warning(
+                    "Failed to fetch geofence status for %s: %s", dog_id, err
+                )
                 payload = {
                     "status": "error",
                     "error": str(err),

@@ -573,7 +573,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 != "_pawcontrol_filtered_get_objects"
             ):
 
-                def _pawcontrol_filtered_get_objects(*args: Any, **kwargs: Any) -> list[Any]:
+                def _pawcontrol_filtered_get_objects(
+                    *args: Any, **kwargs: Any
+                ) -> list[Any]:
                     objects = original_get_objects(*args, **kwargs)
                     gc.get_objects = original_get_objects
                     filtered: list[Any] = []
@@ -693,17 +695,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             if callable(prepare_method):
                 prepare_callable = cast(Callable[[], Any], prepare_method)
                 if _simulate_async_call(prepare_callable):
-                    coordinator_setup_duration = (
-                        time.time() - coordinator_setup_start
-                    )
+                    coordinator_setup_duration = time.time() - coordinator_setup_start
                 else:
                     await asyncio.wait_for(
                         prepare_callable(),
                         timeout=_COORDINATOR_SETUP_TIMEOUT,
                     )
-                    coordinator_setup_duration = (
-                        time.time() - coordinator_setup_start
-                    )
+                    coordinator_setup_duration = time.time() - coordinator_setup_start
                 _LOGGER.debug(
                     "Coordinator pre-setup completed in %.2f seconds",
                     coordinator_setup_duration,

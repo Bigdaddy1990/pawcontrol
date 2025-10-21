@@ -1084,9 +1084,7 @@ class TestPawControlDeviceRemoval:
             domain=DOMAIN,
             data={},
             options={
-                CONF_DOGS: {
-                    "buddy": {CONF_DOG_ID: "buddy", CONF_DOG_NAME: "Buddy"}
-                }
+                CONF_DOGS: {"buddy": {CONF_DOG_ID: "buddy", CONF_DOG_NAME: "Buddy"}}
             },
         )
         entry.add_to_hass(hass)

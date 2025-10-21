@@ -90,7 +90,9 @@ class _ScriptManagerCacheMonitor:
         created_entities = cast(
             Iterable[str], getattr(manager, "_created_entities", set())
         )
-        dog_scripts = cast(dict[str, Iterable[str]], getattr(manager, "_dog_scripts", {}))
+        dog_scripts = cast(
+            dict[str, Iterable[str]], getattr(manager, "_dog_scripts", {})
+        )
         last_generation = cast(
             datetime | None, getattr(manager, "_last_generation", None)
         )
@@ -237,7 +239,9 @@ class PawControlScriptManager:
 
             processed_dogs.add(dog_id)
             raw_name = dog.get(CONF_DOG_NAME)
-            dog_name = raw_name if isinstance(raw_name, str) and raw_name.strip() else dog_id
+            dog_name = (
+                raw_name if isinstance(raw_name, str) and raw_name.strip() else dog_id
+            )
             slug = slugify(dog_id)
 
             existing_for_dog = set(self._dog_scripts.get(dog_id, []))

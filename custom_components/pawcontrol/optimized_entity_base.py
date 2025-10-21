@@ -1383,9 +1383,7 @@ def _cleanup_global_caches() -> None:
     for cache_name, cache_dict, ttl in caches:
         original_size = len(cache_dict)
         expired_keys = [
-            key
-            for key, entry in cache_dict.items()
-            if now - entry.timestamp > ttl
+            key for key, entry in cache_dict.items() if now - entry.timestamp > ttl
         ]
 
         for key in expired_keys:
@@ -1647,4 +1645,3 @@ bind_exception_alias(
     combine_with_current=True,
 )
 type CoordinatorLike = PawControlCoordinator | "_RegistrySentinelCoordinator"
-

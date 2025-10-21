@@ -1598,6 +1598,8 @@ def convert_units(value: float, from_unit: str, to_unit: str) -> float:
         return all_conversions[conversion_key](value)
 
     raise ValueError(f"Conversion from {from_unit} to {to_unit} not supported")
+
+
 _GUARD_CAPTURE: ContextVar[list[ServiceGuardResult] | None] = ContextVar(
     "pawcontrol_service_guard_capture",
     default=None,
@@ -1605,7 +1607,9 @@ _GUARD_CAPTURE: ContextVar[list[ServiceGuardResult] | None] = ContextVar(
 
 
 @asynccontextmanager
-async def async_capture_service_guard_results() -> AsyncIterator[list[ServiceGuardResult]]:
+async def async_capture_service_guard_results() -> AsyncIterator[
+    list[ServiceGuardResult]
+]:
     """Capture guard outcomes for Home Assistant service invocations."""
 
     previous = _GUARD_CAPTURE.get(None)

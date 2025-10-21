@@ -141,7 +141,9 @@ class DashboardRenderer:
         dogs_config: Sequence[RawDogConfig],
         options: dict[str, Any] | None = None,
         *,
-        coordinator_statistics: CoordinatorStatisticsPayload | Mapping[str, Any] | None = None,
+        coordinator_statistics: CoordinatorStatisticsPayload
+        | Mapping[str, Any]
+        | None = None,
     ) -> dict[str, Any]:
         """Render main dashboard configuration.
 
@@ -699,7 +701,9 @@ class DashboardRenderer:
         dogs_config: Sequence[DogConfigData],
         options: dict[str, Any],
         *,
-        coordinator_statistics: CoordinatorStatisticsPayload | Mapping[str, Any] | None = None,
+        coordinator_statistics: CoordinatorStatisticsPayload
+        | Mapping[str, Any]
+        | None = None,
     ) -> dict[str, Any]:
         """Render statistics view.
 

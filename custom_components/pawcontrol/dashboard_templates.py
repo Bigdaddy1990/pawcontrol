@@ -1338,7 +1338,9 @@ class DashboardTemplates:
         dogs: Sequence[RawDogConfig],
         theme: str = "modern",
         *,
-        coordinator_statistics: CoordinatorStatisticsPayload | Mapping[str, Any] | None = None,
+        coordinator_statistics: CoordinatorStatisticsPayload
+        | Mapping[str, Any]
+        | None = None,
     ) -> CardConfig:
         """Return a summary markdown card for analytics dashboards."""
 
@@ -1404,7 +1406,11 @@ class DashboardTemplates:
             else:
                 last_rejection_iso = "never"
 
-            breaker_label = metrics_payload.get("last_rejection_breaker_name") or metrics_payload.get("last_rejection_breaker_id") or "n/a"
+            breaker_label = (
+                metrics_payload.get("last_rejection_breaker_name")
+                or metrics_payload.get("last_rejection_breaker_id")
+                or "n/a"
+            )
 
             content_lines.extend(
                 [
@@ -1423,9 +1429,7 @@ class DashboardTemplates:
             )
 
             if breaker_label != "n/a":
-                content_lines.append(
-                    f"- Last rejecting breaker: {breaker_label}"
-                )
+                content_lines.append(f"- Last rejecting breaker: {breaker_label}")
 
         theme_styles = self._get_theme_styles(theme)
 

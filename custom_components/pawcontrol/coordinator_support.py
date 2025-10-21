@@ -312,9 +312,7 @@ class DogConfigRegistry:
             return frozenset()
         modules_payload = cast(Mapping[str, Any] | None, config.get(CONF_MODULES))
         modules = coerce_dog_modules_config(modules_payload)
-        return frozenset(
-            module for module, enabled in modules.items() if bool(enabled)
-        )
+        return frozenset(module for module, enabled in modules.items() if bool(enabled))
 
     def has_module(self, module: str) -> bool:
         """Return True if any dog has the requested module enabled."""

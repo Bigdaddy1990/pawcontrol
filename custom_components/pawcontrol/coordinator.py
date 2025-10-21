@@ -496,14 +496,14 @@ class PawControlCoordinator(
 
         snapshot = dict(
             build_observability_snapshot(
-            metrics=self._metrics,
-            adaptive=adaptive,
-            entity_budget=entity_budget,
-            update_interval=update_interval,
-            last_update_time=last_update_time,
-            last_update_success=self.last_update_success,
-            webhook_status=self._webhook_security_status(),
-            resilience=resilience.get("summary") if resilience else None,
+                metrics=self._metrics,
+                adaptive=adaptive,
+                entity_budget=entity_budget,
+                update_interval=update_interval,
+                last_update_time=last_update_time,
+                last_update_success=self.last_update_success,
+                webhook_status=self._webhook_security_status(),
+                resilience=resilience.get("summary") if resilience else None,
             )
         )
 

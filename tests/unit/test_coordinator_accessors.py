@@ -20,7 +20,9 @@ class _DummyCoordinator(CoordinatorDataAccessMixin):
                 }
             ]
         )
-        self._data = {dog_id: self.registry.empty_payload() for dog_id in self.registry.ids()}
+        self._data = {
+            dog_id: self.registry.empty_payload() for dog_id in self.registry.ids()
+        }
         self.runtime_managers = CoordinatorRuntimeManagers()
 
 

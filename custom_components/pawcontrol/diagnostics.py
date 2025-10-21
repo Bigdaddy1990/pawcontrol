@@ -71,6 +71,7 @@ def _resolve_notification_manager(
 
     return runtime_data.runtime_managers.notification_manager
 
+
 _LOGGER = logging.getLogger(__name__)
 
 # Sensitive keys that should be redacted in diagnostics

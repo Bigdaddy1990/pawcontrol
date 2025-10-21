@@ -331,7 +331,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         person_entity_ids = list(self._persons.keys())
 
         async def handle_person_state_change(
-            event: Event[EventStateChangedData]
+            event: Event[EventStateChangedData],
         ) -> None:
             await self._handle_person_state_change(event)
 

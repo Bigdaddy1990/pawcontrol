@@ -114,9 +114,7 @@ def test_garden_binary_sensors_use_runtime_manager_container(
     active_sensor = PawControlGardenSessionActiveBinarySensor(
         coordinator, "dog", "Garden Dog"
     )
-    in_garden_sensor = PawControlInGardenBinarySensor(
-        coordinator, "dog", "Garden Dog"
-    )
+    in_garden_sensor = PawControlInGardenBinarySensor(coordinator, "dog", "Garden Dog")
     pending_sensor = PawControlGardenPoopPendingBinarySensor(
         coordinator, "dog", "Garden Dog"
     )
@@ -254,7 +252,7 @@ async def test_custom_message_text_prefers_notification_manager(
     await entity.async_set_value("   Hello runtime managers!   ")
 
     notification_manager.async_send_notification.assert_awaited_once()
-    args, kwargs = notification_manager.async_send_notification.await_args
+    _args, kwargs = notification_manager.async_send_notification.await_args
     assert kwargs["message"] == "Hello runtime managers!"
     hass.services.async_call.assert_not_awaited()
 
@@ -274,9 +272,7 @@ async def test_date_entity_skips_service_call_when_hass_missing(
     entity.async_write_ha_state = Mock()
 
     caplog.clear()
-    with caplog.at_level(
-        "DEBUG", logger="custom_components.pawcontrol.entity"
-    ):
+    with caplog.at_level("DEBUG", logger="custom_components.pawcontrol.entity"):
         await entity.async_set_value(date_cls(2024, 4, 1))
 
     assert "Skipping pawcontrol.log_health_data service call" in caplog.text
@@ -297,9 +293,7 @@ async def test_emergency_datetime_skips_services_without_hass(
     entity.async_write_ha_state = Mock()
 
     caplog.clear()
-    with caplog.at_level(
-        "DEBUG", logger="custom_components.pawcontrol.entity"
-    ):
+    with caplog.at_level("DEBUG", logger="custom_components.pawcontrol.entity"):
         await entity.async_set_value(datetime(2024, 4, 1, 12, 30, tzinfo=UTC))
 
     assert "Skipping pawcontrol.log_health_data service call" in caplog.text
@@ -321,9 +315,7 @@ async def test_custom_message_text_skips_notify_when_hass_missing(
     entity.native_max = entity._attr_native_max
 
     caplog.clear()
-    with caplog.at_level(
-        "DEBUG", logger="custom_components.pawcontrol.entity"
-    ):
+    with caplog.at_level("DEBUG", logger="custom_components.pawcontrol.entity"):
         await entity.async_set_value("  Hello  ")
 
     assert "Skipping pawcontrol.notify_test service call" in caplog.text
@@ -344,9 +336,7 @@ async def test_visitor_mode_switch_skips_service_without_hass(
     entity.async_write_ha_state = Mock()
 
     caplog.clear()
-    with caplog.at_level(
-        "DEBUG", logger="custom_components.pawcontrol.entity"
-    ):
+    with caplog.at_level("DEBUG", logger="custom_components.pawcontrol.entity"):
         await entity.async_turn_on()
 
     assert "Skipping pawcontrol.set_visitor_mode service call" in caplog.text
@@ -366,9 +356,7 @@ async def test_confirm_poop_button_skips_service_without_hass(
     entity = PawControlConfirmGardenPoopButton(coordinator, "dog", "Garden Dog")
 
     caplog.clear()
-    with caplog.at_level(
-        "DEBUG", logger="custom_components.pawcontrol.entity"
-    ):
+    with caplog.at_level("DEBUG", logger="custom_components.pawcontrol.entity"):
         await entity.async_press()
 
     assert "Skipping pawcontrol.confirm_garden_poop service call" in caplog.text
