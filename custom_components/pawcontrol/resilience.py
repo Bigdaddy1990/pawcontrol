@@ -66,7 +66,9 @@ from . import compat
 from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
 
 ensure_homeassistant_exception_symbols()
-HomeAssistantError: type[Exception] = cast(type[Exception], compat.HomeAssistantError)
+HOME_ASSISTANT_ERROR_CLS: type[Exception] = cast(
+    type[Exception], compat.HomeAssistantError
+)
 bind_exception_alias("HomeAssistantError", combine_with_current=True)
 
 
@@ -76,16 +78,16 @@ def _resolve_homeassistant_error() -> type[Exception]:
     try:
         module = import_module("custom_components.pawcontrol.data_manager")
     except Exception:  # pragma: no cover - fallback when data manager unavailable
-        return HomeAssistantError
+        return HOME_ASSISTANT_ERROR_CLS
 
     resolver = getattr(module, "_resolve_homeassistant_error", None)
     if callable(resolver):
         try:
             return resolver()
         except Exception:  # pragma: no cover - defensive fallback
-            return HomeAssistantError
+            return HOME_ASSISTANT_ERROR_CLS
 
-    return HomeAssistantError
+    return HOME_ASSISTANT_ERROR_CLS
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -96,7 +98,7 @@ T = TypeVar("T")
 AsyncCallable = Callable[..., Awaitable[T]]
 
 
-class CircuitBreakerStateError(HomeAssistantError):
+class CircuitBreakerStateError(HomeAssistantErrorType):
     """Raised when a circuit breaker rejects a call due to its state."""
 
 

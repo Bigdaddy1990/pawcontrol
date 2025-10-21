@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import json
-from datetime import time
+from datetime import UTC, datetime, time
+from types import SimpleNamespace
 from typing import Any, cast
-from unittest.mock import Mock
+from unittest.mock import ANY, AsyncMock, Mock, patch
 
 import pytest
 from custom_components.pawcontrol.const import (
@@ -17,6 +18,8 @@ from custom_components.pawcontrol.const import (
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
     CONF_DOGS,
+    CONF_DOOR_SENSOR,
+    CONF_DOOR_SENSOR_SETTINGS,
     CONF_EXTERNAL_INTEGRATIONS,
     CONF_GPS_ACCURACY_FILTER,
     CONF_GPS_DISTANCE_FILTER,
@@ -990,6 +993,16 @@ async def test_advanced_settings_normalises_existing_payloads(
             }
         },
     }
+    raw_options["advanced_settings"] = {
+        "performance_mode": "turbo",
+        "debug_logging": "no",
+        "data_retention_days": "1000",
+        "auto_backup": "maybe",
+        "experimental_features": "yes",
+        CONF_EXTERNAL_INTEGRATIONS: "enabled",
+        CONF_API_ENDPOINT: 123,
+        CONF_API_TOKEN: None,
+    }
     mock_config_entry.options = raw_options
 
     flow = PawControlOptionsFlow()
@@ -1036,6 +1049,16 @@ async def test_advanced_settings_normalises_existing_payloads(
 
     assert options[CONF_API_ENDPOINT] == "https://api.demo"
     assert options[CONF_API_TOKEN] == "token"
+
+    advanced = cast(AdvancedOptions, options["advanced_settings"])
+    assert advanced["performance_mode"] == "balanced"
+    assert advanced["debug_logging"] is True
+    assert advanced["data_retention_days"] == 200
+    assert advanced["auto_backup"] is False
+    assert advanced["experimental_features"] is True
+    assert advanced[CONF_EXTERNAL_INTEGRATIONS] is False
+    assert advanced[CONF_API_ENDPOINT] == "https://api.demo"
+    assert advanced[CONF_API_TOKEN] == "token"
 
 
 @pytest.mark.asyncio
@@ -1188,6 +1211,218 @@ async def test_dog_module_overrides_recorded(
     assert modules[MODULE_HEALTH] is True
     assert modules.get("notifications") is False
     assert modules.get("grooming") is True
+
+
+@pytest.mark.asyncio
+async def test_configure_door_sensor_normalises_and_persists(
+    hass: HomeAssistant, mock_config_entry
+) -> None:
+    """Door sensor configuration should normalise payloads and persist updates."""
+
+    hass.states.async_set(
+        "binary_sensor.front_door",
+        "off",
+        {"device_class": "door", "friendly_name": "Front Door"},
+    )
+
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    flow.initialize_from_config_entry(mock_config_entry)
+    flow.hass.config_entries.async_update_entry = Mock()
+    flow._current_dog = flow._dogs[0]
+    dog_id = flow._current_dog[DOG_ID_FIELD]
+
+    data_manager = Mock()
+    data_manager.async_update_dog_data = AsyncMock(return_value=True)
+    runtime = Mock()
+    runtime.data_manager = data_manager
+
+    user_input = {
+        CONF_DOOR_SENSOR: "binary_sensor.front_door  ",
+        "walk_detection_timeout": " 180 ",
+        "minimum_walk_duration": 75,
+        "maximum_walk_duration": "7200",
+        "door_closed_delay": "45",
+        "require_confirmation": False,
+        "auto_end_walks": True,
+        "confidence_threshold": "0.85",
+    }
+
+    with patch(
+        "custom_components.pawcontrol.options_flow.get_runtime_data",
+        return_value=runtime,
+    ):
+        result = await flow.async_step_configure_door_sensor(user_input)
+
+    assert result["type"] == FlowResultType.FORM
+    flow.hass.config_entries.async_update_entry.assert_called_once()
+
+    update_data = flow.hass.config_entries.async_update_entry.call_args.kwargs["data"]
+    updated_dog = update_data[CONF_DOGS][0]
+    assert updated_dog[CONF_DOOR_SENSOR] == "binary_sensor.front_door"
+
+    expected_settings = {
+        "walk_detection_timeout": 180,
+        "minimum_walk_duration": 75,
+        "maximum_walk_duration": 7200,
+        "door_closed_delay": 45,
+        "require_confirmation": False,
+        "auto_end_walks": True,
+        "confidence_threshold": 0.85,
+    }
+
+    assert updated_dog[CONF_DOOR_SENSOR_SETTINGS] == expected_settings
+    assert flow._current_dog[CONF_DOOR_SENSOR] == "binary_sensor.front_door"
+
+    data_manager.async_update_dog_data.assert_awaited_once_with(
+        dog_id,
+        {
+            CONF_DOOR_SENSOR: "binary_sensor.front_door",
+            CONF_DOOR_SENSOR_SETTINGS: expected_settings,
+        },
+    )
+
+
+@pytest.mark.asyncio
+async def test_configure_door_sensor_removal_clears_persistence(
+    hass: HomeAssistant, mock_config_entry
+) -> None:
+    """Removing a door sensor should clear stored overrides."""
+
+    initial_dog = mock_config_entry.data[CONF_DOGS][0]
+    initial_dog[CONF_DOOR_SENSOR] = "binary_sensor.back_door"
+    initial_dog[CONF_DOOR_SENSOR_SETTINGS] = {
+        "walk_detection_timeout": 240,
+        "minimum_walk_duration": 90,
+        "maximum_walk_duration": 3600,
+        "door_closed_delay": 30,
+        "require_confirmation": True,
+        "auto_end_walks": False,
+        "confidence_threshold": 0.7,
+    }
+
+    hass.states.async_set(
+        "binary_sensor.back_door",
+        "on",
+        {"device_class": "door", "friendly_name": "Back Door"},
+    )
+
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    flow.initialize_from_config_entry(mock_config_entry)
+    flow.hass.config_entries.async_update_entry = Mock()
+    flow._current_dog = flow._dogs[0]
+    dog_id = flow._current_dog[DOG_ID_FIELD]
+
+    data_manager = Mock()
+    data_manager.async_update_dog_data = AsyncMock(return_value=True)
+    runtime = Mock()
+    runtime.data_manager = data_manager
+
+    with patch(
+        "custom_components.pawcontrol.options_flow.get_runtime_data",
+        return_value=runtime,
+    ):
+        result = await flow.async_step_configure_door_sensor({CONF_DOOR_SENSOR: ""})
+
+    assert result["type"] == FlowResultType.FORM
+    flow.hass.config_entries.async_update_entry.assert_called_once()
+
+    update_data = flow.hass.config_entries.async_update_entry.call_args.kwargs["data"]
+    updated_dog = update_data[CONF_DOGS][0]
+    assert CONF_DOOR_SENSOR not in updated_dog
+    assert CONF_DOOR_SENSOR_SETTINGS not in updated_dog
+    assert CONF_DOOR_SENSOR not in flow._current_dog
+    assert CONF_DOOR_SENSOR_SETTINGS not in flow._current_dog
+
+    data_manager.async_update_dog_data.assert_awaited_once_with(
+        dog_id,
+        {
+            CONF_DOOR_SENSOR: None,
+            CONF_DOOR_SENSOR_SETTINGS: None,
+        },
+    )
+
+
+@pytest.mark.asyncio
+async def test_configure_door_sensor_persistence_failure_records_telemetry(
+    hass: HomeAssistant, mock_config_entry
+) -> None:
+    """Persistence failures should raise a repair issue and capture telemetry."""
+
+    hass.states.async_set(
+        "binary_sensor.front_door",
+        "off",
+        {"device_class": "door", "friendly_name": "Front Door"},
+    )
+
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    flow.initialize_from_config_entry(mock_config_entry)
+    flow.hass.config_entries.async_update_entry = Mock()
+    flow._current_dog = flow._dogs[0]
+    dog_id = flow._current_dog[DOG_ID_FIELD]
+
+    data_manager = SimpleNamespace(
+        async_update_dog_data=AsyncMock(side_effect=RuntimeError("storage offline"))
+    )
+    runtime = SimpleNamespace(
+        data_manager=data_manager,
+        performance_stats={},
+        error_history=[],
+    )
+
+    user_input = {
+        CONF_DOOR_SENSOR: "binary_sensor.front_door",
+        "walk_detection_timeout": 60,
+        "minimum_walk_duration": 90,
+        "maximum_walk_duration": 3600,
+        "door_closed_delay": 30,
+        "require_confirmation": True,
+        "auto_end_walks": False,
+        "confidence_threshold": 0.75,
+    }
+
+    failure_timestamp = datetime(2024, 1, 1, tzinfo=UTC)
+
+    with (
+        patch(
+            "custom_components.pawcontrol.options_flow.get_runtime_data",
+            return_value=runtime,
+        ),
+        patch(
+            "custom_components.pawcontrol.options_flow.async_create_issue",
+            new_callable=AsyncMock,
+        ) as create_issue,
+        patch(
+            "custom_components.pawcontrol.telemetry.dt_util.utcnow",
+            return_value=failure_timestamp,
+        ),
+    ):
+        result = await flow.async_step_configure_door_sensor(user_input)
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"]["base"] == "door_sensor_update_failed"
+
+    flow.hass.config_entries.async_update_entry.assert_not_called()
+    data_manager.async_update_dog_data.assert_awaited_once_with(dog_id, ANY)
+
+    create_issue.assert_awaited_once()
+    args, kwargs = create_issue.call_args
+    assert args[2] == f"{mock_config_entry.entry_id}_door_sensor_{dog_id}"
+    assert args[3] == "door_sensor_persistence_failure"
+    payload = args[4]
+    assert payload["dog_id"] == dog_id
+    assert payload["door_sensor"] == "binary_sensor.front_door"
+    assert payload["timestamp"] == failure_timestamp.isoformat()
+    assert kwargs["severity"] == "error"
+
+    performance_stats = runtime.performance_stats
+    assert performance_stats["door_sensor_failure_count"] == 1
+    failures = performance_stats["door_sensor_failures"]
+    assert failures[0]["dog_id"] == dog_id
+    assert failures[0]["error"] == "storage offline"
+    assert runtime.error_history[-1]["source"] == "door_sensor_persistence"
 
 
 @pytest.mark.asyncio

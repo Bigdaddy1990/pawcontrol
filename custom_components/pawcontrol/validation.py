@@ -144,8 +144,9 @@ def _coerce_int(field: str, value: Any) -> int:
         return value
 
     if isinstance(value, Real):
-        if float(value).is_integer():
-            return int(value)
+        float_value = float(value)
+        if float_value.is_integer():
+            return int(float_value)
         raise ValidationError(
             field,
             value,
@@ -885,7 +886,7 @@ class InputValidator:
 
 def convert_validation_error_to_service_error(
     error: ValidationError,
-) -> ServiceValidationError:
+) -> Exception:
     """Convert ValidationError to Home Assistant ServiceValidationError.
 
     Args:

@@ -501,13 +501,8 @@ class PawControlBirthdateDate(PawControlDateBase):
 
         # Update dog profile if data manager is available
         try:
-            runtime_data = (
-                get_runtime_data(self.hass, self.coordinator.config_entry)
-                if self.hass
-                else None
-            )
-            data_manager = getattr(runtime_data, "data_manager", None)
-            if data_manager:
+            data_manager = self._get_data_manager()
+            if data_manager is not None:
                 await data_manager.async_update_dog_profile(
                     self._dog_id, {"birthdate": value.isoformat()}
                 )
@@ -581,7 +576,7 @@ class PawControlLastVetVisitDate(PawControlDateBase):
 
         # Log vet visit in health records
         try:
-            await self.hass.services.async_call(
+            if not await self._async_call_hass_service(
                 DOMAIN,
                 "log_health_data",
                 {
@@ -589,7 +584,8 @@ class PawControlLastVetVisitDate(PawControlDateBase):
                     "note": f"Vet visit recorded for {value.strftime('%Y-%m-%d')}",
                     "health_status": "checked",
                 },
-            )
+            ):
+                return
         except Exception as err:
             _LOGGER.debug("Could not log vet visit: %s", err)
             raise
@@ -679,7 +675,7 @@ class PawControlVaccinationDate(PawControlDateBase):
 
         # Log vaccination in health records
         try:
-            await self.hass.services.async_call(
+            if not await self._async_call_hass_service(
                 DOMAIN,
                 "log_health_data",
                 {
@@ -687,7 +683,8 @@ class PawControlVaccinationDate(PawControlDateBase):
                     "note": f"Vaccination recorded for {value.strftime('%Y-%m-%d')}",
                     "health_status": "vaccinated",
                 },
-            )
+            ):
+                return
         except Exception as err:
             _LOGGER.debug("Could not log vaccination: %s", err)
             raise
@@ -720,7 +717,7 @@ class PawControlDewormingDate(PawControlDateBase):
 
         # Log deworming in health records
         try:
-            await self.hass.services.async_call(
+            if not await self._async_call_hass_service(
                 DOMAIN,
                 "log_health_data",
                 {
@@ -728,7 +725,8 @@ class PawControlDewormingDate(PawControlDateBase):
                     "note": f"Deworming treatment recorded for {value.strftime('%Y-%m-%d')}",
                     "health_status": "treated",
                 },
-            )
+            ):
+                return
         except Exception as err:
             _LOGGER.debug("Could not log deworming: %s", err)
             raise

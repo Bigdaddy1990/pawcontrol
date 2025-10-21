@@ -10,9 +10,9 @@ automation flows without manual YAML editing.
 from __future__ import annotations
 
 import logging
-from collections.abc import Collection, Sequence
+from collections.abc import Collection, Iterable, Sequence
 from datetime import datetime
-from typing import Any, Final
+from typing import Any, Final, cast
 
 from homeassistant.components.script import DOMAIN as SCRIPT_DOMAIN
 from homeassistant.components.script import ScriptEntity
@@ -87,9 +87,13 @@ class _ScriptManagerCacheMonitor:
         self,
     ) -> tuple[dict[str, Any], dict[str, Any], CacheDiagnosticsMetadata]:
         manager = self._manager
-        created_entities = getattr(manager, "_created_entities", set())
-        dog_scripts = getattr(manager, "_dog_scripts", {})
-        last_generation = getattr(manager, "_last_generation", None)
+        created_entities = cast(
+            Iterable[str], getattr(manager, "_created_entities", set())
+        )
+        dog_scripts = cast(dict[str, Iterable[str]], getattr(manager, "_dog_scripts", {}))
+        last_generation = cast(
+            datetime | None, getattr(manager, "_last_generation", None)
+        )
 
         created_list = sorted(
             entity for entity in created_entities if isinstance(entity, str)
@@ -213,6 +217,10 @@ class PawControlScriptManager:
             return {}
 
         component = self._get_component()
+        if component is None:
+            # ``_get_component`` raises when the script integration is missing, but keep
+            # the guard so the type checker understands ``component`` is non-null.
+            return {}
         registry = er.async_get(self._hass)
         created: dict[str, list[str]] = {}
         processed_dogs: set[str] = set()
@@ -228,7 +236,8 @@ class PawControlScriptManager:
                 continue
 
             processed_dogs.add(dog_id)
-            dog_name = dog.get(CONF_DOG_NAME) or dog_id
+            raw_name = dog.get(CONF_DOG_NAME)
+            dog_name = raw_name if isinstance(raw_name, str) and raw_name.strip() else dog_id
             slug = slugify(dog_id)
 
             existing_for_dog = set(self._dog_scripts.get(dog_id, []))

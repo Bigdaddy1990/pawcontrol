@@ -33,6 +33,7 @@ from .feeding_translations import build_feeding_compliance_notification
 from .http_client import ensure_shared_client_session
 from .person_entity_manager import PersonEntityManager
 from .resilience import CircuitBreakerConfig, ResilienceManager
+from .utils import async_call_hass_service_if_available
 from .webhook_security import WebhookSecurityError, WebhookSecurityManager
 
 if TYPE_CHECKING:
@@ -1466,10 +1467,13 @@ class PawControlNotificationManager:
             "message": notification.message,
         }
 
-        await self._hass.services.async_call(
+        await async_call_hass_service_if_available(
+            self._hass,
             "persistent_notification",
             "create",
             service_data,
+            description=f"notification {notification.id}",
+            logger=_LOGGER,
         )
 
     async def _send_mobile_notification(self, notification: NotificationEvent) -> None:
@@ -1510,10 +1514,15 @@ class PawControlNotificationManager:
                             },
                         ]
 
-                    await self._hass.services.async_call(
+                    await async_call_hass_service_if_available(
+                        self._hass,
                         "notify",
                         service_name,
                         service_data,
+                        description=(
+                            f"mobile notification {notification.id} for {service_name}"
+                        ),
+                        logger=_LOGGER,
                     )
 
                     _LOGGER.debug("Sent mobile notification to %s", service_name)
@@ -1559,10 +1568,15 @@ class PawControlNotificationManager:
                     },
                 ]
 
-            await self._hass.services.async_call(
+            await async_call_hass_service_if_available(
+                self._hass,
                 "notify",
                 mobile_service,
                 fallback_service_data,
+                description=(
+                    f"fallback notification {notification.id} for {mobile_service}"
+                ),
+                logger=_LOGGER,
             )
 
     async def _send_tts_notification(self, notification: NotificationEvent) -> None:
@@ -1578,13 +1592,16 @@ class PawControlNotificationManager:
         # Combine title and message for TTS
         tts_message = f"{notification.title}. {notification.message}"
 
-        await self._hass.services.async_call(
+        await async_call_hass_service_if_available(
+            self._hass,
             "tts",
             tts_service,
             {
                 "message": tts_message,
                 "entity_id": tts_entity,
             },
+            description=f"tts notification {notification.id}",
+            logger=_LOGGER,
         )
 
     async def _send_media_player_notification(
@@ -1600,7 +1617,8 @@ class PawControlNotificationManager:
 
         announcement = f"PawControl Alert: {notification.title}. {notification.message}"
 
-        await self._hass.services.async_call(
+        await async_call_hass_service_if_available(
+            self._hass,
             "media_player",
             "play_media",
             {
@@ -1608,6 +1626,10 @@ class PawControlNotificationManager:
                 "media_content_id": f"media-source://tts/tts.google_translate_say?message={announcement}",
                 "media_content_type": "music",
             },
+            description=(
+                f"media player announcement {notification.id} on {media_player}"
+            ),
+            logger=_LOGGER,
         )
 
     async def _send_slack_notification(self, notification: NotificationEvent) -> None:
@@ -1630,10 +1652,13 @@ class PawControlNotificationManager:
             },
         }
 
-        await self._hass.services.async_call(
+        await async_call_hass_service_if_available(
+            self._hass,
             "notify",
             slack_service,
             service_data,
+            description=f"slack notification {notification.id}",
+            logger=_LOGGER,
         )
 
     async def _send_discord_notification(self, notification: NotificationEvent) -> None:
@@ -1661,10 +1686,13 @@ class PawControlNotificationManager:
             },
         }
 
-        await self._hass.services.async_call(
+        await async_call_hass_service_if_available(
+            self._hass,
             "notify",
             discord_service,
             service_data,
+            description=f"discord notification {notification.id}",
+            logger=_LOGGER,
         )
 
     def _get_color_for_priority(self, priority: NotificationPriority) -> int:
@@ -1759,11 +1787,16 @@ class PawControlNotificationManager:
             # Dismiss persistent notification if it exists
             if NotificationChannel.PERSISTENT in notification.sent_to:
                 try:
-                    await self._hass.services.async_call(
+                    executed = await async_call_hass_service_if_available(
+                        self._hass,
                         "persistent_notification",
                         "dismiss",
                         {"notification_id": f"{self._entry_id}_{notification_id}"},
+                        description=f"dismiss notification {notification_id}",
+                        logger=_LOGGER,
                     )
+                    if not executed:
+                        return True
                 except Exception as err:
                     _LOGGER.warning(
                         "Failed to dismiss persistent notification: %s", err

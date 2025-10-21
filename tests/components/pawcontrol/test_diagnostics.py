@@ -149,7 +149,71 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
         entity_profile="standard",
         dogs=entry.data[CONF_DOGS],
     )
-    runtime.performance_stats = {"api_token": "runtime-secret"}
+    runtime.performance_stats = {
+        "api_token": "runtime-secret",
+        "door_sensor_failures": [
+            {
+                "dog_id": "doggo",
+                "dog_name": "Doggo",
+                "door_sensor": "binary_sensor.front_door",
+                "error": "storage offline",
+                "recorded_at": "2024-01-01T00:00:00+00:00",
+            }
+        ],
+        "door_sensor_failure_count": 1,
+        "last_door_sensor_failure": {
+            "dog_id": "doggo",
+            "dog_name": "Doggo",
+            "door_sensor": "binary_sensor.front_door",
+            "error": "storage offline",
+            "recorded_at": "2024-01-01T00:00:00+00:00",
+        },
+        "service_guard_metrics": {
+            "executed": 1,
+            "skipped": 1,
+            "reasons": {"hass_missing": 1},
+            "last_results": [
+                {
+                    "domain": "notify",
+                    "service": "mobile_app_front_door",
+                    "executed": False,
+                    "reason": "hass_missing",
+                    "description": "notify helper skipped",
+                }
+            ],
+        },
+        "service_results": [
+            {
+                "service": "notify_garden_alert",
+                "status": "error",
+                "guard": {
+                    "executed": 0,
+                    "skipped": 1,
+                    "reasons": {"hass_missing": 1},
+                    "results": [
+                        {
+                            "domain": "notify",
+                            "service": "mobile_app_front_door",
+                            "executed": False,
+                            "reason": "hass_missing",
+                        }
+                    ],
+                },
+                "diagnostics": {
+                    "metadata": {"context_id": "abc123"},
+                },
+            }
+        ],
+        "last_service_result": {
+            "service": "notify_garden_alert",
+            "status": "error",
+            "guard": {
+                "executed": 0,
+                "skipped": 1,
+                "reasons": {"hass_missing": 1},
+            },
+        },
+    }
     entry.runtime_data = runtime
 
     hass.services.async_register(DOMAIN, "sync", lambda call: None)
@@ -188,11 +252,33 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     cache_stats = metrics["cache_diagnostics"]["notification_cache"]["stats"]
     assert cache_stats["entries"] == 2
 
+    door_sensor = diagnostics["door_sensor"]
+    assert door_sensor["available"] is False
+    telemetry = door_sensor["telemetry"]
+    assert telemetry["failure_count"] == 1
+    assert telemetry["failures"][0]["door_sensor"] == "binary_sensor.front_door"
+
     performance_metrics = diagnostics["performance_metrics"]
     assert "schema_version" not in performance_metrics
     rejection_metrics = performance_metrics["rejection_metrics"]
     assert rejection_metrics["schema_version"] == 2
     assert rejection_metrics["rejected_call_count"] == 0
+
+    service_execution = diagnostics["service_execution"]
+    assert service_execution["available"] is True
+    guard_metrics = service_execution["guard_metrics"]
+    assert guard_metrics["executed"] == 1
+    assert guard_metrics["skipped"] == 1
+    assert guard_metrics["reasons"]["hass_missing"] == 1
+    last_guard = guard_metrics["last_results"][0]
+    assert last_guard["service"] == "mobile_app_front_door"
+    service_results = service_execution["service_results"]
+    assert service_results[0]["service"] == "notify_garden_alert"
+    assert service_results[0]["diagnostics"]["metadata"]["context_id"] == "abc123"
+    assert (
+        service_execution["last_service_result"]["guard"]["reasons"]["hass_missing"]
+        == 1
+    )
     assert rejection_metrics["rejection_breaker_count"] == 0
     stats_block = performance_metrics["statistics"]["rejection_metrics"]
     assert stats_block["schema_version"] == 2

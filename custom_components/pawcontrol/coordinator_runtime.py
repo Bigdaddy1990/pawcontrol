@@ -6,7 +6,7 @@ import asyncio
 import logging
 import time
 from collections import deque
-from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from statistics import fmean
@@ -15,16 +15,16 @@ from typing import Any, cast
 from .compat import ConfigEntryAuthFailed
 
 try:  # pragma: no cover - exercised when Home Assistant provides the helper
-    from homeassistant.helpers.update_coordinator import UpdateFailed
+    from homeassistant.helpers.update_coordinator import (
+        UpdateFailed as _UpdateFailedType,
+    )
 except ImportError:  # pragma: no cover - support legacy naming
     try:
         from homeassistant.helpers.update_coordinator import (
-            CoordinatorUpdateFailed as UpdateFailed,
+            CoordinatorUpdateFailed as _UpdateFailedType,
         )
     except (ImportError, ModuleNotFoundError):
-
-        class UpdateFailed(RuntimeError):  # noqa: N818 - mirror HA class name
-            """Fallback error used when Home Assistant isn't available."""
+        _UpdateFailedType = cast(type[Exception], RuntimeError)
 
 
 try:  # pragma: no cover - prefer Home Assistant's timezone helpers when available
@@ -44,9 +44,17 @@ from .coordinator_support import CoordinatorMetrics, DogConfigRegistry
 from .exceptions import GPSUnavailableError, NetworkError, ValidationError
 from .module_adapters import CoordinatorModuleAdapters
 from .resilience import ResilienceManager, RetryConfig
-from .types import ModuleAdapterPayload, ensure_dog_modules_mapping
+from .types import (
+    CoordinatorDataPayload,
+    CoordinatorDogData,
+    CoordinatorModuleTask,
+    CoordinatorTypedModuleName,
+    ModuleAdapterPayload,
+    ensure_dog_modules_mapping,
+)
 
-CoordinatorUpdateFailed = UpdateFailed
+UpdateFailed = _UpdateFailedType
+CoordinatorUpdateFailed = _UpdateFailedType
 
 API_TIMEOUT = 30.0
 
@@ -319,17 +327,17 @@ class CoordinatorRuntime:
     async def execute_cycle(
         self,
         dog_ids: Sequence[str],
-        current_data: Mapping[str, dict[str, Any]],
+        current_data: Mapping[str, CoordinatorDogData],
         *,
-        empty_payload_factory: Callable[[], dict[str, Any]],
-    ) -> tuple[dict[str, dict[str, Any]], RuntimeCycleInfo]:
+        empty_payload_factory: Callable[[], CoordinatorDogData],
+    ) -> tuple[CoordinatorDataPayload, RuntimeCycleInfo]:
         """Fetch data for all configured dogs and return diagnostics."""
 
         if not dog_ids:
             raise CoordinatorUpdateFailed("No valid dogs configured")
 
         self._metrics.start_cycle()
-        all_data: dict[str, dict[str, Any]] = {}
+        all_data: CoordinatorDataPayload = {}
         errors = 0
         cycle_start = time.perf_counter()
 
@@ -404,33 +412,34 @@ class CoordinatorRuntime:
             success=success,
         )
 
-    async def _fetch_dog_data_protected(self, dog_id: str) -> dict[str, Any]:
+    async def _fetch_dog_data_protected(self, dog_id: str) -> CoordinatorDogData:
         async with asyncio.timeout(API_TIMEOUT):
             return await self._fetch_dog_data(dog_id)
 
-    async def _fetch_dog_data(self, dog_id: str) -> dict[str, Any]:
+    async def _fetch_dog_data(self, dog_id: str) -> CoordinatorDogData:
         dog_config = self._registry.get(dog_id)
         if not dog_config:
             raise ValidationError("dog_id", dog_id, "Dog configuration not found")
 
-        payload: dict[str, Any] = {
+        payload: CoordinatorDogData = {
             "dog_info": dog_config,
             "status": "online",
             "last_update": dt_util.utcnow().isoformat(),
         }
 
         modules = ensure_dog_modules_mapping(dog_config)
-        module_tasks: list[tuple[str, Awaitable[ModuleAdapterPayload]]] = (
-            self._modules.build_tasks(dog_id, modules)
+        module_tasks: list[CoordinatorModuleTask] = self._modules.build_tasks(
+            dog_id, modules
         )
         if not module_tasks:
             return payload
 
         results = await asyncio.gather(
-            *(task for _, task in module_tasks), return_exceptions=True
+            *(task.coroutine for task in module_tasks), return_exceptions=True
         )
 
-        for (module_name, _), result in zip(module_tasks, results, strict=True):
+        for task, result in zip(module_tasks, results, strict=True):
+            module_name: CoordinatorTypedModuleName = task.module
             if isinstance(result, GPSUnavailableError):
                 self._logger.debug("GPS unavailable for %s: %s", dog_id, result)
                 payload[module_name] = {

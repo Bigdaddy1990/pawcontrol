@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, cast
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
@@ -44,6 +44,32 @@ from .types import (
     PawControlConfigEntry,
     PawControlRuntimeData,
 )
+
+if TYPE_CHECKING:
+    from .data_manager import PawControlDataManager
+    from .notifications import PawControlNotificationManager
+
+
+def _resolve_data_manager(
+    runtime_data: PawControlRuntimeData | None,
+) -> PawControlDataManager | None:
+    """Return the data manager from the runtime container when available."""
+
+    if runtime_data is None:
+        return None
+
+    return runtime_data.runtime_managers.data_manager
+
+
+def _resolve_notification_manager(
+    runtime_data: PawControlRuntimeData | None,
+) -> PawControlNotificationManager | None:
+    """Return the notification manager stored in runtime managers."""
+
+    if runtime_data is None:
+        return None
+
+    return runtime_data.runtime_managers.notification_manager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -146,6 +172,8 @@ async def async_get_config_entry_diagnostics(
         "data_statistics": await _get_data_statistics(runtime_data, cache_snapshots),
         "error_logs": await _get_recent_errors(entry.entry_id),
         "debug_info": await _get_debug_information(hass, entry),
+        "door_sensor": await _get_door_sensor_diagnostics(runtime_data),
+        "service_execution": await _get_service_execution_diagnostics(runtime_data),
     }
 
     if cache_snapshots is not None:
@@ -245,7 +273,7 @@ def _collect_cache_diagnostics(
     if runtime_data is None:
         return None
 
-    data_manager = getattr(runtime_data, "data_manager", None)
+    data_manager = _resolve_data_manager(runtime_data)
     if data_manager is None:
         return None
 
@@ -401,8 +429,8 @@ async def _get_integration_status(
     """
     if runtime_data:
         coordinator = runtime_data.coordinator
-        data_manager = getattr(runtime_data, "data_manager", None)
-        notification_manager = getattr(runtime_data, "notification_manager", None)
+        data_manager = _resolve_data_manager(runtime_data)
+        notification_manager = _resolve_notification_manager(runtime_data)
     else:
         coordinator = None
         data_manager = None
@@ -691,6 +719,175 @@ async def _get_performance_metrics(
         return {"available": False, "error": str(err)}
 
 
+async def _get_door_sensor_diagnostics(
+    runtime_data: PawControlRuntimeData | None,
+) -> dict[str, Any]:
+    """Summarise door sensor manager status and failure telemetry."""
+
+    if runtime_data is None:
+        return {"available": False}
+
+    manager = getattr(runtime_data, "door_sensor_manager", None)
+    diagnostics: dict[str, Any] = {
+        "available": manager is not None,
+        "manager_type": type(manager).__name__ if manager is not None else None,
+    }
+
+    telemetry: dict[str, Any] = {}
+    performance_stats = getattr(runtime_data, "performance_stats", None)
+    if isinstance(performance_stats, Mapping):
+        failure_count = performance_stats.get("door_sensor_failure_count")
+        if isinstance(failure_count, int | float):
+            telemetry["failure_count"] = int(failure_count)
+
+        last_failure = performance_stats.get("last_door_sensor_failure")
+        if isinstance(last_failure, Mapping):
+            telemetry["last_failure"] = dict(last_failure)
+
+        failures = performance_stats.get("door_sensor_failures")
+        if isinstance(failures, Sequence):
+            serialised_failures = [
+                dict(entry) for entry in failures if isinstance(entry, Mapping)
+            ]
+            if serialised_failures:
+                telemetry["failures"] = serialised_failures
+
+    if telemetry:
+        diagnostics["telemetry"] = telemetry
+
+    if manager is None:
+        return diagnostics
+
+    status_method = getattr(manager, "async_get_detection_status", None)
+    if callable(status_method):
+        try:
+            diagnostics["status"] = await status_method()
+        except Exception as err:  # pragma: no cover - defensive guard
+            _LOGGER.debug("Could not gather door sensor status: %s", err)
+
+    diag_method = getattr(manager, "get_diagnostics", None)
+    if callable(diag_method):
+        try:
+            diagnostics["manager_diagnostics"] = diag_method()
+        except Exception as err:  # pragma: no cover - defensive guard
+            _LOGGER.debug("Could not capture door sensor diagnostics: %s", err)
+
+    return diagnostics
+
+
+async def _get_service_execution_diagnostics(
+    runtime_data: PawControlRuntimeData | None,
+) -> dict[str, Any]:
+    """Summarise guarded Home Assistant service execution telemetry."""
+
+    if runtime_data is None:
+        return {"available": False}
+
+    performance_stats = getattr(runtime_data, "performance_stats", None)
+    if not isinstance(performance_stats, Mapping):
+        return {"available": False}
+
+    diagnostics: dict[str, Any] = {"available": True}
+
+    guard_metrics = performance_stats.get("service_guard_metrics")
+    guard_payload = _normalise_service_guard_metrics(guard_metrics)
+    if guard_payload is not None:
+        diagnostics["guard_metrics"] = guard_payload
+
+    service_results = performance_stats.get("service_results")
+    if isinstance(service_results, Sequence):
+        normalised_results = [
+            cast(dict[str, Any], _normalise_json(dict(result)))
+            for result in service_results
+            if isinstance(result, Mapping)
+        ]
+        if normalised_results:
+            diagnostics["service_results"] = normalised_results
+
+    last_result = performance_stats.get("last_service_result")
+    if isinstance(last_result, Mapping):
+        diagnostics["last_service_result"] = cast(
+            dict[str, Any], _normalise_json(dict(last_result))
+        )
+
+    return diagnostics
+
+
+def _normalise_service_guard_metrics(payload: Any) -> dict[str, Any] | None:
+    """Return a JSON-safe snapshot of aggregated guard metrics when available."""
+
+    if not isinstance(payload, Mapping):
+        return None
+
+    executed = _coerce_int(payload.get("executed"))
+    skipped = _coerce_int(payload.get("skipped"))
+
+    reasons_payload: dict[str, int] | None = None
+    reasons = payload.get("reasons")
+    if isinstance(reasons, Mapping):
+        serialised_reasons: dict[str, int] = {}
+        for reason, count in reasons.items():
+            coerced = _coerce_int(count)
+            if coerced:
+                serialised_reasons[str(reason)] = coerced
+        if serialised_reasons:
+            reasons_payload = serialised_reasons
+
+    last_results_payload: list[dict[str, Any]] | None = None
+    last_results = payload.get("last_results")
+    if isinstance(last_results, Sequence) and not isinstance(
+        last_results, str | bytes | bytearray
+    ):
+        serialised_results = [
+            cast(dict[str, Any], _normalise_json(dict(entry)))
+            for entry in last_results
+            if isinstance(entry, Mapping)
+        ]
+        if serialised_results:
+            last_results_payload = serialised_results
+
+    if (
+        executed is None
+        and skipped is None
+        and reasons_payload is None
+        and last_results_payload is None
+    ):
+        return None
+
+    guard_metrics: dict[str, Any] = {}
+    if executed is not None:
+        guard_metrics["executed"] = executed
+    if skipped is not None:
+        guard_metrics["skipped"] = skipped
+    if reasons_payload is not None:
+        guard_metrics["reasons"] = reasons_payload
+    if last_results_payload is not None:
+        guard_metrics["last_results"] = last_results_payload
+
+    return guard_metrics
+
+
+def _coerce_int(value: Any) -> int | None:
+    """Convert ``value`` into an integer when possible."""
+
+    if isinstance(value, bool):
+        return int(value)
+
+    if isinstance(value, int):
+        return value
+
+    if isinstance(value, float):
+        return int(value)
+
+    if isinstance(value, str):
+        try:
+            return int(value.strip())
+        except ValueError:
+            return None
+
+    return None
+
+
 async def _get_data_statistics(
     runtime_data: PawControlRuntimeData | None,
     cache_snapshots: CacheDiagnosticsMap | None,
@@ -706,7 +903,7 @@ async def _get_data_statistics(
     if runtime_data is None:
         return {"available": False}
 
-    data_manager = getattr(runtime_data, "data_manager", None)
+    data_manager = _resolve_data_manager(runtime_data)
     if data_manager is None:
         return {"available": False}
 

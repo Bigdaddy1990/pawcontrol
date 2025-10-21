@@ -14,7 +14,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from collections.abc import Awaitable, Callable, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from functools import partial
 from pathlib import Path
 from typing import Any, cast
@@ -49,6 +49,7 @@ from .types import (
     DOG_ID_FIELD,
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
+    CoordinatorStatisticsPayload,
     DogConfigData,
     RawDogConfig,
     coerce_dog_modules_config,
@@ -139,6 +140,8 @@ class DashboardRenderer:
         self,
         dogs_config: Sequence[RawDogConfig],
         options: dict[str, Any] | None = None,
+        *,
+        coordinator_statistics: CoordinatorStatisticsPayload | Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Render main dashboard configuration.
 
@@ -160,7 +163,10 @@ class DashboardRenderer:
         job = RenderJob(
             job_id=self._generate_job_id(),
             job_type="main_dashboard",
-            config={"dogs": typed_dogs},
+            config={
+                "dogs": typed_dogs,
+                "coordinator_statistics": coordinator_statistics,
+            },
             options=options,
         )
 
@@ -270,6 +276,10 @@ class DashboardRenderer:
             )
             return {"views": []}
         options = job.options or {}
+        coordinator_statistics = cast(
+            CoordinatorStatisticsPayload | Mapping[str, Any] | None,
+            job.config.get("coordinator_statistics"),
+        )
 
         views = []
 
@@ -283,7 +293,11 @@ class DashboardRenderer:
 
         # Statistics view if enabled
         if options.get("show_statistics", True):
-            stats_view = await self._render_statistics_view(dogs_config, options)
+            stats_view = await self._render_statistics_view(
+                dogs_config,
+                options,
+                coordinator_statistics=coordinator_statistics,
+            )
             views.append(stats_view)
 
         # Settings view if enabled
@@ -681,7 +695,11 @@ class DashboardRenderer:
             return None
 
     async def _render_statistics_view(
-        self, dogs_config: Sequence[DogConfigData], options: dict[str, Any]
+        self,
+        dogs_config: Sequence[DogConfigData],
+        options: dict[str, Any],
+        *,
+        coordinator_statistics: CoordinatorStatisticsPayload | Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Render statistics view.
 
@@ -693,7 +711,9 @@ class DashboardRenderer:
             Statistics view configuration
         """
         cards = await self.stats_generator.generate_statistics_cards(
-            dogs_config, options
+            dogs_config,
+            options,
+            coordinator_statistics=coordinator_statistics,
         )
 
         return {

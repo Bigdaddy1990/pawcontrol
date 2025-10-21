@@ -33,6 +33,7 @@ class _DummyCoordinator:
             dog_id: {"gps": {}, "notifications": {}}
         }
         self.last_update_success = True
+        self.runtime_managers = runtime_data.runtime_managers
 
     def async_add_listener(
         self, _update_callback

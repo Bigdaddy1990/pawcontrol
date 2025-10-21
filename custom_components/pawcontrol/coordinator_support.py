@@ -7,7 +7,7 @@ import sys
 from collections import deque
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, Protocol, cast, runtime_checkable
 
 from .const import (
@@ -17,7 +17,11 @@ from .const import (
     CONF_MODULES,
     MAX_IDLE_POLL_INTERVAL,
     MAX_POLLING_INTERVAL_SECONDS,
+    MODULE_FEEDING,
+    MODULE_GARDEN,
     MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
     MODULE_WEATHER,
     UPDATE_INTERVALS,
 )
@@ -27,15 +31,33 @@ from .types import (
     DOG_NAME_FIELD,
     CacheRepairAggregate,
     CacheRepairIssue,
+    CoordinatorDogData,
+    CoordinatorModuleTask,
     CoordinatorRepairsSummary,
+    CoordinatorRuntimeManagers,
     CoordinatorRuntimeStatisticsPayload,
     CoordinatorStatisticsPayload,
     DogConfigData,
+    DogModulesMapping,
+    ModuleCacheMetrics,
     PawControlConfigEntry,
+    coerce_dog_modules_config,
     ensure_dog_config_data,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+_STATUS_DEFAULT_MODULES: frozenset[str] = frozenset(
+    {
+        MODULE_FEEDING,
+        MODULE_GARDEN,
+        MODULE_GPS,
+        MODULE_HEALTH,
+        MODULE_WALK,
+        MODULE_WEATHER,
+        "geofencing",
+    }
+)
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -190,6 +212,20 @@ class CoordinatorModuleAdapter(Protocol):
     def detach_managers(self) -> None:
         """Detach previously bound runtime managers."""
 
+    def build_tasks(
+        self, dog_id: str, modules: DogModulesMapping
+    ) -> list[CoordinatorModuleTask]:
+        """Return coroutine tasks for each enabled module."""
+
+    def cleanup_expired(self, now: datetime) -> int:
+        """Expire cached module payloads and return the eviction count."""
+
+    def clear_caches(self) -> None:
+        """Clear all module caches, typically during manual refreshes."""
+
+    def cache_metrics(self) -> ModuleCacheMetrics:
+        """Return aggregate cache metrics across all module adapters."""
+
 
 @dataclass(slots=True)
 class DogConfigRegistry:
@@ -274,8 +310,11 @@ class DogConfigRegistry:
         config = self.get(dog_id)
         if not config:
             return frozenset()
-        modules = config.get(CONF_MODULES, {})
-        return frozenset(module for module, enabled in modules.items() if bool(enabled))
+        modules_payload = cast(Mapping[str, Any] | None, config.get(CONF_MODULES))
+        modules = coerce_dog_modules_config(modules_payload)
+        return frozenset(
+            module for module, enabled in modules.items() if bool(enabled)
+        )
 
     def has_module(self, module: str) -> bool:
         """Return True if any dog has the requested module enabled."""
@@ -288,16 +327,28 @@ class DogConfigRegistry:
             total += len(self.enabled_modules(dog_id))
         return total
 
-    def empty_payload(self) -> dict[str, Any]:
+    def empty_payload(self) -> CoordinatorDogData:
         """Return an empty coordinator payload for a dog."""
+
         payload: dict[str, Any] = {
-            "dog_info": {},
+            "dog_info": cast(
+                DogConfigData,
+                {
+                    DOG_ID_FIELD: "",
+                    DOG_NAME_FIELD: "",
+                },
+            ),
             "status": "unknown",
             "last_update": None,
         }
+
         for module in sorted(ALL_MODULES):
-            payload[module] = {}
-        return payload
+            if module in _STATUS_DEFAULT_MODULES:
+                payload[module] = {"status": "unknown"}
+            else:
+                payload[module] = {}
+
+        return cast(CoordinatorDogData, payload)
 
     def calculate_update_interval(self, options: Mapping[str, Any]) -> int:
         """Derive the polling interval from configuration options."""
@@ -497,7 +548,7 @@ class CoordinatorMetrics:
     def runtime_statistics(
         self,
         *,
-        cache_metrics: Any,
+        cache_metrics: ModuleCacheMetrics,
         total_dogs: int,
         last_update: Any,
         interval: timedelta | None,
@@ -505,12 +556,7 @@ class CoordinatorMetrics:
     ) -> CoordinatorRuntimeStatisticsPayload:
         """Return runtime statistics derived from cached metrics."""
         update_interval = (interval or timedelta()).total_seconds()
-        raw_hit_rate = getattr(cache_metrics, "hit_rate", 0.0)
-        try:
-            cache_hit_rate = float(raw_hit_rate)
-        except (TypeError, ValueError):
-            cache_hit_rate = 0.0
-        cache_hit_rate = min(max(cache_hit_rate, 0.0), 100.0)
+        cache_hit_rate = max(min(cache_metrics.hit_rate, 100.0), 0.0)
         payload: CoordinatorRuntimeStatisticsPayload = {
             "update_counts": {
                 "total": self.update_count,
@@ -529,9 +575,9 @@ class CoordinatorMetrics:
                 ),
             },
             "cache_performance": {
-                "hits": getattr(cache_metrics, "hits", 0),
-                "misses": getattr(cache_metrics, "misses", 0),
-                "entries": getattr(cache_metrics, "entries", 0),
+                "hits": cache_metrics.hits,
+                "misses": cache_metrics.misses,
+                "entries": cache_metrics.entries,
                 "hit_rate": cache_hit_rate,
             },
         }
@@ -543,31 +589,28 @@ class CoordinatorMetrics:
         return payload
 
 
-MANAGER_ATTRIBUTES: tuple[str, ...] = (
-    "data_manager",
-    "feeding_manager",
-    "garden_manager",
-    "geofencing_manager",
-    "gps_geofence_manager",
-    "notification_manager",
-    "walk_manager",
-    "weather_health_manager",
-)
+MANAGER_ATTRIBUTES: tuple[str, ...] = CoordinatorRuntimeManagers.attribute_names()
 
 
 def bind_runtime_managers(
     coordinator: CoordinatorBindingTarget,
     modules: CoordinatorModuleAdapter,
-    managers: Mapping[str, Any],
+    managers: CoordinatorRuntimeManagers,
 ) -> None:
     """Bind runtime managers to the coordinator and adapters."""
 
-    data_manager = managers.get("data_manager")
-    for attr in MANAGER_ATTRIBUTES:
-        setattr(coordinator, attr, managers.get(attr))
+    coordinator.data_manager = managers.data_manager
+    coordinator.feeding_manager = managers.feeding_manager
+    coordinator.garden_manager = managers.garden_manager
+    coordinator.geofencing_manager = managers.geofencing_manager
+    coordinator.gps_geofence_manager = managers.gps_geofence_manager
+    coordinator.notification_manager = managers.notification_manager
+    coordinator.walk_manager = managers.walk_manager
+    coordinator.weather_health_manager = managers.weather_health_manager
 
-    gps_manager = managers.get("gps_geofence_manager")
-    notification_manager = managers.get("notification_manager")
+    data_manager = managers.data_manager
+    gps_manager = managers.gps_geofence_manager
+    notification_manager = managers.notification_manager
     if (
         gps_manager
         and notification_manager
@@ -576,12 +619,12 @@ def bind_runtime_managers(
         gps_manager.set_notification_manager(notification_manager)
 
     modules.attach_managers(
-        data_manager=managers.get("data_manager"),
-        feeding_manager=managers.get("feeding_manager"),
-        walk_manager=managers.get("walk_manager"),
-        gps_geofence_manager=managers.get("gps_geofence_manager"),
-        weather_health_manager=managers.get("weather_health_manager"),
-        garden_manager=managers.get("garden_manager"),
+        data_manager=managers.data_manager,
+        feeding_manager=managers.feeding_manager,
+        walk_manager=managers.walk_manager,
+        gps_geofence_manager=managers.gps_geofence_manager,
+        weather_health_manager=managers.weather_health_manager,
+        garden_manager=managers.garden_manager,
     )
 
     if (

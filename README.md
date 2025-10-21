@@ -284,6 +284,8 @@ Luna:
 - **Minimal**: Basic functionality, low resource usage
 - **Balanced**: Optimal performance/feature balance (recommended)
 - **Full**: All features enabled, higher resource usage
+- **Legacy alias**: Existing `standard` values are automatically normalised to `balanced` so
+  upgrades keep the recommended defaults without manual migration.【F:custom_components/pawcontrol/types.py†L456-L509】【F:tests/unit/test_types_performance_mode.py†L1-L35】
 
 ### External Integrations
 
@@ -719,6 +721,26 @@ Components Protected:
   - Weather data fetching (2 retries)
 ```
 
+**Guarded Service Telemetry**:
+```yaml
+# Aggregated execution metrics for every Home Assistant service call
+Telemetry Model:
+  ServiceGuardResult:
+    domain: notify
+    service: send_message
+    executed: false
+    reason: missing_instance
+    description: "Emergency alert (hass offline)"
+
+Storage & Diagnostics:
+  - Guard captures aggregate executed/skipped counters
+  - `_record_service_result` persists summaries to coordinator telemetry
+  - Diagnostics export guard histories for support teams
+```
+
+PawControl records a `ServiceGuardResult` for every guarded Home Assistant service invocation and aggregates them into a `ServiceGuardSummary`, ensuring diagnostics and resilience dashboards highlight both successful executions and guard-triggered skips.【F:custom_components/pawcontrol/service_guard.py†L1-L46】【F:custom_components/pawcontrol/utils.py†L187-L264】【F:custom_components/pawcontrol/services.py†L384-L473】
+Diagnostics export the aggregated counters under `service_execution.guard_metrics` alongside the most recent guard payload in `service_execution.last_service_result`, giving support teams instant visibility into why a service call executed or skipped without enabling debug logging.【F:custom_components/pawcontrol/diagnostics.py†L780-L867】【F:tests/components/pawcontrol/test_diagnostics.py†L129-L203】
+
 **Component Coverage**:
 
 | Component | Circuit Breaker | Retry Logic | Fallback |
@@ -751,6 +773,12 @@ service: pawcontrol.get_statistics
   }
 }
 ```
+
+- The auto-generated Lovelace statistics view now ships with a **Resilience metrics**
+  markdown summary that lists rejected call counts, breaker totals, rejection
+  rates, and the last rejecting breaker straight from the coordinator
+  statistics payload so Platinum dashboard packs surface the telemetry without
+  bespoke templates.【F:custom_components/pawcontrol/dashboard_templates.py†L1334-L1427】【F:tests/components/pawcontrol/test_dashboard_renderer.py†L56-L140】
 
 **Performance Impact**:
 - Overhead: < 2ms per operation
@@ -1119,6 +1147,7 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) for 
 
 **🏆 Home Assistant Quality Scale**: **Platinum uplift in progress**
 - `custom_components/pawcontrol/quality_scale.yaml` and `docs/compliance_gap_analysis.md` track each Platinum rule with evidence, exemption status, and remediation owners.
+- ⚠️ Outstanding blockers – Device removal coverage, brand asset publication, automated coverage uploads, strict typing remediation, and Lovelace resilience validation remain open before the manifest can advertise Platinum.【F:docs/compliance_gap_analysis.md†L16-L41】
 - Runtime data, repairs, diagnostics, and config-entry reload safety are actively validated by the coordinator and entity suites under `tests/`.
 - `docs/markdown_compliance_review.md` details documentation obligations (installation, configuration, troubleshooting, removal) and maps them to the maintained Markdown files.
 

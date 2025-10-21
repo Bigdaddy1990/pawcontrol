@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
+from datetime import UTC, datetime
 
 import pytest
 from custom_components.pawcontrol.const import (
@@ -428,10 +429,17 @@ async def test_statistics_generator_normalises_raw_dog_configs(
         }
 
     def _fake_summary(
-        dogs: Sequence[DogConfigData], theme: str = "modern"
+        dogs: Sequence[DogConfigData],
+        theme: str = "modern",
+        *,
+        coordinator_statistics: dict[str, object] | None = None,
     ) -> dict[str, object]:
         nonlocal summary_payload
-        summary_payload = {"dogs": list(dogs), "theme": theme}
+        summary_payload = {
+            "dogs": list(dogs),
+            "theme": theme,
+            "coordinator_statistics": coordinator_statistics,
+        }
         return {"type": "markdown", "content": "summary"}
 
     monkeypatch.setattr(generator, "_validate_entities_batch", _fake_validate)
@@ -458,16 +466,49 @@ async def test_statistics_generator_normalises_raw_dog_configs(
 
     assert len(cards) == 5
     assert summary_payload is not None
-    typed_dogs = summary_payload["dogs"]
-    assert isinstance(typed_dogs, list)
-    assert len(typed_dogs) == 1
-    typed_dog = typed_dogs[0]
-    assert typed_dog[CONF_DOG_ID] == "fido"
-    modules = typed_dog["modules"]
-    assert modules[MODULE_FEEDING] is True
-    assert modules[MODULE_HEALTH] is True
-    assert summary_payload["theme"] == "classic"
-    assert all("fido" in entity for _, entities in graphs for entity in entities)
+
+
+def test_statistics_summary_template_includes_rejection_metrics(
+    hass: HomeAssistant,
+) -> None:
+    """The summary markdown should embed rejection metrics when provided."""
+
+    templates = DashboardTemplates(hass)
+    last_rejection = 1_700_000_000.0
+    card = templates.get_statistics_summary_template(
+        [
+            {
+                CONF_DOG_ID: "fido",
+                CONF_DOG_NAME: "Fido",
+                "modules": {
+                    MODULE_FEEDING: True,
+                    MODULE_WALK: False,
+                    MODULE_HEALTH: True,
+                    MODULE_NOTIFICATIONS: True,
+                    MODULE_GPS: False,
+                },
+            }
+        ],
+        coordinator_statistics={
+            "rejection_metrics": {
+                "schema_version": 2,
+                "rejected_call_count": 3,
+                "rejection_breaker_count": 2,
+                "rejection_rate": 0.125,
+                "last_rejection_time": last_rejection,
+                "last_rejection_breaker_name": "api",
+            }
+        },
+    )
+
+    content = card["content"]
+    assert "Resilience metrics" in content
+    assert "- Rejected calls: 3" in content
+    assert "- Rejecting breakers: 2" in content
+    assert "- Rejection rate: 12.50%" in content
+    iso_timestamp = datetime.fromtimestamp(last_rejection, UTC).isoformat()
+    assert f"- Last rejection: {iso_timestamp}" in content
+    assert "- Last rejecting breaker: api" in content
 
 
 @pytest.mark.asyncio

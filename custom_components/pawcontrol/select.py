@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Mapping
 from typing import Any, cast
 
 from homeassistant.components.select import SelectEntity
@@ -27,6 +28,7 @@ from .const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOG_SIZE,
+    DEFAULT_PERFORMANCE_MODE,
     DOG_SIZES,
     FOOD_TYPES,
     GPS_SOURCES,
@@ -433,18 +435,31 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
         """Return the data manager for persistence if available."""
 
         runtime_data = self._get_runtime_data()
-        if runtime_data and getattr(runtime_data, "data_manager", None):
-            return runtime_data.data_manager
+        if runtime_data is not None:
+            return runtime_data.runtime_managers.data_manager
 
         entry_data = self._get_domain_entry_data()
-        return entry_data.get("data_manager")
+        managers = entry_data.get("runtime_managers")
+        if hasattr(managers, "data_manager"):
+            return managers.data_manager
+        if isinstance(managers, dict):
+            return managers.get("data_manager")
+        return None
 
     def _get_current_gps_config(self) -> dict[str, Any]:
         """Return the currently stored GPS configuration."""
 
-        dog_data = self.coordinator.get_dog_data(self._dog_id) or {}
-        gps_data = dog_data.get("gps", {})
+        dog_data = self.coordinator.get_dog_data(self._dog_id)
+        if not dog_data:
+            return {}
+
+        gps_data = dog_data.get("gps")
+        if not isinstance(gps_data, Mapping):
+            return {}
+
         config = gps_data.get("config")
+        if isinstance(config, Mapping):
+            return cast(dict[str, Any], dict(config))
         if isinstance(config, dict):
             return cast(dict[str, Any], config)
         return {}
@@ -760,7 +775,7 @@ class PawControlPerformanceModeSelect(PawControlSelectBase):
             options=PERFORMANCE_MODES,
             icon="mdi:speedometer",
             entity_category=EntityCategory.CONFIG,
-            initial_option="balanced",
+            initial_option=DEFAULT_PERFORMANCE_MODE,
         )
 
     async def _async_set_select_option(self, option: str) -> None:

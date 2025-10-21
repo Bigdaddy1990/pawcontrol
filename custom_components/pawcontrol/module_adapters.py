@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Awaitable, Mapping
-from dataclasses import dataclass
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any, cast
 
@@ -38,12 +37,14 @@ from .device_api import PawControlDeviceClient
 from .exceptions import GPSUnavailableError, NetworkError, RateLimitError
 from .http_client import ensure_shared_client_session
 from .types import (
+    CoordinatorModuleTask,
+    DogModulesMapping,
     FeedingModulePayload,
     GardenModulePayload,
     GeofencingModulePayload,
     GPSModulePayload,
     HealthModulePayload,
-    ModuleAdapterPayload,
+    ModuleCacheMetrics,
     PawControlConfigEntry,
     WalkModulePayload,
     WeatherModulePayload,
@@ -60,36 +61,18 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
-@dataclass(slots=True)
-class _CacheMetrics:
-    """Simple structure for module cache statistics."""
-
-    entries: int = 0
-    hits: int = 0
-    misses: int = 0
-
-    @property
-    def hit_rate(self) -> float:
-        """Return hit rate percentage for the cache."""
-
-        total = self.hits + self.misses
-        if total == 0:
-            return 0.0
-        return (self.hits / total) * 100
-
-
-class _ExpiringCache:
+class _ExpiringCache[PayloadT]:
     """Cache that evicts entries after a fixed TTL."""
 
     __slots__ = ("_data", "_hits", "_misses", "_ttl")
 
     def __init__(self, ttl: timedelta) -> None:
-        self._data: dict[str, tuple[Any, datetime]] = {}
+        self._data: dict[str, tuple[PayloadT, datetime]] = {}
         self._hits = 0
         self._misses = 0
         self._ttl = ttl
 
-    def get(self, key: str) -> Any | None:
+    def get(self, key: str) -> PayloadT | None:
         """Return cached data if it has not expired."""
 
         if key not in self._data:
@@ -105,7 +88,7 @@ class _ExpiringCache:
         self._hits += 1
         return value
 
-    def set(self, key: str, value: Any) -> None:
+    def set(self, key: str, value: PayloadT) -> None:
         """Store a value in the cache."""
 
         self._data[key] = (value, dt_util.utcnow())
@@ -130,28 +113,30 @@ class _ExpiringCache:
         self._hits = 0
         self._misses = 0
 
-    def metrics(self) -> _CacheMetrics:
+    def metrics(self) -> ModuleCacheMetrics:
         """Return current metrics for this cache."""
 
-        return _CacheMetrics(
+        return ModuleCacheMetrics(
             entries=len(self._data),
             hits=self._hits,
             misses=self._misses,
         )
 
 
-class _BaseModuleAdapter:
+class _BaseModuleAdapter[PayloadT]:
     """Base helper for adapters that maintain a TTL cache."""
 
     def __init__(self, ttl: timedelta | None) -> None:
-        self._cache = _ExpiringCache(ttl) if ttl else None
+        self._cache: _ExpiringCache[PayloadT] | None = (
+            _ExpiringCache(ttl) if ttl else None
+        )
 
-    def _cached(self, key: str) -> Any | None:
+    def _cached(self, key: str) -> PayloadT | None:
         if not self._cache:
             return None
         return self._cache.get(key)
 
-    def _remember(self, key: str, value: Any) -> None:
+    def _remember(self, key: str, value: PayloadT) -> None:
         if not self._cache:
             return
         self._cache.set(key, value)
@@ -165,13 +150,13 @@ class _BaseModuleAdapter:
         if self._cache:
             self._cache.clear()
 
-    def cache_metrics(self) -> _CacheMetrics:
+    def cache_metrics(self) -> ModuleCacheMetrics:
         if not self._cache:
-            return _CacheMetrics()
+            return ModuleCacheMetrics()
         return self._cache.metrics()
 
 
-class FeedingModuleAdapter(_BaseModuleAdapter):
+class FeedingModuleAdapter(_BaseModuleAdapter[FeedingModulePayload]):
     """Adapter that exposes feeding information through the coordinator."""
 
     def __init__(
@@ -199,8 +184,8 @@ class FeedingModuleAdapter(_BaseModuleAdapter):
     async def async_get_data(self, dog_id: str) -> FeedingModulePayload:
         """Return the latest feeding context for the dog."""
 
-        if cached := self._cached(dog_id):
-            return cast(FeedingModulePayload, cached)
+        if (cached := self._cached(dog_id)) is not None:
+            return cached
 
         if self._manager is not None:
             try:
@@ -254,7 +239,7 @@ class FeedingModuleAdapter(_BaseModuleAdapter):
         return default_data
 
 
-class WalkModuleAdapter(_BaseModuleAdapter):
+class WalkModuleAdapter(_BaseModuleAdapter[WalkModulePayload]):
     """Expose detailed walk data using the walk manager."""
 
     def __init__(self, *, ttl: timedelta | None = None) -> None:
@@ -268,8 +253,8 @@ class WalkModuleAdapter(_BaseModuleAdapter):
 
     async def async_get_data(self, dog_id: str) -> WalkModulePayload:
         """Return cached or live walk telemetry for the given dog."""
-        if cached := self._cached(dog_id):
-            return cast(WalkModulePayload, cached)
+        if (cached := self._cached(dog_id)) is not None:
+            return cached
 
         if self._manager is None:
             return self._default_payload()
@@ -348,7 +333,7 @@ class GPSModuleAdapter:
         return payload
 
 
-class GeofencingModuleAdapter(_BaseModuleAdapter):
+class GeofencingModuleAdapter(_BaseModuleAdapter[GeofencingModulePayload]):
     """Expose geofence metadata from the GPS manager."""
 
     def __init__(self, *, ttl: timedelta) -> None:
@@ -362,11 +347,12 @@ class GeofencingModuleAdapter(_BaseModuleAdapter):
 
     async def async_get_data(self, dog_id: str) -> GeofencingModulePayload:
         """Return cached or live geofence details for the dog."""
-        if cached := self._cached(dog_id):
-            return cast(GeofencingModulePayload, cached)
+        if (cached := self._cached(dog_id)) is not None:
+            return cached
 
+        payload: GeofencingModulePayload
         if not self._manager:
-            payload: GeofencingModulePayload = {
+            payload = {
                 "status": "unavailable",
                 "message": "geofencing disabled",
                 "zones_configured": 0,
@@ -375,16 +361,12 @@ class GeofencingModuleAdapter(_BaseModuleAdapter):
                 "safe_zone_breaches": 0,
                 "last_update": None,
             }
-            self._remember(dog_id, payload)
-            return payload
-
-        try:
-            geofence_status = await self._manager.async_get_geofence_status(dog_id)
-        except Exception as err:  # pragma: no cover - defensive logging
-            _LOGGER.warning("Failed to fetch geofence status for %s: %s", dog_id, err)
-            payload = cast(
-                GeofencingModulePayload,
-                {
+        else:
+            try:
+                geofence_status = await self._manager.async_get_geofence_status(dog_id)
+            except Exception as err:  # pragma: no cover - defensive logging
+                _LOGGER.warning("Failed to fetch geofence status for %s: %s", dog_id, err)
+                payload = {
                     "status": "error",
                     "error": str(err),
                     "zones_configured": 0,
@@ -392,24 +374,23 @@ class GeofencingModuleAdapter(_BaseModuleAdapter):
                     "current_location": None,
                     "safe_zone_breaches": 0,
                     "last_update": None,
-                },
-            )
-            self._remember(dog_id, payload)
-            return payload
+                }
+            else:
+                payload = {
+                    "status": "active",
+                    "zones_configured": geofence_status.get("zones_configured", 0),
+                    "zone_status": geofence_status.get("zone_status", {}),
+                    "current_location": geofence_status.get("current_location"),
+                    "safe_zone_breaches": geofence_status.get("safe_zone_breaches", 0),
+                    "last_update": geofence_status.get("last_update"),
+                }
 
-        payload: GeofencingModulePayload = {
-            "status": "active",
-            "zones_configured": geofence_status.get("zones_configured", 0),
-            "zone_status": geofence_status.get("zone_status", {}),
-            "current_location": geofence_status.get("current_location"),
-            "safe_zone_breaches": geofence_status.get("safe_zone_breaches", 0),
-            "last_update": geofence_status.get("last_update"),
-        }
-        self._remember(dog_id, payload)
-        return payload
+        geofence_payload: GeofencingModulePayload = payload
+        self._remember(dog_id, geofence_payload)
+        return geofence_payload
 
 
-class HealthModuleAdapter(_BaseModuleAdapter):
+class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
     """Combine stored health data with live feeding/walk metrics."""
 
     def __init__(self, *, ttl: timedelta | None = None) -> None:
@@ -433,8 +414,8 @@ class HealthModuleAdapter(_BaseModuleAdapter):
 
     async def async_get_data(self, dog_id: str) -> HealthModulePayload:
         """Build a composite health payload using cached and live data."""
-        if cached := self._cached(dog_id):
-            return cast(HealthModulePayload, cached)
+        if (cached := self._cached(dog_id)) is not None:
+            return cached
 
         health_data: dict[str, Any] = {
             "weight": None,
@@ -543,7 +524,7 @@ class HealthModuleAdapter(_BaseModuleAdapter):
         return payload
 
 
-class WeatherModuleAdapter(_BaseModuleAdapter):
+class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
     """Adapter for weather-informed health data."""
 
     def __init__(self, *, config_entry: PawControlConfigEntry, ttl: timedelta) -> None:
@@ -574,16 +555,19 @@ class WeatherModuleAdapter(_BaseModuleAdapter):
 
     async def async_get_data(self, dog_id: str) -> WeatherModulePayload:
         """Return weather-adjusted health information for a dog."""
-        if cached := self._cached(dog_id):
-            return cast(WeatherModulePayload, cached)
+        if (cached := self._cached(dog_id)) is not None:
+            return cached
 
         if self._manager is None:
-            payload: WeatherModulePayload = {
-                "status": "disabled",
-                "health_score": None,
-                "alerts": [],
-                "recommendations": [],
-            }
+            payload = cast(
+                WeatherModulePayload,
+                {
+                    "status": "disabled",
+                    "health_score": None,
+                    "alerts": [],
+                    "recommendations": [],
+                },
+            )
             self._remember(dog_id, payload)
             return payload
 
@@ -655,12 +639,15 @@ class WeatherModuleAdapter(_BaseModuleAdapter):
                 },
             )
         else:
-            payload: WeatherModulePayload = {
-                "status": "ready",
-                "health_score": health_score,
-                "alerts": alerts,
-                "recommendations": recommendations,
-            }
+            payload = cast(
+                WeatherModulePayload,
+                {
+                    "status": "ready",
+                    "health_score": health_score,
+                    "alerts": alerts,
+                    "recommendations": recommendations,
+                },
+            )
             if conditions is not None:
                 payload["conditions"] = {
                     "temperature_c": conditions.temperature_c,
@@ -675,7 +662,7 @@ class WeatherModuleAdapter(_BaseModuleAdapter):
         return payload
 
 
-class GardenModuleAdapter(_BaseModuleAdapter):
+class GardenModuleAdapter(_BaseModuleAdapter[GardenModulePayload]):
     """Adapter that exposes garden activity data."""
 
     def __init__(self, *, ttl: timedelta | None = None) -> None:
@@ -689,8 +676,8 @@ class GardenModuleAdapter(_BaseModuleAdapter):
 
     async def async_get_data(self, dog_id: str) -> GardenModulePayload:
         """Return garden status details for the requested dog."""
-        if cached := self._cached(dog_id):
-            return cast(GardenModulePayload, cached)
+        if (cached := self._cached(dog_id)) is not None:
+            return cached
 
         if self._manager is None:
             payload: GardenModulePayload = {
@@ -755,9 +742,9 @@ class CoordinatorModuleAdapters:
     def attach_managers(
         self,
         *,
-        data_manager: PawControlDataManager,
-        feeding_manager: FeedingManager,
-        walk_manager: WalkManager,
+        data_manager: PawControlDataManager | None,
+        feeding_manager: FeedingManager | None,
+        walk_manager: WalkManager | None,
         gps_geofence_manager: GPSGeofenceManager | None,
         weather_health_manager: WeatherHealthManager | None,
         garden_manager: GardenManager | None,
@@ -790,24 +777,59 @@ class CoordinatorModuleAdapters:
         self.garden.attach(None)
 
     def build_tasks(
-        self, dog_id: str, modules: dict[str, Any]
-    ) -> list[tuple[str, Awaitable[ModuleAdapterPayload]]]:
-        """Return coroutine tasks for every enabled module for the dog."""
-        tasks: list[tuple[str, Awaitable[ModuleAdapterPayload]]] = []
+        self, dog_id: str, modules: DogModulesMapping
+    ) -> list[CoordinatorModuleTask]:
+        """Return coroutine tasks for every enabled module flag for the dog."""
+        tasks: list[CoordinatorModuleTask] = []
 
         if modules.get(MODULE_FEEDING):
-            tasks.append(("feeding", self.feeding.async_get_data(dog_id)))
+            tasks.append(
+                CoordinatorModuleTask(
+                    module="feeding",
+                    coroutine=self.feeding.async_get_data(dog_id),
+                )
+            )
         if modules.get(MODULE_WALK):
-            tasks.append(("walk", self.walk.async_get_data(dog_id)))
+            tasks.append(
+                CoordinatorModuleTask(
+                    module="walk",
+                    coroutine=self.walk.async_get_data(dog_id),
+                )
+            )
         if modules.get(MODULE_GPS):
-            tasks.append(("gps", self.gps.async_get_data(dog_id)))
-            tasks.append(("geofencing", self.geofencing.async_get_data(dog_id)))
+            tasks.append(
+                CoordinatorModuleTask(
+                    module="gps",
+                    coroutine=self.gps.async_get_data(dog_id),
+                )
+            )
+            tasks.append(
+                CoordinatorModuleTask(
+                    module="geofencing",
+                    coroutine=self.geofencing.async_get_data(dog_id),
+                )
+            )
         if modules.get(MODULE_HEALTH):
-            tasks.append(("health", self.health.async_get_data(dog_id)))
+            tasks.append(
+                CoordinatorModuleTask(
+                    module="health",
+                    coroutine=self.health.async_get_data(dog_id),
+                )
+            )
         if modules.get(MODULE_WEATHER):
-            tasks.append(("weather", self.weather.async_get_data(dog_id)))
+            tasks.append(
+                CoordinatorModuleTask(
+                    module="weather",
+                    coroutine=self.weather.async_get_data(dog_id),
+                )
+            )
         if modules.get(MODULE_GARDEN):
-            tasks.append(("garden", self.garden.async_get_data(dog_id)))
+            tasks.append(
+                CoordinatorModuleTask(
+                    module="garden",
+                    coroutine=self.garden.async_get_data(dog_id),
+                )
+            )
 
         return tasks
 
@@ -837,9 +859,9 @@ class CoordinatorModuleAdapters:
         ):
             adapter.clear()
 
-    def cache_metrics(self) -> _CacheMetrics:
+    def cache_metrics(self) -> ModuleCacheMetrics:
         """Aggregate cache metrics from every module adapter."""
-        metrics = _CacheMetrics()
+        metrics = ModuleCacheMetrics()
         for adapter in (
             self.feeding,
             self.walk,

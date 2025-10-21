@@ -31,12 +31,13 @@ import logging
 import sys
 import weakref
 from abc import abstractmethod
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Mapping
+from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, ClassVar, Final, cast
+from typing import Any, ClassVar, Final, Protocol, cast
 from unittest.mock import Mock
 
-from homeassistant.core import callback
+from homeassistant.core import State, callback
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -46,6 +47,11 @@ from . import compat
 from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
 from .const import ATTR_DOG_ID, ATTR_DOG_NAME, MANUFACTURER
 from .coordinator import PawControlCoordinator
+from .coordinator_accessors import CoordinatorDataAccessMixin
+from .types import (
+    CoordinatorDogData,
+    CoordinatorModuleState,
+)
 from .utils import (
     PawControlDeviceLinkMixin,
     async_call_add_entities,
@@ -69,9 +75,43 @@ MEMORY_OPTIMIZATION: Final[dict[str, Any]] = {
 }
 
 # Global caches with memory management
-_STATE_CACHE: dict[str, tuple[Any, float]] = {}
-_ATTRIBUTES_CACHE: dict[str, tuple[dict[str, Any], float]] = {}
-_AVAILABILITY_CACHE: dict[str, tuple[bool, float, bool]] = {}
+
+
+@dataclass(slots=True)
+class _StateCacheEntry:
+    """State cache entry storing payload snapshots and coordinator status."""
+
+    payload: dict[str, Any]
+    timestamp: float
+    coordinator_available: bool | None = None
+
+
+@dataclass(slots=True)
+class _AttributesCacheEntry:
+    """Attribute cache entry storing generated attributes and timestamp."""
+
+    attributes: dict[str, Any]
+    timestamp: float
+
+
+@dataclass(slots=True)
+class _AvailabilityCacheEntry:
+    """Availability cache entry tracking coordinator state transitions."""
+
+    available: bool
+    timestamp: float
+    coordinator_available: bool
+
+
+class _TimestampedEntry(Protocol):
+    """Protocol describing timestamped cache entries."""
+
+    timestamp: float
+
+
+_STATE_CACHE: dict[str, _StateCacheEntry] = {}
+_ATTRIBUTES_CACHE: dict[str, _AttributesCacheEntry] = {}
+_AVAILABILITY_CACHE: dict[str, _AvailabilityCacheEntry] = {}
 
 # Performance tracking with weak references to prevent memory leaks
 _PERFORMANCE_METRICS: dict[str, list[float]] = {}
@@ -280,7 +320,7 @@ class OptimizedEntityBase(
 
     def __init__(
         self,
-        coordinator: PawControlCoordinator,
+        coordinator: CoordinatorLike,
         dog_id: str,
         dog_name: str,
         entity_type: str,
@@ -444,8 +484,8 @@ class OptimizedEntityBase(
         now = _utcnow_timestamp()
         cleanup_interval = MEMORY_OPTIMIZATION["weak_ref_cleanup_interval"]
 
-        if now - self._last_cache_cleanup > cleanup_interval:
-            self._last_cache_cleanup = now
+        if now - type(self)._last_cache_cleanup > cleanup_interval:
+            type(self)._last_cache_cleanup = now
             _cleanup_global_caches()
 
     def __getattribute__(self, name: str) -> Any:
@@ -508,7 +548,7 @@ class OptimizedEntityBase(
                 "Failed to restore state for %s: %s", self._attr_unique_id, err
             )
 
-    async def _handle_state_restoration(self, last_state) -> None:
+    async def _handle_state_restoration(self, last_state: State) -> None:
         """Handle state restoration - override in subclasses as needed.
 
         Args:
@@ -530,23 +570,16 @@ class OptimizedEntityBase(
         coordinator_available_now = _coordinator_is_available(self.coordinator)
 
         # Check cache first
-        if cache_key in _AVAILABILITY_CACHE:
-            cached_available, cache_time, cached_coord_available = _AVAILABILITY_CACHE[
-                cache_key
-            ]
-            cache_time, normalized = _normalize_cache_timestamp(cache_time, now)
+        if entry := _AVAILABILITY_CACHE.get(cache_key):
+            cache_time, normalized = _normalize_cache_timestamp(entry.timestamp, now)
             if normalized:
-                _AVAILABILITY_CACHE[cache_key] = (
-                    cached_available,
-                    cache_time,
-                    cached_coord_available,
-                )
+                entry.timestamp = cache_time
             if (
                 now - cache_time < CACHE_TTL_SECONDS["availability"]
-                and cached_coord_available == coordinator_available_now
+                and entry.coordinator_available == coordinator_available_now
             ):
                 self._performance_tracker.record_cache_hit()
-                return cached_available
+                return entry.available
 
         # Calculate availability
         available = self._calculate_availability(
@@ -554,10 +587,10 @@ class OptimizedEntityBase(
         )
 
         # Cache result
-        _AVAILABILITY_CACHE[cache_key] = (
-            available,
-            now,
-            coordinator_available_now,
+        _AVAILABILITY_CACHE[cache_key] = _AvailabilityCacheEntry(
+            available=available,
+            timestamp=now,
+            coordinator_available=coordinator_available_now,
         )
         self._performance_tracker.record_cache_miss()
 
@@ -613,14 +646,13 @@ class OptimizedEntityBase(
         now = _utcnow_timestamp()
 
         # Check cache first
-        if cache_key in _ATTRIBUTES_CACHE:
-            cached_attrs, cache_time = _ATTRIBUTES_CACHE[cache_key]
-            cache_time, normalized = _normalize_cache_timestamp(cache_time, now)
+        if entry := _ATTRIBUTES_CACHE.get(cache_key):
+            cache_time, normalized = _normalize_cache_timestamp(entry.timestamp, now)
             if normalized:
-                _ATTRIBUTES_CACHE[cache_key] = (cached_attrs, cache_time)
+                entry.timestamp = cache_time
             if now - cache_time < CACHE_TTL_SECONDS["attributes"]:
                 self._performance_tracker.record_cache_hit()
-                return cached_attrs
+                return dict(entry.attributes)
 
         # Generate attributes
         start_time = dt_util.utcnow()
@@ -633,7 +665,10 @@ class OptimizedEntityBase(
             self._performance_tracker.record_operation_time(operation_time)
 
             # Cache result
-            _ATTRIBUTES_CACHE[cache_key] = (attributes, now)
+            _ATTRIBUTES_CACHE[cache_key] = _AttributesCacheEntry(
+                attributes=dict(attributes),
+                timestamp=now,
+            )
             self._performance_tracker.record_cache_miss()
 
             return attributes
@@ -677,9 +712,6 @@ class OptimizedEntityBase(
                 attributes["status"] = status
             if last_update := dog_data.get("last_update"):
                 attributes["data_last_update"] = last_update
-            if "coordinator_available" in dog_data:
-                attributes["coordinator_available"] = dog_data["coordinator_available"]
-
             if dog_info := dog_data.get("dog_info", {}):
                 attributes.update(
                     {
@@ -733,7 +765,7 @@ class OptimizedEntityBase(
             "last_updated": dt_util.utcnow().isoformat(),
         }
 
-    def _get_dog_data_cached(self) -> dict[str, Any] | None:
+    def _get_dog_data_cached(self) -> CoordinatorDogData | None:
         """Get dog data with intelligent caching.
 
         Returns:
@@ -748,30 +780,30 @@ class OptimizedEntityBase(
         )
 
         # Check cache first
-        if cache_key in _STATE_CACHE:
-            cached_data, cache_time = _STATE_CACHE[cache_key]
-            cache_time, normalized = _normalize_cache_timestamp(cache_time, now)
+        if entry := _STATE_CACHE.get(cache_key):
+            cache_time, normalized = _normalize_cache_timestamp(entry.timestamp, now)
             if normalized:
-                _STATE_CACHE[cache_key] = (cached_data, cache_time)
-            cached_available = (
-                cached_data.get("coordinator_available")
-                if isinstance(cached_data, dict)
-                else True
-            )
+                entry.timestamp = cache_time
+            cached_available = entry.coordinator_available
             if now - cache_time < CACHE_TTL_SECONDS["state"] and (
-                not coordinator_available or cached_available
+                not coordinator_available or cached_available is not False
             ):
                 self._performance_tracker.record_cache_hit()
-                return cached_data
+                return cast(CoordinatorDogData, dict(entry.payload))
 
-        dog_data = None
+        dog_payload: CoordinatorDogData | None = None
         if coordinator_available:
-            dog_data = _call_coordinator_method(
-                self.coordinator, "get_dog_data", self._dog_id
-            )
+            if isinstance(self.coordinator, PawControlCoordinator):
+                dog_payload = self.coordinator.get_dog_data(self._dog_id)
+            else:
+                result = _call_coordinator_method(
+                    self.coordinator, "get_dog_data", self._dog_id
+                )
+                if isinstance(result, Mapping):
+                    dog_payload = cast(CoordinatorDogData, dict(result))
 
-        if dog_data is not None:
-            dog_data = dict(dog_data)
+        if dog_payload is not None:
+            dog_data = cast(CoordinatorDogData, dict(dog_payload))
         else:
             if not coordinator_available:
                 status = "offline"
@@ -779,23 +811,32 @@ class OptimizedEntityBase(
                 status = "recovering"
             else:
                 status = "missing"
-            dog_data = {
-                "dog_info": {},
-                "status": status,
-                "last_update": None,
-            }
+            dog_data = cast(
+                CoordinatorDogData,
+                {
+                    "dog_info": {
+                        "dog_id": self._dog_id,
+                        "dog_name": self._dog_name,
+                    },
+                    "status": status,
+                    "last_update": None,
+                },
+            )
 
-        dog_data.setdefault("coordinator_available", coordinator_available)
         dog_data.setdefault("status", "online")
         dog_data.setdefault("last_update", None)
 
         # Cache result (including empty dicts) to prevent repeated lookups
-        _STATE_CACHE[cache_key] = (dog_data, now)
+        _STATE_CACHE[cache_key] = _StateCacheEntry(
+            payload=dict(cast(Mapping[str, Any], dog_data)),
+            timestamp=now,
+            coordinator_available=coordinator_available,
+        )
         self._performance_tracker.record_cache_miss()
 
         return dog_data
 
-    def _get_module_data_cached(self, module: str) -> dict[str, Any]:
+    def _get_module_data_cached(self, module: str) -> Mapping[str, Any]:
         """Get module data with caching.
 
         Args:
@@ -806,31 +847,53 @@ class OptimizedEntityBase(
         """
         cache_key = f"module_{self._dog_id}_{module}"
         now = _utcnow_timestamp()
+        coordinator_available = _coordinator_is_available(self.coordinator)
+        typed_module = CoordinatorDataAccessMixin._is_typed_module(module)
 
         # Check cache first
-        if cache_key in _STATE_CACHE:
-            cached_data, cache_time = _STATE_CACHE[cache_key]
-            cache_time, normalized = _normalize_cache_timestamp(cache_time, now)
+        if entry := _STATE_CACHE.get(cache_key):
+            cache_time, normalized = _normalize_cache_timestamp(entry.timestamp, now)
             if normalized:
-                _STATE_CACHE[cache_key] = (cached_data, cache_time)
-            if now - cache_time < CACHE_TTL_SECONDS["state"]:
+                entry.timestamp = cache_time
+            cached_available = entry.coordinator_available
+            if now - cache_time < CACHE_TTL_SECONDS["state"] and (
+                not coordinator_available or cached_available is not False
+            ):
                 self._performance_tracker.record_cache_hit()
-                return cached_data
+                payload = dict(entry.payload)
+                if typed_module:
+                    return cast(CoordinatorModuleState, payload)
+                return payload
 
         # Fetch from coordinator
-        module_data = {}
-        if _coordinator_is_available(self.coordinator):
-            result = _call_coordinator_method(
-                self.coordinator, "get_module_data", self._dog_id, module
-            )
-            if isinstance(result, dict):
-                module_data = result
+        module_payload: dict[str, Any] = {}
+        if coordinator_available:
+            result: Any = None
+            if isinstance(self.coordinator, PawControlCoordinator):
+                result = self.coordinator.get_module_data(self._dog_id, module)
+            else:
+                result = _call_coordinator_method(
+                    self.coordinator, "get_module_data", self._dog_id, module
+                )
+            if isinstance(result, Mapping):
+                module_payload = dict(result)
+            elif typed_module:
+                module_payload = {"status": "unknown"}
+        elif typed_module:
+            module_payload = {"status": "unknown"}
 
         # Cache result
-        _STATE_CACHE[cache_key] = (module_data, now)
+        _STATE_CACHE[cache_key] = _StateCacheEntry(
+            payload=dict(module_payload),
+            timestamp=now,
+            coordinator_available=coordinator_available,
+        )
         self._performance_tracker.record_cache_miss()
 
-        return module_data
+        if typed_module:
+            return cast(CoordinatorModuleState, dict(module_payload))
+
+        return module_payload
 
     async def async_update(self) -> None:
         """Enhanced update method with performance tracking and error handling."""
@@ -927,16 +990,12 @@ class OptimizedEntityBase(
         """
         # Calculate rough memory estimates
         base_size = sys.getsizeof(self)
-        cache_size = sum(
-            sys.getsizeof(key) + sys.getsizeof(value)
-            for cache in [
-                _STATE_CACHE,
-                _ATTRIBUTES_CACHE,
-                _AVAILABILITY_CACHE,
-            ]
-            for key, value in cache.items()
-            if key.startswith(self._dog_id)
-        )
+        cache_size = 0
+        for cache in (_STATE_CACHE, _ATTRIBUTES_CACHE, _AVAILABILITY_CACHE):
+            for key, value in cache.items():
+                if not key.startswith(self._dog_id):
+                    continue
+                cache_size += sys.getsizeof(key) + sys.getsizeof(value)
 
         return {
             "base_entity_bytes": base_size,
@@ -1143,7 +1202,7 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
         """Return switch state."""
         return self._attr_is_on
 
-    async def _handle_state_restoration(self, last_state) -> None:
+    async def _handle_state_restoration(self, last_state: State) -> None:
         """Restore switch state from previous session."""
         if last_state.state in ("on", "off"):
             self._attr_is_on = last_state.state == "on"
@@ -1303,19 +1362,31 @@ def _cleanup_global_caches() -> None:
     now = dt_util.utcnow().timestamp()
     cleanup_stats = {"cleaned": 0, "total": 0}
 
-    for cache_name, (cache_dict, ttl) in [
-        ("state", (_STATE_CACHE, CACHE_TTL_SECONDS["state"])),
-        ("attributes", (_ATTRIBUTES_CACHE, CACHE_TTL_SECONDS["attributes"])),
-        ("availability", (_AVAILABILITY_CACHE, CACHE_TTL_SECONDS["availability"])),
-    ]:
+    caches: tuple[tuple[str, dict[str, _TimestampedEntry], int], ...] = (
+        (
+            "state",
+            cast(dict[str, _TimestampedEntry], _STATE_CACHE),
+            CACHE_TTL_SECONDS["state"],
+        ),
+        (
+            "attributes",
+            cast(dict[str, _TimestampedEntry], _ATTRIBUTES_CACHE),
+            CACHE_TTL_SECONDS["attributes"],
+        ),
+        (
+            "availability",
+            cast(dict[str, _TimestampedEntry], _AVAILABILITY_CACHE),
+            CACHE_TTL_SECONDS["availability"],
+        ),
+    )
+
+    for cache_name, cache_dict, ttl in caches:
         original_size = len(cache_dict)
-        expired_keys = []
-        for key, entry in cache_dict.items():
-            if not isinstance(entry, tuple) or len(entry) < 2:
-                continue
-            timestamp = entry[1]
-            if now - timestamp > ttl:
-                expired_keys.append(key)
+        expired_keys = [
+            key
+            for key, entry in cache_dict.items()
+            if now - entry.timestamp > ttl
+        ]
 
         for key in expired_keys:
             cache_dict.pop(key, None)
@@ -1575,3 +1646,5 @@ bind_exception_alias(
     "HomeAssistantError",
     combine_with_current=True,
 )
+type CoordinatorLike = PawControlCoordinator | "_RegistrySentinelCoordinator"
+

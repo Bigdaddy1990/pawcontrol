@@ -16,8 +16,16 @@ import inspect
 import logging
 import math
 import re
-from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
-from contextlib import suppress
+from collections.abc import (
+    AsyncIterator,
+    Awaitable,
+    Callable,
+    Iterable,
+    Mapping,
+    Sequence,
+)
+from contextlib import asynccontextmanager, suppress
+from contextvars import ContextVar
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from functools import wraps
@@ -154,6 +162,7 @@ else:  # pragma: no branch - executed under tests without Home Assistant install
         dt_util = _DateTimeModule()
 
 from .const import DEFAULT_MODEL, DOMAIN, MANUFACTURER
+from .service_guard import ServiceGuardResult
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -164,6 +173,92 @@ V = TypeVar("V")
 P = ParamSpec("P")
 R = TypeVar("R")
 Number = Real
+
+
+async def async_call_hass_service_if_available(
+    hass: HomeAssistant | None,
+    domain: str,
+    service: str,
+    service_data: Mapping[str, Any] | None = None,
+    *,
+    target: Mapping[str, Any] | None = None,
+    blocking: bool = False,
+    context: Context | None = None,
+    description: str | None = None,
+    logger: logging.Logger | None = None,
+) -> ServiceGuardResult:
+    """Call a Home Assistant service when the instance is available."""
+
+    active_logger = logger or _LOGGER
+    description_hint = description or None
+
+    if hass is None:
+        context_hint = f" for {description}" if description_hint else ""
+        active_logger.debug(
+            "Skipping %s.%s service call%s because Home Assistant is not available",
+            domain,
+            service,
+            context_hint,
+        )
+        guard_result = ServiceGuardResult(
+            domain=domain,
+            service=service,
+            executed=False,
+            reason="missing_instance",
+            description=description_hint,
+        )
+        capture = _GUARD_CAPTURE.get(None)
+        if capture is not None:
+            capture.append(guard_result)
+        return guard_result
+
+    services = getattr(hass, "services", None)
+    async_call = getattr(services, "async_call", None)
+    if not callable(async_call):
+        context_hint = f" for {description}" if description_hint else ""
+        active_logger.debug(
+            "Skipping %s.%s service call%s because the Home Assistant services API is not available",
+            domain,
+            service,
+            context_hint,
+        )
+        guard_result = ServiceGuardResult(
+            domain=domain,
+            service=service,
+            executed=False,
+            reason="missing_services_api",
+            description=description_hint,
+        )
+        capture = _GUARD_CAPTURE.get(None)
+        if capture is not None:
+            capture.append(guard_result)
+        return guard_result
+
+    payload = dict(service_data) if service_data is not None else {}
+    target_payload = dict(target) if target is not None else None
+
+    kwargs: dict[str, Any] = {"blocking": blocking}
+    if target_payload is not None:
+        kwargs["target"] = target_payload
+    if context is not None:
+        kwargs["context"] = context
+
+    await async_call(
+        domain,
+        service,
+        payload,
+        **kwargs,
+    )
+    guard_result = ServiceGuardResult(
+        domain=domain,
+        service=service,
+        executed=True,
+        description=description_hint,
+    )
+    capture = _GUARD_CAPTURE.get(None)
+    if capture is not None:
+        capture.append(guard_result)
+    return guard_result
 
 
 class PortionValidationResult(TypedDict):
@@ -1503,3 +1598,22 @@ def convert_units(value: float, from_unit: str, to_unit: str) -> float:
         return all_conversions[conversion_key](value)
 
     raise ValueError(f"Conversion from {from_unit} to {to_unit} not supported")
+_GUARD_CAPTURE: ContextVar[list[ServiceGuardResult] | None] = ContextVar(
+    "pawcontrol_service_guard_capture",
+    default=None,
+)
+
+
+@asynccontextmanager
+async def async_capture_service_guard_results() -> AsyncIterator[list[ServiceGuardResult]]:
+    """Capture guard outcomes for Home Assistant service invocations."""
+
+    previous = _GUARD_CAPTURE.get(None)
+    guard_results: list[ServiceGuardResult] = []
+    token = _GUARD_CAPTURE.set(guard_results)
+    try:
+        yield guard_results
+    finally:
+        _GUARD_CAPTURE.reset(token)
+        if previous is not None:
+            previous.extend(guard_results)

@@ -2,16 +2,33 @@
 
 from __future__ import annotations
 
-from typing import Any
+import logging
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import callback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import ATTR_DOG_ID, ATTR_DOG_NAME
 from .coordinator import PawControlCoordinator
-from .utils import PawControlDeviceLinkMixin
+from .runtime_data import get_runtime_data
+from .service_guard import ServiceGuardResult
+from .types import CoordinatorRuntimeManagers
+from .utils import (
+    PawControlDeviceLinkMixin,
+    async_call_hass_service_if_available,
+)
 
 __all__ = ["PawControlEntity"]
+
+
+if TYPE_CHECKING:
+    from .data_manager import PawControlDataManager
+    from .notifications import PawControlNotificationManager
+    from .types import PawControlRuntimeData
+
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class PawControlEntity(
@@ -109,3 +126,71 @@ class PawControlEntity(
             self._attr_name = self._dog_name
             return
         self._attr_name = f"{self._dog_name} {suffix}".strip()
+
+    def _get_runtime_data(self) -> PawControlRuntimeData | None:
+        """Return runtime data attached to this entity's config entry."""
+
+        if self.hass is None:
+            return None
+
+        return get_runtime_data(self.hass, self.coordinator.config_entry)
+
+    def _get_runtime_managers(self) -> CoordinatorRuntimeManagers:
+        """Return the runtime manager container for this entity."""
+
+        runtime_data = self._get_runtime_data()
+        if runtime_data is not None:
+            return runtime_data.runtime_managers
+
+        manager_container = getattr(self.coordinator, "runtime_managers", None)
+        if isinstance(manager_container, CoordinatorRuntimeManagers):
+            return manager_container
+
+        manager_kwargs = {
+            attr: getattr(self.coordinator, attr, None)
+            for attr in CoordinatorRuntimeManagers.attribute_names()
+        }
+
+        if any(value is not None for value in manager_kwargs.values()):
+            container = CoordinatorRuntimeManagers(**manager_kwargs)
+            self.coordinator.runtime_managers = container
+            return container
+
+        return CoordinatorRuntimeManagers()
+
+    def _get_data_manager(self) -> PawControlDataManager | None:
+        """Return the data manager from the runtime container when available."""
+
+        return self._get_runtime_managers().data_manager
+
+    def _get_notification_manager(self) -> PawControlNotificationManager | None:
+        """Return the notification manager from the runtime container."""
+
+        return self._get_runtime_managers().notification_manager
+
+    async def _async_call_hass_service(
+        self,
+        domain: str,
+        service: str,
+        service_data: Mapping[str, Any],
+        *,
+        blocking: bool = False,
+    ) -> ServiceGuardResult:
+        """Safely call a Home Assistant service when the instance is available.
+
+        Returns the guard result describing whether Home Assistant executed the
+        service call. ``bool(result)`` evaluates to ``True`` when the service ran
+        successfully and ``False`` when the guard short-circuited the request.
+        """
+
+        return await async_call_hass_service_if_available(
+            self.hass,
+            domain,
+            service,
+            service_data,
+            blocking=blocking,
+            description=(
+                f"dog {self._dog_id} ({getattr(self, 'entity_id', 'unregistered')})"
+            ),
+            logger=_LOGGER,
+        )

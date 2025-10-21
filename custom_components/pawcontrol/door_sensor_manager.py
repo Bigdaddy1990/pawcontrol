@@ -42,6 +42,7 @@ from .coordinator_support import CacheMonitorRegistrar
 from .notifications import NotificationPriority, NotificationType
 from .runtime_data import get_runtime_data
 from .types import (
+    DEFAULT_CONFIDENCE_THRESHOLD,
     DEFAULT_DOOR_CLOSED_DELAY,
     DEFAULT_DOOR_SENSOR_SETTINGS,
     DEFAULT_MAXIMUM_WALK_DURATION,
@@ -484,7 +485,7 @@ class DoorSensorConfig:
     door_closed_delay: int = DEFAULT_DOOR_CLOSED_DELAY
     require_confirmation: bool = True
     auto_end_walks: bool = True
-    confidence_threshold: float = 0.7  # Confidence level for automatic detection
+    confidence_threshold: float = DEFAULT_CONFIDENCE_THRESHOLD
 
 
 @dataclass
@@ -728,6 +729,14 @@ class DoorSensorManager:
                 _LOGGER.debug("No door sensor configured for %s", dog_name)
                 continue
 
+            if not isinstance(door_sensor, str):
+                _LOGGER.debug(
+                    "Door sensor entry for %s is not a string: %s",
+                    dog_name,
+                    door_sensor,
+                )
+                continue
+
             # Validate door sensor entity exists
             trimmed_sensor = door_sensor.strip()
             if not trimmed_sensor:
@@ -748,9 +757,13 @@ class DoorSensorManager:
                 enabled=True,
             )
 
+            raw_settings = dog.get(CONF_DOOR_SENSOR_SETTINGS)
+            if not isinstance(raw_settings, DoorSensorSettingsConfig | Mapping):
+                raw_settings = None
+
             # Apply any custom settings from dog configuration
             settings_config = ensure_door_sensor_settings_config(
-                dog.get(CONF_DOOR_SENSOR_SETTINGS),
+                raw_settings,
                 base=config,
             )
             _apply_settings_to_config(config, settings_config)
@@ -771,7 +784,8 @@ class DoorSensorManager:
                 dog_id,
                 sensor=persist_sensor,
                 settings=self._settings_for_persistence(
-                    dog.get(CONF_DOOR_SENSOR_SETTINGS), settings_config
+                    raw_settings,
+                    settings_config,
                 ),
             )
 
@@ -867,14 +881,14 @@ class DoorSensorManager:
             return
 
         # Find which dog this sensor belongs to
-        dog_id = None
+        dog_id: str | None = None
         config = None
         for dog_id, cfg in self._sensor_configs.items():  # noqa: B007
             if cfg.entity_id == entity_id:
                 config = cfg
                 break
 
-        if not config or not config.enabled:
+        if dog_id is None or not config or not config.enabled:
             return
 
         detection_state = self._detection_states[dog_id]
@@ -923,7 +937,7 @@ class DoorSensorManager:
             state.potential_walk_start = now
 
             # Schedule walk detection timeout
-            async def check_walk_timeout():
+            async def check_walk_timeout() -> None:
                 await asyncio.sleep(config.walk_detection_timeout)
                 await self._handle_walk_timeout(config, state)
 
@@ -1032,7 +1046,7 @@ class DoorSensorManager:
         state.current_state = WALK_STATE_POTENTIAL
 
         # Schedule automatic timeout if no response
-        async def confirmation_timeout():
+        async def confirmation_timeout() -> None:
             await asyncio.sleep(600)  # 10 minutes
             if state.current_state == WALK_STATE_POTENTIAL:
                 _LOGGER.info(
@@ -1097,7 +1111,7 @@ class DoorSensorManager:
             # Schedule automatic walk ending if enabled
             if config.auto_end_walks:
 
-                async def auto_end_walk():
+                async def auto_end_walk() -> None:
                     await asyncio.sleep(config.maximum_walk_duration)
                     if state.current_state == WALK_STATE_ACTIVE:
                         await self._end_automatic_walk(config, state, "timeout")

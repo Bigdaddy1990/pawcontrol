@@ -10,6 +10,7 @@ from typing import Any
 
 from .coordinator_runtime import EntityBudgetSnapshot, summarize_entity_budgets
 from .coordinator_tasks import default_rejection_metrics, derive_rejection_metrics
+from .types import CoordinatorRejectionMetrics
 
 _LOGGER = getLogger(__name__)
 
@@ -88,7 +89,7 @@ def build_performance_snapshot(
         "webhook_security": dict(webhook_status),
     }
 
-    rejection_metrics = default_rejection_metrics()
+    rejection_metrics: CoordinatorRejectionMetrics = default_rejection_metrics()
 
     if resilience:
         resilience_payload = dict(resilience)
@@ -121,7 +122,7 @@ def build_performance_snapshot(
         rejection_metrics.update(derive_rejection_metrics(resilience_payload))
         snapshot["resilience_summary"] = resilience_payload
 
-    snapshot["rejection_metrics"] = rejection_metrics
+    snapshot["rejection_metrics"] = dict(rejection_metrics)
     snapshot["performance_metrics"].update(
         {
             key: value

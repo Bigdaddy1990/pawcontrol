@@ -178,6 +178,13 @@ entities:
     name: Error Count
 ```
 
+Die automatisch generierte Statistik-Ansicht der PawControl-Dashboards ergänzt
+dieses Monitoring um eine **Resilience metrics**-Markdown-Karte. Sie zeigt die
+aktuellen Ablehnungszähler, Breaker-Anzahl, die berechnete Ablehnungsrate sowie
+den zuletzt ausgelösten Breaker direkt aus der
+`CoordinatorStatisticsPayload` an, sodass Platinum-Dashboards die neuen Werte
+ohne eigene Templates übernehmen.【F:custom_components/pawcontrol/dashboard_templates.py†L1334-L1427】【F:tests/components/pawcontrol/test_dashboard_renderer.py†L56-L140】
+
 ---
 
 ## Troubleshooting Checklist

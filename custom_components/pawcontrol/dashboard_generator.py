@@ -18,7 +18,7 @@ import time
 from collections.abc import Awaitable, Mapping, Sequence
 from functools import partial
 from pathlib import Path
-from typing import Any, Final, NotRequired, TypedDict, TypeVar
+from typing import Any, Final, NotRequired, TypedDict, TypeVar, cast
 
 import aiofiles
 from homeassistant.core import HomeAssistant, callback
@@ -41,9 +41,12 @@ from .dashboard_shared import (
     unwrap_async_result,
 )
 from .dashboard_templates import DashboardTemplates
+from .runtime_data import get_runtime_data
 from .types import (
+    CoordinatorStatisticsPayload,
     DogConfigData,
     DogModulesConfig,
+    PawControlRuntimeData,
     RawDogConfig,
     coerce_dog_modules_config,
 )
@@ -133,6 +136,45 @@ class PawControlDashboardGenerator:
         }
         # OPTIMIZED: Track pending cleanup tasks for asynchronous resource release
         self._cleanup_tasks: set[asyncio.Task[Any]] = set()
+
+    def _get_runtime_data(self) -> PawControlRuntimeData | None:
+        """Return the runtime data container attached to the config entry."""
+
+        runtime = getattr(self.entry, "runtime_data", None)
+        if isinstance(runtime, PawControlRuntimeData):
+            return runtime
+
+        resolved = get_runtime_data(self.hass, self.entry)
+        if isinstance(resolved, PawControlRuntimeData):
+            return resolved
+
+        return None
+
+    def _resolve_coordinator_statistics(self) -> CoordinatorStatisticsPayload | None:
+        """Return the latest coordinator statistics snapshot when available."""
+
+        runtime_data = self._get_runtime_data()
+        if runtime_data is None:
+            return None
+
+        coordinator = getattr(runtime_data, "coordinator", None)
+        if coordinator is None:
+            return None
+
+        get_statistics = getattr(coordinator, "get_update_statistics", None)
+        if not callable(get_statistics):
+            return None
+
+        try:
+            stats = get_statistics()
+        except Exception:  # pragma: no cover - defensive safeguard
+            _LOGGER.debug("Coordinator statistics lookup failed", exc_info=True)
+            return None
+
+        if isinstance(stats, Mapping):
+            return cast(CoordinatorStatisticsPayload, dict(stats))
+
+        return cast(CoordinatorStatisticsPayload | None, stats)
 
     def _track_task(
         self,
@@ -477,9 +519,14 @@ class PawControlDashboardGenerator:
 
         async with self._operation_semaphore:  # OPTIMIZED: Control concurrency
             try:
+                coordinator_statistics = self._resolve_coordinator_statistics()
                 # OPTIMIZED: Parallel config generation and URL preparation
                 config_task = self._track_task(
-                    self._renderer.render_main_dashboard(typed_dogs, options),
+                    self._renderer.render_main_dashboard(
+                        typed_dogs,
+                        options,
+                        coordinator_statistics=coordinator_statistics,
+                    ),
                     name="pawcontrol_dashboard_render_main",
                 )
 
@@ -761,8 +808,11 @@ class PawControlDashboardGenerator:
                 options_merged = {**(options or {}), **stored_options}
 
                 if dashboard_type == "main":
+                    coordinator_statistics = self._resolve_coordinator_statistics()
                     dashboard_config = await self._renderer.render_main_dashboard(
-                        dogs_config, options_merged
+                        dogs_config,
+                        options_merged,
+                        coordinator_statistics=coordinator_statistics,
                     )
 
                     if self._has_weather_module(dogs_config):

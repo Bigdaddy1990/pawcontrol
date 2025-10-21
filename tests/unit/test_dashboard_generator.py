@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import json
-from collections.abc import Awaitable
+from collections.abc import Awaitable, Sequence
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -20,6 +20,7 @@ from custom_components.pawcontrol.dashboard_generator import (
     DashboardViewSummary,
     PawControlDashboardGenerator,
 )
+from custom_components.pawcontrol.dashboard_renderer import DashboardRenderer
 
 
 def test_summarise_dashboard_views_marks_notifications() -> None:
@@ -217,6 +218,87 @@ async def test_track_task_handles_helper_runtime_error(mock_config_entry) -> Non
     await asyncio.sleep(0)
 
     assert task not in generator._cleanup_tasks
+
+
+@patch("custom_components.pawcontrol.dashboard_generator.Store")
+def test_resolve_coordinator_statistics_uses_runtime_data(
+    mock_store: MagicMock, hass, mock_config_entry, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Coordinator statistics should be sourced from runtime data helpers."""
+
+    mock_store.return_value = MagicMock()
+    generator = PawControlDashboardGenerator(hass, mock_config_entry)
+    sentinel_stats = {"rejection_metrics": {"schema_version": 2}}
+
+    class CoordinatorStub:
+        def get_update_statistics(self) -> dict[str, object]:
+            return sentinel_stats
+
+    class RuntimeStub:
+        coordinator = CoordinatorStub()
+
+    monkeypatch.setattr(generator, "_get_runtime_data", lambda: RuntimeStub())
+
+    resolved = generator._resolve_coordinator_statistics()
+
+    assert resolved == sentinel_stats
+    assert resolved is not sentinel_stats
+
+
+@pytest.mark.asyncio
+async def test_renderer_forwards_coordinator_statistics(
+    hass, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The statistics renderer should receive coordinator metrics snapshots."""
+
+    renderer = DashboardRenderer(hass)
+    sentinel_stats = {"rejection_metrics": {"schema_version": 2}}
+
+    monkeypatch.setattr(
+        renderer,
+        "_render_overview_view",
+        AsyncMock(return_value={"path": "overview", "cards": []}),
+    )
+    monkeypatch.setattr(
+        renderer,
+        "_render_dog_views_batch",
+        AsyncMock(return_value=[]),
+    )
+    monkeypatch.setattr(
+        renderer,
+        "_render_settings_view",
+        AsyncMock(return_value={"path": "settings", "cards": []}),
+    )
+
+    captured: dict[str, object] = {}
+
+    async def _capture_statistics(
+        dogs_config: Sequence[dict[str, object]],
+        options: dict[str, object],
+        *,
+        coordinator_statistics: dict[str, object] | None = None,
+    ) -> list[dict[str, object]]:
+        captured["coordinator_statistics"] = coordinator_statistics
+        return []
+
+    monkeypatch.setattr(
+        renderer.stats_generator,
+        "generate_statistics_cards",
+        AsyncMock(side_effect=_capture_statistics),
+    )
+
+    await renderer.render_main_dashboard(
+        [
+            {
+                CONF_DOG_ID: "fido",
+                CONF_DOG_NAME: "Fido",
+                "modules": {MODULE_NOTIFICATIONS: True},
+            }
+        ],
+        coordinator_statistics=sentinel_stats,
+    )
+
+    assert captured["coordinator_statistics"] == sentinel_stats
 
 
 @pytest.mark.asyncio

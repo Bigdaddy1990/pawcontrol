@@ -22,7 +22,9 @@ from custom_components.pawcontrol.notifications import (
 from custom_components.pawcontrol.types import (
     CacheDiagnosticsSnapshot,
     CacheRepairAggregate,
+    CoordinatorRuntimeManagers,
 )
+from custom_components.pawcontrol.utils import async_call_hass_service_if_available
 
 try:  # pragma: no cover - runtime fallback for stubbed environments
     from homeassistant.core import Context
@@ -50,6 +52,42 @@ def test_service_validation_error_uses_compat_alias(
 
     assert isinstance(error, SentinelServiceValidationError)
     assert str(error) == "boom"
+
+
+def test_service_validation_error_rejects_blank_message(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Blank messages should be rejected to preserve telemetry detail."""
+
+    class SentinelServiceValidationError(Exception):
+        pass
+
+    monkeypatch.setattr(
+        compat, "ServiceValidationError", SentinelServiceValidationError
+    )
+    monkeypatch.setattr(compat, "ensure_homeassistant_exception_symbols", lambda: None)
+
+    with pytest.raises(AssertionError):
+        services._service_validation_error("   ")
+
+
+def test_service_validation_error_trims_whitespace(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Messages should be trimmed before instantiating the compat alias."""
+
+    class SentinelServiceValidationError(Exception):
+        pass
+
+    monkeypatch.setattr(
+        compat, "ServiceValidationError", SentinelServiceValidationError
+    )
+    monkeypatch.setattr(compat, "ensure_homeassistant_exception_symbols", lambda: None)
+
+    error = services._service_validation_error("  trimmed  ")
+
+    assert isinstance(error, SentinelServiceValidationError)
+    assert str(error) == "trimmed"
 
 
 class _DummyCoordinator:
@@ -454,6 +492,25 @@ class _NotificationManagerStub:
         return None
 
 
+class _GuardSkippingNotificationManager:
+    """Notification manager stub that exercises guard skip telemetry."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def async_send_notification(self, **kwargs: object) -> str:
+        self.calls += 1
+        await async_call_hass_service_if_available(
+            None,
+            "persistent_notification",
+            "create",
+            {"message": "guard"},
+            description="guard-test",
+            logger=logging.getLogger(__name__),
+        )
+        return f"guard-{self.calls}"
+
+
 class _GPSManagerStub:
     """Emulate GPS configuration calls for automation service tests."""
 
@@ -512,6 +569,13 @@ class _CoordinatorStub:
         self.garden_manager = garden_manager
         self.refresh_called = False
         self._dogs: dict[str, dict[str, object]] = {}
+        self.runtime_managers = CoordinatorRuntimeManagers(
+            data_manager=data_manager,
+            feeding_manager=feeding_manager,
+            notification_manager=notification_manager,
+            gps_geofence_manager=gps_manager,
+            garden_manager=garden_manager,
+        )
 
     async def async_request_refresh(self) -> None:
         self.refresh_called = True
@@ -914,6 +978,50 @@ async def test_send_notification_service_recovers_from_invalid_payloads(
     assert details["priority"] == NotificationPriority.NORMAL.value
     assert details["channels"] == [NotificationChannel.MOBILE.value]
     assert details["ignored_channels"] == ["pager"]
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_send_notification_service_records_guard_skip(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Guard skips should be captured in service telemetry summaries."""
+
+    notification_manager = _GuardSkippingNotificationManager()
+    coordinator = _CoordinatorStub(
+        SimpleNamespace(), notification_manager=notification_manager
+    )
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+    handler = hass.services.handlers[services.SERVICE_SEND_NOTIFICATION]
+
+    await handler(
+        SimpleNamespace(
+            data={
+                "title": "Alert",
+                "message": "Guard telemetry",
+            }
+        )
+    )
+
+    result = runtime_data.performance_stats["last_service_result"]
+    guard_summary = result.get("guard")
+    assert guard_summary is not None
+    assert guard_summary["executed"] == 0
+    assert guard_summary["skipped"] == 1
+    assert guard_summary["reasons"]["missing_instance"] == 1
+    guard_results = guard_summary["results"]
+    assert isinstance(guard_results, list)
+    assert guard_results and guard_results[-1]["executed"] is False
+
+    guard_metrics = runtime_data.performance_stats["service_guard_metrics"]
+    assert guard_metrics["executed"] == 0
+    assert guard_metrics["skipped"] == 1
+    assert guard_metrics["reasons"]["missing_instance"] == 1
+    last_results = guard_metrics["last_results"]
+    assert isinstance(last_results, list)
+    assert last_results and last_results[-1]["description"] == "guard-test"
 
 
 @pytest.mark.unit
