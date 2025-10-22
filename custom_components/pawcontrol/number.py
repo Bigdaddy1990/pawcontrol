@@ -32,9 +32,6 @@ from .const import (
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
     CONF_DOG_AGE,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOG_WEIGHT,
     MAX_DOG_AGE,
     MAX_DOG_WEIGHT,
     MIN_DOG_AGE,
@@ -47,6 +44,15 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
 from .runtime_data import get_runtime_data
+from .types import (
+    DOG_AGE_FIELD,
+    DOG_ID_FIELD,
+    DOG_NAME_FIELD,
+    DOG_WEIGHT_FIELD,
+    DogConfigData,
+    DogModulesMapping,
+    ensure_dog_modules_mapping,
+)
 from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
@@ -67,7 +73,7 @@ DEFAULT_ACTIVITY_GOAL = 100  # percentage
 
 
 async def _async_add_entities_in_batches(
-    async_add_entities_func,
+    async_add_entities_func: AddEntitiesCallback,
     entities: list[PawControlNumberBase],
     batch_size: int = 12,
     delay_between_batches: float = 0.1,
@@ -136,15 +142,15 @@ async def async_setup_entry(
         return
 
     coordinator: PawControlCoordinator = runtime_data.coordinator
-    dogs: list[dict[str, Any]] = runtime_data.dogs
+    dogs: list[DogConfigData] = runtime_data.dogs
 
     entities: list[PawControlNumberBase] = []
 
     # Create number entities for each configured dog
     for dog in dogs:
-        dog_id: str = dog[CONF_DOG_ID]
-        dog_name: str = dog[CONF_DOG_NAME]
-        modules: dict[str, bool] = dog.get("modules", {})
+        dog_id = dog[DOG_ID_FIELD]
+        dog_name = dog[DOG_NAME_FIELD]
+        modules: DogModulesMapping = ensure_dog_modules_mapping(dog)
 
         _LOGGER.debug("Creating number entities for dog: %s (%s)", dog_name, dog_id)
 
@@ -179,7 +185,7 @@ def _create_base_numbers(
     coordinator: PawControlCoordinator,
     dog_id: str,
     dog_name: str,
-    dog_config: dict[str, Any],
+    dog_config: DogConfigData,
 ) -> list[PawControlNumberBase]:
     """Create base numbers that are always present for every dog.
 
@@ -516,10 +522,13 @@ class PawControlDogWeightNumber(PawControlNumberBase):
         coordinator: PawControlCoordinator,
         dog_id: str,
         dog_name: str,
-        dog_config: dict[str, Any],
+        dog_config: DogConfigData,
     ) -> None:
         """Initialize the dog weight number."""
-        current_weight = dog_config.get(CONF_DOG_WEIGHT, 20.0)
+        raw_weight = dog_config.get(DOG_WEIGHT_FIELD)
+        current_weight = (
+            float(raw_weight) if isinstance(raw_weight, int | float) else 20.0
+        )
 
         super().__init__(
             coordinator,
@@ -574,10 +583,11 @@ class PawControlDogAgeNumber(PawControlNumberBase):
         coordinator: PawControlCoordinator,
         dog_id: str,
         dog_name: str,
-        dog_config: dict[str, Any],
+        dog_config: DogConfigData,
     ) -> None:
         """Initialize the dog age number."""
-        current_age = dog_config.get(CONF_DOG_AGE, 3)
+        raw_age = dog_config.get(DOG_AGE_FIELD)
+        current_age = int(raw_age) if isinstance(raw_age, int) else 3
 
         super().__init__(
             coordinator,
@@ -681,12 +691,15 @@ class PawControlDailyFoodAmountNumber(PawControlNumberBase):
         # Calculate recommended amount based on dog size/weight
         dog_data = self._get_dog_data()
         if dog_data and "dog_info" in dog_data:
-            weight = dog_data["dog_info"].get("dog_weight", 20)
+            info = dog_data["dog_info"]
+            weight_value = info.get("dog_weight")
+            weight = float(weight_value) if isinstance(weight_value, int | float) else 20.0
             recommended = self._calculate_recommended_amount(weight)
             attrs["recommended_amount"] = recommended
+            native_value = self.native_value
             attrs["current_vs_recommended"] = (
-                f"{(self.native_value / recommended * 100):.0f}%"
-                if recommended > 0
+                f"{(native_value / recommended * 100):.0f}%"
+                if native_value is not None and recommended > 0
                 else "N/A"
             )
 

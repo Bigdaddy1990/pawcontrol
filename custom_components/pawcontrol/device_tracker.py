@@ -30,20 +30,21 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    MODULE_GPS,
-)
+from .const import MODULE_GPS
 from .coordinator import PawControlCoordinator
+from .entity import PawControlEntity
 from .runtime_data import get_runtime_data
-from .types import PawControlConfigEntry
-from .utils import PawControlDeviceLinkMixin, async_call_add_entities
+from .types import (
+    DOG_ID_FIELD,
+    DOG_MODULES_FIELD,
+    DOG_NAME_FIELD,
+    DogConfigData,
+    PawControlConfigEntry,
+    ensure_dog_modules_mapping,
+)
+from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -82,28 +83,30 @@ async def async_setup_entry(
         _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
         return
     coordinator = runtime_data.coordinator
-    dogs = runtime_data.dogs
+    dog_configs: list[DogConfigData] = runtime_data.dogs
     entity_factory = runtime_data.entity_factory
     profile = runtime_data.entity_profile
 
-    if not dogs:
+    if not dog_configs:
         _LOGGER.warning("No dogs configured for device tracker platform")
         return
 
     # Filter dogs with GPS module enabled
-    gps_enabled_dogs = [
-        dog for dog in dogs if dog.get("modules", {}).get(MODULE_GPS, False)
-    ]
+    gps_enabled_dogs: list[DogConfigData] = []
+    for dog in dog_configs:
+        modules = ensure_dog_modules_mapping(dog.get(DOG_MODULES_FIELD, {}))
+        if modules.get(MODULE_GPS, False):
+            gps_enabled_dogs.append(dog)
 
     if not gps_enabled_dogs:
         _LOGGER.info("No dogs have GPS module enabled, skipping device tracker setup")
         return
 
-    entities = []
+    entities: list[PawControlGPSTracker] = []
 
     for dog in gps_enabled_dogs:
-        dog_id = dog[CONF_DOG_ID]
-        dog_name = dog[CONF_DOG_NAME]
+        dog_id = dog[DOG_ID_FIELD]
+        dog_name = dog[DOG_NAME_FIELD]
 
         snapshot = entity_factory.get_budget_snapshot(dog_id)
         base_allocation = snapshot.total_allocated if snapshot else 0
@@ -142,11 +145,7 @@ async def async_setup_entry(
         _LOGGER.info("No GPS device trackers created due to profile restrictions")
 
 
-class PawControlGPSTracker(
-    PawControlDeviceLinkMixin,
-    CoordinatorEntity[PawControlCoordinator],
-    TrackerEntity,
-):
+class PawControlGPSTracker(PawControlEntity, TrackerEntity):
     """GPS device tracker for dogs with route recording capabilities.
 
     NEW: Implements device_tracker.{dog}_gps per requirements_inventory.md
@@ -163,9 +162,7 @@ class PawControlGPSTracker(
         dog_name: str,
     ) -> None:
         """Initialize GPS device tracker."""
-        super().__init__(coordinator)
-        self._dog_id = dog_id
-        self._dog_name = dog_name
+        super().__init__(coordinator, dog_id, dog_name)
         self._attr_unique_id = f"pawcontrol_{dog_id}_gps_tracker"
         self._attr_name = f"{dog_name} GPS"
         self._attr_icon = "mdi:map-marker"
@@ -272,11 +269,8 @@ class PawControlGPSTracker(
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return additional GPS tracker attributes."""
-        attrs = {
-            ATTR_DOG_ID: self._dog_id,
-            ATTR_DOG_NAME: self._dog_name,
-            "tracker_type": "gps",
-        }
+        attrs: dict[str, Any] = dict(super().extra_state_attributes)
+        attrs["tracker_type"] = "gps"
 
         gps_data = self._get_gps_data()
         if gps_data:

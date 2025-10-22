@@ -1,12 +1,10 @@
-"""Advanced Discovery support for Paw Control integration.
+"""Discovery helpers for PawControl hardware.
 
-This module provides comprehensive hardware discovery for dog-related devices
-including GPS trackers, smart feeders, activity monitors, and health devices.
-Supports multiple discovery protocols: USB, Bluetooth, Zeroconf, DHCP, and UPnP.
-
-Quality Scale: Bronze target
-Home Assistant: 2025.8.3+
-Python: 3.13+
+This module inspects Home Assistant registries and scheduled listeners to
+surface smart collars, feeders, trackers, and other accessories that PawControl
+manages. The implementation targets Home Assistant's Platinum quality scale,
+keeps all runtime interactions asynchronous, and leans on typed payloads so the
+strict mypy gate can reason about gathered devices.
 """
 
 from __future__ import annotations
@@ -14,7 +12,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Final, cast
 
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
@@ -129,7 +127,11 @@ class PawControlDiscovery:
             _LOGGER.warning("Discovery scan already active, waiting for completion")
             await self._wait_for_scan_completion()
 
-        categories = categories or DEVICE_CATEGORIES
+        target_categories: list[str]
+        if categories is None:
+            target_categories = list(DEVICE_CATEGORIES)
+        else:
+            target_categories = list(categories)
         scan_timeout = DISCOVERY_TIMEOUT if quick_scan else DISCOVERY_TIMEOUT * 3
 
         _LOGGER.info(
@@ -145,12 +147,12 @@ class PawControlDiscovery:
             # Use timeout to prevent hanging scans
             async with asyncio.timeout(scan_timeout):
                 discovery_results = await asyncio.gather(
-                    self._discover_registry_devices(categories),
+                    self._discover_registry_devices(target_categories),
                     return_exceptions=True,
                 )
 
                 for result in discovery_results:
-                    if isinstance(result, Exception):
+                    if isinstance(result, BaseException):
                         _LOGGER.warning("Discovery method failed: %s", result)
                         continue
 
@@ -333,7 +335,7 @@ class PawControlDiscovery:
         """Start background device scanning."""
 
         @callback
-        def _scheduled_scan(now) -> None:
+        def _scheduled_scan(now: datetime) -> None:
             """Callback for scheduled device scanning."""
 
             if self._scan_active:
@@ -431,6 +433,25 @@ class PawControlDiscovery:
         self._discovered_devices.clear()
 
         _LOGGER.info("Paw Control discovery shutdown complete")
+
+    def _deduplicate_devices(
+        self, devices: list[DiscoveredDevice]
+    ) -> list[DiscoveredDevice]:
+        """Return a list of devices keyed by the strongest confidence value.
+
+        Multiple discovery strategies may surface the same Home Assistant device
+        identifier. When that happens we keep the entry that recorded the highest
+        confidence score so diagnostics and UI copy reflect the best evidence we
+        have without leaking duplicates.
+        """
+
+        deduplicated: dict[str, DiscoveredDevice] = {}
+        for device in devices:
+            existing = deduplicated.get(device.device_id)
+            if existing is None or existing.confidence < device.confidence:
+                deduplicated[device.device_id] = device
+
+        return list(deduplicated.values())
 
     @callback
     def get_discovered_devices(

@@ -168,6 +168,7 @@ API_TOKEN_FIELD: Final[Literal["api_token"]] = cast(
 WEATHER_ENTITY_FIELD: Final[Literal["weather_entity"]] = cast(
     Literal["weather_entity"], CONF_WEATHER_ENTITY
 )
+NotificationThreshold = Literal["low", "moderate", "high"]
 GPS_UPDATE_INTERVAL_FIELD: Final[Literal["gps_update_interval"]] = cast(
     Literal["gps_update_interval"], CONF_GPS_UPDATE_INTERVAL
 )
@@ -240,32 +241,32 @@ class PawControlOptionsFlow(OptionsFlow):
 
         return cast(PawControlOptionsData, self._entry.options)
 
-    def _clone_options(self) -> PawControlOptionsData:
+    def _clone_options(self) -> dict[str, Any]:
         """Return a shallow copy of the current options for mutation."""
 
-        return cast(PawControlOptionsData, dict(self._entry.options))
+        return dict(self._entry.options)
 
     def _normalise_options_snapshot(
         self, options: Mapping[str, Any]
     ) -> PawControlOptionsData:
         """Return a typed options mapping with notifications and dog entries coerced."""
 
-        snapshot = cast(PawControlOptionsData, dict(options))
+        normalised: dict[str, Any] = dict(options)
 
-        if CONF_NOTIFICATIONS in snapshot:
-            raw_notifications = snapshot.get(CONF_NOTIFICATIONS)
+        if CONF_NOTIFICATIONS in normalised:
+            raw_notifications = normalised.get(CONF_NOTIFICATIONS)
             notifications_source = (
                 cast(Mapping[str, Any], raw_notifications)
                 if isinstance(raw_notifications, Mapping)
                 else {}
             )
-            snapshot[CONF_NOTIFICATIONS] = ensure_notification_options(
+            normalised[CONF_NOTIFICATIONS] = ensure_notification_options(
                 notifications_source,
                 defaults=_NOTIFICATION_DEFAULTS,
             )
 
-        if "dog_options" in snapshot:
-            raw_dog_options = snapshot.get("dog_options")
+        if "dog_options" in normalised:
+            raw_dog_options = normalised.get("dog_options")
             typed_dog_options: DogOptionsMap = {}
             if isinstance(raw_dog_options, Mapping):
                 for raw_id, raw_entry in raw_dog_options.items():
@@ -279,21 +280,21 @@ class PawControlOptionsFlow(OptionsFlow):
                     if dog_id and entry.get(DOG_ID_FIELD) != dog_id:
                         entry[DOG_ID_FIELD] = dog_id
                     typed_dog_options[dog_id] = entry
-            snapshot["dog_options"] = typed_dog_options
+            normalised["dog_options"] = typed_dog_options
 
-        if "advanced_settings" in snapshot:
-            raw_advanced = snapshot.get("advanced_settings")
+        if "advanced_settings" in normalised:
+            raw_advanced = normalised.get("advanced_settings")
             advanced_source = (
                 cast(Mapping[str, Any], raw_advanced)
                 if isinstance(raw_advanced, Mapping)
                 else {}
             )
-            snapshot["advanced_settings"] = ensure_advanced_options(
+            normalised["advanced_settings"] = ensure_advanced_options(
                 advanced_source,
-                defaults=snapshot,
+                defaults=cast(Mapping[str, Any], normalised),
             )
 
-        return snapshot
+        return cast(PawControlOptionsData, normalised)
 
     def _normalise_entry_dogs(
         self, dogs: Sequence[Mapping[str, Any]]
@@ -872,19 +873,24 @@ class PawControlOptionsFlow(OptionsFlow):
             candidate = raw_entity.strip()
             entity = None if not candidate or candidate.lower() == "none" else candidate
         else:
-            entity = current.get(CONF_WEATHER_ENTITY)
+            entity = cast(str | None, current.get(CONF_WEATHER_ENTITY))
 
-        interval_default = current.get("weather_update_interval", 60)
+        raw_interval_default = current.get("weather_update_interval")
+        interval_default = (
+            raw_interval_default
+            if isinstance(raw_interval_default, int)
+            else 60
+        )
         interval = self._coerce_clamped_int(
             user_input.get("weather_update_interval"),
             interval_default,
             minimum=15,
             maximum=1440,
         )
-        threshold = self._normalize_choice(
+        threshold_value = self._normalize_choice(
             user_input.get("notification_threshold"),
             valid={"low", "moderate", "high"},
-            default=current.get("notification_threshold", "moderate"),
+            default=cast(str, current.get("notification_threshold", "moderate")),
         )
 
         weather: WeatherOptions = {
@@ -932,7 +938,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 user_input.get("auto_activity_adjustments"),
                 current.get("auto_activity_adjustments", False),
             ),
-            "notification_threshold": threshold,
+            "notification_threshold": cast(NotificationThreshold, threshold_value),
         }
 
         return weather
@@ -1464,14 +1470,15 @@ class PawControlOptionsFlow(OptionsFlow):
         max_entities = profile_info["max_entities"]
 
         for dog in current_dogs:
-            modules = ensure_dog_modules_mapping(dog)
+            modules_mapping = ensure_dog_modules_mapping(dog)
+            modules = dict(modules_mapping)
             estimate = self._entity_factory.estimate_entity_count(
                 current_profile, modules
             )
             total_estimate += estimate
 
             if not self._entity_factory.validate_profile_for_modules(
-                current_profile, modules
+                current_profile, modules_mapping
             ):
                 dog_name = dog.get(CONF_DOG_NAME, "Unknown")
                 profile_compatibility_issues.append(
@@ -1546,12 +1553,15 @@ class PawControlOptionsFlow(OptionsFlow):
         for dog in current_dogs:
             dog_name = dog.get(CONF_DOG_NAME, "Unknown")
             dog_id = dog.get(CONF_DOG_ID, "unknown")
-            modules = ensure_dog_modules_mapping(dog)
+            modules_mapping = ensure_dog_modules_mapping(dog)
+            modules = dict(modules_mapping)
 
             estimate = self._entity_factory.estimate_entity_count(profile, modules)
             total_entities += estimate
 
-            enabled_modules = [module for module, enabled in modules.items() if enabled]
+            enabled_modules = [
+                module for module, enabled in modules_mapping.items() if enabled
+            ]
             utilization = (estimate / max_entities) * 100 if max_entities > 0 else 0
 
             entity_breakdown.append(
@@ -1575,7 +1585,8 @@ class PawControlOptionsFlow(OptionsFlow):
         else:
             current_total = 0
             for dog in current_dogs:
-                modules = ensure_dog_modules_mapping(dog)
+                modules_mapping = ensure_dog_modules_mapping(dog)
+                modules = dict(modules_mapping)
                 current_total += self._entity_factory.estimate_entity_count(
                     current_profile, modules
                 )
@@ -1735,15 +1746,13 @@ class PawControlOptionsFlow(OptionsFlow):
                     }
                 )
 
+                raw_batch_default = current_options.get("batch_size")
                 batch_default = (
-                    current_options.get("batch_size")
-                    if isinstance(current_options.get("batch_size"), int)
-                    else 15
+                    raw_batch_default if isinstance(raw_batch_default, int) else 15
                 )
+                raw_cache_default = current_options.get("cache_ttl")
                 cache_default = (
-                    current_options.get("cache_ttl")
-                    if isinstance(current_options.get("cache_ttl"), int)
-                    else 300
+                    raw_cache_default if isinstance(raw_cache_default, int) else 300
                 )
                 selective_default = bool(current_options.get("selective_refresh", True))
 
@@ -2552,10 +2561,11 @@ class PawControlOptionsFlow(OptionsFlow):
 
         current_profile = self._entry.options.get("entity_profile", "standard")
         current_modules = ensure_dog_modules_mapping(self._current_dog)
+        module_dict = dict(current_modules)
 
         # Calculate current entity count
         current_estimate = self._entity_factory.estimate_entity_count(
-            current_profile, current_modules
+            current_profile, module_dict
         )
 
         # Module descriptions
@@ -2578,13 +2588,17 @@ class PawControlOptionsFlow(OptionsFlow):
             if enabled
         ]
 
+        dog_name = cast(str, self._current_dog.get(CONF_DOG_NAME, "Unknown"))
+        profile_text = str(current_profile)
+        enabled_summary = (
+            "\n".join(enabled_modules) if enabled_modules else "No modules enabled"
+        )
+
         return {
-            "dog_name": self._current_dog.get(CONF_DOG_NAME, "Unknown"),
-            "current_profile": current_profile,
+            "dog_name": dog_name,
+            "current_profile": profile_text,
             "current_entities": str(current_estimate),
-            "enabled_modules": "\n".join(enabled_modules)
-            if enabled_modules
-            else "No modules enabled",
+            "enabled_modules": enabled_summary,
         }
 
     # Rest of the existing methods (add_new_dog, edit_dog, etc.) remain the same...
@@ -3044,21 +3058,24 @@ class PawControlOptionsFlow(OptionsFlow):
                 route_history_days = 30
             route_history_days = max(1, min(route_history_days, 365))
 
-            gps_settings: GPSOptions = {
-                "gps_enabled": bool(
-                    user_input.get("gps_enabled", current["gps_enabled"])
-                ),
-                CONF_GPS_UPDATE_INTERVAL: validated_interval,
-                CONF_GPS_ACCURACY_FILTER: validated_accuracy,
-                CONF_GPS_DISTANCE_FILTER: validated_distance,
+            gps_enabled_default = bool(current.get("gps_enabled", True))
+            route_recording_default = bool(current.get("route_recording", True))
+            auto_track_default = bool(current.get("auto_track_walks", True))
+
+            gps_settings_raw: dict[str, Any] = {
+                "gps_enabled": bool(user_input.get("gps_enabled", gps_enabled_default)),
+                "gps_update_interval": validated_interval,
+                "gps_accuracy_filter": validated_accuracy,
+                "gps_distance_filter": validated_distance,
                 "route_recording": bool(
-                    user_input.get("route_recording", current["route_recording"])
+                    user_input.get("route_recording", route_recording_default)
                 ),
                 "route_history_days": route_history_days,
                 "auto_track_walks": bool(
-                    user_input.get("auto_track_walks", current["auto_track_walks"])
+                    user_input.get("auto_track_walks", auto_track_default)
                 ),
             }
+            gps_settings = cast(GPSOptions, gps_settings_raw)
 
             new_options = self._clone_options()
             new_options["gps_settings"] = gps_settings

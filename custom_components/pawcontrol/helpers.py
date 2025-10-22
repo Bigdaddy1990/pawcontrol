@@ -14,7 +14,7 @@ from contextlib import suppress
 from datetime import datetime, timedelta
 from functools import wraps
 from time import perf_counter
-from typing import Any, Final, ParamSpec, TypeVar, cast
+from typing import Any, Final, ParamSpec, TypedDict, TypeVar, cast
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import storage
@@ -68,6 +68,26 @@ DEFAULT_DATA_KEYS: Final[tuple[str, ...]] = (
     "routes",
     "statistics",
 )
+
+
+class QueuedEvent(TypedDict):
+    """Typed structure representing a queued domain event."""
+
+    type: str
+    dog_id: str
+    data: dict[str, Any]
+    timestamp: str
+
+
+class PerformanceMetrics(TypedDict):
+    """Runtime metrics tracked by the performance monitor."""
+
+    operations: int
+    errors: int
+    cache_hits: int
+    cache_misses: int
+    avg_operation_time: float
+    last_cleanup: str | None
 
 
 class OptimizedDataCache:
@@ -441,9 +461,9 @@ class PawControlDataStorage:
 
             results = await asyncio.gather(*load_tasks, return_exceptions=True)
 
-            data = {}
+            data: dict[str, dict[str, Any]] = {}
             for store_key, result in zip(self._stores.keys(), results, strict=False):
-                if isinstance(result, Exception):
+                if isinstance(result, BaseException):
                     _LOGGER.error("Failed to load %s data: %s", store_key, result)
                     data[store_key] = {}
                 else:
@@ -538,7 +558,7 @@ class PawControlDataStorage:
 
                 # Log any errors while maintaining alignment with the executed tasks.
                 for store_key, result in zip(task_store_keys, results, strict=True):
-                    if isinstance(result, Exception):
+                    if isinstance(result, BaseException):
                         _LOGGER.error("Failed to save %s: %s", store_key, result)
                     else:
                         _LOGGER.debug("Saved %s store in batch", store_key)
@@ -566,9 +586,10 @@ class PawControlDataStorage:
 
         total_cleaned = 0
         for store_key, result in zip(self._stores.keys(), results, strict=False):
-            if isinstance(result, Exception):
+            if isinstance(result, BaseException):
                 _LOGGER.error("Failed to cleanup %s data: %s", store_key, result)
             else:
+                assert isinstance(result, int)
                 total_cleaned += result
 
         _LOGGER.debug("Cleaned up %d old entries across all stores", total_cleaned)
@@ -606,11 +627,11 @@ class PawControlDataStorage:
         if not isinstance(data, dict):
             return data
 
-        cleaned = {}
+        cleaned: dict[str, Any] = {}
         for key, value in data.items():
             if isinstance(value, list):
                 # Clean list of entries
-                cleaned_list = []
+                cleaned_list: list[Any] = []
                 for entry in value:
                     if isinstance(entry, dict) and "timestamp" in entry:
                         entry_date = ensure_utc_datetime(entry.get("timestamp"))
@@ -632,7 +653,7 @@ class PawControlDataStorage:
 
     def _enforce_size_limits(self, data: dict[str, Any]) -> dict[str, Any]:
         """OPTIMIZATION: Enforce size limits to prevent memory bloat."""
-        limited_data = {}
+        limited_data: dict[str, Any] = {}
 
         for key, value in data.items():
             if isinstance(value, list) and len(value) > MAX_HISTORY_ITEMS:
@@ -717,7 +738,7 @@ class PawControlData:
         self._dogs: list[dict[str, Any]] = config_entry.data.get(CONF_DOGS, [])
 
         # OPTIMIZATION: Event queue for batch processing
-        self._event_queue: deque[dict[str, Any]] = deque(maxlen=1000)
+        self._event_queue: deque[QueuedEvent] = deque(maxlen=1000)
         self._event_task: asyncio.Task | None = None
         self._valid_dog_ids: set[str] | None = None
 
@@ -887,14 +908,14 @@ class PawControlData:
                 continue
 
             history = walk_data.get("history", [])
-            normalized_history: list[WalkEvent] = []
+            normalized_walk_history: list[WalkEvent] = []
             if isinstance(history, list):
                 for entry in history:
                     if isinstance(entry, WalkEvent):
-                        normalized_history.append(entry)
+                        normalized_walk_history.append(entry)
                     elif isinstance(entry, dict):
                         try:
-                            normalized_history.append(
+                            normalized_walk_history.append(
                                 WalkEvent.from_storage(dog_id, entry)
                             )
                         except Exception as err:
@@ -908,7 +929,7 @@ class PawControlData:
                             "Skipping unsupported walk history entry type: %s",
                             type(entry).__name__,
                         )
-            walk_data["history"] = normalized_history
+            walk_data["history"] = normalized_walk_history
 
             active_entry = walk_data.get("active")
             if isinstance(active_entry, WalkEvent):
@@ -987,7 +1008,7 @@ class PawControlData:
             raise HomeAssistantError(f"Invalid dog ID: {dog_id}")
 
         # Add to event queue for batch processing
-        event = {
+        event: QueuedEvent = {
             "type": "feeding",
             "dog_id": dog_id,
             "data": feeding_data,
@@ -1005,7 +1026,7 @@ class PawControlData:
                     continue
 
                 # Process batch of events
-                batch = [
+                batch: list[QueuedEvent] = [
                     self._event_queue.popleft()
                     for _ in range(min(10, len(self._event_queue)))
                 ]
@@ -1019,10 +1040,10 @@ class PawControlData:
                 _LOGGER.error("Event processing error: %s", err)
                 await asyncio.sleep(5.0)  # Error recovery delay
 
-    async def _process_event_batch(self, events: list[dict[str, Any]]) -> None:
+    async def _process_event_batch(self, events: list[QueuedEvent]) -> None:
         """Process a batch of events efficiently."""
         # Group events by type and dog for efficient processing
-        grouped_events = {}
+        grouped_events: dict[str, list[QueuedEvent]] = {}
 
         for event in events:
             event_type = event["type"]
@@ -1044,7 +1065,7 @@ class PawControlData:
             elif event_type == "walk":
                 await self._process_walk_batch(group_events)
 
-    async def _process_feeding_batch(self, events: list[dict[str, Any]]) -> None:
+    async def _process_feeding_batch(self, events: list[QueuedEvent]) -> None:
         """Process feeding events in batch."""
         try:
             dog_id = events[0]["dog_id"]
@@ -1092,7 +1113,7 @@ class PawControlData:
             _LOGGER.error("Failed to process feeding batch: %s", err)
 
     # Similar optimized methods for other event types...
-    async def _process_health_batch(self, events: list[dict[str, Any]]) -> None:
+    async def _process_health_batch(self, events: list[QueuedEvent]) -> None:
         """Process health events in batch."""
         if not events:
             return
@@ -1151,7 +1172,7 @@ class PawControlData:
         except Exception as err:
             _LOGGER.error("Failed to process health event batch: %s", err)
 
-    async def _process_walk_batch(self, events: list[dict[str, Any]]) -> None:
+    async def _process_walk_batch(self, events: list[QueuedEvent]) -> None:
         """Process walk events in batch."""
         if not events:
             return
@@ -1581,7 +1602,7 @@ class PerformanceMonitor:
 
     def __init__(self) -> None:
         """Initialize performance monitor."""
-        self._metrics = {
+        self._metrics: PerformanceMetrics = {
             "operations": 0,
             "errors": 0,
             "cache_hits": 0,

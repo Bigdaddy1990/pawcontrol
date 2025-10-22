@@ -32,9 +32,10 @@ from .const import (
     MODULE_NOTIFICATIONS,
     MODULE_WALK,
 )
-from .coordinator_tasks import default_rejection_metrics
+from .coordinator_tasks import derive_rejection_metrics
 from .dashboard_shared import CardCollection, CardConfig, coerce_dog_configs
 from .types import (
+    CoordinatorRejectionMetrics,
     CoordinatorStatisticsPayload,
     DogModulesConfig,
     RawDogConfig,
@@ -1375,27 +1376,23 @@ class DashboardTemplates:
             "*Last updated: {{ now().strftime('%Y-%m-%d %H:%M') }}*",
         ]
 
-        metrics_payload: dict[str, Any] | None = None
+        metrics_payload: CoordinatorRejectionMetrics | None = None
         if isinstance(coordinator_statistics, Mapping):
             raw_metrics = coordinator_statistics.get("rejection_metrics")
             if isinstance(raw_metrics, Mapping):
-                metrics_payload = default_rejection_metrics()
-                for key, value in raw_metrics.items():
-                    if key not in metrics_payload:
-                        continue
-                    if value is None:
-                        continue
-                    metrics_payload[key] = value
+                metrics_payload = derive_rejection_metrics(
+                    cast(Mapping[str, Any], raw_metrics)
+                )
 
         if metrics_payload is not None:
-            rejection_rate = metrics_payload.get("rejection_rate")
-            if isinstance(rejection_rate, int | float):
+            rejection_rate = metrics_payload["rejection_rate"]
+            if rejection_rate is not None and isfinite(rejection_rate):
                 rate_display = f"{rejection_rate * 100:.2f}%"
             else:
                 rate_display = "n/a"
 
-            last_rejection_value = metrics_payload.get("last_rejection_time")
-            if isinstance(last_rejection_value, int | float):
+            last_rejection_value = metrics_payload["last_rejection_time"]
+            if last_rejection_value is not None:
                 try:
                     last_rejection_iso = datetime.fromtimestamp(
                         float(last_rejection_value),
@@ -1407,8 +1404,8 @@ class DashboardTemplates:
                 last_rejection_iso = "never"
 
             breaker_label = (
-                metrics_payload.get("last_rejection_breaker_name")
-                or metrics_payload.get("last_rejection_breaker_id")
+                metrics_payload["last_rejection_breaker_name"]
+                or metrics_payload["last_rejection_breaker_id"]
                 or "n/a"
             )
 
@@ -1417,11 +1414,11 @@ class DashboardTemplates:
                     "",
                     "### Resilience metrics",
                     (
-                        f"- Rejected calls: {metrics_payload.get('rejected_call_count', 0)}"
+                        f"- Rejected calls: {metrics_payload['rejected_call_count']}"
                     ),
                     (
                         "- Rejecting breakers: "
-                        f"{metrics_payload.get('rejection_breaker_count', 0)}"
+                        f"{metrics_payload['rejection_breaker_count']}"
                     ),
                     f"- Rejection rate: {rate_display}",
                     f"- Last rejection: {last_rejection_iso}",

@@ -24,8 +24,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.util import slugify
 
 from .const import (
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
     DOMAIN,
     MODULE_FEEDING,
     MODULE_GPS,
@@ -47,6 +45,10 @@ from .dashboard_templates import (
     MapOptionsInput,
 )
 from .types import (
+    DOG_ID_FIELD,
+    DOG_IMAGE_FIELD,
+    DOG_MODULES_FIELD,
+    DOG_NAME_FIELD,
     CoordinatorStatisticsPayload,
     DogConfigData,
     DogModulesConfig,
@@ -428,7 +430,7 @@ class OverviewCardGenerator(BaseCardGenerator):
         dog_id_mapping = {}
 
         for dog in dogs_config:
-            dog_id = dog.get(CONF_DOG_ID)
+            dog_id = dog[DOG_ID_FIELD]
             if dog_id:
                 entity_id = f"sensor.{dog_id}_status"
                 status_entities.append(entity_id)
@@ -458,8 +460,8 @@ class OverviewCardGenerator(BaseCardGenerator):
         dog_candidates: list[tuple[str, str, str]] = []  # (dog_id, dog_name, entity_id)
 
         for dog in typed_dogs:
-            dog_id = dog.get(CONF_DOG_ID)
-            dog_name = dog.get(CONF_DOG_NAME)
+            dog_id = dog[DOG_ID_FIELD]
+            dog_name = dog[DOG_NAME_FIELD]
 
             if dog_id and dog_name:
                 entity_id = f"sensor.{dog_id}_status"
@@ -523,7 +525,7 @@ class OverviewCardGenerator(BaseCardGenerator):
         has_walking = False
 
         for dog in typed_dogs:
-            modules = coerce_dog_modules_config(dog.get("modules"))
+            modules = coerce_dog_modules_config(dog.get(DOG_MODULES_FIELD))
             if not has_feeding and modules.get(MODULE_FEEDING):
                 has_feeding = True
             if not has_walking and modules.get(MODULE_WALK):
@@ -618,9 +620,9 @@ class DogCardGenerator(BaseCardGenerator):
             return []
 
         dog_config = typed_dog
-        dog_id = dog_config[CONF_DOG_ID]
-        dog_name = dog_config[CONF_DOG_NAME]
-        modules = coerce_dog_modules_config(dog_config.get("modules"))
+        dog_id = dog_config[DOG_ID_FIELD]
+        dog_name = dog_config[DOG_NAME_FIELD]
+        modules = coerce_dog_modules_config(dog_config.get(DOG_MODULES_FIELD))
 
         start_time = asyncio.get_event_loop().time()
         cards: list[CardConfigType] = []
@@ -785,8 +787,8 @@ class DogCardGenerator(BaseCardGenerator):
         if typed_dog is None:
             return None
 
-        dog_id = typed_dog[CONF_DOG_ID]
-        dog_name = typed_dog[CONF_DOG_NAME]
+        dog_id = typed_dog[DOG_ID_FIELD]
+        dog_name = typed_dog[DOG_NAME_FIELD]
 
         # OPTIMIZED: Quick entity existence check with cache
         status_entity = f"sensor.{dog_id}_status"
@@ -794,7 +796,7 @@ class DogCardGenerator(BaseCardGenerator):
             return None
 
         # Use custom image if provided, otherwise default
-        dog_image = typed_dog.get("dog_image", f"/local/paw_control/{dog_id}.jpg")
+        dog_image = typed_dog.get(DOG_IMAGE_FIELD, f"/local/paw_control/{dog_id}.jpg")
 
         return {
             "type": "picture-entity",
@@ -847,8 +849,8 @@ class DogCardGenerator(BaseCardGenerator):
             return None
 
         dog_config = typed_dog
-        dog_id = dog_config[CONF_DOG_ID]
-        modules = coerce_dog_modules_config(dog_config.get("modules"))
+        dog_id = dog_config[DOG_ID_FIELD]
+        modules = coerce_dog_modules_config(dog_config.get(DOG_MODULES_FIELD))
 
         # OPTIMIZED: Build entity list efficiently
         activity_entities = [f"sensor.{dog_id}_activity_level"]
@@ -887,8 +889,8 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
             return []
 
         dog_config = typed_dog
-        dog_id = dog_config[CONF_DOG_ID]
-        dog_name = dog_config[CONF_DOG_NAME]
+        dog_id = dog_config[DOG_ID_FIELD]
+        dog_name = dog_config[DOG_NAME_FIELD]
 
         # OPTIMIZED: Generate all cards concurrently
         card_generators: list[tuple[str, asyncio.Task[CardCollection]]] = [
@@ -1139,7 +1141,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
             return []
 
         dog_config = typed_dog
-        dog_id = dog_config[CONF_DOG_ID]
+        dog_id = dog_config[DOG_ID_FIELD]
 
         # OPTIMIZED: Direct card generation without unnecessary async calls
         smart_buttons_card = self._generate_smart_feeding_buttons(dog_id, options)
@@ -1205,8 +1207,8 @@ class ModuleCardGenerator(BaseCardGenerator):
             return []
 
         dog_config = typed_dog
-        dog_id = dog_config[CONF_DOG_ID]
-        modules = coerce_dog_modules_config(dog_config.get("modules"))
+        dog_id = dog_config[DOG_ID_FIELD]
+        modules = coerce_dog_modules_config(dog_config.get(DOG_MODULES_FIELD))
         cards: list[CardConfigType] = []
 
         # OPTIMIZED: Check if health-aware feeding is enabled
@@ -1338,7 +1340,7 @@ class ModuleCardGenerator(BaseCardGenerator):
             return []
 
         dog_config = typed_dog
-        dog_id = dog_config[CONF_DOG_ID]
+        dog_id = dog_config[DOG_ID_FIELD]
         cards: list[CardConfigType] = []
 
         # OPTIMIZED: Prepare all walk-related entities for batch validation
@@ -1456,7 +1458,7 @@ class ModuleCardGenerator(BaseCardGenerator):
             return []
 
         dog_config = typed_dog
-        dog_id = dog_config[CONF_DOG_ID]
+        dog_id = dog_config[DOG_ID_FIELD]
         cards: list[CardConfigType] = []
 
         # OPTIMIZED: Prepare all health entities for batch validation
@@ -1558,9 +1560,9 @@ class ModuleCardGenerator(BaseCardGenerator):
             return []
 
         dog_config = typed_dog
-        dog_id = dog_config[CONF_DOG_ID]
-        dog_name = dog_config[CONF_DOG_NAME]
-        modules = coerce_dog_modules_config(dog_config.get("modules"))
+        dog_id = dog_config[DOG_ID_FIELD]
+        dog_name = dog_config[DOG_NAME_FIELD]
+        modules = coerce_dog_modules_config(dog_config.get(DOG_MODULES_FIELD))
 
         if not modules.get(MODULE_NOTIFICATIONS):
             return []
@@ -1647,7 +1649,7 @@ class ModuleCardGenerator(BaseCardGenerator):
             return []
 
         dog_config = typed_dog
-        dog_id = dog_config[CONF_DOG_ID]
+        dog_id = dog_config[DOG_ID_FIELD]
         cards: list[CardConfigType] = []
 
         # OPTIMIZED: Check tracker entity first
@@ -1851,9 +1853,9 @@ class WeatherCardGenerator(BaseCardGenerator):
             return []
 
         dog_config = typed_dog
-        dog_id = dog_config[CONF_DOG_ID]
-        dog_name = dog_config[CONF_DOG_NAME]
-        modules = coerce_dog_modules_config(dog_config.get("modules"))
+        dog_id = dog_config[DOG_ID_FIELD]
+        dog_name = dog_config[DOG_NAME_FIELD]
+        modules = coerce_dog_modules_config(dog_config.get(DOG_MODULES_FIELD))
 
         # Check if weather module is enabled
         if not modules.get("weather"):
@@ -2211,8 +2213,8 @@ class WeatherCardGenerator(BaseCardGenerator):
             return None
 
         dog_config = typed_dog
-        dog_id = dog_config[CONF_DOG_ID]
-        dog_name = dog_config[CONF_DOG_NAME]
+        dog_id = dog_config[DOG_ID_FIELD]
+        dog_name = dog_config[DOG_NAME_FIELD]
         dog_breed = dog_config.get("breed", "Mixed Breed")
 
         breed_advice_entity = f"sensor.{dog_id}_breed_weather_advice"
@@ -2316,8 +2318,8 @@ class WeatherCardGenerator(BaseCardGenerator):
             return None
 
         dog_config = typed_dog
-        dog_id = dog_config[CONF_DOG_ID]
-        dog_name = dog_config[CONF_DOG_NAME]
+        dog_id = dog_config[DOG_ID_FIELD]
+        dog_name = dog_config[DOG_NAME_FIELD]
 
         # OPTIMIZED: Check if weather controls are enabled
         weather_switch = f"switch.{dog_id}_weather_monitoring"
@@ -2391,8 +2393,8 @@ class WeatherCardGenerator(BaseCardGenerator):
             return None
 
         dog_config = typed_dog
-        dog_id = dog_config[CONF_DOG_ID]
-        dog_name = dog_config[CONF_DOG_NAME]
+        dog_id = dog_config[DOG_ID_FIELD]
+        dog_name = dog_config[DOG_NAME_FIELD]
 
         # OPTIMIZED: Batch validate history entities
         history_entities = [
@@ -2497,7 +2499,7 @@ class StatisticsCardGenerator(BaseCardGenerator):
         activity_entities = []
 
         for dog in dogs_config:
-            dog_id = dog.get(CONF_DOG_ID)
+            dog_id = dog[DOG_ID_FIELD]
             if dog_id:
                 activity_entities.append(f"sensor.{dog_id}_activity_level")
 
@@ -2522,8 +2524,8 @@ class StatisticsCardGenerator(BaseCardGenerator):
         feeding_entities = []
 
         for dog in dogs_config:
-            dog_id = dog.get(CONF_DOG_ID)
-            modules = coerce_dog_modules_config(dog.get("modules"))
+            dog_id = dog[DOG_ID_FIELD]
+            modules = coerce_dog_modules_config(dog.get(DOG_MODULES_FIELD))
             if dog_id and modules.get(MODULE_FEEDING):
                 feeding_entities.append(f"sensor.{dog_id}_meals_today")
 
@@ -2548,8 +2550,8 @@ class StatisticsCardGenerator(BaseCardGenerator):
         walk_entities = []
 
         for dog in dogs_config:
-            dog_id = dog.get(CONF_DOG_ID)
-            modules = coerce_dog_modules_config(dog.get("modules"))
+            dog_id = dog[DOG_ID_FIELD]
+            modules = coerce_dog_modules_config(dog.get(DOG_MODULES_FIELD))
             if dog_id and modules.get(MODULE_WALK):
                 walk_entities.append(f"sensor.{dog_id}_walk_distance_today")
 
@@ -2574,8 +2576,8 @@ class StatisticsCardGenerator(BaseCardGenerator):
         weight_entities = []
 
         for dog in dogs_config:
-            dog_id = dog.get(CONF_DOG_ID)
-            modules = coerce_dog_modules_config(dog.get("modules"))
+            dog_id = dog[DOG_ID_FIELD]
+            modules = coerce_dog_modules_config(dog.get(DOG_MODULES_FIELD))
             if dog_id and modules.get(MODULE_HEALTH):
                 weight_entities.append(f"sensor.{dog_id}_weight")
 

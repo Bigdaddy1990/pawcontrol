@@ -7,7 +7,7 @@ import contextlib
 import logging
 from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
-from numbers import Number
+from numbers import Real
 from typing import Any
 
 from homeassistant.components.sensor import (
@@ -32,15 +32,19 @@ from homeassistant.util import dt as dt_util
 from .const import (
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
     MODULE_GARDEN,
 )
 from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
 from .entity_factory import EntityFactory
 from .runtime_data import get_runtime_data
-from .types import PawControlConfigEntry, ensure_dog_modules_mapping
+from .types import (
+    DOG_ID_FIELD,
+    DOG_NAME_FIELD,
+    DogConfigData,
+    PawControlConfigEntry,
+    ensure_dog_modules_mapping,
+)
 from .utils import async_call_add_entities, ensure_utc_datetime, is_number
 
 _LOGGER = logging.getLogger(__name__)
@@ -191,7 +195,7 @@ async def async_setup_entry(
         _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
         return
     coordinator = runtime_data.coordinator
-    dogs = runtime_data.dogs
+    dogs: list[DogConfigData] = runtime_data.dogs
     entity_factory = runtime_data.entity_factory
     profile = runtime_data.entity_profile
 
@@ -216,15 +220,15 @@ async def async_setup_entry(
 async def _create_profile_entities(
     coordinator: PawControlCoordinator,
     entity_factory: EntityFactory,
-    dogs: list[dict[str, Any]],
+    dogs: list[DogConfigData],
     profile: str,
 ) -> list[PawControlSensorBase]:
     """Create entities based on profile requirements."""
     all_entities = []
 
     for dog in dogs:
-        dog_id = dog[CONF_DOG_ID]
-        dog_name = dog[CONF_DOG_NAME]
+        dog_id = dog[DOG_ID_FIELD]
+        dog_name = dog[DOG_NAME_FIELD]
         modules = ensure_dog_modules_mapping(dog)
 
         # Create core entities (always included)
@@ -267,7 +271,7 @@ async def _create_module_entities(
     entity_factory: EntityFactory,
     dog_id: str,
     dog_name: str,
-    modules: dict[str, bool],
+    modules: Mapping[str, bool],
     profile: str,
 ) -> list[PawControlSensorBase]:
     """Create module-specific entities based on profile and enabled modules."""
@@ -702,7 +706,7 @@ async def _add_entities_optimized(
 
 def _log_setup_metrics(
     all_entities: list[PawControlSensorBase],
-    dogs: list[dict[str, Any]],
+    dogs: list[DogConfigData],
     profile: str,
     entity_factory: EntityFactory,
 ) -> None:
@@ -762,8 +766,8 @@ class PawControlSensorBase(PawControlEntity, SensorEntity):
         self._sensor_type = sensor_type
         self._attr_unique_id = f"pawcontrol_{dog_id}_{sensor_type}"
         self._apply_name_suffix(sensor_type.replace("_", " ").title())
-        self._pending_translation_key = translation_key
-        self._attr_translation_key = None
+        self._pending_translation_key: str | None = translation_key
+        self._attr_translation_key: str | None = None
         self._attr_device_class = device_class
         self._attr_state_class = state_class
         self._attr_native_unit_of_measurement = unit_of_measurement
@@ -2728,22 +2732,24 @@ class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
         attrs = super().extra_state_attributes
-        feeding_data = self._get_module_data("feeding") or {}
+        feeding_snapshot = self._get_module_data("feeding")
+        base_feeding_data: dict[str, Any] = feeding_snapshot or {}
         attrs.update(
             {
-                "weight_goal": feeding_data.get("weight_goal"),
-                "health_conditions": feeding_data.get("health_conditions", []),
+                "weight_goal": base_feeding_data.get("weight_goal"),
+                "health_conditions": base_feeding_data.get("health_conditions", []),
             }
         )
 
-        feeding_data = self._get_module_data("feeding")
-        if feeding_data:
+        if feeding_snapshot:
             with contextlib.suppress(TypeError, ValueError, ZeroDivisionError):
-                calories_consumed = float(feeding_data.get("total_calories_today", 0.0))
+                calories_consumed = float(
+                    feeding_snapshot.get("total_calories_today", 0.0)
+                )
                 calorie_target = float(
-                    feeding_data.get(
+                    feeding_snapshot.get(
                         "daily_calorie_target",
-                        feeding_data.get("target_calories_per_day", 1000.0),
+                        feeding_snapshot.get("target_calories_per_day", 1000.0),
                     )
                 )
 
@@ -4079,8 +4085,8 @@ def _coerce_budget_remaining(budget: Any) -> int | None:
     if remaining is None:
         return None
 
-    if isinstance(remaining, Number):
-        return int(remaining)
+    if isinstance(remaining, Real):
+        return int(float(remaining))
 
     try:
         return int(remaining)

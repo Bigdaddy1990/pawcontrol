@@ -15,9 +15,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 from contextlib import suppress
 from datetime import date
-from typing import Any
+from typing import Any, cast
 
 from homeassistant.components.date import DateEntity
 from homeassistant.core import HomeAssistant, callback
@@ -29,8 +30,6 @@ from .compat import ConfigEntry
 from .const import (
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
     DOMAIN,
     MODULE_FEEDING,
     MODULE_HEALTH,
@@ -41,6 +40,13 @@ from .entity import PawControlEntity
 from .exceptions import PawControlError, ValidationError
 from .helpers import performance_monitor
 from .runtime_data import get_runtime_data
+from .types import (
+    DOG_ID_FIELD,
+    DOG_NAME_FIELD,
+    DogConfigData,
+    DogModulesMapping,
+    ensure_dog_modules_mapping,
+)
 from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
@@ -52,7 +58,7 @@ PARALLEL_UPDATES = 0
 
 
 async def _async_add_entities_in_batches(
-    async_add_entities_func,
+    async_add_entities_func: AddEntitiesCallback,
     entities: list[PawControlDateBase],
     batch_size: int = 12,
     delay_between_batches: float = 0.1,
@@ -127,21 +133,21 @@ async def async_setup_entry(
             return
 
         coordinator = runtime_data.coordinator
-        dogs = runtime_data.dogs
+        dogs: list[DogConfigData] = runtime_data.dogs
 
-        entities = []
+        entities: list[PawControlDateBase] = []
 
         for dog in dogs:
             try:
-                dog_id = dog[CONF_DOG_ID]
-                dog_name = dog[CONF_DOG_NAME]
-                modules = dog.get("modules", {})
+                dog_id = dog[DOG_ID_FIELD]
+                dog_name = dog[DOG_NAME_FIELD]
+                modules: DogModulesMapping = ensure_dog_modules_mapping(dog)
 
                 _LOGGER.debug(
                     "Creating date entities for dog %s (%s) with modules: %s",
                     dog_name,
                     dog_id,
-                    list(modules.keys()),
+                    sorted(modules.keys()),
                 )
 
                 # Core dog date entities (always created)
@@ -195,7 +201,7 @@ async def async_setup_entry(
             except Exception as err:
                 _LOGGER.error(
                     "Error creating date entities for dog %s: %s",
-                    dog.get(CONF_DOG_ID, "unknown"),
+                    dog.get(DOG_ID_FIELD, "unknown"),
                     err,
                     exc_info=True,
                 )
@@ -216,7 +222,7 @@ async def async_setup_entry(
         _LOGGER.error("Failed to setup date platform: %s", err, exc_info=True)
         raise PawControlError(
             "Date platform setup failed",
-            "platform_setup_error",
+            error_code="platform_setup_error",
         ) from err
 
 
@@ -226,6 +232,12 @@ class PawControlDateBase(PawControlEntity, DateEntity, RestoreEntity):
     Provides common functionality for all date entities including state
     restoration, device association, and consistent attribute handling.
     """
+
+    _SET_VALUE_MONITOR = cast(
+        Callable[[Callable[["PawControlDateBase", date], Awaitable[None]]],
+        Callable[["PawControlDateBase", date], Awaitable[None]]],
+        performance_monitor(timeout=5.0),
+    )
 
     def __init__(
         self,
@@ -340,7 +352,7 @@ class PawControlDateBase(PawControlEntity, DateEntity, RestoreEntity):
                 )
                 self._current_value = None
 
-    @performance_monitor(timeout=5.0)
+    @_SET_VALUE_MONITOR
     async def async_set_value(self, value: date) -> None:
         """Set new date value with validation and logging.
 
