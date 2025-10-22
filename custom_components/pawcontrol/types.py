@@ -1066,6 +1066,18 @@ class DashboardSetupConfig(TypedDict, total=False):
     refresh_interval: int
 
 
+DashboardEnabledField = Literal["dashboard_enabled"]
+DASHBOARD_ENABLED_FIELD: Final[DashboardEnabledField] = "dashboard_enabled"
+DASHBOARD_AUTO_CREATE_FIELD: Final[Literal["dashboard_auto_create"]] = (
+    "dashboard_auto_create"
+)
+DASHBOARD_PER_DOG_FIELD: Final[Literal["dashboard_per_dog"]] = "dashboard_per_dog"
+DASHBOARD_THEME_FIELD: Final[Literal["dashboard_theme"]] = "dashboard_theme"
+DASHBOARD_MODE_FIELD: Final[Literal["dashboard_mode"]] = "dashboard_mode"
+DASHBOARD_SHOW_STATISTICS_FIELD: Final[Literal["show_statistics"]] = "show_statistics"
+DASHBOARD_SHOW_MAPS_FIELD: Final[Literal["show_maps"]] = "show_maps"
+
+
 class FeedingSetupConfig(TypedDict, total=False):
     """Feeding defaults gathered while configuring modules during setup."""
 
@@ -2147,6 +2159,7 @@ class DogConfigData(TypedDict, total=False):
     vet_contact: NotRequired[str | None]
     emergency_contact: NotRequired[str | None]
     modules: NotRequired[DogModulesConfig]
+    dog_image: NotRequired[str | None]
     discovery_info: NotRequired[ConfigFlowDiscoveryData]
     gps_config: NotRequired[DogGPSConfig]
     feeding_config: NotRequired[DogFeedingConfig]
@@ -2171,6 +2184,7 @@ DOG_EMERGENCY_CONTACT_FIELD: Final[Literal["emergency_contact"]] = "emergency_co
 DOG_FEEDING_CONFIG_FIELD: Final[Literal["feeding_config"]] = "feeding_config"
 DOG_HEALTH_CONFIG_FIELD: Final[Literal["health_config"]] = "health_config"
 DOG_GPS_CONFIG_FIELD: Final[Literal["gps_config"]] = "gps_config"
+DOG_IMAGE_FIELD: Final[Literal["dog_image"]] = "dog_image"
 
 
 def ensure_dog_config_data(data: Mapping[str, Any]) -> DogConfigData | None:

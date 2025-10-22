@@ -26,7 +26,14 @@ from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
 from .notifications import NotificationPriority, NotificationType
 from .runtime_data import get_runtime_data
-from .types import DogConfigData, PawControlConfigEntry
+from .types import (
+    DOG_ID_FIELD,
+    DOG_NAME_FIELD,
+    DogConfigData,
+    ModuleToggleKey,
+    PawControlConfigEntry,
+    ensure_dog_modules_mapping,
+)
 from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
@@ -34,6 +41,10 @@ _LOGGER = logging.getLogger(__name__)
 # Text helpers persist updates back to the coordinator. Coordinator-side
 # locking keeps writes safe, so we remove the entity-level concurrency cap.
 PARALLEL_UPDATES = 0
+
+MODULE_WALK_KEY = cast(ModuleToggleKey, MODULE_WALK)
+MODULE_HEALTH_KEY = cast(ModuleToggleKey, MODULE_HEALTH)
+MODULE_NOTIFICATIONS_KEY = cast(ModuleToggleKey, MODULE_NOTIFICATIONS)
 
 
 def _normalize_dog_configs(
@@ -155,9 +166,9 @@ async def async_setup_entry(
     entities: list[PawControlTextBase] = []
 
     for dog in dogs:
-        dog_id = dog[CONF_DOG_ID]
-        dog_name = dog[CONF_DOG_NAME]
-        modules = dog.get("modules", {})
+        dog_id = dog[DOG_ID_FIELD]
+        dog_name = dog[DOG_NAME_FIELD]
+        modules = ensure_dog_modules_mapping(dog)
 
         # Basic dog configuration texts
         entities.extend(
@@ -168,7 +179,7 @@ async def async_setup_entry(
         )
 
         # Walk texts
-        if modules.get(MODULE_WALK, False):
+        if bool(modules.get(MODULE_WALK_KEY, False)):
             entities.extend(
                 [
                     PawControlWalkNotesText(coordinator, dog_id, dog_name),
@@ -177,7 +188,7 @@ async def async_setup_entry(
             )
 
         # Health texts
-        if modules.get(MODULE_HEALTH, False):
+        if bool(modules.get(MODULE_HEALTH_KEY, False)):
             entities.extend(
                 [
                     PawControlHealthNotesText(coordinator, dog_id, dog_name),
@@ -188,7 +199,7 @@ async def async_setup_entry(
             )
 
         # Notification texts
-        if modules.get(MODULE_NOTIFICATIONS, False):
+        if bool(modules.get(MODULE_NOTIFICATIONS_KEY, False)):
             entities.extend(
                 [
                     PawControlCustomMessageText(coordinator, dog_id, dog_name),

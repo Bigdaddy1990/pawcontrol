@@ -325,12 +325,14 @@ DASHBOARD_MODE_SELECTOR_OPTIONS: Final[tuple[dict[str, str], ...]] = (
     },
 )
 
-CONF_DASHBOARD_ENABLED: Final[str] = "dashboard_enabled"
-CONF_DASHBOARD_AUTO_CREATE: Final[str] = "dashboard_auto_create"
-CONF_DASHBOARD_THEME: Final[str] = "dashboard_theme"
-CONF_DASHBOARD_CARDS: Final[str] = "dashboard_cards"
-CONF_DASHBOARD_VIEWS: Final[str] = "dashboard_views"
-CONF_DASHBOARD_PER_DOG: Final[str] = "dashboard_per_dog"
+CONF_DASHBOARD_ENABLED: Final = "dashboard_enabled"
+CONF_DASHBOARD_AUTO_CREATE: Final = "dashboard_auto_create"
+CONF_DASHBOARD_THEME: Final = "dashboard_theme"
+CONF_DASHBOARD_CARDS: Final = "dashboard_cards"
+CONF_DASHBOARD_VIEWS: Final = "dashboard_views"
+CONF_DASHBOARD_PER_DOG: Final = "dashboard_per_dog"
+CONF_DASHBOARD_SHOW_STATISTICS: Final = "show_statistics"
+CONF_DASHBOARD_SHOW_MAPS: Final = "show_maps"
 
 # OPTIMIZED: Dashboard defaults
 DEFAULT_DASHBOARD_ENABLED: Final[bool] = True

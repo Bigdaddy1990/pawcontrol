@@ -15,7 +15,7 @@ import asyncio
 import logging
 import re
 import time
-from typing import Any, ClassVar, Final
+from typing import Any, ClassVar, Final, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow
@@ -42,6 +42,15 @@ from .const import (
     MODULE_HEALTH,
 )
 from .types import (
+    DOG_AGE_FIELD,
+    DOG_BREED_FIELD,
+    DOG_FEEDING_CONFIG_FIELD,
+    DOG_GPS_CONFIG_FIELD,
+    DOG_HEALTH_CONFIG_FIELD,
+    DOG_ID_FIELD,
+    DOG_NAME_FIELD,
+    DOG_SIZE_FIELD,
+    DOG_WEIGHT_FIELD,
     ConfigFlowGlobalSettings,
     DashboardSetupConfig,
     DogConfigData,
@@ -282,42 +291,51 @@ class PawControlBaseConfigFlow(ConfigFlow):
         if not self._dogs:
             return "No dogs configured yet. Add your first dog to get started!"
 
-        dogs_list = []
-        for i, dog in enumerate(self._dogs, 1):
-            breed_info = dog.get(CONF_DOG_BREED, "Mixed Breed")
-            if not breed_info or breed_info == "":
-                breed_info = "Mixed Breed"
+        size_emojis: dict[str, str] = {
+            "toy": "🐭",
+            "small": "🐕",
+            "medium": "🐶",
+            "large": "🐕‍🦺",
+            "giant": "🐺",
+        }
+        dogs_list: list[str] = []
+        for index, dog in enumerate(self._dogs, start=1):
+            breed_raw = cast(str | None, dog.get(DOG_BREED_FIELD))
+            breed_info = (breed_raw or "Mixed Breed").strip() or "Mixed Breed"
 
-            # Size emoji mapping
-            size_emojis = {
-                "toy": "🐭",
-                "small": "🐕",
-                "medium": "🐶",
-                "large": "🐕‍🦺",
-                "giant": "🐺",
-            }
-            size_emoji = size_emojis.get(dog.get(CONF_DOG_SIZE, "medium"), "🐶")
+            size_raw = cast(str | None, dog.get(DOG_SIZE_FIELD))
+            size_value = size_raw or "medium"
+            size_emoji = size_emojis.get(size_value, "🐶")
 
-            # Enabled modules count
             modules_mapping = ensure_dog_modules_mapping(dog)
             enabled_count = sum(1 for enabled in modules_mapping.values() if enabled)
             total_modules = len(modules_mapping)
 
-            # Special configurations
-            special_configs = []
-            if dog.get("gps_config"):
+            age_value = cast(int | float | None, dog.get(DOG_AGE_FIELD))
+            age_text = (
+                f"{age_value:g}" if isinstance(age_value, int | float) else "unknown"
+            )
+
+            weight_value = cast(float | int | None, dog.get(DOG_WEIGHT_FIELD))
+            weight_text = (
+                f"{weight_value:g}"
+                if isinstance(weight_value, int | float)
+                else "unknown"
+            )
+
+            special_configs: list[str] = []
+            if DOG_GPS_CONFIG_FIELD in dog:
                 special_configs.append("📍 GPS")
-            if dog.get("feeding_config"):
+            if DOG_FEEDING_CONFIG_FIELD in dog:
                 special_configs.append("🍽️ Feeding")
-            if dog.get("health_config"):
+            if DOG_HEALTH_CONFIG_FIELD in dog:
                 special_configs.append("🏥 Health")
 
             special_text = " | ".join(special_configs) if special_configs else ""
 
             dogs_list.append(
-                f"{i}. {size_emoji} **{dog[CONF_DOG_NAME]}** ({dog[CONF_DOG_ID]})\n"
-                f"   {dog.get(CONF_DOG_SIZE, 'medium').title()} {breed_info}, "
-                f"{dog.get(CONF_DOG_AGE, 'unknown')} years, {dog.get(CONF_DOG_WEIGHT, 'unknown')}kg\n"
+                f"{index}. {size_emoji} **{dog[DOG_NAME_FIELD]}** ({dog[DOG_ID_FIELD]})\n"
+                f"   {size_value.title()} {breed_info}, {age_text} years, {weight_text}kg\n"
                 f"   {enabled_count}/{total_modules} modules enabled"
                 + (f"\n   {special_text}" if special_text else "")
             )
@@ -336,9 +354,9 @@ class PawControlBaseConfigFlow(ConfigFlow):
         if not user_input:
             return ""
 
-        name = user_input.get(CONF_DOG_NAME, "").lower()
-        size = user_input.get(CONF_DOG_SIZE, "")
-        user_input.get(CONF_DOG_WEIGHT, 0)
+        name_raw = cast(str | None, user_input.get(DOG_NAME_FIELD))
+        name = name_raw.lower() if name_raw else ""
+        size = cast(str | None, user_input.get(DOG_SIZE_FIELD)) or ""
 
         # Size-based breed suggestions
         size_breeds = {
@@ -388,10 +406,10 @@ class PawControlBaseConfigFlow(ConfigFlow):
         Returns:
             Optimized dog ID suggestion
         """
-        if not user_input or not user_input.get(CONF_DOG_NAME):
+        if not user_input or not user_input.get(DOG_NAME_FIELD):
             return ""
 
-        dog_name = user_input[CONF_DOG_NAME].strip()
+        dog_name = user_input[DOG_NAME_FIELD].strip()
 
         # Smart conversion with common name patterns
         name_lower = dog_name.lower()
@@ -418,7 +436,7 @@ class PawControlBaseConfigFlow(ConfigFlow):
         original_suggestion = suggestion
         counter = 1
 
-        while any(dog[CONF_DOG_ID] == suggestion for dog in self._dogs):
+        while any(dog[DOG_ID_FIELD] == suggestion for dog in self._dogs):
             if counter == 1:
                 # Try common variations first
                 variations = [
@@ -528,7 +546,7 @@ class PawControlBaseConfigFlow(ConfigFlow):
             else:
                 modules_text = "Basic monitoring"
 
-            summaries.append(f"• {dog[CONF_DOG_NAME]}: {modules_text}")
+            summaries.append(f"• {dog[DOG_NAME_FIELD]}: {modules_text}")
 
         return "\n".join(summaries)
 

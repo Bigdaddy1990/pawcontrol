@@ -20,14 +20,11 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry, HomeAssistantError
+from .compat import HomeAssistantError
 from .const import (
     ACTIVITY_LEVELS,
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOG_SIZE,
     DEFAULT_PERFORMANCE_MODE,
     DOG_SIZES,
     FOOD_TYPES,
@@ -45,7 +42,15 @@ from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
 from .notifications import NotificationPriority
 from .runtime_data import get_runtime_data
-from .types import PawControlRuntimeData, ensure_dog_modules_mapping
+from .types import (
+    DOG_ID_FIELD,
+    DOG_NAME_FIELD,
+    DOG_SIZE_FIELD,
+    DogConfigData,
+    PawControlConfigEntry,
+    PawControlRuntimeData,
+    ensure_dog_modules_mapping,
+)
 from .utils import async_call_add_entities, deep_merge_dicts
 
 _LOGGER = logging.getLogger(__name__)
@@ -150,7 +155,7 @@ WEATHER_CONDITIONS = [
 
 
 async def _async_add_entities_in_batches(
-    async_add_entities_func,
+    async_add_entities_func: AddEntitiesCallback,
     entities: list[PawControlSelectBase],
     batch_size: int = 10,
     delay_between_batches: float = 0.1,
@@ -199,7 +204,7 @@ async def _async_add_entities_in_batches(
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: PawControlConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Paw Control select platform.
@@ -219,14 +224,14 @@ async def async_setup_entry(
         return
 
     coordinator: PawControlCoordinator = runtime_data.coordinator
-    dogs: list[dict[str, Any]] = runtime_data.dogs
+    dogs: list[DogConfigData] = runtime_data.dogs
 
     entities: list[PawControlSelectBase] = []
 
     # Create select entities for each configured dog
     for dog in dogs:
-        dog_id: str = dog[CONF_DOG_ID]
-        dog_name: str = dog[CONF_DOG_NAME]
+        dog_id = dog[DOG_ID_FIELD]
+        dog_name = dog[DOG_NAME_FIELD]
         modules = ensure_dog_modules_mapping(dog)
 
         _LOGGER.debug("Creating select entities for dog: %s (%s)", dog_name, dog_id)
@@ -262,7 +267,7 @@ def _create_base_selects(
     coordinator: PawControlCoordinator,
     dog_id: str,
     dog_name: str,
-    dog_config: dict[str, Any],
+    dog_config: DogConfigData,
 ) -> list[PawControlSelectBase]:
     """Create base selects that are always present for every dog.
 
@@ -431,17 +436,19 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
 
         return {}
 
-    def _get_data_manager(self):
+    def _get_data_manager(self) -> Any | None:
         """Return the data manager for persistence if available."""
 
         runtime_data = self._get_runtime_data()
         if runtime_data is not None:
-            return runtime_data.runtime_managers.data_manager
+            manager_container = getattr(runtime_data, "runtime_managers", None)
+            if manager_container is not None:
+                return getattr(manager_container, "data_manager", None)
 
         entry_data = self._get_domain_entry_data()
         managers = entry_data.get("runtime_managers")
         if hasattr(managers, "data_manager"):
-            return managers.data_manager
+            return cast(Any, managers).data_manager
         if isinstance(managers, dict):
             return managers.get("data_manager")
         return None
@@ -687,17 +694,18 @@ class PawControlDogSizeSelect(PawControlSelectBase):
         coordinator: PawControlCoordinator,
         dog_id: str,
         dog_name: str,
-        dog_config: dict[str, Any],
+        dog_config: DogConfigData,
     ) -> None:
         """Initialize the dog size select."""
-        current_size = dog_config.get(CONF_DOG_SIZE, "medium")
+        size_value = cast(str | None, dog_config.get(DOG_SIZE_FIELD))
+        current_size = size_value or "medium"
 
         super().__init__(
             coordinator,
             dog_id,
             dog_name,
             "size",
-            options=DOG_SIZES,
+            options=list(DOG_SIZES),
             icon="mdi:dog",
             entity_category=EntityCategory.CONFIG,
             initial_option=current_size,
@@ -757,6 +765,9 @@ class PawControlDogSizeSelect(PawControlSelectBase):
             },
         }
 
+        if size is None:
+            return {}
+
         return size_data.get(size, {})
 
 
@@ -772,7 +783,7 @@ class PawControlPerformanceModeSelect(PawControlSelectBase):
             dog_id,
             dog_name,
             "performance_mode",
-            options=PERFORMANCE_MODES,
+            options=list(PERFORMANCE_MODES),
             icon="mdi:speedometer",
             entity_category=EntityCategory.CONFIG,
             initial_option=DEFAULT_PERFORMANCE_MODE,
@@ -819,6 +830,12 @@ class PawControlPerformanceModeSelect(PawControlSelectBase):
                 "battery_impact": "high",
             },
         }
+
+        if mode is None:
+            return {}
+
+        if mode is None:
+            return {}
 
         return mode_data.get(mode, {})
 
@@ -893,7 +910,7 @@ class PawControlFoodTypeSelect(PawControlSelectBase):
             dog_id,
             dog_name,
             "food_type",
-            options=FOOD_TYPES,
+            options=list(FOOD_TYPES),
             icon="mdi:food",
             initial_option="dry_food",
         )
@@ -955,6 +972,9 @@ class PawControlFoodTypeSelect(PawControlSelectBase):
             },
         }
 
+        if food_type is None:
+            return {}
+
         return food_data.get(food_type, {})
 
 
@@ -993,7 +1013,7 @@ class PawControlDefaultMealTypeSelect(PawControlSelectBase):
             dog_id,
             dog_name,
             "default_meal_type",
-            options=MEAL_TYPES,
+            options=list(MEAL_TYPES),
             icon="mdi:food-drumstick",
             initial_option="dinner",
         )
@@ -1069,7 +1089,7 @@ class PawControlWalkModeSelect(PawControlSelectBase):
         Returns:
             Walk mode information
         """
-        mode_data = {
+        mode_data: dict[str, dict[str, Any]] = {
             "automatic": {
                 "description": "Automatically detect walk start/end",
                 "gps_required": True,
@@ -1086,6 +1106,9 @@ class PawControlWalkModeSelect(PawControlSelectBase):
                 "accuracy": "very high",
             },
         }
+
+        if mode is None:
+            return {}
 
         return mode_data.get(mode, {})
 
@@ -1149,7 +1172,7 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
             dog_id,
             dog_name,
             "gps_source",
-            options=GPS_SOURCES,
+            options=list(GPS_SOURCES),
             icon="mdi:crosshairs-gps",
             entity_category=EntityCategory.CONFIG,
             initial_option="device_tracker",
@@ -1223,6 +1246,9 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
             },
         }
 
+        if source is None:
+            return {}
+
         return source_data.get(source, {})
 
 
@@ -1238,7 +1264,7 @@ class PawControlTrackingModeSelect(PawControlSelectBase):
             dog_id,
             dog_name,
             "tracking_mode",
-            options=TRACKING_MODES,
+            options=list(TRACKING_MODES),
             icon="mdi:map-marker",
             initial_option="interval",
         )
@@ -1302,7 +1328,7 @@ class PawControlHealthStatusSelect(PawControlSelectBase):
             dog_id,
             dog_name,
             "health_status",
-            options=HEALTH_STATUS_OPTIONS,
+            options=list(HEALTH_STATUS_OPTIONS),
             icon="mdi:heart-pulse",
             initial_option="good",
         )
@@ -1334,7 +1360,7 @@ class PawControlActivityLevelSelect(PawControlSelectBase):
             dog_id,
             dog_name,
             "activity_level",
-            options=ACTIVITY_LEVELS,
+            options=list(ACTIVITY_LEVELS),
             icon="mdi:run",
             initial_option="normal",
         )
@@ -1366,7 +1392,7 @@ class PawControlMoodSelect(PawControlSelectBase):
             dog_id,
             dog_name,
             "mood",
-            options=MOOD_OPTIONS,
+            options=list(MOOD_OPTIONS),
             icon="mdi:emoticon",
             initial_option="happy",
         )
@@ -1450,5 +1476,8 @@ class PawControlGroomingTypeSelect(PawControlSelectBase):
                 "difficulty": "hard",
             },
         }
+
+        if grooming_type is None:
+            return {}
 
         return grooming_data.get(grooming_type, {})

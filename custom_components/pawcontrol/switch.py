@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
@@ -21,12 +22,10 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry, HomeAssistantError
+from .compat import HomeAssistantError
 from .const import (
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
     DOMAIN,
     MODULE_FEEDING,
     MODULE_GPS,
@@ -41,6 +40,13 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
 from .runtime_data import get_runtime_data
+from .types import (
+    DOG_ID_FIELD,
+    DOG_NAME_FIELD,
+    DogConfigData,
+    PawControlConfigEntry,
+    ensure_dog_modules_mapping,
+)
 from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
@@ -131,7 +137,7 @@ class ProfileOptimizedSwitchFactory:
         coordinator: PawControlCoordinator,
         dog_id: str,
         dog_name: str,
-        modules: dict[str, bool],
+        modules: Mapping[str, bool],
     ) -> list[OptimizedSwitchBase]:
         """Create profile-optimized switches for a dog.
 
@@ -209,7 +215,7 @@ class ProfileOptimizedSwitchFactory:
 
 
 async def _async_add_entities_in_batches(
-    async_add_entities_func,
+    async_add_entities_func: AddEntitiesCallback,
     entities: list[OptimizedSwitchBase],
     batch_size: int = BATCH_SIZE,
     delay_between_batches: float = BATCH_DELAY,
@@ -259,7 +265,7 @@ async def _async_add_entities_in_batches(
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: PawControlConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up PawControl switch platform with profile-based optimization."""
@@ -270,16 +276,16 @@ async def async_setup_entry(
         return
 
     coordinator = runtime_data.coordinator
-    dogs = runtime_data.dogs
+    dogs: list[DogConfigData] = runtime_data.dogs
 
     # Profile-optimized entity creation
     all_entities: list[OptimizedSwitchBase] = []
     total_modules_enabled = 0
 
     for dog in dogs:
-        dog_id = dog[CONF_DOG_ID]
-        dog_name = dog[CONF_DOG_NAME]
-        modules = dog.get("modules", {})
+        dog_id = dog[DOG_ID_FIELD]
+        dog_name = dog[DOG_NAME_FIELD]
+        modules = ensure_dog_modules_mapping(dog)
 
         # Count enabled modules for statistics
         enabled_count = sum(1 for enabled in modules.values() if enabled)

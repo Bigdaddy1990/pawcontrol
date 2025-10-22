@@ -17,11 +17,6 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 
 from .const import (
-    CONF_DASHBOARD_AUTO_CREATE,
-    CONF_DASHBOARD_ENABLED,
-    CONF_DASHBOARD_MODE,
-    CONF_DASHBOARD_PER_DOG,
-    CONF_DASHBOARD_THEME,
     CONF_MODULES,
     DASHBOARD_MODE_SELECTOR_OPTIONS,
     DEFAULT_DASHBOARD_AUTO_CREATE,
@@ -30,7 +25,18 @@ from .const import (
     MODULE_GPS,
 )
 from .selector_shim import selector
-from .types import DashboardSetupConfig, DogConfigData, DogModulesConfig
+from .types import (
+    DASHBOARD_AUTO_CREATE_FIELD,
+    DASHBOARD_ENABLED_FIELD,
+    DASHBOARD_MODE_FIELD,
+    DASHBOARD_PER_DOG_FIELD,
+    DASHBOARD_SHOW_MAPS_FIELD,
+    DASHBOARD_SHOW_STATISTICS_FIELD,
+    DASHBOARD_THEME_FIELD,
+    DashboardSetupConfig,
+    DogConfigData,
+    DogModulesConfig,
+)
 
 
 class DashboardFlowMixin:
@@ -80,23 +86,30 @@ class DashboardFlowMixin:
                 cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(MODULE_GPS, False)
                 for dog in self._dogs
             )
-            dashboard_config: DashboardSetupConfig = {
-                CONF_DASHBOARD_ENABLED: True,
-                CONF_DASHBOARD_AUTO_CREATE: user_input.get(
-                    "auto_create_dashboard", DEFAULT_DASHBOARD_AUTO_CREATE
-                ),
-                CONF_DASHBOARD_PER_DOG: user_input.get(
-                    "create_per_dog_dashboards", False
-                ),
-                CONF_DASHBOARD_THEME: user_input.get(
-                    "dashboard_theme", DEFAULT_DASHBOARD_THEME
-                ),
-                CONF_DASHBOARD_MODE: user_input.get(
+            dashboard_mode = str(
+                user_input.get(
                     "dashboard_mode",
                     DEFAULT_DASHBOARD_MODE if has_multiple_dogs else "cards",
+                )
+            )
+            dashboard_config: DashboardSetupConfig = {
+                DASHBOARD_ENABLED_FIELD: True,
+                DASHBOARD_AUTO_CREATE_FIELD: bool(
+                    user_input.get(
+                        "auto_create_dashboard", DEFAULT_DASHBOARD_AUTO_CREATE
+                    )
                 ),
-                "show_statistics": user_input.get("show_statistics", True),
-                "show_maps": user_input.get("show_maps", True),
+                DASHBOARD_PER_DOG_FIELD: bool(
+                    user_input.get("create_per_dog_dashboards", False)
+                ),
+                DASHBOARD_THEME_FIELD: str(
+                    user_input.get("dashboard_theme", DEFAULT_DASHBOARD_THEME)
+                ),
+                DASHBOARD_MODE_FIELD: dashboard_mode,
+                DASHBOARD_SHOW_STATISTICS_FIELD: bool(
+                    user_input.get("show_statistics", True)
+                ),
+                DASHBOARD_SHOW_MAPS_FIELD: bool(user_input.get("show_maps", True)),
             }
             self._dashboard_config = dashboard_config
 

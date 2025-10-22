@@ -1,9 +1,10 @@
-"""Diagnostics support for Paw Control integration.
+"""Diagnostics helpers for the PawControl integration.
 
-This module provides comprehensive diagnostic information for troubleshooting
-and support purposes. It collects system information, configuration details,
-and operational data while ensuring sensitive information is properly redacted.
-The current focus is reaching the Home Assistant Bronze quality baseline.
+The Platinum development plan requires richly structured diagnostics surfaces
+that expose typed coordinator statistics, cache telemetry, and rejection
+metrics. This module normalises runtime payloads into JSON-safe snapshots while
+redacting sensitive fields so support tooling and the bundled dashboard can
+ingest the data without custom adapters.
 """
 
 from __future__ import annotations
@@ -39,8 +40,14 @@ from .diagnostics_redaction import compile_redaction_patterns, redact_sensitive_
 from .runtime_data import get_runtime_data
 from .types import (
     CacheDiagnosticsMap,
+    CacheDiagnosticsMetadata,
     CacheDiagnosticsSnapshot,
     CacheRepairAggregate,
+    CoordinatorHealthIndicators,
+    CoordinatorPerformanceMetrics,
+    CoordinatorRejectionMetrics,
+    CoordinatorStatisticsPayload,
+    CoordinatorUpdateCounts,
     PawControlConfigEntry,
     PawControlRuntimeData,
 )
@@ -342,7 +349,7 @@ def _normalise_cache_snapshot(payload: Any) -> CacheDiagnosticsSnapshot:
 
     if snapshot.diagnostics is not None:
         snapshot.diagnostics = cast(
-            dict[str, Any], _normalise_json(snapshot.diagnostics)
+            CacheDiagnosticsMetadata, _normalise_json(snapshot.diagnostics)
         )
 
     if snapshot.snapshot is not None:
@@ -474,7 +481,22 @@ async def _get_coordinator_diagnostics(
         stats = coordinator.get_update_statistics()
     except Exception as err:
         _LOGGER.debug("Could not get coordinator statistics: %s", err)
-        stats = {}
+        stats = CoordinatorStatisticsPayload(
+            update_counts={"total": 0, "successful": 0, "failed": 0},
+            performance_metrics={
+                "success_rate": 0.0,
+                "cache_entries": 0,
+                "cache_hit_rate": 0.0,
+                "consecutive_errors": 0,
+                "last_update": None,
+                "update_interval": 0.0,
+                "api_calls": 0,
+            },
+            health_indicators={
+                "consecutive_errors": 0,
+                "stability_window_ok": True,
+            },
+        )
 
     return {
         "available": coordinator.available,
@@ -681,43 +703,154 @@ async def _get_performance_metrics(
         return {"available": False}
 
     try:
-        stats = coordinator.get_update_statistics()
-        error_rate = 0.0
-        total_updates = stats.get("total_updates")
-        if total_updates:
-            error_rate = stats.get("failed", 0) / total_updates
-
-        rejection_payload = stats.get("rejection_metrics")
-        if isinstance(rejection_payload, Mapping):
-            rejection_metrics = derive_rejection_metrics(rejection_payload)
-        else:
-            rejection_metrics = default_rejection_metrics()
-        stats["rejection_metrics"] = rejection_metrics
-
-        performance_metrics = stats.get("performance_metrics")
-        if isinstance(performance_metrics, dict):
-            performance_metrics.update(
-                {
-                    key: value
-                    for key, value in rejection_metrics.items()
-                    if key != "schema_version"
-                }
-            )
-
-        return {
-            "update_frequency": stats.get("update_interval"),
-            "data_freshness": "fresh" if coordinator.last_update_success else "stale",
-            "memory_efficient": True,  # Placeholder - could add actual memory usage
-            "cpu_efficient": True,  # Placeholder - could add actual CPU usage
-            "network_efficient": True,  # Placeholder - could add network usage stats
-            "error_rate": error_rate,
-            "response_time": "fast",  # Placeholder - could track actual response times
-            "rejection_metrics": rejection_metrics,
-            "statistics": stats,
-        }
+        raw_stats = coordinator.get_update_statistics()
     except Exception as err:
         _LOGGER.debug("Could not get performance metrics: %s", err)
         return {"available": False, "error": str(err)}
+
+    stats_mapping = raw_stats if isinstance(raw_stats, Mapping) else {}
+
+    def _as_int(value: Any, default: int = 0) -> int:
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, int | float):
+            return int(value)
+        return default
+
+    def _as_float(value: Any, default: float = 0.0) -> float:
+        if isinstance(value, int | float):
+            return float(value)
+        return default
+
+    def _as_bool(value: Any, default: bool = False) -> bool:
+        if isinstance(value, bool):
+            return value
+        return default
+
+    update_counts_payload = stats_mapping.get("update_counts")
+    if isinstance(update_counts_payload, Mapping):
+        update_counts_dict = {
+            "total": _as_int(update_counts_payload.get("total")),
+            "successful": _as_int(update_counts_payload.get("successful")),
+            "failed": _as_int(update_counts_payload.get("failed")),
+        }
+    else:
+        update_counts_dict = {"total": 0, "successful": 0, "failed": 0}
+    update_counts = cast(CoordinatorUpdateCounts, update_counts_dict)
+
+    performance_payload = stats_mapping.get("performance_metrics")
+    if isinstance(performance_payload, Mapping):
+        performance_metrics_dict = {
+            "success_rate": _as_float(performance_payload.get("success_rate")),
+            "cache_entries": _as_int(performance_payload.get("cache_entries")),
+            "cache_hit_rate": _as_float(performance_payload.get("cache_hit_rate")),
+            "consecutive_errors": _as_int(
+                performance_payload.get("consecutive_errors")
+            ),
+            "last_update": performance_payload.get("last_update"),
+            "update_interval": _as_float(performance_payload.get("update_interval")),
+            "api_calls": _as_int(performance_payload.get("api_calls")),
+        }
+    else:
+        performance_metrics_dict = {
+            "success_rate": 0.0,
+            "cache_entries": 0,
+            "cache_hit_rate": 0.0,
+            "consecutive_errors": 0,
+            "last_update": None,
+            "update_interval": 0.0,
+            "api_calls": 0,
+        }
+    performance_metrics = cast(CoordinatorPerformanceMetrics, performance_metrics_dict)
+
+    health_payload = stats_mapping.get("health_indicators")
+    if isinstance(health_payload, Mapping):
+        health_indicators_dict = {
+            "consecutive_errors": _as_int(health_payload.get("consecutive_errors")),
+            "stability_window_ok": _as_bool(
+                health_payload.get("stability_window_ok"), True
+            ),
+        }
+    else:
+        health_indicators_dict = {
+            "consecutive_errors": 0,
+            "stability_window_ok": True,
+        }
+    health_indicators = cast(CoordinatorHealthIndicators, health_indicators_dict)
+
+    stats: CoordinatorStatisticsPayload = CoordinatorStatisticsPayload(
+        update_counts=update_counts,
+        performance_metrics=performance_metrics,
+        health_indicators=health_indicators,
+    )
+
+    for optional_key in (
+        "repairs",
+        "reconfigure",
+        "entity_budget",
+        "adaptive_polling",
+        "resilience",
+        "rejection_metrics",
+    ):
+        optional_value = stats_mapping.get(optional_key)
+        if optional_value is not None:
+            stats[optional_key] = cast(Any, optional_value)
+
+    total_updates = update_counts["total"]
+    failed_updates = update_counts["failed"]
+    error_rate = (failed_updates / total_updates) if total_updates else 0.0
+
+    rejection_payload = stats.get("rejection_metrics")
+    rejection_metrics: CoordinatorRejectionMetrics
+    if isinstance(rejection_payload, Mapping):
+        rejection_metrics = derive_rejection_metrics(rejection_payload)
+    elif rejection_payload is None:
+        rejection_metrics = default_rejection_metrics()
+    else:
+        _LOGGER.debug(
+            "Unexpected rejection metrics payload type: %s",
+            type(rejection_payload),
+        )
+        rejection_metrics = default_rejection_metrics()
+
+    stats["rejection_metrics"] = rejection_metrics
+
+    statistics_output: dict[str, Any]
+    if isinstance(stats_mapping, Mapping):
+        statistics_output = dict(stats_mapping)
+    else:
+        statistics_output = {}
+    statistics_output.update(stats)
+
+    performance_metrics = stats["performance_metrics"]
+    performance_metrics["rejected_call_count"] = rejection_metrics[
+        "rejected_call_count"
+    ]
+    performance_metrics["rejection_breaker_count"] = rejection_metrics[
+        "rejection_breaker_count"
+    ]
+    performance_metrics["rejection_rate"] = rejection_metrics["rejection_rate"]
+    performance_metrics["last_rejection_time"] = rejection_metrics[
+        "last_rejection_time"
+    ]
+    performance_metrics["last_rejection_breaker_id"] = rejection_metrics[
+        "last_rejection_breaker_id"
+    ]
+    performance_metrics["last_rejection_breaker_name"] = rejection_metrics[
+        "last_rejection_breaker_name"
+    ]
+
+    return {
+        "update_frequency": performance_metrics["update_interval"],
+        "data_freshness": "fresh" if coordinator.last_update_success else "stale",
+        "memory_efficient": True,  # Placeholder - could add actual memory usage
+        "cpu_efficient": True,  # Placeholder - could add actual CPU usage
+        "network_efficient": True,  # Placeholder - could add network usage stats
+        "error_rate": error_rate,
+        "response_time": "fast",  # Placeholder - could track actual response times
+        "rejection_metrics": rejection_metrics,
+        "statistics": statistics_output,
+    }
 
 
 async def _get_door_sensor_diagnostics(
@@ -1067,13 +1200,16 @@ def _calculate_module_usage(dogs: list[dict[str, Any]]) -> dict[str, Any]:
         percentage = (count / total_dogs * 100) if total_dogs > 0 else 0
         module_percentages[f"{module}_percentage"] = round(percentage, 1)
 
+    def _module_score(key: str) -> int:
+        return module_counts[key]
+
     return {
         "counts": module_counts,
         "percentages": module_percentages,
-        "most_used_module": max(module_counts, key=module_counts.get)
+        "most_used_module": max(module_counts, key=_module_score)
         if module_counts
         else None,
-        "least_used_module": min(module_counts, key=module_counts.get)
+        "least_used_module": min(module_counts, key=_module_score)
         if module_counts
         else None,
     }
