@@ -877,9 +877,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
         raw_interval_default = current.get("weather_update_interval")
         interval_default = (
-            raw_interval_default
-            if isinstance(raw_interval_default, int)
-            else 60
+            raw_interval_default if isinstance(raw_interval_default, int) else 60
         )
         interval = self._coerce_clamped_int(
             user_input.get("weather_update_interval"),

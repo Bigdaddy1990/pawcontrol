@@ -109,9 +109,7 @@ class DashboardFlowMixin:
                 DASHBOARD_SHOW_STATISTICS_FIELD: bool(
                     user_input.get("show_statistics", True)
                 ),
-                DASHBOARD_SHOW_MAPS_FIELD: bool(
-                    user_input.get("show_maps", True)
-                ),
+                DASHBOARD_SHOW_MAPS_FIELD: bool(user_input.get("show_maps", True)),
             }
             self._dashboard_config = dashboard_config
 

@@ -234,8 +234,10 @@ class PawControlDateBase(PawControlEntity, DateEntity, RestoreEntity):
     """
 
     _SET_VALUE_MONITOR = cast(
-        Callable[[Callable[["PawControlDateBase", date], Awaitable[None]]],
-        Callable[["PawControlDateBase", date], Awaitable[None]]],
+        Callable[
+            [Callable[["PawControlDateBase", date], Awaitable[None]]],
+            Callable[["PawControlDateBase", date], Awaitable[None]],
+        ],
         performance_monitor(timeout=5.0),
     )
 

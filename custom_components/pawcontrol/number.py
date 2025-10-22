@@ -693,7 +693,9 @@ class PawControlDailyFoodAmountNumber(PawControlNumberBase):
         if dog_data and "dog_info" in dog_data:
             info = dog_data["dog_info"]
             weight_value = info.get("dog_weight")
-            weight = float(weight_value) if isinstance(weight_value, int | float) else 20.0
+            weight = (
+                float(weight_value) if isinstance(weight_value, int | float) else 20.0
+            )
             recommended = self._calculate_recommended_amount(weight)
             attrs["recommended_amount"] = recommended
             native_value = self.native_value

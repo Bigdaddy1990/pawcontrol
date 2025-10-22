@@ -1413,9 +1413,7 @@ class DashboardTemplates:
                 [
                     "",
                     "### Resilience metrics",
-                    (
-                        f"- Rejected calls: {metrics_payload['rejected_call_count']}"
-                    ),
+                    (f"- Rejected calls: {metrics_payload['rejected_call_count']}"),
                     (
                         "- Rejecting breakers: "
                         f"{metrics_payload['rejection_breaker_count']}"
