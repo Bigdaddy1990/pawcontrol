@@ -927,7 +927,7 @@ class PawControlOptionsFlow(OptionsFlow):
             minimum=15,
             maximum=1440,
         )
-        threshold = cast(
+        cast(
             Literal["low", "moderate", "high"],
             self._normalize_choice(
                 user_input.get("notification_threshold"),
@@ -1599,9 +1599,7 @@ class PawControlOptionsFlow(OptionsFlow):
             modules = ensure_dog_modules_mapping(dog)
             modules_dict = dict(modules)
 
-            estimate = self._entity_factory.estimate_entity_count(
-                profile, modules_dict
-            )
+            estimate = self._entity_factory.estimate_entity_count(profile, modules_dict)
             total_entities += estimate
 
             enabled_modules = [
@@ -2631,7 +2629,7 @@ class PawControlOptionsFlow(OptionsFlow):
             "training": "Training progress and notes",
         }
 
-        enabled_modules = [
+        [
             f"• {module}: {module_descriptions.get(module, 'Module functionality')}"
             for module, enabled in current_modules_dict.items()
             if enabled

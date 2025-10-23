@@ -156,9 +156,7 @@ def _apply_rejection_metrics_to_performance(
     performance_metrics["last_rejection_breaker_name"] = rejection_metrics[
         "last_rejection_breaker_name"
     ]
-    performance_metrics["open_breaker_count"] = rejection_metrics[
-        "open_breaker_count"
-    ]
+    performance_metrics["open_breaker_count"] = rejection_metrics["open_breaker_count"]
     performance_metrics["half_open_breaker_count"] = rejection_metrics[
         "half_open_breaker_count"
     ]

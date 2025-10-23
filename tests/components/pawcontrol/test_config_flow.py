@@ -505,9 +505,7 @@ async def test_reconfigure_handles_migrated_dog_payloads_and_history(
     assert "Missing GPS source" in placeholders["reconfigure_health"]
     assert "GPS disabled" in placeholders["reconfigure_warnings"]
     assert "2024-01-02" in placeholders["last_reconfigure"]
-    assert (
-        placeholders["reconfigure_merge_notes"] == "No merge adjustments detected"
-    )
+    assert placeholders["reconfigure_merge_notes"] == "No merge adjustments detected"
 
 
 async def test_reconfigure_merges_option_dog_payloads(
@@ -722,10 +720,9 @@ async def test_reconfigure_normalises_legacy_module_lists(
     assert placeholders["dogs_count"] == "1"
     assert placeholders["reconfigure_valid_dogs"] == "1"
     assert placeholders["reconfigure_invalid_dogs"] == "0"
-    assert (
-        "Buddy: your dog options enabled health."
-        in placeholders["reconfigure_merge_notes"].split("\n")
-    )
+    assert "Buddy: your dog options enabled health." in placeholders[
+        "reconfigure_merge_notes"
+    ].split("\n")
 
     assert modules_capture, "Modules capture should record the dog payload"
     modules = modules_capture[0]["buddy"]

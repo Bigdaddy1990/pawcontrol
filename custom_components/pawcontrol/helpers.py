@@ -74,6 +74,7 @@ class PerformanceMetrics:
     avg_operation_time: float = 0.0
     last_cleanup: datetime | None = None
 
+
 DEFAULT_DATA_KEYS: Final[tuple[str, ...]] = (
     "walks",
     "feedings",
@@ -1628,8 +1629,8 @@ class PerformanceMonitor:
 
         # Calculate rolling average
         if self._operation_times:
-            self._metrics.avg_operation_time = (
-                sum(self._operation_times) / len(self._operation_times)
+            self._metrics.avg_operation_time = sum(self._operation_times) / len(
+                self._operation_times
             )
 
     def record_cache_hit(self) -> None:
@@ -1730,9 +1731,7 @@ class PerformanceMonitor:
 
     def get_metrics(self) -> dict[str, Any]:
         """Get performance metrics."""
-        total_cache_operations = (
-            self._metrics.cache_hits + self._metrics.cache_misses
-        )
+        total_cache_operations = self._metrics.cache_hits + self._metrics.cache_misses
         cache_hit_rate = (
             (self._metrics.cache_hits / total_cache_operations * 100)
             if total_cache_operations > 0

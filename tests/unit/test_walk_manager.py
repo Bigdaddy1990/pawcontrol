@@ -653,7 +653,9 @@ class TestEdgeCases:
         # Manually set very long duration
         dog_data = mock_walk_manager._dogs["test_dog"]
         if dog_data["active_walk"]:
-            dog_data["active_walk"]["start_time"] = datetime.now(UTC) - timedelta(hours=24)
+            dog_data["active_walk"]["start_time"] = datetime.now(UTC) - timedelta(
+                hours=24
+            )
 
         walk_event = await mock_walk_manager.async_end_walk(
             dog_id="test_dog",

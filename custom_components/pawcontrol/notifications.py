@@ -1133,9 +1133,7 @@ class PawControlNotificationManager:
 
                     # Process each batch
                     batches_to_send = {}
-                    for batch_key, notifications in list(
-                        self._pending_batches.items()
-                    ):
+                    for batch_key, notifications in list(self._pending_batches.items()):
                         if len(notifications) >= BATCH_PROCESSING_SIZE:
                             batches_to_send[batch_key] = notifications[
                                 :BATCH_PROCESSING_SIZE

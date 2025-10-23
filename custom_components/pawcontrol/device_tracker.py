@@ -47,7 +47,7 @@ from .types import (
     ensure_dog_config_data,
     ensure_dog_modules_projection,
 )
-from .utils import PawControlDeviceLinkMixin, async_call_add_entities
+from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
 

@@ -1159,9 +1159,7 @@ class TestPersonTargeting:
             "person.taylor",
             "person.sam",
         ]
-        assert person_manager.requests == [
-            (True, "person_targets_family_True")
-        ]
+        assert person_manager.requests == [(True, "person_targets_family_True")]
         assert manager._performance_metrics["person_targeted_notifications"] == 1
 
     async def test_person_targeting_enriches_template_context(

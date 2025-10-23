@@ -183,8 +183,7 @@ class PawControlDashboardGenerator:
 
     def _track_task(
         self,
-        awaitable: Coroutine[Any, Any, _TrackedResultT]
-        | asyncio.Task[_TrackedResultT],
+        awaitable: Coroutine[Any, Any, _TrackedResultT] | asyncio.Task[_TrackedResultT],
         *,
         name: str | None = None,
         log_exceptions: bool = False,

@@ -1276,9 +1276,7 @@ class PawControlStartWalkButton(PawControlButtonBase):
             return False
 
         walk_data = self._get_module_data("walk")
-        return not bool(
-            walk_data and walk_data.get(WALK_IN_PROGRESS_FIELD, False)
-        )
+        return not bool(walk_data and walk_data.get(WALK_IN_PROGRESS_FIELD, False))
 
 
 class PawControlEndWalkButton(PawControlButtonBase):
@@ -1330,9 +1328,7 @@ class PawControlEndWalkButton(PawControlButtonBase):
             return False
 
         walk_data = self._get_module_data("walk")
-        return bool(
-            walk_data and walk_data.get(WALK_IN_PROGRESS_FIELD, False)
-        )
+        return bool(walk_data and walk_data.get(WALK_IN_PROGRESS_FIELD, False))
 
 
 class PawControlQuickWalkButton(PawControlButtonBase):
