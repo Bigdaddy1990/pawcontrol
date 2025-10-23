@@ -11,6 +11,7 @@ import logging
 from collections import deque
 from collections.abc import Awaitable, Callable
 from contextlib import suppress
+from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta
 from functools import wraps
 from time import perf_counter
@@ -60,6 +61,19 @@ BATCH_SAVE_DELAY = 2.0  # Batch save delay in seconds
 MAX_NOTIFICATION_QUEUE = 100  # Max queued notifications
 DATA_CLEANUP_INTERVAL = 3600  # 1 hour cleanup interval
 MAX_HISTORY_ITEMS = 1000  # Max items per dog per category
+
+
+@dataclass(slots=True)
+class PerformanceCounters:
+    """Snapshot of performance counters maintained by the monitor."""
+
+    operations: int = 0
+    errors: int = 0
+    cache_hits: int = 0
+    cache_misses: int = 0
+    avg_operation_time: float = 0.0
+    last_cleanup: datetime | None = None
+
 
 DEFAULT_DATA_KEYS: Final[tuple[str, ...]] = (
     "walks",
@@ -879,13 +893,13 @@ class PawControlData:
                 health_namespace[dog_id] = []
                 continue
 
-            normalized_history: list[HealthEvent] = []
+            normalized_health_history: list[HealthEvent] = []
             for entry in history:
                 if isinstance(entry, HealthEvent):
-                    normalized_history.append(entry)
+                    normalized_health_history.append(entry)
                 elif isinstance(entry, dict):
                     try:
-                        normalized_history.append(
+                        normalized_health_history.append(
                             HealthEvent.from_storage(dog_id, entry)
                         )
                     except Exception as err:
@@ -899,7 +913,7 @@ class PawControlData:
                         "Skipping unsupported health history entry type: %s",
                         type(entry).__name__,
                     )
-            health_namespace[dog_id] = normalized_history
+            health_namespace[dog_id] = normalized_health_history
 
         walk_namespace = self._data.setdefault("walks", {})
         for dog_id, walk_data in list(walk_namespace.items()):
@@ -1050,9 +1064,11 @@ class PawControlData:
             dog_id = event["dog_id"]
 
             key = f"{event_type}_{dog_id}"
-            if key not in grouped_events:
-                grouped_events[key] = []
-            grouped_events[key].append(event)
+            group = grouped_events.get(key)
+            if group is None:
+                group = []
+                grouped_events[key] = group
+            group.append(event)
 
         # Process each group
         for group_events in grouped_events.values():
@@ -1602,37 +1618,30 @@ class PerformanceMonitor:
 
     def __init__(self) -> None:
         """Initialize performance monitor."""
-        self._metrics: PerformanceMetrics = {
-            "operations": 0,
-            "errors": 0,
-            "cache_hits": 0,
-            "cache_misses": 0,
-            "avg_operation_time": 0.0,
-            "last_cleanup": None,
-        }
+        self._metrics: PerformanceCounters = PerformanceCounters()
         self._operation_times: deque[float] = deque(maxlen=100)
 
     def record_operation(self, operation_time: float, success: bool = True) -> None:
         """Record an operation."""
-        self._metrics["operations"] += 1
+        self._metrics.operations += 1
         if not success:
-            self._metrics["errors"] += 1
+            self._metrics.errors += 1
 
         self._operation_times.append(operation_time)
 
         # Calculate rolling average
         if self._operation_times:
-            self._metrics["avg_operation_time"] = sum(self._operation_times) / len(
+            self._metrics.avg_operation_time = sum(self._operation_times) / len(
                 self._operation_times
             )
 
     def record_cache_hit(self) -> None:
         """Record cache hit."""
-        self._metrics["cache_hits"] += 1
+        self._metrics.cache_hits += 1
 
     def record_cache_miss(self) -> None:
         """Record cache miss."""
-        self._metrics["cache_misses"] += 1
+        self._metrics.cache_misses += 1
 
     def __call__(
         self,
@@ -1724,23 +1733,26 @@ class PerformanceMonitor:
 
     def get_metrics(self) -> dict[str, Any]:
         """Get performance metrics."""
-        total_cache_operations = (
-            self._metrics["cache_hits"] + self._metrics["cache_misses"]
-        )
+        total_cache_operations = self._metrics.cache_hits + self._metrics.cache_misses
         cache_hit_rate = (
-            (self._metrics["cache_hits"] / total_cache_operations * 100)
+            (self._metrics.cache_hits / total_cache_operations * 100)
             if total_cache_operations > 0
             else 0
         )
 
         error_rate = (
-            (self._metrics["errors"] / self._metrics["operations"] * 100)
-            if self._metrics["operations"] > 0
+            (self._metrics.errors / self._metrics.operations * 100)
+            if self._metrics.operations > 0
             else 0
         )
 
+        metrics_snapshot = asdict(self._metrics)
+        last_cleanup = metrics_snapshot["last_cleanup"]
+        if isinstance(last_cleanup, datetime):
+            metrics_snapshot["last_cleanup"] = last_cleanup.isoformat()
+
         return {
-            **self._metrics,
+            **metrics_snapshot,
             "cache_hit_rate": round(cache_hit_rate, 1),
             "error_rate": round(error_rate, 1),
             "recent_operations": len(self._operation_times),
@@ -1748,14 +1760,7 @@ class PerformanceMonitor:
 
     def reset_metrics(self) -> None:
         """Reset all metrics."""
-        self._metrics = {
-            "operations": 0,
-            "errors": 0,
-            "cache_hits": 0,
-            "cache_misses": 0,
-            "avg_operation_time": 0.0,
-            "last_cleanup": dt_util.utcnow().isoformat(),
-        }
+        self._metrics = PerformanceCounters(last_cleanup=dt_util.utcnow())
         self._operation_times.clear()
 
 

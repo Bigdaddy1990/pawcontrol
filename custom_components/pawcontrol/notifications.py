@@ -497,6 +497,8 @@ class PawControlNotificationManager:
             "person_targeted_notifications": 0,  # NEW
             "static_fallback_notifications": 0,  # NEW
             "config_updates": 0,  # NEW: track configuration changes
+            "retry_reschedules": 0,  # NEW: background retry attempts
+            "retry_successes": 0,  # NEW: successful retry deliveries
         }
         self._cache_monitor_registrar: CacheMonitorRegistrar | None = None
 
@@ -1131,7 +1133,7 @@ class PawControlNotificationManager:
 
                     # Process each batch
                     batches_to_send = {}
-                    for batch_key, notifications in self._pending_batches.items():
+                    for batch_key, notifications in list(self._pending_batches.items()):
                         if len(notifications) >= BATCH_PROCESSING_SIZE:
                             batches_to_send[batch_key] = notifications[
                                 :BATCH_PROCESSING_SIZE
@@ -1970,8 +1972,12 @@ class PawControlNotificationManager:
                             notification.failed_channels.clear()
                             notification.channels = failed_channels
                             notification.retry_count += 1
+                            self._performance_metrics["retry_reschedules"] += 1
 
                             await self._send_to_channels(notification)
+
+                            if not notification.failed_channels:
+                                self._performance_metrics["retry_successes"] += 1
 
             except asyncio.CancelledError:
                 break

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Sequence
 from datetime import datetime
 
 from homeassistant.components.datetime import DateTimeEntity
@@ -44,7 +45,7 @@ PARALLEL_UPDATES = 0
 
 async def _async_add_entities_in_batches(
     async_add_entities_func: AddEntitiesCallback,
-    entities: list[PawControlDateTimeBase],
+    entities: Sequence[PawControlDateTimeBase],
     batch_size: int = 12,
     delay_between_batches: float = 0.1,
 ) -> None:
@@ -82,7 +83,7 @@ async def _async_add_entities_in_batches(
 
         # Add batch without update_before_add to reduce Registry load
         await async_call_add_entities(
-            async_add_entities_func, batch, update_before_add=False
+            async_add_entities_func, list(batch), update_before_add=False
         )
 
         # Small delay between batches to prevent Registry flooding

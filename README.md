@@ -419,6 +419,7 @@ PawControl automatically creates beautiful, responsive dashboards optimized for 
 - **⚠️ Alert Panel**: Important notifications and overdue reminders
 - **📱 Mobile Optimization**: Touch-friendly interface for smartphones
 - **🔔 Notifications View**: Channel health, quiet hours, and priority tuning in one place
+- **👥 Visitor Mode Insights**: Auto-generated guest-mode controls with live status and reduced-alert tracking
 
 ### Dashboard Components
 
@@ -452,6 +453,12 @@ Emergency: [Send Alert] [Emergency Mode] [Contact Vet]
 Settings Card: switch.{dog_id}_notifications_enabled, select.{dog_id}_notification_priority
 Overview Markdown: sensor.pawcontrol_notifications → per-dog delivery stats
 Action Buttons: [Send Test Notification] [Reset Quiet Hours]
+```
+
+**Visitor Mode Insights**:
+```yaml
+Visitor Controls: switch.{dog_id}_visitor_mode, binary_sensor.{dog_id}_visitor_mode
+Visitor Summary: Markdown card showing visitor name, start time, and reduced-alert status
 ```
 
 ## 🔔 Intelligent Notification System

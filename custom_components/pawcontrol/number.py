@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any
+from typing import Any, cast
 
 from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
 from homeassistant.const import (
@@ -31,7 +31,6 @@ from .compat import ConfigEntry, HomeAssistantError
 from .const import (
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
-    CONF_DOG_AGE,
     MAX_DOG_AGE,
     MAX_DOG_WEIGHT,
     MIN_DOG_AGE,
@@ -148,8 +147,8 @@ async def async_setup_entry(
 
     # Create number entities for each configured dog
     for dog in dogs:
-        dog_id = dog[DOG_ID_FIELD]
-        dog_name = dog[DOG_NAME_FIELD]
+        dog_id: str = dog[DOG_ID_FIELD]
+        dog_name: str = dog[DOG_NAME_FIELD]
         modules: DogModulesMapping = ensure_dog_modules_mapping(dog)
 
         _LOGGER.debug("Creating number entities for dog: %s (%s)", dog_name, dog_id)
@@ -525,10 +524,9 @@ class PawControlDogWeightNumber(PawControlNumberBase):
         dog_config: DogConfigData,
     ) -> None:
         """Initialize the dog weight number."""
-        raw_weight = dog_config.get(DOG_WEIGHT_FIELD)
-        current_weight = (
-            float(raw_weight) if isinstance(raw_weight, int | float) else 20.0
-        )
+        current_weight = cast(float | None, dog_config.get(DOG_WEIGHT_FIELD))
+        if current_weight is None:
+            current_weight = 20.0
 
         super().__init__(
             coordinator,
@@ -586,8 +584,9 @@ class PawControlDogAgeNumber(PawControlNumberBase):
         dog_config: DogConfigData,
     ) -> None:
         """Initialize the dog age number."""
-        raw_age = dog_config.get(DOG_AGE_FIELD)
-        current_age = int(raw_age) if isinstance(raw_age, int) else 3
+        current_age = cast(int | None, dog_config.get(DOG_AGE_FIELD))
+        if current_age is None:
+            current_age = 3
 
         super().__init__(
             coordinator,
@@ -611,14 +610,14 @@ class PawControlDogAgeNumber(PawControlNumberBase):
 
         # Update coordinator cache so other entities see the new value immediately
         dog_data = self._get_dog_data() or {}
-        dog_data.setdefault("profile", {})[CONF_DOG_AGE] = int_value
+        dog_data.setdefault("profile", {})[DOG_AGE_FIELD] = int_value
 
         # Persist the change if the data manager is available
         data_manager = self._get_data_manager()
         if data_manager is not None:
             try:
                 await data_manager.async_update_dog_data(
-                    self._dog_id, {"profile": {CONF_DOG_AGE: int_value}}
+                    self._dog_id, {"profile": {DOG_AGE_FIELD: int_value}}
                 )
             except Exception as err:  # pragma: no cover - best effort only
                 _LOGGER.debug(
@@ -698,12 +697,13 @@ class PawControlDailyFoodAmountNumber(PawControlNumberBase):
             )
             recommended = self._calculate_recommended_amount(weight)
             attrs["recommended_amount"] = recommended
-            native_value = self.native_value
-            attrs["current_vs_recommended"] = (
-                f"{(native_value / recommended * 100):.0f}%"
-                if native_value is not None and recommended > 0
-                else "N/A"
-            )
+            current_value = self.native_value
+            if current_value is None or recommended <= 0:
+                attrs["current_vs_recommended"] = "N/A"
+            else:
+                attrs["current_vs_recommended"] = (
+                    f"{(current_value / recommended * 100):.0f}%"
+                )
 
         return attrs
 

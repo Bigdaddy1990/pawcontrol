@@ -394,6 +394,10 @@ async def test_entity_profile_placeholders_expose_reconfigure_telemetry(
                     "issues": ["Missing GPS source"],
                     "warnings": ["Reauth recommended"],
                 },
+                "merge_notes": [
+                    "Buddy: your dog options enabled gps.",
+                    "Max: your config entry options added a dog configuration.",
+                ],
             },
         }
     )
@@ -411,6 +415,8 @@ async def test_entity_profile_placeholders_expose_reconfigure_telemetry(
     assert placeholders["reconfigure_entities"] == "12"
     assert "Missing GPS source" in placeholders["reconfigure_health"]
     assert "GPS disabled" in placeholders["reconfigure_warnings"]
+    merge_notes = placeholders["reconfigure_merge_notes"].split("\n")
+    assert "Buddy: your dog options enabled gps." in merge_notes
 
 
 @pytest.mark.asyncio

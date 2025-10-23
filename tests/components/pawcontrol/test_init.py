@@ -20,6 +20,7 @@ import pytest
 from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
+    CONF_DOG_OPTIONS,
     CONF_DOGS,
     DOMAIN,
     PLATFORMS,
@@ -28,7 +29,11 @@ from custom_components.pawcontrol.runtime_data import (
     get_runtime_data,
     store_runtime_data,
 )
-from custom_components.pawcontrol.types import PawControlRuntimeData
+from custom_components.pawcontrol.types import (
+    DOG_ID_FIELD,
+    DOG_MODULES_FIELD,
+    PawControlRuntimeData,
+)
 from custom_components.pawcontrol.utils import sanitize_dog_id
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
@@ -1092,6 +1097,33 @@ class TestPawControlDeviceRemoval:
         device_entry = MagicMock()
         device_entry.identifiers = {(DOMAIN, sanitize_dog_id("buddy"))}
         device_entry.id = "pawcontrol-device-buddy"
+
+        result = await async_remove_config_entry_device(hass, entry, device_entry)
+
+        assert result is False
+
+    async def test_async_remove_config_entry_device_blocks_dog_options(
+        self, hass: HomeAssistant
+    ) -> None:
+        """Dog options projections should prevent premature device removal."""
+
+        from custom_components.pawcontrol import async_remove_config_entry_device
+
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            data={},
+            options={
+                CONF_DOG_OPTIONS: {
+                    "Buddy": {DOG_MODULES_FIELD: {"walk": True}},
+                    "legacy": {DOG_ID_FIELD: "Legacy Pup", DOG_MODULES_FIELD: {}},
+                }
+            },
+        )
+        entry.add_to_hass(hass)
+
+        device_entry = MagicMock()
+        device_entry.identifiers = {(DOMAIN, sanitize_dog_id("legacy pup"))}
+        device_entry.id = "pawcontrol-device-legacy"
 
         result = await async_remove_config_entry_device(hass, entry, device_entry)
 

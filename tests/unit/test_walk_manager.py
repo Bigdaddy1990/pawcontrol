@@ -9,7 +9,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock
 
 import pytest
@@ -346,7 +346,7 @@ class TestWalkStatistics:
 
             # Modify timestamp to simulate different days
             if hasattr(walk, "start_time"):
-                walk["start_time"] = datetime.now() - timedelta(days=i)
+                walk["start_time"] = datetime.now(UTC) - timedelta(days=i)
 
         stats = mock_walk_manager.get_weekly_walk_stats("test_dog")
 
@@ -536,8 +536,8 @@ class TestWalkHistoryManagement:
 
         # Check ordering (newest first)
         if len(history) >= 2:
-            first_timestamp = history[0].get("start_time", datetime.now())
-            second_timestamp = history[1].get("start_time", datetime.now())
+            first_timestamp = history[0].get("start_time", datetime.now(UTC))
+            second_timestamp = history[1].get("start_time", datetime.now(UTC))
             assert first_timestamp >= second_timestamp
 
 
@@ -653,7 +653,9 @@ class TestEdgeCases:
         # Manually set very long duration
         dog_data = mock_walk_manager._dogs["test_dog"]
         if dog_data["active_walk"]:
-            dog_data["active_walk"]["start_time"] = datetime.now() - timedelta(hours=24)
+            dog_data["active_walk"]["start_time"] = datetime.now(UTC) - timedelta(
+                hours=24
+            )
 
         walk_event = await mock_walk_manager.async_end_walk(
             dog_id="test_dog",

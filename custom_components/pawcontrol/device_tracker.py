@@ -14,8 +14,9 @@ Python: 3.13+
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
 from homeassistant.components.device_tracker import (
     SourceType,
@@ -32,7 +33,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .const import MODULE_GPS
+from .const import ATTR_DOG_ID, ATTR_DOG_NAME, MODULE_GPS
 from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
 from .runtime_data import get_runtime_data
@@ -40,9 +41,11 @@ from .types import (
     DOG_ID_FIELD,
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
+    CoordinatorModuleState,
     DogConfigData,
     PawControlConfigEntry,
-    ensure_dog_modules_mapping,
+    ensure_dog_config_data,
+    ensure_dog_modules_projection,
 )
 from .utils import async_call_add_entities
 
@@ -83,28 +86,39 @@ async def async_setup_entry(
         _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
         return
     coordinator = runtime_data.coordinator
-    dog_configs: list[DogConfigData] = runtime_data.dogs
+    raw_dogs = getattr(runtime_data, "dogs", [])
+    gps_enabled_dogs: list[DogConfigData] = []
+
+    for raw_dog in raw_dogs:
+        if not isinstance(raw_dog, Mapping):
+            continue
+
+        normalised = ensure_dog_config_data(cast(Mapping[str, Any], raw_dog))
+        if normalised is None:
+            continue
+
+        modules_projection = ensure_dog_modules_projection(normalised)
+        normalised[DOG_MODULES_FIELD] = modules_projection.config
+
+        if modules_projection.mapping.get(MODULE_GPS, False):
+            gps_enabled_dogs.append(normalised)
+
+    dogs: list[DogConfigData] = gps_enabled_dogs
     entity_factory = runtime_data.entity_factory
     profile = runtime_data.entity_profile
 
-    if not dog_configs:
-        _LOGGER.warning("No dogs configured for device tracker platform")
-        return
-
-    # Filter dogs with GPS module enabled
-    gps_enabled_dogs: list[DogConfigData] = []
-    for dog in dog_configs:
-        modules = ensure_dog_modules_mapping(dog.get(DOG_MODULES_FIELD, {}))
-        if modules.get(MODULE_GPS, False):
-            gps_enabled_dogs.append(dog)
-
-    if not gps_enabled_dogs:
-        _LOGGER.info("No dogs have GPS module enabled, skipping device tracker setup")
+    if not dogs:
+        if not raw_dogs:
+            _LOGGER.warning("No dogs configured for device tracker platform")
+        else:
+            _LOGGER.info(
+                "No dogs have GPS module enabled, skipping device tracker setup"
+            )
         return
 
     entities: list[PawControlGPSTracker] = []
 
-    for dog in gps_enabled_dogs:
+    for dog in dogs:
         dog_id = dog[DOG_ID_FIELD]
         dog_name = dog[DOG_NAME_FIELD]
 
@@ -121,7 +135,7 @@ async def async_setup_entry(
             config = entity_factory.create_entity_config(
                 dog_id=dog_id,
                 entity_type="device_tracker",
-                module="gps",
+                module=MODULE_GPS,
                 profile=profile,
                 priority=8,  # High priority for GPS tracking
             )
@@ -269,8 +283,11 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         """Return additional GPS tracker attributes."""
-        attrs: dict[str, Any] = dict(super().extra_state_attributes)
-        attrs["tracker_type"] = "gps"
+        attrs: dict[str, Any] = {
+            ATTR_DOG_ID: self._dog_id,
+            ATTR_DOG_NAME: self._dog_name,
+            "tracker_type": MODULE_GPS,
+        }
 
         gps_data = self._get_gps_data()
         if gps_data:
@@ -335,8 +352,13 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
         if not dog_data:
             return None
 
-        gps_data = dog_data.get("gps", {})
-        return gps_data if isinstance(gps_data, dict) else None
+        gps_state = dog_data.get(MODULE_GPS)
+        if isinstance(gps_state, dict):
+            return gps_state
+        if isinstance(gps_state, Mapping):
+            return dict(gps_state)
+
+        return None
 
     async def async_update_location(
         self,
@@ -387,7 +409,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
                 )
                 return
 
-            location_data = {
+            location_data: dict[str, Any] = {
                 ATTR_LATITUDE: latitude,
                 ATTR_LONGITUDE: longitude,
                 "accuracy": accuracy or DEFAULT_GPS_ACCURACY,
@@ -443,7 +465,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
                 return
 
             # Add point to route
-            route_point = {
+            route_point: dict[str, Any] = {
                 "latitude": location_data[ATTR_LATITUDE],
                 "longitude": location_data[ATTR_LONGITUDE],
                 "altitude": location_data.get("altitude"),
@@ -489,8 +511,17 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
                 return
 
             # Update GPS section
-            gps_data = dog_data.get("gps", {})
-            gps_data.update(
+            gps_state = dog_data.get(MODULE_GPS)
+            if isinstance(gps_state, dict):
+                mutable_gps_state = gps_state
+            else:
+                mutable_gps_state = {}
+                runtime_payload = cast(dict[str, Any], dog_data)
+                runtime_payload[MODULE_GPS] = cast(
+                    CoordinatorModuleState, mutable_gps_state
+                )
+
+            mutable_gps_state.update(
                 {
                     "latitude": location_data[ATTR_LATITUDE],
                     "longitude": location_data[ATTR_LONGITUDE],
@@ -504,7 +535,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
             )
 
             # Update route points if tracking
-            current_route = gps_data.get("current_route")
+            current_route = mutable_gps_state.get("current_route")
             if current_route and current_route.get("active", False):
                 current_route["points"] = self._route_points[
                     -100:
@@ -599,7 +630,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
             # Calculate route distance (simplified)
             distance = self._calculate_route_distance(self._route_points)
 
-            route_data = {
+            route_data: dict[str, Any] = {
                 "id": current_route["id"],
                 "name": current_route["name"],
                 "dog_id": self._dog_id,

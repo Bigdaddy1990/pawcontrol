@@ -12,8 +12,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Mapping
-from typing import Any
+from collections.abc import Sequence
+from typing import Any, cast
 
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
 from homeassistant.core import HomeAssistant
@@ -26,6 +26,7 @@ from .compat import HomeAssistantError
 from .const import (
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
+    CONF_DOGS,
     DOMAIN,
     MODULE_FEEDING,
     MODULE_GPS,
@@ -42,10 +43,12 @@ from .entity import PawControlEntity
 from .runtime_data import get_runtime_data
 from .types import (
     DOG_ID_FIELD,
+    DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
     DogConfigData,
+    DogModulesConfig,
     PawControlConfigEntry,
-    ensure_dog_modules_mapping,
+    coerce_dog_modules_config,
 )
 from .utils import async_call_add_entities
 
@@ -137,7 +140,7 @@ class ProfileOptimizedSwitchFactory:
         coordinator: PawControlCoordinator,
         dog_id: str,
         dog_name: str,
-        modules: Mapping[str, bool],
+        modules: DogModulesConfig,
     ) -> list[OptimizedSwitchBase]:
         """Create profile-optimized switches for a dog.
 
@@ -216,7 +219,8 @@ class ProfileOptimizedSwitchFactory:
 
 async def _async_add_entities_in_batches(
     async_add_entities_func: AddEntitiesCallback,
-    entities: list[OptimizedSwitchBase],
+    entities: Sequence[OptimizedSwitchBase],
+    *,
     batch_size: int = BATCH_SIZE,
     delay_between_batches: float = BATCH_DELAY,
 ) -> None:
@@ -285,7 +289,7 @@ async def async_setup_entry(
     for dog in dogs:
         dog_id = dog[DOG_ID_FIELD]
         dog_name = dog[DOG_NAME_FIELD]
-        modules = ensure_dog_modules_mapping(dog)
+        modules = coerce_dog_modules_config(dog.get(DOG_MODULES_FIELD))
 
         # Count enabled modules for statistics
         enabled_count = sum(1 for enabled in modules.values() if enabled)
@@ -406,8 +410,8 @@ class OptimizedSwitchBase(PawControlEntity, SwitchEntity, RestoreEntity):
         # Add module information if available
         dog_data = self._get_dog_data()
         if dog_data:
-            modules = dog_data.get("modules", {})
-            enabled_modules = [m for m, e in modules.items() if e]
+            modules = coerce_dog_modules_config(dog_data.get(DOG_MODULES_FIELD))
+            enabled_modules = [module for module, enabled in modules.items() if enabled]
             attrs["enabled_modules"] = enabled_modules
             attrs["total_modules"] = len(enabled_modules)
 
@@ -636,13 +640,23 @@ class PawControlModuleSwitch(OptimizedSwitchBase):
         try:
             # Update config entry
             new_data = dict(self.coordinator.config_entry.data)
+            dogs_data = list(new_data.get(CONF_DOGS, []))
 
-            for i, dog in enumerate(new_data.get("dogs", [])):
-                if dog.get("dog_id") == self._dog_id:
-                    if "modules" not in new_data["dogs"][i]:
-                        new_data["dogs"][i]["modules"] = {}
-                    new_data["dogs"][i]["modules"][self._module_id] = state
-                    break
+            for index, dog in enumerate(dogs_data):
+                if not isinstance(dog, dict):
+                    continue
+                if dog.get(DOG_ID_FIELD) != self._dog_id:
+                    continue
+
+                modules = dict(coerce_dog_modules_config(dog.get(DOG_MODULES_FIELD)))
+                modules[self._module_id] = state
+                dogs_data[index] = {
+                    **dog,
+                    DOG_MODULES_FIELD: cast(DogModulesConfig, modules),
+                }
+                break
+
+            new_data[CONF_DOGS] = dogs_data
 
             hass.config_entries.async_update_entry(
                 self.coordinator.config_entry, data=new_data

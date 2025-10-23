@@ -15,25 +15,19 @@ import contextlib
 import json
 import logging
 import time
-from collections.abc import Awaitable, Mapping, Sequence
+from collections.abc import Awaitable, Coroutine, Mapping, Sequence
 from functools import partial
 from pathlib import Path
 from typing import Any, Final, NotRequired, TypedDict, TypeVar, cast
 
-import aiofiles
+import aiofiles  # type: ignore[import-not-found, import-untyped]
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
 from .compat import ConfigEntry, HomeAssistantError
-from .const import (
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    DOMAIN,
-    MODULE_NOTIFICATIONS,
-    MODULE_WEATHER,
-)
+from .const import DOMAIN, MODULE_NOTIFICATIONS, MODULE_WEATHER
 from .dashboard_renderer import DashboardRenderer
 from .dashboard_shared import (
     coerce_dog_config,
@@ -43,6 +37,10 @@ from .dashboard_shared import (
 from .dashboard_templates import DashboardTemplates
 from .runtime_data import get_runtime_data
 from .types import (
+    DOG_BREED_FIELD,
+    DOG_ID_FIELD,
+    DOG_MODULES_FIELD,
+    DOG_NAME_FIELD,
     CoordinatorStatisticsPayload,
     DogConfigData,
     DogModulesConfig,
@@ -176,9 +174,16 @@ class PawControlDashboardGenerator:
 
         return cast(CoordinatorStatisticsPayload | None, stats)
 
+    async def _renderer_async_initialize(self) -> None:
+        """Initialise the dashboard renderer when it exposes an async hook."""
+
+        init = getattr(self._renderer, "async_initialize", None)
+        if callable(init):
+            await init()
+
     def _track_task(
         self,
-        awaitable: Awaitable[_TrackedResultT] | asyncio.Task[_TrackedResultT],
+        awaitable: Coroutine[Any, Any, _TrackedResultT] | asyncio.Task[_TrackedResultT],
         *,
         name: str | None = None,
         log_exceptions: bool = False,
@@ -279,7 +284,9 @@ class PawControlDashboardGenerator:
     ) -> DogModulesConfig:
         """Return a typed modules payload extracted from ``dog``."""
 
-        modules_payload = dog.get("modules") if isinstance(dog, Mapping) else None
+        modules_payload = (
+            dog.get(DOG_MODULES_FIELD) if isinstance(dog, Mapping) else None
+        )
         return coerce_dog_modules_config(modules_payload)
 
     @staticmethod
@@ -348,9 +355,12 @@ class PawControlDashboardGenerator:
                 return None
 
             card_count_raw = item.get("card_count")
-            try:
-                card_count = int(card_count_raw)
-            except (TypeError, ValueError):
+            if isinstance(card_count_raw, int | float | str):
+                try:
+                    card_count = int(card_count_raw)
+                except (TypeError, ValueError):
+                    card_count = 0
+            else:
                 card_count = 0
 
             path_value = str(item.get("path", ""))
@@ -420,11 +430,11 @@ class PawControlDashboardGenerator:
             try:
                 # OPTIMIZED: Parallel initialization of renderer, templates, and storage
                 renderer_task = self._track_task(
-                    self._renderer.async_initialize(),
+                    self._renderer_async_initialize(),
                     name="pawcontrol_dashboard_renderer_init",
                 )
                 templates_task = self._track_task(
-                    self._dashboard_templates.async_initialize(),
+                    self._dashboard_templates_async_initialize(),
                     name="pawcontrol_dashboard_templates_init",
                 )
                 storage_task = self._track_task(
@@ -677,7 +687,7 @@ class PawControlDashboardGenerator:
             "path": path,
             "created": dt_util.utcnow().isoformat(),
             "type": "main",
-            "dogs": [dog[CONF_DOG_ID] for dog in typed_dogs],
+            "dogs": [dog[DOG_ID_FIELD] for dog in typed_dogs],
             "options": options,
             "entry_id": self.entry.entry_id,
             "version": DASHBOARD_STORAGE_VERSION,
@@ -707,8 +717,8 @@ class PawControlDashboardGenerator:
             raise ValueError("Dog configuration is invalid")
 
         dog_config = typed_dog
-        dog_id = dog_config[CONF_DOG_ID]
-        dog_name = dog_config[CONF_DOG_NAME]
+        dog_id = dog_config[DOG_ID_FIELD]
+        dog_name = dog_config[DOG_NAME_FIELD]
 
         if not dog_id or not dog_name:
             raise ValueError("Dog ID and name are required")
@@ -823,7 +833,7 @@ class PawControlDashboardGenerator:
                 elif dashboard_type == "dog":
                     dog_id = dashboard_info.get("dog_id")
                     dog_config = next(
-                        (d for d in dogs_config if d.get(CONF_DOG_ID) == dog_id), None
+                        (d for d in dogs_config if d.get(DOG_ID_FIELD) == dog_id), None
                     )
                     if not dog_config:
                         _LOGGER.warning("Dog %s not found for update", dog_id)
@@ -839,28 +849,58 @@ class PawControlDashboardGenerator:
                         )
 
                 elif dashboard_type == "weather":
-                    dog_id = dashboard_info.get("dog_id")
-                    dog_name = dashboard_info.get("dog_name")
-                    if not dog_id or not dog_name:
+                    dog_id_value = dashboard_info.get("dog_id")
+                    dog_name_value = dashboard_info.get("dog_name")
+                    if not isinstance(dog_id_value, str) or not dog_id_value:
                         _LOGGER.warning(
                             "Weather dashboard %s is missing dog metadata",
                             dashboard_url,
                         )
                         return False
 
-                    dog_config = next(
-                        (d for d in dogs_config if d.get(CONF_DOG_ID) == dog_id), None
+                    if not isinstance(dog_name_value, str) or not dog_name_value:
+                        _LOGGER.warning(
+                            "Weather dashboard %s is missing dog metadata",
+                            dashboard_url,
+                        )
+                        return False
+
+                    dog_id = dog_id_value
+                    dog_name = dog_name_value
+
+                    raw_config = next(
+                        (d for d in dogs_config if d.get(DOG_ID_FIELD) == dog_id), None
+                    )
+                    typed_config = (
+                        self._ensure_dog_config(raw_config)
+                        if isinstance(raw_config, Mapping)
+                        else None
+                    )
+                    breed_value: Any = (
+                        typed_config.get(DOG_BREED_FIELD)
+                        if typed_config is not None
+                        else dashboard_info.get("breed")
                     )
                     breed = (
-                        dog_config.get("breed")
-                        if isinstance(dog_config, Mapping)
-                        else dashboard_info.get("breed", "Mixed")
+                        str(breed_value)
+                        if isinstance(breed_value, str) and breed_value
+                        else "Mixed"
                     )
-                    theme = options_merged.get(
+                    theme_value = options_merged.get(
                         "theme", dashboard_info.get("theme", "modern")
                     )
-                    layout = options_merged.get(
+                    theme = (
+                        str(theme_value)
+                        if isinstance(theme_value, str) and theme_value
+                        else "modern"
+                    )
+                    layout_value = options_merged.get(
                         "layout", dashboard_info.get("layout", "full")
+                    )
+                    layout = (
+                        str(layout_value)
+                        if isinstance(layout_value, str) and layout_value
+                        else "full"
                     )
 
                     weather_layout = await self._dashboard_templates.get_weather_dashboard_layout_template(
@@ -1369,12 +1409,14 @@ class PawControlDashboardGenerator:
         if typed_dog is None:
             raise ValueError("Dog configuration is invalid")
 
-        dog_id = typed_dog.get(CONF_DOG_ID)
-        dog_name = typed_dog.get(CONF_DOG_NAME)
-        breed = typed_dog.get("breed", "Mixed")
-
-        if not dog_id or not dog_name:
-            raise ValueError("Dog ID and name are required")
+        dog_id = typed_dog[DOG_ID_FIELD]
+        dog_name = typed_dog[DOG_NAME_FIELD]
+        breed_value = typed_dog.get(DOG_BREED_FIELD)
+        breed = (
+            str(breed_value)
+            if isinstance(breed_value, str) and breed_value
+            else "Mixed"
+        )
 
         modules = self._ensure_modules_config(typed_dog)
         if not modules.get(MODULE_WEATHER, False):
@@ -1386,8 +1428,18 @@ class PawControlDashboardGenerator:
         async with self._operation_semaphore:
             try:
                 # Generate weather dashboard configuration
-                theme = options.get("theme", "modern")
-                layout = options.get("layout", "full")
+                theme_value = options.get("theme", "modern")
+                theme = (
+                    str(theme_value)
+                    if isinstance(theme_value, str) and theme_value
+                    else "modern"
+                )
+                layout_value = options.get("layout", "full")
+                layout = (
+                    str(layout_value)
+                    if isinstance(layout_value, str) and layout_value
+                    else "full"
+                )
 
                 weather_config = await self._dashboard_templates.get_weather_dashboard_layout_template(
                     dog_id, dog_name, breed, theme, layout
@@ -1524,8 +1576,8 @@ class PawControlDashboardGenerator:
         weather_cards = []
 
         for dog in weather_dogs:
-            dog_id = dog.get(CONF_DOG_ID)
-            dog_name = dog.get(CONF_DOG_NAME)
+            dog_id = dog.get(DOG_ID_FIELD)
+            dog_name = dog.get(DOG_NAME_FIELD)
 
             if not dog_id or not dog_name:
                 continue
@@ -1593,13 +1645,20 @@ class PawControlDashboardGenerator:
             return
 
         dog_config = typed_dog
-        dog_id = dog_config.get(CONF_DOG_ID)
-        dog_name = dog_config.get(CONF_DOG_NAME)
-        breed = dog_config.get("breed", "Mixed")
-        theme = options.get("theme", "modern")
-
-        if not dog_id or not dog_name:
-            return
+        dog_id = dog_config[DOG_ID_FIELD]
+        dog_name = dog_config[DOG_NAME_FIELD]
+        breed_value = dog_config.get(DOG_BREED_FIELD)
+        breed = (
+            str(breed_value)
+            if isinstance(breed_value, str) and breed_value
+            else "Mixed"
+        )
+        theme_value = options.get("theme", "modern")
+        theme = (
+            str(theme_value)
+            if isinstance(theme_value, str) and theme_value
+            else "modern"
+        )
 
         views = dashboard_config.setdefault("views", [])
 
@@ -1687,7 +1746,7 @@ class PawControlDashboardGenerator:
             batch_tasks = [
                 self._track_task(
                     self.async_create_weather_dashboard(dog, options),
-                    name=f"pawcontrol_dashboard_weather_{dog.get(CONF_DOG_ID, 'unknown')}",
+                    name=f"pawcontrol_dashboard_weather_{dog.get(DOG_ID_FIELD, 'unknown')}",
                 )
                 for dog in batch
             ]
@@ -1697,7 +1756,7 @@ class PawControlDashboardGenerator:
 
             # Process results
             for dog, result in zip(batch, batch_results, strict=False):
-                dog_id = dog.get(CONF_DOG_ID)
+                dog_id = dog.get(DOG_ID_FIELD)
                 if not dog_id:
                     continue
 

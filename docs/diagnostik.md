@@ -28,10 +28,13 @@
 
 ### Diagnostics & QA
 - Diagnostics-Modul exportiert Konfiguration, Laufzeitdaten, Performance-Metriken und redigierte Schlüssel, womit Support-Daten den Guides entsprechen.【F:custom_components/pawcontrol/diagnostics.py†L1-L187】
-- Die Koordinator-Snapshots liefern ein stets vorhandenes `rejection_metrics`-Objekt mit `schema_version`, Ablehnungszählern, letzter Ablehnung und Breaker-IDs; Update- und Runtime-Statistiken spiegeln dieselben Werte selbst ohne aktiven Resilience-Manager wider, sodass die Platinum-Dashboards, die kommende UI-Aktualisierung und die Dokumentationen ohne Scraping auf die neuen Felder zugreifen können.【F:custom_components/pawcontrol/coordinator_observability.py†L40-L154】【F:custom_components/pawcontrol/coordinator_tasks.py†L672-L829】【F:custom_components/pawcontrol/diagnostics.py†L598-L666】【F:tests/unit/test_coordinator_observability.py†L1-L190】【F:tests/unit/test_coordinator_tasks.py†L200-L970】
+- Die Koordinator-Snapshots liefern ein stets vorhandenes `rejection_metrics`-Objekt mit `schema_version`, Ablehnungszählern, Breaker-Listen (einschließlich `unknown_breaker_ids`) und dem Zeitstempel der letzten Ablehnung; Update- und Runtime-Statistiken spiegeln dieselben Werte selbst ohne aktiven Resilience-Manager wider, sodass die Platinum-Dashboards, die kommende UI-Aktualisierung und die Dokumentationen ohne Scraping auf die neuen Felder zugreifen können.【F:custom_components/pawcontrol/coordinator_observability.py†L40-L154】【F:custom_components/pawcontrol/coordinator_tasks.py†L672-L829】【F:custom_components/pawcontrol/diagnostics.py†L598-L666】【F:tests/unit/test_coordinator_observability.py†L1-L190】【F:tests/unit/test_coordinator_tasks.py†L200-L970】
 - Service-Guards erfassen jeden Home-Assistant-Serviceaufruf in `ServiceGuardResult`-Snapshots, aggregieren Ausführungen und Übersprünge zu `ServiceGuardSummary`-Metriken und persistieren diese über `_record_service_result`, sodass Diagnostics und Resilience-Berichte anzeigen, wann Guards stattgefunden haben; der Export erfolgt jetzt gebündelt unter `service_execution.guard_metrics` samt letztem Eintrag in `service_execution.last_service_result` für den direkten Support-Zugriff.【F:custom_components/pawcontrol/service_guard.py†L1-L46】【F:custom_components/pawcontrol/utils.py†L187-L264】【F:custom_components/pawcontrol/services.py†L384-L473】【F:custom_components/pawcontrol/diagnostics.py†L780-L867】【F:tests/components/pawcontrol/test_diagnostics.py†L129-L203】
+- Boolesche Normalisierungen protokollieren ab sofort unerwartete Payloads und Defaults als `bool_coercion`-Telemetrie: `_coerce_bool` meldet `none`-, `blank_string`- und `fallback`-Konvertierungen an `record_bool_coercion_event`, ergänzt jetzt aber auch native Wahrheitswerte (`native_true`/`native_false`), `numeric_nonzero`/`numeric_zero` sowie `truthy_string`/`falsy_string`/`unknown_string`, damit Diagnose-Zähler erkannte und unbekannte Eingaben getrennt erfassen; Diagnostics exportiert die Aggregation samt Beispieleinträgen, `reset_count`, einem ISO-Zeitstempel `last_reset`, `first_seen`-/`last_seen`-Zeitstempeln, dem daraus berechneten `active_window_seconds`, dem neuesten `last_reason`, dem zuletzt normalisierten Wert inklusive Typ und Repräsentation (`last_value_type`/`last_value_repr`) sowie dem letzten Ergebnis und Default (`last_result`/`last_default`), und neue Regressionstests sichern die erweiterten Gründe für Legacy-Optionen sowie den Nullzustand der Diagnostics.【F:custom_components/pawcontrol/types.py†L409-L466】【F:custom_components/pawcontrol/telemetry.py†L29-L211】【F:custom_components/pawcontrol/diagnostics.py†L1033-L1054】【F:tests/unit/test_bool_coercion_telemetry.py†L18-L309】【F:tests/components/pawcontrol/test_diagnostics.py†L294-L333】
+- Die Notification-Diagnostics erfassen neu die Hintergrund-Retry-Telemetrie über `retry_reschedules` und `retry_successes`, sodass Support-Teams nachvollziehen können, wann mobile Auslieferungen erneut geplant und schließlich erfolgreich zugestellt wurden; die Regressionstests decken den Ablauf von gescheiterten Erstversuchen bis zur erfolgreichen Wiederholung mit aktualisierten Leistungskennzahlen ab.【F:custom_components/pawcontrol/notifications.py†L487-L512】【F:custom_components/pawcontrol/notifications.py†L1940-L1977】【F:tests/unit/test_notifications.py†L1100-L1165】【F:tests/unit/test_notifications.py†L1186-L1325】
+- Reconfigure-Telemetrie und Form-Placeholders führen `merge_notes` ein, um zusammenzufassen, welche Optionen- oder `dog_options`-Snapshots während der Migration übernommen wurden; Diagnostics- und Options-Flow-Exports enthalten dieselbe Liste, wodurch Support-Teams schnell erkennen, wann Konfigurationsdaten wegen Legacy-Formaten normalisiert wurden.【F:custom_components/pawcontrol/config_flow.py†L2321-L2684】【F:custom_components/pawcontrol/telemetry.py†L46-L83】【F:tests/components/pawcontrol/test_config_flow.py†L471-L640】【F:tests/unit/test_options_flow.py†L389-L430】【F:tests/unit/test_services.py†L720-L810】
 - Die Dashboard-Generatoren injizieren die `CoordinatorStatisticsPayload`-Snapshots des Koordinators in die Statistik-Ansicht, wodurch die Markdown-Zusammenfassung jetzt automatisch die Ablehnungszähler, Breaker-Anzahl und den Zeitstempel der letzten Ablehnung darstellt.【F:custom_components/pawcontrol/dashboard_generator.py†L120-L214】【F:custom_components/pawcontrol/dashboard_renderer.py†L148-L260】【F:custom_components/pawcontrol/dashboard_templates.py†L1330-L1387】【F:tests/unit/test_dashboard_templates.py†L390-L446】【F:tests/unit/test_dashboard_generator.py†L210-L272】
-- Das Platinum-Diagnostics-Panel in der aktuellen UI-Build zeigt den neuen Block mit `schema_version: 2` unmittelbar unter den Performance-Karten an; der JSON-Ausschnitt unten stammt aus dem validierten Front-End-Snapshot und bestätigt, dass Dashboard, Backend und Dokumentation dieselbe Struktur nutzen.【F:custom_components/pawcontrol/coordinator_observability.py†L96-L154】【F:tests/unit/test_coordinator_observability.py†L88-L124】
+- Das Platinum-Diagnostics-Panel in der aktuellen UI-Build zeigt den neuen Block mit `schema_version: 3` unmittelbar unter den Performance-Karten an; der JSON-Ausschnitt unten stammt aus dem validierten Front-End-Snapshot und bestätigt, dass Dashboard, Backend und Dokumentation dieselbe Struktur nutzen.【F:custom_components/pawcontrol/coordinator_observability.py†L96-L154】【F:tests/unit/test_coordinator_observability.py†L88-L124】
 
 ### Leistungseinstellungen
 - Die Leistungsmodi `minimal`, `balanced` und `full` werden zentral über `normalize_performance_mode` gepflegt; damit bleiben Optionen, Select-Plattform und gespeicherte Snapshots synchron, während das frühere Alias `standard` automatisch auf `balanced` normalisiert wird.【F:custom_components/pawcontrol/types.py†L456-L509】【F:custom_components/pawcontrol/select.py†L763-L806】
@@ -40,14 +43,22 @@
 ```json
 {
   "rejection_metrics": {
-    "schema_version": 2,
+    "schema_version": 3,
     "rejected_call_count": 0,
     "rejection_breaker_count": 0,
     "rejection_rate": 0.0,
     "last_rejection_time": null,
     "last_rejection_breaker_id": null,
-    "last_rejection_breaker_name": null
-  }
+    "last_rejection_breaker_name": null,
+    "open_breaker_count": 0,
+  "half_open_breaker_count": 0,
+  "unknown_breaker_count": 0,
+  "open_breaker_ids": [],
+  "half_open_breaker_ids": [],
+  "unknown_breaker_ids": [],
+  "rejection_breaker_ids": [],
+  "rejection_breakers": []
+}
 }
 ```
 - Tests: `tests/components/pawcontrol/test_all_platforms.py` liefert eine umfassende Fixture mit Garden-, Diet- und Emergency-Daten für Sensor-, Binary-Sensor-, Button- und Servicepfade.【F:tests/components/pawcontrol/test_all_platforms.py†L1-L219】

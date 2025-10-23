@@ -261,7 +261,7 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     performance_metrics = diagnostics["performance_metrics"]
     assert "schema_version" not in performance_metrics
     rejection_metrics = performance_metrics["rejection_metrics"]
-    assert rejection_metrics["schema_version"] == 2
+    assert rejection_metrics["schema_version"] == 3
     assert rejection_metrics["rejected_call_count"] == 0
 
     service_execution = diagnostics["service_execution"]
@@ -280,5 +280,54 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
         == 1
     )
     assert rejection_metrics["rejection_breaker_count"] == 0
+    assert rejection_metrics["open_breaker_count"] == 0
+    assert rejection_metrics["half_open_breaker_count"] == 0
+    assert rejection_metrics["unknown_breaker_count"] == 0
+    assert rejection_metrics["open_breaker_ids"] == []
+    assert rejection_metrics["half_open_breaker_ids"] == []
+    assert rejection_metrics["unknown_breaker_ids"] == []
+    assert rejection_metrics["rejection_breaker_ids"] == []
+    assert rejection_metrics["rejection_breakers"] == []
     stats_block = performance_metrics["statistics"]["rejection_metrics"]
-    assert stats_block["schema_version"] == 2
+    assert stats_block["schema_version"] == 3
+
+    bool_coercion = diagnostics["bool_coercion"]
+    assert bool_coercion["recorded"] is True
+    metrics = bool_coercion["metrics"]
+    assert metrics["total"] >= 1
+    assert metrics["reset_count"] >= 0
+    assert metrics["first_seen"] is not None
+    assert metrics["last_seen"] is not None
+    assert metrics["last_reset"] is not None
+    assert metrics["active_window_seconds"] is not None
+    assert metrics["active_window_seconds"] >= 0
+    assert metrics["last_reason"] in {
+        "truthy_string",
+        "falsy_string",
+        "unknown_string",
+        "none",
+        "blank_string",
+        "fallback",
+        "native_true",
+        "native_false",
+        "numeric_nonzero",
+        "numeric_zero",
+    }
+    assert metrics["last_value_type"] is not None
+    assert isinstance(metrics["last_value_repr"], str)
+    assert metrics["last_result"] in {True, False}
+    assert metrics["last_default"] in {True, False}
+    assert set(metrics["reason_counts"]).issubset(
+        {
+            "none",
+            "blank_string",
+            "fallback",
+            "native_true",
+            "native_false",
+            "numeric_nonzero",
+            "numeric_zero",
+            "truthy_string",
+            "falsy_string",
+            "unknown_string",
+        }
+    )

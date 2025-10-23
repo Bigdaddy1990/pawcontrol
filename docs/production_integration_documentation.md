@@ -320,6 +320,16 @@ pawcontrol:
    Namespace erhalten und kann für Audit- oder Automationszwecke abgefragt
    werden.
 
+   **Dashboard-Komponenten**
+
+   - *Visitor Controls Card* – Eine Entities-Karte bündelt den Switch
+     `switch.{dog_id}_visitor_mode` und den Status-Binary-Sensor
+     `binary_sensor.{dog_id}_visitor_mode` inklusive State-Farbcodierung für
+     schnelle Eingriffe.
+   - *Visitor Insights Markdown* – Ein Markdown-Panel fasst Besuchername,
+     Aktivierungszeitpunkt und das reduzierte Alarmprofil zusammen, sodass
+     Operatoren die Auswirkungen des Besuchermodus sofort erkennen.
+
 ---
 
 ## 🚀 Production Deployment

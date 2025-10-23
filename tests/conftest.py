@@ -15,7 +15,7 @@ from tests.helpers.homeassistant_test_stubs import install_homeassistant_stubs
 install_homeassistant_stubs()
 
 from collections.abc import Callable
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import AsyncMock, Mock
 
@@ -262,7 +262,7 @@ async def mock_coordinator(
         "test_dog": {
             "dog_info": mock_config_entry.data["dogs"][0],
             "status": "online",
-            "last_update": datetime.now().isoformat(),
+            "last_update": datetime.now(UTC).isoformat(),
             "feeding": {},
             "walk": {},
             "gps": {},
@@ -383,7 +383,7 @@ def mock_gps_point():
     return GPSPoint(
         latitude=52.5200,
         longitude=13.4050,
-        timestamp=datetime.now(),
+        timestamp=datetime.now(UTC),
         altitude=100.0,
         accuracy=10.0,
         source=LocationSource.DEVICE_TRACKER,
@@ -404,8 +404,8 @@ def mock_walk_route(mock_gps_point):
 
     route = WalkRoute(
         dog_id="test_dog",
-        start_time=datetime.now() - timedelta(hours=1),
-        end_time=datetime.now(),
+        start_time=datetime.now(UTC) - timedelta(hours=1),
+        end_time=datetime.now(UTC),
     )
 
     # Add some GPS points
@@ -413,7 +413,7 @@ def mock_walk_route(mock_gps_point):
         point = GPSPoint(
             latitude=52.5200 + (i * 0.001),
             longitude=13.4050 + (i * 0.001),
-            timestamp=datetime.now() - timedelta(minutes=60 - i * 6),
+            timestamp=datetime.now(UTC) - timedelta(minutes=60 - i * 6),
             accuracy=10.0,
         )
         route.gps_points.append(point)
@@ -474,7 +474,7 @@ def create_feeding_event():
             "dog_id": dog_id,
             "amount": amount,
             "meal_type": meal_type,
-            "timestamp": timestamp or datetime.now(),
+            "timestamp": timestamp or datetime.now(UTC),
             "notes": None,
             "feeder": None,
             "scheduled": False,
@@ -500,8 +500,8 @@ def create_walk_event():
         """Create walk event data."""
         return {
             "dog_id": dog_id,
-            "start_time": datetime.now() - timedelta(minutes=duration_minutes),
-            "end_time": datetime.now(),
+            "start_time": datetime.now(UTC) - timedelta(minutes=duration_minutes),
+            "end_time": datetime.now(UTC),
             "duration_minutes": duration_minutes,
             "distance_meters": distance_meters,
             "walker": walker,

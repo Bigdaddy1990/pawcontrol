@@ -163,7 +163,7 @@ class _DummyTracker:
     """Expose entity budget tracker statistics for diagnostics tests."""
 
     def __init__(self) -> None:
-        now = datetime.now()
+        now = datetime.now(UTC)
         self._snapshots = (
             _DummySnapshot(
                 "buddy",

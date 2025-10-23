@@ -781,6 +781,8 @@ async def test_perform_daily_reset_records_cache_diagnostics(
     assert metadata["refresh_requested"] is True
     assert metadata["reconfigure"]["requested_profile"] == "advanced"
     assert metadata["reconfigure"]["warning_count"] == 1
+    assert metadata["reconfigure"]["merge_note_count"] == 0
+    assert metadata["reconfigure"]["merge_notes"] == []
     assert last_result.get("details") == {
         "walk_cleanup_performed": True,
         "notifications_cleaned": 2,
@@ -814,6 +816,8 @@ async def test_perform_daily_reset_records_cache_diagnostics(
     maintenance_metadata = maintenance_last["diagnostics"]["metadata"]
     assert maintenance_metadata["refresh_requested"] is True
     assert maintenance_metadata["reconfigure"]["requested_profile"] == "advanced"
+    assert maintenance_metadata["reconfigure"]["merge_note_count"] == 0
+    assert maintenance_metadata["reconfigure"]["merge_notes"] == []
     assert isinstance(maintenance_last["recorded_at"], str)
 
 

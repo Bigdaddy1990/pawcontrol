@@ -27,7 +27,14 @@ from .const import (
     MODULE_VISITOR,
 )
 from .selector_shim import selector
-from .types import DogConfigData, DogModulesConfig, ExternalEntityConfig
+from .types import (
+    DOOR_SENSOR_FIELD,
+    GPS_SOURCE_FIELD,
+    NOTIFY_FALLBACK_FIELD,
+    DogConfigData,
+    DogModulesConfig,
+    ExternalEntityConfig,
+)
 
 GPS_SOURCE_KEY: Final[Literal["gps_source"]] = cast(
     Literal["gps_source"], CONF_GPS_SOURCE
@@ -304,14 +311,14 @@ class ExternalEntityConfigurationMixin:
         if not gps_source:
             return {}
         if gps_source == "manual":
-            return cast(ExternalEntityConfig, {GPS_SOURCE_KEY: "manual"})
+            return {GPS_SOURCE_FIELD: "manual"}
 
         state = self.hass.states.get(gps_source)
         if not state:
             raise ValueError(f"GPS source entity {gps_source} not found")
         if state.state in ["unknown", "unavailable"]:
             raise ValueError(f"GPS source entity {gps_source} is unavailable")
-        return cast(ExternalEntityConfig, {GPS_SOURCE_KEY: gps_source})
+        return {GPS_SOURCE_FIELD: gps_source}
 
     def _validate_door_sensor(self, door_sensor: str | None) -> ExternalEntityConfig:
         """Validate door sensor selection."""
@@ -320,7 +327,7 @@ class ExternalEntityConfigurationMixin:
         state = self.hass.states.get(door_sensor)
         if not state:
             raise ValueError(f"Door sensor entity {door_sensor} not found")
-        return cast(ExternalEntityConfig, {DOOR_SENSOR_KEY: door_sensor})
+        return {DOOR_SENSOR_FIELD: door_sensor}
 
     def _validate_notify_service(
         self, notify_service: str | None
@@ -336,4 +343,4 @@ class ExternalEntityConfigurationMixin:
         if service_parts[1] not in services:
             raise ValueError(f"Notification service {service_parts[1]} not found")
 
-        return cast(ExternalEntityConfig, {NOTIFY_FALLBACK_KEY: notify_service})
+        return {NOTIFY_FALLBACK_FIELD: notify_service}

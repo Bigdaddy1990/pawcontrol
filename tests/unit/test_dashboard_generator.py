@@ -16,6 +16,7 @@ from custom_components.pawcontrol.const import (
     CONF_DOG_NAME,
     MODULE_NOTIFICATIONS,
 )
+from custom_components.pawcontrol.coordinator_tasks import default_rejection_metrics
 from custom_components.pawcontrol.dashboard_generator import (
     DashboardViewSummary,
     PawControlDashboardGenerator,
@@ -228,7 +229,7 @@ def test_resolve_coordinator_statistics_uses_runtime_data(
 
     mock_store.return_value = MagicMock()
     generator = PawControlDashboardGenerator(hass, mock_config_entry)
-    sentinel_stats = {"rejection_metrics": {"schema_version": 2}}
+    sentinel_stats = {"rejection_metrics": default_rejection_metrics()}
 
     class CoordinatorStub:
         def get_update_statistics(self) -> dict[str, object]:
@@ -252,7 +253,7 @@ async def test_renderer_forwards_coordinator_statistics(
     """The statistics renderer should receive coordinator metrics snapshots."""
 
     renderer = DashboardRenderer(hass)
-    sentinel_stats = {"rejection_metrics": {"schema_version": 2}}
+    sentinel_stats = {"rejection_metrics": default_rejection_metrics()}
 
     monkeypatch.setattr(
         renderer,

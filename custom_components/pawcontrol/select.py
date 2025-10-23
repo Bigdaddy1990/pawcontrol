@@ -10,8 +10,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Mapping
-from typing import Any, cast
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.core import HomeAssistant
@@ -44,14 +44,18 @@ from .notifications import NotificationPriority
 from .runtime_data import get_runtime_data
 from .types import (
     DOG_ID_FIELD,
+    DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
     DOG_SIZE_FIELD,
     DogConfigData,
     PawControlConfigEntry,
     PawControlRuntimeData,
-    ensure_dog_modules_mapping,
+    coerce_dog_modules_config,
 )
 from .utils import async_call_add_entities, deep_merge_dicts
+
+if TYPE_CHECKING:
+    from .data_manager import PawControlDataManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -156,7 +160,8 @@ WEATHER_CONDITIONS = [
 
 async def _async_add_entities_in_batches(
     async_add_entities_func: AddEntitiesCallback,
-    entities: list[PawControlSelectBase],
+    entities: Sequence[PawControlSelectBase],
+    *,
     batch_size: int = 10,
     delay_between_batches: float = 0.1,
 ) -> None:
@@ -232,7 +237,7 @@ async def async_setup_entry(
     for dog in dogs:
         dog_id = dog[DOG_ID_FIELD]
         dog_name = dog[DOG_NAME_FIELD]
-        modules = ensure_dog_modules_mapping(dog)
+        modules = coerce_dog_modules_config(dog.get(DOG_MODULES_FIELD))
 
         _LOGGER.debug("Creating select entities for dog: %s (%s)", dog_name, dog_id)
 
@@ -436,7 +441,7 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
 
         return {}
 
-    def _get_data_manager(self) -> Any | None:
+    def _get_data_manager(self) -> PawControlDataManager | None:
         """Return the data manager for persistence if available."""
 
         runtime_data = self._get_runtime_data()
@@ -447,10 +452,18 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
 
         entry_data = self._get_domain_entry_data()
         managers = entry_data.get("runtime_managers")
-        if hasattr(managers, "data_manager"):
-            return cast(Any, managers).data_manager
-        if isinstance(managers, dict):
-            return managers.get("data_manager")
+        if managers is None:
+            return None
+
+        manager_obj = getattr(managers, "data_manager", None)
+        if manager_obj is not None:
+            return cast(PawControlDataManager | None, manager_obj)
+
+        if isinstance(managers, Mapping):
+            candidate = managers.get("data_manager")
+            if candidate is not None:
+                return cast(PawControlDataManager | None, candidate)
+
         return None
 
     def _get_current_gps_config(self) -> dict[str, Any]:
@@ -697,8 +710,7 @@ class PawControlDogSizeSelect(PawControlSelectBase):
         dog_config: DogConfigData,
     ) -> None:
         """Initialize the dog size select."""
-        size_value = cast(str | None, dog_config.get(DOG_SIZE_FIELD))
-        current_size = size_value or "medium"
+        current_size = dog_config.get(DOG_SIZE_FIELD, "medium")
 
         super().__init__(
             coordinator,
@@ -720,7 +732,7 @@ class PawControlDogSizeSelect(PawControlSelectBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return additional attributes for the size select."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
 
         # Add size-specific information
         size_info = self._get_size_info(self.current_option)
@@ -737,6 +749,9 @@ class PawControlDogSizeSelect(PawControlSelectBase):
         Returns:
             Size information dictionary
         """
+        if size is None:
+            return {}
+
         size_data = {
             "toy": {
                 "weight_range": "1-6kg",
@@ -797,7 +812,7 @@ class PawControlPerformanceModeSelect(PawControlSelectBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return additional attributes for performance mode."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
 
         mode_info = self._get_performance_mode_info(self.current_option)
         attrs.update(mode_info)
@@ -813,6 +828,9 @@ class PawControlPerformanceModeSelect(PawControlSelectBase):
         Returns:
             Performance mode information
         """
+        if mode is None:
+            return {}
+
         mode_data = {
             "minimal": {
                 "description": "Minimal resource usage, longer update intervals",
@@ -923,7 +941,7 @@ class PawControlFoodTypeSelect(PawControlSelectBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return additional attributes for food type."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
 
         food_info = self._get_food_type_info(self.current_option)
         attrs.update(food_info)
@@ -939,6 +957,9 @@ class PawControlFoodTypeSelect(PawControlSelectBase):
         Returns:
             Food type information
         """
+        if food_type is None:
+            return {}
+
         food_data = {
             "dry_food": {
                 "calories_per_gram": 3.5,
@@ -1073,7 +1094,7 @@ class PawControlWalkModeSelect(PawControlSelectBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return additional attributes for walk mode."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
 
         mode_info = self._get_walk_mode_info(self.current_option)
         attrs.update(mode_info)
@@ -1089,7 +1110,10 @@ class PawControlWalkModeSelect(PawControlSelectBase):
         Returns:
             Walk mode information
         """
-        mode_data: dict[str, dict[str, Any]] = {
+        if mode is None:
+            return {}
+
+        mode_data = {
             "automatic": {
                 "description": "Automatically detect walk start/end",
                 "gps_required": True,
@@ -1192,7 +1216,7 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return additional attributes for GPS source."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
 
         source_info = self._get_gps_source_info(self.current_option)
         attrs.update(source_info)
@@ -1208,6 +1232,9 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
         Returns:
             GPS source information
         """
+        if source is None:
+            return {}
+
         source_data = {
             "manual": {
                 "accuracy": "user-dependent",
@@ -1428,7 +1455,7 @@ class PawControlGroomingTypeSelect(PawControlSelectBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return additional attributes for grooming type."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
 
         grooming_info = self._get_grooming_type_info(self.current_option)
         attrs.update(grooming_info)
@@ -1444,6 +1471,9 @@ class PawControlGroomingTypeSelect(PawControlSelectBase):
         Returns:
             Grooming type information
         """
+        if grooming_type is None:
+            return {}
+
         grooming_data = {
             "bath": {
                 "frequency": "4-6 weeks",

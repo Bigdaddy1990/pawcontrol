@@ -29,6 +29,7 @@ from .const import (
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_NOTIFICATIONS,
+    MODULE_VISITOR,
     MODULE_WALK,
 )
 from .dashboard_shared import (
@@ -1597,6 +1598,60 @@ class ModuleCardGenerator(BaseCardGenerator):
             dog_id, theme=theme
         )
         cards.append(actions_card)
+
+        return cards
+
+    async def generate_visitor_cards(
+        self, dog_config: RawDogConfig, options: OptionsConfigType
+    ) -> list[CardConfigType]:
+        """Generate visitor module cards highlighting guest mode controls."""
+
+        typed_dog = self._ensure_dog_config(dog_config)
+        if typed_dog is None:
+            return []
+
+        dog_config = typed_dog
+        dog_id = dog_config[DOG_ID_FIELD]
+        dog_name = dog_config[DOG_NAME_FIELD]
+        modules = coerce_dog_modules_config(dog_config.get(DOG_MODULES_FIELD))
+
+        if not modules.get(MODULE_VISITOR):
+            return []
+
+        status_entities = [
+            f"switch.{dog_id}_visitor_mode",
+            f"binary_sensor.{dog_id}_visitor_mode",
+        ]
+
+        valid_entities = await self._validate_entities_batch(status_entities)
+        cards: list[CardConfigType] = []
+
+        if valid_entities:
+            cards.append(
+                {
+                    "type": "entities",
+                    "title": "Visitor mode controls",
+                    "entities": valid_entities,
+                    "state_color": True,
+                }
+            )
+
+        summary_content = (
+            "### Visitor mode status\n"
+            f"- Active: {{{{ iif(is_state('binary_sensor.{dog_id}_visitor_mode', 'on'), 'Yes', 'No') }}}}\n"
+            f"- Visitor: {{{{ state_attr('binary_sensor.{dog_id}_visitor_mode', 'visitor_name') or 'None' }}}}\n"
+            f"- Started: {{{{ state_attr('binary_sensor.{dog_id}_visitor_mode', 'visitor_mode_started') or 'Unknown' }}}}\n"
+            "- Alerts reduced: {{ iif(state_attr('binary_sensor."
+            f"{dog_id}_visitor_mode', 'reduced_alerts'), 'Yes', 'No') }}\n"
+        )
+
+        cards.append(
+            {
+                "type": "markdown",
+                "title": f"{dog_name} visitor insights",
+                "content": summary_content,
+            }
+        )
 
         return cards
 

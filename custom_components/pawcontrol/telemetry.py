@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, cast
+from typing import Any, TypedDict, cast
 
 from homeassistant.util import dt as dt_util
 
@@ -14,6 +14,201 @@ from .types import (
     ReconfigureTelemetry,
     ReconfigureTelemetrySummary,
 )
+
+
+class BoolCoercionSample(TypedDict):
+    """Snapshot of an individual boolean coercion event."""
+
+    value_type: str
+    value_repr: str
+    default: bool
+    result: bool
+    reason: str
+
+
+class BoolCoercionMetrics(TypedDict, total=False):
+    """Aggregated metrics describing bool coercion behaviour."""
+
+    total: int
+    defaulted: int
+    fallback: int
+    reset_count: int
+    type_counts: dict[str, int]
+    reason_counts: dict[str, int]
+    samples: list[BoolCoercionSample]
+    first_seen: str | None
+    last_seen: str | None
+    active_window_seconds: float | None
+    last_reset: str | None
+    last_reason: str | None
+    last_value_type: str | None
+    last_value_repr: str | None
+    last_result: bool | None
+    last_default: bool | None
+
+
+_BOOL_COERCION_METRICS: BoolCoercionMetrics = {
+    "total": 0,
+    "defaulted": 0,
+    "fallback": 0,
+    "reset_count": 0,
+    "type_counts": {},
+    "reason_counts": {},
+    "samples": [],
+    "first_seen": None,
+    "last_seen": None,
+    "active_window_seconds": None,
+    "last_reset": None,
+    "last_reason": None,
+    "last_value_type": None,
+    "last_value_repr": None,
+    "last_result": None,
+    "last_default": None,
+}
+_BOOL_COERCION_SAMPLE_LIMIT = 10
+
+
+def _safe_repr(value: Any, *, limit: int = 80) -> str:
+    """Return a short, exception-safe representation of ``value``."""
+
+    if value is None:
+        return "None"
+
+    try:
+        rendered = repr(value)
+    except Exception:  # pragma: no cover - defensive fallback
+        rendered = object.__repr__(value)
+
+    if len(rendered) > limit:
+        return f"{rendered[: limit - 1]}…"
+    return rendered
+
+
+def _calculate_active_window_seconds(
+    first_seen: str | None, last_seen: str | None
+) -> float | None:
+    """Return the duration between the first and last coercions when available."""
+
+    if not first_seen or not last_seen:
+        return None
+
+    first_dt = dt_util.parse_datetime(first_seen)
+    last_dt = dt_util.parse_datetime(last_seen)
+    if first_dt is None or last_dt is None:
+        return None
+
+    window = (last_dt - first_dt).total_seconds()
+    if window < 0:
+        return 0.0
+    return window
+
+
+def record_bool_coercion_event(
+    *, value: Any, default: bool, result: bool, reason: str
+) -> None:
+    """Record details about a boolean coercion for diagnostics."""
+
+    metrics = _BOOL_COERCION_METRICS
+    metrics["total"] = metrics.get("total", 0) + 1
+
+    iso_timestamp = dt_util.utcnow().isoformat()
+    if metrics.get("first_seen") is None:
+        metrics["first_seen"] = iso_timestamp
+    metrics["last_seen"] = iso_timestamp
+    if metrics.get("last_reset") is None:
+        metrics["last_reset"] = iso_timestamp
+
+    if reason in {"none", "blank_string"}:
+        metrics["defaulted"] = metrics.get("defaulted", 0) + 1
+    if reason == "fallback":
+        metrics["fallback"] = metrics.get("fallback", 0) + 1
+
+    value_type = type(value).__name__ if value is not None else "NoneType"
+    value_repr = _safe_repr(value)
+    type_counts = metrics.setdefault("type_counts", {})
+    type_counts[value_type] = type_counts.get(value_type, 0) + 1
+
+    reason_counts = metrics.setdefault("reason_counts", {})
+    reason_counts[reason] = reason_counts.get(reason, 0) + 1
+
+    samples = metrics.setdefault("samples", [])
+    if len(samples) < _BOOL_COERCION_SAMPLE_LIMIT:
+        samples.append(
+            {
+                "value_type": value_type,
+                "value_repr": value_repr,
+                "default": default,
+                "result": result,
+                "reason": reason,
+            }
+        )
+
+    metrics["last_reason"] = reason
+    metrics["last_value_type"] = value_type
+    metrics["last_value_repr"] = value_repr
+    metrics["last_result"] = bool(result)
+    metrics["last_default"] = bool(default)
+
+
+def get_bool_coercion_metrics() -> BoolCoercionMetrics:
+    """Return a defensive copy of the collected bool coercion metrics."""
+
+    first_seen = _BOOL_COERCION_METRICS.get("first_seen")
+    last_seen = _BOOL_COERCION_METRICS.get("last_seen")
+    snapshot: BoolCoercionMetrics = {
+        "total": int(_BOOL_COERCION_METRICS.get("total", 0)),
+        "defaulted": int(_BOOL_COERCION_METRICS.get("defaulted", 0)),
+        "fallback": int(_BOOL_COERCION_METRICS.get("fallback", 0)),
+        "reset_count": int(_BOOL_COERCION_METRICS.get("reset_count", 0)),
+        "type_counts": dict(_BOOL_COERCION_METRICS.get("type_counts", {})),
+        "reason_counts": dict(_BOOL_COERCION_METRICS.get("reason_counts", {})),
+        "samples": [
+            {
+                "value_type": sample["value_type"],
+                "value_repr": sample["value_repr"],
+                "default": bool(sample["default"]),
+                "result": bool(sample["result"]),
+                "reason": sample["reason"],
+            }
+            for sample in _BOOL_COERCION_METRICS.get("samples", [])
+        ],
+        "first_seen": first_seen,
+        "last_seen": last_seen,
+        "active_window_seconds": _calculate_active_window_seconds(
+            first_seen, last_seen
+        ),
+        "last_reset": _BOOL_COERCION_METRICS.get("last_reset"),
+        "last_reason": _BOOL_COERCION_METRICS.get("last_reason"),
+        "last_value_type": _BOOL_COERCION_METRICS.get("last_value_type"),
+        "last_value_repr": _BOOL_COERCION_METRICS.get("last_value_repr"),
+        "last_result": _BOOL_COERCION_METRICS.get("last_result"),
+        "last_default": _BOOL_COERCION_METRICS.get("last_default"),
+    }
+    return snapshot
+
+
+def reset_bool_coercion_metrics() -> None:
+    """Reset collected bool coercion metrics (primarily for testing)."""
+
+    reset_count = int(_BOOL_COERCION_METRICS.get("reset_count", 0)) + 1
+    iso_timestamp = dt_util.utcnow().isoformat()
+
+    _BOOL_COERCION_METRICS["total"] = 0
+    _BOOL_COERCION_METRICS["defaulted"] = 0
+    _BOOL_COERCION_METRICS["fallback"] = 0
+    _BOOL_COERCION_METRICS["reset_count"] = reset_count
+    _BOOL_COERCION_METRICS["type_counts"] = {}
+    _BOOL_COERCION_METRICS["reason_counts"] = {}
+    _BOOL_COERCION_METRICS["samples"] = []
+    _BOOL_COERCION_METRICS["first_seen"] = None
+    _BOOL_COERCION_METRICS["last_seen"] = None
+    _BOOL_COERCION_METRICS["active_window_seconds"] = None
+    _BOOL_COERCION_METRICS["last_reset"] = iso_timestamp
+    _BOOL_COERCION_METRICS["last_reason"] = None
+    _BOOL_COERCION_METRICS["last_value_type"] = None
+    _BOOL_COERCION_METRICS["last_value_repr"] = None
+    _BOOL_COERCION_METRICS["last_result"] = None
+    _BOOL_COERCION_METRICS["last_default"] = None
 
 
 def _as_int(value: Any) -> int:
@@ -52,6 +247,7 @@ def summarise_reconfigure_options(
     telemetry = cast(ReconfigureTelemetry, telemetry_raw)
 
     warnings = _as_list(telemetry.get("compatibility_warnings"))
+    merge_notes = _as_list(telemetry.get("merge_notes"))
     health_summary = telemetry.get("health_summary")
     healthy = True
     health_issues: list[str] = []
@@ -76,6 +272,8 @@ def summarise_reconfigure_options(
         "version": _as_int(telemetry.get("version")),
         "warnings": warnings,
         "warning_count": len(warnings),
+        "merge_notes": merge_notes,
+        "merge_note_count": len(merge_notes),
         "healthy": healthy,
         "health_issues": health_issues,
         "health_issue_count": len(health_issues),

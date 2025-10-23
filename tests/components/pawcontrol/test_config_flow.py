@@ -3,10 +3,11 @@
 from __future__ import annotations
 
 import sys
+from copy import deepcopy
 from datetime import UTC, datetime
 from types import ModuleType, SimpleNamespace
-from typing import Any
-from unittest.mock import AsyncMock, patch
+from typing import Any, cast
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from custom_components.pawcontrol import compat, config_flow
@@ -15,12 +16,17 @@ from custom_components.pawcontrol.const import (
     CONF_DOG_BREED,
     CONF_DOG_ID,
     CONF_DOG_NAME,
+    CONF_DOG_OPTIONS,
     CONF_DOG_SIZE,
     CONF_DOG_WEIGHT,
+    CONF_DOGS,
     CONF_MODULES,
     DOMAIN,
     MODULE_DASHBOARD,
     MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+    MODULE_WALK,
 )
 from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
 from custom_components.pawcontrol.exceptions import PawControlSetupError
@@ -292,6 +298,8 @@ async def test_reconfigure_flow(hass: HomeAssistant) -> None:
     placeholders = result["description_placeholders"]
     assert placeholders["current_profile"] == "standard"
     assert placeholders["dogs_count"] == "0"
+    assert placeholders["reconfigure_valid_dogs"] == "0"
+    assert placeholders["reconfigure_invalid_dogs"] == "0"
 
     with patch(
         "homeassistant.config_entries.ConfigFlow.async_update_reload_and_abort",
@@ -321,14 +329,489 @@ async def test_reconfigure_flow(hass: HomeAssistant) -> None:
     assert telemetry["previous_profile"] == "standard"
     assert telemetry["dogs_count"] == 0
     assert telemetry["estimated_entities"] == 0
+    assert telemetry["valid_dogs"] == 0
     assert telemetry["version"] == config_flow.PawControlConfigFlow.VERSION
     assert telemetry["health_summary"]["healthy"] is True
+    assert "merge_notes" not in telemetry
 
     timestamp = telemetry["timestamp"]
     assert timestamp == data_updates["reconfigure_timestamp"]
     assert timestamp == options_updates["last_reconfigure"]
     assert options_updates["previous_profile"] == "standard"
     assert options_updates["entity_profile"] == "basic"
+
+
+async def test_reconfigure_skips_unique_id_guard_without_identifier(
+    hass: HomeAssistant,
+) -> None:
+    """Reconfigure should not call the unique ID guard when none is stored."""
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={"name": "Paw Control", "dogs": []},
+        options={"entity_profile": "standard"},
+        unique_id=None,
+    )
+    entry.add_to_hass(hass)
+    entry.unique_id = None
+
+    with (
+        patch.object(
+            config_flow.PawControlConfigFlow,
+            "async_set_unique_id",
+            AsyncMock(),
+        ) as set_unique_id,
+        patch.object(
+            config_flow.PawControlConfigFlow,
+            "_abort_if_unique_id_mismatch",
+            Mock(),
+        ) as abort_mismatch,
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={
+                "source": config_entries.SOURCE_RECONFIGURE,
+                "entry_id": entry.entry_id,
+            },
+        )
+        assert result["type"] == FlowResultType.FORM
+        _assert_step_id(result, "reconfigure")
+
+        with patch(
+            "homeassistant.config_entries.ConfigFlow.async_update_reload_and_abort",
+        ) as update_mock:
+            update_mock.return_value = {
+                "type": FlowResultType.ABORT,
+                "reason": "reconfigure_successful",
+            }
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"], user_input={"entity_profile": "basic"}
+            )
+
+    assert result["type"] == FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+    set_unique_id.assert_not_called()
+    abort_mismatch.assert_not_called()
+
+
+async def test_reconfigure_profile_unchanged_returns_error(
+    hass: HomeAssistant,
+) -> None:
+    """Submitting the active profile should surface a validation error."""
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={"name": "Paw Control", "dogs": [], "entity_profile": "standard"},
+        options={"entity_profile": "standard"},
+        unique_id=DOMAIN,
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={
+            "source": config_entries.SOURCE_RECONFIGURE,
+            "entry_id": entry.entry_id,
+        },
+    )
+    assert result["type"] == FlowResultType.FORM
+
+    with patch(
+        "homeassistant.config_entries.ConfigFlow.async_update_reload_and_abort"
+    ) as update_mock:
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input={"entity_profile": "standard"}
+        )
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"] == {"base": "profile_unchanged"}
+    placeholders = result["description_placeholders"]
+    assert placeholders["current_profile"] == "standard"
+    assert placeholders["requested_profile"] == "standard"
+    assert placeholders["dogs_count"] == "0"
+    assert placeholders["reconfigure_valid_dogs"] == "0"
+    assert placeholders["reconfigure_invalid_dogs"] == "0"
+
+    update_mock.assert_not_called()
+
+
+async def test_reconfigure_handles_migrated_dog_payloads_and_history(
+    hass: HomeAssistant,
+) -> None:
+    """Old config entries with dog mappings should surface counts and history."""
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            "name": "Paw Control",
+            "entity_profile": "balanced",
+            "dogs": {
+                "buddy": {
+                    "dog_id": "buddy",
+                    "dog_name": "Buddy",
+                    "dog_age": 4,
+                    "dog_weight": 21.0,
+                    "dog_size": "medium",
+                    "modules": {
+                        "gps": True,
+                        "health": True,
+                        "walk": False,
+                    },
+                },
+                "ghost": {
+                    "dog_id": "ghost",
+                    "dog_name": "",
+                },
+            },
+        },
+        options={
+            "entity_profile": "balanced",
+            "last_reconfigure": "2024-01-02T03:04:05+00:00",
+            "reconfigure_telemetry": {
+                "timestamp": "2024-01-02T03:04:05+00:00",
+                "requested_profile": "advanced",
+                "previous_profile": "standard",
+                "dogs_count": 2,
+                "estimated_entities": 6,
+                "compatibility_warnings": ["GPS disabled for sitter"],
+                "health_summary": {
+                    "healthy": False,
+                    "issues": ["Missing GPS source"],
+                    "warnings": ["Reauth recommended"],
+                },
+            },
+        },
+        unique_id=DOMAIN,
+    )
+    entry.add_to_hass(hass)
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={
+            "source": config_entries.SOURCE_RECONFIGURE,
+            "entry_id": entry.entry_id,
+        },
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    placeholders = result["description_placeholders"]
+    assert placeholders["dogs_count"] == "2"
+    assert placeholders["reconfigure_valid_dogs"] == "1"
+    assert placeholders["reconfigure_invalid_dogs"] == "1"
+    assert placeholders["reconfigure_dogs"] == "2"
+    assert placeholders["reconfigure_entities"] == "6"
+    assert placeholders["reconfigure_previous_profile"] == "standard"
+    assert placeholders["reconfigure_requested_profile"] == "advanced"
+    assert "Missing GPS source" in placeholders["reconfigure_health"]
+    assert "GPS disabled" in placeholders["reconfigure_warnings"]
+    assert "2024-01-02" in placeholders["last_reconfigure"]
+    assert placeholders["reconfigure_merge_notes"] == "No merge adjustments detected"
+
+
+async def test_reconfigure_merges_option_dog_payloads(
+    hass: HomeAssistant,
+) -> None:
+    """Dog payloads from options and dog_options should merge into reconfigure."""
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            "name": "Paw Control",
+            "entity_profile": "standard",
+            "dogs": [
+                {
+                    CONF_DOG_ID: "buddy",
+                    CONF_DOG_NAME: "Buddy",
+                    CONF_MODULES: {MODULE_WALK: True},
+                }
+            ],
+        },
+        options={
+            "entity_profile": "standard",
+            CONF_DOGS: [
+                {
+                    CONF_DOG_ID: "buddy",
+                    CONF_DOG_NAME: "Buddy",
+                    CONF_MODULES: {
+                        MODULE_WALK: True,
+                        MODULE_HEALTH: False,
+                    },
+                },
+                {
+                    CONF_DOG_ID: "luna",
+                    CONF_DOG_NAME: "Luna",
+                    CONF_MODULES: {MODULE_WALK: True},
+                },
+            ],
+            CONF_DOG_OPTIONS: {
+                "buddy": {
+                    CONF_DOG_ID: "buddy",
+                    CONF_MODULES: {
+                        MODULE_GPS: "true",
+                        MODULE_WALK: False,
+                        MODULE_HEALTH: "yes",
+                    },
+                },
+                "luna": {
+                    CONF_MODULES: {
+                        MODULE_WALK: True,
+                    },
+                },
+            },
+        },
+        unique_id=DOMAIN,
+    )
+    entry.add_to_hass(hass)
+
+    calls: list[tuple[str, dict[str, dict[str, bool]]]] = []
+
+    async def _fake_estimate(
+        self: config_flow.PawControlConfigFlow,
+        dogs: list[dict[str, Any]],
+        profile: str = "standard",
+    ) -> int:
+        modules_by_id: dict[str, dict[str, bool]] = {}
+        for dog in dogs:
+            dog_id = dog[CONF_DOG_ID]
+            modules = {
+                module: bool(value)
+                for module, value in cast(
+                    dict[str, Any], dog.get(CONF_MODULES, {})
+                ).items()
+            }
+            modules_by_id[dog_id] = modules
+        calls.append((profile, modules_by_id))
+        return 5 if profile == "basic" else 4
+
+    with (
+        patch.object(
+            config_flow.PawControlConfigFlow,
+            "_estimate_entities_for_reconfigure",
+            _fake_estimate,
+        ),
+        patch(
+            "homeassistant.config_entries.ConfigFlow.async_update_reload_and_abort"
+        ) as update_mock,
+    ):
+        update_mock.return_value = {
+            "type": FlowResultType.ABORT,
+            "reason": "reconfigure_successful",
+        }
+
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={
+                "source": config_entries.SOURCE_RECONFIGURE,
+                "entry_id": entry.entry_id,
+            },
+        )
+
+        assert result["type"] == FlowResultType.FORM
+        placeholders = result["description_placeholders"]
+        assert placeholders["dogs_count"] == "2"
+        assert placeholders["reconfigure_valid_dogs"] == "2"
+        assert placeholders["reconfigure_invalid_dogs"] == "0"
+        assert placeholders["estimated_entities"] == "4"
+        notes = placeholders["reconfigure_merge_notes"].split("\n")
+        assert notes == [
+            "Luna: your config entry options added a dog configuration.",
+            "Buddy: your dog options disabled walk, enabled gps, enabled health.",
+        ]
+
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={"entity_profile": "basic"},
+        )
+
+    assert result["type"] == FlowResultType.ABORT
+    assert result["reason"] == "reconfigure_successful"
+
+    assert len(calls) >= 2
+
+    standard_profile, standard_modules = calls[0]
+    assert standard_profile == "standard"
+    assert set(standard_modules) == {"buddy", "luna"}
+    assert standard_modules["buddy"][MODULE_GPS] is True
+    assert standard_modules["buddy"][MODULE_WALK] is False
+    assert standard_modules["buddy"][MODULE_HEALTH] is True
+    assert standard_modules["luna"][MODULE_WALK] is True
+
+    basic_profile, basic_modules = calls[-1]
+    assert basic_profile == "basic"
+    assert basic_modules == standard_modules
+
+    update_mock.assert_called_once()
+    options_updates = update_mock.call_args.kwargs["options_updates"]
+    telemetry = options_updates["reconfigure_telemetry"]
+    assert telemetry["dogs_count"] == 2
+    assert telemetry["valid_dogs"] == 2
+    assert telemetry["estimated_entities"] == 5
+    assert telemetry["requested_profile"] == "basic"
+    assert telemetry["previous_profile"] == "standard"
+    assert telemetry["merge_notes"] == [
+        "Luna: your config entry options added a dog configuration.",
+        "Buddy: your dog options disabled walk, enabled gps, enabled health.",
+    ]
+
+
+async def test_reconfigure_normalises_legacy_module_lists(
+    hass: HomeAssistant,
+) -> None:
+    """Legacy module list payloads are coerced into dict toggles for reconfigure."""
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            "name": "Paw Control",
+            "entity_profile": "standard",
+            CONF_DOGS: [
+                {
+                    CONF_DOG_ID: "buddy",
+                    CONF_DOG_NAME: "Buddy",
+                    CONF_MODULES: [MODULE_GPS, MODULE_WALK],
+                }
+            ],
+        },
+        options={
+            "entity_profile": "standard",
+            CONF_DOG_OPTIONS: {
+                "buddy": {
+                    CONF_DOG_ID: "buddy",
+                    CONF_MODULES: [MODULE_HEALTH],
+                }
+            },
+        },
+        unique_id=DOMAIN,
+    )
+    entry.add_to_hass(hass)
+
+    modules_capture: list[dict[str, dict[str, bool]]] = []
+
+    async def _capture_modules(
+        self: config_flow.PawControlConfigFlow,
+        dogs: list[dict[str, Any]],
+        profile: str = "standard",
+    ) -> int:
+        modules_by_id: dict[str, dict[str, bool]] = {}
+        for dog in dogs:
+            dog_id = dog[CONF_DOG_ID]
+            modules_by_id[dog_id] = cast(
+                dict[str, bool],
+                dict(cast(dict[str, bool], dog.get(CONF_MODULES, {}))),
+            )
+        modules_capture.append(modules_by_id)
+        return 0
+
+    with patch.object(
+        config_flow.PawControlConfigFlow,
+        "_estimate_entities_for_reconfigure",
+        _capture_modules,
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={
+                "source": config_entries.SOURCE_RECONFIGURE,
+                "entry_id": entry.entry_id,
+            },
+        )
+
+    assert result["type"] == FlowResultType.FORM
+    placeholders = result["description_placeholders"]
+    assert placeholders["dogs_count"] == "1"
+    assert placeholders["reconfigure_valid_dogs"] == "1"
+    assert placeholders["reconfigure_invalid_dogs"] == "0"
+    assert "Buddy: your dog options enabled health." in placeholders[
+        "reconfigure_merge_notes"
+    ].split("\n")
+
+    assert modules_capture, "Modules capture should record the dog payload"
+    modules = modules_capture[0]["buddy"]
+    assert modules[MODULE_GPS] is True
+    assert modules[MODULE_WALK] is True
+    assert modules[MODULE_HEALTH] is True
+
+
+async def test_reconfigure_accepts_legacy_identifier_aliases(
+    hass: HomeAssistant,
+) -> None:
+    """Legacy dog identifiers and module dicts are normalised for reconfigure."""
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            "name": "Paw Control",
+            "entity_profile": "standard",
+            CONF_DOGS: [
+                {
+                    "id": "buddy",
+                    "name": "  Buddy Legacy  ",
+                    CONF_MODULES: [
+                        {"module": MODULE_WALK, "enabled": "enabled"},
+                        {"module": MODULE_NOTIFICATIONS, "enabled": "disabled"},
+                    ],
+                }
+            ],
+            CONF_DOG_OPTIONS: [
+                {
+                    "dogId": "buddy",
+                    CONF_MODULES: [
+                        {"module": MODULE_DASHBOARD, "enabled": True},
+                    ],
+                }
+            ],
+        },
+        options={
+            "entity_profile": "standard",
+            CONF_DOG_OPTIONS: [
+                {
+                    "identifier": " buddy ",
+                    "modules": [
+                        {"key": MODULE_GPS, "value": 1},
+                        {"module": MODULE_HEALTH, "enabled": 0},
+                    ],
+                }
+            ],
+        },
+        unique_id=DOMAIN,
+    )
+    entry.add_to_hass(hass)
+
+    dogs_capture: list[list[dict[str, Any]]] = []
+
+    async def _capture_dogs(
+        self: config_flow.PawControlConfigFlow,
+        dogs: list[dict[str, Any]],
+        profile: str = "standard",
+    ) -> int:
+        dogs_capture.append(deepcopy(dogs))
+        return 0
+
+    with patch.object(
+        config_flow.PawControlConfigFlow,
+        "_estimate_entities_for_reconfigure",
+        _capture_dogs,
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={
+                "source": config_entries.SOURCE_RECONFIGURE,
+                "entry_id": entry.entry_id,
+            },
+        )
+
+    assert result["type"] == FlowResultType.FORM
+    assert dogs_capture, "Expected reconfigure to normalise legacy dogs"
+
+    payload = dogs_capture[0][0]
+    assert payload[CONF_DOG_ID] == "buddy"
+    assert payload[CONF_DOG_NAME] == "Buddy Legacy"
+
+    modules = cast(dict[str, bool], payload[CONF_MODULES])
+    assert modules[MODULE_WALK] is True
+    assert modules[MODULE_NOTIFICATIONS] is False
+    assert modules[MODULE_DASHBOARD] is True
+    assert modules[MODULE_GPS] is True
+    assert modules[MODULE_HEALTH] is False
 
 
 async def test_dhcp_discovery_flow(hass: HomeAssistant) -> None:
@@ -357,6 +840,72 @@ async def test_dhcp_discovery_flow(hass: HomeAssistant) -> None:
 
     assert result["type"] == FlowResultType.FORM
     _assert_step_id(result, "add_dog")
+
+
+async def test_dhcp_discovery_updates_entry_when_ip_changes(
+    hass: HomeAssistant,
+) -> None:
+    """DHCP rediscovery should refresh stored metadata when details change."""
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="AA:BB:CC:DD:EE:FF",
+        data={
+            "name": "Paw Control",
+            "host": "192.168.1.40",
+            "discovery_info": {
+                "source": "dhcp",
+                "hostname": "paw-control-home",
+                "ip": "192.168.1.40",
+                "macaddress": "AA:BB:CC:DD:EE:FF",
+                "last_seen": "2024-01-01T00:00:00+00:00",
+            },
+        },
+    )
+    entry.add_to_hass(hass)
+
+    dhcp_info = DhcpServiceInfo(
+        hostname="paw-control-home",
+        ip="192.168.1.50",
+        macaddress="AA:BB:CC:DD:EE:FF",
+    )
+
+    with (
+        patch(
+            "custom_components.pawcontrol.config_flow.dt_util.utcnow",
+            return_value=datetime(2025, 2, 3, 4, 5, 6, tzinfo=UTC),
+        ),
+        patch.object(
+            config_flow.PawControlConfigFlow,
+            "async_update_reload_and_abort",
+            AsyncMock(
+                return_value={
+                    "type": FlowResultType.ABORT,
+                    "reason": "already_configured",
+                }
+            ),
+        ) as update_mock,
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={"source": config_entries.SOURCE_DHCP},
+            data=dhcp_info,
+        )
+
+    assert result["type"] == FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+    update_mock.assert_called_once()
+
+    update_kwargs = update_mock.call_args.kwargs
+    data_updates = update_kwargs["data_updates"]
+    assert data_updates["host"] == "192.168.1.50"
+
+    discovery_info = data_updates["discovery_info"]
+    assert discovery_info["source"] == "dhcp"
+    assert discovery_info["hostname"] == "paw-control-home"
+    assert discovery_info["ip"] == "192.168.1.50"
+    assert discovery_info["macaddress"] == "AA:BB:CC:DD:EE:FF"
+    assert discovery_info["last_seen"] == "2025-02-03T04:05:06+00:00"
 
 
 async def test_zeroconf_discovery_flow(hass: HomeAssistant) -> None:
@@ -388,6 +937,56 @@ async def test_zeroconf_discovery_flow(hass: HomeAssistant) -> None:
 
     assert result["type"] == FlowResultType.FORM
     _assert_step_id(result, "add_dog")
+
+
+async def test_zeroconf_discovery_skips_reload_when_metadata_matches(
+    hass: HomeAssistant,
+) -> None:
+    """Repeated Zeroconf payloads should not trigger redundant reloads."""
+
+    existing_info = {
+        "source": "zeroconf",
+        "hostname": "paw-control-7f.local",
+        "host": "192.168.1.31",
+        "port": 1234,
+        "type": "_pawcontrol._tcp.local.",
+        "name": "paw-control-7f",
+        "properties": {"serial": "paw-7f"},
+    }
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        unique_id="paw-7f",
+        data={
+            "name": "Paw Control",
+            "host": "192.168.1.31",
+            "discovery_info": existing_info,
+        },
+    )
+    entry.add_to_hass(hass)
+
+    zeroconf_info = ZeroconfServiceInfo(
+        host="192.168.1.31",
+        hostname="paw-control-7f.local",
+        port=1234,
+        type="_pawcontrol._tcp.local.",
+        name="paw-control-7f",
+        properties={"serial": "paw-7f"},
+    )
+
+    with patch.object(
+        config_flow.PawControlConfigFlow,
+        "async_update_reload_and_abort",
+        AsyncMock(),
+    ) as update_mock:
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={"source": config_entries.SOURCE_ZEROCONF},
+            data=zeroconf_info,
+        )
+
+    assert result["type"] == FlowResultType.ABORT
+    assert result["reason"] == "already_configured"
+    update_mock.assert_not_called()
 
 
 async def test_discovery_rejection_aborts(hass: HomeAssistant) -> None:
@@ -816,6 +1415,7 @@ async def test_reconfigure_telemetry_records_warnings(hass: HomeAssistant) -> No
         "Profile 'basic' may not be optimal for Buddy"
     ]
     assert telemetry["health_summary"]["validated_dogs"] == 1
+    assert "merge_notes" not in telemetry
 
 
 async def test_configure_dashboard_form_includes_context(hass: HomeAssistant) -> None:

@@ -30,9 +30,9 @@ from .types import (
     DASHBOARD_ENABLED_FIELD,
     DASHBOARD_MODE_FIELD,
     DASHBOARD_PER_DOG_FIELD,
-    DASHBOARD_SHOW_MAPS_FIELD,
-    DASHBOARD_SHOW_STATISTICS_FIELD,
     DASHBOARD_THEME_FIELD,
+    SHOW_MAPS_FIELD,
+    SHOW_STATISTICS_FIELD,
     DashboardSetupConfig,
     DogConfigData,
     DogModulesConfig,
@@ -86,7 +86,7 @@ class DashboardFlowMixin:
                 cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(MODULE_GPS, False)
                 for dog in self._dogs
             )
-            dashboard_mode = str(
+            str(
                 user_input.get(
                     "dashboard_mode",
                     DEFAULT_DASHBOARD_MODE if has_multiple_dogs else "cards",
@@ -105,11 +105,14 @@ class DashboardFlowMixin:
                 DASHBOARD_THEME_FIELD: str(
                     user_input.get("dashboard_theme", DEFAULT_DASHBOARD_THEME)
                 ),
-                DASHBOARD_MODE_FIELD: dashboard_mode,
-                DASHBOARD_SHOW_STATISTICS_FIELD: bool(
-                    user_input.get("show_statistics", True)
+                DASHBOARD_MODE_FIELD: str(
+                    user_input.get(
+                        "dashboard_mode",
+                        DEFAULT_DASHBOARD_MODE if has_multiple_dogs else "cards",
+                    )
                 ),
-                DASHBOARD_SHOW_MAPS_FIELD: bool(user_input.get("show_maps", True)),
+                SHOW_STATISTICS_FIELD: bool(user_input.get("show_statistics", True)),
+                SHOW_MAPS_FIELD: bool(user_input.get("show_maps", True)),
             }
             self._dashboard_config = dashboard_config
 

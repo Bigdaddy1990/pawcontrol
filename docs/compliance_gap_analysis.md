@@ -17,10 +17,10 @@ now present in the repository to highlight which requirements are satisfied and 
 - ✅ **Config flow & options** – UI configuration, options flow parity, and translation coverage are documented and tested.【F:README.md†L292-L313】【F:docs/production_integration_documentation.md†L250-L353】
 - ✅ **Diagnostics & repairs** – Diagnostics export anonymised data and repairs flows are described for reviewer validation.【F:README.md†L722-L741】【F:docs/diagnostik.md†L24-L48】
 - ✅ **Testing discipline** – Ruff, pytest, and MyPy baselines are defined and linked from README and `dev.md`.【F:README.md†L24-L70】【F:dev.md†L5-L20】
-- ⚠️ **Device removal** – `async_remove_config_entry_device` scenarios are listed as in-progress and require additional test fixtures to reach Platinum confidence.【F:dev.md†L52-L55】
+- ✅ **Device removal** – `async_remove_config_entry_device` now guards stored dog projections (including options `dog_options`) and regression tests exercise runtime, data, and options pathways to prove only stale devices are removed.【F:custom_components/pawcontrol/__init__.py†L1515-L1598】【F:tests/components/pawcontrol/test_init.py†L1081-L1148】
 - ⚠️ **Brand package** – Brand assets and upstream submissions are tracked but not yet finalised for Home Assistant’s brand repository.【F:README.md†L336-L380】
 - ⚠️ **Coverage automation** – Coverage reports exist but the automated publication still needs wiring to CI once the HA harness stabilises.【F:README.md†L24-L70】【F:README.md†L320-L372】
-- ⚠️ **Strict typing remediation** – `mypy custom_components/pawcontrol` still reports 260 legacy errors, blocking Platinum’s strict typing gate.【F:dev.md†L7-L11】
+- ✅ **Strict typing remediation** – `mypy custom_components/pawcontrol` now passes with zero issues across 74 source files, clearing the Platinum typing gate.【F:dev.md†L7-L11】【259eea†L1-L2】
 - ✅ **Resilience UI validation** – The Platinum Lovelace statistics view now renders the resilience metrics markdown automatically, the README and quickstart highlight the block, and regression tests assert the card contains the coordinator counters.【F:README.md†L753-L780】【F:docs/resilience-quickstart.md†L181-L186】【F:tests/components/pawcontrol/test_dashboard_renderer.py†L56-L140】
 - ⚠️ **Documentation synchronisation** – README and diagnostics guides highlight the resilience snapshot, yet the release artefacts must stay aligned whenever telemetry evolves.【F:README.md†L722-L741】【F:dev.md†L13-L20】
 

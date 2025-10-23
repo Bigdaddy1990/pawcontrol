@@ -354,7 +354,6 @@ class PawControlDateBase(PawControlEntity, DateEntity, RestoreEntity):
                 )
                 self._current_value = None
 
-    @_SET_VALUE_MONITOR
     async def async_set_value(self, value: date) -> None:
         """Set new date value with validation and logging.
 
@@ -364,63 +363,71 @@ class PawControlDateBase(PawControlEntity, DateEntity, RestoreEntity):
         Raises:
             ValidationError: If date value is invalid
         """
-        # Validate date value early so we can return a consistent error message.
-        if not isinstance(value, date):
-            raise ValidationError(
-                field="date_value",
-                value=str(value),
-                constraint="Value must be a date object",
-            )
 
-        previous_value = self._current_value
-        update_token = object()
-        self._active_update_token = update_token
+        async def _apply_value() -> None:
+            # Validate date value early so we can return a consistent error message.
+            if not isinstance(value, date):
+                raise ValidationError(
+                    field="date_value",
+                    value=str(value),
+                    constraint="Value must be a date object",
+                )
 
-        try:
-            _LOGGER.debug(
-                "Set %s for %s (%s) to %s",
-                self._date_type,
-                self._dog_name,
-                self._dog_id,
-                value,
-            )
+            previous_value = self._current_value
+            update_token = object()
+            self._active_update_token = update_token
 
-            # Call subclass-specific handling
-            await self._async_handle_date_set(value)
-        except Exception as err:
-            if (
-                self._active_update_token is update_token
-                and self._current_value == previous_value
-            ):
-                self._current_value = previous_value
+            try:
+                _LOGGER.debug(
+                    "Set %s for %s (%s) to %s",
+                    self._date_type,
+                    self._dog_name,
+                    self._dog_id,
+                    value,
+                )
+
+                # Call subclass-specific handling
+                await self._async_handle_date_set(value)
+            except Exception as err:
+                if (
+                    self._active_update_token is update_token
+                    and self._current_value == previous_value
+                ):
+                    self._current_value = previous_value
+                    self.async_write_ha_state()
+
+                _LOGGER.error(
+                    "Error setting %s for %s: %s",
+                    self._date_type,
+                    self._dog_name,
+                    err,
+                    exc_info=True,
+                )
+                raise ValidationError(
+                    field="date_value",
+                    value=str(value),
+                    constraint=f"Failed to set date: {err}",
+                ) from err
+            else:
+                self._current_value = value
                 self.async_write_ha_state()
 
-            _LOGGER.error(
-                "Error setting %s for %s: %s",
-                self._date_type,
-                self._dog_name,
-                err,
-                exc_info=True,
-            )
-            raise ValidationError(
-                field="date_value",
-                value=str(value),
-                constraint=f"Failed to set date: {err}",
-            ) from err
-        else:
-            self._current_value = value
-            self.async_write_ha_state()
+                _LOGGER.debug(
+                    "Set %s for %s (%s) to %s",
+                    self._date_type,
+                    self._dog_name,
+                    self._dog_id,
+                    value,
+                )
+            finally:
+                if self._active_update_token is update_token:
+                    self._active_update_token = None
 
-            _LOGGER.debug(
-                "Set %s for %s (%s) to %s",
-                self._date_type,
-                self._dog_name,
-                self._dog_id,
-                value,
-            )
-        finally:
-            if self._active_update_token is update_token:
-                self._active_update_token = None
+        monitored = cast(
+            Callable[[], Awaitable[None]],
+            performance_monitor(timeout=5.0)(_apply_value),
+        )
+        await monitored()
 
     async def _async_handle_date_set(self, value: date) -> None:
         """Handle date-specific logic when value is set.

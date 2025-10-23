@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Final, cast
@@ -127,17 +128,17 @@ class PawControlDiscovery:
             _LOGGER.warning("Discovery scan already active, waiting for completion")
             await self._wait_for_scan_completion()
 
-        target_categories: list[str]
+        categories_list: list[str]
         if categories is None:
-            target_categories = list(DEVICE_CATEGORIES)
+            categories_list = list(DEVICE_CATEGORIES)
         else:
-            target_categories = list(categories)
+            categories_list = list(categories)
         scan_timeout = DISCOVERY_TIMEOUT if quick_scan else DISCOVERY_TIMEOUT * 3
 
         _LOGGER.info(
             "Starting %s device discovery for categories: %s",
             "quick" if quick_scan else "thorough",
-            categories,
+            categories_list,
         )
 
         self._scan_active = True
@@ -147,7 +148,7 @@ class PawControlDiscovery:
             # Use timeout to prevent hanging scans
             async with asyncio.timeout(scan_timeout):
                 discovery_results = await asyncio.gather(
-                    self._discover_registry_devices(target_categories),
+                    self._discover_registry_devices(categories_list),
                     return_exceptions=True,
                 )
 
@@ -435,7 +436,7 @@ class PawControlDiscovery:
         _LOGGER.info("Paw Control discovery shutdown complete")
 
     def _deduplicate_devices(
-        self, devices: list[DiscoveredDevice]
+        self, devices: Iterable[DiscoveredDevice]
     ) -> list[DiscoveredDevice]:
         """Return a list of devices keyed by the strongest confidence value.
 

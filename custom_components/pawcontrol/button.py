@@ -53,6 +53,7 @@ from .types import (
     DOG_ID_FIELD,
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
+    WALK_IN_PROGRESS_FIELD,
     DogConfigData,
     PawControlConfigEntry,
     ensure_dog_config_data,
@@ -617,20 +618,16 @@ async def async_setup_entry(
     coordinator = runtime_data.coordinator
     raw_dogs = getattr(runtime_data, "dogs", [])
     dog_configs: list[DogConfigData] = []
-    for dog in raw_dogs:
-        if isinstance(dog, Mapping):
-            normalised = ensure_dog_config_data(dog)
-        elif isinstance(dog, DogConfigData):
-            normalised = dog
-        else:
+    for raw_dog in raw_dogs:
+        if not isinstance(raw_dog, Mapping):
             continue
 
+        normalised = ensure_dog_config_data(cast(Mapping[str, Any], raw_dog))
         if normalised is None:
             continue
 
         modules_projection = ensure_dog_modules_projection(normalised)
         normalised[DOG_MODULES_FIELD] = modules_projection.config
-
         dog_configs.append(normalised)
 
     if not dog_configs:
@@ -1249,7 +1246,7 @@ class PawControlStartWalkButton(PawControlButtonBase):
 
         try:
             walk_data = self._get_module_data("walk")
-            if walk_data and walk_data.get("walk_in_progress"):
+            if walk_data and walk_data.get(WALK_IN_PROGRESS_FIELD):
                 raise WalkAlreadyInProgressError(
                     dog_id=self._dog_id,
                     walk_id=walk_data.get("current_walk_id", STATE_UNKNOWN),
@@ -1279,7 +1276,7 @@ class PawControlStartWalkButton(PawControlButtonBase):
             return False
 
         walk_data = self._get_module_data("walk")
-        return not (walk_data and walk_data.get("walk_in_progress", False))
+        return not bool(walk_data and walk_data.get(WALK_IN_PROGRESS_FIELD, False))
 
 
 class PawControlEndWalkButton(PawControlButtonBase):
@@ -1305,7 +1302,7 @@ class PawControlEndWalkButton(PawControlButtonBase):
 
         try:
             walk_data = self._get_module_data("walk")
-            if not walk_data or not walk_data.get("walk_in_progress"):
+            if not walk_data or not walk_data.get(WALK_IN_PROGRESS_FIELD):
                 raise WalkNotInProgressError(
                     dog_id=self._dog_id,
                     last_walk_time=walk_data.get("last_walk") if walk_data else None,
@@ -1331,7 +1328,7 @@ class PawControlEndWalkButton(PawControlButtonBase):
             return False
 
         walk_data = self._get_module_data("walk")
-        return walk_data and walk_data.get("walk_in_progress", False)
+        return bool(walk_data and walk_data.get(WALK_IN_PROGRESS_FIELD, False))
 
 
 class PawControlQuickWalkButton(PawControlButtonBase):

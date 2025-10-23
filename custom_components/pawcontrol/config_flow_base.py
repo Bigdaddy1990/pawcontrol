@@ -15,7 +15,7 @@ import asyncio
 import logging
 import re
 import time
-from typing import Any, ClassVar, Final, cast
+from typing import Any, ClassVar, Final
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow
@@ -291,51 +291,45 @@ class PawControlBaseConfigFlow(ConfigFlow):
         if not self._dogs:
             return "No dogs configured yet. Add your first dog to get started!"
 
-        size_emojis: dict[str, str] = {
-            "toy": "🐭",
-            "small": "🐕",
-            "medium": "🐶",
-            "large": "🐕‍🦺",
-            "giant": "🐺",
-        }
-        dogs_list: list[str] = []
-        for index, dog in enumerate(self._dogs, start=1):
-            breed_raw = cast(str | None, dog.get(DOG_BREED_FIELD))
-            breed_info = (breed_raw or "Mixed Breed").strip() or "Mixed Breed"
+        dogs_list = []
+        for i, dog in enumerate(self._dogs, 1):
+            breed_value = dog.get(DOG_BREED_FIELD)
+            breed_info = breed_value if isinstance(breed_value, str) else "Mixed Breed"
+            if not breed_info or breed_info == "":
+                breed_info = "Mixed Breed"
 
-            size_raw = cast(str | None, dog.get(DOG_SIZE_FIELD))
-            size_value = size_raw or "medium"
-            size_emoji = size_emojis.get(size_value, "🐶")
+            # Size emoji mapping
+            size_emojis = {
+                "toy": "🐭",
+                "small": "🐕",
+                "medium": "🐶",
+                "large": "🐕‍🦺",
+                "giant": "🐺",
+            }
+            dog_size = dog.get(DOG_SIZE_FIELD)
+            size_key = dog_size if isinstance(dog_size, str) else "medium"
+            size_emoji = size_emojis.get(size_key, "🐶")
 
+            # Enabled modules count
             modules_mapping = ensure_dog_modules_mapping(dog)
             enabled_count = sum(1 for enabled in modules_mapping.values() if enabled)
             total_modules = len(modules_mapping)
 
-            age_value = cast(int | float | None, dog.get(DOG_AGE_FIELD))
-            age_text = (
-                f"{age_value:g}" if isinstance(age_value, int | float) else "unknown"
-            )
-
-            weight_value = cast(float | int | None, dog.get(DOG_WEIGHT_FIELD))
-            weight_text = (
-                f"{weight_value:g}"
-                if isinstance(weight_value, int | float)
-                else "unknown"
-            )
-
-            special_configs: list[str] = []
-            if DOG_GPS_CONFIG_FIELD in dog:
+            # Special configurations
+            special_configs = []
+            if dog.get(DOG_GPS_CONFIG_FIELD):
                 special_configs.append("📍 GPS")
-            if DOG_FEEDING_CONFIG_FIELD in dog:
+            if dog.get(DOG_FEEDING_CONFIG_FIELD):
                 special_configs.append("🍽️ Feeding")
-            if DOG_HEALTH_CONFIG_FIELD in dog:
+            if dog.get(DOG_HEALTH_CONFIG_FIELD):
                 special_configs.append("🏥 Health")
 
             special_text = " | ".join(special_configs) if special_configs else ""
 
             dogs_list.append(
-                f"{index}. {size_emoji} **{dog[DOG_NAME_FIELD]}** ({dog[DOG_ID_FIELD]})\n"
-                f"   {size_value.title()} {breed_info}, {age_text} years, {weight_text}kg\n"
+                f"{i}. {size_emoji} **{dog[DOG_NAME_FIELD]}** ({dog[DOG_ID_FIELD]})\n"
+                f"   {size_key.title()} {breed_info}, "
+                f"{dog.get(DOG_AGE_FIELD, 'unknown')} years, {dog.get(DOG_WEIGHT_FIELD, 'unknown')}kg\n"
                 f"   {enabled_count}/{total_modules} modules enabled"
                 + (f"\n   {special_text}" if special_text else "")
             )
@@ -354,9 +348,9 @@ class PawControlBaseConfigFlow(ConfigFlow):
         if not user_input:
             return ""
 
-        name_raw = cast(str | None, user_input.get(DOG_NAME_FIELD))
-        name = name_raw.lower() if name_raw else ""
-        size = cast(str | None, user_input.get(DOG_SIZE_FIELD)) or ""
+        name = str(user_input.get(DOG_NAME_FIELD, "")).lower()
+        size = user_input.get(DOG_SIZE_FIELD, "")
+        user_input.get(DOG_WEIGHT_FIELD, 0)
 
         # Size-based breed suggestions
         size_breeds = {
@@ -582,17 +576,17 @@ class PawControlBaseConfigFlow(ConfigFlow):
         # Check enabled modules across all dogs
         has_gps = any(
             ensure_dog_modules_mapping(dog).get(MODULE_GPS, False)
-            or dog.get("gps_config")
+            or dog.get(DOG_GPS_CONFIG_FIELD)
             for dog in self._dogs
         )
         has_feeding = any(
             ensure_dog_modules_mapping(dog).get(MODULE_FEEDING, False)
-            or dog.get("feeding_config")
+            or dog.get(DOG_FEEDING_CONFIG_FIELD)
             for dog in self._dogs
         )
         has_health = any(
             ensure_dog_modules_mapping(dog).get(MODULE_HEALTH, False)
-            or dog.get("health_config")
+            or dog.get(DOG_HEALTH_CONFIG_FIELD)
             for dog in self._dogs
         )
 

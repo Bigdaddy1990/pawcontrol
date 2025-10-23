@@ -27,6 +27,22 @@ RECONFIGURE_HEALTH_KEYS = {
     "health_warnings",
 }
 
+RECONFIGURE_ENTITY_KEYS = {
+    "dogs_count",
+    "profiles_info",
+    "compatibility_info",
+    "reconfigure_valid_dogs",
+    "reconfigure_invalid_dogs",
+    "last_reconfigure",
+    "reconfigure_requested_profile",
+    "reconfigure_previous_profile",
+    "reconfigure_dogs",
+    "reconfigure_entities",
+    "reconfigure_health",
+    "reconfigure_warnings",
+    "reconfigure_merge_notes",
+}
+
 
 def _load_translation(path: Path) -> dict[str, object]:
     return json.loads(path.read_text(encoding="utf-8"))
@@ -65,4 +81,25 @@ def test_reconfigure_health_placeholders_present(path: Path) -> None:
     assert isinstance(description, str)
 
     for key in sorted(RECONFIGURE_HEALTH_KEYS):
+        assert f"{{{key}}}" in description, f"missing {{{key}}} in {path}"
+
+
+@pytest.mark.parametrize("path", TRANSLATION_FILES, ids=lambda path: path.name)
+def test_reconfigure_entity_placeholders_present(path: Path) -> None:
+    """Ensure reconfigure entity profile translations include all placeholders."""
+
+    payload = _load_translation(path)
+    config_flow = payload.get("config")
+    assert isinstance(config_flow, dict)
+
+    steps = config_flow.get("step")
+    assert isinstance(steps, dict)
+
+    profile = steps.get("entity_profile")
+    assert isinstance(profile, dict)
+
+    description = profile.get("description")
+    assert isinstance(description, str)
+
+    for key in sorted(RECONFIGURE_ENTITY_KEYS):
         assert f"{{{key}}}" in description, f"missing {{{key}}} in {path}"

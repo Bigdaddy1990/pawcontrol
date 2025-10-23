@@ -1380,9 +1380,7 @@ class DashboardTemplates:
         if isinstance(coordinator_statistics, Mapping):
             raw_metrics = coordinator_statistics.get("rejection_metrics")
             if isinstance(raw_metrics, Mapping):
-                metrics_payload = derive_rejection_metrics(
-                    cast(Mapping[str, Any], raw_metrics)
-                )
+                metrics_payload = derive_rejection_metrics(raw_metrics)
 
         if metrics_payload is not None:
             rejection_rate = metrics_payload["rejection_rate"]

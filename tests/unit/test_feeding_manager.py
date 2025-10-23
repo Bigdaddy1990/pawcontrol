@@ -9,7 +9,7 @@ Python: 3.13+
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock
 
 import pytest
@@ -260,7 +260,7 @@ class TestFeedingLogging:
         medication_data = {
             "name": "Rimadyl",
             "dose": "50mg",
-            "time": datetime.now().isoformat(),
+            "time": datetime.now(UTC).isoformat(),
         }
 
         await mock_feeding_manager.async_add_feeding_with_medication(
@@ -284,7 +284,7 @@ class TestScheduleCompliance:
     async def test_compliance_perfect_schedule(self, mock_feeding_manager):
         """Test compliance calculation with perfect adherence."""
         # Add feedings at scheduled times
-        now = datetime.now()
+        now = datetime.now(UTC)
 
         breakfast_time = now.replace(hour=8, minute=0, second=0, microsecond=0)
         dinner_time = now.replace(hour=18, minute=0, second=0, microsecond=0)
@@ -312,7 +312,7 @@ class TestScheduleCompliance:
 
     async def test_compliance_missed_meal(self, mock_feeding_manager):
         """Test compliance calculation with missed meal."""
-        now = datetime.now()
+        now = datetime.now(UTC)
 
         breakfast_time = now.replace(hour=8, minute=0, second=0, microsecond=0)
 
@@ -335,7 +335,7 @@ class TestScheduleCompliance:
 
     async def test_compliance_late_feeding(self, mock_feeding_manager):
         """Test compliance with late feeding (within tolerance)."""
-        now = datetime.now()
+        now = datetime.now(UTC)
 
         # Feed 15 minutes late (within 30-minute tolerance)
         breakfast_time = now.replace(hour=8, minute=15, second=0, microsecond=0)

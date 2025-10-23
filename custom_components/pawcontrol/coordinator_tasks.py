@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from datetime import UTC, date, datetime
 from math import isfinite
 from typing import TYPE_CHECKING, Any, cast
@@ -402,13 +402,21 @@ def default_rejection_metrics() -> CoordinatorRejectionMetrics:
     """Return a baseline rejection metric payload for diagnostics consumers."""
 
     return {
-        "schema_version": 2,
+        "schema_version": 3,
         "rejected_call_count": 0,
         "rejection_breaker_count": 0,
         "rejection_rate": 0.0,
         "last_rejection_time": None,
         "last_rejection_breaker_id": None,
         "last_rejection_breaker_name": None,
+        "open_breaker_count": 0,
+        "half_open_breaker_count": 0,
+        "unknown_breaker_count": 0,
+        "open_breaker_ids": [],
+        "half_open_breaker_ids": [],
+        "unknown_breaker_ids": [],
+        "rejection_breaker_ids": [],
+        "rejection_breakers": [],
     }
 
 
@@ -445,6 +453,34 @@ def derive_rejection_metrics(
     breaker_name_raw = summary.get("last_rejection_breaker_name")
     if isinstance(breaker_name_raw, str):
         metrics["last_rejection_breaker_name"] = breaker_name_raw
+
+    open_breakers = summary.get("open_breaker_count")
+    if open_breakers is not None:
+        metrics["open_breaker_count"] = _coerce_int(open_breakers)
+
+    half_open_breakers = summary.get("half_open_breaker_count")
+    if half_open_breakers is not None:
+        metrics["half_open_breaker_count"] = _coerce_int(half_open_breakers)
+
+    unknown_breakers = summary.get("unknown_breaker_count")
+    if unknown_breakers is not None:
+        metrics["unknown_breaker_count"] = _coerce_int(unknown_breakers)
+
+    metrics["open_breaker_ids"] = _normalise_string_list(
+        summary.get("open_breaker_ids")
+    )
+    metrics["half_open_breaker_ids"] = _normalise_string_list(
+        summary.get("half_open_breaker_ids")
+    )
+    metrics["unknown_breaker_ids"] = _normalise_string_list(
+        summary.get("unknown_breaker_ids")
+    )
+    metrics["rejection_breaker_ids"] = _normalise_string_list(
+        summary.get("rejection_breaker_ids")
+    )
+    metrics["rejection_breakers"] = _normalise_string_list(
+        summary.get("rejection_breakers")
+    )
 
     return metrics
 
@@ -512,6 +548,38 @@ def _coerce_int(value: Any) -> int:
             return int(float(value))
         except (TypeError, ValueError):
             return 0
+
+
+def _normalise_string_list(value: Any) -> list[str]:
+    """Return ``value`` coerced into a list of non-empty strings."""
+
+    if value is None:
+        return []
+
+    if isinstance(value, str):
+        text = value.strip()
+        return [text] if text else []
+
+    if isinstance(value, Sequence) and not isinstance(value, bytes | bytearray):
+        items: list[str] = []
+        for entry in value:
+            if isinstance(entry, str):
+                candidate = entry.strip()
+            else:
+                try:
+                    candidate = str(entry).strip()
+                except Exception:  # pragma: no cover - defensive fallback
+                    continue
+            if candidate:
+                items.append(candidate)
+        return items
+
+    try:
+        text = str(value).strip()
+    except Exception:  # pragma: no cover - defensive fallback
+        return []
+
+    return [text] if text else []
 
 
 def _timestamp_from_datetime(value: datetime) -> float | None:
@@ -762,6 +830,13 @@ def build_update_statistics(
     performance_metrics["last_rejection_breaker_name"] = rejection_metrics[
         "last_rejection_breaker_name"
     ]
+    performance_metrics["open_breaker_count"] = rejection_metrics["open_breaker_count"]
+    performance_metrics["half_open_breaker_count"] = rejection_metrics[
+        "half_open_breaker_count"
+    ]
+    performance_metrics["unknown_breaker_count"] = rejection_metrics[
+        "unknown_breaker_count"
+    ]
     if reconfigure_summary is not None:
         stats["reconfigure"] = reconfigure_summary
     return stats
@@ -801,13 +876,28 @@ def build_runtime_statistics(
 
     performance_metrics = stats.get("performance_metrics")
     if isinstance(performance_metrics, dict):
-        performance_metrics.update(
-            {
-                key: value
-                for key, value in rejection_metrics.items()
-                if key != "schema_version"
-            }
-        )
+        performance_metrics["rejected_call_count"] = rejection_metrics[
+            "rejected_call_count"
+        ]
+        performance_metrics["rejection_breaker_count"] = rejection_metrics[
+            "rejection_breaker_count"
+        ]
+        performance_metrics["rejection_rate"] = rejection_metrics["rejection_rate"]
+        performance_metrics["last_rejection_time"] = rejection_metrics[
+            "last_rejection_time"
+        ]
+        performance_metrics["last_rejection_breaker_id"] = rejection_metrics[
+            "last_rejection_breaker_id"
+        ]
+        performance_metrics["last_rejection_breaker_name"] = rejection_metrics[
+            "last_rejection_breaker_name"
+        ]
+        performance_metrics["open_breaker_count"] = rejection_metrics[
+            "open_breaker_count"
+        ]
+        performance_metrics["half_open_breaker_count"] = rejection_metrics[
+            "half_open_breaker_count"
+        ]
 
     error_summary = stats.get("error_summary")
     if isinstance(error_summary, dict):

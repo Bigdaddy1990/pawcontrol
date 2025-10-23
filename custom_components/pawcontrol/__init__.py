@@ -21,6 +21,7 @@ from . import compat
 from .const import (
     ALL_MODULES,
     CONF_DOG_ID,
+    CONF_DOG_OPTIONS,
     CONF_DOGS,
     CONF_MODULES,
     DOMAIN,
@@ -1540,6 +1541,42 @@ async def async_remove_config_entry_device(
         options_source = entry.options.get(CONF_DOGS)
 
     for sanitized, dog_id in _iter_configured_dog_ids(options_source):
+        active_ids.setdefault(sanitized, dog_id)
+
+    def _iter_option_dogs(source: Any) -> Iterable[tuple[str, str]]:
+        if isinstance(source, Mapping):
+            for key, value in source.items():
+                candidates: set[str] = set()
+                if isinstance(key, str) and key:
+                    candidates.add(key)
+                if isinstance(value, Mapping):
+                    raw_id = value.get(DOG_ID_FIELD)
+                    if isinstance(raw_id, str) and raw_id:
+                        candidates.add(raw_id)
+                for candidate in candidates:
+                    sanitized_candidate = sanitize_dog_id(candidate)
+                    if sanitized_candidate:
+                        yield sanitized_candidate, candidate
+        elif isinstance(source, Sequence) and not isinstance(
+            source, str | bytes | bytearray
+        ):
+            for value in source:
+                if not isinstance(value, Mapping):
+                    continue
+                raw_id = value.get(DOG_ID_FIELD)
+                if not isinstance(raw_id, str) or not raw_id:
+                    continue
+                sanitized_candidate = sanitize_dog_id(raw_id)
+                if sanitized_candidate:
+                    yield sanitized_candidate, raw_id
+
+    if isinstance(entry.options, Mapping):
+        dog_options_source = entry.options.get(CONF_DOG_OPTIONS)
+        for sanitized, dog_id in _iter_option_dogs(dog_options_source):
+            active_ids.setdefault(sanitized, dog_id)
+
+    dog_options_data = entry.data.get(CONF_DOG_OPTIONS)
+    for sanitized, dog_id in _iter_option_dogs(dog_options_data):
         active_ids.setdefault(sanitized, dog_id)
 
     configured = {identifier[1] for identifier in identifiers}
