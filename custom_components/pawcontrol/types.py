@@ -1144,20 +1144,6 @@ class DashboardSetupConfig(TypedDict, total=False):
     compact_mode: bool
     auto_refresh: bool
     refresh_interval: int
-
-
-DashboardEnabledField = Literal["dashboard_enabled"]
-DASHBOARD_ENABLED_FIELD: Final[DashboardEnabledField] = "dashboard_enabled"
-DASHBOARD_AUTO_CREATE_FIELD: Final[Literal["dashboard_auto_create"]] = (
-    "dashboard_auto_create"
-)
-DASHBOARD_PER_DOG_FIELD: Final[Literal["dashboard_per_dog"]] = "dashboard_per_dog"
-DASHBOARD_THEME_FIELD: Final[Literal["dashboard_theme"]] = "dashboard_theme"
-DASHBOARD_MODE_FIELD: Final[Literal["dashboard_mode"]] = "dashboard_mode"
-DASHBOARD_SHOW_STATISTICS_FIELD: Final[Literal["show_statistics"]] = "show_statistics"
-DASHBOARD_SHOW_MAPS_FIELD: Final[Literal["show_maps"]] = "show_maps"
-
-
 class FeedingSetupConfig(TypedDict, total=False):
     """Feeding defaults gathered while configuring modules during setup."""
 

@@ -1057,16 +1057,18 @@ class PawControlData:
     async def _process_event_batch(self, events: list[QueuedEvent]) -> None:
         """Process a batch of events efficiently."""
         # Group events by type and dog for efficient processing
-        grouped_events: dict[str, list[dict[str, Any]]] = {}
+        grouped_events: dict[str, list[QueuedEvent]] = {}
 
         for event in events:
             event_type = event["type"]
             dog_id = event["dog_id"]
 
             key = f"{event_type}_{dog_id}"
-            if key not in grouped_events:
-                grouped_events[key] = []
-            grouped_events[key].append(event)
+            group = grouped_events.get(key)
+            if group is None:
+                group = []
+                grouped_events[key] = group
+            group.append(event)
 
         # Process each group
         for group_events in grouped_events.values():

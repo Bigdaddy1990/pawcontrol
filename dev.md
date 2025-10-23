@@ -5,12 +5,13 @@
 - Target Python 3.13+ features and reuse PawControl helpers (coordinators, managers, and typed constants) to keep runtime data on the typed surface.【F:.github/copilot-instructions.md†L29-L94】
 
 ## Latest tooling snapshot
-- ✅ `ruff check` – passes without lint findings.【adf020†L1-L1】
-- ✅ `pytest -q` – full suite passes (976 passed, 1 skipped).【647ab9†L1-L5】
-- ✅ `mypy custom_components/pawcontrol` – strict typing passes with zero issues across 74 source files.【db647f†L1-L2】
-- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – manifest und Übersetzungen validiert ohne Befunde.【8ac83d†L1-L2】
+- ✅ `ruff check` – passes without lint findings.【1d3c62†L1-L2】
+- ✅ `pytest -q` – full suite passes (976 passed, 1 skipped).【c27cf6†L1-L5】
+- ✅ `mypy custom_components/pawcontrol` – strict typing passes with zero issues across 74 source files.【30ef97†L1-L1】
+- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – manifest und Übersetzungen validiert ohne Befunde.【2589fd†L1-L2】
 
 ## Recent improvements
+- Beseitigte mypy-Doppeldefinitionen, indem Dashboard-Feldkonstanten einmalig unter den Setup-Präferenz-Literalen exportiert, die Ereigniswarteschlange in `helpers.py` mit `QueuedEvent`-Listen gruppiert und die Discovery-Deduplizierung auf ein einziges Iterable-basiertes Hilfsverfahren konsolidiert wurde; der strikte Typenlauf bleibt damit fehlerfrei.【F:custom_components/pawcontrol/types.py†L2265-L2303】【F:custom_components/pawcontrol/helpers.py†L1057-L1082】【F:custom_components/pawcontrol/discovery.py†L438-L455】
 - Blocked redundant reconfigure submissions by surfacing a `profile_unchanged` validation error when the requested profile matches the active selection, preventing unnecessary reloads and ensuring regression coverage verifies the guard stays in place.【F:custom_components/pawcontrol/config_flow.py†L1989-L2067】【F:tests/components/pawcontrol/test_config_flow.py†L320-L352】
 - Hardened Zeroconf, DHCP, USB, and Bluetooth discovery updates by normalising metadata, recording `last_seen`, matching unique IDs case-insensitively, and persisting refreshed discovery info only when changes occur, with regression coverage confirming rediscovery avoids redundant reloads while storing new host/IP details.【F:custom_components/pawcontrol/config_flow.py†L292-L464】【F:custom_components/pawcontrol/types.py†L1018-L1037】【F:tests/components/pawcontrol/test_config_flow.py†L470-L558】
 - Ergänzte die Resilience-Telemetrie um `unknown_breaker_count` und `unknown_breaker_ids`, sodass Koordinator-Snapshots, Diagnostics und Dashboard-Markdown jetzt alle Breaker-Listen der Schema-Version 3 exportieren und Regressionstests die neuen Felder absichern.【F:custom_components/pawcontrol/coordinator_tasks.py†L366-L418】【F:custom_components/pawcontrol/diagnostics.py†L133-L160】【F:custom_components/pawcontrol/types.py†L2108-L2122】【F:tests/unit/test_coordinator_tasks.py†L228-L309】【F:tests/unit/test_coordinator_observability.py†L120-L172】【F:tests/components/pawcontrol/test_diagnostics.py†L260-L288】

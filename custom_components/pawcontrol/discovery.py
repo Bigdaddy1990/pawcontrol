@@ -436,7 +436,7 @@ class PawControlDiscovery:
         _LOGGER.info("Paw Control discovery shutdown complete")
 
     def _deduplicate_devices(
-        self, devices: list[DiscoveredDevice]
+        self, devices: Iterable[DiscoveredDevice]
     ) -> list[DiscoveredDevice]:
         """Return a list of devices keyed by the strongest confidence value.
 
@@ -479,20 +479,6 @@ class PawControlDiscovery:
         """Check if a discovery scan is currently active."""
 
         return self._scan_active
-
-    def _deduplicate_devices(
-        self, devices: Iterable[DiscoveredDevice]
-    ) -> list[DiscoveredDevice]:
-        """Return the unique set of devices keyed by device identifier."""
-
-        deduplicated: dict[str, DiscoveredDevice] = {}
-        for device in devices:
-            existing = deduplicated.get(device.device_id)
-            if existing is None or device.confidence > existing.confidence:
-                deduplicated[device.device_id] = device
-
-        return list(deduplicated.values())
-
 
 # Legacy compatibility functions for existing code
 async def async_get_discovered_devices(hass: HomeAssistant) -> list[dict[str, Any]]:
