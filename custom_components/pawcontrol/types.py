@@ -403,9 +403,12 @@ def _record_bool_coercion(
     except Exception:  # pragma: no cover - telemetry import guarded for safety
         return
 
-    record_bool_coercion_event(
-        value=value, default=default, result=result, reason=reason
-    )
+    try:
+        record_bool_coercion_event(
+            value=value, default=default, result=result, reason=reason
+        )
+    except Exception:  # pragma: no cover - telemetry failures must not break coercion
+        return
 
 
 _TRUTHY_BOOL_STRINGS: Final[frozenset[str]] = frozenset(
