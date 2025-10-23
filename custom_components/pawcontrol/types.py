@@ -393,21 +393,81 @@ class DogModulesProjection:
         return dict(self.mapping)
 
 
+def _record_bool_coercion(
+    value: Any, *, default: bool, result: bool, reason: str
+) -> None:
+    """Record bool coercion telemetry for diagnostics consumers."""
+
+    try:
+        from .telemetry import record_bool_coercion_event
+    except Exception:  # pragma: no cover - telemetry import guarded for safety
+        return
+
+    record_bool_coercion_event(value=value, default=default, result=result, reason=reason)
+
+
+_TRUTHY_BOOL_STRINGS: Final[frozenset[str]] = frozenset(
+    {"1", "true", "yes", "y", "on", "enabled"}
+)
+_FALSY_BOOL_STRINGS: Final[frozenset[str]] = frozenset(
+    {"0", "false", "no", "n", "off", "disabled"}
+)
+
+
 def _coerce_bool(value: Any, *, default: bool = False) -> bool:
     """Return a boolean flag while tolerating common string/int representations."""
 
     if value is None:
+        _record_bool_coercion(value, default=default, result=default, reason="none")
         return default
     if isinstance(value, bool):
-        return value
+        result = value
+        _record_bool_coercion(
+            value,
+            default=default,
+            result=result,
+            reason="native_true" if result else "native_false",
+        )
+        return result
     if isinstance(value, int | float):
-        return value != 0
+        result = value != 0
+        _record_bool_coercion(
+            value,
+            default=default,
+            result=result,
+            reason="numeric_nonzero" if result else "numeric_zero",
+        )
+        return result
     if isinstance(value, str):
         text = value.strip().lower()
         if not text:
+            _record_bool_coercion(
+                value, default=default, result=default, reason="blank_string"
+            )
             return default
-        return text in {"1", "true", "yes", "y", "on", "enabled"}
-    return bool(value)
+        if text in _TRUTHY_BOOL_STRINGS:
+            _record_bool_coercion(
+                value, default=default, result=True, reason="truthy_string"
+            )
+            return True
+        if text in _FALSY_BOOL_STRINGS:
+            _record_bool_coercion(
+                value, default=default, result=False, reason="falsy_string"
+            )
+            return False
+
+        result = False
+        _record_bool_coercion(
+            value,
+            default=default,
+            result=result,
+            reason="unknown_string",
+        )
+        return result
+
+    result = bool(value)
+    _record_bool_coercion(value, default=default, result=result, reason="fallback")
+    return result
 
 
 def _coerce_int(value: Any, *, default: int) -> int:
@@ -1015,10 +1075,21 @@ class PawControlOptionsData(PerformanceOptions, total=False):
     last_reauth_summary: NotRequired[str]
 
 
+ConfigFlowDiscoverySource = Literal[
+    "zeroconf",
+    "dhcp",
+    "usb",
+    "bluetooth",
+    "import",
+    "reauth",
+    "unknown",
+]
+
+
 class ConfigFlowDiscoveryData(TypedDict, total=False):
     """Metadata captured from config flow discovery sources."""
 
-    source: Literal["zeroconf", "dhcp", "usb", "bluetooth", "import", "reauth"]
+    source: ConfigFlowDiscoverySource
     hostname: str
     host: str
     port: int
@@ -1035,6 +1106,7 @@ class ConfigFlowDiscoveryData(TypedDict, total=False):
     device: str
     address: str
     service_uuids: list[str]
+    last_seen: str
 
 
 class ConfigFlowGlobalSettings(TypedDict, total=False):
@@ -1183,6 +1255,8 @@ class ReconfigureTelemetry(TypedDict, total=False):
     version: int
     compatibility_warnings: NotRequired[list[str]]
     health_summary: NotRequired[ReauthHealthSummary]
+    valid_dogs: NotRequired[int]
+    merge_notes: NotRequired[list[str]]
 
 
 class ReconfigureTelemetrySummary(TypedDict, total=False):
@@ -1201,6 +1275,8 @@ class ReconfigureTelemetrySummary(TypedDict, total=False):
     health_issue_count: int
     health_warnings: list[str]
     health_warning_count: int
+    merge_notes: list[str]
+    merge_note_count: int
 
 
 class ReconfigureOptionsUpdates(TypedDict, total=False):
@@ -1221,6 +1297,16 @@ class ReconfigureFormPlaceholders(TypedDict, total=False):
     compatibility_info: str
     estimated_entities: str
     error_details: str
+    last_reconfigure: str
+    reconfigure_requested_profile: str
+    reconfigure_previous_profile: str
+    reconfigure_dogs: str
+    reconfigure_entities: str
+    reconfigure_health: str
+    reconfigure_warnings: str
+    reconfigure_valid_dogs: str
+    reconfigure_invalid_dogs: str
+    reconfigure_merge_notes: str
 
 
 class DogValidationResult(TypedDict):
@@ -1890,6 +1976,9 @@ class CoordinatorPerformanceMetrics(TypedDict):
     last_rejection_time: NotRequired[float | None]
     last_rejection_breaker_id: NotRequired[str | None]
     last_rejection_breaker_name: NotRequired[str | None]
+    open_breaker_count: NotRequired[int]
+    half_open_breaker_count: NotRequired[int]
+    unknown_breaker_count: NotRequired[int]
 
 
 class CoordinatorHealthIndicators(TypedDict, total=False):
@@ -2098,13 +2187,21 @@ CoordinatorDataPayload = dict[str, CoordinatorDogData]
 class CoordinatorRejectionMetrics(TypedDict):
     """Normalised rejection counters exposed via diagnostics payloads."""
 
-    schema_version: Literal[2]
+    schema_version: Literal[3]
     rejected_call_count: int
     rejection_breaker_count: int
     rejection_rate: float | None
     last_rejection_time: float | None
     last_rejection_breaker_id: str | None
     last_rejection_breaker_name: str | None
+    open_breaker_count: int
+    half_open_breaker_count: int
+    unknown_breaker_count: int
+    open_breaker_ids: list[str]
+    half_open_breaker_ids: list[str]
+    unknown_breaker_ids: list[str]
+    rejection_breaker_ids: list[str]
+    rejection_breakers: list[str]
 
 
 class DogConfigData(TypedDict, total=False):
@@ -2171,6 +2268,31 @@ DOG_EMERGENCY_CONTACT_FIELD: Final[Literal["emergency_contact"]] = "emergency_co
 DOG_FEEDING_CONFIG_FIELD: Final[Literal["feeding_config"]] = "feeding_config"
 DOG_HEALTH_CONFIG_FIELD: Final[Literal["health_config"]] = "health_config"
 DOG_GPS_CONFIG_FIELD: Final[Literal["gps_config"]] = "gps_config"
+WALK_IN_PROGRESS_FIELD: Final[Literal["walk_in_progress"]] = "walk_in_progress"
+VISITOR_MODE_ACTIVE_FIELD: Final[Literal["visitor_mode_active"]] = "visitor_mode_active"
+
+# Field literals for external entity configuration helpers.
+GPS_SOURCE_FIELD: Final[Literal["gps_source"]] = "gps_source"
+DOOR_SENSOR_FIELD: Final[Literal["door_sensor"]] = "door_sensor"
+NOTIFY_FALLBACK_FIELD: Final[Literal["notify_fallback"]] = "notify_fallback"
+
+# Field literals for dashboard setup preferences.
+DASHBOARD_ENABLED_FIELD: Final[Literal["dashboard_enabled"]] = "dashboard_enabled"
+DASHBOARD_AUTO_CREATE_FIELD: Final[Literal["dashboard_auto_create"]] = (
+    "dashboard_auto_create"
+)
+DASHBOARD_PER_DOG_FIELD: Final[Literal["dashboard_per_dog"]] = "dashboard_per_dog"
+DASHBOARD_THEME_FIELD: Final[Literal["dashboard_theme"]] = "dashboard_theme"
+DASHBOARD_MODE_FIELD: Final[Literal["dashboard_mode"]] = "dashboard_mode"
+SHOW_STATISTICS_FIELD: Final[Literal["show_statistics"]] = "show_statistics"
+SHOW_MAPS_FIELD: Final[Literal["show_maps"]] = "show_maps"
+SHOW_HEALTH_CHARTS_FIELD: Final[Literal["show_health_charts"]] = "show_health_charts"
+SHOW_FEEDING_SCHEDULE_FIELD: Final[Literal["show_feeding_schedule"]] = (
+    "show_feeding_schedule"
+)
+SHOW_ALERTS_FIELD: Final[Literal["show_alerts"]] = "show_alerts"
+COMPACT_MODE_FIELD: Final[Literal["compact_mode"]] = "compact_mode"
+AUTO_REFRESH_FIELD: Final[Literal["auto_refresh"]] = "auto_refresh"
 
 
 def ensure_dog_config_data(data: Mapping[str, Any]) -> DogConfigData | None:

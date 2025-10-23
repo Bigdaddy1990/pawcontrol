@@ -11,6 +11,7 @@ from custom_components.pawcontrol.const import (
     CONF_DOG_NAME,
     MODULE_NOTIFICATIONS,
 )
+from custom_components.pawcontrol.coordinator_tasks import default_rejection_metrics
 from custom_components.pawcontrol.dashboard_renderer import DashboardRenderer
 
 
@@ -99,16 +100,21 @@ async def test_statistics_view_includes_resilience_metrics(
     )
 
     last_rejection = 1_700_000_000.0
-    coordinator_statistics = {
-        "rejection_metrics": {
-            "schema_version": 2,
+    rejection_metrics = default_rejection_metrics()
+    rejection_metrics.update(
+        {
             "rejected_call_count": 3,
             "rejection_breaker_count": 2,
             "rejection_rate": 0.125,
             "last_rejection_time": last_rejection,
             "last_rejection_breaker_name": "api",
+            "open_breaker_count": 1,
+            "open_breaker_ids": ["api"],
+            "rejection_breaker_ids": ["api"],
+            "rejection_breakers": ["api"],
         }
-    }
+    )
+    coordinator_statistics = {"rejection_metrics": rejection_metrics}
 
     result = await renderer.render_main_dashboard(
         [

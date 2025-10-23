@@ -13,8 +13,9 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -29,8 +30,6 @@ from homeassistant.util import dt as dt_util
 from .const import (
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
     MODULE_FEEDING,
     MODULE_GARDEN,
     MODULE_GPS,
@@ -40,7 +39,16 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
 from .runtime_data import get_runtime_data
-from .types import PawControlConfigEntry, ensure_dog_modules_mapping
+from .types import (
+    DOG_ID_FIELD,
+    DOG_NAME_FIELD,
+    VISITOR_MODE_ACTIVE_FIELD,
+    WALK_IN_PROGRESS_FIELD,
+    DogConfigData,
+    PawControlConfigEntry,
+    ensure_dog_config_data,
+    ensure_dog_modules_mapping,
+)
 from .utils import async_call_add_entities, ensure_utc_datetime
 
 if TYPE_CHECKING:
@@ -151,8 +159,8 @@ class BinarySensorLogicMixin:
 
 
 async def _async_add_entities_in_batches(
-    async_add_entities_func,
-    entities: list[PawControlBinarySensorBase],
+    async_add_entities_func: AddEntitiesCallback,
+    entities: Sequence[PawControlBinarySensorBase],
     batch_size: int = ENTITY_CREATION_BATCH_SIZE,
     delay_between_batches: float = ENTITY_CREATION_DELAY,
 ) -> None:
@@ -211,18 +219,28 @@ async def async_setup_entry(
         _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
         return
     coordinator = runtime_data.coordinator
-    dogs = runtime_data.dogs
+    raw_dogs = getattr(runtime_data, "dogs", [])
+    dog_configs: list[DogConfigData] = []
+    for raw_dog in raw_dogs:
+        if not isinstance(raw_dog, Mapping):
+            continue
 
-    if not dogs:
+        normalised = ensure_dog_config_data(cast(Mapping[str, Any], raw_dog))
+        if normalised is None:
+            continue
+
+        dog_configs.append(normalised)
+
+    if not dog_configs:
         _LOGGER.warning("No dogs configured for binary sensor platform")
         return
 
     entities: list[PawControlBinarySensorBase] = []
 
     # Create binary sensors for each configured dog
-    for dog in dogs:
-        dog_id: str = dog[CONF_DOG_ID]
-        dog_name: str = dog[CONF_DOG_NAME]
+    for dog in dog_configs:
+        dog_id: str = dog[DOG_ID_FIELD]
+        dog_name: str = dog[DOG_NAME_FIELD]
         modules = ensure_dog_modules_mapping(dog)
 
         _LOGGER.debug("Creating binary sensors for dog: %s (%s)", dog_name, dog_id)
@@ -263,7 +281,7 @@ async def async_setup_entry(
         _LOGGER.info(
             "Created %d binary sensor entities for %d dogs (single batch)",
             len(entities),
-            len(dogs),
+            len(dog_configs),
         )
     else:
         # Large setup: Use optimized batching to prevent registry overload
@@ -271,7 +289,7 @@ async def async_setup_entry(
         _LOGGER.info(
             "Created %d binary sensor entities for %d dogs (batched approach)",
             len(entities),
-            len(dogs),
+            len(dog_configs),
         )
 
 
@@ -761,7 +779,7 @@ class PawControlVisitorModeBinarySensor(PawControlBinarySensorBase):
         if not dog_data:
             return False
 
-        return dog_data.get("visitor_mode_active", False)
+        return bool(dog_data.get(VISITOR_MODE_ACTIVE_FIELD, False))
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
@@ -954,7 +972,7 @@ class PawControlWalkInProgressBinarySensor(PawControlBinarySensorBase):
         if not walk_data:
             return False
 
-        return walk_data.get("walk_in_progress", False)
+        return bool(walk_data.get(WALK_IN_PROGRESS_FIELD, False))
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
@@ -962,7 +980,7 @@ class PawControlWalkInProgressBinarySensor(PawControlBinarySensorBase):
         attrs = super().extra_state_attributes
         walk_data = self._get_module_data("walk")
 
-        if walk_data and walk_data.get("walk_in_progress"):
+        if walk_data and walk_data.get(WALK_IN_PROGRESS_FIELD):
             attrs.update(
                 {
                     "walk_start_time": walk_data.get("current_walk_start"),

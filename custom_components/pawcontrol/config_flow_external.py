@@ -27,7 +27,14 @@ from .const import (
     MODULE_VISITOR,
 )
 from .selector_shim import selector
-from .types import DogConfigData, DogModulesConfig, ExternalEntityConfig
+from .types import (
+    DOOR_SENSOR_FIELD,
+    GPS_SOURCE_FIELD,
+    NOTIFY_FALLBACK_FIELD,
+    DogConfigData,
+    DogModulesConfig,
+    ExternalEntityConfig,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -244,7 +251,7 @@ class ExternalEntityConfigurationMixin:
 
     async def _async_validate_external_entities(
         self, user_input: dict[str, Any]
-    ) -> dict[str, str]:
+    ) -> ExternalEntityConfig:
         """Validate external entity selections.
 
         Args:
@@ -271,14 +278,14 @@ class ExternalEntityConfigurationMixin:
         if not gps_source:
             return {}
         if gps_source == "manual":
-            return {CONF_GPS_SOURCE: "manual"}
+            return {GPS_SOURCE_FIELD: "manual"}
 
         state = self.hass.states.get(gps_source)
         if not state:
             raise ValueError(f"GPS source entity {gps_source} not found")
         if state.state in ["unknown", "unavailable"]:
             raise ValueError(f"GPS source entity {gps_source} is unavailable")
-        return {CONF_GPS_SOURCE: gps_source}
+        return {GPS_SOURCE_FIELD: gps_source}
 
     def _validate_door_sensor(self, door_sensor: str | None) -> ExternalEntityConfig:
         """Validate door sensor selection."""
@@ -287,7 +294,7 @@ class ExternalEntityConfigurationMixin:
         state = self.hass.states.get(door_sensor)
         if not state:
             raise ValueError(f"Door sensor entity {door_sensor} not found")
-        return {CONF_DOOR_SENSOR: door_sensor}
+        return {DOOR_SENSOR_FIELD: door_sensor}
 
     def _validate_notify_service(
         self, notify_service: str | None
@@ -303,4 +310,4 @@ class ExternalEntityConfigurationMixin:
         if service_parts[1] not in services:
             raise ValueError(f"Notification service {service_parts[1]} not found")
 
-        return {CONF_NOTIFY_FALLBACK: notify_service}
+        return {NOTIFY_FALLBACK_FIELD: notify_service}

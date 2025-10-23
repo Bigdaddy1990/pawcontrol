@@ -223,7 +223,7 @@ class TestGPSPointCreation:
 
     def test_gps_point_with_metadata(self):
         """Test GPS point with full metadata."""
-        timestamp = datetime.now()
+        timestamp = datetime.now(UTC)
 
         point = GPSPoint(
             latitude=52.5200,
@@ -829,7 +829,7 @@ class TestEdgeCases:
         for i in range(150):
             route = WalkRoute(
                 dog_id="test_dog",
-                start_time=datetime.now() - timedelta(hours=i),
+                start_time=datetime.now(UTC) - timedelta(hours=i),
             )
             if "test_dog" not in mock_gps_manager._route_history:
                 mock_gps_manager._route_history["test_dog"] = []

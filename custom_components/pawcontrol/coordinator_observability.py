@@ -127,7 +127,7 @@ def build_performance_snapshot(
         {
             key: value
             for key, value in rejection_metrics.items()
-            if key != "schema_version"
+            if key != "schema_version" and not isinstance(value, list)
         }
     )
 

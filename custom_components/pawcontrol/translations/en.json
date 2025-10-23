@@ -245,7 +245,7 @@
       },
       "entity_profile": {
         "title": "Select Entity Profile",
-        "description": "Select the entity profile for {dogs_count} dog(s).\n\n{profiles_info}\n\nLast reconfigure: {last_reconfigure}\nRequested profile: {reconfigure_requested_profile}\nPrevious profile: {reconfigure_previous_profile}\nDogs impacted: {reconfigure_dogs}\nEstimated entities: {reconfigure_entities}\nReconfigure health: {reconfigure_health}\nCompatibility warnings: {reconfigure_warnings}",
+        "description": "Select the entity profile for {dogs_count} dog(s).\n\n{profiles_info}\n\nCompatibility summary: {compatibility_info}\nValid dogs: {reconfigure_valid_dogs}\nInvalid dogs: {reconfigure_invalid_dogs}\n\nLast reconfigure: {last_reconfigure}\nRequested profile: {reconfigure_requested_profile}\nPrevious profile: {reconfigure_previous_profile}\nDogs impacted: {reconfigure_dogs}\nEstimated entities: {reconfigure_entities}\nReconfigure health: {reconfigure_health}\nCompatibility warnings: {reconfigure_warnings}\nMerge notes: {reconfigure_merge_notes}",
         "data": {
           "entity_profile": "Entity Profile"
         },
@@ -388,6 +388,7 @@
       "notification_service_not_found": "The selected notification service was not found",
       "invalid_notification_service": "The notification service format is invalid",
       "invalid_profile": "You need to select a valid profile",
+      "profile_unchanged": "You're already using this profile. Choose a different profile to continue.",
       "external_entity_validation_failed": "External entity validation failed",
       "weather_entity_not_found": "The selected weather entity was not found",
       "weather_entity_unavailable": "The selected weather entity is currently unavailable"

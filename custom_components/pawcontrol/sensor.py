@@ -7,8 +7,7 @@ import contextlib
 import logging
 from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
-from numbers import Number
-from typing import Any
+from typing import Any, cast
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -32,15 +31,19 @@ from homeassistant.util import dt as dt_util
 from .const import (
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
     MODULE_GARDEN,
 )
 from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
 from .entity_factory import EntityFactory
 from .runtime_data import get_runtime_data
-from .types import PawControlConfigEntry, ensure_dog_modules_mapping
+from .types import (
+    DOG_ID_FIELD,
+    DOG_NAME_FIELD,
+    DogConfigData,
+    PawControlConfigEntry,
+    ensure_dog_modules_mapping,
+)
 from .utils import async_call_add_entities, ensure_utc_datetime, is_number
 
 _LOGGER = logging.getLogger(__name__)
@@ -216,16 +219,16 @@ async def async_setup_entry(
 async def _create_profile_entities(
     coordinator: PawControlCoordinator,
     entity_factory: EntityFactory,
-    dogs: list[dict[str, Any]],
+    dogs: list[DogConfigData],
     profile: str,
 ) -> list[PawControlSensorBase]:
     """Create entities based on profile requirements."""
     all_entities = []
 
     for dog in dogs:
-        dog_id = dog[CONF_DOG_ID]
-        dog_name = dog[CONF_DOG_NAME]
-        modules = ensure_dog_modules_mapping(dog)
+        dog_id = dog[DOG_ID_FIELD]
+        dog_name = dog[DOG_NAME_FIELD]
+        modules = ensure_dog_modules_mapping(cast(Mapping[str, Any], dog))
 
         # Create core entities (always included)
         core_entities = _create_core_entities(coordinator, dog_id, dog_name)
@@ -267,7 +270,7 @@ async def _create_module_entities(
     entity_factory: EntityFactory,
     dog_id: str,
     dog_name: str,
-    modules: dict[str, bool],
+    modules: Mapping[str, bool],
     profile: str,
 ) -> list[PawControlSensorBase]:
     """Create module-specific entities based on profile and enabled modules."""
@@ -702,7 +705,7 @@ async def _add_entities_optimized(
 
 def _log_setup_metrics(
     all_entities: list[PawControlSensorBase],
-    dogs: list[dict[str, Any]],
+    dogs: list[DogConfigData],
     profile: str,
     entity_factory: EntityFactory,
 ) -> None:
@@ -763,7 +766,7 @@ class PawControlSensorBase(PawControlEntity, SensorEntity):
         self._attr_unique_id = f"pawcontrol_{dog_id}_{sensor_type}"
         self._apply_name_suffix(sensor_type.replace("_", " ").title())
         self._pending_translation_key = translation_key
-        self._attr_translation_key = None
+        self._attr_translation_key: str | None = None
         self._attr_device_class = device_class
         self._attr_state_class = state_class
         self._attr_native_unit_of_measurement = unit_of_measurement
@@ -973,7 +976,7 @@ class PawControlGardenSensorBase(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
         attrs.update(self._garden_attributes())
         return attrs
 
@@ -998,7 +1001,7 @@ class PawControlDietValidationSensorBase(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
         summary = self._get_validation_summary()
         if summary:
             attrs.update(
@@ -1366,7 +1369,7 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return additional state attributes for activity level sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
 
         dog_data = self._get_dog_data()
         if dog_data:
@@ -1863,7 +1866,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return additional state attributes for hours since feeding sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
 
         feeding_data = self._get_module_data("feeding")
         if feeding_data:
@@ -2173,7 +2176,7 @@ class PawControlDietConflictCountSensor(PawControlDietValidationSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
         summary = self._get_validation_summary()
         if summary and summary.get("conflicts"):
             attrs["conflicts"] = summary.get("conflicts")
@@ -2212,7 +2215,7 @@ class PawControlDietWarningCountSensor(PawControlDietValidationSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
         summary = self._get_validation_summary()
         if summary and summary.get("warnings"):
             attrs["warnings"] = summary.get("warnings")
@@ -2248,7 +2251,7 @@ class PawControlDietVetConsultationSensor(PawControlDietValidationSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
         summary = self._get_validation_summary()
         if summary:
             attrs.update(
@@ -2296,7 +2299,7 @@ class PawControlDietValidationAdjustmentSensor(PawControlDietValidationSensorBas
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
         summary = self._get_validation_summary()
         if summary:
             attrs.update(
@@ -2343,7 +2346,7 @@ class PawControlDietCompatibilityScoreSensor(PawControlDietValidationSensorBase)
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
         summary = self._get_validation_summary()
         if summary:
             attrs["compatibility_level"] = summary.get("compatibility_level")
@@ -2419,7 +2422,7 @@ class PawControlPortionsTodaySensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return additional state attributes for portions sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
 
         feeding_data = self._get_module_data("feeding")
         if feeding_data:
@@ -2491,16 +2494,18 @@ class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return additional state attributes for calorie progress sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
 
-        feeding_data = self._get_module_data("feeding")
-        if feeding_data:
+        feeding_snapshot = self._get_module_data("feeding")
+        if feeding_snapshot:
             with contextlib.suppress(TypeError, ValueError, ZeroDivisionError):
-                calories_consumed = float(feeding_data.get("total_calories_today", 0.0))
+                calories_consumed = float(
+                    feeding_snapshot.get("total_calories_today", 0.0)
+                )
                 calorie_target = float(
-                    feeding_data.get(
+                    feeding_snapshot.get(
                         "daily_calorie_target",
-                        feeding_data.get("target_calories_per_day", 1000.0),
+                        feeding_snapshot.get("target_calories_per_day", 1000.0),
                     )
                 )
 
@@ -2560,7 +2565,7 @@ class PawControlHealthFeedingStatusSensor(PawControlSensorBase):
     def extra_state_attributes(self) -> AttributeDict:
         """Return diagnostic attributes for the health feeding status."""
 
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
         feeding_data = self._get_module_data("feeding") or {}
         attrs.update(
             {
@@ -2615,7 +2620,7 @@ class PawControlDailyCalorieTargetSensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
         feeding_data = self._get_module_data("feeding") or {}
         attrs.update(
             {
@@ -2664,7 +2669,7 @@ class PawControlCaloriesConsumedTodaySensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
         feeding_data = self._get_module_data("feeding") or {}
         attrs.update(
             {
@@ -2727,16 +2732,16 @@ class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
-        attrs = super().extra_state_attributes
-        feeding_data = self._get_module_data("feeding") or {}
+        attrs = dict(super().extra_state_attributes or {})
+        feeding_data = self._get_module_data("feeding")
+        feeding_defaults = feeding_data or {}
         attrs.update(
             {
-                "weight_goal": feeding_data.get("weight_goal"),
-                "health_conditions": feeding_data.get("health_conditions", []),
+                "weight_goal": feeding_defaults.get("weight_goal"),
+                "health_conditions": feeding_defaults.get("health_conditions", []),
             }
         )
 
-        feeding_data = self._get_module_data("feeding")
         if feeding_data:
             with contextlib.suppress(TypeError, ValueError, ZeroDivisionError):
                 calories_consumed = float(feeding_data.get("total_calories_today", 0.0))
@@ -2821,7 +2826,7 @@ class PawControlFoodConsumptionSensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return additional state attributes for food consumption sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
 
         feeding_data = self._get_module_data("feeding")
         if feeding_data:
@@ -3069,7 +3074,7 @@ class PawControlWalkDistanceTodaySensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return additional state attributes for walk distance sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
 
         walk_data = self._get_module_data("walk")
         if walk_data:
@@ -3188,7 +3193,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return additional state attributes for calories burned sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
 
         walk_data = self._get_module_data("walk")
         if walk_data:
@@ -3276,7 +3281,7 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return additional state attributes for total walk distance sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
 
         walk_data = self._get_module_data("walk")
         if walk_data:
@@ -3380,7 +3385,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return additional state attributes for walks this week sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
 
         walk_data = self._get_module_data("walk")
         if walk_data:
@@ -3602,7 +3607,7 @@ class PawControlCurrentLocationSensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
         gps_data = self._get_module_data("gps") or {}
         attrs["last_seen"] = gps_data.get("last_seen")
         attrs["in_safe_zone"] = gps_data.get("in_safe_zone")
@@ -3965,7 +3970,7 @@ class PawControlHealthConditionsSensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
         conditions = self._get_module_data("health") or {}
         attrs["conditions"] = conditions.get("health_conditions", [])
         return attrs
@@ -4007,7 +4012,7 @@ class PawControlWeightGoalProgressSensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
         health_data = self._get_module_data("health") or {}
         attrs.update(
             {
@@ -4054,7 +4059,7 @@ class PawControlDailyActivityLevelSensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
-        attrs = super().extra_state_attributes
+        attrs = dict(super().extra_state_attributes or {})
         health_data = self._get_module_data("health") or {}
         attrs.update(
             {
@@ -4079,7 +4084,7 @@ def _coerce_budget_remaining(budget: Any) -> int | None:
     if remaining is None:
         return None
 
-    if isinstance(remaining, Number):
+    if isinstance(remaining, int | float):
         return int(remaining)
 
     try:

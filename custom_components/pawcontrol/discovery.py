@@ -13,8 +13,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Final, cast
 
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
@@ -129,13 +130,17 @@ class PawControlDiscovery:
             _LOGGER.warning("Discovery scan already active, waiting for completion")
             await self._wait_for_scan_completion()
 
-        categories = categories or DEVICE_CATEGORIES
+        categories_list: list[str]
+        if categories is None:
+            categories_list = list(DEVICE_CATEGORIES)
+        else:
+            categories_list = list(categories)
         scan_timeout = DISCOVERY_TIMEOUT if quick_scan else DISCOVERY_TIMEOUT * 3
 
         _LOGGER.info(
             "Starting %s device discovery for categories: %s",
             "quick" if quick_scan else "thorough",
-            categories,
+            categories_list,
         )
 
         self._scan_active = True
@@ -145,12 +150,12 @@ class PawControlDiscovery:
             # Use timeout to prevent hanging scans
             async with asyncio.timeout(scan_timeout):
                 discovery_results = await asyncio.gather(
-                    self._discover_registry_devices(categories),
+                    self._discover_registry_devices(categories_list),
                     return_exceptions=True,
                 )
 
                 for result in discovery_results:
-                    if isinstance(result, Exception):
+                    if isinstance(result, BaseException):
                         _LOGGER.warning("Discovery method failed: %s", result)
                         continue
 
@@ -333,7 +338,7 @@ class PawControlDiscovery:
         """Start background device scanning."""
 
         @callback
-        def _scheduled_scan(now) -> None:
+        def _scheduled_scan(now: datetime) -> None:
             """Callback for scheduled device scanning."""
 
             if self._scan_active:
@@ -457,6 +462,19 @@ class PawControlDiscovery:
         """Check if a discovery scan is currently active."""
 
         return self._scan_active
+
+    def _deduplicate_devices(
+        self, devices: Iterable[DiscoveredDevice]
+    ) -> list[DiscoveredDevice]:
+        """Return the unique set of devices keyed by device identifier."""
+
+        deduplicated: dict[str, DiscoveredDevice] = {}
+        for device in devices:
+            existing = deduplicated.get(device.device_id)
+            if existing is None or device.confidence > existing.confidence:
+                deduplicated[device.device_id] = device
+
+        return list(deduplicated.values())
 
 
 # Legacy compatibility functions for existing code

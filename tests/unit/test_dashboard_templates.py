@@ -12,8 +12,10 @@ from custom_components.pawcontrol.const import (
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_NOTIFICATIONS,
+    MODULE_VISITOR,
     MODULE_WALK,
 )
+from custom_components.pawcontrol.coordinator_tasks import default_rejection_metrics
 from custom_components.pawcontrol.dashboard_cards import (
     ModuleCardGenerator,
     StatisticsCardGenerator,
@@ -491,12 +493,16 @@ def test_statistics_summary_template_includes_rejection_metrics(
         ],
         coordinator_statistics={
             "rejection_metrics": {
-                "schema_version": 2,
+                **default_rejection_metrics(),
                 "rejected_call_count": 3,
                 "rejection_breaker_count": 2,
                 "rejection_rate": 0.125,
                 "last_rejection_time": last_rejection,
                 "last_rejection_breaker_name": "api",
+                "open_breaker_count": 1,
+                "open_breaker_ids": ["api"],
+                "rejection_breaker_ids": ["api"],
+                "rejection_breakers": ["api"],
             }
         },
     )
@@ -622,3 +628,96 @@ async def test_generate_notification_cards_uses_templates(
     assert any(card["type"] == "entities" for card in cards)
     assert any(card["type"] == "markdown" for card in cards)
     assert any(card["type"] == "horizontal-stack" for card in cards)
+
+
+@pytest.mark.asyncio
+async def test_generate_visitor_cards_requires_enabled_module(
+    hass: HomeAssistant,
+) -> None:
+    """Visitor cards should be skipped when the module is disabled."""
+
+    templates = DashboardTemplates(hass)
+    generator = ModuleCardGenerator(hass, templates)
+
+    dog_config: DogConfigData = {
+        CONF_DOG_ID: "fido",
+        CONF_DOG_NAME: "Fido",
+        "modules": {MODULE_VISITOR: False},
+    }
+
+    cards = await generator.generate_visitor_cards(dog_config, {})
+
+    assert cards == []
+
+
+@pytest.mark.asyncio
+async def test_generate_visitor_cards_includes_entities_and_markdown(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Visitor cards should render an entities card and markdown summary."""
+
+    templates = DashboardTemplates(hass)
+    generator = ModuleCardGenerator(hass, templates)
+
+    validated_entities = [
+        "switch.fido_visitor_mode",
+        "binary_sensor.fido_visitor_mode",
+    ]
+
+    async def _fake_validate(entities: list[str], use_cache: bool = True) -> list[str]:
+        assert entities == validated_entities
+        return validated_entities
+
+    monkeypatch.setattr(generator, "_validate_entities_batch", _fake_validate)
+
+    dog_config: DogConfigData = {
+        CONF_DOG_ID: "fido",
+        CONF_DOG_NAME: "Fido",
+        "modules": {MODULE_VISITOR: True},
+    }
+
+    cards = await generator.generate_visitor_cards(dog_config, {})
+
+    assert len(cards) == 2
+    entities_card, markdown_card = cards
+
+    assert entities_card["type"] == "entities"
+    assert entities_card["entities"] == validated_entities
+
+    assert markdown_card["type"] == "markdown"
+    assert markdown_card["title"] == "Fido visitor insights"
+    content = markdown_card["content"]
+    assert "Visitor mode status" in content
+    assert "binary_sensor.fido_visitor_mode" in content
+
+
+@pytest.mark.asyncio
+async def test_generate_visitor_cards_only_outputs_markdown_when_entities_missing(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Visitor cards should fall back to markdown when no entities validate."""
+
+    templates = DashboardTemplates(hass)
+    generator = ModuleCardGenerator(hass, templates)
+
+    async def _fake_validate(entities: list[str], use_cache: bool = True) -> list[str]:
+        assert entities == [
+            "switch.fido_visitor_mode",
+            "binary_sensor.fido_visitor_mode",
+        ]
+        return []
+
+    monkeypatch.setattr(generator, "_validate_entities_batch", _fake_validate)
+
+    dog_config: DogConfigData = {
+        CONF_DOG_ID: "fido",
+        CONF_DOG_NAME: "Fido",
+        "modules": {MODULE_VISITOR: True},
+    }
+
+    cards = await generator.generate_visitor_cards(dog_config, {})
+
+    assert len(cards) == 1
+    markdown_card = cards[0]
+    assert markdown_card["type"] == "markdown"
+    assert markdown_card["title"] == "Fido visitor insights"

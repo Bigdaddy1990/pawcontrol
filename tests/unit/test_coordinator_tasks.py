@@ -153,6 +153,8 @@ def test_build_update_statistics_includes_repair_summary(monkeypatch) -> None:
         "health_issue_count": 0,
         "health_warnings": [],
         "health_warning_count": 0,
+        "merge_notes": [],
+        "merge_note_count": 0,
     }
 
     runtime_data = SimpleNamespace(
@@ -173,6 +175,7 @@ def test_build_update_statistics_includes_repair_summary(monkeypatch) -> None:
     assert "reconfigure" in stats
     assert stats["reconfigure"]["requested_profile"] == "advanced"
     assert stats["reconfigure"]["warning_count"] == 1
+    assert stats["reconfigure"]["merge_note_count"] == 0
 
 
 def test_build_update_statistics_serialises_resilience_payload(monkeypatch) -> None:
@@ -226,9 +229,11 @@ def test_build_update_statistics_serialises_resilience_payload(monkeypatch) -> N
     assert performance_metrics.get("last_rejection_breaker_id") is None
     assert "schema_version" not in performance_metrics
     assert "rejection_metrics" in stats
-    assert stats["rejection_metrics"]["schema_version"] == 2
+    assert stats["rejection_metrics"]["schema_version"] == 3
     assert stats["rejection_metrics"]["rejected_call_count"] == 0
     assert stats["rejection_metrics"]["rejection_rate"] == 0.0
+    assert stats["rejection_metrics"]["unknown_breaker_count"] == 0
+    assert stats["rejection_metrics"]["unknown_breaker_ids"] == []
 
 
 def test_build_update_statistics_defaults_rejection_metrics(monkeypatch) -> None:
@@ -247,13 +252,21 @@ def test_build_update_statistics_defaults_rejection_metrics(monkeypatch) -> None
 
     assert "rejection_metrics" in stats
     metrics = stats["rejection_metrics"]
-    assert metrics["schema_version"] == 2
+    assert metrics["schema_version"] == 3
     assert metrics["rejected_call_count"] == 0
     assert metrics["rejection_breaker_count"] == 0
     assert metrics["rejection_rate"] == 0.0
     assert metrics["last_rejection_time"] is None
     assert metrics["last_rejection_breaker_id"] is None
     assert metrics["last_rejection_breaker_name"] is None
+    assert metrics["open_breaker_count"] == 0
+    assert metrics["half_open_breaker_count"] == 0
+    assert metrics["unknown_breaker_count"] == 0
+    assert metrics["open_breaker_ids"] == []
+    assert metrics["half_open_breaker_ids"] == []
+    assert metrics["unknown_breaker_ids"] == []
+    assert metrics["rejection_breaker_ids"] == []
+    assert metrics["rejection_breakers"] == []
 
     performance_metrics = stats.get("performance_metrics")
     if isinstance(performance_metrics, dict):
@@ -276,13 +289,21 @@ def test_derive_rejection_metrics_preserves_defaults() -> None:
         }
     )
 
-    assert metrics["schema_version"] == 2
+    assert metrics["schema_version"] == 3
     assert metrics["rejected_call_count"] == 0
     assert metrics["rejection_breaker_count"] == 0
     assert metrics["rejection_rate"] == 0.0
     assert metrics["last_rejection_time"] is None
     assert metrics["last_rejection_breaker_id"] is None
     assert metrics["last_rejection_breaker_name"] is None
+    assert metrics["open_breaker_count"] == 0
+    assert metrics["half_open_breaker_count"] == 0
+    assert metrics["unknown_breaker_count"] == 0
+    assert metrics["open_breaker_ids"] == []
+    assert metrics["half_open_breaker_ids"] == []
+    assert metrics["unknown_breaker_ids"] == []
+    assert metrics["rejection_breaker_ids"] == []
+    assert metrics["rejection_breakers"] == []
 
 
 def test_derive_rejection_metrics_handles_missing_summary() -> None:
@@ -946,13 +967,19 @@ def test_build_runtime_statistics_defaults_rejection_metrics(monkeypatch) -> Non
     stats = tasks.build_runtime_statistics(coordinator)
 
     metrics = stats["rejection_metrics"]
-    assert metrics["schema_version"] == 2
+    assert metrics["schema_version"] == 3
     assert metrics["rejected_call_count"] == 0
     assert metrics["rejection_breaker_count"] == 0
     assert metrics["rejection_rate"] == 0.0
     assert metrics["last_rejection_time"] is None
     assert metrics["last_rejection_breaker_id"] is None
     assert metrics["last_rejection_breaker_name"] is None
+    assert metrics["open_breaker_count"] == 0
+    assert metrics["half_open_breaker_count"] == 0
+    assert metrics["open_breaker_ids"] == []
+    assert metrics["half_open_breaker_ids"] == []
+    assert metrics["rejection_breaker_ids"] == []
+    assert metrics["rejection_breakers"] == []
 
     error_summary = stats["error_summary"]
     assert error_summary["rejection_rate"] == 0.0
@@ -991,7 +1018,7 @@ def test_build_runtime_statistics_threads_rejection_metrics(monkeypatch) -> None
     stats = tasks.build_runtime_statistics(coordinator)
 
     rejection_metrics = stats["rejection_metrics"]
-    assert rejection_metrics["schema_version"] == 2
+    assert rejection_metrics["schema_version"] == 3
     assert stats["error_summary"]["rejected_call_count"] == 2
     assert stats["error_summary"]["rejection_breaker_count"] == 1
     assert (
@@ -1003,6 +1030,12 @@ def test_build_runtime_statistics_threads_rejection_metrics(monkeypatch) -> None
         rejection_metrics["rejection_rate"], rel=1e-6
     ) == pytest.approx(2 / 12, rel=1e-6)
     assert rejection_metrics["last_rejection_time"] == 1700000150.0
+    assert rejection_metrics["open_breaker_count"] == 1
+    assert rejection_metrics["half_open_breaker_count"] == 0
+    assert rejection_metrics["open_breaker_ids"] == ["api"]
+    assert rejection_metrics["half_open_breaker_ids"] == []
+    assert rejection_metrics["rejection_breaker_ids"] == ["api"]
+    assert rejection_metrics["rejection_breakers"] == ["api"]
 
 
 def test_build_update_statistics_handles_missing_resilience_manager(

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Sequence
 from datetime import datetime
 
 from homeassistant.components.datetime import DateTimeEntity
@@ -16,8 +17,6 @@ from .compat import ConfigEntry
 from .const import (
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
     DOMAIN,
     MODULE_FEEDING,
     MODULE_HEALTH,
@@ -27,6 +26,13 @@ from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
 from .notifications import NotificationPriority, NotificationType
 from .runtime_data import get_runtime_data
+from .types import (
+    DOG_ID_FIELD,
+    DOG_NAME_FIELD,
+    DogConfigData,
+    DogModulesMapping,
+    ensure_dog_modules_mapping,
+)
 from .utils import async_call_add_entities, ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
@@ -38,8 +44,8 @@ PARALLEL_UPDATES = 0
 
 
 async def _async_add_entities_in_batches(
-    async_add_entities_func,
-    entities,
+    async_add_entities_func: AddEntitiesCallback,
+    entities: Sequence[PawControlDateTimeBase],
     batch_size: int = 12,
     delay_between_batches: float = 0.1,
 ) -> None:
@@ -77,7 +83,7 @@ async def _async_add_entities_in_batches(
 
         # Add batch without update_before_add to reduce Registry load
         await async_call_add_entities(
-            async_add_entities_func, batch, update_before_add=False
+            async_add_entities_func, list(batch), update_before_add=False
         )
 
         # Small delay between batches to prevent Registry flooding
@@ -97,14 +103,14 @@ async def async_setup_entry(
         return
 
     coordinator: PawControlCoordinator = runtime_data.coordinator
-    dogs = runtime_data.dogs
+    dogs: list[DogConfigData] = runtime_data.dogs
 
-    entities = []
+    entities: list[PawControlDateTimeBase] = []
 
     for dog in dogs:
-        dog_id = dog[CONF_DOG_ID]
-        dog_name = dog[CONF_DOG_NAME]
-        modules = dog.get("modules", {})
+        dog_id = dog[DOG_ID_FIELD]
+        dog_name = dog[DOG_NAME_FIELD]
+        modules: DogModulesMapping = ensure_dog_modules_mapping(dog)
 
         # Basic dog datetime entities
         entities.extend(

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from typing import Any, cast
 
 from homeassistant.components.text import TextEntity, TextMode
@@ -15,9 +15,8 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from .const import (
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
     DOMAIN,
+    MODULE_GPS,
     MODULE_HEALTH,
     MODULE_NOTIFICATIONS,
     MODULE_WALK,
@@ -26,7 +25,16 @@ from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
 from .notifications import NotificationPriority, NotificationType
 from .runtime_data import get_runtime_data
-from .types import DogConfigData, PawControlConfigEntry
+from .types import (
+    DOG_ID_FIELD,
+    DOG_MODULES_FIELD,
+    DOG_NAME_FIELD,
+    DogConfigData,
+    DogModulesConfig,
+    PawControlConfigEntry,
+    coerce_dog_modules_config,
+    ensure_dog_config_data,
+)
 from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
@@ -53,7 +61,7 @@ def _normalize_dog_configs(
         return normalized_configs
 
     for index, config in enumerate(raw_configs):
-        if not isinstance(config, dict):
+        if not isinstance(config, Mapping):
             _LOGGER.warning(
                 "Skipping dog configuration at index %d: expected mapping but got %s",
                 index,
@@ -61,22 +69,20 @@ def _normalize_dog_configs(
             )
             continue
 
-        if CONF_DOG_ID not in config or CONF_DOG_NAME not in config:
+        typed_mapping = cast(Mapping[str, Any], config)
+        typed_config = ensure_dog_config_data(typed_mapping)
+        if typed_config is None:
             _LOGGER.warning(
                 "Skipping dog configuration at index %d: missing required identifiers",
                 index,
             )
             continue
 
-        modules = config.get("modules")
-        normalized_config: DogConfigData = cast(
-            DogConfigData,
-            {
-                **config,
-                "modules": modules if isinstance(modules, dict) else {},
-            },
+        modules: DogModulesConfig = coerce_dog_modules_config(
+            typed_mapping.get(DOG_MODULES_FIELD)
         )
-        normalized_configs.append(normalized_config)
+        typed_config = {**typed_config, DOG_MODULES_FIELD: modules}
+        normalized_configs.append(cast(DogConfigData, typed_config))
 
     return normalized_configs
 
@@ -155,9 +161,11 @@ async def async_setup_entry(
     entities: list[PawControlTextBase] = []
 
     for dog in dogs:
-        dog_id = dog[CONF_DOG_ID]
-        dog_name = dog[CONF_DOG_NAME]
-        modules = dog.get("modules", {})
+        dog_id = dog[DOG_ID_FIELD]
+        dog_name = dog[DOG_NAME_FIELD]
+        modules: DogModulesConfig = coerce_dog_modules_config(
+            dog.get(DOG_MODULES_FIELD)
+        )
 
         # Basic dog configuration texts
         entities.extend(
@@ -753,5 +761,5 @@ class PawControlLocationDescriptionText(PawControlTextBase):
         if not dog_info:
             return False
 
-        modules = dog_info.get("modules", {})
-        return modules.get("gps", False)
+        modules = coerce_dog_modules_config(dog_info.get(DOG_MODULES_FIELD))
+        return bool(modules.get(MODULE_GPS))

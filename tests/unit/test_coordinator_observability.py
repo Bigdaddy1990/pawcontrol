@@ -139,13 +139,21 @@ def test_build_performance_snapshot_includes_metrics() -> None:
     assert resilience["rejection_breaker_count"] == 1
     assert resilience["rejection_rate"] == 0.3
     rejection_metrics = snapshot["rejection_metrics"]
-    assert rejection_metrics["schema_version"] == 2
+    assert rejection_metrics["schema_version"] == 3
     assert rejection_metrics["rejected_call_count"] == 3
     assert rejection_metrics["rejection_breaker_count"] == 1
     assert rejection_metrics["rejection_rate"] == 0.3
     assert rejection_metrics["last_rejection_time"] == 1700000250.0
     assert rejection_metrics["last_rejection_breaker_id"] == "web"
     assert rejection_metrics["last_rejection_breaker_name"] == "web"
+    assert rejection_metrics["open_breaker_count"] == 1
+    assert rejection_metrics["half_open_breaker_count"] == 0
+    assert rejection_metrics["unknown_breaker_count"] == 0
+    assert rejection_metrics["open_breaker_ids"] == ["api"]
+    assert rejection_metrics["half_open_breaker_ids"] == []
+    assert rejection_metrics["unknown_breaker_ids"] == []
+    assert rejection_metrics["rejection_breaker_ids"] == ["api"]
+    assert rejection_metrics["rejection_breakers"] == ["api"]
 
 
 @pytest.mark.unit
@@ -167,13 +175,21 @@ def test_build_performance_snapshot_defaults_rejection_metrics() -> None:
     )
 
     rejection_metrics = snapshot["rejection_metrics"]
-    assert rejection_metrics["schema_version"] == 2
+    assert rejection_metrics["schema_version"] == 3
     assert rejection_metrics["rejected_call_count"] == 0
     assert rejection_metrics["rejection_breaker_count"] == 0
     assert rejection_metrics["rejection_rate"] == 0.0
     assert rejection_metrics["last_rejection_time"] is None
     assert rejection_metrics["last_rejection_breaker_id"] is None
     assert rejection_metrics["last_rejection_breaker_name"] is None
+    assert rejection_metrics["open_breaker_count"] == 0
+    assert rejection_metrics["half_open_breaker_count"] == 0
+    assert rejection_metrics["unknown_breaker_count"] == 0
+    assert rejection_metrics["open_breaker_ids"] == []
+    assert rejection_metrics["half_open_breaker_ids"] == []
+    assert rejection_metrics["unknown_breaker_ids"] == []
+    assert rejection_metrics["rejection_breaker_ids"] == []
+    assert rejection_metrics["rejection_breakers"] == []
 
     performance_metrics = snapshot["performance_metrics"]
     assert performance_metrics["rejected_call_count"] == 0

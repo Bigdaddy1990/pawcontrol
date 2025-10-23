@@ -32,9 +32,10 @@ from .const import (
     MODULE_NOTIFICATIONS,
     MODULE_WALK,
 )
-from .coordinator_tasks import default_rejection_metrics
+from .coordinator_tasks import derive_rejection_metrics
 from .dashboard_shared import CardCollection, CardConfig, coerce_dog_configs
 from .types import (
+    CoordinatorRejectionMetrics,
     CoordinatorStatisticsPayload,
     DogModulesConfig,
     RawDogConfig,
@@ -1375,17 +1376,11 @@ class DashboardTemplates:
             "*Last updated: {{ now().strftime('%Y-%m-%d %H:%M') }}*",
         ]
 
-        metrics_payload: dict[str, Any] | None = None
+        metrics_payload: CoordinatorRejectionMetrics | None = None
         if isinstance(coordinator_statistics, Mapping):
             raw_metrics = coordinator_statistics.get("rejection_metrics")
             if isinstance(raw_metrics, Mapping):
-                metrics_payload = default_rejection_metrics()
-                for key, value in raw_metrics.items():
-                    if key not in metrics_payload:
-                        continue
-                    if value is None:
-                        continue
-                    metrics_payload[key] = value
+                metrics_payload = derive_rejection_metrics(raw_metrics)
 
         if metrics_payload is not None:
             rejection_rate = metrics_payload.get("rejection_rate")
