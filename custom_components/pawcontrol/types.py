@@ -1144,6 +1144,8 @@ class DashboardSetupConfig(TypedDict, total=False):
     compact_mode: bool
     auto_refresh: bool
     refresh_interval: int
+
+
 class FeedingSetupConfig(TypedDict, total=False):
     """Feeding defaults gathered while configuring modules during setup."""
 

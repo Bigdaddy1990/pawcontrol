@@ -480,6 +480,7 @@ class PawControlDiscovery:
 
         return self._scan_active
 
+
 # Legacy compatibility functions for existing code
 async def async_get_discovered_devices(hass: HomeAssistant) -> list[dict[str, Any]]:
     """Legacy compatibility function for basic device discovery.
