@@ -194,7 +194,7 @@ async def async_setup_entry(
         _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
         return
     coordinator = runtime_data.coordinator
-    dogs = runtime_data.dogs
+    dogs: list[DogConfigData] = runtime_data.dogs
     entity_factory = runtime_data.entity_factory
     profile = runtime_data.entity_profile
 
@@ -2744,11 +2744,13 @@ class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
 
         if feeding_data:
             with contextlib.suppress(TypeError, ValueError, ZeroDivisionError):
-                calories_consumed = float(feeding_data.get("total_calories_today", 0.0))
+                calories_consumed = float(
+                    feeding_snapshot.get("total_calories_today", 0.0)
+                )
                 calorie_target = float(
-                    feeding_data.get(
+                    feeding_snapshot.get(
                         "daily_calorie_target",
-                        feeding_data.get("target_calories_per_day", 1000.0),
+                        feeding_snapshot.get("target_calories_per_day", 1000.0),
                     )
                 )
 

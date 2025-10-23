@@ -796,7 +796,7 @@ class DogCardGenerator(BaseCardGenerator):
             return None
 
         # Use custom image if provided, otherwise default
-        dog_image = typed_dog.get("dog_image", f"/local/paw_control/{dog_id}.jpg")
+        dog_image = typed_dog.get(DOG_IMAGE_FIELD, f"/local/paw_control/{dog_id}.jpg")
 
         return {
             "type": "picture-entity",

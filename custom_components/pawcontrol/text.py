@@ -43,6 +43,10 @@ _LOGGER = logging.getLogger(__name__)
 # locking keeps writes safe, so we remove the entity-level concurrency cap.
 PARALLEL_UPDATES = 0
 
+MODULE_WALK_KEY = cast(ModuleToggleKey, MODULE_WALK)
+MODULE_HEALTH_KEY = cast(ModuleToggleKey, MODULE_HEALTH)
+MODULE_NOTIFICATIONS_KEY = cast(ModuleToggleKey, MODULE_NOTIFICATIONS)
+
 
 def _normalize_dog_configs(
     raw_configs: Iterable[Any] | None,
@@ -176,7 +180,7 @@ async def async_setup_entry(
         )
 
         # Walk texts
-        if modules.get(MODULE_WALK, False):
+        if bool(modules.get(MODULE_WALK_KEY, False)):
             entities.extend(
                 [
                     PawControlWalkNotesText(coordinator, dog_id, dog_name),
@@ -185,7 +189,7 @@ async def async_setup_entry(
             )
 
         # Health texts
-        if modules.get(MODULE_HEALTH, False):
+        if bool(modules.get(MODULE_HEALTH_KEY, False)):
             entities.extend(
                 [
                     PawControlHealthNotesText(coordinator, dog_id, dog_name),
@@ -196,7 +200,7 @@ async def async_setup_entry(
             )
 
         # Notification texts
-        if modules.get(MODULE_NOTIFICATIONS, False):
+        if bool(modules.get(MODULE_NOTIFICATIONS_KEY, False)):
             entities.extend(
                 [
                     PawControlCustomMessageText(coordinator, dog_id, dog_name),

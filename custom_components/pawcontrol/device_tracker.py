@@ -31,11 +31,11 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from .const import ATTR_DOG_ID, ATTR_DOG_NAME, MODULE_GPS
 from .coordinator import PawControlCoordinator
+from .entity import PawControlEntity
 from .runtime_data import get_runtime_data
 from .types import (
     DOG_ID_FIELD,
@@ -159,11 +159,7 @@ async def async_setup_entry(
         _LOGGER.info("No GPS device trackers created due to profile restrictions")
 
 
-class PawControlGPSTracker(
-    PawControlDeviceLinkMixin,
-    CoordinatorEntity[PawControlCoordinator],
-    TrackerEntity,
-):
+class PawControlGPSTracker(PawControlEntity, TrackerEntity):
     """GPS device tracker for dogs with route recording capabilities.
 
     NEW: Implements device_tracker.{dog}_gps per requirements_inventory.md
@@ -180,9 +176,7 @@ class PawControlGPSTracker(
         dog_name: str,
     ) -> None:
         """Initialize GPS device tracker."""
-        super().__init__(coordinator)
-        self._dog_id = dog_id
-        self._dog_name = dog_name
+        super().__init__(coordinator, dog_id, dog_name)
         self._attr_unique_id = f"pawcontrol_{dog_id}_gps_tracker"
         self._attr_name = f"{dog_name} GPS"
         self._attr_icon = "mdi:map-marker"

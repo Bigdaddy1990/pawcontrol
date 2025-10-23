@@ -22,7 +22,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry, HomeAssistantError
+from .compat import HomeAssistantError
 from .const import (
     ATTR_DOG_ID,
     ATTR_DOG_NAME,
@@ -268,7 +268,7 @@ async def _async_add_entities_in_batches(
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: PawControlConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up PawControl switch platform with profile-based optimization."""

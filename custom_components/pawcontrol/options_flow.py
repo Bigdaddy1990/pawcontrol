@@ -917,7 +917,10 @@ class PawControlOptionsFlow(OptionsFlow):
         else:
             entity = cast(str | None, current.get(CONF_WEATHER_ENTITY))
 
-        interval_default = current.get("weather_update_interval", 60)
+        raw_interval_default = current.get("weather_update_interval")
+        interval_default = (
+            raw_interval_default if isinstance(raw_interval_default, int) else 60
+        )
         interval = self._coerce_clamped_int(
             user_input.get("weather_update_interval"),
             interval_default,
@@ -978,7 +981,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 user_input.get("auto_activity_adjustments"),
                 current.get("auto_activity_adjustments", False),
             ),
-            "notification_threshold": threshold,
+            "notification_threshold": cast(NotificationThreshold, threshold_value),
         }
 
         return weather
@@ -1628,7 +1631,8 @@ class PawControlOptionsFlow(OptionsFlow):
         else:
             current_total = 0
             for dog in current_dogs:
-                modules = ensure_dog_modules_mapping(dog)
+                modules_mapping = ensure_dog_modules_mapping(dog)
+                modules = dict(modules_mapping)
                 current_total += self._entity_factory.estimate_entity_count(
                     current_profile, dict(modules)
                 )
@@ -2639,9 +2643,7 @@ class PawControlOptionsFlow(OptionsFlow):
             "dog_name": dog_name,
             "current_profile": current_profile,
             "current_entities": str(current_estimate),
-            "enabled_modules": "\n".join(enabled_modules)
-            if enabled_modules
-            else "No modules enabled",
+            "enabled_modules": enabled_summary,
         }
 
     # Rest of the existing methods (add_new_dog, edit_dog, etc.) remain the same...
@@ -3126,6 +3128,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     )
                 ),
             }
+            gps_settings = cast(GPSOptions, gps_settings_raw)
 
             new_options = self._clone_options()
             new_options[GPS_SETTINGS_FIELD] = gps_settings

@@ -1383,14 +1383,14 @@ class DashboardTemplates:
                 metrics_payload = derive_rejection_metrics(raw_metrics)
 
         if metrics_payload is not None:
-            rejection_rate = metrics_payload.get("rejection_rate")
-            if isinstance(rejection_rate, int | float):
+            rejection_rate = metrics_payload["rejection_rate"]
+            if rejection_rate is not None and isfinite(rejection_rate):
                 rate_display = f"{rejection_rate * 100:.2f}%"
             else:
                 rate_display = "n/a"
 
-            last_rejection_value = metrics_payload.get("last_rejection_time")
-            if isinstance(last_rejection_value, int | float):
+            last_rejection_value = metrics_payload["last_rejection_time"]
+            if last_rejection_value is not None:
                 try:
                     last_rejection_iso = datetime.fromtimestamp(
                         float(last_rejection_value),
@@ -1402,8 +1402,8 @@ class DashboardTemplates:
                 last_rejection_iso = "never"
 
             breaker_label = (
-                metrics_payload.get("last_rejection_breaker_name")
-                or metrics_payload.get("last_rejection_breaker_id")
+                metrics_payload["last_rejection_breaker_name"]
+                or metrics_payload["last_rejection_breaker_id"]
                 or "n/a"
             )
 
@@ -1411,12 +1411,10 @@ class DashboardTemplates:
                 [
                     "",
                     "### Resilience metrics",
-                    (
-                        f"- Rejected calls: {metrics_payload.get('rejected_call_count', 0)}"
-                    ),
+                    (f"- Rejected calls: {metrics_payload['rejected_call_count']}"),
                     (
                         "- Rejecting breakers: "
-                        f"{metrics_payload.get('rejection_breaker_count', 0)}"
+                        f"{metrics_payload['rejection_breaker_count']}"
                     ),
                     f"- Rejection rate: {rate_display}",
                     f"- Last rejection: {last_rejection_iso}",

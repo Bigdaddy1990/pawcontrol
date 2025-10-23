@@ -12,7 +12,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Protocol, cast
+from typing import TYPE_CHECKING, Any, Final, Literal, Protocol, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -34,6 +34,16 @@ from .types import (
     DogConfigData,
     DogModulesConfig,
     ExternalEntityConfig,
+)
+
+GPS_SOURCE_KEY: Final[Literal["gps_source"]] = cast(
+    Literal["gps_source"], CONF_GPS_SOURCE
+)
+DOOR_SENSOR_KEY: Final[Literal["door_sensor"]] = cast(
+    Literal["door_sensor"], CONF_DOOR_SENSOR
+)
+NOTIFY_FALLBACK_KEY: Final[Literal["notify_fallback"]] = cast(
+    Literal["notify_fallback"], CONF_NOTIFY_FALLBACK
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -131,7 +141,9 @@ class ExternalEntityConfigurationMixin:
                 validated_entities = await self._async_validate_external_entities(
                     user_input
                 )
-                flow._external_entities.update(validated_entities)
+                self._merge_external_entity_config(
+                    flow._external_entities, validated_entities
+                )
                 return await flow.async_step_final_setup()
             except ValueError as err:
                 return flow.async_show_form(
@@ -249,6 +261,22 @@ class ExternalEntityConfigurationMixin:
             )
         }
 
+    def _merge_external_entity_config(
+        self,
+        target: ExternalEntityConfig,
+        new_config: ExternalEntityConfig,
+    ) -> None:
+        """Merge external entity selections into the target mapping."""
+
+        if GPS_SOURCE_KEY in new_config:
+            target[GPS_SOURCE_KEY] = new_config[GPS_SOURCE_KEY]
+
+        if DOOR_SENSOR_KEY in new_config:
+            target[DOOR_SENSOR_KEY] = new_config[DOOR_SENSOR_KEY]
+
+        if NOTIFY_FALLBACK_KEY in new_config:
+            target[NOTIFY_FALLBACK_KEY] = new_config[NOTIFY_FALLBACK_KEY]
+
     async def _async_validate_external_entities(
         self, user_input: dict[str, Any]
     ) -> ExternalEntityConfig:
@@ -265,10 +293,15 @@ class ExternalEntityConfigurationMixin:
         """
         validated: ExternalEntityConfig = {}
 
-        validated.update(self._validate_gps_source(user_input.get(CONF_GPS_SOURCE)))
-        validated.update(self._validate_door_sensor(user_input.get(CONF_DOOR_SENSOR)))
-        validated.update(
-            self._validate_notify_service(user_input.get(CONF_NOTIFY_FALLBACK))
+        self._merge_external_entity_config(
+            validated, self._validate_gps_source(user_input.get(CONF_GPS_SOURCE))
+        )
+        self._merge_external_entity_config(
+            validated, self._validate_door_sensor(user_input.get(CONF_DOOR_SENSOR))
+        )
+        self._merge_external_entity_config(
+            validated,
+            self._validate_notify_service(user_input.get(CONF_NOTIFY_FALLBACK)),
         )
 
         return validated

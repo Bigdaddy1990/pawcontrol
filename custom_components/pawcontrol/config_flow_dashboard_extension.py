@@ -86,6 +86,12 @@ class DashboardFlowMixin:
                 cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(MODULE_GPS, False)
                 for dog in self._dogs
             )
+            dashboard_mode = str(
+                user_input.get(
+                    "dashboard_mode",
+                    DEFAULT_DASHBOARD_MODE if has_multiple_dogs else "cards",
+                )
+            )
             dashboard_config: DashboardSetupConfig = {
                 DASHBOARD_ENABLED_FIELD: True,
                 DASHBOARD_AUTO_CREATE_FIELD: bool(

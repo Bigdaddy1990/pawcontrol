@@ -20,7 +20,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
-from .compat import ConfigEntry, HomeAssistantError
+from .compat import HomeAssistantError
 from .const import (
     ACTIVITY_LEVELS,
     ATTR_DOG_ID,
@@ -208,7 +208,7 @@ async def _async_add_entities_in_batches(
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: PawControlConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Paw Control select platform.
@@ -445,7 +445,9 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
 
         runtime_data = self._get_runtime_data()
         if runtime_data is not None:
-            return runtime_data.runtime_managers.data_manager
+            manager_container = getattr(runtime_data, "runtime_managers", None)
+            if manager_container is not None:
+                return getattr(manager_container, "data_manager", None)
 
         entry_data = self._get_domain_entry_data()
         managers = entry_data.get("runtime_managers")
@@ -777,6 +779,9 @@ class PawControlDogSizeSelect(PawControlSelectBase):
             },
         }
 
+        if size is None:
+            return {}
+
         return size_data.get(size, {})
 
 
@@ -842,6 +847,12 @@ class PawControlPerformanceModeSelect(PawControlSelectBase):
                 "battery_impact": "high",
             },
         }
+
+        if mode is None:
+            return {}
+
+        if mode is None:
+            return {}
 
         return mode_data.get(mode, {})
 
@@ -981,6 +992,9 @@ class PawControlFoodTypeSelect(PawControlSelectBase):
             },
         }
 
+        if food_type is None:
+            return {}
+
         return food_data.get(food_type, {})
 
 
@@ -1115,6 +1129,9 @@ class PawControlWalkModeSelect(PawControlSelectBase):
                 "accuracy": "very high",
             },
         }
+
+        if mode is None:
+            return {}
 
         return mode_data.get(mode, {})
 
@@ -1255,6 +1272,9 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
             },
         }
 
+        if source is None:
+            return {}
+
         return source_data.get(source, {})
 
 
@@ -1270,7 +1290,7 @@ class PawControlTrackingModeSelect(PawControlSelectBase):
             dog_id,
             dog_name,
             "tracking_mode",
-            options=TRACKING_MODES,
+            options=list(TRACKING_MODES),
             icon="mdi:map-marker",
             initial_option="interval",
         )
@@ -1485,5 +1505,8 @@ class PawControlGroomingTypeSelect(PawControlSelectBase):
                 "difficulty": "hard",
             },
         }
+
+        if grooming_type is None:
+            return {}
 
         return grooming_data.get(grooming_type, {})

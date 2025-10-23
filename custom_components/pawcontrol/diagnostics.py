@@ -1,9 +1,10 @@
-"""Diagnostics support for Paw Control integration.
+"""Diagnostics helpers for the PawControl integration.
 
-This module provides comprehensive diagnostic information for troubleshooting
-and support purposes. It collects system information, configuration details,
-and operational data while ensuring sensitive information is properly redacted.
-The current focus is reaching the Home Assistant Bronze quality baseline.
+The Platinum development plan requires richly structured diagnostics surfaces
+that expose typed coordinator statistics, cache telemetry, and rejection
+metrics. This module normalises runtime payloads into JSON-safe snapshots while
+redacting sensitive fields so support tooling and the bundled dashboard can
+ingest the data without custom adapters.
 """
 
 from __future__ import annotations
@@ -1295,6 +1296,9 @@ def _calculate_module_usage(dogs: list[dict[str, Any]]) -> dict[str, Any]:
     for module, count in module_counts.items():
         percentage = (count / total_dogs * 100) if total_dogs > 0 else 0
         module_percentages[f"{module}_percentage"] = round(percentage, 1)
+
+    def _module_score(key: str) -> int:
+        return module_counts[key]
 
     return {
         "counts": module_counts,

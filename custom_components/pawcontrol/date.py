@@ -147,7 +147,7 @@ async def async_setup_entry(
                     "Creating date entities for dog %s (%s) with modules: %s",
                     dog_name,
                     dog_id,
-                    list(modules.keys()),
+                    sorted(modules.keys()),
                 )
 
                 # Core dog date entities (always created)
@@ -232,6 +232,14 @@ class PawControlDateBase(PawControlEntity, DateEntity, RestoreEntity):
     Provides common functionality for all date entities including state
     restoration, device association, and consistent attribute handling.
     """
+
+    _SET_VALUE_MONITOR = cast(
+        Callable[
+            [Callable[["PawControlDateBase", date], Awaitable[None]]],
+            Callable[["PawControlDateBase", date], Awaitable[None]],
+        ],
+        performance_monitor(timeout=5.0),
+    )
 
     def __init__(
         self,

@@ -1,12 +1,10 @@
-"""Advanced Discovery support for Paw Control integration.
+"""Discovery helpers for PawControl hardware.
 
-This module provides comprehensive hardware discovery for dog-related devices
-including GPS trackers, smart feeders, activity monitors, and health devices.
-Supports multiple discovery protocols: USB, Bluetooth, Zeroconf, DHCP, and UPnP.
-
-Quality Scale: Bronze target
-Home Assistant: 2025.8.3+
-Python: 3.13+
+This module inspects Home Assistant registries and scheduled listeners to
+surface smart collars, feeders, trackers, and other accessories that PawControl
+manages. The implementation targets Home Assistant's Platinum quality scale,
+keeps all runtime interactions asynchronous, and leans on typed payloads so the
+strict mypy gate can reason about gathered devices.
 """
 
 from __future__ import annotations
@@ -436,6 +434,25 @@ class PawControlDiscovery:
         self._discovered_devices.clear()
 
         _LOGGER.info("Paw Control discovery shutdown complete")
+
+    def _deduplicate_devices(
+        self, devices: list[DiscoveredDevice]
+    ) -> list[DiscoveredDevice]:
+        """Return a list of devices keyed by the strongest confidence value.
+
+        Multiple discovery strategies may surface the same Home Assistant device
+        identifier. When that happens we keep the entry that recorded the highest
+        confidence score so diagnostics and UI copy reflect the best evidence we
+        have without leaking duplicates.
+        """
+
+        deduplicated: dict[str, DiscoveredDevice] = {}
+        for device in devices:
+            existing = deduplicated.get(device.device_id)
+            if existing is None or existing.confidence < device.confidence:
+                deduplicated[device.device_id] = device
+
+        return list(deduplicated.values())
 
     @callback
     def get_discovered_devices(

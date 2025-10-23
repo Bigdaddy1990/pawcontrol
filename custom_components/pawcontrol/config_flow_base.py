@@ -15,7 +15,7 @@ import asyncio
 import logging
 import re
 import time
-from typing import Any, ClassVar, Final
+from typing import Any, ClassVar, Final, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow
