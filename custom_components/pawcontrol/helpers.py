@@ -64,7 +64,7 @@ MAX_HISTORY_ITEMS = 1000  # Max items per dog per category
 
 
 @dataclass(slots=True)
-class PerformanceMetrics:
+class PerformanceCounters:
     """Snapshot of performance counters maintained by the monitor."""
 
     operations: int = 0
@@ -1616,7 +1616,7 @@ class PerformanceMonitor:
 
     def __init__(self) -> None:
         """Initialize performance monitor."""
-        self._metrics: PerformanceMetrics = PerformanceMetrics()
+        self._metrics: PerformanceCounters = PerformanceCounters()
         self._operation_times: deque[float] = deque(maxlen=100)
 
     def record_operation(self, operation_time: float, success: bool = True) -> None:
@@ -1758,7 +1758,7 @@ class PerformanceMonitor:
 
     def reset_metrics(self) -> None:
         """Reset all metrics."""
-        self._metrics = PerformanceMetrics(last_cleanup=dt_util.utcnow())
+        self._metrics = PerformanceCounters(last_cleanup=dt_util.utcnow())
         self._operation_times.clear()
 
 

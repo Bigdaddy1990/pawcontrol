@@ -834,6 +834,9 @@ def build_update_statistics(
     performance_metrics["half_open_breaker_count"] = rejection_metrics[
         "half_open_breaker_count"
     ]
+    performance_metrics["unknown_breaker_count"] = rejection_metrics[
+        "unknown_breaker_count"
+    ]
     if reconfigure_summary is not None:
         stats["reconfigure"] = reconfigure_summary
     return stats

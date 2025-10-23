@@ -31,6 +31,7 @@ from .types import (
     DOG_NAME_FIELD,
     DogConfigData,
     DogModulesConfig,
+    ModuleToggleKey,
     PawControlConfigEntry,
     coerce_dog_modules_config,
     ensure_dog_config_data,

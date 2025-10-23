@@ -48,6 +48,7 @@ from .types import (
     DOG_NAME_FIELD,
     DOG_SIZE_FIELD,
     DogConfigData,
+    PawControlConfigEntry,
     PawControlRuntimeData,
     coerce_dog_modules_config,
 )

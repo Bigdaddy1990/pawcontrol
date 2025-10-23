@@ -119,6 +119,7 @@ from .types import (
     GPSOptions,
     HealthOptions,
     NotificationOptions,
+    NotificationThreshold,
     OptionsExportPayload,
     PawControlOptionsData,
     ReconfigureTelemetry,
@@ -927,14 +928,12 @@ class PawControlOptionsFlow(OptionsFlow):
             minimum=15,
             maximum=1440,
         )
-        cast(
-            Literal["low", "moderate", "high"],
-            self._normalize_choice(
-                user_input.get("notification_threshold"),
-                valid={"low", "moderate", "high"},
-                default=current.get("notification_threshold", "moderate"),
-            ),
+        threshold_value = self._normalize_choice(
+            user_input.get("notification_threshold"),
+            valid={"low", "moderate", "high"},
+            default=current.get("notification_threshold", "moderate"),
         )
+        notification_threshold = cast(NotificationThreshold, threshold_value)
 
         weather: WeatherOptions = {
             WEATHER_ENTITY_FIELD: entity,
@@ -981,7 +980,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 user_input.get("auto_activity_adjustments"),
                 current.get("auto_activity_adjustments", False),
             ),
-            "notification_threshold": cast(NotificationThreshold, threshold_value),
+            "notification_threshold": notification_threshold,
         }
 
         return weather
@@ -2629,11 +2628,12 @@ class PawControlOptionsFlow(OptionsFlow):
             "training": "Training progress and notes",
         }
 
-        [
+        enabled_modules = [
             f"• {module}: {module_descriptions.get(module, 'Module functionality')}"
             for module, enabled in current_modules_dict.items()
             if enabled
         ]
+        enabled_summary = "\n".join(enabled_modules) if enabled_modules else "None"
 
         dog_name = str(self._current_dog.get(CONF_DOG_NAME, "Unknown"))
 
@@ -3102,31 +3102,33 @@ class PawControlOptionsFlow(OptionsFlow):
                 route_history_days = 30
             route_history_days = max(1, min(route_history_days, 365))
 
-            gps_settings: GPSOptions = {
-                GPS_ENABLED_FIELD: bool(
-                    user_input.get(
-                        GPS_ENABLED_FIELD,
-                        current.get(GPS_ENABLED_FIELD, True),
-                    )
-                ),
-                GPS_UPDATE_INTERVAL_FIELD: validated_interval,
-                GPS_ACCURACY_FILTER_FIELD: validated_accuracy,
-                GPS_DISTANCE_FILTER_FIELD: validated_distance,
-                ROUTE_RECORDING_FIELD: bool(
-                    user_input.get(
-                        ROUTE_RECORDING_FIELD,
-                        current.get(ROUTE_RECORDING_FIELD, True),
-                    )
-                ),
-                ROUTE_HISTORY_DAYS_FIELD: route_history_days,
-                AUTO_TRACK_WALKS_FIELD: bool(
-                    user_input.get(
-                        AUTO_TRACK_WALKS_FIELD,
-                        current.get(AUTO_TRACK_WALKS_FIELD, True),
-                    )
-                ),
-            }
-            gps_settings = cast(GPSOptions, gps_settings_raw)
+            gps_settings = cast(
+                GPSOptions,
+                {
+                    GPS_ENABLED_FIELD: bool(
+                        user_input.get(
+                            GPS_ENABLED_FIELD,
+                            current.get(GPS_ENABLED_FIELD, True),
+                        )
+                    ),
+                    GPS_UPDATE_INTERVAL_FIELD: validated_interval,
+                    GPS_ACCURACY_FILTER_FIELD: validated_accuracy,
+                    GPS_DISTANCE_FILTER_FIELD: validated_distance,
+                    ROUTE_RECORDING_FIELD: bool(
+                        user_input.get(
+                            ROUTE_RECORDING_FIELD,
+                            current.get(ROUTE_RECORDING_FIELD, True),
+                        )
+                    ),
+                    ROUTE_HISTORY_DAYS_FIELD: route_history_days,
+                    AUTO_TRACK_WALKS_FIELD: bool(
+                        user_input.get(
+                            AUTO_TRACK_WALKS_FIELD,
+                            current.get(AUTO_TRACK_WALKS_FIELD, True),
+                        )
+                    ),
+                },
+            )
 
             new_options = self._clone_options()
             new_options[GPS_SETTINGS_FIELD] = gps_settings

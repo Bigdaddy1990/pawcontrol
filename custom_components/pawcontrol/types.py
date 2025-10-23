@@ -949,6 +949,9 @@ def ensure_notification_options(
     return options
 
 
+NotificationThreshold = Literal["low", "moderate", "high"]
+
+
 class WeatherOptions(TypedDict, total=False):
     """Typed weather monitoring preferences stored in config entry options."""
 
@@ -964,7 +967,7 @@ class WeatherOptions(TypedDict, total=False):
     breed_specific_recommendations: bool
     health_condition_adjustments: bool
     auto_activity_adjustments: bool
-    notification_threshold: Literal["low", "moderate", "high"]
+    notification_threshold: NotificationThreshold
 
 
 class FeedingOptions(TypedDict, total=False):
@@ -2286,6 +2289,7 @@ DOG_EMERGENCY_CONTACT_FIELD: Final[Literal["emergency_contact"]] = "emergency_co
 DOG_FEEDING_CONFIG_FIELD: Final[Literal["feeding_config"]] = "feeding_config"
 DOG_HEALTH_CONFIG_FIELD: Final[Literal["health_config"]] = "health_config"
 DOG_GPS_CONFIG_FIELD: Final[Literal["gps_config"]] = "gps_config"
+DOG_IMAGE_FIELD: Final[Literal["dog_image"]] = "dog_image"
 WALK_IN_PROGRESS_FIELD: Final[Literal["walk_in_progress"]] = "walk_in_progress"
 VISITOR_MODE_ACTIVE_FIELD: Final[Literal["visitor_mode_active"]] = "visitor_mode_active"
 

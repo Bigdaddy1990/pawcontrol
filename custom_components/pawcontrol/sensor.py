@@ -2743,6 +2743,7 @@ class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
         )
 
         if feeding_data:
+            feeding_snapshot = cast(Mapping[str, Any], feeding_data)
             with contextlib.suppress(TypeError, ValueError, ZeroDivisionError):
                 calories_consumed = float(
                     feeding_snapshot.get("total_calories_today", 0.0)

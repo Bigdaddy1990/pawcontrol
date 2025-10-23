@@ -47,6 +47,7 @@ from .types import (
     DOG_NAME_FIELD,
     DogConfigData,
     DogModulesConfig,
+    PawControlConfigEntry,
     coerce_dog_modules_config,
 )
 from .utils import async_call_add_entities

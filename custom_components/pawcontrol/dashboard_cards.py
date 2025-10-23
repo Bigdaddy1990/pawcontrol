@@ -47,6 +47,7 @@ from .dashboard_templates import (
 )
 from .types import (
     DOG_ID_FIELD,
+    DOG_IMAGE_FIELD,
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
     CoordinatorStatisticsPayload,

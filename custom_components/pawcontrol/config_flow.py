@@ -963,9 +963,7 @@ class PawControlConfigFlow(
         """Normalise discovery metadata and build update payloads."""
 
         normalised = self._normalise_discovery_metadata(payload, source=source)
-        comparison = self._strip_dynamic_discovery_fields(
-            cast(Mapping[str, Any], copy.deepcopy(normalised))
-        )
+        comparison = self._strip_dynamic_discovery_fields(normalised)
 
         discovery_info: ConfigFlowDiscoveryData = cast(
             ConfigFlowDiscoveryData, copy.deepcopy(normalised)
