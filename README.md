@@ -273,6 +273,11 @@ Luna:
   feeding_schedule: \"strict\"
 ```
 
+- The dashboard configuration wizard localizes its module summary and feature
+  placeholders, ensuring the "Das Dashboard enthält …" text and feature lists
+  follow the Home Assistant language when GPS, health, or feeding modules are
+  enabled.【F:custom_components/pawcontrol/config_flow_modules.py†L90-L659】【F:custom_components/pawcontrol/config_flow_dashboard_extension.py†L20-L236】【F:tests/components/pawcontrol/test_config_flow.py†L1592-L1674】
+
 ### Performance Optimization
 
 **Entity Profile Selection**:
@@ -447,6 +452,8 @@ Feeding Actions: [Mark Fed] [Schedule Meal] [Log Special Diet]
 Health Actions: [Log Weight] [Add Note] [Schedule Vet]
 Emergency: [Send Alert] [Emergency Mode] [Contact Vet]
 ```
+- Quick action buttons call `_translated_quick_action_label` so the feed-all, walk status, and daily reset controls match the Home Assistant locale without custom Lovelace overrides.【F:custom_components/pawcontrol/dashboard_cards.py†L89-L356】【F:custom_components/pawcontrol/dashboard_cards.py†L776-L862】
+- Localization tests cover German quick actions to ensure "Alle füttern" and "Täglicher Reset" render alongside the translated walk status label.【F:tests/unit/test_dashboard_templates.py†L1008-L1052】
 
 **Notification Center**:
 ```yaml
@@ -457,9 +464,32 @@ Action Buttons: [Send Test Notification] [Reset Quiet Hours]
 
 **Visitor Mode Insights**:
 ```yaml
-Visitor Controls: switch.{dog_id}_visitor_mode, binary_sensor.{dog_id}_visitor_mode
-Visitor Summary: Markdown card showing visitor name, start time, and reduced-alert status
+Localized Controls Card: switch.{dog_id}_visitor_mode, binary_sensor.{dog_id}_visitor_mode → Entities title and field labels follow the active Home Assistant language.
+Localized Visitor Summary: Markdown rows render visitor name, start time, and reduced-alert status with translated yes/no/none fallbacks.
+Localization Regression Coverage: test_generate_visitor_cards_localizes_german verifies German entities titles, markdown headings, and placeholder values.
 ```
+- Entities and markdown builders call `_translated_visitor_label`, `_translated_visitor_template`, and `_translated_visitor_value` so visitor dashboards surface the correct language without custom automations.【F:custom_components/pawcontrol/dashboard_cards.py†L133-L180】【F:custom_components/pawcontrol/dashboard_cards.py†L1723-L1768】
+- Visitor dashboard regression coverage locks the German strings for the controls card, summary heading, and fallback values to prevent localization regressions.【F:tests/unit/test_dashboard_templates.py†L979-L1047】
+
+**Health & Weight Dashboards**:
+```yaml
+Localized Health Feeding Overview: Entities cards, calorie history, weight stacks, and smart buttons render German titles and labels via `_translated_health_label`/`_translated_health_template` helpers.
+Localized Health Module & Weather Cards: Health metrics, management buttons, weight history, and weather health titles adopt the active Home Assistant language.
+Localization Regression Coverage: test_health_feeding_overview_localizes_german, test_module_health_cards_localize_titles, and test_weather_health_cards_localize_german assert German strings across health cards and weather health charts.
+```
+- Health-aware card generators translate status rows, portion markdown, smart controls, and weight history titles so German installations mirror the documented terminology.【F:custom_components/pawcontrol/dashboard_cards.py†L1105-L1385】
+- Health templates, weather health status, and chart helpers reuse the translation maps to localize compact and full weather cards plus health sections in statistics dashboards.【F:custom_components/pawcontrol/dashboard_templates.py†L120-L356】
+- Dedicated regression tests guard the German output for health feeding, module health stacks, and weather health cards.【F:tests/unit/test_dashboard_templates.py†L1189-L1287】
+
+**Grooming Workflows**:
+```yaml
+Localized Grooming Controls: Start-grooming buttons, helper names, and service notifications respect the active Home Assistant language via `translated_grooming_label` and `translated_grooming_template`.
+Localization Regression Coverage: test_start_grooming_localizes_notification validates the German notification payload for grooming sessions.
+```
+- Grooming helpers, quick-start buttons, and notifications pull translated labels so localized installations present native-language controls without manual overrides.【F:custom_components/pawcontrol/button.py†L1631-L1668】【F:custom_components/pawcontrol/helper_manager.py†L569-L586】【F:custom_components/pawcontrol/services.py†L3649-L3706】
+- Service regression coverage asserts the German grooming notification title and message to keep dashboards, docs, and automation alerts synchronized.【F:tests/unit/test_services.py†L2188-L2232】
+- Grooming module toggles and fine-grained switches resolve translated labels such as "Pflege-Tracking", "Pflegeplan", and "Pflege-Erinnerungen" through the shared helper, with regression coverage in `test_grooming_switches_localize_labels` validating the German names and attributes.【F:custom_components/pawcontrol/switch.py†L626-L688】【F:tests/components/pawcontrol/test_all_platforms.py†L1003-L1034】
+- Options-flow module summaries and the last-grooming datetime notes now surface localized German descriptions without manual overrides, guarded by dedicated options-flow and datetime tests.【F:custom_components/pawcontrol/options_flow.py†L2602-L2630】【F:custom_components/pawcontrol/datetime.py†L432-L470】【F:tests/unit/test_options_flow.py†L1239-L1253】【F:tests/unit/test_datetime_entities.py†L1-L35】
 
 ## 🔔 Intelligent Notification System
 
@@ -1075,7 +1105,12 @@ pytest tests/test_performance_*.py -v
 2. **Fork Repository**: Create your feature branch
 3. **Develop**: Write code with tests and documentation
 4. **Quality Check**: Ensure 95%+ test coverage and code quality
-5. **Submit PR**: Detailed description with test results
+5. **Sync Contributor Guides**: After updating `.github/copilot-instructions.md`,
+   run `python -m script.sync_contributor_guides` so the Claude and Gemini
+   assistants stay aligned. The pre-commit hook
+   `contributor-guide-sync-check` also runs the `--check` mode and will fail if
+   the wrappers drift from the canonical guide.
+6. **Submit PR**: Detailed description with test results
 
 ### Development Guidelines
 

@@ -324,11 +324,18 @@ pawcontrol:
 
    - *Visitor Controls Card* – Eine Entities-Karte bündelt den Switch
      `switch.{dog_id}_visitor_mode` und den Status-Binary-Sensor
-     `binary_sensor.{dog_id}_visitor_mode` inklusive State-Farbcodierung für
-     schnelle Eingriffe.
+     `binary_sensor.{dog_id}_visitor_mode`, wobei `_translated_visitor_label`
+     automatisch Titel und Feldnamen an die aktive Home-Assistant-Sprache
+     anpasst.【F:custom_components/pawcontrol/dashboard_cards.py†L133-L154】
    - *Visitor Insights Markdown* – Ein Markdown-Panel fasst Besuchername,
-     Aktivierungszeitpunkt und das reduzierte Alarmprofil zusammen, sodass
-     Operatoren die Auswirkungen des Besuchermodus sofort erkennen.
+     Aktivierungszeitpunkt und das reduzierte Alarmprofil zusammen; die
+     Template-Helfer `_translated_visitor_template` und
+     `_translated_visitor_value` lokalisieren Überschrift sowie Ja/Nein- und
+     Platzhaltertexte, damit Support-Teams dieselben Formulierungen wie im UI
+     sehen.【F:custom_components/pawcontrol/dashboard_cards.py†L147-L176】【F:custom_components/pawcontrol/dashboard_cards.py†L1723-L1768】
+   - *Regression Guard* – `test_generate_visitor_cards_localizes_german`
+     stellt sicher, dass die deutsche Übersetzung der Karten dauerhaft stabil
+     bleibt und Dokumentation sowie Dashboards synchron bleiben.【F:tests/unit/test_dashboard_templates.py†L1013-L1047】
 
 ---
 

@@ -609,7 +609,7 @@ async def _setup_service_environment(
     hass = SimpleNamespace(
         services=_ServiceRegistryStub(),
         data={},
-        config=SimpleNamespace(latitude=1.0, longitude=2.0),
+        config=SimpleNamespace(latitude=1.0, longitude=2.0, language="en"),
         bus=_BusStub(),
     )
     hass.config_entries = SimpleNamespace(async_entries=lambda domain: [])
@@ -2210,6 +2210,45 @@ async def test_start_grooming_records_success(
     assert metadata["reminder_type"] == "auto_schedule"
     assert metadata["reminder_sent_at"] == expected_iso
     assert data_manager.groom_calls and data_manager.groom_calls[0]["dog_id"] == "buddy"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_start_grooming_localizes_notification(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Grooming notifications should respect the active Home Assistant language."""
+
+    data_manager = _DataManagerStub()
+    notification_manager = _NotificationManagerStub()
+    coordinator = _CoordinatorStub(
+        SimpleNamespace(),
+        notification_manager=notification_manager,
+        data_manager=data_manager,
+    )
+    coordinator.register_dog("buddy", name="Buddy")
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+    hass.config.language = "de"
+
+    handler = hass.services.handlers[services.SERVICE_START_GROOMING]
+
+    await handler(
+        SimpleNamespace(
+            data={
+                "dog_id": "buddy",
+                "grooming_type": "bath",
+                "groomer": "Jamie",
+                "estimated_duration_minutes": 45,
+            }
+        )
+    )
+
+    assert notification_manager.sent, "Expected localized grooming notification"
+    payload = notification_manager.sent[0]
+    assert payload["title"] == "🛁 Pflege gestartet: Buddy"
+    assert payload["message"] == "Gestartet bath für Buddy mit Jamie (ca. 45 Min.)"
 
 
 @pytest.mark.unit

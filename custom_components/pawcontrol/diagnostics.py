@@ -38,7 +38,10 @@ from .coordinator_support import ensure_cache_repair_aggregate
 from .coordinator_tasks import default_rejection_metrics, derive_rejection_metrics
 from .diagnostics_redaction import compile_redaction_patterns, redact_sensitive_data
 from .runtime_data import get_runtime_data
-from .telemetry import get_bool_coercion_metrics
+from .telemetry import (
+    get_bool_coercion_metrics,
+    update_runtime_bool_coercion_summary,
+)
 from .types import (
     CacheDiagnosticsMap,
     CacheDiagnosticsMetadata,
@@ -163,6 +166,30 @@ def _apply_rejection_metrics_to_performance(
     performance_metrics["unknown_breaker_count"] = rejection_metrics[
         "unknown_breaker_count"
     ]
+    performance_metrics["open_breakers"] = list(
+        rejection_metrics["open_breakers"]
+    )
+    performance_metrics["open_breaker_ids"] = list(
+        rejection_metrics["open_breaker_ids"]
+    )
+    performance_metrics["half_open_breakers"] = list(
+        rejection_metrics["half_open_breakers"]
+    )
+    performance_metrics["half_open_breaker_ids"] = list(
+        rejection_metrics["half_open_breaker_ids"]
+    )
+    performance_metrics["unknown_breakers"] = list(
+        rejection_metrics["unknown_breakers"]
+    )
+    performance_metrics["unknown_breaker_ids"] = list(
+        rejection_metrics["unknown_breaker_ids"]
+    )
+    performance_metrics["rejection_breaker_ids"] = list(
+        rejection_metrics["rejection_breaker_ids"]
+    )
+    performance_metrics["rejection_breakers"] = list(
+        rejection_metrics["rejection_breakers"]
+    )
 
 
 def _build_statistics_payload(
@@ -348,7 +375,7 @@ async def async_get_config_entry_diagnostics(
         "debug_info": await _get_debug_information(hass, entry),
         "door_sensor": await _get_door_sensor_diagnostics(runtime_data),
         "service_execution": await _get_service_execution_diagnostics(runtime_data),
-        "bool_coercion": _get_bool_coercion_diagnostics(),
+        "bool_coercion": _get_bool_coercion_diagnostics(runtime_data),
     }
 
     if cache_snapshots is not None:
@@ -922,7 +949,7 @@ async def _get_performance_metrics(
     if resilience is not None:
         stats_payload["resilience"] = resilience
 
-    return {
+    metrics_output: dict[str, Any] = {
         "update_frequency": performance_metrics["update_interval"],
         "data_freshness": "fresh" if coordinator.last_update_success else "stale",
         "memory_efficient": True,  # Placeholder - could add actual memory usage
@@ -933,6 +960,38 @@ async def _get_performance_metrics(
         "rejection_metrics": rejection_metrics,
         "statistics": stats_payload,
     }
+
+    rejection_keys = (
+        "rejected_call_count",
+        "rejection_breaker_count",
+        "rejection_rate",
+        "last_rejection_time",
+        "last_rejection_breaker_id",
+        "last_rejection_breaker_name",
+        "open_breaker_count",
+        "half_open_breaker_count",
+        "unknown_breaker_count",
+    )
+    list_keys = (
+        "open_breakers",
+        "open_breaker_ids",
+        "half_open_breakers",
+        "half_open_breaker_ids",
+        "unknown_breakers",
+        "unknown_breaker_ids",
+        "rejection_breaker_ids",
+        "rejection_breakers",
+    )
+
+    for key in rejection_keys:
+        value = performance_metrics.get(key, rejection_metrics.get(key))
+        metrics_output[key] = value
+
+    for key in list_keys:
+        value = performance_metrics.get(key, rejection_metrics.get(key))
+        metrics_output[key] = list(value) if isinstance(value, list) else []
+
+    return metrics_output
 
 
 async def _get_door_sensor_diagnostics(
@@ -1029,12 +1088,18 @@ async def _get_service_execution_diagnostics(
     return diagnostics
 
 
-def _get_bool_coercion_diagnostics() -> dict[str, Any]:
+def _get_bool_coercion_diagnostics(
+    runtime_data: PawControlRuntimeData | None,
+) -> dict[str, Any]:
     """Expose recent bool coercion telemetry captured during normalisation."""
 
     metrics = get_bool_coercion_metrics()
-    recorded = bool(metrics.get("total", 0) or metrics.get("reset_count", 0))
-    payload: dict[str, Any] = {"recorded": recorded}
+    summary = update_runtime_bool_coercion_summary(runtime_data)
+    recorded = bool(summary.get("recorded"))
+    payload: dict[str, Any] = {
+        "recorded": recorded,
+        "summary": summary,
+    }
 
     if recorded:
         payload["metrics"] = metrics

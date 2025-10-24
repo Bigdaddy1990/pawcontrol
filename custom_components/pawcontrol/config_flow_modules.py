@@ -22,7 +22,8 @@ Python: 3.13+
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Protocol, cast
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, Final, Protocol, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -50,8 +51,86 @@ from .types import (
 
 _LOGGER = logging.getLogger(__name__)
 
+_SUPPORTED_DASHBOARD_LANGUAGES: Final[frozenset[str]] = frozenset({"en", "de"})
+
+_DASHBOARD_SETUP_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
+    "basic": {
+        "en": "Basic dashboard with core monitoring features",
+        "de": "Basis-Dashboard mit Kernüberwachungsfunktionen",
+    },
+    "include_prefix": {
+        "en": "Dashboard will include: {features}",
+        "de": "Das Dashboard enthält: {features}",
+    },
+    "standard": {
+        "en": "Standard dashboard with monitoring features",
+        "de": "Standard-Dashboard mit Überwachungsfunktionen",
+    },
+}
+
+_DASHBOARD_FEATURE_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
+    "status_cards": {"en": "status cards", "de": "Statuskarten"},
+    "activity_tracking": {"en": "activity tracking", "de": "Aktivitätsverfolgung"},
+    "quick_actions": {"en": "quick actions", "de": "Schnellaktionen"},
+    "location_maps": {"en": "location maps", "de": "Standortkarten"},
+    "multi_dog_overview": {
+        "en": "multi-dog overview",
+        "de": "Übersicht für mehrere Hunde",
+    },
+    "live_location_tracking": {
+        "en": "live location tracking",
+        "de": "Live-Ortungsverfolgung",
+    },
+    "health_charts": {"en": "health charts", "de": "Gesundheitsdiagramme"},
+    "feeding_schedules": {"en": "feeding schedules", "de": "Fütterungspläne"},
+}
+
+
+def normalize_dashboard_language(language: str | None) -> str:
+    """Normalise Home Assistant languages for dashboard translations."""
+
+    if not language:
+        return "en"
+
+    normalized = language.lower().split("-", 1)[0]
+    if normalized in _SUPPORTED_DASHBOARD_LANGUAGES:
+        return normalized
+
+    return "en"
+
+
+def translated_dashboard_setup(language: str | None, key: str, **values: str) -> str:
+    """Return a localized dashboard setup summary string."""
+
+    translations = _DASHBOARD_SETUP_TRANSLATIONS.get(key)
+    if translations is None:
+        return key.format(**values) if values else key
+
+    template = (
+        translations.get(normalize_dashboard_language(language))
+        or translations.get("en")
+        or key
+    )
+    return template.format(**values)
+
+
+def translated_dashboard_feature(language: str | None, key: str) -> str:
+    """Return a localized dashboard feature description."""
+
+    translations = _DASHBOARD_FEATURE_TRANSLATIONS.get(key)
+    if translations is None:
+        return key
+
+    return (
+        translations.get(normalize_dashboard_language(language))
+        or translations.get("en")
+        or key
+    )
+
 
 if TYPE_CHECKING:
+
+    from homeassistant.core import HomeAssistant
 
     class ModuleFlowHost(Protocol):
         """Type-checking protocol describing the module flow host."""
@@ -62,6 +141,7 @@ if TYPE_CHECKING:
         _feeding_config: FeedingSetupConfig
         _enabled_modules: DogModulesConfig
         _external_entities: ExternalEntityConfig
+        hass: HomeAssistant
 
         async def async_step_configure_external_entities(
             self, user_input: dict[str, Any] | None = None
@@ -519,22 +599,36 @@ class ModuleConfigurationMixin:
             Dashboard setup information
         """
         module_summary = self._analyze_configured_modules()
+        flow = cast("ModuleFlowHost", self)
+        hass_language: str | None = getattr(flow.hass.config, "language", None)
 
         if module_summary["total"] == 0:
-            return "Basic dashboard with core monitoring features"
+            return translated_dashboard_setup(hass_language, "basic")
 
         features: list[str] = []
         if module_summary["gps_dogs"] > 0:
-            features.append("live location tracking")
+            features.append(
+                translated_dashboard_feature(
+                    hass_language, "live_location_tracking"
+                )
+            )
         if module_summary["health_dogs"] > 0:
-            features.append("health charts")
+            features.append(
+                translated_dashboard_feature(hass_language, "health_charts")
+            )
         if module_summary["feeding_dogs"] > 0:
-            features.append("feeding schedules")
+            features.append(
+                translated_dashboard_feature(hass_language, "feeding_schedules")
+            )
 
         if features:
-            return f"Dashboard will include: {', '.join(features)}"
+            return translated_dashboard_setup(
+                hass_language,
+                "include_prefix",
+                features=", ".join(features),
+            )
 
-        return "Standard dashboard with monitoring features"
+        return translated_dashboard_setup(hass_language, "standard")
 
     def _get_dashboard_features_string(self, has_gps: bool) -> str:
         """Get dashboard features string.
@@ -546,16 +640,23 @@ class ModuleConfigurationMixin:
             Features description
         """
         flow = cast("ModuleFlowHost", self)
+        hass_language: str | None = getattr(flow.hass.config, "language", None)
 
-        features: list[str] = ["status cards", "activity tracking", "quick actions"]
+        feature_keys: list[str] = [
+            "status_cards",
+            "activity_tracking",
+            "quick_actions",
+        ]
 
         if has_gps:
-            features.append("location maps")
+            feature_keys.append("location_maps")
 
         if len(flow._dogs) > 1:
-            features.append("multi-dog overview")
+            feature_keys.append("multi_dog_overview")
 
-        return ", ".join(features)
+        return ", ".join(
+            translated_dashboard_feature(hass_language, key) for key in feature_keys
+        )
 
     async def async_step_configure_feeding_details(
         self, user_input: dict[str, Any] | None = None

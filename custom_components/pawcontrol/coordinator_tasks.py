@@ -21,6 +21,7 @@ from .runtime_data import get_runtime_data
 from .telemetry import (
     get_runtime_reconfigure_summary,
     summarise_reconfigure_options,
+    update_runtime_bool_coercion_summary,
     update_runtime_reconfigure_summary,
     update_runtime_resilience_summary,
 )
@@ -412,8 +413,11 @@ def default_rejection_metrics() -> CoordinatorRejectionMetrics:
         "open_breaker_count": 0,
         "half_open_breaker_count": 0,
         "unknown_breaker_count": 0,
+        "open_breakers": [],
         "open_breaker_ids": [],
+        "half_open_breakers": [],
         "half_open_breaker_ids": [],
+        "unknown_breakers": [],
         "unknown_breaker_ids": [],
         "rejection_breaker_ids": [],
         "rejection_breakers": [],
@@ -466,11 +470,18 @@ def derive_rejection_metrics(
     if unknown_breakers is not None:
         metrics["unknown_breaker_count"] = _coerce_int(unknown_breakers)
 
+    metrics["open_breakers"] = _normalise_string_list(summary.get("open_breakers"))
     metrics["open_breaker_ids"] = _normalise_string_list(
         summary.get("open_breaker_ids")
     )
+    metrics["half_open_breakers"] = _normalise_string_list(
+        summary.get("half_open_breakers")
+    )
     metrics["half_open_breaker_ids"] = _normalise_string_list(
         summary.get("half_open_breaker_ids")
+    )
+    metrics["unknown_breakers"] = _normalise_string_list(
+        summary.get("unknown_breakers")
     )
     metrics["unknown_breaker_ids"] = _normalise_string_list(
         summary.get("unknown_breaker_ids")
@@ -837,6 +848,30 @@ def build_update_statistics(
     performance_metrics["unknown_breaker_count"] = rejection_metrics[
         "unknown_breaker_count"
     ]
+    performance_metrics["open_breakers"] = list(
+        rejection_metrics["open_breakers"]
+    )
+    performance_metrics["open_breaker_ids"] = list(
+        rejection_metrics["open_breaker_ids"]
+    )
+    performance_metrics["half_open_breakers"] = list(
+        rejection_metrics["half_open_breakers"]
+    )
+    performance_metrics["half_open_breaker_ids"] = list(
+        rejection_metrics["half_open_breaker_ids"]
+    )
+    performance_metrics["unknown_breakers"] = list(
+        rejection_metrics["unknown_breakers"]
+    )
+    performance_metrics["unknown_breaker_ids"] = list(
+        rejection_metrics["unknown_breaker_ids"]
+    )
+    performance_metrics["rejection_breaker_ids"] = list(
+        rejection_metrics["rejection_breaker_ids"]
+    )
+    performance_metrics["rejection_breakers"] = list(
+        rejection_metrics["rejection_breakers"]
+    )
     if reconfigure_summary is not None:
         stats["reconfigure"] = reconfigure_summary
     return stats
@@ -857,6 +892,8 @@ def build_runtime_statistics(
         interval=coordinator.update_interval,
         repair_summary=repair_summary,
     )
+    runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
+    stats["bool_coercion"] = update_runtime_bool_coercion_summary(runtime_data)
     stats["entity_budget"] = _normalise_entity_budget_summary(
         coordinator._entity_budget.summary()
     )
@@ -898,6 +935,33 @@ def build_runtime_statistics(
         performance_metrics["half_open_breaker_count"] = rejection_metrics[
             "half_open_breaker_count"
         ]
+        performance_metrics["unknown_breaker_count"] = rejection_metrics[
+            "unknown_breaker_count"
+        ]
+        performance_metrics["open_breakers"] = list(
+            rejection_metrics["open_breakers"]
+        )
+        performance_metrics["open_breaker_ids"] = list(
+            rejection_metrics["open_breaker_ids"]
+        )
+        performance_metrics["half_open_breakers"] = list(
+            rejection_metrics["half_open_breakers"]
+        )
+        performance_metrics["half_open_breaker_ids"] = list(
+            rejection_metrics["half_open_breaker_ids"]
+        )
+        performance_metrics["unknown_breakers"] = list(
+            rejection_metrics["unknown_breakers"]
+        )
+        performance_metrics["unknown_breaker_ids"] = list(
+            rejection_metrics["unknown_breaker_ids"]
+        )
+        performance_metrics["rejection_breaker_ids"] = list(
+            rejection_metrics["rejection_breaker_ids"]
+        )
+        performance_metrics["rejection_breakers"] = list(
+            rejection_metrics["rejection_breakers"]
+        )
 
     error_summary = stats.get("error_summary")
     if isinstance(error_summary, dict):
@@ -906,6 +970,35 @@ def build_runtime_statistics(
         error_summary["rejection_breaker_count"] = rejection_metrics[
             "rejection_breaker_count"
         ]
+        error_summary["open_breaker_count"] = rejection_metrics["open_breaker_count"]
+        error_summary["half_open_breaker_count"] = rejection_metrics[
+            "half_open_breaker_count"
+        ]
+        error_summary["unknown_breaker_count"] = rejection_metrics[
+            "unknown_breaker_count"
+        ]
+        error_summary["open_breakers"] = list(rejection_metrics["open_breakers"])
+        error_summary["open_breaker_ids"] = list(
+            rejection_metrics["open_breaker_ids"]
+        )
+        error_summary["half_open_breakers"] = list(
+            rejection_metrics["half_open_breakers"]
+        )
+        error_summary["half_open_breaker_ids"] = list(
+            rejection_metrics["half_open_breaker_ids"]
+        )
+        error_summary["unknown_breakers"] = list(
+            rejection_metrics["unknown_breakers"]
+        )
+        error_summary["unknown_breaker_ids"] = list(
+            rejection_metrics["unknown_breaker_ids"]
+        )
+        error_summary["rejection_breaker_ids"] = list(
+            rejection_metrics["rejection_breaker_ids"]
+        )
+        error_summary["rejection_breakers"] = list(
+            rejection_metrics["rejection_breakers"]
+        )
     if reconfigure_summary is not None:
         stats["reconfigure"] = reconfigure_summary
     return stats

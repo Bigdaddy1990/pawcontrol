@@ -8,6 +8,7 @@ import pytest
 from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
+    DOMAIN,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
@@ -17,7 +18,9 @@ from custom_components.pawcontrol.const import (
 )
 from custom_components.pawcontrol.coordinator_tasks import default_rejection_metrics
 from custom_components.pawcontrol.dashboard_cards import (
+    HealthAwareFeedingCardGenerator,
     ModuleCardGenerator,
+    OverviewCardGenerator,
     StatisticsCardGenerator,
     WeatherCardGenerator,
     _coerce_map_options,
@@ -121,6 +124,42 @@ def test_statistics_summary_template_counts_modules(hass: HomeAssistant) -> None
     assert "**Dogs managed:** 2" in content
     assert "Feeding: 1" in content
     assert "Notifications: 1" in content
+
+
+def test_statistics_summary_template_localises_general_sections(
+    hass: HomeAssistant,
+) -> None:
+    """Summary card should localise header, counts, and title."""
+
+    hass.config.language = "de"
+    templates = DashboardTemplates(hass)
+    raw_dogs = [
+        {
+            CONF_DOG_ID: "alpha",
+            CONF_DOG_NAME: "Alpha",
+            "modules": {
+                MODULE_FEEDING: True,
+                MODULE_WALK: True,
+                MODULE_HEALTH: True,
+                MODULE_GPS: True,
+                MODULE_NOTIFICATIONS: True,
+            },
+        }
+    ]
+
+    card = templates.get_statistics_summary_template(raw_dogs)
+
+    content = card["content"]
+    assert "## Paw Control Statistiken" in content
+    assert "**Verwaltete Hunde:** 1" in content
+    assert "**Aktive Module:**" in content
+    assert "- Fütterung: 1" in content
+    assert "- Spaziergänge: 1" in content
+    assert "- Gesundheit: 1" in content
+    assert "- GPS: 1" in content
+    assert "- Benachrichtigungen: 1" in content
+    assert "*Zuletzt aktualisiert:" in content
+    assert card["title"] == "Zusammenfassung"
 
 
 @pytest.mark.asyncio
@@ -500,8 +539,15 @@ def test_statistics_summary_template_includes_rejection_metrics(
                 "last_rejection_time": last_rejection,
                 "last_rejection_breaker_name": "api",
                 "open_breaker_count": 1,
+                "open_breakers": ["api"],
                 "open_breaker_ids": ["api"],
-                "rejection_breaker_ids": ["api"],
+                "half_open_breaker_count": 1,
+                "half_open_breakers": ["cache"],
+                "half_open_breaker_ids": ["cache"],
+                "unknown_breaker_count": 1,
+                "unknown_breakers": ["legacy"],
+                "unknown_breaker_ids": ["legacy"],
+                "rejection_breaker_ids": ["api", "cache"],
                 "rejection_breakers": ["api"],
             }
         },
@@ -515,6 +561,171 @@ def test_statistics_summary_template_includes_rejection_metrics(
     iso_timestamp = datetime.fromtimestamp(last_rejection, UTC).isoformat()
     assert f"- Last rejection: {iso_timestamp}" in content
     assert "- Last rejecting breaker: api" in content
+    assert "- Open breaker names: api" in content
+    assert "- Open breaker IDs: api" in content
+    assert "- Half-open breaker names: cache" in content
+    assert "- Half-open breaker IDs: cache" in content
+    assert "- Unknown breaker names: legacy" in content
+    assert "- Unknown breaker IDs: legacy" in content
+    assert "- Rejecting breaker IDs: api, cache" in content
+    assert "- Rejecting breaker names: api" in content
+
+
+def test_statistics_summary_template_localizes_breaker_labels(
+    hass: HomeAssistant,
+) -> None:
+    """Localisation should translate breaker labels based on the HA language."""
+
+    hass.config.language = "de"
+    templates = DashboardTemplates(hass)
+    card = templates.get_statistics_summary_template(
+        [
+            {
+                CONF_DOG_ID: "fido",
+                CONF_DOG_NAME: "Fido",
+                "modules": {
+                    MODULE_FEEDING: True,
+                    MODULE_WALK: True,
+                    MODULE_HEALTH: True,
+                    MODULE_NOTIFICATIONS: True,
+                    MODULE_GPS: True,
+                },
+            }
+        ],
+        coordinator_statistics={
+            "rejection_metrics": {
+                **default_rejection_metrics(),
+                "half_open_breakers": ["cache"],
+                "half_open_breaker_ids": ["cache"],
+                "unknown_breakers": ["legacy"],
+                "unknown_breaker_ids": ["legacy"],
+                "rejection_breakers": ["api"],
+                "rejection_breaker_ids": ["api"],
+                "last_rejection_breaker_name": "api",
+                "rejection_breaker_count": 1,
+                "rejected_call_count": 1,
+                "open_breakers": [],
+                "open_breaker_ids": [],
+            }
+        },
+    )
+
+    content = card["content"]
+    assert "- Letzter blockierender Breaker: api" in content
+    assert "- Abgelehnte Aufrufe: 1" in content
+    assert "- Blockierende Breaker: 1" in content
+    assert "- Ablehnungsrate: 0.00%" in content
+    assert "- Letzte Ablehnung: nie" in content
+    assert "- Namen offener Breaker: keine" in content
+    assert "- IDs blockierender Breaker: api" in content
+
+
+def test_statistics_summary_template_localizes_empty_lists(hass: HomeAssistant) -> None:
+    """Empty breaker lists should localize using the configured language."""
+
+    hass.config.language = "fr"
+    templates = DashboardTemplates(hass)
+    card = templates.get_statistics_summary_template(
+        [
+            {
+                CONF_DOG_ID: "fido",
+                CONF_DOG_NAME: "Fido",
+                "modules": {
+                    MODULE_FEEDING: True,
+                    MODULE_WALK: True,
+                    MODULE_HEALTH: True,
+                    MODULE_NOTIFICATIONS: True,
+                    MODULE_GPS: True,
+                },
+            }
+        ],
+        coordinator_statistics={
+            "rejection_metrics": {
+                **default_rejection_metrics(),
+                "open_breakers": [],
+                "open_breaker_ids": [],
+                "half_open_breakers": [],
+                "half_open_breaker_ids": [],
+                "unknown_breakers": [],
+                "unknown_breaker_ids": [],
+                "rejection_breakers": [],
+                "rejection_breaker_ids": [],
+            }
+        },
+    )
+
+    content = card["content"]
+    assert "- Open breaker names: none" in content
+    assert "- Open breaker IDs: none" in content
+
+
+def test_statistics_summary_template_localizes_resilience_fallbacks(
+    hass: HomeAssistant,
+) -> None:
+    """Rejection rate and time fallbacks should honor the active language."""
+
+    templates = DashboardTemplates(hass)
+    card = templates.get_statistics_summary_template(
+        [
+            {
+                CONF_DOG_ID: "fido",
+                CONF_DOG_NAME: "Fido",
+                "modules": {
+                    MODULE_FEEDING: True,
+                    MODULE_WALK: True,
+                    MODULE_HEALTH: True,
+                    MODULE_NOTIFICATIONS: True,
+                    MODULE_GPS: True,
+                },
+            }
+        ],
+        coordinator_statistics={
+            "rejection_metrics": {
+                **default_rejection_metrics(),
+                "rejection_rate": float("nan"),
+                "last_rejection_time": None,
+                "last_rejection_breaker_id": None,
+                "last_rejection_breaker_name": None,
+            }
+        },
+    )
+
+    content = card["content"]
+    assert "- Rejection rate: n/a" in content
+    assert "- Last rejection: never" in content
+    assert "- Last rejecting breaker" not in content
+
+    hass.config.language = "de"
+    templates_localized = DashboardTemplates(hass)
+    localized_card = templates_localized.get_statistics_summary_template(
+        [
+            {
+                CONF_DOG_ID: "fido",
+                CONF_DOG_NAME: "Fido",
+                "modules": {
+                    MODULE_FEEDING: True,
+                    MODULE_WALK: True,
+                    MODULE_HEALTH: True,
+                    MODULE_NOTIFICATIONS: True,
+                    MODULE_GPS: True,
+                },
+            }
+        ],
+        coordinator_statistics={
+            "rejection_metrics": {
+                **default_rejection_metrics(),
+                "rejection_rate": float("nan"),
+                "last_rejection_time": None,
+                "last_rejection_breaker_id": None,
+                "last_rejection_breaker_name": None,
+            }
+        },
+    )
+
+    localized_content = localized_card["content"]
+    assert "- Ablehnungsrate: nicht verfügbar" in localized_content
+    assert "- Letzte Ablehnung: nie" in localized_content
+    assert "- Letzter blockierender Breaker" not in localized_content
 
 
 @pytest.mark.asyncio
@@ -551,6 +762,123 @@ async def test_notification_templates_handle_missing_metrics(
         "alpha", "Alpha", [], theme="modern"
     )
     assert settings is None
+
+
+@pytest.mark.asyncio
+async def test_notification_templates_localize_labels(hass: HomeAssistant) -> None:
+    """Notification dashboards should use translated labels for German locales."""
+
+    hass.config.language = "de"
+    templates = DashboardTemplates(hass)
+
+    hass.states.async_set(
+        "sensor.pawcontrol_notifications",
+        "active",
+        {
+            "performance_metrics": {"notifications_failed": 2},
+            "per_dog": {
+                "alpha": {
+                    "sent_today": 4,
+                    "quiet_hours_active": True,
+                    "channels": [],
+                    "last_notification": {
+                        "type": "system_info",
+                        "priority": "high",
+                        "sent_at": "2025-02-14T12:00:00Z",
+                    },
+                }
+            },
+        },
+    )
+
+    overview = await templates.get_notifications_overview_card_template(
+        "alpha", "Alpha", theme="modern"
+    )
+    content = overview["content"]
+
+    assert "Benachrichtigungsübersicht für Alpha" in content
+    assert "**Heute gesendete Benachrichtigungen:** 4" in content
+    assert "**Fehlgeschlagene Zustellungen:** 2" in content
+    assert "**Ruhezeiten aktiv:** ✅" in content
+    assert "### Bevorzugte Kanäle" in content
+    assert "• Verwendet Standardkanäle der Integration" in content
+    assert "### Letzte Benachrichtigung" in content
+    assert "- **Typ:** system_info" in content
+    assert "- **Priorität:** High" in content
+    assert "- **Gesendet:** 2025-02-14T12:00:00Z" in content
+
+    settings = await templates.get_notification_settings_card_template(
+        "alpha", "Alpha", ["switch.alpha_notifications"], theme="modern"
+    )
+    assert settings is not None
+    assert settings["title"] == "🔔 Alpha Benachrichtigungssteuerung"
+
+    actions = await templates.get_notifications_actions_card_template(
+        "alpha", theme="modern"
+    )
+    button_names = [card["name"] for card in actions["cards"]]
+    assert "Testbenachrichtigung senden" in button_names
+    assert "Ruhezeiten zurücksetzen" in button_names
+    send_test_button = next(
+        card for card in actions["cards"] if card["icon"] == "mdi:bell-check"
+    )
+    assert (
+        send_test_button["tap_action"]["service_data"]["title"]
+        == "PawControl-Diagnose"
+    )
+    assert (
+        send_test_button["tap_action"]["service_data"]["message"]
+        == "Testbenachrichtigung vom Dashboard"
+    )
+
+    hass.states.async_set(
+        "sensor.pawcontrol_notifications",
+        "idle",
+        {
+            "performance_metrics": {"notifications_failed": 0},
+            "per_dog": {
+                "alpha": {
+                    "sent_today": 0,
+                    "quiet_hours_active": False,
+                    "channels": [],
+                }
+            },
+        },
+    )
+
+    empty_overview = await templates.get_notifications_overview_card_template(
+        "alpha", "Alpha", theme="modern"
+    )
+    assert (
+        "Für diesen Hund wurden noch keine Benachrichtigungen aufgezeichnet."
+        in empty_overview["content"]
+    )
+
+
+@pytest.mark.asyncio
+async def test_feeding_templates_localize_labels(hass: HomeAssistant) -> None:
+    """Feeding dashboards should translate titles and meal labels."""
+
+    hass.config.language = "de"
+    templates = DashboardTemplates(hass)
+
+    schedule_modern = await templates.get_feeding_schedule_template(
+        "fido", theme="modern"
+    )
+    assert schedule_modern["title"] == "🍽️ Fütterungsplan"
+
+    schedule_minimal = await templates.get_feeding_schedule_template(
+        "fido", theme="minimal"
+    )
+    assert schedule_minimal["title"] == "Fütterungsplan"
+
+    controls = await templates.get_feeding_controls_template("fido", theme="modern")
+    button_names = {
+        button["name"]
+        for row in controls["cards"]
+        for button in row.get("cards", [])
+    }
+    assert button_names == {"Frühstück", "Mittagessen", "Abendessen", "Snack"}
 
 
 @pytest.mark.asyncio
@@ -628,6 +956,129 @@ async def test_generate_notification_cards_uses_templates(
     assert any(card["type"] == "entities" for card in cards)
     assert any(card["type"] == "markdown" for card in cards)
     assert any(card["type"] == "horizontal-stack" for card in cards)
+
+
+@pytest.mark.asyncio
+async def test_generate_walk_cards_localizes_german(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Walk cards should honor the Home Assistant language."""
+
+    hass.config.language = "de"
+    templates = DashboardTemplates(hass)
+    generator = ModuleCardGenerator(hass, templates)
+
+    status_entities = [
+        "binary_sensor.fido_is_walking",
+        "sensor.fido_current_walk_duration",
+        "sensor.fido_walks_today",
+        "sensor.fido_walk_distance_today",
+        "sensor.fido_last_walk_time",
+        "sensor.fido_last_walk_distance",
+    ]
+
+    async def _fake_validate(entities: list[str], use_cache: bool = True) -> list[str]:
+        assert entities == status_entities
+        return list(status_entities)
+
+    monkeypatch.setattr(generator, "_validate_entities_batch", _fake_validate)
+
+    captured_history: dict[str, str] = {}
+
+    async def _fake_history(
+        entities: list[str],
+        title: str,
+        hours_to_show: int,
+        theme: str = "modern",
+    ) -> dict[str, object]:
+        captured_history["title"] = title
+        return {"type": "history-graph", "title": title, "entities": entities}
+
+    monkeypatch.setattr(
+        generator.templates, "get_history_graph_template", _fake_history
+    )
+
+    dog_config: DogConfigData = {
+        CONF_DOG_ID: "fido",
+        CONF_DOG_NAME: "Fido",
+        "modules": {MODULE_WALK: True},
+    }
+
+    cards = await generator.generate_walk_cards(dog_config, {})
+
+    assert len(cards) == 4
+    entities_card, start_card, end_card, history_card = cards
+
+    assert entities_card["title"] == "Spazierstatus"
+    assert start_card["card"]["name"] == "Spaziergang starten"
+    assert end_card["card"]["name"] == "Spaziergang beenden"
+    assert history_card["title"] == "Spazierverlauf (7 Tage)"
+    assert captured_history["title"] == "Spazierverlauf (7 Tage)"
+
+
+@pytest.mark.asyncio
+async def test_generate_quick_actions_localizes_walk_button(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Quick actions should localize the walk status button."""
+
+    hass.config.language = "de"
+    templates = DashboardTemplates(hass)
+    generator = OverviewCardGenerator(hass, templates)
+
+    async def _fake_validate(entities: list[str], use_cache: bool = True) -> list[str]:
+        assert entities == [f"sensor.{DOMAIN}_dogs_walking"]
+        return list(entities)
+
+    monkeypatch.setattr(generator, "_validate_entities_batch", _fake_validate)
+
+    dog_config: DogConfigData = {
+        CONF_DOG_ID: "fido",
+        CONF_DOG_NAME: "Fido",
+        "modules": {MODULE_WALK: True},
+    }
+
+    actions_card = await generator.generate_quick_actions([dog_config])
+
+    assert actions_card is not None
+    cards = actions_card["cards"]
+    assert cards[0]["name"] == "Spazierstatus"
+
+
+@pytest.mark.asyncio
+async def test_generate_quick_actions_localizes_feed_all_and_reset(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Quick actions should localize feed-all and reset buttons."""
+
+    hass.config.language = "de"
+    templates = DashboardTemplates(hass)
+    generator = OverviewCardGenerator(hass, templates)
+
+    async def _fake_validate(entities: list[str], use_cache: bool = True) -> list[str]:
+        assert set(entities) == {
+            f"button.{DOMAIN}_feed_all_dogs",
+            f"sensor.{DOMAIN}_dogs_walking",
+        }
+        return list(entities)
+
+    monkeypatch.setattr(generator, "_validate_entities_batch", _fake_validate)
+
+    dog_config: DogConfigData = {
+        CONF_DOG_ID: "fido",
+        CONF_DOG_NAME: "Fido",
+        "modules": {MODULE_FEEDING: True, MODULE_WALK: True},
+    }
+
+    actions_card = await generator.generate_quick_actions([dog_config])
+
+    assert actions_card is not None
+    cards = actions_card["cards"]
+    assert [card["name"] for card in cards] == [
+        "Alle füttern",
+        "Spazierstatus",
+        "Täglicher Reset",
+    ]
 
 
 @pytest.mark.asyncio
@@ -721,3 +1172,176 @@ async def test_generate_visitor_cards_only_outputs_markdown_when_entities_missin
     markdown_card = cards[0]
     assert markdown_card["type"] == "markdown"
     assert markdown_card["title"] == "Fido visitor insights"
+
+
+@pytest.mark.asyncio
+async def test_generate_visitor_cards_localizes_german(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Visitor cards should localize titles and fallback strings."""
+
+    hass.config.language = "de"
+    templates = DashboardTemplates(hass)
+    generator = ModuleCardGenerator(hass, templates)
+
+    validated_entities = [
+        "switch.fido_visitor_mode",
+        "binary_sensor.fido_visitor_mode",
+    ]
+
+    async def _fake_validate(entities: list[str], use_cache: bool = True) -> list[str]:
+        assert entities == validated_entities
+        return validated_entities
+
+    monkeypatch.setattr(generator, "_validate_entities_batch", _fake_validate)
+
+    dog_config: DogConfigData = {
+        CONF_DOG_ID: "fido",
+        CONF_DOG_NAME: "Fido",
+        "modules": {MODULE_VISITOR: True},
+    }
+
+    cards = await generator.generate_visitor_cards(dog_config, {})
+
+    assert len(cards) == 2
+    entities_card, markdown_card = cards
+
+    assert entities_card["title"] == "Steuerungen für den Besuchermodus"
+    assert markdown_card["title"] == "Fido Besuchereinblicke"
+    content = markdown_card["content"]
+    assert "Status des Besuchermodus" in content
+    assert '"Ja"' in content
+    assert '"Keine"' in content
+
+
+@pytest.mark.asyncio
+async def test_health_feeding_overview_localizes_german(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Health-aware feeding overview should render localized German strings."""
+
+    hass.config.language = "de"
+    templates = DashboardTemplates(hass)
+    generator = HealthAwareFeedingCardGenerator(hass, templates)
+
+    async def _fake_exists(entity_id: str) -> bool:
+        return True
+
+    async def _fake_validate(entities: list[str], use_cache: bool = True) -> list[str]:
+        return list(entities)
+
+    monkeypatch.setattr(generator, "_entity_exists_cached", _fake_exists)
+    monkeypatch.setattr(generator, "_validate_entities_batch", _fake_validate)
+
+    dog_config: DogConfigData = {
+        CONF_DOG_ID: "bella",
+        CONF_DOG_NAME: "Bella",
+        "modules": {MODULE_HEALTH: True, MODULE_FEEDING: True},
+    }
+
+    cards = await generator.generate_health_feeding_overview(dog_config, {})
+
+    assert len(cards) == 4
+    status_card = cards[0]
+    assert status_card["title"] == "🔬 Bella Gesundheitsfütterung"
+    status_names = [entity["name"] for entity in status_card["entities"]]
+    assert status_names == [
+        "Gesundheitsstatus",
+        "Kalorienziel",
+        "Kalorien heute",
+        "Portionsanpassung",
+    ]
+
+    calorie_card = cards[1]
+    assert calorie_card["title"] == "📊 Kalorienverlauf"
+
+    weight_stack = cards[2]
+    assert weight_stack["cards"][0]["title"] == "⚖️ Gewichtsmanagement"
+    assert weight_stack["cards"][1]["name"] == "Fortschritt des Gewichtsziels"
+
+    portion_stack = cards[3]
+    portion_markdown = portion_stack["cards"][0]["content"]
+    assert "Gesundheitsanpassungen" in portion_markdown
+    buttons = portion_stack["cards"][1]["cards"]
+    button_names = [button["name"] for button in buttons]
+    assert "Neu berechnen" in button_names
+    assert "Gesundheitsdaten aktualisieren" in button_names
+
+
+@pytest.mark.asyncio
+async def test_module_health_cards_localize_titles(
+    hass: HomeAssistant, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Health module cards should emit localized German titles and buttons."""
+
+    hass.config.language = "de"
+    templates = DashboardTemplates(hass)
+    generator = ModuleCardGenerator(hass, templates)
+
+    async def _fake_validate(entities: list[str], use_cache: bool = True) -> list[str]:
+        return list(entities)
+
+    async def _fake_exists(entity_id: str) -> bool:
+        return True
+
+    captured_history: dict[str, str] = {}
+
+    async def _fake_history(
+        entities: list[str], title: str, hours_to_show: int, theme: str = "modern"
+    ) -> dict[str, object]:
+        captured_history["title"] = title
+        return {"type": "history-graph", "title": title, "entities": entities}
+
+    monkeypatch.setattr(generator, "_validate_entities_batch", _fake_validate)
+    monkeypatch.setattr(generator, "_entity_exists_cached", _fake_exists)
+    monkeypatch.setattr(templates, "get_history_graph_template", _fake_history)
+
+    dog_config: DogConfigData = {
+        CONF_DOG_ID: "bella",
+        CONF_DOG_NAME: "Bella",
+        "modules": {MODULE_HEALTH: True},
+    }
+
+    cards = await generator.generate_health_cards(dog_config, {})
+
+    assert len(cards) == 4
+    metrics_card, buttons_card, weight_card, schedule_card = cards
+
+    assert metrics_card["title"] == "Gesundheitsmetriken"
+    button_names = [card["name"] for card in buttons_card["cards"]]
+    assert "Gesundheit protokollieren" in button_names
+    assert "Medikation protokollieren" in button_names
+
+    assert weight_card["title"] == "Gewichtsverlauf (30 Tage)"
+    assert captured_history["title"] == "Gewichtsverlauf (30 Tage)"
+
+    assert schedule_card["title"] == "Gesundheitsplan"
+
+
+@pytest.mark.asyncio
+async def test_weather_health_cards_localize_german(hass: HomeAssistant) -> None:
+    """Weather health dashboards should localize titles and entity names."""
+
+    hass.config.language = "de"
+    templates = DashboardTemplates(hass)
+
+    status_card = await templates.get_weather_status_card_template(
+        "fido", "Fido", compact=False
+    )
+    assert status_card["title"].endswith("Wettergesundheit")
+    entity_names = [entity["name"] for entity in status_card["entities"]]
+    assert "Gesundheitswert" in entity_names
+    assert "Temperaturrisiko" in entity_names
+    assert "Aktivitätsniveau" in entity_names
+    assert "Spaziersicherheit" in entity_names
+
+    compact_card = await templates.get_weather_status_card_template(
+        "fido", "Fido", compact=True
+    )
+    assert compact_card["name"].endswith("Wettergesundheit")
+
+    chart_card = await templates.get_weather_chart_template(
+        "fido", chart_type="health_score"
+    )
+    assert chart_card["name"] == "Wettergesundheitswirkung"
+    assert chart_card["entities"][0]["name"] == "Gesundheitswert"

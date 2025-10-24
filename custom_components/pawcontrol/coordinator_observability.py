@@ -10,6 +10,7 @@ from typing import Any
 
 from .coordinator_runtime import EntityBudgetSnapshot, summarize_entity_budgets
 from .coordinator_tasks import default_rejection_metrics, derive_rejection_metrics
+from .telemetry import summarise_bool_coercion_metrics
 from .types import CoordinatorRejectionMetrics
 
 _LOGGER = getLogger(__name__)
@@ -123,13 +124,16 @@ def build_performance_snapshot(
         snapshot["resilience_summary"] = resilience_payload
 
     snapshot["rejection_metrics"] = dict(rejection_metrics)
-    snapshot["performance_metrics"].update(
-        {
-            key: value
-            for key, value in rejection_metrics.items()
-            if key != "schema_version" and not isinstance(value, list)
-        }
-    )
+    performance_metrics = snapshot["performance_metrics"]
+    for key, value in rejection_metrics.items():
+        if key == "schema_version":
+            continue
+        if isinstance(value, list):
+            performance_metrics[key] = list(value)
+            continue
+        performance_metrics[key] = value
+
+    snapshot["bool_coercion"] = dict(summarise_bool_coercion_metrics())
 
     return snapshot
 

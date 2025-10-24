@@ -91,6 +91,7 @@ from .device_api import validate_device_endpoint
 from .door_sensor_manager import ensure_door_sensor_settings_config
 from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .exceptions import ValidationError
+from .grooming_translations import translated_grooming_label
 from .repairs import (
     ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE,
     async_create_issue,
@@ -2609,6 +2610,12 @@ class PawControlOptionsFlow(OptionsFlow):
         current_modules = ensure_dog_modules_mapping(self._current_dog)
         current_modules_dict = dict(current_modules)
 
+        hass_language: str | None = None
+        if self.hass is not None:
+            hass_config = getattr(self.hass, "config", None)
+            if hass_config is not None:
+                hass_language = getattr(hass_config, "language", None)
+
         # Calculate current entity count
         current_estimate = self._entity_factory.estimate_entity_count(
             current_profile, current_modules_dict
@@ -2623,13 +2630,21 @@ class PawControlOptionsFlow(OptionsFlow):
             "notifications": "Alerts, reminders, status notifications",
             "dashboard": "Custom dashboard generation",
             "visitor": "Visitor mode for reduced monitoring",
-            "grooming": "Grooming schedule and tracking",
+            "grooming": translated_grooming_label(
+                hass_language, "module_summary_description"
+            ),
             "medication": "Medication reminders and tracking",
             "training": "Training progress and notes",
         }
 
+        module_labels = {
+            "grooming": translated_grooming_label(
+                hass_language, "module_summary_label"
+            )
+        }
+
         enabled_modules = [
-            f"• {module}: {module_descriptions.get(module, 'Module functionality')}"
+            f"• {module_labels.get(module, module)}: {module_descriptions.get(module, 'Module functionality')}"
             for module, enabled in current_modules_dict.items()
             if enabled
         ]

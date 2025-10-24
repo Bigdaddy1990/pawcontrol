@@ -42,6 +42,163 @@ from .types import (
     coerce_dog_modules_config,
 )
 
+_STATISTICS_EMPTY_LIST_TRANSLATIONS: Final[Mapping[str, str]] = {
+    "en": "none",
+    "de": "keine",
+}
+
+_STATISTICS_FALLBACK_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
+    "no_rejection_rate": {
+        "en": "n/a",
+        "de": "nicht verfügbar",
+    },
+    "no_last_rejection": {
+        "en": "never",
+        "de": "nie",
+    },
+}
+
+_NOTIFICATION_LABEL_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
+    "sent_today": {
+        "en": "Notifications Sent Today",
+        "de": "Heute gesendete Benachrichtigungen",
+    },
+    "failed_deliveries": {
+        "en": "Failed Deliveries",
+        "de": "Fehlgeschlagene Zustellungen",
+    },
+    "quiet_hours_active": {
+        "en": "Quiet Hours Active",
+        "de": "Ruhezeiten aktiv",
+    },
+    "preferred_channels": {
+        "en": "Preferred Channels",
+        "de": "Bevorzugte Kanäle",
+    },
+    "recent_notification": {
+        "en": "Recent Notification",
+        "de": "Letzte Benachrichtigung",
+    },
+    "type": {"en": "Type", "de": "Typ"},
+    "priority": {"en": "Priority", "de": "Priorität"},
+    "sent": {"en": "Sent", "de": "Gesendet"},
+    "send_test_notification": {
+        "en": "Send Test Notification",
+        "de": "Testbenachrichtigung senden",
+    },
+    "reset_quiet_hours": {
+        "en": "Reset Quiet Hours",
+        "de": "Ruhezeiten zurücksetzen",
+    },
+}
+
+_NOTIFICATION_TEMPLATE_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
+    "overview_heading": {
+        "en": "Notification Overview for {dog_name}",
+        "de": "Benachrichtigungsübersicht für {dog_name}",
+    },
+    "settings_title": {
+        "en": "{dog_name} Notification Controls",
+        "de": "{dog_name} Benachrichtigungssteuerung",
+    },
+}
+
+_NOTIFICATION_FALLBACK_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
+    "default_channels": {
+        "en": "Using default integration channels",
+        "de": "Verwendet Standardkanäle der Integration",
+    },
+    "no_notifications": {
+        "en": "No notifications recorded for this dog yet.",
+        "de": "Für diesen Hund wurden noch keine Benachrichtigungen aufgezeichnet.",
+    },
+    "unknown_value": {"en": "unknown", "de": "unbekannt"},
+    "default_priority": {"en": "Normal", "de": "Normal"},
+    "diagnostics_title": {
+        "en": "PawControl Diagnostics",
+        "de": "PawControl-Diagnose",
+    },
+    "diagnostics_message": {
+        "en": "Test notification from dashboard",
+        "de": "Testbenachrichtigung vom Dashboard",
+    },
+}
+
+_FEEDING_LABEL_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
+    "feeding_schedule": {"en": "Feeding Schedule", "de": "Fütterungsplan"},
+    "meal_breakfast": {"en": "Breakfast", "de": "Frühstück"},
+    "meal_lunch": {"en": "Lunch", "de": "Mittagessen"},
+    "meal_dinner": {"en": "Dinner", "de": "Abendessen"},
+    "meal_snack": {"en": "Snack", "de": "Snack"},
+}
+
+_HEALTH_LABEL_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
+    "health_check_button": {"en": "Health Check", "de": "Gesundheitsprüfung"},
+    "health_metrics": {"en": "Health Metrics", "de": "Gesundheitsmetriken"},
+    "weight": {"en": "Weight", "de": "Gewicht"},
+    "health_score": {"en": "Health Score", "de": "Gesundheitswert"},
+    "health_gauge": {"en": "Health", "de": "Gesundheit"},
+    "activity": {"en": "Activity", "de": "Aktivität"},
+    "health_trends": {"en": "Health Trends", "de": "Gesundheitsverlauf"},
+    "timeline_last_health_check": {
+        "en": "Last Health Check",
+        "de": "Letzte Gesundheitsprüfung",
+    },
+    "weather_health_score": {
+        "en": "Health Score",
+        "de": "Gesundheitswert",
+    },
+    "temperature_risk": {
+        "en": "Temperature Risk",
+        "de": "Temperaturrisiko",
+    },
+    "activity_level": {
+        "en": "Activity Level",
+        "de": "Aktivitätsniveau",
+    },
+    "walk_safety": {"en": "Walk Safety", "de": "Spaziersicherheit"},
+}
+
+_HEALTH_TEMPLATE_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
+    "statistics_health_section": {
+        "en": """### ❤️ Health
+- **Weight**: {{{{ states('sensor.{dog_id}_weight') }}}} kg
+- **Health Score**: {{{{ states('sensor.{dog_id}_health_score') }}}}/100
+- **Activity Level**: {{{{ states('sensor.{dog_id}_activity_level') }}}}
+""",
+        "de": """### ❤️ Gesundheit
+- **Gewicht**: {{{{ states('sensor.{dog_id}_weight') }}}} kg
+- **Gesundheitswert**: {{{{ states('sensor.{dog_id}_health_score') }}}}/100
+- **Aktivitätsniveau**: {{{{ states('sensor.{dog_id}_activity_level') }}}}
+""",
+    },
+    "weather_health_compact_name": {
+        "en": "{icon} Weather Health",
+        "de": "{icon} Wettergesundheit",
+    },
+    "weather_health_card_title": {
+        "en": "{icon} {dog_name} Weather Health",
+        "de": "{icon} {dog_name} Wettergesundheit",
+    },
+    "weather_health_chart_title": {
+        "en": "Weather Health Impact",
+        "de": "Wettergesundheitswirkung",
+    },
+}
+
+
+def _format_breaker_list(entries: Sequence[str], language: str | None) -> str:
+    """Return a human readable summary for breaker identifier lists."""
+
+    if entries:
+        return ", ".join(entries)
+
+    normalized_language = _normalize_language(language)
+    if normalized_language in _STATISTICS_EMPTY_LIST_TRANSLATIONS:
+        return _STATISTICS_EMPTY_LIST_TRANSLATIONS[normalized_language]
+
+    return _STATISTICS_EMPTY_LIST_TRANSLATIONS.get("en", "none")
+
 
 class WeatherThemeConfig(TypedDict):
     """Color palette for weather dashboards."""
@@ -143,6 +300,209 @@ class NotificationOverviewAttributes(TypedDict, total=False):
 
 
 _LOGGER = logging.getLogger(__name__)
+
+_STATISTICS_LABEL_TRANSLATIONS: Final[dict[str, Mapping[str, str]]] = {
+    "statistics_header": {
+        "en": "Paw Control Statistics",
+        "de": "Paw Control Statistiken",
+    },
+    "dogs_managed": {"en": "Dogs managed", "de": "Verwaltete Hunde"},
+    "active_modules": {"en": "Active modules", "de": "Aktive Module"},
+    "module_feeding": {"en": "Feeding", "de": "Fütterung"},
+    "module_walks": {"en": "Walks", "de": "Spaziergänge"},
+    "module_health": {"en": "Health", "de": "Gesundheit"},
+    "module_gps": {"en": "GPS", "de": "GPS"},
+    "module_notifications": {
+        "en": "Notifications",
+        "de": "Benachrichtigungen",
+    },
+    "last_updated": {"en": "Last updated", "de": "Zuletzt aktualisiert"},
+    "summary_card_title": {"en": "Summary", "de": "Zusammenfassung"},
+    "resilience_metrics_header": {
+        "en": "Resilience metrics",
+        "de": "Resilienzmetriken",
+    },
+    "rejected_calls": {
+        "en": "Rejected calls",
+        "de": "Abgelehnte Aufrufe",
+    },
+    "rejecting_breakers": {
+        "en": "Rejecting breakers",
+        "de": "Blockierende Breaker",
+    },
+    "rejection_rate": {
+        "en": "Rejection rate",
+        "de": "Ablehnungsrate",
+    },
+    "last_rejection": {
+        "en": "Last rejection",
+        "de": "Letzte Ablehnung",
+    },
+    "open_breaker_names": {"en": "Open breaker names", "de": "Namen offener Breaker"},
+    "half_open_breaker_names": {
+        "en": "Half-open breaker names",
+        "de": "Namen halb geöffneter Breaker",
+    },
+    "unknown_breaker_names": {
+        "en": "Unknown breaker names",
+        "de": "Namen unbekannter Breaker",
+    },
+    "rejection_breaker_names": {
+        "en": "Rejecting breaker names",
+        "de": "Namen blockierender Breaker",
+    },
+    "open_breaker_ids": {"en": "Open breaker IDs", "de": "IDs offener Breaker"},
+    "half_open_breaker_ids": {
+        "en": "Half-open breaker IDs",
+        "de": "IDs halb geöffneter Breaker",
+    },
+    "unknown_breaker_ids": {
+        "en": "Unknown breaker IDs",
+        "de": "IDs unbekannter Breaker",
+    },
+    "rejection_breaker_ids": {
+        "en": "Rejecting breaker IDs",
+        "de": "IDs blockierender Breaker",
+    },
+    "last_rejecting_breaker": {
+        "en": "Last rejecting breaker",
+        "de": "Letzter blockierender Breaker",
+    },
+}
+
+
+def _normalize_language(language: str | None) -> str:
+    """Return the lowercase language code expected by the label map."""
+
+    if not language:
+        return "en"
+
+    primary, _, _ = language.partition("-")
+    normalized = primary.strip().lower()
+    return normalized or "en"
+
+
+def _translated_statistics_fallback(
+    language: str | None, label: str, default: str
+) -> str:
+    """Return a localized fallback string for statistics summaries."""
+
+    translations = _STATISTICS_FALLBACK_TRANSLATIONS.get(label)
+    if translations is None:
+        return default
+
+    normalized_language = _normalize_language(language)
+    if normalized_language in translations:
+        return translations[normalized_language]
+
+    return translations.get("en", default)
+
+
+def _translated_statistics_label(language: str | None, label: str) -> str:
+    """Return a localized statistics label for the configured language."""
+
+    translations = _STATISTICS_LABEL_TRANSLATIONS.get(label)
+    if translations is None:
+        return label
+
+    normalized_language = _normalize_language(language)
+    if normalized_language in translations:
+        return translations[normalized_language]
+
+    return translations.get("en", label)
+
+
+def _translated_notification_label(language: str | None, label: str) -> str:
+    """Return a localized notification dashboard label."""
+
+    translations = _NOTIFICATION_LABEL_TRANSLATIONS.get(label)
+    if translations is None:
+        return label
+
+    normalized_language = _normalize_language(language)
+    if normalized_language in translations:
+        return translations[normalized_language]
+
+    return translations.get("en", label)
+
+
+def _translated_notification_template(
+    language: str | None, template: str, **values: str,
+) -> str:
+    """Return a formatted notification dashboard template string."""
+
+    translations = _NOTIFICATION_TEMPLATE_TRANSLATIONS.get(template)
+    if translations is None:
+        return template.format(**values)
+
+    normalized_language = _normalize_language(language)
+    template_value = translations.get(normalized_language)
+    if template_value is None:
+        template_value = translations.get("en", template)
+
+    return template_value.format(**values)
+
+
+def _translated_notification_fallback(
+    language: str | None, label: str, default: str,
+) -> str:
+    """Return a localized fallback string for notification dashboards."""
+
+    translations = _NOTIFICATION_FALLBACK_TRANSLATIONS.get(label)
+    if translations is None:
+        return default
+
+    normalized_language = _normalize_language(language)
+    if normalized_language in translations:
+        return translations[normalized_language]
+
+    return translations.get("en", default)
+
+
+def _translated_feeding_label(language: str | None, label: str) -> str:
+    """Return a localized feeding dashboard label."""
+
+    translations = _FEEDING_LABEL_TRANSLATIONS.get(label)
+    if translations is None:
+        return label
+
+    normalized_language = _normalize_language(language)
+    if normalized_language in translations:
+        return translations[normalized_language]
+
+    return translations.get("en", label)
+
+
+def _translated_health_label(language: str | None, label: str) -> str:
+    """Return a localized health dashboard label."""
+
+    translations = _HEALTH_LABEL_TRANSLATIONS.get(label)
+    if translations is None:
+        return label
+
+    normalized_language = _normalize_language(language)
+    if normalized_language in translations:
+        return translations[normalized_language]
+
+    return translations.get("en", label)
+
+
+def _translated_health_template(
+    language: str | None, template: str, **values: object
+) -> str:
+    """Return a localized health dashboard template string."""
+
+    translations = _HEALTH_TEMPLATE_TRANSLATIONS.get(template)
+    if translations is None:
+        return template.format(**values)
+
+    normalized_language = _normalize_language(language)
+    template_value = translations.get(normalized_language)
+    if template_value is None:
+        template_value = translations.get("en", template)
+
+    return template_value.format(**values)
+
 
 # Weather dashboard constants
 WEATHER_THEMES: Final[dict[str, WeatherThemeConfig]] = {
@@ -984,11 +1344,12 @@ class DashboardTemplates:
             if theme == "modern"
             else button_style
         )
+        hass_language: str | None = getattr(self.hass.config, "language", None)
 
         return {
             **base_button,
             **health_style,
-            "name": "Health Check",
+            "name": _translated_health_label(hass_language, "health_check_button"),
             "icon": "mdi:heart-pulse",
             "icon_color": theme_styles["colors"]["accent"],
             "tap_action": {
@@ -1268,6 +1629,7 @@ class DashboardTemplates:
             Statistics card template
         """
         theme_styles = self._get_theme_styles(theme)
+        hass_language: str | None = getattr(self.hass.config, "language", None)
 
         # Build statistics based on enabled modules
         stats_content = f"## 📊 {dog_name} Statistics\n\n"
@@ -1289,12 +1651,9 @@ class DashboardTemplates:
 """
 
         if modules.get("health"):
-            stats_content += f"""
-### ❤️ Health
-- **Weight**: {{{{ states('sensor.{dog_id}_weight') }}}} kg
-- **Health Score**: {{{{ states('sensor.{dog_id}_health_score') }}}}/100
-- **Activity Level**: {{{{ states('sensor.{dog_id}_activity_level') }}}}
-"""
+            stats_content += _translated_health_template(
+                hass_language, "statistics_health_section", dog_id=dog_id
+            )
 
         template: CardConfig = {
             "type": "markdown",
@@ -1361,20 +1720,59 @@ class DashboardTemplates:
                 if modules.get(module_name):
                     module_counts[module_name] += 1
 
+        hass_language: str | None = getattr(self.hass.config, "language", None)
+
+        statistics_header = _translated_statistics_label(
+            hass_language, "statistics_header"
+        )
+        dogs_managed_label = _translated_statistics_label(
+            hass_language, "dogs_managed"
+        )
+        active_modules_label = _translated_statistics_label(
+            hass_language, "active_modules"
+        )
+        module_labels = {
+            MODULE_FEEDING: _translated_statistics_label(
+                hass_language, "module_feeding"
+            ),
+            MODULE_WALK: _translated_statistics_label(
+                hass_language, "module_walks"
+            ),
+            MODULE_HEALTH: _translated_statistics_label(
+                hass_language, "module_health"
+            ),
+            MODULE_GPS: _translated_statistics_label(
+                hass_language, "module_gps"
+            ),
+            MODULE_NOTIFICATIONS: _translated_statistics_label(
+                hass_language, "module_notifications"
+            ),
+        }
+        last_updated_label = _translated_statistics_label(
+            hass_language, "last_updated"
+        )
+
         content_lines = [
-            "## Paw Control Statistics",
+            f"## {statistics_header}",
             "",
-            f"**Dogs managed:** {len(typed_dogs)}",
+            f"**{dogs_managed_label}:** {len(typed_dogs)}",
             "",
-            "**Active modules:**",
-            f"- Feeding: {module_counts[MODULE_FEEDING]}",
-            f"- Walks: {module_counts[MODULE_WALK]}",
-            f"- Health: {module_counts[MODULE_HEALTH]}",
-            f"- GPS: {module_counts[MODULE_GPS]}",
-            f"- Notifications: {module_counts[MODULE_NOTIFICATIONS]}",
-            "",
-            "*Last updated: {{ now().strftime('%Y-%m-%d %H:%M') }}*",
+            f"**{active_modules_label}:**",
         ]
+
+        for module_name, count in module_counts.items():
+            content_lines.append(f"- {module_labels[module_name]}: {count}")
+
+        content_lines.extend(
+            [
+                "",
+                (
+                    "*"
+                    + last_updated_label
+                    + ": {{ now().strftime('%Y-%m-%d %H:%M') }}*"
+                ),
+            ]
+        )
 
         metrics_payload: CoordinatorRejectionMetrics | None = None
         if isinstance(coordinator_statistics, Mapping):
@@ -1383,13 +1781,24 @@ class DashboardTemplates:
                 metrics_payload = derive_rejection_metrics(raw_metrics)
 
         if metrics_payload is not None:
+            last_rejection_value = metrics_payload["last_rejection_time"]
+            has_rejection_history = (
+                metrics_payload["rejected_call_count"] > 0
+                or metrics_payload["rejection_breaker_count"] > 0
+                or last_rejection_value is not None
+            )
+
             rejection_rate = metrics_payload["rejection_rate"]
-            if rejection_rate is not None and isfinite(rejection_rate):
+            if (
+                has_rejection_history
+                and rejection_rate is not None
+                and isfinite(rejection_rate)
+            ):
                 rate_display = f"{rejection_rate * 100:.2f}%"
             else:
-                rate_display = "n/a"
-
-            last_rejection_value = metrics_payload["last_rejection_time"]
+                rate_display = _translated_statistics_fallback(
+                    hass_language, "no_rejection_rate", "n/a"
+                )
             if last_rejection_value is not None:
                 try:
                     last_rejection_iso = datetime.fromtimestamp(
@@ -1399,36 +1808,111 @@ class DashboardTemplates:
                 except Exception:  # pragma: no cover - defensive guard
                     last_rejection_iso = str(last_rejection_value)
             else:
-                last_rejection_iso = "never"
+                last_rejection_iso = _translated_statistics_fallback(
+                    hass_language, "no_last_rejection", "never"
+                )
 
-            breaker_label = (
+            breaker_label_value = (
                 metrics_payload["last_rejection_breaker_name"]
                 or metrics_payload["last_rejection_breaker_id"]
-                or "n/a"
             )
 
+            resilience_header = _translated_statistics_label(
+                hass_language, "resilience_metrics_header"
+            )
             content_lines.extend(
                 [
                     "",
-                    "### Resilience metrics",
-                    (f"- Rejected calls: {metrics_payload['rejected_call_count']}"),
+                    f"### {resilience_header}",
                     (
-                        "- Rejecting breakers: "
-                        f"{metrics_payload['rejection_breaker_count']}"
+                        "- "
+                        + _translated_statistics_label(
+                            hass_language, "rejected_calls"
+                        )
+                        + f": {metrics_payload['rejected_call_count']}"
                     ),
-                    f"- Rejection rate: {rate_display}",
-                    f"- Last rejection: {last_rejection_iso}",
+                    (
+                        "- "
+                        + _translated_statistics_label(
+                            hass_language, "rejecting_breakers"
+                        )
+                        + f": {metrics_payload['rejection_breaker_count']}"
+                    ),
+                    (
+                        "- "
+                        + _translated_statistics_label(
+                            hass_language, "rejection_rate"
+                        )
+                        + f": {rate_display}"
+                    ),
+                    (
+                        "- "
+                        + _translated_statistics_label(
+                            hass_language, "last_rejection"
+                        )
+                        + f": {last_rejection_iso}"
+                    ),
                 ]
             )
 
-            if breaker_label != "n/a":
-                content_lines.append(f"- Last rejecting breaker: {breaker_label}")
+            if breaker_label_value:
+                content_lines.append(
+                    "- "
+                    + _translated_statistics_label(
+                        hass_language, "last_rejecting_breaker"
+                    )
+                    + f": {breaker_label_value}"
+                )
+
+            breaker_name_lists = {
+                _translated_statistics_label(
+                    hass_language, "open_breaker_names"
+                ): metrics_payload["open_breakers"],
+                _translated_statistics_label(
+                    hass_language, "half_open_breaker_names"
+                ): metrics_payload["half_open_breakers"],
+                _translated_statistics_label(
+                    hass_language, "unknown_breaker_names"
+                ): metrics_payload["unknown_breakers"],
+                _translated_statistics_label(
+                    hass_language, "rejection_breaker_names"
+                ): metrics_payload["rejection_breakers"],
+            }
+
+            for label, breaker_names in breaker_name_lists.items():
+                content_lines.append(
+                    f"- {label}: {_format_breaker_list(breaker_names, hass_language)}"
+                )
+
+            breaker_lists = {
+                _translated_statistics_label(
+                    hass_language, "open_breaker_ids"
+                ): metrics_payload["open_breaker_ids"],
+                _translated_statistics_label(
+                    hass_language, "half_open_breaker_ids"
+                ): metrics_payload["half_open_breaker_ids"],
+                _translated_statistics_label(
+                    hass_language, "unknown_breaker_ids"
+                ): metrics_payload["unknown_breaker_ids"],
+                _translated_statistics_label(
+                    hass_language, "rejection_breaker_ids"
+                ): metrics_payload["rejection_breaker_ids"],
+            }
+
+            for label, breaker_ids in breaker_lists.items():
+                content_lines.append(
+                    f"- {label}: {_format_breaker_list(breaker_ids, hass_language)}"
+                )
 
         theme_styles = self._get_theme_styles(theme)
 
+        summary_title = _translated_statistics_label(
+            hass_language, "summary_card_title"
+        )
+
         return {
             "type": "markdown",
-            "title": "Summary",
+            "title": summary_title,
             "content": "\n".join(content_lines),
             "card_mod": self._card_mod(theme_styles),
         }
@@ -1446,10 +1930,14 @@ class DashboardTemplates:
             return None
 
         theme_styles = self._get_theme_styles(theme)
+        hass_language: str | None = getattr(self.hass.config, "language", None)
+        title_text = _translated_notification_template(
+            hass_language, "settings_title", dog_name=dog_name
+        )
 
         return {
             "type": "entities",
-            "title": f"🔔 {dog_name} Notification Controls",
+            "title": f"🔔 {title_text}",
             "entities": list(entities),
             "state_color": True,
             "card_mod": self._card_mod(theme_styles),
@@ -1465,6 +1953,7 @@ class DashboardTemplates:
 
         theme_styles = self._get_theme_styles(theme)
         card_mod = self._card_mod(theme_styles)
+        hass_language: str | None = getattr(self.hass.config, "language", None)
 
         notifications_state = self.hass.states.get("sensor.pawcontrol_notifications")
         metrics, per_dog = self._normalise_notifications_state(notifications_state)
@@ -1484,43 +1973,102 @@ class DashboardTemplates:
 
         quiet_hours_display = "✅" if quiet_hours_active else "❌"
 
+        overview_heading = _translated_notification_template(
+            hass_language, "overview_heading", dog_name=dog_name
+        )
         content_lines = [
-            f"## 🔔 Notification Overview for {dog_name}",
+            f"## 🔔 {overview_heading}",
             "",
-            f"**Notifications Sent Today:** {sent_today}",
-            f"**Failed Deliveries:** {failed_deliveries}",
-            f"**Quiet Hours Active:** {quiet_hours_display}",
+            (
+                "**"
+                + _translated_notification_label(hass_language, "sent_today")
+                + f":** {sent_today}"
+            ),
+            (
+                "**"
+                + _translated_notification_label(hass_language, "failed_deliveries")
+                + f":** {failed_deliveries}"
+            ),
+            (
+                "**"
+                + _translated_notification_label(hass_language, "quiet_hours_active")
+                + f":** {quiet_hours_display}"
+            ),
             "",
-            "### Preferred Channels",
+            "### "
+            + _translated_notification_label(hass_language, "preferred_channels"),
         ]
 
         if channels:
             content_lines.extend(f"• {channel.capitalize()}" for channel in channels)
         else:
-            content_lines.append("• Using default integration channels")
+            content_lines.append(
+                "• "
+                + _translated_notification_fallback(
+                    hass_language,
+                    "default_channels",
+                    "Using default integration channels",
+                )
+            )
 
         content_lines.append("")
-        content_lines.append("### Recent Notification")
+        content_lines.append(
+            "### "
+            + _translated_notification_label(hass_language, "recent_notification")
+        )
         if last_notification:
-            notification_type = str(
-                last_notification.get("type", "unknown") or "unknown"
+            notification_type_raw = last_notification.get("type")
+            notification_type = (
+                str(notification_type_raw)
+                if notification_type_raw not in (None, "")
+                else _translated_notification_fallback(
+                    hass_language, "unknown_value", "unknown"
+                )
             )
             priority_raw = last_notification.get("priority", "normal")
             priority = (
-                str(priority_raw).capitalize() if priority_raw is not None else "Normal"
+                str(priority_raw).capitalize()
+                if priority_raw not in (None, "")
+                else _translated_notification_fallback(
+                    hass_language, "default_priority", "Normal"
+                )
             )
             sent_at_raw = last_notification.get("sent_at", "unknown")
-            sent_at = str(sent_at_raw) if sent_at_raw is not None else "unknown"
+            sent_at = (
+                str(sent_at_raw)
+                if sent_at_raw not in (None, "")
+                else _translated_notification_fallback(
+                    hass_language, "unknown_value", "unknown"
+                )
+            )
 
             content_lines.extend(
                 [
-                    f"- **Type:** {notification_type}",
-                    f"- **Priority:** {priority}",
-                    f"- **Sent:** {sent_at}",
+                    (
+                        "- **"
+                        + _translated_notification_label(hass_language, "type")
+                        + f":** {notification_type}"
+                    ),
+                    (
+                        "- **"
+                        + _translated_notification_label(hass_language, "priority")
+                        + f":** {priority}"
+                    ),
+                    (
+                        "- **"
+                        + _translated_notification_label(hass_language, "sent")
+                        + f":** {sent_at}"
+                    ),
                 ]
             )
         else:
-            content_lines.append("No notifications recorded for this dog yet.")
+            content_lines.append(
+                _translated_notification_fallback(
+                    hass_language,
+                    "no_notifications",
+                    "No notifications recorded for this dog yet.",
+                )
+            )
 
         content = "\n".join(content_lines)
 
@@ -1539,11 +2087,14 @@ class DashboardTemplates:
 
         theme_styles = self._get_theme_styles(theme)
         base_button = self._get_base_card_template("button")
+        hass_language: str | None = getattr(self.hass.config, "language", None)
 
         buttons: CardCollection = [
             {
                 **base_button,
-                "name": "Send Test Notification",
+                "name": _translated_notification_label(
+                    hass_language, "send_test_notification"
+                ),
                 "icon": "mdi:bell-check",
                 "tap_action": {
                     "action": "call-service",
@@ -1551,14 +2102,24 @@ class DashboardTemplates:
                     "service_data": {
                         "dog_id": dog_id,
                         "notification_type": "system_info",
-                        "title": "PawControl Diagnostics",
-                        "message": "Test notification from dashboard",
+                        "title": _translated_notification_fallback(
+                            hass_language,
+                            "diagnostics_title",
+                            "PawControl Diagnostics",
+                        ),
+                        "message": _translated_notification_fallback(
+                            hass_language,
+                            "diagnostics_message",
+                            "Test notification from dashboard",
+                        ),
                     },
                 },
             },
             {
                 **base_button,
-                "name": "Reset Quiet Hours",
+                "name": _translated_notification_label(
+                    hass_language, "reset_quiet_hours"
+                ),
                 "icon": "mdi:weather-night",
                 "tap_action": {
                     "action": "call-service",
@@ -1593,13 +2154,17 @@ class DashboardTemplates:
             Feeding schedule card template
         """
         theme_styles = self._get_theme_styles(theme)
+        hass_language: str | None = getattr(self.hass.config, "language", None)
+        schedule_label = _translated_feeding_label(
+            hass_language, "feeding_schedule"
+        )
 
         template: CardConfig
         if theme == "modern":
             # Use a clean timeline view
             template = {
                 "type": "custom:scheduler-card",
-                "title": "🍽️ Feeding Schedule",
+                "title": f"🍽️ {schedule_label}",
                 "discover_existing": False,
                 "standard_configuration": True,
                 "entities": [f"sensor.{dog_id}_feeding_schedule"],
@@ -1612,7 +2177,7 @@ class DashboardTemplates:
             # Minimal text-based schedule
             template = {
                 "type": "entities",
-                "title": "Feeding Schedule",
+                "title": schedule_label,
                 "entities": [
                     f"sensor.{dog_id}_breakfast_time",
                     f"sensor.{dog_id}_lunch_time",
@@ -1636,12 +2201,33 @@ class DashboardTemplates:
         """
         base_button = self._get_base_card_template("button")
         self._get_theme_styles(theme)
+        hass_language: str | None = getattr(self.hass.config, "language", None)
 
         meal_types = [
-            ("breakfast", "Breakfast", "mdi:weather-sunny", "#FFA726"),
-            ("lunch", "Lunch", "mdi:weather-partly-cloudy", "#66BB6A"),
-            ("dinner", "Dinner", "mdi:weather-night", "#5C6BC0"),
-            ("snack", "Snack", "mdi:cookie", "#EC407A"),
+            (
+                "breakfast",
+                _translated_feeding_label(hass_language, "meal_breakfast"),
+                "mdi:weather-sunny",
+                "#FFA726",
+            ),
+            (
+                "lunch",
+                _translated_feeding_label(hass_language, "meal_lunch"),
+                "mdi:weather-partly-cloudy",
+                "#66BB6A",
+            ),
+            (
+                "dinner",
+                _translated_feeding_label(hass_language, "meal_dinner"),
+                "mdi:weather-night",
+                "#5C6BC0",
+            ),
+            (
+                "snack",
+                _translated_feeding_label(hass_language, "meal_snack"),
+                "mdi:cookie",
+                "#EC407A",
+            ),
         ]
 
         buttons: CardCollection = []
@@ -1734,22 +2320,25 @@ class DashboardTemplates:
             Health charts template
         """
         theme_styles = self._get_theme_styles(theme)
+        hass_language: str | None = getattr(self.hass.config, "language", None)
 
         template: CardConfig
         if theme in ["modern", "dark"]:
             # Use advanced graph card
             template = {
                 "type": "custom:mini-graph-card",
-                "name": "Health Metrics",
+                "name": _translated_health_label(hass_language, "health_metrics"),
                 "entities": [
                     {
                         "entity": f"sensor.{dog_id}_weight",
-                        "name": "Weight",
+                        "name": _translated_health_label(hass_language, "weight"),
                         "color": theme_styles["colors"]["primary"],
                     },
                     {
                         "entity": f"sensor.{dog_id}_health_score",
-                        "name": "Health Score",
+                        "name": _translated_health_label(
+                            hass_language, "health_score"
+                        ),
                         "color": theme_styles["colors"]["accent"],
                         "y_axis": "secondary",
                     },
@@ -1775,7 +2364,9 @@ class DashboardTemplates:
                     {
                         "type": "gauge",
                         "entity": f"sensor.{dog_id}_health_score",
-                        "name": "Health",
+                        "name": _translated_health_label(
+                            hass_language, "health_gauge"
+                        ),
                         "min": 0,
                         "max": 100,
                         "severity": {
@@ -1795,7 +2386,9 @@ class DashboardTemplates:
                     {
                         "type": "gauge",
                         "entity": f"sensor.{dog_id}_activity_level",
-                        "name": "Activity",
+                        "name": _translated_health_label(
+                            hass_language, "activity"
+                        ),
                         "min": 0,
                         "max": 100,
                         "severity": {
@@ -1818,7 +2411,9 @@ class DashboardTemplates:
             # Minimal line graph
             template = {
                 "type": "history-graph",
-                "title": "Health Trends",
+                "title": _translated_health_label(
+                    hass_language, "health_trends"
+                ),
                 "entities": [
                     f"sensor.{dog_id}_weight",
                     f"sensor.{dog_id}_health_score",
@@ -1842,6 +2437,10 @@ class DashboardTemplates:
             Timeline template
         """
         theme_styles = self._get_theme_styles(theme)
+        hass_language: str | None = getattr(self.hass.config, "language", None)
+        last_health_label = _translated_health_label(
+            hass_language, "timeline_last_health_check"
+        )
 
         timeline_content = f"""
 ## 📅 {dog_name}'s Activity Timeline
@@ -1852,7 +2451,7 @@ class DashboardTemplates:
 ### Recent Events
 - **Last Fed**: {{{{ states('sensor.{dog_id}_last_fed') }}}}
 - **Last Walk**: {{{{ states('sensor.{dog_id}_last_walk') }}}}
-- **Last Health Check**: {{{{ states('sensor.{dog_id}_last_health_check') }}}}
+- **{last_health_label}**: {{{{ states('sensor.{dog_id}_last_health_check') }}}}
 """
 
         template: CardConfig = {
@@ -1888,6 +2487,7 @@ class DashboardTemplates:
 
         theme_styles = self._get_theme_styles(theme)
         weather_icon = self._get_weather_icon(theme)
+        hass_language: str | None = getattr(self.hass.config, "language", None)
 
         template: CardConfig
         if compact:
@@ -1895,7 +2495,11 @@ class DashboardTemplates:
             template = {
                 "type": "custom:mushroom-entity",
                 "entity": f"sensor.{dog_id}_weather_health_score",
-                "name": f"{weather_icon} Weather Health",
+                "name": _translated_health_template(
+                    hass_language,
+                    "weather_health_compact_name",
+                    icon=weather_icon,
+                ),
                 "icon": "mdi:weather-partly-cloudy",
                 "icon_color": self._get_weather_color_by_score(theme),
                 "secondary_info": "state",
@@ -1909,29 +2513,42 @@ class DashboardTemplates:
             entities = [
                 {
                     "entity": f"sensor.{dog_id}_weather_health_score",
-                    "name": "Health Score",
+                    "name": _translated_health_label(
+                        hass_language, "weather_health_score"
+                    ),
                     "icon": "mdi:heart-pulse",
                 },
                 {
                     "entity": f"sensor.{dog_id}_weather_temperature_risk",
-                    "name": "Temperature Risk",
+                    "name": _translated_health_label(
+                        hass_language, "temperature_risk"
+                    ),
                     "icon": "mdi:thermometer-alert",
                 },
                 {
                     "entity": f"sensor.{dog_id}_weather_activity_recommendation",
-                    "name": "Activity Level",
+                    "name": _translated_health_label(
+                        hass_language, "activity_level"
+                    ),
                     "icon": "mdi:run",
                 },
                 {
                     "entity": f"binary_sensor.{dog_id}_weather_safe_for_walks",
-                    "name": "Walk Safety",
+                    "name": _translated_health_label(
+                        hass_language, "walk_safety"
+                    ),
                     "icon": "mdi:walk",
                 },
             ]
 
             template = {
                 "type": "entities",
-                "title": f"{weather_icon} {dog_name} Weather Health",
+                "title": _translated_health_template(
+                    hass_language,
+                    "weather_health_card_title",
+                    icon=weather_icon,
+                    dog_name=dog_name,
+                ),
                 "entities": entities,
                 "state_color": True,
                 "show_header_toggle": False,
@@ -2193,6 +2810,7 @@ class DashboardTemplates:
             Weather chart template
         """
         theme_styles = self._get_theme_styles(theme)
+        hass_language: str | None = getattr(self.hass.config, "language", None)
 
         hours_map = {
             "24h": 24,
@@ -2207,7 +2825,9 @@ class DashboardTemplates:
             entities = [
                 {
                     "entity": f"sensor.{dog_id}_weather_health_score",
-                    "name": "Weather Health Score",
+                    "name": _translated_health_label(
+                        hass_language, "weather_health_score"
+                    ),
                     "color": theme_styles["colors"]["primary"],
                 },
                 {
@@ -2217,7 +2837,9 @@ class DashboardTemplates:
                     "y_axis": "secondary",
                 },
             ]
-            chart_title = "Weather Health Impact"
+            chart_title = _translated_health_template(
+                hass_language, "weather_health_chart_title"
+            )
         elif chart_type == "temperature":
             entities = [
                 {

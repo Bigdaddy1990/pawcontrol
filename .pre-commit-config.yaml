@@ -78,3 +78,8 @@ repos:
         pass_filenames: false
         additional_dependencies:
           - ruff==0.12.11
+      - id: contributor-guide-sync-check
+        name: Ensure assistant contributor guides are synced
+        entry: python -m script.sync_contributor_guides --check
+        language: python
+        pass_filenames: false

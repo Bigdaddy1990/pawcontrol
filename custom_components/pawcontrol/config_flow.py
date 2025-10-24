@@ -126,6 +126,8 @@ DISCOVERY_SOURCE_SET: frozenset[str] = frozenset(
 )
 UNKNOWN_DISCOVERY_SOURCE: ConfigFlowDiscoverySource = "unknown"
 
+_LIST_REMOVE_DIRECTIVE = "__pc_merge_remove__"
+
 # PLATINUM: Enhanced timeouts for robust operations
 REAUTH_TIMEOUT_SECONDS = 30.0
 CONFIG_HEALTH_CHECK_TIMEOUT = 15.0
@@ -2545,6 +2547,96 @@ class PawControlConfigFlow(
             entry.data.get(CONF_DOGS), preserve_empty_name=True
         )
 
+    def _clone_merge_value(self, value: Any) -> Any:
+        """Return a defensive copy of ``value`` for nested migration merges."""
+
+        if isinstance(value, Mapping):
+            return self._merge_nested_mapping(value, {})
+        if isinstance(value, Sequence) and not isinstance(
+            value, str | bytes | bytearray
+        ):
+            return [self._clone_merge_value(item) for item in value]
+        return value
+
+    def _sequence_requests_removal(self, value: Sequence[Any]) -> bool:
+        """Return ``True`` when ``value`` signals that the list should clear."""
+
+        for item in value:
+            if isinstance(item, Mapping) and item.get(_LIST_REMOVE_DIRECTIVE):
+                return True
+            if item == _LIST_REMOVE_DIRECTIVE:
+                return True
+        return False
+
+    def _sequence_contains(self, items: Sequence[Any], candidate: Any) -> bool:
+        """Return ``True`` when ``candidate`` already exists in ``items``."""
+
+        return any(existing == candidate for existing in items)
+
+    def _merge_sequence_values(
+        self,
+        existing: Any,
+        override: Sequence[Any],
+    ) -> list[Any]:
+        """Merge sequence values without mutating the originals."""
+
+        if self._sequence_requests_removal(override):
+            return []
+
+        existing_sequence: Sequence[Any] | None
+        if isinstance(existing, Sequence) and not isinstance(
+            existing, str | bytes | bytearray
+        ):
+            existing_sequence = existing
+        else:
+            existing_sequence = None
+
+        override_items = [self._clone_merge_value(item) for item in override]
+
+        if override_items:
+            merged_items = list(override_items)
+            if existing_sequence is not None:
+                for item in existing_sequence:
+                    cloned_item = self._clone_merge_value(item)
+                    if not self._sequence_contains(merged_items, cloned_item):
+                        merged_items.append(cloned_item)
+            return merged_items
+
+        if existing_sequence is None:
+            return []
+
+        return [self._clone_merge_value(item) for item in existing_sequence]
+
+    def _merge_nested_mapping(
+        self,
+        base: Mapping[str, Any] | None,
+        override: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Merge nested mappings without mutating the original payloads."""
+
+        merged: dict[str, Any] = {}
+
+        if isinstance(base, Mapping):
+            for key, value in base.items():
+                merged[key] = self._clone_merge_value(value)
+
+        for key, value in override.items():
+            if value is None:
+                continue
+            if isinstance(value, Mapping):
+                existing = merged.get(key)
+                existing_mapping = existing if isinstance(existing, Mapping) else None
+                merged[key] = self._merge_nested_mapping(existing_mapping, value)
+                continue
+            if isinstance(value, Sequence) and not isinstance(
+                value, str | bytes | bytearray
+            ):
+                merged[key] = self._merge_sequence_values(merged.get(key), value)
+                continue
+            merged[key] = value
+
+        return merged
+
     def _merge_dog_entry(
         self,
         merged: dict[str, DogConfigData],
@@ -2629,6 +2721,20 @@ class PawControlConfigFlow(
                             combined[DOG_NAME_FIELD] = trimmed_name
                     else:
                         combined[DOG_NAME_FIELD] = trimmed_name
+                continue
+            if value is None:
+                continue
+            if isinstance(value, Mapping):
+                existing_value = combined.get(key)
+                existing_mapping = (
+                    existing_value if isinstance(existing_value, Mapping) else None
+                )
+                combined[key] = self._merge_nested_mapping(existing_mapping, value)
+                continue
+            if isinstance(value, Sequence) and not isinstance(
+                value, str | bytes | bytearray
+            ):
+                combined[key] = self._merge_sequence_values(combined.get(key), value)
                 continue
             combined[key] = value
 
