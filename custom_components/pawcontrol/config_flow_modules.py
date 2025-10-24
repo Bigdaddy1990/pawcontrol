@@ -38,6 +38,7 @@ from .const import (
     MODULE_HEALTH,
     SPECIAL_DIET_OPTIONS,
 )
+from .language import normalize_language
 from .selector_shim import selector
 from .types import (
     ConfigFlowGlobalSettings,
@@ -89,14 +90,11 @@ _DASHBOARD_FEATURE_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
 def normalize_dashboard_language(language: str | None) -> str:
     """Normalise Home Assistant languages for dashboard translations."""
 
-    if not language:
-        return "en"
-
-    normalized = language.lower().split("-", 1)[0]
-    if normalized in _SUPPORTED_DASHBOARD_LANGUAGES:
-        return normalized
-
-    return "en"
+    return normalize_language(
+        language,
+        supported=_SUPPORTED_DASHBOARD_LANGUAGES,
+        default="en",
+    )
 
 
 def translated_dashboard_setup(language: str | None, key: str, **values: str) -> str:

@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import UTC, date, datetime
 from math import isfinite
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Final, cast
 
 from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_time_interval
@@ -399,6 +399,30 @@ def _normalise_adaptive_diagnostics(data: Any) -> AdaptivePollingDiagnostics:
     return diagnostics
 
 
+_REJECTION_SCALAR_KEYS: Final[tuple[str, ...]] = (
+    "rejected_call_count",
+    "rejection_breaker_count",
+    "rejection_rate",
+    "last_rejection_time",
+    "last_rejection_breaker_id",
+    "last_rejection_breaker_name",
+    "open_breaker_count",
+    "half_open_breaker_count",
+    "unknown_breaker_count",
+)
+
+_REJECTION_SEQUENCE_KEYS: Final[tuple[str, ...]] = (
+    "open_breakers",
+    "open_breaker_ids",
+    "half_open_breakers",
+    "half_open_breaker_ids",
+    "unknown_breakers",
+    "unknown_breaker_ids",
+    "rejection_breaker_ids",
+    "rejection_breakers",
+)
+
+
 def default_rejection_metrics() -> CoordinatorRejectionMetrics:
     """Return a baseline rejection metric payload for diagnostics consumers."""
 
@@ -422,6 +446,35 @@ def default_rejection_metrics() -> CoordinatorRejectionMetrics:
         "rejection_breaker_ids": [],
         "rejection_breakers": [],
     }
+
+
+def merge_rejection_metric_values(
+    target: dict[str, Any], *sources: Mapping[str, Any]
+) -> None:
+    """Populate ``target`` with rejection metrics extracted from ``sources``."""
+
+    if not sources:
+        return
+
+    for key in _REJECTION_SCALAR_KEYS:
+        for source in sources:
+            if key in source:
+                target[key] = source[key]
+                break
+
+    for key in _REJECTION_SEQUENCE_KEYS:
+        for source in sources:
+            if key in source:
+                value = source[key]
+                if isinstance(value, Sequence) and not isinstance(
+                    value, (str, bytes, bytearray)
+                ):
+                    target[key] = list(value)
+                else:
+                    target[key] = []
+                break
+        else:
+            target[key] = []
 
 
 def derive_rejection_metrics(
@@ -825,51 +878,7 @@ def build_update_statistics(
     stats["rejection_metrics"] = rejection_metrics
 
     performance_metrics = stats["performance_metrics"]
-    performance_metrics["rejected_call_count"] = rejection_metrics[
-        "rejected_call_count"
-    ]
-    performance_metrics["rejection_breaker_count"] = rejection_metrics[
-        "rejection_breaker_count"
-    ]
-    performance_metrics["rejection_rate"] = rejection_metrics["rejection_rate"]
-    performance_metrics["last_rejection_time"] = rejection_metrics[
-        "last_rejection_time"
-    ]
-    performance_metrics["last_rejection_breaker_id"] = rejection_metrics[
-        "last_rejection_breaker_id"
-    ]
-    performance_metrics["last_rejection_breaker_name"] = rejection_metrics[
-        "last_rejection_breaker_name"
-    ]
-    performance_metrics["open_breaker_count"] = rejection_metrics["open_breaker_count"]
-    performance_metrics["half_open_breaker_count"] = rejection_metrics[
-        "half_open_breaker_count"
-    ]
-    performance_metrics["unknown_breaker_count"] = rejection_metrics[
-        "unknown_breaker_count"
-    ]
-    performance_metrics["open_breakers"] = list(rejection_metrics["open_breakers"])
-    performance_metrics["open_breaker_ids"] = list(
-        rejection_metrics["open_breaker_ids"]
-    )
-    performance_metrics["half_open_breakers"] = list(
-        rejection_metrics["half_open_breakers"]
-    )
-    performance_metrics["half_open_breaker_ids"] = list(
-        rejection_metrics["half_open_breaker_ids"]
-    )
-    performance_metrics["unknown_breakers"] = list(
-        rejection_metrics["unknown_breakers"]
-    )
-    performance_metrics["unknown_breaker_ids"] = list(
-        rejection_metrics["unknown_breaker_ids"]
-    )
-    performance_metrics["rejection_breaker_ids"] = list(
-        rejection_metrics["rejection_breaker_ids"]
-    )
-    performance_metrics["rejection_breakers"] = list(
-        rejection_metrics["rejection_breakers"]
-    )
+    merge_rejection_metric_values(performance_metrics, rejection_metrics)
     if reconfigure_summary is not None:
         stats["reconfigure"] = reconfigure_summary
     return stats
@@ -911,53 +920,7 @@ def build_runtime_statistics(
 
     performance_metrics = stats.get("performance_metrics")
     if isinstance(performance_metrics, dict):
-        performance_metrics["rejected_call_count"] = rejection_metrics[
-            "rejected_call_count"
-        ]
-        performance_metrics["rejection_breaker_count"] = rejection_metrics[
-            "rejection_breaker_count"
-        ]
-        performance_metrics["rejection_rate"] = rejection_metrics["rejection_rate"]
-        performance_metrics["last_rejection_time"] = rejection_metrics[
-            "last_rejection_time"
-        ]
-        performance_metrics["last_rejection_breaker_id"] = rejection_metrics[
-            "last_rejection_breaker_id"
-        ]
-        performance_metrics["last_rejection_breaker_name"] = rejection_metrics[
-            "last_rejection_breaker_name"
-        ]
-        performance_metrics["open_breaker_count"] = rejection_metrics[
-            "open_breaker_count"
-        ]
-        performance_metrics["half_open_breaker_count"] = rejection_metrics[
-            "half_open_breaker_count"
-        ]
-        performance_metrics["unknown_breaker_count"] = rejection_metrics[
-            "unknown_breaker_count"
-        ]
-        performance_metrics["open_breakers"] = list(rejection_metrics["open_breakers"])
-        performance_metrics["open_breaker_ids"] = list(
-            rejection_metrics["open_breaker_ids"]
-        )
-        performance_metrics["half_open_breakers"] = list(
-            rejection_metrics["half_open_breakers"]
-        )
-        performance_metrics["half_open_breaker_ids"] = list(
-            rejection_metrics["half_open_breaker_ids"]
-        )
-        performance_metrics["unknown_breakers"] = list(
-            rejection_metrics["unknown_breakers"]
-        )
-        performance_metrics["unknown_breaker_ids"] = list(
-            rejection_metrics["unknown_breaker_ids"]
-        )
-        performance_metrics["rejection_breaker_ids"] = list(
-            rejection_metrics["rejection_breaker_ids"]
-        )
-        performance_metrics["rejection_breakers"] = list(
-            rejection_metrics["rejection_breakers"]
-        )
+        merge_rejection_metric_values(performance_metrics, rejection_metrics)
 
     error_summary = stats.get("error_summary")
     if isinstance(error_summary, dict):

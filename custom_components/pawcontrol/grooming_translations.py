@@ -5,7 +5,10 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Final
 
+from .language import normalize_language
+
 DEFAULT_LANGUAGE: Final[str] = "en"
+SUPPORTED_LANGUAGES: Final[frozenset[str]] = frozenset({"en", "de"})
 
 _GROOMING_LABEL_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
     "button_action": {
@@ -78,19 +81,6 @@ _GROOMING_TEMPLATE_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
 }
 
 
-def _normalize_language(language: str | None) -> str:
-    """Return a normalized Home Assistant language code."""
-
-    if not language:
-        return DEFAULT_LANGUAGE
-
-    normalized = language.lower().split("-")[0]
-    if normalized in ("en", "de"):
-        return normalized
-
-    return DEFAULT_LANGUAGE
-
-
 def translated_grooming_label(language: str | None, key: str, **values: object) -> str:
     """Return a localized grooming label."""
 
@@ -98,7 +88,11 @@ def translated_grooming_label(language: str | None, key: str, **values: object) 
     if translations is None:
         return key.format(**values) if values else key
 
-    normalized = _normalize_language(language)
+    normalized = normalize_language(
+        language,
+        supported=SUPPORTED_LANGUAGES,
+        default=DEFAULT_LANGUAGE,
+    )
     template = translations.get(normalized, translations.get(DEFAULT_LANGUAGE, key))
     if values:
         return template.format(**values)
@@ -114,7 +108,11 @@ def translated_grooming_template(
     if translations is None:
         return key.format(**values)
 
-    normalized = _normalize_language(language)
+    normalized = normalize_language(
+        language,
+        supported=SUPPORTED_LANGUAGES,
+        default=DEFAULT_LANGUAGE,
+    )
     template = translations.get(normalized, translations.get(DEFAULT_LANGUAGE, key))
     return template.format(**values)
 

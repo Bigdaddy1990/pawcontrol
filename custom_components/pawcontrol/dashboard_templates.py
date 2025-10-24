@@ -34,6 +34,7 @@ from .const import (
 )
 from .coordinator_tasks import derive_rejection_metrics
 from .dashboard_shared import CardCollection, CardConfig, coerce_dog_configs
+from .language import normalize_language
 from .types import (
     CoordinatorRejectionMetrics,
     CoordinatorStatisticsPayload,
@@ -193,7 +194,7 @@ def _format_breaker_list(entries: Sequence[str], language: str | None) -> str:
     if entries:
         return ", ".join(entries)
 
-    normalized_language = _normalize_language(language)
+    normalized_language = normalize_language(language)
     if normalized_language in _STATISTICS_EMPTY_LIST_TRANSLATIONS:
         return _STATISTICS_EMPTY_LIST_TRANSLATIONS[normalized_language]
 
@@ -371,17 +372,6 @@ _STATISTICS_LABEL_TRANSLATIONS: Final[dict[str, Mapping[str, str]]] = {
 }
 
 
-def _normalize_language(language: str | None) -> str:
-    """Return the lowercase language code expected by the label map."""
-
-    if not language:
-        return "en"
-
-    primary, _, _ = language.partition("-")
-    normalized = primary.strip().lower()
-    return normalized or "en"
-
-
 def _translated_statistics_fallback(
     language: str | None, label: str, default: str
 ) -> str:
@@ -391,7 +381,7 @@ def _translated_statistics_fallback(
     if translations is None:
         return default
 
-    normalized_language = _normalize_language(language)
+    normalized_language = normalize_language(language)
     if normalized_language in translations:
         return translations[normalized_language]
 
@@ -405,7 +395,7 @@ def _translated_statistics_label(language: str | None, label: str) -> str:
     if translations is None:
         return label
 
-    normalized_language = _normalize_language(language)
+    normalized_language = normalize_language(language)
     if normalized_language in translations:
         return translations[normalized_language]
 
@@ -419,7 +409,7 @@ def _translated_notification_label(language: str | None, label: str) -> str:
     if translations is None:
         return label
 
-    normalized_language = _normalize_language(language)
+    normalized_language = normalize_language(language)
     if normalized_language in translations:
         return translations[normalized_language]
 
@@ -437,7 +427,7 @@ def _translated_notification_template(
     if translations is None:
         return template.format(**values)
 
-    normalized_language = _normalize_language(language)
+    normalized_language = normalize_language(language)
     template_value = translations.get(normalized_language)
     if template_value is None:
         template_value = translations.get("en", template)
@@ -456,7 +446,7 @@ def _translated_notification_fallback(
     if translations is None:
         return default
 
-    normalized_language = _normalize_language(language)
+    normalized_language = normalize_language(language)
     if normalized_language in translations:
         return translations[normalized_language]
 
@@ -470,7 +460,7 @@ def _translated_feeding_label(language: str | None, label: str) -> str:
     if translations is None:
         return label
 
-    normalized_language = _normalize_language(language)
+    normalized_language = normalize_language(language)
     if normalized_language in translations:
         return translations[normalized_language]
 
@@ -484,7 +474,7 @@ def _translated_health_label(language: str | None, label: str) -> str:
     if translations is None:
         return label
 
-    normalized_language = _normalize_language(language)
+    normalized_language = normalize_language(language)
     if normalized_language in translations:
         return translations[normalized_language]
 
@@ -500,7 +490,7 @@ def _translated_health_template(
     if translations is None:
         return template.format(**values)
 
-    normalized_language = _normalize_language(language)
+    normalized_language = normalize_language(language)
     template_value = translations.get(normalized_language)
     if template_value is None:
         template_value = translations.get("en", template)

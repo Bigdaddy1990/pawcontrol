@@ -35,7 +35,11 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .coordinator_support import ensure_cache_repair_aggregate
-from .coordinator_tasks import default_rejection_metrics, derive_rejection_metrics
+from .coordinator_tasks import (
+    default_rejection_metrics,
+    derive_rejection_metrics,
+    merge_rejection_metric_values,
+)
 from .diagnostics_redaction import compile_redaction_patterns, redact_sensitive_data
 from .runtime_data import get_runtime_data
 from .telemetry import (
@@ -143,51 +147,7 @@ def _apply_rejection_metrics_to_performance(
 ) -> None:
     """Copy rejection metrics into the coordinator performance snapshot."""
 
-    performance_metrics["rejected_call_count"] = rejection_metrics[
-        "rejected_call_count"
-    ]
-    performance_metrics["rejection_breaker_count"] = rejection_metrics[
-        "rejection_breaker_count"
-    ]
-    performance_metrics["rejection_rate"] = rejection_metrics["rejection_rate"]
-    performance_metrics["last_rejection_time"] = rejection_metrics[
-        "last_rejection_time"
-    ]
-    performance_metrics["last_rejection_breaker_id"] = rejection_metrics[
-        "last_rejection_breaker_id"
-    ]
-    performance_metrics["last_rejection_breaker_name"] = rejection_metrics[
-        "last_rejection_breaker_name"
-    ]
-    performance_metrics["open_breaker_count"] = rejection_metrics["open_breaker_count"]
-    performance_metrics["half_open_breaker_count"] = rejection_metrics[
-        "half_open_breaker_count"
-    ]
-    performance_metrics["unknown_breaker_count"] = rejection_metrics[
-        "unknown_breaker_count"
-    ]
-    performance_metrics["open_breakers"] = list(rejection_metrics["open_breakers"])
-    performance_metrics["open_breaker_ids"] = list(
-        rejection_metrics["open_breaker_ids"]
-    )
-    performance_metrics["half_open_breakers"] = list(
-        rejection_metrics["half_open_breakers"]
-    )
-    performance_metrics["half_open_breaker_ids"] = list(
-        rejection_metrics["half_open_breaker_ids"]
-    )
-    performance_metrics["unknown_breakers"] = list(
-        rejection_metrics["unknown_breakers"]
-    )
-    performance_metrics["unknown_breaker_ids"] = list(
-        rejection_metrics["unknown_breaker_ids"]
-    )
-    performance_metrics["rejection_breaker_ids"] = list(
-        rejection_metrics["rejection_breaker_ids"]
-    )
-    performance_metrics["rejection_breakers"] = list(
-        rejection_metrics["rejection_breakers"]
-    )
+    merge_rejection_metric_values(performance_metrics, rejection_metrics)
 
 
 def _build_statistics_payload(
@@ -959,35 +919,16 @@ async def _get_performance_metrics(
         "statistics": stats_payload,
     }
 
-    rejection_keys = (
-        "rejected_call_count",
-        "rejection_breaker_count",
-        "rejection_rate",
-        "last_rejection_time",
-        "last_rejection_breaker_id",
-        "last_rejection_breaker_name",
-        "open_breaker_count",
-        "half_open_breaker_count",
-        "unknown_breaker_count",
-    )
-    list_keys = (
-        "open_breakers",
-        "open_breaker_ids",
-        "half_open_breakers",
-        "half_open_breaker_ids",
-        "unknown_breakers",
-        "unknown_breaker_ids",
-        "rejection_breaker_ids",
-        "rejection_breakers",
-    )
+    sources: tuple[Mapping[str, Any], ...]
+    if isinstance(performance_metrics, Mapping):
+        sources = (
+            cast(Mapping[str, Any], performance_metrics),
+            rejection_metrics,
+        )
+    else:
+        sources = (rejection_metrics,)
 
-    for key in rejection_keys:
-        value = performance_metrics.get(key, rejection_metrics.get(key))
-        metrics_output[key] = value
-
-    for key in list_keys:
-        value = performance_metrics.get(key, rejection_metrics.get(key))
-        metrics_output[key] = list(value) if isinstance(value, list) else []
+    merge_rejection_metric_values(metrics_output, *sources)
 
     return metrics_output
 
