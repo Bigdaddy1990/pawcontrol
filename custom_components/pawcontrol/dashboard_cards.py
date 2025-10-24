@@ -15,6 +15,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 from collections.abc import Awaitable, Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Final, TypeVar
@@ -45,6 +46,7 @@ from .dashboard_templates import (
     MapCardOptions,
     MapOptionsInput,
 )
+from .language import normalize_language
 from .types import (
     DOG_ID_FIELD,
     DOG_IMAGE_FIELD,
@@ -83,6 +85,280 @@ T = TypeVar("T", bound="BaseCardGenerator")
 # OPTIMIZED: Entity validation cache for performance
 _entity_validation_cache: dict[str, tuple[float, bool]] = {}
 _cache_cleanup_threshold = 300  # 5 minutes
+
+
+_VISITOR_LABEL_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
+    "entities_title": {
+        "en": "Visitor mode controls",
+        "de": "Steuerungen für den Besuchermodus",
+    },
+    "status_heading": {
+        "en": "Visitor mode status",
+        "de": "Status des Besuchermodus",
+    },
+    "active": {"en": "Active", "de": "Aktiv"},
+    "visitor": {"en": "Visitor", "de": "Besucher"},
+    "started": {"en": "Started", "de": "Gestartet"},
+    "alerts_reduced": {
+        "en": "Alerts reduced",
+        "de": "Warnungen reduziert",
+    },
+}
+
+_VISITOR_TEMPLATE_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
+    "insights_title": {
+        "en": "{dog_name} visitor insights",
+        "de": "{dog_name} Besuchereinblicke",
+    },
+}
+
+_VISITOR_VALUE_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
+    "yes": {"en": "Yes", "de": "Ja"},
+    "no": {"en": "No", "de": "Nein"},
+    "none": {"en": "None", "de": "Keine"},
+    "unknown": {"en": "Unknown", "de": "Unbekannt"},
+}
+
+_QUICK_ACTION_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
+    "feed_all": {"en": "Feed All", "de": "Alle füttern"},
+    "daily_reset": {"en": "Daily Reset", "de": "Täglicher Reset"},
+}
+
+_WALK_LABEL_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
+    "status": {"en": "Walk Status", "de": "Spazierstatus"},
+    "start": {"en": "Start Walk", "de": "Spaziergang starten"},
+    "end": {"en": "End Walk", "de": "Spaziergang beenden"},
+    "next_good_time": {
+        "en": "Next Good Walk Time",
+        "de": "Nächster guter Spaziergangszeitpunkt",
+    },
+}
+
+_WALK_TEMPLATE_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
+    "history_title": {
+        "en": "Walk History ({days} days)",
+        "de": "Spazierverlauf ({days} Tage)",
+    },
+    "statistics_title": {
+        "en": "Walk Statistics ({days} days)",
+        "de": "Spazierstatistiken ({days} Tage)",
+    },
+}
+
+
+_HEALTH_LABEL_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
+    "health_status": {"en": "Health Status", "de": "Gesundheitsstatus"},
+    "calorie_target": {"en": "Calorie Target", "de": "Kalorienziel"},
+    "calories_today": {"en": "Calories Today", "de": "Kalorien heute"},
+    "portion_adjustment": {
+        "en": "Portion Adjustment",
+        "de": "Portionsanpassung",
+    },
+    "calorie_tracking_title": {
+        "en": "📊 Calorie Tracking",
+        "de": "📊 Kalorienverlauf",
+    },
+    "weight_management_title": {
+        "en": "⚖️ Weight Management",
+        "de": "⚖️ Gewichtsmanagement",
+    },
+    "current_weight": {"en": "Current Weight", "de": "Aktuelles Gewicht"},
+    "ideal_weight": {"en": "Ideal Weight", "de": "Idealgewicht"},
+    "body_condition": {
+        "en": "Body Condition (1-9)",
+        "de": "Körperkondition (1-9)",
+    },
+    "weight_goal_progress": {
+        "en": "Weight Goal Progress",
+        "de": "Fortschritt des Gewichtsziels",
+    },
+    "recalculate": {"en": "Recalculate", "de": "Neu berechnen"},
+    "update_health": {
+        "en": "Update Health",
+        "de": "Gesundheitsdaten aktualisieren",
+    },
+    "smart_breakfast": {
+        "en": "Smart Breakfast",
+        "de": "Smartes Frühstück",
+    },
+    "smart_dinner": {
+        "en": "Smart Dinner",
+        "de": "Smartes Abendessen",
+    },
+    "log_health": {"en": "Log Health", "de": "Gesundheit protokollieren"},
+    "log_medication": {
+        "en": "Log Medication",
+        "de": "Medikation protokollieren",
+    },
+    "health_metrics_title": {
+        "en": "Health Metrics",
+        "de": "Gesundheitsmetriken",
+    },
+    "health_schedule_title": {
+        "en": "Health Schedule",
+        "de": "Gesundheitsplan",
+    },
+}
+
+_HEALTH_TEMPLATE_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
+    "health_feeding_title": {
+        "en": "🔬 {dog_name} Health Feeding",
+        "de": "🔬 {dog_name} Gesundheitsfütterung",
+    },
+    "portion_calculator": {
+        "en": """## 🧮 Health-Aware Portion Calculator
+
+**Current Recommendations:**
+- **Breakfast**: {{{{ states('sensor.{dog_id}_breakfast_portion_size') }}}}g
+- **Lunch**: {{{{ states('sensor.{dog_id}_lunch_portion_size') }}}}g
+- **Dinner**: {{{{ states('sensor.{dog_id}_dinner_portion_size') }}}}g
+- **Daily Total**: {{{{ states('sensor.{dog_id}_daily_food_target') }}}}g
+
+**Health Adjustments:**
+- Body Condition Factor: {{{{ states('sensor.{dog_id}_bcs_adjustment_factor') }}}}
+- Activity Factor: {{{{ states('sensor.{dog_id}_activity_adjustment_factor') }}}}
+- Overall Adjustment: {{{{ states('sensor.{dog_id}_portion_adjustment_factor') }}}}x
+""",
+        "de": """## 🧮 Gesundheitsbasierter Portionsrechner
+
+**Aktuelle Empfehlungen:**
+- **Frühstück**: {{{{ states('sensor.{dog_id}_breakfast_portion_size') }}}}g
+- **Mittagessen**: {{{{ states('sensor.{dog_id}_lunch_portion_size') }}}}g
+- **Abendessen**: {{{{ states('sensor.{dog_id}_dinner_portion_size') }}}}g
+- **Tagesgesamtmenge**: {{{{ states('sensor.{dog_id}_daily_food_target') }}}}g
+
+**Gesundheitsanpassungen:**
+- Körperkonditionsfaktor: {{{{ states('sensor.{dog_id}_bcs_adjustment_factor') }}}}
+- Aktivitätsfaktor: {{{{ states('sensor.{dog_id}_activity_adjustment_factor') }}}}
+- Gesamtanpassung: {{{{ states('sensor.{dog_id}_portion_adjustment_factor') }}}}x
+""",
+    },
+    "weight_history_title": {
+        "en": "Weight Tracking ({days} days)",
+        "de": "Gewichtsverlauf ({days} Tage)",
+    },
+}
+
+
+def _translated_visitor_label(language: str | None, label: str) -> str:
+    """Return a localized visitor dashboard label."""
+
+    translations = _VISITOR_LABEL_TRANSLATIONS.get(label)
+    if translations is None:
+        return label
+
+    normalized_language = normalize_language(language)
+    if normalized_language in translations:
+        return translations[normalized_language]
+
+    return translations.get("en", label)
+
+
+def _translated_visitor_template(
+    language: str | None, template: str, **values: str
+) -> str:
+    """Return a formatted visitor dashboard template string."""
+
+    translations = _VISITOR_TEMPLATE_TRANSLATIONS.get(template)
+    if translations is None:
+        return template.format(**values)
+
+    normalized_language = normalize_language(language)
+    template_value = translations.get(normalized_language)
+    if template_value is None:
+        template_value = translations.get("en", template)
+
+    return template_value.format(**values)
+
+
+def _translated_visitor_value(language: str | None, value: str) -> str:
+    """Return a localized value string for visitor dashboards."""
+
+    translations = _VISITOR_VALUE_TRANSLATIONS.get(value)
+    if translations is None:
+        return value
+
+    normalized_language = normalize_language(language)
+    if normalized_language in translations:
+        return translations[normalized_language]
+
+    return translations.get("en", value)
+
+
+def _translated_quick_action_label(language: str | None, label: str) -> str:
+    """Return a localized quick action label."""
+
+    translations = _QUICK_ACTION_TRANSLATIONS.get(label)
+    if translations is None:
+        return label
+
+    normalized_language = normalize_language(language)
+    if normalized_language in translations:
+        return translations[normalized_language]
+
+    return translations.get("en", label)
+
+
+def _translated_walk_label(language: str | None, label: str) -> str:
+    """Return a localized label for walk dashboards."""
+
+    translations = _WALK_LABEL_TRANSLATIONS.get(label)
+    if translations is None:
+        return label
+
+    normalized_language = normalize_language(language)
+    if normalized_language in translations:
+        return translations[normalized_language]
+
+    return translations.get("en", label)
+
+
+def _translated_walk_template(
+    language: str | None, template: str, **values: object
+) -> str:
+    """Return a localized walk dashboard template string."""
+
+    translations = _WALK_TEMPLATE_TRANSLATIONS.get(template)
+    if translations is None:
+        return template.format(**values)
+
+    normalized_language = normalize_language(language)
+    template_value = translations.get(normalized_language)
+    if template_value is None:
+        template_value = translations.get("en", template)
+
+    return template_value.format(**values)
+
+
+def _translated_health_label(language: str | None, label: str) -> str:
+    """Return a localized label for health dashboards."""
+
+    translations = _HEALTH_LABEL_TRANSLATIONS.get(label)
+    if translations is None:
+        return label
+
+    normalized_language = normalize_language(language)
+    if normalized_language in translations:
+        return translations[normalized_language]
+
+    return translations.get("en", label)
+
+
+def _translated_health_template(
+    language: str | None, template: str, **values: object
+) -> str:
+    """Return a localized health dashboard template string."""
+
+    translations = _HEALTH_TEMPLATE_TRANSLATIONS.get(template)
+    if translations is None:
+        return template.format(**values)
+
+    normalized_language = normalize_language(language)
+    template_value = translations.get(normalized_language)
+    if template_value is None:
+        template_value = translations.get("en", template)
+
+    return template_value.format(**values)
 
 
 def _coerce_map_options(options: MapOptionsInput) -> MapCardOptions:
@@ -521,6 +797,8 @@ class OverviewCardGenerator(BaseCardGenerator):
         if not typed_dogs:
             return None
 
+        language: str | None = getattr(self.hass.config, "language", None)
+
         # OPTIMIZED: Single-pass module detection
         has_feeding = False
         has_walking = False
@@ -552,7 +830,7 @@ class OverviewCardGenerator(BaseCardGenerator):
             actions.append(
                 {
                     "type": "button",
-                    "name": "Feed All",
+                    "name": _translated_quick_action_label(language, "feed_all"),
                     "icon": "mdi:food-drumstick",
                     "tap_action": {
                         "action": "more-info",
@@ -565,7 +843,7 @@ class OverviewCardGenerator(BaseCardGenerator):
             actions.append(
                 {
                     "type": "button",
-                    "name": "Walk Status",
+                    "name": _translated_walk_label(language, "status"),
                     "icon": "mdi:walk",
                     "tap_action": {
                         "action": "more-info",
@@ -578,7 +856,7 @@ class OverviewCardGenerator(BaseCardGenerator):
         actions.append(
             {
                 "type": "button",
-                "name": "Daily Reset",
+                "name": _translated_quick_action_label(language, "daily_reset"),
                 "icon": "mdi:refresh",
                 "tap_action": {
                     "action": "call-service",
@@ -892,6 +1170,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
         dog_config = typed_dog
         dog_id = dog_config[DOG_ID_FIELD]
         dog_name = dog_config[DOG_NAME_FIELD]
+        language: str | None = getattr(self.hass.config, "language", None)
 
         # OPTIMIZED: Generate all cards concurrently
         card_generators: list[tuple[str, asyncio.Task[CardCollection]]] = [
@@ -900,7 +1179,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                 asyncio.create_task(
                     self._collect_single_card(
                         self._generate_health_feeding_status_card(
-                            dog_id, dog_name, options
+                            dog_id, dog_name, options, language
                         )
                     )
                 ),
@@ -909,7 +1188,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                 "calorie",
                 asyncio.create_task(
                     self._collect_single_card(
-                        self._generate_calorie_tracking_card(dog_id, options)
+                        self._generate_calorie_tracking_card(dog_id, options, language)
                     )
                 ),
             ),
@@ -917,7 +1196,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                 "weight",
                 asyncio.create_task(
                     self._collect_single_card(
-                        self._generate_weight_management_card(dog_id, options)
+                        self._generate_weight_management_card(dog_id, options, language)
                     )
                 ),
             ),
@@ -925,7 +1204,9 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                 "portion",
                 asyncio.create_task(
                     self._collect_single_card(
-                        self._generate_portion_calculator_card(dog_id, options)
+                        self._generate_portion_calculator_card(
+                            dog_id, options, language
+                        )
                     )
                 ),
             ),
@@ -961,7 +1242,11 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
             return []
 
     async def _generate_health_feeding_status_card(
-        self, dog_id: str, dog_name: str, options: OptionsConfigType
+        self,
+        dog_id: str,
+        dog_name: str,
+        options: OptionsConfigType,
+        language: str | None,
     ) -> CardConfigType | None:
         """Generate optimized health-integrated feeding status card."""
         # OPTIMIZED: Quick cache-based entity check
@@ -971,26 +1256,28 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
 
         return {
             "type": "entities",
-            "title": f"🔬 {dog_name} Health Feeding",
+            "title": _translated_health_template(
+                language, "health_feeding_title", dog_name=dog_name
+            ),
             "entities": [
                 {
                     "entity": f"sensor.{dog_id}_health_feeding_status",
-                    "name": "Health Status",
+                    "name": _translated_health_label(language, "health_status"),
                     "icon": "mdi:heart-pulse",
                 },
                 {
                     "entity": f"sensor.{dog_id}_daily_calorie_target",
-                    "name": "Calorie Target",
+                    "name": _translated_health_label(language, "calorie_target"),
                     "icon": "mdi:fire",
                 },
                 {
                     "entity": f"sensor.{dog_id}_calories_consumed_today",
-                    "name": "Calories Today",
+                    "name": _translated_health_label(language, "calories_today"),
                     "icon": "mdi:counter",
                 },
                 {
                     "entity": f"sensor.{dog_id}_portion_adjustment_factor",
-                    "name": "Portion Adjustment",
+                    "name": _translated_health_label(language, "portion_adjustment"),
                     "icon": "mdi:scale-balance",
                 },
             ],
@@ -999,7 +1286,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
         }
 
     async def _generate_calorie_tracking_card(
-        self, dog_id: str, options: OptionsConfigType
+        self, dog_id: str, options: OptionsConfigType, language: str | None
     ) -> CardConfigType | None:
         """Generate optimized calorie tracking and progress card."""
         calorie_entities = [
@@ -1015,7 +1302,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
 
         return {
             "type": "history-graph",
-            "title": "📊 Calorie Tracking",
+            "title": _translated_health_label(language, "calorie_tracking_title"),
             "entities": [
                 f"sensor.{dog_id}_calories_consumed_today",
                 f"sensor.{dog_id}_daily_calorie_target",
@@ -1025,7 +1312,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
         }
 
     async def _generate_weight_management_card(
-        self, dog_id: str, options: OptionsConfigType
+        self, dog_id: str, options: OptionsConfigType, language: str | None
     ) -> CardConfigType | None:
         """Generate optimized weight management and body condition tracking card."""
         weight_entities = [
@@ -1045,21 +1332,27 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
             "cards": [
                 {
                     "type": "entities",
-                    "title": "⚖️ Weight Management",
+                    "title": _translated_health_label(
+                        language, "weight_management_title"
+                    ),
                     "entities": [
                         {
                             "entity": f"sensor.{dog_id}_current_weight",
-                            "name": "Current Weight",
+                            "name": _translated_health_label(
+                                language, "current_weight"
+                            ),
                             "icon": "mdi:weight-kilogram",
                         },
                         {
                             "entity": f"sensor.{dog_id}_ideal_weight",
-                            "name": "Ideal Weight",
+                            "name": _translated_health_label(language, "ideal_weight"),
                             "icon": "mdi:target",
                         },
                         {
                             "entity": f"sensor.{dog_id}_body_condition_score",
-                            "name": "Body Condition (1-9)",
+                            "name": _translated_health_label(
+                                language, "body_condition"
+                            ),
                             "icon": "mdi:dog-side",
                         },
                     ],
@@ -1068,7 +1361,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                 {
                     "type": "gauge",
                     "entity": f"sensor.{dog_id}_weight_goal_progress",
-                    "name": "Weight Goal Progress",
+                    "name": _translated_health_label(language, "weight_goal_progress"),
                     "min": 0,
                     "max": 100,
                     "unit": "%",
@@ -1078,7 +1371,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
         }
 
     async def _generate_portion_calculator_card(
-        self, dog_id: str, options: OptionsConfigType
+        self, dog_id: str, options: OptionsConfigType, language: str | None
     ) -> CardConfigType | None:
         """Generate optimized interactive health-aware portion calculator card."""
         portions_entity = f"sensor.{dog_id}_health_aware_portions"
@@ -1090,27 +1383,16 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
             "cards": [
                 {
                     "type": "markdown",
-                    "content": f"""
-## 🧮 Health-Aware Portion Calculator
-
-**Current Recommendations:**
-- **Breakfast**: {{{{ states('sensor.{dog_id}_breakfast_portion_size') }}}}g
-- **Lunch**: {{{{ states('sensor.{dog_id}_lunch_portion_size') }}}}g
-- **Dinner**: {{{{ states('sensor.{dog_id}_dinner_portion_size') }}}}g
-- **Daily Total**: {{{{ states('sensor.{dog_id}_daily_food_target') }}}}g
-
-**Health Adjustments:**
-- Body Condition Factor: {{{{ states('sensor.{dog_id}_bcs_adjustment_factor') }}}}
-- Activity Factor: {{{{ states('sensor.{dog_id}_activity_adjustment_factor') }}}}
-- Overall Adjustment: {{{{ states('sensor.{dog_id}_portion_adjustment_factor') }}}}x
-                    """,
+                    "content": _translated_health_template(
+                        language, "portion_calculator", dog_id=dog_id
+                    ),
                 },
                 {
                     "type": "horizontal-stack",
                     "cards": [
                         {
                             "type": "button",
-                            "name": "Recalculate",
+                            "name": _translated_health_label(language, "recalculate"),
                             "icon": "mdi:calculator-variant",
                             "tap_action": {
                                 "action": "call-service",
@@ -1120,7 +1402,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                         },
                         {
                             "type": "button",
-                            "name": "Update Health",
+                            "name": _translated_health_label(language, "update_health"),
                             "icon": "mdi:heart-pulse",
                             "tap_action": {
                                 "action": "call-service",
@@ -1143,13 +1425,16 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
 
         dog_config = typed_dog
         dog_id = dog_config[DOG_ID_FIELD]
+        language: str | None = getattr(self.hass.config, "language", None)
 
         # OPTIMIZED: Direct card generation without unnecessary async calls
-        smart_buttons_card = self._generate_smart_feeding_buttons(dog_id, options)
+        smart_buttons_card = self._generate_smart_feeding_buttons(
+            dog_id, options, language
+        )
         return [smart_buttons_card] if smart_buttons_card else []
 
     def _generate_smart_feeding_buttons(
-        self, dog_id: str, options: OptionsConfigType
+        self, dog_id: str, options: OptionsConfigType, language: str | None
     ) -> CardConfigType:
         """Generate optimized smart feeding buttons with health-calculated portions."""
         return {
@@ -1158,7 +1443,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
             "cards": [
                 {
                     "type": "button",
-                    "name": "Smart Breakfast",
+                    "name": _translated_health_label(language, "smart_breakfast"),
                     "icon": "mdi:weather-sunny",
                     "tap_action": {
                         "action": "call-service",
@@ -1172,7 +1457,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                 },
                 {
                     "type": "button",
-                    "name": "Smart Dinner",
+                    "name": _translated_health_label(language, "smart_dinner"),
                     "icon": "mdi:weather-night",
                     "tap_action": {
                         "action": "call-service",
@@ -1342,6 +1627,7 @@ class ModuleCardGenerator(BaseCardGenerator):
 
         dog_config = typed_dog
         dog_id = dog_config[DOG_ID_FIELD]
+        language: str | None = getattr(self.hass.config, "language", None)
         cards: list[CardConfigType] = []
 
         # OPTIMIZED: Prepare all walk-related entities for batch validation
@@ -1361,7 +1647,7 @@ class ModuleCardGenerator(BaseCardGenerator):
             cards.append(
                 {
                     "type": "entities",
-                    "title": "Walk Status",
+                    "title": _translated_walk_label(language, "status"),
                     "entities": valid_entities,
                     "state_color": True,
                 }
@@ -1370,12 +1656,12 @@ class ModuleCardGenerator(BaseCardGenerator):
         # OPTIMIZED: Generate walk control buttons if walking sensor exists
         walking_sensor = f"binary_sensor.{dog_id}_is_walking"
         if walking_sensor in valid_entities:
-            walk_controls = self._generate_walk_control_buttons(dog_id)
+            walk_controls = self._generate_walk_control_buttons(dog_id, language)
             cards.extend(walk_controls)
 
         # OPTIMIZED: Generate walk history concurrently
         try:
-            history_card = await self._generate_walk_history_card(dog_id)
+            history_card = await self._generate_walk_history_card(dog_id, language)
             if history_card:
                 cards.append(history_card)
         except Exception as err:
@@ -1383,7 +1669,9 @@ class ModuleCardGenerator(BaseCardGenerator):
 
         return cards
 
-    def _generate_walk_control_buttons(self, dog_id: str) -> list[CardConfigType]:
+    def _generate_walk_control_buttons(
+        self, dog_id: str, language: str | None
+    ) -> list[CardConfigType]:
         """Generate optimized walk control buttons."""
         return [
             {
@@ -1396,7 +1684,7 @@ class ModuleCardGenerator(BaseCardGenerator):
                 ],
                 "card": {
                     "type": "button",
-                    "name": "Start Walk",
+                    "name": _translated_walk_label(language, "start"),
                     "icon": "mdi:walk",
                     "icon_height": "60px",
                     "tap_action": {
@@ -1416,7 +1704,7 @@ class ModuleCardGenerator(BaseCardGenerator):
                 ],
                 "card": {
                     "type": "button",
-                    "name": "End Walk",
+                    "name": _translated_walk_label(language, "end"),
                     "icon": "mdi:stop",
                     "icon_height": "60px",
                     "tap_action": {
@@ -1428,7 +1716,9 @@ class ModuleCardGenerator(BaseCardGenerator):
             },
         ]
 
-    async def _generate_walk_history_card(self, dog_id: str) -> CardConfigType | None:
+    async def _generate_walk_history_card(
+        self, dog_id: str, language: str | None
+    ) -> CardConfigType | None:
         """Generate optimized walk history card."""
         history_entities = [
             f"sensor.{dog_id}_walks_today",
@@ -1437,7 +1727,9 @@ class ModuleCardGenerator(BaseCardGenerator):
         ]
 
         history_card = await self.templates.get_history_graph_template(
-            history_entities, "Walk History (7 days)", 168
+            history_entities,
+            _translated_walk_template(language, "history_title", days=7),
+            168,
         )
 
         return history_card if history_card.get("entities") else None
@@ -1460,6 +1752,7 @@ class ModuleCardGenerator(BaseCardGenerator):
 
         dog_config = typed_dog
         dog_id = dog_config[DOG_ID_FIELD]
+        language: str | None = getattr(self.hass.config, "language", None)
         cards: list[CardConfigType] = []
 
         # OPTIMIZED: Prepare all health entities for batch validation
@@ -1519,21 +1812,25 @@ class ModuleCardGenerator(BaseCardGenerator):
             cards.append(
                 {
                     "type": "entities",
-                    "title": "Health Metrics",
+                    "title": _translated_health_label(language, "health_metrics_title"),
                     "entities": valid_metrics,
                     "state_color": True,
                 }
             )
 
         # Health management buttons (always add these)
-        health_buttons = self._generate_health_management_buttons(dog_id)
+        health_buttons = self._generate_health_management_buttons(dog_id, language)
         cards.append(health_buttons)
 
         # Weight tracking graph
         if weight_exists:
             try:
                 weight_card = await self.templates.get_history_graph_template(
-                    [f"sensor.{dog_id}_weight"], "Weight Tracking (30 days)", 720
+                    [f"sensor.{dog_id}_weight"],
+                    _translated_health_template(
+                        language, "weight_history_title", days=30
+                    ),
+                    720,
                 )
                 cards.append(weight_card)
             except Exception as err:
@@ -1544,7 +1841,9 @@ class ModuleCardGenerator(BaseCardGenerator):
             cards.append(
                 {
                     "type": "entities",
-                    "title": "Health Schedule",
+                    "title": _translated_health_label(
+                        language, "health_schedule_title"
+                    ),
                     "entities": valid_dates,
                 }
             )
@@ -1618,6 +1917,7 @@ class ModuleCardGenerator(BaseCardGenerator):
         if not modules.get(MODULE_VISITOR):
             return []
 
+        hass_language: str | None = getattr(self.hass.config, "language", None)
         status_entities = [
             f"switch.{dog_id}_visitor_mode",
             f"binary_sensor.{dog_id}_visitor_mode",
@@ -1630,39 +1930,65 @@ class ModuleCardGenerator(BaseCardGenerator):
             cards.append(
                 {
                     "type": "entities",
-                    "title": "Visitor mode controls",
+                    "title": _translated_visitor_label(hass_language, "entities_title"),
                     "entities": valid_entities,
                     "state_color": True,
                 }
             )
 
+        yes_value = _translated_visitor_value(hass_language, "yes")
+        no_value = _translated_visitor_value(hass_language, "no")
+        none_value = _translated_visitor_value(hass_language, "none")
+        unknown_value = _translated_visitor_value(hass_language, "unknown")
+
+        yes_literal = json.dumps(yes_value)
+        no_literal = json.dumps(no_value)
+        none_literal = json.dumps(none_value)
+        unknown_literal = json.dumps(unknown_value)
+
         summary_content = (
-            "### Visitor mode status\n"
-            f"- Active: {{{{ iif(is_state('binary_sensor.{dog_id}_visitor_mode', 'on'), 'Yes', 'No') }}}}\n"
-            f"- Visitor: {{{{ state_attr('binary_sensor.{dog_id}_visitor_mode', 'visitor_name') or 'None' }}}}\n"
-            f"- Started: {{{{ state_attr('binary_sensor.{dog_id}_visitor_mode', 'visitor_mode_started') or 'Unknown' }}}}\n"
-            "- Alerts reduced: {{ iif(state_attr('binary_sensor."
-            f"{dog_id}_visitor_mode', 'reduced_alerts'), 'Yes', 'No') }}\n"
+            "### {status_heading}\n"
+            "- {active_label}: {{{{ iif(is_state('binary_sensor.{dog_id}_visitor_mode', 'on'), {yes_value}, {no_value}) }}}}\n"
+            "- {visitor_label}: {{{{ state_attr('binary_sensor.{dog_id}_visitor_mode', 'visitor_name') or {none_value} }}}}\n"
+            "- {started_label}: {{{{ state_attr('binary_sensor.{dog_id}_visitor_mode', 'visitor_mode_started') or {unknown_value} }}}}\n"
+            "- {alerts_reduced_label}: {{{{ iif(state_attr('binary_sensor.{dog_id}_visitor_mode', 'reduced_alerts'), {yes_value}, {no_value}) }}}}\n"
+        ).format(
+            status_heading=_translated_visitor_label(hass_language, "status_heading"),
+            active_label=_translated_visitor_label(hass_language, "active"),
+            yes_value=yes_literal,
+            no_value=no_literal,
+            visitor_label=_translated_visitor_label(hass_language, "visitor"),
+            none_value=none_literal,
+            started_label=_translated_visitor_label(hass_language, "started"),
+            unknown_value=unknown_literal,
+            alerts_reduced_label=_translated_visitor_label(
+                hass_language, "alerts_reduced"
+            ),
+            dog_id=dog_id,
         )
 
         cards.append(
             {
                 "type": "markdown",
-                "title": f"{dog_name} visitor insights",
+                "title": _translated_visitor_template(
+                    hass_language, "insights_title", dog_name=dog_name
+                ),
                 "content": summary_content,
             }
         )
 
         return cards
 
-    def _generate_health_management_buttons(self, dog_id: str) -> CardConfigType:
+    def _generate_health_management_buttons(
+        self, dog_id: str, language: str | None
+    ) -> CardConfigType:
         """Generate optimized health management buttons."""
         return {
             "type": "horizontal-stack",
             "cards": [
                 {
                     "type": "button",
-                    "name": "Log Health",
+                    "name": _translated_health_label(language, "log_health"),
                     "icon": "mdi:heart-pulse",
                     "tap_action": {
                         "action": "call-service",
@@ -1672,7 +1998,7 @@ class ModuleCardGenerator(BaseCardGenerator):
                 },
                 {
                     "type": "button",
-                    "name": "Log Medication",
+                    "name": _translated_health_label(language, "log_medication"),
                     "icon": "mdi:pill",
                     "tap_action": {
                         "action": "call-service",
@@ -2314,6 +2640,8 @@ class WeatherCardGenerator(BaseCardGenerator):
         """Generate weather forecast card with health predictions."""
         forecast_entity = f"sensor.{dog_id}_weather_forecast_health"
 
+        language: str | None = getattr(self.hass.config, "language", None)
+
         if not await self._entity_exists_cached(forecast_entity):
             return None
 
@@ -2348,7 +2676,7 @@ class WeatherCardGenerator(BaseCardGenerator):
                         {
                             "type": "custom:mushroom-entity-card",
                             "entity": f"sensor.{dog_id}_next_optimal_walk_time",
-                            "name": "Next Good Walk Time",
+                            "name": _translated_walk_label(language, "next_good_time"),
                             "icon": "mdi:clock-check",
                             "icon_color": "green",
                         },
@@ -2604,6 +2932,8 @@ class StatisticsCardGenerator(BaseCardGenerator):
         """Generate optimized walk statistics card."""
         walk_entities = []
 
+        language: str | None = getattr(self.hass.config, "language", None)
+
         for dog in dogs_config:
             dog_id = dog[DOG_ID_FIELD]
             modules = coerce_dog_modules_config(dog.get(DOG_MODULES_FIELD))
@@ -2617,7 +2947,7 @@ class StatisticsCardGenerator(BaseCardGenerator):
         valid_entities = await self._validate_entities_batch(walk_entities)
 
         return await self.templates.get_statistics_graph_template(
-            "Walk Statistics (30 days)",
+            _translated_walk_template(language, "statistics_title", days=30),
             valid_entities,
             ["sum", "mean", "max"],
             days_to_show=30,

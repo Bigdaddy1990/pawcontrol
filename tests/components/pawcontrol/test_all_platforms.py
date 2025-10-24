@@ -22,6 +22,7 @@ from custom_components.pawcontrol.const import (
     CONF_DOG_NAME,
     CONF_DOGS,
     DOMAIN,
+    MODULE_GROOMING,
 )
 from custom_components.pawcontrol.runtime_data import store_runtime_data
 from custom_components.pawcontrol.types import (
@@ -1014,6 +1015,42 @@ class TestSwitchPlatform:
         # Test feature toggle
         await gps_switch.async_turn_off()
         assert gps_switch.is_on is False
+
+    async def test_grooming_switches_localize_labels(
+        self, hass: HomeAssistant, mock_coordinator: Mock
+    ) -> None:
+        """Grooming switches should respect the Home Assistant language."""
+        from custom_components.pawcontrol.switch import (
+            PawControlFeatureSwitch,
+            PawControlModuleSwitch,
+        )
+
+        mock_coordinator.hass.config.language = "de"
+
+        grooming_module = PawControlModuleSwitch(
+            coordinator=mock_coordinator,
+            dog_id="test_dog",
+            dog_name="Test Dog",
+            module_id=MODULE_GROOMING,
+            module_name="Grooming Tracking",
+            icon="mdi:content-cut",
+            initial_state=True,
+        )
+
+        assert grooming_module.name == "Test Dog Pflege-Tracking"
+
+        grooming_schedule = PawControlFeatureSwitch(
+            coordinator=mock_coordinator,
+            dog_id="test_dog",
+            dog_name="Test Dog",
+            feature_id="grooming_schedule",
+            feature_name="Grooming Schedule",
+            icon="mdi:calendar",
+            module=MODULE_GROOMING,
+        )
+
+        assert grooming_schedule.name == "Test Dog Pflegeplan"
+        assert grooming_schedule.extra_state_attributes["feature_name"] == "Pflegeplan"
 
 
 class TestButtonPlatform:

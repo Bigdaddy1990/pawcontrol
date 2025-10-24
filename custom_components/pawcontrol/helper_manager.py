@@ -45,6 +45,7 @@ from .const import (
     MODULE_MEDICATION,
 )
 from .coordinator_support import CacheMonitorRegistrar
+from .grooming_translations import translated_grooming_template
 from .service_guard import ServiceGuardResult
 from .types import (
     DOG_ID_FIELD,
@@ -569,9 +570,17 @@ class PawControlHelperManager:
         # Grooming due date (input_datetime)
         grooming_entity_id = HELPER_GROOMING_DUE_TEMPLATE.format(dog_id=slugify(dog_id))
 
+        language = getattr(getattr(self._hass, "config", None), "language", None)
+        helper_dog_name = dog_name if isinstance(dog_name, str) and dog_name else dog_id
+        grooming_helper_name = translated_grooming_template(
+            language,
+            "helper_due",
+            dog_name=helper_dog_name,
+        )
+
         await self._async_create_input_datetime(
             entity_id=grooming_entity_id,
-            name=f"{dog_name} Grooming Due",
+            name=grooming_helper_name,
             has_date=True,
             has_time=False,
             initial=None,

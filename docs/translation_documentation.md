@@ -13,6 +13,70 @@ The PawControl integration provides comprehensive multi-language support with **
 | **English (en)** | ✅ Complete | ✅ Complete | ✅ Complete | ✅ Complete | **100%** |
 | **German (de)** | ✅ Complete | ✅ Complete | ✅ Complete | ✅ Complete | **100%** |
 
+### 👥 Visitor Dashboard Localization
+
+- `_translated_visitor_label`, `_translated_visitor_template`, und
+  `_translated_visitor_value` stellen sicher, dass Entities-Titel,
+  Markdown-Überschriften sowie Ja/Nein- und Platzhalterwerte der
+  Besuchermodus-Dashboards automatisch der aktiven Home-Assistant-Sprache
+  folgen.【F:custom_components/pawcontrol/dashboard_cards.py†L133-L180】【F:custom_components/pawcontrol/dashboard_cards.py†L1723-L1768】
+- Die Regression `test_generate_visitor_cards_localizes_german` hält die
+  deutschen Strings für Entities-Karten, Markdown-Titel und Fallback-Werte
+  stabil, sodass Dokumentation und Dashboard konsistent bleiben.【F:tests/unit/test_dashboard_templates.py†L1013-L1047】
+
+### 🚶 Walk Dashboard Localization
+
+- `_translated_walk_label` und `_translated_walk_template` lokalisieren
+  Statuskarten, Schnellaktionen, Steuerungsbuttons, Wetterkarten sowie
+  Statistik-Titel für den Walk-Flow der Dashboards und verwenden dabei die
+  aktive Home-Assistant-Sprache.【F:custom_components/pawcontrol/dashboard_cards.py†L121-L220】【F:custom_components/pawcontrol/dashboard_cards.py†L651-L741】【F:custom_components/pawcontrol/dashboard_cards.py†L1487-L1594】【F:custom_components/pawcontrol/dashboard_cards.py†L2495-L2536】【F:custom_components/pawcontrol/dashboard_cards.py†L2784-L2808】
+- Die Regressionen `test_generate_walk_cards_localizes_german` und
+  `test_generate_quick_actions_localizes_walk_button` stellen sicher, dass
+  deutsche Dashboards die übersetzten Walk-Strings behalten.【F:tests/unit/test_dashboard_templates.py†L939-L1044】
+
+### ⚡ Quick Action Localization
+
+- `_translated_quick_action_label` sorgt dafür, dass globale Schnellaktionen
+  („Feed All“/„Alle füttern“, Spazierstatus, „Daily Reset“/„Täglicher Reset“)
+  automatisch der aktiven Home-Assistant-Sprache folgen, ohne dass Lovelace-
+  Overrides gepflegt werden müssen.【F:custom_components/pawcontrol/dashboard_cards.py†L89-L362】【F:custom_components/pawcontrol/dashboard_cards.py†L776-L862】
+- Die Regression `test_generate_quick_actions_localizes_feed_all_and_reset`
+  bestätigt die deutschen Texte für Sammelaktionen und verhindert künftige
+  Rückfälle auf englische Labels.【F:tests/unit/test_dashboard_templates.py†L1008-L1052】
+
+### 🧭 Dashboard-Konfigurations-Assistent
+
+- `translated_dashboard_setup`, `translated_dashboard_feature` und die
+  `_translated_dashboard_info_line`-Hilfsfunktion lokalisieren die
+  Platzhalter `dashboard_info` und `features` im Konfigurationsassistenten,
+  sodass die Zusammenfassung „Das Dashboard enthält …“ und die
+  Feature-Liste der Home-Assistant-Sprache entsprechen.【F:custom_components/pawcontrol/config_flow_modules.py†L90-L659】【F:custom_components/pawcontrol/config_flow_dashboard_extension.py†L46-L236】
+- Die Tests `test_configure_dashboard_form_includes_context` und
+  `test_configure_dashboard_form_localizes_placeholders` sichern sowohl die
+  englischen Standardwerte als auch die deutschen Übersetzungen ab.【F:tests/components/pawcontrol/test_config_flow.py†L1592-L1674】
+
+### ⚖️ Health & Weight Dashboard Localization
+
+- `_translated_health_label` und `_translated_health_template` lokalisieren
+  Gesundheits- und Gewichtskarten inklusive Portionsrechner, Gewichtshistorie,
+  Smart-Buttons sowie Wettergesundheitsstatus abhängig von der aktiven Sprache.【F:custom_components/pawcontrol/dashboard_cards.py†L1105-L1407】【F:custom_components/pawcontrol/dashboard_templates.py†L120-L360】
+- Die Regressionen `test_health_feeding_overview_localizes_german`,
+  `test_module_health_cards_localize_titles` und
+  `test_weather_health_cards_localize_german` sichern die deutschen Strings für
+  Gesundheitsübersichten, Modul-Stacks und Wettergesundheitsdiagramme.【F:tests/unit/test_dashboard_templates.py†L1189-L1287】
+
+### 🛁 Grooming Localization
+
+- `translated_grooming_label` und `translated_grooming_template` lokalisieren
+  Start-Buttons, Helper-Namen und Service-Benachrichtigungen für Pflegeroutinen,
+  sodass deutschsprachige Installationen ohne zusätzliche Anpassungen native
+  Texte erhalten.【F:custom_components/pawcontrol/grooming_translations.py†L1-L78】【F:custom_components/pawcontrol/button.py†L1631-L1668】【F:custom_components/pawcontrol/helper_manager.py†L569-L586】【F:custom_components/pawcontrol/services.py†L3649-L3706】
+- Die Regression `test_start_grooming_localizes_notification` prüft den
+  übersetzten Benachrichtigungstitel und Nachrichtentext, damit UI und Dokumente
+  synchron bleiben.【F:tests/unit/test_services.py†L2188-L2232】
+- Modul- und Feature-Schalter sowie die Options-Flow-Zusammenfassung greifen auf dieselben Übersetzungsschlüssel zurück, wodurch "Pflege-Tracking", "Pflegeplan" und "Pflege-Erinnerungen" ohne Lovelace-Overrides erscheinen; Switch- und Options-Flow-Tests sichern die Ausgabe.【F:custom_components/pawcontrol/switch.py†L626-L688】【F:custom_components/pawcontrol/options_flow.py†L2602-L2630】【F:tests/components/pawcontrol/test_all_platforms.py†L1003-L1034】【F:tests/unit/test_options_flow.py†L1239-L1253】
+- Der letzte Pflege-Termin (`PawControlLastGroomingDateTime`) schreibt manuelle Notizen jetzt lokalisiert zurück; `test_last_grooming_datetime_localizes_notes` bewahrt den deutschen Text für Support-Snapshots.【F:custom_components/pawcontrol/datetime.py†L432-L470】【F:tests/unit/test_datetime_entities.py†L1-L35】
+
 ### 🌤️ Weather Integration Translation Status
 
 #### Weather-Specific Translation Categories
@@ -438,6 +502,12 @@ custom_components/pawcontrol/translations/
 - Preserve emoji usage for visual consistency
 - Follow German capitalization rules
 - Ensure cultural appropriateness for German-speaking users
+- Keep assistant contributor guides aligned by running
+  `python -m script.sync_contributor_guides` after editing
+  `.github/copilot-instructions.md`; the helper rewrites the Claude and Gemini
+  guides automatically so localisation guidance stays consistent across
+  assistants. The pre-commit hook `contributor-guide-sync-check` executes the
+  `--check` mode during CI to prevent drift before reviews.【F:script/sync_contributor_guides.py†L1-L92】【F:.pre-commit-config.yaml†L1-L120】
 
 ## Future Language Support
 

@@ -10,7 +10,9 @@ from custom_components.pawcontrol.diagnostics import (
 )
 from custom_components.pawcontrol.telemetry import (
     get_bool_coercion_metrics,
+    record_bool_coercion_event,
     reset_bool_coercion_metrics,
+    summarise_bool_coercion_metrics,
 )
 from custom_components.pawcontrol.types import _coerce_bool
 
@@ -248,7 +250,7 @@ def test_bool_coercion_diagnostics_include_reset_only_snapshots() -> None:
     assert metrics["reset_count"] >= 1
     assert metrics["last_reset"] is not None
 
-    payload = _get_bool_coercion_diagnostics()
+    payload = _get_bool_coercion_diagnostics(None)
     assert payload["recorded"] is True
     assert payload["metrics"]["reset_count"] == metrics["reset_count"]
     assert payload["metrics"]["total"] == 0
@@ -256,6 +258,11 @@ def test_bool_coercion_diagnostics_include_reset_only_snapshots() -> None:
     assert payload["metrics"]["last_reason"] is None
     assert payload["metrics"]["last_result"] is None
     assert payload["metrics"]["last_default"] is None
+    summary = payload["summary"]
+    assert summary["recorded"] is True
+    assert summary["total"] == 0
+    assert summary["reset_count"] == metrics["reset_count"]
+    assert summary["samples"] == []
 
 
 def test_bool_coercion_metrics_track_last_reason() -> None:
@@ -307,3 +314,46 @@ def test_bool_coercion_metrics_track_last_value_details() -> None:
     assert cleared["last_value_repr"] is None
     assert cleared["last_result"] is None
     assert cleared["last_default"] is None
+
+
+def test_summarise_bool_coercion_metrics_limits_samples() -> None:
+    """Coordinator summaries should clamp sample counts and sort reason keys."""
+
+    reset_bool_coercion_metrics()
+
+    record_bool_coercion_event(
+        value="yes",
+        default=False,
+        result=True,
+        reason="truthy_string",
+    )
+    record_bool_coercion_event(
+        value="no",
+        default=True,
+        result=False,
+        reason="falsy_string",
+    )
+    record_bool_coercion_event(
+        value="maybe",
+        default=True,
+        result=False,
+        reason="unknown_string",
+    )
+
+    summary = summarise_bool_coercion_metrics(sample_limit=2)
+    assert summary["recorded"] is True
+    assert summary["total"] == 3
+    assert list(summary["reason_counts"].keys()) == [
+        "falsy_string",
+        "truthy_string",
+        "unknown_string",
+    ]
+    assert len(summary["samples"]) == 2
+    assert summary["samples"][0]["reason"] == "truthy_string"
+    assert summary["samples"][1]["reason"] == "falsy_string"
+
+    reset_bool_coercion_metrics()
+    cleared = summarise_bool_coercion_metrics()
+    assert cleared["total"] == 0
+    assert cleared["reason_counts"] == {}
+    assert cleared["samples"] == []

@@ -14,6 +14,10 @@ from custom_components.pawcontrol.coordinator_observability import (
 )
 from custom_components.pawcontrol.coordinator_runtime import EntityBudgetSnapshot
 from custom_components.pawcontrol.coordinator_support import CoordinatorMetrics
+from custom_components.pawcontrol.telemetry import (
+    record_bool_coercion_event,
+    reset_bool_coercion_metrics,
+)
 
 
 @pytest.mark.unit
@@ -94,16 +98,27 @@ def test_build_performance_snapshot_includes_metrics() -> None:
         "rejection_breaker_ids": ["api"],
     }
 
-    snapshot = build_performance_snapshot(
-        metrics=metrics,
-        adaptive=adaptive,
-        entity_budget=entity_budget,
-        update_interval=2.5,
-        last_update_time=datetime(2024, 1, 1, 0, 0, 0),
-        last_update_success=True,
-        webhook_status=webhook_status,
-        resilience=resilience_summary,
+    reset_bool_coercion_metrics()
+    record_bool_coercion_event(
+        value="yes",
+        default=False,
+        result=True,
+        reason="truthy_string",
     )
+
+    try:
+        snapshot = build_performance_snapshot(
+            metrics=metrics,
+            adaptive=adaptive,
+            entity_budget=entity_budget,
+            update_interval=2.5,
+            last_update_time=datetime(2024, 1, 1, 0, 0, 0),
+            last_update_success=True,
+            webhook_status=webhook_status,
+            resilience=resilience_summary,
+        )
+    finally:
+        reset_bool_coercion_metrics()
 
     assert snapshot["update_counts"]["total"] == 3
     assert snapshot["performance_metrics"]["update_interval_s"] == 2.5
@@ -116,6 +131,14 @@ def test_build_performance_snapshot_includes_metrics() -> None:
     assert performance_metrics["last_rejection_time"] == 1700000250.0
     assert performance_metrics["last_rejection_breaker_id"] == "web"
     assert performance_metrics["last_rejection_breaker_name"] == "web"
+    assert performance_metrics["open_breakers"] == ["api"]
+    assert performance_metrics["open_breaker_ids"] == ["api"]
+    assert performance_metrics["half_open_breakers"] == []
+    assert performance_metrics["half_open_breaker_ids"] == []
+    assert performance_metrics["unknown_breakers"] == []
+    assert performance_metrics["unknown_breaker_ids"] == []
+    assert performance_metrics["rejection_breaker_ids"] == ["api"]
+    assert performance_metrics["rejection_breakers"] == ["api"]
     assert "schema_version" not in performance_metrics
     resilience = snapshot["resilience_summary"]
     assert resilience["total_breakers"] == 2
@@ -124,6 +147,7 @@ def test_build_performance_snapshot_includes_metrics() -> None:
     assert resilience["recovery_latency"] == 200.0
     assert resilience["recovery_breaker_id"] == "api"
     assert resilience["recovery_breaker_name"] == "api"
+    assert resilience["open_breakers"] == ["api"]
     assert resilience["open_breaker_ids"] == ["api"]
     assert resilience["unknown_breaker_count"] == 0
     assert resilience["unknown_breakers"] == []
@@ -149,11 +173,24 @@ def test_build_performance_snapshot_includes_metrics() -> None:
     assert rejection_metrics["open_breaker_count"] == 1
     assert rejection_metrics["half_open_breaker_count"] == 0
     assert rejection_metrics["unknown_breaker_count"] == 0
+    assert rejection_metrics["open_breakers"] == ["api"]
     assert rejection_metrics["open_breaker_ids"] == ["api"]
+    assert rejection_metrics["half_open_breakers"] == []
     assert rejection_metrics["half_open_breaker_ids"] == []
+    assert rejection_metrics["unknown_breakers"] == []
     assert rejection_metrics["unknown_breaker_ids"] == []
     assert rejection_metrics["rejection_breaker_ids"] == ["api"]
     assert rejection_metrics["rejection_breakers"] == ["api"]
+
+    bool_summary = snapshot["bool_coercion"]
+    assert bool_summary["recorded"] is True
+    assert bool_summary["total"] == 1
+    assert bool_summary["reason_counts"]["truthy_string"] == 1
+    assert bool_summary["last_reason"] == "truthy_string"
+    assert bool_summary["last_result"] is True
+    assert bool_summary["last_default"] is False
+    assert bool_summary["samples"]
+    assert bool_summary["samples"][0]["reason"] == "truthy_string"
 
 
 @pytest.mark.unit
@@ -163,16 +200,20 @@ def test_build_performance_snapshot_defaults_rejection_metrics() -> None:
     entity_budget = {"active_dogs": 1}
     webhook_status = {"configured": True, "secure": True, "hmac_ready": True}
 
-    snapshot = build_performance_snapshot(
-        metrics=metrics,
-        adaptive=adaptive,
-        entity_budget=entity_budget,
-        update_interval=2.0,
-        last_update_time=datetime(2024, 1, 2, 0, 0, tzinfo=UTC),
-        last_update_success=True,
-        webhook_status=webhook_status,
-        resilience=None,
-    )
+    reset_bool_coercion_metrics()
+    try:
+        snapshot = build_performance_snapshot(
+            metrics=metrics,
+            adaptive=adaptive,
+            entity_budget=entity_budget,
+            update_interval=2.0,
+            last_update_time=datetime(2024, 1, 2, 0, 0, tzinfo=UTC),
+            last_update_success=True,
+            webhook_status=webhook_status,
+            resilience=None,
+        )
+    finally:
+        reset_bool_coercion_metrics()
 
     rejection_metrics = snapshot["rejection_metrics"]
     assert rejection_metrics["schema_version"] == 3
@@ -185,15 +226,32 @@ def test_build_performance_snapshot_defaults_rejection_metrics() -> None:
     assert rejection_metrics["open_breaker_count"] == 0
     assert rejection_metrics["half_open_breaker_count"] == 0
     assert rejection_metrics["unknown_breaker_count"] == 0
+    assert rejection_metrics["open_breakers"] == []
     assert rejection_metrics["open_breaker_ids"] == []
+    assert rejection_metrics["half_open_breakers"] == []
     assert rejection_metrics["half_open_breaker_ids"] == []
+    assert rejection_metrics["unknown_breakers"] == []
     assert rejection_metrics["unknown_breaker_ids"] == []
     assert rejection_metrics["rejection_breaker_ids"] == []
     assert rejection_metrics["rejection_breakers"] == []
 
+    bool_summary = snapshot["bool_coercion"]
+    assert bool_summary["recorded"] is True
+    assert bool_summary["total"] == 0
+    assert bool_summary["reason_counts"] == {}
+    assert bool_summary["samples"] == []
+
     performance_metrics = snapshot["performance_metrics"]
     assert performance_metrics["rejected_call_count"] == 0
     assert performance_metrics["rejection_rate"] == 0.0
+    assert performance_metrics["open_breakers"] == []
+    assert performance_metrics["open_breaker_ids"] == []
+    assert performance_metrics["half_open_breakers"] == []
+    assert performance_metrics["half_open_breaker_ids"] == []
+    assert performance_metrics["unknown_breakers"] == []
+    assert performance_metrics["unknown_breaker_ids"] == []
+    assert performance_metrics["rejection_breaker_ids"] == []
+    assert performance_metrics["rejection_breakers"] == []
     assert "resilience_summary" not in snapshot
 
 

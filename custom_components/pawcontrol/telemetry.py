@@ -3,49 +3,20 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, TypedDict, cast
+from typing import Any, cast
 
 from homeassistant.util import dt as dt_util
 
 from .types import (
+    BoolCoercionMetrics,
+    BoolCoercionSample,
+    BoolCoercionSummary,
     CoordinatorResilienceSummary,
     DoorSensorPersistenceFailure,
     PawControlRuntimeData,
     ReconfigureTelemetry,
     ReconfigureTelemetrySummary,
 )
-
-
-class BoolCoercionSample(TypedDict):
-    """Snapshot of an individual boolean coercion event."""
-
-    value_type: str
-    value_repr: str
-    default: bool
-    result: bool
-    reason: str
-
-
-class BoolCoercionMetrics(TypedDict, total=False):
-    """Aggregated metrics describing bool coercion behaviour."""
-
-    total: int
-    defaulted: int
-    fallback: int
-    reset_count: int
-    type_counts: dict[str, int]
-    reason_counts: dict[str, int]
-    samples: list[BoolCoercionSample]
-    first_seen: str | None
-    last_seen: str | None
-    active_window_seconds: float | None
-    last_reset: str | None
-    last_reason: str | None
-    last_value_type: str | None
-    last_value_repr: str | None
-    last_result: bool | None
-    last_default: bool | None
-
 
 _BOOL_COERCION_METRICS: BoolCoercionMetrics = {
     "total": 0,
@@ -209,6 +180,104 @@ def reset_bool_coercion_metrics() -> None:
     _BOOL_COERCION_METRICS["last_value_repr"] = None
     _BOOL_COERCION_METRICS["last_result"] = None
     _BOOL_COERCION_METRICS["last_default"] = None
+
+
+def summarise_bool_coercion_metrics(*, sample_limit: int = 5) -> BoolCoercionSummary:
+    """Return a condensed bool coercion snapshot for observability exports."""
+
+    metrics = get_bool_coercion_metrics()
+    reason_counts_raw = metrics.get("reason_counts", {})
+    type_counts_raw = metrics.get("type_counts", {})
+
+    reason_counts = (
+        {key: int(reason_counts_raw[key]) for key in sorted(reason_counts_raw)}
+        if isinstance(reason_counts_raw, Mapping)
+        else {}
+    )
+    type_counts = (
+        {key: int(type_counts_raw[key]) for key in sorted(type_counts_raw)}
+        if isinstance(type_counts_raw, Mapping)
+        else {}
+    )
+
+    samples = metrics.get("samples", [])
+    if not isinstance(samples, Sequence):
+        samples_list: list[BoolCoercionSample] = []
+    else:
+        limited_samples = tuple(samples)[: max(0, sample_limit)]
+        samples_list = [
+            {
+                "value_type": sample.get("value_type", ""),
+                "value_repr": sample.get("value_repr", ""),
+                "default": bool(sample.get("default", False)),
+                "result": bool(sample.get("result", False)),
+                "reason": sample.get("reason", ""),
+            }
+            for sample in limited_samples
+            if isinstance(sample, Mapping)
+        ]
+
+    summary: BoolCoercionSummary = {
+        "recorded": bool(metrics.get("total", 0) or metrics.get("reset_count", 0)),
+        "total": int(metrics.get("total", 0)),
+        "defaulted": int(metrics.get("defaulted", 0)),
+        "fallback": int(metrics.get("fallback", 0)),
+        "reset_count": int(metrics.get("reset_count", 0)),
+        "first_seen": metrics.get("first_seen"),
+        "last_seen": metrics.get("last_seen"),
+        "last_reset": metrics.get("last_reset"),
+        "active_window_seconds": metrics.get("active_window_seconds"),
+        "last_reason": metrics.get("last_reason"),
+        "last_value_type": metrics.get("last_value_type"),
+        "last_value_repr": metrics.get("last_value_repr"),
+        "last_result": metrics.get("last_result"),
+        "last_default": metrics.get("last_default"),
+        "reason_counts": reason_counts,
+        "type_counts": type_counts,
+        "samples": samples_list,
+    }
+
+    return summary
+
+
+def get_runtime_bool_coercion_summary(
+    runtime_data: PawControlRuntimeData | None,
+) -> BoolCoercionSummary | None:
+    """Return the cached bool coercion summary when stored in runtime stats."""
+
+    if runtime_data is None:
+        return None
+
+    performance_stats = getattr(runtime_data, "performance_stats", None)
+    if not isinstance(performance_stats, Mapping):
+        return None
+
+    summary = performance_stats.get("bool_coercion_summary")
+    if not isinstance(summary, Mapping):
+        return None
+
+    return cast(BoolCoercionSummary, dict(summary))
+
+
+def update_runtime_bool_coercion_summary(
+    runtime_data: PawControlRuntimeData | None,
+    *,
+    sample_limit: int = 5,
+) -> BoolCoercionSummary:
+    """Persist the latest bool coercion summary to runtime performance stats."""
+
+    summary = summarise_bool_coercion_metrics(sample_limit=sample_limit)
+
+    if runtime_data is None:
+        return summary
+
+    performance_stats = getattr(runtime_data, "performance_stats", None)
+    if not isinstance(performance_stats, MutableMapping):
+        runtime_data.performance_stats = {}
+        performance_stats = runtime_data.performance_stats
+
+    performance_stats["bool_coercion_summary"] = dict(summary)
+    return summary
 
 
 def _as_int(value: Any) -> int:

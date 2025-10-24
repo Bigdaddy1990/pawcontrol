@@ -70,6 +70,9 @@ from .coordinator import PawControlCoordinator
 from .coordinator_support import ensure_cache_repair_aggregate
 from .feeding_manager import FeedingComplianceCompleted
 from .feeding_translations import build_feeding_compliance_summary
+from .grooming_translations import (
+    translated_grooming_template,
+)
 from .notifications import NotificationChannel, NotificationPriority, NotificationType
 from .performance import (
     capture_cache_diagnostics,
@@ -3637,6 +3640,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         guard_results: list[ServiceGuardResult] = []
         guard_snapshot: tuple[ServiceGuardResult, ...] = ()
 
+        language_config = getattr(hass, "config", None)
+        hass_language: str | None = None
+        if language_config is not None:
+            hass_language = getattr(language_config, "language", None)
+
+        dog_label = coordinator.get_configured_dog_name(dog_id) or dog_id
+
         try:
             grooming_data = {
                 "grooming_type": grooming_type,
@@ -3670,18 +3680,39 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             if notification_manager:
                 async with async_capture_service_guard_results() as captured_guards:
                     guard_results = captured_guards
+                    title = translated_grooming_template(
+                        hass_language,
+                        "notification_title",
+                        dog_label=dog_label,
+                    )
+                    message_parts = [
+                        translated_grooming_template(
+                            hass_language,
+                            "notification_message",
+                            grooming_type=grooming_type,
+                            dog_label=dog_label,
+                        )
+                    ]
+                    if groomer:
+                        message_parts.append(
+                            translated_grooming_template(
+                                hass_language,
+                                "notification_with_groomer",
+                                groomer=groomer,
+                            )
+                        )
+                    if estimated_duration:
+                        message_parts.append(
+                            translated_grooming_template(
+                                hass_language,
+                                "notification_estimated_duration",
+                                minutes=estimated_duration,
+                            )
+                        )
                     await notification_manager.async_send_notification(
                         notification_type=NotificationType.SYSTEM_INFO,
-                        title=f"🛁 Grooming started: {dog_id}",
-                        message=(
-                            f"Started {grooming_type} for {dog_id}"
-                            + (f" with {groomer}" if groomer else "")
-                            + (
-                                f" (est. {estimated_duration} min)"
-                                if estimated_duration
-                                else ""
-                            )
-                        ),
+                        title=title,
+                        message=" ".join(part for part in message_parts if part),
                         dog_id=dog_id,
                     )
                 guard_snapshot = tuple(guard_results)
@@ -3731,8 +3762,10 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             raise
         except Exception as err:
             _LOGGER.error("Failed to start grooming for %s: %s", dog_id, err)
-            error_message = (
-                f"Failed to start grooming for {dog_id}. Check the logs for details."
+            error_message = translated_grooming_template(
+                hass_language,
+                "start_failure",
+                dog_label=dog_label,
             )
             guard_snapshot = tuple(guard_results)
             _record_service_result(

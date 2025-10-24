@@ -34,6 +34,7 @@ from custom_components.pawcontrol.const import (
     CONF_WEATHER_ENTITY,
     MODULE_FEEDING,
     MODULE_GPS,
+    MODULE_GROOMING,
     MODULE_HEALTH,
     MODULE_WALK,
 )
@@ -1217,6 +1218,28 @@ async def test_dog_module_overrides_recorded(
     assert modules[MODULE_HEALTH] is True
     assert modules.get("notifications") is False
     assert modules.get("grooming") is True
+
+
+def test_module_description_placeholders_localize_grooming(
+    hass: HomeAssistant, mock_config_entry
+) -> None:
+    """Module summary placeholders should localize grooming descriptions."""
+
+    hass.config.language = "de"
+
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    flow.initialize_from_config_entry(mock_config_entry)
+    flow._current_dog = flow._dogs[0]
+
+    modules = flow._current_dog.setdefault("modules", {})
+    modules[MODULE_GROOMING] = True
+
+    placeholders = flow._get_module_description_placeholders()
+    enabled_summary = placeholders["enabled_modules"]
+
+    assert "Pflegeplan und Tracking" in enabled_summary
+    assert "• Pflege:" in enabled_summary
 
 
 @pytest.mark.asyncio

@@ -35,10 +35,17 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .coordinator_support import ensure_cache_repair_aggregate
-from .coordinator_tasks import default_rejection_metrics, derive_rejection_metrics
+from .coordinator_tasks import (
+    default_rejection_metrics,
+    derive_rejection_metrics,
+    merge_rejection_metric_values,
+)
 from .diagnostics_redaction import compile_redaction_patterns, redact_sensitive_data
 from .runtime_data import get_runtime_data
-from .telemetry import get_bool_coercion_metrics
+from .telemetry import (
+    get_bool_coercion_metrics,
+    update_runtime_bool_coercion_summary,
+)
 from .types import (
     CacheDiagnosticsMap,
     CacheDiagnosticsMetadata,
@@ -140,29 +147,7 @@ def _apply_rejection_metrics_to_performance(
 ) -> None:
     """Copy rejection metrics into the coordinator performance snapshot."""
 
-    performance_metrics["rejected_call_count"] = rejection_metrics[
-        "rejected_call_count"
-    ]
-    performance_metrics["rejection_breaker_count"] = rejection_metrics[
-        "rejection_breaker_count"
-    ]
-    performance_metrics["rejection_rate"] = rejection_metrics["rejection_rate"]
-    performance_metrics["last_rejection_time"] = rejection_metrics[
-        "last_rejection_time"
-    ]
-    performance_metrics["last_rejection_breaker_id"] = rejection_metrics[
-        "last_rejection_breaker_id"
-    ]
-    performance_metrics["last_rejection_breaker_name"] = rejection_metrics[
-        "last_rejection_breaker_name"
-    ]
-    performance_metrics["open_breaker_count"] = rejection_metrics["open_breaker_count"]
-    performance_metrics["half_open_breaker_count"] = rejection_metrics[
-        "half_open_breaker_count"
-    ]
-    performance_metrics["unknown_breaker_count"] = rejection_metrics[
-        "unknown_breaker_count"
-    ]
+    merge_rejection_metric_values(performance_metrics, rejection_metrics)
 
 
 def _build_statistics_payload(
@@ -348,7 +333,7 @@ async def async_get_config_entry_diagnostics(
         "debug_info": await _get_debug_information(hass, entry),
         "door_sensor": await _get_door_sensor_diagnostics(runtime_data),
         "service_execution": await _get_service_execution_diagnostics(runtime_data),
-        "bool_coercion": _get_bool_coercion_diagnostics(),
+        "bool_coercion": _get_bool_coercion_diagnostics(runtime_data),
     }
 
     if cache_snapshots is not None:
@@ -922,7 +907,7 @@ async def _get_performance_metrics(
     if resilience is not None:
         stats_payload["resilience"] = resilience
 
-    return {
+    metrics_output: dict[str, Any] = {
         "update_frequency": performance_metrics["update_interval"],
         "data_freshness": "fresh" if coordinator.last_update_success else "stale",
         "memory_efficient": True,  # Placeholder - could add actual memory usage
@@ -933,6 +918,19 @@ async def _get_performance_metrics(
         "rejection_metrics": rejection_metrics,
         "statistics": stats_payload,
     }
+
+    sources: tuple[Mapping[str, Any], ...]
+    if isinstance(performance_metrics, Mapping):
+        sources = (
+            cast(Mapping[str, Any], performance_metrics),
+            rejection_metrics,
+        )
+    else:
+        sources = (rejection_metrics,)
+
+    merge_rejection_metric_values(metrics_output, *sources)
+
+    return metrics_output
 
 
 async def _get_door_sensor_diagnostics(
@@ -1029,12 +1027,18 @@ async def _get_service_execution_diagnostics(
     return diagnostics
 
 
-def _get_bool_coercion_diagnostics() -> dict[str, Any]:
+def _get_bool_coercion_diagnostics(
+    runtime_data: PawControlRuntimeData | None,
+) -> dict[str, Any]:
     """Expose recent bool coercion telemetry captured during normalisation."""
 
     metrics = get_bool_coercion_metrics()
-    recorded = bool(metrics.get("total", 0) or metrics.get("reset_count", 0))
-    payload: dict[str, Any] = {"recorded": recorded}
+    summary = update_runtime_bool_coercion_summary(runtime_data)
+    recorded = bool(summary.get("recorded"))
+    payload: dict[str, Any] = {
+        "recorded": recorded,
+        "summary": summary,
+    }
 
     if recorded:
         payload["metrics"] = metrics

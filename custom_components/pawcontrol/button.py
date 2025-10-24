@@ -48,6 +48,10 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
 from .exceptions import WalkAlreadyInProgressError, WalkNotInProgressError
+from .grooming_translations import (
+    translated_grooming_label,
+    translated_grooming_template,
+)
 from .runtime_data import get_runtime_data
 from .types import (
     DOG_ID_FIELD,
@@ -1638,18 +1642,30 @@ class PawControlStartGroomingButton(PawControlButtonBase):
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
         """Initialise the grooming session starter."""
+        hass_obj = getattr(coordinator, "hass", None)
+        language_config = getattr(hass_obj, "config", None) if hass_obj else None
+        hass_language: str | None = None
+        if language_config is not None:
+            hass_language = getattr(language_config, "language", None)
         super().__init__(
             coordinator,
             dog_id,
             dog_name,
             "start_grooming",
             icon="mdi:content-cut",
-            action_description="Start grooming session",
+            action_description=translated_grooming_label(
+                hass_language, "button_action"
+            ),
         )
 
     async def async_press(self) -> None:
         """Start grooming session."""
         await super().async_press()
+
+        config_obj = getattr(self.hass, "config", None)
+        hass_language: str | None = None
+        if config_obj is not None:
+            hass_language = getattr(config_obj, "language", None)
 
         try:
             await self._async_service_call(
@@ -1658,13 +1674,16 @@ class PawControlStartGroomingButton(PawControlButtonBase):
                 {
                     ATTR_DOG_ID: self._dog_id,
                     "type": "general",
-                    "notes": "Started via button",
+                    "notes": translated_grooming_label(hass_language, "button_notes"),
                 },
                 blocking=False,
             )
         except Exception as err:
             _LOGGER.error("Failed to start grooming: %s", err)
-            raise HomeAssistantError(f"Failed to start grooming: {err}") from err
+            error_message = translated_grooming_template(
+                hass_language, "button_error", error=str(err)
+            )
+            raise HomeAssistantError(error_message) from err
 
 
 class PawControlScheduleVetButton(PawControlButtonBase):

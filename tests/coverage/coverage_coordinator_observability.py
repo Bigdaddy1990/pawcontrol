@@ -133,6 +133,13 @@ EntityBudgetTracker = _observability.EntityBudgetTracker
 normalise_webhook_status = _observability.normalise_webhook_status
 summarize_entity_budgets = _observability.summarize_entity_budgets
 
+_telemetry = _load_module(
+    "custom_components.pawcontrol.telemetry",
+    "telemetry.py",
+)
+reset_bool_coercion_metrics = _telemetry.reset_bool_coercion_metrics
+record_bool_coercion_event = _telemetry.record_bool_coercion_event
+
 
 class DummyMetrics:
     """Minimal metrics stub mirroring the coordinator counters."""
@@ -234,19 +241,31 @@ def test_build_performance_snapshot_includes_runtime_metadata() -> None:
     entity_budget = {"active_dogs": 1, "peak_utilization": 50.0}
     webhook_status = {"configured": False, "secure": True, "hmac_ready": False}
 
-    snapshot = build_performance_snapshot(
-        metrics=metrics,
-        adaptive=adaptive,
-        entity_budget=entity_budget,
-        update_interval=0.2,
-        last_update_time=datetime(2024, 1, 1, 0, 0, 0),
-        last_update_success=True,
-        webhook_status=webhook_status,
+    reset_bool_coercion_metrics()
+    record_bool_coercion_event(
+        value="true",
+        default=False,
+        result=True,
+        reason="truthy_string",
     )
+
+    try:
+        snapshot = build_performance_snapshot(
+            metrics=metrics,
+            adaptive=adaptive,
+            entity_budget=entity_budget,
+            update_interval=0.2,
+            last_update_time=datetime(2024, 1, 1, 0, 0, 0),
+            last_update_success=True,
+            webhook_status=webhook_status,
+        )
+    finally:
+        reset_bool_coercion_metrics()
 
     assert snapshot["update_counts"]["total"] == 5
     assert snapshot["performance_metrics"]["current_cycle_ms"] == 120.0
     assert snapshot["webhook_security"]["secure"] is True
+    assert snapshot["bool_coercion"]["recorded"] is True
 
 
 def test_entity_budget_tracker_summary_and_saturation() -> None:

@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import UTC, date, datetime
 from math import isfinite
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Final, cast
 
 from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_time_interval
@@ -21,6 +21,7 @@ from .runtime_data import get_runtime_data
 from .telemetry import (
     get_runtime_reconfigure_summary,
     summarise_reconfigure_options,
+    update_runtime_bool_coercion_summary,
     update_runtime_reconfigure_summary,
     update_runtime_resilience_summary,
 )
@@ -398,6 +399,30 @@ def _normalise_adaptive_diagnostics(data: Any) -> AdaptivePollingDiagnostics:
     return diagnostics
 
 
+_REJECTION_SCALAR_KEYS: Final[tuple[str, ...]] = (
+    "rejected_call_count",
+    "rejection_breaker_count",
+    "rejection_rate",
+    "last_rejection_time",
+    "last_rejection_breaker_id",
+    "last_rejection_breaker_name",
+    "open_breaker_count",
+    "half_open_breaker_count",
+    "unknown_breaker_count",
+)
+
+_REJECTION_SEQUENCE_KEYS: Final[tuple[str, ...]] = (
+    "open_breakers",
+    "open_breaker_ids",
+    "half_open_breakers",
+    "half_open_breaker_ids",
+    "unknown_breakers",
+    "unknown_breaker_ids",
+    "rejection_breaker_ids",
+    "rejection_breakers",
+)
+
+
 def default_rejection_metrics() -> CoordinatorRejectionMetrics:
     """Return a baseline rejection metric payload for diagnostics consumers."""
 
@@ -412,12 +437,44 @@ def default_rejection_metrics() -> CoordinatorRejectionMetrics:
         "open_breaker_count": 0,
         "half_open_breaker_count": 0,
         "unknown_breaker_count": 0,
+        "open_breakers": [],
         "open_breaker_ids": [],
+        "half_open_breakers": [],
         "half_open_breaker_ids": [],
+        "unknown_breakers": [],
         "unknown_breaker_ids": [],
         "rejection_breaker_ids": [],
         "rejection_breakers": [],
     }
+
+
+def merge_rejection_metric_values(
+    target: dict[str, Any], *sources: Mapping[str, Any]
+) -> None:
+    """Populate ``target`` with rejection metrics extracted from ``sources``."""
+
+    if not sources:
+        return
+
+    for key in _REJECTION_SCALAR_KEYS:
+        for source in sources:
+            if key in source:
+                target[key] = source[key]
+                break
+
+    for key in _REJECTION_SEQUENCE_KEYS:
+        for source in sources:
+            if key in source:
+                value = source[key]
+                if isinstance(value, Sequence) and not isinstance(
+                    value, (str, bytes, bytearray)
+                ):
+                    target[key] = list(value)
+                else:
+                    target[key] = []
+                break
+        else:
+            target[key] = []
 
 
 def derive_rejection_metrics(
@@ -466,11 +523,18 @@ def derive_rejection_metrics(
     if unknown_breakers is not None:
         metrics["unknown_breaker_count"] = _coerce_int(unknown_breakers)
 
+    metrics["open_breakers"] = _normalise_string_list(summary.get("open_breakers"))
     metrics["open_breaker_ids"] = _normalise_string_list(
         summary.get("open_breaker_ids")
     )
+    metrics["half_open_breakers"] = _normalise_string_list(
+        summary.get("half_open_breakers")
+    )
     metrics["half_open_breaker_ids"] = _normalise_string_list(
         summary.get("half_open_breaker_ids")
+    )
+    metrics["unknown_breakers"] = _normalise_string_list(
+        summary.get("unknown_breakers")
     )
     metrics["unknown_breaker_ids"] = _normalise_string_list(
         summary.get("unknown_breaker_ids")
@@ -814,29 +878,7 @@ def build_update_statistics(
     stats["rejection_metrics"] = rejection_metrics
 
     performance_metrics = stats["performance_metrics"]
-    performance_metrics["rejected_call_count"] = rejection_metrics[
-        "rejected_call_count"
-    ]
-    performance_metrics["rejection_breaker_count"] = rejection_metrics[
-        "rejection_breaker_count"
-    ]
-    performance_metrics["rejection_rate"] = rejection_metrics["rejection_rate"]
-    performance_metrics["last_rejection_time"] = rejection_metrics[
-        "last_rejection_time"
-    ]
-    performance_metrics["last_rejection_breaker_id"] = rejection_metrics[
-        "last_rejection_breaker_id"
-    ]
-    performance_metrics["last_rejection_breaker_name"] = rejection_metrics[
-        "last_rejection_breaker_name"
-    ]
-    performance_metrics["open_breaker_count"] = rejection_metrics["open_breaker_count"]
-    performance_metrics["half_open_breaker_count"] = rejection_metrics[
-        "half_open_breaker_count"
-    ]
-    performance_metrics["unknown_breaker_count"] = rejection_metrics[
-        "unknown_breaker_count"
-    ]
+    merge_rejection_metric_values(performance_metrics, rejection_metrics)
     if reconfigure_summary is not None:
         stats["reconfigure"] = reconfigure_summary
     return stats
@@ -857,6 +899,8 @@ def build_runtime_statistics(
         interval=coordinator.update_interval,
         repair_summary=repair_summary,
     )
+    runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
+    stats["bool_coercion"] = update_runtime_bool_coercion_summary(runtime_data)
     stats["entity_budget"] = _normalise_entity_budget_summary(
         coordinator._entity_budget.summary()
     )
@@ -876,28 +920,7 @@ def build_runtime_statistics(
 
     performance_metrics = stats.get("performance_metrics")
     if isinstance(performance_metrics, dict):
-        performance_metrics["rejected_call_count"] = rejection_metrics[
-            "rejected_call_count"
-        ]
-        performance_metrics["rejection_breaker_count"] = rejection_metrics[
-            "rejection_breaker_count"
-        ]
-        performance_metrics["rejection_rate"] = rejection_metrics["rejection_rate"]
-        performance_metrics["last_rejection_time"] = rejection_metrics[
-            "last_rejection_time"
-        ]
-        performance_metrics["last_rejection_breaker_id"] = rejection_metrics[
-            "last_rejection_breaker_id"
-        ]
-        performance_metrics["last_rejection_breaker_name"] = rejection_metrics[
-            "last_rejection_breaker_name"
-        ]
-        performance_metrics["open_breaker_count"] = rejection_metrics[
-            "open_breaker_count"
-        ]
-        performance_metrics["half_open_breaker_count"] = rejection_metrics[
-            "half_open_breaker_count"
-        ]
+        merge_rejection_metric_values(performance_metrics, rejection_metrics)
 
     error_summary = stats.get("error_summary")
     if isinstance(error_summary, dict):
@@ -906,6 +929,31 @@ def build_runtime_statistics(
         error_summary["rejection_breaker_count"] = rejection_metrics[
             "rejection_breaker_count"
         ]
+        error_summary["open_breaker_count"] = rejection_metrics["open_breaker_count"]
+        error_summary["half_open_breaker_count"] = rejection_metrics[
+            "half_open_breaker_count"
+        ]
+        error_summary["unknown_breaker_count"] = rejection_metrics[
+            "unknown_breaker_count"
+        ]
+        error_summary["open_breakers"] = list(rejection_metrics["open_breakers"])
+        error_summary["open_breaker_ids"] = list(rejection_metrics["open_breaker_ids"])
+        error_summary["half_open_breakers"] = list(
+            rejection_metrics["half_open_breakers"]
+        )
+        error_summary["half_open_breaker_ids"] = list(
+            rejection_metrics["half_open_breaker_ids"]
+        )
+        error_summary["unknown_breakers"] = list(rejection_metrics["unknown_breakers"])
+        error_summary["unknown_breaker_ids"] = list(
+            rejection_metrics["unknown_breaker_ids"]
+        )
+        error_summary["rejection_breaker_ids"] = list(
+            rejection_metrics["rejection_breaker_ids"]
+        )
+        error_summary["rejection_breakers"] = list(
+            rejection_metrics["rejection_breakers"]
+        )
     if reconfigure_summary is not None:
         stats["reconfigure"] = reconfigure_summary
     return stats

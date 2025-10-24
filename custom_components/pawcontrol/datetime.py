@@ -24,6 +24,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
+from .grooming_translations import translated_grooming_template
 from .notifications import NotificationPriority, NotificationType
 from .runtime_data import get_runtime_data
 from .types import (
@@ -455,13 +456,22 @@ class PawControlLastGroomingDateTime(PawControlDateTimeBase):
         await super().async_set_value(value)
 
         # Log grooming session
+        config_obj = getattr(self.hass, "config", None)
+        hass_language: str | None = None
+        if config_obj is not None:
+            hass_language = getattr(config_obj, "language", None)
+
         if not await self._async_call_hass_service(
             DOMAIN,
             "start_grooming",
             {
                 ATTR_DOG_ID: self._dog_id,
                 "type": "full_grooming",
-                "notes": f"Grooming session on {value.strftime('%Y-%m-%d')}",
+                "notes": translated_grooming_template(
+                    hass_language,
+                    "manual_session_notes",
+                    date=value.strftime("%Y-%m-%d"),
+                ),
             },
         ):
             return

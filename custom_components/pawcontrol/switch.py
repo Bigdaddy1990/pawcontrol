@@ -40,6 +40,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
+from .grooming_translations import translated_grooming_label
 from .runtime_data import get_runtime_data
 from .types import (
     DOG_ID_FIELD,
@@ -617,7 +618,18 @@ class PawControlModuleSwitch(OptimizedSwitchBase):
     ) -> None:
         """Initialise a toggle for enabling or disabling a module."""
         self._module_id = module_id
-        self._module_name = module_name
+        hass_language: str | None = None
+        hass_obj = getattr(coordinator, "hass", None)
+        config_obj = getattr(hass_obj, "config", None) if hass_obj else None
+        if config_obj is not None:
+            hass_language = getattr(config_obj, "language", None)
+
+        if module_id == MODULE_GROOMING:
+            display_name = translated_grooming_label(hass_language, "module_switch")
+        else:
+            display_name = module_name
+
+        self._module_name = display_name
 
         super().__init__(
             coordinator,
@@ -628,7 +640,7 @@ class PawControlModuleSwitch(OptimizedSwitchBase):
             initial_state=initial_state,
             entity_category=EntityCategory.CONFIG,
         )
-        self._attr_name = f"{dog_name} {module_name}"
+        self._attr_name = f"{dog_name} {display_name}"
 
     async def _async_set_state(self, state: bool) -> None:
         """Set module state with config update."""
@@ -698,8 +710,22 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
     ) -> None:
         """Initialise a toggle for fine-grained module features."""
         self._feature_id = feature_id
-        self._feature_name = feature_name
         self._module = module
+
+        hass_language: str | None = None
+        hass_obj = getattr(coordinator, "hass", None)
+        config_obj = getattr(hass_obj, "config", None) if hass_obj else None
+        if config_obj is not None:
+            hass_language = getattr(config_obj, "language", None)
+
+        if module == MODULE_GROOMING:
+            display_name = translated_grooming_label(
+                hass_language, f"feature_{feature_id}"
+            )
+        else:
+            display_name = feature_name
+
+        self._feature_name = display_name
 
         super().__init__(
             coordinator,
@@ -709,7 +735,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
             icon=icon,
             initial_state=True,
         )
-        self._attr_name = f"{dog_name} {feature_name}"
+        self._attr_name = f"{dog_name} {display_name}"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

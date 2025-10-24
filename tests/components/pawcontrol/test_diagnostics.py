@@ -263,6 +263,14 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     rejection_metrics = performance_metrics["rejection_metrics"]
     assert rejection_metrics["schema_version"] == 3
     assert rejection_metrics["rejected_call_count"] == 0
+    assert performance_metrics["open_breakers"] == []
+    assert performance_metrics["open_breaker_ids"] == []
+    assert performance_metrics["half_open_breakers"] == []
+    assert performance_metrics["half_open_breaker_ids"] == []
+    assert performance_metrics["unknown_breakers"] == []
+    assert performance_metrics["unknown_breaker_ids"] == []
+    assert performance_metrics["rejection_breaker_ids"] == []
+    assert performance_metrics["rejection_breakers"] == []
 
     service_execution = diagnostics["service_execution"]
     assert service_execution["available"] is True
@@ -283,13 +291,19 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     assert rejection_metrics["open_breaker_count"] == 0
     assert rejection_metrics["half_open_breaker_count"] == 0
     assert rejection_metrics["unknown_breaker_count"] == 0
+    assert rejection_metrics["open_breakers"] == []
     assert rejection_metrics["open_breaker_ids"] == []
+    assert rejection_metrics["half_open_breakers"] == []
     assert rejection_metrics["half_open_breaker_ids"] == []
+    assert rejection_metrics["unknown_breakers"] == []
     assert rejection_metrics["unknown_breaker_ids"] == []
     assert rejection_metrics["rejection_breaker_ids"] == []
     assert rejection_metrics["rejection_breakers"] == []
     stats_block = performance_metrics["statistics"]["rejection_metrics"]
     assert stats_block["schema_version"] == 3
+    assert stats_block["open_breakers"] == []
+    assert stats_block["half_open_breakers"] == []
+    assert stats_block["unknown_breakers"] == []
 
     bool_coercion = diagnostics["bool_coercion"]
     assert bool_coercion["recorded"] is True
@@ -331,3 +345,21 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
             "unknown_string",
         }
     )
+
+    summary = bool_coercion["summary"]
+    assert summary["recorded"] is True
+    assert summary["total"] == metrics["total"]
+    assert summary["reset_count"] == metrics["reset_count"]
+    assert summary["last_reason"] == metrics["last_reason"]
+    assert summary["last_result"] == metrics["last_result"]
+    assert summary["last_default"] == metrics["last_default"]
+    expected_reason_counts = dict(sorted(metrics["reason_counts"].items()))
+    assert summary["reason_counts"] == expected_reason_counts
+    assert len(summary["samples"]) <= min(5, len(metrics["samples"]))
+    if summary["samples"]:
+        assert summary["samples"][0]["reason"] in summary["reason_counts"]
+
+    cached_summary = runtime.performance_stats.get("bool_coercion_summary")
+    assert cached_summary is not None
+    assert cached_summary["total"] == summary["total"]
+    assert cached_summary["reason_counts"] == summary["reason_counts"]

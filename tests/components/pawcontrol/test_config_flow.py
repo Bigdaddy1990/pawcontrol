@@ -23,6 +23,7 @@ from custom_components.pawcontrol.const import (
     CONF_MODULES,
     DOMAIN,
     MODULE_DASHBOARD,
+    MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_NOTIFICATIONS,
@@ -731,6 +732,176 @@ async def test_reconfigure_normalises_legacy_module_lists(
     assert modules[MODULE_HEALTH] is True
 
 
+def test_extract_entry_dogs_merges_nested_payloads(hass: HomeAssistant) -> None:
+    """Nested dog payloads should merge without dropping baseline values."""
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            "name": "Paw Control",
+            CONF_DOGS: [
+                {
+                    CONF_DOG_ID: "buddy",
+                    CONF_DOG_NAME: "Buddy",
+                    "feeding": {
+                        "meals_per_day": 2,
+                        "snack_times": ["evening"],
+                    },
+                }
+            ],
+        },
+        options={
+            CONF_DOGS: [
+                {
+                    CONF_DOG_ID: "buddy",
+                    "feeding": {"enable_reminders": False},
+                }
+            ],
+            CONF_DOG_OPTIONS: [
+                {
+                    CONF_DOG_ID: "buddy",
+                    "feeding": {"snack_times": ["morning", "evening"]},
+                }
+            ],
+        },
+        unique_id=DOMAIN,
+    )
+    entry.add_to_hass(hass)
+
+    flow = config_flow.PawControlConfigFlow()
+    flow.hass = hass
+
+    dogs, merge_notes = flow._extract_entry_dogs(entry)
+
+    assert len(dogs) == 1
+    assert merge_notes == []
+    feeding = dogs[0].get("feeding")
+    assert isinstance(feeding, dict)
+    assert feeding["meals_per_day"] == 2
+    assert feeding["enable_reminders"] is False
+    assert feeding["snack_times"] == ["morning", "evening"]
+
+
+def test_extract_entry_dogs_preserves_lists_for_empty_overrides(
+    hass: HomeAssistant,
+) -> None:
+    """Empty list overrides should not wipe baseline sequence values."""
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            "name": "Paw Control",
+            CONF_DOGS: [
+                {
+                    CONF_DOG_ID: "buddy",
+                    "feeding": {"snack_times": ["evening", "late"]},
+                }
+            ],
+        },
+        options={
+            CONF_DOG_OPTIONS: [
+                {
+                    CONF_DOG_ID: "buddy",
+                    "feeding": {"snack_times": []},
+                }
+            ]
+        },
+        unique_id=DOMAIN,
+    )
+    entry.add_to_hass(hass)
+
+    flow = config_flow.PawControlConfigFlow()
+    flow.hass = hass
+
+    dogs, merge_notes = flow._extract_entry_dogs(entry)
+
+    assert merge_notes == []
+    assert len(dogs) == 1
+    feeding = dogs[0].get("feeding")
+    assert isinstance(feeding, dict)
+    assert feeding["snack_times"] == ["evening", "late"]
+
+
+def test_extract_entry_dogs_appends_missing_sequence_items(
+    hass: HomeAssistant,
+) -> None:
+    """List overrides should append new items while preserving baseline ones."""
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            "name": "Paw Control",
+            CONF_DOGS: [
+                {
+                    CONF_DOG_ID: "buddy",
+                    "feeding": {"snack_times": ["evening"]},
+                }
+            ],
+        },
+        options={
+            CONF_DOG_OPTIONS: [
+                {
+                    CONF_DOG_ID: "buddy",
+                    "feeding": {"snack_times": ["morning"]},
+                }
+            ]
+        },
+        unique_id=DOMAIN,
+    )
+    entry.add_to_hass(hass)
+
+    flow = config_flow.PawControlConfigFlow()
+    flow.hass = hass
+
+    dogs, _ = flow._extract_entry_dogs(entry)
+
+    feeding = dogs[0].get("feeding")
+    assert isinstance(feeding, dict)
+    assert feeding["snack_times"] == ["morning", "evening"]
+
+
+def test_extract_entry_dogs_respects_sequence_removal_directive(
+    hass: HomeAssistant,
+) -> None:
+    """List overrides may explicitly clear baseline values via directives."""
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={
+            "name": "Paw Control",
+            CONF_DOGS: [
+                {
+                    CONF_DOG_ID: "buddy",
+                    "feeding": {"snack_times": ["evening", "late"]},
+                }
+            ],
+        },
+        options={
+            CONF_DOG_OPTIONS: [
+                {
+                    CONF_DOG_ID: "buddy",
+                    "feeding": {
+                        "snack_times": [{config_flow._LIST_REMOVE_DIRECTIVE: True}]
+                    },
+                }
+            ]
+        },
+        unique_id=DOMAIN,
+    )
+    entry.add_to_hass(hass)
+
+    flow = config_flow.PawControlConfigFlow()
+    flow.hass = hass
+
+    dogs, merge_notes = flow._extract_entry_dogs(entry)
+
+    assert merge_notes == []
+    assert len(dogs) == 1
+    feeding = dogs[0].get("feeding")
+    assert isinstance(feeding, dict)
+    assert feeding.get("snack_times") == []
+
+
 async def test_reconfigure_accepts_legacy_identifier_aliases(
     hass: HomeAssistant,
 ) -> None:
@@ -1435,7 +1606,67 @@ async def test_configure_dashboard_form_includes_context(hass: HomeAssistant) ->
     assert result["type"] == FlowResultType.FORM
     placeholders = result["description_placeholders"]
     assert placeholders["dog_count"] == 2
-    assert "dashboard" in placeholders["dashboard_info"].lower()
+    assert placeholders["dashboard_info"] == "\n".join(
+        [
+            "🎨 The dashboard will be automatically created after setup",
+            "📊 It will include cards for each dog and their activities",
+            "🗺️ GPS maps will be shown if GPS module is enabled",
+            "📱 Dashboards are mobile-friendly and responsive",
+            "🐕 Individual dashboards for 2 dogs recommended",
+        ]
+    )
+    assert (
+        placeholders["features"]
+        == "status cards, activity tracking, quick actions, location maps, multi-dog overview"
+    )
+
+
+async def test_configure_dashboard_form_localizes_placeholders(
+    hass: HomeAssistant,
+) -> None:
+    """Localization should update dashboard placeholders for the active language."""
+
+    hass.config.language = "de"
+    flow = config_flow.PawControlConfigFlow()
+    flow.hass = hass
+    flow.context = {}
+    flow._dogs = [
+        {
+            CONF_DOG_ID: "buddy",
+            CONF_MODULES: {
+                MODULE_DASHBOARD: True,
+                MODULE_GPS: True,
+                MODULE_HEALTH: True,
+            },
+        },
+        {
+            CONF_DOG_ID: "max",
+            CONF_MODULES: {
+                MODULE_DASHBOARD: True,
+                MODULE_FEEDING: True,
+            },
+        },
+    ]
+    flow._enabled_modules = {MODULE_GPS: True}
+
+    result = await flow.async_step_configure_dashboard()
+
+    assert result["type"] == FlowResultType.FORM
+    placeholders = result["description_placeholders"]
+    assert placeholders["dog_count"] == 2
+    assert placeholders["dashboard_info"] == "\n".join(
+        [
+            "🎨 Das Dashboard wird nach der Einrichtung automatisch erstellt",
+            "📊 Enthält Karten für jeden Hund und seine Aktivitäten",
+            "🗺️ GPS-Karten werden angezeigt, wenn das GPS-Modul aktiviert ist",
+            "📱 Dashboards sind mobilfreundlich und responsiv",
+            "🐕 Individuelle Dashboards für 2 Hunde empfohlen",
+        ]
+    )
+    assert (
+        placeholders["features"]
+        == "Statuskarten, Aktivitätsverfolgung, Schnellaktionen, Standortkarten, Übersicht für mehrere Hunde"
+    )
 
 
 async def test_configure_dashboard_with_gps_routes_external(

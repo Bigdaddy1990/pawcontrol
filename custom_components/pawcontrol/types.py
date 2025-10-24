@@ -411,6 +411,59 @@ def _record_bool_coercion(
         return
 
 
+class BoolCoercionSample(TypedDict):
+    """Snapshot of an individual boolean coercion event."""
+
+    value_type: str
+    value_repr: str
+    default: bool
+    result: bool
+    reason: str
+
+
+class BoolCoercionMetrics(TypedDict, total=False):
+    """Aggregated metrics describing bool coercion behaviour."""
+
+    total: int
+    defaulted: int
+    fallback: int
+    reset_count: int
+    type_counts: dict[str, int]
+    reason_counts: dict[str, int]
+    samples: list[BoolCoercionSample]
+    first_seen: str | None
+    last_seen: str | None
+    active_window_seconds: float | None
+    last_reset: str | None
+    last_reason: str | None
+    last_value_type: str | None
+    last_value_repr: str | None
+    last_result: bool | None
+    last_default: bool | None
+
+
+class BoolCoercionSummary(TypedDict):
+    """Condensed snapshot for coordinator observability exports."""
+
+    recorded: bool
+    total: int
+    defaulted: int
+    fallback: int
+    reset_count: int
+    first_seen: str | None
+    last_seen: str | None
+    last_reset: str | None
+    active_window_seconds: float | None
+    last_reason: str | None
+    last_value_type: str | None
+    last_value_repr: str | None
+    last_result: bool | None
+    last_default: bool | None
+    reason_counts: dict[str, int]
+    type_counts: dict[str, int]
+    samples: list[BoolCoercionSample]
+
+
 _TRUTHY_BOOL_STRINGS: Final[frozenset[str]] = frozenset(
     {"1", "true", "yes", "y", "on", "enabled"}
 )
@@ -1987,6 +2040,14 @@ class CoordinatorPerformanceMetrics(TypedDict):
     open_breaker_count: NotRequired[int]
     half_open_breaker_count: NotRequired[int]
     unknown_breaker_count: NotRequired[int]
+    open_breakers: NotRequired[list[str]]
+    open_breaker_ids: NotRequired[list[str]]
+    half_open_breakers: NotRequired[list[str]]
+    half_open_breaker_ids: NotRequired[list[str]]
+    unknown_breakers: NotRequired[list[str]]
+    unknown_breaker_ids: NotRequired[list[str]]
+    rejection_breaker_ids: NotRequired[list[str]]
+    rejection_breakers: NotRequired[list[str]]
 
 
 class CoordinatorHealthIndicators(TypedDict, total=False):
@@ -2120,6 +2181,17 @@ class CoordinatorErrorSummary(TypedDict):
     rejection_rate: NotRequired[float | None]
     rejected_call_count: NotRequired[int]
     rejection_breaker_count: NotRequired[int]
+    open_breaker_count: NotRequired[int]
+    half_open_breaker_count: NotRequired[int]
+    unknown_breaker_count: NotRequired[int]
+    open_breakers: NotRequired[list[str]]
+    open_breaker_ids: NotRequired[list[str]]
+    half_open_breakers: NotRequired[list[str]]
+    half_open_breaker_ids: NotRequired[list[str]]
+    unknown_breakers: NotRequired[list[str]]
+    unknown_breaker_ids: NotRequired[list[str]]
+    rejection_breaker_ids: NotRequired[list[str]]
+    rejection_breakers: NotRequired[list[str]]
 
 
 class CoordinatorCachePerformance(TypedDict):
@@ -2144,6 +2216,7 @@ class CoordinatorRuntimeStatisticsPayload(TypedDict):
     adaptive_polling: NotRequired[AdaptivePollingDiagnostics]
     resilience: NotRequired[CoordinatorResilienceDiagnostics]
     rejection_metrics: NotRequired[CoordinatorRejectionMetrics]
+    bool_coercion: NotRequired[BoolCoercionSummary]
 
 
 class CoordinatorModuleErrorPayload(TypedDict, total=False):
@@ -2205,8 +2278,11 @@ class CoordinatorRejectionMetrics(TypedDict):
     open_breaker_count: int
     half_open_breaker_count: int
     unknown_breaker_count: int
+    open_breakers: list[str]
     open_breaker_ids: list[str]
+    half_open_breakers: list[str]
     half_open_breaker_ids: list[str]
+    unknown_breakers: list[str]
     unknown_breaker_ids: list[str]
     rejection_breaker_ids: list[str]
     rejection_breakers: list[str]
