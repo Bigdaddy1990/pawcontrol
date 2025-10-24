@@ -1198,9 +1198,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                 "calorie",
                 asyncio.create_task(
                     self._collect_single_card(
-                        self._generate_calorie_tracking_card(
-                            dog_id, options, language
-                        )
+                        self._generate_calorie_tracking_card(dog_id, options, language)
                     )
                 ),
             ),
@@ -1208,9 +1206,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                 "weight",
                 asyncio.create_task(
                     self._collect_single_card(
-                        self._generate_weight_management_card(
-                            dog_id, options, language
-                        )
+                        self._generate_weight_management_card(dog_id, options, language)
                     )
                 ),
             ),
@@ -1291,9 +1287,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                 },
                 {
                     "entity": f"sensor.{dog_id}_portion_adjustment_factor",
-                    "name": _translated_health_label(
-                        language, "portion_adjustment"
-                    ),
+                    "name": _translated_health_label(language, "portion_adjustment"),
                     "icon": "mdi:scale-balance",
                 },
             ],
@@ -1361,9 +1355,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                         },
                         {
                             "entity": f"sensor.{dog_id}_ideal_weight",
-                            "name": _translated_health_label(
-                                language, "ideal_weight"
-                            ),
+                            "name": _translated_health_label(language, "ideal_weight"),
                             "icon": "mdi:target",
                         },
                         {
@@ -1379,9 +1371,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                 {
                     "type": "gauge",
                     "entity": f"sensor.{dog_id}_weight_goal_progress",
-                    "name": _translated_health_label(
-                        language, "weight_goal_progress"
-                    ),
+                    "name": _translated_health_label(language, "weight_goal_progress"),
                     "min": 0,
                     "max": 100,
                     "unit": "%",
@@ -1412,9 +1402,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                     "cards": [
                         {
                             "type": "button",
-                            "name": _translated_health_label(
-                                language, "recalculate"
-                            ),
+                            "name": _translated_health_label(language, "recalculate"),
                             "icon": "mdi:calculator-variant",
                             "tap_action": {
                                 "action": "call-service",
@@ -1424,9 +1412,7 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                         },
                         {
                             "type": "button",
-                            "name": _translated_health_label(
-                                language, "update_health"
-                            ),
+                            "name": _translated_health_label(language, "update_health"),
                             "icon": "mdi:heart-pulse",
                             "tap_action": {
                                 "action": "call-service",
@@ -1836,9 +1822,7 @@ class ModuleCardGenerator(BaseCardGenerator):
             cards.append(
                 {
                     "type": "entities",
-                    "title": _translated_health_label(
-                        language, "health_metrics_title"
-                    ),
+                    "title": _translated_health_label(language, "health_metrics_title"),
                     "entities": valid_metrics,
                     "state_color": True,
                 }
@@ -1956,9 +1940,7 @@ class ModuleCardGenerator(BaseCardGenerator):
             cards.append(
                 {
                     "type": "entities",
-                    "title": _translated_visitor_label(
-                        hass_language, "entities_title"
-                    ),
+                    "title": _translated_visitor_label(hass_language, "entities_title"),
                     "entities": valid_entities,
                     "state_color": True,
                 }
@@ -2704,9 +2686,7 @@ class WeatherCardGenerator(BaseCardGenerator):
                         {
                             "type": "custom:mushroom-entity-card",
                             "entity": f"sensor.{dog_id}_next_optimal_walk_time",
-                            "name": _translated_walk_label(
-                                language, "next_good_time"
-                            ),
+                            "name": _translated_walk_label(language, "next_good_time"),
                             "icon": "mdi:clock-check",
                             "icon_color": "green",
                         },

@@ -1606,17 +1606,14 @@ async def test_configure_dashboard_form_includes_context(hass: HomeAssistant) ->
     assert result["type"] == FlowResultType.FORM
     placeholders = result["description_placeholders"]
     assert placeholders["dog_count"] == 2
-    assert (
-        placeholders["dashboard_info"]
-        == "\n".join(
-            [
-                "🎨 The dashboard will be automatically created after setup",
-                "📊 It will include cards for each dog and their activities",
-                "🗺️ GPS maps will be shown if GPS module is enabled",
-                "📱 Dashboards are mobile-friendly and responsive",
-                "🐕 Individual dashboards for 2 dogs recommended",
-            ]
-        )
+    assert placeholders["dashboard_info"] == "\n".join(
+        [
+            "🎨 The dashboard will be automatically created after setup",
+            "📊 It will include cards for each dog and their activities",
+            "🗺️ GPS maps will be shown if GPS module is enabled",
+            "📱 Dashboards are mobile-friendly and responsive",
+            "🐕 Individual dashboards for 2 dogs recommended",
+        ]
     )
     assert (
         placeholders["features"]
@@ -1657,17 +1654,14 @@ async def test_configure_dashboard_form_localizes_placeholders(
     assert result["type"] == FlowResultType.FORM
     placeholders = result["description_placeholders"]
     assert placeholders["dog_count"] == 2
-    assert (
-        placeholders["dashboard_info"]
-        == "\n".join(
-            [
-                "🎨 Das Dashboard wird nach der Einrichtung automatisch erstellt",
-                "📊 Enthält Karten für jeden Hund und seine Aktivitäten",
-                "🗺️ GPS-Karten werden angezeigt, wenn das GPS-Modul aktiviert ist",
-                "📱 Dashboards sind mobilfreundlich und responsiv",
-                "🐕 Individuelle Dashboards für 2 Hunde empfohlen",
-            ]
-        )
+    assert placeholders["dashboard_info"] == "\n".join(
+        [
+            "🎨 Das Dashboard wird nach der Einrichtung automatisch erstellt",
+            "📊 Enthält Karten für jeden Hund und seine Aktivitäten",
+            "🗺️ GPS-Karten werden angezeigt, wenn das GPS-Modul aktiviert ist",
+            "📱 Dashboards sind mobilfreundlich und responsiv",
+            "🐕 Individuelle Dashboards für 2 Hunde empfohlen",
+        ]
     )
     assert (
         placeholders["features"]

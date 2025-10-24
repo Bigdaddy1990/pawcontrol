@@ -166,9 +166,7 @@ def _apply_rejection_metrics_to_performance(
     performance_metrics["unknown_breaker_count"] = rejection_metrics[
         "unknown_breaker_count"
     ]
-    performance_metrics["open_breakers"] = list(
-        rejection_metrics["open_breakers"]
-    )
+    performance_metrics["open_breakers"] = list(rejection_metrics["open_breakers"])
     performance_metrics["open_breaker_ids"] = list(
         rejection_metrics["open_breaker_ids"]
     )

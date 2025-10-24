@@ -129,7 +129,6 @@ def translated_dashboard_feature(language: str | None, key: str) -> str:
 
 
 if TYPE_CHECKING:
-
     from homeassistant.core import HomeAssistant
 
     class ModuleFlowHost(Protocol):
@@ -608,9 +607,7 @@ class ModuleConfigurationMixin:
         features: list[str] = []
         if module_summary["gps_dogs"] > 0:
             features.append(
-                translated_dashboard_feature(
-                    hass_language, "live_location_tracking"
-                )
+                translated_dashboard_feature(hass_language, "live_location_tracking")
             )
         if module_summary["health_dogs"] > 0:
             features.append(

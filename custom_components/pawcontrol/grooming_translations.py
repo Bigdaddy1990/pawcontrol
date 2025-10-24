@@ -91,9 +91,7 @@ def _normalize_language(language: str | None) -> str:
     return DEFAULT_LANGUAGE
 
 
-def translated_grooming_label(
-    language: str | None, key: str, **values: object
-) -> str:
+def translated_grooming_label(language: str | None, key: str, **values: object) -> str:
     """Return a localized grooming label."""
 
     translations = _GROOMING_LABEL_TRANSLATIONS.get(key)

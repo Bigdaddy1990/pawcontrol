@@ -32,14 +32,10 @@ def _extract_marked_region(content: str, path: Path) -> tuple[int, int]:
         start = content.index(MARKER_START)
         end = content.index(MARKER_END)
     except ValueError as exc:  # pragma: no cover - explicit error message below
-        raise ValueError(
-            f"Missing contributor guide sync markers in {path}."
-        ) from exc
+        raise ValueError(f"Missing contributor guide sync markers in {path}.") from exc
 
     if end <= start:
-        raise ValueError(
-            f"Contributor guide sync markers are misordered in {path}."
-        )
+        raise ValueError(f"Contributor guide sync markers are misordered in {path}.")
 
     return start + len(MARKER_START), end
 

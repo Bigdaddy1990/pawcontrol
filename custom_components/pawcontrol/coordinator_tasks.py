@@ -848,9 +848,7 @@ def build_update_statistics(
     performance_metrics["unknown_breaker_count"] = rejection_metrics[
         "unknown_breaker_count"
     ]
-    performance_metrics["open_breakers"] = list(
-        rejection_metrics["open_breakers"]
-    )
+    performance_metrics["open_breakers"] = list(rejection_metrics["open_breakers"])
     performance_metrics["open_breaker_ids"] = list(
         rejection_metrics["open_breaker_ids"]
     )
@@ -938,9 +936,7 @@ def build_runtime_statistics(
         performance_metrics["unknown_breaker_count"] = rejection_metrics[
             "unknown_breaker_count"
         ]
-        performance_metrics["open_breakers"] = list(
-            rejection_metrics["open_breakers"]
-        )
+        performance_metrics["open_breakers"] = list(rejection_metrics["open_breakers"])
         performance_metrics["open_breaker_ids"] = list(
             rejection_metrics["open_breaker_ids"]
         )
@@ -978,18 +974,14 @@ def build_runtime_statistics(
             "unknown_breaker_count"
         ]
         error_summary["open_breakers"] = list(rejection_metrics["open_breakers"])
-        error_summary["open_breaker_ids"] = list(
-            rejection_metrics["open_breaker_ids"]
-        )
+        error_summary["open_breaker_ids"] = list(rejection_metrics["open_breaker_ids"])
         error_summary["half_open_breakers"] = list(
             rejection_metrics["half_open_breakers"]
         )
         error_summary["half_open_breaker_ids"] = list(
             rejection_metrics["half_open_breaker_ids"]
         )
-        error_summary["unknown_breakers"] = list(
-            rejection_metrics["unknown_breakers"]
-        )
+        error_summary["unknown_breakers"] = list(rejection_metrics["unknown_breakers"])
         error_summary["unknown_breaker_ids"] = list(
             rejection_metrics["unknown_breaker_ids"]
         )

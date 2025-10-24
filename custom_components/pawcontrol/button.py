@@ -1674,9 +1674,7 @@ class PawControlStartGroomingButton(PawControlButtonBase):
                 {
                     ATTR_DOG_ID: self._dog_id,
                     "type": "general",
-                    "notes": translated_grooming_label(
-                        hass_language, "button_notes"
-                    ),
+                    "notes": translated_grooming_label(hass_language, "button_notes"),
                 },
                 blocking=False,
             )

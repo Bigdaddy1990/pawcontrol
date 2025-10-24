@@ -1050,10 +1050,7 @@ class TestSwitchPlatform:
         )
 
         assert grooming_schedule.name == "Test Dog Pflegeplan"
-        assert (
-            grooming_schedule.extra_state_attributes["feature_name"]
-            == "Pflegeplan"
-        )
+        assert grooming_schedule.extra_state_attributes["feature_name"] == "Pflegeplan"
 
 
 class TestButtonPlatform:

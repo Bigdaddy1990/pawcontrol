@@ -54,4 +54,3 @@ async def test_last_grooming_datetime_localizes_notes(hass: HomeAssistant) -> No
     assert domain == "pawcontrol"
     assert service == "start_grooming"
     assert payload["notes"] == "Pflegesitzung am 2024-01-02"
-

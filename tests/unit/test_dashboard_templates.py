@@ -823,8 +823,7 @@ async def test_notification_templates_localize_labels(hass: HomeAssistant) -> No
         card for card in actions["cards"] if card["icon"] == "mdi:bell-check"
     )
     assert (
-        send_test_button["tap_action"]["service_data"]["title"]
-        == "PawControl-Diagnose"
+        send_test_button["tap_action"]["service_data"]["title"] == "PawControl-Diagnose"
     )
     assert (
         send_test_button["tap_action"]["service_data"]["message"]
@@ -874,9 +873,7 @@ async def test_feeding_templates_localize_labels(hass: HomeAssistant) -> None:
 
     controls = await templates.get_feeding_controls_template("fido", theme="modern")
     button_names = {
-        button["name"]
-        for row in controls["cards"]
-        for button in row.get("cards", [])
+        button["name"] for row in controls["cards"] for button in row.get("cards", [])
     }
     assert button_names == {"Frühstück", "Mittagessen", "Abendessen", "Snack"}
 

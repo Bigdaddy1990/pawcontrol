@@ -166,9 +166,7 @@ async def test_render_dog_dashboard_localizes_visitor_cards(
         "binary_sensor.fido_visitor_mode",
     ]
 
-    async def _fake_validate(
-        entities: list[str], use_cache: bool = True
-    ) -> list[str]:
+    async def _fake_validate(entities: list[str], use_cache: bool = True) -> list[str]:
         assert entities == validated_entities
         return validated_entities
 
@@ -206,5 +204,5 @@ async def test_render_dog_dashboard_localizes_visitor_cards(
     assert markdown_card["title"] == "Fido Besuchereinblicke"
     content = markdown_card["content"]
     assert "Status des Besuchermodus" in content
-    assert "\"Ja\"" in content
-    assert "\"Keine\"" in content
+    assert '"Ja"' in content
+    assert '"Keine"' in content

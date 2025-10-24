@@ -172,9 +172,7 @@ class DashboardFlowMixin:
         has_gps_enabled = bool(
             self._enabled_modules.get(MODULE_GPS, False)
             or any(
-                cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
-                    MODULE_GPS, False
-                )
+                cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(MODULE_GPS, False)
                 for dog in self._dogs
             )
         )
@@ -281,4 +279,3 @@ class DashboardFlowMixin:
 
 
 __all__ = ["DashboardFlowMixin"]
-

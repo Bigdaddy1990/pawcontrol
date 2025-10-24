@@ -427,7 +427,9 @@ def _translated_notification_label(language: str | None, label: str) -> str:
 
 
 def _translated_notification_template(
-    language: str | None, template: str, **values: str,
+    language: str | None,
+    template: str,
+    **values: str,
 ) -> str:
     """Return a formatted notification dashboard template string."""
 
@@ -444,7 +446,9 @@ def _translated_notification_template(
 
 
 def _translated_notification_fallback(
-    language: str | None, label: str, default: str,
+    language: str | None,
+    label: str,
+    default: str,
 ) -> str:
     """Return a localized fallback string for notification dashboards."""
 
@@ -1725,9 +1729,7 @@ class DashboardTemplates:
         statistics_header = _translated_statistics_label(
             hass_language, "statistics_header"
         )
-        dogs_managed_label = _translated_statistics_label(
-            hass_language, "dogs_managed"
-        )
+        dogs_managed_label = _translated_statistics_label(hass_language, "dogs_managed")
         active_modules_label = _translated_statistics_label(
             hass_language, "active_modules"
         )
@@ -1735,22 +1737,14 @@ class DashboardTemplates:
             MODULE_FEEDING: _translated_statistics_label(
                 hass_language, "module_feeding"
             ),
-            MODULE_WALK: _translated_statistics_label(
-                hass_language, "module_walks"
-            ),
-            MODULE_HEALTH: _translated_statistics_label(
-                hass_language, "module_health"
-            ),
-            MODULE_GPS: _translated_statistics_label(
-                hass_language, "module_gps"
-            ),
+            MODULE_WALK: _translated_statistics_label(hass_language, "module_walks"),
+            MODULE_HEALTH: _translated_statistics_label(hass_language, "module_health"),
+            MODULE_GPS: _translated_statistics_label(hass_language, "module_gps"),
             MODULE_NOTIFICATIONS: _translated_statistics_label(
                 hass_language, "module_notifications"
             ),
         }
-        last_updated_label = _translated_statistics_label(
-            hass_language, "last_updated"
-        )
+        last_updated_label = _translated_statistics_label(hass_language, "last_updated")
 
         content_lines = [
             f"## {statistics_header}",
@@ -1826,9 +1820,7 @@ class DashboardTemplates:
                     f"### {resilience_header}",
                     (
                         "- "
-                        + _translated_statistics_label(
-                            hass_language, "rejected_calls"
-                        )
+                        + _translated_statistics_label(hass_language, "rejected_calls")
                         + f": {metrics_payload['rejected_call_count']}"
                     ),
                     (
@@ -1840,16 +1832,12 @@ class DashboardTemplates:
                     ),
                     (
                         "- "
-                        + _translated_statistics_label(
-                            hass_language, "rejection_rate"
-                        )
+                        + _translated_statistics_label(hass_language, "rejection_rate")
                         + f": {rate_display}"
                     ),
                     (
                         "- "
-                        + _translated_statistics_label(
-                            hass_language, "last_rejection"
-                        )
+                        + _translated_statistics_label(hass_language, "last_rejection")
                         + f": {last_rejection_iso}"
                     ),
                 ]
@@ -2155,9 +2143,7 @@ class DashboardTemplates:
         """
         theme_styles = self._get_theme_styles(theme)
         hass_language: str | None = getattr(self.hass.config, "language", None)
-        schedule_label = _translated_feeding_label(
-            hass_language, "feeding_schedule"
-        )
+        schedule_label = _translated_feeding_label(hass_language, "feeding_schedule")
 
         template: CardConfig
         if theme == "modern":
@@ -2336,9 +2322,7 @@ class DashboardTemplates:
                     },
                     {
                         "entity": f"sensor.{dog_id}_health_score",
-                        "name": _translated_health_label(
-                            hass_language, "health_score"
-                        ),
+                        "name": _translated_health_label(hass_language, "health_score"),
                         "color": theme_styles["colors"]["accent"],
                         "y_axis": "secondary",
                     },
@@ -2364,9 +2348,7 @@ class DashboardTemplates:
                     {
                         "type": "gauge",
                         "entity": f"sensor.{dog_id}_health_score",
-                        "name": _translated_health_label(
-                            hass_language, "health_gauge"
-                        ),
+                        "name": _translated_health_label(hass_language, "health_gauge"),
                         "min": 0,
                         "max": 100,
                         "severity": {
@@ -2386,9 +2368,7 @@ class DashboardTemplates:
                     {
                         "type": "gauge",
                         "entity": f"sensor.{dog_id}_activity_level",
-                        "name": _translated_health_label(
-                            hass_language, "activity"
-                        ),
+                        "name": _translated_health_label(hass_language, "activity"),
                         "min": 0,
                         "max": 100,
                         "severity": {
@@ -2411,9 +2391,7 @@ class DashboardTemplates:
             # Minimal line graph
             template = {
                 "type": "history-graph",
-                "title": _translated_health_label(
-                    hass_language, "health_trends"
-                ),
+                "title": _translated_health_label(hass_language, "health_trends"),
                 "entities": [
                     f"sensor.{dog_id}_weight",
                     f"sensor.{dog_id}_health_score",
@@ -2520,23 +2498,17 @@ class DashboardTemplates:
                 },
                 {
                     "entity": f"sensor.{dog_id}_weather_temperature_risk",
-                    "name": _translated_health_label(
-                        hass_language, "temperature_risk"
-                    ),
+                    "name": _translated_health_label(hass_language, "temperature_risk"),
                     "icon": "mdi:thermometer-alert",
                 },
                 {
                     "entity": f"sensor.{dog_id}_weather_activity_recommendation",
-                    "name": _translated_health_label(
-                        hass_language, "activity_level"
-                    ),
+                    "name": _translated_health_label(hass_language, "activity_level"),
                     "icon": "mdi:run",
                 },
                 {
                     "entity": f"binary_sensor.{dog_id}_weather_safe_for_walks",
-                    "name": _translated_health_label(
-                        hass_language, "walk_safety"
-                    ),
+                    "name": _translated_health_label(hass_language, "walk_safety"),
                     "icon": "mdi:walk",
                 },
             ]
