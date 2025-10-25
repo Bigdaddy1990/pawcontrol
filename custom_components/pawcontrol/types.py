@@ -1949,6 +1949,7 @@ class ServiceExecutionDiagnostics(TypedDict, total=False):
     metadata: NotRequired[dict[str, Any]]
     guard: NotRequired[ServiceGuardSummary]
     resilience_summary: NotRequired[CoordinatorResilienceSummary]
+    rejection_metrics: NotRequired[CoordinatorRejectionMetrics]
 
 
 class ServiceExecutionResult(TypedDict, total=False):
