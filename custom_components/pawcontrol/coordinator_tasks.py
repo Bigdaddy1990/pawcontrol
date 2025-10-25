@@ -430,9 +430,7 @@ type RejectionTargetMapping = (
 )
 
 type RejectionSourceMapping = (
-    Mapping[str, Any]
-    | CoordinatorRejectionMetrics
-    | CoordinatorResilienceSummary
+    Mapping[str, Any] | CoordinatorRejectionMetrics | CoordinatorResilienceSummary
 )
 
 

@@ -202,6 +202,7 @@ def test_record_service_result_defaults_rejection_metrics_without_breakers() -> 
     diagnostics_payload = last_result["diagnostics"]
     assert diagnostics_payload["rejection_metrics"] == defaults
 
+
 class _DummyCoordinator:
     """Coordinator stub that records refresh requests."""
 
