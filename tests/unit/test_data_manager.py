@@ -36,8 +36,19 @@ from custom_components.pawcontrol.types import (
     CoordinatorRuntimeManagers,
     FeedingData,
 )
-from homeassistant.const import STATE_OFF, STATE_ON
+from homeassistant.components.script.const import CONF_FIELDS
+from homeassistant.const import (
+    CONF_ALIAS,
+    CONF_DEFAULT,
+    CONF_DESCRIPTION,
+    CONF_SEQUENCE,
+    STATE_OFF,
+    STATE_ON,
+)
 from homeassistant.util import dt as dt_util
+from homeassistant.util import slugify as ha_slugify
+
+ha_slugify = getattr(ha_slugify, "slugify", ha_slugify)
 
 
 class StubDataManager(PawControlDataManager):
@@ -344,7 +355,7 @@ async def test_helper_manager_skips_helper_creation_without_services(
 ) -> None:
     """Helper manager should short-circuit helper creation when hass services missing."""
 
-    hass = SimpleNamespace(data={})
+    hass = SimpleNamespace(data={}, states=SimpleNamespace(get=lambda entity_id: None))
     entry = SimpleNamespace(entry_id="entry", data={}, options={})
     helper_manager = PawControlHelperManager(hass, entry)
 
@@ -437,21 +448,27 @@ def test_script_manager_register_cache_monitor() -> None:
         {
             "script.pawcontrol_buddy_reset",
             "script.pawcontrol_max_reset",
+            "script.pawcontrol_entry_resilience_escalation",
         }
     )
     script_manager._dog_scripts = {
         "buddy": ["script.pawcontrol_buddy_reset"],
         "max": ["script.pawcontrol_max_reset"],
     }
+    script_manager._entry_scripts = ["script.pawcontrol_entry_resilience_escalation"]
 
     registrar = _RecordingRegistrar()
     script_manager.register_cache_monitors(registrar, prefix="script_manager")
 
     assert "script_manager_cache" in registrar.monitors
     snapshot = registrar.monitors["script_manager_cache"].coordinator_snapshot()
-    assert snapshot["stats"]["scripts"] == 2
+    assert snapshot["stats"]["scripts"] == 3
+    assert snapshot["stats"]["entry_scripts"] == 1
     diagnostics = snapshot["diagnostics"]
     assert diagnostics["per_dog"]["buddy"]["count"] == 1
+    assert diagnostics["entry_scripts"] == [
+        "script.pawcontrol_entry_resilience_escalation"
+    ]
     assert diagnostics["created_entities"] == sorted(diagnostics["created_entities"])
 
 
@@ -476,6 +493,68 @@ def test_script_manager_timestamp_anomaly() -> None:
     anomalies = diagnostics["timestamp_anomalies"]
     assert anomalies["manager"] == "stale"
     assert diagnostics["last_generated"] is not None
+
+
+@pytest.mark.unit
+def test_script_manager_resilience_escalation_definition() -> None:
+    """Entry-level resilience escalation script should expose guard thresholds."""
+
+    hass = SimpleNamespace(data={})
+    entry = SimpleNamespace(
+        entry_id="entry-id",
+        data={},
+        options={},
+        title="Canine Ops",
+    )
+    script_manager = PawControlScriptManager(hass, entry)
+
+    object_id, config = script_manager._build_resilience_escalation_script()
+
+    expected_slug = ha_slugify("Canine Ops")
+    assert object_id == f"pawcontrol_{expected_slug}_resilience_escalation"
+    assert config[CONF_ALIAS] == "Canine Ops resilience escalation"
+    assert "guard skips" in config[CONF_DESCRIPTION]
+
+    sequence = config[CONF_SEQUENCE]
+    assert isinstance(sequence, list) and len(sequence) == 2
+    variables = sequence[0]["variables"]
+    assert "guard_reason_text" in variables
+    assert "open_breakers_text" in variables
+
+    guard_branch, breaker_branch = sequence[1]["choose"]
+    guard_service = guard_branch["sequence"][0]["service"]
+    assert (
+        guard_service
+        == "{{ escalation_service | default('persistent_notification.create') }}"
+    )
+    guard_followup = guard_branch["sequence"][1]["choose"][0]["sequence"][0]
+    assert guard_followup["service"] == "script.turn_on"
+    assert guard_followup["data"]["variables"]["trigger_reason"] == "guard"
+
+    breaker_service = breaker_branch["sequence"][0]["service"]
+    assert (
+        breaker_service
+        == "{{ escalation_service | default('persistent_notification.create') }}"
+    )
+
+    fields = config[CONF_FIELDS]
+    assert fields["skip_threshold"][CONF_DEFAULT] == 3
+    assert fields["breaker_threshold"][CONF_DEFAULT] == 1
+    assert (
+        fields["statistics_entity_id"][CONF_DEFAULT] == "sensor.pawcontrol_statistics"
+    )
+    guard_message = fields["guard_message"][CONF_DEFAULT]
+    breaker_message = fields["breaker_message"][CONF_DEFAULT]
+    assert "{{ guard_reason_text }}" in guard_message
+    assert "{{ open_breakers_text }}" in breaker_message
+    assert "entity" in fields["followup_script"]["selector"]
+
+    snapshot = script_manager.get_resilience_escalation_snapshot()
+    assert snapshot is not None
+    assert snapshot["available"] is True
+    assert snapshot["state_available"] is False
+    assert snapshot["thresholds"]["skip_threshold"]["default"] == 3
+    assert snapshot["thresholds"]["breaker_threshold"]["default"] == 1
 
 
 @pytest.mark.unit

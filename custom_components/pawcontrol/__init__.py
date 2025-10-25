@@ -156,6 +156,61 @@ def _resolve_config_entry_not_ready() -> type[Exception]:
 
 _LOGGER = logging.getLogger(__name__)
 
+_DEFAULT_LOGGER_LEVEL: int | None = (
+    logging.getLogger(__package__).level
+    if logging.getLogger(__package__).level != logging.NOTSET
+    else None
+)
+_DEBUG_LOGGER_ENTRIES: set[str] = set()
+
+
+def _enable_debug_logging(entry: PawControlConfigEntry) -> bool:
+    """Enable package-level debug logging when requested by the entry."""
+
+    global _DEFAULT_LOGGER_LEVEL
+    requested = bool(entry.options.get("debug_logging"))
+    entry_id = entry.entry_id
+
+    package_logger = logging.getLogger(__package__)
+    if not requested:
+        _DEBUG_LOGGER_ENTRIES.discard(entry_id)
+        return False
+
+    if entry_id not in _DEBUG_LOGGER_ENTRIES:
+        if not _DEBUG_LOGGER_ENTRIES:
+            current_level = package_logger.level
+            _DEFAULT_LOGGER_LEVEL = (
+                current_level if current_level != logging.NOTSET else None
+            )
+        _DEBUG_LOGGER_ENTRIES.add(entry_id)
+
+    if package_logger.level != logging.DEBUG:
+        package_logger.setLevel(logging.DEBUG)
+
+    return True
+
+
+def _disable_debug_logging(entry: PawControlConfigEntry) -> None:
+    """Disable debug logging when no entry keeps it enabled."""
+
+    entry_id = entry.entry_id
+    package_logger = logging.getLogger(__package__)
+
+    removed = entry_id in _DEBUG_LOGGER_ENTRIES
+    _DEBUG_LOGGER_ENTRIES.discard(entry_id)
+
+    if not removed:
+        return
+
+    if _DEBUG_LOGGER_ENTRIES:
+        return
+
+    target_level = _DEFAULT_LOGGER_LEVEL
+    package_logger.setLevel(
+        target_level if target_level is not None else logging.NOTSET
+    )
+
+
 ALL_PLATFORMS: Final[tuple[Platform, ...]] = PLATFORMS
 
 # PawControl is configured exclusively via the UI/config entries
@@ -495,6 +550,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         compat.ConfigEntryAuthFailed,
         PawControlSetupError,
     )
+
+    debug_logging_tracked = _enable_debug_logging(entry)
 
     try:
         # Validate dogs configuration with specific error handling
@@ -1086,13 +1143,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                     script_count = sum(
                         len(scripts) for scripts in created_scripts.values()
                     )
+                    dog_script_map = {
+                        key: value
+                        for key, value in created_scripts.items()
+                        if key != "__entry__"
+                    }
+                    entry_script_count = len(created_scripts.get("__entry__", []))
+                    dog_target_count = len(dog_script_map)
                     scripts_duration = time.time() - scripts_start
 
                     if script_count > 0:
+                        entry_detail = (
+                            f" including {entry_script_count} entry escalation script(s)"
+                            if entry_script_count
+                            else ""
+                        )
                         _LOGGER.info(
-                            "Created %d PawControl automation scripts for %d dogs in %.2f seconds",
+                            "Created %d PawControl automation script(s) for %d dog(s)%s in %.2f seconds",
                             script_count,
-                            len(created_scripts),
+                            dog_target_count,
+                            entry_detail,
                             scripts_duration,
                         )
 
@@ -1102,8 +1172,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                                     notification_type=NotificationType.SYSTEM_INFO,
                                     title="PawControl scripts ready",
                                     message=(
-                                        "Generated PawControl confirmation, reset, and setup scripts "
-                                        f"for {script_count} automation step(s)."
+                                        "Generated PawControl automation scripts for "
+                                        f"{script_count} workflow(s). "
+                                        "The resilience escalation helper is included when guard "
+                                        "and breaker thresholds are configured."
                                     ),
                                     priority=NotificationPriority.NORMAL,
                                 )
@@ -1216,6 +1288,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             )
             return True
         except BaseException:
+            _disable_debug_logging(entry)
             try:
                 await _async_cleanup_runtime_data(runtime_data)
             except Exception as cleanup_err:  # pragma: no cover - defensive logging
@@ -1231,6 +1304,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
     except Exception as err:
         # PLATINUM: Catch-all with better error context for debugging
         setup_duration = time.time() - setup_start_time
+        if debug_logging_tracked:
+            _disable_debug_logging(entry)
         if isinstance(err, known_setup_errors):
             raise
         _LOGGER.exception("Unexpected setup error after %.2f seconds", setup_duration)
@@ -1464,6 +1539,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
                 _LOGGER.warning("Service manager shutdown timed out")
             except Exception as err:
                 _LOGGER.warning("Error shutting down service manager: %s", err)
+
+    _disable_debug_logging(entry)
 
     unload_duration = time.time() - unload_start_time
     _LOGGER.info(

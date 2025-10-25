@@ -1049,6 +1049,8 @@ class SystemOptions(TypedDict, total=False):
     data_retention_days: int
     auto_backup: bool
     performance_mode: PerformanceMode
+    enable_analytics: bool
+    enable_cloud_backup: bool
 
 
 class DashboardOptions(TypedDict, total=False):
@@ -1134,6 +1136,9 @@ class PawControlOptionsData(PerformanceOptions, total=False):
     reauth_health_issues: NotRequired[list[str]]
     reauth_health_warnings: NotRequired[list[str]]
     last_reauth_summary: NotRequired[str]
+    enable_analytics: bool
+    enable_cloud_backup: bool
+    debug_logging: bool
 
 
 ConfigFlowDiscoverySource = Literal[
@@ -1633,6 +1638,7 @@ class CacheDiagnosticsMetadata(TypedDict, total=False):
     tracked_entries: int
     per_module: dict[str, Any]
     per_dog: dict[str, Any]
+    entry_scripts: list[str]
     per_dog_helpers: dict[str, Any]
     entity_domains: dict[str, int]
     errors: list[str]
@@ -2195,6 +2201,13 @@ class CoordinatorErrorSummary(TypedDict):
     rejection_breakers: NotRequired[list[str]]
 
 
+class CoordinatorServiceExecutionSummary(TypedDict, total=False):
+    """Aggregated service execution telemetry surfaced via runtime statistics."""
+
+    guard_metrics: HelperManagerGuardMetrics
+    rejection_metrics: CoordinatorRejectionMetrics
+
+
 class CoordinatorCachePerformance(TypedDict):
     """Cache performance counters surfaced during runtime diagnostics."""
 
@@ -2218,6 +2231,7 @@ class CoordinatorRuntimeStatisticsPayload(TypedDict):
     resilience: NotRequired[CoordinatorResilienceDiagnostics]
     rejection_metrics: NotRequired[CoordinatorRejectionMetrics]
     bool_coercion: NotRequired[BoolCoercionSummary]
+    service_execution: NotRequired[CoordinatorServiceExecutionSummary]
 
 
 class CoordinatorModuleErrorPayload(TypedDict, total=False):

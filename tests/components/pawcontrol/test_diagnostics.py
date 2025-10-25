@@ -16,10 +16,12 @@ from custom_components.pawcontrol.const import (
 )
 from custom_components.pawcontrol.coordinator_tasks import default_rejection_metrics
 from custom_components.pawcontrol.diagnostics import async_get_config_entry_diagnostics
+from custom_components.pawcontrol.script_manager import PawControlScriptManager
 from custom_components.pawcontrol.types import (
     CacheRepairAggregate,
     PawControlRuntimeData,
 )
+from homeassistant.components.script import DOMAIN as SCRIPT_DOMAIN
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -44,6 +46,16 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
         },
         title="Doggo",
     )
+    entry.options = {
+        "enable_analytics": True,
+        "enable_cloud_backup": False,
+        "debug_logging": True,
+        "system_settings": {
+            "enable_analytics": True,
+            "enable_cloud_backup": False,
+        },
+        "advanced_settings": {"debug_logging": True},
+    }
     entry.add_to_hass(hass)
 
     hass.config.version = "2025.10.1"
@@ -70,6 +82,29 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     )
 
     hass.states.async_set(entity.entity_id, "home", {"location": "Backyard"})
+
+    script_manager = PawControlScriptManager(hass, entry)
+    object_id, _ = script_manager._build_resilience_escalation_script()
+    escalation_entity_id = f"{SCRIPT_DOMAIN}.{object_id}"
+    script_manager._entry_scripts = [escalation_entity_id]
+    script_manager._created_entities.add(escalation_entity_id)
+    script_manager._last_generation = datetime.now(UTC) - timedelta(minutes=15)
+
+    last_triggered = datetime.now(UTC) - timedelta(minutes=5)
+    hass.states.async_set(
+        escalation_entity_id,
+        "off",
+        {
+            "last_triggered": last_triggered.isoformat(),
+            "fields": {
+                "skip_threshold": {"default": 6},
+                "breaker_threshold": {"default": 2},
+                "followup_script": {"default": "script.notify_team"},
+                "statistics_entity_id": {"default": "sensor.pawcontrol_statistics"},
+                "escalation_service": {"default": "persistent_notification.create"},
+            },
+        },
+    )
 
     class DummyCoordinator:
         def __init__(self) -> None:
@@ -150,6 +185,7 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
         entity_profile="standard",
         dogs=entry.data[CONF_DOGS],
     )
+    runtime.script_manager = script_manager
     runtime.performance_stats = {
         "api_token": "runtime-secret",
         "door_sensor_failures": [
@@ -221,6 +257,51 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     hass.services.async_register(DOMAIN, "sync", lambda call: None)
 
     diagnostics = await async_get_config_entry_diagnostics(hass, entry)
+
+    setup_flags = diagnostics["setup_flags"]
+    assert setup_flags["enable_analytics"] is True
+    assert setup_flags["enable_cloud_backup"] is False
+    assert setup_flags["debug_logging"] is True
+
+    setup_panel = diagnostics["setup_flags_panel"]
+    assert setup_panel["title"] == "Setup flags"
+    assert (
+        setup_panel["description"]
+        == "Analytics, backup, and debug logging toggles captured during onboarding "
+        "and options flows."
+    )
+    assert setup_panel["enabled_count"] == 2
+    assert setup_panel["disabled_count"] == 1
+    flags_by_key = {flag["key"]: flag for flag in setup_panel["flags"]}
+    assert flags_by_key["enable_analytics"]["enabled"] is True
+    assert flags_by_key["enable_analytics"]["source"] == "options"
+    assert flags_by_key["enable_analytics"]["label"] == "Analytics telemetry"
+    assert flags_by_key["enable_analytics"]["source_label"] == "Options flow"
+    assert flags_by_key["enable_cloud_backup"]["enabled"] is False
+    assert flags_by_key["enable_cloud_backup"]["source"] == "options"
+    assert flags_by_key["enable_cloud_backup"]["label"] == "Cloud backup"
+    assert flags_by_key["enable_cloud_backup"]["source_label"] == "Options flow"
+    assert flags_by_key["debug_logging"]["enabled"] is True
+    assert flags_by_key["debug_logging"]["source"] == "options"
+    assert flags_by_key["debug_logging"]["label"] == "Debug logging"
+    assert flags_by_key["debug_logging"]["source_label"] == "Options flow"
+    assert setup_panel["source_breakdown"]["options"] == 3
+    assert setup_panel["source_labels"]["options"] == "Options flow"
+
+    escalation = diagnostics["resilience_escalation"]
+    assert escalation["available"] is True
+    assert escalation["state_available"] is True
+    assert escalation["entity_id"] == escalation_entity_id
+    assert escalation["thresholds"]["skip_threshold"]["active"] == 6
+    assert escalation["thresholds"]["breaker_threshold"]["active"] == 2
+    assert escalation["followup_script"]["active"] == "script.notify_team"
+    assert escalation["followup_script"]["configured"] is True
+    assert (
+        escalation["statistics_entity_id"]["active"] == "sensor.pawcontrol_statistics"
+    )
+    assert escalation["last_triggered"].startswith(
+        last_triggered.replace(microsecond=0).isoformat()[:16]
+    )
 
     # Diagnostics payloads should be JSON serialisable once normalised.
     serialised = json.dumps(diagnostics)

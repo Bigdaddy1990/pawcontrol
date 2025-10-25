@@ -118,6 +118,35 @@ async def test_statistics_view_includes_resilience_metrics(
     )
     coordinator_statistics = {"rejection_metrics": rejection_metrics}
 
+    service_metrics = default_rejection_metrics()
+    service_metrics.update(
+        {
+            "rejected_call_count": 1,
+            "rejection_breaker_count": 1,
+            "rejection_rate": 0.05,
+            "last_rejection_time": last_rejection - 7200,
+            "last_rejection_breaker_id": "automation",
+            "open_breakers": ["automation"],
+            "open_breaker_ids": ["automation"],
+            "rejection_breaker_ids": ["automation"],
+            "rejection_breakers": ["automation"],
+        }
+    )
+
+    guard_metrics = {
+        "executed": 10,
+        "skipped": 3,
+        "reasons": {"quiet_hours": 2, "automation_disabled": 1},
+        "last_results": [
+            {
+                "domain": "notify",
+                "service": "mobile_app",
+                "executed": False,
+                "reason": "quiet_hours",
+            }
+        ],
+    }
+
     result = await renderer.render_main_dashboard(
         [
             {
@@ -127,6 +156,8 @@ async def test_statistics_view_includes_resilience_metrics(
             }
         ],
         coordinator_statistics=coordinator_statistics,
+        service_execution_metrics=service_metrics,
+        service_guard_metrics=guard_metrics,
     )
 
     statistics_view = next(
@@ -140,7 +171,11 @@ async def test_statistics_view_includes_resilience_metrics(
     content = summary_card["content"]
     iso_timestamp = datetime.fromtimestamp(last_rejection, tz=UTC).isoformat()
 
+    service_iso = datetime.fromtimestamp(last_rejection - 7200, tz=UTC).isoformat()
+
     assert "### Resilience metrics" in content
+    assert "**Coordinator telemetry:**" in content
+    assert "**Service execution telemetry:**" in content
     assert "- Rejected calls: 3" in content
     assert "- Rejecting breakers: 2" in content
     assert "- Rejection rate: 12.50%" in content
@@ -150,6 +185,14 @@ async def test_statistics_view_includes_resilience_metrics(
     assert "- Open breaker IDs: api" in content
     assert "- Rejecting breaker names: api" in content
     assert "- Rejecting breaker IDs: api" in content
+    assert "- Rejection rate: 5.00%" in content
+    assert f"- Last rejection: {service_iso}" in content
+    assert "- Last rejecting breaker: automation" in content
+    assert "- Guard outcomes:" in content
+    assert "  - Guarded calls executed: 10" in content
+    assert "  - Guarded calls skipped: 3" in content
+    assert "    - quiet_hours: 2" in content
+    assert "    - automation_disabled: 1" in content
 
 
 @pytest.mark.asyncio

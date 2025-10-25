@@ -1036,6 +1036,85 @@ def test_build_runtime_statistics_defaults_rejection_metrics(monkeypatch) -> Non
         assert performance_metrics["rejection_breakers"] == []
 
 
+def test_build_runtime_statistics_includes_guard_metrics(monkeypatch) -> None:
+    """Runtime statistics should export guard counters alongside rejection metrics."""
+
+    coordinator = _build_coordinator(resilience_manager=None)
+    runtime_data = SimpleNamespace(
+        data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
+        performance_stats={
+            "service_guard_metrics": {
+                "executed": 3,
+                "skipped": 1,
+                "reasons": {"missing_instance": 1, "": 5, "negative": -2},
+                "last_results": [
+                    {
+                        "domain": "notify",
+                        "service": "send",
+                        "executed": False,
+                        "reason": "missing_instance",
+                    },
+                    "invalid",
+                ],
+            }
+        },
+    )
+    monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
+    monkeypatch.setattr(tasks, "collect_resilience_diagnostics", lambda *_: None)
+
+    stats = tasks.build_runtime_statistics(coordinator)
+
+    service_execution = stats["service_execution"]
+    guard_metrics = service_execution["guard_metrics"]
+    assert guard_metrics["executed"] == 3
+    assert guard_metrics["skipped"] == 1
+    assert guard_metrics["reasons"] == {"missing_instance": 1}
+    assert guard_metrics["last_results"] == [
+        {
+            "domain": "notify",
+            "executed": False,
+            "reason": "missing_instance",
+            "service": "send",
+        }
+    ]
+    assert service_execution["rejection_metrics"] is stats["rejection_metrics"]
+
+    stored_guard_metrics = runtime_data.performance_stats["service_guard_metrics"]
+    assert stored_guard_metrics["executed"] == 3
+    assert stored_guard_metrics["skipped"] == 1
+    assert stored_guard_metrics["reasons"] == {"missing_instance": 1}
+    assert stored_guard_metrics["last_results"] == [
+        {
+            "domain": "notify",
+            "executed": False,
+            "reason": "missing_instance",
+            "service": "send",
+        }
+    ]
+
+
+def test_build_runtime_statistics_defaults_guard_metrics(monkeypatch) -> None:
+    """Guard metrics should fall back to zeroed counters when none recorded."""
+
+    coordinator = _build_coordinator(resilience_manager=None)
+    runtime_data = SimpleNamespace(
+        data_manager=SimpleNamespace(cache_repair_summary=lambda: None),
+        performance_stats={},
+    )
+    monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
+    monkeypatch.setattr(tasks, "collect_resilience_diagnostics", lambda *_: None)
+
+    stats = tasks.build_runtime_statistics(coordinator)
+
+    guard_metrics = stats["service_execution"]["guard_metrics"]
+    assert guard_metrics == {
+        "executed": 0,
+        "skipped": 0,
+        "reasons": {},
+        "last_results": [],
+    }
+
+
 def test_build_runtime_statistics_captures_bool_coercion_summary(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

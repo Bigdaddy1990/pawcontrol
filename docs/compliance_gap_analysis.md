@@ -21,7 +21,7 @@ now present in the repository to highlight which requirements are satisfied and 
 - ⚠️ **Brand package** – Brand assets and upstream submissions are tracked but not yet finalised for Home Assistant’s brand repository.【F:README.md†L336-L380】
 - ⚠️ **Coverage automation** – Coverage reports exist but the automated publication still needs wiring to CI once the HA harness stabilises.【F:README.md†L24-L70】【F:README.md†L320-L372】
 - ✅ **Strict typing remediation** – `mypy custom_components/pawcontrol` now passes with zero issues across 74 source files, clearing the Platinum typing gate.【F:dev.md†L7-L11】【259eea†L1-L2】
-- ✅ **Resilience UI validation** – The Platinum Lovelace statistics view now renders the resilience metrics markdown automatically, the README and quickstart highlight the block, and regression tests assert the card contains the coordinator counters.【F:README.md†L753-L780】【F:docs/resilience-quickstart.md†L181-L186】【F:tests/components/pawcontrol/test_dashboard_renderer.py†L56-L140】
+- ✅ **Resilience UI validation** – Die Platinum-Lovelace-Statistikansicht rendert die Resilience-Karte automatisch, README und Quickstart beschreiben die zusammengeführten Koordinator- und Service-Metriken, und Regressionstests belegen beide Datenquellen im Dashboard.【F:README.md†L753-L780】【F:docs/resilience-quickstart.md†L181-L186】【F:tests/components/pawcontrol/test_dashboard_renderer.py†L92-L165】
 - ⚠️ **Documentation synchronisation** – README and diagnostics guides highlight the resilience snapshot, yet the release artefacts must stay aligned whenever telemetry evolves.【F:README.md†L722-L741】【F:dev.md†L13-L20】
 
 ## 3. Markdown updates required for Home Assistant reviewers

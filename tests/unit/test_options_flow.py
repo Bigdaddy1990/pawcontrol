@@ -814,6 +814,12 @@ async def test_system_settings_normalisation(
             },
         }
     }
+    raw_options["system_settings"] = {
+        "enable_analytics": False,
+        "enable_cloud_backup": True,
+    }
+    raw_options["enable_analytics"] = False
+    raw_options["enable_cloud_backup"] = True
     mock_config_entry.options = raw_options
 
     flow = PawControlOptionsFlow()
@@ -825,6 +831,8 @@ async def test_system_settings_normalisation(
             "reset_time": time(4, 30),
             "data_retention_days": "10",
             "auto_backup": "true",
+            "enable_analytics": "1",
+            "enable_cloud_backup": 0,
             "performance_mode": "FULL",
         }
     )
@@ -838,6 +846,11 @@ async def test_system_settings_normalisation(
     assert system["data_retention_days"] == 30
     assert system["auto_backup"] is True
     assert system["performance_mode"] == "full"
+    assert system["enable_analytics"] is True
+    assert system["enable_cloud_backup"] is False
+
+    assert options["enable_analytics"] is True
+    assert options["enable_cloud_backup"] is False
 
     notifications = cast(NotificationOptions, options[CONF_NOTIFICATIONS])
     assert notifications[CONF_QUIET_HOURS] is True

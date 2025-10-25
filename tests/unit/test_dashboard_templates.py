@@ -474,12 +474,16 @@ async def test_statistics_generator_normalises_raw_dog_configs(
         theme: str = "modern",
         *,
         coordinator_statistics: dict[str, object] | None = None,
+        service_execution_metrics: dict[str, object] | None = None,
+        service_guard_metrics: dict[str, object] | None = None,
     ) -> dict[str, object]:
         nonlocal summary_payload
         summary_payload = {
             "dogs": list(dogs),
             "theme": theme,
             "coordinator_statistics": coordinator_statistics,
+            "service_execution_metrics": service_execution_metrics,
+            "service_guard_metrics": service_guard_metrics,
         }
         return {"type": "markdown", "content": "summary"}
 
@@ -516,6 +520,58 @@ def test_statistics_summary_template_includes_rejection_metrics(
 
     templates = DashboardTemplates(hass)
     last_rejection = 1_700_000_000.0
+    coordinator_metrics = {
+        **default_rejection_metrics(),
+        "rejected_call_count": 3,
+        "rejection_breaker_count": 2,
+        "rejection_rate": 0.125,
+        "last_rejection_time": last_rejection,
+        "last_rejection_breaker_name": "api",
+        "open_breaker_count": 1,
+        "open_breakers": ["api"],
+        "open_breaker_ids": ["api"],
+        "half_open_breaker_count": 1,
+        "half_open_breakers": ["cache"],
+        "half_open_breaker_ids": ["cache"],
+        "unknown_breaker_count": 1,
+        "unknown_breakers": ["legacy"],
+        "unknown_breaker_ids": ["legacy"],
+        "rejection_breaker_ids": ["api", "cache"],
+        "rejection_breakers": ["api"],
+    }
+    service_metrics = {
+        **default_rejection_metrics(),
+        "rejected_call_count": 1,
+        "rejection_breaker_count": 1,
+        "rejection_rate": 0.05,
+        "last_rejection_time": last_rejection - 3600,
+        "last_rejection_breaker_id": "automation",
+        "open_breakers": ["automation"],
+        "open_breaker_ids": ["automation"],
+        "rejection_breaker_ids": ["automation"],
+        "rejection_breakers": ["automation"],
+    }
+
+    guard_metrics = {
+        "executed": 7,
+        "skipped": 2,
+        "reasons": {"quiet_hours": 2},
+        "last_results": [
+            {
+                "domain": "notify",
+                "service": "mobile_app",
+                "executed": False,
+                "reason": "quiet_hours",
+            },
+            {
+                "domain": "script",
+                "service": "evening_reset",
+                "executed": True,
+                "description": "resumed schedule",
+            },
+        ],
+    }
+
     card = templates.get_statistics_summary_template(
         [
             {
@@ -530,35 +586,21 @@ def test_statistics_summary_template_includes_rejection_metrics(
                 },
             }
         ],
-        coordinator_statistics={
-            "rejection_metrics": {
-                **default_rejection_metrics(),
-                "rejected_call_count": 3,
-                "rejection_breaker_count": 2,
-                "rejection_rate": 0.125,
-                "last_rejection_time": last_rejection,
-                "last_rejection_breaker_name": "api",
-                "open_breaker_count": 1,
-                "open_breakers": ["api"],
-                "open_breaker_ids": ["api"],
-                "half_open_breaker_count": 1,
-                "half_open_breakers": ["cache"],
-                "half_open_breaker_ids": ["cache"],
-                "unknown_breaker_count": 1,
-                "unknown_breakers": ["legacy"],
-                "unknown_breaker_ids": ["legacy"],
-                "rejection_breaker_ids": ["api", "cache"],
-                "rejection_breakers": ["api"],
-            }
-        },
+        coordinator_statistics={"rejection_metrics": coordinator_metrics},
+        service_execution_metrics=service_metrics,
+        service_guard_metrics=guard_metrics,
     )
 
     content = card["content"]
+    iso_timestamp = datetime.fromtimestamp(last_rejection, UTC).isoformat()
+    service_iso = datetime.fromtimestamp(last_rejection - 3600, UTC).isoformat()
+
     assert "Resilience metrics" in content
+    assert "**Coordinator telemetry:**" in content
+    assert "**Service execution telemetry:**" in content
     assert "- Rejected calls: 3" in content
     assert "- Rejecting breakers: 2" in content
     assert "- Rejection rate: 12.50%" in content
-    iso_timestamp = datetime.fromtimestamp(last_rejection, UTC).isoformat()
     assert f"- Last rejection: {iso_timestamp}" in content
     assert "- Last rejecting breaker: api" in content
     assert "- Open breaker names: api" in content
@@ -569,6 +611,17 @@ def test_statistics_summary_template_includes_rejection_metrics(
     assert "- Unknown breaker IDs: legacy" in content
     assert "- Rejecting breaker IDs: api, cache" in content
     assert "- Rejecting breaker names: api" in content
+    assert "- Rejection rate: 5.00%" in content
+    assert f"- Last rejection: {service_iso}" in content
+    assert "- Last rejecting breaker: automation" in content
+    assert "- Guard outcomes:" in content
+    assert "  - Guarded calls executed: 7" in content
+    assert "  - Guarded calls skipped: 2" in content
+    assert "  - Skip reasons:" in content
+    assert "    - quiet_hours: 2" in content
+    assert "  - Recent guard results:" in content
+    assert "    - notify.mobile_app: skipped (reason: quiet_hours)" in content
+    assert "    - script.evening_reset: executed - resumed schedule" in content
 
 
 def test_statistics_summary_template_localizes_breaker_labels(
@@ -608,13 +661,37 @@ def test_statistics_summary_template_localizes_breaker_labels(
                 "open_breaker_ids": [],
             }
         },
+        service_execution_metrics={
+            "rejection_metrics": default_rejection_metrics(),
+        },
+        service_guard_metrics={
+            "executed": 4,
+            "skipped": 1,
+            "reasons": {"ruhezeit": 1},
+            "last_results": [
+                {
+                    "domain": "notify",
+                    "service": "mobile_app",
+                    "executed": False,
+                    "reason": "ruhezeit",
+                }
+            ],
+        },
     )
 
     content = card["content"]
+    assert "**Koordinator-Telemetrie:**" in content
     assert "- Letzter blockierender Breaker: api" in content
     assert "- Abgelehnte Aufrufe: 1" in content
     assert "- Blockierende Breaker: 1" in content
     assert "- Ablehnungsrate: 0.00%" in content
+    assert "- Guard-Ergebnisse:" in content
+    assert "  - Ausgeführte Guard-Aufrufe: 4" in content
+    assert "  - Übersprungene Guard-Aufrufe: 1" in content
+    assert "  - Übersprung-Gründe:" in content
+    assert "    - ruhezeit: 1" in content
+    assert "  - Aktuelle Guard-Ergebnisse:" in content
+    assert "    - notify.mobile_app: übersprungen (Grund: ruhezeit)" in content
     assert "- Letzte Ablehnung: nie" in content
     assert "- Namen offener Breaker: keine" in content
     assert "- IDs blockierender Breaker: api" in content

@@ -179,11 +179,26 @@ entities:
 ```
 
 Die automatisch generierte Statistik-Ansicht der PawControl-Dashboards ergänzt
-dieses Monitoring um eine **Resilience metrics**-Markdown-Karte. Sie zeigt die
-aktuellen Ablehnungszähler, Breaker-Anzahl, die berechnete Ablehnungsrate sowie
-den zuletzt ausgelösten Breaker direkt aus der
-`CoordinatorStatisticsPayload` an, sodass Platinum-Dashboards die neuen Werte
-ohne eigene Templates übernehmen.【F:custom_components/pawcontrol/dashboard_templates.py†L1334-L1427】【F:tests/components/pawcontrol/test_dashboard_renderer.py†L56-L140】
+dieses Monitoring um eine **Resilience metrics**-Markdown-Karte. Sie kombiniert
+die Koordinator-Snapshot-Werte mit den `service_execution.rejection_metrics`
+und `service_execution.guard_metrics` aus den Performance-Statistiken, zeigt
+Ablehnungszähler, Breaker-Anzahl, Guard-Ausführungs- und Skip-Zähler samt
+Gründen sowie den letzten Breaker synchronisiert an und erspart Platinum-
+Dashboards eigene Templates.【F:custom_components/pawcontrol/dashboard_templates.py†L1723-L1966】【F:tests/components/pawcontrol/test_dashboard_renderer.py†L92-L176】
+Automationen können dieselben Guard-Zähler direkt über
+`sensor.pawcontrol_statistics.attributes.service_execution.guard_metrics`
+verarbeiten; der Laufzeitsnapshot liefert ausgeführte/übersprungene Aufrufe,
+zusammengefasste Gründe und die jüngsten Guard-Ergebnisse parallel zu den
+Rejection-Kennzahlen und ermöglicht Eskalationen ohne Dashboard-Scraping.【F:custom_components/pawcontrol/coordinator_tasks.py†L902-L990】【F:tests/unit/test_coordinator_tasks.py†L1004-L1074】
+API-Clients, die auf die Rohdaten angewiesen sind, bekommen identische
+`service_execution`-Blöcke über `PawControlCoordinator.get_performance_snapshot()`
+und sparen sich eigene Normalisierung, weil der Koordinator die Guard-Zähler
+aus den Runtime-Statistiken übernimmt und dieselben Rejection-Metriken
+anhängt.【F:custom_components/pawcontrol/coordinator.py†L474-L525】【F:tests/unit/test_coordinator.py†L117-L165】
+Der Script-Manager legt zusätzlich ein **Resilience-Eskalationsskript** an, das
+Guard-Skip-Schwellen und Breaker-Zähler überwacht, persistente Benachrichtigungen
+auslöst und bei Bedarf ein Follow-up-Skript startet, sodass Bereitschaftsteams
+automatisch reagieren können.【F:custom_components/pawcontrol/script_manager.py†L360-L760】【F:tests/unit/test_data_manager.py†L470-L580】
 
 ---
 

@@ -157,6 +157,12 @@ QUIET_END_FIELD: Final[Literal["quiet_end"]] = cast(
 REMINDER_REPEAT_MIN_FIELD: Final[Literal["reminder_repeat_min"]] = cast(
     Literal["reminder_repeat_min"], CONF_REMINDER_REPEAT_MIN
 )
+SYSTEM_ENABLE_ANALYTICS_FIELD: Final[Literal["enable_analytics"]] = cast(
+    Literal["enable_analytics"], "enable_analytics"
+)
+SYSTEM_ENABLE_CLOUD_BACKUP_FIELD: Final[Literal["enable_cloud_backup"]] = cast(
+    Literal["enable_cloud_backup"], "enable_cloud_backup"
+)
 _NOTIFICATION_DEFAULTS: Final[Mapping[str, Any]] = MappingProxyType(
     {
         CONF_QUIET_HOURS: True,
@@ -705,10 +711,22 @@ class PawControlOptionsFlow(OptionsFlow):
     def _current_system_options(self) -> SystemOptions:
         """Return persisted system settings metadata."""
 
-        raw = self._current_options().get("system_settings", {})
+        options = self._current_options()
+        raw = options.get("system_settings", {})
         if isinstance(raw, Mapping):
-            return cast(SystemOptions, dict(raw))
-        return cast(SystemOptions, {})
+            system = cast(SystemOptions, dict(raw))
+        else:
+            system = cast(SystemOptions, {})
+
+        enable_analytics = options.get("enable_analytics")
+        enable_cloud_backup = options.get("enable_cloud_backup")
+
+        if SYSTEM_ENABLE_ANALYTICS_FIELD not in system:
+            system[SYSTEM_ENABLE_ANALYTICS_FIELD] = bool(enable_analytics)
+        if SYSTEM_ENABLE_CLOUD_BACKUP_FIELD not in system:
+            system[SYSTEM_ENABLE_CLOUD_BACKUP_FIELD] = bool(enable_cloud_backup)
+
+        return system
 
     def _current_dashboard_options(self) -> DashboardOptions:
         """Return the stored dashboard configuration."""
@@ -1074,6 +1092,15 @@ class PawControlOptionsFlow(OptionsFlow):
             current=current.get("performance_mode"),
         )
 
+        analytics_enabled = self._coerce_bool(
+            user_input.get("enable_analytics"),
+            current.get(SYSTEM_ENABLE_ANALYTICS_FIELD, False),
+        )
+        cloud_backup_enabled = self._coerce_bool(
+            user_input.get("enable_cloud_backup"),
+            current.get(SYSTEM_ENABLE_CLOUD_BACKUP_FIELD, False),
+        )
+
         system: SystemOptions = {
             "data_retention_days": retention,
             "auto_backup": self._coerce_bool(
@@ -1081,6 +1108,8 @@ class PawControlOptionsFlow(OptionsFlow):
                 current.get("auto_backup", False),
             ),
             "performance_mode": performance_mode,
+            SYSTEM_ENABLE_ANALYTICS_FIELD: analytics_enabled,
+            SYSTEM_ENABLE_CLOUD_BACKUP_FIELD: cloud_backup_enabled,
         }
 
         reset_time = self._coerce_time_string(
@@ -3777,6 +3806,12 @@ class PawControlOptionsFlow(OptionsFlow):
                 )
                 new_options["system_settings"] = system_settings
                 new_options[CONF_RESET_TIME] = reset_time
+                new_options[SYSTEM_ENABLE_ANALYTICS_FIELD] = system_settings[
+                    SYSTEM_ENABLE_ANALYTICS_FIELD
+                ]
+                new_options[SYSTEM_ENABLE_CLOUD_BACKUP_FIELD] = system_settings[
+                    SYSTEM_ENABLE_CLOUD_BACKUP_FIELD
+                ]
                 typed_options = self._normalise_options_snapshot(new_options)
                 return self.async_create_entry(title="", data=typed_options)
             except Exception:
@@ -3802,6 +3837,20 @@ class PawControlOptionsFlow(OptionsFlow):
         mode_default = normalize_performance_mode(
             current_system.get("performance_mode"),
             current=self._current_options().get("performance_mode"),
+        )
+        analytics_default = self._coerce_bool(
+            current_values.get(
+                "enable_analytics",
+                current_system.get(SYSTEM_ENABLE_ANALYTICS_FIELD),
+            ),
+            bool(self._current_options().get("enable_analytics", False)),
+        )
+        cloud_backup_default = self._coerce_bool(
+            current_values.get(
+                "enable_cloud_backup",
+                current_system.get(SYSTEM_ENABLE_CLOUD_BACKUP_FIELD),
+            ),
+            bool(self._current_options().get("enable_cloud_backup", False)),
         )
 
         return vol.Schema(
@@ -3830,6 +3879,14 @@ class PawControlOptionsFlow(OptionsFlow):
                     default=current_values.get(
                         "auto_backup", current_system.get("auto_backup", False)
                     ),
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "enable_analytics",
+                    default=analytics_default,
+                ): selector.BooleanSelector(),
+                vol.Optional(
+                    "enable_cloud_backup",
+                    default=cloud_backup_default,
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     "performance_mode",

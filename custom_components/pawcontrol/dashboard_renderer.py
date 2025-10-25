@@ -49,8 +49,10 @@ from .types import (
     DOG_ID_FIELD,
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
+    CoordinatorRejectionMetrics,
     CoordinatorStatisticsPayload,
     DogConfigData,
+    HelperManagerGuardMetrics,
     RawDogConfig,
     coerce_dog_modules_config,
 )
@@ -144,12 +146,24 @@ class DashboardRenderer:
         coordinator_statistics: CoordinatorStatisticsPayload
         | Mapping[str, Any]
         | None = None,
+        service_execution_metrics: CoordinatorRejectionMetrics
+        | Mapping[str, Any]
+        | None = None,
+        service_guard_metrics: HelperManagerGuardMetrics
+        | Mapping[str, Any]
+        | None = None,
     ) -> dict[str, Any]:
         """Render main dashboard configuration.
 
         Args:
             dogs_config: List of dog configurations
             options: Optional rendering options
+            coordinator_statistics: Latest coordinator snapshot for resilience
+                metrics
+            service_execution_metrics: Rejection metrics captured during
+                service execution for diagnostics parity
+            service_guard_metrics: Guard metrics captured during service
+                execution for diagnostics parity
 
         Returns:
             Complete dashboard configuration
@@ -168,6 +182,8 @@ class DashboardRenderer:
             config={
                 "dogs": typed_dogs,
                 "coordinator_statistics": coordinator_statistics,
+                "service_execution_metrics": service_execution_metrics,
+                "service_guard_metrics": service_guard_metrics,
             },
             options=options,
         )
@@ -282,6 +298,14 @@ class DashboardRenderer:
             CoordinatorStatisticsPayload | Mapping[str, Any] | None,
             job.config.get("coordinator_statistics"),
         )
+        service_execution_metrics = cast(
+            CoordinatorRejectionMetrics | Mapping[str, Any] | None,
+            job.config.get("service_execution_metrics"),
+        )
+        service_guard_metrics = cast(
+            HelperManagerGuardMetrics | Mapping[str, Any] | None,
+            job.config.get("service_guard_metrics"),
+        )
 
         views = []
 
@@ -299,6 +323,8 @@ class DashboardRenderer:
                 dogs_config,
                 options,
                 coordinator_statistics=coordinator_statistics,
+                service_execution_metrics=service_execution_metrics,
+                service_guard_metrics=service_guard_metrics,
             )
             views.append(stats_view)
 
@@ -704,12 +730,21 @@ class DashboardRenderer:
         coordinator_statistics: CoordinatorStatisticsPayload
         | Mapping[str, Any]
         | None = None,
+        service_execution_metrics: CoordinatorRejectionMetrics
+        | Mapping[str, Any]
+        | None = None,
+        service_guard_metrics: HelperManagerGuardMetrics
+        | Mapping[str, Any]
+        | None = None,
     ) -> dict[str, Any]:
         """Render statistics view.
 
         Args:
             dogs_config: List of dog configurations
             options: Rendering options
+            coordinator_statistics: Coordinator resilience metrics snapshot
+            service_execution_metrics: Service execution rejection metrics
+            service_guard_metrics: Guard metrics recorded during service execution
 
         Returns:
             Statistics view configuration
@@ -718,6 +753,8 @@ class DashboardRenderer:
             dogs_config,
             options,
             coordinator_statistics=coordinator_statistics,
+            service_execution_metrics=service_execution_metrics,
+            service_guard_metrics=service_guard_metrics,
         )
 
         return {

@@ -246,14 +246,94 @@ def test_resolve_coordinator_statistics_uses_runtime_data(
     assert resolved is not sentinel_stats
 
 
+@patch("custom_components.pawcontrol.dashboard_generator.Store")
+def test_resolve_service_execution_metrics_uses_runtime_data(
+    mock_store: MagicMock, hass, mock_config_entry, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Service execution metrics should reuse runtime performance stats."""
+
+    mock_store.return_value = MagicMock()
+    generator = PawControlDashboardGenerator(hass, mock_config_entry)
+
+    service_metrics = default_rejection_metrics()
+    service_metrics.update(
+        {
+            "rejected_call_count": 4,
+            "rejection_breaker_count": 1,
+            "last_rejection_time": 42.0,
+            "last_rejection_breaker_id": "automation",
+        }
+    )
+
+    class RuntimeStub:
+        def __init__(self) -> None:
+            self.performance_stats = {"rejection_metrics": service_metrics}
+
+    monkeypatch.setattr(generator, "_get_runtime_data", lambda: RuntimeStub())
+
+    resolved = generator._resolve_service_execution_metrics()
+
+    assert resolved is not None
+    assert resolved["rejected_call_count"] == 4
+    assert resolved["rejection_breaker_count"] == 1
+    assert resolved["last_rejection_breaker_id"] == "automation"
+    assert resolved["schema_version"] == default_rejection_metrics()["schema_version"]
+
+
+@patch("custom_components.pawcontrol.dashboard_generator.Store")
+def test_resolve_service_guard_metrics_uses_runtime_data(
+    mock_store: MagicMock, hass, mock_config_entry, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Guard metrics should be normalised from runtime performance stats."""
+
+    mock_store.return_value = MagicMock()
+    generator = PawControlDashboardGenerator(hass, mock_config_entry)
+
+    guard_metrics = {
+        "executed": 3,
+        "skipped": 2,
+        "reasons": {"quiet_hours": 2},
+        "last_results": [
+            {
+                "domain": "notify",
+                "service": "mobile_app",
+                "executed": False,
+                "reason": "quiet_hours",
+            }
+        ],
+    }
+
+    class RuntimeStub:
+        def __init__(self) -> None:
+            self.performance_stats = {"service_guard_metrics": guard_metrics}
+
+    monkeypatch.setattr(generator, "_get_runtime_data", lambda: RuntimeStub())
+
+    resolved = generator._resolve_service_guard_metrics()
+
+    assert resolved is not None
+    assert resolved is not guard_metrics
+    assert resolved["executed"] == 3
+    assert resolved["skipped"] == 2
+    assert resolved["reasons"] == {"quiet_hours": 2}
+    assert resolved["last_results"][0]["service"] == "mobile_app"
+
+
 @pytest.mark.asyncio
-async def test_renderer_forwards_coordinator_statistics(
+async def test_renderer_forwards_statistics_context(
     hass, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """The statistics renderer should receive coordinator metrics snapshots."""
+    """The statistics renderer should receive coordinator and service metrics."""
 
     renderer = DashboardRenderer(hass)
     sentinel_stats = {"rejection_metrics": default_rejection_metrics()}
+    service_metrics = default_rejection_metrics()
+    guard_metrics = {
+        "executed": 5,
+        "skipped": 1,
+        "reasons": {"quiet_hours": 1},
+        "last_results": [],
+    }
 
     monkeypatch.setattr(
         renderer,
@@ -278,8 +358,12 @@ async def test_renderer_forwards_coordinator_statistics(
         options: dict[str, object],
         *,
         coordinator_statistics: dict[str, object] | None = None,
+        service_execution_metrics: dict[str, object] | None = None,
+        service_guard_metrics: dict[str, object] | None = None,
     ) -> list[dict[str, object]]:
         captured["coordinator_statistics"] = coordinator_statistics
+        captured["service_execution_metrics"] = service_execution_metrics
+        captured["service_guard_metrics"] = service_guard_metrics
         return []
 
     monkeypatch.setattr(
@@ -297,9 +381,13 @@ async def test_renderer_forwards_coordinator_statistics(
             }
         ],
         coordinator_statistics=sentinel_stats,
+        service_execution_metrics=service_metrics,
+        service_guard_metrics=guard_metrics,
     )
 
     assert captured["coordinator_statistics"] == sentinel_stats
+    assert captured["service_execution_metrics"] == service_metrics
+    assert captured["service_guard_metrics"] == guard_metrics
 
 
 @pytest.mark.asyncio

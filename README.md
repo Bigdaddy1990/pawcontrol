@@ -776,7 +776,13 @@ Storage & Diagnostics:
 ```
 
 PawControl records a `ServiceGuardResult` for every guarded Home Assistant service invocation and aggregates them into a `ServiceGuardSummary`, ensuring diagnostics and resilience dashboards highlight both successful executions and guard-triggered skips.【F:custom_components/pawcontrol/service_guard.py†L1-L46】【F:custom_components/pawcontrol/utils.py†L187-L264】【F:custom_components/pawcontrol/services.py†L384-L473】
-Diagnostics export the aggregated counters under `service_execution.guard_metrics` alongside the most recent guard payload in `service_execution.last_service_result`, giving support teams instant visibility into why a service call executed or skipped without enabling debug logging.【F:custom_components/pawcontrol/diagnostics.py†L780-L867】【F:tests/components/pawcontrol/test_diagnostics.py†L129-L203】
+Diagnostics export the aggregated counters under `service_execution.guard_metrics` alongside the most recent guard payload in `service_execution.last_service_result`, giving support teams instant visibility into why a service call executed or skipped without enabling debug logging.【F:custom_components/pawcontrol/diagnostics.py†L780-L867】【F:tests/components/pawcontrol/test_diagnostics.py†L129-L229】
+
+Support tooling also receives a dedicated `setup_flags_panel` snapshot that surfaces analytics, cloud-backup, and debug-logging toggles with translation keys, source metadata, and enabled/disabled counts so dashboards can render the onboarding state without custom parsing.【F:custom_components/pawcontrol/diagnostics.py†L120-L210】【F:custom_components/pawcontrol/strings.json†L1391-L1414】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L230】
+
+Diagnostics mirror the resilience escalation helper under a `resilience_escalation` panel that reports the generated script entity, active skip/breaker thresholds, follow-up automation target, and last triggered timestamp so on-call staff can confirm escalation posture directly from support dumps.【F:custom_components/pawcontrol/script_manager.py†L420-L566】【F:custom_components/pawcontrol/diagnostics.py†L180-L214】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L247】【F:tests/unit/test_data_manager.py†L500-L535】
+
+Coordinator performance snapshots mirror the same guard counters and reuse the existing rejection metrics block, so API clients calling `PawControlCoordinator.get_performance_snapshot()` receive identical `service_execution.guard_metrics` data as the runtime statistics sensor without duplicating parsing logic.【F:custom_components/pawcontrol/coordinator.py†L474-L525】【F:tests/unit/test_coordinator.py†L117-L165】
 
 **Service rejection metrics snapshot**:
 ```yaml
@@ -830,10 +836,20 @@ service: pawcontrol.get_statistics
 ```
 
 - The auto-generated Lovelace statistics view now ships with a **Resilience metrics**
-  markdown summary that lists rejected call counts, breaker totals, rejection
-  rates, and the last rejecting breaker straight from the coordinator
-  statistics payload so Platinum dashboard packs surface the telemetry without
-  bespoke templates.【F:custom_components/pawcontrol/dashboard_templates.py†L1334-L1427】【F:tests/components/pawcontrol/test_dashboard_renderer.py†L56-L140】
+  markdown summary that merges coordinator and service-execution rejection
+  telemetry *and* the latest guard outcomes—covering rejected call counts,
+  breaker totals, guard execution/skip counters, skip reasons, and the last
+  rejecting breaker—so Platinum dashboard packs expose both perspectives without
+  bespoke templates.【F:custom_components/pawcontrol/dashboard_templates.py†L1723-L1966】【F:tests/components/pawcontrol/test_dashboard_renderer.py†L92-L176】
+- Automations can consume the same guard counters directly from
+  `sensor.pawcontrol_statistics.attributes.service_execution.guard_metrics`,
+  which now exports executed/skipped totals, active skip reasons, and recent
+  guard results alongside the shared rejection metrics snapshot for reliable
+  workflow triggers.【F:custom_components/pawcontrol/coordinator_tasks.py†L902-L990】【F:tests/unit/test_coordinator_tasks.py†L1004-L1074】
+- The script manager provisions a **resilience escalation** helper that watches
+  guard skip thresholds and breaker counts, raising persistent notifications and
+  optional follow-up scripts whenever service execution health deteriorates so
+  on-call runbooks trigger automatically.【F:custom_components/pawcontrol/script_manager.py†L360-L760】【F:tests/unit/test_data_manager.py†L470-L580】
 
 **Performance Impact**:
 - Overhead: < 2ms per operation

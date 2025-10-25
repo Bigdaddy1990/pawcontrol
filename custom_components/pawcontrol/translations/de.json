@@ -479,7 +479,17 @@
           "reset_time": "Tägliche Reset-Zeit",
           "performance_mode": "Leistungsmodus",
           "data_retention_days": "Datenaufbewahrung (Tage)",
-          "auto_backup": "Automatische Backups"
+          "auto_backup": "Automatische Backups",
+          "enable_analytics": "Analysen aktivieren",
+          "enable_cloud_backup": "Cloud-Backup aktivieren"
+        },
+        "data_description": {
+          "reset_time": "Lege fest, wann Paw Control die täglichen Wartungsaufgaben ausführt.",
+          "performance_mode": "Bestimme, wie aggressiv Paw Control Daten aktualisiert und Jobs plant.",
+          "data_retention_days": "Gibt an, wie lange Paw Control historische Kennzahlen aufbewahrt, bevor sie gelöscht werden.",
+          "auto_backup": "Plane lokale Exporte, bevor die Aufbewahrung bereinigt wird.",
+          "enable_analytics": "Aggregiert anonyme Trends über alle Hunde für Übersichts-Widgets.",
+          "enable_cloud_backup": "Lädt Konfigurations-Snapshots in das konfigurierte Cloud-Ziel hoch."
         }
       },
       "dashboard_settings": {
@@ -1215,6 +1225,30 @@
     "feeding_compliance_no_data": {
       "title": "Fütterungstelemetrie fehlt für {dog_name}",
       "description": "Die letzte Fütterungs-Compliance-Prüfung über {days_to_check} Tage konnte keinen Bericht erstellen: {message}."
+    }
+  },
+  "diagnostics": {
+    "setup_flags": {
+      "panel": {
+        "title": "Setup-Flags",
+        "description": "Analytics-, Backup- und Debug-Logging-Schalter aus Onboarding und Optionen."
+      },
+      "enable_analytics": {
+        "label": "Analyse-Telemetrie"
+      },
+      "enable_cloud_backup": {
+        "label": "Cloud-Backup"
+      },
+      "debug_logging": {
+        "label": "Debug-Logging"
+      },
+      "sources": {
+        "options": "Options-Flow",
+        "system_settings": "Systemeinstellungen",
+        "advanced_settings": "Erweiterte Einstellungen",
+        "config_entry": "Konfigurationseintrag",
+        "default": "Integrationsstandard"
+      }
     }
   }
 }
