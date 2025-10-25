@@ -12,7 +12,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
@@ -85,6 +85,101 @@ def _resolve_notification_manager(
         return None
 
     return runtime_data.runtime_managers.notification_manager
+
+
+class SetupFlagSnapshot(TypedDict):
+    """Snapshot describing a persisted setup flag state."""
+
+    value: bool
+    source: str
+
+
+def _collect_setup_flag_snapshots(entry: ConfigEntry) -> dict[str, SetupFlagSnapshot]:
+    """Return analytics, backup, and debug logging flag states and sources."""
+
+    raw_options = entry.options
+    options = (
+        cast(Mapping[str, Any], raw_options)
+        if isinstance(raw_options, Mapping)
+        else {}
+    )
+    system_raw = options.get("system_settings")
+    system = cast(Mapping[str, Any], system_raw) if isinstance(system_raw, Mapping) else {}
+    advanced_raw = options.get("advanced_settings")
+    advanced = (
+        cast(Mapping[str, Any], advanced_raw)
+        if isinstance(advanced_raw, Mapping)
+        else {}
+    )
+    entry_data = cast(Mapping[str, Any], entry.data)
+
+    def _resolve_flag(
+        key: str,
+        *,
+        allow_advanced: bool = False,
+    ) -> SetupFlagSnapshot:
+        candidate = options.get(key)
+        if isinstance(candidate, bool):
+            return SetupFlagSnapshot(value=candidate, source="options")
+
+        candidate = system.get(key)
+        if isinstance(candidate, bool):
+            return SetupFlagSnapshot(value=candidate, source="system_settings")
+
+        if allow_advanced:
+            candidate = advanced.get(key)
+            if isinstance(candidate, bool):
+                return SetupFlagSnapshot(value=candidate, source="advanced_settings")
+
+        candidate = entry_data.get(key)
+        if isinstance(candidate, bool):
+            return SetupFlagSnapshot(value=candidate, source="config_entry")
+
+        return SetupFlagSnapshot(value=False, source="default")
+
+    return {
+        "enable_analytics": _resolve_flag("enable_analytics"),
+        "enable_cloud_backup": _resolve_flag("enable_cloud_backup"),
+        "debug_logging": _resolve_flag("debug_logging", allow_advanced=True),
+    }
+
+
+def _summarise_setup_flags(entry: ConfigEntry) -> dict[str, bool]:
+    """Return analytics, backup, and debug logging flags for diagnostics."""
+
+    snapshots = _collect_setup_flag_snapshots(entry)
+    return {key: snapshot["value"] for key, snapshot in snapshots.items()}
+
+
+def _build_setup_flags_panel(entry: ConfigEntry) -> dict[str, Any]:
+    """Expose setup flag metadata in a dashboard-friendly structure."""
+
+    snapshots = _collect_setup_flag_snapshots(entry)
+    flags: list[dict[str, Any]] = [
+        {
+            "key": key,
+            "translation_key": f"setup_flags.{key}",
+            "enabled": snapshot["value"],
+            "source": snapshot["source"],
+        }
+        for key, snapshot in snapshots.items()
+    ]
+
+    enabled_count = sum(1 for flag in flags if flag["enabled"])
+    disabled_count = len(flags) - enabled_count
+
+    source_breakdown: dict[str, int] = {}
+    for flag in flags:
+        source = cast(str, flag["source"])
+        source_breakdown[source] = source_breakdown.get(source, 0) + 1
+
+    return {
+        "translation_key": "diagnostics.setup_flags.panel",
+        "flags": flags,
+        "enabled_count": enabled_count,
+        "disabled_count": disabled_count,
+        "source_breakdown": source_breakdown,
+    }
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -334,6 +429,9 @@ async def async_get_config_entry_diagnostics(
         "door_sensor": await _get_door_sensor_diagnostics(runtime_data),
         "service_execution": await _get_service_execution_diagnostics(runtime_data),
         "bool_coercion": _get_bool_coercion_diagnostics(runtime_data),
+        "setup_flags": _summarise_setup_flags(entry),
+        "setup_flags_panel": _build_setup_flags_panel(entry),
+        "resilience_escalation": _get_resilience_escalation_snapshot(runtime_data),
     }
 
     if cache_snapshots is not None:
@@ -346,6 +444,25 @@ async def async_get_config_entry_diagnostics(
 
     _LOGGER.info("Diagnostics generated successfully for entry %s", entry.entry_id)
     return redacted_diagnostics
+
+
+def _get_resilience_escalation_snapshot(
+    runtime_data: PawControlRuntimeData | None,
+) -> dict[str, Any]:
+    """Build diagnostics metadata for the resilience escalation helper."""
+
+    if runtime_data is None:
+        return {"available": False}
+
+    script_manager = getattr(runtime_data, "script_manager", None)
+    if script_manager is None:
+        return {"available": False}
+
+    snapshot = script_manager.get_resilience_escalation_snapshot()
+    if snapshot is None:
+        return {"available": False}
+
+    return snapshot
 
 
 async def _get_config_entry_diagnostics(entry: ConfigEntry) -> dict[str, Any]:

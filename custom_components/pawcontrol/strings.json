@@ -455,6 +455,26 @@
           "backup_location": "Backup Location"
         }
       },
+      "system_settings": {
+        "title": "System Settings",
+        "description": "Configure retention, analytics, and backups for Paw Control",
+        "data": {
+          "reset_time": "Daily Reset Time",
+          "data_retention_days": "Data Retention (days)",
+          "auto_backup": "Enable Automatic Backups",
+          "enable_analytics": "Enable Analytics",
+          "enable_cloud_backup": "Enable Cloud Backup",
+          "performance_mode": "Performance Mode"
+        },
+        "data_description": {
+          "reset_time": "Choose when Paw Control performs daily maintenance tasks.",
+          "data_retention_days": "How long Paw Control keeps historical metrics before pruning.",
+          "auto_backup": "Schedule local exports before retention cleanup runs.",
+          "enable_analytics": "Aggregate anonymous trends across all dogs to power summary widgets.",
+          "enable_cloud_backup": "Upload configuration snapshots to your configured cloud target.",
+          "performance_mode": "Select how aggressively Paw Control refreshes data and schedules jobs."
+        }
+      },
       "advanced": {
         "title": "Advanced Options",
         "description": "Advanced configuration for expert users",
@@ -1366,6 +1386,30 @@
     "feeding_compliance_no_data": {
       "title": "Feeding telemetry missing for {dog_name}",
       "description": "The latest feeding compliance check covering {days_to_check} days could not generate a report: {message}."
+    }
+  },
+  "diagnostics": {
+    "setup_flags": {
+      "panel": {
+        "title": "Setup flags",
+        "description": "Analytics, backup, and debug logging toggles captured during onboarding and options flows."
+      },
+      "enable_analytics": {
+        "label": "Analytics telemetry"
+      },
+      "enable_cloud_backup": {
+        "label": "Cloud backup"
+      },
+      "debug_logging": {
+        "label": "Debug logging"
+      },
+      "sources": {
+        "options": "Options flow",
+        "system_settings": "System settings",
+        "advanced_settings": "Advanced settings",
+        "config_entry": "Config entry defaults",
+        "default": "Integration default"
+      }
     }
   }
 }

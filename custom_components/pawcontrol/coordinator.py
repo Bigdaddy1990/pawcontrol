@@ -55,7 +55,9 @@ from .coordinator_tasks import (
     build_runtime_statistics,
     build_update_statistics,
     collect_resilience_diagnostics,
+    default_rejection_metrics,
     ensure_background_task,
+    resolve_service_guard_metrics,
     run_maintenance,
 )
 from .coordinator_tasks import (
@@ -509,6 +511,23 @@ class PawControlCoordinator(
 
         if resilience:
             snapshot["resilience"] = resilience
+
+        rejection_metrics = snapshot.get("rejection_metrics")
+        if not isinstance(rejection_metrics, Mapping):
+            rejection_metrics = default_rejection_metrics()
+            snapshot["rejection_metrics"] = rejection_metrics
+
+        runtime_data = getattr(self.config_entry, "runtime_data", None)
+        performance_stats_payload = (
+            getattr(runtime_data, "performance_stats", None)
+            if runtime_data is not None
+            else None
+        )
+        guard_metrics = resolve_service_guard_metrics(performance_stats_payload)
+        snapshot["service_execution"] = {
+            "guard_metrics": guard_metrics,
+            "rejection_metrics": rejection_metrics,
+        }
 
         if self._last_cycle is not None:
             snapshot["last_cycle"] = self._last_cycle.to_dict()

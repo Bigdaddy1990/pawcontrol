@@ -10,7 +10,7 @@ automation flows without manual YAML editing.
 from __future__ import annotations
 
 import logging
-from collections.abc import Collection, Iterable, Sequence
+from collections.abc import Collection, Iterable, Mapping, Sequence
 from datetime import datetime
 from typing import Any, Final, cast
 
@@ -38,6 +38,7 @@ from .const import (
     CACHE_TIMESTAMP_STALE_THRESHOLD,
     CONF_DOG_ID,
     CONF_DOG_NAME,
+    DOMAIN,
     MODULE_NOTIFICATIONS,
 )
 from .coordinator_support import CacheMonitorRegistrar
@@ -49,6 +50,9 @@ from .types import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+slugify = getattr(slugify, "slugify", slugify)
 
 
 def _serialize_datetime(value: datetime | None) -> str | None:
@@ -93,6 +97,7 @@ class _ScriptManagerCacheMonitor:
         dog_scripts = cast(
             dict[str, Iterable[str]], getattr(manager, "_dog_scripts", {})
         )
+        entry_scripts = cast(Iterable[str], getattr(manager, "_entry_scripts", []))
         last_generation = cast(
             datetime | None, getattr(manager, "_last_generation", None)
         )
@@ -109,11 +114,14 @@ class _ScriptManagerCacheMonitor:
                 "count": len(script_list),
                 "scripts": script_list,
             }
+        entry_list = [entity for entity in entry_scripts if isinstance(entity, str)]
 
         stats: dict[str, Any] = {
             "scripts": len(created_list),
             "dogs": len(per_dog),
         }
+        if entry_list:
+            stats["entry_scripts"] = len(entry_list)
 
         timestamp_issue, age_seconds = _classify_timestamp(last_generation)
         if age_seconds is not None:
@@ -124,12 +132,16 @@ class _ScriptManagerCacheMonitor:
             "per_dog": per_dog,
             "last_generated": _serialize_datetime(last_generation),
         }
+        if entry_list:
+            snapshot["entry_scripts"] = entry_list
 
         diagnostics: CacheDiagnosticsMetadata = {
             "per_dog": per_dog,
             "created_entities": created_list,
             "last_generated": _serialize_datetime(last_generation),
         }
+        if entry_list:
+            diagnostics["entry_scripts"] = entry_list
 
         if age_seconds is not None:
             diagnostics["manager_last_generated_age_seconds"] = age_seconds
@@ -169,13 +181,22 @@ class PawControlScriptManager:
         self._entry = entry
         self._created_entities: set[str] = set()
         self._dog_scripts: dict[str, list[str]] = {}
+        self._entry_scripts: list[str] = []
         self._last_generation: datetime | None = None
+        self._resilience_escalation_definition: dict[str, Any] | None = None
+        entry_slug = slugify(getattr(entry, "title", "") or entry.entry_id or DOMAIN)
+        self._entry_slug = entry_slug or DOMAIN
+        title = getattr(entry, "title", None)
+        self._entry_title = (
+            title.strip() if isinstance(title, str) and title.strip() else "PawControl"
+        )
 
     async def async_initialize(self) -> None:
         """Reset internal tracking structures prior to script generation."""
 
         self._created_entities.clear()
         self._dog_scripts.clear()
+        self._entry_scripts.clear()
         _LOGGER.debug("Script manager initialised for entry %s", self._entry.entry_id)
 
     def register_cache_monitors(
@@ -299,6 +320,46 @@ class PawControlScriptManager:
             for entity_id in self._dog_scripts.pop(removed_dog, []):
                 await self._async_remove_script_entity(entity_id)
 
+        entry_script_definitions = self._build_entry_scripts()
+        existing_entry_scripts = set(self._entry_scripts)
+        new_entry_scripts: list[str] = []
+
+        for object_id, raw_config in entry_script_definitions:
+            entity_id = f"{_SCRIPT_ENTITY_PREFIX}{object_id}"
+            existing_entity = component.get_entity(entity_id)
+            if existing_entity is not None:
+                await existing_entity.async_remove()
+
+            validated_config = SCRIPT_ENTITY_SCHEMA(dict(raw_config))
+            entity = ScriptEntity(
+                self._hass,
+                object_id,
+                validated_config,
+                raw_config,
+                None,
+            )
+            await component.async_add_entities([entity])
+
+            self._created_entities.add(entity_id)
+            new_entry_scripts.append(entity_id)
+
+            if (entry := registry.async_get(entity_id)) and (
+                entry.config_entry_id != self._entry.entry_id
+            ):
+                registry.async_update_entity(
+                    entity_id, config_entry_id=self._entry.entry_id
+                )
+
+        obsolete_entry_scripts = existing_entry_scripts - set(new_entry_scripts)
+        for entity_id in obsolete_entry_scripts:
+            await self._async_remove_script_entity(entity_id)
+
+        if new_entry_scripts:
+            created["__entry__"] = list(new_entry_scripts)
+            self._entry_scripts = list(new_entry_scripts)
+        else:
+            self._entry_scripts = []
+
         self._last_generation = dt_util.utcnow()
 
         return created
@@ -319,6 +380,7 @@ class PawControlScriptManager:
             self._created_entities.discard(entity_id)
 
         self._dog_scripts.clear()
+        self._entry_scripts.clear()
         _LOGGER.debug(
             "Removed all PawControl managed scripts for entry %s", self._entry.entry_id
         )
@@ -358,6 +420,446 @@ class PawControlScriptManager:
             scripts.append(self._build_push_test_script(slug, dog_id, dog_name))
 
         return scripts
+
+    def _build_entry_scripts(self) -> list[tuple[str, ConfigType]]:
+        """Return global script definitions scoped to the config entry."""
+
+        scripts: list[tuple[str, ConfigType]] = []
+        scripts.append(self._build_resilience_escalation_script())
+        return scripts
+
+    def _build_resilience_escalation_script(self) -> tuple[str, ConfigType]:
+        """Create the guard and breaker escalation script definition."""
+
+        object_id = f"pawcontrol_{self._entry_slug}_resilience_escalation"
+        default_statistics_entity = "sensor.pawcontrol_statistics"
+
+        guard_default_title = f"{self._entry_title} guard escalation"
+        guard_default_message = (
+            "Guard skipped {{ skip_count }} call(s) while executing {{ executed_count }} "
+            "request(s). Skip reasons: {{ guard_reason_text }}."
+        )
+        guard_default_notification_id = (
+            f"pawcontrol_{self._entry_slug}_guard_escalation"
+        )
+
+        breaker_default_title = f"{self._entry_title} breaker escalation"
+        breaker_default_message = (
+            "Circuit breakers report {{ breaker_count }} open and {{ half_open_count }} "
+            "half-open guard(s). Open breakers: {{ open_breakers_text }}. "
+            "Half-open breakers: {{ half_open_breakers_text }}."
+        )
+        breaker_default_notification_id = (
+            f"pawcontrol_{self._entry_slug}_breaker_escalation"
+        )
+
+        variables: ConfigType = {
+            "statistics_entity": (
+                f"{{{{ statistics_entity_id | default('{default_statistics_entity}') }}}}"
+            ),
+            "service_execution": (
+                "{{ state_attr(statistics_entity, 'service_execution') or {} }}"
+            ),
+            "guard": (
+                "{% set data = state_attr(statistics_entity, 'service_execution') or {} %}"
+                "{% set metrics = data.get('guard_metrics') %}"
+                "{% if metrics is mapping %}{{ metrics }}{% else %}{{ {} }}{% endif %}"
+            ),
+            "rejection": (
+                "{% set data = state_attr(statistics_entity, 'service_execution') or {} %}"
+                "{% set metrics = data.get('rejection_metrics') %}"
+                "{% if metrics is mapping %}{{ metrics }}{% else %}{{ {} }}{% endif %}"
+            ),
+            "skip_count": "{{ guard.get('skipped', 0) | int(0) }}",
+            "executed_count": "{{ guard.get('executed', 0) | int(0) }}",
+            "breaker_count": "{{ rejection.get('open_breaker_count', 0) | int(0) }}",
+            "half_open_count": (
+                "{{ rejection.get('half_open_breaker_count', 0) | int(0) }}"
+            ),
+            "guard_reason_text": (
+                "{% set items = guard.get('reasons', {}) | dictsort %}"
+                "{% if items %}"
+                "{% for reason, count in items %}"
+                "{{ reason }} ({{ count }}){% if not loop.last %}, {% endif %}"
+                "{% endfor %}"
+                "{% else %}No guard skip reasons recorded{% endif %}"
+            ),
+            "open_breakers_text": (
+                "{% set names = rejection.get('open_breakers', []) %}"
+                "{% if names %}{{ names | join(', ') }}{% else %}None{% endif %}"
+            ),
+            "half_open_breakers_text": (
+                "{% set names = rejection.get('half_open_breakers', []) %}"
+                "{% if names %}{{ names | join(', ') }}{% else %}None{% endif %}"
+            ),
+        }
+
+        guard_followup: ConfigType = {
+            "choose": [
+                {
+                    "conditions": [
+                        {
+                            "condition": "template",
+                            "value_template": (
+                                "{{ followup_script | default('') | trim != '' }}"
+                            ),
+                        }
+                    ],
+                    "sequence": [
+                        {
+                            "service": "script.turn_on",
+                            "target": {"entity_id": "{{ followup_script }}"},
+                            "data": {
+                                "variables": {
+                                    "trigger_reason": "guard",
+                                    "skip_count": "{{ skip_count }}",
+                                    "executed_count": "{{ executed_count }}",
+                                    "guard_reasons": "{{ guard.get('reasons', {}) }}",
+                                    "breaker_count": "{{ breaker_count }}",
+                                    "half_open_count": "{{ half_open_count }}",
+                                }
+                            },
+                        }
+                    ],
+                }
+            ],
+            "default": [],
+        }
+
+        breaker_followup: ConfigType = {
+            "choose": [
+                {
+                    "conditions": [
+                        {
+                            "condition": "template",
+                            "value_template": (
+                                "{{ followup_script | default('') | trim != '' }}"
+                            ),
+                        }
+                    ],
+                    "sequence": [
+                        {
+                            "service": "script.turn_on",
+                            "target": {"entity_id": "{{ followup_script }}"},
+                            "data": {
+                                "variables": {
+                                    "trigger_reason": "breaker",
+                                    "breaker_count": "{{ breaker_count }}",
+                                    "half_open_count": "{{ half_open_count }}",
+                                    "open_breakers": "{{ rejection.get('open_breakers', []) }}",
+                                    "half_open_breakers": "{{ rejection.get('half_open_breakers', []) }}",
+                                    "skip_count": "{{ skip_count }}",
+                                    "executed_count": "{{ executed_count }}",
+                                }
+                            },
+                        }
+                    ],
+                }
+            ],
+            "default": [],
+        }
+
+        sequence: list[ConfigType] = [
+            {"variables": variables},
+            {
+                "choose": [
+                    {
+                        "conditions": [
+                            {
+                                "condition": "template",
+                                "value_template": (
+                                    "{{ (skip_threshold | int(0)) > 0 and "
+                                    "skip_count >= (skip_threshold | int(0)) }}"
+                                ),
+                            }
+                        ],
+                        "sequence": [
+                            {
+                                "service": (
+                                    "{{ escalation_service | default('persistent_notification.create') }}"
+                                ),
+                                "data": {
+                                    "title": (
+                                        f"{{{{ guard_title | default('{guard_default_title}') }}}}"
+                                    ),
+                                    "message": (
+                                        f"{{{{ guard_message | default('{guard_default_message}') }}}}"
+                                    ),
+                                    "notification_id": (
+                                        f"{{{{ guard_notification_id | default('{guard_default_notification_id}') }}}}"
+                                    ),
+                                },
+                            },
+                            guard_followup,
+                        ],
+                    },
+                    {
+                        "conditions": [
+                            {
+                                "condition": "template",
+                                "value_template": (
+                                    "{{ (breaker_threshold | int(0)) > 0 and ("
+                                    "breaker_count >= (breaker_threshold | int(0)) or "
+                                    "half_open_count >= (breaker_threshold | int(0))) }}"
+                                ),
+                            }
+                        ],
+                        "sequence": [
+                            {
+                                "service": (
+                                    "{{ escalation_service | default('persistent_notification.create') }}"
+                                ),
+                                "data": {
+                                    "title": (
+                                        f"{{{{ breaker_title | default('{breaker_default_title}') }}}}"
+                                    ),
+                                    "message": (
+                                        f"{{{{ breaker_message | default('{breaker_default_message}') }}}}"
+                                    ),
+                                    "notification_id": (
+                                        f"{{{{ breaker_notification_id | default('{breaker_default_notification_id}') }}}}"
+                                    ),
+                                },
+                            },
+                            breaker_followup,
+                        ],
+                    },
+                ],
+                "default": [],
+            },
+        ]
+
+        fields: ConfigType = {
+            "statistics_entity_id": {
+                CONF_NAME: "Statistics sensor",
+                CONF_DESCRIPTION: (
+                    "Entity that exposes PawControl runtime statistics including "
+                    "service execution metrics."
+                ),
+                CONF_DEFAULT: default_statistics_entity,
+                "selector": {"entity": {"domain": "sensor"}},
+            },
+            "skip_threshold": {
+                CONF_NAME: "Guard skip threshold",
+                CONF_DESCRIPTION: (
+                    "Escalate when skipped guard calls reach or exceed this value. "
+                    "Set to 0 to disable guard escalations."
+                ),
+                CONF_DEFAULT: 3,
+                "selector": {"number": {"min": 0, "max": 50, "mode": "box"}},
+            },
+            "breaker_threshold": {
+                CONF_NAME: "Breaker alert threshold",
+                CONF_DESCRIPTION: (
+                    "Escalate when open or half-open breaker counts reach this value. "
+                    "Set to 0 to disable breaker escalations."
+                ),
+                CONF_DEFAULT: 1,
+                "selector": {"number": {"min": 0, "max": 10, "mode": "box"}},
+            },
+            "escalation_service": {
+                CONF_NAME: "Escalation service",
+                CONF_DESCRIPTION: (
+                    "Service called when an escalation fires. Uses persistent "
+                    "notifications by default."
+                ),
+                CONF_DEFAULT: "persistent_notification.create",
+                "selector": {"text": {}},
+            },
+            "guard_title": {
+                CONF_NAME: "Guard alert title",
+                CONF_DESCRIPTION: "Title used when guard skips trigger the escalation.",
+                CONF_DEFAULT: guard_default_title,
+                "selector": {"text": {}},
+            },
+            "guard_message": {
+                CONF_NAME: "Guard alert message",
+                CONF_DESCRIPTION: (
+                    "Message body for guard skip escalations. Jinja variables from the "
+                    "script (e.g. {{ skip_count }}) are available."
+                ),
+                CONF_DEFAULT: guard_default_message,
+                "selector": {"text": {"multiline": True}},
+            },
+            "guard_notification_id": {
+                CONF_NAME: "Guard notification ID",
+                CONF_DESCRIPTION: (
+                    "Notification identifier so repeated alerts update the same "
+                    "persistent notification."
+                ),
+                CONF_DEFAULT: guard_default_notification_id,
+                "selector": {"text": {}},
+            },
+            "breaker_title": {
+                CONF_NAME: "Breaker alert title",
+                CONF_DESCRIPTION: "Title used when breaker counts trigger the escalation.",
+                CONF_DEFAULT: breaker_default_title,
+                "selector": {"text": {}},
+            },
+            "breaker_message": {
+                CONF_NAME: "Breaker alert message",
+                CONF_DESCRIPTION: (
+                    "Message body for breaker escalations. Script variables such as "
+                    "{{ breaker_count }} are available."
+                ),
+                CONF_DEFAULT: breaker_default_message,
+                "selector": {"text": {"multiline": True}},
+            },
+            "breaker_notification_id": {
+                CONF_NAME: "Breaker notification ID",
+                CONF_DESCRIPTION: (
+                    "Notification identifier for breaker alerts, keeping updates "
+                    "idempotent."
+                ),
+                CONF_DEFAULT: breaker_default_notification_id,
+                "selector": {"text": {}},
+            },
+            "followup_script": {
+                CONF_NAME: "Follow-up script",
+                CONF_DESCRIPTION: (
+                    "Optional script triggered after escalations fire. Receives "
+                    "context variables such as skip and breaker counts."
+                ),
+                CONF_DEFAULT: "",
+                "selector": {"entity": {"domain": "script", "multiple": False}},
+            },
+        }
+
+        raw_config: ConfigType = {
+            CONF_ALIAS: f"{self._entry_title} resilience escalation",
+            CONF_DESCRIPTION: (
+                "Escalates guard skips and breaker activations using PawControl's "
+                "runtime service metrics and optional follow-up automations."
+            ),
+            CONF_SEQUENCE: sequence,
+            CONF_FIELDS: fields,
+            CONF_TRACE: {},
+        }
+
+        field_defaults: dict[str, Any] = {}
+        for field_name, field_config in fields.items():
+            if isinstance(field_config, Mapping):
+                field_defaults[field_name] = field_config.get(CONF_DEFAULT)
+
+        self._resilience_escalation_definition = {
+            "object_id": object_id,
+            "alias": raw_config[CONF_ALIAS],
+            "description": raw_config[CONF_DESCRIPTION],
+            "field_defaults": field_defaults,
+        }
+
+        return object_id, raw_config
+
+    def get_resilience_escalation_snapshot(self) -> dict[str, Any] | None:
+        """Return diagnostics metadata for the resilience escalation helper."""
+
+        definition = self._resilience_escalation_definition
+        if not isinstance(definition, dict):
+            return None
+
+        object_id = definition.get("object_id")
+        entity_id: str | None = next(
+            (
+                entity
+                for entity in self._entry_scripts
+                if isinstance(entity, str) and entity.endswith("_resilience_escalation")
+            ),
+            None,
+        )
+
+        if entity_id is None and isinstance(object_id, str):
+            entity_id = f"{SCRIPT_DOMAIN}.{object_id}"
+
+        field_defaults = cast(dict[str, Any], definition.get("field_defaults", {}))
+
+        state = None
+        if entity_id is not None:
+            state = getattr(self._hass, "states", None)
+            state = state.get(entity_id) if state is not None else None
+
+        state_available = state is not None
+        last_triggered: datetime | None = None
+        if state_available:
+            last_value = getattr(state, "attributes", {}).get("last_triggered")
+            if isinstance(last_value, datetime):
+                last_triggered = dt_util.as_utc(last_value)
+            elif isinstance(last_value, str):
+                parsed = dt_util.parse_datetime(last_value)
+                if parsed is not None:
+                    last_triggered = dt_util.as_utc(parsed)
+
+        last_triggered_age: int | None = None
+        if last_triggered is not None:
+            last_triggered_age = int(
+                (dt_util.utcnow() - dt_util.as_utc(last_triggered)).total_seconds()
+            )
+
+        active_field_defaults: dict[str, Any] = {}
+        if state_available:
+            fields_attr = getattr(state, "attributes", {}).get("fields")
+            if isinstance(fields_attr, Mapping):
+                for field_name, field_config in fields_attr.items():
+                    if isinstance(field_config, Mapping):
+                        default_value = field_config.get("default")
+                    else:
+                        default_value = getattr(field_config, "default", None)
+                    if default_value is not None or field_name in field_defaults:
+                        active_field_defaults[field_name] = default_value
+
+        def _active_value(key: str) -> Any:
+            if key in active_field_defaults:
+                return active_field_defaults[key]
+            return field_defaults.get(key)
+
+        thresholds = {
+            "skip_threshold": {
+                "default": field_defaults.get("skip_threshold"),
+                "active": _active_value("skip_threshold"),
+            },
+            "breaker_threshold": {
+                "default": field_defaults.get("breaker_threshold"),
+                "active": _active_value("breaker_threshold"),
+            },
+        }
+
+        followup_active = _active_value("followup_script")
+
+        timestamp_issue, last_generated_age = _classify_timestamp(self._last_generation)
+
+        return {
+            "available": entity_id is not None,
+            "state_available": state_available,
+            "entity_id": entity_id,
+            "object_id": object_id,
+            "alias": definition.get("alias"),
+            "description": definition.get("description"),
+            "last_generated": _serialize_datetime(self._last_generation),
+            "last_generated_age_seconds": last_generated_age,
+            "last_generated_status": timestamp_issue,
+            "last_triggered": _serialize_datetime(last_triggered),
+            "last_triggered_age_seconds": last_triggered_age,
+            "thresholds": thresholds,
+            "fields": {
+                key: {
+                    "default": field_defaults.get(key),
+                    "active": _active_value(key),
+                }
+                for key in field_defaults
+            },
+            "followup_script": {
+                "default": field_defaults.get("followup_script"),
+                "active": followup_active,
+                "configured": bool(followup_active),
+            },
+            "statistics_entity_id": {
+                "default": field_defaults.get("statistics_entity_id"),
+                "active": _active_value("statistics_entity_id"),
+            },
+            "escalation_service": {
+                "default": field_defaults.get("escalation_service"),
+                "active": _active_value("escalation_service"),
+            },
+        }
 
     def _build_confirmation_script(
         self, slug: str, dog_id: str, dog_name: str

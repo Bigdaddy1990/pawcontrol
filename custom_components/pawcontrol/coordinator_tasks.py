@@ -35,8 +35,10 @@ from .types import (
     CoordinatorResilienceDiagnostics,
     CoordinatorResilienceSummary,
     CoordinatorRuntimeStatisticsPayload,
+    CoordinatorServiceExecutionSummary,
     CoordinatorStatisticsPayload,
     EntityBudgetSummary,
+    HelperManagerGuardMetrics,
     ReconfigureTelemetrySummary,
 )
 
@@ -572,6 +574,79 @@ def _derive_rejection_metrics(
     return derive_rejection_metrics(summary)
 
 
+def _default_guard_metrics() -> HelperManagerGuardMetrics:
+    """Return zeroed guard metrics for runtime statistics snapshots."""
+
+    return {
+        "executed": 0,
+        "skipped": 0,
+        "reasons": {},
+        "last_results": [],
+    }
+
+
+def _normalise_guard_metrics(payload: Any) -> HelperManagerGuardMetrics:
+    """Coerce ``payload`` into guard metrics with canonical structures."""
+
+    guard_metrics = _default_guard_metrics()
+    if not isinstance(payload, Mapping):
+        return guard_metrics
+
+    executed_raw = payload.get("executed")
+    if executed_raw is not None:
+        guard_metrics["executed"] = max(_coerce_int(executed_raw), 0)
+
+    skipped_raw = payload.get("skipped")
+    if skipped_raw is not None:
+        guard_metrics["skipped"] = max(_coerce_int(skipped_raw), 0)
+
+    reasons_payload = payload.get("reasons")
+    reasons: dict[str, int] = {}
+    if isinstance(reasons_payload, Mapping):
+        for reason, count in reasons_payload.items():
+            text = str(reason).strip()
+            if not text:
+                continue
+            coerced = max(_coerce_int(count), 0)
+            if coerced:
+                reasons[text] = coerced
+    guard_metrics["reasons"] = reasons
+
+    last_results_payload = payload.get("last_results")
+    results: list[dict[str, Any]] = []
+    if isinstance(last_results_payload, Sequence) and not isinstance(
+        last_results_payload, bytes | bytearray | str
+    ):
+        results = [
+            {str(key): value for key, value in entry.items()}
+            for entry in last_results_payload
+            if isinstance(entry, Mapping)
+        ]
+    guard_metrics["last_results"] = results
+
+    return guard_metrics
+
+
+def resolve_service_guard_metrics(payload: Any) -> HelperManagerGuardMetrics:
+    """Return aggregated guard metrics stored on runtime performance stats."""
+
+    guard_metrics = _default_guard_metrics()
+    if not isinstance(payload, Mapping):
+        return guard_metrics
+
+    guard_metrics = _normalise_guard_metrics(payload.get("service_guard_metrics"))
+
+    if isinstance(payload, MutableMapping):
+        payload["service_guard_metrics"] = {
+            "executed": guard_metrics["executed"],
+            "skipped": guard_metrics["skipped"],
+            "reasons": dict(guard_metrics["reasons"]),
+            "last_results": list(guard_metrics["last_results"]),
+        }
+
+    return guard_metrics
+
+
 def _normalise_breaker_state(value: Any) -> str:
     """Return a canonical breaker state used for resilience aggregation."""
 
@@ -922,6 +997,10 @@ def build_runtime_statistics(
     stats["adaptive_polling"] = _normalise_adaptive_diagnostics(
         coordinator._adaptive_polling.as_diagnostics()
     )
+    performance_stats_payload = (
+        getattr(runtime_data, "performance_stats", None) if runtime_data else None
+    )
+    guard_metrics = resolve_service_guard_metrics(performance_stats_payload)
     rejection_metrics = default_rejection_metrics()
 
     resilience = collect_resilience_diagnostics(coordinator)
@@ -932,6 +1011,12 @@ def build_runtime_statistics(
             rejection_metrics = derive_rejection_metrics(summary_payload)
 
     stats["rejection_metrics"] = rejection_metrics
+
+    service_execution: CoordinatorServiceExecutionSummary = {
+        "guard_metrics": guard_metrics,
+        "rejection_metrics": rejection_metrics,
+    }
+    stats["service_execution"] = service_execution
 
     performance_metrics = stats.get("performance_metrics")
     if isinstance(performance_metrics, dict):

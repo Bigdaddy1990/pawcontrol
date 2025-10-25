@@ -5,20 +5,51 @@
 - Target Python 3.13+ features and reuse PawControl helpers (coordinators, managers, and typed constants) to keep runtime data on the typed surface.【F:.github/copilot-instructions.md†L29-L94】
 
 ## Latest tooling snapshot
-- ✅ `ruff check` – bestätigt das neue Troubleshooting-Playbook im Produktionsleitfaden ohne zusätzliche Lint-Abweichungen.【20c156†L1-L2】【F:docs/production_integration_documentation.md†L340-L398】
-- ✅ `pytest -q` – vollständige Suite besteht (1004 passed, 1 skipped) inklusive der Guard- und Rejection-Regressionen für Service-Telemetrie.【f1526a†L1-L5】【F:tests/unit/test_services.py†L94-L203】【F:tests/components/pawcontrol/test_diagnostics.py†L277-L307】
-- ✅ `mypy custom_components/pawcontrol` – der Typenlauf akzeptiert die Guard- und Diagnostics-Helfer weiterhin ohne Zusatz-Casts.【086e2c†L1-L2】【F:custom_components/pawcontrol/services.py†L414-L519】【F:custom_components/pawcontrol/diagnostics.py†L1004-L1036】
-- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest und Übersetzungen verifizieren ohne Befunde.【97a2c1†L1-L2】
+- ✅ `ruff check` – bestätigte die neuen Escalation-Diagnostics ohne zusätzliche Lint-Abweichungen.【b7670e†L1-L2】
+- ✅ `pytest -q` – vollständige Suite (1014 passed, 1 skipped) deckt die neuen Resilience-Eskalationsdaten in den Diagnostics samt Follow-up-Checks ab.【25547b†L1-L5】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L247】
+- ✅ `mypy custom_components/pawcontrol` – der Typenlauf akzeptiert die Snapshot-Helfer für Resilience-Eskalationen ohne Zusatz-Casts.【c286cc†L1-L2】【F:custom_components/pawcontrol/script_manager.py†L420-L566】
+- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – manifest- und Übersetzungsprüfung bleiben ohne Beanstandung (keine Ausgabe).【112e20†L1-L2】
 
 ## Fehleranalyse
+- Die Options-Flagge `debug_logging` wirkte sich bislang nicht auf das Paket-
+  Log-Level aus, weil `async_setup_entry` den Schalter ignorierte; die neuen
+  Helfer `_enable_debug_logging`/`_disable_debug_logging` synchronisieren das
+  Logging jetzt referenzgezählt und decken sowohl Erfolgs-, Reload- als auch
+  Fehlerpfade mit zielgerichteten Tests ab.【F:custom_components/pawcontrol/__init__.py†L158-L251】【F:tests/components/pawcontrol/test_init.py†L88-L197】
+- Die Setup-Optionen `enable_analytics`, `enable_cloud_backup` und `debug_logging`
+  wurden beim Onboarding nur im flüchtigen `_global_settings`-Snapshot gehalten;
+  `ConfigEntry.options` erhielt dadurch keine initialen Flags und verlor die
+  Aktivierung nach einem Reload. `_build_config_entry_data` persistiert die
+  Einstellungen jetzt direkt im Options-Payload, und neue Config-Flow-Tests
+  prüfen sowohl gesetzte als auch fehlende Werte.【F:custom_components/pawcontrol/config_flow.py†L1651-L1691】【F:tests/components/pawcontrol/test_config_flow.py†L1490-L1542】
 - Circuit-Recovery-Szenarien konnten zuvor leere Breaker-Listen verlieren, wenn `merge_rejection_metric_values` alte Snapshots fortschrieb; `_record_service_result` initialisiert deshalb konsequent `default_rejection_metrics`, und die neue Regression deckt den Edge-Case ab.【F:custom_components/pawcontrol/services.py†L414-L569】【F:tests/unit/test_services.py†L161-L203】
-- Diagnostik-Exports spiegeln weiterhin nur den Rohblock aus `performance_stats`; eine künftige Verdichtung sollte Dashboard- und Service-Snapshots zusammenführen, sobald `derive_rejection_metrics` auch Guard-Kontext und Service-spezifische Hinweise berücksichtigt.【F:custom_components/pawcontrol/diagnostics.py†L1004-L1036】【F:custom_components/pawcontrol/services.py†L414-L569】
 
 ## Verbesserungsplan
-1. Konsolidiere die Dashboard-Resilienzkarte, damit sie neben den Koordinatorzahlen auch `service_execution.rejection_metrics` anzeigt und Support-Teams nicht zwischen Diagnostics und Frontend wechseln müssen.【F:custom_components/pawcontrol/dashboard_templates.py†L1334-L1427】【F:custom_components/pawcontrol/services.py†L414-L522】
-2. Automatisiere Eskalationshinweise, indem Guard-/Breaker-Schwellen über den Script-Manager persistente Benachrichtigungen oder Reaktionsskripte auslösen, damit Operations-Teams nicht ausschließlich auf manuelle Playbooks angewiesen sind.【F:custom_components/pawcontrol/services.py†L414-L522】【F:custom_components/pawcontrol/script_manager.py†L150-L260】
+1. Ergänze das System-Health-Panel um Guard- und Rejection-Kennzahlen, damit Bereitschaftsteams Guard-Skip-Anteile und Breaker-Zustände ohne Developer-Tools prüfen können.【F:system_health.py†L1-L36】【F:custom_components/pawcontrol/coordinator.py†L474-L525】
+2. Erweitere `info.md` und die Diagnose-Guides mit einem JSON-Beispiel des `setup_flags_panel` inklusive Übersetzungsquellen, damit Support-Handbücher und Blueprint-Autoren die neuen Felder sofort übernehmen können.【F:info.md†L1-L120】【F:docs/diagnostik.md†L1-L40】【F:custom_components/pawcontrol/diagnostics.py†L154-L214】
+3. Ergänze die Resilience-Dokumente (`docs/resilience-quickstart.md`, Produktionshandbuch) um ein Beispiel für das `resilience_escalation`-Panel inklusive interpretierbarer Schwellenwerte und Follow-up-Konfiguration, damit Runbooks Escalation-Checks Schritt für Schritt dokumentieren.【F:docs/resilience-quickstart.md†L1-L220】【F:docs/production_integration_documentation.md†L340-L398】【F:custom_components/pawcontrol/script_manager.py†L420-L566】
 
 ## Recent improvements
+- Das neue Diagnostics-Feld `resilience_escalation` fasst Entity-ID, letzte Ausführung, Guard-/Breaker-Schwellen, Follow-up-Skript und Statistikquelle zusammen, sodass Support-Dumps die Eskalationsautomatisierung direkt bewerten können; Tests prüfen aktive Default-Übernahmen, und README sowie Diagnostik-Guide dokumentieren die neue Oberfläche.【F:custom_components/pawcontrol/script_manager.py†L420-L566】【F:custom_components/pawcontrol/diagnostics.py†L180-L214】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L247】【F:docs/diagnostik.md†L1-L20】【F:README.md†L780-L804】
+- `setup_flags_panel` stellt Analytics-, Backup- und Debug-Optionen samt Übersetzungs-Keys, Quellen und Aktivzählern bereit, sodass Support-Dashboards den Onboarding-Status ohne zusätzliche Parser übernehmen können; Tests prüfen die neue Struktur und die Docs verweisen auf das Panel.【F:custom_components/pawcontrol/diagnostics.py†L100-L182】【F:custom_components/pawcontrol/strings.json†L1391-L1414】【F:tests/components/pawcontrol/test_diagnostics.py†L235-L251】【F:docs/diagnostik.md†L1-L18】【F:README.md†L779-L785】
+- Automatisierte Resilience-Eskalationsskripte: `PawControlScriptManager` provisioniert jetzt ein globales Skript, das Guard-Skips und Breaker-Zähler überwacht, optionale Follow-up-Skripte auslöst und in README sowie Quickstart dokumentiert ist; neue Unit-Tests sichern den Flow ab.【F:custom_components/pawcontrol/script_manager.py†L360-L760】【F:tests/unit/test_data_manager.py†L492-L574】【F:README.md†L818-L848】【F:docs/resilience-quickstart.md†L186-L202】
+- `PawControlCoordinator.get_performance_snapshot` spiegelt `service_execution.guard_metrics` samt synchronisierten Rejection-Metriken, damit API-Clients denselben Guard-Zustand wie der Statistik-Sensor erhalten und Regressionstests den Export absichern.【F:custom_components/pawcontrol/coordinator.py†L474-L525】【F:tests/unit/test_coordinator.py†L117-L165】
+- Ergänzte `build_runtime_statistics` um einen `service_execution`-Block, der
+  Guard-Ausführungen mitsamt Gründen und letzten Ergebnissen parallel zu den
+  Rejection-Zählern exportiert, dokumentierte den neuen Sensor-Snapshot in den
+  Resilience-Guides und belegte die Ausgabe mit erweiterten
+  Coordinator-Task-Regressionen.【F:custom_components/pawcontrol/coordinator_tasks.py†L902-L996】【F:tests/unit/test_coordinator_tasks.py†L1004-L1074】【F:README.md†L815-L827】【F:docs/resilience-quickstart.md†L186-L196】
+- Ergänzte die Resilience-Markdownkarte um `service_execution.guard_metrics`,
+  leitete Guard-Telemetrie durch Generator, Renderer und Karten weiter und
+  deckte ausgeführte/übersprungene Services samt Gründen in Tests, README und
+  Quickstart-Doku ab, damit Support-Teams Guard-Ergebnisse direkt im Statistik-
+  Dashboard sehen.【F:custom_components/pawcontrol/dashboard_generator.py†L182-L236】【F:custom_components/pawcontrol/dashboard_renderer.py†L140-L222】【F:custom_components/pawcontrol/dashboard_cards.py†L2804-L3032】【F:custom_components/pawcontrol/dashboard_templates.py†L1702-L1966】【F:tests/components/pawcontrol/test_dashboard_renderer.py†L92-L176】【F:tests/unit/test_dashboard_templates.py†L520-L676】【F:README.md†L832-L840】【F:docs/resilience-quickstart.md†L181-L187】
+- Konsolidierte die Resilience-Markdownkarte, indem Dashboard-Generator, Renderer und Template nun `service_execution.rejection_metrics` gemeinsam mit den Koordinatorzahlen darstellen; neue Tests prüfen Dashboard-Ausgabe, Template-Markdown und die Weitergabe der Service-Metriken.【F:custom_components/pawcontrol/dashboard_generator.py†L182-L200】【F:custom_components/pawcontrol/dashboard_renderer.py†L140-L198】【F:custom_components/pawcontrol/dashboard_cards.py†L2804-L3007】【F:custom_components/pawcontrol/dashboard_templates.py†L1702-L1936】【F:tests/components/pawcontrol/test_dashboard_renderer.py†L103-L175】【F:tests/unit/test_dashboard_templates.py†L520-L594】【F:tests/unit/test_dashboard_generator.py†L249-L341】
+- Spiegelte die Analytics-, Cloud-Backup- und Debug-Flags im Options-Flow-Systemschritt sowie im Diagnostics-Block `setup_flags`, damit Reloads und Support-Dumps denselben Persistenzstatus anzeigen; neue Unit- und Komponenten-Tests prüfen die Normalisierung und den Export.【F:custom_components/pawcontrol/options_flow.py†L160-L165】【F:custom_components/pawcontrol/options_flow.py†L711-L3890】【F:custom_components/pawcontrol/diagnostics.py†L90-L390】【F:tests/unit/test_options_flow.py†L793-L853】【F:tests/components/pawcontrol/test_diagnostics.py†L33-L238】
+- Aktivierte die Debug-Logging-Option dauerhaft, indem `_enable_debug_logging`
+  und `_disable_debug_logging` das Paket-Log-Level referenzgezählt verwalten; die
+  neuen Integrationstests prüfen Setup-, Unload- und Fehlerszenarien, damit
+  Support-Teams sofort aussagekräftige Log-Dateien abrufen können.【F:custom_components/pawcontrol/__init__.py†L158-L251】【F:tests/components/pawcontrol/test_init.py†L88-L197】
 - Ergänzte das Produktions-Runbook um ein Troubleshooting-Playbook mit Guard- und Rejection-Schwellen, damit Support-Teams Eskalationen konsistent bewerten und dieselbe Telemetrie wie das Dashboard dokumentieren.【F:docs/production_integration_documentation.md†L340-L398】【F:custom_components/pawcontrol/services.py†L414-L519】【F:custom_components/pawcontrol/diagnostics.py†L1004-L1036】【F:tests/components/pawcontrol/test_diagnostics.py†L277-L307】【F:tests/unit/test_services.py†L94-L203】
 - Dokumentierte die Service-`rejection_metrics` im README und Produktionshandbuch inklusive Support-Beispielen, damit Operatoren und Dashboards denselben Telemetrieblock nutzen können.【F:README.md†L780-L821】【F:docs/production_integration_documentation.md†L340-L373】【F:custom_components/pawcontrol/services.py†L414-L522】【F:custom_components/pawcontrol/diagnostics.py†L1004-L1036】
 - Dokumentierte die Service-`rejection_metrics` im Diagnostik-Handbuch und belegte die synchronisierte Telemetrie mit Unit- sowie Komponenten-Tests inklusive Circuit-Recovery-Regressionsfall.【F:docs/diagnostik.md†L21-L33】【F:custom_components/pawcontrol/services.py†L414-L522】【F:custom_components/pawcontrol/diagnostics.py†L1004-L1036】【F:tests/unit/test_services.py†L94-L203】【F:tests/components/pawcontrol/test_diagnostics.py†L277-L307】

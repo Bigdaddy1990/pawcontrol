@@ -44,6 +44,7 @@ from .config_flow_profile import (
 from .const import (
     CONF_API_ENDPOINT,
     CONF_API_TOKEN,
+    CONF_DATA_RETENTION_DAYS,
     CONF_DOG_AGE,
     CONF_DOG_BREED,
     CONF_DOG_ID,
@@ -53,6 +54,8 @@ from .const import (
     CONF_DOG_WEIGHT,
     CONF_DOGS,
     CONF_MODULES,
+    DEFAULT_DATA_RETENTION_DAYS,
+    DEFAULT_PERFORMANCE_MODE,
     DOG_SIZES,
     DOMAIN,
     MAX_DOG_AGE,
@@ -77,12 +80,14 @@ from .types import (
     MODULE_TOGGLE_KEYS,
     ConfigFlowDiscoveryData,
     ConfigFlowDiscoverySource,
+    ConfigFlowGlobalSettings,
     DogConfigData,
     DogModulesConfig,
     DogSetupStepInput,
     DogValidationCacheEntry,
     ExternalEntityConfig,
     ModuleToggleKey,
+    PerformanceMode,
     ReauthDataUpdates,
     ReauthHealthSummary,
     ReauthOptionsUpdates,
@@ -96,6 +101,7 @@ from .types import (
     coerce_dog_modules_config,
     ensure_dog_modules_mapping,
     is_dog_config_valid,
+    normalize_performance_mode,
 )
 
 ensure_homeassistant_exception_symbols()
@@ -1665,6 +1671,24 @@ class PawControlConfigFlow(
             "dashboard_auto_create": True,
             "performance_monitoring": True,
         }
+
+        settings = cast(ConfigFlowGlobalSettings, self._global_settings)
+        performance_mode = normalize_performance_mode(
+            settings.get("performance_mode"),
+            fallback=cast(PerformanceMode, DEFAULT_PERFORMANCE_MODE),
+        )
+        options_data["performance_mode"] = performance_mode
+
+        options_data["enable_analytics"] = bool(settings.get("enable_analytics", False))
+        options_data["enable_cloud_backup"] = bool(
+            settings.get("enable_cloud_backup", False)
+        )
+        options_data["debug_logging"] = bool(settings.get("debug_logging", False))
+
+        options_data[CONF_DATA_RETENTION_DAYS] = cast(
+            int,
+            settings.get("data_retention_days", DEFAULT_DATA_RETENTION_DAYS),
+        )
 
         # Derive default API endpoint/token from discovery results when available
         discovery_info = self._discovery_info or {}

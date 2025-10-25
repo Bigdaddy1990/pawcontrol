@@ -10,12 +10,14 @@ Python: 3.12+
 
 from __future__ import annotations
 
+import logging
 import sys
 from copy import deepcopy
 from types import ModuleType
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
+import custom_components.pawcontrol as integration
 import pytest
 from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
@@ -210,6 +212,116 @@ class TestPawControlIntegrationSetup:
             # Verify platform forwarding was initiated
             # Note: We can't easily test platform loading completion in unit tests
             # since it's async and depends on HA internals
+
+    async def test_async_setup_entry_debug_logging_toggle(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry_data: dict[str, Any],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Debug logging option should toggle the package logger level."""
+
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            data=mock_config_entry_data,
+            options={"entity_profile": "standard", "debug_logging": True},
+        )
+        entry.add_to_hass(hass)
+        reload_unsub = Mock()
+        entry.add_update_listener = Mock(return_value=reload_unsub)
+
+        package_logger = logging.getLogger("custom_components.pawcontrol")
+        original_level = package_logger.level
+        monkeypatch.setattr(integration, "_DEBUG_LOGGER_ENTRIES", set())
+        monkeypatch.setattr(integration, "_DEFAULT_LOGGER_LEVEL", None, raising=False)
+
+        from custom_components.pawcontrol import async_setup_entry, async_unload_entry
+
+        with (
+            patch(
+                "custom_components.pawcontrol.PawControlCoordinator"
+            ) as mock_coordinator,
+            patch(
+                "custom_components.pawcontrol.PawControlDataManager"
+            ) as mock_data_manager,
+            patch(
+                "custom_components.pawcontrol.PawControlNotificationManager"
+            ) as mock_notification_manager,
+            patch(
+                "custom_components.pawcontrol.FeedingManager"
+            ) as mock_feeding_manager,
+            patch("custom_components.pawcontrol.WalkManager") as mock_walk_manager,
+            patch("custom_components.pawcontrol.EntityFactory") as mock_entity_factory,
+        ):
+            mock_coordinator.return_value.async_prepare_entry = AsyncMock()
+            mock_coordinator.return_value.async_config_entry_first_refresh = AsyncMock()
+            mock_coordinator.return_value.async_start_background_tasks = Mock()
+            mock_data_manager.return_value.async_initialize = AsyncMock()
+            mock_notification_manager.return_value.async_initialize = AsyncMock()
+            mock_feeding_manager.return_value.async_initialize = AsyncMock()
+            mock_walk_manager.return_value.async_initialize = AsyncMock()
+            mock_entity_factory.return_value.validate_profile = Mock(return_value=True)
+
+            assert await async_setup_entry(hass, entry) is True
+
+        assert package_logger.level == logging.DEBUG
+
+        runtime_data = get_runtime_data(hass, entry)
+        assert runtime_data is not None
+
+        with patch(
+            "homeassistant.config_entries.ConfigEntries.async_unload_platforms",
+            return_value=True,
+        ):
+            assert await async_unload_entry(hass, entry) is True
+
+        expected_level = (
+            original_level if original_level != logging.NOTSET else logging.NOTSET
+        )
+        assert package_logger.level == expected_level
+        assert not integration._DEBUG_LOGGER_ENTRIES
+        reload_unsub.assert_called_once()
+
+        package_logger.setLevel(original_level)
+
+    async def test_async_setup_entry_debug_logging_failure_resets(
+        self,
+        hass: HomeAssistant,
+        mock_config_entry_data: dict[str, Any],
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Setup failures should restore the previous logger level."""
+
+        entry = MockConfigEntry(
+            domain=DOMAIN,
+            data=mock_config_entry_data,
+            options={"entity_profile": "standard", "debug_logging": True},
+        )
+        entry.add_to_hass(hass)
+
+        package_logger = logging.getLogger("custom_components.pawcontrol")
+        original_level = package_logger.level
+        monkeypatch.setattr(integration, "_DEBUG_LOGGER_ENTRIES", set())
+        monkeypatch.setattr(integration, "_DEFAULT_LOGGER_LEVEL", None, raising=False)
+
+        from custom_components.pawcontrol import async_setup_entry
+
+        with patch(
+            "custom_components.pawcontrol.PawControlCoordinator"
+        ) as mock_coordinator:
+            mock_coordinator.return_value.async_prepare_entry = AsyncMock(
+                side_effect=ConfigEntryNotReady("debug test failure")
+            )
+
+            with pytest.raises(ConfigEntryNotReady):
+                await async_setup_entry(hass, entry)
+
+        assert not integration._DEBUG_LOGGER_ENTRIES
+        expected_level = (
+            original_level if original_level != logging.NOTSET else logging.NOTSET
+        )
+        assert package_logger.level == expected_level
+        package_logger.setLevel(original_level)
 
     async def test_async_setup_entry_coordinator_initialization_failure(
         self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]

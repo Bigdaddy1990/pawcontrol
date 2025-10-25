@@ -32,13 +32,18 @@ from .const import (
     MODULE_NOTIFICATIONS,
     MODULE_WALK,
 )
-from .coordinator_tasks import derive_rejection_metrics
+from .coordinator_tasks import (
+    default_rejection_metrics,
+    derive_rejection_metrics,
+    merge_rejection_metric_values,
+)
 from .dashboard_shared import CardCollection, CardConfig, coerce_dog_configs
 from .language import normalize_language
 from .types import (
     CoordinatorRejectionMetrics,
     CoordinatorStatisticsPayload,
     DogModulesConfig,
+    HelperManagerGuardMetrics,
     RawDogConfig,
     coerce_dog_modules_config,
 )
@@ -56,6 +61,14 @@ _STATISTICS_FALLBACK_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
     "no_last_rejection": {
         "en": "never",
         "de": "nie",
+    },
+    "no_guard_reasons": {
+        "en": "none recorded",
+        "de": "keine Einträge",
+    },
+    "no_guard_results": {
+        "en": "none recorded",
+        "de": "keine Einträge",
     },
 }
 
@@ -201,6 +214,67 @@ def _format_breaker_list(entries: Sequence[str], language: str | None) -> str:
     return _STATISTICS_EMPTY_LIST_TRANSLATIONS.get("en", "none")
 
 
+def _format_guard_reasons(
+    reasons: Mapping[str, int], language: str | None
+) -> list[str]:
+    """Return formatted guard skip reasons for summary output."""
+
+    if not reasons:
+        default_value = _format_breaker_list((), language)
+        fallback = _translated_statistics_fallback(
+            language, "no_guard_reasons", default_value
+        )
+        return [fallback]
+
+    sorted_reasons = sorted(
+        ((reason, count) for reason, count in reasons.items()),
+        key=lambda item: (-item[1], item[0]),
+    )
+
+    return [f"{reason}: {count}" for reason, count in sorted_reasons]
+
+
+def _format_guard_results(
+    results: Sequence[Mapping[str, Any]],
+    language: str | None,
+    *,
+    limit: int = 5,
+) -> list[str]:
+    """Return formatted guard result summaries for the statistics markdown."""
+
+    formatted: list[str] = []
+    for entry in list(results)[:limit]:
+        if not isinstance(entry, Mapping):
+            continue
+
+        domain = str(entry.get("domain", "unknown"))
+        service = str(entry.get("service", "unknown"))
+        executed = bool(entry.get("executed"))
+
+        outcome_key = "guard_result_executed" if executed else "guard_result_skipped"
+        outcome_label = _translated_statistics_label(language, outcome_key)
+
+        reason = entry.get("reason")
+        if isinstance(reason, str) and reason:
+            reason_label = _translated_statistics_label(language, "guard_result_reason")
+            outcome_label = f"{outcome_label} ({reason_label}: {reason})"
+
+        description = entry.get("description")
+        if isinstance(description, str) and description:
+            outcome_label = f"{outcome_label} - {description}"
+
+        formatted.append(f"{domain}.{service}: {outcome_label}")
+
+    if formatted:
+        return formatted
+
+    default_value = _format_breaker_list((), language)
+    fallback = _translated_statistics_fallback(
+        language, "no_guard_results", default_value
+    )
+    return [fallback]
+
+
 class WeatherThemeConfig(TypedDict):
     """Color palette for weather dashboards."""
 
@@ -322,6 +396,46 @@ _STATISTICS_LABEL_TRANSLATIONS: Final[dict[str, Mapping[str, str]]] = {
     "resilience_metrics_header": {
         "en": "Resilience metrics",
         "de": "Resilienzmetriken",
+    },
+    "coordinator_resilience_label": {
+        "en": "Coordinator telemetry",
+        "de": "Koordinator-Telemetrie",
+    },
+    "service_resilience_label": {
+        "en": "Service execution telemetry",
+        "de": "Serviceausführungs-Telemetrie",
+    },
+    "guard_metrics_header": {
+        "en": "Guard outcomes",
+        "de": "Guard-Ergebnisse",
+    },
+    "guard_executed": {
+        "en": "Guarded calls executed",
+        "de": "Ausgeführte Guard-Aufrufe",
+    },
+    "guard_skipped": {
+        "en": "Guarded calls skipped",
+        "de": "Übersprungene Guard-Aufrufe",
+    },
+    "guard_reasons": {
+        "en": "Skip reasons",
+        "de": "Übersprung-Gründe",
+    },
+    "guard_last_results": {
+        "en": "Recent guard results",
+        "de": "Aktuelle Guard-Ergebnisse",
+    },
+    "guard_result_executed": {
+        "en": "executed",
+        "de": "ausgeführt",
+    },
+    "guard_result_skipped": {
+        "en": "skipped",
+        "de": "übersprungen",
+    },
+    "guard_result_reason": {
+        "en": "reason",
+        "de": "Grund",
     },
     "rejected_calls": {
         "en": "Rejected calls",
@@ -1695,6 +1809,9 @@ class DashboardTemplates:
         coordinator_statistics: CoordinatorStatisticsPayload
         | Mapping[str, Any]
         | None = None,
+        service_execution_metrics: CoordinatorRejectionMetrics | Mapping[str, Any]
+        | None = None,
+        service_guard_metrics: HelperManagerGuardMetrics | Mapping[str, Any] | None = None,
     ) -> CardConfig:
         """Return a summary markdown card for analytics dashboards."""
 
@@ -1758,13 +1875,73 @@ class DashboardTemplates:
             ]
         )
 
-        metrics_payload: CoordinatorRejectionMetrics | None = None
+        def _coerce_rejection_metrics(
+            payload: Mapping[str, Any] | CoordinatorRejectionMetrics | None,
+        ) -> CoordinatorRejectionMetrics | None:
+            if payload is None:
+                return None
+
+            if isinstance(payload, Mapping):
+                nested = payload.get("rejection_metrics")
+                metrics_source = nested if isinstance(nested, Mapping) else payload
+
+                metrics = default_rejection_metrics()
+                merge_rejection_metric_values(metrics, metrics_source)
+                return metrics
+
+            return None
+
+        def _coerce_guard_metrics(
+            payload: Mapping[str, Any] | HelperManagerGuardMetrics | None,
+        ) -> HelperManagerGuardMetrics | None:
+            if payload is None:
+                return None
+
+            if isinstance(payload, Mapping):
+                reasons_payload: dict[str, int] = {}
+                raw_reasons = payload.get("reasons")
+                if isinstance(raw_reasons, Mapping):
+                    reasons_payload = {
+                        str(key): int(value)
+                        for key, value in raw_reasons.items()
+                        if isinstance(key, str)
+                    }
+
+                raw_last_results = payload.get("last_results")
+                if isinstance(raw_last_results, Sequence):
+                    last_results_payload = [
+                        dict(entry)
+                        for entry in raw_last_results
+                        if isinstance(entry, Mapping)
+                    ]
+                else:
+                    last_results_payload = []
+
+                return {
+                    "executed": int(payload.get("executed", 0)),
+                    "skipped": int(payload.get("skipped", 0)),
+                    "reasons": reasons_payload,
+                    "last_results": last_results_payload,
+                }
+
+            return None
+
+        coordinator_metrics: CoordinatorRejectionMetrics | None = None
         if isinstance(coordinator_statistics, Mapping):
             raw_metrics = coordinator_statistics.get("rejection_metrics")
             if isinstance(raw_metrics, Mapping):
-                metrics_payload = derive_rejection_metrics(raw_metrics)
+                coordinator_metrics = derive_rejection_metrics(raw_metrics)
 
-        if metrics_payload is not None:
+        service_metrics = _coerce_rejection_metrics(service_execution_metrics)
+        guard_metrics = _coerce_guard_metrics(service_guard_metrics)
+
+        def _format_resilience_section(
+            metrics_payload: CoordinatorRejectionMetrics,
+            *,
+            guard_payload: HelperManagerGuardMetrics | None = None,
+        ) -> list[str]:
+            lines: list[str] = []
+
             last_rejection_value = metrics_payload["last_rejection_time"]
             has_rejection_history = (
                 metrics_payload["rejected_call_count"] > 0
@@ -1783,6 +1960,7 @@ class DashboardTemplates:
                 rate_display = _translated_statistics_fallback(
                     hass_language, "no_rejection_rate", "n/a"
                 )
+
             if last_rejection_value is not None:
                 try:
                     last_rejection_iso = datetime.fromtimestamp(
@@ -1796,18 +1974,8 @@ class DashboardTemplates:
                     hass_language, "no_last_rejection", "never"
                 )
 
-            breaker_label_value = (
-                metrics_payload["last_rejection_breaker_name"]
-                or metrics_payload["last_rejection_breaker_id"]
-            )
-
-            resilience_header = _translated_statistics_label(
-                hass_language, "resilience_metrics_header"
-            )
-            content_lines.extend(
+            lines.extend(
                 [
-                    "",
-                    f"### {resilience_header}",
                     (
                         "- "
                         + _translated_statistics_label(hass_language, "rejected_calls")
@@ -1833,8 +2001,12 @@ class DashboardTemplates:
                 ]
             )
 
+            breaker_label_value = (
+                metrics_payload["last_rejection_breaker_name"]
+                or metrics_payload["last_rejection_breaker_id"]
+            )
             if breaker_label_value:
-                content_lines.append(
+                lines.append(
                     "- "
                     + _translated_statistics_label(
                         hass_language, "last_rejecting_breaker"
@@ -1858,7 +2030,7 @@ class DashboardTemplates:
             }
 
             for label, breaker_names in breaker_name_lists.items():
-                content_lines.append(
+                lines.append(
                     f"- {label}: {_format_breaker_list(breaker_names, hass_language)}"
                 )
 
@@ -1878,8 +2050,84 @@ class DashboardTemplates:
             }
 
             for label, breaker_ids in breaker_lists.items():
-                content_lines.append(
+                lines.append(
                     f"- {label}: {_format_breaker_list(breaker_ids, hass_language)}"
+                )
+
+            if guard_payload is not None:
+                guard_header = _translated_statistics_label(
+                    hass_language, "guard_metrics_header"
+                )
+                lines.append(f"- {guard_header}:")
+
+                executed_label = _translated_statistics_label(
+                    hass_language, "guard_executed"
+                )
+                lines.append(
+                    f"  - {executed_label}: {guard_payload['executed']}"
+                )
+
+                skipped_label = _translated_statistics_label(
+                    hass_language, "guard_skipped"
+                )
+                lines.append(
+                    f"  - {skipped_label}: {guard_payload['skipped']}"
+                )
+
+                reasons_label = _translated_statistics_label(
+                    hass_language, "guard_reasons"
+                )
+                lines.append(f"  - {reasons_label}:")
+                lines.extend(
+                    f"    - {reason_line}"
+                    for reason_line in _format_guard_reasons(
+                        guard_payload["reasons"], hass_language
+                    )
+                )
+
+                results_label = _translated_statistics_label(
+                    hass_language, "guard_last_results"
+                )
+                lines.append(f"  - {results_label}:")
+                lines.extend(
+                    f"    - {result_line}"
+                    for result_line in _format_guard_results(
+                        guard_payload["last_results"], hass_language
+                    )
+                )
+
+            return lines
+
+        metrics_sections: list[
+            tuple[str, CoordinatorRejectionMetrics, HelperManagerGuardMetrics | None]
+        ] = []
+        if coordinator_metrics is not None:
+            metrics_sections.append(
+                ("coordinator_resilience_label", coordinator_metrics, None)
+            )
+        if service_metrics is not None:
+            metrics_sections.append(
+                ("service_resilience_label", service_metrics, guard_metrics)
+            )
+
+        if metrics_sections:
+            resilience_header = _translated_statistics_label(
+                hass_language, "resilience_metrics_header"
+            )
+            content_lines.append("")
+            content_lines.append(f"### {resilience_header}")
+
+            for index, (label_key, metrics_payload, guard_payload) in enumerate(
+                metrics_sections
+            ):
+                if index > 0:
+                    content_lines.append("")
+                section_label = _translated_statistics_label(hass_language, label_key)
+                content_lines.append(f"**{section_label}:**")
+                content_lines.extend(
+                    _format_resilience_section(
+                        metrics_payload, guard_payload=guard_payload
+                    )
                 )
 
         theme_styles = self._get_theme_styles(theme)

@@ -52,9 +52,11 @@ from .types import (
     DOG_IMAGE_FIELD,
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
+    CoordinatorRejectionMetrics,
     CoordinatorStatisticsPayload,
     DogConfigData,
     DogModulesConfig,
+    HelperManagerGuardMetrics,
     RawDogConfig,
     coerce_dog_modules_config,
 )
@@ -2811,12 +2813,19 @@ class StatisticsCardGenerator(BaseCardGenerator):
         coordinator_statistics: CoordinatorStatisticsPayload
         | Mapping[str, Any]
         | None = None,
+        service_execution_metrics: CoordinatorRejectionMetrics | Mapping[str, Any]
+        | None = None,
+        service_guard_metrics: HelperManagerGuardMetrics | Mapping[str, Any] | None = None,
     ) -> list[CardConfigType]:
         """Generate optimized statistics cards for all dogs.
 
         Args:
             dogs_config: List of dog configurations
             options: Display options
+            coordinator_statistics: Coordinator resilience snapshot for summary
+            service_execution_metrics: Service execution rejection metrics for
+                dashboard parity
+            service_guard_metrics: Guard metrics captured during service execution
 
         Returns:
             List of statistics cards
@@ -2869,6 +2878,8 @@ class StatisticsCardGenerator(BaseCardGenerator):
             typed_dogs,
             theme,
             coordinator_statistics=coordinator_statistics,
+            service_execution_metrics=service_execution_metrics,
+            service_guard_metrics=service_guard_metrics,
         )
         cards.append(summary_card)
 
@@ -2988,12 +2999,17 @@ class StatisticsCardGenerator(BaseCardGenerator):
         coordinator_statistics: CoordinatorStatisticsPayload
         | Mapping[str, Any]
         | None = None,
+        service_execution_metrics: CoordinatorRejectionMetrics | Mapping[str, Any]
+        | None = None,
+        service_guard_metrics: HelperManagerGuardMetrics | Mapping[str, Any] | None = None,
     ) -> CardConfigType:
         """Generate optimized statistics summary card."""
         return self.templates.get_statistics_summary_template(
             list(dogs_config),
             theme,
             coordinator_statistics=coordinator_statistics,
+            service_execution_metrics=service_execution_metrics,
+            service_guard_metrics=service_guard_metrics,
         )
 
 

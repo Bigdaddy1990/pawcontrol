@@ -12,6 +12,7 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 from custom_components.pawcontrol import compat, config_flow
 from custom_components.pawcontrol.const import (
+    CONF_DATA_RETENTION_DAYS,
     CONF_DOG_AGE,
     CONF_DOG_BREED,
     CONF_DOG_ID,
@@ -21,6 +22,8 @@ from custom_components.pawcontrol.const import (
     CONF_DOG_WEIGHT,
     CONF_DOGS,
     CONF_MODULES,
+    DEFAULT_DATA_RETENTION_DAYS,
+    DEFAULT_PERFORMANCE_MODE,
     DOMAIN,
     MODULE_DASHBOARD,
     MODULE_FEEDING,
@@ -1479,6 +1482,64 @@ async def test_final_setup_validation_failure(hass: HomeAssistant) -> None:
 
     with pytest.raises(PawControlSetupError):
         await flow.async_step_final_setup()
+
+
+async def test_build_config_entry_data_includes_global_settings(
+    hass: HomeAssistant,
+) -> None:
+    """Global setup choices should populate the initial options snapshot."""
+
+    flow = config_flow.PawControlConfigFlow()
+    flow.hass = hass
+    flow.context = {}
+    flow._dogs = [
+        {
+            CONF_DOG_ID: "buddy",
+            CONF_DOG_NAME: "Buddy",
+            CONF_MODULES: {MODULE_FEEDING: True},
+        }
+    ]
+    flow._global_settings = {
+        "performance_mode": "full",
+        "enable_analytics": True,
+        "enable_cloud_backup": True,
+        "data_retention_days": 180,
+        "debug_logging": True,
+    }
+
+    _, options_data = flow._build_config_entry_data()
+
+    assert options_data["performance_mode"] == "full"
+    assert options_data["enable_analytics"] is True
+    assert options_data["enable_cloud_backup"] is True
+    assert options_data["debug_logging"] is True
+    assert options_data[CONF_DATA_RETENTION_DAYS] == 180
+
+
+async def test_build_config_entry_data_defaults_when_settings_missing(
+    hass: HomeAssistant,
+) -> None:
+    """Default retention, analytics, and logging flags populate when unset."""
+
+    flow = config_flow.PawControlConfigFlow()
+    flow.hass = hass
+    flow.context = {}
+    flow._dogs = [
+        {
+            CONF_DOG_ID: "luna",
+            CONF_DOG_NAME: "Luna",
+            CONF_MODULES: {MODULE_WALK: True},
+        }
+    ]
+    flow._global_settings = {}
+
+    _, options_data = flow._build_config_entry_data()
+
+    assert options_data["performance_mode"] == DEFAULT_PERFORMANCE_MODE
+    assert options_data["enable_analytics"] is False
+    assert options_data["enable_cloud_backup"] is False
+    assert options_data["debug_logging"] is False
+    assert options_data[CONF_DATA_RETENTION_DAYS] == DEFAULT_DATA_RETENTION_DAYS
 
 
 async def test_reconfigure_invalid_profile_error(hass: HomeAssistant) -> None:

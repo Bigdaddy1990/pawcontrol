@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 from datetime import datetime
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from custom_components.pawcontrol import coordinator as coordinator_module
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
 from custom_components.pawcontrol.coordinator_runtime import (
     EntityBudgetSnapshot,
@@ -170,6 +172,76 @@ async def test_report_entity_budget_updates_snapshot(
     assert performance["entity_budget"]["active_dogs"] == 1
     assert performance["performance_metrics"]["last_update_success"] is True
     assert performance["update_counts"]["failed"] == 1
+
+
+@pytest.mark.unit
+def test_performance_snapshot_includes_guard_metrics(
+    mock_hass, mock_config_entry, mock_session, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Service execution metrics mirror the runtime guard telemetry."""
+
+    coordinator = PawControlCoordinator(mock_hass, mock_config_entry, mock_session)
+
+    raw_guard_metrics = {
+        "service_guard_metrics": {
+            "executed": 2,
+            "skipped": 1,
+            "reasons": {"missing_instance": 1, "": 4},
+            "last_results": [
+                {
+                    "domain": "notify",
+                    "service": "send",
+                    "executed": False,
+                    "reason": "missing_instance",
+                },
+                "invalid",
+            ],
+        }
+    }
+
+    runtime_data = SimpleNamespace(performance_stats=raw_guard_metrics)
+    mock_config_entry.runtime_data = runtime_data
+
+    resilience_summary = {
+        "summary": {
+            "rejected_call_count": 1,
+            "rejection_breaker_count": 1,
+            "rejection_rate": 0.5,
+            "open_breakers": ["automation"],
+            "open_breaker_ids": ["automation"],
+        }
+    }
+    monkeypatch.setattr(
+        coordinator_module,
+        "collect_resilience_diagnostics",
+        lambda *_: resilience_summary,
+    )
+
+    snapshot = coordinator.get_performance_snapshot()
+
+    service_execution = snapshot["service_execution"]
+    guard_metrics = service_execution["guard_metrics"]
+    assert guard_metrics["executed"] == 2
+    assert guard_metrics["skipped"] == 1
+    assert guard_metrics["reasons"] == {"missing_instance": 1}
+    assert guard_metrics["last_results"] == [
+        {
+            "domain": "notify",
+            "service": "send",
+            "executed": False,
+            "reason": "missing_instance",
+        }
+    ]
+
+    rejection_metrics = service_execution["rejection_metrics"]
+    assert rejection_metrics is snapshot["rejection_metrics"]
+    assert rejection_metrics["rejected_call_count"] == 1
+    assert rejection_metrics["rejection_breaker_count"] == 1
+    assert rejection_metrics["open_breakers"] == ["automation"]
+
+    sanitised_metrics = runtime_data.performance_stats["service_guard_metrics"]
+    assert sanitised_metrics["reasons"] == {"missing_instance": 1}
+    assert sanitised_metrics["last_results"] == guard_metrics["last_results"]
 
 
 @pytest.mark.unit

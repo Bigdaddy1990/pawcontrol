@@ -28,6 +28,11 @@ from homeassistant.util import slugify
 
 from .compat import ConfigEntry, HomeAssistantError
 from .const import DOMAIN, MODULE_NOTIFICATIONS, MODULE_WEATHER
+from .coordinator_tasks import (
+    CoordinatorRejectionMetrics,
+    default_rejection_metrics,
+    merge_rejection_metric_values,
+)
 from .dashboard_renderer import DashboardRenderer
 from .dashboard_shared import (
     coerce_dog_config,
@@ -44,6 +49,7 @@ from .types import (
     CoordinatorStatisticsPayload,
     DogConfigData,
     DogModulesConfig,
+    HelperManagerGuardMetrics,
     PawControlRuntimeData,
     RawDogConfig,
     coerce_dog_modules_config,
@@ -173,6 +179,67 @@ class PawControlDashboardGenerator:
             return cast(CoordinatorStatisticsPayload, dict(stats))
 
         return cast(CoordinatorStatisticsPayload | None, stats)
+
+    def _resolve_service_execution_metrics(self) -> CoordinatorRejectionMetrics | None:
+        """Return rejection metrics recorded during service execution."""
+
+        runtime_data = self._get_runtime_data()
+        if runtime_data is None:
+            return None
+
+        performance_stats = getattr(runtime_data, "performance_stats", None)
+        if not isinstance(performance_stats, Mapping):
+            return None
+
+        rejection_metrics = performance_stats.get("rejection_metrics")
+        if not isinstance(rejection_metrics, Mapping):
+            return None
+
+        metrics = default_rejection_metrics()
+        merge_rejection_metric_values(metrics, rejection_metrics)
+
+        return metrics
+
+    def _resolve_service_guard_metrics(self) -> HelperManagerGuardMetrics | None:
+        """Return aggregated guard telemetry captured during service execution."""
+
+        runtime_data = self._get_runtime_data()
+        if runtime_data is None:
+            return None
+
+        performance_stats = getattr(runtime_data, "performance_stats", None)
+        if not isinstance(performance_stats, Mapping):
+            return None
+
+        guard_metrics = performance_stats.get("service_guard_metrics")
+        if not isinstance(guard_metrics, Mapping):
+            return None
+
+        reasons_payload: dict[str, int] = {}
+        raw_reasons = guard_metrics.get("reasons")
+        if isinstance(raw_reasons, Mapping):
+            reasons_payload = {
+                str(key): int(value)
+                for key, value in raw_reasons.items()
+                if isinstance(key, str)
+            }
+
+        raw_last_results = guard_metrics.get("last_results")
+        if isinstance(raw_last_results, Sequence):
+            last_results_payload = [
+                dict(entry)
+                for entry in raw_last_results
+                if isinstance(entry, Mapping)
+            ]
+        else:
+            last_results_payload = []
+
+        return {
+            "executed": int(guard_metrics.get("executed", 0)),
+            "skipped": int(guard_metrics.get("skipped", 0)),
+            "reasons": reasons_payload,
+            "last_results": last_results_payload,
+        }
 
     async def _renderer_async_initialize(self) -> None:
         """Initialise the dashboard renderer when it exposes an async hook."""
@@ -530,12 +597,16 @@ class PawControlDashboardGenerator:
         async with self._operation_semaphore:  # OPTIMIZED: Control concurrency
             try:
                 coordinator_statistics = self._resolve_coordinator_statistics()
+                service_execution_metrics = self._resolve_service_execution_metrics()
+                service_guard_metrics = self._resolve_service_guard_metrics()
                 # OPTIMIZED: Parallel config generation and URL preparation
                 config_task = self._track_task(
                     self._renderer.render_main_dashboard(
                         typed_dogs,
                         options,
                         coordinator_statistics=coordinator_statistics,
+                        service_execution_metrics=service_execution_metrics,
+                        service_guard_metrics=service_guard_metrics,
                     ),
                     name="pawcontrol_dashboard_render_main",
                 )
@@ -819,10 +890,14 @@ class PawControlDashboardGenerator:
 
                 if dashboard_type == "main":
                     coordinator_statistics = self._resolve_coordinator_statistics()
+                    service_execution_metrics = self._resolve_service_execution_metrics()
+                    service_guard_metrics = self._resolve_service_guard_metrics()
                     dashboard_config = await self._renderer.render_main_dashboard(
                         dogs_config,
                         options_merged,
                         coordinator_statistics=coordinator_statistics,
+                        service_execution_metrics=service_execution_metrics,
+                        service_guard_metrics=service_guard_metrics,
                     )
 
                     if self._has_weather_module(dogs_config):
