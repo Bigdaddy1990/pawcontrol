@@ -264,17 +264,29 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     assert setup_flags["debug_logging"] is True
 
     setup_panel = diagnostics["setup_flags_panel"]
-    assert setup_panel["translation_key"] == "diagnostics.setup_flags.panel"
+    assert setup_panel["title"] == "Setup flags"
+    assert (
+        setup_panel["description"]
+        == "Analytics, backup, and debug logging toggles captured during onboarding "
+        "and options flows."
+    )
     assert setup_panel["enabled_count"] == 2
     assert setup_panel["disabled_count"] == 1
     flags_by_key = {flag["key"]: flag for flag in setup_panel["flags"]}
     assert flags_by_key["enable_analytics"]["enabled"] is True
     assert flags_by_key["enable_analytics"]["source"] == "options"
+    assert flags_by_key["enable_analytics"]["label"] == "Analytics telemetry"
+    assert flags_by_key["enable_analytics"]["source_label"] == "Options flow"
     assert flags_by_key["enable_cloud_backup"]["enabled"] is False
     assert flags_by_key["enable_cloud_backup"]["source"] == "options"
+    assert flags_by_key["enable_cloud_backup"]["label"] == "Cloud backup"
+    assert flags_by_key["enable_cloud_backup"]["source_label"] == "Options flow"
     assert flags_by_key["debug_logging"]["enabled"] is True
     assert flags_by_key["debug_logging"]["source"] == "options"
+    assert flags_by_key["debug_logging"]["label"] == "Debug logging"
+    assert flags_by_key["debug_logging"]["source_label"] == "Options flow"
     assert setup_panel["source_breakdown"]["options"] == 3
+    assert setup_panel["source_labels"]["options"] == "Options flow"
 
     escalation = diagnostics["resilience_escalation"]
     assert escalation["available"] is True

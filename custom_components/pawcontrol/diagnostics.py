@@ -94,6 +94,31 @@ class SetupFlagSnapshot(TypedDict):
     source: str
 
 
+SETUP_FLAG_LABELS = {
+    "enable_analytics": "Analytics telemetry",
+    "enable_cloud_backup": "Cloud backup",
+    "debug_logging": "Debug logging",
+}
+
+
+SETUP_FLAG_SOURCE_LABELS = {
+    "options": "Options flow",
+    "system_settings": "System settings",
+    "advanced_settings": "Advanced settings",
+    "config_entry": "Config entry defaults",
+    "default": "Integration default",
+}
+
+
+SETUP_FLAGS_PANEL_TITLE = "Setup flags"
+
+
+SETUP_FLAGS_PANEL_DESCRIPTION = (
+    "Analytics, backup, and debug logging toggles captured during onboarding "
+    "and options flows."
+)
+
+
 def _collect_setup_flag_snapshots(entry: ConfigEntry) -> dict[str, SetupFlagSnapshot]:
     """Return analytics, backup, and debug logging flag states and sources."""
 
@@ -158,9 +183,10 @@ def _build_setup_flags_panel(entry: ConfigEntry) -> dict[str, Any]:
     flags: list[dict[str, Any]] = [
         {
             "key": key,
-            "translation_key": f"setup_flags.{key}",
+            "label": SETUP_FLAG_LABELS[key],
             "enabled": snapshot["value"],
             "source": snapshot["source"],
+            "source_label": SETUP_FLAG_SOURCE_LABELS[snapshot["source"]],
         }
         for key, snapshot in snapshots.items()
     ]
@@ -174,11 +200,13 @@ def _build_setup_flags_panel(entry: ConfigEntry) -> dict[str, Any]:
         source_breakdown[source] = source_breakdown.get(source, 0) + 1
 
     return {
-        "translation_key": "diagnostics.setup_flags.panel",
+        "title": SETUP_FLAGS_PANEL_TITLE,
+        "description": SETUP_FLAGS_PANEL_DESCRIPTION,
         "flags": flags,
         "enabled_count": enabled_count,
         "disabled_count": disabled_count,
         "source_breakdown": source_breakdown,
+        "source_labels": SETUP_FLAG_SOURCE_LABELS,
     }
 
 

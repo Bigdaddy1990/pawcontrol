@@ -1226,29 +1226,5 @@
       "title": "Feeding telemetry missing for {dog_name}",
       "description": "The latest feeding compliance check covering {days_to_check} days could not generate a report: {message}."
     }
-  },
-  "diagnostics": {
-    "setup_flags": {
-      "panel": {
-        "title": "Setup flags",
-        "description": "Analytics, backup, and debug logging toggles captured during onboarding and options flows."
-      },
-      "enable_analytics": {
-        "label": "Analytics telemetry"
-      },
-      "enable_cloud_backup": {
-        "label": "Cloud backup"
-      },
-      "debug_logging": {
-        "label": "Debug logging"
-      },
-      "sources": {
-        "options": "Options flow",
-        "system_settings": "System settings",
-        "advanced_settings": "Advanced settings",
-        "config_entry": "Config entry defaults",
-        "default": "Integration default"
-      }
-    }
   }
 }
