@@ -14,6 +14,7 @@ from custom_components.pawcontrol.const import (
     DOMAIN,
     MODULE_GPS,
 )
+from custom_components.pawcontrol.coordinator_tasks import default_rejection_metrics
 from custom_components.pawcontrol.diagnostics import async_get_config_entry_diagnostics
 from custom_components.pawcontrol.types import (
     CacheRepairAggregate,
@@ -213,6 +214,7 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
                 "reasons": {"hass_missing": 1},
             },
         },
+        "rejection_metrics": default_rejection_metrics(),
     }
     entry.runtime_data = runtime
 
@@ -280,6 +282,10 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     assert guard_metrics["reasons"]["hass_missing"] == 1
     last_guard = guard_metrics["last_results"][0]
     assert last_guard["service"] == "mobile_app_front_door"
+    service_rejection = service_execution["rejection_metrics"]
+    assert service_rejection["schema_version"] == 3
+    assert service_rejection["rejected_call_count"] == 0
+    assert service_rejection["rejection_breaker_count"] == 0
     service_results = service_execution["service_results"]
     assert service_results[0]["service"] == "notify_garden_alert"
     assert service_results[0]["diagnostics"]["metadata"]["context_id"] == "abc123"

@@ -68,6 +68,10 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .coordinator_support import ensure_cache_repair_aggregate
+from .coordinator_tasks import (
+    default_rejection_metrics,
+    merge_rejection_metric_values,
+)
 from .feeding_manager import FeedingComplianceCompleted
 from .feeding_translations import build_feeding_compliance_summary
 from .grooming_translations import (
@@ -90,6 +94,7 @@ from .types import (
     CacheDiagnosticsCapture,
     CacheDiagnosticsMap,
     CacheDiagnosticsSnapshot,
+    CoordinatorRejectionMetrics,
     CoordinatorResilienceSummary,
     CoordinatorRuntimeManagers,
     DogConfigData,
@@ -440,19 +445,10 @@ def _record_service_result(
             CoordinatorResilienceSummary, dict(resilience_summary)
         )
 
-    rejection_snapshot: dict[str, Any] | None = None
+    rejection_snapshot: CoordinatorRejectionMetrics | None = None
     if resilience_payload is not None:
-        rejection_snapshot = {
-            "rejected_call_count": resilience_payload.get("rejected_call_count", 0),
-            "rejection_breaker_count": resilience_payload.get(
-                "rejection_breaker_count", 0
-            ),
-            "last_rejection_time": resilience_payload.get("last_rejection_time"),
-            "last_rejection_breaker_id": resilience_payload.get(
-                "last_rejection_breaker_id"
-            ),
-            "rejection_rate": resilience_payload.get("rejection_rate"),
-        }
+        rejection_snapshot = default_rejection_metrics()
+        merge_rejection_metric_values(rejection_snapshot, resilience_payload)
 
     if dog_id:
         result["dog_id"] = dog_id
@@ -476,6 +472,12 @@ def _record_service_result(
             diagnostics_payload = {"resilience_summary": resilience_payload}
         else:
             diagnostics_payload.setdefault("resilience_summary", resilience_payload)
+
+    if rejection_snapshot is not None:
+        if diagnostics_payload is None:
+            diagnostics_payload = {"rejection_metrics": rejection_snapshot}
+        else:
+            diagnostics_payload.setdefault("rejection_metrics", rejection_snapshot)
 
     if diagnostics_payload:
         result["diagnostics"] = cast(ServiceExecutionDiagnostics, diagnostics_payload)
@@ -531,6 +533,14 @@ def _record_service_result(
         guard_metrics["last_results"] = [entry.to_mapping() for entry in guard_results]
 
     if rejection_snapshot is not None:
+        stored_metrics = cast(
+            CoordinatorRejectionMetrics,
+            performance_stats.setdefault(
+                "rejection_metrics", default_rejection_metrics()
+            ),
+        )
+        merge_rejection_metric_values(stored_metrics, rejection_snapshot)
+
         rejected = rejection_snapshot.get("rejected_call_count", 0) or 0
         breaker_count = rejection_snapshot.get("rejection_breaker_count", 0) or 0
         if rejected > 0 or breaker_count > 0:

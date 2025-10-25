@@ -14,6 +14,7 @@ from custom_components.pawcontrol.const import (
     SERVICE_CHECK_FEEDING_COMPLIANCE,
     SERVICE_DAILY_RESET,
 )
+from custom_components.pawcontrol.coordinator_tasks import default_rejection_metrics
 from custom_components.pawcontrol.notifications import (
     NotificationChannel,
     NotificationPriority,
@@ -88,6 +89,118 @@ def test_service_validation_error_trims_whitespace(
 
     assert isinstance(error, SentinelServiceValidationError)
     assert str(error) == "trimmed"
+
+
+def test_record_service_result_merges_rejection_metrics() -> None:
+    """Service telemetry should reuse the rejection metrics helper."""
+
+    resilience_summary = {
+        "total_breakers": 1,
+        "states": {
+            "closed": 0,
+            "open": 1,
+            "half_open": 0,
+            "unknown": 0,
+            "other": 0,
+        },
+        "failure_count": 2,
+        "success_count": 8,
+        "total_calls": 10,
+        "total_failures": 2,
+        "total_successes": 8,
+        "rejected_call_count": 2,
+        "last_failure_time": 1_700_000_000.0,
+        "last_state_change": 1_700_000_001.0,
+        "last_success_time": 1_700_000_002.0,
+        "last_rejection_time": 1_700_000_003.0,
+        "recovery_latency": 0.5,
+        "recovery_breaker_id": "api",
+        "recovery_breaker_name": "API Gateway",
+        "last_rejection_breaker_id": "api",
+        "last_rejection_breaker_name": "API Gateway",
+        "rejection_rate": 0.2,
+        "open_breaker_count": 1,
+        "half_open_breaker_count": 0,
+        "unknown_breaker_count": 0,
+        "open_breakers": ["api"],
+        "open_breaker_ids": ["api"],
+        "half_open_breakers": [],
+        "half_open_breaker_ids": [],
+        "unknown_breakers": [],
+        "unknown_breaker_ids": [],
+        "rejection_breaker_count": 1,
+        "rejection_breakers": ["api"],
+        "rejection_breaker_ids": ["api"],
+    }
+
+    runtime_data = SimpleNamespace(
+        performance_stats={"resilience_summary": resilience_summary}
+    )
+
+    services._record_service_result(
+        runtime_data,
+        service="notify.test",
+        status="error",
+    )
+
+    metrics = runtime_data.performance_stats["rejection_metrics"]
+    assert metrics["rejected_call_count"] == 2
+    assert metrics["rejection_breaker_count"] == 1
+    assert metrics["open_breakers"] == ["api"]
+
+    last_result = runtime_data.performance_stats["last_service_result"]
+    resilience_details = last_result["details"]["resilience"]
+    assert resilience_details["rejected_call_count"] == 2
+    assert resilience_details["rejection_breaker_count"] == 1
+
+    diagnostics_payload = last_result["diagnostics"]
+    assert diagnostics_payload["rejection_metrics"]["open_breakers"] == ["api"]
+    assert runtime_data.performance_stats["service_results"][-1] is last_result
+
+
+def test_record_service_result_defaults_rejection_metrics_without_breakers() -> None:
+    """Circuit recovery snapshots should keep rejection metrics at defaults."""
+
+    resilience_summary = {
+        "rejected_call_count": 0,
+        "rejection_breaker_count": 0,
+        "rejection_rate": 0.0,
+        "last_rejection_time": None,
+        "last_rejection_breaker_id": None,
+        "last_rejection_breaker_name": None,
+        "open_breaker_count": 0,
+        "half_open_breaker_count": 0,
+        "unknown_breaker_count": 0,
+        "open_breakers": [],
+        "open_breaker_ids": [],
+        "half_open_breakers": [],
+        "half_open_breaker_ids": [],
+        "unknown_breakers": [],
+        "unknown_breaker_ids": [],
+        "rejection_breaker_ids": [],
+        "rejection_breakers": [],
+    }
+
+    runtime_data = SimpleNamespace(
+        performance_stats={"resilience_summary": resilience_summary}
+    )
+
+    services._record_service_result(
+        runtime_data,
+        service="notify.test",
+        status="success",
+    )
+
+    defaults = default_rejection_metrics()
+
+    metrics = runtime_data.performance_stats["rejection_metrics"]
+    assert metrics == defaults
+
+    last_result = runtime_data.performance_stats["last_service_result"]
+    assert "details" not in last_result or "resilience" not in last_result["details"]
+
+    diagnostics_payload = last_result["diagnostics"]
+    assert diagnostics_payload["rejection_metrics"] == defaults
 
 
 class _DummyCoordinator:

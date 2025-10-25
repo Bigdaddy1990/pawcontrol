@@ -337,6 +337,66 @@ pawcontrol:
      stellt sicher, dass die deutsche Übersetzung der Karten dauerhaft stabil
      bleibt und Dokumentation sowie Dashboards synchron bleiben.【F:tests/unit/test_dashboard_templates.py†L1013-L1047】
 
+### Service Execution Diagnostics
+
+Support-Playbooks sollen bei jedem Dienstaufruf sowohl die Guard-Entscheidung
+als auch die Widerstandsfähigkeitskennzahlen prüfen. PawControl speichert die
+Breaker-Zusammenfassung unter `service_execution.rejection_metrics`, sobald
+`_record_service_result` den Resilience-Snapshot des Koordinators ablegt, und
+exportiert den Block unverändert in den Diagnostiken.【F:custom_components/pawcontrol/services.py†L414-L522】【F:custom_components/pawcontrol/diagnostics.py†L1004-L1036】
+
+```yaml
+service_execution:
+  guard_metrics:
+    executed: 4
+    skipped: 1
+  rejection_metrics:
+    rejected_call_count: 2
+    rejection_breaker_count: 1
+    open_breakers:
+      - "API Gateway"
+    last_rejection_breaker_id: "api"
+    last_rejection_time: "2023-11-14T09:13:20+00:00"
+  last_service_result:
+    service: notify.test
+    status: error
+    details:
+      resilience:
+        rejected_call_count: 2
+        rejection_breaker_count: 1
+```
+
+Die Regressionen `test_record_service_result_merges_rejection_metrics` und
+`test_record_service_result_defaults_rejection_metrics_without_breakers`
+stellen sicher, dass abgelehnte und erfolgreiche Wiederherstellungsläufe die
+gemeinsame Schema-Initialisierung respektieren und Diagnostiken stets die
+aktuelle Momentaufnahme liefern.【F:tests/unit/test_services.py†L94-L161】【F:tests/unit/test_services.py†L162-L203】【F:tests/components/pawcontrol/test_diagnostics.py†L277-L307】
+
+#### Troubleshooting-Playbook
+
+Support-Teams können Guard- und Rejection-Daten gemeinsam auswerten, um
+Fehlerbilder schnell einzugrenzen:
+
+1. **Guard-Trend prüfen** – Die Guard-Zusammenfassung zählt erfolgreich
+   ausgeführte sowie übersprungene Aktionen und listet Gründe für Blockaden auf.
+   Steigt die Zahl der Übersprünge (`skipped`) pro Stunde über 3 oder tritt
+   derselbe Grund mehrmals hintereinander auf, sollte der Incident an den
+   Bereitschaftsdienst eskaliert werden, um etwaige Automationsloops zu
+   verhindern.【F:custom_components/pawcontrol/services.py†L489-L519】【F:tests/components/pawcontrol/test_diagnostics.py†L277-L307】
+2. **Breaker-Lage bewerten** – Offene Breaker und der letzte
+   Ablehnungszeitpunkt (`last_rejection_time`) helfen dabei, gezielt auf API- oder
+   Hardware-Probleme zu reagieren. Bleibt ein Breaker länger als fünf Minuten
+   offen oder steigt der `rejected_call_count` kontinuierlich an, ist eine
+   Eskalation an das Infrastruktur-Team erforderlich.【F:custom_components/pawcontrol/services.py†L437-L481】【F:tests/unit/test_services.py†L94-L203】
+3. **Servicekontext sichern** – Diagnostikexporte speichern das letzte
+   Serviceergebnis inklusive Guard-Detailblock und Metadaten. Diese Momentaufnahme
+   sollte der Support beim Erstellen eines Tickets anhängen, damit Entwickler die
+   gleiche Telemetrie wie das Dashboard sehen.【F:custom_components/pawcontrol/diagnostics.py†L1004-L1036】【F:tests/components/pawcontrol/test_diagnostics.py†L277-L307】
+
+Die einzelnen Schritte kombinieren Guard-Zusammenfassungen und Breaker-Snapshots,
+damit Support-Playbooks reproduzierbare Eskalationsschwellen für PawControl
+bereitstellen.
+
 ---
 
 ## 🚀 Production Deployment

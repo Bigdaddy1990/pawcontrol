@@ -919,16 +919,14 @@ async def _get_performance_metrics(
         "statistics": stats_payload,
     }
 
-    sources: tuple[Mapping[str, Any], ...]
     if isinstance(performance_metrics, Mapping):
-        sources = (
-            cast(Mapping[str, Any], performance_metrics),
+        merge_rejection_metric_values(
+            metrics_output,
+            performance_metrics,
             rejection_metrics,
         )
     else:
-        sources = (rejection_metrics,)
-
-    merge_rejection_metric_values(metrics_output, *sources)
+        merge_rejection_metric_values(metrics_output, rejection_metrics)
 
     return metrics_output
 
@@ -959,7 +957,9 @@ async def _get_door_sensor_diagnostics(
             telemetry["last_failure"] = dict(last_failure)
 
         failures = performance_stats.get("door_sensor_failures")
-        if isinstance(failures, Sequence):
+        if isinstance(failures, Sequence) and not isinstance(
+            failures, str | bytes | bytearray
+        ):
             serialised_failures = [
                 dict(entry) for entry in failures if isinstance(entry, Mapping)
             ]
@@ -1008,8 +1008,19 @@ async def _get_service_execution_diagnostics(
     if guard_payload is not None:
         diagnostics["guard_metrics"] = guard_payload
 
+    rejection_metrics = performance_stats.get("rejection_metrics")
+    if isinstance(rejection_metrics, Mapping):
+        metrics_payload = default_rejection_metrics()
+        merge_rejection_metric_values(
+            metrics_payload,
+            cast(Mapping[str, Any], rejection_metrics),
+        )
+        diagnostics["rejection_metrics"] = metrics_payload
+
     service_results = performance_stats.get("service_results")
-    if isinstance(service_results, Sequence):
+    if isinstance(service_results, Sequence) and not isinstance(
+        service_results, str | bytes | bytearray
+    ):
         normalised_results = [
             cast(dict[str, Any], _normalise_json(dict(result)))
             for result in service_results

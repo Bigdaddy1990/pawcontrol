@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import UTC, date, datetime
 from math import isfinite
 from typing import TYPE_CHECKING, Any, Final, cast
@@ -30,6 +30,7 @@ from .types import (
     CacheRepairAggregate,
     CircuitBreakerStateSummary,
     CircuitBreakerStatsPayload,
+    CoordinatorPerformanceMetrics,
     CoordinatorRejectionMetrics,
     CoordinatorResilienceDiagnostics,
     CoordinatorResilienceSummary,
@@ -422,6 +423,16 @@ _REJECTION_SEQUENCE_KEYS: Final[tuple[str, ...]] = (
     "rejection_breakers",
 )
 
+type RejectionTargetMapping = (
+    MutableMapping[str, Any]
+    | CoordinatorPerformanceMetrics
+    | CoordinatorRejectionMetrics
+)
+
+type RejectionSourceMapping = (
+    Mapping[str, Any] | CoordinatorRejectionMetrics | CoordinatorResilienceSummary
+)
+
 
 def default_rejection_metrics() -> CoordinatorRejectionMetrics:
     """Return a baseline rejection metric payload for diagnostics consumers."""
@@ -449,32 +460,36 @@ def default_rejection_metrics() -> CoordinatorRejectionMetrics:
 
 
 def merge_rejection_metric_values(
-    target: dict[str, Any], *sources: Mapping[str, Any]
+    target: RejectionTargetMapping,
+    *sources: RejectionSourceMapping,
 ) -> None:
     """Populate ``target`` with rejection metrics extracted from ``sources``."""
 
     if not sources:
         return
 
+    mutable_target = cast(MutableMapping[str, Any], target)
+    source_mappings = [cast(Mapping[str, Any], source) for source in sources]
+
     for key in _REJECTION_SCALAR_KEYS:
-        for source in sources:
+        for source in source_mappings:
             if key in source:
-                target[key] = source[key]
+                mutable_target[key] = source[key]
                 break
 
     for key in _REJECTION_SEQUENCE_KEYS:
-        for source in sources:
+        for source in source_mappings:
             if key in source:
                 value = source[key]
                 if isinstance(value, Sequence) and not isinstance(
-                    value, (str, bytes, bytearray)
+                    value, str | bytes | bytearray
                 ):
-                    target[key] = list(value)
+                    mutable_target[key] = list(value)
                 else:
-                    target[key] = []
+                    mutable_target[key] = []
                 break
         else:
-            target[key] = []
+            mutable_target[key] = []
 
 
 def derive_rejection_metrics(

@@ -778,6 +778,24 @@ Storage & Diagnostics:
 PawControl records a `ServiceGuardResult` for every guarded Home Assistant service invocation and aggregates them into a `ServiceGuardSummary`, ensuring diagnostics and resilience dashboards highlight both successful executions and guard-triggered skips.【F:custom_components/pawcontrol/service_guard.py†L1-L46】【F:custom_components/pawcontrol/utils.py†L187-L264】【F:custom_components/pawcontrol/services.py†L384-L473】
 Diagnostics export the aggregated counters under `service_execution.guard_metrics` alongside the most recent guard payload in `service_execution.last_service_result`, giving support teams instant visibility into why a service call executed or skipped without enabling debug logging.【F:custom_components/pawcontrol/diagnostics.py†L780-L867】【F:tests/components/pawcontrol/test_diagnostics.py†L129-L203】
 
+**Service rejection metrics snapshot**:
+```yaml
+# Summarised breaker state that accompanies every service result
+service_execution.rejection_metrics:
+  rejected_call_count: 2
+  rejection_rate: 0.2
+  rejection_breaker_count: 1
+  rejection_breakers:
+    - "API Gateway"
+  open_breakers:
+    - "API Gateway"
+  last_rejection_breaker_id: "api"
+  last_rejection_time: "2023-11-14T09:13:20+00:00"
+```
+
+Whenever `_record_service_result` stores a guard outcome it also clones the coordinator's resilience snapshot into `service_execution.rejection_metrics`, so diagnostics, dashboards, and downstream tooling always receive breaker counts, human-readable breaker names, and rejection timings using the shared schema defaults.【F:custom_components/pawcontrol/services.py†L414-L522】【F:custom_components/pawcontrol/diagnostics.py†L1004-L1036】
+Regression coverage exercises both rejected and reset circuits to guarantee the helper persists the zeroed defaults, attaches the metrics to service diagnostics, and retains the resilience details on the last service result exported to support teams.【F:tests/unit/test_services.py†L94-L161】【F:tests/unit/test_services.py†L162-L203】【F:tests/components/pawcontrol/test_diagnostics.py†L277-L307】
+
 **Component Coverage**:
 
 | Component | Circuit Breaker | Retry Logic | Fallback |

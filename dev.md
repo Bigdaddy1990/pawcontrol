@@ -5,12 +5,27 @@
 - Target Python 3.13+ features and reuse PawControl helpers (coordinators, managers, and typed constants) to keep runtime data on the typed surface.【F:.github/copilot-instructions.md†L29-L94】
 
 ## Latest tooling snapshot
-- ✅ `ruff check` – passes ohne Lint-Funde.【26397b†L1-L2】
-- ✅ `pytest -q` – vollständige Suite besteht (1002 passed, 1 skipped).【0e6b88†L1-L5】
-- ✅ `mypy custom_components/pawcontrol` – strenger Typenlauf bleibt fehlerfrei über 75 Quelldateien.【ff247c†L1-L2】
-- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest und Übersetzungen verifizieren ohne Befunde.【cafff9†L1-L2】
+- ✅ `ruff check` – bestätigt das neue Troubleshooting-Playbook im Produktionsleitfaden ohne zusätzliche Lint-Abweichungen.【20c156†L1-L2】【F:docs/production_integration_documentation.md†L340-L398】
+- ✅ `pytest -q` – vollständige Suite besteht (1004 passed, 1 skipped) inklusive der Guard- und Rejection-Regressionen für Service-Telemetrie.【f1526a†L1-L5】【F:tests/unit/test_services.py†L94-L203】【F:tests/components/pawcontrol/test_diagnostics.py†L277-L307】
+- ✅ `mypy custom_components/pawcontrol` – der Typenlauf akzeptiert die Guard- und Diagnostics-Helfer weiterhin ohne Zusatz-Casts.【086e2c†L1-L2】【F:custom_components/pawcontrol/services.py†L414-L519】【F:custom_components/pawcontrol/diagnostics.py†L1004-L1036】
+- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest und Übersetzungen verifizieren ohne Befunde.【97a2c1†L1-L2】
+
+## Fehleranalyse
+- Circuit-Recovery-Szenarien konnten zuvor leere Breaker-Listen verlieren, wenn `merge_rejection_metric_values` alte Snapshots fortschrieb; `_record_service_result` initialisiert deshalb konsequent `default_rejection_metrics`, und die neue Regression deckt den Edge-Case ab.【F:custom_components/pawcontrol/services.py†L414-L569】【F:tests/unit/test_services.py†L161-L203】
+- Diagnostik-Exports spiegeln weiterhin nur den Rohblock aus `performance_stats`; eine künftige Verdichtung sollte Dashboard- und Service-Snapshots zusammenführen, sobald `derive_rejection_metrics` auch Guard-Kontext und Service-spezifische Hinweise berücksichtigt.【F:custom_components/pawcontrol/diagnostics.py†L1004-L1036】【F:custom_components/pawcontrol/services.py†L414-L569】
+
+## Verbesserungsplan
+1. Konsolidiere die Dashboard-Resilienzkarte, damit sie neben den Koordinatorzahlen auch `service_execution.rejection_metrics` anzeigt und Support-Teams nicht zwischen Diagnostics und Frontend wechseln müssen.【F:custom_components/pawcontrol/dashboard_templates.py†L1334-L1427】【F:custom_components/pawcontrol/services.py†L414-L522】
+2. Automatisiere Eskalationshinweise, indem Guard-/Breaker-Schwellen über den Script-Manager persistente Benachrichtigungen oder Reaktionsskripte auslösen, damit Operations-Teams nicht ausschließlich auf manuelle Playbooks angewiesen sind.【F:custom_components/pawcontrol/services.py†L414-L522】【F:custom_components/pawcontrol/script_manager.py†L150-L260】
 
 ## Recent improvements
+- Ergänzte das Produktions-Runbook um ein Troubleshooting-Playbook mit Guard- und Rejection-Schwellen, damit Support-Teams Eskalationen konsistent bewerten und dieselbe Telemetrie wie das Dashboard dokumentieren.【F:docs/production_integration_documentation.md†L340-L398】【F:custom_components/pawcontrol/services.py†L414-L519】【F:custom_components/pawcontrol/diagnostics.py†L1004-L1036】【F:tests/components/pawcontrol/test_diagnostics.py†L277-L307】【F:tests/unit/test_services.py†L94-L203】
+- Dokumentierte die Service-`rejection_metrics` im README und Produktionshandbuch inklusive Support-Beispielen, damit Operatoren und Dashboards denselben Telemetrieblock nutzen können.【F:README.md†L780-L821】【F:docs/production_integration_documentation.md†L340-L373】【F:custom_components/pawcontrol/services.py†L414-L522】【F:custom_components/pawcontrol/diagnostics.py†L1004-L1036】
+- Dokumentierte die Service-`rejection_metrics` im Diagnostik-Handbuch und belegte die synchronisierte Telemetrie mit Unit- sowie Komponenten-Tests inklusive Circuit-Recovery-Regressionsfall.【F:docs/diagnostik.md†L21-L33】【F:custom_components/pawcontrol/services.py†L414-L522】【F:custom_components/pawcontrol/diagnostics.py†L1004-L1036】【F:tests/unit/test_services.py†L94-L203】【F:tests/components/pawcontrol/test_diagnostics.py†L277-L307】
+- Vereinheitlichte die Service-Ausführungsdiagnostik, indem `_record_service_result`
+  jetzt `merge_rejection_metric_values` nutzt, um Laufzeit- und Export-Snapshots mit
+  identischen Rejection-Metriken zu versorgen; neue Unit- und Komponenten-Tests
+  prüfen den konsolidierten Block inklusive Breaker-Listen.【F:custom_components/pawcontrol/services.py†L414-L569】【F:custom_components/pawcontrol/diagnostics.py†L1004-L1018】【F:tests/unit/test_services.py†L85-L129】【F:tests/components/pawcontrol/test_diagnostics.py†L1-L122】
 - Persistierte die Bool-Koerzierungstelemetrie in den Laufzeitstatistiken, indem
   `build_runtime_statistics` die komprimierte Zusammenfassung unter
   `bool_coercion` ablegt und zugleich den Runtime-Cache aktualisiert; das neue
