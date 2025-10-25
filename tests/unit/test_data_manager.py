@@ -455,9 +455,7 @@ def test_script_manager_register_cache_monitor() -> None:
         "buddy": ["script.pawcontrol_buddy_reset"],
         "max": ["script.pawcontrol_max_reset"],
     }
-    script_manager._entry_scripts = [
-        "script.pawcontrol_entry_resilience_escalation"
-    ]
+    script_manager._entry_scripts = ["script.pawcontrol_entry_resilience_escalation"]
 
     registrar = _RecordingRegistrar()
     script_manager.register_cache_monitors(registrar, prefix="script_manager")

@@ -101,9 +101,7 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
                 "breaker_threshold": {"default": 2},
                 "followup_script": {"default": "script.notify_team"},
                 "statistics_entity_id": {"default": "sensor.pawcontrol_statistics"},
-                "escalation_service": {
-                    "default": "persistent_notification.create"
-                },
+                "escalation_service": {"default": "persistent_notification.create"},
             },
         },
     )
@@ -286,8 +284,12 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     assert escalation["thresholds"]["breaker_threshold"]["active"] == 2
     assert escalation["followup_script"]["active"] == "script.notify_team"
     assert escalation["followup_script"]["configured"] is True
-    assert escalation["statistics_entity_id"]["active"] == "sensor.pawcontrol_statistics"
-    assert escalation["last_triggered"].startswith(last_triggered.replace(microsecond=0).isoformat()[:16])
+    assert (
+        escalation["statistics_entity_id"]["active"] == "sensor.pawcontrol_statistics"
+    )
+    assert escalation["last_triggered"].startswith(
+        last_triggered.replace(microsecond=0).isoformat()[:16]
+    )
 
     # Diagnostics payloads should be JSON serialisable once normalised.
     serialised = json.dumps(diagnostics)

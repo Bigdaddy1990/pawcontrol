@@ -1809,9 +1809,12 @@ class DashboardTemplates:
         coordinator_statistics: CoordinatorStatisticsPayload
         | Mapping[str, Any]
         | None = None,
-        service_execution_metrics: CoordinatorRejectionMetrics | Mapping[str, Any]
+        service_execution_metrics: CoordinatorRejectionMetrics
+        | Mapping[str, Any]
         | None = None,
-        service_guard_metrics: HelperManagerGuardMetrics | Mapping[str, Any] | None = None,
+        service_guard_metrics: HelperManagerGuardMetrics
+        | Mapping[str, Any]
+        | None = None,
     ) -> CardConfig:
         """Return a summary markdown card for analytics dashboards."""
 
@@ -2063,16 +2066,12 @@ class DashboardTemplates:
                 executed_label = _translated_statistics_label(
                     hass_language, "guard_executed"
                 )
-                lines.append(
-                    f"  - {executed_label}: {guard_payload['executed']}"
-                )
+                lines.append(f"  - {executed_label}: {guard_payload['executed']}")
 
                 skipped_label = _translated_statistics_label(
                     hass_language, "guard_skipped"
                 )
-                lines.append(
-                    f"  - {skipped_label}: {guard_payload['skipped']}"
-                )
+                lines.append(f"  - {skipped_label}: {guard_payload['skipped']}")
 
                 reasons_label = _translated_statistics_label(
                     hass_language, "guard_reasons"

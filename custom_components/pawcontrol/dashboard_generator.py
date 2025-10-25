@@ -227,9 +227,7 @@ class PawControlDashboardGenerator:
         raw_last_results = guard_metrics.get("last_results")
         if isinstance(raw_last_results, Sequence):
             last_results_payload = [
-                dict(entry)
-                for entry in raw_last_results
-                if isinstance(entry, Mapping)
+                dict(entry) for entry in raw_last_results if isinstance(entry, Mapping)
             ]
         else:
             last_results_payload = []
@@ -890,7 +888,9 @@ class PawControlDashboardGenerator:
 
                 if dashboard_type == "main":
                     coordinator_statistics = self._resolve_coordinator_statistics()
-                    service_execution_metrics = self._resolve_service_execution_metrics()
+                    service_execution_metrics = (
+                        self._resolve_service_execution_metrics()
+                    )
                     service_guard_metrics = self._resolve_service_guard_metrics()
                     dashboard_config = await self._renderer.render_main_dashboard(
                         dogs_config,

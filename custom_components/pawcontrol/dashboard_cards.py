@@ -2813,9 +2813,12 @@ class StatisticsCardGenerator(BaseCardGenerator):
         coordinator_statistics: CoordinatorStatisticsPayload
         | Mapping[str, Any]
         | None = None,
-        service_execution_metrics: CoordinatorRejectionMetrics | Mapping[str, Any]
+        service_execution_metrics: CoordinatorRejectionMetrics
+        | Mapping[str, Any]
         | None = None,
-        service_guard_metrics: HelperManagerGuardMetrics | Mapping[str, Any] | None = None,
+        service_guard_metrics: HelperManagerGuardMetrics
+        | Mapping[str, Any]
+        | None = None,
     ) -> list[CardConfigType]:
         """Generate optimized statistics cards for all dogs.
 
@@ -2999,9 +3002,12 @@ class StatisticsCardGenerator(BaseCardGenerator):
         coordinator_statistics: CoordinatorStatisticsPayload
         | Mapping[str, Any]
         | None = None,
-        service_execution_metrics: CoordinatorRejectionMetrics | Mapping[str, Any]
+        service_execution_metrics: CoordinatorRejectionMetrics
+        | Mapping[str, Any]
         | None = None,
-        service_guard_metrics: HelperManagerGuardMetrics | Mapping[str, Any] | None = None,
+        service_guard_metrics: HelperManagerGuardMetrics
+        | Mapping[str, Any]
+        | None = None,
     ) -> CardConfigType:
         """Generate optimized statistics summary card."""
         return self.templates.get_statistics_summary_template(

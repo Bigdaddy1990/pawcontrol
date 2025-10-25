@@ -99,12 +99,12 @@ def _collect_setup_flag_snapshots(entry: ConfigEntry) -> dict[str, SetupFlagSnap
 
     raw_options = entry.options
     options = (
-        cast(Mapping[str, Any], raw_options)
-        if isinstance(raw_options, Mapping)
-        else {}
+        cast(Mapping[str, Any], raw_options) if isinstance(raw_options, Mapping) else {}
     )
     system_raw = options.get("system_settings")
-    system = cast(Mapping[str, Any], system_raw) if isinstance(system_raw, Mapping) else {}
+    system = (
+        cast(Mapping[str, Any], system_raw) if isinstance(system_raw, Mapping) else {}
+    )
     advanced_raw = options.get("advanced_settings")
     advanced = (
         cast(Mapping[str, Any], advanced_raw)

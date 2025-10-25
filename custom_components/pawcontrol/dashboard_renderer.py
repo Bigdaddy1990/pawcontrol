@@ -146,9 +146,12 @@ class DashboardRenderer:
         coordinator_statistics: CoordinatorStatisticsPayload
         | Mapping[str, Any]
         | None = None,
-        service_execution_metrics: CoordinatorRejectionMetrics | Mapping[str, Any]
+        service_execution_metrics: CoordinatorRejectionMetrics
+        | Mapping[str, Any]
         | None = None,
-        service_guard_metrics: HelperManagerGuardMetrics | Mapping[str, Any] | None = None,
+        service_guard_metrics: HelperManagerGuardMetrics
+        | Mapping[str, Any]
+        | None = None,
     ) -> dict[str, Any]:
         """Render main dashboard configuration.
 
@@ -727,9 +730,12 @@ class DashboardRenderer:
         coordinator_statistics: CoordinatorStatisticsPayload
         | Mapping[str, Any]
         | None = None,
-        service_execution_metrics: CoordinatorRejectionMetrics | Mapping[str, Any]
+        service_execution_metrics: CoordinatorRejectionMetrics
+        | Mapping[str, Any]
         | None = None,
-        service_guard_metrics: HelperManagerGuardMetrics | Mapping[str, Any] | None = None,
+        service_guard_metrics: HelperManagerGuardMetrics
+        | Mapping[str, Any]
+        | None = None,
     ) -> dict[str, Any]:
         """Render statistics view.
 
