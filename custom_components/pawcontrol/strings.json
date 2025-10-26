@@ -464,6 +464,8 @@
           "auto_backup": "Enable Automatic Backups",
           "enable_analytics": "Enable Analytics",
           "enable_cloud_backup": "Enable Cloud Backup",
+          "resilience_skip_threshold": "Guard skip escalation threshold",
+          "resilience_breaker_threshold": "Breaker escalation threshold",
           "performance_mode": "Performance Mode"
         },
         "data_description": {
@@ -472,6 +474,8 @@
           "auto_backup": "Schedule local exports before retention cleanup runs.",
           "enable_analytics": "Aggregate anonymous trends across all dogs to power summary widgets.",
           "enable_cloud_backup": "Upload configuration snapshots to your configured cloud target.",
+          "resilience_skip_threshold": "Number of skipped guard executions before the escalation script raises an alert (0 disables guard escalations).",
+          "resilience_breaker_threshold": "Open or half-open breaker count that triggers escalation follow-ups (0 disables breaker escalations).",
           "performance_mode": "Select how aggressively Paw Control refreshes data and schedules jobs."
         }
       },
@@ -1386,6 +1390,24 @@
     "feeding_compliance_no_data": {
       "title": "Feeding telemetry missing for {dog_name}",
       "description": "The latest feeding compliance check covering {days_to_check} days could not generate a report: {message}."
+    }
+  },
+  "diagnostics": {
+    "setup_flags_panel": {
+      "title": "Setup flags",
+      "description": "Analytics, backup, and debug logging toggles captured during onboarding and options flows.",
+      "flags": {
+        "enable_analytics": "Analytics telemetry",
+        "enable_cloud_backup": "Cloud backup",
+        "debug_logging": "Debug logging"
+      },
+      "sources": {
+        "options": "Options flow",
+        "system_settings": "System settings",
+        "advanced_settings": "Advanced settings",
+        "config_entry": "Config entry defaults",
+        "default": "Integration default"
+      }
     }
   }
 }

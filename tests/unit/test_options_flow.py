@@ -834,6 +834,8 @@ async def test_system_settings_normalisation(
             "enable_analytics": "1",
             "enable_cloud_backup": 0,
             "performance_mode": "FULL",
+            "resilience_skip_threshold": "7",
+            "resilience_breaker_threshold": 2,
         }
     )
 
@@ -848,6 +850,8 @@ async def test_system_settings_normalisation(
     assert system["performance_mode"] == "full"
     assert system["enable_analytics"] is True
     assert system["enable_cloud_backup"] is False
+    assert system["resilience_skip_threshold"] == 7
+    assert system["resilience_breaker_threshold"] == 2
 
     assert options["enable_analytics"] is True
     assert options["enable_cloud_backup"] is False

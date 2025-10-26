@@ -74,6 +74,8 @@ from .const import (
     DEFAULT_GPS_UPDATE_INTERVAL,
     DEFAULT_REMINDER_REPEAT_MIN,
     DEFAULT_RESET_TIME,
+    DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
+    DEFAULT_RESILIENCE_SKIP_THRESHOLD,
     DEFAULT_WEATHER_ALERTS,
     DEFAULT_WEATHER_HEALTH_MONITORING,
     GPS_ACCURACY_FILTER_SELECTOR,
@@ -85,6 +87,10 @@ from .const import (
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_WALK,
+    RESILIENCE_BREAKER_THRESHOLD_MAX,
+    RESILIENCE_BREAKER_THRESHOLD_MIN,
+    RESILIENCE_SKIP_THRESHOLD_MAX,
+    RESILIENCE_SKIP_THRESHOLD_MIN,
 )
 from .coordinator_support import DogConfigRegistry
 from .device_api import validate_device_endpoint
@@ -98,6 +104,7 @@ from .repairs import (
     async_schedule_repair_evaluation,  # noqa: F401 - imported for flow-side effects
 )
 from .runtime_data import get_runtime_data
+from .script_manager import resolve_resilience_script_thresholds
 from .selector_shim import selector
 from .telemetry import record_door_sensor_persistence_failure
 from .types import (
@@ -726,6 +733,66 @@ class PawControlOptionsFlow(OptionsFlow):
         if SYSTEM_ENABLE_CLOUD_BACKUP_FIELD not in system:
             system[SYSTEM_ENABLE_CLOUD_BACKUP_FIELD] = bool(enable_cloud_backup)
 
+        skip_default = DEFAULT_RESILIENCE_SKIP_THRESHOLD
+        skip_candidate = system.get("resilience_skip_threshold")
+        if isinstance(skip_candidate, int):
+            skip_default = skip_candidate
+        else:
+            legacy_skip = options.get("resilience_skip_threshold")
+            if isinstance(legacy_skip, int):
+                skip_default = legacy_skip
+        system["resilience_skip_threshold"] = self._coerce_clamped_int(
+            skip_candidate,
+            skip_default,
+            minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
+            maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
+        )
+
+        breaker_default = DEFAULT_RESILIENCE_BREAKER_THRESHOLD
+        breaker_candidate = system.get("resilience_breaker_threshold")
+        if isinstance(breaker_candidate, int):
+            breaker_default = breaker_candidate
+        else:
+            legacy_breaker = options.get("resilience_breaker_threshold")
+            if isinstance(legacy_breaker, int):
+                breaker_default = legacy_breaker
+        system["resilience_breaker_threshold"] = self._coerce_clamped_int(
+            breaker_candidate,
+            breaker_default,
+            minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
+            maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
+        )
+
+        if (
+            "resilience_skip_threshold" not in system
+            or "resilience_breaker_threshold" not in system
+        ):
+            hass = getattr(self, "hass", None)
+            if hass is not None:
+                script_skip, script_breaker = resolve_resilience_script_thresholds(
+                    hass, self._entry
+                )
+                if (
+                    script_skip is not None
+                    and "resilience_skip_threshold" not in system
+                ):
+                    system["resilience_skip_threshold"] = self._coerce_clamped_int(
+                        script_skip,
+                        DEFAULT_RESILIENCE_SKIP_THRESHOLD,
+                        minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
+                        maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
+                    )
+                if (
+                    script_breaker is not None
+                    and "resilience_breaker_threshold" not in system
+                ):
+                    system["resilience_breaker_threshold"] = self._coerce_clamped_int(
+                        script_breaker,
+                        DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
+                        minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
+                        maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
+                    )
+
         return system
 
     def _current_dashboard_options(self) -> DashboardOptions:
@@ -1101,6 +1168,32 @@ class PawControlOptionsFlow(OptionsFlow):
             current.get(SYSTEM_ENABLE_CLOUD_BACKUP_FIELD, False),
         )
 
+        current_skip_threshold = current.get("resilience_skip_threshold")
+        skip_default = (
+            current_skip_threshold
+            if isinstance(current_skip_threshold, int)
+            else DEFAULT_RESILIENCE_SKIP_THRESHOLD
+        )
+        skip_threshold = self._coerce_clamped_int(
+            user_input.get("resilience_skip_threshold"),
+            skip_default,
+            minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
+            maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
+        )
+
+        current_breaker_threshold = current.get("resilience_breaker_threshold")
+        breaker_default = (
+            current_breaker_threshold
+            if isinstance(current_breaker_threshold, int)
+            else DEFAULT_RESILIENCE_BREAKER_THRESHOLD
+        )
+        breaker_threshold = self._coerce_clamped_int(
+            user_input.get("resilience_breaker_threshold"),
+            breaker_default,
+            minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
+            maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
+        )
+
         system: SystemOptions = {
             "data_retention_days": retention,
             "auto_backup": self._coerce_bool(
@@ -1110,6 +1203,8 @@ class PawControlOptionsFlow(OptionsFlow):
             "performance_mode": performance_mode,
             SYSTEM_ENABLE_ANALYTICS_FIELD: analytics_enabled,
             SYSTEM_ENABLE_CLOUD_BACKUP_FIELD: cloud_backup_enabled,
+            "resilience_skip_threshold": skip_threshold,
+            "resilience_breaker_threshold": breaker_threshold,
         }
 
         reset_time = self._coerce_time_string(
@@ -3853,6 +3948,25 @@ class PawControlOptionsFlow(OptionsFlow):
             bool(self._current_options().get("enable_cloud_backup", False)),
         )
 
+        skip_threshold_default = self._coerce_clamped_int(
+            current_values.get("resilience_skip_threshold"),
+            current_system.get(
+                "resilience_skip_threshold", DEFAULT_RESILIENCE_SKIP_THRESHOLD
+            ),
+            minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
+            maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
+        )
+
+        breaker_threshold_default = self._coerce_clamped_int(
+            current_values.get("resilience_breaker_threshold"),
+            current_system.get(
+                "resilience_breaker_threshold",
+                DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
+            ),
+            minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
+            maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
+        )
+
         return vol.Schema(
             {
                 vol.Optional(
@@ -3888,6 +4002,28 @@ class PawControlOptionsFlow(OptionsFlow):
                     "enable_cloud_backup",
                     default=cloud_backup_default,
                 ): selector.BooleanSelector(),
+                vol.Optional(
+                    "resilience_skip_threshold",
+                    default=skip_threshold_default,
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=RESILIENCE_SKIP_THRESHOLD_MIN,
+                        max=RESILIENCE_SKIP_THRESHOLD_MAX,
+                        step=1,
+                        mode=selector.NumberSelectorMode.BOX,
+                    )
+                ),
+                vol.Optional(
+                    "resilience_breaker_threshold",
+                    default=breaker_threshold_default,
+                ): selector.NumberSelector(
+                    selector.NumberSelectorConfig(
+                        min=RESILIENCE_BREAKER_THRESHOLD_MIN,
+                        max=RESILIENCE_BREAKER_THRESHOLD_MAX,
+                        step=1,
+                        mode=selector.NumberSelectorMode.BOX,
+                    )
+                ),
                 vol.Optional(
                     "performance_mode",
                     default=current_values.get(

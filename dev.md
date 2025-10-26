@@ -5,10 +5,10 @@
 - Target Python 3.13+ features and reuse PawControl helpers (coordinators, managers, and typed constants) to keep runtime data on the typed surface.【F:.github/copilot-instructions.md†L29-L94】
 
 ## Latest tooling snapshot
-- ✅ `ruff check` – bestätigte die neuen Escalation-Diagnostics ohne zusätzliche Lint-Abweichungen.【b7670e†L1-L2】
-- ✅ `pytest -q` – vollständige Suite (1014 passed, 1 skipped) deckt die neuen Resilience-Eskalationsdaten in den Diagnostics samt Follow-up-Checks ab.【25547b†L1-L5】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L247】
-- ✅ `mypy custom_components/pawcontrol` – der Typenlauf akzeptiert die Snapshot-Helfer für Resilience-Eskalationen ohne Zusatz-Casts.【c286cc†L1-L2】【F:custom_components/pawcontrol/script_manager.py†L420-L566】
-- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – manifest- und Übersetzungsprüfung bleiben ohne Beanstandung (keine Ausgabe).【112e20†L1-L2】
+- ✅ `ruff check` – keine Abweichungen nach den Resilience-Optionen und Blueprint-Erweiterungen.【648eec†L1-L2】
+- ✅ `pytest -q` – 1019 Tests (1 skipped) bestätigen Options-Fallbacks, deaktivierte Resilience-Schwellen sowie die erweiterten Blueprint-Triggerszenarien.【b9d91b†L1-L6】【F:tests/components/pawcontrol/test_system_health.py†L1-L330】【F:tests/unit/test_options_flow.py†L804-L852】
+- ✅ `mypy custom_components/pawcontrol` – Typprüfungen akzeptieren die neuen Schwellenhelfer ohne zusätzliche Suppressions.【cb0f56†L1-L2】【F:custom_components/pawcontrol/script_manager.py†L431-L820】
+- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest- und Übersetzungsprüfung laufen fehlerfrei.【5d4d08†L1-L2】
 
 ## Fehleranalyse
 - Die Options-Flagge `debug_logging` wirkte sich bislang nicht auf das Paket-
@@ -25,13 +25,36 @@
 - Circuit-Recovery-Szenarien konnten zuvor leere Breaker-Listen verlieren, wenn `merge_rejection_metric_values` alte Snapshots fortschrieb; `_record_service_result` initialisiert deshalb konsequent `default_rejection_metrics`, und die neue Regression deckt den Edge-Case ab.【F:custom_components/pawcontrol/services.py†L414-L569】【F:tests/unit/test_services.py†L161-L203】
 
 ## Verbesserungsplan
-1. Ergänze das System-Health-Panel um Guard- und Rejection-Kennzahlen, damit Bereitschaftsteams Guard-Skip-Anteile und Breaker-Zustände ohne Developer-Tools prüfen können.【F:system_health.py†L1-L36】【F:custom_components/pawcontrol/coordinator.py†L474-L525】
-2. Erweitere `info.md` und die Diagnose-Guides mit einem JSON-Beispiel des `setup_flags_panel` inklusive Übersetzungsquellen, damit Support-Handbücher und Blueprint-Autoren die neuen Felder sofort übernehmen können.【F:info.md†L1-L120】【F:docs/diagnostik.md†L1-L40】【F:custom_components/pawcontrol/diagnostics.py†L154-L214】
-3. Ergänze die Resilience-Dokumente (`docs/resilience-quickstart.md`, Produktionshandbuch) um ein Beispiel für das `resilience_escalation`-Panel inklusive interpretierbarer Schwellenwerte und Follow-up-Konfiguration, damit Runbooks Escalation-Checks Schritt für Schritt dokumentieren.【F:docs/resilience-quickstart.md†L1-L220】【F:docs/production_integration_documentation.md†L340-L398】【F:custom_components/pawcontrol/script_manager.py†L420-L566】
+1. Optionen-Flow um manuelle Resilience-Events erweitern: Die System-Settings kennen aktuell keine Eingabefelder für `manual_guard_event`/`manual_breaker_event`. Ein Selector im Options-Flow soll die Blueprint-Triggers synchron mit dem Skript verwalten.【F:custom_components/pawcontrol/options_flow.py†L3840-L4010】【F:blueprints/automation/pawcontrol/resilience_escalation_followup.yaml†L1-L160】
+2. Diagnostics um Trigger-Telemetrie ergänzen: Neben den konfigurierten Events sollen Zeitpunkt und Auslöser des letzten manuellen Checks erfasst werden, damit Dumps sofort zeigen, welcher Pfad zuletzt verwendet wurde.【F:custom_components/pawcontrol/script_manager.py†L238-L412】【F:custom_components/pawcontrol/diagnostics.py†L594-L636】
+3. End-to-End-Blueprint-Test nachrüsten: Ein automatisierter Szenario-Test sollte die Blueprint-Automation mit simulierten Ereignissen (`manual_guard_event`, `manual_breaker_event`) durchlaufen lassen, um Skriptaufrufe und Follow-up-Aktionen in Home Assistant zu verifizieren.【F:blueprints/automation/pawcontrol/resilience_escalation_followup.yaml†L36-L160】【F:tests/unit/test_data_manager.py†L520-L676】
 
 ## Recent improvements
-- Das neue Diagnostics-Feld `resilience_escalation` fasst Entity-ID, letzte Ausführung, Guard-/Breaker-Schwellen, Follow-up-Skript und Statistikquelle zusammen, sodass Support-Dumps die Eskalationsautomatisierung direkt bewerten können; Tests prüfen aktive Default-Übernahmen, und README sowie Diagnostik-Guide dokumentieren die neue Oberfläche.【F:custom_components/pawcontrol/script_manager.py†L420-L566】【F:custom_components/pawcontrol/diagnostics.py†L180-L214】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L247】【F:docs/diagnostik.md†L1-L20】【F:README.md†L780-L804】
-- `setup_flags_panel` stellt Analytics-, Backup- und Debug-Optionen samt Übersetzungs-Keys, Quellen und Aktivzählern bereit, sodass Support-Dashboards den Onboarding-Status ohne zusätzliche Parser übernehmen können; Tests prüfen die neue Struktur und die Docs verweisen auf das Panel.【F:custom_components/pawcontrol/diagnostics.py†L100-L182】【F:custom_components/pawcontrol/strings.json†L1391-L1414】【F:tests/components/pawcontrol/test_diagnostics.py†L235-L251】【F:docs/diagnostik.md†L1-L18】【F:README.md†L779-L785】
+- Migrierte Legacy-Installationen übernehmen Skript-Schwellen jetzt automatisch
+  in `ConfigEntry.options`, bevor das Resilience-Skript neu erstellt wird. Die
+  Optionen werden bei fehlenden Werten mit den Script-Defaults befüllt und stehen
+  System-Health, Blueprint und Dokumentation ohne manuelle Nacharbeit zur
+  Verfügung.【F:custom_components/pawcontrol/__init__.py†L712-L730】【F:custom_components/pawcontrol/script_manager.py†L238-L336】【F:custom_components/pawcontrol/options_flow.py†L700-L820】【F:tests/unit/test_data_manager.py†L520-L620】
+- Diagnostics erfassen die konfigurierten `manual_*`-Events aus Blueprint-
+  Automationen und listen konfigurierte Guard-/Breaker-Triggers im Export. Die
+  Tests prüfen die Aggregation über die `config_entries`-API und validieren, dass
+  Dumps die manuell gepflegten Pfade ausgeben.【F:custom_components/pawcontrol/script_manager.py†L337-L412】【F:custom_components/pawcontrol/diagnostics.py†L594-L636】【F:tests/components/pawcontrol/test_diagnostics.py†L120-L208】
+- Ein Blueprint-Regressionstest lädt die YAML-Vorlage, prüft die Trigger-IDs und
+  stellt sicher, dass Guard- und Breaker-Follow-ups auch bei manuellen Events
+  ausgelöst werden. Damit bleibt die Automationslogik stabil, wenn die Blueprint-
+  Inputs künftig erweitert werden.【F:blueprints/automation/pawcontrol/resilience_escalation_followup.yaml†L1-L160】【F:tests/unit/test_data_manager.py†L620-L676】
+- System-Health synchronisiert Guard- und Breaker-Schwellen direkt aus dem
+  Resilience-Skript, dokumentiert Quelle und Fallbacks im `service_execution`-
+  Block und färbt Indikatoren anhand der aktiven Counts; Regressionstests
+  bestätigen Warn- und Kritikszenarien mit konfigurierten Schwellen.【F:custom_components/pawcontrol/system_health.py†L150-L356】【F:tests/components/pawcontrol/test_system_health.py†L1-L210】
+- `setup_flags_panel` lädt Beschriftungen und Quellen nun zur Laufzeit über die
+  Übersetzungs-API, ergänzt Default-Felder samt Sprache und prüft die Struktur in
+  den Diagnostics-Tests.【F:custom_components/pawcontrol/diagnostics.py†L90-L214】【F:tests/components/pawcontrol/test_diagnostics.py†L260-L339】
+- Die Resilience-Blueprint unterstützt einen konfigurierbaren Watchdog und
+  manuelle Ereignisse, damit Runbooks Eskalationen auch bei stagnierenden
+  Sensordaten oder auf Abruf auslösen können.【F:blueprints/automation/pawcontrol/resilience_escalation_followup.yaml†L1-L65】
+- Das neue Diagnostics-Feld `resilience_escalation` fasst Entity-ID, letzte Ausführung, Guard-/Breaker-Schwellen, Follow-up-Skript und Statistikquelle zusammen, sodass Support-Dumps die Eskalationsautomatisierung direkt bewerten können; Tests prüfen aktive Default-Übernahmen, und README sowie Diagnostik-Guide dokumentieren die neue Oberfläche.【F:custom_components/pawcontrol/script_manager.py†L420-L566】【F:custom_components/pawcontrol/diagnostics.py†L180-L214】【F:tests/components/pawcontrol/test_diagnostics.py†L389-L404】【F:docs/diagnostik.md†L1-L20】【F:README.md†L780-L804】
+- `setup_flags_panel` stellt Analytics-, Backup- und Debug-Optionen samt Übersetzungs-Keys, Quellen und Aktivzählern bereit, sodass Support-Dashboards den Onboarding-Status ohne zusätzliche Parser übernehmen können; Tests prüfen die neue Struktur und die Docs verweisen auf das Panel.【F:custom_components/pawcontrol/diagnostics.py†L100-L182】【F:custom_components/pawcontrol/strings.json†L1391-L1414】【F:tests/components/pawcontrol/test_diagnostics.py†L303-L378】【F:docs/diagnostik.md†L1-L18】【F:README.md†L779-L785】
 - Automatisierte Resilience-Eskalationsskripte: `PawControlScriptManager` provisioniert jetzt ein globales Skript, das Guard-Skips und Breaker-Zähler überwacht, optionale Follow-up-Skripte auslöst und in README sowie Quickstart dokumentiert ist; neue Unit-Tests sichern den Flow ab.【F:custom_components/pawcontrol/script_manager.py†L360-L760】【F:tests/unit/test_data_manager.py†L492-L574】【F:README.md†L818-L848】【F:docs/resilience-quickstart.md†L186-L202】
 - `PawControlCoordinator.get_performance_snapshot` spiegelt `service_execution.guard_metrics` samt synchronisierten Rejection-Metriken, damit API-Clients denselben Guard-Zustand wie der Statistik-Sensor erhalten und Regressionstests den Export absichern.【F:custom_components/pawcontrol/coordinator.py†L474-L525】【F:tests/unit/test_coordinator.py†L117-L165】
 - Ergänzte `build_runtime_statistics` um einen `service_execution`-Block, der

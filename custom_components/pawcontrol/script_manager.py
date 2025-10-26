@@ -38,8 +38,14 @@ from .const import (
     CACHE_TIMESTAMP_STALE_THRESHOLD,
     CONF_DOG_ID,
     CONF_DOG_NAME,
+    DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
+    DEFAULT_RESILIENCE_SKIP_THRESHOLD,
     DOMAIN,
     MODULE_NOTIFICATIONS,
+    RESILIENCE_BREAKER_THRESHOLD_MAX,
+    RESILIENCE_BREAKER_THRESHOLD_MIN,
+    RESILIENCE_SKIP_THRESHOLD_MAX,
+    RESILIENCE_SKIP_THRESHOLD_MIN,
 )
 from .coordinator_support import CacheMonitorRegistrar
 from .types import (
@@ -53,6 +59,28 @@ _LOGGER = logging.getLogger(__name__)
 
 
 slugify = getattr(slugify, "slugify", slugify)
+
+_RESILIENCE_BLUEPRINT_IDENTIFIER: Final[str] = "resilience_escalation_followup"
+_RESILIENCE_BLUEPRINT_DOMAIN: Final[str] = "pawcontrol"
+
+
+def _normalise_entry_slug(entry: ConfigEntry) -> str:
+    """Return the slug used for integration-managed scripts."""
+
+    raw_slug = slugify(getattr(entry, "title", "") or entry.entry_id or DOMAIN)
+    return raw_slug or DOMAIN
+
+
+def _resolve_resilience_object_id(entry: ConfigEntry) -> str:
+    """Return the script object id for the resilience escalation helper."""
+
+    return f"pawcontrol_{_normalise_entry_slug(entry)}_resilience_escalation"
+
+
+def _resolve_resilience_entity_id(entry: ConfigEntry) -> str:
+    """Return the script entity id for the resilience escalation helper."""
+
+    return f"{SCRIPT_DOMAIN}.{_resolve_resilience_object_id(entry)}"
 
 
 def _serialize_datetime(value: datetime | None) -> str | None:
@@ -77,6 +105,97 @@ def _classify_timestamp(value: datetime | None) -> tuple[str | None, int | None]
     if delta > CACHE_TIMESTAMP_STALE_THRESHOLD:
         return "stale", age_seconds
     return None, age_seconds
+
+
+def _coerce_threshold(
+    value: Any, *, default: int, minimum: int, maximum: int
+) -> int:
+    """Return a clamped integer threshold for resilience configuration."""
+
+    try:
+        candidate = int(value)
+    except (TypeError, ValueError):
+        return default
+
+    if candidate < minimum:
+        return minimum
+    if candidate > maximum:
+        return maximum
+    return candidate
+
+
+def _extract_field_int(fields: Mapping[str, Any] | None, key: str) -> int | None:
+    """Return the integer default stored under ``key`` in ``fields``."""
+
+    if not isinstance(fields, Mapping):
+        return None
+
+    field = fields.get(key)
+    if isinstance(field, Mapping):
+        candidate = field.get("default")
+    else:
+        candidate = getattr(field, "default", None)
+
+    if candidate is None:
+        return None
+
+    try:
+        return int(candidate)
+    except (TypeError, ValueError):
+        return None
+
+
+def resolve_resilience_script_thresholds(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> tuple[int | None, int | None]:
+    """Return skip and breaker thresholds from the generated script entity."""
+
+    states = getattr(hass, "states", None)
+    if states is None or not hasattr(states, "get"):
+        return None, None
+
+    entity_id = _resolve_resilience_entity_id(entry)
+    state = states.get(entity_id)
+    if state is None:
+        return None, None
+
+    attributes = getattr(state, "attributes", {})
+    fields = attributes.get("fields") if isinstance(attributes, Mapping) else None
+
+    skip = _extract_field_int(fields, "skip_threshold")
+    breaker = _extract_field_int(fields, "breaker_threshold")
+    return skip, breaker
+
+
+def _is_resilience_blueprint(use_blueprint: Mapping[str, Any] | None) -> bool:
+    """Return ``True`` when ``use_blueprint`` targets the resilience blueprint."""
+
+    if not isinstance(use_blueprint, Mapping):
+        return False
+
+    identifier = str(
+        use_blueprint.get("blueprint_id")
+        or use_blueprint.get("path")
+        or use_blueprint.get("id")
+        or ""
+    )
+    if not identifier:
+        return False
+
+    normalized = identifier.replace("\\", "/").lower()
+    return (
+        _RESILIENCE_BLUEPRINT_IDENTIFIER in normalized
+        and _RESILIENCE_BLUEPRINT_DOMAIN in normalized
+    )
+
+
+def _normalise_manual_event(value: Any) -> str | None:
+    """Return a stripped event string when ``value`` contains text."""
+
+    if not isinstance(value, str):
+        return None
+    candidate = value.strip()
+    return candidate or None
 
 
 class _ScriptManagerCacheMonitor:
@@ -184,8 +303,7 @@ class PawControlScriptManager:
         self._entry_scripts: list[str] = []
         self._last_generation: datetime | None = None
         self._resilience_escalation_definition: dict[str, Any] | None = None
-        entry_slug = slugify(getattr(entry, "title", "") or entry.entry_id or DOMAIN)
-        self._entry_slug = entry_slug or DOMAIN
+        self._entry_slug = _normalise_entry_slug(entry)
         title = getattr(entry, "title", None)
         self._entry_title = (
             title.strip() if isinstance(title, str) and title.strip() else "PawControl"
@@ -211,6 +329,219 @@ class PawControlScriptManager:
         registrar.register_cache_monitor(
             f"{prefix}_cache", _ScriptManagerCacheMonitor(self)
         )
+
+    def _resolve_resilience_thresholds(self) -> tuple[int, int]:
+        """Return configured guard skip and breaker thresholds."""
+
+        options = getattr(self._entry, "options", {})
+        skip_threshold = DEFAULT_RESILIENCE_SKIP_THRESHOLD
+        breaker_threshold = DEFAULT_RESILIENCE_BREAKER_THRESHOLD
+
+        def _merge_threshold(
+            source: Mapping[str, Any] | None,
+            *,
+            key: str,
+            default: int,
+            minimum: int,
+            maximum: int,
+        ) -> int:
+            if not isinstance(source, Mapping):
+                return default
+            return _coerce_threshold(
+                source.get(key),
+                default=default,
+                minimum=minimum,
+                maximum=maximum,
+            )
+
+        if isinstance(options, Mapping):
+            system_settings = options.get("system_settings")
+            if isinstance(system_settings, Mapping):
+                skip_threshold = _merge_threshold(
+                    system_settings,
+                    key="resilience_skip_threshold",
+                    default=skip_threshold,
+                    minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
+                    maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
+                )
+                breaker_threshold = _merge_threshold(
+                    system_settings,
+                    key="resilience_breaker_threshold",
+                    default=breaker_threshold,
+                    minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
+                    maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
+                )
+
+            skip_threshold = _merge_threshold(
+                options,
+                key="resilience_skip_threshold",
+                default=skip_threshold,
+                minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
+                maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
+            )
+            breaker_threshold = _merge_threshold(
+                options,
+                key="resilience_breaker_threshold",
+                default=breaker_threshold,
+                minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
+                maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
+            )
+
+        script_skip, script_breaker = resolve_resilience_script_thresholds(
+            self._hass, self._entry
+        )
+        if script_skip is not None:
+            skip_threshold = _coerce_threshold(
+                script_skip,
+                default=skip_threshold,
+                minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
+                maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
+            )
+        if script_breaker is not None:
+            breaker_threshold = _coerce_threshold(
+                script_breaker,
+                default=breaker_threshold,
+                minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
+                maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
+            )
+
+        return skip_threshold, breaker_threshold
+
+    def ensure_resilience_threshold_options(self) -> dict[str, Any] | None:
+        """Return updated options when legacy script defaults need migration."""
+
+        script_skip, script_breaker = resolve_resilience_script_thresholds(
+            self._hass, self._entry
+        )
+        if script_skip is None and script_breaker is None:
+            return None
+
+        options = getattr(self._entry, "options", {})
+        system_settings = (
+            options.get("system_settings") if isinstance(options, Mapping) else None
+        )
+
+        skip_present = isinstance(system_settings, Mapping) and (
+            "resilience_skip_threshold" in system_settings
+        )
+        breaker_present = isinstance(system_settings, Mapping) and (
+            "resilience_breaker_threshold" in system_settings
+        )
+
+        if skip_present and breaker_present:
+            return None
+
+        updated_options = dict(options)
+        updated_system: dict[str, Any] = (
+            dict(system_settings) if isinstance(system_settings, Mapping) else {}
+        )
+
+        if script_skip is not None and not skip_present:
+            updated_system["resilience_skip_threshold"] = _coerce_threshold(
+                script_skip,
+                default=DEFAULT_RESILIENCE_SKIP_THRESHOLD,
+                minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
+                maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
+            )
+
+        if script_breaker is not None and not breaker_present:
+            updated_system["resilience_breaker_threshold"] = _coerce_threshold(
+                script_breaker,
+                default=DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
+                minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
+                maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
+            )
+
+        if updated_system == system_settings or not updated_system:
+            return None
+
+        updated_options["system_settings"] = updated_system
+
+        skip_value = updated_system.get("resilience_skip_threshold")
+        breaker_value = updated_system.get("resilience_breaker_threshold")
+
+        if "resilience_skip_threshold" not in updated_options and skip_value is not None:
+            updated_options["resilience_skip_threshold"] = skip_value
+        if (
+            "resilience_breaker_threshold" not in updated_options
+            and breaker_value is not None
+        ):
+            updated_options["resilience_breaker_threshold"] = breaker_value
+
+        return updated_options
+
+    def _resolve_manual_resilience_events(self) -> dict[str, Any]:
+        """Return configured manual escalation events from blueprint automations."""
+
+        manager = getattr(self._hass, "config_entries", None)
+        entries_callable = getattr(manager, "async_entries", None)
+        if not callable(entries_callable):
+            return {
+                "available": False,
+                "automations": [],
+                "configured_guard_events": [],
+                "configured_breaker_events": [],
+                "configured_check_events": [],
+            }
+
+        automations = []
+        guard_events: set[str] = set()
+        breaker_events: set[str] = set()
+        check_events: set[str] = set()
+
+        try:
+            automation_entries = entries_callable("automation")
+        except Exception:  # pragma: no cover - defensive against HA API changes
+            automation_entries = []
+
+        for entry in automation_entries or []:
+            entry_data = getattr(entry, "data", {})
+            if not isinstance(entry_data, Mapping):
+                continue
+
+            use_blueprint = entry_data.get("use_blueprint")
+            if not _is_resilience_blueprint(use_blueprint):
+                continue
+
+            blueprint = cast(Mapping[str, Any], use_blueprint)
+
+            inputs = blueprint.get("input") or blueprint.get("inputs")
+            if not isinstance(inputs, Mapping):
+                inputs = {}
+
+            manual_guard = _normalise_manual_event(inputs.get("manual_guard_event"))
+            manual_breaker = _normalise_manual_event(
+                inputs.get("manual_breaker_event")
+            )
+            manual_check = _normalise_manual_event(inputs.get("manual_check_event"))
+
+            if manual_guard:
+                guard_events.add(manual_guard)
+            if manual_breaker:
+                breaker_events.add(manual_breaker)
+            if manual_check:
+                check_events.add(manual_check)
+
+            automations.append(
+                {
+                    "config_entry_id": getattr(entry, "entry_id", None),
+                    "title": getattr(entry, "title", None),
+                    "manual_guard_event": manual_guard,
+                    "manual_breaker_event": manual_breaker,
+                    "manual_check_event": manual_check,
+                    "configured_guard": bool(manual_guard),
+                    "configured_breaker": bool(manual_breaker),
+                    "configured_check": bool(manual_check),
+                }
+            )
+
+        return {
+            "available": bool(automations),
+            "automations": automations,
+            "configured_guard_events": sorted(guard_events),
+            "configured_breaker_events": sorted(breaker_events),
+            "configured_check_events": sorted(check_events),
+        }
 
     def _get_component(
         self, *, require_loaded: bool = True
@@ -431,8 +762,11 @@ class PawControlScriptManager:
     def _build_resilience_escalation_script(self) -> tuple[str, ConfigType]:
         """Create the guard and breaker escalation script definition."""
 
-        object_id = f"pawcontrol_{self._entry_slug}_resilience_escalation"
+        object_id = _resolve_resilience_object_id(self._entry)
         default_statistics_entity = "sensor.pawcontrol_statistics"
+        skip_threshold_default, breaker_threshold_default = (
+            self._resolve_resilience_thresholds()
+        )
 
         guard_default_title = f"{self._entry_title} guard escalation"
         guard_default_message = (
@@ -645,7 +979,7 @@ class PawControlScriptManager:
                     "Escalate when skipped guard calls reach or exceed this value. "
                     "Set to 0 to disable guard escalations."
                 ),
-                CONF_DEFAULT: 3,
+                CONF_DEFAULT: skip_threshold_default,
                 "selector": {"number": {"min": 0, "max": 50, "mode": "box"}},
             },
             "breaker_threshold": {
@@ -654,7 +988,7 @@ class PawControlScriptManager:
                     "Escalate when open or half-open breaker counts reach this value. "
                     "Set to 0 to disable breaker escalations."
                 ),
-                CONF_DEFAULT: 1,
+                CONF_DEFAULT: breaker_threshold_default,
                 "selector": {"number": {"min": 0, "max": 10, "mode": "box"}},
             },
             "escalation_service": {
@@ -771,6 +1105,7 @@ class PawControlScriptManager:
             entity_id = f"{SCRIPT_DOMAIN}.{object_id}"
 
         field_defaults = cast(dict[str, Any], definition.get("field_defaults", {}))
+        manual_events = self._resolve_manual_resilience_events()
 
         state = None
         if entity_id is not None:
@@ -859,6 +1194,7 @@ class PawControlScriptManager:
                 "default": field_defaults.get("escalation_service"),
                 "active": _active_value("escalation_service"),
             },
+            "manual_events": manual_events,
         }
 
     def _build_confirmation_script(

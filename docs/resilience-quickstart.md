@@ -200,6 +200,102 @@ Guard-Skip-Schwellen und Breaker-Zähler überwacht, persistente Benachrichtigun
 auslöst und bei Bedarf ein Follow-up-Skript startet, sodass Bereitschaftsteams
 automatisch reagieren können.【F:custom_components/pawcontrol/script_manager.py†L360-L760】【F:tests/unit/test_data_manager.py†L470-L580】
 
+### Resilience-Eskalationspanel interpretieren
+Diagnostics exportieren das Panel `resilience_escalation`, damit Runbooks die
+automatisch erzeugte Eskalationslogik prüfen können. Der Snapshot umfasst die
+bereitgestellte Script-Entity, aktive Guard- und Breaker-Schwellen, das
+Follow-up-Skript sowie die zuletzt generierte und ausgelöste Zeitmarke.【F:custom_components/pawcontrol/script_manager.py†L744-L940】【F:custom_components/pawcontrol/diagnostics.py†L180-L214】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L247】
+
+```json
+{
+  "entity_id": "script.pawcontrol_pack_resilience_escalation",
+  "available": true,
+  "thresholds": {
+    "skip_threshold": {"default": 3, "active": 5},
+    "breaker_threshold": {"default": 1, "active": 2}
+  },
+  "followup_script": {
+    "default": "",
+    "active": "script.ops_oncall_followup",
+    "configured": true
+  },
+  "statistics_entity_id": {
+    "default": "sensor.pawcontrol_statistics",
+    "active": "sensor.pawcontrol_statistics"
+  },
+  "escalation_service": {
+    "default": "persistent_notification.create",
+    "active": "persistent_notification.create"
+  },
+  "last_generated": "2024-02-20T09:15:00+00:00",
+  "last_triggered": "2024-02-21T06:42:10+00:00"
+}
+```
+
+Die Guard- und Breaker-Schwellen lassen sich direkt über den Options-Flow im
+Schritt **Systemeinstellungen** pflegen. Die neuen Eingaben
+`resilience_skip_threshold` und `resilience_breaker_threshold` übernehmen die
+ausgewählten Werte, setzen das Resilience-Skript mit denselben Defaults neu auf
+und stehen dem System-Health-Endpunkt ohne zusätzliche Blueprint-Anpassungen zur
+Verfügung.【F:custom_components/pawcontrol/options_flow.py†L1088-L1143】【F:tests/unit/test_options_flow.py†L804-L852】【F:custom_components/pawcontrol/script_manager.py†L431-L820】
+
+**Interpretation:**
+
+- `skip_threshold.active` = 5 → Guard-Skips lösen erst bei fünf Übersprüngen
+  eine Eskalation aus. Runbooks können niedrigere Schwellen wählen, wenn
+  kritische Automationen schon nach wenigen Skips untersucht werden sollen.
+- `breaker_threshold.active` = 2 → Bereits zwei gleichzeitige offene oder halb
+  offene Breaker erzeugen eine Benachrichtigung. Höhere Werte eignen sich für
+  weniger empfindliche Umgebungen.
+- `followup_script.active` = `script.ops_oncall_followup` → Nach jeder
+  Eskalation wird dieses Skript mit Kontextvariablen (Skip- und Breaker-Zähler)
+  gestartet, um Tickets oder Pager auszulösen.【F:custom_components/pawcontrol/script_manager.py†L642-L720】
+- `last_triggered` dokumentiert den jüngsten Alarmzeitpunkt in UTC und erlaubt
+  Bereitschaften, ausgelöste Eskalationen mit Incident-Logs abzugleichen.
+
+### System-Health-Abgleich
+
+Der System-Health-Endpunkt übernimmt die aktiven `skip_threshold`- und
+`breaker_threshold`-Werte aus dem Resilience-Skript. Skip-Warnungen wechseln von
+Verhältnis-Schwellen auf die konfigurierten Counts, behalten aber einen
+Fallback für das systemweite Verhältnis bei, sobald weniger als eine Konfiguration
+vorliegt. Breaker-Indikatoren werden kritisch, sobald die aktive Schwelle
+erreicht wird, und warnen weiterhin bei Rejection-Breakern oder Countdown-Werten
+unterhalb der Eskalationsgrenze.【F:custom_components/pawcontrol/system_health.py†L150-L356】【F:tests/components/pawcontrol/test_system_health.py†L1-L210】
+Damit sehen Bereitschaftsteams dieselben Grenzwerte wie das Skript; die
+Diagnose-Telemetrie `service_execution.guard_summary.thresholds` und
+`service_execution.breaker_overview.thresholds` dokumentieren Quelle, aktive
+Counts sowie die optionalen Default-Verhältnisse für Dashboards und Runbooks.
+
+### Blueprint: Resilience-Eskalations-Follow-up
+
+Die mitgelieferte Blueprint-Automation
+`pawcontrol/resilience_escalation_followup` prüft dieselben
+`service_execution`-Kennzahlen wie das Panel, liest die aktiven Guard- und
+Breaker-Schwellen direkt aus dem generierten Script-Entity und ruft das Skript
+inklusive optionaler Pager-/Follow-up-Aktionen auf, sobald eine Schwelle
+übertreten wird. Damit entfallen doppelte YAML-Schwellen; zusätzliche Aktionen
+lassen sich über die Blueprint-Eingaben konfigurieren, ohne dass die Guard-
+oder Breaker-Checks kopiert werden müssen.【F:blueprints/automation/pawcontrol/resilience_escalation_followup.yaml†L1-L160】
+
+Neu hinzugekommen sind ein zeitbasierter Watchdog (`watchdog_interval_minutes`)
+und ein manuell auslösbares Ereignis (`manual_check_event`), sodass
+Resilience-Checks auch bei stagnierenden Sensordaten oder auf Abruf ausgelöst
+werden können, ohne dass separate Automationen erstellt werden müssen.【F:blueprints/automation/pawcontrol/resilience_escalation_followup.yaml†L25-L65】
+Zusätzliche Ereignisse (`manual_guard_event`, `manual_breaker_event`) erlauben
+separate Pager-Pfade für Guard- und Breaker-Rechecks. Beide Trigger rufen das
+Eskalationsskript sowie die jeweiligen Follow-up-Aktionen auch ohne Überschreiten
+der Schwellen auf, sodass Runbooks ohne YAML-Duplikate manuelle Prüfungen
+auslösen können.【F:blueprints/automation/pawcontrol/resilience_escalation_followup.yaml†L36-L125】
+
+Diagnostics exportieren die konfigurierten `manual_*`-Events zusammen mit den
+resolvierten Guard-/Breaker-Schwellen direkt aus dem generierten Skript. Damit
+sehen Support-Handbücher sofort, welche Trigger aktiv sind und ob ältere
+Installationen ihre Script-Defaults bereits in die Optionen übernommen haben.
+Die Snapshot-Logik aggregiert Blueprint-Konfigurationen über die
+`config_entries`-API, während die Tests sicherstellen, dass die Events in den
+Ausgaben auftauchen.【F:custom_components/pawcontrol/script_manager.py†L238-L412】【F:tests/components/pawcontrol/test_diagnostics.py†L120-L208】
+
 ---
 
 ## Troubleshooting Checklist

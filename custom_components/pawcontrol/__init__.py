@@ -719,6 +719,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 door_sensor_manager = DoorSensorManager(hass, entry.entry_id)
                 garden_manager = GardenManager(hass, entry.entry_id)
 
+                if script_manager is not None:
+                    migrated_options = script_manager.ensure_resilience_threshold_options()
+                    if migrated_options is not None:
+                        hass.config_entries.async_update_entry(
+                            entry, options=migrated_options
+                        )
+
             gps_geofence_manager = None
             geofencing_manager = None
             if not skip_optional_setup and any(

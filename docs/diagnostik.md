@@ -7,7 +7,75 @@
 - Diagnostics, Options-Flow und Manager-Struktur sind auf die erweiterten Module abgestimmt, sodass Support-Daten, Konfigurationspfade und Automations-Hooks den Dokumentationen entsprechen.
 - Der neue Diagnostics-Block `setup_flags` spiegelt die persistierten Optionen `enable_analytics`, `enable_cloud_backup` und `debug_logging`, damit Support-Teams nach einem Reload sofort sehen, welche Telemetrie- und Backup-Pfade aktiv sind.【F:custom_components/pawcontrol/diagnostics.py†L90-L139】【F:tests/components/pawcontrol/test_diagnostics.py†L1-L122】
 - Zusätzlich liefert das Panel `setup_flags_panel` lokalisierte Überschriften, Quellenangaben und aktiv/inaktiv-Zähler, sodass Support-Dashboards den Onboarding-Status ohne Nachbearbeitung übernehmen können.【F:custom_components/pawcontrol/diagnostics.py†L120-L210】【F:custom_components/pawcontrol/strings.json†L1391-L1414】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L230】
-- Das neue Feld `resilience_escalation` spiegelt das erzeugte Skript inklusive Entity-ID, aktiven Guard-/Breaker-Schwellen, Follow-up-Skript und letztem Trigger-Zeitpunkt, damit Bereitschaften Escalation-Workflows direkt im Dump validieren können.【F:custom_components/pawcontrol/script_manager.py†L420-L566】【F:custom_components/pawcontrol/diagnostics.py†L180-L214】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L247】【F:tests/unit/test_data_manager.py†L500-L535】
+- Zusätzlich liefert das Panel `setup_flags_panel` lokalisierte Überschriften, Default-Werte und die verwendete Sprache, sodass Support-Dashboards die Daten ohne eigene Übersetzungs-Backups übernehmen können.【F:custom_components/pawcontrol/diagnostics.py†L90-L214】【F:tests/components/pawcontrol/test_diagnostics.py†L260-L339】 Die folgende JSON-Ansicht zeigt die exportierten Felder inklusive Übersetzungsquellen aus `SETUP_FLAG_LABELS` und `SETUP_FLAG_SOURCE_LABELS`:
+
+```json
+{
+  "title": "Setup flags",
+  "title_default": "Setup flags",
+  "description": "Analytics, backup, and debug logging toggles captured during onboarding and options flows.",
+  "description_default": "Analytics, backup, and debug logging toggles captured during onboarding and options flows.",
+  "language": "en",
+  "flags": [
+    {
+      "key": "enable_analytics",
+      "label": "Analytics telemetry",
+      "label_default": "Analytics telemetry",
+      "label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel.flags.enable_analytics",
+      "enabled": true,
+      "source": "system_settings",
+      "source_label": "System settings",
+      "source_label_default": "System settings",
+      "source_label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel.sources.system_settings"
+    },
+    {
+      "key": "enable_cloud_backup",
+      "label": "Cloud backup",
+      "label_default": "Cloud backup",
+      "label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel.flags.enable_cloud_backup",
+      "enabled": false,
+      "source": "default",
+      "source_label": "Integration default",
+      "source_label_default": "Integration default",
+      "source_label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel.sources.default"
+    },
+    {
+      "key": "debug_logging",
+      "label": "Debug logging",
+      "label_default": "Debug logging",
+      "label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel.flags.debug_logging",
+      "enabled": true,
+      "source": "options",
+      "source_label": "Options flow",
+      "source_label_default": "Options flow",
+      "source_label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel.sources.options"
+    }
+  ],
+  "enabled_count": 2,
+  "disabled_count": 1,
+  "source_breakdown": {
+    "system_settings": 1,
+    "default": 1,
+    "options": 1
+  },
+  "source_labels": {
+    "options": "Options flow",
+    "system_settings": "System settings",
+    "advanced_settings": "Advanced settings",
+    "config_entry": "Config entry defaults",
+    "default": "Integration default"
+  },
+  "source_labels_default": {
+    "options": "Options flow",
+    "system_settings": "System settings",
+    "advanced_settings": "Advanced settings",
+    "config_entry": "Config entry defaults",
+    "default": "Integration default"
+  }
+}
+```
+
+- Das neue Feld `resilience_escalation` spiegelt das erzeugte Skript inklusive Entity-ID, aktiven Guard-/Breaker-Schwellen, Follow-up-Skript, letzten Trigger-Zeitpunkt **und** die konfigurierten `manual_*`-Events, damit Bereitschaften Escalation-Workflows direkt im Dump validieren können. Beim Laden migriert die Integration vorhandene Skript-Schwellen in die Optionen, sodass Altinstallationen ohne manuelles Eingreifen konsistente Werte liefern.【F:custom_components/pawcontrol/script_manager.py†L238-L412】【F:custom_components/pawcontrol/diagnostics.py†L594-L636】【F:tests/components/pawcontrol/test_diagnostics.py†L120-L208】【F:tests/unit/test_data_manager.py†L520-L620】
 
 ## Funktionsabgleich
 

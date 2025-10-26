@@ -1051,6 +1051,8 @@ class SystemOptions(TypedDict, total=False):
     performance_mode: PerformanceMode
     enable_analytics: bool
     enable_cloud_backup: bool
+    resilience_skip_threshold: int
+    resilience_breaker_threshold: int
 
 
 class DashboardOptions(TypedDict, total=False):
