@@ -286,33 +286,33 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     )
 
     translations = {
-        "component.pawcontrol.diagnostics.setup_flags_panel.title": "Setup flags",
-        "component.pawcontrol.diagnostics.setup_flags_panel.description": (
+        "component.pawcontrol.common.setup_flags_panel_title": "Setup flags",
+        "component.pawcontrol.common.setup_flags_panel_description": (
             "Analytics, backup, and debug logging toggles captured during onboarding "
             "and options flows."
         ),
-        "component.pawcontrol.diagnostics.setup_flags_panel_flag_enable_analytics": (
+        "component.pawcontrol.common.setup_flags_panel_flag_enable_analytics": (
             "Analytics telemetry"
         ),
-        "component.pawcontrol.diagnostics.setup_flags_panel_flag_enable_cloud_backup": (
+        "component.pawcontrol.common.setup_flags_panel_flag_enable_cloud_backup": (
             "Cloud backup"
         ),
-        "component.pawcontrol.diagnostics.setup_flags_panel_flag_debug_logging": (
+        "component.pawcontrol.common.setup_flags_panel_flag_debug_logging": (
             "Debug logging"
         ),
-        "component.pawcontrol.diagnostics.setup_flags_panel_source_options": (
+        "component.pawcontrol.common.setup_flags_panel_source_options": (
             "Options flow"
         ),
-        "component.pawcontrol.diagnostics.setup_flags_panel_source_system_settings": (
+        "component.pawcontrol.common.setup_flags_panel_source_system_settings": (
             "System settings"
         ),
-        "component.pawcontrol.diagnostics.setup_flags_panel_source_advanced_settings": (
+        "component.pawcontrol.common.setup_flags_panel_source_advanced_settings": (
             "Advanced settings"
         ),
-        "component.pawcontrol.diagnostics.setup_flags_panel_source_config_entry": (
+        "component.pawcontrol.common.setup_flags_panel_source_config_entry": (
             "Config entry defaults"
         ),
-        "component.pawcontrol.diagnostics.setup_flags_panel_source_default": (
+        "component.pawcontrol.common.setup_flags_panel_source_default": (
             "Integration default"
         ),
     }
@@ -351,13 +351,13 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     assert flags_by_key["enable_analytics"]["label_default"] == "Analytics telemetry"
     assert (
         flags_by_key["enable_analytics"]["label_translation_key"]
-        == "component.pawcontrol.diagnostics.setup_flags_panel_flag_enable_analytics"
+        == "component.pawcontrol.common.setup_flags_panel_flag_enable_analytics"
     )
     assert flags_by_key["enable_analytics"]["source_label"] == "Options flow"
     assert flags_by_key["enable_analytics"]["source_label_default"] == "Options flow"
     assert (
         flags_by_key["enable_analytics"]["source_label_translation_key"]
-        == "component.pawcontrol.diagnostics.setup_flags_panel_source_options"
+        == "component.pawcontrol.common.setup_flags_panel_source_options"
     )
     assert flags_by_key["enable_cloud_backup"]["enabled"] is False
     assert flags_by_key["enable_cloud_backup"]["source"] == "options"
@@ -365,13 +365,13 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     assert flags_by_key["enable_cloud_backup"]["label_default"] == "Cloud backup"
     assert (
         flags_by_key["enable_cloud_backup"]["label_translation_key"]
-        == "component.pawcontrol.diagnostics.setup_flags_panel_flag_enable_cloud_backup"
+        == "component.pawcontrol.common.setup_flags_panel_flag_enable_cloud_backup"
     )
     assert flags_by_key["enable_cloud_backup"]["source_label"] == "Options flow"
     assert flags_by_key["enable_cloud_backup"]["source_label_default"] == "Options flow"
     assert (
         flags_by_key["enable_cloud_backup"]["source_label_translation_key"]
-        == "component.pawcontrol.diagnostics.setup_flags_panel_source_options"
+        == "component.pawcontrol.common.setup_flags_panel_source_options"
     )
     assert flags_by_key["debug_logging"]["enabled"] is True
     assert flags_by_key["debug_logging"]["source"] == "options"
@@ -379,28 +379,28 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     assert flags_by_key["debug_logging"]["label_default"] == "Debug logging"
     assert (
         flags_by_key["debug_logging"]["label_translation_key"]
-        == "component.pawcontrol.diagnostics.setup_flags_panel_flag_debug_logging"
+        == "component.pawcontrol.common.setup_flags_panel_flag_debug_logging"
     )
     assert flags_by_key["debug_logging"]["source_label"] == "Options flow"
     assert flags_by_key["debug_logging"]["source_label_default"] == "Options flow"
     assert (
         flags_by_key["debug_logging"]["source_label_translation_key"]
-        == "component.pawcontrol.diagnostics.setup_flags_panel_source_options"
+        == "component.pawcontrol.common.setup_flags_panel_source_options"
     )
     assert setup_panel["source_breakdown"]["options"] == 3
     assert setup_panel["source_labels"]["options"] == "Options flow"
     assert setup_panel["source_labels_default"]["options"] == "Options flow"
     assert (
         setup_panel["source_label_translation_keys"]["options"]
-        == "component.pawcontrol.diagnostics.setup_flags_panel_source_options"
+        == "component.pawcontrol.common.setup_flags_panel_source_options"
     )
     assert (
         setup_panel["title_translation_key"]
-        == "component.pawcontrol.diagnostics.setup_flags_panel.title"
+        == "component.pawcontrol.common.setup_flags_panel_title"
     )
     assert (
         setup_panel["description_translation_key"]
-        == "component.pawcontrol.diagnostics.setup_flags_panel.description"
+        == "component.pawcontrol.common.setup_flags_panel_description"
     )
 
     escalation = diagnostics["resilience_escalation"]

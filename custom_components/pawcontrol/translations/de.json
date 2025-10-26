@@ -1231,18 +1231,16 @@
       "description": "Die letzte Fütterungs-Compliance-Prüfung über {days_to_check} Tage konnte keinen Bericht erstellen: {message}."
     }
   },
-  "diagnostics": {
-    "setup_flags_panel": {
-      "title": "Setup-Flags",
-      "description": "Analytics-, Backup- und Debug-Logging-Schalter aus Onboarding und Optionen."
-    },
+  "common": {
+    "setup_flags_panel_description": "Analytics-, Backup- und Debug-Logging-Schalter aus Onboarding und Optionen.",
+    "setup_flags_panel_flag_debug_logging": "Debug-Logging",
     "setup_flags_panel_flag_enable_analytics": "Analyse-Telemetrie",
     "setup_flags_panel_flag_enable_cloud_backup": "Cloud-Backup",
-    "setup_flags_panel_flag_debug_logging": "Debug-Logging",
-    "setup_flags_panel_source_options": "Options-Flow",
-    "setup_flags_panel_source_system_settings": "Systemeinstellungen",
     "setup_flags_panel_source_advanced_settings": "Erweiterte Einstellungen",
     "setup_flags_panel_source_config_entry": "Konfigurationseintrag",
-    "setup_flags_panel_source_default": "Integrationsstandard"
+    "setup_flags_panel_source_default": "Integrationsstandard",
+    "setup_flags_panel_source_options": "Options-Flow",
+    "setup_flags_panel_source_system_settings": "Systemeinstellungen",
+    "setup_flags_panel_title": "Setup-Flags"
   }
 }
