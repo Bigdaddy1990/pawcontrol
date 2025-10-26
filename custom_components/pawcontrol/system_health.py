@@ -688,25 +688,14 @@ def _merge_overall_indicator(*indicators: Mapping[str, Any]) -> dict[str, Any]:
     """Return the highest severity indicator for aggregated status."""
 
     severity_rank = {"critical": 3, "warning": 2, "normal": 1}
-    chosen: dict[str, Any] | None = None
-    for indicator in indicators:
+
+    def _rank(indicator: Mapping[str, Any]) -> int:
         level = cast(str | None, indicator.get("level"))
-        level_key = level if level is not None else ""
-        current_rank = severity_rank.get(level_key, 0)
-        previous_level: str | None
-        if chosen is None:
-            previous_level = None
-        else:
-            previous_level = cast(str | None, chosen.get("level"))
-        previous_key = previous_level if previous_level is not None else ""
-        chosen_rank = severity_rank.get(previous_key, 0)
-        if current_rank > chosen_rank:
-            chosen = dict(indicator)
+        return severity_rank.get(level or "", 0)
 
-    if chosen is None:
-        return _healthy_indicator("overall")
+    chosen = max(indicators, key=_rank, default=None)
 
-    if chosen.get("level") == "normal":
+    if chosen is None or chosen.get("level") == "normal":
         return _healthy_indicator("overall")
 
     overall = dict(chosen)

@@ -1234,41 +1234,15 @@
   "diagnostics": {
     "setup_flags_panel": {
       "title": "Setup-Flags",
-      "description": "Analytics-, Backup- und Debug-Logging-Schalter aus Onboarding und Optionen.",
-      "flags": {
-        "enable_analytics": "Analyse-Telemetrie",
-        "enable_cloud_backup": "Cloud-Backup",
-        "debug_logging": "Debug-Logging"
-      },
-      "sources": {
-        "options": "Options-Flow",
-        "system_settings": "Systemeinstellungen",
-        "advanced_settings": "Erweiterte Einstellungen",
-        "config_entry": "Konfigurationseintrag",
-        "default": "Integrationsstandard"
-      }
+      "description": "Analytics-, Backup- und Debug-Logging-Schalter aus Onboarding und Optionen."
     },
-    "setup_flags": {
-      "panel": {
-        "title": "Setup-Flags",
-        "description": "Analytics-, Backup- und Debug-Logging-Schalter aus Onboarding und Optionen."
-      },
-      "enable_analytics": {
-        "label": "Analyse-Telemetrie"
-      },
-      "enable_cloud_backup": {
-        "label": "Cloud-Backup"
-      },
-      "debug_logging": {
-        "label": "Debug-Logging"
-      },
-      "sources": {
-        "options": "Options-Flow",
-        "system_settings": "Systemeinstellungen",
-        "advanced_settings": "Erweiterte Einstellungen",
-        "config_entry": "Konfigurationseintrag",
-        "default": "Integrationsstandard"
-      }
-    }
+    "setup_flags_panel_flag_enable_analytics": "Analyse-Telemetrie",
+    "setup_flags_panel_flag_enable_cloud_backup": "Cloud-Backup",
+    "setup_flags_panel_flag_debug_logging": "Debug-Logging",
+    "setup_flags_panel_source_options": "Options-Flow",
+    "setup_flags_panel_source_system_settings": "Systemeinstellungen",
+    "setup_flags_panel_source_advanced_settings": "Erweiterte Einstellungen",
+    "setup_flags_panel_source_config_entry": "Konfigurationseintrag",
+    "setup_flags_panel_source_default": "Integrationsstandard"
   }
 }

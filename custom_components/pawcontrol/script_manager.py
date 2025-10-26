@@ -181,10 +181,10 @@ def _is_resilience_blueprint(use_blueprint: Mapping[str, Any] | None) -> bool:
         return False
 
     normalized = identifier.replace("\\", "/").lower()
-    return (
-        _RESILIENCE_BLUEPRINT_IDENTIFIER in normalized
-        and _RESILIENCE_BLUEPRINT_DOMAIN in normalized
+    expected_suffix = (
+        f"{_RESILIENCE_BLUEPRINT_DOMAIN}/{_RESILIENCE_BLUEPRINT_IDENTIFIER}.yaml"
     )
+    return normalized.endswith(expected_suffix)
 
 
 def _normalise_manual_event(value: Any) -> str | None:
@@ -408,66 +408,98 @@ class PawControlScriptManager:
     def ensure_resilience_threshold_options(self) -> dict[str, Any] | None:
         """Return updated options when legacy script defaults need migration."""
 
-        script_skip, script_breaker = resolve_resilience_script_thresholds(
-            self._hass, self._entry
-        )
-        if script_skip is None and script_breaker is None:
-            return None
-
         options = getattr(self._entry, "options", {})
         system_settings = (
             options.get("system_settings") if isinstance(options, Mapping) else None
         )
-
-        skip_present = isinstance(system_settings, Mapping) and (
-            "resilience_skip_threshold" in system_settings
-        )
-        breaker_present = isinstance(system_settings, Mapping) and (
-            "resilience_breaker_threshold" in system_settings
+        script_skip, script_breaker = resolve_resilience_script_thresholds(
+            self._hass, self._entry
         )
 
-        if skip_present and breaker_present:
+        if not self._should_migrate_resilience_thresholds(
+            script_skip, script_breaker, system_settings
+        ):
             return None
 
-        updated_options = dict(options)
-        updated_system: dict[str, Any] = (
-            dict(system_settings) if isinstance(system_settings, Mapping) else {}
+        migrated_system = self._build_resilience_system_settings(
+            system_settings,
+            script_skip=script_skip,
+            script_breaker=script_breaker,
         )
 
-        if script_skip is not None and not skip_present:
-            updated_system["resilience_skip_threshold"] = _coerce_threshold(
+        if migrated_system is None:
+            return None
+
+        return self._apply_resilience_system_settings(options, migrated_system)
+
+    @staticmethod
+    def _should_migrate_resilience_thresholds(
+        script_skip: int | None,
+        script_breaker: int | None,
+        system_settings: Mapping[str, Any] | None,
+    ) -> bool:
+        """Return ``True`` when script defaults should populate options."""
+
+        if script_skip is None and script_breaker is None:
+            return False
+
+        if not isinstance(system_settings, Mapping):
+            return True
+
+        missing_skip = "resilience_skip_threshold" not in system_settings
+        missing_breaker = "resilience_breaker_threshold" not in system_settings
+
+        return missing_skip or missing_breaker
+
+    @staticmethod
+    def _build_resilience_system_settings(
+        system_settings: Mapping[str, Any] | None,
+        *,
+        script_skip: int | None,
+        script_breaker: int | None,
+    ) -> dict[str, Any] | None:
+        """Return a system settings payload with migrated thresholds."""
+
+        original = dict(system_settings) if isinstance(system_settings, Mapping) else {}
+        updated = dict(original)
+
+        if script_skip is not None and "resilience_skip_threshold" not in updated:
+            updated["resilience_skip_threshold"] = _coerce_threshold(
                 script_skip,
                 default=DEFAULT_RESILIENCE_SKIP_THRESHOLD,
                 minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
                 maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
             )
 
-        if script_breaker is not None and not breaker_present:
-            updated_system["resilience_breaker_threshold"] = _coerce_threshold(
+        if (
+            script_breaker is not None
+            and "resilience_breaker_threshold" not in updated
+        ):
+            updated["resilience_breaker_threshold"] = _coerce_threshold(
                 script_breaker,
                 default=DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
                 minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
                 maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
             )
 
-        if updated_system == system_settings or not updated_system:
+        if updated == original:
             return None
 
-        updated_options["system_settings"] = updated_system
+        return updated
 
-        skip_value = updated_system.get("resilience_skip_threshold")
-        breaker_value = updated_system.get("resilience_breaker_threshold")
+    @staticmethod
+    def _apply_resilience_system_settings(
+        options: Mapping[str, Any],
+        system_settings: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        """Return updated options including migrated system settings."""
 
-        if (
-            "resilience_skip_threshold" not in updated_options
-            and skip_value is not None
-        ):
-            updated_options["resilience_skip_threshold"] = skip_value
-        if (
-            "resilience_breaker_threshold" not in updated_options
-            and breaker_value is not None
-        ):
-            updated_options["resilience_breaker_threshold"] = breaker_value
+        updated_options = dict(options)
+        updated_options["system_settings"] = dict(system_settings)
+
+        for key in ("resilience_skip_threshold", "resilience_breaker_threshold"):
+            if key not in updated_options and key in system_settings:
+                updated_options[key] = system_settings[key]
 
         return updated_options
 
@@ -492,7 +524,7 @@ class PawControlScriptManager:
 
         try:
             automation_entries = entries_callable("automation")
-        except Exception:  # pragma: no cover - defensive against HA API changes
+        except (AttributeError, TypeError, KeyError):
             automation_entries = []
 
         for entry in automation_entries or []:

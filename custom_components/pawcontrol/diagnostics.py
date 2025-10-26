@@ -9,7 +9,6 @@ ingest the data without custom adapters.
 
 from __future__ import annotations
 
-import contextlib
 import importlib
 import logging
 from collections.abc import Awaitable, Callable, Mapping, Sequence
@@ -104,9 +103,9 @@ SETUP_FLAG_LABELS = {
 
 
 SETUP_FLAG_LABEL_TRANSLATION_KEYS = {
-    "enable_analytics": "component.pawcontrol.diagnostics.setup_flags_panel.flags.enable_analytics",
-    "enable_cloud_backup": "component.pawcontrol.diagnostics.setup_flags_panel.flags.enable_cloud_backup",
-    "debug_logging": "component.pawcontrol.diagnostics.setup_flags_panel.flags.debug_logging",
+    "enable_analytics": "component.pawcontrol.diagnostics.setup_flags_panel_flag_enable_analytics",
+    "enable_cloud_backup": "component.pawcontrol.diagnostics.setup_flags_panel_flag_enable_cloud_backup",
+    "debug_logging": "component.pawcontrol.diagnostics.setup_flags_panel_flag_debug_logging",
 }
 
 
@@ -120,11 +119,11 @@ SETUP_FLAG_SOURCE_LABELS = {
 
 
 SETUP_FLAG_SOURCE_LABEL_TRANSLATION_KEYS = {
-    "options": "component.pawcontrol.diagnostics.setup_flags_panel.sources.options",
-    "system_settings": "component.pawcontrol.diagnostics.setup_flags_panel.sources.system_settings",
-    "advanced_settings": "component.pawcontrol.diagnostics.setup_flags_panel.sources.advanced_settings",
-    "config_entry": "component.pawcontrol.diagnostics.setup_flags_panel.sources.config_entry",
-    "default": "component.pawcontrol.diagnostics.setup_flags_panel.sources.default",
+    "options": "component.pawcontrol.diagnostics.setup_flags_panel_source_options",
+    "system_settings": "component.pawcontrol.diagnostics.setup_flags_panel_source_system_settings",
+    "advanced_settings": "component.pawcontrol.diagnostics.setup_flags_panel_source_advanced_settings",
+    "config_entry": "component.pawcontrol.diagnostics.setup_flags_panel_source_config_entry",
+    "default": "component.pawcontrol.diagnostics.setup_flags_panel_source_default",
 }
 
 
@@ -147,12 +146,13 @@ SETUP_FLAGS_PANEL_DESCRIPTION_TRANSLATION_KEY = (
 
 
 _TRANSLATIONS_IMPORT_PATH = "homeassistant.helpers.translation"
-with contextlib.suppress(ModuleNotFoundError, AttributeError):
+_ASYNC_GET_TRANSLATIONS: Callable[..., Awaitable[dict[str, str]]] | None
+try:
     _translations_module = importlib.import_module(_TRANSLATIONS_IMPORT_PATH)
-    _ASYNC_GET_TRANSLATIONS: Callable[..., Awaitable[dict[str, str]]] | None = getattr(
+    _ASYNC_GET_TRANSLATIONS = getattr(
         _translations_module, "async_get_translations", None
     )
-if "_ASYNC_GET_TRANSLATIONS" not in locals():
+except (ModuleNotFoundError, AttributeError):
     _ASYNC_GET_TRANSLATIONS = None
 
 
