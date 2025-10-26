@@ -6,8 +6,8 @@
 - Die Service-Schicht ist vollständig registriert, nutzt flächendeckend `ServiceValidationError` für Payload-Prüfungen und stellt auch die zuvor fehlenden GPS- und Garden-Services bereit.
 - Diagnostics, Options-Flow und Manager-Struktur sind auf die erweiterten Module abgestimmt, sodass Support-Daten, Konfigurationspfade und Automations-Hooks den Dokumentationen entsprechen.
 - Der neue Diagnostics-Block `setup_flags` spiegelt die persistierten Optionen `enable_analytics`, `enable_cloud_backup` und `debug_logging`, damit Support-Teams nach einem Reload sofort sehen, welche Telemetrie- und Backup-Pfade aktiv sind.【F:custom_components/pawcontrol/diagnostics.py†L90-L139】【F:tests/components/pawcontrol/test_diagnostics.py†L1-L122】
-- Zusätzlich liefert das Panel `setup_flags_panel` lokalisierte Überschriften, Quellenangaben und aktiv/inaktiv-Zähler, sodass Support-Dashboards den Onboarding-Status ohne Nachbearbeitung übernehmen können.【F:custom_components/pawcontrol/diagnostics.py†L120-L210】【F:custom_components/pawcontrol/strings.json†L1391-L1414】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L230】
-- Zusätzlich liefert das Panel `setup_flags_panel` lokalisierte Überschriften, Default-Werte und die verwendete Sprache, sodass Support-Dashboards die Daten ohne eigene Übersetzungs-Backups übernehmen können.【F:custom_components/pawcontrol/diagnostics.py†L90-L214】【F:tests/components/pawcontrol/test_diagnostics.py†L260-L339】 Die folgende JSON-Ansicht zeigt die exportierten Felder inklusive Übersetzungsquellen aus `SETUP_FLAG_LABELS` und `SETUP_FLAG_SOURCE_LABELS`:
+- Zusätzlich liefert das Panel `setup_flags_panel` lokalisierte Überschriften, Quellenangaben und aktiv/inaktiv-Zähler, sodass Support-Dashboards den Onboarding-Status ohne Nachbearbeitung übernehmen können.【F:custom_components/pawcontrol/diagnostics.py†L120-L210】【F:custom_components/pawcontrol/strings.json†L1396-L1407】【F:tests/components/pawcontrol/test_diagnostics.py†L288-L405】
+- Zusätzlich liefert das Panel `setup_flags_panel` lokalisierte Überschriften, Default-Werte und die verwendete Sprache, sodass Support-Dashboards die Daten ohne eigene Übersetzungs-Backups übernehmen können.【F:custom_components/pawcontrol/diagnostics.py†L90-L214】【F:tests/components/pawcontrol/test_diagnostics.py†L288-L405】 Die folgende JSON-Ansicht zeigt die exportierten Felder inklusive Übersetzungsquellen aus `SETUP_FLAG_LABELS` und `SETUP_FLAG_SOURCE_LABELS`:
 
 ```json
 {
@@ -21,34 +21,34 @@
       "key": "enable_analytics",
       "label": "Analytics telemetry",
       "label_default": "Analytics telemetry",
-      "label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel.flags.enable_analytics",
+      "label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel_flag_enable_analytics",
       "enabled": true,
       "source": "system_settings",
       "source_label": "System settings",
       "source_label_default": "System settings",
-      "source_label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel.sources.system_settings"
+      "source_label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel_source_system_settings"
     },
     {
       "key": "enable_cloud_backup",
       "label": "Cloud backup",
       "label_default": "Cloud backup",
-      "label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel.flags.enable_cloud_backup",
+      "label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel_flag_enable_cloud_backup",
       "enabled": false,
       "source": "default",
       "source_label": "Integration default",
       "source_label_default": "Integration default",
-      "source_label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel.sources.default"
+      "source_label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel_source_default"
     },
     {
       "key": "debug_logging",
       "label": "Debug logging",
       "label_default": "Debug logging",
-      "label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel.flags.debug_logging",
+      "label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel_flag_debug_logging",
       "enabled": true,
       "source": "options",
       "source_label": "Options flow",
       "source_label_default": "Options flow",
-      "source_label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel.sources.options"
+      "source_label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel_source_options"
     }
   ],
   "enabled_count": 2,

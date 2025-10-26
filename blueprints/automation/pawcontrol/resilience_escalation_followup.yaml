@@ -103,12 +103,8 @@ variables:
   manual_breaker_enabled: "{{ (manual_breaker_event | default('', true) | trim) != '' }}"
   watchdog_step: "{{ [watchdog_interval_minutes | int(0), 1] | max }}"
   service_execution: "{{ state_attr(statistics_sensor, 'service_execution') or {} }}"
-  guard_metrics: >-
-    {% set metrics = service_execution.get('guard_metrics') %}
-    {% if metrics is mapping %}{{ metrics }}{% else %}{{ {} }}{% endif %}
-  rejection_metrics: >-
-    {% set metrics = service_execution.get('rejection_metrics') %}
-    {% if metrics is mapping %}{{ metrics }}{% else %}{{ {} }}{% endif %}
+  guard_metrics: "{{ service_execution.get('guard_metrics', {}) }}"
+  rejection_metrics: "{{ service_execution.get('rejection_metrics', {}) }}"
   skip_count: "{{ guard_metrics.get('skipped', 0) | int(0) }}"
   executed_count: "{{ guard_metrics.get('executed', 0) | int(0) }}"
   guard_skip_ratio: >-
@@ -121,6 +117,9 @@ variables:
   rejection_breaker_count: "{{ rejection_metrics.get('rejection_breaker_count', 0) | int(0) }}"
   total_breaker_count: "{{ open_breaker_count + half_open_breaker_count }}"
   script_fields: "{{ state_attr(escalation_script, 'fields') or {} }}"
+  # The script stores thresholds either as numbers or as field mappings depending on
+  # the version that provisioned the automation. Preserve both formats so older
+  # resilience scripts can continue to populate defaults for this blueprint.
   skip_threshold: >-
     {% set field = script_fields.get('skip_threshold') %}
     {% if field is mapping %}
@@ -138,9 +137,9 @@ variables:
       {{ field | int(0) }}
     {% else %}1{% endif %}
   guard_triggered: >-
-    {{ (skip_threshold | int(0)) > 0 and skip_count >= (skip_threshold | int(0)) }}
+    {{ skip_threshold > 0 and skip_count >= skip_threshold }}
   breaker_triggered: >-
-    {{ (breaker_threshold | int(0)) > 0 and (total_breaker_count >= (breaker_threshold | int(0)) or rejection_breaker_count > 0) }}
+    {{ breaker_threshold > 0 and (total_breaker_count >= breaker_threshold or rejection_breaker_count > 0) }}
 
 action:
   - choose:
