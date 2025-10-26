@@ -372,6 +372,76 @@ stellen sicher, dass abgelehnte und erfolgreiche Wiederherstellungsläufe die
 gemeinsame Schema-Initialisierung respektieren und Diagnostiken stets die
 aktuelle Momentaufnahme liefern.【F:tests/unit/test_services.py†L94-L161】【F:tests/unit/test_services.py†L162-L203】【F:tests/components/pawcontrol/test_diagnostics.py†L277-L307】
 
+#### Resilience-Eskalationspanel
+Neben `service_execution` exportiert der Diagnostics-Dump das Panel
+`resilience_escalation`, damit Produktions-Runbooks die automatisch provisionierte
+Eskalationslogik nachvollziehen können. Der Snapshot deckt Script-Entity, Guard-
+und Breaker-Schwellen, Follow-up-Skript sowie Statistikquelle ab und spiegelt die
+Defaults aus dem Script-Manager wider.【F:custom_components/pawcontrol/script_manager.py†L600-L940】【F:custom_components/pawcontrol/diagnostics.py†L180-L214】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L247】
+
+```json
+{
+  "entity_id": "script.pawcontrol_pack_resilience_escalation",
+  "available": true,
+  "thresholds": {
+    "skip_threshold": {"default": 3, "active": 3},
+    "breaker_threshold": {"default": 1, "active": 1}
+  },
+  "followup_script": {
+    "default": "",
+    "active": "",
+    "configured": false
+  },
+  "statistics_entity_id": {
+    "default": "sensor.pawcontrol_statistics",
+    "active": "sensor.pawcontrol_statistics"
+  },
+  "escalation_service": {
+    "default": "persistent_notification.create",
+    "active": "persistent_notification.create"
+  },
+  "last_generated": "2024-02-20T09:15:00+00:00",
+  "last_triggered": null
+}
+```
+
+**Runbook-Hinweise:**
+
+- Steigt `skip_threshold.active` über den projektierten Wert, dokumentiert das
+  Panel eine bewusst gelockerte Guard-Eskalation und Runbooks sollten prüfen, ob
+  zusätzliche Observability vorhanden ist.
+- `breaker_threshold.active` von `0` deaktiviert Breaker-Alarme; Runbooks müssen
+  in diesem Fall alternative Checks vorsehen.
+- `followup_script.configured` zeigt, ob nachgelagerte Automationen (z. B.
+  PagerDuty, Jira) verkettet sind und welche Entity für Eskalationen genutzt
+  wird.【F:custom_components/pawcontrol/script_manager.py†L642-L720】
+- Die Schwellenwerte lassen sich direkt über den Options-Flow (Schritt
+  **Systemeinstellungen**) per `resilience_skip_threshold` und
+  `resilience_breaker_threshold` pflegen; das Resilience-Skript, System-Health
+  und die Diagnostics übernehmen die Einstellungen ohne zusätzliche YAML-
+  Anpassungen.【F:custom_components/pawcontrol/options_flow.py†L1088-L1143】【F:tests/unit/test_options_flow.py†L804-L852】【F:custom_components/pawcontrol/system_health.py†L150-L356】
+- `last_triggered` (UTC) ermöglicht ein Abgleichen mit Incident-Logs und den
+  `service_execution`-Kennzahlen.
+- Die System-Health-Kacheln übernehmen `skip_threshold.active` und
+  `breaker_threshold.active`, markieren Guard- und Breaker-Indikatoren mit denselben
+  Grenzwerten und dokumentieren Quelle sowie Fallbacks innerhalb von
+  `service_execution.guard_summary.thresholds` beziehungsweise
+  `service_execution.breaker_overview.thresholds`. Damit bleiben Dashboards und
+  Runbooks synchron mit dem Eskalationsskript.【F:custom_components/pawcontrol/system_health.py†L150-L356】【F:tests/components/pawcontrol/test_system_health.py†L1-L210】
+- Die Blueprint-Automation `pawcontrol/resilience_escalation_followup` ruft das
+  Skript mit exakt diesen Schwellen auf, sobald Guard-Skip- oder Breaker-Zähler
+  im Statistik-Sensor anschlagen. Zusätzlich lassen sich über
+  `watchdog_interval_minutes`, `manual_check_event` sowie die neuen
+  Ereigniseingaben `manual_guard_event` und `manual_breaker_event`
+  zeitbasierte Watchdogs, kombinierte Checks oder getrennte Guard-/Breaker-
+  Rechecks konfigurieren, ohne dass Runbooks zusätzliche Automationen für
+  stagnierende Sensordaten erstellen müssen.【F:blueprints/automation/pawcontrol/resilience_escalation_followup.yaml†L1-L125】
+- Diagnostics listen die aktiven `manual_*`-Trigger samt Blueprint-Quelle und
+  übernehmen beim Setup vorhandene Script-Schwellen automatisch in die
+  Optionsablage. Support-Dumps zeigen dadurch auf einen Blick, welche
+  Eskalationspfade bereitstehen und ob Bestandsinstallationen bereits auf die
+  neuen Resilience-Optionen migriert wurden.【F:custom_components/pawcontrol/script_manager.py†L238-L412】【F:custom_components/pawcontrol/options_flow.py†L700-L820】【F:tests/components/pawcontrol/test_diagnostics.py†L120-L208】
+
 #### Troubleshooting-Playbook
 
 Support-Teams können Guard- und Rejection-Daten gemeinsam auswerten, um

@@ -9,8 +9,9 @@ ingest the data without custom adapters.
 
 from __future__ import annotations
 
+import importlib
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
@@ -101,6 +102,13 @@ SETUP_FLAG_LABELS = {
 }
 
 
+SETUP_FLAG_LABEL_TRANSLATION_KEYS = {
+    "enable_analytics": "component.pawcontrol.diagnostics.setup_flags_panel.flags.enable_analytics",
+    "enable_cloud_backup": "component.pawcontrol.diagnostics.setup_flags_panel.flags.enable_cloud_backup",
+    "debug_logging": "component.pawcontrol.diagnostics.setup_flags_panel.flags.debug_logging",
+}
+
+
 SETUP_FLAG_SOURCE_LABELS = {
     "options": "Options flow",
     "system_settings": "System settings",
@@ -110,13 +118,113 @@ SETUP_FLAG_SOURCE_LABELS = {
 }
 
 
+SETUP_FLAG_SOURCE_LABEL_TRANSLATION_KEYS = {
+    "options": "component.pawcontrol.diagnostics.setup_flags_panel.sources.options",
+    "system_settings": "component.pawcontrol.diagnostics.setup_flags_panel.sources.system_settings",
+    "advanced_settings": "component.pawcontrol.diagnostics.setup_flags_panel.sources.advanced_settings",
+    "config_entry": "component.pawcontrol.diagnostics.setup_flags_panel.sources.config_entry",
+    "default": "component.pawcontrol.diagnostics.setup_flags_panel.sources.default",
+}
+
+
 SETUP_FLAGS_PANEL_TITLE = "Setup flags"
 
+
+SETUP_FLAGS_PANEL_TITLE_TRANSLATION_KEY = (
+    "component.pawcontrol.diagnostics.setup_flags_panel.title"
+)
 
 SETUP_FLAGS_PANEL_DESCRIPTION = (
     "Analytics, backup, and debug logging toggles captured during onboarding "
     "and options flows."
 )
+
+
+SETUP_FLAGS_PANEL_DESCRIPTION_TRANSLATION_KEY = (
+    "component.pawcontrol.diagnostics.setup_flags_panel.description"
+)
+
+
+_TRANSLATIONS_IMPORT_PATH = "homeassistant.helpers.translation"
+_ASYNC_GET_TRANSLATIONS: Callable[..., Awaitable[dict[str, str]]] | None
+try:
+    _translations_module = importlib.import_module(_TRANSLATIONS_IMPORT_PATH)
+    _ASYNC_GET_TRANSLATIONS = getattr(
+        _translations_module, "async_get_translations", None
+    )
+except (ModuleNotFoundError, AttributeError):
+    _ASYNC_GET_TRANSLATIONS = None
+
+
+async def _async_get_translations_wrapper(
+    hass: HomeAssistant,
+    language: str,
+    category: str,
+    integrations: set[str],
+) -> dict[str, str]:
+    """Call Home Assistant translations when available."""
+
+    if _ASYNC_GET_TRANSLATIONS is None:
+        return {}
+
+    return await _ASYNC_GET_TRANSLATIONS(hass, language, category, integrations)
+
+
+async_get_translations = _async_get_translations_wrapper
+
+
+async def _async_resolve_setup_flag_translations(
+    hass: HomeAssistant,
+    *,
+    language: str | None = None,
+) -> tuple[
+    str,
+    dict[str, str],
+    dict[str, str],
+    str,
+    str,
+]:
+    """Return localised labels for setup flag diagnostics."""
+
+    config_language = cast(str | None, getattr(hass.config, "language", None))
+    target_language = (language or config_language or "en").lower()
+
+    async def _async_fetch(lang: str) -> dict[str, str]:
+        if _ASYNC_GET_TRANSLATIONS is None:
+            return {}
+        try:
+            return await _ASYNC_GET_TRANSLATIONS(hass, lang, "component", {DOMAIN})
+        except Exception:  # pragma: no cover - defensive guard for HA API
+            _LOGGER.debug("Failed to load %s translations for setup flags", lang)
+            return {}
+
+    translations = await _async_fetch(target_language)
+    fallback_language = "en"
+    if target_language == fallback_language:
+        fallback_translations = translations
+    else:
+        fallback_translations = await _async_fetch(fallback_language)
+
+    def _lookup(key: str, default: str) -> str:
+        return translations.get(key) or fallback_translations.get(key) or default
+
+    flag_labels = {
+        key: _lookup(SETUP_FLAG_LABEL_TRANSLATION_KEYS[key], label)
+        for key, label in SETUP_FLAG_LABELS.items()
+    }
+
+    source_labels = {
+        key: _lookup(SETUP_FLAG_SOURCE_LABEL_TRANSLATION_KEYS[key], label)
+        for key, label in SETUP_FLAG_SOURCE_LABELS.items()
+    }
+
+    title = _lookup(SETUP_FLAGS_PANEL_TITLE_TRANSLATION_KEY, SETUP_FLAGS_PANEL_TITLE)
+    description = _lookup(
+        SETUP_FLAGS_PANEL_DESCRIPTION_TRANSLATION_KEY,
+        SETUP_FLAGS_PANEL_DESCRIPTION,
+    )
+
+    return target_language, flag_labels, source_labels, title, description
 
 
 def _collect_setup_flag_snapshots(entry: ConfigEntry) -> dict[str, SetupFlagSnapshot]:
@@ -176,20 +284,41 @@ def _summarise_setup_flags(entry: ConfigEntry) -> dict[str, bool]:
     return {key: snapshot["value"] for key, snapshot in snapshots.items()}
 
 
-def _build_setup_flags_panel(entry: ConfigEntry) -> dict[str, Any]:
+async def _async_build_setup_flags_panel(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> dict[str, Any]:
     """Expose setup flag metadata in a dashboard-friendly structure."""
 
+    (
+        language,
+        flag_labels,
+        source_labels,
+        title,
+        description,
+    ) = await _async_resolve_setup_flag_translations(hass)
+
     snapshots = _collect_setup_flag_snapshots(entry)
-    flags: list[dict[str, Any]] = [
-        {
-            "key": key,
-            "label": SETUP_FLAG_LABELS[key],
-            "enabled": snapshot["value"],
-            "source": snapshot["source"],
-            "source_label": SETUP_FLAG_SOURCE_LABELS[snapshot["source"]],
-        }
-        for key, snapshot in snapshots.items()
-    ]
+    flags: list[dict[str, Any]] = []
+
+    for key, snapshot in snapshots.items():
+        source = snapshot["source"]
+        flags.append(
+            {
+                "key": key,
+                "label": flag_labels.get(key, SETUP_FLAG_LABELS[key]),
+                "label_default": SETUP_FLAG_LABELS[key],
+                "label_translation_key": SETUP_FLAG_LABEL_TRANSLATION_KEYS[key],
+                "enabled": snapshot["value"],
+                "source": source,
+                "source_label": source_labels.get(
+                    source, SETUP_FLAG_SOURCE_LABELS[source]
+                ),
+                "source_label_default": SETUP_FLAG_SOURCE_LABELS[source],
+                "source_label_translation_key": SETUP_FLAG_SOURCE_LABEL_TRANSLATION_KEYS[
+                    source
+                ],
+            }
+        )
 
     enabled_count = sum(1 for flag in flags if flag["enabled"])
     disabled_count = len(flags) - enabled_count
@@ -200,13 +329,20 @@ def _build_setup_flags_panel(entry: ConfigEntry) -> dict[str, Any]:
         source_breakdown[source] = source_breakdown.get(source, 0) + 1
 
     return {
-        "title": SETUP_FLAGS_PANEL_TITLE,
-        "description": SETUP_FLAGS_PANEL_DESCRIPTION,
+        "title": title,
+        "title_translation_key": SETUP_FLAGS_PANEL_TITLE_TRANSLATION_KEY,
+        "title_default": SETUP_FLAGS_PANEL_TITLE,
+        "description": description,
+        "description_translation_key": SETUP_FLAGS_PANEL_DESCRIPTION_TRANSLATION_KEY,
+        "description_default": SETUP_FLAGS_PANEL_DESCRIPTION,
         "flags": flags,
         "enabled_count": enabled_count,
         "disabled_count": disabled_count,
         "source_breakdown": source_breakdown,
-        "source_labels": SETUP_FLAG_SOURCE_LABELS,
+        "source_labels": source_labels,
+        "source_labels_default": SETUP_FLAG_SOURCE_LABELS,
+        "source_label_translation_keys": SETUP_FLAG_SOURCE_LABEL_TRANSLATION_KEYS,
+        "language": language,
     }
 
 
@@ -458,7 +594,7 @@ async def async_get_config_entry_diagnostics(
         "service_execution": await _get_service_execution_diagnostics(runtime_data),
         "bool_coercion": _get_bool_coercion_diagnostics(runtime_data),
         "setup_flags": _summarise_setup_flags(entry),
-        "setup_flags_panel": _build_setup_flags_panel(entry),
+        "setup_flags_panel": await _async_build_setup_flags_panel(hass, entry),
         "resilience_escalation": _get_resilience_escalation_snapshot(runtime_data),
     }
 

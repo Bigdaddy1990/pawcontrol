@@ -481,7 +481,9 @@
           "data_retention_days": "Datenaufbewahrung (Tage)",
           "auto_backup": "Automatische Backups",
           "enable_analytics": "Analysen aktivieren",
-          "enable_cloud_backup": "Cloud-Backup aktivieren"
+          "enable_cloud_backup": "Cloud-Backup aktivieren",
+          "resilience_skip_threshold": "Schwellwert für Guard-Übersprünge",
+          "resilience_breaker_threshold": "Schwellwert für Breaker-Eskalationen"
         },
         "data_description": {
           "reset_time": "Lege fest, wann Paw Control die täglichen Wartungsaufgaben ausführt.",
@@ -489,7 +491,9 @@
           "data_retention_days": "Gibt an, wie lange Paw Control historische Kennzahlen aufbewahrt, bevor sie gelöscht werden.",
           "auto_backup": "Plane lokale Exporte, bevor die Aufbewahrung bereinigt wird.",
           "enable_analytics": "Aggregiert anonyme Trends über alle Hunde für Übersichts-Widgets.",
-          "enable_cloud_backup": "Lädt Konfigurations-Snapshots in das konfigurierte Cloud-Ziel hoch."
+          "enable_cloud_backup": "Lädt Konfigurations-Snapshots in das konfigurierte Cloud-Ziel hoch.",
+          "resilience_skip_threshold": "Anzahl übersprungener Guard-Aufrufe, bevor das Eskalationsskript alarmiert (0 deaktiviert Guard-Eskalationen).",
+          "resilience_breaker_threshold": "Anzahl offener oder halb geöffneter Breaker, die Follow-up-Aktionen auslösen (0 deaktiviert Breaker-Eskalationen)."
         }
       },
       "dashboard_settings": {
@@ -1228,6 +1232,22 @@
     }
   },
   "diagnostics": {
+    "setup_flags_panel": {
+      "title": "Setup-Flags",
+      "description": "Analytics-, Backup- und Debug-Logging-Schalter aus Onboarding und Optionen.",
+      "flags": {
+        "enable_analytics": "Analyse-Telemetrie",
+        "enable_cloud_backup": "Cloud-Backup",
+        "debug_logging": "Debug-Logging"
+      },
+      "sources": {
+        "options": "Options-Flow",
+        "system_settings": "Systemeinstellungen",
+        "advanced_settings": "Erweiterte Einstellungen",
+        "config_entry": "Konfigurationseintrag",
+        "default": "Integrationsstandard"
+      }
+    },
     "setup_flags": {
       "panel": {
         "title": "Setup-Flags",

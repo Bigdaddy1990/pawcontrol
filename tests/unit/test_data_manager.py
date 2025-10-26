@@ -555,6 +555,104 @@ def test_script_manager_resilience_escalation_definition() -> None:
     assert snapshot["state_available"] is False
     assert snapshot["thresholds"]["skip_threshold"]["default"] == 3
     assert snapshot["thresholds"]["breaker_threshold"]["default"] == 1
+    manual = snapshot["manual_events"]
+    assert manual["available"] is False
+    assert manual["automations"] == []
+
+
+@pytest.mark.unit
+def test_script_manager_resilience_threshold_overrides() -> None:
+    """Config entry options should override default resilience thresholds."""
+
+    hass = SimpleNamespace(data={})
+    entry = SimpleNamespace(
+        entry_id="entry-id",
+        data={},
+        options={
+            "system_settings": {
+                "resilience_skip_threshold": 9,
+                "resilience_breaker_threshold": 4,
+            }
+        },
+        title="Canine Ops",
+    )
+
+    script_manager = PawControlScriptManager(hass, entry)
+
+    _object_id, config = script_manager._build_resilience_escalation_script()
+    fields = config[CONF_FIELDS]
+    assert fields["skip_threshold"][CONF_DEFAULT] == 9
+    assert fields["breaker_threshold"][CONF_DEFAULT] == 4
+
+    snapshot = script_manager.get_resilience_escalation_snapshot()
+    assert snapshot is not None
+    assert snapshot["thresholds"]["skip_threshold"]["default"] == 9
+    assert snapshot["thresholds"]["breaker_threshold"]["default"] == 4
+    assert snapshot["manual_events"]["available"] is False
+
+
+@pytest.mark.unit
+def test_script_manager_resilience_manual_event_snapshot() -> None:
+    """Manual blueprint triggers should be surfaced in diagnostics snapshots."""
+
+    hass = SimpleNamespace(
+        data={},
+        states=SimpleNamespace(get=lambda entity_id: None),
+        config_entries=SimpleNamespace(
+            async_entries=lambda domain: [
+                SimpleNamespace(
+                    entry_id="automation-id",
+                    title="Resilience follow-up",
+                    data={
+                        "use_blueprint": {
+                            "path": "blueprints/automation/pawcontrol/resilience_escalation_followup.yaml",
+                            "input": {
+                                "manual_guard_event": "pawcontrol_manual_guard",
+                                "manual_breaker_event": "pawcontrol_manual_breaker",
+                                "manual_check_event": "pawcontrol_resilience_check",
+                            },
+                        }
+                    },
+                )
+            ]
+            if domain == "automation"
+            else []
+        ),
+    )
+    entry = SimpleNamespace(entry_id="entry-id", data={}, options={}, title="Ops")
+
+    script_manager = PawControlScriptManager(hass, entry)
+    script_manager._build_resilience_escalation_script()
+
+    snapshot = script_manager.get_resilience_escalation_snapshot()
+    assert snapshot is not None
+    manual = snapshot["manual_events"]
+    assert manual["available"] is True
+    assert manual["configured_guard_events"] == ["pawcontrol_manual_guard"]
+    assert manual["configured_breaker_events"] == ["pawcontrol_manual_breaker"]
+    assert manual["configured_check_events"] == ["pawcontrol_resilience_check"]
+    automation_entry = manual["automations"][0]
+    assert automation_entry["configured_guard"] is True
+    assert automation_entry["configured_breaker"] is True
+
+
+@pytest.mark.unit
+def test_resilience_followup_blueprint_manual_events() -> None:
+    """Manual blueprint triggers should drive escalation and follow-up paths."""
+
+    blueprint_path = Path(
+        "blueprints/automation/pawcontrol/resilience_escalation_followup.yaml"
+    )
+    blueprint_source = blueprint_path.read_text(encoding="utf-8")
+
+    assert "id: manual_guard_event" in blueprint_source
+    assert "id: manual_breaker_event" in blueprint_source
+    assert "trigger.id in ['manual_event', 'manual_guard_event']" in blueprint_source
+    assert "trigger.id in ['manual_event', 'manual_breaker_event']" in blueprint_source
+    assert (
+        "manual_event', 'manual_guard_event', 'manual_breaker_event'"
+        in blueprint_source
+    )
 
 
 @pytest.mark.unit

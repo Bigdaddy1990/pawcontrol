@@ -101,6 +101,102 @@ HTTP calls reuse Home Assistant’s managed aiohttp session.
 - Unit-Tests decken die Session-Garantie und Kernadapter ab, benötigen jedoch
   weiterhin ein Home-Assistant-Test-Environment für vollständige Abdeckung.
 
+### Support-Diagnostik
+Das Diagnostics-Panel `setup_flags_panel` fasst Analytics-, Backup- und Debug-
+Schalter mit lokalisierter Beschriftung zusammen, ergänzt Default-Werte sowie
+die ausgehandelte Sprache, damit Support-Teams und Blueprint-Autoren den
+Onboarding-Status ohne zusätzliche Parser übernehmen können.【F:custom_components/pawcontrol/diagnostics.py†L90-L214】【F:tests/components/pawcontrol/test_diagnostics.py†L260-L339】
+Neben den aktivierten Zählern liefert der Block alle Quellenbezeichnungen aus
+`SETUP_FLAG_SOURCE_LABELS` samt Übersetzungs-Keys. `strings.json` führt
+dieselben Label- und Quellen-Texte unter `diagnostics.setup_flags_panel`, sodass
+Übersetzungs-Workflows die Panels ohne manuelle Exporte nachpflegen können.【F:custom_components/pawcontrol/strings.json†L1391-L1414】
+
+```json
+{
+  "title": "Setup flags",
+  "title_default": "Setup flags",
+  "description": "Analytics, backup, and debug logging toggles captured during onboarding and options flows.",
+  "description_default": "Analytics, backup, and debug logging toggles captured during onboarding and options flows.",
+  "language": "en",
+  "flags": [
+    {
+      "key": "enable_analytics",
+      "label": "Analytics telemetry",
+      "label_default": "Analytics telemetry",
+      "label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel.flags.enable_analytics",
+      "enabled": true,
+      "source": "system_settings",
+      "source_label": "System settings",
+      "source_label_default": "System settings",
+      "source_label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel.sources.system_settings"
+    },
+    {
+      "key": "enable_cloud_backup",
+      "label": "Cloud backup",
+      "label_default": "Cloud backup",
+      "label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel.flags.enable_cloud_backup",
+      "enabled": false,
+      "source": "default",
+      "source_label": "Integration default",
+      "source_label_default": "Integration default",
+      "source_label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel.sources.default"
+    },
+    {
+      "key": "debug_logging",
+      "label": "Debug logging",
+      "label_default": "Debug logging",
+      "label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel.flags.debug_logging",
+      "enabled": true,
+      "source": "options",
+      "source_label": "Options flow",
+      "source_label_default": "Options flow",
+      "source_label_translation_key": "component.pawcontrol.diagnostics.setup_flags_panel.sources.options"
+    }
+  ],
+  "enabled_count": 2,
+  "disabled_count": 1,
+  "source_breakdown": {
+    "system_settings": 1,
+    "default": 1,
+    "options": 1
+  },
+  "source_labels": {
+    "options": "Options flow",
+    "system_settings": "System settings",
+    "advanced_settings": "Advanced settings",
+    "config_entry": "Config entry defaults",
+    "default": "Integration default"
+  },
+  "source_labels_default": {
+    "options": "Options flow",
+    "system_settings": "System settings",
+    "advanced_settings": "Advanced settings",
+    "config_entry": "Config entry defaults",
+    "default": "Integration default"
+  }
+}
+```
+
+### System-Health-Resilienz & Blueprint-Automation
+- Der System-Health-Endpunkt färbt Guard-Skip- und Breaker-Warnungen über
+  farbcodierte Indikatoren ein und fasst Guard-, Breaker- und Gesamtstatus
+  zusammen, sobald definierte Resilience-Schwellen überschritten werden. Tests
+  prüfen Normal-, Warn- und Kritikalarm, deaktivierte Skript-Schwellen sowie
+  Options-Fallbacks, damit Bereitschaftsteams im Frontend sofort kritische
+  Zustände erkennen.【F:custom_components/pawcontrol/system_health.py†L40-L356】【F:tests/components/pawcontrol/test_system_health.py†L17-L330】
+- Die neuen Options-Flow-Felder `resilience_skip_threshold` und
+  `resilience_breaker_threshold` setzen Guard- und Breaker-Schwellen zentral und
+  synchronisieren Skript, Diagnostics und System-Health ohne YAML-Anpassungen.【F:custom_components/pawcontrol/options_flow.py†L1088-L1143】【F:tests/unit/test_options_flow.py†L804-L852】【F:custom_components/pawcontrol/script_manager.py†L431-L820】
+- Die Blueprint-Vorlage `resilience_escalation_followup` ruft das generierte
+  Eskalationsskript samt aktiver Schwellenwerte auf, erlaubt optionale Pager-
+  Aktionen und bietet getrennte manuelle Guard-/Breaker-Events sowie einen
+  Watchdog, damit Runbooks ohne Duplikate auf Abruf reagieren können.【F:blueprints/automation/pawcontrol/resilience_escalation_followup.yaml†L1-L125】
+- Diagnostics spiegeln die konfigurierten `manual_*`-Trigger, aggregieren die
+  Blueprint-Konfiguration über `config_entries` und migrieren vorhandene
+  Skript-Schwellen bei Bestandsinstallationen automatisch in den Optionen-
+  Payload. Dadurch bleiben System-Health, Blueprint und Dokumentation
+  synchronisiert.【F:custom_components/pawcontrol/script_manager.py†L238-L412】【F:custom_components/pawcontrol/options_flow.py†L700-L820】【F:tests/components/pawcontrol/test_diagnostics.py†L120-L208】
+
 Paw Control konzentriert sich auf eine verlässliche Home-Assistant-Integration
 statt auf proprietäre Cloud-Dienste. Funktionen, die noch in Arbeit sind (z. B.
 Hardware-spezifische APIs), werden erst in der Dokumentation beworben, wenn sie

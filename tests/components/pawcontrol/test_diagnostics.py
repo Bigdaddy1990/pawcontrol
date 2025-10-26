@@ -4,6 +4,7 @@ import json
 import logging
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from custom_components.pawcontrol.const import (
@@ -17,6 +18,10 @@ from custom_components.pawcontrol.const import (
 from custom_components.pawcontrol.coordinator_tasks import default_rejection_metrics
 from custom_components.pawcontrol.diagnostics import async_get_config_entry_diagnostics
 from custom_components.pawcontrol.script_manager import PawControlScriptManager
+from custom_components.pawcontrol.telemetry import (
+    record_bool_coercion_event,
+    reset_bool_coercion_metrics,
+)
 from custom_components.pawcontrol.types import (
     CacheRepairAggregate,
     PawControlRuntimeData,
@@ -61,6 +66,22 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     hass.config.version = "2025.10.1"
     hass.config.python_version = "3.13.3"
     hass.config.start_time = datetime.now(UTC)
+
+    automation_entry = SimpleNamespace(
+        entry_id="automation-id",
+        title="Resilience follow-up",
+        data={
+            "use_blueprint": {
+                "path": "automation/pawcontrol/resilience_escalation_followup.yaml",
+                "input": {
+                    "manual_guard_event": "pawcontrol_manual_guard",
+                    "manual_breaker_event": "pawcontrol_manual_breaker",
+                    "manual_check_event": "pawcontrol_resilience_check",
+                },
+            }
+        },
+    )
+    hass.config_entries.async_entries = MagicMock(return_value=[automation_entry])
 
     device_registry = dr.async_get(hass)
     device = device_registry.async_get_or_create(
@@ -256,7 +277,51 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
 
     hass.services.async_register(DOMAIN, "sync", lambda call: None)
 
-    diagnostics = await async_get_config_entry_diagnostics(hass, entry)
+    reset_bool_coercion_metrics()
+    record_bool_coercion_event(
+        value="1",
+        default=False,
+        result=True,
+        reason="truthy_string",
+    )
+
+    translations = {
+        "component.pawcontrol.diagnostics.setup_flags_panel.title": "Setup flags",
+        "component.pawcontrol.diagnostics.setup_flags_panel.description": (
+            "Analytics, backup, and debug logging toggles captured during onboarding "
+            "and options flows."
+        ),
+        "component.pawcontrol.diagnostics.setup_flags_panel.flags.enable_analytics": (
+            "Analytics telemetry"
+        ),
+        "component.pawcontrol.diagnostics.setup_flags_panel.flags.enable_cloud_backup": (
+            "Cloud backup"
+        ),
+        "component.pawcontrol.diagnostics.setup_flags_panel.flags.debug_logging": (
+            "Debug logging"
+        ),
+        "component.pawcontrol.diagnostics.setup_flags_panel.sources.options": (
+            "Options flow"
+        ),
+        "component.pawcontrol.diagnostics.setup_flags_panel.sources.system_settings": (
+            "System settings"
+        ),
+        "component.pawcontrol.diagnostics.setup_flags_panel.sources.advanced_settings": (
+            "Advanced settings"
+        ),
+        "component.pawcontrol.diagnostics.setup_flags_panel.sources.config_entry": (
+            "Config entry defaults"
+        ),
+        "component.pawcontrol.diagnostics.setup_flags_panel.sources.default": (
+            "Integration default"
+        ),
+    }
+
+    with patch(
+        "custom_components.pawcontrol.diagnostics.async_get_translations",
+        AsyncMock(return_value=translations),
+    ):
+        diagnostics = await async_get_config_entry_diagnostics(hass, entry)
 
     setup_flags = diagnostics["setup_flags"]
     assert setup_flags["enable_analytics"] is True
@@ -265,28 +330,78 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
 
     setup_panel = diagnostics["setup_flags_panel"]
     assert setup_panel["title"] == "Setup flags"
+    assert setup_panel["title_default"] == "Setup flags"
     assert (
         setup_panel["description"]
         == "Analytics, backup, and debug logging toggles captured during onboarding "
         "and options flows."
     )
+    assert (
+        setup_panel["description_default"]
+        == "Analytics, backup, and debug logging toggles captured during onboarding "
+        "and options flows."
+    )
     assert setup_panel["enabled_count"] == 2
     assert setup_panel["disabled_count"] == 1
+    assert setup_panel["language"] == "en"
     flags_by_key = {flag["key"]: flag for flag in setup_panel["flags"]}
     assert flags_by_key["enable_analytics"]["enabled"] is True
     assert flags_by_key["enable_analytics"]["source"] == "options"
     assert flags_by_key["enable_analytics"]["label"] == "Analytics telemetry"
+    assert flags_by_key["enable_analytics"]["label_default"] == "Analytics telemetry"
+    assert (
+        flags_by_key["enable_analytics"]["label_translation_key"]
+        == "component.pawcontrol.diagnostics.setup_flags_panel.flags.enable_analytics"
+    )
     assert flags_by_key["enable_analytics"]["source_label"] == "Options flow"
+    assert flags_by_key["enable_analytics"]["source_label_default"] == "Options flow"
+    assert (
+        flags_by_key["enable_analytics"]["source_label_translation_key"]
+        == "component.pawcontrol.diagnostics.setup_flags_panel.sources.options"
+    )
     assert flags_by_key["enable_cloud_backup"]["enabled"] is False
     assert flags_by_key["enable_cloud_backup"]["source"] == "options"
     assert flags_by_key["enable_cloud_backup"]["label"] == "Cloud backup"
+    assert flags_by_key["enable_cloud_backup"]["label_default"] == "Cloud backup"
+    assert (
+        flags_by_key["enable_cloud_backup"]["label_translation_key"]
+        == "component.pawcontrol.diagnostics.setup_flags_panel.flags.enable_cloud_backup"
+    )
     assert flags_by_key["enable_cloud_backup"]["source_label"] == "Options flow"
+    assert flags_by_key["enable_cloud_backup"]["source_label_default"] == "Options flow"
+    assert (
+        flags_by_key["enable_cloud_backup"]["source_label_translation_key"]
+        == "component.pawcontrol.diagnostics.setup_flags_panel.sources.options"
+    )
     assert flags_by_key["debug_logging"]["enabled"] is True
     assert flags_by_key["debug_logging"]["source"] == "options"
     assert flags_by_key["debug_logging"]["label"] == "Debug logging"
+    assert flags_by_key["debug_logging"]["label_default"] == "Debug logging"
+    assert (
+        flags_by_key["debug_logging"]["label_translation_key"]
+        == "component.pawcontrol.diagnostics.setup_flags_panel.flags.debug_logging"
+    )
     assert flags_by_key["debug_logging"]["source_label"] == "Options flow"
+    assert flags_by_key["debug_logging"]["source_label_default"] == "Options flow"
+    assert (
+        flags_by_key["debug_logging"]["source_label_translation_key"]
+        == "component.pawcontrol.diagnostics.setup_flags_panel.sources.options"
+    )
     assert setup_panel["source_breakdown"]["options"] == 3
     assert setup_panel["source_labels"]["options"] == "Options flow"
+    assert setup_panel["source_labels_default"]["options"] == "Options flow"
+    assert (
+        setup_panel["source_label_translation_keys"]["options"]
+        == "component.pawcontrol.diagnostics.setup_flags_panel.sources.options"
+    )
+    assert (
+        setup_panel["title_translation_key"]
+        == "component.pawcontrol.diagnostics.setup_flags_panel.title"
+    )
+    assert (
+        setup_panel["description_translation_key"]
+        == "component.pawcontrol.diagnostics.setup_flags_panel.description"
+    )
 
     escalation = diagnostics["resilience_escalation"]
     assert escalation["available"] is True
@@ -302,6 +417,12 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     assert escalation["last_triggered"].startswith(
         last_triggered.replace(microsecond=0).isoformat()[:16]
     )
+    manual_events = escalation["manual_events"]
+    assert manual_events["available"] is True
+    assert manual_events["configured_guard_events"] == ["pawcontrol_manual_guard"]
+    assert manual_events["configured_breaker_events"] == ["pawcontrol_manual_breaker"]
+    assert manual_events["configured_check_events"] == ["pawcontrol_resilience_check"]
+    assert manual_events["automations"][0]["title"] == "Resilience follow-up"
 
     # Diagnostics payloads should be JSON serialisable once normalised.
     serialised = json.dumps(diagnostics)
