@@ -733,67 +733,112 @@ class PawControlOptionsFlow(OptionsFlow):
         if SYSTEM_ENABLE_CLOUD_BACKUP_FIELD not in system:
             system[SYSTEM_ENABLE_CLOUD_BACKUP_FIELD] = bool(enable_cloud_backup)
 
-        skip_default = DEFAULT_RESILIENCE_SKIP_THRESHOLD
+        has_skip = "resilience_skip_threshold" in system
+        has_breaker = "resilience_breaker_threshold" in system
+
+        skip_default = self._resolve_resilience_threshold_default(
+            system,
+            options,
+            field="resilience_skip_threshold",
+            fallback=DEFAULT_RESILIENCE_SKIP_THRESHOLD,
+        )
+        breaker_default = self._resolve_resilience_threshold_default(
+            system,
+            options,
+            field="resilience_breaker_threshold",
+            fallback=DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
+        )
+
+        script_skip, script_breaker = self._resolve_script_threshold_fallbacks(
+            has_skip=has_skip,
+            has_breaker=has_breaker,
+        )
+
         skip_candidate = system.get("resilience_skip_threshold")
-        if isinstance(skip_candidate, int):
-            skip_default = skip_candidate
-        else:
-            legacy_skip = options.get("resilience_skip_threshold")
-            if isinstance(legacy_skip, int):
-                skip_default = legacy_skip
-        system["resilience_skip_threshold"] = self._coerce_clamped_int(
-            skip_candidate,
-            skip_default,
+        breaker_candidate = system.get("resilience_breaker_threshold")
+
+        system["resilience_skip_threshold"] = self._finalise_resilience_threshold(
+            candidate=skip_candidate,
+            default=skip_default,
+            script_value=script_skip,
+            include_script=not has_skip,
             minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
             maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
+            fallback=DEFAULT_RESILIENCE_SKIP_THRESHOLD,
         )
-
-        breaker_default = DEFAULT_RESILIENCE_BREAKER_THRESHOLD
-        breaker_candidate = system.get("resilience_breaker_threshold")
-        if isinstance(breaker_candidate, int):
-            breaker_default = breaker_candidate
-        else:
-            legacy_breaker = options.get("resilience_breaker_threshold")
-            if isinstance(legacy_breaker, int):
-                breaker_default = legacy_breaker
-        system["resilience_breaker_threshold"] = self._coerce_clamped_int(
-            breaker_candidate,
-            breaker_default,
+        system["resilience_breaker_threshold"] = self._finalise_resilience_threshold(
+            candidate=breaker_candidate,
+            default=breaker_default,
+            script_value=script_breaker,
+            include_script=not has_breaker,
             minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
             maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
+            fallback=DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
         )
 
-        if (
-            "resilience_skip_threshold" not in system
-            or "resilience_breaker_threshold" not in system
-        ):
-            hass = getattr(self, "hass", None)
-            if hass is not None:
-                script_skip, script_breaker = resolve_resilience_script_thresholds(
-                    hass, self._entry
-                )
-                if (
-                    script_skip is not None
-                    and "resilience_skip_threshold" not in system
-                ):
-                    system["resilience_skip_threshold"] = self._coerce_clamped_int(
-                        script_skip,
-                        DEFAULT_RESILIENCE_SKIP_THRESHOLD,
-                        minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
-                        maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
-                    )
-                if (
-                    script_breaker is not None
-                    and "resilience_breaker_threshold" not in system
-                ):
-                    system["resilience_breaker_threshold"] = self._coerce_clamped_int(
-                        script_breaker,
-                        DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
-                        minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
-                        maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
-                    )
-
         return system
+
+    @staticmethod
+    def _resolve_resilience_threshold_default(
+        system: SystemOptions,
+        options: Mapping[str, Any],
+        *,
+        field: str,
+        fallback: int,
+    ) -> int:
+        """Return the default threshold from system options or legacy storage."""
+
+        candidate = system.get(field)
+        if isinstance(candidate, int):
+            return candidate
+
+        legacy_value = options.get(field)
+        if isinstance(legacy_value, int):
+            return legacy_value
+
+        return fallback
+
+    def _resolve_script_threshold_fallbacks(
+        self, *, has_skip: bool, has_breaker: bool
+    ) -> tuple[int | None, int | None]:
+        """Return script thresholds when options are missing values."""
+
+        if has_skip and has_breaker:
+            return None, None
+
+        hass = getattr(self, "hass", None)
+        if hass is None:
+            return None, None
+
+        return resolve_resilience_script_thresholds(hass, self._entry)
+
+    def _finalise_resilience_threshold(
+        self,
+        *,
+        candidate: Any,
+        default: int,
+        script_value: int | None,
+        include_script: bool,
+        minimum: int,
+        maximum: int,
+        fallback: int,
+    ) -> int:
+        """Return the stored threshold, falling back to script defaults when needed."""
+
+        if include_script and script_value is not None:
+            return self._coerce_clamped_int(
+                script_value,
+                fallback,
+                minimum=minimum,
+                maximum=maximum,
+            )
+
+        return self._coerce_clamped_int(
+            candidate,
+            default,
+            minimum=minimum,
+            maximum=maximum,
+        )
 
     def _current_dashboard_options(self) -> DashboardOptions:
         """Return the stored dashboard configuration."""

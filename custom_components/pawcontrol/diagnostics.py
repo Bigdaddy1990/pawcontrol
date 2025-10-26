@@ -9,7 +9,6 @@ ingest the data without custom adapters.
 
 from __future__ import annotations
 
-import contextlib
 import importlib
 import logging
 from collections.abc import Awaitable, Callable, Mapping, Sequence
@@ -147,12 +146,13 @@ SETUP_FLAGS_PANEL_DESCRIPTION_TRANSLATION_KEY = (
 
 
 _TRANSLATIONS_IMPORT_PATH = "homeassistant.helpers.translation"
-with contextlib.suppress(ModuleNotFoundError, AttributeError):
+_ASYNC_GET_TRANSLATIONS: Callable[..., Awaitable[dict[str, str]]] | None
+try:
     _translations_module = importlib.import_module(_TRANSLATIONS_IMPORT_PATH)
-    _ASYNC_GET_TRANSLATIONS: Callable[..., Awaitable[dict[str, str]]] | None = getattr(
+    _ASYNC_GET_TRANSLATIONS = getattr(
         _translations_module, "async_get_translations", None
     )
-if "_ASYNC_GET_TRANSLATIONS" not in locals():
+except (ModuleNotFoundError, AttributeError):
     _ASYNC_GET_TRANSLATIONS = None
 
 
