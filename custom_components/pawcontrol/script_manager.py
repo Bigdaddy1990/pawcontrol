@@ -471,10 +471,7 @@ class PawControlScriptManager:
                 maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
             )
 
-        if (
-            script_breaker is not None
-            and "resilience_breaker_threshold" not in updated
-        ):
+        if script_breaker is not None and "resilience_breaker_threshold" not in updated:
             updated["resilience_breaker_threshold"] = _coerce_threshold(
                 script_breaker,
                 default=DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
