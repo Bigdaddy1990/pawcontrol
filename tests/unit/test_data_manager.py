@@ -649,7 +649,10 @@ def test_resilience_followup_blueprint_manual_events() -> None:
     assert "id: manual_breaker_event" in blueprint_source
     assert "trigger.id in ['manual_event', 'manual_guard_event']" in blueprint_source
     assert "trigger.id in ['manual_event', 'manual_breaker_event']" in blueprint_source
-    assert "manual_event', 'manual_guard_event', 'manual_breaker_event'" in blueprint_source
+    assert (
+        "manual_event', 'manual_guard_event', 'manual_breaker_event'"
+        in blueprint_source
+    )
 
 
 @pytest.mark.unit

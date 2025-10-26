@@ -107,9 +107,7 @@ def _classify_timestamp(value: datetime | None) -> tuple[str | None, int | None]
     return None, age_seconds
 
 
-def _coerce_threshold(
-    value: Any, *, default: int, minimum: int, maximum: int
-) -> int:
+def _coerce_threshold(value: Any, *, default: int, minimum: int, maximum: int) -> int:
     """Return a clamped integer threshold for resilience configuration."""
 
     try:
@@ -460,7 +458,10 @@ class PawControlScriptManager:
         skip_value = updated_system.get("resilience_skip_threshold")
         breaker_value = updated_system.get("resilience_breaker_threshold")
 
-        if "resilience_skip_threshold" not in updated_options and skip_value is not None:
+        if (
+            "resilience_skip_threshold" not in updated_options
+            and skip_value is not None
+        ):
             updated_options["resilience_skip_threshold"] = skip_value
         if (
             "resilience_breaker_threshold" not in updated_options
@@ -510,9 +511,7 @@ class PawControlScriptManager:
                 inputs = {}
 
             manual_guard = _normalise_manual_event(inputs.get("manual_guard_event"))
-            manual_breaker = _normalise_manual_event(
-                inputs.get("manual_breaker_event")
-            )
+            manual_breaker = _normalise_manual_event(inputs.get("manual_breaker_event"))
             manual_check = _normalise_manual_event(inputs.get("manual_check_event"))
 
             if manual_guard:

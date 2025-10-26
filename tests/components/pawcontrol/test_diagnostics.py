@@ -348,17 +348,13 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     assert flags_by_key["enable_analytics"]["enabled"] is True
     assert flags_by_key["enable_analytics"]["source"] == "options"
     assert flags_by_key["enable_analytics"]["label"] == "Analytics telemetry"
-    assert (
-        flags_by_key["enable_analytics"]["label_default"] == "Analytics telemetry"
-    )
+    assert flags_by_key["enable_analytics"]["label_default"] == "Analytics telemetry"
     assert (
         flags_by_key["enable_analytics"]["label_translation_key"]
         == "component.pawcontrol.diagnostics.setup_flags_panel.flags.enable_analytics"
     )
     assert flags_by_key["enable_analytics"]["source_label"] == "Options flow"
-    assert (
-        flags_by_key["enable_analytics"]["source_label_default"] == "Options flow"
-    )
+    assert flags_by_key["enable_analytics"]["source_label_default"] == "Options flow"
     assert (
         flags_by_key["enable_analytics"]["source_label_translation_key"]
         == "component.pawcontrol.diagnostics.setup_flags_panel.sources.options"
@@ -366,18 +362,13 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     assert flags_by_key["enable_cloud_backup"]["enabled"] is False
     assert flags_by_key["enable_cloud_backup"]["source"] == "options"
     assert flags_by_key["enable_cloud_backup"]["label"] == "Cloud backup"
-    assert (
-        flags_by_key["enable_cloud_backup"]["label_default"] == "Cloud backup"
-    )
+    assert flags_by_key["enable_cloud_backup"]["label_default"] == "Cloud backup"
     assert (
         flags_by_key["enable_cloud_backup"]["label_translation_key"]
         == "component.pawcontrol.diagnostics.setup_flags_panel.flags.enable_cloud_backup"
     )
     assert flags_by_key["enable_cloud_backup"]["source_label"] == "Options flow"
-    assert (
-        flags_by_key["enable_cloud_backup"]["source_label_default"]
-        == "Options flow"
-    )
+    assert flags_by_key["enable_cloud_backup"]["source_label_default"] == "Options flow"
     assert (
         flags_by_key["enable_cloud_backup"]["source_label_translation_key"]
         == "component.pawcontrol.diagnostics.setup_flags_panel.sources.options"
@@ -391,9 +382,7 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
         == "component.pawcontrol.diagnostics.setup_flags_panel.flags.debug_logging"
     )
     assert flags_by_key["debug_logging"]["source_label"] == "Options flow"
-    assert (
-        flags_by_key["debug_logging"]["source_label_default"] == "Options flow"
-    )
+    assert flags_by_key["debug_logging"]["source_label_default"] == "Options flow"
     assert (
         flags_by_key["debug_logging"]["source_label_translation_key"]
         == "component.pawcontrol.diagnostics.setup_flags_panel.sources.options"

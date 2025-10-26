@@ -289,9 +289,13 @@ async def _async_build_setup_flags_panel(
 ) -> dict[str, Any]:
     """Expose setup flag metadata in a dashboard-friendly structure."""
 
-    language, flag_labels, source_labels, title, description = (
-        await _async_resolve_setup_flag_translations(hass)
-    )
+    (
+        language,
+        flag_labels,
+        source_labels,
+        title,
+        description,
+    ) = await _async_resolve_setup_flag_translations(hass)
 
     snapshots = _collect_setup_flag_snapshots(entry)
     flags: list[dict[str, Any]] = []

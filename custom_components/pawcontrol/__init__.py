@@ -720,7 +720,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 garden_manager = GardenManager(hass, entry.entry_id)
 
                 if script_manager is not None:
-                    migrated_options = script_manager.ensure_resilience_threshold_options()
+                    migrated_options = (
+                        script_manager.ensure_resilience_threshold_options()
+                    )
                     if migrated_options is not None:
                         hass.config_entries.async_update_entry(
                             entry, options=migrated_options

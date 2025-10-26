@@ -132,9 +132,7 @@ async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
         runtime, entry.options
     )
     guard_summary = _build_guard_summary(guard_metrics, guard_thresholds)
-    breaker_overview = _build_breaker_overview(
-        rejection_metrics, breaker_thresholds
-    )
+    breaker_overview = _build_breaker_overview(rejection_metrics, breaker_thresholds)
     service_status = _build_service_status(guard_summary, breaker_overview)
 
     return {
@@ -176,7 +174,7 @@ def _extract_service_execution_metrics(
 
 
 def _extract_threshold_value(
-    payload: Mapping[str, Any]
+    payload: Mapping[str, Any],
 ) -> tuple[int | None, str | None]:
     """Return a positive threshold value and the key it originated from."""
 
@@ -219,10 +217,7 @@ def _merge_option_thresholds(
     skip_value, skip_source = _resolve_option_threshold(
         options, "resilience_skip_threshold"
     )
-    if (
-        guard_thresholds.source == "default_ratio"
-        and skip_value is not None
-    ):
+    if guard_thresholds.source == "default_ratio" and skip_value is not None:
         guard_thresholds = GuardIndicatorThresholds(
             warning_count=skip_value - 1 if skip_value > 1 else None,
             critical_count=skip_value,
@@ -234,10 +229,7 @@ def _merge_option_thresholds(
     breaker_value, breaker_source = _resolve_option_threshold(
         options, "resilience_breaker_threshold"
     )
-    if (
-        breaker_thresholds.source == "default_counts"
-        and breaker_value is not None
-    ):
+    if breaker_thresholds.source == "default_counts" and breaker_value is not None:
         warning_value = breaker_value - 1
         breaker_thresholds = BreakerIndicatorThresholds(
             warning_count=warning_value if warning_value > 0 else None,
@@ -267,9 +259,7 @@ def _resolve_indicator_thresholds(
 
     script_manager = getattr(runtime, "script_manager", None)
     if script_manager is None:
-        return _merge_option_thresholds(
-            guard_thresholds, breaker_thresholds, options
-        )
+        return _merge_option_thresholds(guard_thresholds, breaker_thresholds, options)
 
     try:
         snapshot = script_manager.get_resilience_escalation_snapshot()
@@ -277,15 +267,11 @@ def _resolve_indicator_thresholds(
         return _merge_option_thresholds(guard_thresholds, breaker_thresholds, options)
 
     if not isinstance(snapshot, Mapping):
-        return _merge_option_thresholds(
-            guard_thresholds, breaker_thresholds, options
-        )
+        return _merge_option_thresholds(guard_thresholds, breaker_thresholds, options)
 
     thresholds_payload = snapshot.get("thresholds")
     if not isinstance(thresholds_payload, Mapping):
-        return _merge_option_thresholds(
-            guard_thresholds, breaker_thresholds, options
-        )
+        return _merge_option_thresholds(guard_thresholds, breaker_thresholds, options)
 
     skip_payload = thresholds_payload.get("skip_threshold")
     if isinstance(skip_payload, Mapping):
@@ -560,10 +546,7 @@ def _derive_guard_indicator(
             "context": "guard",
         }
 
-    if (
-        thresholds.warning_count is not None
-        and skip_count >= thresholds.warning_count
-    ):
+    if thresholds.warning_count is not None and skip_count >= thresholds.warning_count:
         return {
             "level": "warning",
             "color": "amber",
@@ -600,10 +583,7 @@ def _derive_guard_indicator(
             "context": "guard",
         }
 
-    if (
-        thresholds.warning_ratio is not None
-        and skip_ratio >= thresholds.warning_ratio
-    ):
+    if thresholds.warning_ratio is not None and skip_ratio >= thresholds.warning_ratio:
         return {
             "level": "warning",
             "color": "amber",
