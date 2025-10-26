@@ -1231,22 +1231,16 @@
       "description": "The latest feeding compliance check covering {days_to_check} days could not generate a report: {message}."
     }
   },
-  "diagnostics": {
-    "setup_flags_panel": {
-      "title": "Setup flags",
-      "description": "Analytics, backup, and debug logging toggles captured during onboarding and options flows.",
-      "flags": {
-        "enable_analytics": "Analytics telemetry",
-        "enable_cloud_backup": "Cloud backup",
-        "debug_logging": "Debug logging"
-      },
-      "sources": {
-        "options": "Options flow",
-        "system_settings": "System settings",
-        "advanced_settings": "Advanced settings",
-        "config_entry": "Config entry defaults",
-        "default": "Integration default"
-      }
-    }
+  "common": {
+    "setup_flags_panel_description": "Analytics, backup, and debug logging toggles captured during onboarding and options flows.",
+    "setup_flags_panel_flag_debug_logging": "Debug logging",
+    "setup_flags_panel_flag_enable_analytics": "Analytics telemetry",
+    "setup_flags_panel_flag_enable_cloud_backup": "Cloud backup",
+    "setup_flags_panel_source_advanced_settings": "Advanced settings",
+    "setup_flags_panel_source_config_entry": "Config entry defaults",
+    "setup_flags_panel_source_default": "Integration default",
+    "setup_flags_panel_source_options": "Options flow",
+    "setup_flags_panel_source_system_settings": "System settings",
+    "setup_flags_panel_title": "Setup flags"
   }
 }
