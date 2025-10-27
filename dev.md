@@ -8,6 +8,7 @@
 - `RELEASE_NOTES.md` und `CHANGELOG.md` verlinken die Diagnostik- und Wartungsleitfäden, damit Release-Kommunikation und Sustainment-Planung dieselben Nachschlagewerke nutzen ([docs/diagnostik.md](docs/diagnostik.md), [docs/MAINTENANCE.md](docs/MAINTENANCE.md)).【F:RELEASE_NOTES.md†L14-L24】【F:CHANGELOG.md†L114-L140】
 
 ## Latest tooling snapshot
+- ✅ `ruff check` – Asyncio-Debug-Helfer besteht den Lint-Lauf nach den Hook-Anpassungen.【8dced3†L1-L2】
 - ✅ `pip install -r requirements_test.txt -r requirements.txt` – installiert u. a. `pytest-asyncio` 1.2.0, `jinja2` 3.1.6 und `voluptuous` 0.15.2, damit die Stubs ohne Zusatzpakete laufen.【f08407†L1-L19】
 - ✅ `ruff format` – keine Formatänderungen nach den neuen Automations-Stubs erforderlich.【c51415†L1-L2】
 - ✅ `ruff check` – Lint läuft nach den Stub-Erweiterungen ohne Befunde.【1f6619†L1-L2】
@@ -32,7 +33,7 @@
 - ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest- und Übersetzungsprüfung läuft ohne Beanstandungen.【961a98†L1-L2】
 - ✅ `ruff check` – asyncio-stub-Refactor respektiert die bestehenden Lint-Gates.【57b83d†L1-L2】
 - ✅ `mypy tests/plugins` – die neuen Logging-/Resolver-Stubs bleiben vollständig typisiert.【932e49†L1-L2】
-- ✅ `pytest tests/plugins -q` – Regression bestätigt das Zusammenspiel mit Debug-Hooks ohne Drittplugin-Sideeffects.【58bec1†L1-L17】
+- ✅ `pytest tests/plugins -q` – Asyncio-Stub aktiviert den Debugmodus ohne RuntimeError, selbst wenn Hooks früh laufen.【bf8633†L1-L9】
 - ❌ `pytest -q` – Upstream-Fixtures erwarten weiterhin `hass.data["custom_components"]` und andere Loader-Keys; vollständiger Lauf scheitert deshalb im Test-Setup.【11da48†L1-L139】
 - ✅ `ruff check` – Platinum-Ausrichtung ohne neue Lint-Abweichungen nach dem Qualitäts-Sync.【75201e†L1-L2】
 - ✅ `pytest -q` – 1021 Tests (1 skipped) bestätigen koordinierte Service-, Dashboard- und Blueprint-Szenarien bei aktiviertem Coverage-Gate.【bc2d1f†L1-L5】
@@ -146,16 +147,24 @@
 - Die System-Einstellungen boten bislang keine Eingabefelder für `manual_check_event`, `manual_guard_event` und `manual_breaker_event`. Dadurch drifteten Blueprint-Trigger, Skript-Defaults und Diagnostik auseinander, sobald Support-Teams manuelle Eskalationen benötigten. Die neuen Text-Selectoren im Options-Flow normalisieren Eingaben, deaktivieren Trigger bei leeren Feldern und synchronisieren die Werte direkt mit allen Resilience-Blueprints, abgesichert durch zielgerichtete Tests.【F:custom_components/pawcontrol/options_flow.py†L3986-L4043】【F:custom_components/pawcontrol/script_manager.py†L503-L607】【F:tests/unit/test_options_flow.py†L808-L870】【F:tests/unit/test_data_manager.py†L612-L705】
 
 ## Verbesserungsplan
-1. pytest-homeassistant-Plugin härten: `enable_event_loop_debug` aus dem
-   Upstream-Plugin erwartet vor dem Fixture-Setup einen aktiven Event-Loop.
-   Unser Stub in `tests/plugins/asyncio_stub.py` sollte per `pytest_sessionstart`
-   oder Context-Manager frühzeitig `asyncio.new_event_loop()` bereitstellen,
-   damit `pytest -q` unter Python 3.13 nicht mit `RuntimeError: There is no
-   current event loop in thread 'MainThread'` abbricht.【F:tests/plugins/asyncio_stub.py†L1-L48】【9be401†L8-L19】
-2. Zusätzliche Sprachen ergänzen: Sobald Community-Übersetzungen vorliegen,
+1. Zusätzliche Sprachen ergänzen: Sobald Community-Übersetzungen vorliegen,
    soll `sync_localization_flags` erweitert werden, um neue Sprachdateien
    automatisch einzubinden und die Tests auf die erweiterten Tabellen
    anzupassen.【F:script/sync_localization_flags.py†L1-L129】【F:tests/unit/test_setup_flags_localization.py†L1-L77】
+2. Manual-Event-UX weiter ausbauen: Die neuen Select-Listen sollen Herkunfts-
+   Badges oder Hilfetexte anzeigen, damit Nutzer sofort erkennen, ob ein Eintrag
+   aus Blueprint, System-Option oder dem Integrations-Default stammt.
+   `_manual_event_choices` kann dazu zusätzliche Metadaten serialisieren;
+   begleitende Tests prüfen, dass die Labels in allen Sprachen korrekt gerendert
+   werden.【F:custom_components/pawcontrol/options_flow.py†L700-L735】【F:tests/unit/test_options_flow.py†L945-L1024】
+3. Manual-Event-Historie persistieren: Zusätzlich zum letzten Trigger sollen die
+   letzten fünf manuellen Eskalationen in `performance_stats` gespeichert und in
+   Diagnostics/System-Health visualisiert werden, um wiederkehrende
+   On-Demand-Checks schneller zu erkennen.【F:custom_components/pawcontrol/script_manager.py†L575-L704】【F:custom_components/pawcontrol/system_health.py†L150-L356】
+4. Blueprint-Test-Hilfen extrahieren: Sowohl Komponenten- als auch E2E-Tests
+   duplizieren den Kontext für `resilience_escalation_followup`. Eine gemeinsame
+   Factory würde Pfade, Inputs und Listener-Assertions bündeln und künftige
+   Erweiterungen vereinfachen.【F:tests/components/pawcontrol/test_blueprint_resilience.py†L1-L169】【F:tests/components/pawcontrol/test_resilience_blueprint_e2e.py†L1-L358】
 3. Manual-Event-UX weiter ausbauen: Die neuen Select-Listen sollen Herkunfts-Badges oder Hilfetexte anzeigen, damit Nutzer sofort erkennen, ob ein Eintrag aus Blueprint, System-Option oder dem Integrations-Default stammt. `_manual_event_choices` kann dazu zusätzliche Metadaten serialisieren; begleitende Tests prüfen, dass die Labels in allen Sprachen korrekt gerendert werden.【F:custom_components/pawcontrol/options_flow.py†L700-L735】【F:tests/unit/test_options_flow.py†L945-L1024】
 4. Manual-Event-Historie persistieren: Zusätzlich zum letzten Trigger sollen die letzten fünf manuellen Eskalationen in `performance_stats` gespeichert und in Diagnostics/System-Health visualisiert werden, um wiederkehrende On-Demand-Checks schneller zu erkennen.【F:custom_components/pawcontrol/script_manager.py†L575-L704】【F:custom_components/pawcontrol/system_health.py†L150-L356】
 5. ✅ Blueprint-Test-Hilfen extrahiert: `tests/components/pawcontrol/blueprint_context.py`
@@ -163,6 +172,10 @@
    nutzen dieselben Service-Registrierungen sowie Event-Aufzeichnungen.【F:tests/components/pawcontrol/blueprint_context.py†L1-L87】【F:tests/components/pawcontrol/test_blueprint_resilience.py†L1-L170】【F:tests/components/pawcontrol/test_resilience_blueprint_e2e.py†L1-L360】
 
 ## Recent improvements
+- Der Asyncio-Stub provisioniert den Event-Loop jetzt bereits während
+  `pytest_configure`, stellt `enable_event_loop_debug` als Hook-Helfer bereit
+  und setzt den Debug-Status nach der Session zurück; neue Plugin-Tests sichern
+  die Regression gegen RuntimeError beim frühen Hook-Aufruf.【F:tests/plugins/asyncio_stub.py†L1-L236】【F:tests/plugins/test_asyncio_stub.py†L1-L88】
 - Der Options-Flow synchronisiert `manual_*`-Trigger jetzt direkt aus den System-Einstellungen, normalisiert leere Felder auf `None` und aktualisiert alle Resilience-Blueprints ohne manuelle YAML-Anpassung; neue Tests sichern den Sync-Pfad und die Platzhalterbeschreibungen ab.【F:custom_components/pawcontrol/options_flow.py†L3986-L4043】【F:custom_components/pawcontrol/script_manager.py†L503-L607】【F:tests/unit/test_options_flow.py†L808-L870】【F:tests/unit/test_data_manager.py†L612-L705】
 - Resilience-Diagnostics erfassen aktive Manual-Event-Listener sowie den letzten manuellen Trigger inklusive Benutzer-, Ursprung- und Payload-Kontext, wodurch Support-Dumps sofort den zuletzt ausgeführten Pfad zeigen.【F:custom_components/pawcontrol/script_manager.py†L575-L704】【F:custom_components/pawcontrol/script_manager.py†L1235-L1363】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L243】【F:tests/unit/test_data_manager.py†L595-L676】
 - Migrierte Legacy-Installationen übernehmen Skript-Schwellen jetzt automatisch

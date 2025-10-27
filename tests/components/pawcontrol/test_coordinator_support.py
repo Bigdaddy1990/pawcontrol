@@ -136,7 +136,9 @@ class TestDogConfigRegistry:
     def test_enforce_polling_limits_caps_large_values(self) -> None:
         """Extremely large intervals clamp to the allowed maximum."""
 
-        capped = DogConfigRegistry._enforce_polling_limits(MAX_POLLING_INTERVAL_SECONDS * 50)
+        capped = DogConfigRegistry._enforce_polling_limits(
+            MAX_POLLING_INTERVAL_SECONDS * 50
+        )
         assert capped == min(
             MAX_POLLING_INTERVAL_SECONDS * 50,
             MAX_IDLE_POLL_INTERVAL,
@@ -147,9 +149,7 @@ class TestDogConfigRegistry:
         "value",
         [True, False, "", "   ", "invalid", -5, 0, 3.5],
     )
-    def test_validate_gps_interval_rejects_invalid_inputs(
-        self, value: object
-    ) -> None:
+    def test_validate_gps_interval_rejects_invalid_inputs(self, value: object) -> None:
         """GPS intervals must be positive integers."""
 
         with pytest.raises(ValidationError):
@@ -161,4 +161,6 @@ class TestDogConfigRegistry:
     ) -> None:
         """Valid integers or strings should return the coerced interval."""
 
-        assert DogConfigRegistry._validate_gps_interval(value) == int(str(value).strip())
+        assert DogConfigRegistry._validate_gps_interval(value) == int(
+            str(value).strip()
+        )
