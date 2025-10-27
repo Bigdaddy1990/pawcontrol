@@ -84,6 +84,7 @@ from .const import (
     DEFAULT_WEATHER_HEALTH_MONITORING,
     GPS_ACCURACY_FILTER_SELECTOR,
     GPS_UPDATE_INTERVAL_SELECTOR,
+    MANUAL_EVENT_SOURCE_CANONICAL,
     MAX_GEOFENCE_RADIUS,
     MIN_GEOFENCE_RADIUS,
     MODULE_FEEDING,
@@ -264,6 +265,8 @@ class PawControlOptionsFlow(OptionsFlow):
     _SETUP_FLAG_PREFIXES: ClassVar[tuple[str, ...]] = (
         "setup_flags_panel_flag_",
         "setup_flags_panel_source_",
+        "manual_event_source_badge_",
+        "manual_event_source_help_",
     )
     _SETUP_FLAG_SOURCE_LABEL_KEYS: ClassVar[dict[str, str]] = {
         "default": "setup_flags_panel_source_default",
@@ -273,13 +276,29 @@ class PawControlOptionsFlow(OptionsFlow):
         "blueprint": "setup_flags_panel_source_blueprint",
         "disabled": "setup_flags_panel_source_disabled",
     }
-    _MANUAL_LISTENER_SOURCE_MAP: ClassVar[dict[str, str]] = {
-        "blueprint": "blueprint",
-        "system_options": "system_settings",
-        "system_settings": "system_settings",
-        "options": "options",
-        "config_entry": "config_entry",
+    _MANUAL_SOURCE_BADGE_KEYS: ClassVar[dict[str, str]] = {
+        "default": "manual_event_source_badge_default",
+        "system_settings": "manual_event_source_badge_system_settings",
+        "options": "manual_event_source_badge_options",
+        "config_entry": "manual_event_source_badge_config_entry",
+        "blueprint": "manual_event_source_badge_blueprint",
+        "disabled": "manual_event_source_badge_disabled",
     }
+    _MANUAL_SOURCE_HELP_KEYS: ClassVar[dict[str, str]] = {
+        "default": "manual_event_source_help_default",
+        "system_settings": "manual_event_source_help_system_settings",
+        "options": "manual_event_source_help_options",
+        "config_entry": "manual_event_source_help_config_entry",
+        "blueprint": "manual_event_source_help_blueprint",
+        "disabled": "manual_event_source_help_disabled",
+    }
+    _MANUAL_SOURCE_PRIORITY: ClassVar[tuple[str, ...]] = (
+        "system_settings",
+        "options",
+        "config_entry",
+        "blueprint",
+        "default",
+    )
     _SETUP_FLAG_SUPPORTED_LANGUAGES: ClassVar[frozenset[str]] = frozenset({"en", "de"})
     _STRINGS_PATH: ClassVar[Path] = Path(__file__).with_name("strings.json")
     _TRANSLATIONS_DIR: ClassVar[Path] = Path(__file__).with_name("translations")
@@ -664,9 +683,23 @@ class PawControlOptionsFlow(OptionsFlow):
                     if not isinstance(event, str):
                         continue
                     for raw_source in self._string_sequence(raw_sources):
-                        mapped = self._MANUAL_LISTENER_SOURCE_MAP.get(raw_source)
+                        mapped = MANUAL_EVENT_SOURCE_CANONICAL.get(
+                            raw_source, raw_source
+                        )
                         if mapped:
                             _register(event, mapped)
+
+            metadata = manual_snapshot.get("listener_metadata")
+            if isinstance(metadata, Mapping):
+                for event, info in metadata.items():
+                    if not isinstance(event, str) or not isinstance(info, Mapping):
+                        continue
+                    canonical_sources = info.get("sources")
+                    for canonical in self._string_sequence(canonical_sources):
+                        _register(event, canonical)
+                    primary_source = info.get("primary_source")
+                    if isinstance(primary_source, str) and primary_source:
+                        _register(event, primary_source)
 
         return sources
 
@@ -676,7 +709,7 @@ class PawControlOptionsFlow(OptionsFlow):
         current: SystemOptions,
         *,
         manual_snapshot: Mapping[str, Any] | None = None,
-    ) -> list[dict[str, str]]:
+    ) -> list[dict[str, Any]]:
         """Return select options for manual event configuration."""
 
         language = self._determine_language()
@@ -688,13 +721,52 @@ class PawControlOptionsFlow(OptionsFlow):
             self._SETUP_FLAG_SOURCE_LABEL_KEYS["default"], language=language
         )
 
-        options: list[dict[str, str]] = [
-            {
-                "value": "",
-                "label": disabled_label,
-                "description": disabled_description,
-            }
-        ]
+        def _primary_source(source_set: set[str]) -> str | None:
+            for candidate in self._MANUAL_SOURCE_PRIORITY:
+                if candidate in source_set:
+                    return candidate
+            if "disabled" in source_set:
+                return "disabled"
+            if source_set:
+                return sorted(source_set)[0]
+            return None
+
+        def _source_badge(source: str | None) -> str | None:
+            if not source:
+                return None
+            translation_key = self._MANUAL_SOURCE_BADGE_KEYS.get(source)
+            if not translation_key:
+                return None
+            return self._setup_flag_translation(translation_key, language=language)
+
+        def _help_text(source_list: Sequence[str]) -> str | None:
+            help_segments: list[str] = []
+            for source_name in source_list:
+                key = self._MANUAL_SOURCE_HELP_KEYS.get(source_name)
+                if key:
+                    help_segments.append(
+                        self._setup_flag_translation(key, language=language)
+                    )
+            if help_segments:
+                return " ".join(help_segments)
+            return None
+
+        disabled_sources = ["disabled"]
+        disabled_badge = _source_badge("disabled")
+        disabled_help = _help_text(disabled_sources)
+        disabled_option: dict[str, Any] = {
+            "value": "",
+            "label": disabled_label,
+            "description": disabled_description,
+            "metadata_sources": disabled_sources,
+            "metadata_primary_source": "disabled",
+        }
+        if disabled_badge:
+            disabled_option["badge"] = disabled_badge
+        if disabled_help:
+            disabled_option["help_text"] = disabled_help
+
+        options: list[dict[str, Any]] = [disabled_option]
 
         event_sources = self._collect_manual_event_sources(
             field,
@@ -718,18 +790,29 @@ class PawControlOptionsFlow(OptionsFlow):
                 return (4, value)
             return (5, value)
 
-        for value, sources in sorted(event_sources.items(), key=_priority):
+        for value, source_tags in sorted(event_sources.items(), key=_priority):
             description_parts: list[str] = []
-            for source in sorted(sources):
+            sorted_sources = sorted(source_tags)
+            for source in sorted_sources:
                 key = self._SETUP_FLAG_SOURCE_LABEL_KEYS.get(source)
                 if key:
                     description_parts.append(
                         self._setup_flag_translation(key, language=language)
                     )
 
-            option: dict[str, str] = {"value": value, "label": value}
+            option: dict[str, Any] = {"value": value, "label": value}
             if description_parts:
                 option["description"] = ", ".join(description_parts)
+            primary_source = _primary_source(source_tags)
+            badge = _source_badge(primary_source)
+            if badge:
+                option["badge"] = badge
+            help_text = _help_text(sorted_sources)
+            if help_text:
+                option["help_text"] = help_text
+            option["metadata_sources"] = sorted_sources
+            if primary_source:
+                option["metadata_primary_source"] = primary_source
             options.append(option)
 
         return options

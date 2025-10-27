@@ -176,7 +176,7 @@ Route Recording: ✅ Enabled
 
 - Adjust helper entities, webhook routing, and module-specific tuning in **Settings → Devices & Services → PawControl → Configure**.
 - The options flow mirrors the config entry schema; all user-facing strings live in `custom_components/pawcontrol/strings.json` so translations stay aligned with Home Assistant requirements.
-- System Settings now includes manual escalation selectors for `manual_check_event`, `manual_guard_event`, and `manual_breaker_event`; the integration trims values, disables triggers when left blank, and synchronises every change with the Resilience blueprint automatically.【F:custom_components/pawcontrol/options_flow.py†L3986-L4043】【F:custom_components/pawcontrol/script_manager.py†L503-L607】【F:tests/unit/test_options_flow.py†L808-L870】
+- System Settings now includes manual escalation selectors for `manual_check_event`, `manual_guard_event`, and `manual_breaker_event`; the integration trims values, disables triggers when left blank, surfaces source badges and help text for every option, and synchronises each change with the Resilience blueprint while exporting canonical source metadata for diagnostics.【F:custom_components/pawcontrol/options_flow.py†L681-L742】【F:custom_components/pawcontrol/script_manager.py†L551-L671】【F:tests/unit/test_options_flow.py†L946-L1016】【F:tests/unit/test_data_manager.py†L608-L726】
 - Service parameters and automation helpers are described in `docs/production_integration_documentation.md` and `custom_components/pawcontrol/services.yaml`.
 
 #### Step 4: Geofencing Setup (optional)

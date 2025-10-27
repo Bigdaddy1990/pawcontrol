@@ -1249,6 +1249,18 @@
     "setup_flags_panel_source_disabled": "Disable",
     "setup_flags_panel_source_options": "Options flow",
     "setup_flags_panel_source_system_settings": "System settings",
-    "setup_flags_panel_title": "Setup flags"
+    "setup_flags_panel_title": "Setup flags",
+    "manual_event_source_badge_default": "Default",
+    "manual_event_source_badge_system_settings": "System",
+    "manual_event_source_badge_options": "Options flow",
+    "manual_event_source_badge_config_entry": "Config entry",
+    "manual_event_source_badge_blueprint": "Blueprint",
+    "manual_event_source_badge_disabled": "Disabled",
+    "manual_event_source_help_default": "Integration fallback when no manual override is configured.",
+    "manual_event_source_help_system_settings": "Captured from the System Settings form.",
+    "manual_event_source_help_options": "Configured via the options flow.",
+    "manual_event_source_help_config_entry": "Imported from the config entry that created the integration.",
+    "manual_event_source_help_blueprint": "Supplied by the resilience blueprint automation.",
+    "manual_event_source_help_disabled": "Removes the listener and stops monitoring this manual event."
   }
 }

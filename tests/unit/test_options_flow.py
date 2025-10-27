@@ -992,6 +992,13 @@ async def test_manual_event_choices_support_disable_and_translations(
         assert disable_option["value"] == ""
         assert disable_option["label"] == "Deaktivieren"
         assert disable_option["description"] == "Integrationsstandard"
+        assert disable_option["badge"] == "Deaktiviert"
+        assert (
+            disable_option["help_text"]
+            == "Entfernt den Listener und beendet die Überwachung dieses manuellen Ereignisses."
+        )
+        assert disable_option["metadata_sources"] == ["disabled"]
+        assert disable_option["metadata_primary_source"] == "disabled"
 
         guard_by_value = {
             option["value"]: option
@@ -1001,9 +1008,37 @@ async def test_manual_event_choices_support_disable_and_translations(
         assert guard_by_value["pawcontrol_manual_guard"]["description"] == (
             "Integrationsstandard, Systemeinstellungen"
         )
+        assert guard_by_value["pawcontrol_manual_guard"]["badge"] == "System"
+        assert guard_by_value["pawcontrol_manual_guard"]["metadata_sources"] == [
+            "default",
+            "system_settings",
+        ]
+        assert (
+            guard_by_value["pawcontrol_manual_guard"]["metadata_primary_source"]
+            == "system_settings"
+        )
+        assert guard_by_value["pawcontrol_manual_guard"]["help_text"] == (
+            "Integration verwendet diesen Wert, solange keine Überschreibungen aktiv sind. "
+            'Über das Formular "Systemeinstellungen" gespeichert.'
+        )
         assert (
             guard_by_value["pawcontrol_manual_guard_blueprint"]["description"]
             == "Blueprint-Vorschlag"
+        )
+        assert (
+            guard_by_value["pawcontrol_manual_guard_blueprint"]["badge"] == "Blueprint"
+        )
+        assert guard_by_value["pawcontrol_manual_guard_blueprint"]["help_text"] == (
+            "Vom Resilience-Blueprint vorgeschlagen."
+        )
+        assert guard_by_value["pawcontrol_manual_guard_blueprint"][
+            "metadata_sources"
+        ] == ["blueprint"]
+        assert (
+            guard_by_value["pawcontrol_manual_guard_blueprint"][
+                "metadata_primary_source"
+            ]
+            == "blueprint"
         )
 
         check_by_value = {
@@ -1015,6 +1050,19 @@ async def test_manual_event_choices_support_disable_and_translations(
             check_by_value["pawcontrol_resilience_check"]["description"]
             == "Blueprint-Vorschlag"
         )
+        assert check_by_value["pawcontrol_resilience_check"]["badge"] == "Blueprint"
+        assert check_by_value["pawcontrol_resilience_check"]["metadata_sources"] == [
+            "blueprint",
+            "default",
+        ]
+        assert (
+            check_by_value["pawcontrol_resilience_check"]["metadata_primary_source"]
+            == "blueprint"
+        )
+        assert check_by_value["pawcontrol_resilience_check"]["help_text"] == (
+            "Vom Resilience-Blueprint vorgeschlagen. "
+            "Integration verwendet diesen Wert, solange keine Überschreibungen aktiv sind."
+        )
 
         hass.config.language = "en"
         english_options = flow._manual_event_choices(
@@ -1022,6 +1070,11 @@ async def test_manual_event_choices_support_disable_and_translations(
         )
         assert english_options[0]["label"] == "Disable"
         assert english_options[0]["description"] == "Integration default"
+        assert english_options[0]["badge"] == "Disabled"
+        assert (
+            english_options[0]["help_text"]
+            == "Removes the listener and stops monitoring this manual event."
+        )
 
 
 @pytest.mark.asyncio

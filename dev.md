@@ -468,6 +468,10 @@ L349-L422】【F:custom_components/pawcontrol/datetime.py†L49-L116】
   `DogConfigData` via literal aliases and typed module coercers, eliminating
   `TypedDict` literal violations while keeping module-aware entity creation and
   option lists aligned with Home Assistant expectations.【F:custom_components/pawcontrol/text.py†L27-L35】【F:custom_components/pawcontrol/text.py†L167-L212】【F:custom_components/pawcontrol/switch.py†L41-L50】【F:custom_components/pawcontrol/switch.py†L218-L312】【F:custom_components/pawcontrol/sensor.py†L185-L233】【F:custom_components/pawcontrol/sensor.py†L720-L817】【F:custom_components/pawcontrol/select.py†L16-L54】【F:custom_components/pawcontrol/select.py†L209-L312】
+- Manual escalation selectors now emit badges/help text derived from canonical
+  source metadata, and diagnostics expose the same `listener_metadata` so
+  support tooling can inspect how each value was derived. Regression tests
+  guard both the options flow and script manager snapshots.【F:custom_components/pawcontrol/options_flow.py†L681-L742】【F:custom_components/pawcontrol/script_manager.py†L551-L704】【F:tests/unit/test_options_flow.py†L946-L1016】【F:tests/unit/test_data_manager.py†L608-L726】
 ## Workflow overview
 - Verwende eine lokale virtuelle Umgebung (`python -m venv .venv`), installiere
   danach `requirements_test.txt` und `requirements.txt`, und exportiere
@@ -511,6 +515,9 @@ Branch-Coverage-Anforderungen aus `pyproject.toml` ein.【F:pyproject.toml†L7-
   unter 20 Minuten trotz aktiviertem Branch-Tracing für das komplette Paket.
 - Beobachte Übersetzungs- und Dokumentations-Syncs nach Schemaänderungen in den
   Diagnostics, damit `setup_flags_panel_*`-Schlüssel konsistent bleiben.【F:custom_components/pawcontrol/diagnostics.py†L688-L867】【F:custom_components/pawcontrol/strings.json†L1396-L1405】
+- Plane zusätzliche Lokalisierungen für die neuen `manual_event_source_*`-Badges
+  und Hilfetexte ein, sobald weitere Sprachen aktiviert werden, damit Options-Flow
+  und Diagnostik dieselben Quellenbeschriftungen anzeigen.【F:custom_components/pawcontrol/strings.json†L1396-L1405】【F:custom_components/pawcontrol/translations/de.json†L1240-L1257】
 - Ergänze optionale Abhängigkeiten (`voluptuous`, HA-Komponenten-Stubs) für die lokalen Testläufe, sobald der nächste Stub-Sync ansteht, damit `pytest -q` ohne manuelle Nachinstallationen läuft.【13e36b†L1-L142】
 - Evaluiere zusätzliche Plattform-spezifische Regressionstests für neue Entity-
   Typen, sobald weitere Home-Assistant-Plattformen integriert werden sollen, um

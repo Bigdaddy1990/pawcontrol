@@ -678,6 +678,27 @@ def test_script_manager_resilience_manual_event_snapshot() -> None:
         "pawcontrol_resilience_check",
     ]
     assert manual["last_event"] is None
+    listener_metadata = manual["listener_metadata"]
+    assert listener_metadata["pawcontrol_manual_guard"]["sources"] == [
+        "blueprint",
+        "default",
+    ]
+    assert listener_metadata["pawcontrol_manual_guard"]["primary_source"] == "blueprint"
+    assert listener_metadata["pawcontrol_manual_breaker"]["sources"] == [
+        "blueprint",
+        "default",
+    ]
+    assert (
+        listener_metadata["pawcontrol_manual_breaker"]["primary_source"] == "blueprint"
+    )
+    assert listener_metadata["pawcontrol_resilience_check"]["sources"] == [
+        "blueprint",
+        "default",
+    ]
+    assert (
+        listener_metadata["pawcontrol_resilience_check"]["primary_source"]
+        == "blueprint"
+    )
 
 
 @pytest.mark.unit
@@ -724,6 +745,9 @@ def test_script_manager_manual_snapshot_combines_system_and_blueprint_sources() 
         "blueprint",
         "system_options",
     ]
+    metadata = manual["listener_metadata"]["pawcontrol_manual_guard"]
+    assert metadata["sources"] == ["blueprint", "default", "system_settings"]
+    assert metadata["primary_source"] == "system_settings"
 
 
 @pytest.mark.unit
@@ -812,6 +836,8 @@ def test_script_manager_records_manual_event_trigger() -> None:
     assert last_event["data"] == {"reason": "test"}
     assert last_event["time_fired"] is not None
     assert last_event["time_fired_age_seconds"] is not None
+    assert last_event["sources"] == ["system_settings", "default"]
+    assert last_event["reasons"] == ["guard"]
     assert manual["active_listeners"] == [
         "pawcontrol_manual_breaker",
         "pawcontrol_manual_check",
@@ -924,8 +950,11 @@ def test_script_manager_manual_event_listener_records_last_trigger() -> None:
     assert last_trigger is not None
     assert last_trigger["event_type"] == "pawcontrol_manual_guard"
     assert last_trigger["reasons"] == ["guard"]
-    assert last_trigger["sources"] == ["system_options"]
+    assert last_trigger["sources"] == ["system_settings", "default"]
     assert manual["listener_sources"]["pawcontrol_manual_guard"] == ["system_options"]
+    listener_metadata = manual["listener_metadata"]["pawcontrol_manual_guard"]
+    assert listener_metadata["sources"] == ["default", "system_settings"]
+    assert listener_metadata["primary_source"] == "system_settings"
     assert isinstance(last_trigger["recorded_age_seconds"], int)
     counters = manual["event_counters"]
     assert counters["total"] == 1
