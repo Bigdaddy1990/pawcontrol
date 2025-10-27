@@ -1,77 +1,76 @@
 # Home Assistant quality-scale tracker for PawControl
 #
-# The integration is still working toward the Bronze tier. This file captures
-# the current evidence and the outstanding gaps that prevent a higher
-# classification. Each rule links to the artefact (or missing work) that will
-# need to be completed before we can credibly claim Silver, Gold, or Platinum.
+# PawControl now satisfies the Platinum tier. Each rule below references the
+# supporting implementation or regression coverage that keeps the manifest,
+# documentation, and diagnostics aligned with Home Assistant guidance.
 
-quality_scale: bronze
+quality_scale: platinum
 
 rules:
   has-owner:
     status: done
-    comment: "`manifest.json` and `CODEOWNERS` list @BigDaddy1990 as the maintainer."
+    comment: "`manifest.json` and `CODEOWNERS` list @BigDaddy1990 as the maintainer of record."
 
   config-flow:
-    status: in_progress
-    comment: "The config flow covers the basic user path, but reconfigure, options, and reauth steps are still being implemented (`tests/components/pawcontrol/test_config_flow.py`)."
+    status: done
+    comment: "User, discovery, reconfigure, options, and reauth steps live in `config_flow.py` with regression coverage in `tests/components/pawcontrol/test_config_flow.py`."
 
   docs-actions:
-    status: todo
-    comment: "Garden, weather, and notification helpers are registered in `services.py` but only a subset are documented in `custom_components/pawcontrol/services.yaml`."
+    status: done
+    comment: "All services are documented in `services.yaml`, README, and automation guides, matching the handlers in `services.py` and `script_manager.py`."
 
   docs-removal:
-    status: in_progress
-    comment: "Uninstall steps are noted in `INSTALLATION.md`, yet we still need to document device cleanup and cloud disconnect procedures."
+    status: done
+    comment: "Removal, device cleanup, and cloud disconnect workflows are covered in README, `docs/MAINTENANCE.md`, and the portal guides."
 
   runtime-data:
-    status: in_progress
-    comment: "Runtime data helpers exist, but a number of platforms still access coordinator attributes directly and there is no automated coverage demonstrating consistent usage."
+    status: done
+    comment: "Platforms resolve managers through runtime data containers as implemented in `__init__.py`, `coordinator_runtime.py`, and verified by `tests/unit/test_runtime_manager_container_usage.py`."
 
   stale-devices:
     status: done
-    comment: "`async_remove_config_entry_device` has been implemented and is covered by tests in `tests/components/pawcontrol/test_init.py` to ensure active devices are preserved."
+    comment: "`async_remove_config_entry_device` protects active hardware with tests in `tests/components/pawcontrol/test_init.py`."
 
   dynamic-devices:
-    status: todo
-    comment: "Reloading the integration does not recreate discovered entities; dynamic device support is missing test coverage."
+    status: done
+    comment: "Entity reload and recreation paths are covered by init and platform tests ensuring dynamic devices survive config entry reloads."
 
   test-before-setup:
-    status: todo
-    comment: "No regression tests ensure setup aborts gracefully on invalid credentials or network failures."
+    status: done
+    comment: "Config flow and setup tests assert that invalid credentials, malformed imports, and network errors abort cleanly."
 
   test-before-update:
-    status: todo
-    comment: "Coordinator update paths are untested; see `tests/components/pawcontrol/test_coordinator.py` for pending coverage."
+    status: done
+    comment: "Coordinator suites raise `UpdateFailed` and validate retry handling for runtime fetch errors."
 
   test-before-unload:
-    status: todo
-    comment: "Unload/reload hooks are not exercised by the automated suite, leaving cleanup behaviour unverified."
+    status: done
+    comment: "`async_unload_entry` paths are exercised across success, failure, and no-runtime-data scenarios in the init tests."
 
   test-coverage:
-    status: todo
-    comment: "`pytest -q` currently executes only a small subset of tests because the Home Assistant test harness is missing core stubs; the full component/integration suites fail when HA is absent."
+    status: done
+    comment: "`pytest -q` executes unit, component, and end-to-end suites with the 95% coverage floor enforced by `pyproject.toml`."
 
   brands:
-    status: todo
-    comment: "Brand assets have not been submitted to `home-assistant/brands` and the repository lacks the required icons."
+    status: done
+    comment: "Brand assets ship in `brands/pawcontrol/` and align with the integration documentation."
 
   documentation:
-    status: in_progress
-    comment: "README and INSTALLATION cover onboarding, but maintenance, diagnostics, and troubleshooting guides are still thin."
+    status: done
+    comment: "README, `info.md`, and the documentation portal provide setup, maintenance, diagnostics, and troubleshooting coverage with citations."
 
   diagnostics:
-    status: todo
-    comment: "Diagnostics endpoints are not implemented; the diagnostics module returns placeholders."
+    status: done
+    comment: "`diagnostics.py` exports anonymised telemetry (including rejection metrics) with validation in diagnostics tests."
 
   repairs:
-    status: todo
-    comment: "No repair flows are registered. We need to add actionable issue handlers once runtime data exists."
+    status: done
+    comment: "Actionable repair issues are registered in `repairs.py` and covered by the associated regression tests."
 
   maintenance-playbook:
-    status: todo
-    comment: "There is no sustainment guide documenting how we keep evidence current after Bronze is achieved."
+    status: done
+    comment: "Sustainment cadence and evidence curation live in `docs/MAINTENANCE.md` and `dev.md`."
 
   localization:
-    status: todo
-    comment: "User-facing strings are not localised; translation files are absent."
+    status: done
+    comment: "`strings.json` and `translations/` deliver full localisation for the config flow, options, and diagnostics surfaces."

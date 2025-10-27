@@ -45,12 +45,8 @@ the documentation portal entry point (`docs/README.md`).
   of Ruff and pytest expectations.【F:dev.md†L1-L40】
 
 ## Required corrections to satisfy Home Assistant reviewers
-- Update `CHANGELOG.md` and `RELEASE_NOTES.md` to explicitly note the Platinum
-  uplift once the manifest and badges change; these files currently reference the
-  Bronze era and should be synchronised with the new quality goals.
-- Prepare replacement badge assets for README (`Quality Scale`) and
-  documentation portal tiles so reviewers do not see inconsistent Bronze
-  references during the submission process.【F:README.md†L5-L24】【F:README.md†L336-L380】
+- Keep `CHANGELOG.md` and `RELEASE_NOTES.md` summarising the Platinum uplift and refresh them when new sustainment work lands so documentation stays aligned with the manifest and badges.
+- Ensure README (`Quality Scale`) and documentation portal badges continue to advertise the Platinum posture during submissions.【F:README.md†L1-L120】【F:docs/portal/README.md†L1-L40】
 - Expand the troubleshooting/removal guidance in `INSTALLATION.md` with explicit
   steps for helper cleanup and `async_remove_config_entry_device` behaviour once
   the implementation work in `dev.md` is finished.

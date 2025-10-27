@@ -3,7 +3,7 @@
 Monitors door sensors and automatically detects when dogs go for walks
 based on door state changes and configurable timing logic.
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """

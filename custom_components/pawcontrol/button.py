@@ -5,7 +5,7 @@ Reduces button entities from 20+ to 3-12 per dog based on profile selection.
 
 OPTIMIZED: Thread-safe caching, consistent runtime_data usage, improved factory pattern.
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
@@ -614,7 +614,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up PawControl button platform with profile-based optimization."""
 
-    # OPTIMIZED: Consistent runtime_data usage for Bronze readiness
+    # OPTIMIZED: Consistent runtime_data usage for Platinum readiness
     runtime_data = get_runtime_data(hass, entry)
     if runtime_data is None:
         _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)

@@ -3,7 +3,7 @@
 Tests the complete configuration flow including user input,
 validation, and entry creation.
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Python: 3.13+
 """
 

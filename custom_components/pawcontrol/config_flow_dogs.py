@@ -5,7 +5,7 @@ validating, and configuring individual dogs with intelligent defaults
 and enhanced user experience. Now includes per-dog GPS, feeding schedules,
 health data, and individual module configuration.
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """
