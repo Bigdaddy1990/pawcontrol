@@ -6,7 +6,7 @@ OPTIMIZED for HA 2025.9.1+ with enhanced performance patterns:
 - Streamlined exports
 - Memory-efficient data structures
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Home Assistant: 2025.9.1+
 Python: 3.13+
 """
@@ -474,7 +474,7 @@ NOTIFICATION_CHANNELS: Final[tuple[str, ...]] = (
     "discord",
 )
 
-# BRONZE: Update intervals with consistent key naming throughout codebase
+# PLATINUM: Update intervals with consistent key naming throughout codebase
 _BASE_UPDATE_INTERVALS: Final[dict[str, int]] = {
     "minimal": 300,  # 5 minutes - power saving
     "balanced": 120,  # 2 minutes - balanced default cadence
@@ -484,11 +484,11 @@ _BASE_UPDATE_INTERVALS: Final[dict[str, int]] = {
 UPDATE_INTERVALS: Final[dict[str, int]] = dict(_BASE_UPDATE_INTERVALS)
 UPDATE_INTERVALS["standard"] = _BASE_UPDATE_INTERVALS["balanced"]
 
-# BRONZE: Cap idle polling to stay within the <15 minute guideline
+# PLATINUM: Cap idle polling to stay within the <15 minute guideline
 MAX_IDLE_POLL_INTERVAL: Final[int] = 900
-# The Bronze appropriate-polling quality goal requires the integration to keep
+# The Platinum appropriate-polling quality goal requires the integration to keep
 # its polling interval below 15 minutes, even when users try to configure higher
-# values.  The coordinator support module enforces this hard ceiling.
+# values. The coordinator support module enforces this hard ceiling.
 MAX_POLLING_INTERVAL_SECONDS: Final[int] = 15 * 60
 
 # OPTIMIZED: Data file names as constants

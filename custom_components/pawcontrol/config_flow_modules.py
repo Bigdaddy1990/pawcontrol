@@ -14,7 +14,7 @@ dozens of ``attr-defined`` errors that blocked the "strict typing" milestone in
 understand the control flow. The runtime behaviour is unchanged, but type
 analysis is now sound and deterministic.
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """

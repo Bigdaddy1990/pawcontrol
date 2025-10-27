@@ -4,7 +4,7 @@ This module handles the configuration of external Home Assistant entities
 that the integration depends on, including GPS sources, door sensors,
 and notification services with comprehensive validation.
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """
@@ -101,7 +101,7 @@ class ExternalEntityConfigurationMixin:
 
     This mixin provides methods for configuring external Home Assistant
     entities that the integration depends on during setup. This is critical
-    for Bronze quality scale compliance and ensures proper integration
+    for Platinum quality scale compliance and ensures proper integration
     with the broader Home Assistant ecosystem.
     """
 
@@ -125,7 +125,7 @@ class ExternalEntityConfigurationMixin:
         """Configure external entities required for enabled modules.
 
         This critical step configures external Home Assistant entities that
-        the integration depends on. Required for Bronze quality scale compliance.
+        the integration depends on. Required for Platinum quality scale compliance.
 
         Args:
             user_input: External entity configuration

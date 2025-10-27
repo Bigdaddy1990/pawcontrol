@@ -1,9 +1,9 @@
 """Comprehensive performance scaling tests for PawControl Entity Profiles.
 
 Tests maximum entity counts, memory efficiency, concurrent operations,
-and production-scale scenarios for Bronze quality validation.
+and production-scale scenarios for Platinum quality validation.
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Home Assistant: 2025.9.4+
 Python: 3.13+
 """
@@ -821,7 +821,7 @@ class TestProductionScenarioValidation:
     async def test_quality_scale_platinum_validation(
         self, entity_factory: EntityFactory
     ) -> None:
-        """Validate Bronze quality scale requirements."""
+        """Validate Platinum quality scale requirements."""
         test_results = {
             "scalability": False,
             "performance": False,
@@ -902,21 +902,21 @@ class TestProductionScenarioValidation:
 
         test_results["production_ready"] = all_profiles_work
 
-        # Bronze Quality Assertions
+        # Platinum Quality Assertions
         passed_tests = sum(test_results.values())
         assert passed_tests >= 4, (
-            f"Bronze quality requires 4/5 tests passing, got {passed_tests}/5"
+            f"Platinum quality requires 4/5 tests passing, got {passed_tests}/5"
         )
 
         # Specific critical requirements
         assert test_results["scalability"], (
-            "Scalability test failed - not Bronze quality"
+            "Scalability test failed - not Platinum quality"
         )
         assert test_results["performance"], (
-            "Performance test failed - not Bronze quality"
+            "Performance test failed - not Platinum quality"
         )
 
-        print("\nBronze Quality Validation Results:")
+        print("\nPlatinum Quality Validation Results:")
         for test_name, result in test_results.items():
             status = "✓ PASS" if result else "✗ FAIL"
             print(f"  {test_name.replace('_', ' ').title()}: {status}")

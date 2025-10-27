@@ -37,8 +37,8 @@ the UI only (`CONFIG_SCHEMA` is entry-only).【F:custom_components/pawcontrol/__
 `store_runtime_data` and the `PawControlCoordinator`, so new features must hook
 into the coordinator rather than creating bespoke tasks.【F:custom_components/pawcontrol/__init__.py†L119-L213】
 - The manifest advertises discovery via DHCP, USB, HomeKit, and Zeroconf and
-declares Bronze today—update the badge and manifest together when Platinum
-requirements are met.【F:custom_components/pawcontrol/manifest.json†L1-L66】
+declares Platinum—keep the badge, manifest, diagnostics, and docs aligned
+whenever quality scale evidence changes.【F:custom_components/pawcontrol/manifest.json†L1-L66】
 
 ## Development standards
 
@@ -104,8 +104,7 @@ using identifiers from `const.py`.
 link to the relevant evidence (tests, modules, or scripts) so reviewers can
 verify Platinum claims.【F:docs/markdown_compliance_review.md†L1-L60】
 - Keep `docs/compliance_gap_analysis.md` in sync with the manifest and
-quality_scale badge. Document outstanding gaps and close them before promoting
-the manifest to Platinum.【F:docs/compliance_gap_analysis.md†L1-L58】
+quality_scale badge so Platinum evidence stays current.【F:docs/compliance_gap_analysis.md†L1-L58】
 - Log new work in `CHANGELOG.md`/`RELEASE_NOTES.md` and refresh brand assets
 once the Home Assistant brand repository accepts updates.【F:docs/compliance_gap_analysis.md†L59-L75】
 

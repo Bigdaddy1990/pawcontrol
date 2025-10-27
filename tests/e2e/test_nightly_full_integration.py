@@ -1,12 +1,12 @@
-"""End-to-end integration regression tests for Bronze compliance.
+"""End-to-end integration regression tests for Platinum compliance.
 
 These scenarios simulate the documented validation steps for the
 Home Assistant 2025.9.1 nightly build and the supervised installation
 smoke run.  They exercise the public setup/unload contracts while
-capturing the runtime telemetry that Bronze reviewers expect to see
+capturing the runtime telemetry that Platinum reviewers expect to see
 in the traceability matrix.
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Home Assistant: 2025.9.1+
 Python: 3.12+
 """
@@ -391,7 +391,7 @@ def _require_nightly() -> None:
 
     if AwesomeVersion(ha_version) < REQUIRED_NIGHTLY:
         pytest.skip(
-            "Requires Home Assistant 2025.9.1 nightly build or newer for Bronze QA"
+            "Requires Home Assistant 2025.9.1 nightly build or newer for Platinum QA"
         )
 
 

@@ -383,7 +383,7 @@ class DogConfigRegistry:
 
     @staticmethod
     def _enforce_polling_limits(interval: int | None) -> int:
-        """Clamp polling intervals to Bronze quality requirements."""
+        """Clamp polling intervals to Platinum quality requirements."""
 
         if not isinstance(interval, int):
             raise ValidationError(

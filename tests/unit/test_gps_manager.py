@@ -3,7 +3,7 @@
 Tests GPS tracking, geofencing, route management, and location-based
 features with full edge case coverage.
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Python: 3.13+
 """
 

@@ -5,12 +5,13 @@
 - Target Python 3.13+ features and reuse PawControl helpers (coordinators, managers, and typed constants) to keep runtime data on the typed surface.【F:.github/copilot-instructions.md†L29-L94】
 
 ## Latest tooling snapshot
-- ✅ `ruff check` – keine Abweichungen nach den Resilience-Optionen und Blueprint-Erweiterungen.【648eec†L1-L2】
-- ✅ `pytest -q` – 1019 Tests (1 skipped) bestätigen Options-Fallbacks, deaktivierte Resilience-Schwellen sowie die erweiterten Blueprint-Triggerszenarien.【b9d91b†L1-L6】【F:tests/components/pawcontrol/test_system_health.py†L1-L330】【F:tests/unit/test_options_flow.py†L804-L852】
-- ✅ `mypy custom_components/pawcontrol` – Typprüfungen akzeptieren die neuen Schwellenhelfer ohne zusätzliche Suppressions.【cb0f56†L1-L2】【F:custom_components/pawcontrol/script_manager.py†L431-L820】
-- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest- und Übersetzungsprüfung laufen fehlerfrei.【5d4d08†L1-L2】
+- ✅ `ruff check` – Platinum-Ausrichtung ohne neue Lint-Abweichungen nach dem Qualitäts-Sync.【75201e†L1-L2】
+- ✅ `pytest -q` – 1021 Tests (1 skipped) bestätigen koordinierte Service-, Dashboard- und Blueprint-Szenarien bei aktiviertem Coverage-Gate.【bc2d1f†L1-L5】
+- ✅ `mypy custom_components/pawcontrol` – Striktes Typing bleibt stabil über alle 76 Module hinweg.【5fe91f†L1-L2】
+- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest und Übersetzungen validieren ohne Beanstandung.【bb7d4e†L1-L1】
 
 ## Fehleranalyse
+- Manifest, README, Qualitäts-Tracker und Compliance-Dokumente widersprachen sich nach Bronze-Reverts; der Sync auf Platinum stellt Badge, Manifest und Nachweise nun konsistent dar.【F:custom_components/pawcontrol/manifest.json†L1-L66】【F:README.md†L1-L120】【F:custom_components/pawcontrol/quality_scale.yaml†L1-L80】【F:docs/compliance_gap_analysis.md†L1-L80】
 - Die Hassfest-Validierung meldete `extra keys not allowed` für `diagnostics.setup_flags_panel`, weil `strings.json` verschachtelte `flags`- und `sources`-Objekte enthielt. Die Übersetzungsschlüssel wurden deshalb auf flache `setup_flags_panel_flag_*`- und `setup_flags_panel_source_*`-Einträge migriert, die jetzt unter `common.setup_flags_panel_*` liegen; Diagnostics, Tests sowie Dokumentation referenzieren die neuen Schlüsselpfade konsistent.【F:custom_components/pawcontrol/strings.json†L1396-L1405】【F:custom_components/pawcontrol/translations/de.json†L1235-L1244】【F:custom_components/pawcontrol/diagnostics.py†L100-L141】【F:tests/components/pawcontrol/test_diagnostics.py†L288-L405】
 - Die Options-Flagge `debug_logging` wirkte sich bislang nicht auf das Paket-
   Log-Level aus, weil `async_setup_entry` den Schalter ignorierte; die neuen
