@@ -5,6 +5,7 @@ from __future__ import annotations
 import csv
 import dis
 import functools
+import io
 import json
 import os
 import socket
@@ -12,9 +13,9 @@ import sys
 import threading
 import time
 import types
-import xml.etree.ElementTree as ET
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
+from html import escape
 from pathlib import Path
 from typing import Any, TextIO
 
@@ -195,54 +196,88 @@ class Coverage:
         if total_statements:
             line_rate = (total_statements - total_missed) / total_statements
 
-        root = ET.Element(
+        xml_buffer = io.StringIO()
+        write = xml_buffer.write
+
+        def format_attrs(pairs: Iterable[tuple[str, str]]) -> str:
+            return " ".join(
+                f'{name}="{escape(value, quote=True)}"' for name, value in pairs
+            )
+
+        def start_tag(name: str, pairs: Iterable[tuple[str, str]], indent: int) -> None:
+            prefix = "  " * indent
+            attrs = format_attrs(pairs)
+            write(f"{prefix}<{name}{' ' + attrs if attrs else ''}>\n")
+
+        def end_tag(name: str, indent: int) -> None:
+            prefix = "  " * indent
+            write(f"{prefix}</{name}>\n")
+
+        def empty_tag(name: str, pairs: Iterable[tuple[str, str]], indent: int) -> None:
+            prefix = "  " * indent
+            attrs = format_attrs(pairs)
+            write(f"{prefix}<{name}{' ' + attrs if attrs else ''}/>\n")
+
+        def text_tag(name: str, value: str, indent: int) -> None:
+            prefix = "  " * indent
+            write(f"{prefix}<{name}>{escape(value)}</{name}>\n")
+
+        write('<?xml version="1.0" encoding="UTF-8"?>\n')
+        start_tag(
             "coverage",
-            attrib={
-                "branch-rate": "1.0" if self._branch else "0.0",
-                "line-rate": f"{line_rate:.4f}",
-                "timestamp": str(int(time.time())),
-                "version": "pawcontrol-lightweight",
-            },
+            (
+                ("branch-rate", "1.0" if self._branch else "0.0"),
+                ("line-rate", f"{line_rate:.4f}"),
+                ("timestamp", str(int(time.time()))),
+                ("version", "pawcontrol-lightweight"),
+            ),
+            indent=0,
         )
-        sources = ET.SubElement(root, "sources")
+        start_tag("sources", (), indent=1)
         for source in self._source_roots:
-            ET.SubElement(sources, "source").text = str(source)
-        packages = ET.SubElement(root, "packages")
-        package = ET.SubElement(
-            packages,
+            text_tag("source", str(source), indent=2)
+        end_tag("sources", indent=1)
+
+        start_tag("packages", (), indent=1)
+        start_tag(
             "package",
-            attrib={
-                "name": "pawcontrol",
-                "line-rate": f"{line_rate:.4f}",
-                "branch-rate": "1.0" if self._branch else "0.0",
-            },
+            (
+                ("name", "pawcontrol"),
+                ("line-rate", f"{line_rate:.4f}"),
+                ("branch-rate", "1.0" if self._branch else "0.0"),
+            ),
+            indent=2,
         )
-        classes = ET.SubElement(package, "classes")
+        start_tag("classes", (), indent=3)
 
         for report in reports:
-            class_el = ET.SubElement(
-                classes,
+            start_tag(
                 "class",
-                attrib={
-                    "name": report.relative.replace("/", "."),
-                    "filename": report.relative,
-                    "line-rate": f"{report.coverage_percent / 100:.4f}",
-                    "branch-rate": "1.0" if self._branch else "0.0",
-                },
+                (
+                    ("name", report.relative.replace("/", ".")),
+                    ("filename", report.relative),
+                    ("line-rate", f"{report.coverage_percent / 100:.4f}"),
+                    ("branch-rate", "1.0" if self._branch else "0.0"),
+                ),
+                indent=4,
             )
-            lines_el = ET.SubElement(class_el, "lines")
+            start_tag("lines", (), indent=5)
             for line_num in sorted(report.statements):
                 hits = 1 if line_num in report.executed else 0
-                ET.SubElement(
-                    lines_el,
+                empty_tag(
                     "line",
-                    attrib={"number": str(line_num), "hits": str(hits)},
+                    (("number", str(line_num)), ("hits", str(hits))),
+                    indent=6,
                 )
+            end_tag("lines", indent=5)
+            end_tag("class", indent=4)
 
-        Path(outfile).write_text(
-            ET.tostring(root, encoding="unicode"),
-            encoding="utf-8",
-        )
+        end_tag("classes", indent=3)
+        end_tag("package", indent=2)
+        end_tag("packages", indent=1)
+        end_tag("coverage", indent=0)
+
+        Path(outfile).write_text(xml_buffer.getvalue(), encoding="utf-8")
 
     def html_report(self, directory: str) -> None:
         """Write a minimal HTML summary to the requested directory."""

@@ -8,6 +8,8 @@
 - `RELEASE_NOTES.md` und `CHANGELOG.md` verlinken die Diagnostik- und Wartungsleitfäden, damit Release-Kommunikation und Sustainment-Planung dieselben Nachschlagewerke nutzen ([docs/diagnostik.md](docs/diagnostik.md), [docs/MAINTENANCE.md](docs/MAINTENANCE.md)).【F:RELEASE_NOTES.md†L14-L24】【F:CHANGELOG.md†L114-L140】
 
 ## Latest tooling snapshot
+- ✅ `ruff check` – XML-Writer läuft ohne `xml.etree`-Import und erfüllt damit die Bandit-Vorgabe.【c52afa†L1-L2】
+- ❌ `PYTHONPATH=$(pwd) pytest -q` – bricht ab, weil die Testumgebung ohne `jinja2`-Abhängigkeit nicht startfähig ist.【923e51†L1-L12】
 - ✅ `ruff check` – kein neuer Fund nach dem Kommentar für das Passwort-Selector-Sentinel.【8befd3†L1-L2】
 - ❌ `PYTHONPATH=$(pwd) PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q` – scheitert bei der Sammlung, weil optionale Abhängigkeiten wie `voluptuous` und Home-Assistant-Komponenten-Stubs (`homeassistant.components.automation`, `custom_components.pawcontrol.*`) in der Testumgebung fehlen; bleibt als bekannter Stub-Backlog bestehen.【13e36b†L1-L142】
 - ✅ `ruff check` – Markdown-Verlinkung für Diagnostik/Wartung passiert ohne neue Lint-Abweichungen.【d9b3dd†L1-L2】
@@ -27,6 +29,9 @@
 - ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest und Übersetzungen validieren ohne Beanstandung.【bb7d4e†L1-L1】
 
 ## Fehleranalyse
+- Der Cobertura-Export erzeugt XML jetzt über einen eigenen String-Writer mit explizitem
+  Escaping, wodurch keine `xml.etree`-Imports mehr nötig sind und Bandit-Regel B405
+  entfällt.【F:coverage.py†L190-L282】
 - Die Coverage-Implementierung filtert Kandidaten jetzt strikt auf `custom_components/pawcontrol/`, `tests/`, `pytest_asyncio/` und `pytest_cov/`, nutzt das Statement-/Bytecode-Caching `_compile_cached` und erlaubt über `PAWCONTROL_COVERAGE_SKIP` gezielte Ausschlüsse großer Drittanbieterdateien.【94205e†L23-L43】【e07077†L417-L451】 Die Trace-Hooks protokollieren pro Modul Laufzeiten samt Hostname und CPU-Anzahl und schreiben JSON/CSV-Artefakte nach `generated/coverage/`, sodass neue Laufzeiten reproduzierbar bleiben.【e07077†L293-L355】【26c1e8†L453-L512】【3980d9†L1-L7】
 - `tests/helpers/homeassistant_test_stubs.py` liefert eine minimale, Jinja2-gestützte `Template`-Implementation inklusive `state_attr`/`is_state`-Hilfen und registriert `homeassistant.util.logging`, damit die Resilience-Blueprint-Regression ohne echte Home-Assistant-Pakete laufen kann.【03d180†L995-L1014】【49877f†L1207-L1273】【d3d29c†L14-L37】
 - `tests/unit/test_coverage_shim.py` sichert die neue Laufzeit-Telemetrie, indem JSON- und CSV-Ausgaben geprüft sowie notwendige Logging-/Resolver-Stubs bereitgestellt werden.【d3d29c†L1-L78】
@@ -435,9 +440,15 @@ Die Läufe spiegeln den aktuellen Stand ohne neue Warnungen wider und halten die
 Branch-Coverage-Anforderungen aus `pyproject.toml` ein.【F:pyproject.toml†L7-L62】
 
 ## Fehlerliste
+1. `PYTHONPATH=$(pwd) pytest -q` scheitert weiterhin, weil die Umgebung keine
+   `jinja2`-Abhängigkeit bereitstellt und damit der Import der Home-Assistant-Stubs
+   blockiert wird.【923e51†L1-L12】
 1. `PYTHONPATH=$(pwd) PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q` – Sammlung bricht aufgrund fehlender optionaler Abhängigkeiten und Home-Assistant-Komponenten-Stubs ab; Workaround weiterhin erforderlich, bis die Stubs nachgezogen sind.【13e36b†L1-L142】
 
 ## Verbesserungsmöglichkeiten
+- Evaluieren, ob die Teststubs eine integrierte Jinja2-Implementierung oder einen
+  optionalen Dependency-Hook benötigen, damit `pytest -q` ohne externe Pakete
+  läuft.【923e51†L1-L12】
 - Performance der Coverage-Läufe weiter optimieren; Ziel bleibt eine Laufzeit
   unter 20 Minuten trotz aktiviertem Branch-Tracing für das komplette Paket.
 - Beobachte Übersetzungs- und Dokumentations-Syncs nach Schemaänderungen in den
