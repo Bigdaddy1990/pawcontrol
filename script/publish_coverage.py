@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import binascii
 import dataclasses
 import datetime as dt
 import io
@@ -20,8 +21,9 @@ import re
 import tarfile
 import urllib.error
 import urllib.request
-from collections.abc import Iterable, Iterator, Mapping, MutableMapping
+from collections.abc import Iterable, Iterator, Mapping, MutableMapping, Sequence
 from pathlib import Path
+from typing import Any, cast
 from urllib.parse import urlsplit
 
 LOGGER = logging.getLogger(__name__)
@@ -29,8 +31,9 @@ LOGGER = logging.getLogger(__name__)
 API_ROOT = "https://api.github.com"
 DEFAULT_TIMEOUT = 15
 REPOSITORY_SLUG_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
-LINE_RATE_PATTERN = re.compile(r"line-rate=\"(?P<value>[0-9]+(?:\.[0-9]+)?)\"")
+LINE_RATE_PATTERN = re.compile(r"line-rate=['\"](?P<value>[0-9]+(?:\.[0-9]+)?)['\"]")
 DEFAULT_PREFIX_TEMPLATES = ("{prefix}/{run_id}", "{prefix}/latest")
+PRUNE_MAX_AGE = dt.timedelta(days=30)
 ALLOWED_URL_SCHEMES = frozenset({"https"})
 _API_ROOT_COMPONENTS = urlsplit(API_ROOT)
 
@@ -64,6 +67,8 @@ class CoverageDataset:
     xml_path: Path
     html_index: Path
     run_metadata: Mapping[str, str]
+    html_root: Path = dataclasses.field(init=False)
+    _coverage_percent: float = dataclasses.field(init=False)
 
     def __post_init__(self) -> None:
         if not self.xml_path.is_file():
@@ -192,10 +197,7 @@ class GitHubPagesPublisher:
     ) -> str:
         """Publish payloads to the configured GitHub Pages branch."""
 
-        ref = self._request(
-            "GET", f"/repos/{self._repository}/git/refs/heads/{self._branch}"
-        )
-        base_sha = ref["object"]["sha"]
+        base_sha = self._fetch_branch_head()
         tree_entries = []
         for payload in payloads:
             blob_sha = self._create_blob(payload.content)
@@ -207,22 +209,8 @@ class GitHubPagesPublisher:
                     "sha": blob_sha,
                 }
             )
-        tree = self._request(
-            "POST",
-            f"/repos/{self._repository}/git/trees",
-            {"base_tree": base_sha, "tree": tree_entries},
-        )
         commit_message = "Publish coverage report"
-        commit = self._request(
-            "POST",
-            f"/repos/{self._repository}/git/commits",
-            {"message": commit_message, "tree": tree["sha"], "parents": [base_sha]},
-        )
-        self._request(
-            "PATCH",
-            f"/repos/{self._repository}/git/refs/heads/{self._branch}",
-            {"sha": commit["sha"], "force": True},
-        )
+        self._commit_tree(base_sha, tree_entries, commit_message)
         owner, repo = self._repository.split("/", 1)
         base_url = f"https://{owner}.github.io/{repo}"
         if landing_path:
@@ -239,9 +227,48 @@ class GitHubPagesPublisher:
         )
         return blob["sha"]
 
+    def _fetch_branch_head(self) -> str:
+        ref = cast(
+            Mapping[str, Any],
+            self._request(
+                "GET", f"/repos/{self._repository}/git/refs/heads/{self._branch}"
+            ),
+        )
+        branch_object = cast(Mapping[str, Any], ref["object"])
+        return cast(str, branch_object["sha"])
+
+    def _commit_tree(
+        self,
+        base_sha: str,
+        tree_entries: Sequence[Mapping[str, object]],
+        message: str,
+    ) -> str:
+        tree = cast(
+            Mapping[str, Any],
+            self._request(
+                "POST",
+                f"/repos/{self._repository}/git/trees",
+                {"base_tree": base_sha, "tree": list(tree_entries)},
+            ),
+        )
+        commit = cast(
+            Mapping[str, Any],
+            self._request(
+                "POST",
+                f"/repos/{self._repository}/git/commits",
+                {"message": message, "tree": tree["sha"], "parents": [base_sha]},
+            ),
+        )
+        self._request(
+            "PATCH",
+            f"/repos/{self._repository}/git/refs/heads/{self._branch}",
+            {"sha": commit["sha"], "force": True},
+        )
+        return cast(str, commit["sha"])
+
     def _request(
         self, method: str, path: str, payload: MutableMapping[str, object] | None = None
-    ) -> dict[str, object]:
+    ) -> Any:
         url = f"{API_ROOT}{path}"
         data: bytes | None = None
         headers = {
@@ -269,6 +296,81 @@ class GitHubPagesPublisher:
         if not response_data:
             return {}
         return json.loads(response_data.decode("utf-8"))
+
+    def prune_expired_runs(
+        self,
+        prefix: str,
+        max_age: dt.timedelta,
+        *,
+        now: dt.datetime | None = None,
+    ) -> list[str]:
+        """Delete coverage run directories older than ``max_age``."""
+
+        now = now or dt.datetime.now(dt.UTC)
+        normalized_prefix = prefix.strip("/")
+        if not normalized_prefix:
+            return []
+        contents = self._request(
+            "GET",
+            f"/repos/{self._repository}/contents/{normalized_prefix}?ref={self._branch}",
+        )
+        if not isinstance(contents, list):
+            return []
+        expired_paths: list[str] = []
+        for entry in contents:
+            if not isinstance(entry, Mapping):
+                continue
+            if entry.get("type") != "dir":
+                continue
+            run_id = str(entry.get("name", ""))
+            if not run_id or run_id == "latest":
+                continue
+            generated_at = self._load_run_timestamp(normalized_prefix, run_id)
+            if generated_at is None:
+                continue
+            if now - generated_at > max_age:
+                expired_paths.append(f"{normalized_prefix}/{run_id}")
+        if not expired_paths:
+            return []
+        base_sha = self._fetch_branch_head()
+        tree_entries: list[dict[str, object]] = [
+            {
+                "path": path,
+                "mode": "040000",
+                "type": "tree",
+                "sha": None,
+            }
+            for path in expired_paths
+        ]
+        self._commit_tree(base_sha, tree_entries, "Prune expired coverage runs")
+        return expired_paths
+
+    def _load_run_timestamp(self, prefix: str, run_id: str) -> dt.datetime | None:
+        summary = self._request(
+            "GET",
+            f"/repos/{self._repository}/contents/{prefix}/{run_id}/summary.json?ref={self._branch}",
+        )
+        if not isinstance(summary, Mapping):
+            return None
+        content = summary.get("content")
+        encoding = summary.get("encoding")
+        if not isinstance(content, str) or encoding != "base64":
+            return None
+        try:
+            decoded = base64.b64decode(content.encode("ascii"))
+            payload = json.loads(decoded.decode("utf-8"))
+        except (ValueError, UnicodeDecodeError, binascii.Error):
+            return None
+        generated_at = payload.get("generated_at")
+        if not isinstance(generated_at, str):
+            return None
+        try:
+            timestamp = dt.datetime.fromisoformat(generated_at)
+        except ValueError:
+            return None
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=dt.UTC)
+        return timestamp.astimezone(dt.UTC)
 
 
 def ensure_allowed_github_api_url(url: str) -> None:
@@ -340,6 +442,13 @@ def build_cli() -> argparse.ArgumentParser:
     parser.add_argument("--run-attempt", default=os.getenv("GITHUB_RUN_ATTEMPT", "1"))
     parser.add_argument("--commit-sha", default=os.getenv("GITHUB_SHA", ""))
     parser.add_argument("--ref", default=os.getenv("GITHUB_REF", ""))
+    parser.add_argument(
+        "--prune-expired-runs",
+        action="store_true",
+        help=(
+            "Prune coverage/<run_id> directories older than 30 days from the Pages branch"
+        ),
+    )
     return parser
 
 
@@ -373,22 +482,42 @@ def publish(args: argparse.Namespace) -> PublishResult:
     duplicated_payloads = duplicate_payloads(payloads, prefixes)
     archive_name = f"coverage-{args.run_id}.tar.gz"
     archive_path = args.artifact_directory / archive_name
-    archive = create_archive(duplicate_payloads, archive_path)
+    archive = create_archive(duplicated_payloads, archive_path)
     LOGGER.info("Created coverage archive at %s", archive)
     publish_url: str | None = None
+    published = False
+    prune_requested = bool(getattr(args, "prune_expired_runs", False))
     if args.mode == "pages":
         token = os.getenv("GITHUB_TOKEN", "")
         repository = os.getenv("GITHUB_REPOSITORY", "")
         try:
             publisher = GitHubPagesPublisher(token, repository, args.pages_branch)
-            publish_url = publisher.publish(
-                duplicated_payloads,
-                landing_path=f"{args.pages_prefix}/latest/index.html",
-            )
-            LOGGER.info("Published coverage to GitHub Pages at %s", publish_url)
-            return PublishResult(True, archive, publish_url)
         except PublishError as error:
             LOGGER.warning("GitHub Pages upload skipped: %s", error)
+        else:
+            try:
+                publish_url = publisher.publish(
+                    duplicated_payloads,
+                    landing_path=f"{args.pages_prefix}/latest/index.html",
+                )
+                LOGGER.info("Published coverage to GitHub Pages at %s", publish_url)
+                published = True
+            except PublishError as error:
+                LOGGER.warning("GitHub Pages upload skipped: %s", error)
+            if prune_requested:
+                prune_prefix = prefix_root or str(args.pages_prefix).strip("/")
+                try:
+                    removed = publisher.prune_expired_runs(prune_prefix, PRUNE_MAX_AGE)
+                except PublishError as error:
+                    LOGGER.info("Coverage prune skipped: %s", error)
+                else:
+                    if removed:
+                        LOGGER.info(
+                            "Pruned %d expired coverage runs from GitHub Pages",
+                            len(removed),
+                        )
+            if published:
+                return PublishResult(True, archive, publish_url)
     return PublishResult(False, archive, publish_url)
 
 

@@ -31,6 +31,7 @@
 - 📐 `ruff format`, `ruff check`, `mypy`, and `pytest -q` are executed before every pull request to preserve Platinum-level baselines.
 - 📊 Coverage and async performance metrics are tracked in `docs/testing/coverage_reporting.md` and `generated/perf_samples/latest.json`.
 - 🌐 CI publishes the lightweight coverage report to GitHub Pages via `python -m script.publish_coverage`, and the latest HTML is always available at [`coverage/latest/index.html`](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/index.html) with a Shields badge feed at [`coverage/latest/shields.json`](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/shields.json).
+- ♻️ Supply `--prune-expired-runs` when invoking `python -m script.publish_coverage` to remove `coverage/<run_id>` folders older than 30 days; the GitHub token used for publication needs `contents:write` (or `pages:write`) permissions to prune the Pages branch.
 - 🧾 Coordinator, config-flow, diagnostics, and service suites use Home Assistant test fixtures to validate setup/unload, runtime data, and repair flows.
 - ▶️ Run the full quality gate locally:
   ```bash

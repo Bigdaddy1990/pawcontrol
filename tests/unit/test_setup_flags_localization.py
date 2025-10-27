@@ -26,7 +26,9 @@ def _split_table_row(row: str) -> list[str]:
     return [cell.strip() for cell in row.strip().strip("|").split("|")]
 
 
-def _parse_localization_table(doc_content: str) -> tuple[list[str], dict[str, dict[str, str]]]:
+def _parse_localization_table(
+    doc_content: str,
+) -> tuple[list[str], dict[str, dict[str, str]]]:
     header: list[str] | None = None
     rows: list[list[str]] = []
     for line in doc_content.splitlines():
