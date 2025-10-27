@@ -166,7 +166,7 @@
    `docs/diagnostik.md` direkt aktualisieren, damit neue Sprachen ohne manuelle
    Pflege erscheinen und Tests nur noch das Resultat validieren.【F:script/sync_localization_flags.py†L1-L213】【F:docs/diagnostik.md†L38-L112】
 3. Manual-Event-UX weiter ausbauen: Die neuen Select-Listen sollen Herkunfts-Badges oder Hilfetexte anzeigen, damit Nutzer sofort erkennen, ob ein Eintrag aus Blueprint, System-Option oder dem Integrations-Default stammt. `_manual_event_choices` kann dazu zusätzliche Metadaten serialisieren; begleitende Tests prüfen, dass die Labels in allen Sprachen korrekt gerendert werden.【F:custom_components/pawcontrol/options_flow.py†L700-L735】【F:tests/unit/test_options_flow.py†L945-L1024】
-4. Manual-Event-Historie persistieren: Zusätzlich zum letzten Trigger sollen die letzten fünf manuellen Eskalationen in `performance_stats` gespeichert und in Diagnostics/System-Health visualisiert werden, um wiederkehrende On-Demand-Checks schneller zu erkennen.【F:custom_components/pawcontrol/script_manager.py†L575-L704】【F:custom_components/pawcontrol/system_health.py†L150-L356】
+4. Manual-Event-Historie in Zeitreihen aufnehmen: Der neue Ringpuffer sollte in `performance_stats` gespiegelt und vom Statistik-Sensor (`service_execution.manual_events`) referenziert werden, damit historische Dashboards mehr als die letzten fünf Trigger analysieren können.【F:custom_components/pawcontrol/script_manager.py†L503-L704】【F:custom_components/pawcontrol/telemetry.py†L240-L449】
 5. Blueprint-Test-Hilfen extrahieren: Sowohl Komponenten- als auch E2E-Tests
 1. Zusätzliche Sprachen ergänzen: Sobald Community-Übersetzungen vorliegen,
    soll `sync_localization_flags` erweitert werden, um neue Sprachdateien
@@ -193,6 +193,7 @@
    nutzen dieselben Service-Registrierungen sowie Event-Aufzeichnungen.【F:tests/components/pawcontrol/blueprint_context.py†L1-L87】【F:tests/components/pawcontrol/test_blueprint_resilience.py†L1-L170】【F:tests/components/pawcontrol/test_resilience_blueprint_e2e.py†L1-L360】
 
 ## Recent improvements
+- Der Script-Manager speichert jetzt einen Ringpuffer der letzten fünf manuellen Eskalationen inklusive Kontext-ID, Benutzer, Ursprung und Quellklassifizierung (`blueprint` vs. `system_options`) und exportiert ihn sowohl in den Diagnostik-Dump als auch ins System-Health-Panel, sodass Support-Teams den manuellen Verlauf ohne zusätzliche Logs nachvollziehen können.【F:custom_components/pawcontrol/script_manager.py†L503-L704】【F:custom_components/pawcontrol/diagnostics.py†L688-L867】【F:custom_components/pawcontrol/system_health.py†L103-L176】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L243】【F:tests/components/pawcontrol/test_system_health.py†L130-L210】【F:tests/unit/test_data_manager.py†L595-L705】
 - `python -m script.publish_coverage` kann mit `--prune-expired-runs` jetzt veraltete `coverage/<run_id>`-Verzeichnisse nach 30 Tagen löschen; neue Unit-Tests mocken die GitHub-API, README dokumentiert die erforderlichen Berechtigungen und der Publisher degradiert offline auf das Archiv.【F:script/publish_coverage.py†L31-L520】【F:tests/unit/test_publish_coverage.py†L128-L255】【F:README.md†L29-L35】
 - Der Asyncio-Stub provisioniert den Event-Loop jetzt bereits während
   `pytest_configure`, stellt `enable_event_loop_debug` als Hook-Helfer bereit

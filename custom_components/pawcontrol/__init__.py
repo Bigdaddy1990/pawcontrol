@@ -1004,12 +1004,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         runtime_data.garden_manager = garden_manager
         runtime_data.device_api_client = coordinator.api_client
 
+        if script_manager is not None:
+            script_manager.attach_runtime_manual_history(runtime_data)
+
         update_runtime_reconfigure_summary(runtime_data)
 
         if hasattr(data_manager, "register_runtime_cache_monitors"):
             data_manager.register_runtime_cache_monitors(runtime_data)
 
         store_runtime_data(hass, entry, runtime_data)
+
+        if script_manager is not None:
+            script_manager.sync_manual_event_history()
 
         try:
             # PLATINUM: Enhanced platform setup with timeout and retry logic
@@ -1471,6 +1477,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     """
     unload_start_time = time.time()
     runtime_data = get_runtime_data(hass, entry)
+    manual_history: list[dict[str, Any]] | None = None
 
     # Get platforms for unloading
     if runtime_data:
@@ -1524,9 +1531,15 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
 
     # Cleanup runtime data with enhanced error handling and timeouts
     if runtime_data:
+        script_manager = getattr(runtime_data, "script_manager", None)
+        if script_manager is not None:
+            manual_history = script_manager.export_manual_event_history()
         await _async_cleanup_runtime_data(runtime_data)
 
     pop_runtime_data(hass, entry)
+
+    if manual_history:
+        entry.runtime_data = {"manual_event_history": manual_history}
 
     # Clear caches with size reporting
     cache_size = len(_PLATFORM_CACHE)

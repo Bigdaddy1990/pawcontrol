@@ -74,6 +74,9 @@ async def test_system_health_reports_coordinator_status(
     assert service_execution["status"]["guard"]["level"] == "normal"
     assert service_execution["status"]["breaker"]["color"] == "green"
     assert service_execution["status"]["overall"]["level"] == "normal"
+    manual_events = service_execution["manual_events"]
+    assert manual_events["available"] is False
+    assert manual_events["event_history"] == []
 
 
 async def test_system_health_reports_external_quota(
@@ -110,6 +113,7 @@ async def test_system_health_reports_external_quota(
 
     assert info["can_reach_backend"] is True
     assert info["remaining_quota"] == 3
+    assert info["service_execution"]["manual_events"]["available"] is False
 
 
 async def test_system_health_guard_and_breaker_summary(hass: HomeAssistant) -> None:
@@ -129,7 +133,7 @@ async def test_system_health_guard_and_breaker_summary(hass: HomeAssistant) -> N
             "breaker_threshold": {"active": 2, "default": 1},
         },
         "manual_events": {
-            "available": False,
+            "available": True,
             "automations": [],
             "configured_guard_events": [],
             "configured_breaker_events": [],
@@ -143,7 +147,24 @@ async def test_system_health_guard_and_breaker_summary(hass: HomeAssistant) -> N
             "preferred_breaker_event": "pawcontrol_manual_breaker",
             "preferred_check_event": "pawcontrol_resilience_check",
             "active_listeners": [],
-            "last_event": None,
+            "last_event": {
+                "event_type": "pawcontrol_manual_guard",
+                "matched_preference": "manual_guard_event",
+                "category": "guard",
+                "user_id": "support",
+                "sources": ["blueprint"],
+                "origin": "LOCAL",
+            },
+            "event_history": [
+                {
+                    "event_type": "pawcontrol_manual_guard",
+                    "matched_preference": "manual_guard_event",
+                    "category": "guard",
+                    "user_id": "support",
+                    "sources": ["blueprint"],
+                    "origin": "LOCAL",
+                }
+            ],
         },
     }
 
@@ -198,6 +219,11 @@ async def test_system_health_guard_and_breaker_summary(hass: HomeAssistant) -> N
     assert guard_summary["skip_ratio"] == pytest.approx(3 / 8)
     assert guard_summary["top_reasons"][0] == {"reason": "breaker", "count": 2}
     assert guard_summary["thresholds"]["source"] == "resilience_script"
+    manual_events = service_execution["manual_events"]
+    assert manual_events["available"] is True
+    assert manual_events["last_event"]["event_type"] == "pawcontrol_manual_guard"
+    assert manual_events["last_event"]["user_id"] == "support"
+    assert manual_events["event_history"][0]["sources"] == ["blueprint"]
     assert guard_summary["thresholds"]["source_key"] == "active"
     assert guard_summary["thresholds"]["warning"]["count"] == 4
     assert guard_summary["thresholds"]["critical"]["count"] == 5

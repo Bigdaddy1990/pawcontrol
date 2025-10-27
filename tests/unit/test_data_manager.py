@@ -561,6 +561,7 @@ def test_script_manager_resilience_escalation_definition() -> None:
     manual = snapshot["manual_events"]
     assert manual["available"] is False
     assert manual["automations"] == []
+    assert manual["event_history"] == []
 
 
 @pytest.mark.unit
@@ -598,6 +599,7 @@ def test_script_manager_resilience_threshold_overrides() -> None:
     assert manual["listener_events"] == {}
     assert manual["listener_sources"] == {}
     assert manual["last_trigger"] is None
+    assert manual["event_history"] == []
     counters = manual["event_counters"]
     assert counters["total"] == 0
     assert counters["by_event"] == {}
@@ -678,6 +680,7 @@ def test_script_manager_resilience_manual_event_snapshot() -> None:
         "pawcontrol_resilience_check",
     ]
     assert manual["last_event"] is None
+    assert manual["event_history"] == []
     listener_metadata = manual["listener_metadata"]
     assert listener_metadata["pawcontrol_manual_guard"]["sources"] == [
         "blueprint",
@@ -843,6 +846,10 @@ def test_script_manager_records_manual_event_trigger() -> None:
         "pawcontrol_manual_check",
         "pawcontrol_manual_guard",
     ]
+    history = manual["event_history"]
+    assert isinstance(history, list) and history
+    assert history[0]["event_type"] == "pawcontrol_manual_guard"
+    assert history[0]["sources"] == ["system_options"]
 
 
 @pytest.mark.asyncio
@@ -949,6 +956,9 @@ def test_script_manager_manual_event_listener_records_last_trigger() -> None:
     last_trigger = manual["last_trigger"]
     assert last_trigger is not None
     assert last_trigger["event_type"] == "pawcontrol_manual_guard"
+    assert last_trigger["matched_preference"] == "manual_guard_event"
+    assert last_trigger["category"] == "guard"
+    assert last_trigger["sources"] == ["system_options"]
     assert last_trigger["reasons"] == ["guard"]
     assert last_trigger["sources"] == ["system_settings", "default"]
     assert manual["listener_sources"]["pawcontrol_manual_guard"] == ["system_options"]
@@ -956,6 +966,9 @@ def test_script_manager_manual_event_listener_records_last_trigger() -> None:
     assert listener_metadata["sources"] == ["default", "system_settings"]
     assert listener_metadata["primary_source"] == "system_settings"
     assert isinstance(last_trigger["recorded_age_seconds"], int)
+    history = manual["event_history"]
+    assert isinstance(history, list) and history
+    assert history[0]["event_type"] == "pawcontrol_manual_guard"
     counters = manual["event_counters"]
     assert counters["total"] == 1
     assert counters["by_event"] == {"pawcontrol_manual_guard": 1}
