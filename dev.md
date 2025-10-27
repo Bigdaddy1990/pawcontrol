@@ -459,7 +459,8 @@ Branch-Coverage-Anforderungen aus `pyproject.toml` ein.【F:pyproject.toml†L7-
 1. `pytest -q` bricht bereits beim Laden der Plugins ab, weil `pytest_asyncio` in der Umgebung fehlt; ohne die Abhängigkeit lässt sich kein vollständiger Testlauf starten.【7b3797†L1-L43】
 1. `PYTHONPATH=$(pwd) pytest -q` scheitert weiterhin, weil die Umgebung keine
    `jinja2`-Abhängigkeit bereitstellt und damit der Import der Home-Assistant-Stubs
-   blockiert wird.【923e51†L1-L12】
+   blockiert wird; die neue Template-Implementierung verlangt `jinja2>=3.1`, um
+   asynchrone Renderpfade zu unterstützen.【923e51†L1-L12】
 1. `PYTHONPATH=$(pwd) PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q` – Sammlung bricht aufgrund fehlender optionaler Abhängigkeiten und Home-Assistant-Komponenten-Stubs ab; Workaround weiterhin erforderlich, bis die Stubs nachgezogen sind.【13e36b†L1-L142】
 
 ## Verbesserungsmöglichkeiten
@@ -467,6 +468,9 @@ Branch-Coverage-Anforderungen aus `pyproject.toml` ein.【F:pyproject.toml†L7-
 - Evaluieren, ob die Teststubs eine integrierte Jinja2-Implementierung oder einen
   optionalen Dependency-Hook benötigen, damit `pytest -q` ohne externe Pakete
   läuft.【923e51†L1-L12】
+- Die Automation- und Template-Stubs decken Blueprint-Imports nun ab; plane die
+  Aufnahme von `jinja2>=3.1` in die Testanforderungen oder ein Fallback, falls
+  Umgebungen ohne die Bibliothek laufen sollen.【F:tests/helpers/homeassistant_test_stubs.py†L1-L1996】
 - Performance der Coverage-Läufe weiter optimieren; Ziel bleibt eine Laufzeit
   unter 20 Minuten trotz aktiviertem Branch-Tracing für das komplette Paket.
 - Beobachte Übersetzungs- und Dokumentations-Syncs nach Schemaänderungen in den

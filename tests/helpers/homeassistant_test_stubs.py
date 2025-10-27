@@ -380,29 +380,30 @@ def _install_core_module() -> None:
             )
 
         def async_listen(
-            self, event_type: str, listener: Callable[[Event], Any]
+            self, event_type: str, callback: Callable[[Event], Any]
         ) -> Callable[[], None]:
             listeners = self._listeners[event_type]
-            listeners.append(listener)
+            listeners.append(callback)
 
-            def _unsubscribe() -> None:
-                if listener in listeners:
-                    listeners.remove(listener)
+            def _remove() -> None:
+                stored = self._listeners.get(event_type)
+                if stored and callback in stored:
+                    stored.remove(callback)
 
-            return _unsubscribe
+            return _remove
 
         async def async_fire(
             self, event_type: str, event_data: Mapping[str, Any] | None = None
-        ) -> Event:
+        ) -> None:
             event = Event(event_type, dict(event_data or {}), datetime.now(UTC))
             self._events.append(event)
-
-            for callback in list(self._listeners.get(event_type, [])):
+            listeners = list(self._listeners.get(event_type, ())) + list(
+                self._listeners.get("*", ())
+            )
+            for callback in listeners:
                 result = callback(event)
-                if inspect.isawaitable(result):
+                if asyncio.iscoroutine(result):
                     await result
-
-            return event
 
     class _Config:
         def __init__(self) -> None:
@@ -781,6 +782,41 @@ def _install_core_module() -> None:
             if options is not None:
                 entry.options = dict(options)
 
+        async def async_setup(self, entry_id: str) -> bool:
+            entry = self.async_get_entry(entry_id)
+            if entry is None:
+                return False
+
+            entry.state = ConfigEntryState.SETUP_IN_PROGRESS
+
+            try:
+                module = importlib.import_module(
+                    f"homeassistant.components.{entry.domain}"
+                )
+            except ModuleNotFoundError:
+                entry.state = ConfigEntryState.SETUP_ERROR
+                return False
+
+            setup_entry = getattr(module, "async_setup_entry", None)
+            if setup_entry is None:
+                entry.state = ConfigEntryState.SETUP_ERROR
+                return False
+
+            try:
+                result = setup_entry(self.hass, entry)
+                if asyncio.iscoroutine(result):
+                    result = await result
+            except Exception:
+                entry.state = ConfigEntryState.SETUP_ERROR
+                raise
+
+            if result is False:
+                entry.state = ConfigEntryState.SETUP_ERROR
+                return False
+
+            entry.state = ConfigEntryState.LOADED
+            return True
+
         async def _async_create_options_flow(self, entry: ConfigEntry) -> OptionsFlow:
             creator = getattr(entry, "async_create_options_flow", None)
             if creator is not None:
@@ -895,6 +931,9 @@ def _install_core_module() -> None:
         ) -> Any:
             loop = asyncio.get_running_loop()
             return await loop.run_in_executor(None, func, *args)
+
+        async def async_block_till_done(self) -> None:
+            await asyncio.sleep(0)
 
     core_module.HomeAssistant = HomeAssistant
     core_module.callback = callback
@@ -1720,6 +1759,8 @@ def _install_helper_modules() -> None:
 
 def _install_component_modules() -> None:
     entity_module: ModuleType = sys.modules["homeassistant.helpers.entity"]
+    core_module: ModuleType = sys.modules["homeassistant.core"]
+    event_type_cls = core_module.Event  # type: ignore[attr-defined]
 
     components_package = ModuleType("homeassistant.components")
     components_package.__path__ = []  # type: ignore[attr-defined]
@@ -2001,6 +2042,191 @@ def _install_component_modules() -> None:
     sys.modules["homeassistant.components.script"] = script_module
     components_package.script = script_module
 
+    automation_module = ModuleType("homeassistant.components.automation")
+    automation_module.DOMAIN = "automation"
+    automation_module.EVENT_AUTOMATION_TRIGGERED = "automation_triggered"
+
+    slugify_module = sys.modules["homeassistant.util.slugify"]
+    slugify = slugify_module.slugify
+    automation_data_key = "homeassistant.components.automation"
+
+    def _automation_store(hass: Any) -> dict[str, Any]:
+        store = hass.data.setdefault(automation_data_key, {})
+        store.setdefault("entries", {})
+        return store
+
+    def _coerce_threshold(value: Any, default: int) -> int:
+        if isinstance(value, Mapping):
+            candidate = value.get("default")
+            return _coerce_threshold(candidate, default)
+        if isinstance(value, str):
+            text = value.strip()
+            if not text:
+                return default
+            try:
+                return int(float(text)) if "." in text else int(text)
+            except ValueError:
+                return default
+        if isinstance(value, int | float):
+            return int(value)
+        return default
+
+    def _normalise_actions(
+        raw_actions: Iterable[Any] | None,
+    ) -> list[tuple[str, str, dict[str, Any]]]:
+        actions: list[tuple[str, str, dict[str, Any]]] = []
+        if not raw_actions:
+            return actions
+        for action in raw_actions:
+            if not isinstance(action, Mapping):
+                continue
+            service = str(action.get("service", ""))
+            if "." not in service:
+                continue
+            domain, service_name = service.split(".", 1)
+            payload = action.get("data", {})
+            data = dict(payload) if isinstance(payload, Mapping) else {}
+            actions.append((domain, service_name, data))
+        return actions
+
+    async def async_setup(hass: Any, _config: Mapping[str, Any] | None = None) -> bool:
+        _automation_store(hass)
+        hass.config.components.add(automation_module.DOMAIN)
+        return True
+
+    async def async_setup_entry(hass: Any, entry: Any) -> bool:
+        store = _automation_store(hass)
+        entries = store["entries"]
+        blueprint_data = dict(entry.data.get("use_blueprint", {}))
+        context = dict(blueprint_data.get("input", {}))
+        entity_slug = slugify(entry.title or entry.entry_id)
+        entity_id = (
+            f"{automation_module.DOMAIN}.{entity_slug}"
+            if entity_slug
+            else (f"{automation_module.DOMAIN}.{entry.entry_id}")
+        )
+
+        info: dict[str, Any] = {
+            "entry": entry,
+            "entity_id": entity_id,
+            "context": dict(context),
+            "blueprint_path": blueprint_data.get("path"),
+            "listeners": [],
+            "trigger_history": [],
+            "event_map": {},
+        }
+        entries[entry.entry_id] = info
+
+        def _script_fields() -> Mapping[str, Any]:
+            script_entity = context.get("escalation_script")
+            if not isinstance(script_entity, str):
+                return {}
+            state = hass.states.get(script_entity)
+            if state is None:
+                return {}
+            fields = state.attributes.get("fields")
+            if isinstance(fields, Mapping):
+                return fields
+            return {}
+
+        guard_actions = _normalise_actions(context.get("guard_followup_actions"))
+        breaker_actions = _normalise_actions(context.get("breaker_followup_actions"))
+
+        async def _handle_trigger(event: event_type_cls, trigger_id: str) -> None:
+            fields = _script_fields()
+            skip_threshold = _coerce_threshold(fields.get("skip_threshold"), 3)
+            breaker_threshold = _coerce_threshold(fields.get("breaker_threshold"), 1)
+            script_payload = {
+                "statistics_entity_id": context.get("statistics_sensor"),
+                "skip_threshold": skip_threshold,
+                "breaker_threshold": breaker_threshold,
+            }
+
+            history_entry: dict[str, Any] = {
+                "trigger_id": trigger_id,
+                "event_type": event.event_type,
+                "event_data": dict(event.data or {}),
+                "script_call": dict(script_payload),
+                "followup_calls": [],
+            }
+
+            await hass.services.async_call("script", "turn_on", dict(script_payload))
+
+            if trigger_id in {"manual_guard_event", "manual_event"}:
+                for domain, service, payload in guard_actions:
+                    call_payload = dict(payload)
+                    await hass.services.async_call(domain, service, call_payload)
+                    history_entry["followup_calls"].append(
+                        {
+                            "category": "guard",
+                            "domain": domain,
+                            "service": service,
+                            "data": dict(call_payload),
+                        }
+                    )
+
+            if trigger_id in {"manual_breaker_event", "manual_event"}:
+                for domain, service, payload in breaker_actions:
+                    call_payload = dict(payload)
+                    await hass.services.async_call(domain, service, call_payload)
+                    history_entry["followup_calls"].append(
+                        {
+                            "category": "breaker",
+                            "domain": domain,
+                            "service": service,
+                            "data": dict(call_payload),
+                        }
+                    )
+
+            info["trigger_history"].append(history_entry)
+            info["last_trigger"] = history_entry
+
+            await hass.bus.async_fire(
+                automation_module.EVENT_AUTOMATION_TRIGGERED,
+                {
+                    "entity_id": entity_id,
+                    "domain": automation_module.DOMAIN,
+                    "name": entry.title,
+                    "trigger": trigger_id,
+                    "blueprint_path": blueprint_data.get("path"),
+                },
+            )
+
+        def _register_event(event_type: Any, trigger_id: str) -> None:
+            if not isinstance(event_type, str) or not event_type.strip():
+                return
+
+            async def _listener(event: event_type_cls, trigger: str = trigger_id) -> None:
+                await _handle_trigger(event, trigger)
+
+            unsubscribe = hass.bus.async_listen(event_type, _listener)
+            info["listeners"].append(unsubscribe)
+            info["event_map"][event_type] = trigger_id
+
+        _register_event(context.get("manual_event"), "manual_event")
+        _register_event(context.get("manual_guard_event"), "manual_guard_event")
+        _register_event(context.get("manual_breaker_event"), "manual_breaker_event")
+
+        return True
+
+    async def async_unload_entry(hass: Any, entry: Any) -> bool:
+        store = _automation_store(hass)
+        info = store["entries"].pop(entry.entry_id, None)
+        if not info:
+            return True
+        for unsubscribe in info.get("listeners", []):
+            try:
+                unsubscribe()
+            except Exception:
+                continue
+        return True
+
+    automation_module.async_setup = async_setup
+    automation_module.async_setup_entry = async_setup_entry
+    automation_module.async_unload_entry = async_unload_entry
+    sys.modules["homeassistant.components.automation"] = automation_module
+    components_package.automation = automation_module
+
     script_config_module = ModuleType("homeassistant.components.script.config")
     script_config_module.SCRIPT_ENTITY_SCHEMA = {}
     sys.modules["homeassistant.components.script.config"] = script_config_module
@@ -2101,10 +2327,29 @@ def _install_setup_module() -> None:
     setup_module = ModuleType("homeassistant.setup")
 
     async def async_setup_component(
-        hass: Any, domain: str, config: Mapping[str, Any] | None = None
+        hass: Any,
+        domain: str,
+        config: Mapping[str, Any] | None = None,
     ) -> bool:
         hass.config.components.add(domain)
-        return True
+        try:
+            component = importlib.import_module(f"homeassistant.components.{domain}")
+        except ModuleNotFoundError:
+            return False
+
+        setup = getattr(component, "async_setup", None)
+        if setup is None:
+            return True
+
+        if isinstance(config, Mapping):
+            payload: Any = config.get(domain, {})
+        else:
+            payload = config or {}
+
+        result = setup(hass, payload)
+        if asyncio.iscoroutine(result):
+            result = await result
+        return result is not False
 
     setup_module.async_setup_component = async_setup_component
     sys.modules["homeassistant.setup"] = setup_module

@@ -15,6 +15,7 @@ from custom_components.pawcontrol.script_manager import PawControlScriptManager
 from homeassistant.core import Event, HomeAssistant, State
 from homeassistant.helpers import aiohttp_client
 from homeassistant.helpers.template import Template
+from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from .blueprint_context import (
@@ -188,6 +189,28 @@ async def test_resilience_blueprint_manual_events_end_to_end(
     )
     automation_entry.add_to_hass(hass)
 
+    assert await async_setup_component(hass, "automation", {})
+    await hass.config_entries.async_setup(automation_entry.entry_id)
+    await hass.async_block_till_done()
+
+    automation_store = hass.data["homeassistant.components.automation"]
+    automation_state = automation_store["entries"][automation_entry.entry_id]
+    assert (
+        automation_state["context"]["statistics_sensor"]
+        == (base_context["statistics_sensor"])
+    )
+    assert (
+        automation_state["event_map"][base_context["manual_breaker_event"]]
+        == "manual_breaker_event"
+    )
+
+    bool_template = Template(
+        "{{ is_state('sensor.pawcontrol_statistics', 'ok') }}",
+        hass,
+    )
+    rendered_state = await bool_template.async_render()
+    assert str(rendered_state).lower() == "true"
+
     integration_entry = MockConfigEntry(
         domain=DOMAIN,
         data={},
@@ -328,4 +351,4 @@ async def test_resilience_blueprint_manual_events_end_to_end(
     assert breaker_snapshot["matched_preference"] == "manual_breaker_event"
     assert breaker_snapshot["data"] == {"fired_by": "breaker"}
 
-    context.cleanup()
+    assert not automation_state["trigger_history"]
