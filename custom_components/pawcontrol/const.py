@@ -493,6 +493,21 @@ MAX_IDLE_POLL_INTERVAL: Final[int] = 900
 # its polling interval below 15 minutes, even when users try to configure higher
 # values. The coordinator support module enforces this hard ceiling.
 MAX_POLLING_INTERVAL_SECONDS: Final[int] = 15 * 60
+_BASE_UPDATE_INTERVALS: Final[dict[str, int]] = {
+    "minimal": 300,  # 5 minutes - power saving
+    "balanced": 120,  # 2 minutes - balanced default cadence
+    "frequent": 60,  # 1 minute - responsive
+    "real_time": 30,  # 30 seconds - high performance
+}
+UPDATE_INTERVALS: Final[dict[str, int]] = dict(_BASE_UPDATE_INTERVALS)
+UPDATE_INTERVALS["standard"] = _BASE_UPDATE_INTERVALS["balanced"]
+
+# PLATINUM: Cap idle polling to stay within the <15 minute guideline
+MAX_IDLE_POLL_INTERVAL: Final[int] = 900
+# The Platinum appropriate-polling quality goal requires the integration to keep
+# its polling interval below 15 minutes, even when users try to configure higher
+# values. The coordinator support module enforces this hard ceiling.
+MAX_POLLING_INTERVAL_SECONDS: Final[int] = 15 * 60
 
 # OPTIMIZED: Data file names as constants
 DATA_FILE_WALKS: Final[str] = "walks.json"
