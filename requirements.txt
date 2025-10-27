@@ -1,5 +1,2 @@
 aiofiles>=23.1.0
 aiohttp>=3.12.14
-coverage[toml]>=7.6.0
-pytest-homeassistant-custom-component  # follows daily HA version
-voluptuous>=0.14.0
