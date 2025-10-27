@@ -8,6 +8,11 @@
 - `RELEASE_NOTES.md` und `CHANGELOG.md` verlinken die Diagnostik- und Wartungsleitfäden, damit Release-Kommunikation und Sustainment-Planung dieselben Nachschlagewerke nutzen ([docs/diagnostik.md](docs/diagnostik.md), [docs/MAINTENANCE.md](docs/MAINTENANCE.md)).【F:RELEASE_NOTES.md†L14-L24】【F:CHANGELOG.md†L114-L140】
 
 ## Latest tooling snapshot
+- ✅ `python -m script.sync_localization_flags --allowlist script/sync_localization_flags.allowlist --check` –
+  neue Sprachdateien bestehen die Synchronisationsprüfung mitsamt Allowlist und
+  liefern keine ungeplanten Diff-Anzeigen.【83012c†L1-L2】
+- ✅ `ruff check` – die erweiterten Lokalisierungs- und Dokumentationshelfer
+  erfüllen nach dem Allowlist-Refactor weiterhin alle Lint-Gates.【8e53fe†L1-L2】
 - ✅ `ruff check` – Asyncio-Debug-Helfer besteht den Lint-Lauf nach den Hook-Anpassungen.【8dced3†L1-L2】
 - ✅ `pip install -r requirements_test.txt -r requirements.txt` – installiert u. a. `pytest-asyncio` 1.2.0, `jinja2` 3.1.6 und `voluptuous` 0.15.2, damit die Stubs ohne Zusatzpakete laufen.【f08407†L1-L19】
 - ✅ `ruff format` – keine Formatänderungen nach den neuen Automations-Stubs erforderlich.【c51415†L1-L2】
@@ -147,6 +152,19 @@
 - Die System-Einstellungen boten bislang keine Eingabefelder für `manual_check_event`, `manual_guard_event` und `manual_breaker_event`. Dadurch drifteten Blueprint-Trigger, Skript-Defaults und Diagnostik auseinander, sobald Support-Teams manuelle Eskalationen benötigten. Die neuen Text-Selectoren im Options-Flow normalisieren Eingaben, deaktivieren Trigger bei leeren Feldern und synchronisieren die Werte direkt mit allen Resilience-Blueprints, abgesichert durch zielgerichtete Tests.【F:custom_components/pawcontrol/options_flow.py†L3986-L4043】【F:custom_components/pawcontrol/script_manager.py†L503-L607】【F:tests/unit/test_options_flow.py†L808-L870】【F:tests/unit/test_data_manager.py†L612-L705】
 
 ## Verbesserungsplan
+1. pytest-homeassistant-Plugin härten: `enable_event_loop_debug` aus dem
+   Upstream-Plugin erwartet vor dem Fixture-Setup einen aktiven Event-Loop.
+   Unser Stub in `tests/plugins/asyncio_stub.py` sollte per `pytest_sessionstart`
+   oder Context-Manager frühzeitig `asyncio.new_event_loop()` bereitstellen,
+   damit `pytest -q` unter Python 3.13 nicht mit `RuntimeError: There is no
+   current event loop in thread 'MainThread'` abbricht.【F:tests/plugins/asyncio_stub.py†L1-L48】【9be401†L8-L19】
+2. Docs-Tabellenabgleich automatisieren: Ein Kommandozeilen-Flag in
+   `sync_localization_flags` könnte künftig die Markdown-Tabelle in
+   `docs/diagnostik.md` direkt aktualisieren, damit neue Sprachen ohne manuelle
+   Pflege erscheinen und Tests nur noch das Resultat validieren.【F:script/sync_localization_flags.py†L1-L213】【F:docs/diagnostik.md†L38-L112】
+3. Manual-Event-UX weiter ausbauen: Die neuen Select-Listen sollen Herkunfts-Badges oder Hilfetexte anzeigen, damit Nutzer sofort erkennen, ob ein Eintrag aus Blueprint, System-Option oder dem Integrations-Default stammt. `_manual_event_choices` kann dazu zusätzliche Metadaten serialisieren; begleitende Tests prüfen, dass die Labels in allen Sprachen korrekt gerendert werden.【F:custom_components/pawcontrol/options_flow.py†L700-L735】【F:tests/unit/test_options_flow.py†L945-L1024】
+4. Manual-Event-Historie persistieren: Zusätzlich zum letzten Trigger sollen die letzten fünf manuellen Eskalationen in `performance_stats` gespeichert und in Diagnostics/System-Health visualisiert werden, um wiederkehrende On-Demand-Checks schneller zu erkennen.【F:custom_components/pawcontrol/script_manager.py†L575-L704】【F:custom_components/pawcontrol/system_health.py†L150-L356】
+5. Blueprint-Test-Hilfen extrahieren: Sowohl Komponenten- als auch E2E-Tests
 1. Zusätzliche Sprachen ergänzen: Sobald Community-Übersetzungen vorliegen,
    soll `sync_localization_flags` erweitert werden, um neue Sprachdateien
    automatisch einzubinden und die Tests auf die erweiterten Tabellen

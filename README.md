@@ -1151,6 +1151,25 @@ pytest tests/test_performance_*.py -v
    never drift from the canonical text.
 6. **Submit PR**: Detailed description with test results
 
+#### Adding new PawControl languages
+
+Follow this checklist when onboarding a new locale so diagnostics, tests, and
+documentation stay in sync:
+
+1. Append the lowercase language code (e.g. `es`, `fr`) to
+   [`script/sync_localization_flags.allowlist`](script/sync_localization_flags.allowlist)
+   to keep the shared allowlist sorted.
+2. Run `python -m script.sync_localization_flags --allowlist script/sync_localization_flags.allowlist`
+   without `--check` to bootstrap the translation file from the canonical
+   `en.json` template. The script will create `custom_components/pawcontrol/translations/<lang>.json`
+   if it does not exist and synchronise the setup-flag keys across all locales.
+3. Translate the new file as needed and update the localization table in
+   [`docs/diagnostik.md`](docs/diagnostik.md) so every key displays a column for the
+   new language.
+4. Re-run `python -m script.sync_localization_flags --allowlist script/sync_localization_flags.allowlist --check`
+   to verify nothing drifted, then execute `ruff check` and the unit tests before
+   opening your pull request.
+
 ### Development Guidelines
 
 **New Feature Development**:
