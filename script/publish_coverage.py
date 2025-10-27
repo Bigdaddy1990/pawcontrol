@@ -22,6 +22,7 @@ import urllib.error
 import urllib.request
 from collections.abc import Iterable, Iterator, Mapping, MutableMapping
 from pathlib import Path
+from urllib.parse import urlsplit
 
 LOGGER = logging.getLogger(__name__)
 
@@ -30,6 +31,8 @@ DEFAULT_TIMEOUT = 15
 REPOSITORY_SLUG_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 LINE_RATE_PATTERN = re.compile(r"line-rate=\"(?P<value>[0-9]+(?:\.[0-9]+)?)\"")
 DEFAULT_PREFIX_TEMPLATES = ("{prefix}/{run_id}", "{prefix}/latest")
+ALLOWED_URL_SCHEMES = frozenset({"https"})
+_API_ROOT_COMPONENTS = urlsplit(API_ROOT)
 
 
 class PublishError(RuntimeError):
@@ -249,8 +252,7 @@ class GitHubPagesPublisher:
         if payload is not None:
             data = json.dumps(payload).encode("utf-8")
             headers["Content-Type"] = "application/json"
-        if not url.startswith(f"{API_ROOT}/"):
-            raise PublishError(f"Refusing to access unexpected URL: {url!r}")
+        ensure_allowed_github_api_url(url)
         request = urllib.request.Request(url, data=data, headers=headers, method=method)
         try:
             with urllib.request.urlopen(request, timeout=self._timeout) as response:
@@ -267,6 +269,18 @@ class GitHubPagesPublisher:
         if not response_data:
             return {}
         return json.loads(response_data.decode("utf-8"))
+
+
+def ensure_allowed_github_api_url(url: str) -> None:
+    """Validate that ``url`` targets the GitHub API using an allowed scheme."""
+
+    parsed = urlsplit(url)
+    if parsed.scheme not in ALLOWED_URL_SCHEMES:
+        raise PublishError(f"Refusing to access URL with disallowed scheme: {url!r}")
+    if parsed.netloc != _API_ROOT_COMPONENTS.netloc:
+        raise PublishError(f"Refusing to access URL outside GitHub API host: {url!r}")
+    if not url.startswith(f"{API_ROOT}/"):
+        raise PublishError(f"Refusing to access unexpected URL: {url!r}")
 
 
 def duplicate_payloads(

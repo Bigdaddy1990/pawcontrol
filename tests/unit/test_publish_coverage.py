@@ -119,3 +119,29 @@ def test_publish_coverage_supports_custom_prefix_templates(
     assert "coverage/latest/index.html" in members
     assert "runs/custom-run/index.html" in members
     assert "attempts/custom-run/2/index.html" in members
+
+
+def test_ensure_allowed_github_api_url_rejects_insecure_scheme() -> None:
+    """Only HTTPS GitHub API URLs should be accepted."""
+
+    with pytest.raises(publish_coverage.PublishError):
+        publish_coverage.ensure_allowed_github_api_url(
+            "http://api.github.com/repos/test/test"
+        )
+
+
+def test_ensure_allowed_github_api_url_rejects_foreign_host() -> None:
+    """Non-GitHub hosts must be rejected before making a request."""
+
+    with pytest.raises(publish_coverage.PublishError):
+        publish_coverage.ensure_allowed_github_api_url(
+            "https://example.com/repos/test/test"
+        )
+
+
+def test_ensure_allowed_github_api_url_accepts_expected_endpoint() -> None:
+    """Valid GitHub API URLs should pass validation."""
+
+    publish_coverage.ensure_allowed_github_api_url(
+        "https://api.github.com/repos/test/test"
+    )
