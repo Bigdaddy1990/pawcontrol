@@ -12,16 +12,8 @@ def _build_translations(
     label_en: str, label_de: str
 ) -> dict[str, dict[str, dict[str, str]]]:
     return {
-        "en": {
-            "common": {
-                "setup_flags_panel_flag_test": label_en
-            }
-        },
-        "de": {
-            "common": {
-                "setup_flags_panel_flag_test": label_de
-            }
-        },
+        "en": {"common": {"setup_flags_panel_flag_test": label_en}},
+        "de": {"common": {"setup_flags_panel_flag_test": label_de}},
     }
 
 
