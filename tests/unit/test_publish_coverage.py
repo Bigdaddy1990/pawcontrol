@@ -159,7 +159,9 @@ def test_github_pages_publisher_prunes_expired_runs(monkeypatch) -> None:
         def __exit__(self, *exc: object) -> None:
             return None
 
-    def fake_urlopen(request: urllib.request.Request, timeout: int = 0) -> DummyResponse:
+    def fake_urlopen(
+        request: urllib.request.Request, timeout: int = 0
+    ) -> DummyResponse:
         url = request.full_url
         method = request.get_method()
         if url.endswith("/contents/coverage?ref=gh-pages") and method == "GET":
@@ -170,13 +172,15 @@ def test_github_pages_publisher_prunes_expired_runs(monkeypatch) -> None:
                     {"type": "dir", "name": "run-old"},
                 ]
             )
-        if url.endswith(
-            "/contents/coverage/run-old/summary.json?ref=gh-pages"
-        ) and method == "GET":
+        if (
+            url.endswith("/contents/coverage/run-old/summary.json?ref=gh-pages")
+            and method == "GET"
+        ):
             return DummyResponse(old_summary)
-        if url.endswith(
-            "/contents/coverage/run-new/summary.json?ref=gh-pages"
-        ) and method == "GET":
+        if (
+            url.endswith("/contents/coverage/run-new/summary.json?ref=gh-pages")
+            and method == "GET"
+        ):
             return DummyResponse(recent_summary)
         if url.endswith("/git/refs/heads/gh-pages") and method == "GET":
             return DummyResponse({"object": {"sha": "base-sha"}})
@@ -191,9 +195,7 @@ def test_github_pages_publisher_prunes_expired_runs(monkeypatch) -> None:
         raise AssertionError(f"Unexpected request {method} {url}")
 
     monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
-    publisher = publish_coverage.GitHubPagesPublisher(
-        "token", "owner/repo", "gh-pages"
-    )
+    publisher = publish_coverage.GitHubPagesPublisher("token", "owner/repo", "gh-pages")
 
     removed = publisher.prune_expired_runs("coverage", dt.timedelta(days=30), now=now)
 

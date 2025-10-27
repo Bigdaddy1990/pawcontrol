@@ -122,7 +122,9 @@ def _load_allowlist(path: Path) -> list[str]:
     return allowlist
 
 
-def _determine_translation_targets(allowlist: Sequence[str] | None) -> list[tuple[str, Path]]:
+def _determine_translation_targets(
+    allowlist: Sequence[str] | None,
+) -> list[tuple[str, Path]]:
     discovered: dict[str, Path] = {
         path.stem: path for path in TRANSLATIONS_DIR.glob("*.json")
     }

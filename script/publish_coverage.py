@@ -513,7 +513,8 @@ def publish(args: argparse.Namespace) -> PublishResult:
                 else:
                     if removed:
                         LOGGER.info(
-                            "Pruned %d expired coverage runs from GitHub Pages", len(removed)
+                            "Pruned %d expired coverage runs from GitHub Pages",
+                            len(removed),
                         )
             if published:
                 return PublishResult(True, archive, publish_url)
