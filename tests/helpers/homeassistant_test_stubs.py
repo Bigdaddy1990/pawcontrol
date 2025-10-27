@@ -2196,7 +2196,9 @@ def _install_component_modules() -> None:
             if not isinstance(event_type, str) or not event_type.strip():
                 return
 
-            async def _listener(event: event_type_cls, trigger: str = trigger_id) -> None:
+            async def _listener(
+                event: event_type_cls, trigger: str = trigger_id
+            ) -> None:
                 await _handle_trigger(event, trigger)
 
             unsubscribe = hass.bus.async_listen(event_type, _listener)

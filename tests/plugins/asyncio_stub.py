@@ -213,9 +213,7 @@ def enable_event_loop_debug() -> asyncio.AbstractEventLoop:
     return running_loop
 
 
-def pytest_addhooks(
-    pluginmanager: pytest.PytestPluginManager, **kwargs: Any
-) -> None:
+def pytest_addhooks(pluginmanager: pytest.PytestPluginManager, **kwargs: Any) -> None:
     """Expose ``enable_event_loop_debug`` via hook registration."""
 
     del pluginmanager
