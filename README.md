@@ -1279,4 +1279,4 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) for 
 
 ---
 
-**Active Development** ✅ | **HACS Submission** ⏳ | **Quality Scale: Platinum sustained** ✅ | **Automated Tests** ✅
+**Active Development** ✅ | **HACS Submission** ✅ | **Quality Scale: Platinum sustained** ✅ | **Automated Tests** ✅
