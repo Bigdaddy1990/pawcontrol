@@ -276,13 +276,9 @@ def ensure_allowed_github_api_url(url: str) -> None:
 
     parsed = urlsplit(url)
     if parsed.scheme not in ALLOWED_URL_SCHEMES:
-        raise PublishError(
-            f"Refusing to access URL with disallowed scheme: {url!r}"
-        )
+        raise PublishError(f"Refusing to access URL with disallowed scheme: {url!r}")
     if parsed.netloc != _API_ROOT_COMPONENTS.netloc:
-        raise PublishError(
-            f"Refusing to access URL outside GitHub API host: {url!r}"
-        )
+        raise PublishError(f"Refusing to access URL outside GitHub API host: {url!r}")
     if not url.startswith(f"{API_ROOT}/"):
         raise PublishError(f"Refusing to access unexpected URL: {url!r}")
 
