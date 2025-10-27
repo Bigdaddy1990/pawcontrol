@@ -36,10 +36,9 @@ the documentation portal entry point (`docs/README.md`).
 - `docs/README.md` organises onboarding, architecture, testing, compliance, and
   supplementary guides, giving Home Assistant reviewers a single index for
   deeper evidence.【F:docs/README.md†L1-L35】
-- `docs/compliance_gap_analysis.md` records Platinum rule alignment, connecting
-  each outstanding item with the relevant documentation or test suite.
-  Additional gaps discovered during reviews must be appended here to preserve a
-  chronological audit trail.【F:docs/compliance_gap_analysis.md†L1-L120】
+- `docs/compliance_gap_analysis.md` records Platinum rule alignment, linking
+  every rule to the sustaining documentation or test suite and logging any
+  future findings so the audit trail remains complete.【F:docs/compliance_gap_analysis.md†L1-L43】
 - `dev.md` captures the latest failing tests, improvement backlog, and
   remediation plan, fulfilling the Gemini instruction to keep contributors aware
   of Ruff and pytest expectations.【F:dev.md†L1-L40】

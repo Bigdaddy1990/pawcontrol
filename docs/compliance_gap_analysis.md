@@ -33,8 +33,9 @@ now present in the repository to highlight which requirements are satisfied and 
   with Home Assistant’s custom integration requirements.【F:docs/markdown_compliance_review.md†L1-L120】
 
 ## 4. Next actions
-1. Close the outstanding Platinum blockers (device removal, brand package, automated coverage, strict typing, resilience UI
-   validation) and update the manifest badge set accordingly.
+1. Sustain the cleared Platinum blockers—device removal coverage, brand assets, strict typing, diagnostics resilience, and
+   release artefacts—by re-running the associated regression suites each release cycle while the compliance report and `dev.md`
+   track the automation backlog for coverage publication.【F:dev.md†L5-L75】
 2. Expand the Markdown review document whenever new features alter installation, configuration, or troubleshooting steps, and
    document telemetry additions such as the rejection metrics summary at the same time.【F:dev.md†L13-L20】
 3. Synchronise release artefacts, including `quality_scale.yaml`, with the evidence captured in README and support

@@ -1453,6 +1453,7 @@ class TestPlatformIntegration:
         hass: HomeAssistant,
         mock_config_entry_data: dict[str, Any],
         mock_coordinator: Mock,
+        pytestconfig: pytest.Config,
     ) -> None:
         """Test platform performance characteristics."""
         import time
@@ -1503,6 +1504,14 @@ class TestPlatformIntegration:
         async def mock_add_entities(new_entities, update_before_add=True):
             entities.extend(new_entities)
 
+        coverage_controller_loaded = pytestconfig.pluginmanager.hasplugin(
+            "pawcontrol_cov_controller"
+        )
+        # The local coverage shim adds noticeable overhead on entity setup, so
+        # allow higher thresholds when the plugin is active.
+        setup_deadline = 1.0 if not coverage_controller_loaded else 2.5
+        access_deadline = 0.1 if not coverage_controller_loaded else 0.35
+
         start_time = time.perf_counter()
         await async_setup_entry(hass, entry, mock_add_entities)
         end_time = time.perf_counter()
@@ -1510,7 +1519,7 @@ class TestPlatformIntegration:
         setup_time = end_time - start_time
 
         # Should complete setup reasonably quickly even with many dogs
-        assert setup_time < 1.0  # Less than 1 second
+        assert setup_time < setup_deadline
         assert len(entities) > 0
 
         # Test entity state access performance
@@ -1522,4 +1531,4 @@ class TestPlatformIntegration:
         end_time = time.perf_counter()
 
         access_time = end_time - start_time
-        assert access_time < 0.1  # Should be very fast
+        assert access_time < access_deadline

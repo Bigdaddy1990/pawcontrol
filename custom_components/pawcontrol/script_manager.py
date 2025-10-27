@@ -10,9 +10,9 @@ automation flows without manual YAML editing.
 from __future__ import annotations
 
 import logging
-from collections.abc import Collection, Iterable, Mapping, Sequence
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
 from datetime import datetime
-from typing import Any, Final, cast
+from typing import Any, Final, Literal, cast
 
 from homeassistant.components.script import DOMAIN as SCRIPT_DOMAIN
 from homeassistant.components.script import ScriptEntity
@@ -25,7 +25,7 @@ from homeassistant.const import (
     CONF_NAME,
     CONF_SEQUENCE,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_component import EntityComponent
 from homeassistant.helpers.typing import ConfigType
@@ -38,6 +38,9 @@ from .const import (
     CACHE_TIMESTAMP_STALE_THRESHOLD,
     CONF_DOG_ID,
     CONF_DOG_NAME,
+    DEFAULT_MANUAL_BREAKER_EVENT,
+    DEFAULT_MANUAL_CHECK_EVENT,
+    DEFAULT_MANUAL_GUARD_EVENT,
     DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
     DEFAULT_RESILIENCE_SKIP_THRESHOLD,
     DOMAIN,
@@ -52,6 +55,9 @@ from .types import (
     CacheDiagnosticsMetadata,
     CacheDiagnosticsSnapshot,
     DogConfigData,
+    ManualResilienceEventSnapshot,
+    ManualResilienceEventSource,
+    ManualResiliencePreferenceKey,
     ensure_dog_modules_mapping,
 )
 
@@ -196,6 +202,32 @@ def _normalise_manual_event(value: Any) -> str | None:
     return candidate or None
 
 
+def _serialise_event_data(data: Mapping[str, Any]) -> dict[str, Any]:
+    """Return a JSON-friendly copy of ``data``."""
+
+    serialised: dict[str, Any] = {}
+    for key, value in data.items():
+        key_text = str(key)
+        if isinstance(value, str | int | float | bool) or value is None:
+            serialised[key_text] = value
+            continue
+        if isinstance(value, Mapping):
+            serialised[key_text] = _serialise_event_data(value)
+            continue
+        if isinstance(value, Sequence) and not isinstance(
+            value, str | bytes | bytearray
+        ):
+            serialised[key_text] = [
+                item
+                if isinstance(item, str | int | float | bool) or item is None
+                else repr(item)
+                for item in value
+            ]
+            continue
+        serialised[key_text] = repr(value)
+    return serialised
+
+
 class _ScriptManagerCacheMonitor:
     """Expose script manager state for diagnostics snapshots."""
 
@@ -301,11 +333,19 @@ class PawControlScriptManager:
         self._entry_scripts: list[str] = []
         self._last_generation: datetime | None = None
         self._resilience_escalation_definition: dict[str, Any] | None = None
+        self._manual_event_unsubs: dict[str, Callable[[], None]] = {}
+        self._manual_event_reasons: dict[str, set[str]] = {}
+        self._manual_event_sources: dict[str, set[str]] = {}
+        self._manual_event_counters: dict[str, int] = {}
+        self._last_manual_event: dict[str, Any] | None = None
         self._entry_slug = _normalise_entry_slug(entry)
         title = getattr(entry, "title", None)
         self._entry_title = (
             title.strip() if isinstance(title, str) and title.strip() else "PawControl"
         )
+        self._manual_event_unsubscribes: dict[str, CALLBACK_TYPE] = {}
+        self._manual_event_sources: dict[str, ManualResilienceEventSource] = {}
+        self._last_manual_event: dict[str, Any] | None = None
 
     async def async_initialize(self) -> None:
         """Reset internal tracking structures prior to script generation."""
@@ -313,6 +353,14 @@ class PawControlScriptManager:
         self._created_entities.clear()
         self._dog_scripts.clear()
         self._entry_scripts.clear()
+        for unsub in list(self._manual_event_unsubs.values()):
+            unsub()
+        self._manual_event_unsubs.clear()
+        self._manual_event_reasons.clear()
+        self._manual_event_sources.clear()
+        self._manual_event_counters.clear()
+        self._last_manual_event = None
+        self._refresh_manual_event_listeners()
         _LOGGER.debug("Script manager initialised for entry %s", self._entry.entry_id)
 
     def register_cache_monitors(
@@ -512,17 +560,53 @@ class PawControlScriptManager:
                 "configured_guard_events": [],
                 "configured_breaker_events": [],
                 "configured_check_events": [],
+                "system_guard_event": None,
+                "system_breaker_event": None,
+                "listener_events": {},
+                "listener_sources": {},
             }
+
+        options = getattr(self._entry, "options", {})
+        system_guard: str | None = None
+        system_breaker: str | None = None
+        if isinstance(options, Mapping):
+            system_guard = _normalise_manual_event(options.get("manual_guard_event"))
+            system_breaker = _normalise_manual_event(
+                options.get("manual_breaker_event")
+            )
+            system_settings = options.get("system_settings")
+            if isinstance(system_settings, Mapping):
+                guard_override = _normalise_manual_event(
+                    system_settings.get("manual_guard_event")
+                )
+                breaker_override = _normalise_manual_event(
+                    system_settings.get("manual_breaker_event")
+                )
+                if guard_override is not None:
+                    system_guard = guard_override
+                if breaker_override is not None:
+                    system_breaker = breaker_override
 
         automations = []
         guard_events: set[str] = set()
         breaker_events: set[str] = set()
         check_events: set[str] = set()
+        listener_reasons: dict[str, set[str]] = {}
+        listener_sources: dict[str, set[str]] = {}
+
+        def _register_listener(event: str | None, reason: str, source: str) -> None:
+            if not event:
+                return
+            listener_reasons.setdefault(event, set()).add(reason)
+            listener_sources.setdefault(event, set()).add(source)
 
         try:
             automation_entries = entries_callable("automation")
         except (AttributeError, TypeError, KeyError):
             automation_entries = []
+
+        _register_listener(system_guard, "guard", "system_options")
+        _register_listener(system_breaker, "breaker", "system_options")
 
         for entry in automation_entries or []:
             entry_data = getattr(entry, "data", {})
@@ -545,10 +629,13 @@ class PawControlScriptManager:
 
             if manual_guard:
                 guard_events.add(manual_guard)
+                _register_listener(manual_guard, "guard", "blueprint")
             if manual_breaker:
                 breaker_events.add(manual_breaker)
+                _register_listener(manual_breaker, "breaker", "blueprint")
             if manual_check:
                 check_events.add(manual_check)
+                _register_listener(manual_check, "check", "blueprint")
 
             automations.append(
                 {
@@ -563,13 +650,333 @@ class PawControlScriptManager:
                 }
             )
 
+        available = bool(automations)
+        if system_guard is not None or system_breaker is not None:
+            available = True
+
         return {
-            "available": bool(automations),
+            "available": available,
             "automations": automations,
             "configured_guard_events": sorted(guard_events),
             "configured_breaker_events": sorted(breaker_events),
             "configured_check_events": sorted(check_events),
+            "system_guard_event": system_guard,
+            "system_breaker_event": system_breaker,
+            "listener_events": {
+                event: sorted(reasons) for event, reasons in listener_reasons.items()
+            },
+            "listener_sources": {
+                event: sorted(sources) for event, sources in listener_sources.items()
+            },
         }
+
+    def _manual_event_preferences(
+        self,
+    ) -> dict[ManualResiliencePreferenceKey, str | None]:
+        """Return manual event preferences derived from config entry options."""
+
+        options = getattr(self._entry, "options", {})
+        preferences: dict[ManualResiliencePreferenceKey, str | None] = {
+            "manual_check_event": DEFAULT_MANUAL_CHECK_EVENT,
+            "manual_guard_event": DEFAULT_MANUAL_GUARD_EVENT,
+            "manual_breaker_event": DEFAULT_MANUAL_BREAKER_EVENT,
+        }
+
+        if not isinstance(options, Mapping):
+            return preferences
+
+        system_settings = options.get("system_settings")
+        if not isinstance(system_settings, Mapping):
+            return preferences
+
+        preference_keys: tuple[ManualResiliencePreferenceKey, ...] = (
+            "manual_check_event",
+            "manual_guard_event",
+            "manual_breaker_event",
+        )
+        for key in preference_keys:
+            if key not in system_settings:
+                continue
+            manual_value = _normalise_manual_event(system_settings.get(key))
+            if manual_value is None:
+                preferences[key] = None
+            else:
+                preferences[key] = manual_value
+
+        return preferences
+
+    def _manual_event_source_mapping(self) -> dict[str, ManualResilienceEventSource]:
+        """Return metadata describing tracked manual resilience event types."""
+
+        sources: dict[str, ManualResilienceEventSource] = {}
+        preferences = self._manual_event_preferences()
+
+        def _category_from_preference(
+            key: ManualResiliencePreferenceKey,
+        ) -> Literal["check", "guard", "breaker"] | None:
+            if key == "manual_check_event":
+                return "check"
+            if key == "manual_guard_event":
+                return "guard"
+            if key == "manual_breaker_event":
+                return "breaker"
+            return None
+
+        for preference_key, event_type in preferences.items():
+            if not event_type:
+                continue
+            sources[event_type] = {
+                "preference_key": preference_key,
+            }
+            category = _category_from_preference(preference_key)
+            if category:
+                sources[event_type]["configured_role"] = category
+
+        manual_events = self._resolve_manual_resilience_events()
+        for role, key in (
+            ("guard", "configured_guard_events"),
+            ("breaker", "configured_breaker_events"),
+            ("check", "configured_check_events"),
+        ):
+            event_list = manual_events.get(key)
+            if not isinstance(event_list, Sequence):
+                continue
+            for event_type in event_list:
+                if not isinstance(event_type, str) or not event_type:
+                    continue
+                entry = sources.setdefault(event_type, {})
+                entry.setdefault(
+                    "configured_role",
+                    cast(Literal["check", "guard", "breaker"], role),
+                )
+
+        return sources
+
+    def _refresh_manual_event_listeners(self) -> None:
+        """Subscribe to configured manual escalation events."""
+
+        hass = self._hass
+        bus = getattr(hass, "bus", None)
+        async_listen = getattr(bus, "async_listen", None)
+        if not callable(async_listen):
+            return
+
+        sources = self._manual_event_source_mapping()
+        desired_events = set(sources)
+
+        current_events = set(self._manual_event_unsubscribes)
+        for event_type in current_events - desired_events:
+            unsub = self._manual_event_unsubscribes.pop(event_type, None)
+            if unsub:
+                unsub()
+            self._manual_event_sources.pop(event_type, None)
+
+        for event_type in desired_events:
+            if event_type in self._manual_event_unsubscribes:
+                self._manual_event_sources[event_type] = sources[event_type]
+                continue
+
+            unsubscribe = async_listen(event_type, self._handle_manual_event)
+            if unsubscribe is None:
+                continue
+            self._manual_event_unsubscribes[event_type] = unsubscribe
+            self._manual_event_sources[event_type] = sources[event_type]
+
+    def _unsubscribe_manual_event_listeners(self) -> None:
+        """Detach manual escalation event listeners."""
+
+        while self._manual_event_unsubscribes:
+            event_type, unsubscribe = self._manual_event_unsubscribes.popitem()
+            try:
+                unsubscribe()
+            except Exception:  # pragma: no cover - defensive cleanup
+                _LOGGER.debug("Error unsubscribing manual listener for %s", event_type)
+        self._manual_event_sources.clear()
+
+    def _serialise_last_manual_event(self) -> ManualResilienceEventSnapshot | None:
+        """Return the most recent manual event payload for diagnostics."""
+
+        record = self._last_manual_event
+        if not isinstance(record, Mapping):
+            return None
+
+        fired_at = record.get("time_fired")
+        if isinstance(fired_at, datetime):
+            fired_iso = _serialize_datetime(fired_at)
+            fired_age = int(
+                (dt_util.utcnow() - dt_util.as_utc(fired_at)).total_seconds()
+            )
+        else:
+            fired_iso = None
+            fired_age = None
+
+        received_at = record.get("received_at")
+        if isinstance(received_at, datetime):
+            received_iso = _serialize_datetime(received_at)
+            received_age = int(
+                (dt_util.utcnow() - dt_util.as_utc(received_at)).total_seconds()
+            )
+        else:
+            received_iso = None
+            received_age = None
+
+        configured_role = record.get("configured_role")
+        category: Literal["check", "guard", "breaker", "unknown"]
+        if isinstance(configured_role, str):
+            category = cast(Literal["check", "guard", "breaker"], configured_role)
+        else:
+            category = "unknown"
+
+        snapshot: ManualResilienceEventSnapshot = {
+            "event_type": record.get("event_type"),
+            "category": category,
+            "matched_preference": record.get("preference_key"),
+            "time_fired": fired_iso,
+            "time_fired_age_seconds": fired_age,
+            "received_at": received_iso,
+            "received_age_seconds": received_age,
+            "origin": record.get("origin"),
+            "context_id": record.get("context_id"),
+            "user_id": record.get("user_id"),
+            "data": record.get("data"),
+        }
+        return snapshot
+
+    @callback
+    def _handle_manual_event(self, event: Event) -> None:
+        """Capture metadata for manual resilience triggers."""
+
+        event_type = getattr(event, "event_type", None)
+        if not isinstance(event_type, str):
+            return
+
+        source = self._manual_event_sources.get(event_type, {})
+        preference_key = source.get("preference_key")
+        configured_role = source.get("configured_role")
+
+        fired_raw = getattr(event, "time_fired", None)
+        fired_at = (
+            dt_util.as_utc(fired_raw) if isinstance(fired_raw, datetime) else None
+        )
+
+        context = getattr(event, "context", None)
+        context_id = getattr(context, "id", None)
+        user_id = getattr(context, "user_id", None)
+
+        raw_data = getattr(event, "data", None)
+        if isinstance(raw_data, Mapping):
+            data = _serialise_event_data(raw_data)
+        else:
+            data = None
+
+        origin = getattr(event, "origin", None)
+        origin_text = str(origin) if origin is not None else None
+
+        record: dict[str, Any] = {
+            "event_type": event_type,
+            "preference_key": preference_key,
+            "time_fired": fired_at,
+            "received_at": dt_util.utcnow(),
+            "context_id": context_id,
+            "user_id": user_id,
+            "origin": origin_text,
+            "data": data,
+        }
+        if configured_role is not None:
+            record["configured_role"] = configured_role
+
+        self._last_manual_event = record
+
+    async def async_sync_manual_resilience_events(
+        self, events: Mapping[str, Any]
+    ) -> None:
+        """Update resilience blueprint automations with preferred manual events."""
+
+        if not events:
+            return
+
+        manager = getattr(self._hass, "config_entries", None)
+        entries_callable = getattr(manager, "async_entries", None)
+        update_entry = getattr(manager, "async_update_entry", None)
+
+        if not callable(entries_callable) or not callable(update_entry):
+            _LOGGER.debug(
+                "Skipping manual resilience event sync; config entry API not available"
+            )
+            return
+
+        automation_entries = entries_callable("automation") or []
+        if not automation_entries:
+            _LOGGER.debug(
+                "Skipping manual resilience event sync; no automation entries discovered"
+            )
+            return
+
+        desired_events: dict[str, str | None] = {}
+        for key in ("manual_check_event", "manual_guard_event", "manual_breaker_event"):
+            if key not in events:
+                continue
+            desired_events[key] = _normalise_manual_event(events.get(key))
+
+        if not desired_events:
+            return
+
+        updated_any = False
+
+        for entry in automation_entries:
+            entry_data = getattr(entry, "data", None)
+            if not isinstance(entry_data, Mapping):
+                continue
+
+            use_blueprint = entry_data.get("use_blueprint")
+            if not _is_resilience_blueprint(use_blueprint):
+                continue
+
+            blueprint = cast(Mapping[str, Any], use_blueprint)
+            inputs_key = "input" if "input" in blueprint else "inputs"
+            existing_inputs = blueprint.get(inputs_key)
+            inputs = (
+                dict(existing_inputs) if isinstance(existing_inputs, Mapping) else {}
+            )
+
+            changed = False
+            for key, desired in desired_events.items():
+                current_value = inputs.get(key)
+                current_normalised = _normalise_manual_event(current_value)
+                if desired == current_normalised:
+                    continue
+
+                if desired is None:
+                    inputs[key] = ""
+                else:
+                    inputs[key] = desired
+                changed = True
+
+            if not changed:
+                continue
+
+            new_blueprint = dict(blueprint)
+            new_blueprint[inputs_key] = inputs
+
+            new_data = dict(entry_data)
+            new_data["use_blueprint"] = new_blueprint
+
+            try:
+                update_entry(entry, data=new_data)
+            except Exception as err:  # pragma: no cover - defensive guard
+                _LOGGER.warning(
+                    "Failed to update resilience blueprint %s: %s",
+                    getattr(entry, "entry_id", "unknown"),
+                    err,
+                )
+                continue
+
+            updated_any = True
+
+        if updated_any:
+            _LOGGER.debug("Synchronized manual resilience events with blueprint inputs")
+
+        self._refresh_manual_event_listeners()
 
     def _get_component(
         self, *, require_loaded: bool = True
@@ -720,6 +1127,9 @@ class PawControlScriptManager:
             self._entry_scripts = []
 
         self._last_generation = dt_util.utcnow()
+        self._refresh_manual_event_listeners()
+
+        self._refresh_manual_event_listeners()
 
         return created
 
@@ -728,6 +1138,14 @@ class PawControlScriptManager:
 
         component = self._get_component(require_loaded=False)
         registry = er.async_get(self._hass)
+
+        for unsub in list(self._manual_event_unsubs.values()):
+            unsub()
+        self._manual_event_unsubs.clear()
+        self._manual_event_reasons.clear()
+        self._manual_event_sources.clear()
+        self._manual_event_counters.clear()
+        self._last_manual_event = None
 
         for entity_id in list(self._created_entities):
             if component is not None and (entity := component.get_entity(entity_id)):
@@ -740,6 +1158,7 @@ class PawControlScriptManager:
 
         self._dog_scripts.clear()
         self._entry_scripts.clear()
+        self._unsubscribe_manual_event_listeners()
         _LOGGER.debug(
             "Removed all PawControl managed scripts for entry %s", self._entry.entry_id
         )
@@ -1134,6 +1553,26 @@ class PawControlScriptManager:
 
         field_defaults = cast(dict[str, Any], definition.get("field_defaults", {}))
         manual_events = self._resolve_manual_resilience_events()
+        manual_preferences = self._manual_event_preferences()
+        if not self._manual_event_sources:
+            self._refresh_manual_event_listeners()
+        manual_payload = dict(manual_events)
+        if self._manual_event_sources:
+            active_listeners = sorted(self._manual_event_sources)
+        else:
+            active_listeners = sorted(self._manual_event_source_mapping())
+        manual_payload["preferred_events"] = manual_preferences
+        manual_payload["preferred_guard_event"] = manual_preferences.get(
+            "manual_guard_event"
+        )
+        manual_payload["preferred_breaker_event"] = manual_preferences.get(
+            "manual_breaker_event"
+        )
+        manual_payload["preferred_check_event"] = manual_preferences.get(
+            "manual_check_event"
+        )
+        manual_payload["active_listeners"] = active_listeners
+        manual_payload["last_event"] = self._serialise_last_manual_event()
 
         state = None
         if entity_id is not None:
@@ -1189,6 +1628,90 @@ class PawControlScriptManager:
 
         timestamp_issue, last_generated_age = _classify_timestamp(self._last_generation)
 
+        manual_last_trigger: dict[str, Any] | None = None
+        if isinstance(self._last_manual_event, Mapping):
+            recorded_at = self._last_manual_event.get("recorded_at")
+            recorded_dt = recorded_at if isinstance(recorded_at, datetime) else None
+            recorded_age: int | None = None
+            if recorded_dt is not None:
+                recorded_age = int(
+                    (dt_util.utcnow() - dt_util.as_utc(recorded_dt)).total_seconds()
+                )
+            manual_last_trigger = {
+                "event_type": self._last_manual_event.get("event_type"),
+                "reasons": list(self._last_manual_event.get("reasons", [])),
+                "sources": list(self._last_manual_event.get("sources", [])),
+                "recorded_at": _serialize_datetime(recorded_dt),
+                "recorded_age_seconds": recorded_age,
+            }
+
+        manual_events_payload = dict(manual_events)
+        manual_events_payload["last_trigger"] = manual_last_trigger
+
+        counters_by_event: dict[str, int] = {}
+        candidate_events: set[str] = set()
+
+        for key in (
+            "configured_guard_events",
+            "configured_breaker_events",
+            "configured_check_events",
+        ):
+            values = manual_events_payload.get(key, [])
+            if isinstance(values, Iterable):
+                for value in values:
+                    if isinstance(value, str) and value:
+                        candidate_events.add(value)
+
+        system_guard_event = manual_events_payload.get("system_guard_event")
+        if isinstance(system_guard_event, str) and system_guard_event:
+            candidate_events.add(system_guard_event)
+
+        system_breaker_event = manual_events_payload.get("system_breaker_event")
+        if isinstance(system_breaker_event, str) and system_breaker_event:
+            candidate_events.add(system_breaker_event)
+
+        listener_events = manual_events_payload.get("listener_events", {})
+        if isinstance(listener_events, Mapping):
+            candidate_events.update(
+                event for event in listener_events if isinstance(event, str)
+            )
+
+        candidate_events.update(
+            event
+            for event in self._manual_event_counters
+            if isinstance(event, str) and event
+        )
+
+        for event in sorted(candidate_events):
+            counters_by_event[event] = int(self._manual_event_counters.get(event, 0))
+
+        counters_by_reason: dict[str, int] = {}
+        if isinstance(listener_events, Mapping):
+            for event, reasons in listener_events.items():
+                if not isinstance(event, str):
+                    continue
+                event_count = counters_by_event.get(event, 0)
+                if not event_count:
+                    continue
+                if isinstance(reasons, str):
+                    reasons_iterable: Iterable[str] = [reasons]
+                elif isinstance(reasons, Iterable):
+                    reasons_iterable = (
+                        reason for reason in reasons if isinstance(reason, str)
+                    )
+                else:
+                    reasons_iterable = []
+                for reason in reasons_iterable:
+                    counters_by_reason[reason] = (
+                        counters_by_reason.get(reason, 0) + event_count
+                    )
+
+        manual_events_payload["event_counters"] = {
+            "total": sum(counters_by_event.values()),
+            "by_event": counters_by_event,
+            "by_reason": dict(sorted(counters_by_reason.items())),
+        }
+
         return {
             "available": entity_id is not None,
             "state_available": state_available,
@@ -1222,7 +1745,7 @@ class PawControlScriptManager:
                 "default": field_defaults.get("escalation_service"),
                 "active": _active_value("escalation_service"),
             },
-            "manual_events": manual_events,
+            "manual_events": manual_payload,
         }
 
     def _build_confirmation_script(

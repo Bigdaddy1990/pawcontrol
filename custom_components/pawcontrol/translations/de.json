@@ -483,7 +483,10 @@
           "enable_analytics": "Analysen aktivieren",
           "enable_cloud_backup": "Cloud-Backup aktivieren",
           "resilience_skip_threshold": "Schwellwert für Guard-Übersprünge",
-          "resilience_breaker_threshold": "Schwellwert für Breaker-Eskalationen"
+          "resilience_breaker_threshold": "Schwellwert für Breaker-Eskalationen",
+          "manual_check_event": "Manuelles Prüf-Ereignis",
+          "manual_guard_event": "Manuelles Guard-Ereignis",
+          "manual_breaker_event": "Manuelles Breaker-Ereignis"
         },
         "data_description": {
           "reset_time": "Lege fest, wann Paw Control die täglichen Wartungsaufgaben ausführt.",
@@ -493,7 +496,10 @@
           "enable_analytics": "Aggregiert anonyme Trends über alle Hunde für Übersichts-Widgets.",
           "enable_cloud_backup": "Lädt Konfigurations-Snapshots in das konfigurierte Cloud-Ziel hoch.",
           "resilience_skip_threshold": "Anzahl übersprungener Guard-Aufrufe, bevor das Eskalationsskript alarmiert (0 deaktiviert Guard-Eskalationen).",
-          "resilience_breaker_threshold": "Anzahl offener oder halb geöffneter Breaker, die Follow-up-Aktionen auslösen (0 deaktiviert Breaker-Eskalationen)."
+          "resilience_breaker_threshold": "Anzahl offener oder halb geöffneter Breaker, die Follow-up-Aktionen auslösen (0 deaktiviert Breaker-Eskalationen).",
+          "manual_check_event": "Ereignistyp, der eine manuelle Resilience-Prüfung auslöst. Leer lassen, um manuelle Prüfungen zu deaktivieren. Bekannte Werte: {manual_check_event_options}.",
+          "manual_guard_event": "Ereignistyp, der Guard-Follow-ups manuell auslöst. Leer lassen, um manuelle Guard-Eskalationen zu deaktivieren. Bekannte Werte: {manual_guard_event_options}.",
+          "manual_breaker_event": "Ereignistyp, der Breaker-Follow-ups manuell auslöst. Leer lassen, um manuelle Breaker-Eskalationen zu deaktivieren. Bekannte Werte: {manual_breaker_event_options}."
         }
       },
       "dashboard_settings": {

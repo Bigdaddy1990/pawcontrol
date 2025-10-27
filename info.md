@@ -59,6 +59,11 @@ HTTP calls reuse Home Assistant’s managed aiohttp session.
   an und hält sie bei Moduländerungen aktuell.
 - Zusätzliche Plattformen (Sensoren, Schalter, Buttons, Texte, Selektoren) lesen
   koordinierte Daten aus und spiegeln die Helper-States wider.
+- Die System-Einstellungen des Options-Flows übernehmen `manual_check_event`,
+  `manual_guard_event` und `manual_breaker_event` direkt als Text-Selectoren und
+  synchronisieren sie nach dem Speichern automatisch mit den
+  Resilience-Blueprint-Automationen, sodass Diagnostik, Blueprint und Skripte
+  konsistent bleiben.【F:custom_components/pawcontrol/options_flow.py†L3986-L4043】【F:custom_components/pawcontrol/script_manager.py†L503-L607】【F:tests/unit/test_options_flow.py†L808-L870】【F:tests/unit/test_data_manager.py†L612-L705】
 - Wettergesteuerte Automationen sowie Besucher-spezifische Dashboards lassen
   sich anhand der dokumentierten Rezepte direkt übernehmen.【F:docs/weather_integration_examples.md†L1-L150】【F:docs/production_integration_documentation.md†L309-L321】
 
