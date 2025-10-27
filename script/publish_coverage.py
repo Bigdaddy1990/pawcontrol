@@ -1,0 +1,365 @@
+"""Publish lightweight coverage artifacts to GitHub Pages or local archives.
+
+This module uploads the generated coverage summary to the configured GitHub
+Pages branch and emits a tarball fallback that CI can surface as an artifact.
+It is intentionally defensive: network failures or missing credentials degrade
+into a local archive so quality gates can still expose coverage results.
+"""
+
+from __future__ import annotations
+
+import argparse
+import base64
+import dataclasses
+import datetime as dt
+import io
+import json
+import logging
+import os
+import tarfile
+import urllib.error
+import urllib.request
+import xml.etree.ElementTree as ET
+from collections.abc import Iterable, Iterator, Mapping, MutableMapping
+from pathlib import Path
+
+LOGGER = logging.getLogger(__name__)
+
+API_ROOT = "https://api.github.com"
+DEFAULT_TIMEOUT = 15
+
+
+class PublishError(RuntimeError):
+    """Raised when the GitHub Pages publication fails."""
+
+
+@dataclasses.dataclass(slots=True)
+class FilePayload:
+    """In-memory representation of a file destined for publication."""
+
+    relative_path: str
+    content: bytes
+
+    def as_tarinfo(self, target: str) -> tuple[tarfile.TarInfo, io.BytesIO]:
+        """Create tar metadata for this payload under ``target``."""
+
+        data_stream = io.BytesIO(self.content)
+        info = tarfile.TarInfo(target)
+        info.size = len(self.content)
+        info.mtime = int(dt.datetime.now(dt.UTC).timestamp())
+        info.mode = 0o644
+        return info, data_stream
+
+
+@dataclasses.dataclass(slots=True)
+class CoverageDataset:
+    """Container for the generated coverage outputs."""
+
+    xml_path: Path
+    html_index: Path
+    run_metadata: Mapping[str, str]
+
+    def __post_init__(self) -> None:
+        if not self.xml_path.is_file():
+            raise FileNotFoundError(f"Coverage XML not found: {self.xml_path}")
+        if not self.html_index.is_file():
+            raise FileNotFoundError(f"Coverage HTML index not found: {self.html_index}")
+        self.html_root = self.html_index.parent
+        self._coverage_percent = self._parse_coverage_percent()
+
+    def build_payloads(self) -> list[FilePayload]:
+        """Return the payloads required for publication."""
+
+        payloads: list[FilePayload] = []
+        payloads.append(FilePayload("coverage.xml", self.xml_path.read_bytes()))
+        payloads.extend(
+            FilePayload(
+                str(file_path.relative_to(self.html_root)).replace("\\", "/"),
+                file_path.read_bytes(),
+            )
+            for file_path in sorted(self._iter_html_files())
+        )
+        summary = self._build_summary_payload()
+        payloads.append(FilePayload("summary.json", summary))
+        payloads.append(
+            FilePayload("shields.json", self._build_shields_payload(summary))
+        )
+        payloads.append(FilePayload("metadata.json", self._build_metadata_payload()))
+        return payloads
+
+    def _iter_html_files(self) -> Iterator[Path]:
+        for path in self.html_root.rglob("*"):
+            if path.is_file():
+                yield path
+
+    def _parse_coverage_percent(self) -> float:
+        tree = ET.parse(self.xml_path)
+        root = tree.getroot()
+        line_rate = root.attrib.get("line-rate")
+        try:
+            if line_rate is None:
+                raise ValueError("missing line-rate attribute")
+            return round(float(line_rate) * 100, 2)
+        except (TypeError, ValueError) as error:
+            raise ValueError(
+                f"Invalid coverage.xml line-rate: {line_rate!r}"
+            ) from error
+
+    def _build_summary_payload(self) -> bytes:
+        timestamp = dt.datetime.now(dt.UTC).isoformat()
+        summary = {
+            "schema": 1,
+            "generated_at": timestamp,
+            "coverage_percent": self._coverage_percent,
+            "coverage_label": f"{self._coverage_percent:.2f}%",
+            "run": dict(self.run_metadata),
+        }
+        return json.dumps(summary, indent=2, sort_keys=True).encode("utf-8")
+
+    def _build_shields_payload(self, summary_bytes: bytes) -> bytes:
+        summary = json.loads(summary_bytes)
+        percent = float(summary["coverage_percent"])
+        color = coverage_color(percent)
+        shields = {
+            "schemaVersion": 1,
+            "label": "Coverage",
+            "message": f"{percent:.1f}%",
+            "color": color,
+        }
+        return json.dumps(shields, separators=(",", ":")).encode("utf-8")
+
+    def _build_metadata_payload(self) -> bytes:
+        metadata = {
+            "schema": 1,
+            "html_root": str(self.html_root),
+            "files": sorted(
+                str(path.relative_to(self.html_root)).replace("\\", "/")
+                for path in self._iter_html_files()
+            ),
+        }
+        metadata.update(self.run_metadata)
+        return json.dumps(metadata, indent=2, sort_keys=True).encode("utf-8")
+
+
+def coverage_color(percent: float) -> str:
+    """Return a shields.io-compatible color for the coverage percentage."""
+
+    if percent >= 95:
+        return "brightgreen"
+    if percent >= 90:
+        return "green"
+    if percent >= 80:
+        return "yellowgreen"
+    if percent >= 70:
+        return "yellow"
+    if percent >= 60:
+        return "orange"
+    return "red"
+
+
+@dataclasses.dataclass(slots=True)
+class PublishResult:
+    """Represents the result of the publication step."""
+
+    published: bool
+    archive_path: Path
+    publish_url: str | None
+
+
+class GitHubPagesPublisher:
+    """Publish coverage assets to a GitHub Pages branch using the git data API."""
+
+    def __init__(
+        self, token: str, repository: str, branch: str, timeout: int = DEFAULT_TIMEOUT
+    ) -> None:
+        if not token:
+            raise PublishError("Missing GITHUB_TOKEN - cannot publish to GitHub Pages")
+        if not repository or "/" not in repository:
+            raise PublishError(f"Invalid repository slug: {repository!r}")
+        self._token = token
+        self._repository = repository
+        self._branch = branch
+        self._timeout = timeout
+
+    def publish(
+        self, payloads: Iterable[FilePayload], landing_path: str | None = None
+    ) -> str:
+        """Publish payloads to the configured GitHub Pages branch."""
+
+        ref = self._request(
+            "GET", f"/repos/{self._repository}/git/refs/heads/{self._branch}"
+        )
+        base_sha = ref["object"]["sha"]
+        tree_entries = []
+        for payload in payloads:
+            blob_sha = self._create_blob(payload.content)
+            tree_entries.append(
+                {
+                    "path": payload.relative_path,
+                    "mode": "100644",
+                    "type": "blob",
+                    "sha": blob_sha,
+                }
+            )
+        tree = self._request(
+            "POST",
+            f"/repos/{self._repository}/git/trees",
+            {"base_tree": base_sha, "tree": tree_entries},
+        )
+        commit_message = "Publish coverage report"
+        commit = self._request(
+            "POST",
+            f"/repos/{self._repository}/git/commits",
+            {"message": commit_message, "tree": tree["sha"], "parents": [base_sha]},
+        )
+        self._request(
+            "PATCH",
+            f"/repos/{self._repository}/git/refs/heads/{self._branch}",
+            {"sha": commit["sha"], "force": True},
+        )
+        owner, repo = self._repository.split("/", 1)
+        base_url = f"https://{owner}.github.io/{repo}"
+        if landing_path:
+            landing_path = landing_path.lstrip("/")
+            return f"{base_url}/{landing_path}"
+        return f"{base_url}/"
+
+    def _create_blob(self, content: bytes) -> str:
+        encoded = base64.b64encode(content).decode("ascii")
+        blob = self._request(
+            "POST",
+            f"/repos/{self._repository}/git/blobs",
+            {"content": encoded, "encoding": "base64"},
+        )
+        return blob["sha"]
+
+    def _request(
+        self, method: str, path: str, payload: MutableMapping[str, object] | None = None
+    ) -> dict[str, object]:
+        url = f"{API_ROOT}{path}"
+        data: bytes | None = None
+        headers = {
+            "Authorization": f"Bearer {self._token}",
+            "Accept": "application/vnd.github+json",
+            "User-Agent": "pawcontrol-coverage-publisher",
+        }
+        if payload is not None:
+            data = json.dumps(payload).encode("utf-8")
+            headers["Content-Type"] = "application/json"
+        request = urllib.request.Request(url, data=data, headers=headers, method=method)
+        try:
+            with urllib.request.urlopen(request, timeout=self._timeout) as response:
+                response_data = response.read()
+                status = getattr(response, "status", 200)
+        except urllib.error.HTTPError as error:
+            raise PublishError(
+                f"GitHub API error {error.code}: {error.reason}"
+            ) from error
+        except urllib.error.URLError as error:
+            raise PublishError(f"Network error: {error.reason}") from error
+        if not 200 <= status < 300:
+            raise PublishError(f"GitHub API returned status {status} for {path}")
+        if not response_data:
+            return {}
+        return json.loads(response_data.decode("utf-8"))
+
+
+def duplicate_payloads(
+    payloads: Iterable[FilePayload], prefixes: Iterable[str]
+) -> list[FilePayload]:
+    """Return payloads duplicated under multiple prefixes."""
+
+    duplicated: list[FilePayload] = []
+    for payload in payloads:
+        for prefix in prefixes:
+            relative_path = (
+                f"{prefix}/{payload.relative_path}" if prefix else payload.relative_path
+            )
+            duplicated.append(FilePayload(relative_path, payload.content))
+    return duplicated
+
+
+def create_archive(payloads: Iterable[FilePayload], destination: Path) -> Path:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    with tarfile.open(destination, "w:gz") as archive:
+        for payload in payloads:
+            info, buffer = payload.as_tarinfo(payload.relative_path)
+            archive.addfile(info, buffer)
+    return destination
+
+
+def build_cli() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--coverage-xml", required=True, type=Path, help="Path to coverage.xml"
+    )
+    parser.add_argument(
+        "--coverage-html-index",
+        required=True,
+        type=Path,
+        help="Path to the generated coverage index.html",
+    )
+    parser.add_argument(
+        "--artifact-directory",
+        type=Path,
+        default=Path("generated/coverage/artifacts"),
+        help="Directory where fallback archives are stored",
+    )
+    parser.add_argument("--mode", choices=("pages", "archive"), default="pages")
+    parser.add_argument("--pages-branch", default="gh-pages")
+    parser.add_argument("--pages-prefix", default="coverage")
+    parser.add_argument("--run-id", default=os.getenv("GITHUB_RUN_ID", "manual"))
+    parser.add_argument("--run-attempt", default=os.getenv("GITHUB_RUN_ATTEMPT", "1"))
+    parser.add_argument("--commit-sha", default=os.getenv("GITHUB_SHA", ""))
+    parser.add_argument("--ref", default=os.getenv("GITHUB_REF", ""))
+    return parser
+
+
+def publish(args: argparse.Namespace) -> PublishResult:
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+    run_metadata = {
+        "run_id": str(args.run_id),
+        "run_attempt": str(args.run_attempt),
+    }
+    if args.commit_sha:
+        run_metadata["commit_sha"] = str(args.commit_sha)
+    if args.ref:
+        run_metadata["ref"] = str(args.ref)
+    dataset = CoverageDataset(args.coverage_xml, args.coverage_html_index, run_metadata)
+    payloads = dataset.build_payloads()
+    prefixes = [f"{args.pages_prefix}/{args.run_id}", f"{args.pages_prefix}/latest"]
+    duplicated_payloads = duplicate_payloads(payloads, prefixes)
+    archive_name = f"coverage-{args.run_id}.tar.gz"
+    archive_path = args.artifact_directory / archive_name
+    archive = create_archive(duplicate_payloads, archive_path)
+    LOGGER.info("Created coverage archive at %s", archive)
+    publish_url: str | None = None
+    if args.mode == "pages":
+        token = os.getenv("GITHUB_TOKEN", "")
+        repository = os.getenv("GITHUB_REPOSITORY", "")
+        try:
+            publisher = GitHubPagesPublisher(token, repository, args.pages_branch)
+            publish_url = publisher.publish(
+                duplicated_payloads,
+                landing_path=f"{args.pages_prefix}/latest/index.html",
+            )
+            LOGGER.info("Published coverage to GitHub Pages at %s", publish_url)
+            return PublishResult(True, archive, publish_url)
+        except PublishError as error:
+            LOGGER.warning("GitHub Pages upload skipped: %s", error)
+    return PublishResult(False, archive, publish_url)
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = build_cli()
+    args = parser.parse_args(argv)
+    result = publish(args)
+    if not result.published:
+        LOGGER.info("Coverage archive available at %s", result.archive_path)
+    else:
+        LOGGER.info("Coverage published to %s", result.publish_url)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
