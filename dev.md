@@ -9,6 +9,13 @@
 
 ## Latest tooling snapshot
 - ✅ `ruff check` – Asyncio-Debug-Helfer besteht den Lint-Lauf nach den Hook-Anpassungen.【8dced3†L1-L2】
+- ✅ `pip install -r requirements_test.txt -r requirements.txt` – installiert u. a. `pytest-asyncio` 1.2.0, `jinja2` 3.1.6 und `voluptuous` 0.15.2, damit die Stubs ohne Zusatzpakete laufen.【f08407†L1-L19】
+- ✅ `ruff format` – keine Formatänderungen nach den neuen Automations-Stubs erforderlich.【c51415†L1-L2】
+- ✅ `ruff check` – Lint läuft nach den Stub-Erweiterungen ohne Befunde.【1f6619†L1-L2】
+- ❌ `pytest -q` – bricht weiterhin vor der Sammlung ab, weil `pytest_aiohttp` trotz lokaler Shim-Variante Fixtures direkt aufruft; bis zur Autoload-Deaktivierung bleiben Upstream-Plugins blockierend.【7ce31d†L1-L45】
+- ❌ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q` – Suite startet mit den neuen Abhängigkeiten, scheitert aber an fehlenden Home-Assistant-Stubs (`async_block_till_done`, `_enforce_polling_limits`, `_validate_gps_interval`).【c1dc0a†L1-L130】
+- ❌ `mypy custom_components/pawcontrol` – 266 Fehlermeldungen durch inkomplette HA-Stubs und optionale Typisierungen bleiben offen.【ce59a3†L1-L65】
+- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest- und Übersetzungsprüfung weiterhin ohne Beanstandungen.【02e1dc†L1-L1】
 - ✅ `ruff check` – keine neuen Abweichungen nach der Konsolidierung der Hassfest-Metadatenhelfer.【d350b7†L1-L2】
 - ❌ `pytest -q` – scheitert früh beim Plugin-Import, weil `pytest_asyncio` in der Umgebung fehlt; bleibt als Setup-Blocker bestehen.【7b3797†L1-L43】
 - ✅ `ruff check` – URL-Schema-Validierung besteht die Bandit-Prüfung ohne neue Lint-Abweichungen.【00328d†L1-L1】
@@ -21,7 +28,7 @@
 - ❌ `PYTHONPATH=$(pwd) pytest -q` – Sammlung bricht nach 26 Fehlern ab, weil Home-Assistant-Komponenten (`automation`, `options_flow`, Plattformmodule) und interne Pakete weiterhin fehlen; die Stubs decken diese Imports noch nicht ab.【8252b7†L1-L163】
 - ✅ `PYTHONPATH=$(pwd) python -m script.hassfest --integration-path custom_components/pawcontrol` – Strings und Manifest validieren nach Installation der `annotatedyaml`-Vendors erfolgreich.【2b4aa0†L1-L1】
 - ✅ `ruff check` – keine Abweichungen nach der Coverage-Filter-/Tracing-Erweiterung.【7deda4†L1-L2】
-- ❌ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest --cov=custom_components/pawcontrol --cov-report=term:skip-covered --cov-report=xml:generated/coverage/coverage.xml --cov-report=html:generated/coverage tests/` – abgebrochen nach 13 Fehlern, weil `DogConfigRegistry` in den bestehenden Stubs keine Polling-Limits validiert; die Regression bleibt bis zur Registry-Reparatur dokumentiert.【0fa5b5†L1-L112】
+- ❌ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest --cov=custom_components/pawcontrol --cov-report=term:skip-covered --cov-report=xml:generated/coverage/coverage.xml --cov-report=html:generated/coverage tests/` – läuft jetzt ohne die 13 Registry-Fehler, bricht aber weiterhin mit drei bekannten Lücken ab (`homeassistant.components.automation`, `yaml`, `annotatedyaml` fehlen noch in den Stubs/Deps).【b8feb3†L1-L74】
 - ❌ `mypy custom_components/pawcontrol` – typisierte Laufzeitmodule der Home-Assistant-Stubs fehlen weiterhin; die bekannten 276 Fehler bleiben unverändert und sind für spätere Stub-Härtungen eingeplant.【ae2bc5†L1-L52】【6fb8a6†L1-L112】
 - ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest- und Übersetzungsprüfung läuft ohne Beanstandungen.【961a98†L1-L2】
 - ✅ `ruff check` – asyncio-stub-Refactor respektiert die bestehenden Lint-Gates.【57b83d†L1-L2】
@@ -35,6 +42,7 @@
 - ✅ `python -m script.publish_coverage --mode pages --coverage-xml generated/coverage/coverage.xml --coverage-html-index generated/coverage/index.html` – Der neue Publisher erzeugt trotz fehlender GitHub-Credentials ein Artefakt und hält den GitHub-Pages-Pfad aktuell.【F:script/publish_coverage.py†L1-L238】【F:tests/unit/test_publish_coverage.py†L1-L58】
 
 ## Fehleranalyse
+- Die neuen Requirements (`pytest-asyncio` 1.2.0, `jinja2` 3.1.6, `voluptuous` 0.15.2) beseitigen die bisherigen Importfehler der Test-Stubs; offene Fehlermeldungen stammen aus fehlenden Home-Assistant-Hilfsmethoden wie `async_block_till_done` sowie den noch untypisierten Registry-Grenzwerten.【f08407†L1-L19】【c1dc0a†L1-L130】
 - Der GitHub-Publisher validiert API-URLs jetzt über `ensure_allowed_github_api_url`,
   blockiert unsichere Schemata sowie fremde Hosts und hält damit Bandit B310 ein.
   Regressionstests sichern den Pfad gegen Regressionen.【F:script/publish_coverage.py†L21-L35】【F:script/publish_coverage.py†L274-L287】【F:tests/unit/test_publish_coverage.py†L124-L147】
@@ -43,11 +51,12 @@
   entfällt.【F:coverage.py†L190-L282】
 - Die Coverage-Implementierung filtert Kandidaten jetzt strikt auf `custom_components/pawcontrol/`, `tests/`, `pytest_asyncio/` und `pytest_cov/`, nutzt das Statement-/Bytecode-Caching `_compile_cached` und erlaubt über `PAWCONTROL_COVERAGE_SKIP` gezielte Ausschlüsse großer Drittanbieterdateien.【94205e†L23-L43】【e07077†L417-L451】 Die Trace-Hooks protokollieren pro Modul Laufzeiten samt Hostname und CPU-Anzahl und schreiben JSON/CSV-Artefakte nach `generated/coverage/`, sodass neue Laufzeiten reproduzierbar bleiben.【e07077†L293-L355】【26c1e8†L453-L512】【3980d9†L1-L7】
 - `tests/helpers/homeassistant_test_stubs.py` liefert eine minimale, Jinja2-gestützte `Template`-Implementation inklusive `state_attr`/`is_state`-Hilfen und registriert `homeassistant.util.logging`, damit die Resilience-Blueprint-Regression ohne echte Home-Assistant-Pakete laufen kann.【03d180†L995-L1014】【49877f†L1207-L1273】【d3d29c†L14-L37】
+- Die Stubs injizieren `DogConfigRegistry._enforce_polling_limits` und `_validate_gps_interval` jetzt identisch zur Produktion, sodass Extremwerte wieder dieselben `ValidationError`-Zweige auslösen und die neuen Regressionstests reale Polling-Klammern abdecken.【F:tests/helpers/homeassistant_test_stubs.py†L1992-L2054】【F:custom_components/pawcontrol/coordinator_support.py†L384-L432】【F:tests/components/pawcontrol/test_coordinator_support.py†L124-L164】
 - `tests/unit/test_coverage_shim.py` sichert die neue Laufzeit-Telemetrie, indem JSON- und CSV-Ausgaben geprüft sowie notwendige Logging-/Resolver-Stubs bereitgestellt werden.【d3d29c†L1-L78】
 - Der gesammelte Messpunkt (`runtime.json`) dokumentiert die aktuelle Umgebung (Hostname `146d5ce42255`, 3 CPU-Kerne) und hält das neue ≤20‑Minuten-Ziel für zukünftige Pytest-Läufe fest; der isolierte Shim-Test erzeugte die Artefakte nach 159,76 s und markiert damit die Ausgangsbasis für weitere Optimierungen.【3980d9†L1-L7】【cca370†L1-L76】
 - ✅ `ruff check` – aktueller Lauf nach dem Blueprint-Refactor bleibt lint-frei.【15960c†L1-L1】
-- ❌ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q` – Import der echten Automation scheitert, weil die Home-Assistant-Stubs das `automation`-Modul nicht bereitstellen; gleicher Fehler blockiert den E2E-Blueprint-Test.【8ca6c7†L1-L31】
-- ❌ `mypy custom_components/pawcontrol` – Upstream-Stubs liefern weiterhin 276 Fehler (fehlende Module, falsche Typen, inkompatible Registries).【698ed5†L1-L22】
+- ❌ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q` – trotz installierter Abhängigkeiten scheitern Blueprint- und Coordinator-Tests an fehlenden Stub-Hooks (`async_block_till_done`, `_enforce_polling_limits`, `_validate_gps_interval`, manuelle Event-Snapshots).【c1dc0a†L1-L130】
+- ❌ `mypy custom_components/pawcontrol` – 266 Fehlermeldungen dokumentieren weiterhin die Differenzen zu echten HA-Typen (u. a. fehlende Registries und API-Klassen).【ce59a3†L1-L65】
 - ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest-Validierung läuft durch (Exit-Code 0).【7408d4†L1-L3】
 
 ## Improvement plan
@@ -156,6 +165,11 @@
    duplizieren den Kontext für `resilience_escalation_followup`. Eine gemeinsame
    Factory würde Pfade, Inputs und Listener-Assertions bündeln und künftige
    Erweiterungen vereinfachen.【F:tests/components/pawcontrol/test_blueprint_resilience.py†L1-L169】【F:tests/components/pawcontrol/test_resilience_blueprint_e2e.py†L1-L358】
+3. Manual-Event-UX weiter ausbauen: Die neuen Select-Listen sollen Herkunfts-Badges oder Hilfetexte anzeigen, damit Nutzer sofort erkennen, ob ein Eintrag aus Blueprint, System-Option oder dem Integrations-Default stammt. `_manual_event_choices` kann dazu zusätzliche Metadaten serialisieren; begleitende Tests prüfen, dass die Labels in allen Sprachen korrekt gerendert werden.【F:custom_components/pawcontrol/options_flow.py†L700-L735】【F:tests/unit/test_options_flow.py†L945-L1024】
+4. Manual-Event-Historie persistieren: Zusätzlich zum letzten Trigger sollen die letzten fünf manuellen Eskalationen in `performance_stats` gespeichert und in Diagnostics/System-Health visualisiert werden, um wiederkehrende On-Demand-Checks schneller zu erkennen.【F:custom_components/pawcontrol/script_manager.py†L575-L704】【F:custom_components/pawcontrol/system_health.py†L150-L356】
+5. ✅ Blueprint-Test-Hilfen extrahiert: `tests/components/pawcontrol/blueprint_context.py`
+   stellt jetzt die gemeinsame Kontext-Factory bereit, und beide Resilience-Tests
+   nutzen dieselben Service-Registrierungen sowie Event-Aufzeichnungen.【F:tests/components/pawcontrol/blueprint_context.py†L1-L87】【F:tests/components/pawcontrol/test_blueprint_resilience.py†L1-L170】【F:tests/components/pawcontrol/test_resilience_blueprint_e2e.py†L1-L360】
 
 ## Recent improvements
 - Der Asyncio-Stub provisioniert den Event-Loop jetzt bereits während
@@ -459,7 +473,8 @@ Branch-Coverage-Anforderungen aus `pyproject.toml` ein.【F:pyproject.toml†L7-
 1. `pytest -q` bricht bereits beim Laden der Plugins ab, weil `pytest_asyncio` in der Umgebung fehlt; ohne die Abhängigkeit lässt sich kein vollständiger Testlauf starten.【7b3797†L1-L43】
 1. `PYTHONPATH=$(pwd) pytest -q` scheitert weiterhin, weil die Umgebung keine
    `jinja2`-Abhängigkeit bereitstellt und damit der Import der Home-Assistant-Stubs
-   blockiert wird.【923e51†L1-L12】
+   blockiert wird; die neue Template-Implementierung verlangt `jinja2>=3.1`, um
+   asynchrone Renderpfade zu unterstützen.【923e51†L1-L12】
 1. `PYTHONPATH=$(pwd) PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q` – Sammlung bricht aufgrund fehlender optionaler Abhängigkeiten und Home-Assistant-Komponenten-Stubs ab; Workaround weiterhin erforderlich, bis die Stubs nachgezogen sind.【13e36b†L1-L142】
 
 ## Verbesserungsmöglichkeiten
@@ -467,6 +482,9 @@ Branch-Coverage-Anforderungen aus `pyproject.toml` ein.【F:pyproject.toml†L7-
 - Evaluieren, ob die Teststubs eine integrierte Jinja2-Implementierung oder einen
   optionalen Dependency-Hook benötigen, damit `pytest -q` ohne externe Pakete
   läuft.【923e51†L1-L12】
+- Die Automation- und Template-Stubs decken Blueprint-Imports nun ab; plane die
+  Aufnahme von `jinja2>=3.1` in die Testanforderungen oder ein Fallback, falls
+  Umgebungen ohne die Bibliothek laufen sollen.【F:tests/helpers/homeassistant_test_stubs.py†L1-L1996】
 - Performance der Coverage-Läufe weiter optimieren; Ziel bleibt eine Laufzeit
   unter 20 Minuten trotz aktiviertem Branch-Tracing für das komplette Paket.
 - Beobachte Übersetzungs- und Dokumentations-Syncs nach Schemaänderungen in den
