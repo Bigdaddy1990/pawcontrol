@@ -943,6 +943,88 @@ async def test_system_settings_manual_event_placeholders(
 
 
 @pytest.mark.asyncio
+async def test_manual_event_choices_support_disable_and_translations(
+    hass: HomeAssistant, mock_config_entry
+) -> None:
+    """Manual event dropdowns should expose disable and localized options."""
+
+    hass.config.language = "de"
+
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    mock_config_entry.options = {
+        "system_settings": {
+            "manual_guard_event": "pawcontrol_manual_guard",
+            "manual_breaker_event": "pawcontrol_manual_breaker",
+        }
+    }
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    script_manager = Mock()
+    script_manager.get_resilience_escalation_snapshot.return_value = {
+        "manual_events": {
+            "configured_guard_events": ["pawcontrol_manual_guard_blueprint"],
+            "configured_breaker_events": ["pawcontrol_manual_breaker"],
+            "configured_check_events": ["pawcontrol_resilience_check"],
+            "listener_sources": {
+                "pawcontrol_manual_guard": ["system_options"],
+                "pawcontrol_manual_guard_blueprint": ["blueprint"],
+                "pawcontrol_manual_breaker": ["blueprint"],
+                "pawcontrol_resilience_check": ["blueprint"],
+            },
+            "preferred_events": {
+                "manual_check_event": "pawcontrol_resilience_check",
+            },
+        }
+    }
+    runtime = Mock()
+    runtime.script_manager = script_manager
+
+    with patch(
+        "custom_components.pawcontrol.options_flow.get_runtime_data",
+        return_value=runtime,
+    ):
+        current_system = flow._current_system_options()
+        guard_options = flow._manual_event_choices("manual_guard_event", current_system)
+        check_options = flow._manual_event_choices("manual_check_event", current_system)
+
+        disable_option = guard_options[0]
+        assert disable_option["value"] == ""
+        assert disable_option["label"] == "Deaktivieren"
+        assert disable_option["description"] == "Integrationsstandard"
+
+        guard_by_value = {
+            option["value"]: option
+            for option in guard_options
+            if isinstance(option, dict) and option.get("value")
+        }
+        assert guard_by_value["pawcontrol_manual_guard"]["description"] == (
+            "Integrationsstandard, Systemeinstellungen"
+        )
+        assert (
+            guard_by_value["pawcontrol_manual_guard_blueprint"]["description"]
+            == "Blueprint-Vorschlag"
+        )
+
+        check_by_value = {
+            option["value"]: option
+            for option in check_options
+            if isinstance(option, dict) and option.get("value")
+        }
+        assert (
+            check_by_value["pawcontrol_resilience_check"]["description"]
+            == "Blueprint-Vorschlag"
+        )
+
+        hass.config.language = "en"
+        english_options = flow._manual_event_choices(
+            "manual_guard_event", current_system
+        )
+        assert english_options[0]["label"] == "Disable"
+        assert english_options[0]["description"] == "Integration default"
+
+
+@pytest.mark.asyncio
 async def test_dashboard_settings_normalisation(
     hass: HomeAssistant, mock_config_entry
 ) -> None:
