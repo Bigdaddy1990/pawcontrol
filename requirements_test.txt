@@ -5,6 +5,6 @@ pytest>=8.3.0
 pytest-asyncio>=1.1.0
 pytest-cov>=5.0
 pytest-homeassistant-custom-component  # follows daily HA version
-pyyaml>=6.0.3
+pyyaml>=6.0.2
 types-aiofiles>=23.1.0
 voluptuous>=0.15.2
