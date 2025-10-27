@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
+from threading import Lock
 from types import MappingProxyType, ModuleType, SimpleNamespace
 from typing import TYPE_CHECKING, Any, Optional, cast
 from uuid import uuid4
@@ -1406,7 +1407,7 @@ def _install_helper_modules() -> None:
             except RuntimeError:
                 return _render_sync()
 
-            future = _TEMPLATE_RENDER_EXECUTOR.submit(_render_sync)
+            future = _get_template_executor().submit(_render_sync)
             return future.result()
 
         async def async_render(
@@ -2524,8 +2525,41 @@ def _install_pawcontrol_coordinator_helpers() -> None:
 
 
 install_homeassistant_stubs()
-_TEMPLATE_RENDER_EXECUTOR = ThreadPoolExecutor(
-    max_workers=2, thread_name_prefix="ha-template-render"
-)
-atexit.register(_TEMPLATE_RENDER_EXECUTOR.shutdown, wait=True)
-_TEMPLATE_RENDER_EXECUTOR.submit(lambda: None).result()
+_TEMPLATE_RENDER_EXECUTOR: ThreadPoolExecutor | None = None
+_TEMPLATE_EXECUTOR_LOCK = Lock()
+_TEMPLATE_EXECUTOR_SHUTDOWN_REGISTERED = False
+
+
+def _shutdown_template_executor() -> None:
+    """Terminate the lazily created template executor."""
+
+    global _TEMPLATE_RENDER_EXECUTOR
+
+    executor = _TEMPLATE_RENDER_EXECUTOR
+    if executor is None:
+        return
+    executor.shutdown(wait=True)
+
+
+def _get_template_executor() -> ThreadPoolExecutor:
+    """Return a thread pool for synchronous template rendering."""
+
+    global _TEMPLATE_RENDER_EXECUTOR, _TEMPLATE_EXECUTOR_SHUTDOWN_REGISTERED
+
+    executor = _TEMPLATE_RENDER_EXECUTOR
+    if executor is not None:
+        return executor
+
+    with _TEMPLATE_EXECUTOR_LOCK:
+        executor = _TEMPLATE_RENDER_EXECUTOR
+        if executor is None:
+            executor = ThreadPoolExecutor(
+                max_workers=2, thread_name_prefix="ha-template-render"
+            )
+            _TEMPLATE_RENDER_EXECUTOR = executor
+            if not _TEMPLATE_EXECUTOR_SHUTDOWN_REGISTERED:
+                atexit.register(_shutdown_template_executor)
+                _TEMPLATE_EXECUTOR_SHUTDOWN_REGISTERED = True
+            executor.submit(lambda: None).result()
+
+    return executor

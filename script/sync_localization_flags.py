@@ -33,6 +33,9 @@ _LANGUAGE_LABELS = {
     "fr": "Französisch",
 }
 
+TABLE_START_MARKER = "<!-- SETUP_FLAGS_TABLE_START -->"
+TABLE_END_MARKER = "<!-- SETUP_FLAGS_TABLE_END -->"
+
 JsonDict = dict[str, Any]
 
 
@@ -241,25 +244,37 @@ def _update_markdown_table(
         return False
 
     content = path.read_text(encoding="utf-8").splitlines()
+
+    def _find_marker(marker: str) -> int:
+        for index, line in enumerate(content):
+            if line.strip() == marker:
+                return index
+        raise ValueError(marker)
+
     try:
-        header_index = next(
+        start_index = _find_marker(TABLE_START_MARKER)
+    except ValueError as exc:
+        if check_only:
+            raise SystemExit(
+                f"{path} is missing the {TABLE_START_MARKER} marker"
+            ) from exc
+        return False
+
+    try:
+        end_index = next(
             index
-            for index, line in enumerate(content)
-            if line.startswith("| Übersetzungsschlüssel |")
+            for index in range(start_index + 1, len(content))
+            if content[index].strip() == TABLE_END_MARKER
         )
     except StopIteration as exc:
         if check_only:
             raise SystemExit(
-                f"{path} is missing the setup-flags Markdown table header"
+                f"{path} is missing the {TABLE_END_MARKER} marker"
             ) from exc
         return False
 
-    end_index = header_index + 1
-    while end_index < len(content) and content[end_index].startswith("|"):
-        end_index += 1
-
     new_table = _render_markdown_table(keys, languages, translations)
-    if content[header_index:end_index] == new_table:
+    if content[start_index + 1 : end_index] == new_table:
         return False
 
     if check_only:
@@ -268,7 +283,7 @@ def _update_markdown_table(
             f"{path}` to refresh it."
         )
 
-    updated = content[:header_index] + new_table + content[end_index:]
+    updated = content[: start_index + 1] + new_table + content[end_index:]
     path.write_text("\n".join(updated) + "\n", encoding="utf-8")
     return True
 

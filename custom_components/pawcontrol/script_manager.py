@@ -433,24 +433,21 @@ class PawControlScriptManager:
                 candidate = int(value)
             except (TypeError, ValueError):
                 return None
-            if candidate < _MANUAL_EVENT_HISTORY_MIN:
-                return _MANUAL_EVENT_HISTORY_MIN
-            if candidate > _MANUAL_EVENT_HISTORY_MAX:
-                return _MANUAL_EVENT_HISTORY_MAX
+            if not (
+                _MANUAL_EVENT_HISTORY_MIN
+                <= candidate
+                <= _MANUAL_EVENT_HISTORY_MAX
+            ):
+                return None
             return candidate
 
         options = getattr(self._entry, "options", {})
-        system_settings = None
-        if isinstance(options, Mapping):
-            system_settings = options.get("system_settings")
+        system_settings = (
+            options.get("system_settings") if isinstance(options, Mapping) else None
+        )
+        data = getattr(self._entry, "data", {})
 
-        for mapping in (
-            system_settings if isinstance(system_settings, Mapping) else None,
-            options if isinstance(options, Mapping) else None,
-            getattr(self._entry, "data", {})
-            if isinstance(getattr(self._entry, "data", {}), Mapping)
-            else None,
-        ):
+        for mapping in (system_settings, options, data):
             if not isinstance(mapping, Mapping):
                 continue
             configured = _coerce(mapping.get("manual_event_history_size"))
@@ -1170,7 +1167,10 @@ class PawControlScriptManager:
             runtime.manual_event_history = self._manual_event_history
 
     def _serialise_manual_event_record(
-        self, record: Mapping[str, Any] | None
+        self,
+        record: Mapping[str, Any] | None,
+        *,
+        recorded_at: datetime | str | None = None,
     ) -> ManualResilienceEventSnapshot | None:
         """Serialise ``record`` into a diagnostics-friendly snapshot."""
 
@@ -1219,6 +1219,31 @@ class PawControlScriptManager:
         else:
             sources_list = None
 
+        if recorded_at is not None:
+            if isinstance(recorded_at, datetime):
+                recorded_dt = dt_util.as_utc(recorded_at)
+            elif isinstance(recorded_at, str):
+                parsed_recorded = dt_util.parse_datetime(recorded_at)
+                recorded_dt = dt_util.as_utc(parsed_recorded) if parsed_recorded else None
+            else:
+                recorded_dt = None
+        else:
+            raw_recorded = record.get("recorded_at")
+            if isinstance(raw_recorded, datetime):
+                recorded_dt = dt_util.as_utc(raw_recorded)
+            elif isinstance(raw_recorded, str):
+                parsed_recorded = dt_util.parse_datetime(raw_recorded)
+                recorded_dt = dt_util.as_utc(parsed_recorded) if parsed_recorded else None
+            else:
+                recorded_dt = None
+
+        if recorded_dt is not None:
+            recorded_iso = _serialize_datetime(recorded_dt)
+            recorded_age = int((dt_util.utcnow() - recorded_dt).total_seconds())
+        else:
+            recorded_iso = received_iso
+            recorded_age = received_age
+
         snapshot: ManualResilienceEventSnapshot = {
             "event_type": record.get("event_type"),
             "category": category,
@@ -1235,8 +1260,8 @@ class PawControlScriptManager:
             "data": cast(dict[str, Any] | None, record.get("data")),
             "sources": sources_list,
         }
-        snapshot["recorded_at"] = received_iso
-        snapshot["recorded_age_seconds"] = received_age
+        snapshot["recorded_at"] = recorded_iso
+        snapshot["recorded_age_seconds"] = recorded_age
         reasons = record.get("reasons")
         if isinstance(reasons, Sequence) and not isinstance(
             reasons, str | bytes | bytearray
@@ -2118,16 +2143,11 @@ class PawControlScriptManager:
             candidate_record = self._last_manual_event
 
         if candidate_record is not None:
-            snapshot = self._serialise_manual_event_record(candidate_record)
+            snapshot = self._serialise_manual_event_record(
+                candidate_record, recorded_at=dt_util.utcnow()
+            )
             if snapshot is not None:
                 manual_last_trigger = dict(snapshot)
-                manual_last_trigger.setdefault(
-                    "recorded_at", manual_last_trigger.get("received_at")
-                )
-                manual_last_trigger.setdefault(
-                    "recorded_age_seconds",
-                    manual_last_trigger.get("received_age_seconds"),
-                )
 
         counters_by_event: dict[str, int] = {}
         candidate_events: set[str] = set()
