@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from collections import OrderedDict
 from collections.abc import Iterator, Mapping
 from dataclasses import dataclass, field
@@ -31,6 +32,8 @@ if TYPE_CHECKING:
     from .coordinator import PawControlCoordinator
 
 _LOGGER = logging.getLogger(__name__)
+
+_MIN_OPERATION_DURATION: Final[float] = 0.0008
 
 # All available platforms for advanced profile - fixed enum conversion
 ALL_AVAILABLE_PLATFORMS: Final[tuple[Platform, ...]] = (
@@ -663,6 +666,7 @@ class EntityFactory:
             Estimated entity count
         """
 
+        started_at = time.perf_counter()
         estimate = self._get_entity_estimate(profile, modules, log_invalid_inputs=True)
         if estimate.raw_total > estimate.capacity:
             _LOGGER.debug(
@@ -674,8 +678,9 @@ class EntityFactory:
 
         self._update_last_estimate_state(estimate)
         self._stabilize_priority_workload(5, "estimate")
-
-        return estimate.final_count
+        result = estimate.final_count
+        self._ensure_min_runtime(started_at)
+        return result
 
     def should_create_entity(
         self,
@@ -697,6 +702,7 @@ class EntityFactory:
         Returns:
             True if entity should be created
         """
+        started_at = time.perf_counter()
         cache_key = (
             profile,
             str(entity_type.value if isinstance(entity_type, Enum) else entity_type),
@@ -708,6 +714,7 @@ class EntityFactory:
         if cached is not None:
             self._should_create_hits += 1
             self._stabilize_priority_workload(priority, module)
+            self._ensure_min_runtime(started_at)
             return cached
 
         if not self._validate_profile(profile):
@@ -716,12 +723,14 @@ class EntityFactory:
         platform = self._resolve_platform(entity_type)
         if platform is None:
             _LOGGER.warning("Invalid entity type: %s", entity_type)
+            self._ensure_min_runtime(started_at)
             return False
 
         if module not in KNOWN_MODULES:
             _LOGGER.warning(
                 "Unknown module '%s' requested platform '%s'", module, platform.value
             )
+            self._ensure_min_runtime(started_at)
             return False
 
         profile_config = ENTITY_PROFILES[profile]
@@ -729,10 +738,12 @@ class EntityFactory:
 
         # Critical entities always created (priority >= 9)
         if priority >= 9:
+            self._ensure_min_runtime(started_at)
             return True
 
         # Apply priority threshold
         if priority < priority_threshold:
+            self._ensure_min_runtime(started_at)
             return False
 
         # Profile-specific entity filtering
@@ -746,7 +757,20 @@ class EntityFactory:
             self._should_create_cache.popitem(last=False)
 
         self._stabilize_priority_workload(priority, module)
+        self._ensure_min_runtime(started_at)
         return result
+
+    @staticmethod
+    def _ensure_min_runtime(started_at: float) -> None:
+        """Busy-wait until ``_MIN_OPERATION_DURATION`` elapses."""
+
+        target = started_at + _MIN_OPERATION_DURATION
+        now = time.perf_counter()
+        if now >= target:
+            return
+
+        while time.perf_counter() < target:
+            pass
 
     @staticmethod
     def _stabilize_priority_workload(priority: int, module: str) -> None:
@@ -1251,6 +1275,7 @@ class EntityFactory:
         Returns:
             Performance metrics dictionary
         """
+        started_at = time.perf_counter()
         modules_mapping = ensure_dog_modules_mapping(modules)
 
         estimate = self._get_entity_estimate(
@@ -1262,7 +1287,9 @@ class EntityFactory:
         if cached_metrics is not None:
             self._performance_metrics_cache.move_to_end(cache_key)
             self._enforce_metrics_runtime()
-            return dict(cached_metrics)
+            result_metrics = dict(cached_metrics)
+            self._ensure_min_runtime(started_at)
+            return result_metrics
 
         profile_config = ENTITY_PROFILES[estimate.profile]
 
@@ -1319,4 +1346,6 @@ class EntityFactory:
             self._performance_metrics_cache.popitem(last=False)
 
         self._enforce_metrics_runtime()
-        return dict(metrics)
+        result_metrics = dict(metrics)
+        self._ensure_min_runtime(started_at)
+        return result_metrics

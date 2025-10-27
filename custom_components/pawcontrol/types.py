@@ -21,7 +21,7 @@ from __future__ import annotations
 
 from asyncio import Task
 from collections import deque
-from collections.abc import Awaitable, Callable, Iterator, Mapping
+from collections.abc import Awaitable, Callable, Iterator, Mapping, Sequence
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from types import MappingProxyType
@@ -1989,6 +1989,8 @@ class ManualResilienceEventSource(TypedDict, total=False):
     preference_key: ManualResiliencePreferenceKey
     configured_role: Literal["check", "guard", "breaker"]
     listener_sources: tuple[str, ...]
+    source_tags: list[str]
+    primary_source: str
 
 
 class ManualResilienceEventRecord(TypedDict, total=False):
@@ -2003,9 +2005,10 @@ class ManualResilienceEventRecord(TypedDict, total=False):
     user_id: str | None
     origin: str | None
     data: dict[str, Any] | None
-    sources: tuple[str, ...]
+    sources: Sequence[str]
     source_tags: list[str]
     primary_source: str
+    reasons: list[str]
 
 
 class ManualResilienceEventSnapshot(TypedDict, total=False):
