@@ -75,6 +75,25 @@
 }
 ```
 
+- **Setup-Flags-Übersetzungsinventar** – `python -m script.sync_localization_flags`
+  synchronisiert die Übersetzungsschlüssel `setup_flags_panel_flag_*` und
+  `setup_flags_panel_source_*` automatisch in alle Sprachen; die Unit-Tests
+  blockieren Abweichungen zwischen `strings.json`, `translations/` und dieser
+  Dokumentation.【F:script/sync_localization_flags.py†L1-L129】【F:tests/unit/test_setup_flags_localization.py†L1-L77】
+
+### Setup-Flags-Übersetzungsinventar
+
+| Übersetzungsschlüssel | Englisch (`en`) | Deutsch (`de`) |
+| --- | --- | --- |
+| component.pawcontrol.common.setup_flags_panel_flag_enable_analytics | Analytics telemetry | Analyse-Telemetrie |
+| component.pawcontrol.common.setup_flags_panel_flag_enable_cloud_backup | Cloud backup | Cloud-Backup |
+| component.pawcontrol.common.setup_flags_panel_flag_debug_logging | Debug logging | Debug-Logging |
+| component.pawcontrol.common.setup_flags_panel_source_advanced_settings | Advanced settings | Erweiterte Einstellungen |
+| component.pawcontrol.common.setup_flags_panel_source_config_entry | Config entry defaults | Konfigurationseintrag |
+| component.pawcontrol.common.setup_flags_panel_source_default | Integration default | Integrationsstandard |
+| component.pawcontrol.common.setup_flags_panel_source_options | Options flow | Options-Flow |
+| component.pawcontrol.common.setup_flags_panel_source_system_settings | System settings | Systemeinstellungen |
+
 - Das neue Feld `resilience_escalation` spiegelt das erzeugte Skript inklusive Entity-ID, aktiven Guard-/Breaker-Schwellen, Follow-up-Skript, letzten Trigger-Zeitpunkt **und** die konfigurierten `manual_*`-Events, damit Bereitschaften Escalation-Workflows direkt im Dump validieren können. Beim Laden migriert die Integration vorhandene Skript-Schwellen in die Optionen, sodass Altinstallationen ohne manuelles Eingreifen konsistente Werte liefern.【F:custom_components/pawcontrol/script_manager.py†L238-L412】【F:custom_components/pawcontrol/diagnostics.py†L594-L636】【F:tests/components/pawcontrol/test_diagnostics.py†L120-L208】【F:tests/unit/test_data_manager.py†L520-L620】
 - Die System-Optionen speichern die `manual_*`-Events jetzt direkt über den Options-Flow und synchronisieren sie beim Speichern automatisch mit allen Resilience-Blueprint-Automationen. Dadurch stimmen Blueprint-Trigger, Diagnostik-Exports und Service-Warnungen immer überein – ganz ohne YAML-Nachpflege.【F:custom_components/pawcontrol/options_flow.py†L3986-L4043】【F:custom_components/pawcontrol/script_manager.py†L503-L607】【F:tests/unit/test_options_flow.py†L808-L870】
 - Die Resilience-Diagnostik erweitert `manual_events` um aktive Listener sowie einen vollständigen Verlauf des letzten manuellen Triggers (Event-Typ, Ursprung, Benutzer, Payload und Altersangaben), damit Support-Teams sofort nachvollziehen können, welcher Pfad zuletzt aufgerufen wurde.【F:custom_components/pawcontrol/script_manager.py†L575-L704】【F:custom_components/pawcontrol/script_manager.py†L1235-L1363】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L243】【F:tests/unit/test_data_manager.py†L595-L676】
