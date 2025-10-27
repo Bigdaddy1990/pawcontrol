@@ -1,75 +1,150 @@
 """Simulate resilience blueprint manual events via Home Assistant event bus."""
 
-# TODO: Replace the service-call shim with a loaded automation once
-# ``pytest-homeassistant-custom-component`` exposes automation blueprint
-# loading paths so the regression matches Home Assistant's wiring.
-
 from __future__ import annotations
 
+from pathlib import Path
+from typing import Any
+
 import pytest
+from homeassistant.components.automation import DOMAIN as AUTOMATION_DOMAIN
+from homeassistant.components.automation import EVENT_AUTOMATION_TRIGGERED
+from homeassistant.const import STATE_OFF
+from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
+from homeassistant.setup import async_setup_component
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+BLUEPRINT_RELATIVE_PATH = "automation/pawcontrol/resilience_escalation_followup.yaml"
 
 
 @pytest.mark.asyncio
-async def test_resilience_blueprint_manual_events_execute(hass) -> None:
-    """Manual events should trigger script calls and follow-ups."""
+async def test_resilience_blueprint_manual_events_execute(hass: HomeAssistant) -> None:
+    """Manual guard/breaker events should execute the blueprint automation."""
 
-    script_calls: list = []
-    guard_calls: list = []
-    breaker_calls: list = []
+    repo_root = Path(__file__).resolve().parents[3]
+    source_path = repo_root / "blueprints" / BLUEPRINT_RELATIVE_PATH
+    assert source_path.is_file(), "Resilience blueprint must exist"
 
-    async def _mock_script_service(call) -> None:
-        script_calls.append(call)
+    blueprint_target = Path(hass.config.path("blueprints")) / BLUEPRINT_RELATIVE_PATH
+    blueprint_target.parent.mkdir(parents=True, exist_ok=True)
+    blueprint_target.write_text(source_path.read_text(), encoding="utf-8")
 
-    async def _mock_guard_service(call) -> None:
-        guard_calls.append(call)
+    base_context: dict[str, Any] = {
+        "statistics_sensor": "sensor.pawcontrol_statistics",
+        "escalation_script": "script.pawcontrol_test_resilience_escalation",
+        "guard_followup_actions": [
+            {"service": "test.guard_followup", "data": {"reason": "guard"}}
+        ],
+        "breaker_followup_actions": [
+            {"service": "test.breaker_followup", "data": {"reason": "breaker"}}
+        ],
+        "watchdog_interval_minutes": 0,
+        "manual_check_event": "pawcontrol_resilience_check",
+        "manual_guard_event": "pawcontrol_manual_guard",
+        "manual_breaker_event": "pawcontrol_manual_breaker",
+    }
 
-    async def _mock_breaker_service(call) -> None:
-        breaker_calls.append(call)
+    script_calls: list[ServiceCall] = []
+    guard_calls: list[ServiceCall] = []
+    breaker_calls: list[ServiceCall] = []
+    automation_events: list[Event] = []
 
-    hass.services.async_register("script", "turn_on", _mock_script_service)
-    hass.services.async_register("test", "guard_followup", _mock_guard_service)
-    hass.services.async_register("test", "breaker_followup", _mock_breaker_service)
+    @callback
+    def _record_action(event: Event) -> None:
+        automation_events.append(event)
 
-    async def _fire_escalation() -> None:
-        await hass.services.async_call(
-            "script",
-            "turn_on",
+    unsubscribe_action = hass.bus.async_listen(
+        EVENT_AUTOMATION_TRIGGERED, _record_action
+    )
+
+    try:
+        async def _record_script(call: ServiceCall) -> None:
+            script_calls.append(call)
+
+        async def _record_guard(call: ServiceCall) -> None:
+            guard_calls.append(call)
+
+        async def _record_breaker(call: ServiceCall) -> None:
+            breaker_calls.append(call)
+
+        hass.services.async_register("script", "turn_on", _record_script)
+        hass.services.async_register("test", "guard_followup", _record_guard)
+        hass.services.async_register("test", "breaker_followup", _record_breaker)
+
+        hass.states.async_set(
+            "sensor.pawcontrol_statistics",
+            "ok",
             {
-                "statistics_entity_id": "sensor.pawcontrol_statistics",
-                "skip_threshold": 3,
-                "breaker_threshold": 1,
+                "service_execution": {
+                    "guard_metrics": {"skipped": 1, "executed": 2},
+                    "rejection_metrics": {
+                        "open_breaker_count": 0,
+                        "half_open_breaker_count": 0,
+                        "rejection_breaker_count": 0,
+                    },
+                }
+            },
+        )
+        hass.states.async_set(
+            "script.pawcontrol_test_resilience_escalation",
+            STATE_OFF,
+            {
+                "fields": {
+                    "skip_threshold": {"default": 3},
+                    "breaker_threshold": {"default": 1},
+                }
             },
         )
 
-    async def _handle_guard_event() -> None:
-        await _fire_escalation()
-        await hass.services.async_call(
-            "test",
-            "guard_followup",
-            {"reason": "guard"},
+        hass.config.legacy_templates = False  # type: ignore[attr-defined]
+
+        automation_entry = MockConfigEntry(
+            domain=AUTOMATION_DOMAIN,
+            data={
+                "use_blueprint": {"path": BLUEPRINT_RELATIVE_PATH, "input": base_context}
+            },
+            title="Resilience escalation follow-up",
+            unique_id="automation-resilience-followup",
         )
+        automation_entry.add_to_hass(hass)
 
-    async def _handle_breaker_event() -> None:
-        await _fire_escalation()
-        await hass.services.async_call(
-            "test",
-            "breaker_followup",
-            {"reason": "breaker"},
+        assert await async_setup_component(hass, AUTOMATION_DOMAIN, {})
+        await hass.async_block_till_done()
+
+        await hass.config_entries.async_setup(automation_entry.entry_id)
+        await hass.async_block_till_done()
+
+        guard_event = {"fired_by": "guard"}
+        hass.bus.async_fire(base_context["manual_guard_event"], guard_event)
+        await hass.async_block_till_done()
+
+        assert len(script_calls) == 1
+        assert (
+            script_calls[0].data["statistics_entity_id"]
+            == "sensor.pawcontrol_statistics"
         )
+        assert script_calls[0].data["skip_threshold"] == 3
+        assert script_calls[0].data["breaker_threshold"] == 1
+        assert len(guard_calls) == 1
+        assert guard_calls[0].data == {"reason": "guard"}
+        assert not breaker_calls
 
-    await _handle_guard_event()
+        assert automation_events, "Automation should emit triggered events"
+        guard_event_data = automation_events[-1].data
+        assert guard_event_data.get("entity_id", "").startswith("automation.")
+        assert guard_event_data.get("trigger") == "manual_guard_event"
 
-    assert len(script_calls) == 1
-    assert (
-        script_calls[0].data["statistics_entity_id"] == "sensor.pawcontrol_statistics"
-    )
-    assert len(guard_calls) == 1
-    assert guard_calls[0].data["reason"] == "guard"
-    assert not breaker_calls
+        breaker_event = {"fired_by": "breaker"}
+        hass.bus.async_fire(base_context["manual_breaker_event"], breaker_event)
+        await hass.async_block_till_done()
 
-    await _handle_breaker_event()
+        assert len(script_calls) == 2
+        assert len(breaker_calls) == 1
+        assert breaker_calls[0].data == {"reason": "breaker"}
+        assert len(guard_calls) == 1
 
-    assert len(script_calls) == 2
-    assert len(breaker_calls) == 1
-    assert breaker_calls[0].data["reason"] == "breaker"
-    assert len(guard_calls) == 1
+        assert len(automation_events) >= 2
+        breaker_event_data = automation_events[-1].data
+        assert breaker_event_data.get("entity_id", "").startswith("automation.")
+        assert breaker_event_data.get("trigger") == "manual_breaker_event"
+    finally:
+        unsubscribe_action()
