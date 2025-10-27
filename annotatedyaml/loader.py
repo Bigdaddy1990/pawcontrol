@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
-
+def load_yaml(path: str) -> Any:  # pragma: no cover - replaced during tests
 
 def load_yaml(path: str) -> Any:  # pragma: no cover - replaced during tests
     raise NotImplementedError(
