@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import io
 import sys
-import threading
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
@@ -94,15 +93,9 @@ class _CoverageController:
     def pytest_runtest_call(
         self, item: pytest.Item
     ) -> None:  # pragma: no cover - executed under pytest
-        """Ensure tracing stays active even if other plugins reset it."""
+        """Preserve pytest's own trace management."""
 
-        if self._coverage is None:
-            return
-
-        tracer = getattr(self._coverage, "_trace", None)
-        if tracer is not None:
-            sys.settrace(tracer)
-            threading.settrace(tracer)
+        return None
 
     def pytest_sessionfinish(
         self, session: pytest.Session, exitstatus: int | pytest.ExitCode
@@ -113,22 +106,34 @@ class _CoverageController:
             return
 
         cov = self._coverage
-        cov.stop()
-        cov.save()
+        try:
+            cov.stop()
+            cov.save()
+        except Exception as exc:  # pragma: no cover - defensive safety net
+            self._record_internal_error(
+                session, f"Coverage finalisation failed: {exc}"
+            )
+            return
 
         total: float | None = None
         for report in self._reports:
-            if report.kind in _REPORT_TERMINAL:
-                total = self._write_terminal_report(cov, report)
-            elif report.kind == "xml":
-                self._write_xml_report(cov, report)
-            elif report.kind == "html":
-                self._write_html_report(cov, report)
+            try:
+                if report.kind in _REPORT_TERMINAL:
+                    total = self._write_terminal_report(cov, report)
+                elif report.kind == "xml":
+                    self._write_xml_report(cov, report)
+                elif report.kind == "html":
+                    self._write_html_report(cov, report)
+            except Exception as exc:  # pragma: no cover - defensive safety net
+                self._record_internal_error(
+                    session,
+                    f"Failed to generate {report.kind} coverage report: {exc}",
+                )
+                return
 
-        if self._fail_under is not None:
+        if self._fail_under is not None and self._fail_message is None:
             if total is None:
-                buffer = io.StringIO()
-                total = cov.report(file=buffer, show_missing=False, skip_empty=True)
+                total = self._get_total_coverage(cov)
             if total < float(self._fail_under):
                 message = (
                     "FAIL Required test coverage of "
@@ -162,6 +167,16 @@ class _CoverageController:
         self._terminal_total = total
         return total
 
+    def _get_total_coverage(self, cov: coverage.Coverage) -> float:
+        calculator = getattr(cov, "total_coverage", None)
+        if callable(calculator):
+            return float(calculator())
+
+        buffer = io.StringIO()
+        return float(
+            cov.report(file=buffer, show_missing=False, skip_empty=True)
+        )
+
     def _write_xml_report(
         self, cov: coverage.Coverage, report: _CoverageReportSpec
     ) -> None:
@@ -178,6 +193,13 @@ class _CoverageController:
         path = Path(directory)
         path.mkdir(parents=True, exist_ok=True)
         cov.html_report(directory=str(path))
+
+    def _record_internal_error(
+        self, session: pytest.Session, message: str
+    ) -> None:
+        if not self._fail_message:
+            self._fail_message = message
+        session.exitstatus = pytest.ExitCode.INTERNAL_ERROR
 
 
 def _parse_report_specs(specs: Iterable[str]) -> Iterable[_CoverageReportSpec]:

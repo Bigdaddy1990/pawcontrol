@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import dis
 import sys
 import threading
 import time
+import types
 import xml.etree.ElementTree as ET
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
@@ -36,11 +38,11 @@ def _normalise_source(entry: str) -> Path:
 class _FileReport:
     path: Path
     relative: str
-    statements: set[int]
-    executed: set[int]
+    statements: frozenset[int]
+    executed: frozenset[int]
 
     @property
-    def missed(self) -> set[int]:
+    def missed(self) -> frozenset[int]:
         return self.statements - self.executed
 
     @property
@@ -63,6 +65,7 @@ class Coverage:
         self._previous_trace = None
         self._executed: dict[Path, set[int]] = {}
         self._lock = threading.Lock()
+        self._statement_cache: dict[Path, tuple[int, frozenset[int]]] = {}
 
     def start(self) -> None:
         """Begin recording executed lines for files under the configured sources."""
@@ -108,10 +111,10 @@ class Coverage:
             if skip_empty and not report.statements:
                 continue
             missed_lines = report.missed
-            if skip_covered and not missed_lines and report.statements:
-                continue
             total_statements += len(report.statements)
             total_missed += len(missed_lines)
+            if skip_covered and not missed_lines and report.statements:
+                continue
             coverage_percent = report.coverage_percent
             stream.write(
                 f"{report.relative.ljust(60)}"
@@ -134,12 +137,23 @@ class Coverage:
         )
         return total_coverage
 
+    def total_coverage(self) -> float:
+        """Return the overall coverage percentage without producing reports."""
+
+        reports = tuple(self._collect_reports())
+        if not reports:
+            return 100.0
+
+        total_statements, total_missed = self._calculate_totals(reports)
+        if not total_statements:
+            return 100.0
+        return 100.0 * (total_statements - total_missed) / total_statements
+
     def xml_report(self, outfile: str) -> None:
         """Generate a minimal Cobertura-like XML report."""
 
         reports = tuple(self._collect_reports())
-        total_statements = sum(len(report.statements) for report in reports)
-        total_missed = sum(len(report.missed) for report in reports)
+        total_statements, total_missed = self._calculate_totals(reports)
         line_rate = 1.0
         if total_statements:
             line_rate = (total_statements - total_missed) / total_statements
@@ -199,8 +213,7 @@ class Coverage:
         reports = tuple(self._collect_reports())
         path = Path(directory)
         path.mkdir(parents=True, exist_ok=True)
-        total_statements = sum(len(report.statements) for report in reports)
-        total_missed = sum(len(report.missed) for report in reports)
+        total_statements, total_missed = self._calculate_totals(reports)
         total_coverage = 100.0
         if total_statements:
             total_coverage = (
@@ -259,22 +272,15 @@ class Coverage:
         return self._trace
 
     def _should_measure(self, path: Path) -> bool:
-        for root in self._source_roots:
-            if root == path:
-                return True
-            if root.is_dir():
-                try:
-                    path.relative_to(root)
-                except ValueError:
-                    continue
-                else:
-                    return True
-        return False
+        return any(
+            path == root or (root.is_dir() and path.is_relative_to(root))
+            for root in self._source_roots
+        )
 
     def _collect_reports(self) -> Iterator[_FileReport]:
         for path in self._iter_candidate_files():
             statements = self._load_statements(path)
-            executed = self._executed.get(path, set()) & statements
+            executed = frozenset(self._executed.get(path, set()) & statements)
             relative = str(path.relative_to(_PROJECT_ROOT))
             yield _FileReport(
                 path=path, relative=relative, statements=statements, executed=executed
@@ -295,15 +301,47 @@ class Coverage:
                     seen.add(resolved)
                     yield resolved
 
-    def _load_statements(self, path: Path) -> set[int]:
-        statements: set[int] = set()
+    def _load_statements(self, path: Path) -> frozenset[int]:
         try:
-            text = path.read_text(encoding="utf-8")
-        except Exception:
-            return statements
-        for lineno, line in enumerate(text.splitlines(), start=1):
-            stripped = line.strip()
-            if not stripped or stripped.startswith("#"):
-                continue
-            statements.add(lineno)
+            stat_result = path.stat()
+        except OSError:
+            return frozenset()
+
+        cached = self._statement_cache.get(path)
+        if cached and cached[0] == stat_result.st_mtime_ns:
+            return cached[1]
+
+        try:
+            source = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            statements = frozenset()
+        else:
+            try:
+                code = compile(source, str(path), "exec")
+            except SyntaxError:
+                statements = frozenset()
+            else:
+                collected: set[int] = set()
+                self._collect_code_lines(code, collected)
+                statements = frozenset(num for num in collected if num > 0)
+
+        self._statement_cache[path] = (stat_result.st_mtime_ns, statements)
         return statements
+
+    @staticmethod
+    def _calculate_totals(reports: Iterable[_FileReport]) -> tuple[int, int]:
+        total_statements = 0
+        total_missed = 0
+        for report in reports:
+            missed = report.missed
+            total_statements += len(report.statements)
+            total_missed += len(missed)
+        return total_statements, total_missed
+
+    def _collect_code_lines(self, code: types.CodeType, target: set[int]) -> None:
+        for _, lineno in dis.findlinestarts(code):
+            if lineno:
+                target.add(lineno)
+        for const in code.co_consts:
+            if isinstance(const, types.CodeType):
+                self._collect_code_lines(const, target)
