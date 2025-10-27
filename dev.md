@@ -5,12 +5,20 @@
 - Target Python 3.13+ features and reuse PawControl helpers (coordinators, managers, and typed constants) to keep runtime data on the typed surface.【F:.github/copilot-instructions.md†L29-L94】
 
 ## Latest tooling snapshot
+- ✅ `ruff check` – keine Abweichungen nach der Coverage-Filter-/Tracing-Erweiterung.【7deda4†L1-L2】
+- ❌ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest --cov=custom_components/pawcontrol --cov-report=term:skip-covered --cov-report=xml:generated/coverage/coverage.xml --cov-report=html:generated/coverage tests/` – abgebrochen nach 13 Fehlern, weil `DogConfigRegistry` in den bestehenden Stubs keine Polling-Limits validiert; die Regression bleibt bis zur Registry-Reparatur dokumentiert.【0fa5b5†L1-L112】
+- ❌ `mypy custom_components/pawcontrol` – typisierte Laufzeitmodule der Home-Assistant-Stubs fehlen weiterhin; die bekannten 276 Fehler bleiben unverändert und sind für spätere Stub-Härtungen eingeplant.【ae2bc5†L1-L52】【6fb8a6†L1-L112】
+- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest- und Übersetzungsprüfung läuft ohne Beanstandungen.【961a98†L1-L2】
 - ✅ `ruff check` – Platinum-Ausrichtung ohne neue Lint-Abweichungen nach dem Qualitäts-Sync.【75201e†L1-L2】
 - ✅ `pytest -q` – 1021 Tests (1 skipped) bestätigen koordinierte Service-, Dashboard- und Blueprint-Szenarien bei aktiviertem Coverage-Gate.【bc2d1f†L1-L5】
 - ✅ `mypy custom_components/pawcontrol` – Striktes Typing bleibt stabil über alle 76 Module hinweg.【5fe91f†L1-L2】
 - ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest und Übersetzungen validieren ohne Beanstandung.【bb7d4e†L1-L1】
 
 ## Fehleranalyse
+- Die Coverage-Implementierung filtert Kandidaten jetzt strikt auf `custom_components/pawcontrol/`, `tests/`, `pytest_asyncio/` und `pytest_cov/`, nutzt das Statement-/Bytecode-Caching `_compile_cached` und erlaubt über `PAWCONTROL_COVERAGE_SKIP` gezielte Ausschlüsse großer Drittanbieterdateien.【94205e†L23-L43】【e07077†L417-L451】 Die Trace-Hooks protokollieren pro Modul Laufzeiten samt Hostname und CPU-Anzahl und schreiben JSON/CSV-Artefakte nach `generated/coverage/`, sodass neue Laufzeiten reproduzierbar bleiben.【e07077†L293-L355】【26c1e8†L453-L512】【3980d9†L1-L7】
+- `tests/helpers/homeassistant_test_stubs.py` liefert eine minimale, Jinja2-gestützte `Template`-Implementation inklusive `state_attr`/`is_state`-Hilfen und registriert `homeassistant.util.logging`, damit die Resilience-Blueprint-Regression ohne echte Home-Assistant-Pakete laufen kann.【03d180†L995-L1014】【49877f†L1207-L1273】【d3d29c†L14-L37】
+- `tests/unit/test_coverage_shim.py` sichert die neue Laufzeit-Telemetrie, indem JSON- und CSV-Ausgaben geprüft sowie notwendige Logging-/Resolver-Stubs bereitgestellt werden.【d3d29c†L1-L78】
+- Der gesammelte Messpunkt (`runtime.json`) dokumentiert die aktuelle Umgebung (Hostname `146d5ce42255`, 3 CPU-Kerne) und hält das neue ≤20‑Minuten-Ziel für zukünftige Pytest-Läufe fest; der isolierte Shim-Test erzeugte die Artefakte nach 159,76 s und markiert damit die Ausgangsbasis für weitere Optimierungen.【3980d9†L1-L7】【cca370†L1-L76】
 - Die Resilience-Eskalations-Blueprint deckte manuelle Guard-/Breaker-
   Trigger bislang nur über Service-Shims ab; echte Automationspfade samt
   Script-Manager-Telemetrie blieben ungetestet. Die neue

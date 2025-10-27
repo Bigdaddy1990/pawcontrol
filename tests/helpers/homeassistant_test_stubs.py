@@ -14,6 +14,8 @@ from pathlib import Path
 from types import MappingProxyType, ModuleType, SimpleNamespace
 from typing import TYPE_CHECKING, Any, Optional, cast
 
+from jinja2 import Environment
+
 if TYPE_CHECKING:  # pragma: no cover - only used for static analysis
     from homeassistant.config_entries import OptionsFlow as _HAOptionsFlow
     from homeassistant.core import HomeAssistant as _HAHomeAssistant
@@ -992,6 +994,7 @@ def _install_exception_module() -> None:
 
 def _install_helper_modules() -> None:
     helpers_module = ModuleType("homeassistant.helpers")
+    helpers_module.__path__ = []  # type: ignore[attr-defined]
     sys.modules["homeassistant.helpers"] = helpers_module
 
     cv_module = ModuleType("homeassistant.helpers.config_validation")
@@ -1200,6 +1203,74 @@ def _install_helper_modules() -> None:
             return {"type": "create_entry", "data": dict(user_input or {})}
 
     config_entries_module.OptionsFlow = OptionsFlow
+
+    template_module = ModuleType("homeassistant.helpers.template")
+
+    class Template:
+        """Jinja-backed template helper compatible with Home Assistant usage."""
+
+        def __init__(
+            self, template: str | None = None, hass: HomeAssistant | None = None
+        ) -> None:
+            self._template = template or ""
+            self._hass = hass
+            self._environment = Environment(autoescape=False, enable_async=False)
+            self._environment.globals.update(
+                {
+                    "state_attr": self._state_attr,
+                    "is_state": self._is_state,
+                    "is_state_attr": self._is_state_attr,
+                    "states": self._states_lookup,
+                    "now": lambda: datetime.now(UTC).astimezone(),
+                    "utcnow": lambda: datetime.now(UTC),
+                }
+            )
+
+        def _get_state(self, entity_id: str) -> Any:
+            if self._hass is None:
+                return None
+            return self._hass.states.get(entity_id)
+
+        def _state_attr(self, entity_id: str, attribute: str) -> Any:
+            state = self._get_state(entity_id)
+            if state is None:
+                return None
+            return state.attributes.get(attribute)
+
+        def _is_state(self, entity_id: str, value: Any) -> bool:
+            state = self._get_state(entity_id)
+            if state is None:
+                return False
+            return state.state == value
+
+        def _is_state_attr(self, entity_id: str, attribute: str, value: Any) -> bool:
+            state = self._get_state(entity_id)
+            if state is None:
+                return False
+            return state.attributes.get(attribute) == value
+
+        def _states_lookup(self, entity_id: str) -> Any:
+            state = self._get_state(entity_id)
+            if state is None:
+                return None
+            return state.state
+
+        def render(
+            self, variables: Mapping[str, Any] | None = None, **kwargs: Any
+        ) -> Any:
+            template = self._environment.from_string(self._template)
+            context: dict[str, Any] = dict(variables or {})
+            context.update(kwargs)
+            return template.render(**context)
+
+        def async_render(
+            self, variables: Mapping[str, Any] | None = None, **kwargs: Any
+        ) -> Any:
+            return self.render(variables, **kwargs)
+
+    template_module.Template = Template
+    sys.modules["homeassistant.helpers.template"] = template_module
+    helpers_module.template = template_module
     config_entries_module.SOURCE_USER = "user"
     config_entries_module.SOURCE_REAUTH = "reauth"
     config_entries_module.SOURCE_DHCP = "dhcp"

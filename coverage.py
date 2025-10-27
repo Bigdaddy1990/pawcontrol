@@ -2,7 +2,12 @@
 
 from __future__ import annotations
 
+import csv
 import dis
+import functools
+import json
+import os
+import socket
 import sys
 import threading
 import time
@@ -14,6 +19,28 @@ from pathlib import Path
 from typing import TextIO
 
 _PROJECT_ROOT = Path.cwd().resolve()
+
+_ALLOWED_RELATIVE_PATHS: tuple[Path, ...] = (
+    Path("custom_components/pawcontrol"),
+    Path("tests"),
+    Path("pytest_asyncio"),
+    Path("pytest_cov"),
+)
+
+_METRICS_DIRECTORY = _PROJECT_ROOT / "generated" / "coverage"
+_METRICS_JSON_NAME = "runtime.json"
+_METRICS_CSV_NAME = "runtime.csv"
+_SKIP_ENV_VAR = "PAWCONTROL_COVERAGE_SKIP"
+
+
+@functools.lru_cache(maxsize=512)
+def _compile_cached(filename: str, source: str) -> types.CodeType | None:
+    """Compile and cache Python source into a code object."""
+
+    try:
+        return compile(source, filename, "exec")
+    except SyntaxError:
+        return None
 
 
 def _normalise_source(entry: str) -> Path:
@@ -66,6 +93,14 @@ class Coverage:
         self._executed: dict[Path, set[int]] = {}
         self._lock = threading.Lock()
         self._statement_cache: dict[Path, tuple[int, frozenset[int]]] = {}
+        self._allowed_scope_roots = tuple(
+            (_PROJECT_ROOT / relative).resolve()
+            for relative in _ALLOWED_RELATIVE_PATHS
+        )
+        self._allowed_cache: dict[Path, bool] = {}
+        self._module_runtime: dict[Path, float] = {}
+        self._thread_states: dict[int, _TraceState] = {}
+        self._skip_paths = self._build_skip_set()
 
     def start(self) -> None:
         """Begin recording executed lines for files under the configured sources."""
@@ -80,6 +115,8 @@ class Coverage:
 
         sys.settrace(self._previous_trace)
         threading.settrace(self._previous_trace)
+        with self._lock:
+            self._thread_states.clear()
 
     def save(self) -> None:  # pragma: no cover - parity with coverage.py API
         """Persist collected data (noop for the lightweight implementation)."""
@@ -254,34 +291,68 @@ class Coverage:
         (path / "index.html").write_text(html, encoding="utf-8")
 
     def _trace(self, frame, event: str, arg):  # pragma: no cover - exercised via tests
+        now = time.perf_counter()
+        thread_ident = threading.get_ident()
+        with self._lock:
+            state = self._thread_states.get(thread_ident)
+            if state and state.path is not None:
+                previous_runtime = self._module_runtime.get(state.path, 0.0)
+                self._module_runtime[state.path] = (
+                    previous_runtime + (now - state.last_timestamp)
+                )
         if event != "line":
+            with self._lock:
+                self._thread_states[thread_ident] = _TraceState(
+                    last_timestamp=now, path=None
+                )
             return self._trace
         filename = Path(frame.f_code.co_filename)
         try:
             resolved = filename.resolve()
         except FileNotFoundError:
+            with self._lock:
+                self._thread_states[thread_ident] = _TraceState(
+                    last_timestamp=now, path=None
+                )
             return self._trace
         if not self._should_measure(resolved):
+            with self._lock:
+                self._thread_states[thread_ident] = _TraceState(
+                    last_timestamp=now, path=None
+                )
             return self._trace
         lineno = frame.f_lineno
         with self._lock:
             self._executed.setdefault(resolved, set()).add(lineno)
+            self._thread_states[thread_ident] = _TraceState(
+                last_timestamp=now, path=resolved
+            )
         return self._trace
 
     def _should_measure(self, path: Path) -> bool:
+        if not self._is_allowed_path(path):
+            return False
         return any(
             path == root or (root.is_dir() and path.is_relative_to(root))
             for root in self._source_roots
         )
 
     def _collect_reports(self) -> Iterator[_FileReport]:
+        reports: list[_FileReport] = []
         for path in self._iter_candidate_files():
             statements = self._load_statements(path)
             executed = frozenset(self._executed.get(path, set()) & statements)
             relative = str(path.relative_to(_PROJECT_ROOT))
-            yield _FileReport(
-                path=path, relative=relative, statements=statements, executed=executed
+            reports.append(
+                _FileReport(
+                    path=path,
+                    relative=relative,
+                    statements=statements,
+                    executed=executed,
+                )
             )
+        self._write_runtime_metrics(tuple(reports))
+        yield from reports
 
     def _iter_candidate_files(self) -> Iterator[Path]:
         seen: set[Path] = set()
@@ -294,9 +365,10 @@ class Coverage:
                 paths = [p for p in root.rglob("*.py") if "/__pycache__/" not in str(p)]
             for path in paths:
                 resolved = path.resolve()
-                if resolved not in seen:
-                    seen.add(resolved)
-                    yield resolved
+                if resolved in seen or not self._is_allowed_path(resolved):
+                    continue
+                seen.add(resolved)
+                yield resolved
 
     def _load_statements(self, path: Path) -> frozenset[int]:
         try:
@@ -313,9 +385,8 @@ class Coverage:
         except (OSError, UnicodeDecodeError):
             statements = frozenset()
         else:
-            try:
-                code = compile(source, str(path), "exec")
-            except SyntaxError:
+            code = _compile_cached(str(path), source)
+            if code is None:
                 statements = frozenset()
             else:
                 collected: set[int] = set()
@@ -342,3 +413,106 @@ class Coverage:
         for const in code.co_consts:
             if isinstance(const, types.CodeType):
                 self._collect_code_lines(const, target)
+
+    def _build_skip_set(self) -> frozenset[Path]:
+        value = os.environ.get(_SKIP_ENV_VAR)
+        if not value:
+            return frozenset()
+        entries = (entry for entry in value.split(os.pathsep) if entry)
+        paths: set[Path] = set()
+        for entry in entries:
+            normalised = _normalise_source(entry)
+            paths.add(normalised)
+        return frozenset(paths)
+
+    def _is_allowed_path(self, path: Path) -> bool:
+        cached = self._allowed_cache.get(path)
+        if cached is not None:
+            return cached
+        try:
+            resolved = path.resolve()
+        except FileNotFoundError:
+            self._allowed_cache[path] = False
+            return False
+        allowed = any(
+            resolved == scope or resolved.is_relative_to(scope)
+            for scope in self._allowed_scope_roots
+        )
+        if allowed and self._skip_paths:
+            resolved_str = str(resolved)
+            for skip in self._skip_paths:
+                skip_str = str(skip)
+                if resolved_str == skip_str or resolved_str.startswith(f"{skip_str}{os.sep}"):
+                    allowed = False
+                    break
+        self._allowed_cache[path] = allowed
+        if resolved != path:
+            self._allowed_cache[resolved] = allowed
+        return allowed
+
+    def _write_runtime_metrics(self, reports: tuple[_FileReport, ...]) -> None:
+        metrics_dir = _METRICS_DIRECTORY
+        metrics_dir.mkdir(parents=True, exist_ok=True)
+        host_info = {
+            "name": socket.gethostname(),
+            "cpu_count": os.cpu_count() or 1,
+        }
+        with self._lock:
+            runtime_snapshot = dict(self._module_runtime)
+        files_payload = []
+        for report in reports:
+            runtime_seconds = runtime_snapshot.get(report.path, 0.0)
+            files_payload.append(
+                {
+                    "relative": report.relative,
+                    "statements": len(report.statements),
+                    "executed": len(report.executed),
+                    "missed": len(report.missed),
+                    "coverage_percent": report.coverage_percent,
+                    "runtime_seconds": runtime_seconds,
+                }
+            )
+        files_payload.sort(key=lambda item: item["relative"])
+        json_payload = {
+            "host": host_info,
+            "generated_at": time.time(),
+            "files": files_payload,
+        }
+        (metrics_dir / _METRICS_JSON_NAME).write_text(
+            json.dumps(json_payload, indent=2, sort_keys=False),
+            encoding="utf-8",
+        )
+        csv_path = metrics_dir / _METRICS_CSV_NAME
+        with csv_path.open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.writer(handle)
+            writer.writerow(
+                [
+                    "file",
+                    "statements",
+                    "executed",
+                    "missed",
+                    "coverage_percent",
+                    "runtime_seconds",
+                    "host",
+                    "cpu_count",
+                ]
+            )
+            for entry in files_payload:
+                writer.writerow(
+                    [
+                        entry["relative"],
+                        entry["statements"],
+                        entry["executed"],
+                        entry["missed"],
+                        f"{entry['coverage_percent']:.4f}",
+                        f"{entry['runtime_seconds']:.6f}",
+                        host_info["name"],
+                        host_info["cpu_count"],
+                    ]
+                )
+
+
+@dataclass(slots=True)
+class _TraceState:
+    last_timestamp: float
+    path: Path | None
