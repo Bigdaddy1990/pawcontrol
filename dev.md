@@ -8,6 +8,13 @@
 - `RELEASE_NOTES.md` und `CHANGELOG.md` verlinken die Diagnostik- und Wartungsleitfäden, damit Release-Kommunikation und Sustainment-Planung dieselben Nachschlagewerke nutzen ([docs/diagnostik.md](docs/diagnostik.md), [docs/MAINTENANCE.md](docs/MAINTENANCE.md)).【F:RELEASE_NOTES.md†L14-L24】【F:CHANGELOG.md†L114-L140】
 
 ## Latest tooling snapshot
+- ✅ `pip install -r requirements_test.txt -r requirements.txt` – installiert u. a. `pytest-asyncio` 1.2.0, `jinja2` 3.1.6 und `voluptuous` 0.15.2, damit die Stubs ohne Zusatzpakete laufen.【f08407†L1-L19】
+- ✅ `ruff format` – keine Formatänderungen nach den neuen Automations-Stubs erforderlich.【c51415†L1-L2】
+- ✅ `ruff check` – Lint läuft nach den Stub-Erweiterungen ohne Befunde.【1f6619†L1-L2】
+- ❌ `pytest -q` – bricht weiterhin vor der Sammlung ab, weil `pytest_aiohttp` trotz lokaler Shim-Variante Fixtures direkt aufruft; bis zur Autoload-Deaktivierung bleiben Upstream-Plugins blockierend.【7ce31d†L1-L45】
+- ❌ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q` – Suite startet mit den neuen Abhängigkeiten, scheitert aber an fehlenden Home-Assistant-Stubs (`async_block_till_done`, `_enforce_polling_limits`, `_validate_gps_interval`).【c1dc0a†L1-L130】
+- ❌ `mypy custom_components/pawcontrol` – 266 Fehlermeldungen durch inkomplette HA-Stubs und optionale Typisierungen bleiben offen.【ce59a3†L1-L65】
+- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest- und Übersetzungsprüfung weiterhin ohne Beanstandungen.【02e1dc†L1-L1】
 - ✅ `ruff check` – keine neuen Abweichungen nach der Konsolidierung der Hassfest-Metadatenhelfer.【d350b7†L1-L2】
 - ❌ `pytest -q` – scheitert früh beim Plugin-Import, weil `pytest_asyncio` in der Umgebung fehlt; bleibt als Setup-Blocker bestehen.【7b3797†L1-L43】
 - ✅ `ruff check` – URL-Schema-Validierung besteht die Bandit-Prüfung ohne neue Lint-Abweichungen.【00328d†L1-L1】
@@ -34,6 +41,7 @@
 - ✅ `python -m script.publish_coverage --mode pages --coverage-xml generated/coverage/coverage.xml --coverage-html-index generated/coverage/index.html` – Der neue Publisher erzeugt trotz fehlender GitHub-Credentials ein Artefakt und hält den GitHub-Pages-Pfad aktuell.【F:script/publish_coverage.py†L1-L238】【F:tests/unit/test_publish_coverage.py†L1-L58】
 
 ## Fehleranalyse
+- Die neuen Requirements (`pytest-asyncio` 1.2.0, `jinja2` 3.1.6, `voluptuous` 0.15.2) beseitigen die bisherigen Importfehler der Test-Stubs; offene Fehlermeldungen stammen aus fehlenden Home-Assistant-Hilfsmethoden wie `async_block_till_done` sowie den noch untypisierten Registry-Grenzwerten.【f08407†L1-L19】【c1dc0a†L1-L130】
 - Der GitHub-Publisher validiert API-URLs jetzt über `ensure_allowed_github_api_url`,
   blockiert unsichere Schemata sowie fremde Hosts und hält damit Bandit B310 ein.
   Regressionstests sichern den Pfad gegen Regressionen.【F:script/publish_coverage.py†L21-L35】【F:script/publish_coverage.py†L274-L287】【F:tests/unit/test_publish_coverage.py†L124-L147】
@@ -45,8 +53,8 @@
 - `tests/unit/test_coverage_shim.py` sichert die neue Laufzeit-Telemetrie, indem JSON- und CSV-Ausgaben geprüft sowie notwendige Logging-/Resolver-Stubs bereitgestellt werden.【d3d29c†L1-L78】
 - Der gesammelte Messpunkt (`runtime.json`) dokumentiert die aktuelle Umgebung (Hostname `146d5ce42255`, 3 CPU-Kerne) und hält das neue ≤20‑Minuten-Ziel für zukünftige Pytest-Läufe fest; der isolierte Shim-Test erzeugte die Artefakte nach 159,76 s und markiert damit die Ausgangsbasis für weitere Optimierungen.【3980d9†L1-L7】【cca370†L1-L76】
 - ✅ `ruff check` – aktueller Lauf nach dem Blueprint-Refactor bleibt lint-frei.【15960c†L1-L1】
-- ❌ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q` – Import der echten Automation scheitert, weil die Home-Assistant-Stubs das `automation`-Modul nicht bereitstellen; gleicher Fehler blockiert den E2E-Blueprint-Test.【8ca6c7†L1-L31】
-- ❌ `mypy custom_components/pawcontrol` – Upstream-Stubs liefern weiterhin 276 Fehler (fehlende Module, falsche Typen, inkompatible Registries).【698ed5†L1-L22】
+- ❌ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q` – trotz installierter Abhängigkeiten scheitern Blueprint- und Coordinator-Tests an fehlenden Stub-Hooks (`async_block_till_done`, `_enforce_polling_limits`, `_validate_gps_interval`, manuelle Event-Snapshots).【c1dc0a†L1-L130】
+- ❌ `mypy custom_components/pawcontrol` – 266 Fehlermeldungen dokumentieren weiterhin die Differenzen zu echten HA-Typen (u. a. fehlende Registries und API-Klassen).【ce59a3†L1-L65】
 - ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest-Validierung läuft durch (Exit-Code 0).【7408d4†L1-L3】
 
 ## Improvement plan
