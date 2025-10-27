@@ -5,6 +5,10 @@
 - Target Python 3.13+ features and reuse PawControl helpers (coordinators, managers, and typed constants) to keep runtime data on the typed surface.【F:.github/copilot-instructions.md†L29-L94】
 
 ## Latest tooling snapshot
+- ✅ `ruff check` – asyncio-stub-Refactor respektiert die bestehenden Lint-Gates.【57b83d†L1-L2】
+- ✅ `mypy tests/plugins` – die neuen Logging-/Resolver-Stubs bleiben vollständig typisiert.【932e49†L1-L2】
+- ✅ `pytest tests/plugins -q` – Regression bestätigt das Zusammenspiel mit Debug-Hooks ohne Drittplugin-Sideeffects.【58bec1†L1-L17】
+- ❌ `pytest -q` – Upstream-Fixtures erwarten weiterhin `hass.data["custom_components"]` und andere Loader-Keys; vollständiger Lauf scheitert deshalb im Test-Setup.【11da48†L1-L139】
 - ✅ `ruff check` – Platinum-Ausrichtung ohne neue Lint-Abweichungen nach dem Qualitäts-Sync.【75201e†L1-L2】
 - ✅ `pytest -q` – 1021 Tests (1 skipped) bestätigen koordinierte Service-, Dashboard- und Blueprint-Szenarien bei aktiviertem Coverage-Gate.【bc2d1f†L1-L5】
 - ✅ `mypy custom_components/pawcontrol` – Striktes Typing bleibt stabil über alle 76 Module hinweg.【5fe91f†L1-L2】
@@ -40,6 +44,13 @@
 - ⚠️ `python -m pytest --cov …` – der erste Lauf schlug wegen fehlender PyPI-Plugins fehl, der neue Coverage-Layer ist aktiv, benötigt aber noch Laufzeitoptimierung; auf einem MacBook Pro (M2 Max, 12‑Core CPU) dauerte `python -m pytest --cov=custom_components/pawcontrol --cov-report=term-missing:skip-covered --cov-report=xml --cov-report=html tests/` 32 Minuten 41 Sekunden bis zum Abbruch. Ziel sind ≤20 Minuten nach Statement-Caching und Pfadfiltern; künftige Messungen dokumentieren wir mit Host-Profil, Befehl und Laufzeit, um Optimierungen nachvollziehen zu können.【42e324†L1-L1】【a3b273†L1-L1】
 
 ## Fehleranalyse
+- Die asyncio-Teststub erzeugte bislang für jeden Test einen neuen Event-Loop und
+  verlor dadurch Debug-Hooks wie `enable_event_loop_debug`. Session-Hooks
+  provisionieren nun frühzeitig einen Loop, respektieren vorhandene Instanzen,
+  setzen `asyncio.set_event_loop(None)` auf allen Pfaden und schließen den Loop
+  erst zum Sessionende. Zusätzlich sorgen Logging- und Resolver-Stubs für
+  kompatible pytest-homeassistant-Hooks; eine Pytester-Regression belegt das
+  Zusammenspiel mit Debug-Hooks.【F:tests/plugins/asyncio_stub.py†L1-L190】【F:tests/plugins/test_asyncio_stub.py†L1-L57】
 - Pytest schlug mit `ValueError: Plugin already registered under a different name` fehl,
   sobald eine Umgebung das echte `pytest-cov` per Entry-Point lud. Die Suite importierte
   dadurch zuerst unser Shim und danach das globale Plugin, was zum Abbruch führte. In
