@@ -43,6 +43,7 @@ def _ensure_homeassistant_logging_stub() -> None:
         ha_util.logging = ha_logging  # type: ignore[attr-defined]
 
     if not hasattr(ha_logging, "log_exception"):
+
         def log_exception(*args: Any, **kwargs: Any) -> None:
             del args, kwargs
 
@@ -85,9 +86,7 @@ def _cancel_pending(loop: asyncio.AbstractEventLoop) -> None:
     for task in pending:
         task.cancel()
     if pending:
-        loop.run_until_complete(
-            asyncio.gather(*pending, return_exceptions=True)
-        )
+        loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
 
 
 @pytest.hookimpl(tryfirst=True)
@@ -155,7 +154,11 @@ def _autouse_event_loop() -> Iterator[asyncio.AbstractEventLoop]:
         asyncio.set_event_loop(None)
         if previous_loop is not None and not previous_loop.is_closed():
             asyncio.set_event_loop(previous_loop)
-        elif not created_loop and _SESSION_LOOP is not None and not _SESSION_LOOP.is_closed():
+        elif (
+            not created_loop
+            and _SESSION_LOOP is not None
+            and not _SESSION_LOOP.is_closed()
+        ):
             asyncio.set_event_loop(_SESSION_LOOP)
         if created_loop:
             loop.close()

@@ -118,6 +118,27 @@ data:
 
 ---
 
+## Manual escalation events
+
+Use **Settings → Integrations → PawControl → Configure → System settings** to
+control the manual `check`, `guard`, and `breaker` escalation triggers. Each
+field now renders a dropdown that lists:
+
+- The current system option and integration defaults so you can quickly restore
+  the packaged behaviour without typing event IDs.
+- Blueprint-sourced suggestions detected by the runtime script manager,
+  labelled in your Home Assistant language (for example
+  "Blueprint-Vorschlag" in German).
+- A dedicated **Disable** option that clears the value and removes the manual
+  listener, matching the behaviour of the previous blank-text workflow while
+  making the intent explicit.
+
+Custom event types remain supported — choose "Disable" to clear the current
+value or pick any option, then enter a new event id via "Custom value" in the
+dropdown to register bespoke automations with the resilience blueprint.
+
+---
+
 ## Configuration Examples
 
 ### Conservative (Fewer Retries, Fast Fail)
