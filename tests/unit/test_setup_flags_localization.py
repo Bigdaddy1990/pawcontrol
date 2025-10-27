@@ -43,9 +43,13 @@ def _parse_localization_table(
             break
 
     if start_index is None or end_index is None or end_index <= start_index:
-        raise AssertionError("Localization table markers missing from docs/diagnostik.md")
+        raise AssertionError(
+            "Localization table markers missing from docs/diagnostik.md"
+        )
 
-    table_lines = [line for line in lines[start_index + 1 : end_index] if line.startswith("|")]
+    table_lines = [
+        line for line in lines[start_index + 1 : end_index] if line.startswith("|")
+    ]
 
     header: list[str] | None = None
     rows: list[list[str]] = []

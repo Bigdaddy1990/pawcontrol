@@ -434,9 +434,7 @@ class PawControlScriptManager:
             except (TypeError, ValueError):
                 return None
             if not (
-                _MANUAL_EVENT_HISTORY_MIN
-                <= candidate
-                <= _MANUAL_EVENT_HISTORY_MAX
+                _MANUAL_EVENT_HISTORY_MIN <= candidate <= _MANUAL_EVENT_HISTORY_MAX
             ):
                 return None
             return candidate
@@ -1224,7 +1222,9 @@ class PawControlScriptManager:
                 recorded_dt = dt_util.as_utc(recorded_at)
             elif isinstance(recorded_at, str):
                 parsed_recorded = dt_util.parse_datetime(recorded_at)
-                recorded_dt = dt_util.as_utc(parsed_recorded) if parsed_recorded else None
+                recorded_dt = (
+                    dt_util.as_utc(parsed_recorded) if parsed_recorded else None
+                )
             else:
                 recorded_dt = None
         else:
@@ -1233,7 +1233,9 @@ class PawControlScriptManager:
                 recorded_dt = dt_util.as_utc(raw_recorded)
             elif isinstance(raw_recorded, str):
                 parsed_recorded = dt_util.parse_datetime(raw_recorded)
-                recorded_dt = dt_util.as_utc(parsed_recorded) if parsed_recorded else None
+                recorded_dt = (
+                    dt_util.as_utc(parsed_recorded) if parsed_recorded else None
+                )
             else:
                 recorded_dt = None
 
