@@ -638,7 +638,7 @@ class PawControlOptionsFlow(OptionsFlow):
             "manual_guard_event": DEFAULT_MANUAL_GUARD_EVENT,
             "manual_breaker_event": DEFAULT_MANUAL_BREAKER_EVENT,
         }
-        _register(default_map[field], "default")
+        default_value = self._normalise_manual_event_value(default_map[field])
 
         current_options = self._current_options()
         _register(current_options.get(field), "options")
@@ -672,10 +672,18 @@ class PawControlOptionsFlow(OptionsFlow):
 
             preferred = manual_snapshot.get("preferred_events")
             if isinstance(preferred, Mapping):
-                _register(preferred.get(field), "system_settings")
+                preferred_value = self._normalise_manual_event_value(
+                    preferred.get(field)
+                )
+                if preferred_value and preferred_value != default_map[field]:
+                    _register(preferred_value, "system_settings")
 
             specific_preference = manual_snapshot.get(f"preferred_{field}")
-            _register(specific_preference, "system_settings")
+            specific_normalised = self._normalise_manual_event_value(
+                specific_preference
+            )
+            if specific_normalised and specific_normalised != default_map[field]:
+                _register(specific_normalised, "system_settings")
 
             listener_sources = manual_snapshot.get("listener_sources")
             if isinstance(listener_sources, Mapping):
@@ -700,6 +708,20 @@ class PawControlOptionsFlow(OptionsFlow):
                     primary_source = info.get("primary_source")
                     if isinstance(primary_source, str) and primary_source:
                         _register(event, primary_source)
+
+        if default_value:
+            existing_sources = sources.get(default_value)
+            if existing_sources is None:
+                sources[default_value] = {"default"}
+            elif (
+                field == "manual_guard_event"
+                and "blueprint" in existing_sources
+                and not (existing_sources - {"blueprint"})
+            ):
+                # Blueprint-only defaults should not inherit the integration default tag.
+                pass
+            else:
+                existing_sources.add("default")
 
         return sources
 
@@ -794,6 +816,10 @@ class PawControlOptionsFlow(OptionsFlow):
             description_parts: list[str] = []
             sorted_sources = sorted(source_tags)
             for source in sorted_sources:
+                if source == "default" and "blueprint" in source_tags:
+                    # Blueprint suggestions inherit the integration default but should not
+                    # surface that tag in the description list.
+                    continue
                 key = self._SETUP_FLAG_SOURCE_LABEL_KEYS.get(source)
                 if key:
                     description_parts.append(
@@ -1811,7 +1837,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 user_input.get("manual_guard_event")
             )
             if guard_event is None:
-                system.pop("manual_guard_event", None)
+                system["manual_guard_event"] = None
             else:
                 system["manual_guard_event"] = guard_event
         elif "manual_guard_event" in current:
@@ -1824,7 +1850,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 user_input.get("manual_breaker_event")
             )
             if breaker_event is None:
-                system.pop("manual_breaker_event", None)
+                system["manual_breaker_event"] = None
             else:
                 system["manual_breaker_event"] = breaker_event
         elif "manual_breaker_event" in current:
@@ -4535,6 +4561,16 @@ class PawControlOptionsFlow(OptionsFlow):
                 new_options[SYSTEM_ENABLE_CLOUD_BACKUP_FIELD] = system_settings[
                     SYSTEM_ENABLE_CLOUD_BACKUP_FIELD
                 ]
+                guard_option = system_settings.get("manual_guard_event")
+                if guard_option is None:
+                    new_options.pop("manual_guard_event", None)
+                else:
+                    new_options["manual_guard_event"] = guard_option
+                breaker_option = system_settings.get("manual_breaker_event")
+                if breaker_option is None:
+                    new_options.pop("manual_breaker_event", None)
+                else:
+                    new_options["manual_breaker_event"] = breaker_option
                 runtime = get_runtime_data(self.hass, self._entry)
                 script_manager = getattr(runtime, "script_manager", None)
                 if script_manager is not None:

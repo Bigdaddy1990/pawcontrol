@@ -14,6 +14,7 @@ from enum import Enum
 from pathlib import Path
 from types import MappingProxyType, ModuleType, SimpleNamespace
 from typing import TYPE_CHECKING, Any, Optional, cast
+from uuid import uuid4
 
 from jinja2 import Environment
 
@@ -35,7 +36,6 @@ else:  # pragma: no cover - runtime fallbacks
 
 HomeAssistant = _HAHomeAssistant
 OptionsFlow = _HAOptionsFlow
-from uuid import uuid4
 
 try:  # pragma: no cover - optional third-party dependency
     import voluptuous as vol

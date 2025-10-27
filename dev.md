@@ -8,6 +8,12 @@
 - `RELEASE_NOTES.md` und `CHANGELOG.md` verlinken die Diagnostik- und Wartungsleitfäden, damit Release-Kommunikation und Sustainment-Planung dieselben Nachschlagewerke nutzen ([docs/diagnostik.md](docs/diagnostik.md), [docs/MAINTENANCE.md](docs/MAINTENANCE.md)).【F:RELEASE_NOTES.md†L14-L24】【F:CHANGELOG.md†L114-L140】
 
 ## Latest tooling snapshot
+- ✅ `ruff format` – keine Formatänderungen nach dem Blueprint-Fix erforderlich.【095d5b†L1-L2】
+- ✅ `ruff check` – aktueller Lauf bestätigt die überarbeiteten Options-Quellen ohne neue Findings.【bcf06f†L1-L2】
+- ✅ `PYTHONPATH=$(pwd) PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest tests/unit/test_options_flow.py -q` – Options-Flow-Suite deckt die bereinigten Blueprint-Labels und System-Defaults vollständig ab.【e66857†L1-L9】
+- ✅ `PYTHONPATH=$(pwd) PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q` – 1060 Tests (2 skipped) bestätigen die Resilience-Änderungen end-to-end.【77251e†L1-L9】
+- ❌ `mypy custom_components/pawcontrol` – 263 bestehende Stub-Lücken bleiben unverändert und dokumentieren weiterhin den Platinum-Backlog.【0e268a†L1-L37】
+- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest- und Übersetzungsprüfung passiert ohne Beanstandungen.【594dd4†L1-L2】
 - ✅ `ruff check` – deduplizierte ConfigEntries-Setup-Pfade und Blueprint-Event-Konstante
   passieren den Lint-Lauf ohne neue Hinweise.【e97c57†L1-L2】
 - ❌ `pytest tests/components/pawcontrol/test_blueprint_resilience.py -q` – schlägt
@@ -55,6 +61,7 @@
 - ✅ `python -m script.publish_coverage --mode pages --coverage-xml generated/coverage/coverage.xml --coverage-html-index generated/coverage/index.html` – Der neue Publisher erzeugt trotz fehlender GitHub-Credentials ein Artefakt und hält den GitHub-Pages-Pfad aktuell.【F:script/publish_coverage.py†L1-L238】【F:tests/unit/test_publish_coverage.py†L1-L58】
 
 ## Fehleranalyse
+- Blueprint-Auswahllisten blenden den Integrations-Default jetzt aus, sobald Blueprint-Quellen aktiv sind, und persistieren gelöschte Guard-/Breaker-Ereignisse explizit als `None`, damit sowohl System-Snapshot als auch Options-Payload den deaktivierten Zustand widerspiegeln.【F:custom_components/pawcontrol/options_flow.py†L636-L842】【F:custom_components/pawcontrol/options_flow.py†L1820-L1866】【F:custom_components/pawcontrol/options_flow.py†L4541-L4573】
 - Die neuen Requirements (`pytest-asyncio` 1.2.0, `jinja2` 3.1.6, `voluptuous` 0.15.2) beseitigen die bisherigen Importfehler der Test-Stubs; offene Fehlermeldungen stammen aus fehlenden Home-Assistant-Hilfsmethoden wie `async_block_till_done` sowie den noch untypisierten Registry-Grenzwerten.【f08407†L1-L19】【c1dc0a†L1-L130】
 - Der GitHub-Publisher validiert API-URLs jetzt über `ensure_allowed_github_api_url`,
   blockiert unsichere Schemata sowie fremde Hosts und hält damit Bandit B310 ein.
