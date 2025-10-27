@@ -13,10 +13,73 @@ DOC_PATH = ROOT / "docs" / "diagnostik.md"
 
 _FLAG_PREFIX = "setup_flags_panel_flag_"
 _SOURCE_PREFIX = "setup_flags_panel_source_"
-_DOC_ROW_PATTERN = re.compile(
-    r"^\|\s*component\.pawcontrol\.common\.(setup_flags_panel_(?:flag|source)_[a-z0-9_]+)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|$",
-    re.MULTILINE,
-)
+
+
+def _translation_languages() -> list[str]:
+    languages = sorted(path.stem for path in TRANSLATIONS_DIR.glob("*.json"))
+    assert "en" in languages, "English translation must always be present"
+    languages.remove("en")
+    return ["en", *languages]
+
+
+def _split_table_row(row: str) -> list[str]:
+    return [cell.strip() for cell in row.strip().strip("|").split("|")]
+
+
+def _parse_localization_table(
+    doc_content: str,
+) -> tuple[list[str], dict[str, dict[str, str]]]:
+    header: list[str] | None = None
+    rows: list[list[str]] = []
+    for line in doc_content.splitlines():
+        if not line.startswith("|"):
+            if header is not None and rows:
+                break
+            continue
+
+        cells = _split_table_row(line)
+        if header is None:
+            header = cells
+            continue
+
+        if all(cell.startswith("-") for cell in cells):
+            continue
+
+        rows.append(cells)
+
+    if header is None:
+        raise AssertionError("Localization table missing from docs/diagnostik.md")
+
+    if header[0] != "Übersetzungsschlüssel":
+        raise AssertionError("Unexpected localization table header")
+
+    languages: list[str] = []
+    for cell in header[1:]:
+        match = re.search(r"\(`([a-z0-9_-]+)`\)", cell)
+        if match is None:
+            raise AssertionError(f"Missing language code in header cell '{cell}'")
+        languages.append(match.group(1))
+
+    doc_rows: dict[str, dict[str, str]] = {}
+    for cells in rows:
+        if len(cells) != len(header):
+            continue
+
+        key_cell = cells[0]
+        match = re.match(
+            r"component\.pawcontrol\.common\.(setup_flags_panel_(?:flag|source)_[a-z0-9_]+)",
+            key_cell,
+        )
+        if match is None:
+            continue
+
+        key = match.group(1)
+        doc_rows[key] = {
+            language: value.strip()
+            for language, value in zip(languages, cells[1:], strict=True)
+        }
+
+    return languages, doc_rows
 
 
 def _load_json(path: Path) -> dict[str, object]:
@@ -38,7 +101,8 @@ def test_translations_include_setup_flag_keys() -> None:
     expected = _expected_setup_flag_keys()
     expected_keys = set(expected)
 
-    for path in TRANSLATIONS_DIR.glob("*.json"):
+    for language in _translation_languages():
+        path = TRANSLATIONS_DIR / f"{language}.json"
         translation = _load_json(path)
         common = translation.get("common", {})
         seen_keys = {
@@ -52,7 +116,7 @@ def test_translations_include_setup_flag_keys() -> None:
             sorted(seen_keys - expected_keys),
         )
 
-        if path.name == "en.json":
+        if language == "en":
             for key, value in expected.items():
                 assert common[key] == value, (path, key)
 
@@ -60,26 +124,24 @@ def test_translations_include_setup_flag_keys() -> None:
 def test_documentation_lists_all_setup_flag_translations() -> None:
     expected = _expected_setup_flag_keys()
     doc_content = DOC_PATH.read_text(encoding="utf-8")
+    languages, doc_rows = _parse_localization_table(doc_content)
 
-    matches = _DOC_ROW_PATTERN.findall(doc_content)
-    assert matches, "Localization table missing from docs/diagnostik.md"
+    translation_languages = _translation_languages()
+    assert languages == translation_languages, (languages, translation_languages)
 
-    doc_keys = {match[0] for match in matches}
+    doc_keys = set(doc_rows)
     assert doc_keys == set(expected), (sorted(expected), sorted(doc_keys))
 
-    en_translation = _load_json(TRANSLATIONS_DIR / "en.json")["common"]
-    de_translation = _load_json(TRANSLATIONS_DIR / "de.json")["common"]
+    translations = {
+        language: _load_json(TRANSLATIONS_DIR / f"{language}.json")["common"]
+        for language in translation_languages
+    }
 
-    for key, english_value, german_value in matches:
-        english_value = english_value.strip()
-        german_value = german_value.strip()
-        assert english_value == en_translation[key], (
-            key,
-            english_value,
-            en_translation[key],
-        )
-        assert german_value == de_translation[key], (
-            key,
-            german_value,
-            de_translation[key],
-        )
+    for key, expected_translations in doc_rows.items():
+        for language in translation_languages:
+            assert expected_translations[language] == translations[language][key], (
+                key,
+                language,
+                expected_translations[language],
+                translations[language][key],
+            )

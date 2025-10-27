@@ -31,6 +31,7 @@
 - 📐 `ruff format`, `ruff check`, `mypy`, and `pytest -q` are executed before every pull request to preserve Platinum-level baselines.
 - 📊 Coverage and async performance metrics are tracked in `docs/testing/coverage_reporting.md` and `generated/perf_samples/latest.json`.
 - 🌐 CI publishes the lightweight coverage report to GitHub Pages via `python -m script.publish_coverage`, and the latest HTML is always available at [`coverage/latest/index.html`](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/index.html) with a Shields badge feed at [`coverage/latest/shields.json`](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/shields.json).
+- ♻️ Supply `--prune-expired-runs` when invoking `python -m script.publish_coverage` to remove `coverage/<run_id>` folders older than 30 days; the GitHub token used for publication needs `contents:write` (or `pages:write`) permissions to prune the Pages branch.
 - 🧾 Coordinator, config-flow, diagnostics, and service suites use Home Assistant test fixtures to validate setup/unload, runtime data, and repair flows.
 - ▶️ Run the full quality gate locally:
   ```bash
@@ -1150,6 +1151,25 @@ pytest tests/test_performance_*.py -v
    The contributor guide pre-commit hook also runs in `--check` mode so wrappers
    never drift from the canonical text.
 6. **Submit PR**: Detailed description with test results
+
+#### Adding new PawControl languages
+
+Follow this checklist when onboarding a new locale so diagnostics, tests, and
+documentation stay in sync:
+
+1. Append the lowercase language code (e.g. `es`, `fr`) to
+   [`script/sync_localization_flags.allowlist`](script/sync_localization_flags.allowlist)
+   to keep the shared allowlist sorted.
+2. Run `python -m script.sync_localization_flags --allowlist script/sync_localization_flags.allowlist`
+   without `--check` to bootstrap the translation file from the canonical
+   `en.json` template. The script will create `custom_components/pawcontrol/translations/<lang>.json`
+   if it does not exist and synchronise the setup-flag keys across all locales.
+3. Translate the new file as needed and update the localization table in
+   [`docs/diagnostik.md`](docs/diagnostik.md) so every key displays a column for the
+   new language.
+4. Re-run `python -m script.sync_localization_flags --allowlist script/sync_localization_flags.allowlist --check`
+   to verify nothing drifted, then execute `ruff check` and the unit tests before
+   opening your pull request.
 
 ### Development Guidelines
 
