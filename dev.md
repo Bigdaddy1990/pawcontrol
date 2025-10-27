@@ -11,6 +11,13 @@
 - ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest und Übersetzungen validieren ohne Beanstandung.【bb7d4e†L1-L1】
 
 ## Fehleranalyse
+- Die Setup-Flags-Übersetzungen liefen bislang Gefahr, zwischen `strings.json`,
+  den Sprachdateien und der Dokumentation auseinanderzulaufen. Das neue Skript
+  `python -m script.sync_localization_flags` spiegelt alle
+  `setup_flags_panel_flag_*`- und `setup_flags_panel_source_*`-Schlüssel in jede
+  unterstützte Sprache, während die Regression
+  `tests/unit/test_setup_flags_localization.py` fehlende oder abweichende Werte
+  sofort blockiert.【F:script/sync_localization_flags.py†L1-L129】【F:tests/unit/test_setup_flags_localization.py†L1-L77】【F:custom_components/pawcontrol/strings.json†L1396-L1405】【F:custom_components/pawcontrol/translations/de.json†L1235-L1244】
 - Manifest, README, Qualitäts-Tracker und Compliance-Dokumente widersprachen sich nach Bronze-Reverts; der Sync auf Platinum stellt Badge, Manifest und Nachweise nun konsistent dar.【F:custom_components/pawcontrol/manifest.json†L1-L66】【F:README.md†L1-L120】【F:custom_components/pawcontrol/quality_scale.yaml†L1-L80】【F:docs/compliance_gap_analysis.md†L1-L80】
 - Manifest, README, Qualitäts-Tracker und Compliance-Dokumente widersprachen sich nach Bronze-Reverts; der Sync auf Platinum stellt Badge, Manifest und Nachweise nun konsistent dar.【F:custom_components/pawcontrol/manifest.json†L1-L66】【F:README.md†L1-L120】【F:custom_components/pawcontrol/quality_scale.yaml†L1-L76】【F:docs/compliance_gap_analysis.md†L1-L43】
 - ✅ `ruff check` – keine Abweichungen nach den Resilience-Optionen und Blueprint-Erweiterungen.【c86e82†L1-L2】
@@ -54,7 +61,10 @@
 
 ## Verbesserungsplan
 1. End-to-End-Blueprint-Test nachrüsten: Ein automatisierter Szenario-Test sollte die Blueprint-Automation mit simulierten Ereignissen (`manual_guard_event`, `manual_breaker_event`) durchlaufen lassen, um Skriptaufrufe und Follow-up-Aktionen in Home Assistant zu verifizieren.【F:blueprints/automation/pawcontrol/resilience_escalation_followup.yaml†L36-L160】【F:tests/unit/test_data_manager.py†L520-L676】
-2. Übersetzungs-Sync automatisieren: Die neuen `setup_flags_panel_flag_*`- und `setup_flags_panel_source_*`-Schlüssel sollen via `script.sync_contributor_guides`/Lokalisierungs-Workflow in weitere Sprachen ausgerollt werden, um manuelle Abweichungen zwischen `strings.json`, `translations/`, Dokumentation und Tests zu vermeiden.【F:custom_components/pawcontrol/strings.json†L1396-L1405】【F:custom_components/pawcontrol/translations/de.json†L1235-L1244】【F:docs/diagnostik.md†L1-L60】
+2. Zusätzliche Sprachen ergänzen: Sobald Community-Übersetzungen vorliegen,
+   soll `sync_localization_flags` erweitert werden, um neue Sprachdateien
+   automatisch einzubinden und die Tests auf die erweiterten Tabellen
+   anzupassen.【F:script/sync_localization_flags.py†L1-L129】【F:tests/unit/test_setup_flags_localization.py†L1-L77】
 3. Manual-Event-UX weiter verbessern: Ein optionaler Dropdown-Selector mit vorgeschlagenen Ereignissen und klar beschrifteter „Deaktivieren“-Option soll das Leeren der Felder erleichtern und mehrsprachige Labels über die Übersetzungs-API liefern.【F:custom_components/pawcontrol/options_flow.py†L3986-L4043】【F:docs/resilience-quickstart.md†L270-L310】
 4. Manual-Event-Historie persistieren: Zusätzlich zum letzten Trigger sollen die letzten fünf manuellen Eskalationen in `performance_stats` gespeichert und in Diagnostics/System-Health visualisiert werden, um wiederkehrende On-Demand-Checks schneller zu erkennen.【F:custom_components/pawcontrol/script_manager.py†L575-L704】【F:custom_components/pawcontrol/system_health.py†L150-L356】
 

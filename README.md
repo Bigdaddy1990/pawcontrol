@@ -1140,11 +1140,13 @@ pytest tests/test_performance_*.py -v
 2. **Fork Repository**: Create your feature branch
 3. **Develop**: Write code with tests and documentation
 4. **Quality Check**: Ensure 95%+ test coverage and code quality
-5. **Sync Contributor Guides**: After updating `.github/copilot-instructions.md`,
-   run `python -m script.sync_contributor_guides` so the Claude and Gemini
-   assistants stay aligned. The pre-commit hook
-   `contributor-guide-sync-check` also runs the `--check` mode and will fail if
-   the wrappers drift from the canonical guide.
+5. **Sync Contributor Guides & Localizations**: After updating
+   `.github/copilot-instructions.md`, run `python -m script.sync_contributor_guides`
+   so the Claude and Gemini assistants stay aligned. Follow up with
+   `python -m script.sync_localization_flags --check` to confirm that the
+   `setup_flags_panel_*` translations in every language mirror `strings.json`.
+   The contributor guide pre-commit hook also runs in `--check` mode so wrappers
+   never drift from the canonical text.
 6. **Submit PR**: Detailed description with test results
 
 ### Development Guidelines
