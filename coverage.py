@@ -23,14 +23,13 @@ _PROJECT_ROOT = Path.cwd().resolve()
 _ALLOWED_RELATIVE_PATHS: tuple[Path, ...] = (
     Path("custom_components/pawcontrol"),
     Path("tests"),
-    Path("pytest_asyncio"),
-    Path("pytest_cov"),
 )
 
 _METRICS_DIRECTORY = _PROJECT_ROOT / "generated" / "coverage"
 _METRICS_JSON_NAME = "runtime.json"
 _METRICS_CSV_NAME = "runtime.csv"
 _SKIP_ENV_VAR = "PAWCONTROL_COVERAGE_SKIP"
+_RUNTIME_DISABLED_ENV_VAR = "PAWCONTROL_DISABLE_RUNTIME_METRICS"
 
 
 @functools.lru_cache(maxsize=512)
@@ -104,6 +103,7 @@ class Coverage:
         self._module_runtime: dict[Path, float] = {}
         self._thread_states: dict[int, _TraceState] = {}
         self._skip_paths = self._build_skip_set()
+        self._runtime_enabled = self._runtime_metrics_enabled()
 
     def start(self) -> None:
         """Begin recording executed lines for files under the configured sources."""
@@ -296,40 +296,45 @@ class Coverage:
     def _trace(self, frame, event: str, arg):  # pragma: no cover - exercised via tests
         now = time.perf_counter()
         thread_ident = threading.get_ident()
-        with self._lock:
-            state = self._thread_states.get(thread_ident)
-            if state and state.path is not None:
-                previous_runtime = self._module_runtime.get(state.path, 0.0)
-                self._module_runtime[state.path] = previous_runtime + (
-                    now - state.last_timestamp
-                )
-        if event != "line":
+        if self._runtime_enabled:
             with self._lock:
-                self._thread_states[thread_ident] = _TraceState(
-                    last_timestamp=now, path=None
-                )
+                state = self._thread_states.get(thread_ident)
+                if state and state.path is not None:
+                    previous_runtime = self._module_runtime.get(state.path, 0.0)
+                    self._module_runtime[state.path] = previous_runtime + (
+                        now - state.last_timestamp
+                    )
+        if event != "line":
+            if self._runtime_enabled:
+                with self._lock:
+                    self._thread_states[thread_ident] = _TraceState(
+                        last_timestamp=now, path=None
+                    )
             return self._trace
         filename = Path(frame.f_code.co_filename)
         try:
             resolved = filename.resolve()
         except FileNotFoundError:
-            with self._lock:
-                self._thread_states[thread_ident] = _TraceState(
-                    last_timestamp=now, path=None
-                )
+            if self._runtime_enabled:
+                with self._lock:
+                    self._thread_states[thread_ident] = _TraceState(
+                        last_timestamp=now, path=None
+                    )
             return self._trace
         if not self._should_measure(resolved):
-            with self._lock:
-                self._thread_states[thread_ident] = _TraceState(
-                    last_timestamp=now, path=None
-                )
+            if self._runtime_enabled:
+                with self._lock:
+                    self._thread_states[thread_ident] = _TraceState(
+                        last_timestamp=now, path=None
+                    )
             return self._trace
         lineno = frame.f_lineno
         with self._lock:
             self._executed.setdefault(resolved, set()).add(lineno)
-            self._thread_states[thread_ident] = _TraceState(
-                last_timestamp=now, path=resolved
-            )
+            if self._runtime_enabled:
+                self._thread_states[thread_ident] = _TraceState(
+                    last_timestamp=now, path=resolved
+                )
         return self._trace
 
     def _should_measure(self, path: Path) -> bool:
@@ -354,7 +359,8 @@ class Coverage:
                     executed=executed,
                 )
             )
-        self._write_runtime_metrics(tuple(reports))
+        if self._runtime_enabled:
+            self._write_runtime_metrics(tuple(reports))
         yield from reports
 
     def _iter_candidate_files(self) -> Iterator[Path]:
@@ -427,6 +433,13 @@ class Coverage:
             normalised = _normalise_source(entry)
             paths.add(normalised)
         return frozenset(paths)
+
+    @staticmethod
+    def _runtime_metrics_enabled() -> bool:
+        raw = os.environ.get(_RUNTIME_DISABLED_ENV_VAR)
+        if raw is None:
+            return True
+        return raw.strip().lower() not in {"1", "true", "yes", "on"}
 
     def _is_allowed_path(self, path: Path) -> bool:
         cached = self._allowed_cache.get(path)

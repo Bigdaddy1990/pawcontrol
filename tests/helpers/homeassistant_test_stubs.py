@@ -1214,7 +1214,7 @@ def _install_helper_modules() -> None:
         ) -> None:
             self._template = template or ""
             self._hass = hass
-            self._environment = Environment(autoescape=False, enable_async=False)
+            self._environment = Environment(autoescape=False, enable_async=True)
             self._environment.globals.update(
                 {
                     "state_attr": self._state_attr,
@@ -1266,7 +1266,10 @@ def _install_helper_modules() -> None:
         async def async_render(
             self, variables: Mapping[str, Any] | None = None, **kwargs: Any
         ) -> Any:
-            return self.render(variables, **kwargs)
+            template = self._environment.from_string(self._template)
+            context: dict[str, Any] = dict(variables or {})
+            context.update(kwargs)
+            return await template.render_async(**context)
 
     template_module.Template = Template
     sys.modules["homeassistant.helpers.template"] = template_module
@@ -1302,7 +1305,11 @@ def _install_helper_modules() -> None:
     def async_get_clientsession(hass: Any) -> DummySession:
         return DummySession()
 
+    async def _async_make_resolver(*_args: Any, **_kwargs: Any) -> None:
+        return None
+
     aiohttp_module.async_get_clientsession = async_get_clientsession
+    aiohttp_module._async_make_resolver = _async_make_resolver
     sys.modules["homeassistant.helpers.aiohttp_client"] = aiohttp_module
 
     dispatcher_module = ModuleType("homeassistant.helpers.dispatcher")
