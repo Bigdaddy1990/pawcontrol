@@ -149,10 +149,9 @@
    anzupassen.【F:script/sync_localization_flags.py†L1-L129】【F:tests/unit/test_setup_flags_localization.py†L1-L77】
 3. Manual-Event-UX weiter ausbauen: Die neuen Select-Listen sollen Herkunfts-Badges oder Hilfetexte anzeigen, damit Nutzer sofort erkennen, ob ein Eintrag aus Blueprint, System-Option oder dem Integrations-Default stammt. `_manual_event_choices` kann dazu zusätzliche Metadaten serialisieren; begleitende Tests prüfen, dass die Labels in allen Sprachen korrekt gerendert werden.【F:custom_components/pawcontrol/options_flow.py†L700-L735】【F:tests/unit/test_options_flow.py†L945-L1024】
 4. Manual-Event-Historie persistieren: Zusätzlich zum letzten Trigger sollen die letzten fünf manuellen Eskalationen in `performance_stats` gespeichert und in Diagnostics/System-Health visualisiert werden, um wiederkehrende On-Demand-Checks schneller zu erkennen.【F:custom_components/pawcontrol/script_manager.py†L575-L704】【F:custom_components/pawcontrol/system_health.py†L150-L356】
-5. Blueprint-Test-Hilfen extrahieren: Sowohl Komponenten- als auch E2E-Tests
-   duplizieren den Kontext für `resilience_escalation_followup`. Eine gemeinsame
-   Factory würde Pfade, Inputs und Listener-Assertions bündeln und künftige
-   Erweiterungen vereinfachen.【F:tests/components/pawcontrol/test_blueprint_resilience.py†L1-L169】【F:tests/components/pawcontrol/test_resilience_blueprint_e2e.py†L1-L358】
+5. ✅ Blueprint-Test-Hilfen extrahiert: `tests/components/pawcontrol/blueprint_context.py`
+   stellt jetzt die gemeinsame Kontext-Factory bereit, und beide Resilience-Tests
+   nutzen dieselben Service-Registrierungen sowie Event-Aufzeichnungen.【F:tests/components/pawcontrol/blueprint_context.py†L1-L87】【F:tests/components/pawcontrol/test_blueprint_resilience.py†L1-L170】【F:tests/components/pawcontrol/test_resilience_blueprint_e2e.py†L1-L360】
 
 ## Recent improvements
 - Der Options-Flow synchronisiert `manual_*`-Trigger jetzt direkt aus den System-Einstellungen, normalisiert leere Felder auf `None` und aktualisiert alle Resilience-Blueprints ohne manuelle YAML-Anpassung; neue Tests sichern den Sync-Pfad und die Platzhalterbeschreibungen ab.【F:custom_components/pawcontrol/options_flow.py†L3986-L4043】【F:custom_components/pawcontrol/script_manager.py†L503-L607】【F:tests/unit/test_options_flow.py†L808-L870】【F:tests/unit/test_data_manager.py†L612-L705】
