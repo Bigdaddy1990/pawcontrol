@@ -83,23 +83,23 @@
 
 ### Setup-Flags-Übersetzungsinventar
 
-| Übersetzungsschlüssel | Englisch (`en`) | Deutsch (`de`) |
-| --- | --- | --- |
-| component.pawcontrol.common.setup_flags_panel_flag_enable_analytics | Analytics telemetry | Analyse-Telemetrie |
-| component.pawcontrol.common.setup_flags_panel_flag_enable_cloud_backup | Cloud backup | Cloud-Backup |
-| component.pawcontrol.common.setup_flags_panel_flag_debug_logging | Debug logging | Debug-Logging |
-| component.pawcontrol.common.setup_flags_panel_source_advanced_settings | Advanced settings | Erweiterte Einstellungen |
-| component.pawcontrol.common.setup_flags_panel_source_blueprint | Blueprint suggestion | Blueprint-Vorschlag |
-| component.pawcontrol.common.setup_flags_panel_source_config_entry | Config entry defaults | Konfigurationseintrag |
-| component.pawcontrol.common.setup_flags_panel_source_default | Integration default | Integrationsstandard |
-| component.pawcontrol.common.setup_flags_panel_source_disabled | Disable | Deaktivieren |
-| component.pawcontrol.common.setup_flags_panel_source_options | Options flow | Options-Flow |
-| component.pawcontrol.common.setup_flags_panel_source_system_settings | System settings | Systemeinstellungen |
+| Übersetzungsschlüssel | Englisch (`en`) | Deutsch (`de`) | Spanisch (`es`) | Französisch (`fr`) |
+| --- | --- | --- | --- | --- |
+| component.pawcontrol.common.setup_flags_panel_flag_enable_analytics | Analytics telemetry | Analyse-Telemetrie | Telemetría de analíticas | Télémétrie d'analyse |
+| component.pawcontrol.common.setup_flags_panel_flag_enable_cloud_backup | Cloud backup | Cloud-Backup | Copia de seguridad en la nube | Sauvegarde cloud |
+| component.pawcontrol.common.setup_flags_panel_flag_debug_logging | Debug logging | Debug-Logging | Registro de depuración | Journalisation de débogage |
+| component.pawcontrol.common.setup_flags_panel_source_advanced_settings | Advanced settings | Erweiterte Einstellungen | Configuración avanzada | Paramètres avancés |
+| component.pawcontrol.common.setup_flags_panel_source_blueprint | Blueprint suggestion | Blueprint-Vorschlag | Sugerencia de blueprint | Suggestion de blueprint |
+| component.pawcontrol.common.setup_flags_panel_source_config_entry | Config entry defaults | Konfigurationseintrag | Valores predeterminados de la entrada de configuración | Valeurs par défaut de l'entrée de configuration |
+| component.pawcontrol.common.setup_flags_panel_source_default | Integration default | Integrationsstandard | Valor predeterminado de la integración | Valeur par défaut de l'intégration |
+| component.pawcontrol.common.setup_flags_panel_source_disabled | Disable | Deaktivieren | Desactivar | Désactiver |
+| component.pawcontrol.common.setup_flags_panel_source_options | Options flow | Options-Flow | Flujo de opciones | Flux d'options |
+| component.pawcontrol.common.setup_flags_panel_source_system_settings | System settings | Systemeinstellungen | Configuración del sistema | Paramètres système |
 
 - Das Feld `resilience_escalation` spiegelt das erzeugte Skript inklusive Entity-ID, aktiven Guard-/Breaker-Schwellen, Follow-up-Skript, letzten Trigger-Zeitpunkt **sowie** eine Ringpuffer-Historie der letzten fünf manuellen Eskalationen. Für jeden Eintrag werden Event-Typ, Herkunft (`blueprint`, `system_options`), Kontext-ID, Benutzerkennung, Ursprung (`LOCAL`/`REMOTE`) und Payload serialisiert, damit Bereitschaften sowohl Präferenzquellen als auch manuelle Eingriffe direkt im Dump nachvollziehen können. Beim Laden migriert die Integration vorhandene Skript-Schwellen in die Optionen, sodass Altinstallationen ohne manuelles Eingreifen konsistente Werte liefern.【F:custom_components/pawcontrol/script_manager.py†L503-L704】【F:custom_components/pawcontrol/diagnostics.py†L688-L867】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L243】【F:tests/unit/test_data_manager.py†L595-L705】
 - `system_health_info` übernimmt denselben Verlauf und stellt ihn im Abschnitt `service_execution.manual_events` bereit, wodurch Dashboards ohne Diagnostik-Export erkennen können, welcher Benutzer zuletzt einen Guard-/Breaker-Trigger ausgelöst hat.【F:custom_components/pawcontrol/system_health.py†L103-L176】【F:tests/components/pawcontrol/test_system_health.py†L130-L210】
 - Die System-Optionen speichern die `manual_*`-Events jetzt direkt über den Options-Flow und synchronisieren sie beim Speichern automatisch mit allen Resilience-Blueprint-Automationen. Dadurch stimmen Blueprint-Trigger, Diagnostik-Exports und Service-Warnungen immer überein – ganz ohne YAML-Nachpflege.【F:custom_components/pawcontrol/options_flow.py†L3986-L4043】【F:custom_components/pawcontrol/script_manager.py†L503-L607】【F:tests/unit/test_options_flow.py†L808-L870】
-- Die Resilience-Diagnostik erweitert `manual_events` um aktive Listener sowie einen vollständigen Verlauf des letzten manuellen Triggers (Event-Typ, Ursprung, Benutzer, Payload und Altersangaben), damit Support-Teams sofort nachvollziehen können, welcher Pfad zuletzt aufgerufen wurde.【F:custom_components/pawcontrol/script_manager.py†L575-L704】【F:custom_components/pawcontrol/script_manager.py†L1235-L1363】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L243】【F:tests/unit/test_data_manager.py†L595-L676】
+- Die Resilience-Diagnostik erweitert `manual_events` um aktive Listener sowie einen vollständigen Verlauf des letzten manuellen Triggers (Event-Typ, Ursprung, Benutzer, Payload und Altersangaben) **und** serialisiert mit `listener_metadata` die kanonischen Quellen pro Event (Systemeinstellungen, Options-Flow, Blueprint, Default), damit Support-Teams sofort nachvollziehen können, welche Pfade die aktuelle Auswahl prägen.【F:custom_components/pawcontrol/script_manager.py†L551-L704】【F:custom_components/pawcontrol/script_manager.py†L1555-L1709】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L243】【F:tests/unit/test_data_manager.py†L608-L726】
 
 ## Funktionsabgleich
 

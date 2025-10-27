@@ -129,6 +129,9 @@ field now renders a dropdown that lists:
 - Blueprint-sourced suggestions detected by the runtime script manager,
   labelled in your Home Assistant language (for example
   "Blueprint-Vorschlag" in German).
+- Source badges and inline help text that explain whether a value originates
+  from the integration default, the System Settings form, the options flow, a
+  config entry import, or a connected blueprint suggestion.
 - A dedicated **Disable** option that clears the value and removes the manual
   listener, matching the behaviour of the previous blank-text workflow while
   making the intent explicit.

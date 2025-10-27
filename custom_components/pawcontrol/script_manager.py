@@ -46,6 +46,7 @@ from .const import (
     DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
     DEFAULT_RESILIENCE_SKIP_THRESHOLD,
     DOMAIN,
+    MANUAL_EVENT_SOURCE_CANONICAL,
     MODULE_NOTIFICATIONS,
     RESILIENCE_BREAKER_THRESHOLD_MAX,
     RESILIENCE_BREAKER_THRESHOLD_MIN,
@@ -628,12 +629,15 @@ class PawControlScriptManager:
         check_events: set[str] = set()
         listener_reasons: dict[str, set[str]] = {}
         listener_sources: dict[str, set[str]] = {}
+        canonical_sources: dict[str, set[str]] = {}
 
         def _register_listener(event: str | None, reason: str, source: str) -> None:
             if not event:
                 return
             listener_reasons.setdefault(event, set()).add(reason)
             listener_sources.setdefault(event, set()).add(source)
+            canonical = MANUAL_EVENT_SOURCE_CANONICAL.get(source, source)
+            canonical_sources.setdefault(event, set()).add(canonical)
 
         try:
             automation_entries = entries_callable("automation")
@@ -689,6 +693,64 @@ class PawControlScriptManager:
         if system_guard is not None or system_breaker is not None:
             available = True
 
+        options_mapping = getattr(self._entry, "options", {})
+        if isinstance(options_mapping, Mapping):
+            for key in (
+                "manual_check_event",
+                "manual_guard_event",
+                "manual_breaker_event",
+            ):
+                option_value = _normalise_manual_event(options_mapping.get(key))
+                if option_value:
+                    canonical_sources.setdefault(option_value, set()).add("options")
+
+            system_settings_map = options_mapping.get("system_settings")
+            if isinstance(system_settings_map, Mapping):
+                for key in (
+                    "manual_check_event",
+                    "manual_guard_event",
+                    "manual_breaker_event",
+                ):
+                    option_value = _normalise_manual_event(system_settings_map.get(key))
+                    if option_value:
+                        canonical_sources.setdefault(option_value, set()).add(
+                            "system_settings"
+                        )
+
+        entry_data = getattr(self._entry, "data", {})
+        if isinstance(entry_data, Mapping):
+            for key in (
+                "manual_check_event",
+                "manual_guard_event",
+                "manual_breaker_event",
+            ):
+                data_value = _normalise_manual_event(entry_data.get(key))
+                if data_value:
+                    canonical_sources.setdefault(data_value, set()).add("config_entry")
+
+        for default_value in (
+            DEFAULT_MANUAL_CHECK_EVENT,
+            DEFAULT_MANUAL_GUARD_EVENT,
+            DEFAULT_MANUAL_BREAKER_EVENT,
+        ):
+            canonical_sources.setdefault(default_value, set()).add("default")
+
+        def _primary_source(source_set: set[str]) -> str | None:
+            for candidate in (
+                "system_settings",
+                "options",
+                "config_entry",
+                "blueprint",
+                "default",
+            ):
+                if candidate in source_set:
+                    return candidate
+            if "disabled" in source_set:
+                return "disabled"
+            if source_set:
+                return sorted(source_set)[0]
+            return None
+
         return {
             "available": available,
             "automations": automations,
@@ -702,6 +764,13 @@ class PawControlScriptManager:
             },
             "listener_sources": {
                 event: sorted(sources) for event, sources in listener_sources.items()
+            },
+            "listener_metadata": {
+                event: {
+                    "sources": sorted(source_set),
+                    "primary_source": _primary_source(source_set),
+                }
+                for event, source_set in canonical_sources.items()
             },
         }
 
@@ -768,6 +837,36 @@ class PawControlScriptManager:
                 sources[event_type]["configured_role"] = category
 
         manual_events = self._resolve_manual_resilience_events()
+        listener_metadata = manual_events.get("listener_metadata")
+        canonical_lookup: dict[str, dict[str, Any]] = {}
+        if isinstance(listener_metadata, Mapping):
+            for event, metadata in listener_metadata.items():
+                if not isinstance(event, str) or not isinstance(metadata, Mapping):
+                    continue
+                raw_sources = metadata.get("sources")
+                canonical_tags: list[str] = []
+                if isinstance(raw_sources, Sequence) and not isinstance(
+                    raw_sources, str | bytes
+                ):
+                    canonical_tags = [
+                        str(source)
+                        for source in raw_sources
+                        if isinstance(source, str) and source
+                    ]
+                canonical_tags = list(dict.fromkeys(canonical_tags))
+                primary_source = metadata.get("primary_source")
+                if isinstance(primary_source, str) and primary_source:
+                    canonical_tags = [
+                        primary_source,
+                        *[tag for tag in canonical_tags if tag != primary_source],
+                    ]
+                lookup_entry: dict[str, Any] = {}
+                if canonical_tags:
+                    lookup_entry["source_tags"] = canonical_tags
+                if isinstance(primary_source, str) and primary_source:
+                    lookup_entry["primary_source"] = primary_source
+                canonical_lookup[event] = lookup_entry
+
         for role, key in (
             ("guard", "configured_guard_events"),
             ("breaker", "configured_breaker_events"),
@@ -784,6 +883,23 @@ class PawControlScriptManager:
                     "configured_role",
                     cast(Literal["check", "guard", "breaker"], role),
                 )
+                metadata = canonical_lookup.get(event_type)
+                if metadata:
+                    tags = metadata.get("source_tags")
+                    if isinstance(tags, list):
+                        entry["source_tags"] = list(dict.fromkeys(tags))
+                    primary = metadata.get("primary_source")
+                    if isinstance(primary, str) and primary:
+                        entry["primary_source"] = primary
+
+        for event_type, metadata in canonical_lookup.items():
+            entry = sources.setdefault(event_type, {})
+            tags = metadata.get("source_tags")
+            if isinstance(tags, list):
+                entry["source_tags"] = list(dict.fromkeys(tags))
+            primary = metadata.get("primary_source")
+            if isinstance(primary, str) and primary:
+                entry["primary_source"] = primary
 
         listener_sources = manual_events.get("listener_sources")
         if isinstance(listener_sources, Mapping):
@@ -1121,6 +1237,31 @@ class PawControlScriptManager:
         self._manual_event_history.append(record)
         self._last_manual_event = dict(record)
         self._sync_manual_history_to_runtime()
+        reasons: list[str] = []
+        if isinstance(configured_role, str) and configured_role:
+            reasons.append(cast(Literal["check", "guard", "breaker"], configured_role))
+        if reasons:
+            record["reasons"] = reasons
+
+        source_tags = source.get("source_tags")
+        sources_list: list[str] = []
+        if isinstance(source_tags, Sequence) and not isinstance(
+            source_tags, str | bytes
+        ):
+            sources_list = [
+                str(tag) for tag in source_tags if isinstance(tag, str) and tag
+            ]
+        primary_source = source.get("primary_source")
+        if (
+            isinstance(primary_source, str)
+            and primary_source
+            and primary_source not in sources_list
+        ):
+            sources_list.insert(0, primary_source)
+        if sources_list:
+            record["sources"] = sources_list
+
+        self._last_manual_event = record
 
     async def async_sync_manual_resilience_events(
         self, events: Mapping[str, Any]

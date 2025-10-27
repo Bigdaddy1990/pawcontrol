@@ -2004,6 +2004,8 @@ class ManualResilienceEventRecord(TypedDict, total=False):
     origin: str | None
     data: dict[str, Any] | None
     sources: tuple[str, ...]
+    source_tags: list[str]
+    primary_source: str
 
 
 class ManualResilienceEventSnapshot(TypedDict, total=False):
@@ -2021,6 +2023,7 @@ class ManualResilienceEventSnapshot(TypedDict, total=False):
     user_id: str | None
     data: dict[str, Any] | None
     sources: list[str] | None
+    reasons: list[str]
 
 
 class ServiceContextMetadata(TypedDict, total=False):
