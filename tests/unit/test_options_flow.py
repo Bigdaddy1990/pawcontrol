@@ -836,6 +836,8 @@ async def test_system_settings_normalisation(
             "performance_mode": "FULL",
             "resilience_skip_threshold": "7",
             "resilience_breaker_threshold": 2,
+            "manual_guard_event": " pawcontrol_manual_guard ",
+            "manual_breaker_event": " ",
         }
     )
 
@@ -852,9 +854,13 @@ async def test_system_settings_normalisation(
     assert system["enable_cloud_backup"] is False
     assert system["resilience_skip_threshold"] == 7
     assert system["resilience_breaker_threshold"] == 2
+    assert system["manual_guard_event"] == "pawcontrol_manual_guard"
+    assert "manual_breaker_event" not in system
 
     assert options["enable_analytics"] is True
     assert options["enable_cloud_backup"] is False
+    assert options["manual_guard_event"] == "pawcontrol_manual_guard"
+    assert "manual_breaker_event" not in options
 
     notifications = cast(NotificationOptions, options[CONF_NOTIFICATIONS])
     assert notifications[CONF_QUIET_HOURS] is True

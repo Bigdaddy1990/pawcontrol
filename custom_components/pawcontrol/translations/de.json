@@ -483,7 +483,9 @@
           "enable_analytics": "Analysen aktivieren",
           "enable_cloud_backup": "Cloud-Backup aktivieren",
           "resilience_skip_threshold": "Schwellwert für Guard-Übersprünge",
-          "resilience_breaker_threshold": "Schwellwert für Breaker-Eskalationen"
+          "resilience_breaker_threshold": "Schwellwert für Breaker-Eskalationen",
+          "manual_guard_event": "Manuelles Guard-Ereignis",
+          "manual_breaker_event": "Manuelles Breaker-Ereignis"
         },
         "data_description": {
           "reset_time": "Lege fest, wann Paw Control die täglichen Wartungsaufgaben ausführt.",
@@ -493,7 +495,9 @@
           "enable_analytics": "Aggregiert anonyme Trends über alle Hunde für Übersichts-Widgets.",
           "enable_cloud_backup": "Lädt Konfigurations-Snapshots in das konfigurierte Cloud-Ziel hoch.",
           "resilience_skip_threshold": "Anzahl übersprungener Guard-Aufrufe, bevor das Eskalationsskript alarmiert (0 deaktiviert Guard-Eskalationen).",
-          "resilience_breaker_threshold": "Anzahl offener oder halb geöffneter Breaker, die Follow-up-Aktionen auslösen (0 deaktiviert Breaker-Eskalationen)."
+          "resilience_breaker_threshold": "Anzahl offener oder halb geöffneter Breaker, die Follow-up-Aktionen auslösen (0 deaktiviert Breaker-Eskalationen).",
+          "manual_guard_event": "Ereignistyp auf dem Home-Assistant-Bus, der Guard-Follow-ups auslöst. Leer lassen, um manuelle Guard-Prüfungen zu deaktivieren.",
+          "manual_breaker_event": "Ereignistyp für manuelle Breaker-Follow-ups. Leer lassen, um manuelle Breaker-Prüfungen zu deaktivieren."
         }
       },
       "dashboard_settings": {
