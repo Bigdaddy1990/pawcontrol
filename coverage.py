@@ -126,9 +126,7 @@ class Coverage:
                 for index, number in enumerate(numbers, start=1):
                     chunk.append(number)
                     if index % 20 == 0:
-                        stream.write(
-                            f"    Missing lines: {','.join(chunk)}\n"
-                        )
+                        stream.write(f"    Missing lines: {','.join(chunk)}\n")
                         chunk = []
                 if chunk:
                     stream.write(f"    Missing lines: {','.join(chunk)}\n")
@@ -317,7 +315,7 @@ class Coverage:
         statements: set[int] = set()
         try:
             text = path.read_text(encoding="utf-8")
-        except (IOError, UnicodeDecodeError):
+        except (OSError, UnicodeDecodeError):
             return statements
         for lineno, line in enumerate(text.splitlines(), start=1):
             stripped = line.strip()
