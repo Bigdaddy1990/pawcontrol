@@ -1987,6 +1987,8 @@ class ManualResilienceEventSource(TypedDict, total=False):
 
     preference_key: ManualResiliencePreferenceKey
     configured_role: Literal["check", "guard", "breaker"]
+    source_tags: list[str]
+    primary_source: str
 
 
 class ManualResilienceEventSnapshot(TypedDict, total=False):
@@ -2003,6 +2005,8 @@ class ManualResilienceEventSnapshot(TypedDict, total=False):
     context_id: str | None
     user_id: str | None
     data: dict[str, Any] | None
+    reasons: list[str]
+    sources: list[str]
 
 
 class ServiceContextMetadata(TypedDict, total=False):

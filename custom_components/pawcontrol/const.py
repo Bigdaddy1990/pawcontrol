@@ -13,8 +13,10 @@ Python: 3.13+
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from datetime import timedelta
 from enum import Enum
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Final
 
 if TYPE_CHECKING:
@@ -216,6 +218,18 @@ DEFAULT_RESILIENCE_BREAKER_THRESHOLD: Final[int] = 1
 DEFAULT_MANUAL_CHECK_EVENT: Final[str] = "pawcontrol_resilience_check"
 DEFAULT_MANUAL_GUARD_EVENT: Final[str] = "pawcontrol_manual_guard"
 DEFAULT_MANUAL_BREAKER_EVENT: Final[str] = "pawcontrol_manual_breaker"
+
+MANUAL_EVENT_SOURCE_CANONICAL: Final[Mapping[str, str]] = MappingProxyType(
+    {
+        "blueprint": "blueprint",
+        "config_entry": "config_entry",
+        "default": "default",
+        "disabled": "disabled",
+        "options": "options",
+        "system_options": "system_settings",
+        "system_settings": "system_settings",
+    }
+)
 RESILIENCE_SKIP_THRESHOLD_MIN: Final[int] = 0
 RESILIENCE_SKIP_THRESHOLD_MAX: Final[int] = 50
 RESILIENCE_BREAKER_THRESHOLD_MIN: Final[int] = 0

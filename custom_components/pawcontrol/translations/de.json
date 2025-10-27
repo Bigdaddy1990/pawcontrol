@@ -1249,6 +1249,18 @@
     "setup_flags_panel_source_disabled": "Deaktivieren",
     "setup_flags_panel_source_options": "Options-Flow",
     "setup_flags_panel_source_system_settings": "Systemeinstellungen",
-    "setup_flags_panel_title": "Setup-Flags"
+    "setup_flags_panel_title": "Setup-Flags",
+    "manual_event_source_badge_default": "Standard",
+    "manual_event_source_badge_system_settings": "System",
+    "manual_event_source_badge_options": "Options-Flow",
+    "manual_event_source_badge_config_entry": "Konfigurationseintrag",
+    "manual_event_source_badge_blueprint": "Blueprint",
+    "manual_event_source_badge_disabled": "Deaktiviert",
+    "manual_event_source_help_default": "Integration verwendet diesen Wert, solange keine Überschreibungen aktiv sind.",
+    "manual_event_source_help_system_settings": "Über das Formular \"Systemeinstellungen\" gespeichert.",
+    "manual_event_source_help_options": "Über den Options-Flow konfiguriert.",
+    "manual_event_source_help_config_entry": "Aus dem ursprünglichen Konfigurationseintrag übernommen.",
+    "manual_event_source_help_blueprint": "Vom Resilience-Blueprint vorgeschlagen.",
+    "manual_event_source_help_disabled": "Entfernt den Listener und beendet die Überwachung dieses manuellen Ereignisses."
   }
 }
