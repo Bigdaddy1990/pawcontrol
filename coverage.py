@@ -201,7 +201,7 @@ class Coverage:
 
         def format_attrs(pairs: Iterable[tuple[str, str]]) -> str:
             return " ".join(
-                f"{name}=\"{escape(value, quote=True)}\"" for name, value in pairs
+                f'{name}="{escape(value, quote=True)}"' for name, value in pairs
             )
 
         def start_tag(name: str, pairs: Iterable[tuple[str, str]], indent: int) -> None:
@@ -220,11 +220,9 @@ class Coverage:
 
         def text_tag(name: str, value: str, indent: int) -> None:
             prefix = "  " * indent
-            write(
-                f"{prefix}<{name}>{escape(value)}</{name}>\n"
-            )
+            write(f"{prefix}<{name}>{escape(value)}</{name}>\n")
 
-        write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+        write('<?xml version="1.0" encoding="UTF-8"?>\n')
         start_tag(
             "coverage",
             (
