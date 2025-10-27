@@ -14,6 +14,7 @@ from typing import Any
 import pytest
 
 _SESSION_LOOP: asyncio.AbstractEventLoop | None = None
+_SESSION_LOOP_DEBUG_STATE: bool | None = None
 
 
 def _ensure_homeassistant_logging_stub() -> None:
@@ -76,6 +77,31 @@ def _get_active_loop() -> asyncio.AbstractEventLoop | None:
     return None if loop.is_closed() else loop
 
 
+def _ensure_session_loop() -> asyncio.AbstractEventLoop:
+    """Return the shared session loop, creating it when missing."""
+
+    global _SESSION_LOOP
+
+    loop = _SESSION_LOOP
+    if loop is None or loop.is_closed():
+        loop = asyncio.new_event_loop()
+        _SESSION_LOOP = loop
+    return loop
+
+
+def _ensure_running_loop(loop: asyncio.AbstractEventLoop) -> asyncio.AbstractEventLoop:
+    """Retrieve a running loop, falling back to executing a probe coroutine."""
+
+    try:
+        return asyncio.get_running_loop()
+    except RuntimeError:
+
+        async def _probe_running_loop() -> asyncio.AbstractEventLoop:
+            return asyncio.get_running_loop()
+
+        return loop.run_until_complete(_probe_running_loop())
+
+
 def _cancel_pending(loop: asyncio.AbstractEventLoop) -> None:
     """Cancel any pending tasks that are still attached to ``loop``."""
 
@@ -90,18 +116,22 @@ def _cancel_pending(loop: asyncio.AbstractEventLoop) -> None:
 
 
 @pytest.hookimpl(tryfirst=True)
+def pytest_configure(config: pytest.Config) -> None:
+    """Provision an event loop before plugins request debug helpers."""
+
+    del config
+
+    loop = _ensure_session_loop()
+    asyncio.set_event_loop(loop)
+
+
+@pytest.hookimpl(tryfirst=True)
 def pytest_sessionstart(session: pytest.Session) -> None:
     """Provision an event loop before any fixtures execute."""
 
     del session  # session is unused but kept for signature parity.
 
-    global _SESSION_LOOP
-
-    loop = _SESSION_LOOP
-    if loop is None or loop.is_closed():
-        loop = asyncio.new_event_loop()
-        _SESSION_LOOP = loop
-
+    loop = _ensure_session_loop()
     asyncio.set_event_loop(loop)
 
     with suppress(Exception):
@@ -116,16 +146,20 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
 
     del session, exitstatus
 
-    global _SESSION_LOOP
+    global _SESSION_LOOP, _SESSION_LOOP_DEBUG_STATE
 
     loop = _SESSION_LOOP
     _SESSION_LOOP = None
     if loop is None:
         return
 
+    if _SESSION_LOOP_DEBUG_STATE is not None and not loop.is_closed():
+        loop.set_debug(_SESSION_LOOP_DEBUG_STATE)
+
     _cancel_pending(loop)
     asyncio.set_event_loop(None)
     loop.close()
+    _SESSION_LOOP_DEBUG_STATE = None
 
 
 @pytest.fixture(autouse=True)
@@ -162,6 +196,35 @@ def _autouse_event_loop() -> Iterator[asyncio.AbstractEventLoop]:
             asyncio.set_event_loop(_SESSION_LOOP)
         if created_loop:
             loop.close()
+
+
+def enable_event_loop_debug() -> asyncio.AbstractEventLoop:
+    """Enable debug mode on the shared event loop and return it."""
+
+    loop = _ensure_session_loop()
+    asyncio.set_event_loop(loop)
+    running_loop = _ensure_running_loop(loop)
+
+    global _SESSION_LOOP_DEBUG_STATE
+    if _SESSION_LOOP_DEBUG_STATE is None:
+        _SESSION_LOOP_DEBUG_STATE = running_loop.get_debug()
+
+    running_loop.set_debug(True)
+    return running_loop
+
+
+def pytest_addhooks(
+    pluginmanager: pytest.PytestPluginManager, **kwargs: Any
+) -> None:
+    """Expose ``enable_event_loop_debug`` via hook registration."""
+
+    del pluginmanager
+
+    module = kwargs.get("module")
+    if module is None:
+        return
+
+    module.enable_event_loop_debug = enable_event_loop_debug  # type: ignore[attr-defined]
 
 
 @pytest.hookimpl(tryfirst=True)
