@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.0] - 2025-09-08 - Production Release 🎉
 
+### Added
+- Options flow system settings now expose manual escalation selectors for `manual_check_event`, `manual_guard_event`, and `manual_breaker_event`, trimming inputs, disabling triggers when blank, and synchronising changes with the Resilience blueprint automatically.【F:custom_components/pawcontrol/options_flow.py†L3986-L4043】【F:custom_components/pawcontrol/script_manager.py†L503-L607】【F:tests/unit/test_options_flow.py†L808-L870】
+- Resilience diagnostics now list active manual escalation listeners and record the context of the most recent manual trigger (event type, origin, user, payload, age) to speed up incident response.【F:custom_components/pawcontrol/script_manager.py†L575-L704】【F:custom_components/pawcontrol/script_manager.py†L1235-L1363】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L243】【F:tests/unit/test_data_manager.py†L595-L676】
+
 ### 🚀 Initial Production Release
 
 This is the first public release of PawControl, a comprehensive Home Assistant integration for smart dog management. The project currently targets the **Bronze Quality Scale** while we finish documenting new services, adopt runtime data consistently, and stabilise the Home Assistant test harness.

@@ -173,6 +173,7 @@ Route Recording: ✅ Enabled
 
 - Adjust helper entities, webhook routing, and module-specific tuning in **Settings → Devices & Services → PawControl → Configure**.
 - The options flow mirrors the config entry schema; all user-facing strings live in `custom_components/pawcontrol/strings.json` so translations stay aligned with Home Assistant requirements.
+- System Settings now includes manual escalation selectors for `manual_check_event`, `manual_guard_event`, and `manual_breaker_event`; the integration trims values, disables triggers when left blank, and synchronises every change with the Resilience blueprint automatically.【F:custom_components/pawcontrol/options_flow.py†L3986-L4043】【F:custom_components/pawcontrol/script_manager.py†L503-L607】【F:tests/unit/test_options_flow.py†L808-L870】
 - Service parameters and automation helpers are described in `docs/production_integration_documentation.md` and `custom_components/pawcontrol/services.yaml`.
 
 #### Step 4: Geofencing Setup (optional)
@@ -780,7 +781,7 @@ Diagnostics export the aggregated counters under `service_execution.guard_metric
 
 Support tooling also receives a dedicated `setup_flags_panel` snapshot that surfaces analytics, cloud-backup, and debug-logging toggles with translation keys, source metadata, and enabled/disabled counts so dashboards can render the onboarding state without custom parsing.【F:custom_components/pawcontrol/diagnostics.py†L120-L210】【F:custom_components/pawcontrol/strings.json†L1396-L1405】【F:tests/components/pawcontrol/test_diagnostics.py†L288-L405】
 
-Diagnostics mirror the resilience escalation helper under a `resilience_escalation` panel that reports the generated script entity, active skip/breaker thresholds, follow-up automation target, and last triggered timestamp so on-call staff can confirm escalation posture directly from support dumps.【F:custom_components/pawcontrol/script_manager.py†L420-L566】【F:custom_components/pawcontrol/diagnostics.py†L180-L214】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L247】【F:tests/unit/test_data_manager.py†L500-L535】
+Diagnostics mirror the resilience escalation helper under a `resilience_escalation` panel that reports the generated script entity, active skip/breaker thresholds, follow-up automation target, last triggered timestamp, and now the full manual escalation trail—including which event types are being listened for and the context (origin, user, payload) of the most recent manual trigger—so on-call staff can confirm escalation posture directly from support dumps.【F:custom_components/pawcontrol/script_manager.py†L503-L704】【F:custom_components/pawcontrol/script_manager.py†L1235-L1363】【F:custom_components/pawcontrol/diagnostics.py†L180-L214】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L243】【F:tests/unit/test_data_manager.py†L595-L676】
 
 Coordinator performance snapshots mirror the same guard counters and reuse the existing rejection metrics block, so API clients calling `PawControlCoordinator.get_performance_snapshot()` receive identical `service_execution.guard_metrics` data as the runtime statistics sensor without duplicating parsing logic.【F:custom_components/pawcontrol/coordinator.py†L474-L525】【F:tests/unit/test_coordinator.py†L117-L165】
 

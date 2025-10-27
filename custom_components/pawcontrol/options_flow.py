@@ -72,6 +72,9 @@ from .const import (
     DEFAULT_GPS_ACCURACY_FILTER,
     DEFAULT_GPS_DISTANCE_FILTER,
     DEFAULT_GPS_UPDATE_INTERVAL,
+    DEFAULT_MANUAL_BREAKER_EVENT,
+    DEFAULT_MANUAL_CHECK_EVENT,
+    DEFAULT_MANUAL_GUARD_EVENT,
     DEFAULT_REMINDER_REPEAT_MIN,
     DEFAULT_RESET_TIME,
     DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
@@ -243,6 +246,11 @@ class PawControlOptionsFlow(OptionsFlow):
     """
 
     _EXPORT_VERSION: ClassVar[int] = 1
+    _MANUAL_EVENT_FIELDS: ClassVar[tuple[str, str, str]] = (
+        "manual_check_event",
+        "manual_guard_event",
+        "manual_breaker_event",
+    )
 
     def __init__(self) -> None:
         """Initialize the options flow with enhanced state management."""
@@ -418,6 +426,117 @@ class PawControlOptionsFlow(OptionsFlow):
         if isinstance(value, Sequence) and not isinstance(value, str | bytes):
             return [str(item) for item in value if item not in (None, "")]
         return []
+
+    @staticmethod
+    def _normalise_manual_event_value(value: Any) -> str | None:
+        """Return a normalised manual event string."""
+
+        if isinstance(value, str):
+            candidate = value.strip()
+            return candidate or None
+        return None
+
+    def _manual_event_defaults(self, current: SystemOptions) -> dict[str, str | None]:
+        """Return preferred manual event defaults for the system settings form."""
+
+        defaults: dict[str, str | None] = {
+            "manual_check_event": DEFAULT_MANUAL_CHECK_EVENT,
+            "manual_guard_event": DEFAULT_MANUAL_GUARD_EVENT,
+            "manual_breaker_event": DEFAULT_MANUAL_BREAKER_EVENT,
+        }
+
+        for field in self._MANUAL_EVENT_FIELDS:
+            if field not in current:
+                continue
+            defaults[field] = self._normalise_manual_event_value(current.get(field))
+
+        return defaults
+
+    def _manual_event_schema_defaults(self, current: SystemOptions) -> dict[str, str]:
+        """Return schema defaults for manual event inputs as strings."""
+
+        defaults = self._manual_event_defaults(current)
+        return {key: value or "" for key, value in defaults.items()}
+
+    def _resolve_manual_event_choices(self) -> dict[str, list[str]]:
+        """Return configured manual event identifiers for blueprint helpers."""
+
+        choices: dict[str, list[str]] = {
+            field: [] for field in self._MANUAL_EVENT_FIELDS
+        }
+        seen: dict[str, set[str]] = {
+            field: set() for field in self._MANUAL_EVENT_FIELDS
+        }
+
+        current_defaults = self._manual_event_defaults(self._current_system_options())
+        for field, default_value in current_defaults.items():
+            if default_value:
+                seen[field].add(default_value)
+                choices[field].append(default_value)
+
+        hass = getattr(self, "hass", None)
+        if hass is None:
+            return choices
+
+        runtime = get_runtime_data(hass, self._entry)
+        script_manager = getattr(runtime, "script_manager", None)
+        if script_manager is None:
+            return choices
+
+        snapshot = script_manager.get_resilience_escalation_snapshot()
+        manual = (
+            snapshot.get("manual_events") if isinstance(snapshot, Mapping) else None
+        )
+        if not isinstance(manual, Mapping):
+            return choices
+
+        list_mapping = {
+            "manual_check_event": manual.get("configured_check_events"),
+            "manual_guard_event": manual.get("configured_guard_events"),
+            "manual_breaker_event": manual.get("configured_breaker_events"),
+        }
+
+        for field, values in list_mapping.items():
+            for candidate in self._string_sequence(values):
+                if candidate not in seen[field]:
+                    seen[field].add(candidate)
+                    choices[field].append(candidate)
+
+        preferred = manual.get("preferred_events")
+        if isinstance(preferred, Mapping):
+            for field in self._MANUAL_EVENT_FIELDS:
+                normalised = self._normalise_manual_event_value(preferred.get(field))
+                if normalised and normalised not in seen[field]:
+                    seen[field].add(normalised)
+                    choices[field].append(normalised)
+
+        for field in self._MANUAL_EVENT_FIELDS:
+            single_preference = manual.get(f"preferred_{field}")
+            normalised = self._normalise_manual_event_value(single_preference)
+            if normalised and normalised not in seen[field]:
+                seen[field].add(normalised)
+                choices[field].append(normalised)
+
+        return choices
+
+    def _manual_event_description_placeholders(self) -> dict[str, str]:
+        """Return description placeholders enumerating known manual events."""
+
+        choices = self._resolve_manual_event_choices()
+        placeholders: dict[str, str] = {}
+        for field, values in choices.items():
+            placeholder_key = f"{field}_options"
+            placeholders[placeholder_key] = ", ".join(values) if values else "—"
+        return placeholders
+
+    @staticmethod
+    def _coerce_manual_event(value: Any, default: str | None) -> str | None:
+        """Return a normalised manual event or fallback to the provided default."""
+
+        if isinstance(value, str):
+            candidate = value.strip()
+            return candidate or None
+        return default
 
     def _get_reconfigure_description_placeholders(self) -> dict[str, str]:
         """Return placeholders describing the latest reconfigure telemetry."""
@@ -1204,6 +1323,8 @@ class PawControlOptionsFlow(OptionsFlow):
             current=current.get("performance_mode"),
         )
 
+        manual_defaults = self._manual_event_defaults(current)
+
         analytics_enabled = self._coerce_bool(
             user_input.get("enable_analytics"),
             current.get(SYSTEM_ENABLE_ANALYTICS_FIELD, False),
@@ -1250,6 +1371,18 @@ class PawControlOptionsFlow(OptionsFlow):
             SYSTEM_ENABLE_CLOUD_BACKUP_FIELD: cloud_backup_enabled,
             "resilience_skip_threshold": skip_threshold,
             "resilience_breaker_threshold": breaker_threshold,
+            "manual_check_event": self._coerce_manual_event(
+                user_input.get("manual_check_event"),
+                manual_defaults.get("manual_check_event"),
+            ),
+            "manual_guard_event": self._coerce_manual_event(
+                user_input.get("manual_guard_event"),
+                manual_defaults.get("manual_guard_event"),
+            ),
+            "manual_breaker_event": self._coerce_manual_event(
+                user_input.get("manual_breaker_event"),
+                manual_defaults.get("manual_breaker_event"),
+            ),
         }
 
         reset_time = self._coerce_time_string(
@@ -3934,6 +4067,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
         """Configure system and performance settings."""
+        placeholders = self._manual_event_description_placeholders()
         if user_input is not None:
             try:
                 current_system = self._current_system_options()
@@ -3952,17 +4086,40 @@ class PawControlOptionsFlow(OptionsFlow):
                 new_options[SYSTEM_ENABLE_CLOUD_BACKUP_FIELD] = system_settings[
                     SYSTEM_ENABLE_CLOUD_BACKUP_FIELD
                 ]
+                runtime = get_runtime_data(self.hass, self._entry)
+                script_manager = (
+                    getattr(runtime, "script_manager", None)
+                    if runtime is not None
+                    else None
+                )
+                if script_manager is not None:
+                    await script_manager.async_sync_manual_resilience_events(
+                        {
+                            "manual_check_event": system_settings.get(
+                                "manual_check_event"
+                            ),
+                            "manual_guard_event": system_settings.get(
+                                "manual_guard_event"
+                            ),
+                            "manual_breaker_event": system_settings.get(
+                                "manual_breaker_event"
+                            ),
+                        }
+                    )
                 typed_options = self._normalise_options_snapshot(new_options)
                 return self.async_create_entry(title="", data=typed_options)
             except Exception:
                 return self.async_show_form(
                     step_id="system_settings",
                     data_schema=self._get_system_settings_schema(user_input),
+                    description_placeholders=placeholders,
                     errors={"base": "update_failed"},
                 )
 
         return self.async_show_form(
-            step_id="system_settings", data_schema=self._get_system_settings_schema()
+            step_id="system_settings",
+            data_schema=self._get_system_settings_schema(),
+            description_placeholders=placeholders,
         )
 
     def _get_system_settings_schema(
@@ -4011,6 +4168,16 @@ class PawControlOptionsFlow(OptionsFlow):
             minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
             maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
         )
+
+        manual_defaults = self._manual_event_schema_defaults(current_system)
+
+        def _manual_default(field: str) -> str:
+            raw_value = current_values.get(field)
+            if isinstance(raw_value, str):
+                return raw_value
+            if raw_value is None:
+                return ""
+            return manual_defaults[field]
 
         return vol.Schema(
             {
@@ -4069,6 +4236,18 @@ class PawControlOptionsFlow(OptionsFlow):
                         mode=selector.NumberSelectorMode.BOX,
                     )
                 ),
+                vol.Optional(
+                    "manual_check_event",
+                    default=_manual_default("manual_check_event"),
+                ): selector.TextSelector(selector.TextSelectorConfig()),
+                vol.Optional(
+                    "manual_guard_event",
+                    default=_manual_default("manual_guard_event"),
+                ): selector.TextSelector(selector.TextSelectorConfig()),
+                vol.Optional(
+                    "manual_breaker_event",
+                    default=_manual_default("manual_breaker_event"),
+                ): selector.TextSelector(selector.TextSelectorConfig()),
                 vol.Optional(
                     "performance_mode",
                     default=current_values.get(

@@ -91,10 +91,12 @@ except (ModuleNotFoundError, ImportError):  # pragma: no cover - used in tests
             *,
             mode: SelectSelectorMode = SelectSelectorMode.DROPDOWN,
             multiple: bool | None = None,
+            custom_value: bool | None = None,
         ) -> None:
             self.options = options
             self.mode = mode
             self.multiple = multiple
+            self.custom_value = custom_value
 
     class SelectSelector(_BaseSelector):
         pass

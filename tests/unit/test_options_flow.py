@@ -826,18 +826,30 @@ async def test_system_settings_normalisation(
     flow.hass = hass
     flow.initialize_from_config_entry(mock_config_entry)
 
-    result = await flow.async_step_system_settings(
-        {
-            "reset_time": time(4, 30),
-            "data_retention_days": "10",
-            "auto_backup": "true",
-            "enable_analytics": "1",
-            "enable_cloud_backup": 0,
-            "performance_mode": "FULL",
-            "resilience_skip_threshold": "7",
-            "resilience_breaker_threshold": 2,
-        }
-    )
+    script_manager = Mock()
+    script_manager.async_sync_manual_resilience_events = AsyncMock()
+    runtime = Mock()
+    runtime.script_manager = script_manager
+
+    with patch(
+        "custom_components.pawcontrol.options_flow.get_runtime_data",
+        return_value=runtime,
+    ):
+        result = await flow.async_step_system_settings(
+            {
+                "reset_time": time(4, 30),
+                "data_retention_days": "10",
+                "auto_backup": "true",
+                "enable_analytics": "1",
+                "enable_cloud_backup": 0,
+                "performance_mode": "FULL",
+                "resilience_skip_threshold": "7",
+                "resilience_breaker_threshold": 2,
+                "manual_check_event": "  pawcontrol_custom_check  ",
+                "manual_guard_event": "  pawcontrol_manual_guard  ",
+                "manual_breaker_event": "  ",
+            }
+        )
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
 
@@ -852,6 +864,9 @@ async def test_system_settings_normalisation(
     assert system["enable_cloud_backup"] is False
     assert system["resilience_skip_threshold"] == 7
     assert system["resilience_breaker_threshold"] == 2
+    assert system["manual_check_event"] == "pawcontrol_custom_check"
+    assert system["manual_guard_event"] == "pawcontrol_manual_guard"
+    assert system["manual_breaker_event"] is None
 
     assert options["enable_analytics"] is True
     assert options["enable_cloud_backup"] is False
@@ -872,6 +887,57 @@ async def test_system_settings_normalisation(
     buddy_modules = buddy_entry[DOG_MODULES_FIELD]
     assert buddy_modules[MODULE_WALK] is True
     assert buddy_modules[MODULE_FEEDING] is False
+
+    script_manager.async_sync_manual_resilience_events.assert_awaited_once_with(
+        {
+            "manual_check_event": "pawcontrol_custom_check",
+            "manual_guard_event": "pawcontrol_manual_guard",
+            "manual_breaker_event": None,
+        }
+    )
+
+
+@pytest.mark.asyncio
+async def test_system_settings_manual_event_placeholders(
+    hass: HomeAssistant, mock_config_entry
+) -> None:
+    """Manual event placeholders should combine options and blueprint values."""
+
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    mock_config_entry.options = {
+        "system_settings": {
+            "manual_guard_event": "pawcontrol_manual_guard",
+            "manual_breaker_event": None,
+        }
+    }
+    flow.initialize_from_config_entry(mock_config_entry)
+
+    script_manager = Mock()
+    script_manager.get_resilience_escalation_snapshot.return_value = {
+        "manual_events": {
+            "configured_guard_events": ["pawcontrol_manual_guard"],
+            "configured_breaker_events": ["pawcontrol_manual_breaker"],
+            "configured_check_events": ["pawcontrol_resilience_check"],
+            "preferred_events": {
+                "manual_check_event": "pawcontrol_resilience_check",
+                "manual_guard_event": "pawcontrol_manual_guard",
+                "manual_breaker_event": "pawcontrol_manual_breaker",
+            },
+        }
+    }
+    runtime = Mock()
+    runtime.script_manager = script_manager
+
+    with patch(
+        "custom_components.pawcontrol.options_flow.get_runtime_data",
+        return_value=runtime,
+    ):
+        placeholders = flow._manual_event_description_placeholders()
+
+    assert placeholders["manual_guard_event_options"] == "pawcontrol_manual_guard"
+    assert placeholders["manual_breaker_event_options"] == "pawcontrol_manual_breaker"
+    assert placeholders["manual_check_event_options"] == "pawcontrol_resilience_check"
 
 
 @pytest.mark.asyncio

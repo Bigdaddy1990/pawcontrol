@@ -1053,6 +1053,9 @@ class SystemOptions(TypedDict, total=False):
     enable_cloud_backup: bool
     resilience_skip_threshold: int
     resilience_breaker_threshold: int
+    manual_check_event: str | None
+    manual_guard_event: str | None
+    manual_breaker_event: str | None
 
 
 class DashboardOptions(TypedDict, total=False):
@@ -1970,6 +1973,36 @@ class ServiceExecutionResult(TypedDict, total=False):
     diagnostics: NotRequired[ServiceExecutionDiagnostics]
     details: NotRequired[dict[str, Any]]
     guard: NotRequired[ServiceGuardSummary]
+
+
+ManualResiliencePreferenceKey = Literal[
+    "manual_check_event",
+    "manual_guard_event",
+    "manual_breaker_event",
+]
+
+
+class ManualResilienceEventSource(TypedDict, total=False):
+    """Metadata describing a tracked manual resilience escalation event."""
+
+    preference_key: ManualResiliencePreferenceKey
+    configured_role: Literal["check", "guard", "breaker"]
+
+
+class ManualResilienceEventSnapshot(TypedDict, total=False):
+    """Serialised telemetry for the last manual resilience trigger."""
+
+    event_type: str | None
+    category: Literal["check", "guard", "breaker", "unknown"]
+    matched_preference: ManualResiliencePreferenceKey | None
+    time_fired: str | None
+    time_fired_age_seconds: int | None
+    received_at: str | None
+    received_age_seconds: int | None
+    origin: str | None
+    context_id: str | None
+    user_id: str | None
+    data: dict[str, Any] | None
 
 
 class ServiceContextMetadata(TypedDict, total=False):
