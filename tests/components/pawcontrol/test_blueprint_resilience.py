@@ -3,7 +3,12 @@
 from __future__ import annotations
 
 import pytest
-from homeassistant.components.automation import DOMAIN as AUTOMATION_DOMAIN
+from homeassistant.components.automation import (
+    DOMAIN as AUTOMATION_DOMAIN,
+)
+from homeassistant.components.automation import (
+    EVENT_AUTOMATION_TRIGGERED,
+)
 from homeassistant.const import STATE_OFF
 from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
 from homeassistant.helpers.template import Template
