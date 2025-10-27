@@ -20,16 +20,28 @@ def pytest_addoption(parser: pytest.Parser) -> None:
         "Integration strategy for asyncio event loops (auto, strict, legacy).",
         default="auto",
     )
-    parser.addoption(
-        "--asyncio-mode",
-        action="store",
-        dest="asyncio_mode",
-        choices=("auto", "strict", "legacy"),
-        help=(
-            "Override the asyncio mode exposed by the PawControl pytest-asyncio "
-            "compatibility layer."
-        ),
-    )
+    anonymous_group = getattr(parser, "_anonymous", None)
+    existing_names: set[str] = set()
+    if anonymous_group and getattr(anonymous_group, "options", None):
+        for option in anonymous_group.options:
+            existing_names.update(option.names())
+
+    if "--asyncio-mode" not in existing_names:
+        parser.addoption(
+            "--asyncio-mode",
+            action="store",
+            dest="asyncio_mode",
+            choices=("auto", "strict", "legacy"),
+            help=(
+                "Override the asyncio mode exposed by the PawControl "
+                "pytest-asyncio compatibility layer."
+            ),
+        )
+    # Some Home Assistant environments already install pytest-asyncio. When
+    # that happens Pytest loads the upstream plugin before this shim, so the
+    # CLI flag has already been registered. The shim only needs to expose the
+    # default ini option and therefore skips redefining the flag when an
+    # existing registration is detected.
 
 
 def pytest_configure(config: pytest.Config) -> None:
