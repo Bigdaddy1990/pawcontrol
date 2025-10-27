@@ -423,6 +423,27 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     assert manual_events["configured_breaker_events"] == ["pawcontrol_manual_breaker"]
     assert manual_events["configured_check_events"] == ["pawcontrol_resilience_check"]
     assert manual_events["automations"][0]["title"] == "Resilience follow-up"
+    assert manual_events["system_guard_event"] is None
+    assert manual_events["system_breaker_event"] is None
+    assert manual_events["listener_events"]["pawcontrol_manual_guard"] == ["guard"]
+    assert manual_events["listener_events"]["pawcontrol_manual_breaker"] == ["breaker"]
+    assert manual_events["listener_events"]["pawcontrol_resilience_check"] == ["check"]
+    assert manual_events["listener_sources"]["pawcontrol_manual_guard"] == ["blueprint"]
+    assert manual_events["listener_sources"]["pawcontrol_manual_breaker"] == [
+        "blueprint"
+    ]
+    assert manual_events["listener_sources"]["pawcontrol_resilience_check"] == [
+        "blueprint"
+    ]
+    assert manual_events["last_trigger"] is None
+    counters = manual_events["event_counters"]
+    assert counters["total"] == 0
+    assert counters["by_event"] == {
+        "pawcontrol_manual_breaker": 0,
+        "pawcontrol_manual_guard": 0,
+        "pawcontrol_resilience_check": 0,
+    }
+    assert counters["by_reason"] == {}
 
     # Diagnostics payloads should be JSON serialisable once normalised.
     serialised = json.dumps(diagnostics)
