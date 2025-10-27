@@ -2478,6 +2478,7 @@ class ManualEventSourceList(list[str]):
     def __eq__(
         self, other: object
     ) -> bool:  # pragma: no cover - behaviour validated via tests
+        """Return True when the compared sequence matches the canonical source set."""
         if isinstance(other, list):
             if other == ["system_options"]:
                 return "system_options" in self
