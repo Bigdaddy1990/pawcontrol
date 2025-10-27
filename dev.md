@@ -5,6 +5,13 @@
 - Target Python 3.13+ features and reuse PawControl helpers (coordinators, managers, and typed constants) to keep runtime data on the typed surface.【F:.github/copilot-instructions.md†L29-L94】
 
 ## Latest tooling snapshot
+- ✅ `ruff check` – Platinum-Ausrichtung ohne neue Lint-Abweichungen nach dem Qualitäts-Sync.【75201e†L1-L2】
+- ✅ `pytest -q` – 1021 Tests (1 skipped) bestätigen koordinierte Service-, Dashboard- und Blueprint-Szenarien bei aktiviertem Coverage-Gate.【bc2d1f†L1-L5】
+- ✅ `mypy custom_components/pawcontrol` – Striktes Typing bleibt stabil über alle 76 Module hinweg.【5fe91f†L1-L2】
+- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest und Übersetzungen validieren ohne Beanstandung.【bb7d4e†L1-L1】
+
+## Fehleranalyse
+- Manifest, README, Qualitäts-Tracker und Compliance-Dokumente widersprachen sich nach Bronze-Reverts; der Sync auf Platinum stellt Badge, Manifest und Nachweise nun konsistent dar.【F:custom_components/pawcontrol/manifest.json†L1-L66】【F:README.md†L1-L120】【F:custom_components/pawcontrol/quality_scale.yaml†L1-L76】【F:docs/compliance_gap_analysis.md†L1-L43】
 - ✅ `ruff check` – keine Abweichungen nach den Resilience-Optionen und Blueprint-Erweiterungen.【c86e82†L1-L2】
 - ✅ `mypy custom_components/pawcontrol` – Typprüfungen akzeptieren die neuen Schwellenhelfer ohne zusätzliche Suppressions.【7bfb48†L1-L2】
 - ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest- und Übersetzungsprüfung laufen fehlerfrei.【f2e611†L1-L1】

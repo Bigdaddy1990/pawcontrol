@@ -1,9 +1,9 @@
 """Comprehensive integration tests for PawControl __init__.py.
 
 Tests the complete integration setup, platform forwarding, service registration,
-entity creation, and lifecycle management for Bronze quality assurance goals.
+entity creation, and lifecycle management for Platinum quality assurance goals.
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Home Assistant: 2025.8.2+
 Python: 3.12+
 """

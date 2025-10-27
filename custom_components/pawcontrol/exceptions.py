@@ -5,7 +5,7 @@ that can occur during Paw Control operations. These exceptions provide
 clear error messaging, structured error information, and proper error handling
 throughout the integration.
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Home Assistant: 2025.8.2+
 Python: 3.12+
 """

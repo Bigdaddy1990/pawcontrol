@@ -4,7 +4,7 @@ This module provides a mixin with additional steps for configuring the
 dashboard during the integration setup. It can be mixed into the main
 ``PawControlConfigFlow`` class to keep the core config flow file concise.
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """

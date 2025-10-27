@@ -7,7 +7,7 @@ with lazy loading, validation, and async operations.
 OPTIMIZED: Enhanced with batch processing, parallel card generation,
 advanced caching, and comprehensive type safety for maximum performance.
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """
@@ -2138,7 +2138,7 @@ class WeatherCardGenerator(BaseCardGenerator):
     OPTIMIZED: Enhanced with weather health visualization, breed-specific recommendations,
     real-time alerts, forecast display, and interactive weather controls.
 
-    Quality Scale: Bronze target
+    Quality Scale: Platinum target
     Weather Integration: v1.0.0
     """
 

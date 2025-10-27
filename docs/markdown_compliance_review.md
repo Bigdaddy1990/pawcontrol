@@ -36,21 +36,16 @@ the documentation portal entry point (`docs/README.md`).
 - `docs/README.md` organises onboarding, architecture, testing, compliance, and
   supplementary guides, giving Home Assistant reviewers a single index for
   deeper evidence.【F:docs/README.md†L1-L35】
-- `docs/compliance_gap_analysis.md` records Platinum rule alignment, connecting
-  each outstanding item with the relevant documentation or test suite.
-  Additional gaps discovered during reviews must be appended here to preserve a
-  chronological audit trail.【F:docs/compliance_gap_analysis.md†L1-L120】
+- `docs/compliance_gap_analysis.md` records Platinum rule alignment, linking
+  every rule to the sustaining documentation or test suite and logging any
+  future findings so the audit trail remains complete.【F:docs/compliance_gap_analysis.md†L1-L43】
 - `dev.md` captures the latest failing tests, improvement backlog, and
   remediation plan, fulfilling the Gemini instruction to keep contributors aware
   of Ruff and pytest expectations.【F:dev.md†L1-L40】
 
 ## Required corrections to satisfy Home Assistant reviewers
-- Update `CHANGELOG.md` and `RELEASE_NOTES.md` to explicitly note the Platinum
-  uplift once the manifest and badges change; these files currently reference the
-  Bronze era and should be synchronised with the new quality goals.
-- Prepare replacement badge assets for README (`Quality Scale`) and
-  documentation portal tiles so reviewers do not see inconsistent Bronze
-  references during the submission process.【F:README.md†L5-L24】【F:README.md†L336-L380】
+- Keep `CHANGELOG.md` and `RELEASE_NOTES.md` summarising the Platinum uplift and refresh them when new sustainment work lands so documentation stays aligned with the manifest and badges.
+- Ensure README (`Quality Scale`) and documentation portal badges continue to advertise the Platinum posture during submissions.【F:README.md†L1-L120】【F:docs/portal/README.md†L1-L40】
 - Expand the troubleshooting/removal guidance in `INSTALLATION.md` with explicit
   steps for helper cleanup and `async_remove_config_entry_device` behaviour once
   the implementation work in `dev.md` is finished.

@@ -2,7 +2,7 @@
 
 This module provides comprehensive select entities for dog monitoring configuration
 including mode selections, option choices, and status settings. All select entities
-are designed to meet Home Assistant's Bronze quality ambitions with full type
+are designed to meet Home Assistant's Platinum quality ambitions with full type
 annotations, async operations, and robust validation.
 """
 

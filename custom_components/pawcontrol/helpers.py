@@ -1,7 +1,7 @@
 """Helper classes and functions for Paw Control integration.
 
 OPTIMIZED VERSION with async performance improvements, batch operations,
-and memory-efficient data management for Bronze quality ambitions.
+and memory-efficient data management for Platinum quality ambitions.
 """
 
 from __future__ import annotations

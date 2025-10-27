@@ -3,7 +3,7 @@
 This module provides centralized entity creation with profile-based
 optimization to reduce entity count and improve performance.
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """

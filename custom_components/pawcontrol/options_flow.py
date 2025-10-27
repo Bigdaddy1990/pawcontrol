@@ -8,7 +8,7 @@ UPDATED: Adds entity profile selection for performance optimization
 Integrates with EntityFactory for intelligent entity management
 ENHANCED: GPS and Geofencing functionality per fahrplan.txt requirements
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """
@@ -231,7 +231,7 @@ GPS_DISTANCE_FILTER_FIELD: Final[Literal["gps_distance_filter"]] = cast(
 
 
 class PawControlOptionsFlow(OptionsFlow):
-    """Handle options flow for Paw Control integration with Bronze UX goals.
+    """Handle options flow for Paw Control integration with Platinum UX goals.
 
     This comprehensive options flow allows users to modify all aspects
     of their Paw Control configuration after initial setup. It provides

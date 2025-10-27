@@ -6,7 +6,7 @@ datetime entities by handling birth dates, adoption anniversaries, and
 scheduled activities that do not require time components.
 
 Metadata:
-    Quality Scale: Bronze target
+    Quality Scale: Platinum target
     Home Assistant: 2025.8.2+
     Python: 3.13+
 """

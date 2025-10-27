@@ -3,7 +3,7 @@
 Provides circuit breaker, retry logic with exponential backoff, and graceful
 degradation to ensure integration reliability even under adverse conditions.
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
