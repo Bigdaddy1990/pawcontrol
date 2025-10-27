@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import importlib
+import inspect
 import sys
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, MutableMapping
@@ -374,11 +375,34 @@ def _install_core_module() -> None:
     class _EventBus:
         def __init__(self) -> None:
             self._events: list[Event] = []
+            self._listeners: defaultdict[str, list[Callable[[Event], Any]]] = (
+                defaultdict(list)
+            )
+
+        def async_listen(
+            self, event_type: str, listener: Callable[[Event], Any]
+        ) -> Callable[[], None]:
+            listeners = self._listeners[event_type]
+            listeners.append(listener)
+
+            def _unsubscribe() -> None:
+                if listener in listeners:
+                    listeners.remove(listener)
+
+            return _unsubscribe
 
         async def async_fire(
             self, event_type: str, event_data: Mapping[str, Any] | None = None
-        ) -> None:
-            self._events.append(Event(event_type, dict(event_data or {})))
+        ) -> Event:
+            event = Event(event_type, dict(event_data or {}), datetime.now(UTC))
+            self._events.append(event)
+
+            for callback in list(self._listeners.get(event_type, [])):
+                result = callback(event)
+                if inspect.isawaitable(result):
+                    await result
+
+            return event
 
     class _Config:
         def __init__(self) -> None:
@@ -808,6 +832,39 @@ def _install_core_module() -> None:
                 return False
             entry.state = ConfigEntryState.LOADED
             return True
+
+        async def async_setup(self, entry_id: str) -> bool:
+            entry = self.async_get_entry(entry_id)
+            if entry is None:
+                return False
+
+            module: ModuleType | None = None
+            try:
+                module = importlib.import_module(f"custom_components.{entry.domain}")
+            except ModuleNotFoundError:
+                try:
+                    module = importlib.import_module(
+                        f"homeassistant.components.{entry.domain}"
+                    )
+                except ModuleNotFoundError:
+                    module = None
+
+            setup_callback = getattr(module, "async_setup_entry", None)
+            if callable(setup_callback):
+                result = await setup_callback(self.hass, entry)
+            else:
+                fallback = getattr(entry, "async_setup", None)
+                if callable(fallback):
+                    result = fallback(self.hass)
+                    if inspect.isawaitable(result):
+                        result = await result
+                else:
+                    result = True
+
+            entry.state = (
+                ConfigEntryState.LOADED if result else ConfigEntryState.SETUP_ERROR
+            )
+            return bool(result)
 
         async def _finalize_options_flow(
             self,
@@ -1832,6 +1889,107 @@ def _install_component_modules() -> None:
     sys.modules["homeassistant.components.system_health"] = system_health_module
     components_package.system_health = system_health_module
 
+    automation_module = ModuleType("homeassistant.components.automation")
+    automation_module.DOMAIN = "automation"
+    automation_module.EVENT_AUTOMATION_TRIGGERED = "automation_triggered"
+
+    async def async_setup_entry(hass: Any, entry: Any) -> bool:
+        from homeassistant.core import ConfigEntryState
+
+        blueprint = (
+            entry.data.get("use_blueprint", {}) if hasattr(entry, "data") else {}
+        )
+        inputs = dict(blueprint.get("input", {}))
+
+        script_entity_id = inputs.get("escalation_script")
+        statistics_entity_id = inputs.get("statistics_sensor")
+        manual_guard_event = inputs.get("manual_guard_event")
+        manual_breaker_event = inputs.get("manual_breaker_event")
+        guard_actions = list(inputs.get("guard_followup_actions", []))
+        breaker_actions = list(inputs.get("breaker_followup_actions", []))
+
+        entity_id = f"automation.{getattr(entry, 'unique_id', entry.entry_id)}"
+        unsubscribe_store: dict[str, list[Callable[[], None]]] = hass.data.setdefault(
+            "_automation_unsubscribers", {}
+        )
+        listeners: list[Callable[[], None]] = []
+
+        def _coerce_threshold(value: Any, default: int) -> int:
+            candidate = value.get("default") if isinstance(value, Mapping) else value
+            if isinstance(candidate, int | float):
+                return int(candidate)
+            return default
+
+        async def _execute(actions: list[Mapping[str, Any]], trigger_name: str) -> None:
+            state = hass.states.get(str(script_entity_id)) if script_entity_id else None
+            fields: Mapping[str, Any] = (
+                state.attributes.get("fields", {}) if state else {}
+            )
+            skip_threshold = _coerce_threshold(fields.get("skip_threshold"), 3)
+            breaker_threshold = _coerce_threshold(fields.get("breaker_threshold"), 1)
+
+            payload = {
+                "statistics_entity_id": str(statistics_entity_id or ""),
+                "skip_threshold": skip_threshold,
+                "breaker_threshold": breaker_threshold,
+            }
+            await hass.services.async_call("script", "turn_on", payload)
+
+            for action in actions:
+                service = str(action.get("service", ""))
+                if not service or "." not in service:
+                    continue
+                domain, service_name = service.split(".", 1)
+                await hass.services.async_call(
+                    domain,
+                    service_name,
+                    cast(Mapping[str, Any] | None, action.get("data")),
+                )
+
+            await hass.bus.async_fire(
+                automation_module.EVENT_AUTOMATION_TRIGGERED,
+                {"entity_id": entity_id, "trigger": trigger_name},
+            )
+
+        if manual_guard_event:
+
+            async def _on_guard(event) -> None:  # type: ignore[override]
+                await _execute(guard_actions, "manual_guard_event")
+
+            listeners.append(hass.bus.async_listen(str(manual_guard_event), _on_guard))
+
+        if manual_breaker_event:
+
+            async def _on_breaker(event) -> None:  # type: ignore[override]
+                await _execute(breaker_actions, "manual_breaker_event")
+
+            listeners.append(
+                hass.bus.async_listen(str(manual_breaker_event), _on_breaker)
+            )
+
+        if listeners:
+            unsubscribe_store[entry.entry_id] = listeners
+
+        entry.state = ConfigEntryState.LOADED
+        return True
+
+    async def async_unload_entry(hass: Any, entry: Any) -> bool:
+        from homeassistant.core import ConfigEntryState
+
+        unsubscribe_store: dict[str, list[Callable[[], None]]] = hass.data.setdefault(
+            "_automation_unsubscribers", {}
+        )
+        for unsubscribe in unsubscribe_store.pop(entry.entry_id, []):
+            unsubscribe()
+
+        entry.state = ConfigEntryState.NOT_LOADED
+        return True
+
+    automation_module.async_setup_entry = async_setup_entry
+    automation_module.async_unload_entry = async_unload_entry
+    sys.modules["homeassistant.components.automation"] = automation_module
+    components_package.automation = automation_module
+
     script_module = ModuleType("homeassistant.components.script")
 
     class ScriptEntity(entity_module.Entity):
@@ -1939,6 +2097,19 @@ def _install_component_modules() -> None:
     sys.modules["homeassistant.loader"] = loader_module
 
 
+def _install_setup_module() -> None:
+    setup_module = ModuleType("homeassistant.setup")
+
+    async def async_setup_component(
+        hass: Any, domain: str, config: Mapping[str, Any] | None = None
+    ) -> bool:
+        hass.config.components.add(domain)
+        return True
+
+    setup_module.async_setup_component = async_setup_component
+    sys.modules["homeassistant.setup"] = setup_module
+
+
 def install_homeassistant_stubs() -> None:
     """Install or refresh the Home Assistant compatibility stubs."""
 
@@ -1959,6 +2130,7 @@ def install_homeassistant_stubs() -> None:
     _install_core_module()
     _install_exception_module()
     _install_helper_modules()
+    _install_setup_module()
     _install_component_modules()
 
     root._pawcontrol_stubs_ready = True
