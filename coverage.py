@@ -317,8 +317,7 @@ class Coverage:
         statements: set[int] = set()
         try:
             text = path.read_text(encoding="utf-8")
-        except Exception:
-            return statements
+        except (IOError, UnicodeDecodeError):
         for lineno, line in enumerate(text.splitlines(), start=1):
             stripped = line.strip()
             if not stripped or stripped.startswith("#"):
