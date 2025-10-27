@@ -288,6 +288,19 @@ Eskalationsskript sowie die jeweiligen Follow-up-Aktionen auch ohne Überschreit
 der Schwellen auf, sodass Runbooks ohne YAML-Duplikate manuelle Prüfungen
 auslösen können.【F:blueprints/automation/pawcontrol/resilience_escalation_followup.yaml†L36-L125】
 
+#### UI-Hinweis: Manuelle Guard-/Breaker-Ereignisse verdrahten
+
+- Öffne im Optionen-Flow den Schritt **Systemeinstellungen** und pflege die neuen
+  Textfelder `manual_guard_event` und `manual_breaker_event`. Die Felder schlagen
+  die zuletzt genutzten Event-IDs aus Blueprint und System-Settings vor, trimmen
+  Leerzeichen und übernehmen Runtime-Vorgaben automatisch, sodass Operatoren die
+  Guard- bzw. Breaker-Trigger direkt aus dem UI auswählen können.【F:custom_components/pawcontrol/options_flow.py†L781-L843】【F:custom_components/pawcontrol/options_flow.py†L4131-L4246】
+- Verwende dieselben Event-Namen in der Blueprint-Eingabe (`manual_guard_event`,
+  `manual_breaker_event`, optional `manual_check_event`), damit Trigger, Follow-up-
+  Aktionen und die System-Optionen synchron bleiben. Das Runbook muss keine
+  abweichenden IDs nachziehen, weil Blueprint und Skriptmanager identische
+  Event-Typen verarbeiten.【F:blueprints/automation/pawcontrol/resilience_escalation_followup.yaml†L44-L118】【F:custom_components/pawcontrol/script_manager.py†L500-L706】
+
 Diagnostics exportieren die konfigurierten `manual_*`-Events zusammen mit den
 resolvierten Guard-/Breaker-Schwellen direkt aus dem generierten Skript. Damit
 sehen Support-Handbücher sofort, welche Trigger aktiv sind und ob ältere
