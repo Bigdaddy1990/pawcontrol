@@ -8,7 +8,7 @@ UPDATED: Adds entity profile selection for performance optimization
 Integrates with EntityFactory for intelligent entity management
 ENHANCED: GPS and Geofencing functionality per fahrplan.txt requirements
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """
@@ -234,7 +234,7 @@ GPS_DISTANCE_FILTER_FIELD: Final[Literal["gps_distance_filter"]] = cast(
 
 
 class PawControlOptionsFlow(OptionsFlow):
-    """Handle options flow for Paw Control integration with Bronze UX goals.
+    """Handle options flow for Paw Control integration with Platinum UX goals.
 
     This comprehensive options flow allows users to modify all aspects
     of their Paw Control configuration after initial setup. It provides
@@ -897,6 +897,70 @@ class PawControlOptionsFlow(OptionsFlow):
 
         return system
 
+    def _resolve_manual_event_context(
+        self, current_system: SystemOptions
+    ) -> dict[str, Any]:
+        """Return manual event suggestions sourced from runtime and defaults."""
+
+        guard_suggestions: set[str] = {
+            "pawcontrol_manual_guard",
+        }
+        breaker_suggestions: set[str] = {
+            "pawcontrol_manual_breaker",
+        }
+
+        guard_default: str | None = self._coerce_manual_event(
+            current_system.get("manual_guard_event")
+        )
+        breaker_default: str | None = self._coerce_manual_event(
+            current_system.get("manual_breaker_event")
+        )
+
+        runtime = get_runtime_data(self.hass, self._entry)
+        script_manager = getattr(runtime, "script_manager", None)
+        manual_snapshot: Mapping[str, Any] | None = None
+
+        if script_manager is not None:
+            snapshot = script_manager.get_resilience_escalation_snapshot()
+            if isinstance(snapshot, Mapping):
+                manual_section = snapshot.get("manual_events")
+                if isinstance(manual_section, Mapping):
+                    manual_snapshot = manual_section
+
+        if manual_snapshot is not None:
+            system_guard = self._coerce_manual_event(
+                manual_snapshot.get("system_guard_event")
+            )
+            system_breaker = self._coerce_manual_event(
+                manual_snapshot.get("system_breaker_event")
+            )
+
+            if guard_default is None:
+                guard_default = system_guard
+            if breaker_default is None:
+                breaker_default = system_breaker
+
+            for event in manual_snapshot.get("configured_guard_events", []):
+                normalised = self._coerce_manual_event(event)
+                if normalised is not None:
+                    guard_suggestions.add(normalised)
+            for event in manual_snapshot.get("configured_breaker_events", []):
+                normalised = self._coerce_manual_event(event)
+                if normalised is not None:
+                    breaker_suggestions.add(normalised)
+
+        if guard_default is not None:
+            guard_suggestions.add(guard_default)
+        if breaker_default is not None:
+            breaker_suggestions.add(breaker_default)
+
+        return {
+            "guard_suggestions": sorted(guard_suggestions),
+            "breaker_suggestions": sorted(breaker_suggestions),
+            "guard_default": guard_default,
+            "breaker_default": breaker_default,
+        }
+
     @staticmethod
     def _resolve_resilience_threshold_default(
         system: SystemOptions,
@@ -987,6 +1051,16 @@ class PawControlOptionsFlow(OptionsFlow):
         if isinstance(value, str):
             return value.strip().lower() in {"1", "true", "on", "yes"}
         return bool(value)
+
+    @staticmethod
+    def _coerce_manual_event(value: Any) -> str | None:
+        """Normalise manual event identifiers, returning ``None`` when disabled."""
+
+        if isinstance(value, str):
+            candidate = value.strip()
+            if candidate:
+                return candidate
+        return None
 
     @staticmethod
     def _coerce_int(value: Any, default: int) -> int:
@@ -1384,6 +1458,34 @@ class PawControlOptionsFlow(OptionsFlow):
                 manual_defaults.get("manual_breaker_event"),
             ),
         }
+
+        if "manual_guard_event" in user_input:
+            guard_event = self._coerce_manual_event(
+                user_input.get("manual_guard_event")
+            )
+            if guard_event is None:
+                system.pop("manual_guard_event", None)
+            else:
+                system["manual_guard_event"] = guard_event
+        elif "manual_guard_event" in current:
+            guard_event = self._coerce_manual_event(current.get("manual_guard_event"))
+            if guard_event is not None:
+                system["manual_guard_event"] = guard_event
+
+        if "manual_breaker_event" in user_input:
+            breaker_event = self._coerce_manual_event(
+                user_input.get("manual_breaker_event")
+            )
+            if breaker_event is None:
+                system.pop("manual_breaker_event", None)
+            else:
+                system["manual_breaker_event"] = breaker_event
+        elif "manual_breaker_event" in current:
+            breaker_event = self._coerce_manual_event(
+                current.get("manual_breaker_event")
+            )
+            if breaker_event is not None:
+                system["manual_breaker_event"] = breaker_event
 
         reset_time = self._coerce_time_string(
             user_input.get("reset_time"), reset_default
@@ -4265,6 +4367,24 @@ class PawControlOptionsFlow(OptionsFlow):
                             },
                         ],
                         mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
+                vol.Optional(
+                    "manual_guard_event",
+                    default=guard_default,
+                ): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT,
+                        suggestions=guard_suggestions,
+                    )
+                ),
+                vol.Optional(
+                    "manual_breaker_event",
+                    default=breaker_default,
+                ): selector.TextSelector(
+                    selector.TextSelectorConfig(
+                        type=selector.TextSelectorType.TEXT,
+                        suggestions=breaker_suggestions,
                     )
                 ),
             }

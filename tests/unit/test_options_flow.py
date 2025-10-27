@@ -870,6 +870,8 @@ async def test_system_settings_normalisation(
 
     assert options["enable_analytics"] is True
     assert options["enable_cloud_backup"] is False
+    assert options["manual_guard_event"] == "pawcontrol_manual_guard"
+    assert "manual_breaker_event" not in options
 
     notifications = cast(NotificationOptions, options[CONF_NOTIFICATIONS])
     assert notifications[CONF_QUIET_HOURS] is True

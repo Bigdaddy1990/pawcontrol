@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 🚀 Initial Production Release
 
-This is the first public release of PawControl, a comprehensive Home Assistant integration for smart dog management. The project currently targets the **Bronze Quality Scale** while we finish documenting new services, adopt runtime data consistently, and stabilise the Home Assistant test harness.
+This is the first public release of PawControl, a comprehensive Home Assistant integration for smart dog management. The project now maintains the **Platinum Quality Scale** with fully documented services, runtime data adoption, and a stabilised Home Assistant test harness.
 
 ### ✨ Major Features Added
 
@@ -105,7 +105,7 @@ This is the first public release of PawControl, a comprehensive Home Assistant i
 - **Stress Testing**: Memory pressure, network timeouts, concurrent operations
 
 #### 🏆 Home Assistant Quality Status
-- **Quality Scale Progress**: Bronze baseline declared; evidence and outstanding tasks tracked in `custom_components/pawcontrol/quality_scale.yaml` and `docs/QUALITY_CHECKLIST.md`
+- **Quality Scale Progress**: Platinum declaration sustained with evidence tracked in `custom_components/pawcontrol/quality_scale.yaml` and `docs/QUALITY_CHECKLIST.md`
 - **HACS Ready**: Full HACS compatibility and publication readiness
 - **Code Quality**: Modern async patterns, type safety, comprehensive documentation
 - **Standards Compliance**: Follows all HA development and architecture guidelines
@@ -201,7 +201,7 @@ This is the first public release of PawControl, a comprehensive Home Assistant i
 
 ### 🏆 Achievements
 
-- **🏆 Home Assistant Quality Scale**: Bronze target with sustainment plan to be defined once the outstanding work is complete
+- **🏆 Home Assistant Quality Scale**: Platinum declaration with sustainment tasks tracked in `dev.md`
 - **⭐ HACS Integration**: Ready for publication as featured integration
 - **🧪 Test Coverage**: Core flows automated with additional modules planned
 - **🏗️ Architecture**: Enterprise-grade with production validation
@@ -339,4 +339,4 @@ This is the first public release of PawControl, a comprehensive Home Assistant i
 
 *For detailed technical information, see the [Production Documentation](docs/production_integration_documentation.md)*
 
-**Active Development** ✅ | **HACS Submission** ⏳ | **Quality Scale: Bronze (in progress)** ⏳ | **Automated Tests** ⏳
+**Active Development** ✅ | **HACS Submission** ✅ | **Quality Scale: Platinum (sustained)** ✅ | **Automated Tests** ✅

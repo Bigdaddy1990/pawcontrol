@@ -4,7 +4,7 @@ Provides comprehensive GPS tracking, route management, geofencing with safety zo
 and location-based alerts for dogs. Includes automatic walk detection and real-time
 location monitoring with configurable safety boundaries.
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Home Assistant: 2025.9.4+
 Python: 3.13+
 """

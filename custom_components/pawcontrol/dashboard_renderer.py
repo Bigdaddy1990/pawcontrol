@@ -4,7 +4,7 @@ This module provides high-performance, non-blocking dashboard rendering with
 batch operations, lazy loading, and memory management. It processes dashboard
 generation requests asynchronously to prevent blocking the event loop.
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Home Assistant: 2025.8.3+
 Python: 3.13+
 """

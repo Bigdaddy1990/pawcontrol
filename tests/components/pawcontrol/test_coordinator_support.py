@@ -21,7 +21,7 @@ class TestDogConfigRegistry:
     """Validate polling interval calculations for the coordinator."""
 
     def test_minimal_interval_without_dogs(self) -> None:
-        """Ensure an empty configuration honours the Bronze poll ceiling."""
+        """Ensure an empty configuration honours the Platinum poll ceiling."""
 
         registry = DogConfigRegistry([])
         interval = registry.calculate_update_interval(options={})

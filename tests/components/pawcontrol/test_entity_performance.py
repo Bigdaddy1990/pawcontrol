@@ -3,7 +3,7 @@
 Tests multi-dog scaling, memory usage, execution time, and real-world
 performance scenarios for all entity profiles.
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """

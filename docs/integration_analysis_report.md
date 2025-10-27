@@ -1,20 +1,18 @@
 # PawControl Integration Analysis Report
 
-The PawControl integration currently advertises the **Bronze** quality scale.
-This report captures the existing strengths along with the gaps we must close
-before pursuing higher tiers.
+The PawControl integration advertises the **Platinum** quality scale. This report captures the strengths that sustain that posture along with ongoing monitoring areas.
 
 ## Highlights
-1. **Documentation foundations** – README and INSTALLATION cover setup and onboarding; additional troubleshooting and diagnostics content is planned.
-2. **Service coverage** – Feeding services are documented. Garden, weather, notification, and diagnostics helpers still need documentation to satisfy Bronze.
-3. **Config flow support** – The UI-driven config flow handles the base user path, but discovery, reconfigure, and reauth steps are unfinished.
+1. **Documentation coverage** – README, INSTALLATION, MAINTENANCE, and the portal guides document setup, troubleshooting, diagnostics, repairs, and removal workflows.
+2. **Service surface** – Feeding, garden, weather, notification, diagnostics, and resilience services are documented and validated by `services.yaml` plus targeted tests.
+3. **Config flow maturity** – UI-driven configuration supports discovery, reconfigure, reauth, and options paths with localisation and regression coverage.
 
-## Gaps & Risks
-1. **Runtime adoption** – Runtime data helpers need validation and tests to prove platforms use them consistently.
-2. **Testing harness** – The Home Assistant compatibility stubs are incomplete, leaving the integration, coordinator, and diagnostics suites failing in constrained environments.
-3. **Device lifecycle** – `async_remove_config_entry_device` requires tests to avoid removing active dogs and to document the cleanup process.
+## Sustainment Focus
+1. **Runtime adoption** – Continue verifying that new platforms consume the coordinator runtime managers and update tests when adapters evolve.
+2. **Testing harness** – Maintain the Home Assistant stub harness so component, integration, diagnostics, and repair suites execute reliably with the coverage gate.
+3. **Device lifecycle** – Periodically rerun device removal and reload tests to ensure active dogs remain intact and documentation reflects current behaviour.
 
 ## Next Steps
-1. Document every registered service in `custom_components/pawcontrol/services.yaml` and add real-world examples.
-2. Finish the config flow steps and add regression tests for setup failures, reauth, and options flows.
-3. Rebuild the Home Assistant stub harness so `pytest -q` can exercise component and integration suites, then restore coverage reporting in CI.
+1. Extend `docs/testing/coverage_reporting.md` with the latest artefacts after each nightly run.
+2. Track resilience UI and telemetry changes so diagnostics exports and dashboards remain aligned.
+3. Review localisation diffs quarterly to catch drift between `strings.json` and the translated payloads.

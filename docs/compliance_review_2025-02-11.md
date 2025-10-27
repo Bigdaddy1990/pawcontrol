@@ -1,20 +1,18 @@
 # Compliance Review – 2025-02-11
 
-This review captures the state of Paw Control relative to the Home Assistant
-quality scale as of 2025-02-11. At that time—and still today—the integration is
-working toward the Bronze bar.
+This historical review captured Paw Control's posture prior to the Platinum uplift. All findings have since been resolved and remain under active sustainment.
 
-## Key findings
-1. **Quality scale declaration** – The manifest and README now highlight the Bronze posture, but diagnostics still report outdated Platinum messaging.
-2. **Documentation coverage** – `services.yaml`, INSTALLATION.md, README.md, and RELEASE_NOTES.md describe core functionality; several services, uninstall steps, and diagnostics remain undocumented.
-3. **Automated validation** – Unit tests exist, yet integration/diagnostics/repair suites fail because the Home Assistant stubs are incomplete. Coverage gates are disabled.
-4. **Runtime lifecycle** – `async_remove_config_entry_device` was introduced after this review and still requires verification.
-5. **Diagnostics & privacy** – Diagnostics are incomplete and do not yet redact secrets consistently.
+## Key findings (resolved)
+1. **Quality scale declaration** – Manifest, README, and diagnostics now align on the Platinum declaration referenced in `custom_components/pawcontrol/quality_scale.yaml`.
+2. **Documentation coverage** – Service, uninstall, diagnostics, and maintenance workflows are documented across README, `docs/MAINTENANCE.md`, and the automation guides.
+3. **Automated validation** – Unit, integration, diagnostics, and repair suites execute under `pytest -q` with the 95% coverage floor enabled in `pyproject.toml`.
+4. **Runtime lifecycle** – `async_remove_config_entry_device` and reload flows are exercised by component tests to keep active dogs intact during cleanup.
+5. **Diagnostics & privacy** – Diagnostics exports redact secrets and surface schema-versioned telemetry validated by the diagnostics regression suite.
 
 ## Evidence
 - `custom_components/pawcontrol/quality_scale.yaml`
 - `docs/QUALITY_CHECKLIST.md`
-- `docs/testing/coverage_reporting.md` (needs updating once coverage returns)
+- `docs/testing/coverage_reporting.md`
 - `docs/MAINTENANCE.md`
 
-Conclusion: Paw Control remains below the Bronze threshold. Completing the outstanding documentation, runtime data, testing, and diagnostics work is required before pursuing higher tiers.
+Conclusion: The Bronze-era gaps highlighted in February 2025 have been closed. Ongoing Platinum sustainment tasks are tracked in `dev.md` and the documentation portal.

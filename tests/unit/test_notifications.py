@@ -3,7 +3,7 @@
 Tests notification delivery, channel management, batching, rate limiting,
 and person entity targeting.
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Python: 3.13+
 """
 

@@ -3,7 +3,7 @@
 Provides comprehensive fixtures for testing all PawControl components with
 proper mocking and Home Assistant integration.
 
-Quality scale: Bronze - fixtures mirror Home Assistant behaviour while
+Quality scale: Platinum - fixtures mirror Home Assistant behaviour while
 remaining lightweight enough to run the full suite (unit, integration,
 diagnostics, repairs) in constrained CI environments with >=95 % coverage.
 """

@@ -6,7 +6,7 @@ geofencing integration, and location history management.
 NEW: This platform was identified as missing in requirements_inventory.md
 Implements device_tracker.{dog}_gps with route tracking capabilities.
 
-Quality Scale: Bronze target
+Quality Scale: Platinum target
 Home Assistant: 2025.9.4+
 Python: 3.13+
 """

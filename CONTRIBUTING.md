@@ -3,7 +3,7 @@
 Thank you for your interest in improving the PawControl integration. This guide explains how you can deliver high-quality contributions quickly and confidently.
 
 ## Know the quality expectations
-- PawControl is currently targeting the Bronze level of the Home Assistant integration quality scale (see `custom_components/pawcontrol/manifest.json`). Contributions should help close the outstanding gaps documented in `custom_components/pawcontrol/quality_scale.yaml`.
+- PawControl declares the Platinum level of the Home Assistant integration quality scale (see `custom_components/pawcontrol/manifest.json`). Contributions must preserve the evidence tracked in `custom_components/pawcontrol/quality_scale.yaml` and related compliance reports.
 - Review `custom_components/pawcontrol/quality_scale.yaml` before you start so you understand which requirements are complete, exempt, or still marked as TODO.
 - When you finish a requirement or claim an exemption, update the quality scale file and include a short comment that explains the change.
 

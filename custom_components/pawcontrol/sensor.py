@@ -55,7 +55,7 @@ AttributeDict = dict[str, Any]
 # Home Assistant platform configuration
 PARALLEL_UPDATES = 0
 
-# OPTIMIZED: Performance constants for Bronze profiles
+# OPTIMIZED: Performance constants for Platinum profiles
 ENTITY_CREATION_DELAY = 0.005  # 5ms between batches (optimized for profiles)
 MAX_ENTITIES_PER_BATCH = 6  # Smaller batches for profile-based creation
 PARALLEL_THRESHOLD = 12  # Lower threshold for profile-optimized entity counts
@@ -188,7 +188,7 @@ async def async_setup_entry(
 ) -> None:
     """Set up Paw Control sensor platform with profile optimization."""
 
-    # OPTIMIZED: Consistent runtime_data usage for Bronze readiness
+    # OPTIMIZED: Consistent runtime_data usage for Platinum readiness
     runtime_data = get_runtime_data(hass, entry)
     if runtime_data is None:
         _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)

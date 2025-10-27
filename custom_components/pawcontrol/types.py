@@ -2640,7 +2640,7 @@ class PawControlRuntimeData:
     """Comprehensive runtime data container for the PawControl integration.
 
     This dataclass contains all runtime components needed by the integration
-    for Bronze-targeted type safety with ConfigEntry[PawControlRuntimeData].
+    for Platinum-targeted type safety with ConfigEntry[PawControlRuntimeData].
     Enhanced with performance monitoring, error tracking, and comprehensive
     component lifecycle management.
 
@@ -2686,7 +2686,7 @@ class PawControlRuntimeData:
     door_sensor_manager: DoorSensorManager | None = None
     device_api_client: PawControlDeviceClient | None = None
 
-    # Enhanced runtime tracking for Bronze-targeted monitoring
+    # Enhanced runtime tracking for Platinum-targeted monitoring
     performance_stats: dict[str, Any] = field(default_factory=dict)
     error_history: list[dict[str, Any]] = field(default_factory=list)
     # PLATINUM: Optional unsubscribe callbacks for scheduler and reload listener
