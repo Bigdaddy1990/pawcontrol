@@ -6,6 +6,8 @@ import json
 import re
 from pathlib import Path
 
+from script.sync_localization_flags import TABLE_END_MARKER, TABLE_START_MARKER
+
 ROOT = Path(__file__).resolve().parents[2]
 STRINGS_PATH = ROOT / "custom_components" / "pawcontrol" / "strings.json"
 TRANSLATIONS_DIR = ROOT / "custom_components" / "pawcontrol" / "translations"
@@ -29,14 +31,29 @@ def _split_table_row(row: str) -> list[str]:
 def _parse_localization_table(
     doc_content: str,
 ) -> tuple[list[str], dict[str, dict[str, str]]]:
+    lines = doc_content.splitlines()
+    start_index: int | None = None
+    end_index: int | None = None
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped == TABLE_START_MARKER:
+            start_index = index
+        elif stripped == TABLE_END_MARKER and start_index is not None:
+            end_index = index
+            break
+
+    if start_index is None or end_index is None or end_index <= start_index:
+        raise AssertionError(
+            "Localization table markers missing from docs/diagnostik.md"
+        )
+
+    table_lines = [
+        line for line in lines[start_index + 1 : end_index] if line.startswith("|")
+    ]
+
     header: list[str] | None = None
     rows: list[list[str]] = []
-    for line in doc_content.splitlines():
-        if not line.startswith("|"):
-            if header is not None and rows:
-                break
-            continue
-
+    for line in table_lines:
         cells = _split_table_row(line)
         if header is None:
             header = cells

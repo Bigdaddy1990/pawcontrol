@@ -26,6 +26,15 @@ _FLAG_PREFIX = "setup_flags_panel_flag_"
 _SOURCE_PREFIX = "setup_flags_panel_source_"
 _FIXED_KEYS = {"setup_flags_panel_description", "setup_flags_panel_title"}
 _COMMON_SECTION = "common"
+_LANGUAGE_LABELS = {
+    "en": "Englisch",
+    "de": "Deutsch",
+    "es": "Spanisch",
+    "fr": "Französisch",
+}
+
+TABLE_START_MARKER = "<!-- SETUP_FLAGS_TABLE_START -->"
+TABLE_END_MARKER = "<!-- SETUP_FLAGS_TABLE_END -->"
 
 JsonDict = dict[str, Any]
 
@@ -171,7 +180,112 @@ def _parse_args() -> argparse.Namespace:
             "Entries prefixed with '#' are treated as comments."
         ),
     )
+    parser.add_argument(
+        "--update-markdown",
+        type=Path,
+        help=(
+            "Optional path to a Markdown file with the setup-flags table that should be refreshed."
+        ),
+    )
+    parser.add_argument(
+        "--markdown-languages",
+        default="en,de,es,fr",
+        help=("Comma-separated list of language codes for the Markdown table."),
+    )
     return parser.parse_args()
+
+
+def _render_markdown_table(
+    keys: Sequence[str],
+    languages: Sequence[str],
+    translations: Mapping[str, JsonDict],
+) -> list[str]:
+    def _language_label(code: str) -> str:
+        return _LANGUAGE_LABELS.get(code, code)
+
+    header = (
+        "| Übersetzungsschlüssel | "
+        + " | ".join(f"{_language_label(code)} (`{code}`)" for code in languages)
+        + " |"
+    )
+    separator = "| --- | " + " | ".join("---" for _ in languages) + " |"
+    rows: list[str] = []
+    for key in keys:
+        full_key = f"component.pawcontrol.{_COMMON_SECTION}.{key}"
+        values: list[str] = []
+        for code in languages:
+            payload = translations.get(code, {})
+            common = payload.get(_COMMON_SECTION, {})
+            value = common.get(key)
+            if isinstance(value, str):
+                text = value
+            elif value is None:
+                text = ""
+            else:
+                text = json.dumps(value, ensure_ascii=False)
+            values.append(text)
+        rows.append("| " + " | ".join([full_key, *values]) + " |")
+    return [header, separator, *rows]
+
+
+def _update_markdown_table(
+    path: Path,
+    keys: Sequence[str],
+    translations: Mapping[str, JsonDict],
+    languages: Sequence[str],
+    *,
+    check_only: bool,
+) -> bool:
+    if not path.exists():
+        if check_only:
+            raise SystemExit(
+                f"Markdown file {path} is missing. Run the sync script without --check to create it."
+            )
+        return False
+
+    content = path.read_text(encoding="utf-8").splitlines()
+
+    def _find_marker(marker: str) -> int:
+        for index, line in enumerate(content):
+            if line.strip() == marker:
+                return index
+        raise ValueError(marker)
+
+    try:
+        start_index = _find_marker(TABLE_START_MARKER)
+    except ValueError as exc:
+        if check_only:
+            raise SystemExit(
+                f"{path} is missing the {TABLE_START_MARKER} marker"
+            ) from exc
+        return False
+
+    try:
+        end_index = next(
+            index
+            for index in range(start_index + 1, len(content))
+            if content[index].strip() == TABLE_END_MARKER
+        )
+    except StopIteration as exc:
+        if check_only:
+            raise SystemExit(
+                f"{path} is missing the {TABLE_END_MARKER} marker"
+            ) from exc
+        return False
+
+    new_table = _render_markdown_table(keys, languages, translations)
+    if content[start_index + 1 : end_index] == new_table:
+        return False
+
+    if check_only:
+        raise SystemExit(
+            "Setup-flags Markdown table is out of date. Run `python -m script.sync_localization_flags --update-markdown "
+            f"{path}` to refresh it."
+        )
+
+    updated = content[: start_index + 1] + new_table + content[end_index:]
+    path.write_text("\n".join(updated) + "\n", encoding="utf-8")
+    return True
 
 
 def main() -> None:
@@ -198,6 +312,8 @@ def main() -> None:
     changed = False
     bootstrapped_languages: list[str] = []
 
+    translation_payloads: dict[str, JsonDict] = {}
+
     for language, translation_path in _determine_translation_targets(allowlist):
         created = _ensure_translation_file(
             translation_path,
@@ -211,6 +327,24 @@ def main() -> None:
         changed |= _sync_translation_file(
             translation_path, expected_entries, args.check
         )
+        translation_payloads[language] = _load_json(translation_path)
+
+    if args.update_markdown is not None:
+        languages = [
+            code.strip()
+            for code in str(args.markdown_languages).split(",")
+            if code.strip()
+        ]
+        if not languages:
+            languages = ["en"]
+        markdown_changed = _update_markdown_table(
+            args.update_markdown,
+            list(expected_entries),
+            translation_payloads,
+            languages,
+            check_only=args.check,
+        )
+        changed |= markdown_changed
 
     if changed and not args.check:
         if bootstrapped_languages:

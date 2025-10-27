@@ -3,15 +3,18 @@
 from __future__ import annotations
 
 import asyncio
+import atexit
 import importlib
 import inspect
 import sys
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Mapping, MutableMapping
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta, timezone
 from enum import Enum
 from pathlib import Path
+from threading import Lock
 from types import MappingProxyType, ModuleType, SimpleNamespace
 from typing import TYPE_CHECKING, Any, Optional, cast
 from uuid import uuid4
@@ -294,13 +297,49 @@ def _install_core_module() -> None:
             self.context = context or Context()
             self.return_response = return_response
 
-    @dataclass
     class Event:
-        event_type: str
-        data: Mapping[str, Any] | None = None
-        time_fired: datetime | None = None
-        context: Context | None = None
-        origin: str | None = None
+        """Home Assistant-style event payload used by the stubbed event bus."""
+
+        def __init__(
+            self,
+            event_type: str,
+            data: Mapping[str, Any] | None = None,
+            time_fired: datetime | None = None,
+            context: Context | None = None,
+            origin: Any | None = None,
+            **extra: Any,
+        ) -> None:
+            if not isinstance(event_type, str) or not event_type:
+                raise ValueError("event_type must be a non-empty string")
+
+            self.event_type = event_type
+            self.data = MappingProxyType(dict(data or {}))
+
+            if time_fired is None:
+                time_fired = datetime.now(UTC)
+            elif time_fired.tzinfo is None:
+                time_fired = time_fired.replace(tzinfo=UTC)
+            else:
+                time_fired = time_fired.astimezone(UTC)
+            self.time_fired = time_fired
+
+            context_id = extra.pop("context_id", None)
+            user_id = extra.pop("user_id", None)
+            parent_id = extra.pop("parent_id", None)
+
+            if context is None and any(
+                value is not None for value in (context_id, user_id, parent_id)
+            ):
+                context = Context(
+                    context_id=context_id,
+                    user_id=user_id,
+                    parent_id=parent_id,
+                )
+            self.context = context or Context()
+            self.origin = origin
+
+            for key, value in extra.items():
+                setattr(self, key, value)
 
     event_state_changed_data = MutableMapping[str, Any]
 
@@ -400,9 +439,23 @@ def _install_core_module() -> None:
             return _remove
 
         async def async_fire(
-            self, event_type: str, event_data: Mapping[str, Any] | None = None
+            self,
+            event_type: str,
+            event_data: Mapping[str, Any] | None = None,
+            *,
+            context: Context | None = None,
+            origin: Any | None = None,
+            time_fired: datetime | None = None,
+            **extra: Any,
         ) -> None:
-            event = Event(event_type, dict(event_data or {}), datetime.now(UTC))
+            event = Event(
+                event_type,
+                dict(event_data or {}),
+                time_fired=time_fired,
+                context=context,
+                origin=origin,
+                **extra,
+            )
             self._events.append(event)
             listeners = list(self._listeners.get(event_type, ())) + list(
                 self._listeners.get("*", ())
@@ -1345,7 +1398,17 @@ def _install_helper_modules() -> None:
             template = self._sync_environment.from_string(self._template)
             context: dict[str, Any] = dict(variables or {})
             context.update(kwargs)
-            return template.render(**context)
+
+            def _render_sync() -> Any:
+                return template.render(**context)
+
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                return _render_sync()
+
+            future = _get_template_executor().submit(_render_sync)
+            return future.result()
 
         async def async_render(
             self, variables: Mapping[str, Any] | None = None, **kwargs: Any
@@ -2462,3 +2525,41 @@ def _install_pawcontrol_coordinator_helpers() -> None:
 
 
 install_homeassistant_stubs()
+_TEMPLATE_RENDER_EXECUTOR: ThreadPoolExecutor | None = None
+_TEMPLATE_EXECUTOR_LOCK = Lock()
+_TEMPLATE_EXECUTOR_SHUTDOWN_REGISTERED = False
+
+
+def _shutdown_template_executor() -> None:
+    """Terminate the lazily created template executor."""
+
+    global _TEMPLATE_RENDER_EXECUTOR
+
+    executor = _TEMPLATE_RENDER_EXECUTOR
+    if executor is None:
+        return
+    executor.shutdown(wait=True)
+
+
+def _get_template_executor() -> ThreadPoolExecutor:
+    """Return a thread pool for synchronous template rendering."""
+
+    global _TEMPLATE_RENDER_EXECUTOR, _TEMPLATE_EXECUTOR_SHUTDOWN_REGISTERED
+
+    executor = _TEMPLATE_RENDER_EXECUTOR
+    if executor is not None:
+        return executor
+
+    with _TEMPLATE_EXECUTOR_LOCK:
+        executor = _TEMPLATE_RENDER_EXECUTOR
+        if executor is None:
+            executor = ThreadPoolExecutor(
+                max_workers=2, thread_name_prefix="ha-template-render"
+            )
+            _TEMPLATE_RENDER_EXECUTOR = executor
+            if not _TEMPLATE_EXECUTOR_SHUTDOWN_REGISTERED:
+                atexit.register(_shutdown_template_executor)
+                _TEMPLATE_EXECUTOR_SHUTDOWN_REGISTERED = True
+            executor.submit(lambda: None).result()
+
+    return executor

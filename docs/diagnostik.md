@@ -83,11 +83,13 @@
 
 ### Setup-Flags-Übersetzungsinventar
 
+<!-- SETUP_FLAGS_TABLE_START -->
 | Übersetzungsschlüssel | Englisch (`en`) | Deutsch (`de`) | Spanisch (`es`) | Französisch (`fr`) |
 | --- | --- | --- | --- | --- |
+| component.pawcontrol.common.setup_flags_panel_description | Analytics, backup, and debug logging toggles captured during onboarding and options flows. | Analytics-, Backup- und Debug-Logging-Schalter aus Onboarding und Optionen. | Analytics, backup, and debug logging toggles captured during onboarding and options flows. | Analytics, backup, and debug logging toggles captured during onboarding and options flows. |
+| component.pawcontrol.common.setup_flags_panel_flag_debug_logging | Debug logging | Debug-Logging | Registro de depuración | Journalisation de débogage |
 | component.pawcontrol.common.setup_flags_panel_flag_enable_analytics | Analytics telemetry | Analyse-Telemetrie | Telemetría de analíticas | Télémétrie d'analyse |
 | component.pawcontrol.common.setup_flags_panel_flag_enable_cloud_backup | Cloud backup | Cloud-Backup | Copia de seguridad en la nube | Sauvegarde cloud |
-| component.pawcontrol.common.setup_flags_panel_flag_debug_logging | Debug logging | Debug-Logging | Registro de depuración | Journalisation de débogage |
 | component.pawcontrol.common.setup_flags_panel_source_advanced_settings | Advanced settings | Erweiterte Einstellungen | Configuración avanzada | Paramètres avancés |
 | component.pawcontrol.common.setup_flags_panel_source_blueprint | Blueprint suggestion | Blueprint-Vorschlag | Sugerencia de blueprint | Suggestion de blueprint |
 | component.pawcontrol.common.setup_flags_panel_source_config_entry | Config entry defaults | Konfigurationseintrag | Valores predeterminados de la entrada de configuración | Valeurs par défaut de l'entrée de configuration |
@@ -95,6 +97,8 @@
 | component.pawcontrol.common.setup_flags_panel_source_disabled | Disable | Deaktivieren | Desactivar | Désactiver |
 | component.pawcontrol.common.setup_flags_panel_source_options | Options flow | Options-Flow | Flujo de opciones | Flux d'options |
 | component.pawcontrol.common.setup_flags_panel_source_system_settings | System settings | Systemeinstellungen | Configuración del sistema | Paramètres système |
+| component.pawcontrol.common.setup_flags_panel_title | Setup flags | Setup-Flags | Setup flags | Setup flags |
+<!-- SETUP_FLAGS_TABLE_END -->
 
 - Das Feld `resilience_escalation` spiegelt das erzeugte Skript inklusive Entity-ID, aktiven Guard-/Breaker-Schwellen, Follow-up-Skript, letzten Trigger-Zeitpunkt **sowie** eine Ringpuffer-Historie der letzten fünf manuellen Eskalationen. Für jeden Eintrag werden Event-Typ, Herkunft (`blueprint`, `system_options`), Kontext-ID, Benutzerkennung, Ursprung (`LOCAL`/`REMOTE`) und Payload serialisiert, damit Bereitschaften sowohl Präferenzquellen als auch manuelle Eingriffe direkt im Dump nachvollziehen können. Beim Laden migriert die Integration vorhandene Skript-Schwellen in die Optionen, sodass Altinstallationen ohne manuelles Eingreifen konsistente Werte liefern.【F:custom_components/pawcontrol/script_manager.py†L503-L704】【F:custom_components/pawcontrol/diagnostics.py†L688-L867】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L243】【F:tests/unit/test_data_manager.py†L595-L705】
 - `system_health_info` übernimmt denselben Verlauf und stellt ihn im Abschnitt `service_execution.manual_events` bereit, wodurch Dashboards ohne Diagnostik-Export erkennen können, welcher Benutzer zuletzt einen Guard-/Breaker-Trigger ausgelöst hat.【F:custom_components/pawcontrol/system_health.py†L103-L176】【F:tests/components/pawcontrol/test_system_health.py†L130-L210】

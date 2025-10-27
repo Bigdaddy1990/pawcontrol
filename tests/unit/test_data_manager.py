@@ -976,6 +976,41 @@ def test_script_manager_manual_event_listener_records_last_trigger() -> None:
 
 
 @pytest.mark.unit
+def test_script_manager_manual_history_size_respects_options() -> None:
+    """Manual event history length should be configurable via options."""
+
+    hass = SimpleNamespace(
+        data={},
+        states=SimpleNamespace(get=lambda entity_id: None),
+        config_entries=SimpleNamespace(async_entries=lambda domain: []),
+    )
+    entry = SimpleNamespace(
+        entry_id="entry-id",
+        data={},
+        options={"system_settings": {"manual_event_history_size": 7}},
+        title="Ops",
+    )
+
+    manager = PawControlScriptManager(hass, entry)
+    assert manager._manual_event_history.maxlen == 7
+
+    async def _record_events() -> None:
+        await manager.async_initialize()
+        event = Event("pawcontrol_manual_guard", {})
+        for _ in range(9):
+            manager._handle_manual_event(event)
+
+    asyncio.run(_record_events())
+
+    assert len(manager._manual_event_history) == 7
+
+    entry.options["system_settings"]["manual_event_history_size"] = 3
+    asyncio.run(manager.async_initialize())
+    assert manager._manual_event_history.maxlen == 3
+    assert len(manager._manual_event_history) <= 3
+
+
+@pytest.mark.unit
 def test_resilience_followup_blueprint_manual_events() -> None:
     """Manual blueprint triggers should drive escalation and follow-up paths."""
 

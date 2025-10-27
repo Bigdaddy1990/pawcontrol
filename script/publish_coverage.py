@@ -446,7 +446,16 @@ def build_cli() -> argparse.ArgumentParser:
         "--prune-expired-runs",
         action="store_true",
         help=(
-            "Prune coverage/<run_id> directories older than 30 days from the Pages branch"
+            "Prune coverage/<run_id> directories older than the configured retention from the Pages branch"
+        ),
+    )
+    parser.add_argument(
+        "--prune-max-age-days",
+        type=int,
+        default=int(PRUNE_MAX_AGE.days),
+        help=(
+            "Maximum age in days for coverage/<run_id> directories when pruning. "
+            "Defaults to 30 days."
         ),
     )
     return parser
@@ -487,6 +496,15 @@ def publish(args: argparse.Namespace) -> PublishResult:
     publish_url: str | None = None
     published = False
     prune_requested = bool(getattr(args, "prune_expired_runs", False))
+    prune_age_days = getattr(args, "prune_max_age_days", int(PRUNE_MAX_AGE.days))
+    try:
+        prune_age_days = int(prune_age_days)
+    except (TypeError, ValueError):
+        prune_age_days = int(PRUNE_MAX_AGE.days)
+    if prune_age_days < 0:
+        prune_age_days = 0
+    prune_window = dt.timedelta(days=prune_age_days)
+
     if args.mode == "pages":
         token = os.getenv("GITHUB_TOKEN", "")
         repository = os.getenv("GITHUB_REPOSITORY", "")
@@ -507,7 +525,7 @@ def publish(args: argparse.Namespace) -> PublishResult:
             if prune_requested:
                 prune_prefix = prefix_root or str(args.pages_prefix).strip("/")
                 try:
-                    removed = publisher.prune_expired_runs(prune_prefix, PRUNE_MAX_AGE)
+                    removed = publisher.prune_expired_runs(prune_prefix, prune_window)
                 except PublishError as error:
                     LOGGER.info("Coverage prune skipped: %s", error)
                 else:

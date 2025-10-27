@@ -2009,6 +2009,8 @@ class ManualResilienceEventRecord(TypedDict, total=False):
     source_tags: list[str]
     primary_source: str
     reasons: list[str]
+    recorded_at: datetime | None
+    recorded_age_seconds: int | None
 
 
 class ManualResilienceEventSnapshot(TypedDict, total=False):
@@ -2021,6 +2023,8 @@ class ManualResilienceEventSnapshot(TypedDict, total=False):
     time_fired_age_seconds: int | None
     received_at: str | None
     received_age_seconds: int | None
+    recorded_at: str | None
+    recorded_age_seconds: int | None
     origin: str | None
     context_id: str | None
     user_id: str | None
