@@ -36,15 +36,16 @@ jobs:
           pip install -r requirements_test.txt
 
       - name: Run tests with coverage gate
+        id: coverage_tests
         env:
           PYTHONPATH: .
         run: |
           python -m pytest \
             --cov=custom_components/pawcontrol \
             --cov-branch \
-            --cov-report=xml:coverage.xml \
+            --cov-report=xml:generated/coverage/coverage.xml \
             --cov-report=term-missing:skip-covered \
-            --cov-report=html:htmlcov \
+            --cov-report=html:generated/coverage \
             --cov-fail-under=${{ env.COVERAGE_MIN }} \
             tests/
 
@@ -52,16 +53,34 @@ jobs:
         if: always()
         uses: codecov/codecov-action@v5
         with:
-          files: coverage.xml
+          files: generated/coverage/coverage.xml
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: unittests
           name: pawcontrol-coverage
 
-      - name: Upload HTML coverage report
-        if: always()
+      - name: Publish lightweight coverage to GitHub Pages
+        if: always() && steps.coverage_tests.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          python -m script.publish_coverage \
+            --coverage-xml generated/coverage/coverage.xml \
+            --coverage-html-index generated/coverage/index.html \
+            --artifact-directory generated/coverage/artifacts \
+            --mode pages \
+            --pages-branch gh-pages \
+            --pages-prefix coverage \
+            --run-id "${{ github.run_id }}" \
+            --run-attempt "${{ github.run_attempt }}" \
+            --commit-sha "${{ github.sha }}" \
+            --ref "${{ github.ref }}"
+
+      - name: Upload GitHub Pages coverage archive
+        if: always() && steps.coverage_tests.outcome == 'success'
         uses: actions/upload-artifact@v5
         with:
-          name: coverage-report
-          path: htmlcov/
+          name: coverage-pages-archive
+          path: generated/coverage/artifacts/
           retention-days: 7

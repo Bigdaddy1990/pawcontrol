@@ -8,7 +8,8 @@
 [![GitHub Release](https://img.shields.io/github/v/release/BigDaddy1990/pawcontrol.svg)](https://github.com/bigdaddy1990/pawcontrol/releases)
 [![Downloads](https://img.shields.io/github/downloads/BigDaddy1990/pawcontrol/total.svg)](https://github.com/bigdaddy1990/pawcontrol/releases)
 [![Version](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/BigDaddy1990/pawcontrol/releases)
-[![Test Status](https://img.shields.io/badge/Test%20Coverage-95%25%2B-success.svg)](docs/testing/coverage_reporting.md)
+[![Coverage](https://img.shields.io/endpoint?url=https://bigdaddy1990.github.io/pawcontrol/coverage/latest/shields.json)](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/index.html)
+[![Tests](https://github.com/BigDaddy1990/pawcontrol/actions/workflows/coverage.yml/badge.svg)](https://github.com/BigDaddy1990/pawcontrol/actions/workflows/coverage.yml)
 
 **PawControl** is a comprehensive Home Assistant integration for smart dog management, featuring advanced GPS tracking, automated feeding reminders, health monitoring, and intelligent automation workflows. The integration meets the **Platinum quality scale** and keeps runtime data, options flow, diagnostics, and testing evidence synchronised with the Home Assistant guidance captured in this repository’s compliance reports.
 
@@ -29,6 +30,7 @@
 
 - 📐 `ruff format`, `ruff check`, `mypy`, and `pytest -q` are executed before every pull request to preserve Platinum-level baselines.
 - 📊 Coverage and async performance metrics are tracked in `docs/testing/coverage_reporting.md` and `generated/perf_samples/latest.json`.
+- 🌐 CI publishes the lightweight coverage report to GitHub Pages via `python -m script.publish_coverage`, and the latest HTML is always available at [`coverage/latest/index.html`](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/index.html) with a Shields badge feed at [`coverage/latest/shields.json`](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/shields.json).
 - 🧾 Coordinator, config-flow, diagnostics, and service suites use Home Assistant test fixtures to validate setup/unload, runtime data, and repair flows.
 - ▶️ Run the full quality gate locally:
   ```bash

@@ -27,6 +27,7 @@
 - ✅ `pytest -q` – 1021 Tests (1 skipped) bestätigen koordinierte Service-, Dashboard- und Blueprint-Szenarien bei aktiviertem Coverage-Gate.【bc2d1f†L1-L5】
 - ✅ `mypy custom_components/pawcontrol` – Striktes Typing bleibt stabil über alle 76 Module hinweg.【5fe91f†L1-L2】
 - ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest und Übersetzungen validieren ohne Beanstandung.【bb7d4e†L1-L1】
+- ✅ `python -m script.publish_coverage --mode pages --coverage-xml generated/coverage/coverage.xml --coverage-html-index generated/coverage/index.html` – Der neue Publisher erzeugt trotz fehlender GitHub-Credentials ein Artefakt und hält den GitHub-Pages-Pfad aktuell.【F:script/publish_coverage.py†L1-L238】【F:tests/unit/test_publish_coverage.py†L1-L58】
 
 ## Fehleranalyse
 - Der Cobertura-Export erzeugt XML jetzt über einen eigenen String-Writer mit explizitem
@@ -44,6 +45,7 @@
 ## Improvement plan
 - Gemeinsamen Test-Helfer für Blueprint-Automationen extrahieren, damit `test_blueprint_resilience` und der E2E-Lauf denselben Import-/Kontextaufbau nutzen und Service-Registrierungen nur einmal gepflegt werden müssen.【F:tests/components/pawcontrol/test_blueprint_resilience.py†L1-L170】【F:tests/components/pawcontrol/test_resilience_blueprint_e2e.py†L1-L360】
 - Home-Assistant-Stubs um `homeassistant.components.automation` und `homeassistant.helpers.template` erweitern, sodass die neue Blueprint-Regression ohne Upstream-Pakete lauffähig bleibt.【8ca6c7†L1-L31】
+- GitHub-Pages-Rotation: Automatisch alte `coverage/<run_id>`-Verzeichnisse nach 30 Tagen löschen, sobald das API-basierte Cleanup verfügbar ist, damit der `gh-pages`-Branch langfristig schlank bleibt.【F:script/publish_coverage.py†L1-L238】
 
 ## Fehleranalyse
 - Der Komponenten-Test `tests/components/pawcontrol/test_blueprint_resilience`
