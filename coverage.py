@@ -318,6 +318,7 @@ class Coverage:
         try:
             text = path.read_text(encoding="utf-8")
         except (IOError, UnicodeDecodeError):
+            return statements
         for lineno, line in enumerate(text.splitlines(), start=1):
             stripped = line.strip()
             if not stripped or stripped.startswith("#"):
