@@ -104,15 +104,12 @@ class Coverage:
         stream.write(header)
         stream.write(separator)
 
-        total_statements = 0
-        total_missed = 0
+        total_statements, total_missed = self._calculate_totals(reports)
 
         for report in reports:
             if skip_empty and not report.statements:
                 continue
             missed_lines = report.missed
-            total_statements += len(report.statements)
-            total_missed += len(missed_lines)
             if skip_covered and not missed_lines and report.statements:
                 continue
             coverage_percent = report.coverage_percent
