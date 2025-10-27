@@ -8,6 +8,8 @@
 - `RELEASE_NOTES.md` und `CHANGELOG.md` verlinken die Diagnostik- und Wartungsleitfäden, damit Release-Kommunikation und Sustainment-Planung dieselben Nachschlagewerke nutzen ([docs/diagnostik.md](docs/diagnostik.md), [docs/MAINTENANCE.md](docs/MAINTENANCE.md)).【F:RELEASE_NOTES.md†L14-L24】【F:CHANGELOG.md†L114-L140】
 
 ## Latest tooling snapshot
+- ✅ `ruff check` – keine neuen Abweichungen nach der Konsolidierung der Hassfest-Metadatenhelfer.【d350b7†L1-L2】
+- ❌ `pytest -q` – scheitert früh beim Plugin-Import, weil `pytest_asyncio` in der Umgebung fehlt; bleibt als Setup-Blocker bestehen.【7b3797†L1-L43】
 - ✅ `ruff check` – XML-Writer läuft ohne `xml.etree`-Import und erfüllt damit die Bandit-Vorgabe.【c52afa†L1-L2】
 - ❌ `PYTHONPATH=$(pwd) pytest -q` – bricht ab, weil die Testumgebung ohne `jinja2`-Abhängigkeit nicht startfähig ist.【923e51†L1-L12】
 - ✅ `ruff check` – kein neuer Fund nach dem Kommentar für das Passwort-Selector-Sentinel.【8befd3†L1-L2】
@@ -442,12 +444,14 @@ Die Läufe spiegeln den aktuellen Stand ohne neue Warnungen wider und halten die
 Branch-Coverage-Anforderungen aus `pyproject.toml` ein.【F:pyproject.toml†L7-L62】
 
 ## Fehlerliste
+1. `pytest -q` bricht bereits beim Laden der Plugins ab, weil `pytest_asyncio` in der Umgebung fehlt; ohne die Abhängigkeit lässt sich kein vollständiger Testlauf starten.【7b3797†L1-L43】
 1. `PYTHONPATH=$(pwd) pytest -q` scheitert weiterhin, weil die Umgebung keine
    `jinja2`-Abhängigkeit bereitstellt und damit der Import der Home-Assistant-Stubs
    blockiert wird.【923e51†L1-L12】
 1. `PYTHONPATH=$(pwd) PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q` – Sammlung bricht aufgrund fehlender optionaler Abhängigkeiten und Home-Assistant-Komponenten-Stubs ab; Workaround weiterhin erforderlich, bis die Stubs nachgezogen sind.【13e36b†L1-L142】
 
 ## Verbesserungsmöglichkeiten
+- Ergänze die lokale Testumgebung um das fehlende `pytest_asyncio`, damit `pytest -q` wieder vor dem Laden der projektspezifischen Stubs startet.【7b3797†L1-L43】
 - Evaluieren, ob die Teststubs eine integrierte Jinja2-Implementierung oder einen
   optionalen Dependency-Hook benötigen, damit `pytest -q` ohne externe Pakete
   läuft.【923e51†L1-L12】
