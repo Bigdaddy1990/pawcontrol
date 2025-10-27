@@ -11,7 +11,7 @@
 - ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest und Übersetzungen validieren ohne Beanstandung.【bb7d4e†L1-L1】
 
 ## Fehleranalyse
-- Manifest, README, Qualitäts-Tracker und Compliance-Dokumente widersprachen sich nach Bronze-Reverts; der Sync auf Platinum stellt Badge, Manifest und Nachweise nun konsistent dar.【F:custom_components/pawcontrol/manifest.json†L1-L66】【F:README.md†L1-L120】【F:custom_components/pawcontrol/quality_scale.yaml†L1-L80】【F:docs/compliance_gap_analysis.md†L1-L80】
+- Manifest, README, Qualitäts-Tracker und Compliance-Dokumente widersprachen sich nach Bronze-Reverts; der Sync auf Platinum stellt Badge, Manifest und Nachweise nun konsistent dar.【F:custom_components/pawcontrol/manifest.json†L1-L66】【F:README.md†L1-L120】【F:custom_components/pawcontrol/quality_scale.yaml†L1-L76】【F:docs/compliance_gap_analysis.md†L1-L43】
 - Die Hassfest-Validierung meldete `extra keys not allowed` für `diagnostics.setup_flags_panel`, weil `strings.json` verschachtelte `flags`- und `sources`-Objekte enthielt. Die Übersetzungsschlüssel wurden deshalb auf flache `setup_flags_panel_flag_*`- und `setup_flags_panel_source_*`-Einträge migriert, die jetzt unter `common.setup_flags_panel_*` liegen; Diagnostics, Tests sowie Dokumentation referenzieren die neuen Schlüsselpfade konsistent.【F:custom_components/pawcontrol/strings.json†L1396-L1405】【F:custom_components/pawcontrol/translations/de.json†L1235-L1244】【F:custom_components/pawcontrol/diagnostics.py†L100-L141】【F:tests/components/pawcontrol/test_diagnostics.py†L288-L405】
 - Die Options-Flagge `debug_logging` wirkte sich bislang nicht auf das Paket-
   Log-Level aus, weil `async_setup_entry` den Schalter ignorierte; die neuen
