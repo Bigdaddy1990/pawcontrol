@@ -11,6 +11,20 @@
 - ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest und Übersetzungen validieren ohne Beanstandung.【bb7d4e†L1-L1】
 
 ## Fehleranalyse
+- Die Resilience-Eskalations-Blueprint deckte manuelle Guard-/Breaker-
+  Trigger bislang nur über Service-Shims ab; echte Automationspfade samt
+  Script-Manager-Telemetrie blieben ungetestet. Die neue
+  End-to-End-Regression importiert den Blueprint als Automation,
+  feuert `manual_guard_event`-/`manual_breaker_event`-Signale und
+  prüft Script-Aufruf, Follow-up-Aktionen sowie den letzten
+  Telemetriesnapshot des Script-Managers.【F:blueprints/automation/pawcontrol/resilience_escalation_followup.yaml†L1-L125】【F:tests/components/pawcontrol/test_resilience_blueprint_e2e.py†L122-L358】【F:custom_components/pawcontrol/script_manager.py†L820-L904】
+- Damit die Regression reale Blueprint-Inputs verwendet, ersetzt der Test die
+  `!input`-Skalarauflösung durch `InputReference`-Instanzen, baut den Kontext
+  asynchron auf und erzwingt `State.__hash__`, damit Home Assistants
+  Template-Cache unter Python 3.13 nicht scheitert.【F:tests/components/pawcontrol/test_resilience_blueprint_e2e.py†L24-L321】
+- Die Nightly-E2E-Suite lädt `homeassistant` jetzt über `import_module` und
+  fällt bei fehlendem `__version__` oder `CONF_TOKEN` auf neutrale Defaults
+  zurück, damit abgespeckte Test-Stubs die Regression nicht blockieren.【F:tests/e2e/test_nightly_full_integration.py†L17-L59】
 - Die Setup-Flags-Übersetzungen liefen bislang Gefahr, zwischen `strings.json`,
   den Sprachdateien und der Dokumentation auseinanderzulaufen. Das neue Skript
   `python -m script.sync_localization_flags` spiegelt alle
@@ -66,7 +80,12 @@
 - Die System-Einstellungen boten bislang keine Eingabefelder für `manual_check_event`, `manual_guard_event` und `manual_breaker_event`. Dadurch drifteten Blueprint-Trigger, Skript-Defaults und Diagnostik auseinander, sobald Support-Teams manuelle Eskalationen benötigten. Die neuen Text-Selectoren im Options-Flow normalisieren Eingaben, deaktivieren Trigger bei leeren Feldern und synchronisieren die Werte direkt mit allen Resilience-Blueprints, abgesichert durch zielgerichtete Tests.【F:custom_components/pawcontrol/options_flow.py†L3986-L4043】【F:custom_components/pawcontrol/script_manager.py†L503-L607】【F:tests/unit/test_options_flow.py†L808-L870】【F:tests/unit/test_data_manager.py†L612-L705】
 
 ## Verbesserungsplan
-1. End-to-End-Blueprint-Test nachrüsten: Ein automatisierter Szenario-Test sollte die Blueprint-Automation mit simulierten Ereignissen (`manual_guard_event`, `manual_breaker_event`) durchlaufen lassen, um Skriptaufrufe und Follow-up-Aktionen in Home Assistant zu verifizieren.【F:blueprints/automation/pawcontrol/resilience_escalation_followup.yaml†L36-L160】【F:tests/unit/test_data_manager.py†L520-L676】
+1. pytest-homeassistant-Plugin härten: `enable_event_loop_debug` aus dem
+   Upstream-Plugin erwartet vor dem Fixture-Setup einen aktiven Event-Loop.
+   Unser Stub in `tests/plugins/asyncio_stub.py` sollte per `pytest_sessionstart`
+   oder Context-Manager frühzeitig `asyncio.new_event_loop()` bereitstellen,
+   damit `pytest -q` unter Python 3.13 nicht mit `RuntimeError: There is no
+   current event loop in thread 'MainThread'` abbricht.【F:tests/plugins/asyncio_stub.py†L1-L48】【9be401†L8-L19】
 2. Zusätzliche Sprachen ergänzen: Sobald Community-Übersetzungen vorliegen,
    soll `sync_localization_flags` erweitert werden, um neue Sprachdateien
    automatisch einzubinden und die Tests auf die erweiterten Tabellen

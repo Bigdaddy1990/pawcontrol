@@ -17,6 +17,7 @@ import asyncio
 from collections.abc import Generator
 from contextlib import ExitStack, suppress
 from dataclasses import dataclass
+from importlib import import_module
 from types import ModuleType
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
@@ -40,8 +41,13 @@ from custom_components.pawcontrol.const import (
 from custom_components.pawcontrol.coordinator_tasks import run_maintenance
 from custom_components.pawcontrol.runtime_data import get_runtime_data
 from custom_components.pawcontrol.types import PawControlRuntimeData
-from homeassistant import __version__ as ha_version
-from homeassistant.const import CONF_TOKEN
+
+ha_module = import_module("homeassistant")
+ha_version = getattr(ha_module, "__version__", "0.0.0")
+try:
+    from homeassistant.const import CONF_TOKEN
+except (AttributeError, ImportError):
+    CONF_TOKEN = "token"
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 

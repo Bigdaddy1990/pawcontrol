@@ -435,7 +435,10 @@ Defaults aus dem Script-Manager wider.【F:custom_components/pawcontrol/script_m
   Ereigniseingaben `manual_guard_event` und `manual_breaker_event`
   zeitbasierte Watchdogs, kombinierte Checks oder getrennte Guard-/Breaker-
   Rechecks konfigurieren, ohne dass Runbooks zusätzliche Automationen für
-  stagnierende Sensordaten erstellen müssen.【F:blueprints/automation/pawcontrol/resilience_escalation_followup.yaml†L1-L125】
+  stagnierende Sensordaten erstellen müssen. Die neue End-to-End-Regression
+  lädt den Blueprint als Automation, feuert die manuellen Guard- und
+  Breaker-Ereignisse und bestätigt Skriptaufruf, Follow-up-Aktionen sowie die
+  Telemetrie-Snapshot-Erfassung des Script-Managers.【F:blueprints/automation/pawcontrol/resilience_escalation_followup.yaml†L1-L125】【F:tests/components/pawcontrol/test_resilience_blueprint_e2e.py†L122-L358】【F:custom_components/pawcontrol/script_manager.py†L820-L904】
 - Diagnostics listen die aktiven `manual_*`-Trigger samt Blueprint-Quelle und
   übernehmen beim Setup vorhandene Script-Schwellen automatisch in die
   Optionsablage. Support-Dumps zeigen dadurch auf einen Blick, welche
