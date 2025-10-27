@@ -309,6 +309,13 @@ Eskalationsskript sowie die jeweiligen Follow-up-Aktionen auch ohne Überschreit
 der Schwellen auf, sodass Runbooks ohne YAML-Duplikate manuelle Prüfungen
 auslösen können.【F:blueprints/automation/pawcontrol/resilience_escalation_followup.yaml†L36-L125】
 
+Ein Komponenten-Test lädt die Blueprint-Automation über einen
+`MockConfigEntry`, kopiert den YAML-Quelltext in das Test-Config-Verzeichnis und
+feuert `manual_guard_event`-/`manual_breaker_event`-Signale über den Home
+Assistant Event-Bus. Dadurch prüfen wir nicht nur die Service-Aufrufe, sondern
+auch die vom Automation-Listener gemeldeten Follow-up-Aktionen, sodass die
+Blueprint denselben Pfad wie produktive Installationen nutzt.【F:tests/components/pawcontrol/test_blueprint_resilience.py†L1-L169】
+
 Über **Einstellungen → Integration → PawControl → Optionen → System Settings**
 stellen drei neue Text-Selectoren sicher, dass `manual_check_event`,
 `manual_guard_event` und `manual_breaker_event` direkt im Options-Flow gepflegt

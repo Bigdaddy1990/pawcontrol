@@ -23,6 +23,21 @@
 - `tests/helpers/homeassistant_test_stubs.py` liefert eine minimale, Jinja2-gestützte `Template`-Implementation inklusive `state_attr`/`is_state`-Hilfen und registriert `homeassistant.util.logging`, damit die Resilience-Blueprint-Regression ohne echte Home-Assistant-Pakete laufen kann.【03d180†L995-L1014】【49877f†L1207-L1273】【d3d29c†L14-L37】
 - `tests/unit/test_coverage_shim.py` sichert die neue Laufzeit-Telemetrie, indem JSON- und CSV-Ausgaben geprüft sowie notwendige Logging-/Resolver-Stubs bereitgestellt werden.【d3d29c†L1-L78】
 - Der gesammelte Messpunkt (`runtime.json`) dokumentiert die aktuelle Umgebung (Hostname `146d5ce42255`, 3 CPU-Kerne) und hält das neue ≤20‑Minuten-Ziel für zukünftige Pytest-Läufe fest; der isolierte Shim-Test erzeugte die Artefakte nach 159,76 s und markiert damit die Ausgangsbasis für weitere Optimierungen.【3980d9†L1-L7】【cca370†L1-L76】
+- ✅ `ruff check` – aktueller Lauf nach dem Blueprint-Refactor bleibt lint-frei.【15960c†L1-L1】
+- ❌ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q` – Import der echten Automation scheitert, weil die Home-Assistant-Stubs das `automation`-Modul nicht bereitstellen; gleicher Fehler blockiert den E2E-Blueprint-Test.【8ca6c7†L1-L31】
+- ❌ `mypy custom_components/pawcontrol` – Upstream-Stubs liefern weiterhin 276 Fehler (fehlende Module, falsche Typen, inkompatible Registries).【698ed5†L1-L22】
+- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest-Validierung läuft durch (Exit-Code 0).【7408d4†L1-L3】
+
+## Improvement plan
+- Gemeinsamen Test-Helfer für Blueprint-Automationen extrahieren, damit `test_blueprint_resilience` und der E2E-Lauf denselben Import-/Kontextaufbau nutzen und Service-Registrierungen nur einmal gepflegt werden müssen.【F:tests/components/pawcontrol/test_blueprint_resilience.py†L1-L170】【F:tests/components/pawcontrol/test_resilience_blueprint_e2e.py†L1-L360】
+- Home-Assistant-Stubs um `homeassistant.components.automation` und `homeassistant.helpers.template` erweitern, sodass die neue Blueprint-Regression ohne Upstream-Pakete lauffähig bleibt.【8ca6c7†L1-L31】
+
+## Fehleranalyse
+- Der Komponenten-Test `tests/components/pawcontrol/test_blueprint_resilience`
+  nutzte bislang Service-Shims statt der echten Automation. Durch das Laden der
+  Blueprint-Config über `MockConfigEntry` und `async_setup_component` prüfen wir
+  jetzt die Orchestrierung über den Event-Bus und den Automation-Listener –
+  identisch zu produktiven Installationen.【F:tests/components/pawcontrol/test_blueprint_resilience.py†L1-L169】
 - Die Resilience-Eskalations-Blueprint deckte manuelle Guard-/Breaker-
   Trigger bislang nur über Service-Shims ab; echte Automationspfade samt
   Script-Manager-Telemetrie blieben ungetestet. Die neue
@@ -112,6 +127,10 @@
    anzupassen.【F:script/sync_localization_flags.py†L1-L129】【F:tests/unit/test_setup_flags_localization.py†L1-L77】
 3. Manual-Event-UX weiter ausbauen: Die neuen Select-Listen sollen Herkunfts-Badges oder Hilfetexte anzeigen, damit Nutzer sofort erkennen, ob ein Eintrag aus Blueprint, System-Option oder dem Integrations-Default stammt. `_manual_event_choices` kann dazu zusätzliche Metadaten serialisieren; begleitende Tests prüfen, dass die Labels in allen Sprachen korrekt gerendert werden.【F:custom_components/pawcontrol/options_flow.py†L700-L735】【F:tests/unit/test_options_flow.py†L945-L1024】
 4. Manual-Event-Historie persistieren: Zusätzlich zum letzten Trigger sollen die letzten fünf manuellen Eskalationen in `performance_stats` gespeichert und in Diagnostics/System-Health visualisiert werden, um wiederkehrende On-Demand-Checks schneller zu erkennen.【F:custom_components/pawcontrol/script_manager.py†L575-L704】【F:custom_components/pawcontrol/system_health.py†L150-L356】
+5. Blueprint-Test-Hilfen extrahieren: Sowohl Komponenten- als auch E2E-Tests
+   duplizieren den Kontext für `resilience_escalation_followup`. Eine gemeinsame
+   Factory würde Pfade, Inputs und Listener-Assertions bündeln und künftige
+   Erweiterungen vereinfachen.【F:tests/components/pawcontrol/test_blueprint_resilience.py†L1-L169】【F:tests/components/pawcontrol/test_resilience_blueprint_e2e.py†L1-L358】
 
 ## Recent improvements
 - Der Options-Flow synchronisiert `manual_*`-Trigger jetzt direkt aus den System-Einstellungen, normalisiert leere Felder auf `None` und aktualisiert alle Resilience-Blueprints ohne manuelle YAML-Anpassung; neue Tests sichern den Sync-Pfad und die Platzhalterbeschreibungen ab.【F:custom_components/pawcontrol/options_flow.py†L3986-L4043】【F:custom_components/pawcontrol/script_manager.py†L503-L607】【F:tests/unit/test_options_flow.py†L808-L870】【F:tests/unit/test_data_manager.py†L612-L705】
