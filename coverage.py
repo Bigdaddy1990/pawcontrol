@@ -197,7 +197,7 @@ class Coverage:
                 )
 
         Path(outfile).write_text(
-            ET.tostring(root, encoding="unicode"),
+            ET.tostring(root, encoding="unicode", xml_declaration=True),
             encoding="utf-8",
         )
 
