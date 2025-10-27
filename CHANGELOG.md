@@ -114,6 +114,7 @@ This is the first public release of PawControl, a comprehensive Home Assistant i
 
 #### 📖 Comprehensive Documentation
 - **Production Documentation**: 100+ page comprehensive deployment guide
+- **Diagnostics & Maintenance Guides**: Dedicated sustainment playbooks detail troubleshooting exports and upkeep workflows ([`docs/diagnostik.md`](docs/diagnostik.md), [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md))
 - **API Reference**: Complete service schemas and entity documentation
 - **Configuration Guide**: Step-by-step setup with examples and best practices
 - **Troubleshooting Guide**: Common issues, solutions, and diagnostic procedures
