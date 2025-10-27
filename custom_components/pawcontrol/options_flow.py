@@ -4268,11 +4268,32 @@ class PawControlOptionsFlow(OptionsFlow):
         )
 
         manual_defaults = self._manual_event_schema_defaults(current_system)
+        manual_context = self._resolve_manual_event_context(current_system)
+
+        manual_context_defaults: dict[str, str] = {}
+        guard_context_default = manual_context.get("guard_default")
+        if isinstance(guard_context_default, str):
+            manual_context_defaults["manual_guard_event"] = guard_context_default
+        breaker_context_default = manual_context.get("breaker_default")
+        if isinstance(breaker_context_default, str):
+            manual_context_defaults["manual_breaker_event"] = breaker_context_default
+
+        guard_selector_config = selector.TextSelectorConfig(
+            type=selector.TextSelectorType.TEXT,
+            suggestions=manual_context["guard_suggestions"],
+        )
+        breaker_selector_config = selector.TextSelectorConfig(
+            type=selector.TextSelectorType.TEXT,
+            suggestions=manual_context["breaker_suggestions"],
+        )
 
         def _manual_default(field: str) -> str:
             raw_value = current_values.get(field)
             if isinstance(raw_value, str):
                 return raw_value
+            override = manual_context_defaults.get(field)
+            if override:
+                return override
             return manual_defaults[field]
 
         return vol.Schema(
@@ -4339,11 +4360,11 @@ class PawControlOptionsFlow(OptionsFlow):
                 vol.Optional(
                     "manual_guard_event",
                     default=_manual_default("manual_guard_event"),
-                ): selector.TextSelector(selector.TextSelectorConfig()),
+                ): selector.TextSelector(guard_selector_config),
                 vol.Optional(
                     "manual_breaker_event",
                     default=_manual_default("manual_breaker_event"),
-                ): selector.TextSelector(selector.TextSelectorConfig()),
+                ): selector.TextSelector(breaker_selector_config),
                 vol.Optional(
                     "performance_mode",
                     default=current_values.get(
@@ -4367,24 +4388,6 @@ class PawControlOptionsFlow(OptionsFlow):
                             },
                         ],
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
-                ),
-                vol.Optional(
-                    "manual_guard_event",
-                    default=guard_default,
-                ): selector.TextSelector(
-                    selector.TextSelectorConfig(
-                        type=selector.TextSelectorType.TEXT,
-                        suggestions=guard_suggestions,
-                    )
-                ),
-                vol.Optional(
-                    "manual_breaker_event",
-                    default=breaker_default,
-                ): selector.TextSelector(
-                    selector.TextSelectorConfig(
-                        type=selector.TextSelectorType.TEXT,
-                        suggestions=breaker_suggestions,
                     )
                 ),
             }
