@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import sys
 import types
 from pathlib import Path
@@ -29,16 +30,9 @@ if not hasattr(ha_util_logging, "log_exception"):
 
     ha_util_logging.log_exception = log_exception  # type: ignore[attr-defined]
 
-if not hasattr(aiohttp_client, "_async_make_resolver"):
-
-    async def _async_make_resolver(*args, **kwargs):  # type: ignore[unused-argument]
-        return None
-
-    aiohttp_client._async_make_resolver = _async_make_resolver  # type: ignore[attr-defined]
-
 
 def test_runtime_metrics_generation(tmp_path) -> None:
-    """Ensure the coverage shim emits JSON and CSV runtime metrics."""
+    """Ensure the coverage shim emits JSON and CSV runtime metrics.【F:coverage.py†L471-L506】"""
 
     _ = tmp_path
     metrics_dir = Path("generated/coverage")
@@ -79,8 +73,38 @@ def test_runtime_metrics_generation(tmp_path) -> None:
     assert any(key in row for row in csv_content[1:])
 
 
+def test_runtime_metrics_can_be_disabled(monkeypatch, tmp_path) -> None:
+    """Environment flag bypasses runtime metrics emission entirely.【F:coverage.py†L437-L442】"""
+
+    monkeypatch.setenv("PAWCONTROL_DISABLE_RUNTIME_METRICS", "1")
+    _ = tmp_path
+    metrics_dir = Path("generated/coverage")
+    json_path = metrics_dir / "runtime.json"
+    csv_path = metrics_dir / "runtime.csv"
+    if json_path.exists():
+        json_path.unlink()
+    if csv_path.exists():
+        csv_path.unlink()
+
+    cov = coverage.Coverage(source=("tests/unit/test_coverage_shim.py",))
+    cov.start()
+    try:
+
+        def _sample() -> int:
+            return 3
+
+        assert _sample() == 3
+    finally:
+        cov.stop()
+
+    cov.report(file=io.StringIO())
+
+    assert not json_path.exists()
+    assert not csv_path.exists()
+
+
 def test_compile_cached_reuses_bytecode() -> None:
-    """The compilation helper caches bytecode for repeated calls."""
+    """The compilation helper caches bytecode for repeated calls.【F:coverage.py†L31-L41】"""
 
     first = _compile_cached("sample.py", "value = 1")
     second = _compile_cached("sample.py", "value = 1")
@@ -89,7 +113,7 @@ def test_compile_cached_reuses_bytecode() -> None:
 
 
 def test_compile_cached_handles_syntax_errors() -> None:
-    """Invalid source returns ``None`` and caches the failure result."""
+    """Invalid source returns ``None`` and caches the failure result.【F:coverage.py†L31-L41】"""
 
     source = "def broken(: pass"
     assert _compile_cached("broken.py", source) is None
