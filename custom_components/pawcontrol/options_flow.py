@@ -4175,8 +4175,6 @@ class PawControlOptionsFlow(OptionsFlow):
             raw_value = current_values.get(field)
             if isinstance(raw_value, str):
                 return raw_value
-            if raw_value is None:
-                return ""
             return manual_defaults[field]
 
         return vol.Schema(
