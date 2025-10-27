@@ -304,7 +304,7 @@ class Coverage:
             if root.is_file():
                 paths = [root]
             else:
-                paths = [p for p in root.rglob("*.py") if "/__pycache__/" not in str(p)]
+                paths = [p for p in root.rglob("*.py") if "__pycache__" not in p.parts]
             for path in paths:
                 resolved = path.resolve()
                 if resolved not in seen:
