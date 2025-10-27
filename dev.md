@@ -8,6 +8,8 @@
 - `RELEASE_NOTES.md` und `CHANGELOG.md` verlinken die Diagnostik- und Wartungsleitfäden, damit Release-Kommunikation und Sustainment-Planung dieselben Nachschlagewerke nutzen ([docs/diagnostik.md](docs/diagnostik.md), [docs/MAINTENANCE.md](docs/MAINTENANCE.md)).【F:RELEASE_NOTES.md†L14-L24】【F:CHANGELOG.md†L114-L140】
 
 ## Latest tooling snapshot
+- ✅ `ruff check` – URL-Schema-Validierung besteht die Bandit-Prüfung ohne neue Lint-Abweichungen.【00328d†L1-L1】
+- ❌ `PYTHONPATH=$(pwd) pytest -q` – scheitert weiterhin wegen fehlender `jinja2`-Abhängigkeit in den Test-Stubs.【67500d†L1-L11】
 - ✅ `ruff check` – XML-Writer läuft ohne `xml.etree`-Import und erfüllt damit die Bandit-Vorgabe.【c52afa†L1-L2】
 - ❌ `PYTHONPATH=$(pwd) pytest -q` – bricht ab, weil die Testumgebung ohne `jinja2`-Abhängigkeit nicht startfähig ist.【923e51†L1-L12】
 - ✅ `ruff check` – kein neuer Fund nach dem Kommentar für das Passwort-Selector-Sentinel.【8befd3†L1-L2】
@@ -30,6 +32,9 @@
 - ✅ `python -m script.publish_coverage --mode pages --coverage-xml generated/coverage/coverage.xml --coverage-html-index generated/coverage/index.html` – Der neue Publisher erzeugt trotz fehlender GitHub-Credentials ein Artefakt und hält den GitHub-Pages-Pfad aktuell.【F:script/publish_coverage.py†L1-L238】【F:tests/unit/test_publish_coverage.py†L1-L58】
 
 ## Fehleranalyse
+- Der GitHub-Publisher validiert API-URLs jetzt über `ensure_allowed_github_api_url`,
+  blockiert unsichere Schemata sowie fremde Hosts und hält damit Bandit B310 ein.
+  Regressionstests sichern den Pfad gegen Regressionen.【F:script/publish_coverage.py†L21-L35】【F:script/publish_coverage.py†L274-L287】【F:tests/unit/test_publish_coverage.py†L124-L147】
 - Der Cobertura-Export erzeugt XML jetzt über einen eigenen String-Writer mit explizitem
   Escaping, wodurch keine `xml.etree`-Imports mehr nötig sind und Bandit-Regel B405
   entfällt.【F:coverage.py†L190-L282】
