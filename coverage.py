@@ -227,7 +227,7 @@ class Coverage:
 <!DOCTYPE html>
 <html>
   <head>
-    <meta charset=\"utf-8\" />
+    <meta charset="utf-8" />
     <title>PawControl coverage</title>
     <style>
       body {{ font-family: sans-serif; margin: 2rem; }}
