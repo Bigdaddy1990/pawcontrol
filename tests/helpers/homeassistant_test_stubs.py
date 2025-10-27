@@ -789,23 +789,32 @@ def _install_core_module() -> None:
 
             entry.state = ConfigEntryState.SETUP_IN_PROGRESS
 
+            module: ModuleType | None = None
             try:
-                module = importlib.import_module(
-                    f"homeassistant.components.{entry.domain}"
-                )
+                module = importlib.import_module(f"custom_components.{entry.domain}")
             except ModuleNotFoundError:
-                entry.state = ConfigEntryState.SETUP_ERROR
-                return False
+                try:
+                    module = importlib.import_module(
+                        f"homeassistant.components.{entry.domain}"
+                    )
+                except ModuleNotFoundError:
+                    module = None
 
-            setup_entry = getattr(module, "async_setup_entry", None)
-            if setup_entry is None:
-                entry.state = ConfigEntryState.SETUP_ERROR
-                return False
+            setup_entry = getattr(module, "async_setup_entry", None) if module else None
 
             try:
-                result = setup_entry(self.hass, entry)
-                if asyncio.iscoroutine(result):
-                    result = await result
+                if callable(setup_entry):
+                    result = setup_entry(self.hass, entry)
+                    if asyncio.iscoroutine(result):
+                        result = await result
+                else:
+                    fallback = getattr(entry, "async_setup", None)
+                    if callable(fallback):
+                        result = fallback(self.hass)
+                        if inspect.isawaitable(result):
+                            result = await result
+                    else:
+                        result = True
             except Exception:
                 entry.state = ConfigEntryState.SETUP_ERROR
                 raise
@@ -868,39 +877,6 @@ def _install_core_module() -> None:
                 return False
             entry.state = ConfigEntryState.LOADED
             return True
-
-        async def async_setup(self, entry_id: str) -> bool:
-            entry = self.async_get_entry(entry_id)
-            if entry is None:
-                return False
-
-            module: ModuleType | None = None
-            try:
-                module = importlib.import_module(f"custom_components.{entry.domain}")
-            except ModuleNotFoundError:
-                try:
-                    module = importlib.import_module(
-                        f"homeassistant.components.{entry.domain}"
-                    )
-                except ModuleNotFoundError:
-                    module = None
-
-            setup_callback = getattr(module, "async_setup_entry", None)
-            if callable(setup_callback):
-                result = await setup_callback(self.hass, entry)
-            else:
-                fallback = getattr(entry, "async_setup", None)
-                if callable(fallback):
-                    result = fallback(self.hass)
-                    if inspect.isawaitable(result):
-                        result = await result
-                else:
-                    result = True
-
-            entry.state = (
-                ConfigEntryState.LOADED if result else ConfigEntryState.SETUP_ERROR
-            )
-            return bool(result)
 
         async def _finalize_options_flow(
             self,
