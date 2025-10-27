@@ -1053,6 +1053,8 @@ class SystemOptions(TypedDict, total=False):
     enable_cloud_backup: bool
     resilience_skip_threshold: int
     resilience_breaker_threshold: int
+    manual_guard_event: str
+    manual_breaker_event: str
 
 
 class DashboardOptions(TypedDict, total=False):

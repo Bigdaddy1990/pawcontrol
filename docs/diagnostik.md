@@ -75,7 +75,7 @@
 }
 ```
 
-- Das neue Feld `resilience_escalation` spiegelt das erzeugte Skript inklusive Entity-ID, aktiven Guard-/Breaker-Schwellen, Follow-up-Skript, letzten Trigger-Zeitpunkt **und** die konfigurierten `manual_*`-Events, damit Bereitschaften Escalation-Workflows direkt im Dump validieren können. Beim Laden migriert die Integration vorhandene Skript-Schwellen in die Optionen, sodass Altinstallationen ohne manuelles Eingreifen konsistente Werte liefern.【F:custom_components/pawcontrol/script_manager.py†L238-L412】【F:custom_components/pawcontrol/diagnostics.py†L594-L636】【F:tests/components/pawcontrol/test_diagnostics.py†L120-L208】【F:tests/unit/test_data_manager.py†L520-L620】
+- Das Feld `resilience_escalation` spiegelt das erzeugte Skript inklusive Entity-ID, aktiven Guard-/Breaker-Schwellen, Follow-up-Skript, letzten Trigger-Zeitpunkt **sowie** der konfigurierten `manual_*`-Events. Zusätzlich protokolliert die Diagnose nun Listener-Quellen und den zuletzt ausgelösten manuellen Pfad (Zeitstempel, Grund und Herkunft), damit Bereitschaften sofort erkennen, ob Guard-, Breaker- oder Watchdog-Runs zuletzt manuell angestoßen wurden. Beim Laden migriert die Integration vorhandene Skript-Schwellen in die Optionen, sodass Altinstallationen ohne manuelles Eingreifen konsistente Werte liefern.【F:custom_components/pawcontrol/script_manager.py†L503-L1248】【F:custom_components/pawcontrol/diagnostics.py†L594-L636】【F:tests/components/pawcontrol/test_diagnostics.py†L400-L430】【F:tests/unit/test_data_manager.py†L600-L720】
 
 ## Funktionsabgleich
 

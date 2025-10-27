@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -45,6 +47,7 @@ from homeassistant.const import (
     STATE_OFF,
     STATE_ON,
 )
+from homeassistant.core import Event
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify as ha_slugify
 
@@ -588,7 +591,17 @@ def test_script_manager_resilience_threshold_overrides() -> None:
     assert snapshot is not None
     assert snapshot["thresholds"]["skip_threshold"]["default"] == 9
     assert snapshot["thresholds"]["breaker_threshold"]["default"] == 4
-    assert snapshot["manual_events"]["available"] is False
+    manual = snapshot["manual_events"]
+    assert manual["available"] is False
+    assert manual["system_guard_event"] is None
+    assert manual["system_breaker_event"] is None
+    assert manual["listener_events"] == {}
+    assert manual["listener_sources"] == {}
+    assert manual["last_trigger"] is None
+    counters = manual["event_counters"]
+    assert counters["total"] == 0
+    assert counters["by_event"] == {}
+    assert counters["by_reason"] == {}
 
 
 @pytest.mark.unit
@@ -631,9 +644,79 @@ def test_script_manager_resilience_manual_event_snapshot() -> None:
     assert manual["configured_guard_events"] == ["pawcontrol_manual_guard"]
     assert manual["configured_breaker_events"] == ["pawcontrol_manual_breaker"]
     assert manual["configured_check_events"] == ["pawcontrol_resilience_check"]
+    assert manual["system_guard_event"] is None
+    assert manual["system_breaker_event"] is None
+    assert manual["listener_events"]["pawcontrol_manual_guard"] == ["guard"]
+    assert manual["listener_events"]["pawcontrol_manual_breaker"] == ["breaker"]
+    assert manual["listener_events"]["pawcontrol_resilience_check"] == ["check"]
+    assert manual["listener_sources"]["pawcontrol_manual_guard"] == ["blueprint"]
+    assert manual["listener_sources"]["pawcontrol_manual_breaker"] == ["blueprint"]
+    assert manual["listener_sources"]["pawcontrol_resilience_check"] == ["blueprint"]
+    assert manual["last_trigger"] is None
+    counters = manual["event_counters"]
+    assert counters["total"] == 0
+    assert counters["by_event"] == {
+        "pawcontrol_manual_breaker": 0,
+        "pawcontrol_manual_guard": 0,
+        "pawcontrol_resilience_check": 0,
+    }
+    assert counters["by_reason"] == {}
     automation_entry = manual["automations"][0]
     assert automation_entry["configured_guard"] is True
     assert automation_entry["configured_breaker"] is True
+
+
+@pytest.mark.unit
+def test_script_manager_manual_event_listener_records_last_trigger() -> None:
+    """Manual event listeners should record the latest trigger metadata."""
+
+    class DummyBus:
+        def __init__(self) -> None:
+            self.listeners: dict[str, Callable[[Event], None]] = {}
+
+        def async_listen(self, event_type: str, callback: Callable[[Event], None]):
+            self.listeners[event_type] = callback
+
+            def _unsub() -> None:
+                self.listeners.pop(event_type, None)
+
+            return _unsub
+
+    bus = DummyBus()
+    hass = SimpleNamespace(
+        data={},
+        states=SimpleNamespace(get=lambda entity_id: None),
+        config_entries=SimpleNamespace(async_entries=lambda domain: []),
+        bus=bus,
+    )
+    entry = SimpleNamespace(
+        entry_id="entry-id",
+        data={},
+        options={"system_settings": {"manual_guard_event": "pawcontrol_manual_guard"}},
+        title="Ops",
+    )
+
+    script_manager = PawControlScriptManager(hass, entry)
+    asyncio.run(script_manager.async_initialize())
+    script_manager._build_resilience_escalation_script()
+
+    assert "pawcontrol_manual_guard" in bus.listeners
+
+    bus.listeners["pawcontrol_manual_guard"](Event("pawcontrol_manual_guard", {}))
+
+    snapshot = script_manager.get_resilience_escalation_snapshot()
+    assert snapshot is not None
+    manual = snapshot["manual_events"]
+    last_trigger = manual["last_trigger"]
+    assert last_trigger is not None
+    assert last_trigger["event_type"] == "pawcontrol_manual_guard"
+    assert last_trigger["reasons"] == ["guard"]
+    assert last_trigger["sources"] == ["system_options"]
+    assert isinstance(last_trigger["recorded_age_seconds"], int)
+    counters = manual["event_counters"]
+    assert counters["total"] == 1
+    assert counters["by_event"] == {"pawcontrol_manual_guard": 1}
+    assert counters["by_reason"] == {"guard": 1}
 
 
 @pytest.mark.unit
