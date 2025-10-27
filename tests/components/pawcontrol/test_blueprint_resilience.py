@@ -2,58 +2,40 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import pytest
 from homeassistant.components.automation import DOMAIN as AUTOMATION_DOMAIN
-from homeassistant.components.automation import EVENT_AUTOMATION_TRIGGERED
 from homeassistant.const import STATE_OFF
-from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
+from homeassistant.core import Event, HomeAssistant
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from .blueprint_helpers import (
-    BLUEPRINT_RELATIVE_PATH,
-    DEFAULT_RESILIENCE_BLUEPRINT_CONTEXT,
-    ensure_blueprint_imported,
+from .blueprint_context import (
+    RESILIENCE_BLUEPRINT_REGISTERED_SERVICES,
+    ResilienceBlueprintContext,
+    create_resilience_blueprint_context,
 )
+from .blueprint_helpers import BLUEPRINT_RELATIVE_PATH
 
 
 @pytest.mark.asyncio
 async def test_resilience_blueprint_manual_events_execute(hass: HomeAssistant) -> None:
     """Manual guard/breaker events should execute the blueprint automation."""
 
-    ensure_blueprint_imported(hass, BLUEPRINT_RELATIVE_PATH)
+    context: ResilienceBlueprintContext = create_resilience_blueprint_context(
+        hass, watch_automation_events=True
+    )
 
-    base_context: dict[str, Any] = dict(DEFAULT_RESILIENCE_BLUEPRINT_CONTEXT)
-
-    script_calls: list[ServiceCall] = []
-    guard_calls: list[ServiceCall] = []
-    breaker_calls: list[ServiceCall] = []
-    automation_events: list[Event] = []
-
-    @callback
-    def _record_action(event: Event) -> None:
-        automation_events.append(event)
-
-    unsubscribe_action = hass.bus.async_listen(
-        EVENT_AUTOMATION_TRIGGERED, _record_action
+    assert context.registered_services == RESILIENCE_BLUEPRINT_REGISTERED_SERVICES, (
+        "Context factory should register the shared resilience services"
     )
 
     try:
+        base_context = context.base_context
 
-        async def _record_script(call: ServiceCall) -> None:
-            script_calls.append(call)
-
-        async def _record_guard(call: ServiceCall) -> None:
-            guard_calls.append(call)
-
-        async def _record_breaker(call: ServiceCall) -> None:
-            breaker_calls.append(call)
-
-        hass.services.async_register("script", "turn_on", _record_script)
-        hass.services.async_register("test", "guard_followup", _record_guard)
-        hass.services.async_register("test", "breaker_followup", _record_breaker)
+        script_calls = context.script_calls
+        guard_calls = context.guard_calls
+        breaker_calls = context.breaker_calls
+        automation_events = context.automation_events
 
         hass.states.async_set(
             "sensor.pawcontrol_statistics",
@@ -135,4 +117,4 @@ async def test_resilience_blueprint_manual_events_execute(hass: HomeAssistant) -
         assert breaker_event_data.get("entity_id", "").startswith("automation.")
         assert breaker_event_data.get("trigger") == "manual_breaker_event"
     finally:
-        unsubscribe_action()
+        context.cleanup()
