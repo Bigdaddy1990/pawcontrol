@@ -214,7 +214,9 @@ def _serialise_event_data(data: Mapping[str, Any]) -> dict[str, Any]:
         if isinstance(value, Mapping):
             serialised[key_text] = _serialise_event_data(value)
             continue
-        if isinstance(value, Sequence) and not isinstance(value, str | bytes | bytearray):
+        if isinstance(value, Sequence) and not isinstance(
+            value, str | bytes | bytearray
+        ):
             serialised[key_text] = [
                 item
                 if isinstance(item, str | int | float | bool) or item is None
@@ -737,7 +739,9 @@ class PawControlScriptManager:
         fired_at = record.get("time_fired")
         if isinstance(fired_at, datetime):
             fired_iso = _serialize_datetime(fired_at)
-            fired_age = int((dt_util.utcnow() - dt_util.as_utc(fired_at)).total_seconds())
+            fired_age = int(
+                (dt_util.utcnow() - dt_util.as_utc(fired_at)).total_seconds()
+            )
         else:
             fired_iso = None
             fired_age = None
@@ -787,7 +791,9 @@ class PawControlScriptManager:
         configured_role = source.get("configured_role")
 
         fired_raw = getattr(event, "time_fired", None)
-        fired_at = dt_util.as_utc(fired_raw) if isinstance(fired_raw, datetime) else None
+        fired_at = (
+            dt_util.as_utc(fired_raw) if isinstance(fired_raw, datetime) else None
+        )
 
         context = getattr(event, "context", None)
         context_id = getattr(context, "id", None)
