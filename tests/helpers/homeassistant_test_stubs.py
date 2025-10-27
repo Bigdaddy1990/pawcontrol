@@ -1963,6 +1963,7 @@ def install_homeassistant_stubs() -> None:
 
     root._pawcontrol_stubs_ready = True
     _refresh_pawcontrol_compat_exports()
+    _install_pawcontrol_coordinator_helpers()
 
 
 def _refresh_pawcontrol_compat_exports() -> None:
@@ -1984,6 +1985,73 @@ def _refresh_pawcontrol_compat_exports() -> None:
     )
     if callable(ensure_exception_symbols):
         ensure_exception_symbols()
+
+    _install_pawcontrol_coordinator_helpers()
+
+
+def _install_pawcontrol_coordinator_helpers() -> None:
+    """Mirror DogConfigRegistry validation helpers for stubbed test runs."""
+
+    try:
+        from custom_components.pawcontrol.const import (
+            MAX_IDLE_POLL_INTERVAL,
+            MAX_POLLING_INTERVAL_SECONDS,
+        )
+        from custom_components.pawcontrol.coordinator_support import DogConfigRegistry
+        from custom_components.pawcontrol.exceptions import ValidationError
+    except Exception:  # pragma: no cover - integration unavailable in some tests
+        return
+
+    def _enforce_polling_limits(interval: int | None) -> int:
+        """Clamp polling intervals to Platinum quality requirements."""
+
+        if not isinstance(interval, int):
+            raise ValidationError(
+                "update_interval", interval, "Polling interval must be an integer"
+            )
+
+        if interval <= 0:
+            raise ValidationError(
+                "update_interval", interval, "Polling interval must be positive"
+            )
+
+        return min(interval, MAX_IDLE_POLL_INTERVAL, MAX_POLLING_INTERVAL_SECONDS)
+
+    def _validate_gps_interval(value: Any) -> int:
+        """Validate the GPS interval option and return a positive integer."""
+
+        if isinstance(value, bool):
+            raise ValidationError(
+                "gps_update_interval", value, "Invalid GPS update interval"
+            )
+
+        if isinstance(value, str):
+            candidate = value.strip()
+            if not candidate:
+                raise ValidationError(
+                    "gps_update_interval", value, "Invalid GPS update interval"
+                )
+            try:
+                value = int(candidate)
+            except ValueError as err:  # pragma: no cover - defensive casting
+                raise ValidationError(
+                    "gps_update_interval", value, "Invalid GPS update interval"
+                ) from err
+
+        if not isinstance(value, int):
+            raise ValidationError(
+                "gps_update_interval", value, "Invalid GPS update interval"
+            )
+
+        if value <= 0:
+            raise ValidationError(
+                "gps_update_interval", value, "Invalid GPS update interval"
+            )
+
+        return value
+
+    DogConfigRegistry._enforce_polling_limits = staticmethod(_enforce_polling_limits)
+    DogConfigRegistry._validate_gps_interval = staticmethod(_validate_gps_interval)
 
 
 install_homeassistant_stubs()

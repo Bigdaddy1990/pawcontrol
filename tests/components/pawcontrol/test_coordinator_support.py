@@ -8,6 +8,7 @@ from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_MODULES,
+    MAX_IDLE_POLL_INTERVAL,
     MAX_POLLING_INTERVAL_SECONDS,
     MODULE_GPS,
     MODULE_HEALTH,
@@ -119,3 +120,45 @@ class TestDogConfigRegistry:
         assert registry.ids() == ["luna"]
         assert registry.get("luna") is not None
         assert registry.get_name("luna") == "Luna"
+
+    @pytest.mark.parametrize(
+        "interval",
+        [0, -1, "fast", None],
+    )
+    def test_enforce_polling_limits_rejects_invalid_values(
+        self, interval: object
+    ) -> None:
+        """Invalid polling intervals should raise validation errors."""
+
+        with pytest.raises(ValidationError):
+            DogConfigRegistry._enforce_polling_limits(interval)  # type: ignore[arg-type]
+
+    def test_enforce_polling_limits_caps_large_values(self) -> None:
+        """Extremely large intervals clamp to the allowed maximum."""
+
+        capped = DogConfigRegistry._enforce_polling_limits(MAX_POLLING_INTERVAL_SECONDS * 50)
+        assert capped == min(
+            MAX_POLLING_INTERVAL_SECONDS * 50,
+            MAX_IDLE_POLL_INTERVAL,
+            MAX_POLLING_INTERVAL_SECONDS,
+        )
+
+    @pytest.mark.parametrize(
+        "value",
+        [True, False, "", "   ", "invalid", -5, 0, 3.5],
+    )
+    def test_validate_gps_interval_rejects_invalid_inputs(
+        self, value: object
+    ) -> None:
+        """GPS intervals must be positive integers."""
+
+        with pytest.raises(ValidationError):
+            DogConfigRegistry._validate_gps_interval(value)
+
+    @pytest.mark.parametrize("value", ["30", " 120 ", 45])
+    def test_validate_gps_interval_accepts_positive_integers(
+        self, value: object
+    ) -> None:
+        """Valid integers or strings should return the coerced interval."""
+
+        assert DogConfigRegistry._validate_gps_interval(value) == int(str(value).strip())
