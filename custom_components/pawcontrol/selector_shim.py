@@ -103,7 +103,7 @@ except (ModuleNotFoundError, ImportError):  # pragma: no cover - used in tests
 
     class TextSelectorType(str, Enum):
         TEXT = "text"
-        PASSWORD = "password"
+        PASSWORD = "password"  # nosec B105 - selector sentinel, not a credential
         EMAIL = "email"
         TEL = "tel"
 
