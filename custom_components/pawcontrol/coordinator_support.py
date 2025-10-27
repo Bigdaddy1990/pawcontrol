@@ -381,21 +381,7 @@ class DogConfigRegistry:
 
         return self._enforce_polling_limits(interval)
 
-
-@staticmethod
-def _enforce_polling_limits(interval: int | None) -> int:
-    """Clamp polling intervals to Platinum quality requirements."""
-
-    if not isinstance(interval, int):
-        raise ValidationError(
-            "update_interval", interval, "Polling interval must be an integer"
-        )
-
-    if interval <= 0:
-        raise ValidationError(
-            "update_interval", interval, "Polling interval must be positive"
-        )
-
+    @staticmethod
     def _enforce_polling_limits(interval: int | None) -> int:
         """Clamp polling intervals to Platinum quality requirements."""
 

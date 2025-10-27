@@ -55,3 +55,32 @@ def test_loop_uses_session_debug_state(captured_session_loop):
 
     result = pytester.runpytest("-q", "-p", "no:sugar")
     result.assert_outcomes(passed=1)
+
+
+def test_enable_event_loop_debug_via_pytest_addhooks(
+    pytester: pytest.Pytester,
+) -> None:
+    """Ensure ``pytest_addhooks`` exposes the debug helper without runtime errors."""
+
+    pytester.makepyfile(
+        test_enable="""\
+import asyncio
+
+import pytest
+
+pytest_plugins = ("tests.plugins.asyncio_stub",)
+
+
+def test_enable_event_loop_debug(pytestconfig: pytest.Config) -> None:
+    pytestconfig.hook.pytest_addhooks.call_historic(
+        kwargs={"pluginmanager": pytestconfig.pluginmanager}
+    )
+    from tests.plugins import asyncio_stub
+
+    loop = asyncio_stub.enable_event_loop_debug()
+    assert loop.get_debug()
+        """,
+    )
+
+    result = pytester.runpytest("-q", "-p", "no:sugar")
+    result.assert_outcomes(passed=1)

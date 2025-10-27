@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import inspect
 import sys
-from collections.abc import Awaitable, Callable, Iterable
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
@@ -12,14 +12,19 @@ import pytest
 import yaml
 from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.script_manager import PawControlScriptManager
-from homeassistant.core import Context, Event, HomeAssistant, ServiceCall, State
+from homeassistant.core import Event, HomeAssistant, State
 from homeassistant.helpers import aiohttp_client
 from homeassistant.helpers.template import Template
+from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from .blueprint_context import (
+    RESILIENCE_BLUEPRINT_REGISTERED_SERVICES,
+    ResilienceBlueprintContext,
+    create_resilience_blueprint_context,
+)
 from .blueprint_helpers import (
     BLUEPRINT_RELATIVE_PATH,
-    DEFAULT_RESILIENCE_BLUEPRINT_CONTEXT,
     get_blueprint_source,
 )
 
@@ -134,29 +139,15 @@ async def test_resilience_blueprint_manual_events_end_to_end(
     blueprint_variables: dict[str, Any] = blueprint.get("variables", {})
     blueprint_actions: list[dict[str, Any]] = blueprint.get("action", [])
 
-    base_context: dict[str, Any] = dict(DEFAULT_RESILIENCE_BLUEPRINT_CONTEXT)
+    context: ResilienceBlueprintContext = create_resilience_blueprint_context(hass)
+    assert context.registered_services == RESILIENCE_BLUEPRINT_REGISTERED_SERVICES, (
+        "Context factory should register the shared resilience services"
+    )
 
-    service_handlers: dict[
-        tuple[str, str], Callable[[ServiceCall], Awaitable[None]]
-    ] = {}
-    script_calls: list[ServiceCall] = []
-    guard_followups: list[ServiceCall] = []
-    breaker_followups: list[ServiceCall] = []
-
-    def _register_service(
-        domain: str,
-        service: str,
-        bucket: list[ServiceCall],
-    ) -> None:
-        async def _record(call: ServiceCall) -> None:
-            bucket.append(call)
-
-        hass.services.async_register(domain, service, _record)
-        service_handlers[(domain, service)] = _record
-
-    _register_service("script", "turn_on", script_calls)
-    _register_service("test", "guard_followup", guard_followups)
-    _register_service("test", "breaker_followup", breaker_followups)
+    base_context = context.base_context
+    script_calls = context.script_calls
+    guard_followups = context.guard_calls
+    breaker_followups = context.breaker_calls
 
     hass.states.async_set(
         "sensor.pawcontrol_statistics",
@@ -198,6 +189,28 @@ async def test_resilience_blueprint_manual_events_end_to_end(
     )
     automation_entry.add_to_hass(hass)
 
+    assert await async_setup_component(hass, "automation", {})
+    await hass.config_entries.async_setup(automation_entry.entry_id)
+    await hass.async_block_till_done()
+
+    automation_store = hass.data["homeassistant.components.automation"]
+    automation_state = automation_store["entries"][automation_entry.entry_id]
+    assert (
+        automation_state["context"]["statistics_sensor"]
+        == (base_context["statistics_sensor"])
+    )
+    assert (
+        automation_state["event_map"][base_context["manual_breaker_event"]]
+        == "manual_breaker_event"
+    )
+
+    bool_template = Template(
+        "{{ is_state('sensor.pawcontrol_statistics', 'ok') }}",
+        hass,
+    )
+    rendered_state = await bool_template.async_render()
+    assert str(rendered_state).lower() == "true"
+
     integration_entry = MockConfigEntry(
         domain=DOMAIN,
         data={},
@@ -236,8 +249,7 @@ async def test_resilience_blueprint_manual_events_end_to_end(
         )
 
     async def _call_service(domain: str, service: str, data: dict[str, Any]) -> None:
-        handler = service_handlers[(domain, service)]
-        await handler(ServiceCall(domain, service, data, Context()))
+        await hass.services.async_call(domain, service, data, blocking=True)
 
     async def _build_context(trigger_id: str) -> tuple[dict[str, Any], dict[str, Any]]:
         context = dict(base_context)
@@ -338,3 +350,5 @@ async def test_resilience_blueprint_manual_events_end_to_end(
     assert breaker_snapshot["category"] == "breaker"
     assert breaker_snapshot["matched_preference"] == "manual_breaker_event"
     assert breaker_snapshot["data"] == {"fired_by": "breaker"}
+
+    assert not automation_state["trigger_history"]

@@ -83,18 +83,18 @@
 
 ### Setup-Flags-Übersetzungsinventar
 
-| Übersetzungsschlüssel | Englisch (`en`) | Deutsch (`de`) |
-| --- | --- | --- |
-| component.pawcontrol.common.setup_flags_panel_flag_enable_analytics | Analytics telemetry | Analyse-Telemetrie |
-| component.pawcontrol.common.setup_flags_panel_flag_enable_cloud_backup | Cloud backup | Cloud-Backup |
-| component.pawcontrol.common.setup_flags_panel_flag_debug_logging | Debug logging | Debug-Logging |
-| component.pawcontrol.common.setup_flags_panel_source_advanced_settings | Advanced settings | Erweiterte Einstellungen |
-| component.pawcontrol.common.setup_flags_panel_source_blueprint | Blueprint suggestion | Blueprint-Vorschlag |
-| component.pawcontrol.common.setup_flags_panel_source_config_entry | Config entry defaults | Konfigurationseintrag |
-| component.pawcontrol.common.setup_flags_panel_source_default | Integration default | Integrationsstandard |
-| component.pawcontrol.common.setup_flags_panel_source_disabled | Disable | Deaktivieren |
-| component.pawcontrol.common.setup_flags_panel_source_options | Options flow | Options-Flow |
-| component.pawcontrol.common.setup_flags_panel_source_system_settings | System settings | Systemeinstellungen |
+| Übersetzungsschlüssel | Englisch (`en`) | Deutsch (`de`) | Spanisch (`es`) | Französisch (`fr`) |
+| --- | --- | --- | --- | --- |
+| component.pawcontrol.common.setup_flags_panel_flag_enable_analytics | Analytics telemetry | Analyse-Telemetrie | Telemetría de analíticas | Télémétrie d'analyse |
+| component.pawcontrol.common.setup_flags_panel_flag_enable_cloud_backup | Cloud backup | Cloud-Backup | Copia de seguridad en la nube | Sauvegarde cloud |
+| component.pawcontrol.common.setup_flags_panel_flag_debug_logging | Debug logging | Debug-Logging | Registro de depuración | Journalisation de débogage |
+| component.pawcontrol.common.setup_flags_panel_source_advanced_settings | Advanced settings | Erweiterte Einstellungen | Configuración avanzada | Paramètres avancés |
+| component.pawcontrol.common.setup_flags_panel_source_blueprint | Blueprint suggestion | Blueprint-Vorschlag | Sugerencia de blueprint | Suggestion de blueprint |
+| component.pawcontrol.common.setup_flags_panel_source_config_entry | Config entry defaults | Konfigurationseintrag | Valores predeterminados de la entrada de configuración | Valeurs par défaut de l'entrée de configuration |
+| component.pawcontrol.common.setup_flags_panel_source_default | Integration default | Integrationsstandard | Valor predeterminado de la integración | Valeur par défaut de l'intégration |
+| component.pawcontrol.common.setup_flags_panel_source_disabled | Disable | Deaktivieren | Desactivar | Désactiver |
+| component.pawcontrol.common.setup_flags_panel_source_options | Options flow | Options-Flow | Flujo de opciones | Flux d'options |
+| component.pawcontrol.common.setup_flags_panel_source_system_settings | System settings | Systemeinstellungen | Configuración del sistema | Paramètres système |
 
 - Das neue Feld `resilience_escalation` spiegelt das erzeugte Skript inklusive Entity-ID, aktiven Guard-/Breaker-Schwellen, Follow-up-Skript, letzten Trigger-Zeitpunkt **und** die konfigurierten `manual_*`-Events, damit Bereitschaften Escalation-Workflows direkt im Dump validieren können. Beim Laden migriert die Integration vorhandene Skript-Schwellen in die Optionen, sodass Altinstallationen ohne manuelles Eingreifen konsistente Werte liefern.【F:custom_components/pawcontrol/script_manager.py†L238-L412】【F:custom_components/pawcontrol/diagnostics.py†L594-L636】【F:tests/components/pawcontrol/test_diagnostics.py†L120-L208】【F:tests/unit/test_data_manager.py†L520-L620】
 - Die System-Optionen speichern die `manual_*`-Events jetzt direkt über den Options-Flow und synchronisieren sie beim Speichern automatisch mit allen Resilience-Blueprint-Automationen. Dadurch stimmen Blueprint-Trigger, Diagnostik-Exports und Service-Warnungen immer überein – ganz ohne YAML-Nachpflege.【F:custom_components/pawcontrol/options_flow.py†L3986-L4043】【F:custom_components/pawcontrol/script_manager.py†L503-L607】【F:tests/unit/test_options_flow.py†L808-L870】
