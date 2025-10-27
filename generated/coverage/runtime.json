@@ -1,0 +1,617 @@
+{
+  "host": {
+    "name": "146d5ce42255",
+    "cpu_count": 3
+  },
+  "generated_at": 1761561552.9267037,
+  "files": [
+    {
+      "relative": "custom_components/pawcontrol/__init__.py",
+      "statements": 1131,
+      "executed": 0,
+      "missed": 1131,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/api_validator.py",
+      "statements": 231,
+      "executed": 0,
+      "missed": 231,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/binary_sensor.py",
+      "statements": 1124,
+      "executed": 0,
+      "missed": 1124,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/button.py",
+      "statements": 1304,
+      "executed": 0,
+      "missed": 1304,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/compat.py",
+      "statements": 430,
+      "executed": 83,
+      "missed": 347,
+      "coverage_percent": 19.302325581395348,
+      "runtime_seconds": 0.021518292007385753
+    },
+    {
+      "relative": "custom_components/pawcontrol/config_flow.py",
+      "statements": 1904,
+      "executed": 0,
+      "missed": 1904,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/config_flow_base.py",
+      "statements": 296,
+      "executed": 0,
+      "missed": 296,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/config_flow_dashboard_extension.py",
+      "statements": 166,
+      "executed": 0,
+      "missed": 166,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/config_flow_dogs.py",
+      "statements": 1190,
+      "executed": 0,
+      "missed": 1190,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/config_flow_external.py",
+      "statements": 193,
+      "executed": 0,
+      "missed": 193,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/config_flow_modules.py",
+      "statements": 494,
+      "executed": 0,
+      "missed": 494,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/config_flow_profile.py",
+      "statements": 46,
+      "executed": 0,
+      "missed": 46,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/const.py",
+      "statements": 327,
+      "executed": 0,
+      "missed": 327,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/coordinator.py",
+      "statements": 348,
+      "executed": 0,
+      "missed": 348,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/coordinator_accessors.py",
+      "statements": 61,
+      "executed": 0,
+      "missed": 61,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/coordinator_observability.py",
+      "statements": 162,
+      "executed": 0,
+      "missed": 162,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/coordinator_runtime.py",
+      "statements": 323,
+      "executed": 0,
+      "missed": 323,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/coordinator_support.py",
+      "statements": 419,
+      "executed": 0,
+      "missed": 419,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/coordinator_tasks.py",
+      "statements": 795,
+      "executed": 0,
+      "missed": 795,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/dashboard_cards.py",
+      "statements": 1871,
+      "executed": 0,
+      "missed": 1871,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/dashboard_generator.py",
+      "statements": 1232,
+      "executed": 0,
+      "missed": 1232,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/dashboard_renderer.py",
+      "statements": 469,
+      "executed": 0,
+      "missed": 469,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/dashboard_shared.py",
+      "statements": 42,
+      "executed": 0,
+      "missed": 42,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/dashboard_templates.py",
+      "statements": 2114,
+      "executed": 0,
+      "missed": 2114,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/data_manager.py",
+      "statements": 1920,
+      "executed": 0,
+      "missed": 1920,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/date.py",
+      "statements": 478,
+      "executed": 0,
+      "missed": 478,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/datetime.py",
+      "statements": 422,
+      "executed": 0,
+      "missed": 422,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/device_api.py",
+      "statements": 106,
+      "executed": 0,
+      "missed": 106,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/device_tracker.py",
+      "statements": 502,
+      "executed": 0,
+      "missed": 502,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/diagnostics.py",
+      "statements": 1006,
+      "executed": 0,
+      "missed": 1006,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/diagnostics_redaction.py",
+      "statements": 32,
+      "executed": 0,
+      "missed": 32,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/discovery.py",
+      "statements": 348,
+      "executed": 0,
+      "missed": 348,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/door_sensor_manager.py",
+      "statements": 907,
+      "executed": 0,
+      "missed": 907,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/entity.py",
+      "statements": 104,
+      "executed": 0,
+      "missed": 104,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/entity_factory.py",
+      "statements": 864,
+      "executed": 0,
+      "missed": 864,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/exceptions.py",
+      "statements": 581,
+      "executed": 0,
+      "missed": 581,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/feeding_manager.py",
+      "statements": 2316,
+      "executed": 0,
+      "missed": 2316,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/feeding_translations.py",
+      "statements": 415,
+      "executed": 0,
+      "missed": 415,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/garden_manager.py",
+      "statements": 710,
+      "executed": 0,
+      "missed": 710,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/geofencing.py",
+      "statements": 506,
+      "executed": 0,
+      "missed": 506,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/gps_manager.py",
+      "statements": 875,
+      "executed": 0,
+      "missed": 875,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/grooming_translations.py",
+      "statements": 84,
+      "executed": 0,
+      "missed": 84,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/health_calculator.py",
+      "statements": 788,
+      "executed": 0,
+      "missed": 788,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/health_enhancements.py",
+      "statements": 398,
+      "executed": 0,
+      "missed": 398,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/helper_manager.py",
+      "statements": 680,
+      "executed": 0,
+      "missed": 680,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/helpers.py",
+      "statements": 1157,
+      "executed": 0,
+      "missed": 1157,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/http_client.py",
+      "statements": 35,
+      "executed": 0,
+      "missed": 35,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/language.py",
+      "statements": 22,
+      "executed": 0,
+      "missed": 22,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/missing_sensors.py",
+      "statements": 350,
+      "executed": 0,
+      "missed": 350,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/module_adapters.py",
+      "statements": 622,
+      "executed": 0,
+      "missed": 622,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/notifications.py",
+      "statements": 1323,
+      "executed": 0,
+      "missed": 1323,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/number.py",
+      "statements": 734,
+      "executed": 0,
+      "missed": 734,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/optimized_entity_base.py",
+      "statements": 938,
+      "executed": 0,
+      "missed": 938,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/options_flow.py",
+      "statements": 3338,
+      "executed": 0,
+      "missed": 3338,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/performance.py",
+      "statements": 143,
+      "executed": 0,
+      "missed": 143,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/person_entity_manager.py",
+      "statements": 432,
+      "executed": 0,
+      "missed": 432,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/repairs.py",
+      "statements": 1111,
+      "executed": 0,
+      "missed": 1111,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/resilience.py",
+      "statements": 365,
+      "executed": 0,
+      "missed": 365,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/runtime_data.py",
+      "statements": 134,
+      "executed": 0,
+      "missed": 134,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/script_manager.py",
+      "statements": 1351,
+      "executed": 0,
+      "missed": 1351,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/select.py",
+      "statements": 853,
+      "executed": 0,
+      "missed": 853,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/selector_shim.py",
+      "statements": 93,
+      "executed": 0,
+      "missed": 93,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/sensor.py",
+      "statements": 2874,
+      "executed": 0,
+      "missed": 2874,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/service_guard.py",
+      "statements": 30,
+      "executed": 0,
+      "missed": 30,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/services.py",
+      "statements": 3522,
+      "executed": 0,
+      "missed": 3522,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/switch.py",
+      "statements": 521,
+      "executed": 0,
+      "missed": 521,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/system_health.py",
+      "statements": 481,
+      "executed": 0,
+      "missed": 481,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/telemetry.py",
+      "statements": 353,
+      "executed": 0,
+      "missed": 353,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/text.py",
+      "statements": 495,
+      "executed": 0,
+      "missed": 495,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/types.py",
+      "statements": 2233,
+      "executed": 0,
+      "missed": 2233,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/utils.py",
+      "statements": 916,
+      "executed": 0,
+      "missed": 916,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/validation.py",
+      "statements": 523,
+      "executed": 0,
+      "missed": 523,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/walk_manager.py",
+      "statements": 1227,
+      "executed": 0,
+      "missed": 1227,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/weather_manager.py",
+      "statements": 1217,
+      "executed": 0,
+      "missed": 1217,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/weather_translations.py",
+      "statements": 186,
+      "executed": 0,
+      "missed": 186,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    },
+    {
+      "relative": "custom_components/pawcontrol/webhook_security.py",
+      "statements": 105,
+      "executed": 0,
+      "missed": 105,
+      "coverage_percent": 0.0,
+      "runtime_seconds": 0.0
+    }
+  ]
+}
