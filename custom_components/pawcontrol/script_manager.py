@@ -330,6 +330,10 @@ class _ScriptManagerCacheMonitor:
 
 _SCRIPT_ENTITY_PREFIX: Final[str] = f"{SCRIPT_DOMAIN}."
 
+_DEFAULT_MANUAL_EVENT_HISTORY_SIZE: Final[int] = 5
+_MANUAL_EVENT_HISTORY_MIN: Final[int] = 1
+_MANUAL_EVENT_HISTORY_MAX: Final[int] = 50
+
 
 class PawControlScriptManager:
     """Create and maintain Home Assistant scripts for PawControl dogs."""
@@ -349,7 +353,10 @@ class PawControlScriptManager:
         self._manual_event_sources: dict[str, ManualResilienceEventSource] = {}
         self._manual_event_counters: dict[str, int] = {}
         self._manual_event_unsubscribes: dict[str, CALLBACK_TYPE] = {}
-        self._manual_event_history: deque[ManualResilienceEventRecord] = deque(maxlen=5)
+        self._manual_history_maxlen = self._resolve_manual_history_size()
+        self._manual_event_history: deque[ManualResilienceEventRecord] = deque(
+            maxlen=self._manual_history_maxlen
+        )
         self._last_manual_event: dict[str, Any] | None = None
         self._entry_slug = _normalise_entry_slug(entry)
         title = getattr(entry, "title", None)
@@ -367,6 +374,7 @@ class PawControlScriptManager:
         self._created_entities.clear()
         self._dog_scripts.clear()
         self._entry_scripts.clear()
+        self._update_manual_history_size()
         for unsub in list(self._manual_event_unsubs.values()):
             unsub()
         self._manual_event_unsubs.clear()
@@ -405,6 +413,7 @@ class PawControlScriptManager:
             manual_history.clear()
             manual_history.extend(self._manual_event_history)
             self._manual_event_history = manual_history
+            self._update_manual_history_size()
         else:
             with suppress(AttributeError):
                 runtime.manual_event_history = self._manual_event_history
@@ -412,6 +421,57 @@ class PawControlScriptManager:
     def sync_manual_event_history(self) -> None:
         """Persist the manual event history back to runtime storage."""
 
+        self._sync_manual_history_to_runtime()
+
+    def _resolve_manual_history_size(self) -> int:
+        """Determine the configured manual event history length."""
+
+        def _coerce(value: Any) -> int | None:
+            if isinstance(value, str):
+                value = value.strip()
+            try:
+                candidate = int(value)
+            except (TypeError, ValueError):
+                return None
+            if candidate < _MANUAL_EVENT_HISTORY_MIN:
+                return _MANUAL_EVENT_HISTORY_MIN
+            if candidate > _MANUAL_EVENT_HISTORY_MAX:
+                return _MANUAL_EVENT_HISTORY_MAX
+            return candidate
+
+        options = getattr(self._entry, "options", {})
+        system_settings = None
+        if isinstance(options, Mapping):
+            system_settings = options.get("system_settings")
+
+        for mapping in (
+            system_settings if isinstance(system_settings, Mapping) else None,
+            options if isinstance(options, Mapping) else None,
+            getattr(self._entry, "data", {})
+            if isinstance(getattr(self._entry, "data", {}), Mapping)
+            else None,
+        ):
+            if not isinstance(mapping, Mapping):
+                continue
+            configured = _coerce(mapping.get("manual_event_history_size"))
+            if configured is not None:
+                return configured
+
+        return _DEFAULT_MANUAL_EVENT_HISTORY_SIZE
+
+    def _update_manual_history_size(self) -> None:
+        """Resize the manual event history deque when configuration changes."""
+
+        desired = self._resolve_manual_history_size()
+        current = (
+            self._manual_event_history.maxlen or _DEFAULT_MANUAL_EVENT_HISTORY_SIZE
+        )
+        if desired == current:
+            self._manual_history_maxlen = desired
+            return
+
+        self._manual_event_history = deque(self._manual_event_history, maxlen=desired)
+        self._manual_history_maxlen = desired
         self._sync_manual_history_to_runtime()
 
     def export_manual_event_history(self) -> list[ManualResilienceEventRecord]:
@@ -1175,6 +1235,8 @@ class PawControlScriptManager:
             "data": cast(dict[str, Any] | None, record.get("data")),
             "sources": sources_list,
         }
+        snapshot["recorded_at"] = received_iso
+        snapshot["recorded_age_seconds"] = received_age
         reasons = record.get("reasons")
         if isinstance(reasons, Sequence) and not isinstance(
             reasons, str | bytes | bytearray
@@ -2049,45 +2111,23 @@ class PawControlScriptManager:
         timestamp_issue, last_generated_age = _classify_timestamp(self._last_generation)
 
         manual_last_trigger: dict[str, Any] | None = None
+        candidate_record: Mapping[str, Any] | None = None
         if self._manual_event_history:
-            last_record = self._manual_event_history[-1]
-            received_at = last_record.get("received_at")
-            recorded_dt = (
-                dt_util.as_utc(received_at)
-                if isinstance(received_at, datetime)
-                else None
-            )
-            recorded_age: int | None = None
-            if recorded_dt is not None:
-                recorded_age = int((dt_util.utcnow() - recorded_dt).total_seconds())
-            sources = last_record.get("sources")
-            if isinstance(sources, Sequence) and not isinstance(
-                sources, str | bytes | bytearray
-            ):
-                source_list = [
-                    str(source)
-                    for source in sources
-                    if isinstance(source, str) and source
-                ]
-            else:
-                source_list = []
-            reasons_list = [
-                str(reason)
-                for reason in (last_record.get("reasons") or [])
-                if isinstance(reason, str) and reason
-            ]
-            manual_last_trigger = {
-                "event_type": last_record.get("event_type"),
-                "matched_preference": last_record.get("preference_key"),
-                "category": last_record.get("configured_role"),
-                "origin": last_record.get("origin"),
-                "context_id": last_record.get("context_id"),
-                "user_id": last_record.get("user_id"),
-                "sources": ManualEventSourceList(source_list) if source_list else None,
-                "reasons": reasons_list or None,
-                "recorded_at": _serialize_datetime(recorded_dt),
-                "recorded_age_seconds": recorded_age,
-            }
+            candidate_record = self._manual_event_history[-1]
+        elif isinstance(self._last_manual_event, Mapping):
+            candidate_record = self._last_manual_event
+
+        if candidate_record is not None:
+            snapshot = self._serialise_manual_event_record(candidate_record)
+            if snapshot is not None:
+                manual_last_trigger = dict(snapshot)
+                manual_last_trigger.setdefault(
+                    "recorded_at", manual_last_trigger.get("received_at")
+                )
+                manual_last_trigger.setdefault(
+                    "recorded_age_seconds",
+                    manual_last_trigger.get("received_age_seconds"),
+                )
 
         counters_by_event: dict[str, int] = {}
         candidate_events: set[str] = set()

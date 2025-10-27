@@ -281,3 +281,59 @@ def test_ensure_allowed_github_api_url_accepts_expected_endpoint() -> None:
     publish_coverage.ensure_allowed_github_api_url(
         "https://api.github.com/repos/test/test"
     )
+
+
+def test_publish_uses_custom_prune_max_age(tmp_path, monkeypatch) -> None:
+    """Prune window should respect the --prune-max-age-days argument."""
+
+    coverage_xml = tmp_path / "coverage.xml"
+    coverage_xml.write_text(
+        """<?xml version='1.0' ?><coverage line-rate='0.9523'></coverage>""",
+        encoding="utf-8",
+    )
+    html_root = tmp_path / "generated" / "coverage"
+    html_root.mkdir(parents=True)
+    (html_root / "index.html").write_text("<html></html>", encoding="utf-8")
+    artifact_dir = tmp_path / "artifacts"
+
+    monkeypatch.setenv("GITHUB_TOKEN", "token")
+    monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
+
+    captured_window: dt.timedelta | None = None
+
+    class _DummyPublisher:
+        def __init__(self, *_: object) -> None:
+            pass
+
+        def publish(self, *_: object, **__: object) -> str:
+            return "https://example.com/coverage/latest/index.html"
+
+        def prune_expired_runs(self, prefix: str, max_age: dt.timedelta) -> list[str]:
+            nonlocal captured_window
+            captured_window = max_age
+            return []
+
+    monkeypatch.setattr(publish_coverage, "GitHubPagesPublisher", _DummyPublisher)
+
+    args = publish_coverage.build_cli().parse_args(
+        [
+            "--coverage-xml",
+            str(coverage_xml),
+            "--coverage-html-index",
+            str(html_root / "index.html"),
+            "--artifact-directory",
+            str(artifact_dir),
+            "--mode",
+            "pages",
+            "--run-id",
+            "custom-age",
+            "--prune-expired-runs",
+            "--prune-max-age-days",
+            "5",
+        ]
+    )
+
+    result = publish_coverage.publish(args)
+
+    assert result.published is True
+    assert captured_window == dt.timedelta(days=5)

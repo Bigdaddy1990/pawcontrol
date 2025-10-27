@@ -1,26 +1,27 @@
 # Development plan
 
-## Quality gate expectations
-- Run `ruff check`, `pytest -q`, `mypy custom_components/pawcontrol`, and `python -m script.hassfest --integration-path custom_components/pawcontrol` before opening a pull request so Platinum-level guardrails stay enforced.【F:.github/copilot-instructions.md†L10-L33】
-- Target Python 3.13+ features and reuse PawControl helpers (coordinators, managers, and typed constants) to keep runtime data on the typed surface.【F:.github/copilot-instructions.md†L34-L94】
+## Qualitäts-Gate-Erwartungen
+- Run `ruff check`, `pytest -q`, `mypy custom_components/pawcontrol`, and `python -m script.hassfest --integration-path custom_components/pawcontrol` before opening a pull request so the Platinum guardrails stay enforced.【F:.github/copilot-instructions.md†L29-L64】
+- Target Python 3.13+ features and reuse the coordinator/manager helpers so runtime data remains fully typed and compatible with Home Assistant expectations.【F:.github/copilot-instructions.md†L45-L118】
 
-## Documentation sync
-- `RELEASE_NOTES.md` und `CHANGELOG.md` verlinken die Diagnostik- und Wartungsleitfäden, damit Release-Kommunikation und Sustainment-Planung dieselben Nachschlagewerke nutzen ([docs/diagnostik.md](docs/diagnostik.md), [docs/MAINTENANCE.md](docs/MAINTENANCE.md)).【F:RELEASE_NOTES.md†L14-L24】【F:CHANGELOG.md†L114-L140】
+## Aktueller Qualitätsstatus
+- ✅ `ruff check` – lint passes after wiring the annotatedyaml fallback.【632c4e†L1-L2】
+- ✅ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=$(pwd) pytest -q` – 1 064 Tests grün, 1 nightly-only Integrationslauf übersprungen.【d74759†L1-L6】
+- ✅ `mypy custom_components/pawcontrol` – strikt typisierte Oberfläche bleibt fehlerfrei.【8e24f8†L1-L2】
+- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest- und String-Validierung laufen ohne Beanstandung durch.【56a36d†L1-L1】
 
-## Latest tooling snapshot
-- ✅ `ruff check`【bfdc87†L1-L3】
-- ✅ `pytest -q`【50c9da†L1-L6】
-- ✅ `mypy custom_components/pawcontrol`【08fbce†L1-L2】
-- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol`【350092†L1】
+## Erledigte Arbeiten
+- `annotatedyaml` lädt jetzt automatisch den vendored Build, fällt aber ohne System-Paket auf das lokal gebündelte Stub-Modul zurück, sodass `script.hassfest` und die Hassfest-Tests auch in Minimalumgebungen funktionieren.【F:annotatedyaml/__init__.py†L1-L74】
+- Die Test-Blueprints erhalten mit `pyyaml` eine deklarierte Abhängigkeit, womit Resilience-E2E-Läufe das YAML-Schema einlesen können.【F:requirements_test.txt†L3-L11】
 
-## Fehleranalyse
-- **Home-Assistant-Teststubs modernisiert:** Die Template-Helfer nutzen jetzt synchrone und asynchrone `NativeEnvironment`-Instanzen, Events enthalten Kontext- und Herkunftsdaten und der Service-Stub akzeptiert das `blocking`-Flag. Damit laufen Blueprint- und Service-Tests wieder gegen eine API, die der aktuellen Home-Assistant-Version entspricht.【F:tests/helpers/homeassistant_test_stubs.py†L1288-L1356】【F:tests/helpers/homeassistant_test_stubs.py†L297-L333】
-- **Manuelle Resilience-Ereignisse angereichert:** `PawControlScriptManager` speichert Listener-Quellen als `ManualEventSourceList`, reichert Ereignisse mit Gründen, Kontext und Zählwerten an und stellt die Historie für Diagnostik sowie Snapshots bereit. Laufzeitdaten werden beim Unload in `hass.data[DOMAIN]` persistiert, sodass Re-Initialisierungen keine Metadaten verlieren.【F:custom_components/pawcontrol/script_manager.py†L1210-L1303】【F:custom_components/pawcontrol/script_manager.py†L2030-L2083】【F:custom_components/pawcontrol/script_manager.py†L2475-L2485】【F:custom_components/pawcontrol/__init__.py†L1539-L1552】
-- **Benchmark-Stabilität verbessert:** `EntityFactory` kann `_ensure_min_runtime` auf Wunsch per `PAWCONTROL_ENABLE_ENTITY_FACTORY_BENCHMARKS=1` aktivieren und ruft den Guard dann aus allen Hotpaths auf. Dadurch bleiben Performance-Metriken reproduzierbar, ohne dass Prioritätsberechnungen in Tests ausfransen oder produktive Installationen blockiert werden.【F:custom_components/pawcontrol/entity_factory.py†L36-L37】【F:custom_components/pawcontrol/entity_factory.py†L658-L767】【F:custom_components/pawcontrol/entity_factory.py†L768-L779】
-- **Typdefinitionen erweitert:** Die Manual-Event-TypedDicts erlauben jetzt Sequenzen und optionale Quellinformationen, wodurch MyPy und Telemetrie-Ausgaben dieselbe Form erwarten. `Sequence` wird explizit importiert, um Python 3.13-Forward-Kompatibilität sicherzustellen.【F:custom_components/pawcontrol/types.py†L20-L39】【F:custom_components/pawcontrol/types.py†L1986-L2012】
-- **Konstanten bereinigt:** Überflüssige Update-Intervall-Duplikate wurden entfernt, sodass `const.py` wieder die einzige Quelle für Integrationsschwellen darstellt. Das vereinfacht spätere Retention-Anpassungen.【F:custom_components/pawcontrol/const.py†L20-L60】【F:custom_components/pawcontrol/const.py†L495-L586】
+## Fehlerliste
+- Keine offenen Gate-Blocker nach dem AnnotatedYAML-Fallback; nächste Arbeiten konzentrieren sich auf langfristige Wartbarkeit des Stubs.
 
 ## Verbesserungsplan
-1. **Blueprint-Testhelfer zentralisieren:** Die neuen Manual-Event-Metadaten sollen in einem gemeinsamen Testutility landen, damit Komponenten- und E2E-Blueprint-Suiten dieselben Listener-Mocks und Assertions verwenden.【F:tests/components/pawcontrol/test_resilience_blueprint_e2e.py†L24-L200】
-2. **Automation-/Template-Stubs erweitern:** Ergänzende Fixtures für `_enforce_polling_limits`, `_validate_gps_interval` und `async_block_till_done` halten die Test-Suite lauffähig, wenn Home Assistant weitere Validierungen einschleust.【F:tests/helpers/homeassistant_test_stubs.py†L1992-L2054】
-3. **Coverage-Retention konfigurabel machen:** `script.publish_coverage` erhält einen Schalter für maximale Aufbewahrungsdauer, inklusive Tests und Dokumentation, damit Support-Teams Speicherbudgets einfacher einhalten.【F:script/publish_coverage.py†L21-L210】
+1. **Vendor-Pfad beobachten.** Bei kommenden Home-Assistant-Releases prüfen, ob der echte `annotatedyaml` Build verfügbar ist und das Fallback nachgelagert aufräumen.【F:annotatedyaml/__init__.py†L28-L74】
+2. **Automatisches Requirements-Audit.** Ein kleines Guard-Skript ergänzen, das sicherstellt, dass alle Tests die im Code verwendeten Third-Party-Pakete (z. B. `pyyaml`) deklarieren, damit künftige Modulimporte nicht wieder überraschend scheitern.【F:requirements_test.txt†L3-L11】
+3. **Stub-Abdeckung erweitern.** Für den `annotatedyaml`-Fallback gezielte Tests ergänzen, damit der Abzweig bei künftigen Refactorings nicht versehentlich bricht.【F:annotatedyaml/__init__.py†L1-L74】
+
+## Monitoring & Rhythmus
+- Durchlaufe monatlich die Aufgaben aus `docs/MAINTENANCE.md`, damit Lokalisierungen, Diagnostik und Qualitätsnachweise aktuell bleiben.【F:docs/MAINTENANCE.md†L1-L40】
+- Aktualisiere nach Feature-Änderungen die Contributor-Guides per `python -m script.sync_contributor_guides`, damit alle Assistenten dieselben Richtlinien ausliefern.【F:script/sync_contributor_guides.py†L1-L92】
