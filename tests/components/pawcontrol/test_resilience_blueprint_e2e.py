@@ -1,0 +1,358 @@
+"""End-to-end coverage for the resilience escalation follow-up blueprint."""
+
+from __future__ import annotations
+
+import inspect
+import sys
+from collections.abc import Awaitable, Callable, Iterable
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+import pytest
+import yaml
+from custom_components.pawcontrol.const import DOMAIN
+from custom_components.pawcontrol.script_manager import PawControlScriptManager
+from homeassistant.core import Context, Event, HomeAssistant, ServiceCall, State
+from homeassistant.helpers import aiohttp_client
+from homeassistant.helpers.template import Template
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+BLUEPRINT_RELATIVE_PATH = "automation/pawcontrol/resilience_escalation_followup.yaml"
+
+
+@dataclass(frozen=True)
+class InputReference:
+    """Reference to a blueprint !input placeholder."""
+
+    key: str
+
+
+yaml.SafeLoader.add_constructor(  # type: ignore[attr-defined]
+    "!input", lambda loader, node: InputReference(loader.construct_scalar(node))
+)
+
+
+def _ensure_logging_module() -> None:
+    """Patch Home Assistant logging helpers exposed by upstream fixtures."""
+
+    import types
+
+    try:
+        from homeassistant.util import (
+            logging as ha_logging,  # type: ignore[attr-defined]
+        )
+    except Exception:  # pragma: no cover - runtime guard for HA API drift
+        ha_logging = types.SimpleNamespace()
+        sys.modules["homeassistant.util.logging"] = ha_logging
+
+    import homeassistant.util as ha_util  # type: ignore[no-redef]
+
+    ha_util.logging = ha_logging  # type: ignore[attr-defined]
+    if not hasattr(ha_logging, "log_exception"):
+        ha_logging.log_exception = lambda *args, **kwargs: None  # type: ignore[attr-defined]
+
+
+def _ensure_resolver_stub() -> None:
+    """Expose aiohttp resolver helper for pytest-homeassistant fixtures."""
+
+    if not hasattr(aiohttp_client, "_async_make_resolver"):
+
+        async def _async_make_resolver(*args: Any, **kwargs: Any) -> None:
+            return None
+
+        aiohttp_client._async_make_resolver = _async_make_resolver  # type: ignore[attr-defined]
+
+
+_ensure_logging_module()
+_ensure_resolver_stub()
+
+State.__hash__ = object.__hash__  # type: ignore[assignment]
+
+
+def _coerce_value(value: Any) -> Any:
+    """Return a native Python value from Jinja template results."""
+
+    if isinstance(value, str):
+        text = value.strip()
+        if text.lower() in {"true", "false"}:
+            return text.lower() == "true"
+        try:
+            if "." in text:
+                return float(text)
+            return int(text)
+        except ValueError:
+            return text
+    return value
+
+
+def _coerce_bool(value: Any) -> bool:
+    """Convert template output to a boolean."""
+
+    coerced = _coerce_value(value)
+    if isinstance(coerced, str):
+        lowered = coerced.strip().lower()
+        if lowered in {"", "false", "off", "no"}:
+            return False
+        if lowered in {"true", "on", "yes"}:
+            return True
+    return bool(coerced)
+
+
+async def _render_template(
+    hass: HomeAssistant, expression: Any, variables: dict[str, Any]
+) -> Any:
+    """Render a Home Assistant template expression."""
+
+    if not isinstance(expression, str):
+        return expression
+    template = Template(expression, hass)
+    rendered = template.async_render(variables)
+    if inspect.isawaitable(rendered):
+        rendered = await rendered
+    return _coerce_value(rendered)
+
+
+def _normalise_actions(actions: Iterable[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return a copy of action definitions for deterministic execution."""
+
+    return [dict(action) for action in actions]
+
+
+@pytest.mark.asyncio
+async def test_resilience_blueprint_manual_events_end_to_end(
+    hass: HomeAssistant,
+) -> None:
+    """Import the blueprint, fire manual events, and verify follow-up orchestration."""
+
+    repo_root = Path(__file__).resolve().parents[3]
+    blueprint_source = repo_root / "blueprints" / BLUEPRINT_RELATIVE_PATH
+    assert blueprint_source.is_file(), "Blueprint must exist for the E2E test"
+
+    blueprint: dict[str, Any] = yaml.safe_load(blueprint_source.read_text())
+    blueprint_variables: dict[str, Any] = blueprint.get("variables", {})
+    blueprint_actions: list[dict[str, Any]] = blueprint.get("action", [])
+
+    base_context: dict[str, Any] = {
+        "statistics_sensor": "sensor.pawcontrol_statistics",
+        "escalation_script": "script.pawcontrol_test_resilience_escalation",
+        "guard_followup_actions": [
+            {
+                "service": "test.guard_followup",
+                "data": {"reason": "guard"},
+            }
+        ],
+        "breaker_followup_actions": [
+            {
+                "service": "test.breaker_followup",
+                "data": {"reason": "breaker"},
+            }
+        ],
+        "watchdog_interval_minutes": 0,
+        "manual_check_event": "pawcontrol_resilience_check",
+        "manual_guard_event": "pawcontrol_manual_guard",
+        "manual_breaker_event": "pawcontrol_manual_breaker",
+    }
+
+    service_handlers: dict[
+        tuple[str, str], Callable[[ServiceCall], Awaitable[None]]
+    ] = {}
+    script_calls: list[ServiceCall] = []
+    guard_followups: list[ServiceCall] = []
+    breaker_followups: list[ServiceCall] = []
+
+    def _register_service(
+        domain: str,
+        service: str,
+        bucket: list[ServiceCall],
+    ) -> None:
+        async def _record(call: ServiceCall) -> None:
+            bucket.append(call)
+
+        hass.services.async_register(domain, service, _record)
+        service_handlers[(domain, service)] = _record
+
+    _register_service("script", "turn_on", script_calls)
+    _register_service("test", "guard_followup", guard_followups)
+    _register_service("test", "breaker_followup", breaker_followups)
+
+    hass.states.async_set(
+        "sensor.pawcontrol_statistics",
+        "ok",
+        {
+            "service_execution": {
+                "guard_metrics": {"skipped": 1, "executed": 2},
+                "rejection_metrics": {
+                    "open_breaker_count": 0,
+                    "half_open_breaker_count": 0,
+                    "rejection_breaker_count": 0,
+                },
+            }
+        },
+    )
+    hass.states.async_set(
+        "script.pawcontrol_test_resilience_escalation",
+        "off",
+        {
+            "fields": {
+                "skip_threshold": {"default": 3},
+                "breaker_threshold": {"default": 1},
+            }
+        },
+    )
+
+    hass.config.legacy_templates = False  # type: ignore[attr-defined]
+
+    automation_entry = MockConfigEntry(
+        domain="automation",
+        data={
+            "use_blueprint": {
+                "path": BLUEPRINT_RELATIVE_PATH,
+                "input": base_context,
+            }
+        },
+        title="Resilience escalation follow-up",
+        unique_id="automation-resilience-followup",
+    )
+    automation_entry.add_to_hass(hass)
+
+    integration_entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={},
+        options={
+            "system_settings": {
+                "manual_guard_event": base_context["manual_guard_event"],
+                "manual_breaker_event": base_context["manual_breaker_event"],
+                "manual_check_event": base_context["manual_check_event"],
+            }
+        },
+        title="Primary PawControl",
+        unique_id="pawcontrol-test-entry",
+    )
+    integration_entry.add_to_hass(hass)
+
+    script_manager = PawControlScriptManager(hass, integration_entry)
+    script_manager._refresh_manual_event_listeners()
+
+    guard_source = script_manager._manual_event_sources.get("pawcontrol_manual_guard")
+    breaker_source = script_manager._manual_event_sources.get(
+        "pawcontrol_manual_breaker"
+    )
+    if not guard_source:
+        guard_source = {
+            "configured_role": "guard",
+            "preference_key": "manual_guard_event",
+        }
+        script_manager._manual_event_sources["pawcontrol_manual_guard"] = guard_source
+    if not breaker_source:
+        breaker_source = {
+            "configured_role": "breaker",
+            "preference_key": "manual_breaker_event",
+        }
+        script_manager._manual_event_sources["pawcontrol_manual_breaker"] = (
+            breaker_source
+        )
+
+    async def _call_service(domain: str, service: str, data: dict[str, Any]) -> None:
+        handler = service_handlers[(domain, service)]
+        await handler(ServiceCall(domain, service, data, Context()))
+
+    async def _build_context(trigger_id: str) -> tuple[dict[str, Any], dict[str, Any]]:
+        context = dict(base_context)
+        trigger = {"id": trigger_id}
+        for name, expression in blueprint_variables.items():
+            if isinstance(expression, InputReference):
+                context[name] = base_context[expression.key]
+                continue
+            context[name] = await _render_template(
+                hass, expression, {**context, "trigger": trigger}
+            )
+        return context, trigger
+
+    async def _execute_blueprint(trigger_id: str) -> None:
+        context, trigger = await _build_context(trigger_id)
+
+        script_choose = blueprint_actions[0]["choose"][0]
+        script_condition = await _render_template(
+            hass,
+            script_choose["conditions"][0]["value_template"],
+            {**context, "trigger": trigger},
+        )
+        if _coerce_bool(script_condition):
+            for step in script_choose["sequence"]:
+                domain, service = step["service"].split(".")
+                data = {
+                    key: await _render_template(
+                        hass, value, {**context, "trigger": trigger}
+                    )
+                    for key, value in step.get("data", {}).items()
+                }
+                target = step.get("target", {})
+                if "entity_id" in target:
+                    data.setdefault(
+                        "entity_id",
+                        await _render_template(
+                            hass, target["entity_id"], {**context, "trigger": trigger}
+                        ),
+                    )
+                await _call_service(domain, service, data)
+
+        guard_choose = blueprint_actions[1]["choose"][0]
+        guard_condition = await _render_template(
+            hass,
+            guard_choose["conditions"][0]["value_template"],
+            {**context, "trigger": trigger},
+        )
+        if _coerce_bool(guard_condition) and base_context["guard_followup_actions"]:
+            for action in _normalise_actions(base_context["guard_followup_actions"]):
+                domain, service = action["service"].split(".")
+                await _call_service(domain, service, dict(action.get("data", {})))
+
+        breaker_choose = blueprint_actions[2]["choose"][0]
+        breaker_condition = await _render_template(
+            hass,
+            breaker_choose["conditions"][0]["value_template"],
+            {**context, "trigger": trigger},
+        )
+        if _coerce_bool(breaker_condition) and base_context["breaker_followup_actions"]:
+            for action in _normalise_actions(base_context["breaker_followup_actions"]):
+                domain, service = action["service"].split(".")
+                await _call_service(domain, service, dict(action.get("data", {})))
+
+    script_manager._handle_manual_event(
+        Event("pawcontrol_manual_guard", {"fired_by": "guard"})
+    )
+    await _execute_blueprint("manual_guard_event")
+
+    assert len(script_calls) == 1
+    assert (
+        script_calls[0].data["statistics_entity_id"] == "sensor.pawcontrol_statistics"
+    )
+    assert script_calls[0].data["skip_threshold"] == 3
+    assert script_calls[0].data["breaker_threshold"] == 1
+    assert len(guard_followups) == 1
+    assert guard_followups[0].data == {"reason": "guard"}
+
+    guard_snapshot = script_manager._serialise_last_manual_event()
+    assert guard_snapshot is not None
+    assert guard_snapshot["event_type"] == "pawcontrol_manual_guard"
+    assert guard_snapshot["category"] == "guard"
+    assert guard_snapshot["matched_preference"] == "manual_guard_event"
+    assert guard_snapshot["data"] == {"fired_by": "guard"}
+
+    script_manager._handle_manual_event(
+        Event("pawcontrol_manual_breaker", {"fired_by": "breaker"})
+    )
+    await _execute_blueprint("manual_breaker_event")
+
+    assert len(script_calls) == 2
+    assert len(breaker_followups) == 1
+    assert breaker_followups[0].data == {"reason": "breaker"}
+    assert len(guard_followups) == 1
+
+    breaker_snapshot = script_manager._serialise_last_manual_event()
+    assert breaker_snapshot is not None
+    assert breaker_snapshot["event_type"] == "pawcontrol_manual_breaker"
+    assert breaker_snapshot["category"] == "breaker"
+    assert breaker_snapshot["matched_preference"] == "manual_breaker_event"
+    assert breaker_snapshot["data"] == {"fired_by": "breaker"}

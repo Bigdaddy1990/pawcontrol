@@ -30,7 +30,10 @@ stack is unavailable in CI.
 - **Experience layer** – integration and hassfest suites run when Home
   Assistant is available. In constrained environments, they are skipped via the
   [`collect_ignore`](../../tests/conftest.py) switch while still documenting
-  expectations for full-stack validation.
+  expectations for full-stack validation. The resilience blueprint end-to-end
+  regression imports the automation, fires manual guard/breaker events, and
+  asserts script plus follow-up execution alongside Script-Manager telemetry.
+  【F:tests/components/pawcontrol/test_resilience_blueprint_e2e.py†L122-L358】
 
 ## Coverage & Quality Gates
 
