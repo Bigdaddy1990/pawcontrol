@@ -735,10 +735,6 @@ class PawControlOptionsFlow(OptionsFlow):
 
         has_skip = "resilience_skip_threshold" in system
         has_breaker = "resilience_breaker_threshold" in system
-        legacy_skip = options.get("resilience_skip_threshold")
-        legacy_breaker = options.get("resilience_breaker_threshold")
-        has_legacy_skip = isinstance(legacy_skip, int)
-        has_legacy_breaker = isinstance(legacy_breaker, int)
 
         skip_default = self._resolve_resilience_threshold_default(
             system,
@@ -765,7 +761,7 @@ class PawControlOptionsFlow(OptionsFlow):
             candidate=skip_candidate,
             default=skip_default,
             script_value=script_skip,
-            include_script=not has_skip and not has_legacy_skip,
+            include_script=not has_skip,
             minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
             maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
             fallback=DEFAULT_RESILIENCE_SKIP_THRESHOLD,
@@ -774,7 +770,7 @@ class PawControlOptionsFlow(OptionsFlow):
             candidate=breaker_candidate,
             default=breaker_default,
             script_value=script_breaker,
-            include_script=not has_breaker and not has_legacy_breaker,
+            include_script=not has_breaker,
             minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
             maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
             fallback=DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
