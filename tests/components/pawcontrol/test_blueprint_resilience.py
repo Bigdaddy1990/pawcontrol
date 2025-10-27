@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 import pytest
@@ -13,35 +12,20 @@ from homeassistant.core import Event, HomeAssistant, ServiceCall, callback
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-BLUEPRINT_RELATIVE_PATH = "automation/pawcontrol/resilience_escalation_followup.yaml"
+from .blueprint_helpers import (
+    BLUEPRINT_RELATIVE_PATH,
+    DEFAULT_RESILIENCE_BLUEPRINT_CONTEXT,
+    ensure_blueprint_imported,
+)
 
 
 @pytest.mark.asyncio
 async def test_resilience_blueprint_manual_events_execute(hass: HomeAssistant) -> None:
     """Manual guard/breaker events should execute the blueprint automation."""
 
-    repo_root = Path(__file__).resolve().parents[3]
-    source_path = repo_root / "blueprints" / BLUEPRINT_RELATIVE_PATH
-    assert source_path.is_file(), "Resilience blueprint must exist"
+    ensure_blueprint_imported(hass, BLUEPRINT_RELATIVE_PATH)
 
-    blueprint_target = Path(hass.config.path("blueprints")) / BLUEPRINT_RELATIVE_PATH
-    blueprint_target.parent.mkdir(parents=True, exist_ok=True)
-    blueprint_target.write_text(source_path.read_text(), encoding="utf-8")
-
-    base_context: dict[str, Any] = {
-        "statistics_sensor": "sensor.pawcontrol_statistics",
-        "escalation_script": "script.pawcontrol_test_resilience_escalation",
-        "guard_followup_actions": [
-            {"service": "test.guard_followup", "data": {"reason": "guard"}}
-        ],
-        "breaker_followup_actions": [
-            {"service": "test.breaker_followup", "data": {"reason": "breaker"}}
-        ],
-        "watchdog_interval_minutes": 0,
-        "manual_check_event": "pawcontrol_resilience_check",
-        "manual_guard_event": "pawcontrol_manual_guard",
-        "manual_breaker_event": "pawcontrol_manual_breaker",
-    }
+    base_context: dict[str, Any] = dict(DEFAULT_RESILIENCE_BLUEPRINT_CONTEXT)
 
     script_calls: list[ServiceCall] = []
     guard_calls: list[ServiceCall] = []
