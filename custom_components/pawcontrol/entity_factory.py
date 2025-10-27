@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import time
 from collections import OrderedDict
 from collections.abc import Iterator, Mapping
@@ -375,12 +376,17 @@ class EntityFactory:
         coordinator: PawControlCoordinator | None,
         *,
         prewarm: bool = True,
+        enforce_min_runtime: bool | None = None,
     ) -> None:
         """Initialize entity factory.
 
         Args:
             coordinator: PawControl coordinator instance (can be None for estimation)
             prewarm: Whether to pre-populate caches for faster first use
+            enforce_min_runtime: Enable deterministic runtime guards used during
+                benchmarking. When ``None`` the value is derived from the
+                ``PAWCONTROL_ENABLE_ENTITY_FACTORY_BENCHMARKS`` environment
+                variable.
         """
         self.coordinator = coordinator
         self._entity_cache: dict[str, Entity] = {}
@@ -398,6 +404,10 @@ class EntityFactory:
         self._should_create_misses = 0
         self._last_estimate_key: tuple[str, tuple[tuple[str, bool], ...]] | None = None
         self._last_module_weights: dict[str, int] = {}
+        if enforce_min_runtime is None:
+            env_value = os.getenv("PAWCONTROL_ENABLE_ENTITY_FACTORY_BENCHMARKS", "")
+            enforce_min_runtime = env_value.lower() in {"1", "true", "yes", "on"}
+        self._enforce_min_runtime = enforce_min_runtime
         self._last_synergy_score: int = 0
         self._last_triad_score: int = 0
         self._active_budgets: dict[tuple[str, str], EntityBudget] = {}
@@ -760,17 +770,18 @@ class EntityFactory:
         self._ensure_min_runtime(started_at)
         return result
 
-    @staticmethod
-    def _ensure_min_runtime(started_at: float) -> None:
-        """Busy-wait until ``_MIN_OPERATION_DURATION`` elapses."""
+    def _ensure_min_runtime(self, started_at: float) -> None:
+        """Sleep until ``_MIN_OPERATION_DURATION`` elapses when enabled."""
 
-        target = started_at + _MIN_OPERATION_DURATION
-        now = time.perf_counter()
-        if now >= target:
+        if not self._enforce_min_runtime:
             return
 
-        while time.perf_counter() < target:
-            pass
+        elapsed = time.perf_counter() - started_at
+        remaining = _MIN_OPERATION_DURATION - elapsed
+        if remaining <= 0:
+            return
+
+        time.sleep(remaining)
 
     @staticmethod
     def _stabilize_priority_workload(priority: int, module: str) -> None:

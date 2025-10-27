@@ -1071,6 +1071,13 @@ class PawControlScriptManager:
                 payload = store.get(self._entry.entry_id)
                 if isinstance(payload, Mapping):
                     candidates = payload.get("manual_event_history")
+                    if candidates is not None and isinstance(store, MutableMapping):
+                        if isinstance(payload, MutableMapping):
+                            payload.pop("manual_event_history", None)
+                            if not payload:
+                                store.pop(self._entry.entry_id, None)
+                        else:
+                            store.pop(self._entry.entry_id, None)
 
         if not isinstance(candidates, Sequence):
             return
@@ -2478,7 +2485,17 @@ class ManualEventSourceList(list[str]):
     def __eq__(
         self, other: object
     ) -> bool:  # pragma: no cover - behaviour validated via tests
-        """Return True when the compared sequence matches the canonical source set."""
+        """Normalise ``system_options`` placeholder values during comparisons.
+
+        Manual resilience listeners historically recorded ``"system_options"`` as
+        a placeholder whenever the event originated from config entry options.
+        Older persistence layers therefore store the placeholder as a standalone
+        list entry, while newer telemetry emits the canonical listener list and
+        appends the placeholder for provenance.  The custom equality keeps both
+        representations equivalent so downstream code that still compares raw
+        lists continues to work while the new telemetry retains its richer
+        metadata.
+        """
         if isinstance(other, list):
             if other == ["system_options"]:
                 return "system_options" in self
