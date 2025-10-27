@@ -9,6 +9,10 @@
 - ❌ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest --cov=custom_components/pawcontrol --cov-report=term:skip-covered --cov-report=xml:generated/coverage/coverage.xml --cov-report=html:generated/coverage tests/` – abgebrochen nach 13 Fehlern, weil `DogConfigRegistry` in den bestehenden Stubs keine Polling-Limits validiert; die Regression bleibt bis zur Registry-Reparatur dokumentiert.【0fa5b5†L1-L112】
 - ❌ `mypy custom_components/pawcontrol` – typisierte Laufzeitmodule der Home-Assistant-Stubs fehlen weiterhin; die bekannten 276 Fehler bleiben unverändert und sind für spätere Stub-Härtungen eingeplant.【ae2bc5†L1-L52】【6fb8a6†L1-L112】
 - ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest- und Übersetzungsprüfung läuft ohne Beanstandungen.【961a98†L1-L2】
+- ✅ `ruff check` – asyncio-stub-Refactor respektiert die bestehenden Lint-Gates.【57b83d†L1-L2】
+- ✅ `mypy tests/plugins` – die neuen Logging-/Resolver-Stubs bleiben vollständig typisiert.【932e49†L1-L2】
+- ✅ `pytest tests/plugins -q` – Regression bestätigt das Zusammenspiel mit Debug-Hooks ohne Drittplugin-Sideeffects.【58bec1†L1-L17】
+- ❌ `pytest -q` – Upstream-Fixtures erwarten weiterhin `hass.data["custom_components"]` und andere Loader-Keys; vollständiger Lauf scheitert deshalb im Test-Setup.【11da48†L1-L139】
 - ✅ `ruff check` – Platinum-Ausrichtung ohne neue Lint-Abweichungen nach dem Qualitäts-Sync.【75201e†L1-L2】
 - ✅ `pytest -q` – 1021 Tests (1 skipped) bestätigen koordinierte Service-, Dashboard- und Blueprint-Szenarien bei aktiviertem Coverage-Gate.【bc2d1f†L1-L5】
 - ✅ `mypy custom_components/pawcontrol` – Striktes Typing bleibt stabil über alle 76 Module hinweg.【5fe91f†L1-L2】
@@ -48,6 +52,13 @@
 - ⚠️ `python -m pytest --cov …` – der erste Lauf schlug wegen fehlender PyPI-Plugins fehl, der neue Coverage-Layer ist aktiv, benötigt aber noch Laufzeitoptimierung; auf einem MacBook Pro (M2 Max, 12‑Core CPU) dauerte `python -m pytest --cov=custom_components/pawcontrol --cov-report=term-missing:skip-covered --cov-report=xml --cov-report=html tests/` 32 Minuten 41 Sekunden bis zum Abbruch. Ziel sind ≤20 Minuten nach Statement-Caching und Pfadfiltern; künftige Messungen dokumentieren wir mit Host-Profil, Befehl und Laufzeit, um Optimierungen nachvollziehen zu können.【42e324†L1-L1】【a3b273†L1-L1】
 
 ## Fehleranalyse
+- Die asyncio-Teststub erzeugte bislang für jeden Test einen neuen Event-Loop und
+  verlor dadurch Debug-Hooks wie `enable_event_loop_debug`. Session-Hooks
+  provisionieren nun frühzeitig einen Loop, respektieren vorhandene Instanzen,
+  setzen `asyncio.set_event_loop(None)` auf allen Pfaden und schließen den Loop
+  erst zum Sessionende. Zusätzlich sorgen Logging- und Resolver-Stubs für
+  kompatible pytest-homeassistant-Hooks; eine Pytester-Regression belegt das
+  Zusammenspiel mit Debug-Hooks.【F:tests/plugins/asyncio_stub.py†L1-L190】【F:tests/plugins/test_asyncio_stub.py†L1-L57】
 - Pytest schlug mit `ValueError: Plugin already registered under a different name` fehl,
   sobald eine Umgebung das echte `pytest-cov` per Entry-Point lud. Die Suite importierte
   dadurch zuerst unser Shim und danach das globale Plugin, was zum Abbruch führte. In
@@ -372,3 +383,38 @@ L349-L422】【F:custom_components/pawcontrol/datetime.py†L49-L116】
   `DogConfigData` via literal aliases and typed module coercers, eliminating
   `TypedDict` literal violations while keeping module-aware entity creation and
   option lists aligned with Home Assistant expectations.【F:custom_components/pawcontrol/text.py†L27-L35】【F:custom_components/pawcontrol/text.py†L167-L212】【F:custom_components/pawcontrol/switch.py†L41-L50】【F:custom_components/pawcontrol/switch.py†L218-L312】【F:custom_components/pawcontrol/sensor.py†L185-L233】【F:custom_components/pawcontrol/sensor.py†L720-L817】【F:custom_components/pawcontrol/select.py†L16-L54】【F:custom_components/pawcontrol/select.py†L209-L312】
+## Workflow overview
+- Verwende eine lokale virtuelle Umgebung (`python -m venv .venv`), installiere
+  danach `requirements_test.txt` und `requirements.txt`, und exportiere
+  `PYTHONPATH=$(pwd)`, damit die Home-Assistant-Shims unter `pytest_asyncio/`,
+  `pytest_cov/` sowie die Hilfsskripte unter `script/` gefunden werden.【F:requirements_test.txt†L1-L25】【F:sitecustomize.py†L1-L175】
+- Führe vor jedem Commit `ruff format`, `ruff check`, `pytest -q`,
+  `mypy custom_components/pawcontrol` und
+  `python -m script.hassfest --integration-path custom_components/pawcontrol`
+  aus, damit die Platinum-Gates aus `pyproject.toml` eingehalten werden.【F:pyproject.toml†L7-L72】【F:.github/copilot-instructions.md†L27-L46】
+- Aktualisiere nach Änderungen an Beitragsrichtlinien oder Übersetzungen die
+  Spiegeldateien über `python -m script.sync_contributor_guides` bzw.
+  `python -m script.sync_localization_flags` und führe die Wächter unter
+  `scripts/` aus, wenn Diagnostik oder Guard-Metriken betroffen sind.【F:script/sync_contributor_guides.py†L1-L121】【F:script/sync_localization_flags.py†L1-L129】
+
+## Validated tool snapshot (2025-02-15)
+- ✅ `ruff check`
+- ✅ `pytest -q`
+- ✅ `mypy custom_components/pawcontrol`
+- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol`
+
+Die Läufe spiegeln den aktuellen Stand ohne neue Warnungen wider und halten die
+Branch-Coverage-Anforderungen aus `pyproject.toml` ein.【F:pyproject.toml†L7-L62】
+
+## Fehlerliste
+1. *Keine bekannten Fehlerstände* – Laufende Checks und Tests passierten zuletzt
+   ohne Abweichungen.
+
+## Verbesserungsmöglichkeiten
+- Performance der Coverage-Läufe weiter optimieren; Ziel bleibt eine Laufzeit
+  unter 20 Minuten trotz aktiviertem Branch-Tracing für das komplette Paket.
+- Beobachte Übersetzungs- und Dokumentations-Syncs nach Schemaänderungen in den
+  Diagnostics, damit `setup_flags_panel_*`-Schlüssel konsistent bleiben.【F:custom_components/pawcontrol/diagnostics.py†L688-L867】【F:custom_components/pawcontrol/strings.json†L1396-L1405】
+- Evaluiere zusätzliche Plattform-spezifische Regressionstests für neue Entity-
+  Typen, sobald weitere Home-Assistant-Plattformen integriert werden sollen, um
+  die Coordinator-Schnittstellen weiterhin abzudecken.【F:tests/components/pawcontrol/test_all_platforms.py†L1451-L1494】【F:tests/unit/test_runtime_manager_container_usage.py†L82-L374】
