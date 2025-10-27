@@ -110,9 +110,7 @@ class _CoverageController:
             cov.stop()
             cov.save()
         except Exception as exc:  # pragma: no cover - defensive safety net
-            self._record_internal_error(
-                session, f"Coverage finalisation failed: {exc}"
-            )
+            self._record_internal_error(session, f"Coverage finalisation failed: {exc}")
             return
 
         total: float | None = None
@@ -173,9 +171,7 @@ class _CoverageController:
             return float(calculator())
 
         buffer = io.StringIO()
-        return float(
-            cov.report(file=buffer, show_missing=False, skip_empty=True)
-        )
+        return float(cov.report(file=buffer, show_missing=False, skip_empty=True))
 
     def _write_xml_report(
         self, cov: coverage.Coverage, report: _CoverageReportSpec
@@ -194,9 +190,7 @@ class _CoverageController:
         path.mkdir(parents=True, exist_ok=True)
         cov.html_report(directory=str(path))
 
-    def _record_internal_error(
-        self, session: pytest.Session, message: str
-    ) -> None:
+    def _record_internal_error(self, session: pytest.Session, message: str) -> None:
         if not self._fail_message:
             self._fail_message = message
         session.exitstatus = pytest.ExitCode.INTERNAL_ERROR
