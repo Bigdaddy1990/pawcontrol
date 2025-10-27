@@ -9,6 +9,7 @@ import types
 from pathlib import Path
 
 import coverage
+from coverage import _compile_cached
 from homeassistant.helpers import aiohttp_client
 
 ha_util_logging = types.ModuleType("homeassistant.util.logging")
@@ -76,3 +77,20 @@ def test_runtime_metrics_generation(tmp_path) -> None:
         "file,statements,executed,missed,coverage_percent,runtime_seconds,host,cpu_count"
     )
     assert any(key in row for row in csv_content[1:])
+
+
+def test_compile_cached_reuses_bytecode() -> None:
+    """The compilation helper caches bytecode for repeated calls."""
+
+    first = _compile_cached("sample.py", "value = 1")
+    second = _compile_cached("sample.py", "value = 1")
+    assert first is not None
+    assert second is first
+
+
+def test_compile_cached_handles_syntax_errors() -> None:
+    """Invalid source returns ``None`` and caches the failure result."""
+
+    source = "def broken(: pass"
+    assert _compile_cached("broken.py", source) is None
+    assert _compile_cached("broken.py", source) is None

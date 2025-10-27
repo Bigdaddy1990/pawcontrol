@@ -1263,7 +1263,7 @@ def _install_helper_modules() -> None:
             context.update(kwargs)
             return template.render(**context)
 
-        def async_render(
+        async def async_render(
             self, variables: Mapping[str, Any] | None = None, **kwargs: Any
         ) -> Any:
             return self.render(variables, **kwargs)

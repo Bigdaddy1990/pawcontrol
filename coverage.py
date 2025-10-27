@@ -16,7 +16,7 @@ import xml.etree.ElementTree as ET
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TextIO
+from typing import Any, TextIO
 
 _PROJECT_ROOT = Path.cwd().resolve()
 
@@ -35,7 +35,11 @@ _SKIP_ENV_VAR = "PAWCONTROL_COVERAGE_SKIP"
 
 @functools.lru_cache(maxsize=512)
 def _compile_cached(filename: str, source: str) -> types.CodeType | None:
-    """Compile and cache Python source into a code object."""
+    """Compile and cache Python source used by `_load_statements`.
+
+    Reusing compiled bytecode avoids redundant parsing while capturing syntax
+    failures as empty statement sets during coverage discovery and tests.【F:coverage.py†L343-L400】【F:tests/unit/test_coverage_shim.py†L82-L96】
+    """
 
     try:
         return compile(source, filename, "exec")
@@ -452,18 +456,33 @@ class Coverage:
         return allowed
 
     def _write_runtime_metrics(self, reports: tuple[_FileReport, ...]) -> None:
+        metrics_dir = self._ensure_metrics_directory()
+        host_info = self._build_host_metadata()
+        files_payload = self._build_files_payload(reports)
+        json_payload = self._build_json_payload(host_info, files_payload)
+        self._write_json_metrics(metrics_dir, json_payload)
+        self._write_csv_metrics(metrics_dir, host_info, files_payload)
+
+    def _ensure_metrics_directory(self) -> Path:
         metrics_dir = _METRICS_DIRECTORY
         metrics_dir.mkdir(parents=True, exist_ok=True)
-        host_info = {
+        return metrics_dir
+
+    def _build_host_metadata(self) -> dict[str, int | str]:
+        return {
             "name": socket.gethostname(),
             "cpu_count": os.cpu_count() or 1,
         }
+
+    def _build_files_payload(
+        self, reports: tuple[_FileReport, ...]
+    ) -> list[dict[str, Any]]:
         with self._lock:
             runtime_snapshot = dict(self._module_runtime)
-        files_payload = []
+        payload: list[dict[str, Any]] = []
         for report in reports:
             runtime_seconds = runtime_snapshot.get(report.path, 0.0)
-            files_payload.append(
+            payload.append(
                 {
                     "relative": report.relative,
                     "statements": len(report.statements),
@@ -473,16 +492,32 @@ class Coverage:
                     "runtime_seconds": runtime_seconds,
                 }
             )
-        files_payload.sort(key=lambda item: item["relative"])
-        json_payload = {
+        payload.sort(key=lambda item: item["relative"])
+        return payload
+
+    @staticmethod
+    def _build_json_payload(
+        host_info: dict[str, int | str], files_payload: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        return {
             "host": host_info,
             "generated_at": time.time(),
             "files": files_payload,
         }
+
+    @staticmethod
+    def _write_json_metrics(metrics_dir: Path, payload: dict[str, Any]) -> None:
         (metrics_dir / _METRICS_JSON_NAME).write_text(
-            json.dumps(json_payload, indent=2, sort_keys=False),
+            json.dumps(payload, indent=2, sort_keys=False),
             encoding="utf-8",
         )
+
+    @staticmethod
+    def _write_csv_metrics(
+        metrics_dir: Path,
+        host_info: dict[str, int | str],
+        files_payload: list[dict[str, Any]],
+    ) -> None:
         csv_path = metrics_dir / _METRICS_CSV_NAME
         with csv_path.open("w", encoding="utf-8", newline="") as handle:
             writer = csv.writer(handle)
