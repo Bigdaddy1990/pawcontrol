@@ -61,4 +61,3 @@ def ensure_blueprint_imported(hass: HomeAssistant, relative_path: str | Path) ->
     target_path.parent.mkdir(parents=True, exist_ok=True)
     target_path.write_text(source_path.read_text(encoding="utf-8"), encoding="utf-8")
     return target_path
-
