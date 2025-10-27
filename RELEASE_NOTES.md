@@ -27,6 +27,12 @@
 
 ## 🚀 What's New in v1.0.0
 
+### ⚙️ **Options Flow Improvements**
+- Added manual escalation selectors to the System Settings step so `manual_check_event`, `manual_guard_event`, and `manual_breaker_event` can be managed directly from the UI; saved values are trimmed, blank inputs disable triggers, and all Resilience blueprint automations receive the update instantly.【F:custom_components/pawcontrol/options_flow.py†L3986-L4043】【F:custom_components/pawcontrol/script_manager.py†L503-L607】【F:tests/unit/test_options_flow.py†L808-L870】
+
+### 🩺 **Diagnostics Enhancements**
+- Resilience snapshots now expose the active manual escalation listeners and capture the latest manual trigger context (event type, origin, user, payload, age) so on-call responders can see exactly which on-demand check executed most recently.【F:custom_components/pawcontrol/script_manager.py†L575-L704】【F:custom_components/pawcontrol/script_manager.py†L1235-L1363】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L243】【F:tests/unit/test_data_manager.py†L595-L676】
+
 ### 🗺️ **Advanced GPS Tracking System**
 ```yaml
 # Real-time location monitoring

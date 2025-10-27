@@ -134,6 +134,16 @@ async def test_system_health_guard_and_breaker_summary(hass: HomeAssistant) -> N
             "configured_guard_events": [],
             "configured_breaker_events": [],
             "configured_check_events": [],
+            "preferred_events": {
+                "manual_check_event": "pawcontrol_resilience_check",
+                "manual_guard_event": "pawcontrol_manual_guard",
+                "manual_breaker_event": "pawcontrol_manual_breaker",
+            },
+            "preferred_guard_event": "pawcontrol_manual_guard",
+            "preferred_breaker_event": "pawcontrol_manual_breaker",
+            "preferred_check_event": "pawcontrol_resilience_check",
+            "active_listeners": [],
+            "last_event": None,
         },
     }
 
@@ -241,6 +251,16 @@ async def test_system_health_indicator_critical_paths(hass: HomeAssistant) -> No
             "configured_guard_events": [],
             "configured_breaker_events": [],
             "configured_check_events": [],
+            "preferred_events": {
+                "manual_check_event": "pawcontrol_resilience_check",
+                "manual_guard_event": "pawcontrol_manual_guard",
+                "manual_breaker_event": "pawcontrol_manual_breaker",
+            },
+            "preferred_guard_event": "pawcontrol_manual_guard",
+            "preferred_breaker_event": "pawcontrol_manual_breaker",
+            "preferred_check_event": "pawcontrol_resilience_check",
+            "active_listeners": [],
+            "last_event": None,
         },
     }
 
@@ -323,6 +343,16 @@ async def test_system_health_threshold_disabled_fallbacks(
             "configured_guard_events": [],
             "configured_breaker_events": [],
             "configured_check_events": [],
+            "preferred_events": {
+                "manual_check_event": "pawcontrol_resilience_check",
+                "manual_guard_event": "pawcontrol_manual_guard",
+                "manual_breaker_event": "pawcontrol_manual_breaker",
+            },
+            "preferred_guard_event": "pawcontrol_manual_guard",
+            "preferred_breaker_event": "pawcontrol_manual_breaker",
+            "preferred_check_event": "pawcontrol_resilience_check",
+            "active_listeners": [],
+            "last_event": None,
         },
     }
 

@@ -466,9 +466,10 @@
           "enable_cloud_backup": "Enable Cloud Backup",
           "resilience_skip_threshold": "Guard skip escalation threshold",
           "resilience_breaker_threshold": "Breaker escalation threshold",
-          "performance_mode": "Performance Mode",
-          "manual_guard_event": "Manual guard escalation event",
-          "manual_breaker_event": "Manual breaker escalation event"
+          "manual_check_event": "Manual check trigger event",
+          "manual_guard_event": "Manual guard trigger event",
+          "manual_breaker_event": "Manual breaker trigger event",
+          "performance_mode": "Performance Mode"
         },
         "data_description": {
           "reset_time": "Choose when Paw Control performs daily maintenance tasks.",
@@ -478,9 +479,10 @@
           "enable_cloud_backup": "Upload configuration snapshots to your configured cloud target.",
           "resilience_skip_threshold": "Number of skipped guard executions before the escalation script raises an alert (0 disables guard escalations).",
           "resilience_breaker_threshold": "Open or half-open breaker count that triggers escalation follow-ups (0 disables breaker escalations).",
-          "performance_mode": "Select how aggressively Paw Control refreshes data and schedules jobs.",
-          "manual_guard_event": "Event type fired on the Home Assistant bus to trigger guard follow-up actions. Leave blank to disable manual guard checks.",
-          "manual_breaker_event": "Event type that triggers breaker follow-up actions when fired manually. Leave blank to disable manual breaker triggers."
+          "manual_check_event": "Event type that triggers an on-demand resilience check. Leave blank to disable manual checks. Known values: {manual_check_event_options}.",
+          "manual_guard_event": "Event type that triggers guard follow-up actions on demand. Leave blank to disable manual guard escalations. Known values: {manual_guard_event_options}.",
+          "manual_breaker_event": "Event type that triggers breaker follow-up actions on demand. Leave blank to disable manual breaker escalations. Known values: {manual_breaker_event_options}.",
+          "performance_mode": "Select how aggressively Paw Control refreshes data and schedules jobs."
         }
       },
       "advanced": {
