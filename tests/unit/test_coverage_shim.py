@@ -30,6 +30,7 @@ if not hasattr(ha_util_logging, "log_exception"):
 
     ha_util_logging.log_exception = log_exception  # type: ignore[attr-defined]
 
+
 def test_runtime_metrics_generation(tmp_path) -> None:
     """Ensure the coverage shim emits JSON and CSV runtime metrics.【F:coverage.py†L471-L506】"""
 
