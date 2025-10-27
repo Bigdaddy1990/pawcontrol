@@ -2,8 +2,12 @@
 
 from __future__ import annotations
 
+import base64
+import datetime as dt
 import json
 import tarfile
+import urllib.error
+import urllib.request
 
 import pytest
 from script import publish_coverage
@@ -119,6 +123,136 @@ def test_publish_coverage_supports_custom_prefix_templates(
     assert "coverage/latest/index.html" in members
     assert "runs/custom-run/index.html" in members
     assert "attempts/custom-run/2/index.html" in members
+
+
+def test_github_pages_publisher_prunes_expired_runs(monkeypatch) -> None:
+    """Expired coverage runs should be deleted via the Git data API."""
+
+    now = dt.datetime(2024, 3, 1, tzinfo=dt.UTC)
+    old_timestamp = now - dt.timedelta(days=45)
+    recent_timestamp = now - dt.timedelta(days=5)
+    old_summary = {
+        "encoding": "base64",
+        "content": base64.b64encode(
+            json.dumps({"generated_at": old_timestamp.isoformat()}).encode("utf-8")
+        ).decode("ascii"),
+    }
+    recent_summary = {
+        "encoding": "base64",
+        "content": base64.b64encode(
+            json.dumps({"generated_at": recent_timestamp.isoformat()}).encode("utf-8")
+        ).decode("ascii"),
+    }
+    captured_payloads: dict[str, dict[str, object]] = {}
+
+    class DummyResponse:
+        def __init__(self, payload: object, status: int = 200) -> None:
+            self._payload = payload
+            self.status = status
+
+        def read(self) -> bytes:
+            return json.dumps(self._payload).encode("utf-8")
+
+        def __enter__(self) -> DummyResponse:
+            return self
+
+        def __exit__(self, *exc: object) -> None:
+            return None
+
+    def fake_urlopen(request: urllib.request.Request, timeout: int = 0) -> DummyResponse:
+        url = request.full_url
+        method = request.get_method()
+        if url.endswith("/contents/coverage?ref=gh-pages") and method == "GET":
+            return DummyResponse(
+                [
+                    {"type": "dir", "name": "latest"},
+                    {"type": "dir", "name": "run-new"},
+                    {"type": "dir", "name": "run-old"},
+                ]
+            )
+        if url.endswith(
+            "/contents/coverage/run-old/summary.json?ref=gh-pages"
+        ) and method == "GET":
+            return DummyResponse(old_summary)
+        if url.endswith(
+            "/contents/coverage/run-new/summary.json?ref=gh-pages"
+        ) and method == "GET":
+            return DummyResponse(recent_summary)
+        if url.endswith("/git/refs/heads/gh-pages") and method == "GET":
+            return DummyResponse({"object": {"sha": "base-sha"}})
+        if url.endswith("/git/trees") and method == "POST":
+            payload = json.loads(request.data.decode("utf-8"))
+            captured_payloads[url] = payload
+            return DummyResponse({"sha": "tree-sha"})
+        if url.endswith("/git/commits") and method == "POST":
+            return DummyResponse({"sha": "commit-sha"})
+        if url.endswith("/git/refs/heads/gh-pages") and method == "PATCH":
+            return DummyResponse({})
+        raise AssertionError(f"Unexpected request {method} {url}")
+
+    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    publisher = publish_coverage.GitHubPagesPublisher(
+        "token", "owner/repo", "gh-pages"
+    )
+
+    removed = publisher.prune_expired_runs("coverage", dt.timedelta(days=30), now=now)
+
+    assert removed == ["coverage/run-old"]
+    tree_payload = captured_payloads[
+        "https://api.github.com/repos/owner/repo/git/trees"
+    ]
+    assert tree_payload["base_tree"] == "base-sha"
+    assert tree_payload["tree"] == [
+        {
+            "path": "coverage/run-old",
+            "mode": "040000",
+            "type": "tree",
+            "sha": None,
+        }
+    ]
+
+
+def test_publish_prune_expired_runs_degrades_on_failure(tmp_path, monkeypatch) -> None:
+    """Pruning should degrade gracefully when the API is offline."""
+
+    coverage_xml = tmp_path / "coverage.xml"
+    coverage_xml.write_text(
+        """<?xml version='1.0' ?><coverage line-rate='0.9523'></coverage>""",
+        encoding="utf-8",
+    )
+    html_root = tmp_path / "generated" / "coverage"
+    html_root.mkdir(parents=True)
+    (html_root / "index.html").write_text("<html></html>", encoding="utf-8")
+    artifact_dir = tmp_path / "artifacts"
+
+    monkeypatch.setenv("GITHUB_TOKEN", "token")
+    monkeypatch.setenv("GITHUB_REPOSITORY", "owner/repo")
+    monkeypatch.setattr(
+        urllib.request,
+        "urlopen",
+        lambda *args, **kwargs: (_ for _ in ()).throw(urllib.error.URLError("offline")),
+    )
+
+    args = publish_coverage.build_cli().parse_args(
+        [
+            "--coverage-xml",
+            str(coverage_xml),
+            "--coverage-html-index",
+            str(html_root / "index.html"),
+            "--artifact-directory",
+            str(artifact_dir),
+            "--mode",
+            "pages",
+            "--run-id",
+            "offline-test",
+            "--prune-expired-runs",
+        ]
+    )
+
+    result = publish_coverage.publish(args)
+
+    assert not result.published
+    assert result.archive_path.is_file()
 
 
 def test_ensure_allowed_github_api_url_rejects_insecure_scheme() -> None:

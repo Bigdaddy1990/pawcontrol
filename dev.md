@@ -8,6 +8,9 @@
 - `RELEASE_NOTES.md` und `CHANGELOG.md` verlinken die Diagnostik- und Wartungsleitfäden, damit Release-Kommunikation und Sustainment-Planung dieselben Nachschlagewerke nutzen ([docs/diagnostik.md](docs/diagnostik.md), [docs/MAINTENANCE.md](docs/MAINTENANCE.md)).【F:RELEASE_NOTES.md†L14-L24】【F:CHANGELOG.md†L114-L140】
 
 ## Latest tooling snapshot
+- ✅ `ruff check` – neuer Lauf nach dem GitHub-Pruning-Refactor bleibt lint-frei.【439a53†L1-L2】
+- ✅ `PYTHONPATH=$(pwd) PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest tests/unit/test_publish_coverage.py -k prune -q` – neue Regressionen für das GitHub-Cleanup bestehen lokal.【aee1d3†L1-L9】
+- ✅ `python -m script.publish_coverage --mode pages --coverage-xml /tmp/tmp.zfFZYxYY6F/coverage.xml --coverage-html-index /tmp/tmp.zfFZYxYY6F/generated/coverage/index.html --artifact-directory /tmp/tmp.zfFZYxYY6F/artifacts --run-id manual-test --run-attempt 1 --prune-expired-runs` – CLI erzeugt das Fallback-Archiv und degradiert ohne GitHub-Credentials erwartungsgemäß.【148c24†L1-L19】
 - ✅ `ruff check` – keine neuen Abweichungen nach der Konsolidierung der Hassfest-Metadatenhelfer.【d350b7†L1-L2】
 - ❌ `pytest -q` – scheitert früh beim Plugin-Import, weil `pytest_asyncio` in der Umgebung fehlt; bleibt als Setup-Blocker bestehen.【7b3797†L1-L43】
 - ✅ `ruff check` – URL-Schema-Validierung besteht die Bandit-Prüfung ohne neue Lint-Abweichungen.【00328d†L1-L1】
@@ -52,7 +55,7 @@
 ## Improvement plan
 - Gemeinsamen Test-Helfer für Blueprint-Automationen extrahieren, damit `test_blueprint_resilience` und der E2E-Lauf denselben Import-/Kontextaufbau nutzen und Service-Registrierungen nur einmal gepflegt werden müssen.【F:tests/components/pawcontrol/test_blueprint_resilience.py†L1-L170】【F:tests/components/pawcontrol/test_resilience_blueprint_e2e.py†L1-L360】
 - Home-Assistant-Stubs um `homeassistant.components.automation` und `homeassistant.helpers.template` erweitern, sodass die neue Blueprint-Regression ohne Upstream-Pakete lauffähig bleibt.【8ca6c7†L1-L31】
-- GitHub-Pages-Rotation: Automatisch alte `coverage/<run_id>`-Verzeichnisse nach 30 Tagen löschen, sobald das API-basierte Cleanup verfügbar ist, damit der `gh-pages`-Branch langfristig schlank bleibt.【F:script/publish_coverage.py†L1-L238】
+- GitHub-Pages-Retention parametrisieren: Neben `--prune-expired-runs` soll ein optionaler `--prune-max-age-days`-Schalter ältere oder längere Aufbewahrungsfenster erlauben, inklusive Tests und Dokumentation für Betriebstools.【F:script/publish_coverage.py†L31-L520】
 
 ## Fehleranalyse
 - Der Komponenten-Test `tests/components/pawcontrol/test_blueprint_resilience`
@@ -155,6 +158,7 @@
    Erweiterungen vereinfachen.【F:tests/components/pawcontrol/test_blueprint_resilience.py†L1-L169】【F:tests/components/pawcontrol/test_resilience_blueprint_e2e.py†L1-L358】
 
 ## Recent improvements
+- `python -m script.publish_coverage` kann mit `--prune-expired-runs` jetzt veraltete `coverage/<run_id>`-Verzeichnisse nach 30 Tagen löschen; neue Unit-Tests mocken die GitHub-API, README dokumentiert die erforderlichen Berechtigungen und der Publisher degradiert offline auf das Archiv.【F:script/publish_coverage.py†L31-L520】【F:tests/unit/test_publish_coverage.py†L128-L255】【F:README.md†L29-L35】
 - Der Options-Flow synchronisiert `manual_*`-Trigger jetzt direkt aus den System-Einstellungen, normalisiert leere Felder auf `None` und aktualisiert alle Resilience-Blueprints ohne manuelle YAML-Anpassung; neue Tests sichern den Sync-Pfad und die Platzhalterbeschreibungen ab.【F:custom_components/pawcontrol/options_flow.py†L3986-L4043】【F:custom_components/pawcontrol/script_manager.py†L503-L607】【F:tests/unit/test_options_flow.py†L808-L870】【F:tests/unit/test_data_manager.py†L612-L705】
 - Resilience-Diagnostics erfassen aktive Manual-Event-Listener sowie den letzten manuellen Trigger inklusive Benutzer-, Ursprung- und Payload-Kontext, wodurch Support-Dumps sofort den zuletzt ausgeführten Pfad zeigen.【F:custom_components/pawcontrol/script_manager.py†L575-L704】【F:custom_components/pawcontrol/script_manager.py†L1235-L1363】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L243】【F:tests/unit/test_data_manager.py†L595-L676】
 - Migrierte Legacy-Installationen übernehmen Skript-Schwellen jetzt automatisch
