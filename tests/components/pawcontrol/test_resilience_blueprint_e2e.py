@@ -6,7 +6,6 @@ import inspect
 import sys
 from collections.abc import Awaitable, Callable, Iterable
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any
 
 import pytest
@@ -18,7 +17,11 @@ from homeassistant.helpers import aiohttp_client
 from homeassistant.helpers.template import Template
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-BLUEPRINT_RELATIVE_PATH = "automation/pawcontrol/resilience_escalation_followup.yaml"
+from .blueprint_helpers import (
+    BLUEPRINT_RELATIVE_PATH,
+    DEFAULT_RESILIENCE_BLUEPRINT_CONTEXT,
+    get_blueprint_source,
+)
 
 
 @dataclass(frozen=True)
@@ -125,34 +128,13 @@ async def test_resilience_blueprint_manual_events_end_to_end(
 ) -> None:
     """Import the blueprint, fire manual events, and verify follow-up orchestration."""
 
-    repo_root = Path(__file__).resolve().parents[3]
-    blueprint_source = repo_root / "blueprints" / BLUEPRINT_RELATIVE_PATH
-    assert blueprint_source.is_file(), "Blueprint must exist for the E2E test"
+    blueprint_source = get_blueprint_source(BLUEPRINT_RELATIVE_PATH)
 
     blueprint: dict[str, Any] = yaml.safe_load(blueprint_source.read_text())
     blueprint_variables: dict[str, Any] = blueprint.get("variables", {})
     blueprint_actions: list[dict[str, Any]] = blueprint.get("action", [])
 
-    base_context: dict[str, Any] = {
-        "statistics_sensor": "sensor.pawcontrol_statistics",
-        "escalation_script": "script.pawcontrol_test_resilience_escalation",
-        "guard_followup_actions": [
-            {
-                "service": "test.guard_followup",
-                "data": {"reason": "guard"},
-            }
-        ],
-        "breaker_followup_actions": [
-            {
-                "service": "test.breaker_followup",
-                "data": {"reason": "breaker"},
-            }
-        ],
-        "watchdog_interval_minutes": 0,
-        "manual_check_event": "pawcontrol_resilience_check",
-        "manual_guard_event": "pawcontrol_manual_guard",
-        "manual_breaker_event": "pawcontrol_manual_breaker",
-    }
+    base_context: dict[str, Any] = dict(DEFAULT_RESILIENCE_BLUEPRINT_CONTEXT)
 
     service_handlers: dict[
         tuple[str, str], Callable[[ServiceCall], Awaitable[None]]
