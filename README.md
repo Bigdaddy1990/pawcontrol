@@ -1187,7 +1187,7 @@ class NewGPSDevicePlugin(PawControlPlugin):
 - **🏆 Quality Status**:
 - **Quality Scale Status**: Platinum declaration with manifest, README, diagnostics, and quality reports tied together via `docs/compliance_gap_analysis.md` and `custom_components/pawcontrol/quality_scale.yaml`.
 - **Automated Test Suite**: Unit, integration, and end-to-end suites enforce 95% coverage and nightly telemetry checks across coordinators, entities, services, and blueprints.
-- **HACS Readiness**: Repository layout, translations, and documentation satisfy HACS expectations while the upstream brand asset submission is finalised.
+- **HACS Readiness**: Repository layout, translations, documentation, and brand assets satisfy HACS expectations.
 - **Production Hardening**: Installation, removal, diagnostics, repairs, and maintenance runbooks are documented in README, `docs/MAINTENANCE.md`, and the documentation portal.
 - **Runtime Architecture**: Coordinators, runtime data containers, and managers back every platform with regression coverage verifying reload safety and service orchestration.
 
