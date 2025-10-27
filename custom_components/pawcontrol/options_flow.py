@@ -4087,11 +4087,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     SYSTEM_ENABLE_CLOUD_BACKUP_FIELD
                 ]
                 runtime = get_runtime_data(self.hass, self._entry)
-                script_manager = (
-                    getattr(runtime, "script_manager", None)
-                    if runtime is not None
-                    else None
-                )
+                script_manager = getattr(runtime, "script_manager", None)
                 if script_manager is not None:
                     await script_manager.async_sync_manual_resilience_events(
                         {
@@ -4175,8 +4171,6 @@ class PawControlOptionsFlow(OptionsFlow):
             raw_value = current_values.get(field)
             if isinstance(raw_value, str):
                 return raw_value
-            if raw_value is None:
-                return ""
             return manual_defaults[field]
 
         return vol.Schema(
