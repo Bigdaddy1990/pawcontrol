@@ -42,6 +42,9 @@ the documentation portal entry point (`docs/README.md`).
 - `dev.md` captures the latest failing tests, improvement backlog, and
   remediation plan, fulfilling the Gemini instruction to keep contributors aware
   of Ruff and pytest expectations.【F:dev.md†L1-L40】
+- `RELEASE_NOTES.md` highlights the diagnostics and maintenance playbooks so
+  release communications reference the dedicated sustainment docs alongside the
+  core guides.【F:RELEASE_NOTES.md†L14-L24】【F:docs/diagnostik.md†L1-L120】【F:docs/MAINTENANCE.md†L1-L32】
 
 ## Required corrections to satisfy Home Assistant reviewers
 - Keep `CHANGELOG.md` and `RELEASE_NOTES.md` summarising the Platinum uplift and refresh them when new sustainment work lands so documentation stays aligned with the manifest and badges.

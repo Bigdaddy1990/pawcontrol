@@ -4,9 +4,15 @@
 - Run `ruff check`, `pytest -q`, `mypy custom_components/pawcontrol`, and `python -m script.hassfest --integration-path custom_components/pawcontrol` before opening a pull request so Platinum-level guardrails stay enforced.【F:.github/copilot-instructions.md†L10-L28】
 - Target Python 3.13+ features and reuse PawControl helpers (coordinators, managers, and typed constants) to keep runtime data on the typed surface.【F:.github/copilot-instructions.md†L29-L94】
 
+## Documentation sync
+- `RELEASE_NOTES.md` und `CHANGELOG.md` verlinken die Diagnostik- und Wartungsleitfäden, damit Release-Kommunikation und Sustainment-Planung dieselben Nachschlagewerke nutzen ([docs/diagnostik.md](docs/diagnostik.md), [docs/MAINTENANCE.md](docs/MAINTENANCE.md)).【F:RELEASE_NOTES.md†L14-L24】【F:CHANGELOG.md†L114-L140】
+
 ## Latest tooling snapshot
 - ✅ `ruff check` – kein neuer Fund nach dem Kommentar für das Passwort-Selector-Sentinel.【8befd3†L1-L2】
 - ❌ `PYTHONPATH=$(pwd) PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q` – scheitert bei der Sammlung, weil optionale Abhängigkeiten wie `voluptuous` und Home-Assistant-Komponenten-Stubs (`homeassistant.components.automation`, `custom_components.pawcontrol.*`) in der Testumgebung fehlen; bleibt als bekannter Stub-Backlog bestehen.【13e36b†L1-L142】
+- ✅ `ruff check` – Markdown-Verlinkung für Diagnostik/Wartung passiert ohne neue Lint-Abweichungen.【d9b3dd†L1-L2】
+- ❌ `PYTHONPATH=$(pwd) pytest -q` – Sammlung bricht nach 26 Fehlern ab, weil Home-Assistant-Komponenten (`automation`, `options_flow`, Plattformmodule) und interne Pakete weiterhin fehlen; die Stubs decken diese Imports noch nicht ab.【8252b7†L1-L163】
+- ✅ `PYTHONPATH=$(pwd) python -m script.hassfest --integration-path custom_components/pawcontrol` – Strings und Manifest validieren nach Installation der `annotatedyaml`-Vendors erfolgreich.【2b4aa0†L1-L1】
 - ✅ `ruff check` – keine Abweichungen nach der Coverage-Filter-/Tracing-Erweiterung.【7deda4†L1-L2】
 - ❌ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest --cov=custom_components/pawcontrol --cov-report=term:skip-covered --cov-report=xml:generated/coverage/coverage.xml --cov-report=html:generated/coverage tests/` – abgebrochen nach 13 Fehlern, weil `DogConfigRegistry` in den bestehenden Stubs keine Polling-Limits validiert; die Regression bleibt bis zur Registry-Reparatur dokumentiert.【0fa5b5†L1-L112】
 - ❌ `mypy custom_components/pawcontrol` – typisierte Laufzeitmodule der Home-Assistant-Stubs fehlen weiterhin; die bekannten 276 Fehler bleiben unverändert und sind für spätere Stub-Härtungen eingeplant.【ae2bc5†L1-L52】【6fb8a6†L1-L112】
