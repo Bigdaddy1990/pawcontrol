@@ -8,6 +8,8 @@
 - `RELEASE_NOTES.md` und `CHANGELOG.md` verlinken die Diagnostik- und Wartungsleitfäden, damit Release-Kommunikation und Sustainment-Planung dieselben Nachschlagewerke nutzen ([docs/diagnostik.md](docs/diagnostik.md), [docs/MAINTENANCE.md](docs/MAINTENANCE.md)).【F:RELEASE_NOTES.md†L14-L24】【F:CHANGELOG.md†L114-L140】
 
 ## Latest tooling snapshot
+- ✅ `ruff check` – kein neuer Fund nach dem Kommentar für das Passwort-Selector-Sentinel.【8befd3†L1-L2】
+- ❌ `PYTHONPATH=$(pwd) PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q` – scheitert bei der Sammlung, weil optionale Abhängigkeiten wie `voluptuous` und Home-Assistant-Komponenten-Stubs (`homeassistant.components.automation`, `custom_components.pawcontrol.*`) in der Testumgebung fehlen; bleibt als bekannter Stub-Backlog bestehen.【13e36b†L1-L142】
 - ✅ `ruff check` – Markdown-Verlinkung für Diagnostik/Wartung passiert ohne neue Lint-Abweichungen.【d9b3dd†L1-L2】
 - ❌ `PYTHONPATH=$(pwd) pytest -q` – Sammlung bricht nach 26 Fehlern ab, weil Home-Assistant-Komponenten (`automation`, `options_flow`, Plattformmodule) und interne Pakete weiterhin fehlen; die Stubs decken diese Imports noch nicht ab.【8252b7†L1-L163】
 - ✅ `PYTHONPATH=$(pwd) python -m script.hassfest --integration-path custom_components/pawcontrol` – Strings und Manifest validieren nach Installation der `annotatedyaml`-Vendors erfolgreich.【2b4aa0†L1-L1】
@@ -433,14 +435,14 @@ Die Läufe spiegeln den aktuellen Stand ohne neue Warnungen wider und halten die
 Branch-Coverage-Anforderungen aus `pyproject.toml` ein.【F:pyproject.toml†L7-L62】
 
 ## Fehlerliste
-1. *Keine bekannten Fehlerstände* – Laufende Checks und Tests passierten zuletzt
-   ohne Abweichungen.
+1. `PYTHONPATH=$(pwd) PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q` – Sammlung bricht aufgrund fehlender optionaler Abhängigkeiten und Home-Assistant-Komponenten-Stubs ab; Workaround weiterhin erforderlich, bis die Stubs nachgezogen sind.【13e36b†L1-L142】
 
 ## Verbesserungsmöglichkeiten
 - Performance der Coverage-Läufe weiter optimieren; Ziel bleibt eine Laufzeit
   unter 20 Minuten trotz aktiviertem Branch-Tracing für das komplette Paket.
 - Beobachte Übersetzungs- und Dokumentations-Syncs nach Schemaänderungen in den
   Diagnostics, damit `setup_flags_panel_*`-Schlüssel konsistent bleiben.【F:custom_components/pawcontrol/diagnostics.py†L688-L867】【F:custom_components/pawcontrol/strings.json†L1396-L1405】
+- Ergänze optionale Abhängigkeiten (`voluptuous`, HA-Komponenten-Stubs) für die lokalen Testläufe, sobald der nächste Stub-Sync ansteht, damit `pytest -q` ohne manuelle Nachinstallationen läuft.【13e36b†L1-L142】
 - Evaluiere zusätzliche Plattform-spezifische Regressionstests für neue Entity-
   Typen, sobald weitere Home-Assistant-Plattformen integriert werden sollen, um
   die Coordinator-Schnittstellen weiterhin abzudecken.【F:tests/components/pawcontrol/test_all_platforms.py†L1451-L1494】【F:tests/unit/test_runtime_manager_container_usage.py†L82-L374】
