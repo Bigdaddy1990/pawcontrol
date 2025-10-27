@@ -27,7 +27,7 @@ from custom_components.pawcontrol.types import (
     PawControlRuntimeData,
 )
 from homeassistant.components.script import DOMAIN as SCRIPT_DOMAIN
-from homeassistant.core import HomeAssistant
+from homeassistant.core import Context, Event, HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -207,6 +207,23 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
         dogs=entry.data[CONF_DOGS],
     )
     runtime.script_manager = script_manager
+    script_manager.attach_runtime_manual_history(runtime)
+    entry.runtime_data = runtime
+    script_manager._manual_event_sources["pawcontrol_manual_guard"] = {
+        "preference_key": "manual_guard_event",
+        "configured_role": "guard",
+        "listener_sources": ("system_options",),
+    }
+    manual_context = Context(user_id="support-user")
+    manual_event = Event(
+        "pawcontrol_manual_guard",
+        data={"note": "manual check"},
+        origin="LOCAL",
+        time_fired=datetime.now(UTC) - timedelta(seconds=12),
+        context=manual_context,
+    )
+    script_manager._handle_manual_event(manual_event)
+    script_manager.sync_manual_event_history()
     runtime.performance_stats = {
         "api_token": "runtime-secret",
         "door_sensor_failures": [
@@ -436,7 +453,17 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
         "pawcontrol_manual_guard",
         "pawcontrol_resilience_check",
     ]
-    assert manual_events["last_event"] is None
+    last_event = manual_events["last_event"]
+    assert last_event is not None
+    assert last_event["event_type"] == "pawcontrol_manual_guard"
+    assert last_event["matched_preference"] == "manual_guard_event"
+    assert last_event["category"] == "guard"
+    assert last_event["user_id"] == "support-user"
+    assert last_event["origin"] == "LOCAL"
+    assert "system_options" in (last_event["sources"] or [])
+    history = manual_events["event_history"]
+    assert isinstance(history, list) and history
+    assert history[0]["event_type"] == "pawcontrol_manual_guard"
 
     # Diagnostics payloads should be JSON serialisable once normalised.
     serialised = json.dumps(diagnostics)

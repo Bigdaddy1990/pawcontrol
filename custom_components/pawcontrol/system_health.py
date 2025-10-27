@@ -135,6 +135,25 @@ async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
     breaker_overview = _build_breaker_overview(rejection_metrics, breaker_thresholds)
     service_status = _build_service_status(guard_summary, breaker_overview)
 
+    manual_events_info: dict[str, Any]
+    script_manager = getattr(runtime, "script_manager", None)
+    manual_snapshot: Mapping[str, Any] | None = None
+    if script_manager is not None:
+        snapshot = getattr(script_manager, "get_resilience_escalation_snapshot", None)
+        if callable(snapshot):
+            manager_snapshot = snapshot()
+            if isinstance(manager_snapshot, Mapping):
+                manual_snapshot = manager_snapshot.get("manual_events")
+
+    if isinstance(manual_snapshot, Mapping):
+        manual_events_info = dict(manual_snapshot)
+    else:
+        manual_events_info = {
+            "available": False,
+            "event_history": [],
+            "last_event": None,
+        }
+
     return {
         "can_reach_backend": bool(getattr(coordinator, "last_update_success", False)),
         "remaining_quota": remaining_quota,
@@ -144,6 +163,7 @@ async def system_health_info(hass: HomeAssistant) -> dict[str, Any]:
             "rejection_metrics": rejection_metrics,
             "breaker_overview": breaker_overview,
             "status": service_status,
+            "manual_events": manual_events_info,
         },
     }
 

@@ -20,6 +20,7 @@ Python: 3.13+
 from __future__ import annotations
 
 from asyncio import Task
+from collections import deque
 from collections.abc import Awaitable, Callable, Iterator, Mapping
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
@@ -1987,6 +1988,22 @@ class ManualResilienceEventSource(TypedDict, total=False):
 
     preference_key: ManualResiliencePreferenceKey
     configured_role: Literal["check", "guard", "breaker"]
+    listener_sources: tuple[str, ...]
+
+
+class ManualResilienceEventRecord(TypedDict, total=False):
+    """Captured metadata for a manual resilience event before serialisation."""
+
+    event_type: str
+    preference_key: ManualResiliencePreferenceKey | None
+    configured_role: Literal["check", "guard", "breaker"] | None
+    time_fired: datetime | None
+    received_at: datetime | None
+    context_id: str | None
+    user_id: str | None
+    origin: str | None
+    data: dict[str, Any] | None
+    sources: tuple[str, ...]
 
 
 class ManualResilienceEventSnapshot(TypedDict, total=False):
@@ -2003,6 +2020,7 @@ class ManualResilienceEventSnapshot(TypedDict, total=False):
     context_id: str | None
     user_id: str | None
     data: dict[str, Any] | None
+    sources: list[str] | None
 
 
 class ServiceContextMetadata(TypedDict, total=False):
@@ -2689,6 +2707,9 @@ class PawControlRuntimeData:
     # Enhanced runtime tracking for Platinum-targeted monitoring
     performance_stats: dict[str, Any] = field(default_factory=dict)
     error_history: list[dict[str, Any]] = field(default_factory=list)
+    manual_event_history: deque[ManualResilienceEventRecord] = field(
+        default_factory=lambda: deque(maxlen=5)
+    )
     # PLATINUM: Optional unsubscribe callbacks for scheduler and reload listener
     daily_reset_unsub: Any = field(default=None)
     reload_unsub: Callable[[], Any] | None = None
@@ -2751,6 +2772,7 @@ class PawControlRuntimeData:
             "device_api_client": self.device_api_client,
             "performance_stats": self.performance_stats,
             "error_history": self.error_history,
+            "manual_event_history": list(self.manual_event_history),
             "background_monitor_task": self.background_monitor_task,
             "daily_reset_unsub": self.daily_reset_unsub,
         }
