@@ -16,10 +16,10 @@ import io
 import json
 import logging
 import os
+import re
 import tarfile
 import urllib.error
 import urllib.request
-import xml.etree.ElementTree as ET
 from collections.abc import Iterable, Iterator, Mapping, MutableMapping
 from pathlib import Path
 
@@ -27,6 +27,9 @@ LOGGER = logging.getLogger(__name__)
 
 API_ROOT = "https://api.github.com"
 DEFAULT_TIMEOUT = 15
+REPOSITORY_SLUG_PATTERN = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+LINE_RATE_PATTERN = re.compile(r"line-rate=\"(?P<value>[0-9]+(?:\.[0-9]+)?)\"")
+DEFAULT_PREFIX_TEMPLATES = ("{prefix}/{run_id}", "{prefix}/latest")
 
 
 class PublishError(RuntimeError):
@@ -93,12 +96,12 @@ class CoverageDataset:
                 yield path
 
     def _parse_coverage_percent(self) -> float:
-        tree = ET.parse(self.xml_path)
-        root = tree.getroot()
-        line_rate = root.attrib.get("line-rate")
+        xml_data = self.xml_path.read_text(encoding="utf-8")
+        match = LINE_RATE_PATTERN.search(xml_data)
+        if match is None:
+            raise ValueError("Invalid coverage.xml line-rate: missing attribute")
+        line_rate = match.group("value")
         try:
-            if line_rate is None:
-                raise ValueError("missing line-rate attribute")
             return round(float(line_rate) * 100, 2)
         except (TypeError, ValueError) as error:
             raise ValueError(
@@ -174,7 +177,7 @@ class GitHubPagesPublisher:
     ) -> None:
         if not token:
             raise PublishError("Missing GITHUB_TOKEN - cannot publish to GitHub Pages")
-        if not repository or "/" not in repository:
+        if not repository or not REPOSITORY_SLUG_PATTERN.fullmatch(repository):
             raise PublishError(f"Invalid repository slug: {repository!r}")
         self._token = token
         self._repository = repository
@@ -246,6 +249,8 @@ class GitHubPagesPublisher:
         if payload is not None:
             data = json.dumps(payload).encode("utf-8")
             headers["Content-Type"] = "application/json"
+        if not url.startswith(f"{API_ROOT}/"):
+            raise PublishError(f"Refusing to access unexpected URL: {url!r}")
         request = urllib.request.Request(url, data=data, headers=headers, method=method)
         try:
             with urllib.request.urlopen(request, timeout=self._timeout) as response:
@@ -308,6 +313,15 @@ def build_cli() -> argparse.ArgumentParser:
     parser.add_argument("--mode", choices=("pages", "archive"), default="pages")
     parser.add_argument("--pages-branch", default="gh-pages")
     parser.add_argument("--pages-prefix", default="coverage")
+    parser.add_argument(
+        "--pages-prefix-template",
+        dest="pages_prefix_templates",
+        action="append",
+        help=(
+            "Template for GitHub Pages prefixes. Supports {prefix}, {run_id}, "
+            "and {run_attempt}. May be supplied multiple times."
+        ),
+    )
     parser.add_argument("--run-id", default=os.getenv("GITHUB_RUN_ID", "manual"))
     parser.add_argument("--run-attempt", default=os.getenv("GITHUB_RUN_ATTEMPT", "1"))
     parser.add_argument("--commit-sha", default=os.getenv("GITHUB_SHA", ""))
@@ -327,7 +341,21 @@ def publish(args: argparse.Namespace) -> PublishResult:
         run_metadata["ref"] = str(args.ref)
     dataset = CoverageDataset(args.coverage_xml, args.coverage_html_index, run_metadata)
     payloads = dataset.build_payloads()
-    prefixes = [f"{args.pages_prefix}/{args.run_id}", f"{args.pages_prefix}/latest"]
+    prefix_root = str(args.pages_prefix).strip("/")
+    templates = (
+        args.pages_prefix_templates
+        if args.pages_prefix_templates
+        else list(DEFAULT_PREFIX_TEMPLATES)
+    )
+    template_context = {
+        "prefix": prefix_root,
+        "run_id": str(args.run_id),
+        "run_attempt": str(args.run_attempt),
+    }
+    prefixes = [
+        template.format(**template_context).strip("/") for template in templates
+    ]
+    prefixes = list(dict.fromkeys(prefixes))
     duplicated_payloads = duplicate_payloads(payloads, prefixes)
     archive_name = f"coverage-{args.run_id}.tar.gz"
     archive_path = args.artifact_directory / archive_name

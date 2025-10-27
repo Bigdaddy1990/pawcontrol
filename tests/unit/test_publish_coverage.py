@@ -63,3 +63,59 @@ def test_publish_coverage_degrades_without_network(tmp_path, monkeypatch) -> Non
 
     assert summary["run"]["run_attempt"] == "3"
     assert summary["coverage_percent"] == pytest.approx(95.23, rel=1e-3)
+
+
+@pytest.mark.ci_only
+def test_publish_coverage_supports_custom_prefix_templates(
+    tmp_path, monkeypatch
+) -> None:
+    """Custom prefix templates should produce the expected archive layout."""
+
+    coverage_xml = tmp_path / "coverage.xml"
+    coverage_xml.write_text(
+        """<?xml version='1.0' ?><coverage line-rate='0.9000'></coverage>""",
+        encoding="utf-8",
+    )
+    html_root = tmp_path / "generated" / "coverage"
+    html_root.mkdir(parents=True)
+    (html_root / "index.html").write_text("<html></html>", encoding="utf-8")
+    artifact_dir = tmp_path / "artifacts"
+
+    monkeypatch.delenv("GITHUB_TOKEN", raising=False)
+    monkeypatch.setenv("GITHUB_REPOSITORY", "pawcontrol/pawcontrol")
+
+    exit_code = publish_coverage.main(
+        [
+            "--coverage-xml",
+            str(coverage_xml),
+            "--coverage-html-index",
+            str(html_root / "index.html"),
+            "--artifact-directory",
+            str(artifact_dir),
+            "--mode",
+            "pages",
+            "--pages-prefix",
+            "coverage",
+            "--pages-prefix-template",
+            "{prefix}/latest",
+            "--pages-prefix-template",
+            "runs/{run_id}",
+            "--pages-prefix-template",
+            "attempts/{run_id}/{run_attempt}",
+            "--run-id",
+            "custom-run",
+            "--run-attempt",
+            "2",
+        ]
+    )
+
+    assert exit_code == 0
+    archive_path = artifact_dir / "coverage-custom-run.tar.gz"
+    assert archive_path.is_file(), "Fallback archive was not created"
+
+    with tarfile.open(archive_path, "r:gz") as archive:
+        members = {member.name for member in archive.getmembers()}
+
+    assert "coverage/latest/index.html" in members
+    assert "runs/custom-run/index.html" in members
+    assert "attempts/custom-run/2/index.html" in members
