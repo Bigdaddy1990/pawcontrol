@@ -94,8 +94,7 @@ class Coverage:
         self._lock = threading.Lock()
         self._statement_cache: dict[Path, tuple[int, frozenset[int]]] = {}
         self._allowed_scope_roots = tuple(
-            (_PROJECT_ROOT / relative).resolve()
-            for relative in _ALLOWED_RELATIVE_PATHS
+            (_PROJECT_ROOT / relative).resolve() for relative in _ALLOWED_RELATIVE_PATHS
         )
         self._allowed_cache: dict[Path, bool] = {}
         self._module_runtime: dict[Path, float] = {}
@@ -297,8 +296,8 @@ class Coverage:
             state = self._thread_states.get(thread_ident)
             if state and state.path is not None:
                 previous_runtime = self._module_runtime.get(state.path, 0.0)
-                self._module_runtime[state.path] = (
-                    previous_runtime + (now - state.last_timestamp)
+                self._module_runtime[state.path] = previous_runtime + (
+                    now - state.last_timestamp
                 )
         if event != "line":
             with self._lock:
@@ -442,7 +441,9 @@ class Coverage:
             resolved_str = str(resolved)
             for skip in self._skip_paths:
                 skip_str = str(skip)
-                if resolved_str == skip_str or resolved_str.startswith(f"{skip_str}{os.sep}"):
+                if resolved_str == skip_str or resolved_str.startswith(
+                    f"{skip_str}{os.sep}"
+                ):
                     allowed = False
                     break
         self._allowed_cache[path] = allowed
