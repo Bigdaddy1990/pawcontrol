@@ -5,6 +5,8 @@
 - Target Python 3.13+ features and reuse PawControl helpers (coordinators, managers, and typed constants) to keep runtime data on the typed surface.【F:.github/copilot-instructions.md†L29-L94】
 
 ## Latest tooling snapshot
+- ✅ `ruff check` – kein neuer Fund nach dem Kommentar für das Passwort-Selector-Sentinel.【8befd3†L1-L2】
+- ❌ `PYTHONPATH=$(pwd) PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q` – scheitert bei der Sammlung, weil optionale Abhängigkeiten wie `voluptuous` und Home-Assistant-Komponenten-Stubs (`homeassistant.components.automation`, `custom_components.pawcontrol.*`) in der Testumgebung fehlen; bleibt als bekannter Stub-Backlog bestehen.【13e36b†L1-L142】
 - ✅ `ruff check` – keine Abweichungen nach der Coverage-Filter-/Tracing-Erweiterung.【7deda4†L1-L2】
 - ❌ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python -m pytest --cov=custom_components/pawcontrol --cov-report=term:skip-covered --cov-report=xml:generated/coverage/coverage.xml --cov-report=html:generated/coverage tests/` – abgebrochen nach 13 Fehlern, weil `DogConfigRegistry` in den bestehenden Stubs keine Polling-Limits validiert; die Regression bleibt bis zur Registry-Reparatur dokumentiert.【0fa5b5†L1-L112】
 - ❌ `mypy custom_components/pawcontrol` – typisierte Laufzeitmodule der Home-Assistant-Stubs fehlen weiterhin; die bekannten 276 Fehler bleiben unverändert und sind für spätere Stub-Härtungen eingeplant.【ae2bc5†L1-L52】【6fb8a6†L1-L112】
@@ -427,14 +429,14 @@ Die Läufe spiegeln den aktuellen Stand ohne neue Warnungen wider und halten die
 Branch-Coverage-Anforderungen aus `pyproject.toml` ein.【F:pyproject.toml†L7-L62】
 
 ## Fehlerliste
-1. *Keine bekannten Fehlerstände* – Laufende Checks und Tests passierten zuletzt
-   ohne Abweichungen.
+1. `PYTHONPATH=$(pwd) PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 pytest -q` – Sammlung bricht aufgrund fehlender optionaler Abhängigkeiten und Home-Assistant-Komponenten-Stubs ab; Workaround weiterhin erforderlich, bis die Stubs nachgezogen sind.【13e36b†L1-L142】
 
 ## Verbesserungsmöglichkeiten
 - Performance der Coverage-Läufe weiter optimieren; Ziel bleibt eine Laufzeit
   unter 20 Minuten trotz aktiviertem Branch-Tracing für das komplette Paket.
 - Beobachte Übersetzungs- und Dokumentations-Syncs nach Schemaänderungen in den
   Diagnostics, damit `setup_flags_panel_*`-Schlüssel konsistent bleiben.【F:custom_components/pawcontrol/diagnostics.py†L688-L867】【F:custom_components/pawcontrol/strings.json†L1396-L1405】
+- Ergänze optionale Abhängigkeiten (`voluptuous`, HA-Komponenten-Stubs) für die lokalen Testläufe, sobald der nächste Stub-Sync ansteht, damit `pytest -q` ohne manuelle Nachinstallationen läuft.【13e36b†L1-L142】
 - Evaluiere zusätzliche Plattform-spezifische Regressionstests für neue Entity-
   Typen, sobald weitere Home-Assistant-Plattformen integriert werden sollen, um
   die Coordinator-Schnittstellen weiterhin abzudecken.【F:tests/components/pawcontrol/test_all_platforms.py†L1451-L1494】【F:tests/unit/test_runtime_manager_container_usage.py†L82-L374】
