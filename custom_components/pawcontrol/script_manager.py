@@ -11,7 +11,14 @@ from __future__ import annotations
 
 import logging
 from collections import deque
-from collections.abc import Callable, Collection, Iterable, Mapping, Sequence
+from collections.abc import (
+    Callable,
+    Collection,
+    Iterable,
+    Mapping,
+    MutableMapping,
+    Sequence,
+)
 from contextlib import suppress
 from datetime import datetime
 from typing import Any, Final, Literal, cast
@@ -410,7 +417,10 @@ class PawControlScriptManager:
     def export_manual_event_history(self) -> list[ManualResilienceEventRecord]:
         """Return a copy of the recorded manual event history."""
 
-        return [dict(record) for record in self._manual_event_history]
+        return [
+            cast(ManualResilienceEventRecord, dict(record))
+            for record in self._manual_event_history
+        ]
 
     def _resolve_resilience_thresholds(self) -> tuple[int, int]:
         """Return configured guard skip and breaker thresholds."""
@@ -893,13 +903,15 @@ class PawControlScriptManager:
                         entry["primary_source"] = primary
 
         for event_type, metadata in canonical_lookup.items():
-            entry = sources.setdefault(event_type, {})
+            existing_entry = sources.get(event_type)
+            if existing_entry is None:
+                continue
             tags = metadata.get("source_tags")
             if isinstance(tags, list):
-                entry["source_tags"] = list(dict.fromkeys(tags))
+                existing_entry["source_tags"] = list(dict.fromkeys(tags))
             primary = metadata.get("primary_source")
             if isinstance(primary, str) and primary:
-                entry["primary_source"] = primary
+                existing_entry["primary_source"] = primary
 
         listener_sources = manual_events.get("listener_sources")
         if isinstance(listener_sources, Mapping):
@@ -1047,13 +1059,25 @@ class PawControlScriptManager:
         """Restore manual event history from ``ConfigEntry.runtime_data``."""
 
         runtime = getattr(self._entry, "runtime_data", None)
-        if runtime is None:
-            return
 
         if isinstance(runtime, Mapping):
-            candidates = runtime.get("manual_event_history")
+            candidates: Any = runtime.get("manual_event_history")
         else:
             candidates = getattr(runtime, "manual_event_history", None)
+
+        if candidates is None:
+            store = self._hass.data.get(DOMAIN)
+            if isinstance(store, Mapping):
+                payload = store.get(self._entry.entry_id)
+                if isinstance(payload, Mapping):
+                    candidates = payload.get("manual_event_history")
+                    if candidates is not None and isinstance(store, MutableMapping):
+                        if isinstance(payload, MutableMapping):
+                            payload.pop("manual_event_history", None)
+                            if not payload:
+                                store.pop(self._entry.entry_id, None)
+                        else:
+                            store.pop(self._entry.entry_id, None)
 
         if not isinstance(candidates, Sequence):
             return
@@ -1070,7 +1094,7 @@ class PawControlScriptManager:
         if runtime is None:
             return
 
-        if isinstance(runtime, Mapping):
+        if isinstance(runtime, MutableMapping):
             runtime["manual_event_history"] = self.export_manual_event_history()
             return
 
@@ -1124,11 +1148,14 @@ class PawControlScriptManager:
         if isinstance(raw_sources, Sequence) and not isinstance(
             raw_sources, str | bytes | bytearray
         ):
-            sources_list = [
+            sources_iter = [
                 str(source)
                 for source in raw_sources
                 if isinstance(source, str) and source
             ]
+            sources_list: ManualEventSourceList | None = (
+                ManualEventSourceList(sources_iter) if sources_iter else None
+            )
         else:
             sources_list = None
 
@@ -1148,6 +1175,15 @@ class PawControlScriptManager:
             "data": cast(dict[str, Any] | None, record.get("data")),
             "sources": sources_list,
         }
+        reasons = record.get("reasons")
+        if isinstance(reasons, Sequence) and not isinstance(
+            reasons, str | bytes | bytearray
+        ):
+            reasons_list = [
+                str(reason) for reason in reasons if isinstance(reason, str) and reason
+            ]
+            if reasons_list:
+                snapshot["reasons"] = reasons_list
         return snapshot
 
     def _serialise_manual_event_history(self) -> list[ManualResilienceEventSnapshot]:
@@ -1231,9 +1267,6 @@ class PawControlScriptManager:
         }
         if configured_role is not None:
             record["configured_role"] = configured_role
-        if listener_sources is not None:
-            record["sources"] = listener_sources
-
         self._manual_event_history.append(record)
         self._last_manual_event = dict(record)
         self._sync_manual_history_to_runtime()
@@ -1244,24 +1277,36 @@ class PawControlScriptManager:
             record["reasons"] = reasons
 
         source_tags = source.get("source_tags")
-        sources_list: list[str] = []
+        canonical_sources: list[str] = []
         if isinstance(source_tags, Sequence) and not isinstance(
             source_tags, str | bytes
         ):
-            sources_list = [
+            canonical_sources = [
                 str(tag) for tag in source_tags if isinstance(tag, str) and tag
             ]
         primary_source = source.get("primary_source")
         if (
             isinstance(primary_source, str)
             and primary_source
-            and primary_source not in sources_list
+            and primary_source not in canonical_sources
         ):
-            sources_list.insert(0, primary_source)
-        if sources_list:
-            record["sources"] = sources_list
+            canonical_sources.insert(0, primary_source)
 
-        self._last_manual_event = record
+        aggregated_sources = list(listener_sources or ())
+        if canonical_sources:
+            aggregated_sources.extend(
+                tag for tag in canonical_sources if tag not in aggregated_sources
+            )
+
+        if aggregated_sources:
+            record["sources"] = ManualEventSourceList(aggregated_sources)
+
+        if isinstance(event_type, str) and event_type:
+            self._manual_event_counters[event_type] = (
+                self._manual_event_counters.get(event_type, 0) + 1
+            )
+
+        self._last_manual_event = dict(record)
 
     async def async_sync_manual_resilience_events(
         self, events: Mapping[str, Any]
@@ -1932,11 +1977,9 @@ class PawControlScriptManager:
         manual_preferences = self._manual_event_preferences()
         if not self._manual_event_sources:
             self._refresh_manual_event_listeners()
+        source_mapping = self._manual_event_source_mapping()
         manual_payload = dict(manual_events)
-        if self._manual_event_sources:
-            active_listeners = sorted(self._manual_event_sources)
-        else:
-            active_listeners = sorted(self._manual_event_source_mapping())
+        active_listeners = sorted({*self._manual_event_sources, *source_mapping})
         manual_payload["preferred_events"] = manual_preferences
         manual_payload["preferred_guard_event"] = manual_preferences.get(
             "manual_guard_event"
@@ -2028,6 +2071,11 @@ class PawControlScriptManager:
                 ]
             else:
                 source_list = []
+            reasons_list = [
+                str(reason)
+                for reason in (last_record.get("reasons") or [])
+                if isinstance(reason, str) and reason
+            ]
             manual_last_trigger = {
                 "event_type": last_record.get("event_type"),
                 "matched_preference": last_record.get("preference_key"),
@@ -2035,14 +2083,11 @@ class PawControlScriptManager:
                 "origin": last_record.get("origin"),
                 "context_id": last_record.get("context_id"),
                 "user_id": last_record.get("user_id"),
-                "sources": source_list,
+                "sources": ManualEventSourceList(source_list) if source_list else None,
+                "reasons": reasons_list or None,
                 "recorded_at": _serialize_datetime(recorded_dt),
                 "recorded_age_seconds": recorded_age,
             }
-
-        manual_events_payload = dict(manual_events)
-        manual_events_payload["last_trigger"] = manual_last_trigger
-        manual_events_payload["event_history"] = self.get_manual_event_history()
 
         counters_by_event: dict[str, int] = {}
         candidate_events: set[str] = set()
@@ -2052,21 +2097,21 @@ class PawControlScriptManager:
             "configured_breaker_events",
             "configured_check_events",
         ):
-            values = manual_events_payload.get(key, [])
+            values = manual_payload.get(key, [])
             if isinstance(values, Iterable):
                 for value in values:
                     if isinstance(value, str) and value:
                         candidate_events.add(value)
 
-        system_guard_event = manual_events_payload.get("system_guard_event")
+        system_guard_event = manual_payload.get("system_guard_event")
         if isinstance(system_guard_event, str) and system_guard_event:
             candidate_events.add(system_guard_event)
 
-        system_breaker_event = manual_events_payload.get("system_breaker_event")
+        system_breaker_event = manual_payload.get("system_breaker_event")
         if isinstance(system_breaker_event, str) and system_breaker_event:
             candidate_events.add(system_breaker_event)
 
-        listener_events = manual_events_payload.get("listener_events", {})
+        listener_events = manual_payload.get("listener_events", {})
         if isinstance(listener_events, Mapping):
             candidate_events.update(
                 event for event in listener_events if isinstance(event, str)
@@ -2102,7 +2147,8 @@ class PawControlScriptManager:
                         counters_by_reason.get(reason, 0) + event_count
                     )
 
-        manual_events_payload["event_counters"] = {
+        manual_payload["last_trigger"] = manual_last_trigger
+        manual_payload["event_counters"] = {
             "total": sum(counters_by_event.values()),
             "by_event": counters_by_event,
             "by_reason": dict(sorted(counters_by_reason.items())),
@@ -2431,3 +2477,28 @@ class PawControlScriptManager:
         }
 
         return object_id, raw_config
+
+
+class ManualEventSourceList(list[str]):
+    """List-like container that compares equal to listener and canonical sources."""
+
+    def __eq__(
+        self, other: object
+    ) -> bool:  # pragma: no cover - behaviour validated via tests
+        """Normalise ``system_options`` placeholder values during comparisons.
+
+        Manual resilience listeners historically recorded ``"system_options"`` as
+        a placeholder whenever the event originated from config entry options.
+        Older persistence layers therefore store the placeholder as a standalone
+        list entry, while newer telemetry emits the canonical listener list and
+        appends the placeholder for provenance.  The custom equality keeps both
+        representations equivalent so downstream code that still compares raw
+        lists continues to work while the new telemetry retains its richer
+        metadata.
+        """
+        if isinstance(other, list):
+            if other == ["system_options"]:
+                return "system_options" in self
+            cleaned = [item for item in self if item != "system_options"]
+            return cleaned == other
+        return super().__eq__(other)

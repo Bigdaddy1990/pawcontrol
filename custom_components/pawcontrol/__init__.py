@@ -8,7 +8,14 @@ import inspect
 import logging
 import sys
 import time
-from collections.abc import Awaitable, Callable, Iterable, Mapping, Sequence
+from collections.abc import (
+    Awaitable,
+    Callable,
+    Iterable,
+    Mapping,
+    MutableMapping,
+    Sequence,
+)
 from typing import Any, Final, cast
 
 from homeassistant.const import Platform
@@ -1539,7 +1546,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     pop_runtime_data(hass, entry)
 
     if manual_history:
-        entry.runtime_data = {"manual_event_history": manual_history}
+        store = hass.data.setdefault(DOMAIN, {})
+        if isinstance(store, MutableMapping):
+            store[entry.entry_id] = {"manual_event_history": manual_history}
 
     # Clear caches with size reporting
     cache_size = len(_PLATFORM_CACHE)

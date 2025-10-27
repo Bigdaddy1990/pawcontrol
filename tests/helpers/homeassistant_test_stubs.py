@@ -16,7 +16,7 @@ from types import MappingProxyType, ModuleType, SimpleNamespace
 from typing import TYPE_CHECKING, Any, Optional, cast
 from uuid import uuid4
 
-from jinja2 import Environment
+from jinja2.nativetypes import NativeEnvironment
 
 if TYPE_CHECKING:  # pragma: no cover - only used for static analysis
     from homeassistant.config_entries import OptionsFlow as _HAOptionsFlow
@@ -299,6 +299,8 @@ def _install_core_module() -> None:
         event_type: str
         data: Mapping[str, Any] | None = None
         time_fired: datetime | None = None
+        context: Context | None = None
+        origin: str | None = None
 
     event_state_changed_data = MutableMapping[str, Any]
 
@@ -316,7 +318,12 @@ def _install_core_module() -> None:
             self._services[domain][service] = handler
 
         async def async_call(
-            self, domain: str, service: str, data: Mapping[str, Any] | None = None
+            self,
+            domain: str,
+            service: str,
+            data: Mapping[str, Any] | None = None,
+            *,
+            blocking: bool = False,
         ) -> None:
             handler = self._services.get(domain, {}).get(service)
             if handler is None:
@@ -1286,17 +1293,22 @@ def _install_helper_modules() -> None:
         ) -> None:
             self._template = template or ""
             self._hass = hass
-            self._environment = Environment(autoescape=False, enable_async=True)
-            self._environment.globals.update(
-                {
-                    "state_attr": self._state_attr,
-                    "is_state": self._is_state,
-                    "is_state_attr": self._is_state_attr,
-                    "states": self._states_lookup,
-                    "now": lambda: datetime.now(UTC).astimezone(),
-                    "utcnow": lambda: datetime.now(UTC),
-                }
+            self._async_environment = NativeEnvironment(
+                autoescape=False, enable_async=True
             )
+            self._sync_environment = NativeEnvironment(
+                autoescape=False, enable_async=False
+            )
+            shared_globals = {
+                "state_attr": self._state_attr,
+                "is_state": self._is_state,
+                "is_state_attr": self._is_state_attr,
+                "states": self._states_lookup,
+                "now": lambda: datetime.now(UTC).astimezone(),
+                "utcnow": lambda: datetime.now(UTC),
+            }
+            self._async_environment.globals.update(shared_globals)
+            self._sync_environment.globals.update(shared_globals)
 
         def _get_state(self, entity_id: str) -> Any:
             if self._hass is None:
@@ -1330,7 +1342,7 @@ def _install_helper_modules() -> None:
         def render(
             self, variables: Mapping[str, Any] | None = None, **kwargs: Any
         ) -> Any:
-            template = self._environment.from_string(self._template)
+            template = self._sync_environment.from_string(self._template)
             context: dict[str, Any] = dict(variables or {})
             context.update(kwargs)
             return template.render(**context)
@@ -1338,7 +1350,7 @@ def _install_helper_modules() -> None:
         async def async_render(
             self, variables: Mapping[str, Any] | None = None, **kwargs: Any
         ) -> Any:
-            template = self._environment.from_string(self._template)
+            template = self._async_environment.from_string(self._template)
             context: dict[str, Any] = dict(variables or {})
             context.update(kwargs)
             return await template.render_async(**context)
