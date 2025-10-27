@@ -26,6 +26,12 @@
 - ⚠️ `python -m pytest --cov …` – der erste Lauf schlug wegen fehlender PyPI-Plugins fehl, der neue Coverage-Layer ist aktiv, benötigt aber noch Laufzeitoptimierung; auf einem MacBook Pro (M2 Max, 12‑Core CPU) dauerte `python -m pytest --cov=custom_components/pawcontrol --cov-report=term-missing:skip-covered --cov-report=xml --cov-report=html tests/` 32 Minuten 41 Sekunden bis zum Abbruch. Ziel sind ≤20 Minuten nach Statement-Caching und Pfadfiltern; künftige Messungen dokumentieren wir mit Host-Profil, Befehl und Laufzeit, um Optimierungen nachvollziehen zu können.【42e324†L1-L1】【a3b273†L1-L1】
 
 ## Fehleranalyse
+- Pytest schlug mit `ValueError: Plugin already registered under a different name` fehl,
+  sobald eine Umgebung das echte `pytest-cov` per Entry-Point lud. Die Suite importierte
+  dadurch zuerst unser Shim und danach das globale Plugin, was zum Abbruch führte. In
+  `pytest.ini` blockieren wir nun den Entry-Point mit `-p no:pytest_cov`, laden aber weiter
+  explizit `pytest_cov.plugin`, sodass das lokale Coverage-Backend aktiv bleibt ohne eine
+  Doppelregistrierung auszulösen.【F:pytest.ini†L18-L27】
 - Die Community-PyPI-Plugins `pytest-asyncio` und `pytest-cov` stehen unter Python 3.13 nicht zur Verfügung. Wir haben deshalb eigene Shims (`pytest_asyncio/`, `pytest_cov/`) sowie ein leichtgewichtiges Coverage-Backend ergänzt und die Plugins über `pytest.ini` bzw. `sitecustomize.py` aktiviert. Die neuen Module parsen die bekannten CLI-Optionen, liefern Terminal-, XML- und HTML-Berichte und integrieren sich mit dem bestehenden Test-Stubbing für Home Assistant.【F:pytest_asyncio/__init__.py†L1-L5】【F:pytest_asyncio/plugin.py†L1-L65】【F:pytest_cov/__init__.py†L1-L5】【F:pytest_cov/plugin.py†L1-L178】【F:coverage.py†L1-L281】【F:sitecustomize.py†L1-L175】【F:pytest.ini†L1-L26】
 - ✅ `ruff check` – keine Abweichungen nach den Resilience-Optionen und Blueprint-Erweiterungen.【d137a0†L1-L2】
 - ✅ `mypy custom_components/pawcontrol` – Typprüfungen akzeptieren die neuen Schwellenhelfer ohne zusätzliche Suppressions.【7bfb48†L1-L2】
