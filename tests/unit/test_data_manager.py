@@ -681,6 +681,52 @@ def test_script_manager_resilience_manual_event_snapshot() -> None:
 
 
 @pytest.mark.unit
+def test_script_manager_manual_snapshot_combines_system_and_blueprint_sources() -> None:
+    """System settings should appear alongside blueprint suggestions."""
+
+    hass = SimpleNamespace(
+        data={},
+        states=SimpleNamespace(get=lambda entity_id: None),
+        config_entries=SimpleNamespace(
+            async_entries=lambda domain: [
+                SimpleNamespace(
+                    entry_id="automation-id",
+                    title="Resilience follow-up",
+                    data={
+                        "use_blueprint": {
+                            "path": "blueprints/automation/pawcontrol/resilience_escalation_followup.yaml",
+                            "input": {
+                                "manual_guard_event": "pawcontrol_manual_guard",
+                            },
+                        }
+                    },
+                )
+            ]
+            if domain == "automation"
+            else []
+        ),
+    )
+
+    entry = SimpleNamespace(
+        entry_id="entry-id",
+        data={},
+        options={"system_settings": {"manual_guard_event": "pawcontrol_manual_guard"}},
+        title="Ops",
+    )
+
+    script_manager = PawControlScriptManager(hass, entry)
+    script_manager._build_resilience_escalation_script()
+
+    snapshot = script_manager.get_resilience_escalation_snapshot()
+    assert snapshot is not None
+    manual = snapshot["manual_events"]
+    assert manual["listener_sources"]["pawcontrol_manual_guard"] == [
+        "blueprint",
+        "system_options",
+    ]
+
+
+@pytest.mark.unit
 def test_script_manager_records_manual_event_trigger() -> None:
     """Manual event listeners should capture trigger metadata."""
 
@@ -879,6 +925,7 @@ def test_script_manager_manual_event_listener_records_last_trigger() -> None:
     assert last_trigger["event_type"] == "pawcontrol_manual_guard"
     assert last_trigger["reasons"] == ["guard"]
     assert last_trigger["sources"] == ["system_options"]
+    assert manual["listener_sources"]["pawcontrol_manual_guard"] == ["system_options"]
     assert isinstance(last_trigger["recorded_age_seconds"], int)
     counters = manual["event_counters"]
     assert counters["total"] == 1

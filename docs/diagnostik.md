@@ -89,8 +89,10 @@
 | component.pawcontrol.common.setup_flags_panel_flag_enable_cloud_backup | Cloud backup | Cloud-Backup |
 | component.pawcontrol.common.setup_flags_panel_flag_debug_logging | Debug logging | Debug-Logging |
 | component.pawcontrol.common.setup_flags_panel_source_advanced_settings | Advanced settings | Erweiterte Einstellungen |
+| component.pawcontrol.common.setup_flags_panel_source_blueprint | Blueprint suggestion | Blueprint-Vorschlag |
 | component.pawcontrol.common.setup_flags_panel_source_config_entry | Config entry defaults | Konfigurationseintrag |
 | component.pawcontrol.common.setup_flags_panel_source_default | Integration default | Integrationsstandard |
+| component.pawcontrol.common.setup_flags_panel_source_disabled | Disable | Deaktivieren |
 | component.pawcontrol.common.setup_flags_panel_source_options | Options flow | Options-Flow |
 | component.pawcontrol.common.setup_flags_panel_source_system_settings | System settings | Systemeinstellungen |
 

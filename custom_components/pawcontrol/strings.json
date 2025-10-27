@@ -1404,8 +1404,10 @@
     "setup_flags_panel_flag_enable_analytics": "Analytics telemetry",
     "setup_flags_panel_flag_enable_cloud_backup": "Cloud backup",
     "setup_flags_panel_source_advanced_settings": "Advanced settings",
+    "setup_flags_panel_source_blueprint": "Blueprint suggestion",
     "setup_flags_panel_source_config_entry": "Config entry defaults",
     "setup_flags_panel_source_default": "Integration default",
+    "setup_flags_panel_source_disabled": "Disable",
     "setup_flags_panel_source_options": "Options flow",
     "setup_flags_panel_source_system_settings": "System settings",
     "setup_flags_panel_title": "Setup flags"

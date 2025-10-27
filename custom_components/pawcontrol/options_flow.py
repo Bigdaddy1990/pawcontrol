@@ -21,6 +21,7 @@ from collections.abc import Mapping, Sequence
 from contextlib import suppress
 from dataclasses import asdict
 from datetime import UTC, datetime
+from pathlib import Path
 from types import MappingProxyType
 from typing import Any, ClassVar, Final, Literal, cast
 
@@ -101,6 +102,7 @@ from .door_sensor_manager import ensure_door_sensor_settings_config
 from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .exceptions import ValidationError
 from .grooming_translations import translated_grooming_label
+from .language import normalize_language
 from .repairs import (
     ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE,
     async_create_issue,
@@ -154,6 +156,12 @@ DOOR_SENSOR_DEVICE_CLASSES: Final[tuple[str, ...]] = (
     "opening",
     "garage_door",
 )
+
+ManualEventField = Literal[
+    "manual_check_event",
+    "manual_guard_event",
+    "manual_breaker_event",
+]
 
 QUIET_HOURS_FIELD: Final[Literal["quiet_hours"]] = cast(
     Literal["quiet_hours"], CONF_QUIET_HOURS
@@ -246,11 +254,35 @@ class PawControlOptionsFlow(OptionsFlow):
     """
 
     _EXPORT_VERSION: ClassVar[int] = 1
-    _MANUAL_EVENT_FIELDS: ClassVar[tuple[str, str, str]] = (
+    _MANUAL_EVENT_FIELDS: ClassVar[tuple[ManualEventField, ...]] = (
         "manual_check_event",
         "manual_guard_event",
         "manual_breaker_event",
     )
+    _SETUP_FLAG_TRANSLATION_CACHE: ClassVar[dict[str, dict[str, str]]] = {}
+    _SETUP_FLAG_EN_TRANSLATIONS: ClassVar[dict[str, str] | None] = None
+    _SETUP_FLAG_PREFIXES: ClassVar[tuple[str, ...]] = (
+        "setup_flags_panel_flag_",
+        "setup_flags_panel_source_",
+    )
+    _SETUP_FLAG_SOURCE_LABEL_KEYS: ClassVar[dict[str, str]] = {
+        "default": "setup_flags_panel_source_default",
+        "system_settings": "setup_flags_panel_source_system_settings",
+        "options": "setup_flags_panel_source_options",
+        "config_entry": "setup_flags_panel_source_config_entry",
+        "blueprint": "setup_flags_panel_source_blueprint",
+        "disabled": "setup_flags_panel_source_disabled",
+    }
+    _MANUAL_LISTENER_SOURCE_MAP: ClassVar[dict[str, str]] = {
+        "blueprint": "blueprint",
+        "system_options": "system_settings",
+        "system_settings": "system_settings",
+        "options": "options",
+        "config_entry": "config_entry",
+    }
+    _SETUP_FLAG_SUPPORTED_LANGUAGES: ClassVar[frozenset[str]] = frozenset({"en", "de"})
+    _STRINGS_PATH: ClassVar[Path] = Path(__file__).with_name("strings.json")
+    _TRANSLATIONS_DIR: ClassVar[Path] = Path(__file__).with_name("translations")
 
     def __init__(self) -> None:
         """Initialize the options flow with enhanced state management."""
@@ -427,6 +459,87 @@ class PawControlOptionsFlow(OptionsFlow):
             return [str(item) for item in value if item not in (None, "")]
         return []
 
+    @classmethod
+    def _load_setup_flag_translations_from_mapping(
+        cls, mapping: Mapping[str, Any]
+    ) -> dict[str, str]:
+        """Extract setup flag translations from a loaded JSON mapping."""
+
+        common = mapping.get("common") if isinstance(mapping, Mapping) else None
+        if not isinstance(common, Mapping):
+            return {}
+
+        translations: dict[str, str] = {}
+        for key, value in common.items():
+            if not isinstance(key, str) or not isinstance(value, str):
+                continue
+            if any(key.startswith(prefix) for prefix in cls._SETUP_FLAG_PREFIXES):
+                translations[key] = value
+        return translations
+
+    @classmethod
+    def _load_setup_flag_translations_from_path(cls, path: Path) -> dict[str, str]:
+        """Load setup flag translations from a JSON file if it exists."""
+
+        try:
+            content = json.loads(path.read_text(encoding="utf-8"))
+        except FileNotFoundError:
+            return {}
+        except ValueError:  # pragma: no cover - defensive against malformed JSON
+            _LOGGER.warning("Failed to parse setup flag translations from %s", path)
+            return {}
+
+        if not isinstance(content, Mapping):
+            return {}
+
+        return cls._load_setup_flag_translations_from_mapping(content)
+
+    @classmethod
+    def _setup_flag_translations_for_language(cls, language: str) -> dict[str, str]:
+        """Return setup flag translations for the provided language."""
+
+        if cls._SETUP_FLAG_EN_TRANSLATIONS is None:
+            cls._SETUP_FLAG_EN_TRANSLATIONS = (
+                cls._load_setup_flag_translations_from_path(cls._STRINGS_PATH)
+            )
+
+        base = cls._SETUP_FLAG_EN_TRANSLATIONS or {}
+        if language == "en":
+            return base
+
+        cached = cls._SETUP_FLAG_TRANSLATION_CACHE.get(language)
+        if cached is not None:
+            return cached
+
+        translation_path = cls._TRANSLATIONS_DIR / f"{language}.json"
+        overlay = cls._load_setup_flag_translations_from_path(translation_path)
+        merged = dict(base)
+        merged.update(overlay)
+        cls._SETUP_FLAG_TRANSLATION_CACHE[language] = merged
+        return merged
+
+    def _determine_language(self) -> str:
+        """Return the preferred language for localized labels."""
+
+        hass = getattr(self, "hass", None)
+        hass_language: str | None = None
+        if hass is not None:
+            config = getattr(hass, "config", None)
+            if config is not None:
+                hass_language = getattr(config, "language", None)
+
+        return normalize_language(
+            hass_language,
+            supported=self._SETUP_FLAG_SUPPORTED_LANGUAGES,
+            default="en",
+        )
+
+    def _setup_flag_translation(self, key: str, *, language: str) -> str:
+        """Return the localized string for the provided setup flag key."""
+
+        translations = self._setup_flag_translations_for_language(language)
+        return translations.get(key, key)
+
     @staticmethod
     def _normalise_manual_event_value(value: Any) -> str | None:
         """Return a normalised manual event string."""
@@ -458,64 +571,190 @@ class PawControlOptionsFlow(OptionsFlow):
         defaults = self._manual_event_defaults(current)
         return {key: value or "" for key, value in defaults.items()}
 
-    def _resolve_manual_event_choices(self) -> dict[str, list[str]]:
-        """Return configured manual event identifiers for blueprint helpers."""
-
-        choices: dict[str, list[str]] = {
-            field: [] for field in self._MANUAL_EVENT_FIELDS
-        }
-        seen: dict[str, set[str]] = {
-            field: set() for field in self._MANUAL_EVENT_FIELDS
-        }
-
-        current_defaults = self._manual_event_defaults(self._current_system_options())
-        for field, default_value in current_defaults.items():
-            if default_value:
-                seen[field].add(default_value)
-                choices[field].append(default_value)
+    def _manual_events_snapshot(self) -> Mapping[str, Any] | None:
+        """Return the current manual events snapshot from the script manager."""
 
         hass = getattr(self, "hass", None)
         if hass is None:
-            return choices
+            return None
 
-        runtime = get_runtime_data(hass, self._entry)
+        runtime: Any | None = None
+        with suppress(Exception):
+            runtime = get_runtime_data(hass, self._entry)
+        if runtime is None:
+            return None
+
         script_manager = getattr(runtime, "script_manager", None)
         if script_manager is None:
-            return choices
+            return None
 
         snapshot = script_manager.get_resilience_escalation_snapshot()
-        manual = (
-            snapshot.get("manual_events") if isinstance(snapshot, Mapping) else None
-        )
-        if not isinstance(manual, Mapping):
-            return choices
+        if not isinstance(snapshot, Mapping):
+            return None
 
-        list_mapping = {
-            "manual_check_event": manual.get("configured_check_events"),
-            "manual_guard_event": manual.get("configured_guard_events"),
-            "manual_breaker_event": manual.get("configured_breaker_events"),
+        manual_section = snapshot.get("manual_events")
+        if isinstance(manual_section, Mapping):
+            return manual_section
+        return None
+
+    def _collect_manual_event_sources(
+        self,
+        field: ManualEventField,
+        current: SystemOptions,
+        *,
+        manual_snapshot: Mapping[str, Any] | None = None,
+    ) -> dict[str, set[str]]:
+        """Return known manual events mapped to their source categories."""
+
+        sources: dict[str, set[str]] = {}
+
+        def _register(value: Any, source: str) -> None:
+            normalised = self._normalise_manual_event_value(value)
+            if not normalised:
+                return
+            sources.setdefault(normalised, set()).add(source)
+
+        default_map = {
+            "manual_check_event": DEFAULT_MANUAL_CHECK_EVENT,
+            "manual_guard_event": DEFAULT_MANUAL_GUARD_EVENT,
+            "manual_breaker_event": DEFAULT_MANUAL_BREAKER_EVENT,
         }
+        _register(default_map[field], "default")
 
-        for field, values in list_mapping.items():
-            for candidate in self._string_sequence(values):
-                if candidate not in seen[field]:
-                    seen[field].add(candidate)
-                    choices[field].append(candidate)
+        current_options = self._current_options()
+        _register(current_options.get(field), "options")
 
-        preferred = manual.get("preferred_events")
-        if isinstance(preferred, Mapping):
-            for field in self._MANUAL_EVENT_FIELDS:
-                normalised = self._normalise_manual_event_value(preferred.get(field))
-                if normalised and normalised not in seen[field]:
-                    seen[field].add(normalised)
-                    choices[field].append(normalised)
+        options_settings = current_options.get("system_settings")
+        if isinstance(options_settings, Mapping):
+            _register(options_settings.get(field), "system_settings")
 
+        _register(current.get(field), "system_settings")
+
+        if manual_snapshot is None:
+            manual_snapshot = self._manual_events_snapshot()
+
+        if isinstance(manual_snapshot, Mapping):
+            configured_key_map = {
+                "manual_check_event": "configured_check_events",
+                "manual_guard_event": "configured_guard_events",
+                "manual_breaker_event": "configured_breaker_events",
+            }
+            configured_values = manual_snapshot.get(configured_key_map[field])
+            for candidate in self._string_sequence(configured_values):
+                _register(candidate, "blueprint")
+
+            if field != "manual_check_event":
+                system_key_map = {
+                    "manual_guard_event": "system_guard_event",
+                    "manual_breaker_event": "system_breaker_event",
+                }
+                system_value = manual_snapshot.get(system_key_map.get(field, ""))
+                _register(system_value, "system_settings")
+
+            preferred = manual_snapshot.get("preferred_events")
+            if isinstance(preferred, Mapping):
+                _register(preferred.get(field), "system_settings")
+
+            specific_preference = manual_snapshot.get(f"preferred_{field}")
+            _register(specific_preference, "system_settings")
+
+            listener_sources = manual_snapshot.get("listener_sources")
+            if isinstance(listener_sources, Mapping):
+                for event, raw_sources in listener_sources.items():
+                    if not isinstance(event, str):
+                        continue
+                    for raw_source in self._string_sequence(raw_sources):
+                        mapped = self._MANUAL_LISTENER_SOURCE_MAP.get(raw_source)
+                        if mapped:
+                            _register(event, mapped)
+
+        return sources
+
+    def _manual_event_choices(
+        self,
+        field: ManualEventField,
+        current: SystemOptions,
+        *,
+        manual_snapshot: Mapping[str, Any] | None = None,
+    ) -> list[dict[str, str]]:
+        """Return select options for manual event configuration."""
+
+        language = self._determine_language()
+
+        disabled_label = self._setup_flag_translation(
+            self._SETUP_FLAG_SOURCE_LABEL_KEYS["disabled"], language=language
+        )
+        disabled_description = self._setup_flag_translation(
+            self._SETUP_FLAG_SOURCE_LABEL_KEYS["default"], language=language
+        )
+
+        options: list[dict[str, str]] = [
+            {
+                "value": "",
+                "label": disabled_label,
+                "description": disabled_description,
+            }
+        ]
+
+        event_sources = self._collect_manual_event_sources(
+            field,
+            current,
+            manual_snapshot=manual_snapshot,
+        )
+
+        current_value = self._normalise_manual_event_value(current.get(field))
+
+        def _priority(item: tuple[str, set[str]]) -> tuple[int, str]:
+            value, sources = item
+            if current_value and value == current_value:
+                return (0, value)
+            if "system_settings" in sources:
+                return (1, value)
+            if "options" in sources:
+                return (2, value)
+            if "blueprint" in sources:
+                return (3, value)
+            if "default" in sources:
+                return (4, value)
+            return (5, value)
+
+        for value, sources in sorted(event_sources.items(), key=_priority):
+            description_parts: list[str] = []
+            for source in sorted(sources):
+                key = self._SETUP_FLAG_SOURCE_LABEL_KEYS.get(source)
+                if key:
+                    description_parts.append(
+                        self._setup_flag_translation(key, language=language)
+                    )
+
+            option: dict[str, str] = {"value": value, "label": value}
+            if description_parts:
+                option["description"] = ", ".join(description_parts)
+            options.append(option)
+
+        return options
+
+    def _resolve_manual_event_choices(self) -> dict[str, list[str]]:
+        """Return configured manual event identifiers for blueprint helpers."""
+
+        current_system = self._current_system_options()
+        manual_snapshot = self._manual_events_snapshot()
+
+        choices: dict[str, list[str]] = {}
         for field in self._MANUAL_EVENT_FIELDS:
-            single_preference = manual.get(f"preferred_{field}")
-            normalised = self._normalise_manual_event_value(single_preference)
-            if normalised and normalised not in seen[field]:
-                seen[field].add(normalised)
-                choices[field].append(normalised)
+            options = self._manual_event_choices(
+                field,
+                current_system,
+                manual_snapshot=manual_snapshot,
+            )
+            values: list[str] = []
+            for option in options:
+                if not isinstance(option, Mapping):
+                    continue
+                value = option.get("value")
+                if isinstance(value, str) and value:
+                    values.append(value)
+            choices[field] = values
 
         return choices
 
@@ -530,7 +769,9 @@ class PawControlOptionsFlow(OptionsFlow):
         return placeholders
 
     @staticmethod
-    def _coerce_manual_event(value: Any, default: str | None) -> str | None:
+    def _coerce_manual_event_with_default(
+        value: Any, default: str | None
+    ) -> str | None:
         """Return a normalised manual event or fallback to the provided default."""
 
         if isinstance(value, str):
@@ -898,10 +1139,16 @@ class PawControlOptionsFlow(OptionsFlow):
         return system
 
     def _resolve_manual_event_context(
-        self, current_system: SystemOptions
+        self,
+        current_system: SystemOptions,
+        *,
+        manual_snapshot: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Return manual event suggestions sourced from runtime and defaults."""
 
+        check_suggestions: set[str] = {
+            DEFAULT_MANUAL_CHECK_EVENT,
+        }
         guard_suggestions: set[str] = {
             "pawcontrol_manual_guard",
         }
@@ -909,6 +1156,9 @@ class PawControlOptionsFlow(OptionsFlow):
             "pawcontrol_manual_breaker",
         }
 
+        check_default: str | None = self._coerce_manual_event(
+            current_system.get("manual_check_event")
+        )
         guard_default: str | None = self._coerce_manual_event(
             current_system.get("manual_guard_event")
         )
@@ -916,16 +1166,8 @@ class PawControlOptionsFlow(OptionsFlow):
             current_system.get("manual_breaker_event")
         )
 
-        runtime = get_runtime_data(self.hass, self._entry)
-        script_manager = getattr(runtime, "script_manager", None)
-        manual_snapshot: Mapping[str, Any] | None = None
-
-        if script_manager is not None:
-            snapshot = script_manager.get_resilience_escalation_snapshot()
-            if isinstance(snapshot, Mapping):
-                manual_section = snapshot.get("manual_events")
-                if isinstance(manual_section, Mapping):
-                    manual_snapshot = manual_section
+        if manual_snapshot is None:
+            manual_snapshot = self._manual_events_snapshot()
 
         if manual_snapshot is not None:
             system_guard = self._coerce_manual_event(
@@ -940,6 +1182,13 @@ class PawControlOptionsFlow(OptionsFlow):
             if breaker_default is None:
                 breaker_default = system_breaker
 
+            for event in manual_snapshot.get("configured_check_events", []):
+                normalised = self._coerce_manual_event(event)
+                if normalised is not None:
+                    check_suggestions.add(normalised)
+                    if check_default is None:
+                        check_default = normalised
+
             for event in manual_snapshot.get("configured_guard_events", []):
                 normalised = self._coerce_manual_event(event)
                 if normalised is not None:
@@ -949,14 +1198,29 @@ class PawControlOptionsFlow(OptionsFlow):
                 if normalised is not None:
                     breaker_suggestions.add(normalised)
 
+            if check_default is None:
+                preferred = manual_snapshot.get("preferred_events")
+                if isinstance(preferred, Mapping):
+                    check_default = self._coerce_manual_event(
+                        preferred.get("manual_check_event")
+                    )
+            if check_default is None:
+                check_default = self._coerce_manual_event(
+                    manual_snapshot.get("preferred_check_event")
+                )
+
         if guard_default is not None:
             guard_suggestions.add(guard_default)
         if breaker_default is not None:
             breaker_suggestions.add(breaker_default)
+        if check_default is not None:
+            check_suggestions.add(check_default)
 
         return {
+            "check_suggestions": sorted(check_suggestions),
             "guard_suggestions": sorted(guard_suggestions),
             "breaker_suggestions": sorted(breaker_suggestions),
+            "check_default": check_default,
             "guard_default": guard_default,
             "breaker_default": breaker_default,
         }
@@ -1445,15 +1709,15 @@ class PawControlOptionsFlow(OptionsFlow):
             SYSTEM_ENABLE_CLOUD_BACKUP_FIELD: cloud_backup_enabled,
             "resilience_skip_threshold": skip_threshold,
             "resilience_breaker_threshold": breaker_threshold,
-            "manual_check_event": self._coerce_manual_event(
+            "manual_check_event": self._coerce_manual_event_with_default(
                 user_input.get("manual_check_event"),
                 manual_defaults.get("manual_check_event"),
             ),
-            "manual_guard_event": self._coerce_manual_event(
+            "manual_guard_event": self._coerce_manual_event_with_default(
                 user_input.get("manual_guard_event"),
                 manual_defaults.get("manual_guard_event"),
             ),
-            "manual_breaker_event": self._coerce_manual_event(
+            "manual_breaker_event": self._coerce_manual_event_with_default(
                 user_input.get("manual_breaker_event"),
                 manual_defaults.get("manual_breaker_event"),
             ),
@@ -4268,24 +4532,31 @@ class PawControlOptionsFlow(OptionsFlow):
         )
 
         manual_defaults = self._manual_event_schema_defaults(current_system)
-        manual_context = self._resolve_manual_event_context(current_system)
+        manual_snapshot = self._manual_events_snapshot()
+        manual_context = self._resolve_manual_event_context(
+            current_system,
+            manual_snapshot=manual_snapshot,
+        )
+
+        manual_choices = {
+            field: self._manual_event_choices(
+                field,
+                current_system,
+                manual_snapshot=manual_snapshot,
+            )
+            for field in self._MANUAL_EVENT_FIELDS
+        }
 
         manual_context_defaults: dict[str, str] = {}
-        guard_context_default = manual_context.get("guard_default")
-        if isinstance(guard_context_default, str):
-            manual_context_defaults["manual_guard_event"] = guard_context_default
-        breaker_context_default = manual_context.get("breaker_default")
-        if isinstance(breaker_context_default, str):
-            manual_context_defaults["manual_breaker_event"] = breaker_context_default
-
-        guard_selector_config = selector.TextSelectorConfig(
-            type=selector.TextSelectorType.TEXT,
-            suggestions=manual_context["guard_suggestions"],
+        context_mapping = (
+            ("manual_check_event", "check_default"),
+            ("manual_guard_event", "guard_default"),
+            ("manual_breaker_event", "breaker_default"),
         )
-        breaker_selector_config = selector.TextSelectorConfig(
-            type=selector.TextSelectorType.TEXT,
-            suggestions=manual_context["breaker_suggestions"],
-        )
+        for field, context_key in context_mapping:
+            context_value = manual_context.get(context_key)
+            if isinstance(context_value, str):
+                manual_context_defaults[field] = context_value
 
         def _manual_default(field: str) -> str:
             raw_value = current_values.get(field)
@@ -4356,15 +4627,33 @@ class PawControlOptionsFlow(OptionsFlow):
                 vol.Optional(
                     "manual_check_event",
                     default=_manual_default("manual_check_event"),
-                ): selector.TextSelector(selector.TextSelectorConfig()),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=manual_choices["manual_check_event"],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                        custom_value=True,
+                    )
+                ),
                 vol.Optional(
                     "manual_guard_event",
                     default=_manual_default("manual_guard_event"),
-                ): selector.TextSelector(guard_selector_config),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=manual_choices["manual_guard_event"],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                        custom_value=True,
+                    )
+                ),
                 vol.Optional(
                     "manual_breaker_event",
                     default=_manual_default("manual_breaker_event"),
-                ): selector.TextSelector(breaker_selector_config),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=manual_choices["manual_breaker_event"],
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                        custom_value=True,
+                    )
+                ),
                 vol.Optional(
                     "performance_mode",
                     default=current_values.get(
