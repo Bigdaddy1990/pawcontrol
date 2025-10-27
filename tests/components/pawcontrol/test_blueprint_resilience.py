@@ -57,6 +57,7 @@ async def test_resilience_blueprint_manual_events_execute(hass: HomeAssistant) -
     )
 
     try:
+
         async def _record_script(call: ServiceCall) -> None:
             script_calls.append(call)
 
@@ -100,7 +101,10 @@ async def test_resilience_blueprint_manual_events_execute(hass: HomeAssistant) -
         automation_entry = MockConfigEntry(
             domain=AUTOMATION_DOMAIN,
             data={
-                "use_blueprint": {"path": BLUEPRINT_RELATIVE_PATH, "input": base_context}
+                "use_blueprint": {
+                    "path": BLUEPRINT_RELATIVE_PATH,
+                    "input": base_context,
+                }
             },
             title="Resilience escalation follow-up",
             unique_id="automation-resilience-followup",

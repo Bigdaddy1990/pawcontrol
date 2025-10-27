@@ -55,5 +55,3 @@ for attribute in dir(_VENDOR):
     if attribute.startswith("__") and attribute not in {"__all__"}:
         continue
     globals()[attribute] = getattr(_VENDOR, attribute)
-
-
