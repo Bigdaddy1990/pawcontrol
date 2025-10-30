@@ -216,6 +216,32 @@ def enable_event_loop_debug() -> asyncio.AbstractEventLoop:
 _ORIGINAL_ADD_HOOKSPECS_ATTR = "_asyncio_stub_original_add_hookspecs"
 
 
+def _install_add_hookspecs_guard() -> None:
+    """Ensure duplicate hookspec registrations do not raise errors."""
+
+    plugin_manager_cls = pytest.PytestPluginManager
+    if hasattr(plugin_manager_cls, _ORIGINAL_ADD_HOOKSPECS_ATTR):
+        return
+
+    original_add_hookspecs = plugin_manager_cls.add_hookspecs
+
+    def _guarded_add_hookspecs(
+        self: pytest.PytestPluginManager, *args: Any, **hook_kwargs: Any
+    ) -> Any:
+        try:
+            return original_add_hookspecs(self, *args, **hook_kwargs)
+        except ValueError as exc:  # pragma: no cover - depends on pluggy internals
+            if "already registered" in str(exc):
+                return None
+            raise
+
+    setattr(plugin_manager_cls, _ORIGINAL_ADD_HOOKSPECS_ATTR, original_add_hookspecs)
+    plugin_manager_cls.add_hookspecs = _guarded_add_hookspecs  # type: ignore[assignment]
+
+
+_install_add_hookspecs_guard()
+
+
 @pytest.hookimpl(tryfirst=True)
 def pytest_addhooks(pluginmanager: pytest.PytestPluginManager, **kwargs: Any) -> None:
     """Expose ``enable_event_loop_debug`` via hook registration."""
@@ -225,28 +251,6 @@ def pytest_addhooks(pluginmanager: pytest.PytestPluginManager, **kwargs: Any) ->
         module = sys.modules.get(__name__)
     if module is not None:
         module.enable_event_loop_debug = enable_event_loop_debug  # type: ignore[attr-defined]
-
-    # ``pytest`` historically allows plugins to call ``pluginmanager.add_hookspecs``
-    # multiple times when replaying ``pytest_addhooks`` via ``call_historic``.
-    # ``pluggy`` 1.5+ raises ``ValueError`` for duplicate registrations, which
-    # causes third-party plugins such as ``xdist`` to crash when a test replays
-    # the hook.  Guard the method so duplicate registrations are silently
-    # ignored, mirroring the legacy behaviour expected by these plugins.
-    if hasattr(pluginmanager, _ORIGINAL_ADD_HOOKSPECS_ATTR):
-        return
-
-    original_add_hookspecs = pluginmanager.add_hookspecs
-
-    def _guarded_add_hookspecs(*args: Any, **hook_kwargs: Any) -> Any:
-        try:
-            return original_add_hookspecs(*args, **hook_kwargs)
-        except ValueError as exc:  # pragma: no cover - error path depends on pluggy
-            if "already registered" in str(exc):
-                return None
-            raise
-
-    setattr(pluginmanager, _ORIGINAL_ADD_HOOKSPECS_ATTR, original_add_hookspecs)
-    pluginmanager.add_hookspecs = _guarded_add_hookspecs  # type: ignore[assignment]
 
 
 @pytest.hookimpl(tryfirst=True)
