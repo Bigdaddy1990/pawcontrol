@@ -142,6 +142,27 @@ jobs:
           echo "CodeFactor analysis runs automatically via webhook"
           echo "Visit: https://www.codefactor.io/repository/github/${{ github.repository }}"
 
+  localization-guards:
+    name: Localization & Guide Sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Validate localization tables and contributor guides
+        env:
+          PYTHONPATH: .
+        run: |
+          python -m script.sync_localization_flags \
+            --allowlist script/sync_localization_flags.allowlist \
+            --check
+          python -m script.sync_contributor_guides --check
+
   mypy-config:
     name: Type Check Config Flows
     runs-on: ubuntu-latest
@@ -211,7 +232,8 @@ jobs:
   all-checks:
     name: All Checks Passed
     if: always()
-    needs: [lint, test-coverage, code-quality, mypy-config, validate-manifest]
+    needs:
+      [lint, test-coverage, code-quality, localization-guards, mypy-config, validate-manifest]
     runs-on: ubuntu-latest
     steps:
       - name: Check status
