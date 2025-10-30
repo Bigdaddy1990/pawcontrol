@@ -807,12 +807,37 @@ class EntityFactory:
         if not self._enforce_min_runtime:
             return
 
-        elapsed = time.perf_counter() - started_at
-        remaining = _MIN_OPERATION_DURATION - elapsed
+        deadline = started_at + _MIN_OPERATION_DURATION
+        remaining = deadline - time.perf_counter()
         if remaining <= 0:
             return
 
-        time.sleep(remaining)
+        # ``time.sleep`` on Linux/CI runners often overshoots sub-millisecond
+        # durations which inflates the runtime guards and makes the performance
+        # tests flaky. Sleep in coarse chunks first and then busy-wait for the
+        # remaining microseconds so the deterministic guard stays tight without
+        # stalling the scheduler. For sub-millisecond waits we avoid ``sleep``
+        # entirely because the kernel typically rounds the delay up to 1ms+ and
+        # breaks the runtime budget.
+        while remaining > 0.0015:  # >1.5ms: coarse sleep and re-evaluate
+            coarse_sleep = max(remaining - 0.0005, 0.0005)
+            time.sleep(coarse_sleep)
+            remaining = deadline - time.perf_counter()
+            if remaining <= 0:
+                return
+
+        if remaining <= 0:
+            return
+
+        spin_deadline = deadline
+        spin_checkpoint = time.perf_counter()
+
+        while (current := time.perf_counter()) < spin_deadline:
+            # Yield very occasionally when the spin drifts to avoid starving the
+            # event loop on unexpectedly long waits.
+            if current - spin_checkpoint > 0.002:
+                time.sleep(0)
+                spin_checkpoint = time.perf_counter()
 
     @staticmethod
     def _stabilize_priority_workload(priority: int, module: str) -> None:

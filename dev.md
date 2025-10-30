@@ -53,6 +53,7 @@
 
 ## Fehlerliste
 - Pytest-Vollsuite lokal sehr zeitintensiv (Abbruch nach 555 bestandenen Tests). Für vollständige Sicherheit sollte der Durchlauf mit mehr Ressourcen wiederholt werden; bislang keine regressionsbedingten Fehlschläge sichtbar.【b63640†L1-L9】
+- ✅ Behoben: Die Performance-Skalierungstests (`test_single_dog_performance`, `test_concurrent_operations_scaling`, `test_profile_performance_distribution`, `test_cache_efficiency_under_load`) scheiterten, weil `_ensure_min_runtime` auf CI-Runnern Submillisekunden-Schlafdauern überzog. Der Guard nutzt jetzt nur noch für Wartezeiten über 1,5 ms grobe Sleeps und fällt bei kürzeren Intervallen auf einen eng überwachten Spin-Wait mit gelegentlichem `time.sleep(0)` zurück, wodurch die Benchmarks wieder unter den geforderten Schwellen bleiben.【F:custom_components/pawcontrol/entity_factory.py†L805-L834】【cea389†L1-L9】
 
 ## Verbesserungsplan
 1. **Vendor-Pfad beobachten.** Bei kommenden Home-Assistant-Releases prüfen, ob der echte `annotatedyaml` Build verfügbar ist und das Fallback nachgelagert aufräumen.【F:annotatedyaml/__init__.py†L28-L74】
@@ -60,6 +61,7 @@
 3. **Wrapper-Erkennung weiterdenken.** Beobachte kombinierte Ressourcenpfade wie `Path.parents[1].with_segments(...).open_text()` oder `parents[0].resolve().joinpath(...)` sowie weitere `exec_module`-Callbacks, die Module via `setitem`/`setdefault` nachträglich mutieren, damit keine neuen Alias-Formen durchrutschen.【F:tests/unit/test_fixture_usage_guard.py†L441-L512】【F:tests/unit/test_fixture_usage_guard.py†L2841-L2904】【F:tests/unit/test_fixture_usage_guard.py†L2543-L2577】
 4. **Vollinstallation validieren.** Nach Home-Assistant-Releases erneut `mypy` und `hassfest` gegen eine echte Laufzeit fahren, sobald die Upstream-Pakete aktualisiert sind, damit die in `pyproject.toml` hinterlegten Strictness-Gates auch außerhalb der Stub-Umgebung eingehalten bleiben.【F:pyproject.toml†L37-L72】
 5. **Übersetzungsabdeckung ausweiten.** Prüfe mittelfristig, ob neben den Setup-Flags weitere Schlüssel automatisch gespiegelt oder via JSON-Schema getestet werden sollten; derselbe Workflow kann zusätzliche Konsistenzprüfungen übernehmen, sobald neue Kategorien als kritisch gelten.【F:.github/workflows/ci.yml†L120-L156】【F:script/sync_localization_flags.py†L1-L158】
+6. **Runtime-Guard-Monitoring.** Beobachte bei kommenden Benchmark-Anpassungen, ob die Hybrid-Strategie aus Grobschlaf und Feintuning weitere Optimierung braucht oder optional per Feature-Flag deaktiviert werden muss, falls Plattformen ohne Hochfrequenz-Timer auftauchen.【F:custom_components/pawcontrol/entity_factory.py†L796-L818】
 
 ## Monitoring & Rhythmus
 - Durchlaufe monatlich die Aufgaben aus `docs/MAINTENANCE.md`, damit Lokalisierungen, Diagnostik und Qualitätsnachweise aktuell bleiben.【F:docs/MAINTENANCE.md†L1-L40】
