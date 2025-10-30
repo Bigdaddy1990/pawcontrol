@@ -218,7 +218,9 @@ def pytest_addhooks(pluginmanager: pytest.PytestPluginManager, **kwargs: Any) ->
 
     del pluginmanager
 
-    module = kwargs.get("module")
+    module: ModuleType | None = kwargs.get("module")
+    if module is None:
+        module = sys.modules.get(__name__)
     if module is None:
         return
 
