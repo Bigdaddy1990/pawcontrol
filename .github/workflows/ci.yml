@@ -241,6 +241,7 @@ jobs:
           if [[ "${{ needs.lint.result }}" != "success" || \
                 "${{ needs.test-coverage.result }}" != "success" || \
                 "${{ needs.code-quality.result }}" != "success" || \
+                "${{ needs.localization-guards.result }}" != "success" || \
                 "${{ needs.mypy-config.result }}" != "success" || \
                 "${{ needs.validate-manifest.result }}" != "success" ]]; then
             echo "❌ Some checks failed"
