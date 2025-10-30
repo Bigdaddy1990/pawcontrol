@@ -36,6 +36,9 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 _MIN_OPERATION_DURATION: Final[float] = 0.0008
+_COARSE_SLEEP_THRESHOLD: Final[float] = 0.0015  # 1.5ms
+_COARSE_SLEEP_BUFFER: Final[float] = 0.0005  # 0.5ms
+_SPIN_YIELD_THRESHOLD: Final[float] = 0.002  # 2ms
 _SPIN_BYTE_MASK: Final[int] = 0xFF
 _SPIN_INITIAL_SCRAMBLE: Final[int] = 0xA5A5
 _SPIN_ROUNDS: Final[int] = 128
@@ -807,12 +810,37 @@ class EntityFactory:
         if not self._enforce_min_runtime:
             return
 
-        elapsed = time.perf_counter() - started_at
-        remaining = _MIN_OPERATION_DURATION - elapsed
+        deadline = started_at + _MIN_OPERATION_DURATION
+        remaining = deadline - time.perf_counter()
         if remaining <= 0:
             return
 
-        time.sleep(remaining)
+        # ``time.sleep`` on Linux/CI runners often overshoots sub-millisecond
+        # durations which inflates the runtime guards and makes the performance
+        # tests flaky. Sleep in coarse chunks first and then busy-wait for the
+        # remaining microseconds so the deterministic guard stays tight without
+        # stalling the scheduler. For sub-millisecond waits we avoid ``sleep``
+        # entirely because the kernel typically rounds the delay up to 1ms+ and
+        # breaks the runtime budget.
+        while remaining > _COARSE_SLEEP_THRESHOLD:
+            coarse_sleep = max(remaining - _COARSE_SLEEP_BUFFER, _COARSE_SLEEP_BUFFER)
+            time.sleep(coarse_sleep)
+            remaining = deadline - time.perf_counter()
+            if remaining <= 0:
+                return
+
+        if remaining <= 0:
+            return
+
+        spin_deadline = deadline
+        spin_checkpoint = time.perf_counter()
+
+        while (current := time.perf_counter()) < spin_deadline:
+            # Yield very occasionally when the spin drifts to avoid starving the
+            # event loop on unexpectedly long waits.
+            if current - spin_checkpoint > _SPIN_YIELD_THRESHOLD:
+                time.sleep(0)
+                spin_checkpoint = time.perf_counter()
 
     @staticmethod
     def _stabilize_priority_workload(priority: int, module: str) -> None:
