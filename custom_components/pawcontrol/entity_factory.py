@@ -36,6 +36,9 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 _MIN_OPERATION_DURATION: Final[float] = 0.0008
+_COARSE_SLEEP_THRESHOLD: Final[float] = 0.0015  # 1.5ms
+_COARSE_SLEEP_BUFFER: Final[float] = 0.0005  # 0.5ms
+_SPIN_YIELD_THRESHOLD: Final[float] = 0.002  # 2ms
 _SPIN_BYTE_MASK: Final[int] = 0xFF
 _SPIN_INITIAL_SCRAMBLE: Final[int] = 0xA5A5
 _SPIN_ROUNDS: Final[int] = 128
@@ -819,8 +822,8 @@ class EntityFactory:
         # stalling the scheduler. For sub-millisecond waits we avoid ``sleep``
         # entirely because the kernel typically rounds the delay up to 1ms+ and
         # breaks the runtime budget.
-        while remaining > 0.0015:  # >1.5ms: coarse sleep and re-evaluate
-            coarse_sleep = max(remaining - 0.0005, 0.0005)
+        while remaining > _COARSE_SLEEP_THRESHOLD:
+            coarse_sleep = max(remaining - _COARSE_SLEEP_BUFFER, _COARSE_SLEEP_BUFFER)
             time.sleep(coarse_sleep)
             remaining = deadline - time.perf_counter()
             if remaining <= 0:
@@ -835,7 +838,7 @@ class EntityFactory:
         while (current := time.perf_counter()) < spin_deadline:
             # Yield very occasionally when the spin drifts to avoid starving the
             # event loop on unexpectedly long waits.
-            if current - spin_checkpoint > 0.002:
+            if current - spin_checkpoint > _SPIN_YIELD_THRESHOLD:
                 time.sleep(0)
                 spin_checkpoint = time.perf_counter()
 
