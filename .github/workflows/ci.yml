@@ -142,6 +142,27 @@ jobs:
           echo "CodeFactor analysis runs automatically via webhook"
           echo "Visit: https://www.codefactor.io/repository/github/${{ github.repository }}"
 
+  localization-guards:
+    name: Localization & Guide Sync
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Validate localization tables and contributor guides
+        env:
+          PYTHONPATH: .
+        run: |
+          python -m script.sync_localization_flags \
+            --allowlist script/sync_localization_flags.allowlist \
+            --check
+          python -m script.sync_contributor_guides --check
+
   mypy-config:
     name: Type Check Config Flows
     runs-on: ubuntu-latest
@@ -211,17 +232,94 @@ jobs:
   all-checks:
     name: All Checks Passed
     if: always()
-    needs: [lint, test-coverage, code-quality, mypy-config, validate-manifest]
+    needs:
+      [lint, test-coverage, code-quality, mypy-config, validate-manifest]
     runs-on: ubuntu-latest
     steps:
+      - name: Collect localization guard result
+        id: localization_guard
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const JOB_NAME = 'Localization & Guide Sync';
+            const runId = process.env.GITHUB_RUN_ID;
+
+            async function fetchJob() {
+              const response = await github.rest.actions.listJobsForWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: runId,
+                per_page: 100,
+              });
+
+              return response.data.jobs.find((job) => job.name === JOB_NAME);
+            }
+
+            let job = await fetchJob();
+            let attempts = 60;
+
+            while ((!job || job.status !== 'completed') && attempts > 0) {
+              await new Promise((resolve) => setTimeout(resolve, 10000));
+              job = await fetchJob();
+              attempts -= 1;
+            }
+
+            if (!job || job.status !== 'completed') {
+              core.setOutput('result', 'timed_out');
+              return;
+            }
+
+            core.setOutput('result', job.conclusion ?? 'neutral');
+            if (job.html_url) {
+              core.setOutput('url', job.html_url);
+            }
+
       - name: Check status
         run: |
-          if [[ "${{ needs.lint.result }}" != "success" || \
-                "${{ needs.test-coverage.result }}" != "success" || \
-                "${{ needs.code-quality.result }}" != "success" || \
-                "${{ needs.mypy-config.result }}" != "success" || \
-                "${{ needs.validate-manifest.result }}" != "success" ]]; then
-            echo "❌ Some checks failed"
+          failures=()
+
+          if [[ "${{ needs.lint.result }}" != "success" ]]; then
+            failures+=("lint")
+          fi
+
+          if [[ "${{ needs.test-coverage.result }}" != "success" ]]; then
+            failures+=("test coverage")
+          fi
+
+          if [[ "${{ needs.code-quality.result }}" != "success" ]]; then
+            failures+=("code quality")
+          fi
+
+          if [[ "${{ needs.mypy-config.result }}" != "success" ]]; then
+            failures+=("mypy config")
+          fi
+
+          if [[ "${{ needs.validate-manifest.result }}" != "success" ]]; then
+            failures+=("manifest validation")
+          fi
+
+          localization_guard_result='${{ steps.localization_guard.outputs.result }}'
+          localization_guard_url='${{ steps.localization_guard.outputs.url }}'
+
+          if [[ -z "${localization_guard_result}" ]]; then
+            localization_guard_result="success"
+          fi
+
+          if [[ "${localization_guard_result}" != "success" ]]; then
+            if [[ -n "${localization_guard_url}" ]]; then
+              failures+=("localization & guide sync → ${localization_guard_result} (${localization_guard_url})")
+            else
+              failures+=("localization & guide sync → ${localization_guard_result}")
+            fi
+          fi
+
+          if [[ ${#failures[@]} -gt 0 ]]; then
+            echo "❌ Some checks failed:" >&2
+            for failure in "${failures[@]}"; do
+              echo " - $failure" >&2
+            done
             exit 1
           fi
+
           echo "✅ All checks passed successfully"
