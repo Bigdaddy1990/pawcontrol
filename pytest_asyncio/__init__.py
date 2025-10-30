@@ -56,6 +56,10 @@ def fixture(
 ) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
     """Decorate async fixtures so they return their resolved value."""
 
+    if args and len(args) == 1 and callable(args[0]) and not kwargs:
+        (func,) = args
+        return fixture()(func)
+
     def decorator(func: Callable[..., Any]) -> Callable[..., Any]:
         if not inspect.iscoroutinefunction(func):
             return pytest.fixture(*args, **kwargs)(func)
@@ -69,8 +73,6 @@ def fixture(
 
         return base_fixture(sync_wrapper)
 
-    if args and len(args) == 1 and callable(args[0]) and not kwargs:
-        return decorator(args[0])
     return decorator
 
 
