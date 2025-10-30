@@ -67,6 +67,10 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements_test.txt
 
+      - name: Audit test requirements
+        run: |
+          python -m script.enforce_test_requirements
+
       - name: Run tests with coverage gate
         env:
           PYTHONPATH: .

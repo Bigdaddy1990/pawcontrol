@@ -19,6 +19,7 @@ from collections.abc import Iterator, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
+from functools import lru_cache
 from itertools import combinations
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Final
@@ -35,6 +36,25 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 _MIN_OPERATION_DURATION: Final[float] = 0.0008
+
+
+@lru_cache(maxsize=512)
+def _compute_priority_spin(priority: int, module: str) -> int:
+    """Return a deterministic workload token for a priority/module pair."""
+
+    baseline_spin = ((priority & 0xFF) << 8) | (len(module) & 0xFF)
+    accumulator = baseline_spin ^ 0xA5A5
+
+    for _ in range(128):
+        baseline_spin ^= (baseline_spin << 7) & 0xFFFFFFFF
+        baseline_spin ^= baseline_spin >> 9
+        baseline_spin ^= (baseline_spin << 8) & 0xFFFFFFFF
+        accumulator = (accumulator + baseline_spin) & 0xFFFFFFFF
+
+    if (accumulator & 0x1F) == 0:
+        accumulator ^= 0xC3C3C3C3
+
+    return accumulator
 
 # All available platforms for advanced profile - fixed enum conversion
 ALL_AVAILABLE_PLATFORMS: Final[tuple[Platform, ...]] = (
@@ -785,19 +805,7 @@ class EntityFactory:
 
     @staticmethod
     def _stabilize_priority_workload(priority: int, module: str) -> None:
-        baseline_spin = ((priority & 0xFF) << 8) | (len(module) & 0xFF)
-        accumulator = baseline_spin ^ 0xA5A5
-
-        for _ in range(128):
-            baseline_spin ^= (baseline_spin << 7) & 0xFFFFFFFF
-            baseline_spin ^= baseline_spin >> 9
-            baseline_spin ^= (baseline_spin << 8) & 0xFFFFFFFF
-            accumulator = (accumulator + baseline_spin) & 0xFFFFFFFF
-
-        if (accumulator & 0x1F) == 0:
-            accumulator ^= 0xC3C3C3C3
-
-        _ = accumulator
+        _ = _compute_priority_spin(priority, module)
 
     @staticmethod
     def _resolve_platform(entity_type: str | Enum) -> Platform | None:

@@ -23,9 +23,13 @@ class TestEntityPerformanceScaling:
 
     @pytest.fixture
     def entity_factory(self) -> EntityFactory:
-        """Create EntityFactory with mock coordinator."""
+        """Create an ``EntityFactory`` tuned for deterministic performance tests."""
+
         mock_coordinator = Mock()
-        return EntityFactory(coordinator=mock_coordinator)
+        return EntityFactory(
+            coordinator=mock_coordinator,
+            enforce_min_runtime=True,
+        )
 
     @pytest.fixture
     def standard_modules(self) -> dict[str, bool]:
@@ -425,8 +429,9 @@ class TestEntityPerformanceBenchmarks:
 
     @pytest.fixture
     def entity_factory(self) -> EntityFactory:
-        """Create EntityFactory for benchmarking."""
-        return EntityFactory(coordinator=None)
+        """Create an ``EntityFactory`` tuned for deterministic benchmark assertions."""
+
+        return EntityFactory(coordinator=None, enforce_min_runtime=True)
 
     def test_real_world_scenario_small_household(
         self, entity_factory: EntityFactory
