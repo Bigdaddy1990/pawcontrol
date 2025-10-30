@@ -213,18 +213,40 @@ def enable_event_loop_debug() -> asyncio.AbstractEventLoop:
     return running_loop
 
 
+_ORIGINAL_ADD_HOOKSPECS_ATTR = "_asyncio_stub_original_add_hookspecs"
+
+
+@pytest.hookimpl(tryfirst=True)
 def pytest_addhooks(pluginmanager: pytest.PytestPluginManager, **kwargs: Any) -> None:
     """Expose ``enable_event_loop_debug`` via hook registration."""
-
-    del pluginmanager
 
     module: ModuleType | None = kwargs.get("module")
     if module is None:
         module = sys.modules.get(__name__)
-    if module is None:
+    if module is not None:
+        module.enable_event_loop_debug = enable_event_loop_debug  # type: ignore[attr-defined]
+
+    # ``pytest`` historically allows plugins to call ``pluginmanager.add_hookspecs``
+    # multiple times when replaying ``pytest_addhooks`` via ``call_historic``.
+    # ``pluggy`` 1.5+ raises ``ValueError`` for duplicate registrations, which
+    # causes third-party plugins such as ``xdist`` to crash when a test replays
+    # the hook.  Guard the method so duplicate registrations are silently
+    # ignored, mirroring the legacy behaviour expected by these plugins.
+    if hasattr(pluginmanager, _ORIGINAL_ADD_HOOKSPECS_ATTR):
         return
 
-    module.enable_event_loop_debug = enable_event_loop_debug  # type: ignore[attr-defined]
+    original_add_hookspecs = pluginmanager.add_hookspecs
+
+    def _guarded_add_hookspecs(*args: Any, **hook_kwargs: Any) -> Any:
+        try:
+            return original_add_hookspecs(*args, **hook_kwargs)
+        except ValueError as exc:  # pragma: no cover - error path depends on pluggy
+            if "already registered" in str(exc):
+                return None
+            raise
+
+    setattr(pluginmanager, _ORIGINAL_ADD_HOOKSPECS_ATTR, original_add_hookspecs)
+    pluginmanager.add_hookspecs = _guarded_add_hookspecs  # type: ignore[assignment]
 
 
 @pytest.hookimpl(tryfirst=True)
