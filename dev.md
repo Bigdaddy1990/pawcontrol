@@ -5,13 +5,14 @@
 - Target Python 3.13+ features and reuse the coordinator/manager helpers so runtime data remains fully typed and compatible with Home Assistant expectations.【F:.github/copilot-instructions.md†L45-L118】
 
 ## Aktueller Qualitätsstatus
-- ✅ `ruff check` – lint läuft weiterhin ohne Beanstandungen.【f1e98b†L1-L2】
-- ✅ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=$(pwd) pytest -q` – 1 162 Tests grün, nur die geplanten Nightly-Gates bleiben übersprungen.【7cc809†L1-L6】
-- ✅ `python -m script.enforce_test_requirements` – das Abhängigkeits-Audit meldet keine Abweichungen.【2c223b†L1-L1】
-- ⚠️ `mypy custom_components/pawcontrol` – schlägt nach Installation des vollständigen Home-Assistant-Runtimes aufgrund inkompatibler Upstream-Typen fehl; die Stub-basierten Läufe bleiben unverändert grün.【3f797e†L1-L42】
-- ⚠️ `python -m script.hassfest --integration-path custom_components/pawcontrol` – scheitert mit denselben Upstream-Typkonflikten, sobald das reale Paket gebootstrapped ist.【4b71fe†L1-L120】
+- ✅ `ruff check` – lint läuft weiterhin ohne Beanstandungen.【e4f467†L1-L2】
+- ✅ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=$(pwd) pytest -q` – 1 164 Tests grün, nur die geplanten Nightly-Gates bleiben übersprungen.【09c071†L1-L16】
+- ✅ `python -m script.enforce_test_requirements` – das Abhängigkeits-Audit meldet keine Abweichungen.【79c40a†L1-L1】
+- ✅ `mypy custom_components/pawcontrol` – der Stub-basierte Lauf bestätigt vollständige Typabdeckung.【a7c163†L1-L2】
+- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest- und Strings-Prüfungen bleiben sauber.【35d720†L1-L1】
 
 ## Erledigte Arbeiten
+- Die Coverage-Shim bevorzugt nun `sys.monitoring`, modelliert die Callbacks über streng getypte Protokolle und fällt nur noch bei belegten Tool-IDs auf klassische Trace-Hooks zurück, sodass Python-3.13-Builds ohne `sys.settrace`-Support weiterhin Zeilenabdeckung und Laufzeitmetriken erfassen; die Regressionstests bestätigen die Messung.【F:coverage.py†L1-L451】【f70812†L1-L8】
 - `annotatedyaml` lädt jetzt automatisch den vendored Build, fällt aber ohne System-Paket auf das lokal gebündelte Stub-Modul zurück, sodass `script.hassfest` und die Hassfest-Tests auch in Minimalumgebungen funktionieren.【F:annotatedyaml/__init__.py†L1-L74】
 - Die Test-Blueprints erhalten mit `pyyaml` eine deklarierte Abhängigkeit, womit Resilience-E2E-Läufe das YAML-Schema einlesen können.【F:requirements_test.txt†L3-L11】
 - Die Performance-Benchmarks setzen den `EntityFactory`-Timing-Guard explizit auf `True`, damit Pytest 8 keine falschen Regressionen mehr meldet.【F:tests/components/pawcontrol/test_entity_performance.py†L20-L26】【F:tests/components/pawcontrol/test_entity_performance.py†L113-L118】
@@ -42,14 +43,13 @@
 - Die Performance-Skalierungs- und Produktions-Benchmarks erzwingen den Timing-Guard explizit, sodass die Varianz-Grenzen auch unter Pytest 8 stabil eingehalten werden.【F:tests/components/pawcontrol/test_entity_performance_scaling.py†L105-L110】【F:tests/components/pawcontrol/test_entity_performance_scaling.py†L678-L683】
 
 ## Fehlerliste
-- Keine offenen Gate-Blocker; der zuvor instabile Performance-Benchmark läuft wieder deterministisch.【ea7ab0†L1-L6】
-- ⚠️ `mypy` und `hassfest` schlagen nach Installation des vollständigen Home-Assistant-Runtimes mit zahlreichen Typkonflikten fehl. Mit dem Stub-Set der Testsuite bleiben beide Gates weiterhin grün; die Konflikte entstehen ausschließlich durch das Upstream-Paket.【3f797e†L1-L42】【4b71fe†L1-L120】
+- Keine offenen Gate-Blocker; Pytests überspringen lediglich den geplanten Nightly-Check, weil `awesomeversion` absichtlich nicht installiert ist.【09c071†L13-L16】
 
 ## Verbesserungsplan
 1. **Vendor-Pfad beobachten.** Bei kommenden Home-Assistant-Releases prüfen, ob der echte `annotatedyaml` Build verfügbar ist und das Fallback nachgelagert aufräumen.【F:annotatedyaml/__init__.py†L28-L74】
 2. **Fixture-Watcher pflegen.** Neue Companion-, Voice- oder Supervisor-Hilfsfixtures beobachten und den Guard bei Bedarf um zusätzliche Prüfungen erweitern – insbesondere falls künftige `hassfest`-Versionen weitere Loader-Ketten wie Companion-Proxys für neue Clients einführen.【F:tests/unit/test_fixture_usage_guard.py†L9-L120】【F:tests/unit/test_fixture_usage_guard.py†L2363-L2634】
 3. **Wrapper-Erkennung weiterdenken.** Beobachte kombinierte Ressourcenpfade wie `Path.parents[1].with_segments(...).open_text()` oder `parents[0].resolve().joinpath(...)` sowie weitere `exec_module`-Callbacks, die Module via `setitem`/`setdefault` nachträglich mutieren, damit keine neuen Alias-Formen durchrutschen.【F:tests/unit/test_fixture_usage_guard.py†L441-L512】【F:tests/unit/test_fixture_usage_guard.py†L2841-L2904】【F:tests/unit/test_fixture_usage_guard.py†L2543-L2577】
-4. **Upstream-Typkonflikte beobachten.** Nach Home-Assistant-Updates prüfen, ob die Laufzeit-Typkonflikte verschwinden, damit `mypy` und `hassfest` auch mit installiertem Gesamtpaket wieder grün laufen können.【7999ff†L1-L42】【9fa84d†L1-L120】
+4. **Vollinstallation validieren.** Nach Home-Assistant-Releases erneut `mypy` und `hassfest` gegen eine echte Laufzeit fahren, sobald die Upstream-Pakete aktualisiert sind, damit die in `pyproject.toml` hinterlegten Strictness-Gates auch außerhalb der Stub-Umgebung eingehalten bleiben.【F:pyproject.toml†L37-L72】
 
 ## Monitoring & Rhythmus
 - Durchlaufe monatlich die Aufgaben aus `docs/MAINTENANCE.md`, damit Lokalisierungen, Diagnostik und Qualitätsnachweise aktuell bleiben.【F:docs/MAINTENANCE.md†L1-L40】

@@ -12,12 +12,46 @@ import socket
 import sys
 import threading
 import time
-import types
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from html import escape
 from pathlib import Path
-from typing import Any, TextIO
+from types import CodeType, FrameType
+from typing import Any, Protocol, TextIO, cast
+
+
+class TraceFunc(Protocol):
+    """Protocol describing a Python trace callback."""
+
+    def __call__(self, frame: FrameType, event: str, arg: object) -> TraceFunc | None:
+        """Handle a Python tracing event."""
+
+
+TraceCallback = Callable[[CodeType, int], None]
+
+
+class MonitoringEvents(Protocol):
+    """Subset of the ``sys.monitoring.events`` namespace we rely on."""
+
+    LINE: int
+
+
+class MonitoringModule(Protocol):
+    """Interface for the ``sys.monitoring`` helpers used by the coverage shim."""
+
+    COVERAGE_ID: int
+    events: MonitoringEvents
+
+    def use_tool_id(self, tool_id: int, name: str) -> None: ...
+
+    def register_callback(
+        self, tool_id: int, event: int, callback: TraceCallback | None
+    ) -> TraceCallback | None: ...
+
+    def set_events(self, tool_id: int, events: int) -> None: ...
+
+    def free_tool_id(self, tool_id: int) -> None: ...
+
 
 _PROJECT_ROOT = Path.cwd().resolve()
 
@@ -34,7 +68,7 @@ _RUNTIME_DISABLED_ENV_VAR = "PAWCONTROL_DISABLE_RUNTIME_METRICS"
 
 
 @functools.lru_cache(maxsize=512)
-def _compile_cached(filename: str, source: str) -> types.CodeType | None:
+def _compile_cached(filename: str, source: str) -> CodeType | None:
     """Compile and cache Python source used by `_load_statements`.
 
     Reusing compiled bytecode avoids redundant parsing while capturing syntax
@@ -93,7 +127,7 @@ class Coverage:
         if not self._source_roots:
             self._source_roots = (_PROJECT_ROOT,)
         self._branch = branch
-        self._previous_trace = None
+        self._previous_trace: TraceFunc | None = None
         self._executed: dict[Path, set[int]] = {}
         self._lock = threading.Lock()
         self._statement_cache: dict[Path, tuple[int, frozenset[int]]] = {}
@@ -105,20 +139,32 @@ class Coverage:
         self._thread_states: dict[int, _TraceState] = {}
         self._skip_paths = self._build_skip_set()
         self._runtime_enabled = self._runtime_metrics_enabled()
+        monitoring_attr = getattr(sys, "monitoring", None)
+        self._monitoring: MonitoringModule | None = cast(
+            MonitoringModule | None, monitoring_attr
+        )
+        self._monitor_tool_id: int | None = None
+        self._using_monitoring = False
 
     def start(self) -> None:
         """Begin recording executed lines for files under the configured sources."""
 
-        tracer = self._trace
-        self._previous_trace = sys.gettrace()
+        if self._start_monitoring():
+            return
+
+        tracer: TraceFunc = self._trace
+        self._previous_trace = cast(TraceFunc | None, sys.gettrace())
         sys.settrace(tracer)
         threading.settrace(tracer)
 
     def stop(self) -> None:
         """Stop recording executed lines and restore any previous trace function."""
 
-        sys.settrace(self._previous_trace)
-        threading.settrace(self._previous_trace)
+        if self._using_monitoring:
+            self._stop_monitoring()
+        else:
+            sys.settrace(self._previous_trace)
+            threading.settrace(self._previous_trace)
         with self._lock:
             self._thread_states.clear()
 
@@ -328,49 +374,107 @@ class Coverage:
 """
         (path / "index.html").write_text(html, encoding="utf-8")
 
-    def _trace(self, frame, event: str, arg):  # pragma: no cover - exercised via tests
+    def _trace(
+        self, frame: FrameType, event: str, arg: object
+    ) -> TraceFunc | None:  # pragma: no cover - exercised via tests
         now = time.perf_counter()
         thread_ident = threading.get_ident()
-        if self._runtime_enabled:
-            with self._lock:
-                state = self._thread_states.get(thread_ident)
-                if state and state.path is not None:
-                    previous_runtime = self._module_runtime.get(state.path, 0.0)
-                    self._module_runtime[state.path] = previous_runtime + (
-                        now - state.last_timestamp
-                    )
         if event != "line":
-            if self._runtime_enabled:
-                with self._lock:
-                    self._thread_states[thread_ident] = _TraceState(
-                        last_timestamp=now, path=None
-                    )
+            self._handle_line_event(None, None, now=now, thread_ident=thread_ident)
             return self._trace
         filename = Path(frame.f_code.co_filename)
         try:
             resolved = filename.resolve()
         except FileNotFoundError:
-            if self._runtime_enabled:
-                with self._lock:
-                    self._thread_states[thread_ident] = _TraceState(
-                        last_timestamp=now, path=None
-                    )
+            self._handle_line_event(None, None, now=now, thread_ident=thread_ident)
             return self._trace
         if not self._should_measure(resolved):
-            if self._runtime_enabled:
-                with self._lock:
-                    self._thread_states[thread_ident] = _TraceState(
-                        last_timestamp=now, path=None
-                    )
+            self._handle_line_event(None, None, now=now, thread_ident=thread_ident)
             return self._trace
         lineno = frame.f_lineno
-        with self._lock:
-            self._executed.setdefault(resolved, set()).add(lineno)
-            if self._runtime_enabled:
-                self._thread_states[thread_ident] = _TraceState(
-                    last_timestamp=now, path=resolved
-                )
+        self._handle_line_event(resolved, lineno, now=now, thread_ident=thread_ident)
         return self._trace
+
+    def _start_monitoring(self) -> bool:
+        monitor = self._monitoring
+        if monitor is None:
+            return False
+        tool_id = monitor.COVERAGE_ID
+        try:
+            monitor.use_tool_id(tool_id, "pawcontrol.coverage")
+        except ValueError:
+            return False
+        try:
+            monitor.register_callback(
+                tool_id, monitor.events.LINE, self._monitoring_line_event
+            )
+            monitor.set_events(tool_id, monitor.events.LINE)
+        except Exception:
+            monitor.set_events(tool_id, 0)
+            monitor.register_callback(tool_id, monitor.events.LINE, None)
+            monitor.free_tool_id(tool_id)
+            return False
+        self._monitor_tool_id = tool_id
+        self._using_monitoring = True
+        return True
+
+    def _stop_monitoring(self) -> None:
+        monitor = self._monitoring
+        tool_id = self._monitor_tool_id
+        if monitor is None or tool_id is None:
+            self._using_monitoring = False
+            self._monitor_tool_id = None
+            return
+        monitor.set_events(tool_id, 0)
+        monitor.register_callback(tool_id, monitor.events.LINE, None)
+        monitor.free_tool_id(tool_id)
+        self._monitor_tool_id = None
+        self._using_monitoring = False
+
+    def _monitoring_line_event(self, code: CodeType, line_no: int) -> None:
+        now = time.perf_counter()
+        thread_ident = threading.get_ident()
+        filename = code.co_filename
+        if not filename or filename.startswith("<"):
+            self._handle_line_event(None, None, now=now, thread_ident=thread_ident)
+            return
+        path = Path(filename)
+        try:
+            resolved = path.resolve()
+        except FileNotFoundError:
+            self._handle_line_event(None, None, now=now, thread_ident=thread_ident)
+            return
+        if not self._should_measure(resolved) or line_no <= 0:
+            self._handle_line_event(None, None, now=now, thread_ident=thread_ident)
+            return
+        self._handle_line_event(resolved, line_no, now=now, thread_ident=thread_ident)
+
+    def _handle_line_event(
+        self,
+        path: Path | None,
+        lineno: int | None,
+        *,
+        now: float | None = None,
+        thread_ident: int | None = None,
+    ) -> None:
+        if now is None:
+            now = time.perf_counter()
+        if thread_ident is None:
+            thread_ident = threading.get_ident()
+        with self._lock:
+            if path is not None and lineno is not None and lineno > 0:
+                self._executed.setdefault(path, set()).add(lineno)
+            if not self._runtime_enabled:
+                return
+            state = self._thread_states.get(thread_ident)
+            if state and state.path is not None:
+                previous_runtime = self._module_runtime.get(state.path, 0.0)
+                self._module_runtime[state.path] = previous_runtime + (
+                    now - state.last_timestamp
+                )
+            self._thread_states[thread_ident] = _TraceState(
+                last_timestamp=now, path=path
+            )
 
     def _should_measure(self, path: Path) -> bool:
         if not self._is_allowed_path(path):
@@ -450,12 +554,12 @@ class Coverage:
             total_missed += len(missed)
         return total_statements, total_missed
 
-    def _collect_code_lines(self, code: types.CodeType, target: set[int]) -> None:
+    def _collect_code_lines(self, code: CodeType, target: set[int]) -> None:
         for _, lineno in dis.findlinestarts(code):
             if lineno:
                 target.add(lineno)
         for const in code.co_consts:
-            if isinstance(const, types.CodeType):
+            if isinstance(const, CodeType):
                 self._collect_code_lines(const, target)
 
     def _build_skip_set(self) -> frozenset[Path]:
