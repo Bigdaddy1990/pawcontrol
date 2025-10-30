@@ -389,6 +389,22 @@ def ensure_allowed_github_api_url(url: str) -> None:
         raise PublishError(f"Refusing to access unexpected URL: {url!r}")
 
 
+class _RestrictedGitHubRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Redirect handler that enforces GitHub API restrictions."""
+
+    def redirect_request(  # type: ignore[override[return-type]] - CPython signature
+        self,
+        req: urllib.request.Request,
+        fp: urllib.response.addinfourl,
+        code: int,
+        msg: str,
+        headers: Mapping[str, str | bytes],
+        newurl: str,
+    ) -> urllib.request.Request | None:
+        ensure_allowed_github_api_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
 def open_github_api_url(
     request: urllib.request.Request, *, timeout: float | int | None
 ) -> urllib.response.addinfourl:
@@ -396,7 +412,7 @@ def open_github_api_url(
 
     url = getattr(request, "full_url", request.get_full_url())
     ensure_allowed_github_api_url(url)
-    opener = urllib.request.build_opener()
+    opener = urllib.request.build_opener(_RestrictedGitHubRedirectHandler())
     return opener.open(request, timeout=timeout)
 
 
