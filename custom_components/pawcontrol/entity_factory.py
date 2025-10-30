@@ -36,23 +36,31 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 _MIN_OPERATION_DURATION: Final[float] = 0.0008
+_SPIN_BYTE_MASK: Final[int] = 0xFF
+_SPIN_INITIAL_SCRAMBLE: Final[int] = 0xA5A5
+_SPIN_ROUNDS: Final[int] = 128
+_SPIN_SHIFT_LEFT_PRIMARY: Final[int] = 7
+_SPIN_SHIFT_RIGHT: Final[int] = 9
+_SPIN_SHIFT_LEFT_SECONDARY: Final[int] = 8
+_SPIN_LOW_ENTROPY_MASK: Final[int] = 0x1F
+_SPIN_LOW_ENTROPY_SCRAMBLE: Final[int] = 0xC3C3C3C3
 
 
 @lru_cache(maxsize=512)
 def _compute_priority_spin(priority: int, module: str) -> int:
     """Return a deterministic workload token for a priority/module pair."""
 
-    baseline_spin = ((priority & 0xFF) << 8) | (len(module) & 0xFF)
-    accumulator = baseline_spin ^ 0xA5A5
+    baseline_spin = ((priority & _SPIN_BYTE_MASK) << 8) | (len(module) & _SPIN_BYTE_MASK)
+    accumulator = baseline_spin ^ _SPIN_INITIAL_SCRAMBLE
 
-    for _ in range(128):
-        baseline_spin ^= (baseline_spin << 7) & 0xFFFFFFFF
-        baseline_spin ^= baseline_spin >> 9
-        baseline_spin ^= (baseline_spin << 8) & 0xFFFFFFFF
+    for _ in range(_SPIN_ROUNDS):
+        baseline_spin ^= (baseline_spin << _SPIN_SHIFT_LEFT_PRIMARY) & 0xFFFFFFFF
+        baseline_spin ^= baseline_spin >> _SPIN_SHIFT_RIGHT
+        baseline_spin ^= (baseline_spin << _SPIN_SHIFT_LEFT_SECONDARY) & 0xFFFFFFFF
         accumulator = (accumulator + baseline_spin) & 0xFFFFFFFF
 
-    if (accumulator & 0x1F) == 0:
-        accumulator ^= 0xC3C3C3C3
+    if (accumulator & _SPIN_LOW_ENTROPY_MASK) == 0:
+        accumulator ^= _SPIN_LOW_ENTROPY_SCRAMBLE
 
     return accumulator
 

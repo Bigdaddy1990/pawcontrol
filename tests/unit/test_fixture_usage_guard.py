@@ -2348,6 +2348,15 @@ def test_detects_supervisor_admin_websocket_fixture_invocation() -> None:
     assert "hass_supervisor_admin_ws_client" in offenders[0]
 
 
+def test_detects_aiohttp_server_fixture_invocation() -> None:
+    """Detect direct invocations of the aiohttp test server fixture."""
+
+    offenders = _scan_source("aiohttp_server()\n")
+
+    assert len(offenders) == 1
+    assert "aiohttp_server" in offenders[0]
+
+
 def test_detects_unauthenticated_http_fixture_invocation() -> None:
     """Detect direct invocations of the unauthenticated HTTP fixture."""
 
