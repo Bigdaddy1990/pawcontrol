@@ -40,6 +40,7 @@ Run every command before opening a pull request:
 ruff format                          # Apply repository formatting rules
 ruff check                           # Run Ruff lint (includes docstring gates)
 pytest -q                            # Execute the async pytest suite with coverage
+python -m script.enforce_test_requirements  # Confirm tests declare third-party deps
 mypy custom_components/pawcontrol    # Ensure static typing stays strict
 python -m script.hassfest \
   --integration-path custom_components/pawcontrol  # Validate manifest & strings
@@ -55,6 +56,9 @@ python -m script.sync_contributor_guides           # Refresh assistant copies
 * `python -m script.sync_localization_flags` keeps
   `setup_flags_panel_*` translations aligned across locales; execute it after
   editing localization strings.【F:script/sync_localization_flags.py†L1-L129】
+* `python -m script.enforce_test_requirements` ensures new tests add their
+  third-party dependencies to `requirements_test.txt` so CI never regresses on
+  missing packages.【F:script/enforce_test_requirements.py†L1-L130】
 
 ## Integration architecture
 

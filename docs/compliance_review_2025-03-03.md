@@ -7,7 +7,7 @@ repository and is referenced by the documentation portal.
 ## Highlights
 - **Quality evidence** – Manifest, README, changelog, and release notes advertise the Platinum declaration and point to the synchronised tracker in `custom_components/pawcontrol/quality_scale.yaml`.
 - **Service documentation** – Feeding, garden, weather, resilience, and notification services are documented in `services.yaml`, README, and the automation guides with matching handler tests.
-- **Coverage status** – CI and local workflows enforce `pytest -q` with the 95% coverage floor defined in `pyproject.toml`, spanning unit, component, and end-to-end suites.
+- **Coverage status** – CI and local workflows enforce `pytest -q` with the 100% coverage floor defined in `pyproject.toml`, spanning unit, component, and end-to-end suites.
 - **Lifecycle hooks** – `async_remove_config_entry_device`, reload paths, and dynamic entity recreation are covered by targeted tests ensuring active dogs remain intact during cleanup.
 - **Sustainment** – `docs/MAINTENANCE.md` and `dev.md` outline the Platinum sustainment cadence, including evidence refreshes and telemetry sync.
 

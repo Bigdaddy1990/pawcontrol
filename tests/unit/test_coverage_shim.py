@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+import importlib.util
 import io
 import json
 import os
@@ -10,8 +12,10 @@ import types
 from pathlib import Path
 
 import coverage
+import pytest
 from coverage import _compile_cached
 from homeassistant.helpers import aiohttp_client
+from pytest_cov import plugin as pytest_cov_plugin
 
 ha_util_logging = types.ModuleType("homeassistant.util.logging")
 
@@ -118,3 +122,45 @@ def test_compile_cached_handles_syntax_errors() -> None:
     source = "def broken(: pass"
     assert _compile_cached("broken.py", source) is None
     assert _compile_cached("broken.py", source) is None
+
+
+def test_plugin_records_module_imports() -> None:
+    """Coverage controller starts before imports so module setup is tracked."""
+
+    module_path = Path("tests/unit/_coverage_plugin_case.py")
+    module_path.write_text("VALUE = 1\nRESULT = VALUE\n", encoding="utf-8")
+    module_name = "tests.unit._coverage_plugin_case"
+    try:
+        options = types.SimpleNamespace(
+            cov_sources=[str(module_path)],
+            cov_branch=False,
+            cov_reports=["term"],
+            cov_fail_under=None,
+        )
+        config = types.SimpleNamespace(option=options)
+        controller = pytest_cov_plugin._CoverageController(config)
+        controller.pytest_configure(config)
+
+        spec = importlib.util.spec_from_file_location(module_name, module_path)
+        module = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        sys.modules[module_name] = module
+        spec.loader.exec_module(module)
+
+        session = types.SimpleNamespace(exitstatus=pytest.ExitCode.OK)
+        controller.pytest_sessionfinish(session, pytest.ExitCode.OK)
+
+        handle = io.StringIO()
+        assert controller._coverage is not None
+        total = controller._coverage.report(file=handle, skip_empty=True)
+        assert total == 100.0
+    finally:
+        sys.modules.pop(module_name, None)
+        module_path.unlink(missing_ok=True)
+        cache_path = module_path.parent / "__pycache__"
+        if cache_path.exists():
+            for child in cache_path.iterdir():
+                if child.name.startswith("_coverage_plugin_case"):
+                    child.unlink(missing_ok=True)
+            with contextlib.suppress(OSError):
+                cache_path.rmdir()

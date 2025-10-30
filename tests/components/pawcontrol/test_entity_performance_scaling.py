@@ -104,7 +104,10 @@ class TestEntityPerformanceScaling:
     @pytest.fixture
     def entity_factory(self, mock_coordinator: PawControlCoordinator) -> EntityFactory:
         """Create entity factory for performance testing."""
-        return EntityFactory(coordinator=mock_coordinator)
+        return EntityFactory(
+            coordinator=mock_coordinator,
+            enforce_min_runtime=True,
+        )
 
     @pytest.fixture
     def performance_monitor(self) -> PerformanceMonitor:
@@ -674,7 +677,10 @@ class TestProductionScenarioValidation:
     @pytest.fixture
     def entity_factory(self) -> EntityFactory:
         """Create entity factory for production testing."""
-        return EntityFactory(coordinator=None)
+        return EntityFactory(
+            coordinator=None,
+            enforce_min_runtime=True,
+        )
 
     async def test_enterprise_deployment_scenario(
         self, entity_factory: EntityFactory

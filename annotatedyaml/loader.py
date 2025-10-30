@@ -6,7 +6,10 @@ from pathlib import Path
 from typing import Any
 
 try:  # pragma: no cover - exercised in environments missing PyYAML
-    from yaml import YAMLError, safe_load
+    from yaml import (  # type: ignore[import-untyped]  # TODO: PyYAML lacks type stubs
+        YAMLError,
+        safe_load,
+    )
 except ModuleNotFoundError as err:  # pragma: no cover - defensive
     raise RuntimeError(
         "PyYAML is required to use the annotatedyaml fallback loader"

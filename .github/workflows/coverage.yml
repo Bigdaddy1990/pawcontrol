@@ -9,7 +9,7 @@ on:
 
 env:
   PYTHON_VERSION: "3.13"
-  COVERAGE_MIN: "95"
+  COVERAGE_MIN: "100"
 
 jobs:
   coverage:
@@ -34,6 +34,10 @@ jobs:
           pip install -U homeassistant>=2025.9.3
           pip install -r requirements.txt
           pip install -r requirements_test.txt
+
+      - name: Audit test requirements
+        run: |
+          python -m script.enforce_test_requirements
 
       - name: Run tests with coverage gate
         id: coverage_tests

@@ -80,15 +80,19 @@ class _CoverageController:
         self._coverage: coverage.Coverage | None = None
         self._terminal_total: float | None = None
         self._fail_message: str | None = None
+        self._started = False
+
+    def pytest_configure(self, config: pytest.Config) -> None:
+        """Start coverage before test collection imports user modules."""
+
+        del config
+        self._ensure_started()
 
     def pytest_sessionstart(self, session: pytest.Session) -> None:
-        """Initialise coverage before the test session executes."""
+        """Guarantee coverage is active for legacy pytest lifecycles."""
 
-        self._coverage = coverage.Coverage(
-            branch=self._branch,
-            source=self._sources or None,
-        )
-        self._coverage.start()
+        del session
+        self._ensure_started()
 
     def pytest_runtest_call(
         self, item: pytest.Item
@@ -112,6 +116,8 @@ class _CoverageController:
         except Exception as exc:  # pragma: no cover - defensive safety net
             self._record_internal_error(session, f"Coverage finalisation failed: {exc}")
             return
+        finally:
+            self._started = False
 
         total: float | None = None
         for report in self._reports:
@@ -148,6 +154,19 @@ class _CoverageController:
         if self._fail_message:
             terminalreporter.section("coverage", sep=" ")
             terminalreporter.write_line(self._fail_message, yellow=True, bold=True)
+
+    def _ensure_started(self) -> None:
+        if self._started:
+            return
+
+        if self._coverage is None:
+            self._coverage = coverage.Coverage(
+                branch=self._branch,
+                source=self._sources or None,
+            )
+
+        self._coverage.start()
+        self._started = True
 
     def _write_terminal_report(
         self, cov: coverage.Coverage, report: _CoverageReportSpec

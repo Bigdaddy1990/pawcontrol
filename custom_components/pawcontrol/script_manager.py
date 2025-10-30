@@ -1239,6 +1239,8 @@ class PawControlScriptManager:
             else:
                 recorded_dt = None
 
+        recorded_age: int | None
+
         if recorded_dt is not None:
             recorded_iso = _serialize_datetime(recorded_dt)
             recorded_age = int((dt_util.utcnow() - recorded_dt).total_seconds())
