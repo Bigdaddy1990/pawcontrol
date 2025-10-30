@@ -237,55 +237,43 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Collect localization guard result
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_RUN_ID: ${{ github.run_id }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-        run: |
-          python <<'PY'
-import json
-import os
-import time
-import urllib.request
+        id: localization_guard
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const JOB_NAME = 'Localization & Guide Sync';
+            const runId = process.env.GITHUB_RUN_ID;
 
-REPO = os.environ["GITHUB_REPOSITORY"]
-RUN_ID = os.environ["GITHUB_RUN_ID"]
-TOKEN = os.environ["GITHUB_TOKEN"]
-JOB_NAME = "Localization & Guide Sync"
-ENV_FILE = os.environ["GITHUB_ENV"]
+            async function fetchJob() {
+              const response = await github.rest.actions.listJobsForWorkflowRun({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                run_id: runId,
+                per_page: 100,
+              });
 
-headers = {
-    "Authorization": f"Bearer {TOKEN}",
-    "Accept": "application/vnd.github+json",
-    "X-GitHub-Api-Version": "2022-11-28",
-}
+              return response.data.jobs.find((job) => job.name === JOB_NAME);
+            }
 
-url = f"https://api.github.com/repos/{REPO}/actions/runs/{RUN_ID}/jobs?per_page=100"
-job = None
+            let job = await fetchJob();
+            let attempts = 60;
 
-for _ in range(60):
-    request = urllib.request.Request(url, headers=headers)
-    with urllib.request.urlopen(request, timeout=30) as response:
-        payload = json.load(response)
-    job = next((item for item in payload.get("jobs", []) if item.get("name") == JOB_NAME), None)
+            while ((!job || job.status !== 'completed') && attempts > 0) {
+              await new Promise((resolve) => setTimeout(resolve, 10000));
+              job = await fetchJob();
+              attempts -= 1;
+            }
 
-    if job and job.get("status") == "completed":
-        break
+            if (!job || job.status !== 'completed') {
+              core.setOutput('result', 'timed_out');
+              return;
+            }
 
-    time.sleep(10)
-else:
-    with open(ENV_FILE, "a", encoding="utf-8") as env:
-        env.write("LOCALIZATION_GUARD_RESULT=timed_out\n")
-    raise SystemExit(0)
-
-result = job.get("conclusion") or "neutral"
-job_url = job.get("html_url", "")
-
-with open(ENV_FILE, "a", encoding="utf-8") as env:
-    env.write(f"LOCALIZATION_GUARD_RESULT={result}\n")
-    if job_url:
-        env.write(f"LOCALIZATION_GUARD_URL={job_url}\n")
-PY
+            core.setOutput('result', job.conclusion ?? 'neutral');
+            if (job.html_url) {
+              core.setOutput('url', job.html_url);
+            }
 
       - name: Check status
         run: |
@@ -311,11 +299,18 @@ PY
             failures+=("manifest validation")
           fi
 
-          if [[ "${LOCALIZATION_GUARD_RESULT:-success}" != "success" ]]; then
-            if [[ -n "${LOCALIZATION_GUARD_URL:-}" ]]; then
-              failures+=("localization & guide sync → ${LOCALIZATION_GUARD_RESULT:-unknown} (${LOCALIZATION_GUARD_URL})")
+          localization_guard_result='${{ steps.localization_guard.outputs.result }}'
+          localization_guard_url='${{ steps.localization_guard.outputs.url }}'
+
+          if [[ -z "${localization_guard_result}" ]]; then
+            localization_guard_result="success"
+          fi
+
+          if [[ "${localization_guard_result}" != "success" ]]; then
+            if [[ -n "${localization_guard_url}" ]]; then
+              failures+=("localization & guide sync → ${localization_guard_result} (${localization_guard_url})")
             else
-              failures+=("localization & guide sync → ${LOCALIZATION_GUARD_RESULT:-unknown}")
+              failures+=("localization & guide sync → ${localization_guard_result}")
             fi
           fi
 
