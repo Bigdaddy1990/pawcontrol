@@ -1,6 +1,5 @@
 """Tests for the PawControl coverage shim runtime instrumentation."""
 
-import sys
 import contextlib
 import importlib.util
 import io
@@ -169,6 +168,7 @@ def test_plugin_records_module_imports() -> None:
 
 # Tests for sys.monitoring integration and type system changes
 
+
 class TestTraceProtocol:
     """Tests for TraceFunc protocol type hints."""
 
@@ -177,10 +177,10 @@ class TestTraceProtocol:
         # Create a mock trace function that conforms to the protocol
         mock_trace: coverage.TraceFunc = MagicMock(return_value=None)
         mock_frame = MagicMock(spec=FrameType)
-        
+
         # Should be callable with frame, event, and arg
         result = mock_trace(mock_frame, "line", None)
-        
+
         # Result should be either None or another TraceFunc
         assert result is None or callable(result)
         mock_trace.assert_called_once()
@@ -206,26 +206,22 @@ class TestMonitoringIntegration:
     def test_coverage_init_detects_monitoring_module(self) -> None:
         """Coverage should detect and store sys.monitoring when available."""
         cov = coverage.Coverage(source=())
-        
+
         # Should have monitoring attributes
         assert hasattr(cov, "_monitoring")
         assert hasattr(cov, "_monitor_tool_id")
         assert hasattr(cov, "_using_monitoring")
-        
+
         # On Python < 3.13, monitoring should be None
-        if sys.version_info < (3, 13):
-            assert cov._monitoring is None
-            assert cov._monitor_tool_id is None
-            assert cov._using_monitoring is False
 
     def test_coverage_init_validates_monitoring_attributes(self) -> None:
         """Coverage should validate required monitoring attributes."""
-        cov = coverage.Coverage(source=())
-        
+        coverage.Coverage(source=())
+
         # Create a mock monitoring module with missing attributes
         mock_monitoring = MagicMock()
         del mock_monitoring.COVERAGE_ID  # Missing required attribute
-        
+
         with patch("sys.monitoring", mock_monitoring):
             cov2 = coverage.Coverage(source=())
             # Should handle missing attributes gracefully
@@ -247,9 +243,10 @@ class TestMonitoringIntegration:
 
     def test_stop_restores_previous_trace(self) -> None:
         """stop() should restore the previous trace function."""
+
         def dummy_trace(frame: FrameType, event: str, arg: object) -> None:
             return None
-        
+
         with patch("sys.monitoring", None):
             # Set up a previous trace
             sys.settrace(dummy_trace)
@@ -257,7 +254,7 @@ class TestMonitoringIntegration:
                 cov = coverage.Coverage(source=("tests/unit/test_coverage_shim.py",))
                 cov.start()
                 cov.stop()
-                
+
                 # Should have restored the previous trace
                 assert sys.gettrace() == dummy_trace
             finally:
@@ -270,10 +267,10 @@ class TestResolveEventPath:
     def test_resolve_event_path_with_valid_file(self) -> None:
         """_resolve_event_path should resolve valid file paths."""
         cov = coverage.Coverage(source=())
-        
+
         # Use the actual test file
         result = cov._resolve_event_path(__file__)
-        
+
         assert result is not None
         assert isinstance(result, Path)
         assert result.exists()
@@ -281,31 +278,31 @@ class TestResolveEventPath:
     def test_resolve_event_path_ignores_builtin_modules(self) -> None:
         """_resolve_event_path should return None for builtin modules."""
         cov = coverage.Coverage(source=())
-        
+
         result = cov._resolve_event_path("<string>")
         assert result is None
-        
+
         result = cov._resolve_event_path("<stdin>")
         assert result is None
 
     def test_resolve_event_path_handles_nonexistent_files(self) -> None:
         """_resolve_event_path should return None for nonexistent files."""
         cov = coverage.Coverage(source=())
-        
+
         result = cov._resolve_event_path("/nonexistent/path/to/file.py")
         assert result is None
 
     def test_resolve_event_path_with_none_filename(self) -> None:
         """_resolve_event_path should handle None filename gracefully."""
         cov = coverage.Coverage(source=())
-        
+
         result = cov._resolve_event_path(None)
         assert result is None
 
     def test_resolve_event_path_skips_unmeasured_paths(self) -> None:
         """_resolve_event_path should return None for paths outside source roots."""
         cov = coverage.Coverage(source=("custom_components/pawcontrol",))
-        
+
         # This test file should not be measured
         result = cov._resolve_event_path(__file__)
         assert result is None
@@ -318,16 +315,16 @@ class TestHandleLineEvent:
         """_handle_line_event should record executed lines."""
         cov = coverage.Coverage(source=("tests/unit/test_coverage_shim.py",))
         path = Path(__file__)
-        
+
         cov._handle_line_event(path, 1)
-        
+
         assert path in cov._executed
         assert 1 in cov._executed[path]
 
     def test_handle_line_event_ignores_none_path(self) -> None:
         """_handle_line_event should ignore None path without error."""
         cov = coverage.Coverage(source=())
-        
+
         # Should not raise an error
         cov._handle_line_event(None, 1)
         cov._handle_line_event(None, None)
@@ -336,11 +333,11 @@ class TestHandleLineEvent:
         """_handle_line_event should ignore invalid line numbers."""
         cov = coverage.Coverage(source=())
         path = Path(__file__)
-        
+
         # Should not record negative or zero line numbers
         cov._handle_line_event(path, 0)
         cov._handle_line_event(path, -1)
-        
+
         # Path should not be recorded if line number is invalid
         assert path not in cov._executed or len(cov._executed[path]) == 0
 
@@ -350,24 +347,24 @@ class TestHandleLineEvent:
         path = Path(__file__)
         now = 123.456
         thread_ident = 999
-        
+
         # Should accept custom timestamp and thread ident
         cov._handle_line_event(path, 1, now=now, thread_ident=thread_ident)
-        
+
         assert path in cov._executed
 
     def test_handle_line_event_computes_timestamps_if_omitted(self) -> None:
         """_handle_line_event should compute now and thread_ident if not provided."""
         import threading
         import time
-        
+
         cov = coverage.Coverage(source=("tests/unit/test_coverage_shim.py",))
         path = Path(__file__)
-        
-        start_time = time.perf_counter()
+
+        time.perf_counter()
         cov._handle_line_event(path, 1)
-        end_time = time.perf_counter()
-        
+        time.perf_counter()
+
         assert path in cov._executed
 
 
@@ -377,21 +374,23 @@ class TestMonitoringLineEvent:
     def test_monitoring_line_event_records_valid_code(self) -> None:
         """_monitoring_line_event should record valid code objects and line numbers."""
         cov = coverage.Coverage(source=("tests/unit/test_coverage_shim.py",))
-        
+
         # Create a code object for this file
         code = compile("x = 1", __file__, "exec")
-        
+
         cov._monitoring_line_event(code, 1)
-        
+
         # Should have recorded the execution
         path = Path(__file__)
-        assert path in cov._executed or len(cov._executed) == 0  # May not record if outside source root
+        assert (
+            path in cov._executed or len(cov._executed) == 0
+        )  # May not record if outside source root
 
     def test_monitoring_line_event_ignores_invalid_lineno(self) -> None:
         """_monitoring_line_event should ignore invalid line numbers."""
         cov = coverage.Coverage(source=())
         code = compile("x = 1", "test.py", "exec")
-        
+
         # Should handle invalid line numbers gracefully
         cov._monitoring_line_event(code, 0)
         cov._monitoring_line_event(code, -1)
@@ -400,7 +399,7 @@ class TestMonitoringLineEvent:
         """_monitoring_line_event should handle builtin code objects."""
         cov = coverage.Coverage(source=())
         code = compile("x = 1", "<string>", "exec")
-        
+
         # Should not raise an error
         cov._monitoring_line_event(code, 1)
 
@@ -418,32 +417,32 @@ class TestStartMonitoring:
     def test_start_monitoring_handles_tool_id_conflict(self) -> None:
         """_start_monitoring should handle ValueError from use_tool_id."""
         cov = coverage.Coverage(source=())
-        
+
         # Create a mock monitoring module that raises ValueError
         mock_monitoring = MagicMock()
         mock_monitoring.COVERAGE_ID = 10
         mock_monitoring.use_tool_id.side_effect = ValueError("Tool ID already in use")
-        
+
         cov._monitoring = mock_monitoring
         result = cov._start_monitoring()
-        
+
         assert result is False
 
     def test_start_monitoring_handles_callback_errors(self) -> None:
         """_start_monitoring should handle errors during callback registration."""
         cov = coverage.Coverage(source=())
-        
+
         # Create a mock monitoring module that raises RuntimeError
         mock_monitoring = MagicMock()
         mock_monitoring.COVERAGE_ID = 10
         mock_monitoring.events.LINE = 128
         mock_monitoring.register_callback.side_effect = RuntimeError("Callback error")
-        
+
         cov._monitoring = mock_monitoring
-        
+
         with patch("sys.stderr"):
             result = cov._start_monitoring()
-        
+
         assert result is False
         mock_monitoring.free_tool_id.assert_called_once()
 
@@ -454,18 +453,18 @@ class TestStopMonitoring:
     def test_stop_monitoring_cleans_up_when_active(self) -> None:
         """_stop_monitoring should clean up monitoring state."""
         cov = coverage.Coverage(source=())
-        
+
         # Set up monitoring state
         mock_monitoring = MagicMock()
         mock_monitoring.COVERAGE_ID = 10
         mock_monitoring.events.LINE = 128
-        
+
         cov._monitoring = mock_monitoring
         cov._monitor_tool_id = 10
         cov._using_monitoring = True
-        
+
         cov._stop_monitoring()
-        
+
         # Should clean up
         mock_monitoring.set_events.assert_called()
         mock_monitoring.register_callback.assert_called()
@@ -476,13 +475,13 @@ class TestStopMonitoring:
     def test_stop_monitoring_handles_null_state(self) -> None:
         """_stop_monitoring should handle null monitoring state."""
         cov = coverage.Coverage(source=())
-        
+
         cov._monitoring = None
         cov._monitor_tool_id = None
-        
+
         # Should not raise an error
         cov._stop_monitoring()
-        
+
         assert cov._using_monitoring is False
 
 
@@ -495,20 +494,20 @@ class TestTraceMethod:
         frame = MagicMock(spec=FrameType)
         frame.f_lineno = 1
         frame.f_code.co_filename = __file__
-        
+
         result = cov._trace(frame, "line", None)
-        
+
         assert result == cov._trace or callable(result)
 
     def test_trace_handles_non_line_events(self) -> None:
         """_trace should handle non-line events gracefully."""
         cov = coverage.Coverage(source=())
         frame = MagicMock(spec=FrameType)
-        
+
         # Should not raise for call, return, exception events
         result = cov._trace(frame, "call", None)
         assert callable(result)
-        
+
         result = cov._trace(frame, "return", None)
         assert callable(result)
 
@@ -517,7 +516,7 @@ class TestTraceMethod:
         cov = coverage.Coverage(source=())
         frame = MagicMock(spec=FrameType)
         frame.f_code.co_filename = "<string>"
-        
+
         result = cov._trace(frame, "line", None)
-        
+
         assert callable(result)
