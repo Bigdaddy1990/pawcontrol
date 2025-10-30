@@ -15,7 +15,7 @@
 ## Erledigte Arbeiten
 - GitHub-Actions-Workflows nutzen jetzt abgestimmte Concurrency-Gruppen pro Pull Request oder Branch, um neuere Läufe zu priorisieren und Feedback schneller bereitzustellen. Details liefert die [GitHub-Dokumentation zu Concurrency-Gruppen](https://docs.github.com/en/actions/using-jobs/using-concurrency).
   - **Hinweis:** Um Unterbrechungen lang laufender Pipelines zu vermeiden, gelten folgende Ausnahmen:
-    - **Release-Workflows:** Fallen bei Push-Ereignissen auf commit-basierte Gruppen zurück.
+    - **Release-Workflows:** Bleiben bei Push-Ereignissen branch-basiert, damit nur der jüngste Lauf Release-Entwürfe und -PRs aktualisiert.
     - **Coverage- und HACS-Prüfungen:** Deaktivieren das Abbrechen außerhalb von Pull Requests, um Artefakte zu erhalten.
     - **Übrige Workflows:** Behalten Branch-basierte Gruppen für kontrollierte Abbrüche bei.【F:.github/workflows/coverage.yml†L14-L17】【F:.github/workflows/hassfest.yml†L9-L12】【F:.github/workflows/hacs.yml†L8-L11】【F:.github/workflows/pre-commit.yaml†L9-L12】【F:.github/workflows/release-please.yml†L8-L11】【F:.github/workflows/release-drafter.yml†L9-L12】
 - Die Coverage-Shim bevorzugt nun `sys.monitoring`, modelliert die Callbacks über streng getypte Protokolle und fällt nur noch bei belegten Tool-IDs auf klassische Trace-Hooks zurück, sodass Python-3.13-Builds ohne `sys.settrace`-Support weiterhin Zeilenabdeckung und Laufzeitmetriken erfassen; die Regressionstests bestätigen die Messung.【F:coverage.py†L1-L451】【f70812†L1-L8】
