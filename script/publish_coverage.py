@@ -21,7 +21,9 @@ import re
 import tarfile
 import urllib.error
 import urllib.request
+import urllib.response
 from collections.abc import Iterable, Iterator, Mapping, MutableMapping, Sequence
+from contextlib import closing
 from pathlib import Path
 from typing import Any, cast
 from urllib.parse import urlsplit
@@ -282,7 +284,9 @@ class GitHubPagesPublisher:
         ensure_allowed_github_api_url(url)
         request = urllib.request.Request(url, data=data, headers=headers, method=method)
         try:
-            with urllib.request.urlopen(request, timeout=self._timeout) as response:
+            with closing(
+                open_github_api_url(request, timeout=self._timeout)
+            ) as response:
                 response_data = response.read()
                 status = getattr(response, "status", 200)
         except urllib.error.HTTPError as error:
@@ -383,6 +387,17 @@ def ensure_allowed_github_api_url(url: str) -> None:
         raise PublishError(f"Refusing to access URL outside GitHub API host: {url!r}")
     if not url.startswith(f"{API_ROOT}/"):
         raise PublishError(f"Refusing to access unexpected URL: {url!r}")
+
+
+def open_github_api_url(
+    request: urllib.request.Request, *, timeout: float | int | None
+) -> urllib.response.addinfourl:
+    """Open ``request`` after enforcing GitHub API scheme restrictions."""
+
+    url = getattr(request, "full_url", request.get_full_url())
+    ensure_allowed_github_api_url(url)
+    opener = urllib.request.build_opener()
+    return opener.open(request, timeout=timeout)
 
 
 def duplicate_payloads(

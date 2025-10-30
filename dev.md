@@ -5,15 +5,16 @@
 - Target Python 3.13+ features and reuse the coordinator/manager helpers so runtime data remains fully typed and compatible with Home Assistant expectations.【F:.github/copilot-instructions.md†L45-L118】
 
 ## Aktueller Qualitätsstatus
-- ✅ `ruff check` – lint läuft weiterhin ohne Beanstandungen.【e4f467†L1-L2】
-- ✅ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=$(pwd) pytest -q` – 1 164 Tests grün, nur die geplanten Nightly-Gates bleiben übersprungen.【09c071†L1-L16】
-- ✅ `python -m script.enforce_test_requirements` – das Abhängigkeits-Audit meldet keine Abweichungen.【79c40a†L1-L1】
-- ✅ `mypy custom_components/pawcontrol` – der Stub-basierte Lauf bestätigt vollständige Typabdeckung.【a7c163†L1-L2】
-- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest- und Strings-Prüfungen bleiben sauber.【35d720†L1-L1】
+- ✅ `ruff check` – lint läuft weiterhin ohne Beanstandungen.【384074†L1-L2】
+- ⚠️ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=$(pwd) pytest -q` – Lauf nach 555 bestandenen Tests aus Zeitgründen manuell abgebrochen; fehlgeschlagene Fälle traten nicht auf, vollständiger Durchlauf sollte auf lokaler Workstation wiederholt werden.【c754a5†L1-L9】
+- ✅ `python -m script.enforce_test_requirements` – das Abhängigkeits-Audit meldet keine Abweichungen.【b5baa5†L1-L1】
+- ✅ `mypy custom_components/pawcontrol` – der Stub-basierte Lauf bestätigt vollständige Typabdeckung.【95b2c6†L1-L2】
+- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest- und Strings-Prüfungen bleiben sauber.【d1b2e1†L1-L2】
 - ✅ Coverage-Shim-Integration – nutzt jetzt `sys.monitoring` auf Python 3.13+ für bessere Performance und fällt bei belegten Tool-IDs transparent auf klassische Trace-Hooks zurück.【F:coverage.py†L120-L235】
 
 ## Erledigte Arbeiten
 - Die Coverage-Shim bevorzugt nun `sys.monitoring`, modelliert die Callbacks über streng getypte Protokolle und fällt nur noch bei belegten Tool-IDs auf klassische Trace-Hooks zurück, sodass Python-3.13-Builds ohne `sys.settrace`-Support weiterhin Zeilenabdeckung und Laufzeitmetriken erfassen; die Regressionstests bestätigen die Messung.【F:coverage.py†L1-L451】【f70812†L1-L8】
+- Der Coverage-Publisher kapselt GitHub-Aufrufe über `open_github_api_url`, erzwingt HTTPS und den API-Host vor jedem Request und ersetzt den direkten `urlopen`-Aufruf durch einen Context-Wrapper, womit Bandit B310 dauerhaft adressiert wird.【F:script/publish_coverage.py†L9-L33】【F:script/publish_coverage.py†L268-L288】【F:script/publish_coverage.py†L373-L386】
 - `annotatedyaml` lädt jetzt automatisch den vendored Build, fällt aber ohne System-Paket auf das lokal gebündelte Stub-Modul zurück, sodass `script.hassfest` und die Hassfest-Tests auch in Minimalumgebungen funktionieren.【F:annotatedyaml/__init__.py†L1-L74】
 - Die Test-Blueprints erhalten mit `pyyaml` eine deklarierte Abhängigkeit, womit Resilience-E2E-Läufe das YAML-Schema einlesen können.【F:requirements_test.txt†L3-L11】
 - Die Performance-Benchmarks setzen den `EntityFactory`-Timing-Guard explizit auf `True`, damit Pytest 8 keine falschen Regressionen mehr meldet.【F:tests/components/pawcontrol/test_entity_performance.py†L20-L26】【F:tests/components/pawcontrol/test_entity_performance.py†L113-L118】
@@ -44,7 +45,7 @@
 - Die Performance-Skalierungs- und Produktions-Benchmarks erzwingen den Timing-Guard explizit, sodass die Varianz-Grenzen auch unter Pytest 8 stabil eingehalten werden.【F:tests/components/pawcontrol/test_entity_performance_scaling.py†L105-L110】【F:tests/components/pawcontrol/test_entity_performance_scaling.py†L678-L683】
 
 ## Fehlerliste
-- Keine offenen Gate-Blocker; Pytests überspringen lediglich den geplanten Nightly-Check, weil `awesomeversion` absichtlich nicht installiert ist.【09c071†L13-L16】
+- Pytest-Vollsuite lokal sehr zeitintensiv (Abbruch nach 555 bestandenen Tests). Für vollständige Sicherheit sollte der Durchlauf mit mehr Ressourcen wiederholt werden; bislang keine regressionsbedingten Fehlschläge sichtbar.【c754a5†L1-L9】
 
 ## Verbesserungsplan
 1. **Vendor-Pfad beobachten.** Bei kommenden Home-Assistant-Releases prüfen, ob der echte `annotatedyaml` Build verfügbar ist und das Fallback nachgelagert aufräumen.【F:annotatedyaml/__init__.py†L28-L74】
