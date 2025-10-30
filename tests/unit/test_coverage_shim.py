@@ -191,12 +191,12 @@ class TestTypeAnnotations:
 
     def test_compile_cached_returns_codetype_or_none(self) -> None:
         """_compile_cached should return CodeType or None."""
-        result = _compile_cached("test.py", "x = 1")
+        result = coverage._compile_cached("test.py", "x = 1")
         assert result is None or isinstance(result, CodeType)
 
     def test_compile_cached_returns_none_for_invalid_source(self) -> None:
         """_compile_cached should return None for syntax errors."""
-        result = _compile_cached("invalid.py", "x = ")
+        result = coverage._compile_cached("invalid.py", "x = ")
         assert result is None
 
 
