@@ -10,6 +10,7 @@
 - ✅ `python -m script.enforce_test_requirements` – das Abhängigkeits-Audit meldet keine Abweichungen.【79c40a†L1-L1】
 - ✅ `mypy custom_components/pawcontrol` – der Stub-basierte Lauf bestätigt vollständige Typabdeckung.【a7c163†L1-L2】
 - ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest- und Strings-Prüfungen bleiben sauber.【35d720†L1-L1】
+- ✅ Coverage-Shim-Integration – nutzt jetzt `sys.monitoring` auf Python 3.13+ für bessere Performance und fällt bei belegten Tool-IDs transparent auf klassische Trace-Hooks zurück.【F:coverage.py†L120-L235】
 
 ## Erledigte Arbeiten
 - Die Coverage-Shim bevorzugt nun `sys.monitoring`, modelliert die Callbacks über streng getypte Protokolle und fällt nur noch bei belegten Tool-IDs auf klassische Trace-Hooks zurück, sodass Python-3.13-Builds ohne `sys.settrace`-Support weiterhin Zeilenabdeckung und Laufzeitmetriken erfassen; die Regressionstests bestätigen die Messung.【F:coverage.py†L1-L451】【f70812†L1-L8】

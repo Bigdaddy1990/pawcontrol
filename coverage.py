@@ -140,9 +140,21 @@ class Coverage:
         self._skip_paths = self._build_skip_set()
         self._runtime_enabled = self._runtime_metrics_enabled()
         monitoring_attr = getattr(sys, "monitoring", None)
-        self._monitoring: MonitoringModule | None = cast(
-            MonitoringModule | None, monitoring_attr
-        )
+        monitoring: MonitoringModule | None = None
+        if monitoring_attr is not None:
+            required_attrs = (
+                "COVERAGE_ID",
+                "events",
+                "use_tool_id",
+                "register_callback",
+                "set_events",
+                "free_tool_id",
+            )
+            if all(hasattr(monitoring_attr, attr) for attr in required_attrs):
+                events_attr = getattr(monitoring_attr, "events", None)
+                if events_attr is not None and hasattr(events_attr, "LINE"):
+                    monitoring = cast(MonitoringModule, monitoring_attr)
+        self._monitoring = monitoring
         self._monitor_tool_id: int | None = None
         self._using_monitoring = False
 
@@ -382,13 +394,8 @@ class Coverage:
         if event != "line":
             self._handle_line_event(None, None, now=now, thread_ident=thread_ident)
             return self._trace
-        filename = Path(frame.f_code.co_filename)
-        try:
-            resolved = filename.resolve()
-        except FileNotFoundError:
-            self._handle_line_event(None, None, now=now, thread_ident=thread_ident)
-            return self._trace
-        if not self._should_measure(resolved):
+        resolved = self._resolve_event_path(frame.f_code.co_filename)
+        if resolved is None:
             self._handle_line_event(None, None, now=now, thread_ident=thread_ident)
             return self._trace
         lineno = frame.f_lineno
@@ -409,10 +416,14 @@ class Coverage:
                 tool_id, monitor.events.LINE, self._monitoring_line_event
             )
             monitor.set_events(tool_id, monitor.events.LINE)
-        except Exception:
+        except (RuntimeError, TypeError, ValueError) as err:
             monitor.set_events(tool_id, 0)
             monitor.register_callback(tool_id, monitor.events.LINE, None)
             monitor.free_tool_id(tool_id)
+            sys.stderr.write(
+                "pawcontrol.coverage: failed to initialise sys.monitoring "
+                f"callbacks: {err}\n"
+            )
             return False
         self._monitor_tool_id = tool_id
         self._using_monitoring = True
@@ -434,20 +445,26 @@ class Coverage:
     def _monitoring_line_event(self, code: CodeType, line_no: int) -> None:
         now = time.perf_counter()
         thread_ident = threading.get_ident()
-        filename = code.co_filename
-        if not filename or filename.startswith("<"):
+        if line_no <= 0:
             self._handle_line_event(None, None, now=now, thread_ident=thread_ident)
             return
+        resolved = self._resolve_event_path(code.co_filename)
+        if resolved is None:
+            self._handle_line_event(None, None, now=now, thread_ident=thread_ident)
+            return
+        self._handle_line_event(resolved, line_no, now=now, thread_ident=thread_ident)
+
+    def _resolve_event_path(self, filename: str | None) -> Path | None:
+        if not filename or filename.startswith("<"):
+            return None
         path = Path(filename)
         try:
             resolved = path.resolve()
         except FileNotFoundError:
-            self._handle_line_event(None, None, now=now, thread_ident=thread_ident)
-            return
-        if not self._should_measure(resolved) or line_no <= 0:
-            self._handle_line_event(None, None, now=now, thread_ident=thread_ident)
-            return
-        self._handle_line_event(resolved, line_no, now=now, thread_ident=thread_ident)
+            return None
+        if not self._should_measure(resolved):
+            return None
+        return resolved
 
     def _handle_line_event(
         self,
