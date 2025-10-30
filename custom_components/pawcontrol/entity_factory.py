@@ -50,7 +50,9 @@ _SPIN_LOW_ENTROPY_SCRAMBLE: Final[int] = 0xC3C3C3C3
 def _compute_priority_spin(priority: int, module: str) -> int:
     """Return a deterministic workload token for a priority/module pair."""
 
-    baseline_spin = ((priority & _SPIN_BYTE_MASK) << 8) | (len(module) & _SPIN_BYTE_MASK)
+    baseline_spin = ((priority & _SPIN_BYTE_MASK) << 8) | (
+        len(module) & _SPIN_BYTE_MASK
+    )
     accumulator = baseline_spin ^ _SPIN_INITIAL_SCRAMBLE
 
     for _ in range(_SPIN_ROUNDS):
