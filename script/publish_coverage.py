@@ -21,6 +21,7 @@ import re
 import tarfile
 import urllib.error
 import urllib.request
+import urllib.response
 from collections.abc import Iterable, Iterator, Mapping, MutableMapping, Sequence
 from pathlib import Path
 from typing import Any, cast
@@ -279,12 +280,15 @@ class GitHubPagesPublisher:
         if payload is not None:
             data = json.dumps(payload).encode("utf-8")
             headers["Content-Type"] = "application/json"
-        ensure_allowed_github_api_url(url)
         request = urllib.request.Request(url, data=data, headers=headers, method=method)
         try:
-            with urllib.request.urlopen(request, timeout=self._timeout) as response:
+            with open_github_api_url(request, timeout=self._timeout) as response:
                 response_data = response.read()
-                status = getattr(response, "status", 200)
+                status = getattr(response, "status", None)
+                if status is None:
+                    status = response.getcode()
+                if status is None:
+                    status = 200
         except urllib.error.HTTPError as error:
             raise PublishError(
                 f"GitHub API error {error.code}: {error.reason}"
@@ -383,6 +387,33 @@ def ensure_allowed_github_api_url(url: str) -> None:
         raise PublishError(f"Refusing to access URL outside GitHub API host: {url!r}")
     if not url.startswith(f"{API_ROOT}/"):
         raise PublishError(f"Refusing to access unexpected URL: {url!r}")
+
+
+class _RestrictedGitHubRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Redirect handler that enforces GitHub API restrictions."""
+
+    def redirect_request(  # type: ignore[override[return-type]] - CPython signature
+        self,
+        req: urllib.request.Request,
+        fp: urllib.response.addinfourl,
+        code: int,
+        msg: str,
+        headers: Mapping[str, str | bytes],
+        newurl: str,
+    ) -> urllib.request.Request | None:
+        ensure_allowed_github_api_url(newurl)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
+def open_github_api_url(
+    request: urllib.request.Request, *, timeout: float | int | None
+) -> urllib.response.addinfourl:
+    """Open ``request`` after enforcing GitHub API scheme restrictions."""
+
+    url = getattr(request, "full_url", request.get_full_url())
+    ensure_allowed_github_api_url(url)
+    opener = urllib.request.build_opener(_RestrictedGitHubRedirectHandler())
+    return opener.open(request, timeout=timeout)
 
 
 def duplicate_payloads(
