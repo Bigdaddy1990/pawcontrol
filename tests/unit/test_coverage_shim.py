@@ -520,5 +520,3 @@ class TestTraceMethod:
         result = cov._trace(frame, "line", None)
 
         assert callable(result)
-
-
