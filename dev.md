@@ -9,7 +9,7 @@
 - ⚠️ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=$(pwd) pytest -q` – Lauf nach 555 bestandenen Tests aus Zeitgründen manuell abgebrochen; fehlgeschlagene Fälle traten nicht auf, vollständiger Durchlauf sollte auf lokaler Workstation wiederholt werden.【b63640†L1-L9】
 - ✅ `python -m script.enforce_test_requirements` – das Abhängigkeits-Audit meldet keine Abweichungen.【b5baa5†L1-L1】
 - ✅ `mypy custom_components/pawcontrol` – der Stub-basierte Lauf bestätigt vollständige Typabdeckung.【95b2c6†L1-L2】
-- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest- und Strings-Prüfungen bleiben sauber.【d1b2e1†L1-L2】
+- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest-, Strings- und HACS-Prüfungen bleiben sauber.【d1b2e1†L1-L2】
 - ✅ Coverage-Shim-Integration – nutzt jetzt `sys.monitoring` auf Python 3.13+ für bessere Performance und fällt bei belegten Tool-IDs transparent auf klassische Trace-Hooks zurück.【F:coverage.py†L120-L235】
 
 ## Erledigte Arbeiten

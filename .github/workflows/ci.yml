@@ -312,6 +312,10 @@ jobs:
             failures+=("manifest validation")
           fi
 
+          if [[ "${{ needs.marketplace-validation.result }}" != "success" ]]; then
+            failures+=("marketplace validation")
+          fi
+
           localization_guard_result='${{ steps.localization_guard.outputs.result }}'
           localization_guard_url='${{ steps.localization_guard.outputs.url }}'
 
