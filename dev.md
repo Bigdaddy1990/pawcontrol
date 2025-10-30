@@ -5,14 +5,15 @@
 - Target Python 3.13+ features and reuse the coordinator/manager helpers so runtime data remains fully typed and compatible with Home Assistant expectations.【F:.github/copilot-instructions.md†L45-L118】
 
 ## Aktueller Qualitätsstatus
-- ✅ `ruff check` – lint läuft weiterhin ohne Beanstandungen.【15e2ed†L1-L2】
-- ⚠️ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=$(pwd) pytest -q` – Lauf nach 555 bestandenen Tests aus Zeitgründen manuell abgebrochen; fehlgeschlagene Fälle traten nicht auf, vollständiger Durchlauf sollte auf lokaler Workstation wiederholt werden.【de392a†L3-L8】
+- ✅ `ruff check` – lint läuft weiterhin ohne Beanstandungen.【aad086†L1-L2】
+- ⚠️ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=$(pwd) pytest -q` – Lauf nach 555 bestandenen Tests aus Zeitgründen manuell abgebrochen; fehlgeschlagene Fälle traten nicht auf, vollständiger Durchlauf sollte auf lokaler Workstation wiederholt werden.【b63640†L1-L9】
 - ✅ `python -m script.enforce_test_requirements` – das Abhängigkeits-Audit meldet keine Abweichungen.【b5baa5†L1-L1】
 - ✅ `mypy custom_components/pawcontrol` – der Stub-basierte Lauf bestätigt vollständige Typabdeckung.【95b2c6†L1-L2】
 - ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest- und Strings-Prüfungen bleiben sauber.【d1b2e1†L1-L2】
 - ✅ Coverage-Shim-Integration – nutzt jetzt `sys.monitoring` auf Python 3.13+ für bessere Performance und fällt bei belegten Tool-IDs transparent auf klassische Trace-Hooks zurück.【F:coverage.py†L120-L235】
 
 ## Erledigte Arbeiten
+- GitHub-Actions-Workflows nutzen jetzt pro Branch und Pull Request einen gemeinsamen Concurrency-Pool, sodass neue Pushes oder manuelle Re-Runs vorangegangene Ausführungen abbrechen und Ressourcen freigeben.【F:.github/workflows/coverage.yml†L11-L14】【F:.github/workflows/hassfest.yml†L9-L12】【F:.github/workflows/hacs.yml†L8-L11】【F:.github/workflows/pre-commit.yaml†L9-L12】【F:.github/workflows/release-please.yml†L8-L11】【F:.github/workflows/release-drafter.yml†L9-L12】
 - Die Coverage-Shim bevorzugt nun `sys.monitoring`, modelliert die Callbacks über streng getypte Protokolle und fällt nur noch bei belegten Tool-IDs auf klassische Trace-Hooks zurück, sodass Python-3.13-Builds ohne `sys.settrace`-Support weiterhin Zeilenabdeckung und Laufzeitmetriken erfassen; die Regressionstests bestätigen die Messung.【F:coverage.py†L1-L451】【f70812†L1-L8】
 - Der Coverage-Publisher kapselt GitHub-Aufrufe über `open_github_api_url`, erzwingt HTTPS und den API-Host vor jedem Request, validiert Redirect-Ziele und ersetzt den direkten `urlopen`-Aufruf durch einen Context-Wrapper, womit Bandit B310 dauerhaft adressiert wird.【F:script/publish_coverage.py†L9-L33】【F:script/publish_coverage.py†L268-L288】【F:script/publish_coverage.py†L383-L409】
 - `annotatedyaml` lädt jetzt automatisch den vendored Build, fällt aber ohne System-Paket auf das lokal gebündelte Stub-Modul zurück, sodass `script.hassfest` und die Hassfest-Tests auch in Minimalumgebungen funktionieren.【F:annotatedyaml/__init__.py†L1-L74】
@@ -45,7 +46,7 @@
 - Die Performance-Skalierungs- und Produktions-Benchmarks erzwingen den Timing-Guard explizit, sodass die Varianz-Grenzen auch unter Pytest 8 stabil eingehalten werden.【F:tests/components/pawcontrol/test_entity_performance_scaling.py†L105-L110】【F:tests/components/pawcontrol/test_entity_performance_scaling.py†L678-L683】
 
 ## Fehlerliste
-- Pytest-Vollsuite lokal sehr zeitintensiv (Abbruch nach 555 bestandenen Tests). Für vollständige Sicherheit sollte der Durchlauf mit mehr Ressourcen wiederholt werden; bislang keine regressionsbedingten Fehlschläge sichtbar.【de392a†L3-L8】
+- Pytest-Vollsuite lokal sehr zeitintensiv (Abbruch nach 555 bestandenen Tests). Für vollständige Sicherheit sollte der Durchlauf mit mehr Ressourcen wiederholt werden; bislang keine regressionsbedingten Fehlschläge sichtbar.【b63640†L1-L9】
 
 ## Verbesserungsplan
 1. **Vendor-Pfad beobachten.** Bei kommenden Home-Assistant-Releases prüfen, ob der echte `annotatedyaml` Build verfügbar ist und das Fallback nachgelagert aufräumen.【F:annotatedyaml/__init__.py†L28-L74】
