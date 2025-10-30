@@ -56,6 +56,7 @@ def _compute_priority_spin(priority: int, module: str) -> int:
 
     return accumulator
 
+
 # All available platforms for advanced profile - fixed enum conversion
 ALL_AVAILABLE_PLATFORMS: Final[tuple[Platform, ...]] = (
     Platform.SENSOR,
