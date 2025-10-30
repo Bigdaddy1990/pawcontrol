@@ -262,7 +262,7 @@ jobs:
     name: Publish to PyPI
     needs: [prepare-release, test-and-validate]
     runs-on: ubuntu-latest
-    if: ${{ env.PYPI_API_TOKEN != '' }}
+    if: ${{ secrets.PYPI_API_TOKEN }}
 
     steps:
       - name: Checkout code
