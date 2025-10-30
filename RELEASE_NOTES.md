@@ -519,7 +519,7 @@ PawControl v1.0.0 is the initial production release. The setup wizard will guide
 [![Download](https://img.shields.io/badge/Download-HACS-blue.svg)](https://hacs.xyz/)
 [![Documentation](https://img.shields.io/badge/Documentation-Complete-green.svg)](docs/)
 [![Quality](https://img.shields.io/badge/Quality-Platinum-e5e4e2.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
-[![Test Coverage](https://img.shields.io/badge/Tests-95%25%2B-success.svg)](docs/testing/coverage_reporting.md)
+[![Test Coverage](https://img.shields.io/badge/Tests-100%25-success.svg)](docs/testing/coverage_reporting.md)
 
 **🐕 Made with ❤️ for our four-legged family members 🐾**
 

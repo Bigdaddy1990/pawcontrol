@@ -28,7 +28,7 @@
 
 ## ⚠️ **Verbleibende Aufgaben für Gold Standard**
 
-### 1. **Test Coverage auf 95% erhöhen** (Aktuell: ~60%)
+### 1. **Test Coverage auf 100% erhöhen** (Aktuell: ~60%)
 **Kritisch für Gold Standard!**
 
 Benötigte Tests:
@@ -87,7 +87,7 @@ Dateien mit synchronen Operations:
 | **Gold** | ✅ Complete | 100% |
 | **Platinum** | ✅ Certified | 100% |
 | Discovery | ✅ Implemented | 100% |
-| Test Coverage | ✅ Enforced | ≥95% |
+| Test Coverage | ✅ Enforced | 100% |
 | Type Hints | ✅ Complete | 100% |
 | Async Code | ✅ Complete | 100% |
 | runtime_data | ✅ Complete | 100% |
@@ -143,7 +143,7 @@ async def read_file_async(path: str) -> str:
 
 ## 📈 **Geschätzter Aufwand**
 
-- **Test Coverage auf 95%**: 4-6 Stunden
+- **Test Coverage auf 100%**: 4-6 Stunden
 - **Type Hints vervollständigen**: 1-2 Stunden
 - **Async Operations**: 2-3 Stunden
 - **Gesamt für Gold Standard**: 7-11 Stunden

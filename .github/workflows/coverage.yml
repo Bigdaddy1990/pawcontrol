@@ -9,7 +9,7 @@ on:
 
 env:
   PYTHON_VERSION: "3.13"
-  COVERAGE_MIN: "95"
+  COVERAGE_MIN: "100"
 
 jobs:
   coverage:

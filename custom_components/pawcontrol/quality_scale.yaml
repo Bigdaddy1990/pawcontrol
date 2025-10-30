@@ -49,7 +49,7 @@ rules:
 
   test-coverage:
     status: done
-    comment: "`pytest -q` executes unit, component, and end-to-end suites with the 95% coverage floor enforced by `pyproject.toml`."
+    comment: "`pytest -q` executes unit, component, and end-to-end suites with the 100% coverage floor enforced by `pyproject.toml`."
 
   brands:
     status: done

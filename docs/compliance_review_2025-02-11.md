@@ -5,7 +5,7 @@ This historical review captured Paw Control's posture prior to the Platinum upli
 ## Key findings (resolved)
 1. **Quality scale declaration** – Manifest, README, and diagnostics now align on the Platinum declaration referenced in `custom_components/pawcontrol/quality_scale.yaml`.
 2. **Documentation coverage** – Service, uninstall, diagnostics, and maintenance workflows are documented across README, `docs/MAINTENANCE.md`, and the automation guides.
-3. **Automated validation** – Unit, integration, diagnostics, and repair suites execute under `pytest -q` with the 95% coverage floor enabled in `pyproject.toml`.
+3. **Automated validation** – Unit, integration, diagnostics, and repair suites execute under `pytest -q` with the 100% coverage floor enabled in `pyproject.toml`.
 4. **Runtime lifecycle** – `async_remove_config_entry_device` and reload flows are exercised by component tests to keep active dogs intact during cleanup.
 5. **Diagnostics & privacy** – Diagnostics exports redact secrets and surface schema-versioned telemetry validated by the diagnostics regression suite.
 

@@ -240,7 +240,7 @@ class PawControlEntity:
 ## 📊 Metriken & Monitoring
 
 ### Erfolgskriterien:
-- [ ] Test Coverage > 95%
+- [ ] Test Coverage at 100%
 - [ ] Alle Platinum-Requirements erfüllt
 - [ ] Keine deprecation warnings
 - [ ] MyPy keine Fehler
@@ -292,7 +292,7 @@ pylint custom_components/pawcontrol
 
 Nach Implementierung dieses Plans:
 - ✅ **100% Platinum Compliance**
-- ✅ **>95% Test Coverage**
+- ✅ **100% Test Coverage**
 - ✅ **Vollständige Type Safety**
 - ✅ **Production-Ready Code**
 - ✅ **Home Assistant Core Contribution Ready**
@@ -317,7 +317,7 @@ Nach Implementierung dieses Plans:
 
 Eine Aufgabe gilt als abgeschlossen wenn:
 1. Code implementiert und getestet
-2. Tests grün (>95% coverage)
+2. Tests grün (100% coverage)
 3. Dokumentation aktualisiert
 4. MyPy/Ruff/PyLint clean
 5. Code Review passed

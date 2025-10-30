@@ -1123,7 +1123,7 @@ pytest
 
 **Quality Requirements**:
 - **Type Annotations**: Complete type hints required (Python 3.13+)
-- **Test Coverage**: Maintain 95%+ coverage for all new code
+- **Test Coverage**: Maintain 100% coverage for all new code
 - **Documentation**: Comprehensive docstrings and user documentation
 - **Code Quality**: Follow Home Assistant development standards
 - **Async Patterns**: Use proper async/await patterns
@@ -1146,7 +1146,7 @@ pytest tests/test_performance_*.py -v
 1. **Create Issue**: Describe bug or feature request
 2. **Fork Repository**: Create your feature branch
 3. **Develop**: Write code with tests and documentation
-4. **Quality Check**: Ensure 95%+ test coverage and code quality
+4. **Quality Check**: Ensure 100% test coverage and code quality
 5. **Sync Contributor Guides & Localizations**: After updating
    `.github/copilot-instructions.md`, run `python -m script.sync_contributor_guides`
    so the Claude and Gemini assistants stay aligned. Follow up with
@@ -1215,7 +1215,7 @@ class NewGPSDevicePlugin(PawControlPlugin):
 
 - **🏆 Quality Status**:
 - **Quality Scale Status**: Platinum declaration with manifest, README, diagnostics, and quality reports tied together via `docs/compliance_gap_analysis.md` and `custom_components/pawcontrol/quality_scale.yaml`.
-- **Automated Test Suite**: Unit, integration, and end-to-end suites enforce 95% coverage and nightly telemetry checks across coordinators, entities, services, and blueprints.
+- **Automated Test Suite**: Unit, integration, and end-to-end suites enforce 100% coverage and nightly telemetry checks across coordinators, entities, services, and blueprints.
 - **HACS Readiness**: Repository layout, translations, documentation, and brand assets satisfy HACS expectations.
 - **Production Hardening**: Installation, removal, diagnostics, repairs, and maintenance runbooks are documented in README, `docs/MAINTENANCE.md`, and the documentation portal.
 - **Runtime Architecture**: Coordinators, runtime data containers, and managers back every platform with regression coverage verifying reload safety and service orchestration.
