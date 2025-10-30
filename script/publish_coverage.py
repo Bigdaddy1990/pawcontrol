@@ -23,7 +23,6 @@ import urllib.error
 import urllib.request
 import urllib.response
 from collections.abc import Iterable, Iterator, Mapping, MutableMapping, Sequence
-from contextlib import closing
 from pathlib import Path
 from typing import Any, cast
 from urllib.parse import urlsplit
@@ -281,12 +280,9 @@ class GitHubPagesPublisher:
         if payload is not None:
             data = json.dumps(payload).encode("utf-8")
             headers["Content-Type"] = "application/json"
-        ensure_allowed_github_api_url(url)
         request = urllib.request.Request(url, data=data, headers=headers, method=method)
         try:
-            with closing(
-                open_github_api_url(request, timeout=self._timeout)
-            ) as response:
+            with open_github_api_url(request, timeout=self._timeout) as response:
                 response_data = response.read()
                 status = getattr(response, "status", 200)
         except urllib.error.HTTPError as error:
