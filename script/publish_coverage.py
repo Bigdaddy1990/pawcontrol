@@ -284,7 +284,11 @@ class GitHubPagesPublisher:
         try:
             with open_github_api_url(request, timeout=self._timeout) as response:
                 response_data = response.read()
-                status = getattr(response, "status", 200)
+                status = getattr(response, "status", None)
+                if status is None:
+                    status = response.getcode()
+                if status is None:
+                    status = 200
         except urllib.error.HTTPError as error:
             raise PublishError(
                 f"GitHub API error {error.code}: {error.reason}"
