@@ -37,9 +37,12 @@ try:  # pragma: no cover - exercised when Home Assistant is installed
 except ModuleNotFoundError:  # pragma: no cover - used in tests
     ha_selector = None
 
-if ha_selector is not None and not all(
-    hasattr(ha_selector, attr) for attr in _REQUIRED_ATTRIBUTES
-):
+try:
+    if ha_selector is not None and not all(
+        hasattr(ha_selector, attr) for attr in _REQUIRED_ATTRIBUTES
+    ):
+        ha_selector = None
+except AttributeError:  # pragma: no cover - defensive guard for partial installs
     ha_selector = None
 
 if ha_selector is not None:  # pragma: no cover - passthrough when available
@@ -86,7 +89,7 @@ else:
     class SelectSelectorConfig(BaseSelectorConfig, total=False):
         """Select selector configuration shim."""
 
-        options: Sequence[SelectOptionDict] | Sequence[str]
+        options: Sequence[SelectOptionDict | str]
         multiple: bool
         custom_value: bool
         mode: SelectSelectorMode
