@@ -21,14 +21,27 @@ def test_number_selector_config_matches_expected_dict() -> None:
     assert config["mode"] is selector.NumberSelectorMode.BOX
 
 
-def test_select_selector_accepts_sequence_options() -> None:
-    """Verify the shim preserves option payloads when validating values."""
+def test_select_selector_accepts_string_sequence() -> None:
+    """Verify the shim preserves string options when validating values."""
 
     options = ["gps", "manual"]
     config = selector.SelectSelectorConfig(options=options)
 
     instance = selector.SelectSelector(config)
     assert instance(config["options"][0]) == "gps"
+
+
+def test_select_selector_accepts_typed_dict_sequence() -> None:
+    """Ensure the shim stores typed dict option payloads without mutation."""
+
+    options = [
+        selector.SelectOptionDict(value="gps", label="GPS"),
+        selector.SelectOptionDict(value="manual", label="Manual"),
+    ]
+    config = selector.SelectSelectorConfig(options=options)
+
+    instance = selector.SelectSelector(config)
+    assert instance(config["options"][1]["value"]) == "manual"
 
 
 def test_text_selector_handles_expanded_type_set() -> None:

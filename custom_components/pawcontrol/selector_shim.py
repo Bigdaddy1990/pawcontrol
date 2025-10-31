@@ -48,7 +48,7 @@ except AttributeError:  # pragma: no cover - defensive guard for partial install
 if ha_selector is not None:  # pragma: no cover - passthrough when available
     selector = ha_selector
 else:
-    from typing import Literal, TypedDict
+    from typing import Literal, Required, TypedDict
 
     class BaseSelectorConfig(TypedDict, total=False):
         """Common selector configuration shared across helpers."""
@@ -89,7 +89,7 @@ else:
     class SelectSelectorConfig(BaseSelectorConfig, total=False):
         """Select selector configuration shim."""
 
-        options: Sequence[SelectOptionDict | str]
+        options: Required[Sequence[SelectOptionDict] | Sequence[str]]
         multiple: bool
         custom_value: bool
         mode: SelectSelectorMode
