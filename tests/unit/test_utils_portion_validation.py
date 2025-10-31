@@ -57,3 +57,25 @@ def test_validate_portion_size_rejects_non_finite_values() -> None:
 
     assert not result["valid"]
     assert _find_message(result["warnings"], "finite number")
+
+
+def test_validate_portion_size_flags_high_percentage() -> None:
+    """Portions above 70% of the daily amount should fail validation."""
+
+    result = validate_portion_size(400, 500, meals_per_day=3)
+
+    assert not result["valid"]
+    assert result["percentage_of_daily"] == pytest.approx(80.0)
+    assert _find_message(result["warnings"], "exceeds 70% of daily requirement")
+
+
+def test_validate_portion_size_warns_on_small_servings() -> None:
+    """Very small portions should produce advisory warnings."""
+
+    result = validate_portion_size(5, 500, meals_per_day=3)
+
+    assert result["valid"]
+    assert result["percentage_of_daily"] == pytest.approx(1.0)
+    assert _find_message(
+        result["warnings"], "Portion is very small compared to daily requirement"
+    )

@@ -5,15 +5,17 @@
 - Target Python 3.13+ features and reuse the coordinator/manager helpers so runtime data remains fully typed and compatible with Home Assistant expectations.【F:.github/copilot-instructions.md†L45-L118】
 
 ## Aktueller Qualitätsstatus
-- ✅ `ruff check` – lint läuft weiterhin ohne Beanstandungen.【aad086†L1-L2】
-- ⚠️ `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 PYTHONPATH=$(pwd) pytest -q` – Lauf nach 555 bestandenen Tests aus Zeitgründen manuell abgebrochen; fehlgeschlagene Fälle traten nicht auf, vollständiger Durchlauf sollte auf lokaler Workstation wiederholt werden.【b63640†L1-L9】
-- ✅ `python -m script.enforce_test_requirements` – das Abhängigkeits-Audit meldet keine Abweichungen.【b5baa5†L1-L1】
-- ✅ `mypy custom_components/pawcontrol` – der Stub-basierte Lauf bestätigt vollständige Typabdeckung.【95b2c6†L1-L2】
-- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest-, Strings- und HACS-Prüfungen bleiben sauber.【d1b2e1†L1-L2】
+- ✅ `ruff check` – lint läuft weiterhin ohne Beanstandungen.【0c5bb7†L1-L2】
+- ✅ `PYTHONPATH=. pytest tests/unit/test_selector_shim.py -q` – neue Regressionstests für den Selector-Shim bestätigen das Verhalten ohne Home-Assistant-Laufzeit.【f5145e†L1-L9】
+- ✅ `python -m script.enforce_test_requirements` – das Abhängigkeits-Audit meldet weiterhin keine Abweichungen.【a47733†L1-L1】
+- ✅ `mypy custom_components/pawcontrol` – Typprüfung passiert nach der Harmonisierung der Shims wieder vollständig.【978cc9†L1-L2】
+- ✅ `python -m script.hassfest --integration-path custom_components/pawcontrol` – Manifest-, Strings- und HACS-Prüfungen bleiben sauber.【908cd8†L1-L1】
 - ✅ Coverage-Shim-Integration – nutzt jetzt `sys.monitoring` auf Python 3.13+ für bessere Performance und fällt bei belegten Tool-IDs transparent auf klassische Trace-Hooks zurück.【F:coverage.py†L120-L235】
 
 ## Erledigte Arbeiten
+- Selector-Shim und Datumshelfer spiegeln jetzt die offiziellen Home-Assistant-Typdefinitionen inklusive PEP-695-Generics; neue Regressionstests sichern die Fallback-Pfade, während `ensure_utc_datetime` über Overloads und Typhilfen strenger typisiert ist.【F:custom_components/pawcontrol/selector_shim.py†L1-L170】【F:custom_components/pawcontrol/utils.py†L1412-L1463】【F:tests/unit/test_selector_shim.py†L1-L58】
 - Hassfest- und HACS-Prüfungen laufen jetzt in einem gemeinsamen `marketplace-validation`-Job der CI, während der eigenständige Workflow nur noch nächtlich oder manuell ausgeführt wird. Damit entfallen doppelte Blocker auf Pull Requests, die Compliance-Gates bleiben aber weiterhin täglich überwacht.【F:.github/workflows/ci.yml†L229-L249】【F:.github/workflows/hassfest.yml†L1-L32】
+- ✅ Ergänzt: Die Portionen-Validierungs-Tests decken jetzt sowohl die 70 %-Grenze als auch extrem kleine Portionen ab, womit die Validierungswarnungen für Hoch- und Niedrigfälle dauerhaft abgesichert sind.【F:tests/unit/test_utils_portion_validation.py†L1-L85】
 - Neuer CI-Job „Localization & Guide Sync“ erzwingt `python -m script.sync_localization_flags --allowlist script/sync_localization_flags.allowlist --check` sowie `python -m script.sync_contributor_guides --check`, sodass Setup-Flag-Tabellen und Contributor-Guides bei Drift Pull-Requests sofort blockieren; der Aggregator „All Checks Passed“ pollt das Ergebnis über die GitHub-API und markiert Branch-Protection-Checks auch dann als fehlgeschlagen, wenn der Rest der Pipeline bereits abgeschlossen ist.【F:.github/workflows/ci.yml†L142-L161】【F:.github/workflows/ci.yml†L245-L338】
 - Die Workflow-Concurrency begrenzt Pull-Request-Läufe weiterhin per gemeinsamer Gruppe, lässt Push-Jobs aber weiterlaufen: Coverage- und Compliance-Checks deaktivieren das Abbrechen außerhalb von Pull Requests, während Release-Drafter und release-please für Push-Ereignisse commit-basierte Gruppen nutzen, damit veröffentlichungsrelevante Läufe unabhängig voneinander bleiben.【F:.github/workflows/coverage.yml†L14-L17】【F:.github/workflows/hassfest.yml†L9-L32】【F:.github/workflows/release-please.yml†L8-L11】【F:.github/workflows/release-drafter.yml†L9-L12】
 - GitHub-Actions-Workflows nutzen jetzt abgestimmte Concurrency-Gruppen pro Pull Request oder Branch, um neuere Läufe zu priorisieren und Feedback schneller bereitzustellen. Details liefert die [GitHub-Dokumentation zu Concurrency-Gruppen](https://docs.github.com/en/actions/using-jobs/using-concurrency).
@@ -53,7 +55,8 @@
 - Die Performance-Skalierungs- und Produktions-Benchmarks erzwingen den Timing-Guard explizit, sodass die Varianz-Grenzen auch unter Pytest 8 stabil eingehalten werden.【F:tests/components/pawcontrol/test_entity_performance_scaling.py†L105-L110】【F:tests/components/pawcontrol/test_entity_performance_scaling.py†L678-L683】
 
 ## Fehlerliste
-- Pytest-Vollsuite lokal sehr zeitintensiv (Abbruch nach 555 bestandenen Tests). Für vollständige Sicherheit sollte der Durchlauf mit mehr Ressourcen wiederholt werden; bislang keine regressionsbedingten Fehlschläge sichtbar.【b63640†L1-L9】
+- Pytest-Vollsuite lokal sehr zeitintensiv (Abbruch nach 555 bestandenen Tests). Für vollständige Sicherheit sollte der Durchlauf mit mehr Ressourcen wiederholt werden; bislang keine regressionsbedingten Fehlschläge sichtbar.【c95185†L1-L10】
+- ✅ Behoben: Die Kompatibilitäts-Shims (`selector_shim`, `ensure_utc_datetime`) spiegeln wieder die offiziellen Home-Assistant-Typen, sodass `mypy` auch unter der Stub-Laufzeit ohne Konflikte durchläuft; ein Vollabgleich mit echten Core-Paketen bleibt nach Upstream-Releases vorgesehen.【F:custom_components/pawcontrol/selector_shim.py†L1-L170】【F:custom_components/pawcontrol/utils.py†L1412-L1463】【978cc9†L1-L2】
 - ✅ Behoben: Die Performance-Skalierungstests (`test_single_dog_performance`, `test_concurrent_operations_scaling`, `test_profile_performance_distribution`, `test_cache_efficiency_under_load`) scheiterten, weil `_ensure_min_runtime` auf CI-Runnern Submillisekunden-Schlafdauern überzog. Der Guard nutzt jetzt nur noch für Wartezeiten über 1,5 ms grobe Sleeps und fällt bei kürzeren Intervallen auf einen eng überwachten Spin-Wait mit gelegentlichem `time.sleep(0)` zurück, wodurch die Benchmarks wieder unter den geforderten Schwellen bleiben.【F:custom_components/pawcontrol/entity_factory.py†L805-L834】【cea389†L1-L9】
 
 ## Verbesserungsplan

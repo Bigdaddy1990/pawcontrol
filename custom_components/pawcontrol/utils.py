@@ -40,6 +40,7 @@ from typing import (
     TypeGuard,
     TypeVar,
     cast,
+    overload,
 )
 from weakref import WeakKeyDictionary
 
@@ -173,6 +174,8 @@ V = TypeVar("V")
 P = ParamSpec("P")
 R = TypeVar("R")
 Number = Real
+
+DateTimeConvertible = datetime | date | str | float | int
 
 
 async def async_call_hass_service_if_available(
@@ -1409,9 +1412,17 @@ def format_relative_time(dt: datetime) -> str:
         return f"{months} month{'s' if months > 1 else ''} ago"
 
 
-def ensure_utc_datetime(
-    value: datetime | date | str | float | int | None,
-) -> datetime | None:
+@overload
+def ensure_utc_datetime(value: None) -> None:  # pragma: no cover - typing helper
+    """Return ``None`` when no value is provided."""
+
+
+@overload
+def ensure_utc_datetime(value: DateTimeConvertible) -> datetime | None:
+    """Convert supported input types to aware UTC datetimes."""
+
+
+def ensure_utc_datetime(value: DateTimeConvertible | None) -> datetime | None:
     """Return a timezone-aware UTC datetime from various input formats."""
 
     if value is None:
@@ -1422,6 +1433,7 @@ def ensure_utc_datetime(
     elif isinstance(value, date):
         dt_value = datetime.combine(value, datetime.min.time())
     elif is_number(value):
+        timestamp: float
         try:
             timestamp = float(value)
         except (TypeError, ValueError):
