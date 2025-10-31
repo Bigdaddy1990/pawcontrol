@@ -12,7 +12,10 @@ from custom_components.pawcontrol.utils import ensure_utc_datetime
     "value,expected",
     [
         (None, None),
-        (datetime(2024, 1, 1, 12, 30, tzinfo=UTC), datetime(2024, 1, 1, 12, 30, tzinfo=UTC)),
+        (
+            datetime(2024, 1, 1, 12, 30, tzinfo=UTC),
+            datetime(2024, 1, 1, 12, 30, tzinfo=UTC),
+        ),
         (date(2024, 1, 1), datetime(2024, 1, 1, tzinfo=UTC)),
         ("2024-01-01T12:30:00+02:00", datetime(2024, 1, 1, 10, 30, tzinfo=UTC)),
         ("2024-01-01", datetime(2024, 1, 1, tzinfo=UTC)),
