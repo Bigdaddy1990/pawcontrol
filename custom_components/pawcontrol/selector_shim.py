@@ -36,7 +36,7 @@ _REQUIRED_ATTRIBUTES = {
 
 try:  # pragma: no cover - exercised when Home Assistant is installed
     from homeassistant.helpers import selector as ha_selector
-except ModuleNotFoundError:  # pragma: no cover - used in tests
+except (ModuleNotFoundError, ImportError):  # pragma: no cover - used in tests
     ha_selector = None
 
 try:
