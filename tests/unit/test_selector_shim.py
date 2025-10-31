@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pytest
+from custom_components.pawcontrol import selector_shim
 from custom_components.pawcontrol.selector_shim import selector
 
 
@@ -42,6 +44,16 @@ def test_select_selector_accepts_typed_dict_sequence() -> None:
 
     instance = selector.SelectSelector(config)
     assert instance(config["options"][1]["value"]) == "manual"
+
+
+def test_fallback_does_not_expose_legacy_select_option() -> None:
+    """Ensure the shim drops the legacy ``SelectOption`` dataclass."""
+
+    if selector_shim.ha_selector is not None:  # pragma: no cover - passthrough env
+        pytest.skip("Home Assistant selector module is available")
+
+    assert not hasattr(selector, "SelectOption")
+    assert hasattr(selector, "SelectOptionDict")
 
 
 def test_text_selector_handles_expanded_type_set() -> None:
