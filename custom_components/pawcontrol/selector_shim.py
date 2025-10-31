@@ -89,7 +89,7 @@ else:
     class SelectSelectorConfig(BaseSelectorConfig, total=False):
         """Select selector configuration shim."""
 
-        options: Required[Sequence[SelectOptionDict] | Sequence[str]]
+        options: Required[Sequence[SelectOptionDict | str]]
         multiple: bool
         custom_value: bool
         mode: SelectSelectorMode
