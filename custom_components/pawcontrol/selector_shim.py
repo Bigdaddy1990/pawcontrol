@@ -136,9 +136,19 @@ else:
         """Date selector configuration shim."""
 
     class _BaseSelector[ConfigT]:
-        """Minimal selector implementation that stores the provided config."""
+        """Typed selector stub that mirrors Home Assistant's runtime helpers.
+
+        The shim relies on PEP 695 generics so each fallback selector exposes the
+        same TypedDict-backed configuration objects as the real helpers. This
+        keeps static analysis and IDE tooling aligned with Home Assistant's
+        implementation even when the Core package is unavailable.
+        """
 
         def __init__(self, config: ConfigT | None = None) -> None:
+            # Normalise ``None`` to an empty mapping while preserving the specific
+            # TypedDict type advertised by ``ConfigT``. The cast is safe because
+            # TypedDicts accept missing keys when ``total=False`` and the runtime
+            # helpers perform the same normalisation before storing configs.
             default_config: ConfigT = cast(ConfigT, {}) if config is None else config
             self.config = default_config
 
