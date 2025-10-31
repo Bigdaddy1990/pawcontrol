@@ -79,3 +79,15 @@ def test_validate_portion_size_warns_on_small_servings() -> None:
     assert _find_message(
         result["warnings"], "Portion is very small compared to daily requirement"
     )
+
+
+def test_validate_portion_size_warns_on_large_meal_relative_to_frequency() -> None:
+    """Meals moderately above the per-meal target should raise advisory warnings."""
+
+    result = validate_portion_size(200, 500, meals_per_day=4)
+
+    assert result["valid"]
+    assert result["percentage_of_daily"] == pytest.approx(40.0)
+    assert _find_message(
+        result["warnings"], "Portion is larger than typical for meal frequency"
+    )
