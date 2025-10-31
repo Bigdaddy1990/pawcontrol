@@ -4,9 +4,9 @@ The integration prefers Home Assistant's native selector helpers when they are
 available, but local unit tests run without the full Core runtime. This shim
 recreates the subset of the selector namespace that PawControl relies on so
 runtime behaviour and static analysis match the official interfaces regardless
-of the environment. The fallback purposefully omits the legacy ``SelectOption``
-dataclass in favour of ``TypedDict`` entries so that the typing mirrors Home
-Assistant's current API surface.
+of the environment. The fallback mirrors Home Assistant's ``TypedDict`` based
+selector APIs to provide identical configuration schemas without depending on
+the Core runtime during tests.
 """
 
 from __future__ import annotations
