@@ -40,6 +40,7 @@ from typing import (
     TypeGuard,
     TypeVar,
     cast,
+    overload,
 )
 from weakref import WeakKeyDictionary
 
@@ -173,6 +174,8 @@ V = TypeVar("V")
 P = ParamSpec("P")
 R = TypeVar("R")
 Number = Real
+
+type DateTimeConvertible = datetime | date | str | Number
 
 
 async def async_call_hass_service_if_available(
@@ -1409,9 +1412,17 @@ def format_relative_time(dt: datetime) -> str:
         return f"{months} month{'s' if months > 1 else ''} ago"
 
 
-def ensure_utc_datetime(
-    value: datetime | date | str | float | int | None,
-) -> datetime | None:
+@overload
+def ensure_utc_datetime(value: None) -> None:  # pragma: no cover - typing helper
+    """Return ``None`` when no value is provided."""
+
+
+@overload
+def ensure_utc_datetime(value: DateTimeConvertible) -> datetime | None:
+    """Convert supported input types to aware UTC datetimes."""
+
+
+def ensure_utc_datetime(value: DateTimeConvertible | None) -> datetime | None:
     """Return a timezone-aware UTC datetime from various input formats."""
 
     if value is None:
@@ -1421,38 +1432,70 @@ def ensure_utc_datetime(
         dt_value = value
     elif isinstance(value, date):
         dt_value = datetime.combine(value, datetime.min.time())
-    elif is_number(value):
-        try:
-            timestamp = float(value)
-        except (TypeError, ValueError):
+    elif isinstance(value, str):
+        if not value:
             return None
-        try:
-            dt_value = datetime.fromtimestamp(timestamp, UTC)
-        except (OverflowError, OSError, ValueError):
-            return None
-    elif isinstance(value, str) and value:
-        try:
-            dt_value = dt_util.parse_datetime(value)
-        except ValueError:
-            dt_value = None
+        dt_value = _parse_datetime_string(value)
         if dt_value is None:
-            date_parser = getattr(dt_util, "parse_date", None)
-            date_value: date | None = None
-            if callable(date_parser):
-                try:
-                    date_value = date_parser(value)
-                except ValueError:
-                    date_value = None
-            if date_value is None:
-                with suppress(ValueError):
-                    date_value = date.fromisoformat(value)
-            if date_value is None:
-                return None
-            dt_value = datetime.combine(date_value, datetime.min.time())
+            return None
+    elif is_number(value):
+        dt_value = _datetime_from_timestamp(value)
+        if dt_value is None:
+            return None
     else:
         return None
 
+    if dt_value.tzinfo is None:
+        dt_value = dt_value.replace(tzinfo=UTC)
+
     return dt_util.as_utc(dt_value)
+
+
+def _parse_datetime_string(value: str) -> datetime | None:
+    """Parse ``value`` into a timezone-aware datetime when possible."""
+
+    try:
+        dt_value = dt_util.parse_datetime(value)
+    except ValueError:
+        dt_value = None
+
+    if dt_value is not None:
+        return dt_value
+
+    date_parser = getattr(dt_util, "parse_date", None)
+    date_value: date | None = None
+
+    if callable(date_parser):
+        with suppress(ValueError):
+            date_value = date_parser(value)
+
+    if date_value is None:
+        with suppress(ValueError):
+            date_value = date.fromisoformat(value)
+
+    if date_value is None:
+        return None
+
+    return datetime.combine(date_value, datetime.min.time())
+
+
+def _datetime_from_timestamp(value: Number) -> datetime | None:
+    """Convert ``value`` into a UTC datetime when it represents a timestamp."""
+
+    try:
+        timestamp = float(value)
+    except (TypeError, ValueError):
+        return None
+
+    utc_from_timestamp = getattr(dt_util, "utc_from_timestamp", None)
+    if callable(utc_from_timestamp):
+        with suppress((OverflowError, OSError, ValueError)):
+            return utc_from_timestamp(timestamp)
+
+    with suppress((OverflowError, OSError, ValueError)):
+        return datetime.fromtimestamp(timestamp, UTC)
+
+    return None
 
 
 def ensure_local_datetime(value: datetime | str | None) -> datetime | None:

@@ -1,23 +1,26 @@
-"""Compatibility shim for Home Assistant selector helpers.
+"""Compatibility shim for :mod:`homeassistant.helpers.selector`.
 
-This module mirrors the public ``homeassistant.helpers.selector`` interface
-required by the PawControl integration while providing lightweight fallbacks
-for environments where Home Assistant is not installed (for example during
-local unit testing on CI).  When Home Assistant is available we simply expose
-the upstream selector helpers to avoid any behavioural differences.
+The integration prefers Home Assistant's native selector helpers when they are
+available, but local unit tests run without the full Core runtime. This shim
+recreates the subset of the selector namespace that PawControl relies on so
+runtime behaviour and static analysis match the official interfaces regardless
+of the environment. The fallback mirrors Home Assistant's ``TypedDict`` based
+selector APIs to provide identical configuration schemas without depending on
+the Core runtime during tests.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from enum import Enum
+from collections.abc import Sequence
+from enum import StrEnum
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 _REQUIRED_ATTRIBUTES = {
     "BooleanSelector",
     "BooleanSelectorConfig",
     "DateSelector",
+    "DateSelectorConfig",
     "NumberSelector",
     "NumberSelectorConfig",
     "NumberSelectorMode",
@@ -28,121 +31,170 @@ _REQUIRED_ATTRIBUTES = {
     "TextSelectorConfig",
     "TextSelectorType",
     "TimeSelector",
+    "TimeSelectorConfig",
 }
 
 try:  # pragma: no cover - exercised when Home Assistant is installed
     from homeassistant.helpers import selector as ha_selector
+except ImportError:  # pragma: no cover - used in tests
+    ha_selector = None
 
-    if all(hasattr(ha_selector, attr) for attr in _REQUIRED_ATTRIBUTES):
-        selector = ha_selector
-    else:  # pragma: no cover - incomplete stub, fall back to local implementation
-        raise ImportError("selector module missing required helpers")
-except (ModuleNotFoundError, ImportError):  # pragma: no cover - used in tests
+try:
+    if ha_selector is not None and not all(
+        hasattr(ha_selector, attr) for attr in _REQUIRED_ATTRIBUTES
+    ):
+        ha_selector = None
+except AttributeError:
+    # pragma: no cover - defensive guard for partial installs where accessing a
+    # missing attribute raises during ``hasattr`` evaluation. Treat the selector
+    # module as unavailable so the shim always returns a consistent namespace in
+    # unit tests and constrained environments.
+    ha_selector = None
 
-    class _BaseSelector:
-        """Minimal selector base that stores the provided configuration."""
+if ha_selector is not None:  # pragma: no cover - passthrough when available
+    selector = ha_selector
+else:
+    from typing import Literal, Required, TypedDict
 
-        def __init__(self, config: Any | None = None) -> None:
-            self.config = config
+    class BaseSelectorConfig(TypedDict, total=False):
+        """Common selector configuration shared across helpers."""
+
+        read_only: bool
+
+    class BooleanSelectorConfig(BaseSelectorConfig, total=False):
+        """Boolean selector configuration shim."""
+
+    class NumberSelectorMode(StrEnum):
+        """Available modes for number selectors."""
+
+        BOX = "box"
+        SLIDER = "slider"
+
+    class NumberSelectorConfig(BaseSelectorConfig, total=False):
+        """Number selector configuration shim."""
+
+        min: float
+        max: float
+        step: float | Literal["any"]
+        unit_of_measurement: str
+        mode: NumberSelectorMode
+        translation_key: str
+
+    class SelectOptionDict(TypedDict):
+        """Select selector option entry."""
+
+        value: str
+        label: str
+
+    class SelectSelectorMode(StrEnum):
+        """Available modes for select selectors."""
+
+        LIST = "list"
+        DROPDOWN = "dropdown"
+
+    class SelectSelectorConfig(BaseSelectorConfig, total=False):
+        """Select selector configuration shim."""
+
+        options: Required[Sequence[SelectOptionDict | str]]
+        multiple: bool
+        custom_value: bool
+        mode: SelectSelectorMode
+        translation_key: str
+        sort: bool
+
+    class TextSelectorType(StrEnum):
+        """Valid text selector input types."""
+
+        COLOR = "color"
+        DATE = "date"
+        DATETIME_LOCAL = "datetime-local"
+        EMAIL = "email"
+        MONTH = "month"
+        NUMBER = "number"
+        PASSWORD = "password"
+        SEARCH = "search"
+        TEL = "tel"
+        TEXT = "text"
+        TIME = "time"
+        URL = "url"
+        WEEK = "week"
+
+    class TextSelectorConfig(BaseSelectorConfig, total=False):
+        """Text selector configuration shim."""
+
+        multiline: bool
+        prefix: str
+        suffix: str
+        type: TextSelectorType
+        autocomplete: str
+        multiple: bool
+
+    class TimeSelectorConfig(BaseSelectorConfig, total=False):
+        """Time selector configuration shim."""
+
+    class DateSelectorConfig(BaseSelectorConfig, total=False):
+        """Date selector configuration shim."""
+
+    class _BaseSelector[ConfigT]:
+        """Typed selector stub that mirrors Home Assistant's runtime helpers.
+
+        The shim relies on PEP 695 generics so each fallback selector exposes the
+        same TypedDict-backed configuration objects as the real helpers. This
+        keeps static analysis and IDE tooling aligned with Home Assistant's
+        implementation even when the Core package is unavailable.
+        """
+
+        def __init__(self, config: ConfigT | None = None) -> None:
+            # Normalise ``None`` to an empty mapping while preserving the specific
+            # TypedDict type advertised by ``ConfigT``. The cast is safe because
+            # TypedDicts accept missing keys when ``total=False`` and the runtime
+            # helpers perform the same normalisation before storing configs.
+            default_config: ConfigT = cast(ConfigT, {}) if config is None else config
+            self.config = default_config
 
         def __call__(self, value: Any) -> Any:
-            """Allow selector instances to act as permissive validators."""
+            """Return the provided value without validation."""
 
             return value
 
         def __repr__(self) -> str:  # pragma: no cover - debug helper
             return f"{self.__class__.__name__}(config={self.config!r})"
 
-    class NumberSelectorMode(str, Enum):
-        BOX = "box"
-        SLIDER = "slider"
+    class BooleanSelector(_BaseSelector[BooleanSelectorConfig]):
+        """Boolean selector shim."""
 
-    @dataclass(slots=True)
-    class NumberSelectorConfig:
-        min: float | None = None
-        max: float | None = None
-        step: float | None = None
-        unit_of_measurement: str | None = None
-        mode: NumberSelectorMode = NumberSelectorMode.BOX
+    class NumberSelector(_BaseSelector[NumberSelectorConfig]):
+        """Number selector shim."""
 
-    class NumberSelector(_BaseSelector):
-        pass
+    class SelectSelector(_BaseSelector[SelectSelectorConfig]):
+        """Select selector shim."""
 
-    class BooleanSelectorConfig:
-        def __init__(self, *, multiple: bool | None = None) -> None:
-            self.multiple = multiple
+    class TextSelector(_BaseSelector[TextSelectorConfig]):
+        """Text selector shim."""
 
-    class BooleanSelector(_BaseSelector):
-        pass
+    class TimeSelector(_BaseSelector[TimeSelectorConfig]):
+        """Time selector shim."""
 
-    class SelectSelectorMode(str, Enum):
-        LIST = "list"
-        DROPDOWN = "dropdown"
-
-    @dataclass(slots=True)
-    class SelectOption:
-        value: str
-        label: str | None = None
-
-    class SelectSelectorConfig:
-        def __init__(
-            self,
-            options: list[str | SelectOption],
-            *,
-            mode: SelectSelectorMode = SelectSelectorMode.DROPDOWN,
-            multiple: bool | None = None,
-            custom_value: bool | None = None,
-        ) -> None:
-            self.options = options
-            self.mode = mode
-            self.multiple = multiple
-            self.custom_value = custom_value
-
-    class SelectSelector(_BaseSelector):
-        pass
-
-    class TextSelectorType(str, Enum):
-        TEXT = "text"
-        PASSWORD = "password"  # nosec B105 - selector sentinel, not a credential
-        EMAIL = "email"
-        TEL = "tel"
-
-    class TextSelectorConfig:
-        def __init__(
-            self,
-            type: TextSelectorType = TextSelectorType.TEXT,
-            *,
-            multiline: bool | None = None,
-        ) -> None:
-            self.type = type
-            self.multiline = multiline
-
-    class TextSelector(_BaseSelector):
-        pass
-
-    class TimeSelector(_BaseSelector):
-        pass
-
-    class DateSelector(_BaseSelector):
-        pass
+    class DateSelector(_BaseSelector[DateSelectorConfig]):
+        """Date selector shim."""
 
     selector = SimpleNamespace(
         BooleanSelector=BooleanSelector,
         BooleanSelectorConfig=BooleanSelectorConfig,
         DateSelector=DateSelector,
+        DateSelectorConfig=DateSelectorConfig,
         NumberSelector=NumberSelector,
         NumberSelectorConfig=NumberSelectorConfig,
         NumberSelectorMode=NumberSelectorMode,
+        SelectOptionDict=SelectOptionDict,
         SelectSelector=SelectSelector,
         SelectSelectorConfig=SelectSelectorConfig,
         SelectSelectorMode=SelectSelectorMode,
-        SelectOption=SelectOption,
         TextSelector=TextSelector,
         TextSelectorConfig=TextSelectorConfig,
         TextSelectorType=TextSelectorType,
         TimeSelector=TimeSelector,
+        TimeSelectorConfig=TimeSelectorConfig,
     )
-else:  # pragma: no cover - exercised when Home Assistant is installed
-    selector = ha_selector
 
 __all__ = ["selector"]
