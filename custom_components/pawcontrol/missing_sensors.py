@@ -204,6 +204,7 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the activity level sensor for the specified dog."""
         super().__init__(
             coordinator,
             dog_id,
@@ -215,12 +216,14 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> str:
+        """Return the derived activity level from walk and health payloads."""
         walk_data = _walk_payload(self)
         health_data = _health_payload(self)
         return calculate_activity_level(walk_data, health_data)
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Return supplemental activity telemetry for diagnostics."""
         attrs: AttributeDict = dict(super().extra_state_attributes or {})
         walk_data = _walk_payload(self)
         health_data = _health_payload(self)
@@ -255,6 +258,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the calories burned sensor for the specified dog."""
         super().__init__(
             coordinator,
             dog_id,
@@ -283,6 +287,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> float:
+        """Estimate the calories burned today for the active dog."""
         walk_data = _walk_payload(self)
         health_data = _health_payload(self)
         dog_weight = self._resolve_dog_weight(health_data)
@@ -290,6 +295,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Provide supporting data for the calories burned calculation."""
         attrs: AttributeDict = dict(super().extra_state_attributes or {})
         walk_data = _walk_payload(self)
         health_data = _health_payload(self)
@@ -330,6 +336,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the last feeding hours sensor for the specified dog."""
         super().__init__(
             coordinator,
             dog_id,
@@ -343,6 +350,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> float | None:
+        """Return hours elapsed since the last recorded feeding."""
         feeding_data = _feeding_payload(self)
         if not feeding_data:
             return None
@@ -352,6 +360,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Return contextual feeding metadata for diagnostics."""
         attrs: AttributeDict = dict(super().extra_state_attributes or {})
         feeding_data = _feeding_payload(self)
         if not feeding_data:
@@ -387,6 +396,7 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the lifetime walk distance sensor for the specified dog."""
         super().__init__(
             coordinator,
             dog_id,
@@ -400,6 +410,7 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> float:
+        """Return the lifetime walking distance expressed in kilometres."""
         walk_data = _walk_payload(self)
         if not walk_data:
             return 0.0
@@ -420,6 +431,7 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Return aggregated walk distance metrics for the dog."""
         attrs: AttributeDict = dict(super().extra_state_attributes or {})
         walk_data = _walk_payload(self)
         if not walk_data:
@@ -454,6 +466,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
     def __init__(
         self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
     ) -> None:
+        """Initialize the weekly walk count sensor for the specified dog."""
         super().__init__(
             coordinator,
             dog_id,
@@ -466,6 +479,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
 
     @property
     def native_value(self) -> int:
+        """Return the total number of walks completed during the week."""
         walk_data = _walk_payload(self)
         if not walk_data:
             return 0
@@ -499,6 +513,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
+        """Expose weekly walk statistics derived from coordinator payloads."""
         attrs: AttributeDict = dict(super().extra_state_attributes or {})
         walk_data = _walk_payload(self)
         if not walk_data:

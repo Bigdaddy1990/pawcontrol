@@ -2609,7 +2609,7 @@ type GPSRouteExportPayload = (
 
 
 @dataclass(slots=True)
-class GPSRouteBuffer[TPoint: GPSRoutePoint]:
+class GPSRouteBuffer[TPoint: "GPSRoutePoint"]:
     """Typed buffer that stores route samples for GPS tracking."""
 
     _points: list[TPoint] = field(default_factory=list)

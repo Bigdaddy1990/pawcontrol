@@ -282,9 +282,7 @@ class NotificationManagerStats(TypedDict):
     person_entity_stats: Mapping[str, Any]
 
 
-class NotificationCache[
-    ConfigT: NotificationConfig = NotificationConfig,
-]:
+class NotificationCache[ConfigT: NotificationConfig]:
     """OPTIMIZE: Advanced caching system for notification configurations and state."""
 
     def __init__(self, max_size: int = CONFIG_CACHE_SIZE_LIMIT) -> None:

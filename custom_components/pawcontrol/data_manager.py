@@ -122,7 +122,7 @@ class AdaptiveCacheStats(TypedDict):
     memory_mb: float
 
 
-class AdaptiveCache[ValueT = Any]:
+class AdaptiveCache[ValueT]:
     """Simple asynchronous cache used by legacy tests."""
 
     def __init__(self, default_ttl: int = 300) -> None:

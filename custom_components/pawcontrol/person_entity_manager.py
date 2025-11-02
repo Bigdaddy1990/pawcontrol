@@ -61,6 +61,7 @@ class PersonNotificationCache[EntryT: PersonNotificationCacheEntry]:
     __slots__ = ("_entries",)
 
     def __init__(self) -> None:
+        """Initialize the notification target cache container."""
         self._entries: dict[str, _PersonNotificationCachePayload] = {}
 
     def clear(self) -> None:

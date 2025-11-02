@@ -3058,14 +3058,14 @@ def get_global_performance_stats() -> dict[str, Any]:
     }
 
 
-def _unwrap_async_result[T](
-    result: T | BaseException,
+def _unwrap_async_result[ResultT](
+    result: ResultT | BaseException,
     *,
     context: str,
     logger: logging.Logger = _LOGGER,
     level: int = logging.WARNING,
     suppress_cancelled: bool = False,
-) -> T | None:
+) -> ResultT | None:
     """Wrap :func:`unwrap_async_result` with module logging defaults."""
 
     return unwrap_async_result(

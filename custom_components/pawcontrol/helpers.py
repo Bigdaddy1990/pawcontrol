@@ -142,7 +142,7 @@ class OptimizedCacheSnapshot(TypedDict):
     diagnostics: CacheDiagnosticsMetadata
 
 
-class OptimizedDataCache[ValueT = Any]:
+class OptimizedDataCache[ValueT]:
     """High-performance in-memory cache with automatic cleanup."""
 
     def __init__(
