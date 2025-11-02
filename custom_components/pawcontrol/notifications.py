@@ -15,12 +15,12 @@ import inspect
 import json
 import logging
 from collections import deque
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from functools import partial
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 from uuid import uuid4
 
 from aiohttp import ClientError, ClientSession, ClientTimeout
@@ -33,6 +33,7 @@ from .feeding_translations import build_feeding_compliance_notification
 from .http_client import ensure_shared_client_session
 from .person_entity_manager import PersonEntityManager
 from .resilience import CircuitBreakerConfig, ResilienceManager
+from .types import PersonNotificationContext
 from .utils import async_call_hass_service_if_available
 from .webhook_security import WebhookSecurityError, WebhookSecurityManager
 
@@ -210,7 +211,78 @@ class NotificationEvent:
         )
 
 
-class NotificationCache:
+class NotificationCacheDiagnosticsMetadata(TypedDict):
+    """Internal diagnostics metadata maintained by :class:`NotificationCache`."""
+
+    cleanup_runs: int
+    last_cleanup: datetime | None
+    last_removed_entries: int
+
+
+class NotificationCacheDiagnostics(TypedDict):
+    """Diagnostics payload surfaced through coordinator snapshots."""
+
+    cleanup_runs: int
+    last_cleanup: str | None
+    last_removed_entries: int
+    lru_order: list[str]
+    quiet_time_keys: list[str]
+    person_targeting_keys: list[str]
+    rate_limit_keys: dict[str, int]
+
+
+class NotificationCacheStats(TypedDict):
+    """Primary statistics exported by :class:`NotificationCache`."""
+
+    config_entries: int
+    quiet_time_entries: int
+    rate_limit_entries: int
+    person_targeting_entries: int
+    cache_utilization: float
+
+
+class NotificationCacheSnapshot(TypedDict):
+    """Snapshot consumed by cache monitor diagnostics."""
+
+    stats: NotificationCacheStats
+    diagnostics: NotificationCacheDiagnostics
+
+
+class NotificationPerformanceMetrics(TypedDict):
+    """Structured performance metrics tracked by the manager."""
+
+    notifications_sent: int
+    notifications_failed: int
+    batch_operations: int
+    cache_hits: int
+    cache_misses: int
+    rate_limit_blocks: int
+    average_delivery_time_ms: float
+    person_targeted_notifications: int
+    static_fallback_notifications: int
+    config_updates: int
+    retry_reschedules: int
+    retry_successes: int
+
+
+class NotificationManagerStats(TypedDict):
+    """Telemetry payload returned by ``async_get_performance_statistics``."""
+
+    total_notifications: int
+    active_notifications: int
+    configured_dogs: int
+    type_distribution: dict[str, int]
+    priority_distribution: dict[str, int]
+    performance_metrics: NotificationPerformanceMetrics
+    cache_stats: NotificationCacheStats
+    batch_queue_size: int
+    pending_batches: int
+    available_channels: list[str]
+    handlers_registered: int
+    person_entity_stats: Mapping[str, Any]
+
+
+class NotificationCache[ConfigT: NotificationConfig]:
     """OPTIMIZE: Advanced caching system for notification configurations and state."""
 
     def __init__(self, max_size: int = CONFIG_CACHE_SIZE_LIMIT) -> None:
@@ -219,19 +291,19 @@ class NotificationCache:
         Args:
             max_size: Maximum cache entries
         """
-        self._config_cache: dict[str, tuple[NotificationConfig, datetime]] = {}
+        self._config_cache: dict[str, tuple[ConfigT, datetime]] = {}
         self._quiet_time_cache: dict[str, tuple[bool, datetime]] = {}
         self._rate_limit_cache: dict[str, dict[str, datetime]] = {}
         self._person_targeting_cache: dict[str, tuple[list[str], datetime]] = {}  # NEW
         self._max_size = max_size
         self._access_order: deque[str] = deque()
-        self._diagnostics: dict[str, Any] = {
+        self._diagnostics: NotificationCacheDiagnosticsMetadata = {
             "cleanup_runs": 0,
             "last_cleanup": None,
             "last_removed_entries": 0,
         }
 
-    def get_config(self, config_key: str) -> NotificationConfig | None:
+    def get_config(self, config_key: str) -> ConfigT | None:
         """Get cached configuration.
 
         Args:
@@ -249,7 +321,7 @@ class NotificationCache:
             return config
         return None
 
-    def set_config(self, config_key: str, config: NotificationConfig) -> None:
+    def set_config(self, config_key: str, config: ConfigT) -> None:
         """Set configuration with LRU eviction.
 
         Args:
@@ -391,45 +463,56 @@ class NotificationCache:
                 del channels[channel]
                 cleaned += 1
 
-        self._diagnostics["cleanup_runs"] = (
-            int(self._diagnostics.get("cleanup_runs", 0)) + 1
-        )
+        self._diagnostics["cleanup_runs"] += 1
         self._diagnostics["last_cleanup"] = now
         self._diagnostics["last_removed_entries"] = cleaned
         return cleaned
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> NotificationCacheStats:
         """Get cache statistics."""
-        return {
+        max_size = self._max_size
+        cache_utilization = (
+            (len(self._config_cache) / max_size * 100) if max_size > 0 else 0.0
+        )
+
+        stats: NotificationCacheStats = {
             "config_entries": len(self._config_cache),
             "quiet_time_entries": len(self._quiet_time_cache),
             "rate_limit_entries": sum(
                 len(channels) for channels in self._rate_limit_cache.values()
             ),
             "person_targeting_entries": len(self._person_targeting_cache),
-            "cache_utilization": len(self._config_cache) / self._max_size * 100,
+            "cache_utilization": cache_utilization,
         }
+        return stats
 
-    def get_diagnostics(self) -> dict[str, Any]:
+    def get_diagnostics(self) -> NotificationCacheDiagnostics:
         """Return diagnostics metadata consumed by coordinator snapshots."""
 
-        diagnostics = dict(self._diagnostics)
-        last_cleanup = diagnostics.get("last_cleanup")
-        diagnostics["last_cleanup"] = (
-            last_cleanup.isoformat() if isinstance(last_cleanup, datetime) else None
-        )
-        diagnostics["lru_order"] = list(self._access_order)
-        diagnostics["quiet_time_keys"] = list(self._quiet_time_cache)
-        diagnostics["person_targeting_keys"] = list(self._person_targeting_cache)
-        diagnostics["rate_limit_keys"] = {
-            key: len(channels) for key, channels in self._rate_limit_cache.items()
+        metadata = self._diagnostics
+        last_cleanup = metadata["last_cleanup"]
+
+        diagnostics: NotificationCacheDiagnostics = {
+            "cleanup_runs": metadata["cleanup_runs"],
+            "last_cleanup": last_cleanup.isoformat() if last_cleanup else None,
+            "last_removed_entries": metadata["last_removed_entries"],
+            "lru_order": list(self._access_order),
+            "quiet_time_keys": list(self._quiet_time_cache),
+            "person_targeting_keys": list(self._person_targeting_cache),
+            "rate_limit_keys": {
+                key: len(channels) for key, channels in self._rate_limit_cache.items()
+            },
         }
         return diagnostics
 
-    def coordinator_snapshot(self) -> dict[str, Any]:
+    def coordinator_snapshot(self) -> NotificationCacheSnapshot:
         """Return a coordinator-friendly snapshot of cache telemetry."""
 
-        return {"stats": self.get_stats(), "diagnostics": self.get_diagnostics()}
+        snapshot: NotificationCacheSnapshot = {
+            "stats": self.get_stats(),
+            "diagnostics": self.get_diagnostics(),
+        }
+        return snapshot
 
 
 class PawControlNotificationManager:
@@ -486,7 +569,7 @@ class PawControlNotificationManager:
         self._pending_batches: dict[str, list[NotificationEvent]] = {}
 
         # OPTIMIZE: Performance monitoring
-        self._performance_metrics = {
+        self._performance_metrics: NotificationPerformanceMetrics = {
             "notifications_sent": 0,
             "notifications_failed": 0,
             "batch_operations": 0,
@@ -519,6 +602,14 @@ class PawControlNotificationManager:
         """Return the shared aiohttp session used for webhooks."""
 
         return self._session
+
+    def get_performance_metrics(self) -> NotificationPerformanceMetrics:
+        """Return a shallow copy of the performance metrics payload."""
+
+        metrics: NotificationPerformanceMetrics = {
+            **self._performance_metrics,
+        }
+        return metrics
 
     def _setup_default_handlers(self) -> None:
         """Setup default notification handlers with error handling."""
@@ -1807,7 +1898,7 @@ class PawControlNotificationManager:
             _LOGGER.info("Acknowledged notification %s", notification_id)
             return True
 
-    async def async_get_performance_statistics(self) -> dict[str, Any]:
+    async def async_get_performance_statistics(self) -> NotificationManagerStats:
         """Get comprehensive performance statistics.
 
         OPTIMIZE: New method for monitoring system performance.
@@ -1838,11 +1929,11 @@ class PawControlNotificationManager:
                 priority_counts[priority] = priority_counts.get(priority, 0) + 1
 
             # NEW: Person targeting statistics
-            person_stats = {}
+            person_stats: Mapping[str, Any] = {}
             if self._person_manager:
                 person_stats = self._person_manager.get_statistics()
 
-            return {
+            stats: NotificationManagerStats = {
                 # Basic stats
                 "total_notifications": total_notifications,
                 "active_notifications": active_notifications,
@@ -1850,7 +1941,7 @@ class PawControlNotificationManager:
                 "type_distribution": type_counts,
                 "priority_distribution": priority_counts,
                 # Performance metrics
-                "performance_metrics": self._performance_metrics.copy(),
+                "performance_metrics": self.get_performance_metrics(),
                 "cache_stats": self._cache.get_stats(),
                 "batch_queue_size": len(self._batch_queue),
                 "pending_batches": len(self._pending_batches),
@@ -1860,6 +1951,7 @@ class PawControlNotificationManager:
                 # NEW: Person targeting stats
                 "person_entity_stats": person_stats,
             }
+            return stats
 
     def register_cache_monitors(self, registrar: CacheMonitorRegistrar) -> None:
         """Register notification-centric caches with the provided registrar."""
@@ -2151,7 +2243,7 @@ class PawControlNotificationManager:
             return await self._person_manager.async_force_discovery()
         return {"error": "Person manager not available"}
 
-    def get_person_notification_context(self) -> dict[str, Any]:
+    def get_person_notification_context(self) -> PersonNotificationContext:
         """Get current person notification context.
 
         Returns:
@@ -2159,7 +2251,15 @@ class PawControlNotificationManager:
         """
         if self._person_manager:
             return self._person_manager.get_notification_context()
-        return {"persons_home": 0, "persons_away": 0, "has_anyone_home": False}
+        return {
+            "persons_home": 0,
+            "persons_away": 0,
+            "home_person_names": [],
+            "away_person_names": [],
+            "total_persons": 0,
+            "has_anyone_home": False,
+            "everyone_away": False,
+        }
 
 
 _unwrap_async_result = partial(unwrap_async_result, logger=_LOGGER)

@@ -9,9 +9,9 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections import deque
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sized
 from contextlib import suppress
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import wraps
 from time import perf_counter
@@ -40,7 +40,18 @@ from .const import (
     EVENT_WALK_ENDED,
     EVENT_WALK_STARTED,
 )
-from .types import CacheDiagnosticsMetadata, HealthEvent, WalkEvent
+from .types import (
+    CacheDiagnosticsMetadata,
+    HealthEvent,
+    JSONValue,
+    NotificationQueueStats,
+    PerformanceMonitorSnapshot,
+    StorageCacheValue,
+    StorageNamespaceKey,
+    StorageNamespacePayload,
+    StorageNamespaceState,
+    WalkEvent,
+)
 from .utils import (
     async_call_hass_service_if_available,
     async_fire_event,
@@ -104,7 +115,34 @@ class PerformanceMetrics(TypedDict):
     last_cleanup: str | None
 
 
-class OptimizedDataCache:
+class OptimizedCacheStats(TypedDict):
+    """Primary statistics reported by :class:`OptimizedDataCache`."""
+
+    entries: int
+    memory_mb: float
+    total_accesses: int
+    avg_accesses: float
+    hits: int
+    misses: int
+    hit_rate: float
+
+
+class OptimizedCacheMetrics(OptimizedCacheStats):
+    """Extended metrics payload including override bookkeeping."""
+
+    default_ttl_seconds: int
+    tracked_keys: int
+    override_candidates: int
+
+
+class OptimizedCacheSnapshot(TypedDict):
+    """Combined snapshot returned to coordinator diagnostics."""
+
+    stats: OptimizedCacheMetrics
+    diagnostics: CacheDiagnosticsMetadata
+
+
+class OptimizedDataCache[ValueT]:
     """High-performance in-memory cache with automatic cleanup."""
 
     def __init__(
@@ -113,7 +151,7 @@ class OptimizedDataCache:
         default_ttl_seconds: int = 300,
     ) -> None:
         """Initialize cache with memory limits and TTL management."""
-        self._cache: dict[str, Any] = {}
+        self._cache: dict[str, ValueT] = {}
         self._timestamps: dict[str, datetime] = {}
         self._access_count: dict[str, int] = {}
         self._ttls: dict[str, int] = {}
@@ -134,7 +172,7 @@ class OptimizedDataCache:
             "last_expired_count": 0,
         }
 
-    async def get(self, key: str, default: Any = None) -> Any:
+    async def get(self, key: str, default: ValueT | None = None) -> ValueT | None:
         """Get cached value with access tracking."""
         async with self._lock:
             if key in self._cache:
@@ -153,11 +191,11 @@ class OptimizedDataCache:
             self._misses += 1
             return default
 
-    async def set(self, key: str, value: Any, ttl_seconds: int = 300) -> None:
+    async def set(self, key: str, value: ValueT, ttl_seconds: int = 300) -> None:
         """Set cached value with TTL and memory management."""
         async with self._lock:
             # Estimate memory usage
-            value_size = self._estimate_size(value)
+            value_size = self._estimate_size(cast(Any, value))
 
             # Clean up if needed
             while (
@@ -169,7 +207,7 @@ class OptimizedDataCache:
             # Store value
             if key in self._cache:
                 # Update existing
-                old_size = self._estimate_size(self._cache[key])
+                old_size = self._estimate_size(cast(Any, self._cache[key]))
                 self._current_memory -= old_size
 
             now = dt_util.utcnow()
@@ -259,7 +297,7 @@ class OptimizedDataCache:
     def _remove_locked(self, key: str, *, record_expiration: bool = True) -> None:
         """Remove a key from the cache while holding the lock."""
         if key in self._cache:
-            value_size = self._estimate_size(self._cache[key])
+            value_size = self._estimate_size(cast(Any, self._cache[key]))
             self._current_memory -= value_size
             del self._cache[key]
 
@@ -348,7 +386,7 @@ class OptimizedDataCache:
                 return len(value) * 200  # Rough estimate
             return 1024  # Default 1KB
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> OptimizedCacheStats:
         """Get cache performance statistics with hit/miss tracking.
 
         Returns a dictionary that includes size metrics, access frequency, and
@@ -357,7 +395,7 @@ class OptimizedDataCache:
         total_requests = self._hits + self._misses
         hit_rate = (self._hits / total_requests * 100) if total_requests else 0.0
 
-        return {
+        stats: OptimizedCacheStats = {
             "entries": len(self._cache),
             "memory_mb": round(self._current_memory / (1024 * 1024), 2),
             "total_accesses": sum(self._access_count.values()),
@@ -370,20 +408,20 @@ class OptimizedDataCache:
             "misses": self._misses,
             "hit_rate": round(hit_rate, 1),
         }
+        return stats
 
-    def get_metrics(self) -> dict[str, Any]:
+    def get_metrics(self) -> OptimizedCacheMetrics:
         """Return an extended metrics payload for coordinator diagnostics."""
 
-        metrics = self.get_stats()
-        metrics.update(
-            {
-                "default_ttl_seconds": self._default_ttl_seconds,
-                "tracked_keys": len(self._timestamps),
-                "override_candidates": sum(
-                    1 for flag in self._override_flags.values() if flag
-                ),
-            }
-        )
+        stats = self.get_stats()
+        metrics: OptimizedCacheMetrics = {
+            **stats,
+            "default_ttl_seconds": self._default_ttl_seconds,
+            "tracked_keys": len(self._timestamps),
+            "override_candidates": sum(
+                1 for flag in self._override_flags.values() if flag
+            ),
+        }
         return metrics
 
     def get_diagnostics(self) -> CacheDiagnosticsMetadata:
@@ -403,13 +441,14 @@ class OptimizedDataCache:
         )
         return snapshot
 
-    def coordinator_snapshot(self) -> dict[str, Any]:
+    def coordinator_snapshot(self) -> OptimizedCacheSnapshot:
         """Return a combined metrics/diagnostics payload for coordinators."""
 
-        return {
+        snapshot: OptimizedCacheSnapshot = {
             "stats": self.get_metrics(),
             "diagnostics": self.get_diagnostics(),
         }
+        return snapshot
 
 
 class PawControlDataStorage:
@@ -419,11 +458,11 @@ class PawControlDataStorage:
         """Initialize optimized storage manager."""
         self.hass = hass
         self.config_entry = config_entry
-        self._stores: dict[str, storage.Store] = {}
-        self._cache = OptimizedDataCache()
+        self._stores: dict[StorageNamespaceKey, storage.Store] = {}
+        self._cache: OptimizedDataCache[StorageCacheValue] = OptimizedDataCache()
 
         # OPTIMIZATION: Batch save mechanism
-        self._dirty_stores: set[str] = set()
+        self._dirty_stores: set[StorageNamespaceKey] = set()
         self._save_task: asyncio.Task | None = None
         self._save_lock = asyncio.Lock()
 
@@ -441,13 +480,13 @@ class PawControlDataStorage:
 
     def _initialize_stores(self) -> None:
         """Initialize storage stores with atomic writes."""
-        store_configs = [
+        store_configs: tuple[tuple[str, StorageNamespaceKey], ...] = (
             (DATA_FILE_WALKS, "walks"),
             (DATA_FILE_FEEDINGS, "feedings"),
             (DATA_FILE_HEALTH, "health"),
             (DATA_FILE_ROUTES, "routes"),
             (DATA_FILE_STATS, "statistics"),
-        ]
+        )
 
         for filename, store_key in store_configs:
             self._stores[store_key] = storage.Store(
@@ -459,14 +498,14 @@ class PawControlDataStorage:
                 minor_version=1,
             )
 
-    async def async_load_all_data(self) -> dict[str, Any]:
+    async def async_load_all_data(self) -> StorageNamespaceState:
         """OPTIMIZED: Load with caching and concurrent operations."""
         try:
             # Check cache first
             cache_key = "all_data"
             cached_data = await self._cache.get(cache_key)
-            if cached_data is not None:
-                return cached_data
+            if isinstance(cached_data, dict):
+                return cast(StorageNamespaceState, cached_data)
 
             # Load all data stores concurrently
             load_tasks = [
@@ -475,13 +514,14 @@ class PawControlDataStorage:
 
             results = await asyncio.gather(*load_tasks, return_exceptions=True)
 
-            data: dict[str, dict[str, Any]] = {}
+            data: StorageNamespaceState = {}
             for store_key, result in zip(self._stores.keys(), results, strict=False):
                 if isinstance(result, BaseException):
                     _LOGGER.error("Failed to load %s data: %s", store_key, result)
-                    data[store_key] = {}
+                    data[store_key] = cast(StorageNamespacePayload, {})
                 else:
-                    data[store_key] = result or {}
+                    payload = result if isinstance(result, dict) else {}
+                    data[store_key] = cast(StorageNamespacePayload, payload)
 
             # Cache the loaded data
             await self._cache.set(cache_key, data, ttl_seconds=300)
@@ -495,33 +535,38 @@ class PawControlDataStorage:
             _LOGGER.error("Failed to load integration data: %s", err)
             raise HomeAssistantError(f"Data loading failed: {err}") from err
 
-    async def _load_store_data_cached(self, store_key: str) -> dict[str, Any]:
+    async def _load_store_data_cached(
+        self, store_key: StorageNamespaceKey
+    ) -> StorageNamespacePayload:
         """Load data from store with caching."""
         # Check cache first
         cached = await self._cache.get(f"store_{store_key}")
-        if cached is not None:
-            return cached
+        if isinstance(cached, dict):
+            return cast(StorageNamespacePayload, cached)
 
         # Load from storage
         store = self._stores.get(store_key)
         if not store:
-            return {}
+            return cast(StorageNamespacePayload, {})
 
         try:
             data = await store.async_load()
             result = data or {}
 
             # Cache the result
-            await self._cache.set(f"store_{store_key}", result, ttl_seconds=600)
-            return result
+            payload = result if isinstance(result, dict) else {}
+            await self._cache.set(f"store_{store_key}", payload, ttl_seconds=600)
+            return cast(StorageNamespacePayload, payload)
 
         except asyncio.CancelledError:
             raise
         except Exception as err:
             _LOGGER.error("Failed to load %s store: %s", store_key, err)
-            return {}
+            return cast(StorageNamespacePayload, {})
 
-    async def async_save_data(self, store_key: str, data: dict[str, Any]) -> None:
+    async def async_save_data(
+        self, store_key: StorageNamespaceKey, data: StorageNamespacePayload
+    ) -> None:
         """OPTIMIZED: Save with batching to reduce I/O operations."""
         # Update cache immediately
         await self._cache.set(f"store_{store_key}", data, ttl_seconds=600)
@@ -558,13 +603,14 @@ class PawControlDataStorage:
 
             # Save all dirty stores concurrently
             save_tasks: list[Awaitable[None]] = []
-            task_store_keys: list[str] = []
+            task_store_keys: list[StorageNamespaceKey] = []
             for store_key in stores_to_save:
                 cached_data = await self._cache.get(f"store_{store_key}")
-                if cached_data is None:
+                if not isinstance(cached_data, dict):
                     continue
 
-                save_tasks.append(self._save_store_immediate(store_key, cached_data))
+                payload = cast(StorageNamespacePayload, cached_data)
+                save_tasks.append(self._save_store_immediate(store_key, payload))
                 task_store_keys.append(store_key)
 
             if save_tasks:
@@ -577,7 +623,9 @@ class PawControlDataStorage:
                     else:
                         _LOGGER.debug("Saved %s store in batch", store_key)
 
-    async def _save_store_immediate(self, store_key: str, data: dict[str, Any]) -> None:
+    async def _save_store_immediate(
+        self, store_key: StorageNamespaceKey, data: StorageNamespacePayload
+    ) -> None:
         """Save store data immediately."""
         store = self._stores.get(store_key)
         if not store:
@@ -609,7 +657,7 @@ class PawControlDataStorage:
         _LOGGER.debug("Cleaned up %d old entries across all stores", total_cleaned)
 
     async def _cleanup_store_optimized(
-        self, store_key: str, cutoff_date: datetime
+        self, store_key: StorageNamespaceKey, cutoff_date: datetime
     ) -> int:
         """Clean up store with size limits and optimization."""
         try:
@@ -635,17 +683,17 @@ class PawControlDataStorage:
             return 0
 
     def _cleanup_store_data(
-        self, data: dict[str, Any], cutoff_date: datetime
-    ) -> dict[str, Any]:
+        self, data: StorageNamespacePayload, cutoff_date: datetime
+    ) -> StorageNamespacePayload:
         """Remove entries older than cutoff date with optimization."""
         if not isinstance(data, dict):
-            return data
+            return cast(StorageNamespacePayload, {})
 
-        cleaned: dict[str, Any] = {}
+        cleaned: StorageNamespacePayload = {}
         for key, value in data.items():
             if isinstance(value, list):
                 # Clean list of entries
-                cleaned_list: list[Any] = []
+                cleaned_list: list[JSONValue] = []
                 for entry in value:
                     if isinstance(entry, dict) and "timestamp" in entry:
                         entry_date = ensure_utc_datetime(entry.get("timestamp"))
@@ -665,38 +713,55 @@ class PawControlDataStorage:
 
         return cleaned
 
-    def _enforce_size_limits(self, data: dict[str, Any]) -> dict[str, Any]:
+    def _enforce_size_limits(
+        self, data: StorageNamespacePayload
+    ) -> StorageNamespacePayload:
         """OPTIMIZATION: Enforce size limits to prevent memory bloat."""
-        limited_data: dict[str, Any] = {}
+        limited_data: StorageNamespacePayload = {}
 
         for key, value in data.items():
-            if isinstance(value, list) and len(value) > MAX_HISTORY_ITEMS:
-                # Sort by timestamp (newest first) and keep most recent
-                try:
-                    sorted_value = sorted(
-                        value, key=lambda x: x.get("timestamp", ""), reverse=True
-                    )
-                    limited_data[key] = sorted_value[:MAX_HISTORY_ITEMS]
-                    _LOGGER.debug(
-                        "Limited %s entries from %d to %d",
-                        key,
-                        len(value),
-                        len(limited_data[key]),
-                    )
-                except (TypeError, KeyError):
-                    # Fallback to simple truncation
-                    limited_data[key] = value[-MAX_HISTORY_ITEMS:]
-            else:
-                limited_data[key] = value
+            if isinstance(value, list):
+                if len(value) > MAX_HISTORY_ITEMS:
+                    # Sort by timestamp (newest first) and keep most recent
+                    try:
+                        sorted_value = sorted(
+                            value, key=lambda x: x.get("timestamp", ""), reverse=True
+                        )
+                        before = len(value)
+                        limited_slice = sorted_value[:MAX_HISTORY_ITEMS]
+                        limited_data[key] = cast(JSONValue, limited_slice)
+                        _LOGGER.debug(
+                            "Limited %s entries from %d to %d",
+                            key,
+                            before,
+                            len(limited_slice),
+                        )
+                    except (TypeError, KeyError):
+                        # Fallback to simple truncation
+                        before = len(value)
+                        truncated = value[-MAX_HISTORY_ITEMS:]
+                        limited_data[key] = cast(JSONValue, truncated)
+                        _LOGGER.debug(
+                            "Limited %s entries from %d to %d",
+                            key,
+                            before,
+                            len(truncated),
+                        )
+                else:
+                    limited_data[key] = value
+                continue
+
+            limited_data[key] = value
 
         return limited_data
 
-    def _count_entries(self, data: dict[str, Any]) -> int:
+    def _count_entries(self, data: StorageNamespacePayload) -> int:
         """Count total entries in data structure."""
         count = 0
         for value in data.values():
             if isinstance(value, list | dict):
-                count += len(value)
+                sized_value = cast(Sized, value)
+                count += len(sized_value)
             else:
                 count += 1
         return count
@@ -762,7 +827,7 @@ class PawControlData:
         start_time = loop.time()
 
         load_failed = False
-        loaded_data: Any = {}
+        loaded_data: StorageNamespaceState
 
         try:
             loaded_data = await self.storage.async_load_all_data()
@@ -771,7 +836,7 @@ class PawControlData:
         except Exception as err:
             load_failed = True
             _LOGGER.error("Failed to initialize data manager: %s", err)
-            loaded_data = self._create_empty_data()
+            loaded_data = cast(StorageNamespaceState, self._create_empty_data())
 
         self._data = self._ensure_data_structure(loaded_data)
         self._hydrate_event_models()
@@ -1571,15 +1636,16 @@ class PawControlNotificationManager:
             # Quiet hours within same day
             return not (quiet_start_time <= now <= quiet_end_time)
 
-    def get_queue_stats(self) -> dict[str, Any]:
+    def get_queue_stats(self) -> NotificationQueueStats:
         """Get notification queue statistics."""
-        return {
+        stats: NotificationQueueStats = {
             "normal_queue_size": len(self._notification_queue),
             "high_priority_queue_size": len(self._high_priority_queue),
             "total_queued": len(self._notification_queue)
             + len(self._high_priority_queue),
             "max_queue_size": MAX_NOTIFICATION_QUEUE,
         }
+        return stats
 
     async def async_shutdown(self) -> None:
         """Shutdown notification manager."""
@@ -1731,8 +1797,9 @@ class PerformanceMonitor:
 
         return decorator
 
-    def get_metrics(self) -> dict[str, Any]:
+    def get_metrics(self) -> PerformanceMonitorSnapshot:
         """Get performance metrics."""
+
         total_cache_operations = self._metrics.cache_hits + self._metrics.cache_misses
         cache_hit_rate = (
             (self._metrics.cache_hits / total_cache_operations * 100)
@@ -1746,17 +1813,23 @@ class PerformanceMonitor:
             else 0
         )
 
-        metrics_snapshot = asdict(self._metrics)
-        last_cleanup = metrics_snapshot["last_cleanup"]
-        if isinstance(last_cleanup, datetime):
-            metrics_snapshot["last_cleanup"] = last_cleanup.isoformat()
+        last_cleanup_value = self._metrics.last_cleanup
+        last_cleanup_iso: str | None = None
+        if isinstance(last_cleanup_value, datetime):
+            last_cleanup_iso = dt_util.as_utc(last_cleanup_value).isoformat()
 
-        return {
-            **metrics_snapshot,
+        metrics: PerformanceMonitorSnapshot = {
+            "operations": self._metrics.operations,
+            "errors": self._metrics.errors,
+            "cache_hits": self._metrics.cache_hits,
+            "cache_misses": self._metrics.cache_misses,
+            "avg_operation_time": self._metrics.avg_operation_time,
+            "last_cleanup": last_cleanup_iso,
             "cache_hit_rate": round(cache_hit_rate, 1),
             "error_rate": round(error_rate, 1),
             "recent_operations": len(self._operation_times),
         }
+        return metrics
 
     def reset_metrics(self) -> None:
         """Reset all metrics."""

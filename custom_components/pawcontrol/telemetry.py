@@ -16,6 +16,7 @@ from .types import (
     PawControlRuntimeData,
     ReconfigureTelemetry,
     ReconfigureTelemetrySummary,
+    RuntimePerformanceStats,
 )
 
 _BOOL_COERCION_METRICS: BoolCoercionMetrics = {
@@ -72,6 +73,34 @@ def _calculate_active_window_seconds(
     if window < 0:
         return 0.0
     return window
+
+
+def get_runtime_performance_stats(
+    runtime_data: PawControlRuntimeData | None,
+) -> RuntimePerformanceStats | None:
+    """Return runtime performance stats when present and mutable."""
+
+    if runtime_data is None:
+        return None
+
+    performance_stats = getattr(runtime_data, "performance_stats", None)
+    if not isinstance(performance_stats, MutableMapping):
+        return None
+
+    return cast(RuntimePerformanceStats, performance_stats)
+
+
+def ensure_runtime_performance_stats(
+    runtime_data: PawControlRuntimeData,
+) -> RuntimePerformanceStats:
+    """Return a mutable runtime performance stats mapping, initialising if needed."""
+
+    performance_stats = get_runtime_performance_stats(runtime_data)
+    if performance_stats is not None:
+        return performance_stats
+
+    runtime_data.performance_stats = cast(RuntimePerformanceStats, {})
+    return runtime_data.performance_stats
 
 
 def record_bool_coercion_event(
@@ -245,11 +274,8 @@ def get_runtime_bool_coercion_summary(
 ) -> BoolCoercionSummary | None:
     """Return the cached bool coercion summary when stored in runtime stats."""
 
-    if runtime_data is None:
-        return None
-
-    performance_stats = getattr(runtime_data, "performance_stats", None)
-    if not isinstance(performance_stats, Mapping):
+    performance_stats = get_runtime_performance_stats(runtime_data)
+    if performance_stats is None:
         return None
 
     summary = performance_stats.get("bool_coercion_summary")
@@ -268,15 +294,11 @@ def update_runtime_bool_coercion_summary(
 
     summary = summarise_bool_coercion_metrics(sample_limit=sample_limit)
 
-    if runtime_data is None:
-        return summary
-
-    performance_stats = getattr(runtime_data, "performance_stats", None)
-    if not isinstance(performance_stats, MutableMapping):
-        runtime_data.performance_stats = {}
-        performance_stats = runtime_data.performance_stats
-
-    performance_stats["bool_coercion_summary"] = dict(summary)
+    if runtime_data is not None:
+        performance_stats = ensure_runtime_performance_stats(runtime_data)
+        performance_stats["bool_coercion_summary"] = cast(
+            BoolCoercionSummary, dict(summary)
+        )
     return summary
 
 
@@ -358,8 +380,8 @@ def get_runtime_reconfigure_summary(
 ) -> ReconfigureTelemetrySummary | None:
     """Return the cached reconfigure summary stored in performance stats."""
 
-    performance_stats = getattr(runtime_data, "performance_stats", None)
-    if not isinstance(performance_stats, Mapping):
+    performance_stats = get_runtime_performance_stats(runtime_data)
+    if performance_stats is None:
         return None
 
     summary = performance_stats.get("reconfigure_summary")
@@ -380,10 +402,7 @@ def update_runtime_reconfigure_summary(
 
     summary = summarise_reconfigure_options(options)
 
-    performance_stats = getattr(runtime_data, "performance_stats", None)
-    if not isinstance(performance_stats, MutableMapping):
-        runtime_data.performance_stats = {}
-        performance_stats = runtime_data.performance_stats
+    performance_stats = ensure_runtime_performance_stats(runtime_data)
 
     if summary is None:
         performance_stats.pop("reconfigure_summary", None)
@@ -398,8 +417,8 @@ def get_runtime_resilience_summary(
 ) -> CoordinatorResilienceSummary | None:
     """Return the cached resilience summary from performance statistics."""
 
-    performance_stats = getattr(runtime_data, "performance_stats", None)
-    if not isinstance(performance_stats, Mapping):
+    performance_stats = get_runtime_performance_stats(runtime_data)
+    if performance_stats is None:
         return None
 
     summary = performance_stats.get("resilience_summary")
@@ -415,16 +434,15 @@ def update_runtime_resilience_summary(
 ) -> CoordinatorResilienceSummary | None:
     """Persist the latest resilience summary in runtime performance stats."""
 
-    performance_stats = getattr(runtime_data, "performance_stats", None)
-    if not isinstance(performance_stats, MutableMapping):
-        runtime_data.performance_stats = {}
-        performance_stats = runtime_data.performance_stats
+    performance_stats = ensure_runtime_performance_stats(runtime_data)
 
     if summary is None:
         performance_stats.pop("resilience_summary", None)
         return None
 
-    performance_stats["resilience_summary"] = dict(summary)
+    performance_stats["resilience_summary"] = cast(
+        CoordinatorResilienceSummary, dict(summary)
+    )
     return summary
 
 
@@ -443,10 +461,7 @@ def record_door_sensor_persistence_failure(
     if runtime_data is None:
         return None
 
-    performance_stats = getattr(runtime_data, "performance_stats", None)
-    if not isinstance(performance_stats, MutableMapping):
-        runtime_data.performance_stats = {}
-        performance_stats = runtime_data.performance_stats
+    performance_stats = ensure_runtime_performance_stats(runtime_data)
 
     failures_raw = performance_stats.get("door_sensor_failures")
     if isinstance(failures_raw, list):

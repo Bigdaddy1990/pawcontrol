@@ -7,7 +7,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from datetime import timedelta
 from inspect import isawaitable
 from time import perf_counter
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, Any, cast, overload
 
 from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant, callback
@@ -68,15 +68,20 @@ from .exceptions import ValidationError
 from .http_client import ensure_shared_client_session
 from .module_adapters import CoordinatorModuleAdapters
 from .resilience import ResilienceManager, RetryConfig
+from .telemetry import get_runtime_performance_stats
 from .types import (
     CoordinatorDataPayload,
     CoordinatorDogData,
     CoordinatorModuleState,
+    CoordinatorPerformanceSnapshot,
     CoordinatorRuntimeManagers,
     CoordinatorRuntimeStatisticsPayload,
+    CoordinatorSecurityScorecard,
     CoordinatorStatisticsPayload,
     CoordinatorTypedModuleName,
     PawControlConfigEntry,
+    PawControlRuntimeData,
+    WebhookSecurityStatus,
 )
 
 # Maintain the legacy name to avoid touching the rest of the module logic
@@ -484,7 +489,7 @@ class PawControlCoordinator(
         )
         return stats
 
-    def get_performance_snapshot(self) -> dict[str, Any]:
+    def get_performance_snapshot(self) -> CoordinatorPerformanceSnapshot:
         """Return a comprehensive performance snapshot for diagnostics surfaces."""
 
         adaptive = self._adaptive_polling.as_diagnostics()
@@ -496,18 +501,17 @@ class PawControlCoordinator(
 
         resilience = collect_resilience_diagnostics(self)
 
-        snapshot = dict(
-            build_observability_snapshot(
-                metrics=self._metrics,
-                adaptive=adaptive,
-                entity_budget=entity_budget,
-                update_interval=update_interval,
-                last_update_time=last_update_time,
-                last_update_success=self.last_update_success,
-                webhook_status=self._webhook_security_status(),
-                resilience=resilience.get("summary") if resilience else None,
-            )
+        base_snapshot = build_observability_snapshot(
+            metrics=self._metrics,
+            adaptive=adaptive,
+            entity_budget=entity_budget,
+            update_interval=update_interval,
+            last_update_time=last_update_time,
+            last_update_success=self.last_update_success,
+            webhook_status=self._webhook_security_status(),
+            resilience=resilience.get("summary") if resilience else None,
         )
+        snapshot = cast(CoordinatorPerformanceSnapshot, dict(base_snapshot))
 
         if resilience:
             snapshot["resilience"] = resilience
@@ -518,10 +522,8 @@ class PawControlCoordinator(
             snapshot["rejection_metrics"] = rejection_metrics
 
         runtime_data = getattr(self.config_entry, "runtime_data", None)
-        performance_stats_payload = (
-            getattr(runtime_data, "performance_stats", None)
-            if runtime_data is not None
-            else None
+        performance_stats_payload = get_runtime_performance_stats(
+            cast(PawControlRuntimeData | None, runtime_data)
         )
         guard_metrics = resolve_service_guard_metrics(performance_stats_payload)
         snapshot["service_execution"] = {
@@ -534,7 +536,7 @@ class PawControlCoordinator(
 
         return snapshot
 
-    def get_security_scorecard(self) -> dict[str, Any]:
+    def get_security_scorecard(self) -> CoordinatorSecurityScorecard:
         """Return aggregated pass/fail status for security critical checks."""
 
         adaptive = self._adaptive_polling.as_diagnostics()
@@ -558,7 +560,7 @@ class PawControlCoordinator(
         """Stop background tasks and release resources."""
         await shutdown_tasks(self)
 
-    def _webhook_security_status(self) -> dict[str, Any]:
+    def _webhook_security_status(self) -> WebhookSecurityStatus:
         """Return normalised webhook security information."""
 
         manager = getattr(self, "notification_manager", None)

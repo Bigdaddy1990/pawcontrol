@@ -77,6 +77,7 @@ from custom_components.pawcontrol.types import (
     DogVaccinationRecord,
     DogValidationCacheEntry,
     DogValidationResult,
+    ModuleConfigurationStepInput,
     dog_feeding_config_from_flow,
     dog_modules_from_flow_input,
     ensure_dog_modules_config,
@@ -1309,45 +1310,6 @@ class DogManagementMixin(DogManagementMixinBase):
         # Round to nearest 10g
         return round(suggested / 10) * 10
 
-    def _get_feeding_defaults_by_size(self, dog_size: str) -> dict[str, Any]:
-        """Get feeding defaults based on dog size.
-
-        Args:
-            dog_size: Size category of the dog
-
-        Returns:
-            Dictionary with feeding defaults
-        """
-        feeding_defaults = {
-            "toy": {
-                CONF_MEALS_PER_DAY: 3,
-                CONF_DAILY_FOOD_AMOUNT: 150,
-                "portion_size": 50,
-            },
-            "small": {
-                CONF_MEALS_PER_DAY: 2,
-                CONF_DAILY_FOOD_AMOUNT: 300,
-                "portion_size": 150,
-            },
-            "medium": {
-                CONF_MEALS_PER_DAY: 2,
-                CONF_DAILY_FOOD_AMOUNT: 500,
-                "portion_size": 250,
-            },
-            "large": {
-                CONF_MEALS_PER_DAY: 2,
-                CONF_DAILY_FOOD_AMOUNT: 800,
-                "portion_size": 400,
-            },
-            "giant": {
-                CONF_MEALS_PER_DAY: 2,
-                CONF_DAILY_FOOD_AMOUNT: 1200,
-                "portion_size": 600,
-            },
-        }
-
-        return feeding_defaults.get(dog_size, feeding_defaults["medium"])
-
     async def _create_enhanced_dog_schema(
         self,
         user_input: DogSetupStepInput | Mapping[str, Any] | None,
@@ -1828,7 +1790,7 @@ class DogManagementMixin(DogManagementMixinBase):
         )
 
     async def async_step_configure_modules(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ModuleConfigurationStepInput | None = None
     ) -> ConfigFlowResult:
         """Configure global module settings after all dogs are added.
 

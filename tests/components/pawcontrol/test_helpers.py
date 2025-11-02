@@ -4,13 +4,18 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Coroutine
-from typing import Any
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from custom_components.pawcontrol.helpers import (
     PawControlData,
     PawControlDataStorage,
+)
+from custom_components.pawcontrol.types import (
+    StorageNamespaceKey,
+    StorageNamespacePayload,
+    StorageNamespaceState,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -39,18 +44,20 @@ async def test_async_load_all_data_uses_cached_empty_payload() -> None:
 
     storage = object.__new__(PawControlDataStorage)
     storage._cache = _DummyCache()  # type: ignore[attr-defined]
-    storage._stores = {"test": object()}  # type: ignore[attr-defined]
+    storage._stores = {"walks": object()}  # type: ignore[attr-defined]
 
     called = False
 
-    async def fake_loader(store_key: str) -> dict[str, Any]:
+    async def fake_loader(
+        store_key: StorageNamespaceKey,
+    ) -> StorageNamespacePayload:
         nonlocal called
         called = True
-        return {store_key: "loaded"}
+        return cast(StorageNamespacePayload, {"dog": {"namespace": store_key}})
 
     storage._load_store_data_cached = fake_loader  # type: ignore[attr-defined]
 
-    await storage._cache.set("all_data", {})
+    await storage._cache.set("all_data", cast(StorageNamespaceState, {}))
 
     result = await PawControlDataStorage.async_load_all_data(storage)
 

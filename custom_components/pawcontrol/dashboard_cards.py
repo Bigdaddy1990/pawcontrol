@@ -18,7 +18,7 @@ import asyncio
 import json
 import logging
 from collections.abc import Awaitable, Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Final, TypeVar
+from typing import TYPE_CHECKING, Any, Final, TypeVar, cast
 
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
@@ -54,6 +54,8 @@ from .types import (
     DOG_NAME_FIELD,
     CoordinatorRejectionMetrics,
     CoordinatorStatisticsPayload,
+    DashboardCardOptions,
+    DashboardCardPerformanceStats,
     DogConfigData,
     DogModulesConfig,
     HelperManagerGuardMetrics,
@@ -78,8 +80,8 @@ CardConfigType = CardConfig
 EntityListType = list[str]
 ModulesConfigType = DogModulesConfig
 DogConfigType = DogConfigData
-ThemeConfigType = dict[str, str]
-OptionsConfigType = dict[str, Any]
+ThemeConfigType = Mapping[str, str]
+OptionsConfigType = DashboardCardOptions
 
 # OPTIMIZED: Generic type for card generators
 T = TypeVar("T", bound="BaseCardGenerator")
@@ -423,6 +425,18 @@ def _coerce_map_options(options: MapOptionsInput) -> MapCardOptions:
     return DashboardTemplates._normalise_map_options(options)
 
 
+def _resolve_dashboard_theme_option(options: OptionsConfigType) -> str:
+    """Return the sanitized theme identifier from ``options``."""
+
+    theme_value = options.get("theme")
+    if isinstance(theme_value, str):
+        normalised_theme = theme_value.strip()
+        if normalised_theme:
+            return normalised_theme
+
+    return "modern"
+
+
 class BaseCardGenerator:
     """Base class for card generators with enhanced performance optimization.
 
@@ -442,7 +456,7 @@ class BaseCardGenerator:
 
         # OPTIMIZED: Performance tracking and validation semaphore
         self._validation_semaphore = asyncio.Semaphore(MAX_CONCURRENT_VALIDATIONS)
-        self._performance_stats = {
+        self._performance_stats: DashboardCardPerformanceStats = {
             "validations_count": 0,
             "cache_hits": 0,
             "cache_misses": 0,
@@ -637,9 +651,13 @@ class BaseCardGenerator:
                 _entity_validation_cache.pop(entity_id, None)
 
     @property
-    def performance_stats(self) -> dict[str, Any]:
-        """Get performance statistics for monitoring."""
-        return self._performance_stats.copy()
+    def performance_stats(self) -> DashboardCardPerformanceStats:
+        """Return a copy of the generator performance counters."""
+
+        return cast(
+            DashboardCardPerformanceStats,
+            self._performance_stats.copy(),
+        )
 
 
 class OverviewCardGenerator(BaseCardGenerator):
@@ -1869,10 +1887,7 @@ class ModuleCardGenerator(BaseCardGenerator):
         if not modules.get(MODULE_NOTIFICATIONS):
             return []
 
-        theme_option = options.get("theme") if isinstance(options, dict) else None
-        theme = (
-            theme_option if isinstance(theme_option, str) and theme_option else "modern"
-        )
+        theme = _resolve_dashboard_theme_option(options)
 
         status_entities = [
             f"switch.{dog_id}_notifications_enabled",
@@ -2473,10 +2488,7 @@ class WeatherCardGenerator(BaseCardGenerator):
         primary_recommendations = recommendations[:5]
         overflow = max(len(recommendations) - len(primary_recommendations), 0)
 
-        theme_option = options.get("theme") if isinstance(options, dict) else None
-        theme = (
-            theme_option if isinstance(theme_option, str) and theme_option else "modern"
-        )
+        theme = _resolve_dashboard_theme_option(options)
 
         markdown_card = await self.templates.get_weather_recommendations_card_template(
             dog_id,
@@ -2839,10 +2851,7 @@ class StatisticsCardGenerator(BaseCardGenerator):
 
         cards: list[CardConfigType] = []
 
-        theme_option = options.get("theme") if isinstance(options, dict) else None
-        theme = (
-            theme_option if isinstance(theme_option, str) and theme_option else "modern"
-        )
+        theme = _resolve_dashboard_theme_option(options)
 
         # OPTIMIZED: Generate all statistics cards concurrently
         stats_generators = [
@@ -3049,14 +3058,14 @@ def get_global_performance_stats() -> dict[str, Any]:
     }
 
 
-def _unwrap_async_result[T](
-    result: T | BaseException,
+def _unwrap_async_result[ResultT](
+    result: ResultT | BaseException,
     *,
     context: str,
     logger: logging.Logger = _LOGGER,
     level: int = logging.WARNING,
     suppress_cancelled: bool = False,
-) -> T | None:
+) -> ResultT | None:
     """Wrap :func:`unwrap_async_result` with module logging defaults."""
 
     return unwrap_async_result(

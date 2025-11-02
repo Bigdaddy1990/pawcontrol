@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Final, cast
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.core import HomeAssistant
@@ -40,16 +40,28 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
-from .notifications import NotificationPriority
+from .notifications import NotificationPriority, PawControlNotificationManager
 from .runtime_data import get_runtime_data
 from .types import (
     DOG_ID_FIELD,
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
     DOG_SIZE_FIELD,
+    CoordinatorDogData,
     DogConfigData,
+    DogSizeInfo,
+    FoodTypeInfo,
+    GPSSourceInfo,
+    GroomingTypeInfo,
+    JSONMapping,
+    JSONMutableMapping,
+    LocationAccuracyConfig,
     PawControlConfigEntry,
     PawControlRuntimeData,
+    PerformanceModeInfo,
+    SelectExtraAttributes,
+    TrackingModePreset,
+    WalkModeInfo,
     coerce_dog_modules_config,
 )
 from .utils import async_call_add_entities, deep_merge_dicts
@@ -58,9 +70,6 @@ if TYPE_CHECKING:
     from .data_manager import PawControlDataManager
 
 _LOGGER = logging.getLogger(__name__)
-
-# Type aliases for better code readability
-AttributeDict = dict[str, Any]
 
 # Select entities invoke coordinator-backed actions. The coordinator is
 # responsible for serialising writes, so we allow unlimited parallel updates at
@@ -89,7 +98,7 @@ TRACKING_MODES = [
     "battery_saver",
 ]
 
-TRACKING_MODE_PRESETS: dict[str, dict[str, Any]] = {
+TRACKING_MODE_PRESETS: Final[dict[str, TrackingModePreset]] = {
     "continuous": {
         "update_interval_seconds": 15,
         "auto_start_walk": True,
@@ -112,7 +121,7 @@ TRACKING_MODE_PRESETS: dict[str, dict[str, Any]] = {
     },
 }
 
-LOCATION_ACCURACY_CONFIGS: dict[str, dict[str, Any]] = {
+LOCATION_ACCURACY_CONFIGS: Final[dict[str, LocationAccuracyConfig]] = {
     "low": {
         "gps_accuracy_threshold": 150.0,
         "min_distance_for_point": 50.0,
@@ -432,12 +441,12 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
 
         return get_runtime_data(self.hass, self.coordinator.config_entry)
 
-    def _get_domain_entry_data(self) -> dict[str, Any]:
+    def _get_domain_entry_data(self) -> JSONMutableMapping:
         """Return the hass.data payload for this config entry."""
 
         runtime_data = self._get_runtime_data()
         if runtime_data is not None:
-            return runtime_data.as_dict()
+            return cast(JSONMutableMapping, runtime_data.as_dict())
 
         return {}
 
@@ -466,11 +475,11 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
 
         return None
 
-    def _get_current_gps_config(self) -> dict[str, Any]:
+    def _get_current_gps_config(self) -> JSONMutableMapping:
         """Return the currently stored GPS configuration."""
 
-        dog_data = self.coordinator.get_dog_data(self._dog_id)
-        if not dog_data:
+        dog_data = self._get_dog_data()
+        if dog_data is None:
             return {}
 
         gps_data = dog_data.get("gps")
@@ -479,15 +488,15 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
 
         config = gps_data.get("config")
         if isinstance(config, Mapping):
-            return cast(dict[str, Any], dict(config))
+            return cast(JSONMutableMapping, dict(config))
         if isinstance(config, dict):
-            return cast(dict[str, Any], config)
+            return cast(JSONMutableMapping, config)
         return {}
 
     async def _async_update_module_settings(
         self,
         module: str,
-        updates: dict[str, Any],
+        updates: JSONMutableMapping,
     ) -> None:
         """Persist updates for a module and refresh coordinator data."""
 
@@ -505,14 +514,23 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
                     err,
                 )
 
-        coordinator_data = dict(self.coordinator.data or {})
-        existing_dog = cast(dict[str, Any], coordinator_data.get(self._dog_id, {}))
-        dog_data = existing_dog.copy()
-        existing = dog_data.get(module, {})
-        if isinstance(existing, dict):
-            merged = deep_merge_dicts(existing, updates)
+        coordinator_payload = cast(
+            Mapping[str, JSONMutableMapping] | None, self.coordinator.data
+        )
+        coordinator_data: dict[str, JSONMutableMapping] = (
+            dict(coordinator_payload) if coordinator_payload else {}
+        )
+        existing_dog = coordinator_data.get(self._dog_id)
+        dog_data: JSONMutableMapping = (
+            dict(existing_dog) if isinstance(existing_dog, Mapping) else {}
+        )
+        existing_module = dog_data.get(module)
+        base_payload: dict[str, Any]
+        if isinstance(existing_module, Mapping):
+            base_payload = dict(existing_module)
         else:
-            merged = updates
+            base_payload = {}
+        merged = cast(JSONMutableMapping, deep_merge_dicts(base_payload, dict(updates)))
         dog_data[module] = merged
         coordinator_data[self._dog_id] = dog_data
         update_result = self.coordinator.async_set_updated_data(coordinator_data)
@@ -522,20 +540,23 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
     async def _async_update_gps_settings(
         self,
         *,
-        state_updates: dict[str, Any] | None = None,
-        config_updates: dict[str, Any] | None = None,
+        state_updates: JSONMutableMapping | None = None,
+        config_updates: JSONMutableMapping | None = None,
     ) -> None:
         """Update stored GPS settings and apply them to the GPS manager."""
 
-        gps_updates: dict[str, Any] = {}
-        merged_config: dict[str, Any] | None = None
+        gps_updates: JSONMutableMapping = {}
+        merged_config: JSONMutableMapping | None = None
 
         if state_updates:
-            gps_updates.update(state_updates)
+            gps_updates.update(dict(state_updates))
 
         if config_updates:
             current_config = self._get_current_gps_config()
-            merged_config = deep_merge_dicts(current_config, config_updates)
+            merged_config = cast(
+                JSONMutableMapping,
+                deep_merge_dicts(current_config, dict(config_updates)),
+            )
             gps_updates.setdefault("config", merged_config)
 
         if gps_updates:
@@ -588,7 +609,7 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
         return self._current_option
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> SelectExtraAttributes:
         """Return additional state attributes for the select.
 
         Provides information about the select's function and available options.
@@ -596,25 +617,33 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
         Returns:
             Dictionary of additional state attributes
         """
-        attrs: AttributeDict = {
-            ATTR_DOG_ID: self._dog_id,
-            ATTR_DOG_NAME: self._dog_name,
-            "select_type": self._select_type,
-            "available_options": self.options,
-            "last_changed": dt_util.utcnow().isoformat(),
-        }
+        base_attrs = super().extra_state_attributes
+        attrs: SelectExtraAttributes = (
+            dict(base_attrs) if base_attrs is not None else {}
+        )
+
+        attrs.update(
+            {
+                ATTR_DOG_ID: self._dog_id,
+                ATTR_DOG_NAME: self._dog_name,
+                "select_type": self._select_type,
+                "available_options": list(self.options),
+                "last_changed": dt_util.utcnow().isoformat(),
+            }
+        )
 
         # Add dog-specific information
         dog_data = self._get_dog_data()
-        if dog_data and "dog_info" in dog_data:
-            dog_info = dog_data["dog_info"]
-            attrs.update(
-                {
-                    "dog_breed": dog_info.get("dog_breed", ""),
-                    "dog_age": dog_info.get("dog_age"),
-                    "dog_size": dog_info.get("dog_size"),
-                }
-            )
+        if dog_data is not None:
+            dog_info = dog_data.get("dog_info")
+            if dog_info is not None:
+                attrs.update(
+                    {
+                        "dog_breed": dog_info.get("dog_breed", ""),
+                        "dog_age": dog_info.get("dog_age"),
+                        "dog_size": dog_info.get("dog_size"),
+                    }
+                )
 
         return attrs
 
@@ -663,7 +692,7 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
         # Base implementation - subclasses should override
         pass
 
-    def _get_dog_data(self) -> dict[str, Any] | None:
+    def _get_dog_data(self) -> CoordinatorDogData | None:
         """Get data for this select's dog from the coordinator.
 
         Returns:
@@ -674,7 +703,7 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
 
         return self.coordinator.get_dog_data(self._dog_id)
 
-    def _get_module_data(self, module: str) -> dict[str, Any] | None:
+    def _get_module_data(self, module: str) -> JSONMapping | None:
         """Get specific module data for this dog.
 
         Args:
@@ -683,7 +712,10 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
         Returns:
             Module data dictionary or None if not available
         """
-        return self.coordinator.get_module_data(self._dog_id, module)
+        module_data = self.coordinator.get_module_data(self._dog_id, module)
+        if isinstance(module_data, Mapping):
+            return cast(JSONMapping, module_data)
+        return None
 
     @property
     def available(self) -> bool:
@@ -730,17 +762,16 @@ class PawControlDogSizeSelect(PawControlSelectBase):
         await self.coordinator.async_refresh_dog(self._dog_id)
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> SelectExtraAttributes:
         """Return additional attributes for the size select."""
-        attrs = dict(super().extra_state_attributes or {})
+        attrs = super().extra_state_attributes
 
-        # Add size-specific information
         size_info = self._get_size_info(self.current_option)
-        attrs.update(size_info)
+        attrs.update(cast(JSONMapping, size_info))
 
         return attrs
 
-    def _get_size_info(self, size: str | None) -> dict[str, Any]:
+    def _get_size_info(self, size: str | None) -> DogSizeInfo:
         """Get information about the selected size.
 
         Args:
@@ -783,7 +814,8 @@ class PawControlDogSizeSelect(PawControlSelectBase):
         if size is None:
             return {}
 
-        return size_data.get(size, {})
+        info = size_data.get(size)
+        return cast(DogSizeInfo, info) if info is not None else {}
 
 
 class PawControlPerformanceModeSelect(PawControlSelectBase):
@@ -810,16 +842,16 @@ class PawControlPerformanceModeSelect(PawControlSelectBase):
         pass
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> SelectExtraAttributes:
         """Return additional attributes for performance mode."""
-        attrs = dict(super().extra_state_attributes or {})
+        attrs = super().extra_state_attributes
 
         mode_info = self._get_performance_mode_info(self.current_option)
-        attrs.update(mode_info)
+        attrs.update(cast(JSONMapping, mode_info))
 
         return attrs
 
-    def _get_performance_mode_info(self, mode: str | None) -> dict[str, Any]:
+    def _get_performance_mode_info(self, mode: str | None) -> PerformanceModeInfo:
         """Get information about the selected performance mode.
 
         Args:
@@ -828,9 +860,6 @@ class PawControlPerformanceModeSelect(PawControlSelectBase):
         Returns:
             Performance mode information
         """
-        if mode is None:
-            return {}
-
         mode_data = {
             "minimal": {
                 "description": "Minimal resource usage, longer update intervals",
@@ -852,10 +881,8 @@ class PawControlPerformanceModeSelect(PawControlSelectBase):
         if mode is None:
             return {}
 
-        if mode is None:
-            return {}
-
-        return mode_data.get(mode, {})
+        info = mode_data.get(mode)
+        return cast(PerformanceModeInfo, info) if info is not None else {}
 
 
 class PawControlNotificationPrioritySelect(PawControlSelectBase):
@@ -886,15 +913,21 @@ class PawControlNotificationPrioritySelect(PawControlSelectBase):
             ) from err
 
         runtime_data = self._get_runtime_data()
-        notification_manager = getattr(runtime_data, "notification_manager", None)
+        notification_manager: PawControlNotificationManager | None = (
+            runtime_data.notification_manager if runtime_data else None
+        )
 
         if notification_manager is None:
             entry_data = self._get_domain_entry_data()
-            notification_manager = entry_data.get(
-                "notification_manager"
-            ) or entry_data.get("notifications")
+            fallback = entry_data.get("notification_manager")
+            if isinstance(fallback, PawControlNotificationManager):
+                notification_manager = fallback
+            else:
+                legacy = entry_data.get("notifications")
+                if isinstance(legacy, PawControlNotificationManager):
+                    notification_manager = legacy
 
-        if notification_manager:
+        if notification_manager is not None:
             await notification_manager.async_set_priority_threshold(
                 self._dog_id, priority
             )
@@ -939,16 +972,16 @@ class PawControlFoodTypeSelect(PawControlSelectBase):
         pass
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> SelectExtraAttributes:
         """Return additional attributes for food type."""
-        attrs = dict(super().extra_state_attributes or {})
+        attrs = super().extra_state_attributes
 
         food_info = self._get_food_type_info(self.current_option)
-        attrs.update(food_info)
+        attrs.update(cast(JSONMapping, food_info))
 
         return attrs
 
-    def _get_food_type_info(self, food_type: str | None) -> dict[str, Any]:
+    def _get_food_type_info(self, food_type: str | None) -> FoodTypeInfo:
         """Get information about the selected food type.
 
         Args:
@@ -957,9 +990,6 @@ class PawControlFoodTypeSelect(PawControlSelectBase):
         Returns:
             Food type information
         """
-        if food_type is None:
-            return {}
-
         food_data = {
             "dry_food": {
                 "calories_per_gram": 3.5,
@@ -996,7 +1026,8 @@ class PawControlFoodTypeSelect(PawControlSelectBase):
         if food_type is None:
             return {}
 
-        return food_data.get(food_type, {})
+        info = food_data.get(food_type)
+        return cast(FoodTypeInfo, info) if info is not None else {}
 
 
 class PawControlFeedingScheduleSelect(PawControlSelectBase):
@@ -1092,16 +1123,16 @@ class PawControlWalkModeSelect(PawControlSelectBase):
         pass
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> SelectExtraAttributes:
         """Return additional attributes for walk mode."""
-        attrs = dict(super().extra_state_attributes or {})
+        attrs = super().extra_state_attributes
 
         mode_info = self._get_walk_mode_info(self.current_option)
-        attrs.update(mode_info)
+        attrs.update(cast(JSONMapping, mode_info))
 
         return attrs
 
-    def _get_walk_mode_info(self, mode: str | None) -> dict[str, Any]:
+    def _get_walk_mode_info(self, mode: str | None) -> WalkModeInfo:
         """Get information about the selected walk mode.
 
         Args:
@@ -1110,9 +1141,6 @@ class PawControlWalkModeSelect(PawControlSelectBase):
         Returns:
             Walk mode information
         """
-        if mode is None:
-            return {}
-
         mode_data = {
             "automatic": {
                 "description": "Automatically detect walk start/end",
@@ -1134,7 +1162,8 @@ class PawControlWalkModeSelect(PawControlSelectBase):
         if mode is None:
             return {}
 
-        return mode_data.get(mode, {})
+        info = mode_data.get(mode)
+        return cast(WalkModeInfo, info) if info is not None else {}
 
 
 class PawControlWeatherPreferenceSelect(PawControlSelectBase):
@@ -1214,16 +1243,16 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
         )
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> SelectExtraAttributes:
         """Return additional attributes for GPS source."""
-        attrs = dict(super().extra_state_attributes or {})
+        attrs = super().extra_state_attributes
 
         source_info = self._get_gps_source_info(self.current_option)
-        attrs.update(source_info)
+        attrs.update(cast(JSONMapping, source_info))
 
         return attrs
 
-    def _get_gps_source_info(self, source: str | None) -> dict[str, Any]:
+    def _get_gps_source_info(self, source: str | None) -> GPSSourceInfo:
         """Get information about the selected GPS source.
 
         Args:
@@ -1232,9 +1261,6 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
         Returns:
             GPS source information
         """
-        if source is None:
-            return {}
-
         source_data = {
             "manual": {
                 "accuracy": "user-dependent",
@@ -1276,7 +1302,8 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
         if source is None:
             return {}
 
-        return source_data.get(source, {})
+        info = source_data.get(source)
+        return cast(GPSSourceInfo, info) if info is not None else {}
 
 
 class PawControlTrackingModeSelect(PawControlSelectBase):
@@ -1300,7 +1327,10 @@ class PawControlTrackingModeSelect(PawControlSelectBase):
         """Set the tracking mode."""
 
         timestamp = dt_util.utcnow().isoformat()
-        config_updates = TRACKING_MODE_PRESETS.get(option, {})
+        preset = TRACKING_MODE_PRESETS.get(option)
+        config_updates: JSONMutableMapping | None = (
+            cast(JSONMutableMapping, dict(preset)) if preset is not None else None
+        )
         await self._async_update_gps_settings(
             state_updates={
                 "tracking_mode": option,
@@ -1332,7 +1362,12 @@ class PawControlLocationAccuracySelect(PawControlSelectBase):
         """Set the location accuracy preference."""
 
         timestamp = dt_util.utcnow().isoformat()
-        config_updates = LOCATION_ACCURACY_CONFIGS.get(option, {})
+        accuracy_config = LOCATION_ACCURACY_CONFIGS.get(option)
+        config_updates: JSONMutableMapping | None = (
+            cast(JSONMutableMapping, dict(accuracy_config))
+            if accuracy_config is not None
+            else None
+        )
         await self._async_update_gps_settings(
             state_updates={
                 "location_accuracy": option,
@@ -1365,7 +1400,9 @@ class PawControlHealthStatusSelect(PawControlSelectBase):
         """Return the current health status from data."""
         health_data = self._get_module_data("health")
         if health_data:
-            return health_data.get("health_status", self._current_option)
+            value = health_data.get("health_status")
+            if isinstance(value, str):
+                return value
 
         return self._current_option
 
@@ -1397,7 +1434,9 @@ class PawControlActivityLevelSelect(PawControlSelectBase):
         """Return the current activity level from data."""
         health_data = self._get_module_data("health")
         if health_data:
-            return health_data.get("activity_level", self._current_option)
+            value = health_data.get("activity_level")
+            if isinstance(value, str):
+                return value
 
         return self._current_option
 
@@ -1453,16 +1492,16 @@ class PawControlGroomingTypeSelect(PawControlSelectBase):
         pass
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> SelectExtraAttributes:
         """Return additional attributes for grooming type."""
-        attrs = dict(super().extra_state_attributes or {})
+        attrs = super().extra_state_attributes
 
         grooming_info = self._get_grooming_type_info(self.current_option)
-        attrs.update(grooming_info)
+        attrs.update(cast(JSONMapping, grooming_info))
 
         return attrs
 
-    def _get_grooming_type_info(self, grooming_type: str | None) -> dict[str, Any]:
+    def _get_grooming_type_info(self, grooming_type: str | None) -> GroomingTypeInfo:
         """Get information about the selected grooming type.
 
         Args:
@@ -1471,9 +1510,6 @@ class PawControlGroomingTypeSelect(PawControlSelectBase):
         Returns:
             Grooming type information
         """
-        if grooming_type is None:
-            return {}
-
         grooming_data = {
             "bath": {
                 "frequency": "4-6 weeks",
@@ -1510,4 +1546,5 @@ class PawControlGroomingTypeSelect(PawControlSelectBase):
         if grooming_type is None:
             return {}
 
-        return grooming_data.get(grooming_type, {})
+        info = grooming_data.get(grooming_type)
+        return cast(GroomingTypeInfo, info) if info is not None else {}

@@ -41,6 +41,7 @@ from .types import (
     DOG_ID_FIELD,
     DOG_NAME_FIELD,
     DogConfigData,
+    GardenModulePayload,
     PawControlConfigEntry,
     ensure_dog_modules_mapping,
 )
@@ -909,12 +910,12 @@ class PawControlGardenSensorBase(PawControlSensorBase):
 
     _module_name = "garden"
 
-    def _get_garden_data(self) -> dict[str, Any]:
+    def _get_garden_data(self) -> GardenModulePayload:
         """Return garden snapshot data for the current dog."""
 
         module_data = self._get_module_data(self._module_name)
         if module_data:
-            return module_data
+            return cast(GardenModulePayload, module_data)
 
         garden_manager = self._get_runtime_managers().garden_manager
         if garden_manager is not None:
@@ -925,7 +926,7 @@ class PawControlGardenSensorBase(PawControlSensorBase):
                     "Garden snapshot fallback failed for %s: %s", self._dog_id, err
                 )
 
-        return {}
+        return cast(GardenModulePayload, {})
 
     def _garden_attributes(self) -> AttributeDict:
         """Build shared garden attributes for subclasses."""

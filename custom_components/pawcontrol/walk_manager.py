@@ -21,10 +21,25 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from html import escape
-from typing import Any
+from typing import Any, Final, cast
 
 from homeassistant.util import dt as dt_util
 
+from .types import (
+    GPSCacheDiagnosticsMetadata,
+    GPSCacheSnapshot,
+    GPSCacheStats,
+    JSONMutableMapping,
+    JSONValue,
+    WalkGPSSnapshot,
+    WalkLocationSnapshot,
+    WalkManagerDogSnapshot,
+    WalkPerformanceCounters,
+    WalkPerformanceSnapshot,
+    WalkRoutePoint,
+    WalkSessionSnapshot,
+    WalkStatisticsSnapshot,
+)
 from .utils import is_number
 
 _LOGGER = logging.getLogger(__name__)
@@ -58,8 +73,14 @@ GPX_SCHEMA_LOCATION = (
 )
 
 
-class GPSCache:
+type CachedGPSLocation = tuple[float, float, datetime]
+type DistanceCacheKey = tuple[tuple[float, float], tuple[float, float]]
+
+
+class GPSCache[LocationT: CachedGPSLocation]:
     """Optimized GPS data cache with LRU eviction."""
+
+    _DISTANCE_CACHE_LIMIT: Final[int] = DISTANCE_CALCULATION_CACHE_SIZE
 
     def __init__(self, max_size: int = GPS_CACHE_SIZE_LIMIT) -> None:
         """Initialize GPS cache.
@@ -67,12 +88,15 @@ class GPSCache:
         Args:
             max_size: Maximum cache entries
         """
-        self._cache: dict[str, tuple[float, float, datetime]] = {}
+        self._cache: dict[str, LocationT] = {}
         self._access_order: deque[str] = deque()
         self._max_size = max_size
-        self._distance_cache: dict[tuple, float] = {}
+        self._distance_cache: dict[DistanceCacheKey, float] = {}
+        self._hits = 0
+        self._misses = 0
+        self._evictions = 0
 
-    def get_location(self, dog_id: str) -> tuple[float, float, datetime] | None:
+    def get_location(self, dog_id: str) -> LocationT | None:
         """Get cached location with LRU update.
 
         Args:
@@ -85,7 +109,9 @@ class GPSCache:
             # Update access order for LRU
             self._access_order.remove(dog_id)
             self._access_order.append(dog_id)
+            self._hits += 1
             return self._cache[dog_id]
+        self._misses += 1
         return None
 
     def set_location(
@@ -103,8 +129,9 @@ class GPSCache:
         if len(self._cache) >= self._max_size and dog_id not in self._cache:
             oldest = self._access_order.popleft()
             del self._cache[oldest]
+            self._evictions += 1
 
-        self._cache[dog_id] = (latitude, longitude, timestamp)
+        self._cache[dog_id] = cast(LocationT, (latitude, longitude, timestamp))
 
         # Update access order
         if dog_id in self._access_order:
@@ -124,7 +151,8 @@ class GPSCache:
             Distance in meters
         """
         # Create cache key (order independent)
-        cache_key = tuple(sorted([point1, point2]))
+        ordered = tuple(sorted((point1, point2)))
+        cache_key = cast(DistanceCacheKey, ordered)
 
         if cache_key in self._distance_cache:
             return self._distance_cache[cache_key]
@@ -133,7 +161,7 @@ class GPSCache:
         distance = self._haversine_distance(point1, point2)
 
         # Cache result with size limit
-        if len(self._distance_cache) >= DISTANCE_CALCULATION_CACHE_SIZE:
+        if len(self._distance_cache) >= self._DISTANCE_CACHE_LIMIT:
             # Remove oldest entry
             oldest_key = next(iter(self._distance_cache))
             del self._distance_cache[oldest_key]
@@ -176,14 +204,43 @@ class GPSCache:
         self._cache.clear()
         self._access_order.clear()
         self._distance_cache.clear()
+        self._hits = 0
+        self._misses = 0
+        self._evictions = 0
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> GPSCacheStats:
         """Get cache statistics."""
-        return {
-            "location_entries": len(self._cache),
+        total_requests = self._hits + self._misses
+        hit_rate = (self._hits / total_requests * 100.0) if total_requests else 0.0
+
+        stats: GPSCacheStats = {
+            "hits": self._hits,
+            "misses": self._misses,
+            "hit_rate": hit_rate,
+            "cached_locations": len(self._cache),
             "distance_cache_entries": len(self._distance_cache),
-            "cache_utilization": len(self._cache) / self._max_size * 100,
+            "evictions": self._evictions,
+            "max_size": self._max_size,
         }
+
+        return stats
+
+    def get_metadata(self) -> GPSCacheDiagnosticsMetadata:
+        """Return metadata describing current cache contents."""
+
+        metadata: GPSCacheDiagnosticsMetadata = {
+            "cached_dogs": sorted(self._cache),
+            "max_size": self._max_size,
+            "distance_cache_entries": len(self._distance_cache),
+            "evictions": self._evictions,
+        }
+
+        return metadata
+
+    def coordinator_snapshot(self) -> GPSCacheSnapshot:
+        """Return a telemetry snapshot suitable for diagnostics."""
+
+        return GPSCacheSnapshot(stats=self.get_stats(), metadata=self.get_metadata())
 
 
 @dataclass(slots=True)
@@ -199,16 +256,27 @@ class WalkSession:
     weather: WeatherCondition | None = None
     track_route: bool = True
     safety_alerts: bool = True
-    start_location: dict[str, Any] | None = None
-    path: list[dict[str, Any]] = field(default_factory=list)
+    start_location: WalkLocationSnapshot | None = None
+    path: list[WalkRoutePoint] = field(default_factory=list)
     detection_confidence: float | None = None
     door_sensor: str | None = None
-    detection_metadata: dict[str, Any] | None = None
+    detection_metadata: JSONMutableMapping | None = None
 
-    def as_dict(self) -> dict[str, Any]:
+    def as_dict(self) -> WalkSessionSnapshot:
         """Convert the session to a mutable dictionary."""
 
-        return {
+        start_location = (
+            cast(WalkLocationSnapshot, dict(self.start_location))
+            if self.start_location is not None
+            else None
+        )
+        detection_metadata = (
+            cast(JSONMutableMapping, dict(self.detection_metadata))
+            if self.detection_metadata is not None
+            else None
+        )
+
+        snapshot: WalkSessionSnapshot = {
             "walk_id": self.walk_id,
             "dog_id": self.dog_id,
             "walk_type": self.walk_type,
@@ -218,7 +286,7 @@ class WalkSession:
             "weather": self.weather.value if self.weather else None,
             "track_route": self.track_route,
             "safety_alerts": self.safety_alerts,
-            "start_location": self.start_location,
+            "start_location": start_location,
             "end_time": None,
             "duration": None,
             "distance": 0.0,
@@ -233,10 +301,9 @@ class WalkSession:
             "dog_weight_kg": None,
             "detection_confidence": self.detection_confidence,
             "door_sensor": self.door_sensor,
-            "detection_metadata": dict(self.detection_metadata)
-            if self.detection_metadata
-            else None,
+            "detection_metadata": detection_metadata,
         }
+        return snapshot
 
 
 class WalkManager:
@@ -248,18 +315,18 @@ class WalkManager:
 
     def __init__(self) -> None:
         """Initialize optimized walk manager."""
-        self._dogs: dict[str, dict[str, Any]] = {}
-        self._walk_data: dict[str, dict[str, Any]] = {}
-        self._gps_data: dict[str, dict[str, Any]] = {}
-        self._current_walks: dict[str, dict[str, Any]] = {}
-        self._walk_history: dict[str, list[dict[str, Any]]] = {}
+        self._dogs: dict[str, WalkManagerDogSnapshot] = {}
+        self._walk_data: dict[str, WalkStatisticsSnapshot] = {}
+        self._gps_data: dict[str, WalkGPSSnapshot] = {}
+        self._current_walks: dict[str, WalkSessionSnapshot] = {}
+        self._walk_history: dict[str, list[WalkSessionSnapshot]] = {}
         self._session_counters: dict[str, int] = {}
         self._data_lock = asyncio.Lock()
 
         # OPTIMIZE: Enhanced caching system
-        self._gps_cache = GPSCache()
+        self._gps_cache: GPSCache[CachedGPSLocation] = GPSCache()
         self._zone_cache: dict[str, tuple[str, datetime]] = {}  # Cache with timestamp
-        self._statistics_cache: dict[str, tuple[dict[str, Any], datetime]] = {}
+        self._statistics_cache: dict[str, tuple[WalkStatisticsSnapshot, datetime]] = {}
 
         # OPTIMIZE: Walk detection parameters with better defaults
         self._walk_detection_enabled = True
@@ -269,7 +336,7 @@ class WalkManager:
         self._min_speed_threshold = 0.5  # km/h minimum speed for walk detection
 
         # OPTIMIZE: Performance monitoring
-        self._performance_metrics = {
+        self._performance_metrics: WalkPerformanceCounters = {
             "gps_updates": 0,
             "distance_calculations": 0,
             "cache_hits": 0,
@@ -290,11 +357,34 @@ class WalkManager:
     def _update_dog_container(self, dog_id: str) -> None:
         """Ensure compatibility structure for tests and legacy callers."""
 
-        container = self._dogs.setdefault(dog_id, {})
-        container.setdefault("active_walk", None)
-        container["history"] = self._walk_history.get(dog_id, []).copy()
-        container["stats"] = self._walk_data.get(dog_id, {}).copy()
-        container["gps"] = self._gps_data.get(dog_id, {}).copy()
+        container = self._dogs.setdefault(
+            dog_id,
+            {
+                "active_walk": None,
+                "history": [],
+                "stats": cast(WalkStatisticsSnapshot, {}),
+                "gps": cast(WalkGPSSnapshot, {}),
+            },
+        )
+        active_walk = self._current_walks.get(dog_id)
+        if active_walk is not None:
+            container["active_walk"] = cast(WalkSessionSnapshot, dict(active_walk))
+        history = self._walk_history.get(dog_id, [])
+        container["history"] = [
+            cast(WalkSessionSnapshot, dict(entry)) for entry in history
+        ]
+        stats = self._walk_data.get(dog_id)
+        container["stats"] = (
+            cast(WalkStatisticsSnapshot, stats.copy())
+            if stats is not None
+            else cast(WalkStatisticsSnapshot, {})
+        )
+        gps = self._gps_data.get(dog_id)
+        container["gps"] = (
+            cast(WalkGPSSnapshot, gps.copy())
+            if gps is not None
+            else cast(WalkGPSSnapshot, {})
+        )
 
     async def async_initialize(self, dog_ids: list[str]) -> None:
         """Initialize walk manager for specified dogs with batch optimization.
@@ -309,17 +399,20 @@ class WalkManager:
             for dog_id in dog_ids:
                 self._walk_data[dog_id] = {
                     "walks_today": 0,
-                    "total_duration_today": 0,
+                    "total_duration_today": 0.0,
                     "total_distance_today": 0.0,
                     "last_walk": None,
                     "last_walk_duration": None,
                     "last_walk_distance": None,
                     "average_duration": None,
+                    "average_distance": None,
                     "weekly_walks": 0,
                     "weekly_distance": 0.0,
                     "needs_walk": False,
                     "walk_streak": 0,
                     "energy_level": "normal",  # OPTIMIZE: Added energy tracking
+                    "walk_in_progress": False,
+                    "current_walk": None,
                 }
 
                 self._gps_data[dog_id] = {
@@ -401,22 +494,20 @@ class WalkManager:
                 return False
 
             now = timestamp or dt_util.now()
-            old_location = None
+            old_location: tuple[float, float] | None = None
 
             # OPTIMIZE: Get previous location from cache for better performance
             cached_location = self._gps_cache.get_location(dog_id)
             if cached_location is not None:
-                old_location = (cached_location[0], cached_location[1])
+                cached_latitude, cached_longitude, _cached_timestamp = cached_location
+                old_location = (cached_latitude, cached_longitude)
                 self._performance_metrics["cache_hits"] += 1
-            elif (
-                self._gps_data[dog_id]["latitude"] is not None
-                and self._gps_data[dog_id]["longitude"] is not None
-            ):
-                old_location = (
-                    self._gps_data[dog_id]["latitude"],
-                    self._gps_data[dog_id]["longitude"],
-                )
-                self._performance_metrics["cache_misses"] += 1
+            else:
+                previous_latitude = self._gps_data[dog_id]["latitude"]
+                previous_longitude = self._gps_data[dog_id]["longitude"]
+                if previous_latitude is not None and previous_longitude is not None:
+                    old_location = (previous_latitude, previous_longitude)
+                    self._performance_metrics["cache_misses"] += 1
 
             # Update GPS data with enhanced fields
             self._gps_data[dog_id].update(
@@ -587,13 +678,16 @@ class WalkManager:
                 except (TypeError, ValueError):
                     confidence_value = None
 
-            detection_payload: dict[str, Any] | None = None
+            detection_payload: JSONMutableMapping | None = None
             if detection_metadata:
                 try:
-                    detection_payload = {
-                        str(key): value
-                        for key, value in dict(detection_metadata).items()
-                    }
+                    detection_payload = cast(
+                        JSONMutableMapping,
+                        {
+                            str(key): cast(JSONValue, value)
+                            for key, value in dict(detection_metadata).items()
+                        },
+                    )
                 except Exception:  # pragma: no cover - defensive
                     detection_payload = None
 
@@ -601,19 +695,25 @@ class WalkManager:
             start_location = None
             cached_location = self._gps_cache.get_location(dog_id)
             if cached_location is not None:
-                start_location = {
-                    "latitude": cached_location[0],
-                    "longitude": cached_location[1],
-                    "accuracy": self._gps_data[dog_id].get("accuracy"),
-                    "timestamp": cached_location[2].isoformat(),
-                }
+                start_location = cast(
+                    WalkLocationSnapshot,
+                    {
+                        "latitude": cached_location[0],
+                        "longitude": cached_location[1],
+                        "accuracy": self._gps_data[dog_id].get("accuracy"),
+                        "timestamp": cached_location[2].isoformat(),
+                    },
+                )
             elif dog_id in self._gps_data and self._gps_data[dog_id]["available"]:
-                start_location = {
-                    "latitude": self._gps_data[dog_id]["latitude"],
-                    "longitude": self._gps_data[dog_id]["longitude"],
-                    "accuracy": self._gps_data[dog_id]["accuracy"],
-                    "timestamp": now.isoformat(),
-                }
+                start_location = cast(
+                    WalkLocationSnapshot,
+                    {
+                        "latitude": self._gps_data[dog_id]["latitude"],
+                        "longitude": self._gps_data[dog_id]["longitude"],
+                        "accuracy": self._gps_data[dog_id]["accuracy"],
+                        "timestamp": now.isoformat(),
+                    },
+                )
 
             # OPTIMIZE: Pre-allocate path with capacity limit
             session = WalkSession(
@@ -632,7 +732,7 @@ class WalkManager:
                 detection_metadata=detection_payload,
             )
 
-            walk_data = session.as_dict()
+            walk_data: WalkSessionSnapshot = session.as_dict()
             walk_data["path_optimization_applied"] = False
             walk_data["track_route"] = track_route
             walk_data["safety_alerts"] = safety_alerts
@@ -669,7 +769,7 @@ class WalkManager:
         notes: str | None = None,
         dog_weight_kg: float | None = None,
         save_route: bool = True,
-    ) -> dict[str, Any] | None:
+    ) -> WalkSessionSnapshot | None:
         """Finalize an active walk while the data lock is held."""
 
         if dog_id not in self._current_walks:
@@ -690,19 +790,25 @@ class WalkManager:
         end_location = None
         cached_location = self._gps_cache.get_location(dog_id)
         if cached_location is not None:
-            end_location = {
-                "latitude": cached_location[0],
-                "longitude": cached_location[1],
-                "accuracy": self._gps_data[dog_id].get("accuracy"),
-                "timestamp": cached_location[2].isoformat(),
-            }
+            end_location = cast(
+                WalkLocationSnapshot,
+                {
+                    "latitude": cached_location[0],
+                    "longitude": cached_location[1],
+                    "accuracy": self._gps_data[dog_id].get("accuracy"),
+                    "timestamp": cached_location[2].isoformat(),
+                },
+            )
         elif dog_id in self._gps_data and self._gps_data[dog_id]["available"]:
-            end_location = {
-                "latitude": self._gps_data[dog_id]["latitude"],
-                "longitude": self._gps_data[dog_id]["longitude"],
-                "accuracy": self._gps_data[dog_id]["accuracy"],
-                "timestamp": now.isoformat(),
-            }
+            end_location = cast(
+                WalkLocationSnapshot,
+                {
+                    "latitude": self._gps_data[dog_id]["latitude"],
+                    "longitude": self._gps_data[dog_id]["longitude"],
+                    "accuracy": self._gps_data[dog_id]["accuracy"],
+                    "timestamp": now.isoformat(),
+                },
+            )
 
         # Calculate walk statistics
         start_time_raw = walk_data.get("start_time")
@@ -752,7 +858,7 @@ class WalkManager:
         await self._update_daily_walk_stats_optimized(dog_id, walk_data)
 
         # OPTIMIZE: Store in history with size limit
-        self._walk_history[dog_id].append(walk_data.copy())
+        self._walk_history[dog_id].append(cast(WalkSessionSnapshot, dict(walk_data)))
 
         # Keep only last 100 walks to prevent memory leaks
         if len(self._walk_history[dog_id]) > 100:
@@ -785,7 +891,7 @@ class WalkManager:
         notes: str | None = None,
         dog_weight_kg: float | None = None,
         save_route: bool = True,
-    ) -> dict[str, Any] | None:
+    ) -> WalkSessionSnapshot | None:
         """End the current walk with optimized statistics calculation.
 
         OPTIMIZE: Enhanced with batch statistics calculation and path optimization.
@@ -805,7 +911,7 @@ class WalkManager:
                 save_route=save_route,
             )
 
-    def _optimize_path(self, path: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    def _optimize_path(self, path: list[WalkRoutePoint]) -> list[WalkRoutePoint]:
         """Optimize walk path by removing redundant points.
 
         OPTIMIZE: Reduce memory usage by removing points that don't add significant value.
@@ -890,18 +996,21 @@ class WalkManager:
                 should_add_point = last_distance > 5.0 or time_diff > 30
 
             if should_add_point and len(current_walk["path"]) < PATH_POINT_LIMIT:
-                path_point = {
-                    "latitude": new_location[0],
-                    "longitude": new_location[1],
-                    "timestamp": dt_util.now().isoformat(),
-                    "accuracy": self._gps_data[dog_id].get("accuracy"),
-                    "speed": speed,
-                    "altitude": self._gps_data[dog_id].get("altitude"),
-                }
+                path_point = cast(
+                    WalkRoutePoint,
+                    {
+                        "latitude": new_location[0],
+                        "longitude": new_location[1],
+                        "timestamp": dt_util.now().isoformat(),
+                        "accuracy": self._gps_data[dog_id].get("accuracy"),
+                        "speed": speed,
+                        "altitude": self._gps_data[dog_id].get("altitude"),
+                    },
+                )
                 current_walk["path"].append(path_point)
 
     async def _calculate_total_distance_optimized(
-        self, path: list[dict[str, Any]]
+        self, path: list[WalkRoutePoint]
     ) -> float:
         """Calculate total distance with caching optimization.
 
@@ -928,7 +1037,7 @@ class WalkManager:
         return total_distance
 
     async def _update_daily_walk_stats_optimized(
-        self, dog_id: str, walk_data: dict[str, Any]
+        self, dog_id: str, walk_data: WalkSessionSnapshot
     ) -> None:
         """Update daily walk statistics with optimized calculations.
 
@@ -940,15 +1049,17 @@ class WalkManager:
         """
         # Update today's stats
         self._walk_data[dog_id]["walks_today"] += 1
-        self._walk_data[dog_id]["total_duration_today"] += walk_data["duration"]
-        self._walk_data[dog_id]["total_distance_today"] += walk_data["distance"]
+        duration_value = float(walk_data.get("duration") or 0.0)
+        distance_value = float(walk_data.get("distance") or 0.0)
+        self._walk_data[dog_id]["total_duration_today"] += duration_value
+        self._walk_data[dog_id]["total_distance_today"] += distance_value
         self._walk_data[dog_id]["last_walk"] = walk_data["start_time"]
-        self._walk_data[dog_id]["last_walk_duration"] = walk_data["duration"]
-        self._walk_data[dog_id]["last_walk_distance"] = walk_data["distance"]
+        self._walk_data[dog_id]["last_walk_duration"] = duration_value
+        self._walk_data[dog_id]["last_walk_distance"] = distance_value
 
         # OPTIMIZE: Batch calculate averages from recent walks
         recent_walks = self.get_walk_history(dog_id)
-        recent_walks.insert(0, walk_data.copy())
+        recent_walks.insert(0, cast(WalkSessionSnapshot, dict(walk_data)))
         cutoff = dt_util.utcnow() - timedelta(days=7)
 
         def _parse_start(value: Any) -> datetime | None:
@@ -970,10 +1081,14 @@ class WalkManager:
         ]
         if recent_walks:
             durations = [
-                w.get("duration", 0) for w in recent_walks if w.get("duration")
+                float(w.get("duration") or 0.0)
+                for w in recent_walks
+                if w.get("duration") is not None
             ]
             distances = [
-                w.get("distance", 0) for w in recent_walks if w.get("distance")
+                float(w.get("distance") or 0.0)
+                for w in recent_walks
+                if w.get("distance") is not None
             ]
 
             if durations:
@@ -989,7 +1104,7 @@ class WalkManager:
         week_walks = recent_walks
         self._walk_data[dog_id]["weekly_walks"] = len(week_walks)
         self._walk_data[dog_id]["weekly_distance"] = sum(
-            w.get("distance", 0) for w in week_walks
+            float(w.get("distance") or 0.0) for w in week_walks
         )
 
         # OPTIMIZE: Calculate walk streak efficiently
@@ -1054,7 +1169,7 @@ class WalkManager:
 
         return streak
 
-    def _update_energy_level(self, dog_id: str, walk_data: dict[str, Any]) -> None:
+    def _update_energy_level(self, dog_id: str, walk_data: WalkSessionSnapshot) -> None:
         """Update dog's energy level based on walk activity.
 
         Args:
@@ -1062,8 +1177,8 @@ class WalkManager:
             walk_data: Recent walk data
         """
         # Simple energy level calculation based on walk distance and duration
-        distance = walk_data.get("distance", 0)
-        duration = walk_data.get("duration", 0)
+        distance = float(walk_data.get("distance") or 0.0)
+        duration = float(walk_data.get("duration") or 0.0)
 
         if distance > 2000 or duration > 3600:  # Long walk (>2km or >1h)
             energy_level = "low"
@@ -1074,7 +1189,7 @@ class WalkManager:
 
         self._walk_data[dog_id]["energy_level"] = energy_level
 
-    def _calculate_elevation_gain(self, path: list[dict[str, Any]]) -> float:
+    def _calculate_elevation_gain(self, path: list[WalkRoutePoint]) -> float:
         """Calculate total elevation gain from path.
 
         OPTIMIZE: New feature for comprehensive walk analysis.
@@ -1101,7 +1216,7 @@ class WalkManager:
 
         return total_gain
 
-    async def async_get_walk_data_cached(self, dog_id: str) -> dict[str, Any]:
+    async def async_get_walk_data_cached(self, dog_id: str) -> WalkStatisticsSnapshot:
         """Get walk statistics with caching optimization.
 
         OPTIMIZE: Cache frequently accessed walk data for better performance.
@@ -1122,13 +1237,15 @@ class WalkManager:
         # Calculate fresh data
         async with self._data_lock:
             if dog_id not in self._walk_data:
-                return {}
+                return cast(WalkStatisticsSnapshot, {})
 
-            data = self._walk_data[dog_id].copy()
+            data = cast(WalkStatisticsSnapshot, dict(self._walk_data[dog_id]))
 
             # Add current walk if in progress
             if dog_id in self._current_walks:
-                current_walk = self._current_walks[dog_id].copy()
+                current_walk = cast(
+                    WalkSessionSnapshot, dict(self._current_walks[dog_id])
+                )
 
                 # Calculate current walk duration and distance
                 if current_walk["path"]:
@@ -1162,7 +1279,7 @@ class WalkManager:
         cache_key = f"walk_data_{dog_id}"
         self._statistics_cache.pop(cache_key, None)
 
-    async def async_get_performance_statistics(self) -> dict[str, Any]:
+    async def async_get_performance_statistics(self) -> WalkPerformanceSnapshot:
         """Get performance statistics for the walk manager.
 
         OPTIMIZE: New method for monitoring performance and optimization effectiveness.
@@ -1187,7 +1304,10 @@ class WalkManager:
             # Cache statistics
             cache_stats = self._gps_cache.get_stats()
 
-            return {
+            performance_metrics = cast(
+                WalkPerformanceCounters, dict(self._performance_metrics)
+            )
+            snapshot: WalkPerformanceSnapshot = {
                 # Basic stats
                 "total_dogs": total_dogs,
                 "dogs_with_gps": dogs_with_gps,
@@ -1196,7 +1316,7 @@ class WalkManager:
                 "total_distance_today": round(total_distance_today, 1),
                 "walk_detection_enabled": self._walk_detection_enabled,
                 # Performance metrics
-                "performance_metrics": self._performance_metrics.copy(),
+                "performance_metrics": performance_metrics,
                 "cache_stats": cache_stats,
                 "statistics_cache_entries": len(self._statistics_cache),
                 "location_analysis_queue_size": sum(
@@ -1204,36 +1324,44 @@ class WalkManager:
                 ),
                 # Memory usage
                 "average_path_length": sum(
-                    len(walk.get("path", [])) for walk in self._current_walks.values()
+                    len(walk["path"]) for walk in self._current_walks.values()
                 )
                 / max(len(self._current_walks), 1),
             }
+            return snapshot
 
     # OPTIMIZE: Keep existing methods for compatibility but optimize internal calls
-    async def async_get_current_walk(self, dog_id: str) -> dict[str, Any] | None:
+    async def async_get_current_walk(self, dog_id: str) -> WalkSessionSnapshot | None:
         """Get current walk data for a dog."""
         async with self._data_lock:
             return (
-                self._current_walks.get(dog_id, {}).copy()
+                cast(WalkSessionSnapshot, dict(self._current_walks[dog_id]))
                 if dog_id in self._current_walks
                 else None
             )
 
-    async def async_get_walk_data(self, dog_id: str) -> dict[str, Any]:
+    async def async_get_walk_data(self, dog_id: str) -> WalkStatisticsSnapshot:
         """Get walk statistics for a dog with caching."""
         return await self.async_get_walk_data_cached(dog_id)
 
-    async def async_get_gps_data(self, dog_id: str) -> dict[str, Any]:
+    async def async_get_gps_data(self, dog_id: str) -> WalkGPSSnapshot:
         """Get GPS data for a dog."""
         async with self._data_lock:
             if dog_id not in self._gps_data:
-                return {"available": False, "error": "Dog not initialized"}
+                return cast(
+                    WalkGPSSnapshot,
+                    {
+                        "available": False,
+                        "zone": "unknown",
+                        "error": "Dog not initialized",
+                    },
+                )
 
-            return self._gps_data[dog_id].copy()
+            return cast(WalkGPSSnapshot, dict(self._gps_data[dog_id]))
 
     async def async_get_walk_history(
         self, dog_id: str, days: int = 7
-    ) -> list[dict[str, Any]]:
+    ) -> list[WalkSessionSnapshot]:
         """Get walk history for a dog."""
         async with self._data_lock:
             if dog_id not in self._walk_history:
@@ -1247,7 +1375,7 @@ class WalkManager:
                 try:
                     start_time = dt_util.parse_datetime(walk["start_time"])
                     if start_time and start_time >= cutoff:
-                        recent_walks.append(walk.copy())
+                        recent_walks.append(cast(WalkSessionSnapshot, dict(walk)))
                 except (ValueError, TypeError):
                     continue
 
@@ -1255,7 +1383,7 @@ class WalkManager:
 
     def get_walk_history(
         self, dog_id: str, limit: int | None = None
-    ) -> list[dict[str, Any]]:
+    ) -> list[WalkSessionSnapshot]:
         """Return stored walk history synchronously for testing helpers."""
 
         history = self._walk_history.get(dog_id, [])
@@ -1264,23 +1392,29 @@ class WalkManager:
 
         history_slice = history[-limit:] if limit is not None else history[:]
 
-        return [walk.copy() for walk in reversed(history_slice)]
+        return [
+            cast(WalkSessionSnapshot, dict(walk)) for walk in reversed(history_slice)
+        ]
 
-    def get_last_walk_info(self, dog_id: str) -> dict[str, Any] | None:
+    def get_last_walk_info(self, dog_id: str) -> WalkSessionSnapshot | None:
         """Return the most recent walk if available."""
 
         history = self.get_walk_history(dog_id, limit=1)
         return history[0] if history else None
 
-    def get_active_walk_info(self, dog_id: str) -> dict[str, Any] | None:
+    def get_active_walk_info(self, dog_id: str) -> WalkSessionSnapshot | None:
         """Return details about the active walk."""
 
-        active_walk = self._dogs.get(dog_id, {}).get("active_walk")
+        container = self._dogs.get(dog_id)
+        if container is None:
+            return None
+
+        active_walk = container["active_walk"]
         if not active_walk:
             return None
 
-        info = active_walk.copy()
-        start_time_raw = info.get("start_time")
+        info = cast(WalkSessionSnapshot, dict(active_walk))
+        start_time_raw = cast(str | datetime | None, info.get("start_time"))
         start_time = (
             start_time_raw
             if isinstance(start_time_raw, datetime)
@@ -1301,46 +1435,69 @@ class WalkManager:
 
         container = self._dogs[dog_id]
         active_walk = container.get("active_walk")
+        active_snapshot = (
+            cast(WalkSessionSnapshot, dict(active_walk))
+            if isinstance(active_walk, dict)
+            else active_walk
+        )
 
-        stats_snapshot = self._walk_data.get(dog_id, {}).copy()
+        stats = self._walk_data.get(dog_id)
+        stats_snapshot = (
+            cast(WalkStatisticsSnapshot, dict(stats))
+            if stats is not None
+            else cast(WalkStatisticsSnapshot, {})
+        )
+
+        gps = self._gps_data.get(dog_id)
+        gps_snapshot = (
+            cast(WalkGPSSnapshot, dict(gps))
+            if gps is not None
+            else cast(WalkGPSSnapshot, {"available": False, "zone": "unknown"})
+        )
 
         return {
-            "active_walk": active_walk.copy()
-            if isinstance(active_walk, dict)
-            else active_walk,
+            "active_walk": active_snapshot,
             "history": self.get_walk_history(dog_id),
             "stats": stats_snapshot,
-            "statistics": stats_snapshot.copy(),
-            "gps": self._gps_data.get(dog_id, {}).copy(),
+            "statistics": cast(WalkStatisticsSnapshot, dict(stats_snapshot)),
+            "gps": gps_snapshot,
         }
 
     def get_daily_walk_stats(self, dog_id: str) -> dict[str, Any]:
         """Return aggregated statistics for the current day."""
 
         stats = self._walk_data.get(dog_id)
-        if not stats:
+        if stats is None:
             return {}
 
         return {
-            "total_walks_today": stats.get("walks_today", 0),
-            "total_duration_today": stats.get("total_duration_today", 0),
-            "total_distance_today": stats.get("total_distance_today", 0.0),
-            "average_duration": stats.get("average_duration"),
-            "average_distance": stats.get("average_distance"),
-            "energy_level": stats.get("energy_level"),
+            "total_walks_today": stats["walks_today"],
+            "total_duration_today": stats["total_duration_today"],
+            "total_distance_today": stats["total_distance_today"],
+            "average_duration": (
+                cast(float | None, stats["average_duration"])
+                if "average_duration" in stats
+                else None
+            ),
+            "average_distance": (
+                cast(float | None, stats["average_distance"])
+                if "average_distance" in stats
+                else None
+            ),
+            "energy_level": stats["energy_level"],
         }
 
     def get_weekly_walk_stats(self, dog_id: str) -> dict[str, Any]:
         """Return aggregated statistics for the current week."""
 
         stats = self._walk_data.get(dog_id)
-        if not stats:
+        if stats is None:
             return {}
 
         return {
-            "total_walks_this_week": stats.get("weekly_walks", 0),
-            "total_distance_this_week": stats.get("weekly_distance", 0.0),
-            "walk_streak": stats.get("walk_streak", 0),
+            "total_walks_this_week": stats["weekly_walks"],
+            "total_distance_this_week": stats["weekly_distance"],
+            "walk_streak": stats["walk_streak"],
         }
 
     async def _update_location_analysis(
@@ -1381,7 +1538,7 @@ class WalkManager:
         self._zone_cache[dog_id] = (zone, now)
 
     # Keep existing utility methods
-    def _calculate_average_speed(self, walk_data: dict[str, Any]) -> float | None:
+    def _calculate_average_speed(self, walk_data: WalkSessionSnapshot) -> float | None:
         """Calculate average speed for a walk."""
 
         duration_raw = walk_data.get("duration")
@@ -1401,7 +1558,7 @@ class WalkManager:
 
         return distance_km / duration_hours
 
-    def _calculate_max_speed(self, path: list[dict[str, Any]]) -> float | None:
+    def _calculate_max_speed(self, path: list[WalkRoutePoint]) -> float | None:
         """Calculate maximum speed from path."""
         speeds: list[float] = []
         for point in path:
@@ -1411,7 +1568,7 @@ class WalkManager:
         return max(speeds) if speeds else None
 
     def _estimate_calories_burned(
-        self, dog_id: str, walk_data: dict[str, Any]
+        self, dog_id: str, walk_data: WalkSessionSnapshot
     ) -> float | None:
         """Estimate calories burned during walk."""
         duration_raw = walk_data.get("duration")
@@ -1436,7 +1593,7 @@ class WalkManager:
 
         return base_calories + elevation_bonus
 
-    async def async_get_statistics(self) -> dict[str, Any]:
+    async def async_get_statistics(self) -> WalkPerformanceSnapshot:
         """Get walk manager statistics."""
         return await self.async_get_performance_statistics()
 
@@ -1493,14 +1650,14 @@ class WalkManager:
                 recent_walks = []
                 for walk in self._walk_history[dog_id][-last_n_walks:]:
                     if (
-                        walk.get("path")
-                        and walk.get("status") == "completed"
+                        walk["path"]
+                        and walk["status"] == "completed"
                         and len(walk["path"]) >= 2
                     ):  # At least 2 points for valid route
                         # Validate route data integrity
                         valid_path = self._validate_route_data(walk["path"])
                         if valid_path:
-                            walk_copy = walk.copy()
+                            walk_copy = cast(WalkSessionSnapshot, dict(walk))
                             walk_copy["path"] = valid_path
                             recent_walks.append(walk_copy)
 
@@ -1509,9 +1666,13 @@ class WalkManager:
                     return None
 
                 # Calculate route statistics
-                total_distance = sum(walk.get("distance", 0) for walk in recent_walks)
-                total_duration = sum(walk.get("duration", 0) for walk in recent_walks)
-                total_points = sum(len(walk.get("path", [])) for walk in recent_walks)
+                total_distance = sum(
+                    float(walk.get("distance") or 0.0) for walk in recent_walks
+                )
+                total_duration = sum(
+                    float(walk.get("duration") or 0.0) for walk in recent_walks
+                )
+                total_points = sum(len(walk["path"]) for walk in recent_walks)
 
                 export_data = {
                     "dog_id": dog_id,
@@ -1591,8 +1752,8 @@ class WalkManager:
             return None
 
     def _validate_route_data(
-        self, path: list[dict[str, Any]]
-    ) -> list[dict[str, Any]] | None:
+        self, path: list[WalkRoutePoint]
+    ) -> list[WalkRoutePoint] | None:
         """Validate and clean route data for export.
 
         Args:
@@ -1604,7 +1765,7 @@ class WalkManager:
         if not path or len(path) < 2:
             return None
 
-        validated_path = []
+        validated_path: list[WalkRoutePoint] = []
 
         for point in path:
             # Validate required GPS data
@@ -1622,21 +1783,26 @@ class WalkManager:
                 continue  # Skip invalid points
 
             # Create validated point with standardized fields
-            validated_point = {
-                "latitude": float(lat),
-                "longitude": float(lon),
-                "timestamp": timestamp,
-                "accuracy": point.get("accuracy"),
-                "speed": point.get("speed"),
-                "altitude": point.get("altitude"),
-            }
+            validated_point = cast(
+                WalkRoutePoint,
+                {
+                    "latitude": float(lat),
+                    "longitude": float(lon),
+                    "timestamp": timestamp,
+                    "accuracy": point.get("accuracy"),
+                    "speed": point.get("speed"),
+                    "altitude": point.get("altitude"),
+                },
+            )
 
             validated_path.append(validated_point)
 
         # Return None if too few valid points remain
         return validated_path if len(validated_path) >= 2 else None
 
-    def _calculate_route_bounds(self, walks: list[dict[str, Any]]) -> dict[str, float]:
+    def _calculate_route_bounds(
+        self, walks: list[WalkSessionSnapshot]
+    ) -> dict[str, float]:
         """Calculate geographic bounds for all routes.
 
         Args:
@@ -1670,7 +1836,7 @@ class WalkManager:
         }
 
     def _generate_enhanced_gpx_data(
-        self, walks: list[dict[str, Any]], dog_id: str
+        self, walks: list[WalkSessionSnapshot], dog_id: str
     ) -> str:
         """Generate GPX data with defensive error handling."""
 
@@ -1681,7 +1847,7 @@ class WalkManager:
             raise
 
     def _render_enhanced_gpx_document(
-        self, walks: list[dict[str, Any]], dog_id: str
+        self, walks: list[WalkSessionSnapshot], dog_id: str
     ) -> str:
         """Generate GPX 1.1 compliant data with full metadata."""
 
@@ -1876,7 +2042,7 @@ class WalkManager:
             # Fallback to current time if parsing fails
             return dt_util.now().strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    def _generate_enhanced_csv_data(self, walks: list[dict[str, Any]]) -> str:
+    def _generate_enhanced_csv_data(self, walks: list[WalkSessionSnapshot]) -> str:
         """Generate enhanced CSV format data with comprehensive metadata.
 
         Args:
@@ -1895,12 +2061,15 @@ class WalkManager:
         ]
 
         for walk_num, walk in enumerate(walks, 1):
-            walk_id = walk.get("walk_id", f"walk_{walk_num}")
-            weather = walk.get("weather", "")
-            walker = walk.get("walker", "")
+            walk_id = str(walk.get("walk_id", f"walk_{walk_num}"))
+            weather = str(walk.get("weather", ""))
+            walker = str(walk.get("walker", ""))
+            raw_notes = walk.get("notes")
             notes = (
-                walk.get("notes", "").replace(",", ";").replace("\n", " ")
-            )  # CSV safe
+                raw_notes.replace(",", ";").replace("\n", " ")
+                if isinstance(raw_notes, str)
+                else ""
+            )
 
             start_time = None
             if walk.get("start_time"):
@@ -1909,7 +2078,7 @@ class WalkManager:
             cumulative_distance = 0.0
             last_point = None
 
-            for point in walk.get("path", []):
+            for point in walk["path"]:
                 lat = point.get("latitude")
                 lon = point.get("longitude")
                 alt = point.get("altitude", "")

@@ -135,7 +135,7 @@ else:
     class DateSelectorConfig(BaseSelectorConfig, total=False):
         """Date selector configuration shim."""
 
-    class _BaseSelector[ConfigT]:
+    class _BaseSelector[ConfigT: BaseSelectorConfig]:
         """Typed selector stub that mirrors Home Assistant's runtime helpers.
 
         The shim relies on PEP 695 generics so each fallback selector exposes the

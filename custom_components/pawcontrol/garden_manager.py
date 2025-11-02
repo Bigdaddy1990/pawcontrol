@@ -15,7 +15,7 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any
+from typing import Any, Literal, TypedDict, cast
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
@@ -28,6 +28,16 @@ from .const import (
     STORAGE_VERSION,
 )
 from .notifications import NotificationPriority, NotificationType
+from .types import (
+    GardenActiveSessionSnapshot,
+    GardenConfirmationSnapshot,
+    GardenFavoriteActivity,
+    GardenModulePayload,
+    GardenSessionSnapshot,
+    GardenStatsSnapshot,
+    GardenWeatherSummary,
+    GardenWeeklySummary,
+)
 from .utils import async_fire_event
 
 _LOGGER = logging.getLogger(__name__)
@@ -177,6 +187,12 @@ class GardenSession:
         return session
 
 
+def _empty_garden_weekly_summary() -> GardenWeeklySummary:
+    """Return an empty weekly summary mapping cast to the typed shape."""
+
+    return cast(GardenWeeklySummary, {})
+
+
 @dataclass
 class GardenStats:
     """Statistics for garden activities."""
@@ -186,10 +202,22 @@ class GardenStats:
     total_poop_count: int = 0
     average_session_duration: float = 0.0
     most_active_time_of_day: str | None = None
-    favorite_activities: list[dict[str, Any]] = field(default_factory=list)
+    favorite_activities: list[GardenFavoriteActivity] = field(default_factory=list)
     total_activities: int = 0
-    weekly_summary: dict[str, Any] = field(default_factory=dict)
+    weekly_summary: GardenWeeklySummary = field(
+        default_factory=_empty_garden_weekly_summary
+    )
     last_garden_visit: datetime | None = None
+
+
+class _GardenConfirmationRecord(TypedDict):
+    """Internal confirmation record tracked by the garden manager."""
+
+    type: Literal["poop_confirmation"]
+    dog_id: str
+    session_id: str
+    timestamp: datetime | None
+    timeout: datetime | None
 
 
 class GardenManager:
@@ -212,7 +240,7 @@ class GardenManager:
         self._active_sessions: dict[str, GardenSession] = {}
         self._session_history: list[GardenSession] = []
         self._dog_stats: dict[str, GardenStats] = {}
-        self._pending_confirmations: dict[str, dict[str, Any]] = {}
+        self._pending_confirmations: dict[str, _GardenConfirmationRecord] = {}
 
         # Configuration
         self._session_timeout = DEFAULT_GARDEN_SESSION_TIMEOUT
@@ -704,14 +732,15 @@ class GardenManager:
         # Send confirmation request
         if self._notification_manager:
             confirmation_id = f"poop_confirm_{dog_id}_{session_id}"
-            self._pending_confirmations[confirmation_id] = {
+            created = dt_util.utcnow()
+            record: _GardenConfirmationRecord = {
                 "type": "poop_confirmation",
                 "dog_id": dog_id,
                 "session_id": session_id,
-                "timestamp": dt_util.utcnow(),
-                "timeout": dt_util.utcnow()
-                + timedelta(seconds=POOP_CONFIRMATION_TIMEOUT),
+                "timestamp": created,
+                "timeout": created + timedelta(seconds=POOP_CONFIRMATION_TIMEOUT),
             }
+            self._pending_confirmations[confirmation_id] = record
 
             await self._notification_manager.async_send_notification(
                 notification_type=NotificationType.SYSTEM_INFO,
@@ -756,8 +785,8 @@ class GardenManager:
         confirmation_id = None
         for conf_id, conf_data in self._pending_confirmations.items():
             if (
-                conf_data.get("dog_id") == dog_id
-                and conf_data.get("type") == "poop_confirmation"
+                conf_data["dog_id"] == dog_id
+                and conf_data["type"] == "poop_confirmation"
             ):
                 confirmation_id = conf_id
                 break
@@ -810,7 +839,8 @@ class GardenManager:
         expired_confirmations = []
 
         for conf_id, conf_data in self._pending_confirmations.items():
-            if now > conf_data.get("timeout", now):
+            timeout = conf_data["timeout"]
+            if timeout is not None and now > timeout:
                 expired_confirmations.append(conf_id)
 
         for conf_id in expired_confirmations:
@@ -865,12 +895,16 @@ class GardenManager:
                     activity_counts.get(activity_type, 0) + 1
                 )
 
-        stats.favorite_activities = [
-            {"activity": activity_type, "count": count}
-            for activity_type, count in sorted(
-                activity_counts.items(), key=lambda item: item[1], reverse=True
-            )[:3]
-        ]
+        favorites: list[GardenFavoriteActivity] = []
+        for activity_type, count in sorted(
+            activity_counts.items(), key=lambda item: item[1], reverse=True
+        )[:3]:
+            favorites.append(
+                cast(
+                    GardenFavoriteActivity, {"activity": activity_type, "count": count}
+                )
+            )
+        stats.favorite_activities = favorites
 
         # Weekly summary (last 7 days)
         now_utc = dt_util.utcnow()
@@ -953,35 +987,36 @@ class GardenManager:
             for confirmation in self._pending_confirmations.values()
         )
 
-    def get_pending_confirmations(self, dog_id: str) -> list[dict[str, Any]]:
+    def get_pending_confirmations(
+        self, dog_id: str
+    ) -> list[GardenConfirmationSnapshot]:
         """Return pending confirmation requests for a dog."""
 
-        confirmations: list[dict[str, Any]] = []
+        confirmations: list[GardenConfirmationSnapshot] = []
         for confirmation in self._pending_confirmations.values():
             if (
-                confirmation.get("dog_id") != dog_id
-                or confirmation.get("type") != "poop_confirmation"
+                confirmation["dog_id"] != dog_id
+                or confirmation["type"] != "poop_confirmation"
             ):
                 continue
 
-            timestamp = confirmation.get("timestamp")
-            timeout = confirmation.get("timeout")
-            confirmations.append(
-                {
-                    "session_id": confirmation.get("session_id"),
-                    "created": timestamp.isoformat() if timestamp else None,
-                    "expires": timeout.isoformat() if timeout else None,
-                }
-            )
+            timestamp = confirmation["timestamp"]
+            timeout = confirmation["timeout"]
+            confirmation_payload: GardenConfirmationSnapshot = {
+                "session_id": confirmation["session_id"],
+                "created": timestamp.isoformat() if timestamp else None,
+                "expires": timeout.isoformat() if timeout else None,
+            }
+            confirmations.append(confirmation_payload)
 
         return confirmations
 
     def build_garden_snapshot(
         self, dog_id: str, *, recent_limit: int = 50
-    ) -> dict[str, Any]:
+    ) -> GardenModulePayload:
         """Build a snapshot of garden activity for sensors and diagnostics."""
 
-        snapshot: dict[str, Any] = {
+        snapshot: GardenModulePayload = {
             "status": "idle",
             "sessions_today": 0,
             "time_today_minutes": 0.0,
@@ -991,7 +1026,7 @@ class GardenManager:
             "active_session": None,
             "last_session": None,
             "hours_since_last_session": None,
-            "stats": {},
+            "stats": cast(GardenStatsSnapshot, {}),
             "pending_confirmations": self.get_pending_confirmations(dog_id),
             "weather_summary": None,
         }
@@ -1010,17 +1045,18 @@ class GardenManager:
         active_session = self.get_active_session(dog_id)
         if active_session:
             snapshot["status"] = "active"
-            snapshot["active_session"] = {
+            active_payload: GardenActiveSessionSnapshot = {
                 "session_id": active_session.session_id,
                 "start_time": active_session.start_time.isoformat(),
                 "duration_minutes": round(active_session.calculate_duration() / 60, 2),
                 "activity_count": len(active_session.activities),
                 "poop_count": active_session.poop_count,
             }
+            snapshot["active_session"] = active_payload
 
         stats = self.get_dog_statistics(dog_id)
         if stats:
-            snapshot["stats"] = {
+            stats_payload: GardenStatsSnapshot = {
                 "total_sessions": stats.total_sessions,
                 "total_time_minutes": stats.total_time_minutes,
                 "total_poop_count": stats.total_poop_count,
@@ -1031,7 +1067,9 @@ class GardenManager:
                 "last_garden_visit": stats.last_garden_visit.isoformat()
                 if stats.last_garden_visit
                 else None,
+                "total_activities": stats.total_activities,
             }
+            snapshot["stats"] = stats_payload
             snapshot["activities_total"] = stats.total_activities
 
         # Calculate today's aggregates including active session
@@ -1070,14 +1108,15 @@ class GardenManager:
             average_temperature = (
                 sum(temperatures) / len(temperatures) if temperatures else None
             )
-            snapshot["weather_summary"] = {
+            weather_summary: GardenWeatherSummary = {
                 "conditions": weather_conditions,
                 "average_temperature": average_temperature,
             }
+            snapshot["weather_summary"] = weather_summary
 
         if sessions:
             last_session = sessions[0]
-            snapshot["last_session"] = {
+            last_session_payload: GardenSessionSnapshot = {
                 "session_id": last_session.session_id,
                 "start_time": last_session.start_time.isoformat(),
                 "end_time": last_session.end_time.isoformat()
@@ -1091,6 +1130,7 @@ class GardenManager:
                 "temperature": last_session.temperature,
                 "notes": last_session.notes,
             }
+            snapshot["last_session"] = last_session_payload
 
             reference_time = last_session.end_time or last_session.start_time
             if reference_time:

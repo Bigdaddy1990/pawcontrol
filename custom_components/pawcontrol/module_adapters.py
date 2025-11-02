@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Literal, TypedDict, cast
 
 from aiohttp import ClientSession
 
@@ -39,14 +39,23 @@ from .http_client import ensure_shared_client_session
 from .types import (
     CoordinatorModuleTask,
     DogModulesMapping,
+    FeedingDailyStats,
     FeedingModulePayload,
+    FeedingSnapshot,
     GardenModulePayload,
+    GardenStatsSnapshot,
     GeofencingModulePayload,
     GPSModulePayload,
+    HealthAlertEntry,
+    HealthAlertList,
+    HealthMedicationQueue,
+    HealthMedicationReminder,
     HealthModulePayload,
     ModuleCacheMetrics,
     PawControlConfigEntry,
     WalkModulePayload,
+    WeatherAlertPayload,
+    WeatherConditionsPayload,
     WeatherModulePayload,
 )
 
@@ -61,14 +70,56 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
+class ModuleAdapterCacheStats(TypedDict):
+    """Runtime statistics exposed by module adapter caches."""
+
+    entries: int
+    hits: int
+    misses: int
+    hit_rate: float
+
+
+class ModuleAdapterCacheMetadata(TypedDict, total=False):
+    """Metadata describing cache behaviour for diagnostics."""
+
+    ttl_seconds: float | None
+    last_cleanup: datetime | None
+    last_expired_count: int
+    expired_total: int
+
+
+class ModuleAdapterCacheSnapshot(TypedDict):
+    """Snapshot exported by module adapter caches for telemetry."""
+
+    stats: ModuleAdapterCacheStats
+    metadata: ModuleAdapterCacheMetadata
+
+
+class ModuleAdapterCacheError(TypedDict):
+    """Error payload returned when cache telemetry fails."""
+
+    error: str
+
+
 class _ExpiringCache[PayloadT]:
     """Cache that evicts entries after a fixed TTL."""
 
-    __slots__ = ("_data", "_hits", "_misses", "_ttl")
+    __slots__ = (
+        "_data",
+        "_evicted_total",
+        "_hits",
+        "_last_cleanup",
+        "_last_expired",
+        "_misses",
+        "_ttl",
+    )
 
     def __init__(self, ttl: timedelta) -> None:
         self._data: dict[str, tuple[PayloadT, datetime]] = {}
+        self._evicted_total = 0
         self._hits = 0
+        self._last_cleanup: datetime | None = None
+        self._last_expired = 0
         self._misses = 0
         self._ttl = ttl
 
@@ -104,13 +155,21 @@ class _ExpiringCache[PayloadT]:
         for key in expired:
             del self._data[key]
 
-        return len(expired)
+        expired_count = len(expired)
+        if expired_count:
+            self._evicted_total += expired_count
+        self._last_cleanup = now
+        self._last_expired = expired_count
+        return expired_count
 
     def clear(self) -> None:
         """Reset the cache entirely."""
 
         self._data.clear()
+        self._evicted_total = 0
         self._hits = 0
+        self._last_cleanup = None
+        self._last_expired = 0
         self._misses = 0
 
     def metrics(self) -> ModuleCacheMetrics:
@@ -122,11 +181,102 @@ class _ExpiringCache[PayloadT]:
             misses=self._misses,
         )
 
+    def metadata(self) -> ModuleAdapterCacheMetadata:
+        """Return metadata describing cache state for diagnostics."""
+
+        metadata: ModuleAdapterCacheMetadata = {
+            "ttl_seconds": self._ttl.total_seconds(),
+        }
+        if self._last_cleanup is not None:
+            metadata["last_cleanup"] = self._last_cleanup
+            metadata["last_expired_count"] = self._last_expired
+        if self._evicted_total:
+            metadata["expired_total"] = self._evicted_total
+        return metadata
+
+    def snapshot(self) -> ModuleAdapterCacheSnapshot:
+        """Return a typed snapshot of cache statistics and metadata."""
+
+        metrics = self.metrics()
+        stats: ModuleAdapterCacheStats = {
+            "entries": metrics.entries,
+            "hits": metrics.hits,
+            "misses": metrics.misses,
+            "hit_rate": metrics.hit_rate,
+        }
+        return {
+            "stats": stats,
+            "metadata": self.metadata(),
+        }
+
+
+def _normalise_health_alert(payload: Mapping[str, Any]) -> HealthAlertEntry:
+    """Return a typed health alert entry with defaulted metadata."""
+
+    alert_type = str(payload.get("type", "custom"))
+    raw_message = payload.get("message")
+    message = str(raw_message or alert_type.replace("_", " ").title())
+
+    raw_severity = str(payload.get("severity", "medium")).lower()
+    severity: Literal["low", "medium", "high", "critical"]
+    if raw_severity in {"low", "medium", "high", "critical"}:
+        severity = cast(Literal["low", "medium", "high", "critical"], raw_severity)
+    else:
+        severity = "medium"
+
+    details: Mapping[str, Any] | None = None
+    raw_details = payload.get("details")
+    if isinstance(raw_details, Mapping):
+        details = raw_details
+
+    alert: HealthAlertEntry = {
+        "type": alert_type,
+        "message": message,
+        "severity": severity,
+        "action_required": bool(payload.get("action_required", False)),
+    }
+    if details is not None:
+        alert["details"] = details
+    return alert
+
+
+def _normalise_health_medication(
+    payload: Mapping[str, Any],
+) -> HealthMedicationReminder:
+    """Normalise stored medication payloads into typed reminders."""
+
+    name = str(payload.get("name", payload.get("medication", "medication")))
+    entry: HealthMedicationReminder = {"name": name}
+
+    if "dosage" in payload:
+        dosage = payload.get("dosage")
+        entry["dosage"] = str(dosage) if dosage is not None else None
+
+    if "frequency" in payload:
+        frequency = payload.get("frequency")
+        entry["frequency"] = str(frequency) if frequency is not None else None
+
+    if "next_dose" in payload:
+        next_dose = payload.get("next_dose")
+        entry["next_dose"] = str(next_dose) if next_dose is not None else None
+
+    if "notes" in payload:
+        notes = payload.get("notes")
+        entry["notes"] = str(notes) if notes is not None else None
+
+    if "with_meals" in payload:
+        entry["with_meals"] = bool(payload.get("with_meals"))
+
+    return entry
+
 
 class _BaseModuleAdapter[PayloadT]:
     """Base helper for adapters that maintain a TTL cache."""
 
+    __slots__ = ("_cache", "_ttl")
+
     def __init__(self, ttl: timedelta | None) -> None:
+        self._ttl = ttl
         self._cache: _ExpiringCache[PayloadT] | None = (
             _ExpiringCache(ttl) if ttl else None
         )
@@ -154,6 +304,25 @@ class _BaseModuleAdapter[PayloadT]:
         if not self._cache:
             return ModuleCacheMetrics()
         return self._cache.metrics()
+
+    def cache_snapshot(self) -> ModuleAdapterCacheSnapshot:
+        if not self._cache:
+            stats: ModuleAdapterCacheStats = {
+                "entries": 0,
+                "hits": 0,
+                "misses": 0,
+                "hit_rate": 0.0,
+            }
+            metadata: ModuleAdapterCacheMetadata = {"ttl_seconds": None}
+            return {"stats": stats, "metadata": metadata}
+
+        snapshot = self._cache.snapshot()
+        metadata = snapshot["metadata"]
+        metadata.setdefault(
+            "ttl_seconds",
+            self._ttl.total_seconds() if self._ttl is not None else None,
+        )
+        return snapshot
 
 
 class FeedingModuleAdapter(_BaseModuleAdapter[FeedingModulePayload]):
@@ -214,27 +383,41 @@ class FeedingModuleAdapter(_BaseModuleAdapter[FeedingModulePayload]):
             self._remember(dog_id, payload)
             return payload
 
-        default_data: FeedingModulePayload = {
-            "last_feeding": None,
-            "feedings_today": {},
-            "total_feedings_today": 0,
-            "daily_amount_consumed": 0.0,
-            "daily_portions": 0,
-            "feeding_schedule": [],
-            "status": "ready",
-            "daily_calorie_target": None,
-            "total_calories_today": 0.0,
-            "portion_adjustment_factor": None,
-            "health_feeding_status": "insufficient_data",
-            "medication_with_meals": False,
-            "health_aware_feeding": False,
-            "health_conditions": [],
-            "daily_activity_level": None,
-            "weight_goal": None,
-            "weight_goal_progress": None,
-            "health_emergency": False,
-            "emergency_mode": None,
-        }
+        default_data: FeedingModulePayload = FeedingModulePayload(
+            status="no_data",
+            last_feeding=None,
+            last_feeding_type=None,
+            last_feeding_hours=None,
+            last_feeding_amount=None,
+            feedings_today={},
+            total_feedings_today=0,
+            daily_amount_consumed=0.0,
+            daily_amount_target=0.0,
+            daily_target=0.0,
+            daily_amount_percentage=0,
+            schedule_adherence=100,
+            next_feeding=None,
+            next_feeding_type=None,
+            missed_feedings=[],
+            feedings=[],
+            daily_stats=FeedingDailyStats(
+                total_fed_today=0.0,
+                meals_today=0,
+                remaining_calories=None,
+            ),
+            medication_with_meals=False,
+            health_aware_feeding=False,
+            weight_goal=None,
+            emergency_mode=None,
+            health_emergency=False,
+            health_feeding_status="insufficient_data",
+            feeding_schedule=[],
+            daily_portions=0,
+            health_conditions=[],
+            daily_activity_level=None,
+            total_calories_today=0.0,
+            diet_validation_summary=None,
+        )
         self._remember(dog_id, default_data)
         return default_data
 
@@ -280,6 +463,14 @@ class WalkModuleAdapter(_BaseModuleAdapter[WalkModulePayload]):
             "last_walk": None,
             "daily_walks": 0,
             "total_distance": 0.0,
+            "walks_today": 0,
+            "total_duration_today": 0.0,
+            "total_distance_today": 0.0,
+            "weekly_walks": 0,
+            "weekly_distance": 0.0,
+            "needs_walk": False,
+            "walk_streak": 0,
+            "energy_level": "unknown",
             "status": status,
         }
         if message:
@@ -419,12 +610,14 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
         if (cached := self._cached(dog_id)) is not None:
             return cached
 
+        medications: HealthMedicationQueue = []
+        health_alerts: HealthAlertList = []
         health_data: dict[str, Any] = {
             "weight": None,
             "ideal_weight": None,
             "last_vet_visit": None,
-            "medications": [],
-            "health_alerts": [],
+            "medications": medications,
+            "health_alerts": health_alerts,
             "status": "healthy",
         }
 
@@ -443,7 +636,46 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                     health_data.update(latest)
                     health_data.setdefault("status", "healthy")
 
-        feeding_context: dict[str, Any] = {}
+                    stored_medications = latest.get("medications")
+                    if isinstance(stored_medications, list):
+                        for medication in stored_medications:
+                            if isinstance(medication, dict):
+                                medications.append(
+                                    _normalise_health_medication(medication)
+                                )
+                            elif isinstance(medication, str):
+                                medications.append(
+                                    _normalise_health_medication({"name": medication})
+                                )
+
+                    stored_alerts = latest.get("health_alerts")
+                    if isinstance(stored_alerts, list):
+                        for stored_alert in stored_alerts:
+                            if isinstance(stored_alert, dict):
+                                health_alerts.append(
+                                    cast(
+                                        HealthAlertEntry,
+                                        _normalise_health_alert(stored_alert),
+                                    )
+                                )
+                            elif isinstance(stored_alert, str):
+                                health_alerts.append(
+                                    _normalise_health_alert(
+                                        {
+                                            "type": stored_alert,
+                                            "message": stored_alert.replace(
+                                                "_", " "
+                                            ).title(),
+                                            "severity": "medium",
+                                            "action_required": False,
+                                        }
+                                    )
+                                )
+
+                    health_data["medications"] = medications
+                    health_data["health_alerts"] = health_alerts
+
+        feeding_context: FeedingSnapshot | None = None
         if self._feeding_manager is not None:
             try:
                 feeding_context = await self._feeding_manager.async_get_feeding_data(
@@ -454,7 +686,7 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                     "Failed to gather feeding context for %s: %s", dog_id, err
                 )
 
-        if feeding_context:
+        if feeding_context is not None:
             summary = feeding_context.get("health_summary", {})
             if summary:
                 health_data.update(
@@ -478,19 +710,27 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                 )
 
             if feeding_context.get("health_emergency"):
-                emergency = feeding_context.get("emergency_mode") or {}
+                emergency: Mapping[str, Any] = cast(
+                    Mapping[str, Any], feeding_context.get("emergency_mode") or {}
+                )
                 health_data["status"] = "attention"
                 health_data["emergency"] = emergency
-                health_data.setdefault("health_alerts", []).append(
-                    {
-                        "type": "emergency_feeding",
-                        "severity": "critical",
-                        "details": emergency,
-                    }
-                )
+                emergency_alert: HealthAlertEntry = {
+                    "type": "emergency_feeding",
+                    "message": "Emergency feeding protocol active",
+                    "severity": "critical",
+                    "action_required": True,
+                }
+                if isinstance(emergency, Mapping):
+                    emergency_alert["details"] = dict(emergency)
+                health_alerts.append(emergency_alert)
 
             if feeding_context.get("medication_with_meals"):
-                health_data.setdefault("medications", []).append("meal_medication")
+                medications.append(
+                    _normalise_health_medication(
+                        {"name": "meal_medication", "with_meals": True}
+                    )
+                )
 
             health_data["health_status"] = feeding_context.get(
                 "health_feeding_status", health_data.get("health_status", "healthy")
@@ -561,14 +801,11 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
             return cached
 
         if self._manager is None:
-            payload = cast(
-                WeatherModulePayload,
-                {
-                    "status": "disabled",
-                    "health_score": None,
-                    "alerts": [],
-                    "recommendations": [],
-                },
+            payload: WeatherModulePayload = WeatherModulePayload(
+                status="disabled",
+                health_score=None,
+                alerts=[],
+                recommendations=[],
             )
             self._remember(dog_id, payload)
             return payload
@@ -610,15 +847,17 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
                 ]
 
         try:
-            alerts = [
-                {
-                    "type": getattr(alert.alert_type, "value", str(alert.alert_type)),
-                    "severity": getattr(alert.severity, "value", str(alert.severity)),
-                    "title": alert.title,
-                    "message": alert.message,
-                    "recommendations": list(alert.recommendations),
-                    "duration_hours": alert.duration_hours,
-                }
+            alerts: list[WeatherAlertPayload] = [
+                WeatherAlertPayload(
+                    type=getattr(alert.alert_type, "value", str(alert.alert_type)),
+                    severity=getattr(alert.severity, "value", str(alert.severity)),
+                    title=alert.title,
+                    message=alert.message,
+                    recommendations=list(alert.recommendations),
+                    duration_hours=alert.duration_hours,
+                    affected_breeds=list(alert.affected_breeds),
+                    age_considerations=list(alert.age_considerations),
+                )
                 for alert in self._manager.get_active_alerts()
             ]
             recommendations = self._manager.get_recommendations_for_dog(
@@ -630,35 +869,29 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
             conditions = self._manager.get_current_conditions()
         except Exception as err:  # pragma: no cover - defensive logging
             _LOGGER.warning("Failed to build weather health data: %s", err)
-            payload = cast(
-                WeatherModulePayload,
-                {
-                    "status": "error",
-                    "alerts": [],
-                    "recommendations": [],
-                    "message": str(err),
-                    "health_score": None,
-                },
+            payload = WeatherModulePayload(
+                status="error",
+                alerts=[],
+                recommendations=[],
+                message=str(err),
+                health_score=None,
             )
         else:
-            payload = cast(
-                WeatherModulePayload,
-                {
-                    "status": "ready",
-                    "health_score": health_score,
-                    "alerts": alerts,
-                    "recommendations": recommendations,
-                },
+            payload = WeatherModulePayload(
+                status="ready",
+                health_score=health_score,
+                alerts=alerts,
+                recommendations=recommendations,
             )
             if conditions is not None:
-                payload["conditions"] = {
-                    "temperature_c": conditions.temperature_c,
-                    "humidity_percent": conditions.humidity_percent,
-                    "uv_index": conditions.uv_index,
-                    "wind_speed_kmh": conditions.wind_speed_kmh,
-                    "condition": conditions.condition,
-                    "last_updated": conditions.last_updated.isoformat(),
-                }
+                payload["conditions"] = WeatherConditionsPayload(
+                    temperature_c=conditions.temperature_c,
+                    humidity_percent=conditions.humidity_percent,
+                    uv_index=conditions.uv_index,
+                    wind_speed_kmh=conditions.wind_speed_kmh,
+                    condition=conditions.condition,
+                    last_updated=conditions.last_updated.isoformat(),
+                )
 
         self._remember(dog_id, payload)
         return payload
@@ -684,9 +917,17 @@ class GardenModuleAdapter(_BaseModuleAdapter[GardenModulePayload]):
         if self._manager is None:
             payload: GardenModulePayload = {
                 "status": "disabled",
-                "sessions": [],
-                "recent_activity": [],
-                "stats": {},
+                "sessions_today": 0,
+                "time_today_minutes": 0.0,
+                "poop_today": 0,
+                "activities_today": 0,
+                "activities_total": 0,
+                "active_session": None,
+                "last_session": None,
+                "hours_since_last_session": None,
+                "stats": cast(GardenStatsSnapshot, {}),
+                "pending_confirmations": [],
+                "weather_summary": None,
             }
             self._remember(dog_id, payload)
             return payload
@@ -700,9 +941,17 @@ class GardenModuleAdapter(_BaseModuleAdapter[GardenModulePayload]):
                 {
                     "status": "error",
                     "message": str(err),
-                    "sessions": [],
-                    "recent_activity": [],
-                    "stats": {},
+                    "sessions_today": 0,
+                    "time_today_minutes": 0.0,
+                    "poop_today": 0,
+                    "activities_today": 0,
+                    "activities_total": 0,
+                    "active_session": None,
+                    "last_session": None,
+                    "hours_since_last_session": None,
+                    "stats": cast(GardenStatsSnapshot, {}),
+                    "pending_confirmations": [],
+                    "weather_summary": None,
                 },
             )
             self._remember(dog_id, payload)

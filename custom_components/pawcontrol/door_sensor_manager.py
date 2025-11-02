@@ -56,7 +56,13 @@ from .types import (
     DetectionStatus,
     DetectionStatusEntry,
     DogConfigData,
+    DoorSensorDogSnapshot,
+    DoorSensorManagerSnapshot,
+    DoorSensorManagerStats,
     DoorSensorSettingsConfig,
+    DoorSensorStateHistoryEntry,
+    DoorSensorStateSnapshot,
+    JSONMutableMapping,
 )
 from .utils import async_fire_event
 
@@ -345,14 +351,18 @@ class _DoorSensorManagerCacheMonitor:
 
     def _build_payload(
         self,
-    ) -> tuple[dict[str, Any], dict[str, Any], CacheDiagnosticsMetadata]:
+    ) -> tuple[
+        DoorSensorManagerStats,
+        DoorSensorManagerSnapshot,
+        CacheDiagnosticsMetadata,
+    ]:
         manager = self._manager
         configs = getattr(manager, "_sensor_configs", {})
         states = getattr(manager, "_detection_states", {})
         stats_payload = dict(getattr(manager, "_detection_stats", {}))
         manager_last_activity = getattr(manager, "_last_activity", None)
 
-        per_dog: dict[str, dict[str, Any]] = {}
+        per_dog: dict[str, DoorSensorDogSnapshot] = {}
         active_detections = 0
         timestamp_anomalies: dict[str, str] = {}
 
@@ -364,7 +374,7 @@ class _DoorSensorManagerCacheMonitor:
             if state is not None and state.current_state != WALK_STATE_IDLE:
                 active_detections += 1
 
-            config_payload: dict[str, Any] = {
+            config_payload: DoorSensorDogSnapshot = {
                 "entity_id": config.entity_id,
                 "enabled": config.enabled,
                 "walk_detection_timeout": config.walk_detection_timeout,
@@ -389,7 +399,16 @@ class _DoorSensorManagerCacheMonitor:
 
                 anomaly_reason, state_age = _classify_timestamp(last_activity_source)
 
-                config_payload["state"] = {
+                state_history: list[DoorSensorStateHistoryEntry] = [
+                    {
+                        "timestamp": _serialize_datetime(timestamp),
+                        "state": event_state,
+                    }
+                    for timestamp, event_state in getattr(state, "state_history", [])
+                    if isinstance(event_state, str)
+                ]
+
+                state_payload: DoorSensorStateSnapshot = {
                     "current_state": state.current_state,
                     "door_opened_at": _serialize_datetime(state.door_opened_at),
                     "door_closed_at": _serialize_datetime(state.door_closed_at),
@@ -400,44 +419,38 @@ class _DoorSensorManagerCacheMonitor:
                     "confidence_score": round(float(state.confidence_score), 3),
                     "last_door_state": state.last_door_state,
                     "consecutive_opens": state.consecutive_opens,
-                    "state_history": [
-                        {
-                            "timestamp": _serialize_datetime(timestamp),
-                            "state": event_state,
-                        }
-                        for timestamp, event_state in getattr(
-                            state, "state_history", []
-                        )
-                        if isinstance(event_state, str)
-                    ],
+                    "state_history": state_history,
                 }
 
                 if state_age is not None:
-                    config_payload["state"]["last_activity_age_seconds"] = state_age
+                    state_payload["last_activity_age_seconds"] = state_age
 
                 if anomaly_reason is not None:
                     timestamp_anomalies[dog_id] = anomaly_reason
 
+                config_payload["state"] = state_payload
             per_dog[dog_id] = config_payload
 
-        stats: dict[str, Any] = {
+        stats_payload_typed = cast(DetectionStatistics, dict(stats_payload))
+        stats: DoorSensorManagerStats = {
+            **stats_payload_typed,
             "configured_sensors": len(per_dog),
             "active_detections": active_detections,
         }
-        stats.update({k: v for k, v in stats_payload.items() if k not in stats})
 
         manager_anomaly, manager_age = _classify_timestamp(manager_last_activity)
         if manager_age is not None:
             stats["last_activity_age_seconds"] = manager_age
 
-        snapshot: dict[str, Any] = {
+        snapshot: DoorSensorManagerSnapshot = {
             "per_dog": per_dog,
-            "detection_stats": stats_payload,
+            "detection_stats": stats_payload_typed,
             "manager_last_activity": _serialize_datetime(manager_last_activity),
         }
 
+        per_dog_payload = cast(JSONMutableMapping, per_dog)
         diagnostics: CacheDiagnosticsMetadata = {
-            "per_dog": per_dog,
+            "per_dog": per_dog_payload,
             "detection_stats": stats_payload,
             "cleanup_task_active": getattr(manager, "_cleanup_task", None) is not None,
             "manager_last_activity": _serialize_datetime(manager_last_activity),
@@ -457,14 +470,14 @@ class _DoorSensorManagerCacheMonitor:
     def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         stats, snapshot, diagnostics = self._build_payload()
         return CacheDiagnosticsSnapshot(
-            stats=stats,
-            snapshot=snapshot,
+            stats=cast(JSONMutableMapping, dict(stats)),
+            snapshot=cast(JSONMutableMapping, dict(snapshot)),
             diagnostics=diagnostics,
         )
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> JSONMutableMapping:
         stats, _snapshot, _diagnostics = self._build_payload()
-        return stats
+        return cast(JSONMutableMapping, dict(stats))
 
     def get_diagnostics(self) -> CacheDiagnosticsMetadata:
         _stats, _snapshot, diagnostics = self._build_payload()
@@ -1174,9 +1187,11 @@ class DoorSensorManager:
             )
 
             # Calculate final duration if available
-            duration_minutes = 0
-            if walk_data and "duration" in walk_data:
-                duration_minutes = walk_data["duration"] / 60
+            duration_minutes = 0.0
+            if walk_data:
+                duration_raw = walk_data.get("duration")
+                if isinstance(duration_raw, int | float):
+                    duration_minutes = float(duration_raw) / 60.0
 
             # Reset state
             state.current_state = WALK_STATE_IDLE

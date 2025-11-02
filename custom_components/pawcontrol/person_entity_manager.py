@@ -13,10 +13,10 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol, cast
 
 from homeassistant.const import STATE_HOME
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, State
@@ -25,6 +25,17 @@ from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt as dt_util
 
 from .coordinator_support import CacheMonitorRegistrar
+from .types import (
+    CacheDiagnosticsSnapshot,
+    JSONMutableMapping,
+    PersonEntityCounters,
+    PersonEntityDiagnostics,
+    PersonEntitySnapshot,
+    PersonEntitySnapshotEntry,
+    PersonEntityStats,
+    PersonNotificationCacheEntry,
+    PersonNotificationContext,
+)
 from .utils import ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
@@ -34,6 +45,80 @@ DEFAULT_DISCOVERY_INTERVAL = 300  # 5 minutes
 DEFAULT_CACHE_TTL = 180  # 3 minutes
 MIN_DISCOVERY_INTERVAL = 60  # 1 minute
 MAX_DISCOVERY_INTERVAL = 3600  # 1 hour
+
+
+@dataclass
+class _PersonNotificationCachePayload:
+    """Internal cache payload storing canonical targets and timestamps."""
+
+    targets: tuple[str, ...]
+    generated_at: datetime
+
+
+class PersonNotificationCache[EntryT: PersonNotificationCacheEntry]:
+    """Typed notification target cache with diagnostics helpers."""
+
+    __slots__ = ("_entries",)
+
+    def __init__(self) -> None:
+        """Initialize the notification target cache container."""
+        self._entries: dict[str, _PersonNotificationCachePayload] = {}
+
+    def clear(self) -> None:
+        """Remove all cached entries."""
+
+        self._entries.clear()
+
+    def store(
+        self, key: str, targets: Sequence[str], generated_at: datetime
+    ) -> tuple[str, ...]:
+        """Store ``targets`` under ``key`` and return a deduplicated tuple."""
+
+        seen: set[str] = set()
+        canonical: list[str] = []
+        for target in targets:
+            if target in seen:
+                continue
+            seen.add(target)
+            canonical.append(target)
+
+        payload = _PersonNotificationCachePayload(tuple(canonical), generated_at)
+        self._entries[key] = payload
+        return payload.targets
+
+    def try_get(self, key: str, *, now: datetime, ttl: int) -> tuple[str, ...] | None:
+        """Return cached targets when still valid, otherwise ``None``."""
+
+        payload = self._entries.get(key)
+        if payload is None:
+            return None
+
+        age_seconds = (now - payload.generated_at).total_seconds()
+        if age_seconds < ttl:
+            return payload.targets
+        return None
+
+    def snapshot(self, *, now: datetime, ttl: int) -> dict[str, EntryT]:
+        """Return a diagnostics snapshot of cached entries."""
+
+        entries: dict[str, EntryT] = {}
+        for key, payload in self._entries.items():
+            age_seconds = max((now - payload.generated_at).total_seconds(), 0.0)
+            entries[key] = cast(
+                EntryT,
+                {
+                    "targets": payload.targets,
+                    "generated_at": payload.generated_at.isoformat(),
+                    "age_seconds": age_seconds,
+                    "stale": age_seconds > ttl,
+                },
+            )
+        return entries
+
+    def __len__(self) -> int:
+        """Return the number of cached entries."""
+
+        return len(self._entries)
 
 
 @dataclass
@@ -137,11 +222,12 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         # Performance tracking
         self._last_discovery = dt_util.now()
         self._discovery_count = 0
-        self._notification_targets_cache: dict[str, list[str]] = {}
-        self._cache_timestamps: dict[str, datetime] = {}
+        self._targets_cache: PersonNotificationCache[PersonNotificationCacheEntry] = (
+            PersonNotificationCache()
+        )
 
         # Statistics
-        self._stats = {
+        self._stats: PersonEntityCounters = {
             "persons_discovered": 0,
             "notifications_targeted": 0,
             "cache_hits": 0,
@@ -265,8 +351,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             self._last_discovery = dt_util.now()
 
             # Clear cache since persons may have changed
-            self._notification_targets_cache.clear()
-            self._cache_timestamps.clear()
+            self._targets_cache.clear()
 
             _LOGGER.debug(
                 "Discovery completed: %d person entities found, %d home",
@@ -371,8 +456,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
         # Clear cache if home status changed
         if old_is_home != person_info.is_home:
-            self._notification_targets_cache.clear()
-            self._cache_timestamps.clear()
+            self._targets_cache.clear()
 
             _LOGGER.debug(
                 "Person %s status changed: %s -> %s",
@@ -464,14 +548,12 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
         # Check cache
         now = dt_util.now()
-        if cache_key in self._notification_targets_cache:
-            cache_time = self._cache_timestamps.get(cache_key)
-            if (
-                cache_time
-                and (now - cache_time).total_seconds() < self._config.cache_ttl
-            ):
-                self._stats["cache_hits"] += 1
-                return self._notification_targets_cache[cache_key]
+        cached_targets = self._targets_cache.try_get(
+            cache_key, now=now, ttl=self._config.cache_ttl
+        )
+        if cached_targets is not None:
+            self._stats["cache_hits"] += 1
+            return list(cached_targets)
 
         self._stats["cache_misses"] += 1
 
@@ -505,23 +587,13 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         if not targets and self._config.fallback_to_static:
             targets.extend(self._config.static_notification_targets)
 
-        # Remove duplicates while preserving order
-        unique_targets = []
-        seen = set()
-        for target in targets:
-            if target not in seen:
-                unique_targets.append(target)
-                seen.add(target)
-
-        # Cache result
-        self._notification_targets_cache[cache_key] = unique_targets
-        self._cache_timestamps[cache_key] = now
+        stored_targets = self._targets_cache.store(cache_key, targets, now)
 
         self._stats["notifications_targeted"] += 1
 
-        return unique_targets
+        return list(stored_targets)
 
-    def get_notification_context(self) -> dict[str, Any]:
+    def get_notification_context(self) -> PersonNotificationContext:
         """Get notification context for personalized messages.
 
         Returns:
@@ -591,7 +663,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
                 _LOGGER.error("Failed to update person entity config: %s", err)
                 return False
 
-    def get_statistics(self) -> dict[str, Any]:
+    def get_statistics(self) -> PersonEntityStats:
         """Get comprehensive statistics.
 
         Returns:
@@ -599,6 +671,10 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         """
         now = dt_util.now()
         uptime = (now - self._last_discovery).total_seconds()
+
+        cache_hits = self._stats["cache_hits"]
+        cache_misses = self._stats["cache_misses"]
+        total_events = max(1, cache_hits + cache_misses)
 
         return {
             **self._stats,
@@ -617,12 +693,8 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
                 "uptime_seconds": uptime,
             },
             "cache": {
-                "cache_entries": len(self._notification_targets_cache),
-                "hit_rate": (
-                    self._stats["cache_hits"]
-                    / max(1, self._stats["cache_hits"] + self._stats["cache_misses"])
-                    * 100
-                ),
+                "cache_entries": len(self._targets_cache),
+                "hit_rate": (cache_hits / total_events) * 100.0,
             },
         }
 
@@ -691,30 +763,21 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
         # Clear data
         self._persons.clear()
-        self._notification_targets_cache.clear()
-        self._cache_timestamps.clear()
+        self._targets_cache.clear()
 
         _LOGGER.info("Person entity manager shutdown complete")
 
-    def get_diagnostics(self) -> dict[str, Any]:
+    def get_diagnostics(self) -> PersonEntityDiagnostics:
         """Return diagnostic metadata used by coordinator cache monitors."""
 
         now = dt_util.now()
-        cache_entries: dict[str, Any] = {}
-        for key, timestamp in self._cache_timestamps.items():
-            cached_targets = list(self._notification_targets_cache.get(key, ()))
-            age_seconds: float | None = None
-            if isinstance(timestamp, datetime):
-                age_seconds = max((now - timestamp).total_seconds(), 0.0)
-            cache_entries[key] = {
-                "targets": cached_targets,
-                "age_seconds": age_seconds,
-                "stale": bool(
-                    age_seconds is not None and age_seconds > self._config.cache_ttl
-                ),
-            }
+        cache_entries = self._targets_cache.snapshot(
+            now=now, ttl=self._config.cache_ttl
+        )
 
-        discovery_task_state: str
+        discovery_task_state: Literal[
+            "not_started", "cancelled", "completed", "running"
+        ]
         if self._discovery_task is None:
             discovery_task_state = "not_started"
         elif self._discovery_task.cancelled():
@@ -724,17 +787,52 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         else:
             discovery_task_state = "running"
 
-        return {
-            "discovery_task": discovery_task_state,
-            "last_discovery": self._last_discovery.isoformat(),
-            "listener_count": len(self._state_listeners),
+        diagnostics: PersonEntityDiagnostics = {
             "cache_entries": cache_entries,
+            "discovery_task_state": discovery_task_state,
+            "listener_count": len(self._state_listeners),
+            "manager_last_activity": self._last_discovery.isoformat(),
+            "manager_last_activity_age_seconds": max(
+                (now - self._last_discovery).total_seconds(), 0.0
+            ),
+            "summary": cast(JSONMutableMapping, dict(self.get_notification_context())),
         }
 
-    def coordinator_snapshot(self) -> dict[str, Any]:
+        return diagnostics
+
+    def _build_person_snapshot(self) -> PersonEntitySnapshot:
+        """Return a typed snapshot of discovered person entities."""
+
+        persons: dict[str, PersonEntitySnapshotEntry] = {}
+        for entity_id, info in self._persons.items():
+            persons[entity_id] = {
+                "entity_id": info.entity_id,
+                "name": info.name,
+                "friendly_name": info.friendly_name,
+                "state": info.state,
+                "is_home": info.is_home,
+                "last_updated": info.last_updated.isoformat(),
+                "mobile_device_id": info.mobile_device_id,
+                "notification_service": info.notification_service,
+            }
+
+        return {
+            "persons": persons,
+            "notification_context": self.get_notification_context(),
+        }
+
+    def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         """Return a coordinator-friendly snapshot of statistics and diagnostics."""
 
-        return {"stats": self.get_statistics(), "diagnostics": self.get_diagnostics()}
+        stats = self.get_statistics()
+        diagnostics = self.get_diagnostics()
+        snapshot = self._build_person_snapshot()
+
+        return CacheDiagnosticsSnapshot(
+            stats=cast(JSONMutableMapping, dict(stats)),
+            diagnostics=diagnostics,
+            snapshot=cast(JSONMutableMapping, dict(snapshot)),
+        )
 
     def register_cache_monitors(
         self, registrar: CacheMonitorRegistrar, *, prefix: str = "person_entity"

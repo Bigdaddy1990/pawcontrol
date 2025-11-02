@@ -15,10 +15,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from contextlib import suppress
 from datetime import date
-from typing import Any, cast
+from typing import cast
 
 from homeassistant.components.date import DateEntity
 from homeassistant.core import HomeAssistant, callback
@@ -29,7 +29,6 @@ from homeassistant.util import dt as dt_util
 from .compat import ConfigEntry
 from .const import (
     ATTR_DOG_ID,
-    ATTR_DOG_NAME,
     DOMAIN,
     MODULE_FEEDING,
     MODULE_HEALTH,
@@ -43,8 +42,12 @@ from .runtime_data import get_runtime_data
 from .types import (
     DOG_ID_FIELD,
     DOG_NAME_FIELD,
+    CoordinatorDogData,
+    DateExtraAttributes,
     DogConfigData,
     DogModulesMapping,
+    DogProfileSnapshot,
+    HealthModulePayload,
     ensure_dog_modules_mapping,
 )
 from .utils import async_call_add_entities
@@ -285,46 +288,32 @@ class PawControlDateBase(PawControlEntity, DateEntity, RestoreEntity):
         return self._current_value
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any]:
-        """Return extra state attributes for enhanced functionality.
+    def extra_state_attributes(self) -> DateExtraAttributes:
+        """Return extra state attributes for enhanced functionality."""
 
-        Returns:
-            Dictionary of additional attributes for automations and templates
-        """
-        attributes = {
-            ATTR_DOG_ID: self._dog_id,
-            ATTR_DOG_NAME: self._dog_name,
+        attributes: DateExtraAttributes = {
+            "dog_id": self._dog_id,
+            "dog_name": self._dog_name,
             "date_type": self._date_type,
         }
 
         # Add calculated attributes for useful automations
-        if self._current_value:
+        if self._current_value is not None:
             today = dt_util.now().date()
             days_diff = (self._current_value - today).days
 
-            attributes.update(
-                {
-                    "days_from_today": days_diff,
-                    "is_past": days_diff < 0,
-                    "is_today": days_diff == 0,
-                    "is_future": days_diff > 0,
-                    "iso_string": self._current_value.isoformat(),
-                }
-            )
+            attributes["days_from_today"] = days_diff
+            attributes["is_past"] = days_diff < 0
+            attributes["is_today"] = days_diff == 0
+            attributes["is_future"] = days_diff > 0
+            attributes["iso_string"] = self._current_value.isoformat()
 
             # Add age calculation for birthdate
             if self._date_type == "birthdate" and days_diff < 0:
                 age_days = abs(days_diff)
-                age_years = age_days / 365.25
-                age_months = (age_days % 365.25) / 30.44
-
-                attributes.update(
-                    {
-                        "age_days": age_days,
-                        "age_years": round(age_years, 2),
-                        "age_months": round(age_months, 1),
-                    }
-                )
+                attributes["age_days"] = age_days
+                attributes["age_years"] = round(age_days / 365.25, 2)
+                attributes["age_months"] = round((age_days % 365.25) / 30.44, 1)
 
         return attributes
 
@@ -453,7 +442,9 @@ class PawControlDateBase(PawControlEntity, DateEntity, RestoreEntity):
 
             if dog_data:
                 # Update entity state based on coordinator data
-                updated_value = self._extract_date_from_dog_data(dog_data)
+                updated_value = self._extract_date_from_dog_data(
+                    cast(CoordinatorDogData, dog_data)
+                )
 
                 if updated_value and updated_value != self._current_value:
                     self._current_value = updated_value
@@ -473,14 +464,11 @@ class PawControlDateBase(PawControlEntity, DateEntity, RestoreEntity):
 
         super()._handle_coordinator_update()
 
-    def _extract_date_from_dog_data(self, dog_data: dict[str, Any]) -> date | None:
+    def _extract_date_from_dog_data(self, dog_data: CoordinatorDogData) -> date | None:
         """Extract date value from dog data.
 
         Subclasses should override this method to extract their specific
         date value from the dog data.
-
-        Args:
-            dog_data: Dictionary containing dog data from coordinator
 
         Returns:
             Extracted date value or None
@@ -500,12 +488,14 @@ class PawControlBirthdateDate(PawControlDateBase):
         """Initialize the birthdate entity."""
         super().__init__(coordinator, dog_id, dog_name, "birthdate", "mdi:cake")
 
-    def _extract_date_from_dog_data(self, dog_data: dict[str, Any]) -> date | None:
+    def _extract_date_from_dog_data(self, dog_data: CoordinatorDogData) -> date | None:
         """Extract birthdate from dog data."""
-        birthdate_str = dog_data.get("profile", {}).get("birthdate")
-        if birthdate_str:
-            with suppress(ValueError, TypeError):
-                return dt_util.parse_date(birthdate_str)
+        profile = dog_data.get("profile")
+        if isinstance(profile, dict):
+            birthdate_str = cast(DogProfileSnapshot, profile).get("birthdate")
+            if birthdate_str:
+                with suppress(ValueError, TypeError):
+                    return dt_util.parse_date(birthdate_str)
         return None
 
     async def _async_handle_date_set(self, value: date) -> None:
@@ -543,12 +533,14 @@ class PawControlAdoptionDate(PawControlDateBase):
             coordinator, dog_id, dog_name, "adoption_date", "mdi:home-heart"
         )
 
-    def _extract_date_from_dog_data(self, dog_data: dict[str, Any]) -> date | None:
+    def _extract_date_from_dog_data(self, dog_data: CoordinatorDogData) -> date | None:
         """Extract adoption date from dog data."""
-        adoption_date_str = dog_data.get("profile", {}).get("adoption_date")
-        if adoption_date_str:
-            with suppress(ValueError, TypeError):
-                return dt_util.parse_date(adoption_date_str)
+        profile = dog_data.get("profile")
+        if isinstance(profile, dict):
+            adoption_date_str = cast(DogProfileSnapshot, profile).get("adoption_date")
+            if adoption_date_str:
+                with suppress(ValueError, TypeError):
+                    return dt_util.parse_date(adoption_date_str)
         return None
 
     async def _async_handle_date_set(self, value: date) -> None:
@@ -578,17 +570,20 @@ class PawControlLastVetVisitDate(PawControlDateBase):
             coordinator, dog_id, dog_name, "last_vet_visit", "mdi:medical-bag"
         )
 
-    def _extract_date_from_dog_data(self, dog_data: dict[str, Any]) -> date | None:
+    def _extract_date_from_dog_data(self, dog_data: CoordinatorDogData) -> date | None:
         """Extract last vet visit date from dog data."""
-        vet_visit_str = dog_data.get("health", {}).get("last_vet_visit")
-        if vet_visit_str:
-            with suppress(ValueError, TypeError):
-                # Handle both date and datetime strings
-                if parsed_dt := dt_util.parse_datetime(vet_visit_str):
-                    return parsed_dt.date()
+        health_state = dog_data.get("health")
+        if isinstance(health_state, Mapping):
+            health_payload = cast(HealthModulePayload, health_state)
+            vet_visit_str = health_payload.get("last_vet_visit")
+            if vet_visit_str:
+                with suppress(ValueError, TypeError):
+                    # Handle both date and datetime strings
+                    if parsed_dt := dt_util.parse_datetime(vet_visit_str):
+                        return parsed_dt.date()
 
-            with suppress(ValueError, TypeError):
-                return dt_util.parse_date(vet_visit_str)
+                with suppress(ValueError, TypeError):
+                    return dt_util.parse_date(vet_visit_str)
         return None
 
     async def _async_handle_date_set(self, value: date) -> None:
@@ -654,16 +649,19 @@ class PawControlLastGroomingDate(PawControlDateBase):
             coordinator, dog_id, dog_name, "last_grooming", "mdi:content-cut"
         )
 
-    def _extract_date_from_dog_data(self, dog_data: dict[str, Any]) -> date | None:
+    def _extract_date_from_dog_data(self, dog_data: CoordinatorDogData) -> date | None:
         """Extract last grooming date from dog data."""
-        grooming_str = dog_data.get("health", {}).get("last_grooming")
-        if grooming_str:
-            with suppress(ValueError, TypeError):
-                if parsed_dt := dt_util.parse_datetime(grooming_str):
-                    return parsed_dt.date()
+        health_state = dog_data.get("health")
+        if isinstance(health_state, Mapping):
+            health_payload = cast(HealthModulePayload, health_state)
+            grooming_str = health_payload.get("last_grooming")
+            if grooming_str:
+                with suppress(ValueError, TypeError):
+                    if parsed_dt := dt_util.parse_datetime(grooming_str):
+                        return parsed_dt.date()
 
-            with suppress(ValueError, TypeError):
-                return dt_util.parse_date(grooming_str)
+                with suppress(ValueError, TypeError):
+                    return dt_util.parse_date(grooming_str)
         return None
 
 

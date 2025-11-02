@@ -18,7 +18,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from datetime import UTC, datetime
 from functools import lru_cache
 from math import isfinite
-from typing import Any, Final, NotRequired, TypedDict, cast
+from typing import Final, NotRequired, TypedDict, cast
 
 from homeassistant.const import STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, State, callback
@@ -39,12 +39,22 @@ from .coordinator_tasks import (
 )
 from .dashboard_shared import CardCollection, CardConfig, coerce_dog_configs
 from .language import normalize_language
+from .service_guard import (
+    ServiceGuardResultPayload,
+    normalise_guard_history,
+)
 from .types import (
     CoordinatorRejectionMetrics,
     CoordinatorStatisticsPayload,
     DogModulesConfig,
     HelperManagerGuardMetrics,
+    JSONMapping,
+    JSONMutableMapping,
+    JSONValue,
     RawDogConfig,
+    TemplateCacheDiagnosticsMetadata,
+    TemplateCacheSnapshot,
+    TemplateCacheStats,
     coerce_dog_modules_config,
 )
 
@@ -235,7 +245,7 @@ def _format_guard_reasons(
 
 
 def _format_guard_results(
-    results: Sequence[Mapping[str, Any]],
+    results: Sequence[ServiceGuardResultPayload],
     language: str | None,
     *,
     limit: int = 5,
@@ -315,16 +325,6 @@ class ThemeStyles(TypedDict):
     colors: ThemeColorPalette
     card_mod: NotRequired[CardModConfig]
     icons: NotRequired[ThemeIconStyle]
-
-
-class TemplateCacheStats(TypedDict):
-    """Statistics returned by the in-memory template cache."""
-
-    hits: int
-    misses: int
-    hit_rate: str
-    cached_items: int
-    max_size: int
 
 
 class MapCardOptions(TypedDict, total=False):
@@ -673,15 +673,15 @@ MAP_OPTION_KEYS: Final[frozenset[str]] = frozenset(
 type CardTemplatePayload = CardConfig | CardCollection
 
 
-def _clone_template(template: CardTemplatePayload) -> CardTemplatePayload:
+def _clone_template[PayloadT: CardTemplatePayload](template: PayloadT) -> PayloadT:
     """Return a shallow copy of a cached template payload."""
 
     if isinstance(template, list):
-        return [card.copy() for card in template]
-    return template.copy()
+        return cast(PayloadT, [card.copy() for card in template])
+    return cast(PayloadT, template.copy())
 
 
-class TemplateCache:
+class TemplateCache[PayloadT: CardTemplatePayload]:
     """High-performance template cache with LRU eviction and TTL.
 
     Provides memory-efficient caching of dashboard card templates with
@@ -694,14 +694,15 @@ class TemplateCache:
         Args:
             maxsize: Maximum number of templates to cache
         """
-        self._cache: dict[str, CardTemplatePayload] = {}
+        self._cache: dict[str, PayloadT] = {}
         self._access_times: dict[str, float] = {}
         self._maxsize = maxsize
         self._hits = 0
         self._misses = 0
+        self._evictions = 0
         self._lock = asyncio.Lock()
 
-    async def get(self, key: str) -> CardTemplatePayload | None:
+    async def get(self, key: str) -> PayloadT | None:
         """Get template from cache.
 
         Args:
@@ -730,7 +731,7 @@ class TemplateCache:
 
             return _clone_template(self._cache[key])
 
-    async def set(self, key: str, template: CardTemplatePayload) -> None:
+    async def set(self, key: str, template: PayloadT) -> None:
         """Store template in cache.
 
         Args:
@@ -763,28 +764,54 @@ class TemplateCache:
         lru_key = min(self._access_times, key=lambda key: self._access_times[key])
         del self._cache[lru_key]
         del self._access_times[lru_key]
+        self._evictions += 1
 
     async def clear(self) -> None:
         """Clear all cached templates."""
         async with self._lock:
             self._cache.clear()
             self._access_times.clear()
+            self._hits = 0
+            self._misses = 0
+            self._evictions = 0
 
     @callback
     def get_stats(self) -> TemplateCacheStats:
         """Get cache statistics."""
         total = self._hits + self._misses
-        hit_rate = (self._hits / total * 100) if total > 0 else 0
+        hit_rate = (self._hits / total * 100.0) if total > 0 else 0.0
 
         stats: TemplateCacheStats = {
             "hits": self._hits,
             "misses": self._misses,
-            "hit_rate": f"{hit_rate:.1f}%",
+            "hit_rate": hit_rate,
             "cached_items": len(self._cache),
+            "evictions": self._evictions,
             "max_size": self._maxsize,
         }
 
         return stats
+
+    @callback
+    def get_metadata(self) -> TemplateCacheDiagnosticsMetadata:
+        """Return metadata describing cache configuration."""
+
+        metadata: TemplateCacheDiagnosticsMetadata = {
+            "cached_keys": sorted(self._cache),
+            "ttl_seconds": TEMPLATE_TTL_SECONDS,
+            "max_size": self._maxsize,
+            "evictions": self._evictions,
+        }
+
+        return metadata
+
+    @callback
+    def coordinator_snapshot(self) -> TemplateCacheSnapshot:
+        """Return a snapshot suitable for diagnostics collectors."""
+
+        return TemplateCacheSnapshot(
+            stats=self.get_stats(), metadata=self.get_metadata()
+        )
 
 
 class DashboardTemplates:
@@ -801,7 +828,7 @@ class DashboardTemplates:
             hass: Home Assistant instance
         """
         self.hass = hass
-        self._cache = TemplateCache()
+        self._cache: TemplateCache[CardTemplatePayload] = TemplateCache()
 
     @lru_cache(maxsize=64)  # noqa: B019
     def _get_base_card_template(self, card_type: str) -> CardConfig:
@@ -1807,14 +1834,12 @@ class DashboardTemplates:
         theme: str = "modern",
         *,
         coordinator_statistics: CoordinatorStatisticsPayload
-        | Mapping[str, Any]
+        | JSONMapping
         | None = None,
         service_execution_metrics: CoordinatorRejectionMetrics
-        | Mapping[str, Any]
+        | JSONMapping
         | None = None,
-        service_guard_metrics: HelperManagerGuardMetrics
-        | Mapping[str, Any]
-        | None = None,
+        service_guard_metrics: HelperManagerGuardMetrics | JSONMapping | None = None,
     ) -> CardConfig:
         """Return a summary markdown card for analytics dashboards."""
 
@@ -1879,7 +1904,7 @@ class DashboardTemplates:
         )
 
         def _coerce_rejection_metrics(
-            payload: Mapping[str, Any] | CoordinatorRejectionMetrics | None,
+            payload: JSONMapping | CoordinatorRejectionMetrics | None,
         ) -> CoordinatorRejectionMetrics | None:
             if payload is None:
                 return None
@@ -1895,34 +1920,42 @@ class DashboardTemplates:
             return None
 
         def _coerce_guard_metrics(
-            payload: Mapping[str, Any] | HelperManagerGuardMetrics | None,
+            payload: JSONMapping | HelperManagerGuardMetrics | None,
         ) -> HelperManagerGuardMetrics | None:
             if payload is None:
                 return None
 
             if isinstance(payload, Mapping):
+
+                def _int_value(value: JSONValue | object) -> int:
+                    if isinstance(value, bool):
+                        return int(value)
+                    if isinstance(value, int):
+                        return value
+                    if isinstance(value, float):
+                        return int(value)
+                    if isinstance(value, str):
+                        try:
+                            return int(float(value))
+                        except ValueError:
+                            return 0
+                    return 0
+
                 reasons_payload: dict[str, int] = {}
                 raw_reasons = payload.get("reasons")
                 if isinstance(raw_reasons, Mapping):
                     reasons_payload = {
-                        str(key): int(value)
+                        str(key): _int_value(value)
                         for key, value in raw_reasons.items()
                         if isinstance(key, str)
                     }
 
                 raw_last_results = payload.get("last_results")
-                if isinstance(raw_last_results, Sequence):
-                    last_results_payload = [
-                        dict(entry)
-                        for entry in raw_last_results
-                        if isinstance(entry, Mapping)
-                    ]
-                else:
-                    last_results_payload = []
+                last_results_payload = normalise_guard_history(raw_last_results)
 
                 return {
-                    "executed": int(payload.get("executed", 0)),
-                    "skipped": int(payload.get("skipped", 0)),
+                    "executed": _int_value(payload.get("executed")),
+                    "skipped": _int_value(payload.get("skipped")),
                     "reasons": reasons_payload,
                     "last_results": last_results_payload,
                 }
@@ -3028,7 +3061,7 @@ class DashboardTemplates:
         }
         hours_to_show = hours_map.get(time_range, 24)
 
-        entities: list[dict[str, Any]]
+        entities: list[JSONMutableMapping]
 
         if chart_type == "health_score":
             entities = [
@@ -3598,3 +3631,9 @@ class DashboardTemplates:
     def get_cache_stats(self) -> TemplateCacheStats:
         """Get template cache statistics."""
         return self._cache.get_stats()
+
+    @callback
+    def get_cache_snapshot(self) -> TemplateCacheSnapshot:
+        """Return a diagnostics snapshot of the template cache."""
+
+        return self._cache.coordinator_snapshot()

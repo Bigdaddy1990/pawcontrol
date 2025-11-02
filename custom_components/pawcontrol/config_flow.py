@@ -81,11 +81,13 @@ from .types import (
     ConfigFlowDiscoveryData,
     ConfigFlowDiscoverySource,
     ConfigFlowGlobalSettings,
+    DashboardConfigurationStepInput,
     DogConfigData,
     DogModulesConfig,
     DogSetupStepInput,
     DogValidationCacheEntry,
     ExternalEntityConfig,
+    ModuleConfigurationStepInput,
     ModuleToggleKey,
     PerformanceMode,
     ReauthDataUpdates,
@@ -1993,7 +1995,7 @@ class PawControlConfigFlow(
         return aggregated
 
     async def async_step_configure_modules(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ModuleConfigurationStepInput | None = None
     ) -> ConfigFlowResult:
         """Update cached module summary before delegating to mixin."""
 
@@ -2001,7 +2003,7 @@ class PawControlConfigFlow(
         return await super().async_step_configure_modules(user_input)
 
     async def async_step_configure_dashboard(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: DashboardConfigurationStepInput | None = None
     ) -> ConfigFlowResult:
         """Delegate dashboard configuration to the dashboard mixin implementation."""
 

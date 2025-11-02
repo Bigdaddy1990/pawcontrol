@@ -11,7 +11,11 @@ from custom_components.pawcontrol.telemetry import (
     record_bool_coercion_event,
     reset_bool_coercion_metrics,
 )
-from custom_components.pawcontrol.types import CacheRepairAggregate
+from custom_components.pawcontrol.types import (
+    AdaptivePollingDiagnostics,
+    CacheRepairAggregate,
+    EntityBudgetSummary,
+)
 from homeassistant.util import dt as dt_util
 
 
@@ -32,7 +36,7 @@ class _DummyModules:
 
 
 class _DummyBudget:
-    def summary(self) -> dict[str, float | int]:
+    def summary(self) -> EntityBudgetSummary:
         return {
             "active_dogs": 1,
             "total_capacity": 10,
@@ -45,7 +49,7 @@ class _DummyBudget:
 
 
 class _DummyAdaptivePolling:
-    def as_diagnostics(self) -> dict[str, float | int]:
+    def as_diagnostics(self) -> AdaptivePollingDiagnostics:
         return {
             "target_cycle_ms": 200.0,
             "current_interval_ms": 150.0,

@@ -43,8 +43,10 @@ from .coordinator_tasks import (
 )
 from .diagnostics_redaction import compile_redaction_patterns, redact_sensitive_data
 from .runtime_data import get_runtime_data
+from .service_guard import normalise_guard_history
 from .telemetry import (
     get_bool_coercion_metrics,
+    get_runtime_performance_stats,
     update_runtime_bool_coercion_summary,
 )
 from .types import (
@@ -1227,8 +1229,8 @@ async def _get_door_sensor_diagnostics(
     }
 
     telemetry: dict[str, Any] = {}
-    performance_stats = getattr(runtime_data, "performance_stats", None)
-    if isinstance(performance_stats, Mapping):
+    performance_stats = get_runtime_performance_stats(runtime_data)
+    if performance_stats is not None:
         failure_count = performance_stats.get("door_sensor_failure_count")
         if isinstance(failure_count, int | float):
             telemetry["failure_count"] = int(failure_count)
@@ -1278,8 +1280,8 @@ async def _get_service_execution_diagnostics(
     if runtime_data is None:
         return {"available": False}
 
-    performance_stats = getattr(runtime_data, "performance_stats", None)
-    if not isinstance(performance_stats, Mapping):
+    performance_stats = get_runtime_performance_stats(runtime_data)
+    if performance_stats is None:
         return {"available": False}
 
     diagnostics: dict[str, Any] = {"available": True}
@@ -1359,14 +1361,11 @@ def _normalise_service_guard_metrics(payload: Any) -> dict[str, Any] | None:
             reasons_payload = serialised_reasons
 
     last_results_payload: list[dict[str, Any]] | None = None
-    last_results = payload.get("last_results")
-    if isinstance(last_results, Sequence) and not isinstance(
-        last_results, str | bytes | bytearray
-    ):
+    history_payload = normalise_guard_history(payload.get("last_results"))
+    if history_payload:
         serialised_results = [
             cast(dict[str, Any], _normalise_json(dict(entry)))
-            for entry in last_results
-            if isinstance(entry, Mapping)
+            for entry in history_payload
         ]
         if serialised_results:
             last_results_payload = serialised_results

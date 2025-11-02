@@ -46,7 +46,11 @@ from .const import (
 )
 from .coordinator_support import CacheMonitorRegistrar
 from .grooming_translations import translated_grooming_template
-from .service_guard import ServiceGuardResult
+from .service_guard import (
+    ServiceGuardResult,
+    ServiceGuardResultPayload,
+    normalise_guard_history,
+)
 from .types import (
     DOG_ID_FIELD,
     DOG_NAME_FIELD,
@@ -58,6 +62,7 @@ from .types import (
     HelperManagerGuardMetrics,
     HelperManagerSnapshot,
     HelperManagerStats,
+    JSONMutableMapping,
     ModuleToggleKey,
     ensure_dog_config_data,
     ensure_dog_modules_config,
@@ -186,15 +191,17 @@ class _HelperManagerCacheMonitor:
 
     def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         stats, snapshot, diagnostics = self._build_payload()
+        stats_payload = cast(JSONMutableMapping, dict(stats))
+        snapshot_payload = cast(JSONMutableMapping, dict(snapshot))
         return CacheDiagnosticsSnapshot(
-            stats=cast(dict[str, Any], dict(stats)),
-            snapshot=cast(dict[str, Any], dict(snapshot)),
+            stats=stats_payload,
+            snapshot=snapshot_payload,
             diagnostics=diagnostics,
         )
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> JSONMutableMapping:
         stats, _snapshot, _diagnostics = self._build_payload()
-        return cast(dict[str, Any], dict(stats))
+        return cast(JSONMutableMapping, dict(stats))
 
     def get_diagnostics(self) -> CacheDiagnosticsMetadata:
         _stats, _snapshot, diagnostics = self._build_payload()
@@ -230,7 +237,7 @@ class PawControlHelperManager:
             "executed": 0,
             "skipped": 0,
             "reasons": {},
-            "last_results": deque(maxlen=_MAX_GUARD_RESULTS),
+            "last_results": deque[ServiceGuardResultPayload](maxlen=_MAX_GUARD_RESULTS),
         }
 
     def _record_guard_result(self, result: ServiceGuardResult) -> None:
@@ -246,11 +253,14 @@ class PawControlHelperManager:
             reasons[reason_key] = int(reasons.get(reason_key, 0)) + 1
 
         last_results = metrics.get("last_results")
-        if not isinstance(last_results, deque):
-            last_results = deque(maxlen=_MAX_GUARD_RESULTS)
-            metrics["last_results"] = last_results
+        if isinstance(last_results, deque):
+            queue: deque[ServiceGuardResultPayload] = last_results
+        else:
+            queue = deque[ServiceGuardResultPayload](maxlen=_MAX_GUARD_RESULTS)
+            queue.extend(normalise_guard_history(last_results or []))
+            metrics["last_results"] = queue
 
-        last_results.append(result.to_mapping())
+        queue.append(result.to_mapping())
 
     @property
     def guard_metrics(self) -> HelperManagerGuardMetrics:
@@ -260,9 +270,7 @@ class PawControlHelperManager:
         if isinstance(last_results, deque):
             results_list = list(last_results)
         else:
-            results_list = [
-                cast(dict[str, Any], entry) for entry in list(last_results or [])
-            ]
+            results_list = normalise_guard_history(last_results or [])
 
         raw_reasons = self._guard_metrics.get("reasons", {})
         reasons: dict[str, int] = {}
@@ -277,7 +285,7 @@ class PawControlHelperManager:
             "executed": int(self._guard_metrics.get("executed", 0)),
             "skipped": int(self._guard_metrics.get("skipped", 0)),
             "reasons": reasons,
-            "last_results": results_list,
+            "last_results": normalise_guard_history(results_list),
         }
 
     async def async_initialize(self) -> None:

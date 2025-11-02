@@ -44,8 +44,18 @@ from .types import (
     DOG_NAME_FIELD,
     VISITOR_MODE_ACTIVE_FIELD,
     WALK_IN_PROGRESS_FIELD,
+    BinarySensorAttributes,
+    CoordinatorDogData,
+    CoordinatorModuleState,
+    CoordinatorTypedModuleName,
     DogConfigData,
+    FeedingEmergencyState,
+    FeedingModulePayload,
+    GardenModulePayload,
+    GPSModulePayload,
+    HealthModulePayload,
     PawControlConfigEntry,
+    WalkModulePayload,
     ensure_dog_config_data,
     ensure_dog_modules_mapping,
 )
@@ -78,9 +88,6 @@ def _as_local(dt_value: datetime) -> datetime:
         return target
 
 
-# Type aliases for better code readability (Python 3.13 compatible)
-AttributeDict = dict[str, Any]
-
 # Home Assistant platform configuration
 PARALLEL_UPDATES = 0
 
@@ -88,6 +95,12 @@ PARALLEL_UPDATES = 0
 ENTITY_CREATION_BATCH_SIZE = 12  # Optimized for binary sensors
 ENTITY_CREATION_DELAY = 0.1  # 100ms between batches
 PARALLEL_THRESHOLD = 24  # Threshold for parallel vs batched creation
+
+FEEDING_MODULE = cast(CoordinatorTypedModuleName, MODULE_FEEDING)
+GARDEN_MODULE = cast(CoordinatorTypedModuleName, MODULE_GARDEN)
+GPS_MODULE = cast(CoordinatorTypedModuleName, MODULE_GPS)
+HEALTH_MODULE = cast(CoordinatorTypedModuleName, MODULE_HEALTH)
+WALK_MODULE = cast(CoordinatorTypedModuleName, MODULE_WALK)
 
 
 # OPTIMIZED: Shared logic patterns to reduce code duplication
@@ -417,7 +430,7 @@ class PawControlBinarySensorBase(
         self.update_device_metadata(model="Virtual Dog", sw_version="1.0.0")
 
         # OPTIMIZED: Thread-safe instance-level caching
-        self._data_cache: dict[str, Any] = {}
+        self._data_cache: dict[str, CoordinatorDogData | None] = {}
         self._cache_timestamp: datetime | None = None
         self._cache_ttl = 30  # 30 seconds cache TTL
 
@@ -462,23 +475,26 @@ class PawControlBinarySensorBase(
         return getattr(self, "_attr_device_class", None)
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> BinarySensorAttributes:
         """Return additional state attributes for the binary sensor."""
-        attrs: AttributeDict = {
-            ATTR_DOG_ID: self._dog_id,
-            ATTR_DOG_NAME: self._dog_name,
-            "last_update": dt_util.utcnow().isoformat(),
-            "sensor_type": self._sensor_type,
-        }
+        attrs = cast(
+            BinarySensorAttributes,
+            {
+                ATTR_DOG_ID: self._dog_id,
+                ATTR_DOG_NAME: self._dog_name,
+                "last_update": dt_util.utcnow().isoformat(),
+                "sensor_type": self._sensor_type,
+            },
+        )
 
         # Add dog-specific information with error handling
         try:
             dog_data = self._get_dog_data_cached()
-            if isinstance(dog_data, dict) and "dog_info" in dog_data:
-                dog_info = dog_data["dog_info"]
+            if dog_data and "dog_info" in dog_data:
+                dog_info = cast(DogConfigData, dog_data["dog_info"])
                 attrs.update(
                     {
-                        "dog_breed": dog_info.get("dog_breed", ""),
+                        "dog_breed": dog_info.get("dog_breed"),
                         "dog_age": dog_info.get("dog_age"),
                         "dog_size": dog_info.get("dog_size"),
                         "dog_weight": dog_info.get("dog_weight"),
@@ -489,7 +505,7 @@ class PawControlBinarySensorBase(
 
         return attrs
 
-    def _get_dog_data_cached(self) -> dict[str, Any] | None:
+    def _get_dog_data_cached(self) -> CoordinatorDogData | None:
         """Get dog data from coordinator with thread-safe caching."""
         cache_key = f"dog_data_{self._dog_id}"
         now = dt_util.utcnow()
@@ -514,34 +530,60 @@ class PawControlBinarySensorBase(
 
         return dog_data
 
-    def _get_dog_data(self) -> dict[str, Any] | None:
+    def _get_dog_data(self) -> CoordinatorDogData | None:
         """Get dog data - wrapper for cached access."""
         return self._get_dog_data_cached()
 
-    def _get_module_data(self, module: str) -> dict[str, Any] | None:
-        """Get specific module data for this dog."""
-        try:
-            dog_data = self._get_dog_data_cached()
-            if not dog_data:
-                return None
+    def _get_module_state(
+        self, module: CoordinatorTypedModuleName
+    ) -> CoordinatorModuleState | None:
+        """Return coordinator state for the provided module."""
 
-            module_data = dog_data.get(module, {})
-            if not isinstance(module_data, dict):
-                _LOGGER.warning(
-                    "Invalid module data for %s/%s: expected dict, got %s",
-                    self._dog_id,
-                    module,
-                    type(module_data).__name__,
-                )
-                return {}
-
-            return module_data
-
-        except Exception as err:
-            _LOGGER.error(
-                "Error fetching module data for %s/%s: %s", self._dog_id, module, err
-            )
+        dog_data = self._get_dog_data_cached()
+        if not dog_data:
             return None
+
+        module_data = dog_data.get(module)
+        if isinstance(module_data, Mapping):
+            return cast(CoordinatorModuleState, module_data)
+
+        _LOGGER.debug(
+            "Coordinator returned unexpected payload for module %s/%s: %s",
+            self._dog_id,
+            module,
+            type(module_data).__name__ if module_data is not None else "None",
+        )
+        return None
+
+    def _get_feeding_payload(self) -> FeedingModulePayload | None:
+        """Return the structured feeding payload when available."""
+
+        module_state = self._get_module_state(FEEDING_MODULE)
+        return cast(FeedingModulePayload, module_state) if module_state else None
+
+    def _get_walk_payload(self) -> WalkModulePayload | None:
+        """Return the structured walk payload when available."""
+
+        module_state = self._get_module_state(WALK_MODULE)
+        return cast(WalkModulePayload, module_state) if module_state else None
+
+    def _get_gps_payload(self) -> GPSModulePayload | None:
+        """Return the structured GPS payload when available."""
+
+        module_state = self._get_module_state(GPS_MODULE)
+        return cast(GPSModulePayload, module_state) if module_state else None
+
+    def _get_health_payload(self) -> HealthModulePayload | None:
+        """Return the structured health payload when available."""
+
+        module_state = self._get_module_state(HEALTH_MODULE)
+        return cast(HealthModulePayload, module_state) if module_state else None
+
+    def _get_garden_payload(self) -> GardenModulePayload | None:
+        """Return the structured garden payload when available."""
+
+        module_state = self._get_module_state(GARDEN_MODULE)
+        return cast(GardenModulePayload, module_state) if module_state else None
 
     @property
     def available(self) -> bool:
@@ -560,13 +602,12 @@ class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
 
         return self._get_runtime_managers().garden_manager
 
-    def _get_garden_data(self) -> dict[str, Any]:
+    def _get_garden_data(self) -> GardenModulePayload:
         """Return garden snapshot data for the dog."""
 
-        dog_data = self._get_dog_data_cached() or {}
-        module_data = dog_data.get("garden")
-        if isinstance(module_data, dict) and module_data:
-            return module_data
+        payload = self._get_garden_payload()
+        if payload:
+            return payload
 
         garden_manager = self._get_garden_manager()
         if garden_manager is not None:
@@ -577,20 +618,22 @@ class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
                     "Garden snapshot fallback failed for %s: %s", self._dog_id, err
                 )
 
-        return {}
+        return cast(GardenModulePayload, {})
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> BinarySensorAttributes:
         """Expose the latest garden telemetry for diagnostics dashboards."""
         attrs = super().extra_state_attributes
         data = self._get_garden_data()
-        attrs.update(
-            {
-                "garden_status": data.get("status"),
-                "sessions_today": data.get("sessions_today"),
-                "pending_confirmations": data.get("pending_confirmations"),
-            }
-        )
+        garden_status = data.get("status")
+        if garden_status is not None:
+            attrs["garden_status"] = garden_status
+        sessions_today = data.get("sessions_today")
+        if sessions_today is not None:
+            attrs["sessions_today"] = sessions_today
+        pending_confirmations = data.get("pending_confirmations")
+        if pending_confirmations is not None:
+            attrs["pending_confirmations"] = pending_confirmations
         return attrs
 
 
@@ -624,20 +667,21 @@ class PawControlOnlineBinarySensor(PawControlBinarySensorBase):
         )  # 10 minutes
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> BinarySensorAttributes:
         """Return additional attributes for the online sensor."""
         attrs = super().extra_state_attributes
         dog_data = self._get_dog_data_cached()
 
         if dog_data:
-            attrs.update(
-                {
-                    "last_update": dog_data.get("last_update"),
-                    "status": dog_data.get("status", STATE_UNKNOWN),
-                    "enabled_modules": dog_data.get("enabled_modules", []),
-                    "system_health": "healthy" if self.is_on else "disconnected",
-                }
-            )
+            last_update = dog_data.get("last_update")
+            if last_update:
+                attrs["last_update"] = last_update
+
+            attrs["status"] = dog_data.get("status", STATE_UNKNOWN)
+            enabled_modules = sorted(self.coordinator.get_enabled_modules(self._dog_id))
+            if enabled_modules:
+                attrs["enabled_modules"] = list(enabled_modules)
+            attrs["system_health"] = "healthy" if self.is_on else "disconnected"
 
         return attrs
 
@@ -661,48 +705,48 @@ class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if the dog needs immediate attention."""
-        dog_data = self._get_dog_data_cached()
-        if not dog_data:
-            return False
+        attention_reasons: list[str] = []
 
-        attention_reasons = []
-
-        # Check feeding urgency
-        feeding_data = dog_data.get("feeding", {})
-        if feeding_data.get("is_hungry", False):
+        feeding_data = self._get_feeding_payload()
+        if feeding_data and bool(feeding_data.get("is_hungry", False)):
             last_feeding_hours = feeding_data.get("last_feeding_hours")
-            if last_feeding_hours and last_feeding_hours > 12:  # Very hungry
+            if (
+                isinstance(last_feeding_hours, int | float)
+                and float(last_feeding_hours) > 12
+            ):
                 attention_reasons.append("critically_hungry")
-            elif feeding_data.get("is_hungry"):
+            else:
                 attention_reasons.append("hungry")
 
-        # Check walk urgency
-        walk_data = dog_data.get("walk", {})
-        if walk_data.get("needs_walk", False):
+        walk_data = self._get_walk_payload()
+        if walk_data and bool(walk_data.get("needs_walk", False)):
             last_walk_hours = walk_data.get("last_walk_hours")
-            if last_walk_hours and last_walk_hours > 12:
+            if isinstance(last_walk_hours, int | float) and float(last_walk_hours) > 12:
                 attention_reasons.append("urgent_walk_needed")
             else:
                 attention_reasons.append("needs_walk")
 
-        # Check health alerts
-        health_data = dog_data.get("health", {})
-        health_alerts = health_data.get("health_alerts", [])
-        if health_alerts:
-            attention_reasons.append("health_alert")
+        health_data = self._get_health_payload()
+        if health_data:
+            health_alerts = health_data.get("health_alerts", [])
+            if isinstance(health_alerts, Sequence) and health_alerts:
+                attention_reasons.append("health_alert")
 
-        # Check GPS alerts
-        gps_data = dog_data.get("gps", {})
-        if not gps_data.get("in_safe_zone", True):
-            attention_reasons.append("outside_safe_zone")
+        gps_data = self._get_gps_payload()
+        if gps_data is not None:
+            geofence_status = gps_data.get("geofence_status")
+            in_safe_zone = True
+            if isinstance(geofence_status, Mapping):
+                in_safe_zone = bool(geofence_status.get("in_safe_zone", True))
+            if not in_safe_zone:
+                attention_reasons.append("outside_safe_zone")
 
-        # Store reasons in attributes for debugging
         self._attention_reasons = attention_reasons
 
-        return len(attention_reasons) > 0
+        return bool(attention_reasons)
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> BinarySensorAttributes:
         """Return additional attributes explaining why attention is needed."""
         attrs = super().extra_state_attributes
 
@@ -782,21 +826,28 @@ class PawControlVisitorModeBinarySensor(PawControlBinarySensorBase):
         return bool(dog_data.get(VISITOR_MODE_ACTIVE_FIELD, False))
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> BinarySensorAttributes:
         """Return additional attributes for visitor mode."""
         attrs = super().extra_state_attributes
         dog_data = self._get_dog_data_cached()
 
         if dog_data:
+            visitor_settings = cast(
+                Mapping[str, Any], dog_data.get("visitor_mode_settings", {})
+            )
+            visitor_mode_started = cast(
+                str | None, dog_data.get("visitor_mode_started")
+            )
+            visitor_name = cast(str | None, dog_data.get("visitor_name"))
             attrs.update(
                 {
-                    "visitor_mode_started": dog_data.get("visitor_mode_started"),
-                    "visitor_name": dog_data.get("visitor_name"),
-                    "modified_notifications": dog_data.get(
-                        "visitor_mode_settings", {}
-                    ).get("modified_notifications", True),
-                    "reduced_alerts": dog_data.get("visitor_mode_settings", {}).get(
-                        "reduced_alerts", True
+                    "visitor_mode_started": visitor_mode_started,
+                    "visitor_name": visitor_name,
+                    "modified_notifications": bool(
+                        visitor_settings.get("modified_notifications", True)
+                    ),
+                    "reduced_alerts": bool(
+                        visitor_settings.get("reduced_alerts", True)
                     ),
                 }
             )
@@ -823,42 +874,53 @@ class PawControlIsHungryBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if the dog is hungry."""
-        feeding_data = self._get_module_data("feeding")
+        feeding_data = self._get_feeding_payload()
         if not feeding_data:
             return False
 
-        return feeding_data.get("is_hungry", False)
+        return bool(feeding_data.get("is_hungry", False))
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> BinarySensorAttributes:
         """Return additional feeding status attributes."""
         attrs = super().extra_state_attributes
-        feeding_data = self._get_module_data("feeding")
+        feeding_data = self._get_feeding_payload()
 
-        if feeding_data:
-            attrs.update(
-                {
-                    "last_feeding": feeding_data.get("last_feeding"),
-                    "last_feeding_hours": feeding_data.get("last_feeding_hours"),
-                    "next_feeding_due": feeding_data.get("next_feeding_due"),
-                    "hunger_level": self._calculate_hunger_level(feeding_data),
-                }
-            )
+        if not feeding_data:
+            return attrs
+
+        last_feeding = feeding_data.get("last_feeding")
+        if isinstance(last_feeding, str) or last_feeding is None:
+            attrs["last_feeding"] = last_feeding
+
+        last_feeding_hours = feeding_data.get("last_feeding_hours")
+        if isinstance(last_feeding_hours, int | float):
+            attrs["last_feeding_hours"] = float(last_feeding_hours)
+        elif last_feeding_hours is None:
+            attrs["last_feeding_hours"] = None
+
+        next_feeding_due = feeding_data.get("next_feeding_due")
+        if isinstance(next_feeding_due, str) or next_feeding_due is None:
+            attrs["next_feeding_due"] = next_feeding_due
+
+        attrs["hunger_level"] = self._calculate_hunger_level(feeding_data)
 
         return attrs
 
-    def _calculate_hunger_level(self, feeding_data: dict[str, Any]) -> str:
+    def _calculate_hunger_level(self, feeding_data: FeedingModulePayload) -> str:
         """Calculate hunger level based on time since last feeding."""
         last_feeding_hours = feeding_data.get("last_feeding_hours")
 
-        if not last_feeding_hours:
+        if not isinstance(last_feeding_hours, int | float):
             return STATE_UNKNOWN
 
-        if last_feeding_hours > 12:
+        hours_since_feeding = float(last_feeding_hours)
+
+        if hours_since_feeding > 12:
             return "very_hungry"
-        elif last_feeding_hours >= 8:
+        elif hours_since_feeding >= 8:
             return "hungry"
-        elif last_feeding_hours >= 6:
+        elif hours_since_feeding >= 6:
             return "somewhat_hungry"
         else:
             return "satisfied"
@@ -882,12 +944,12 @@ class PawControlFeedingDueBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if a feeding is due according to schedule."""
-        feeding_data = self._get_module_data("feeding")
+        feeding_data = self._get_feeding_payload()
         if not feeding_data:
             return False
 
         next_feeding_due = feeding_data.get("next_feeding_due")
-        if not next_feeding_due:
+        if not isinstance(next_feeding_due, str):
             return False
 
         due_time = ensure_utc_datetime(next_feeding_due)
@@ -915,12 +977,14 @@ class PawControlFeedingScheduleOnTrackBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if feeding schedule adherence is good."""
-        feeding_data = self._get_module_data("feeding")
+        feeding_data = self._get_feeding_payload()
         if not feeding_data:
             return True  # Assume on track if no data
 
         adherence = feeding_data.get("feeding_schedule_adherence", 100.0)
-        return self._evaluate_threshold(adherence, 80.0, "greater_equal", True)
+        if not isinstance(adherence, int | float):
+            return True
+        return self._evaluate_threshold(float(adherence), 80.0, "greater_equal", True)
 
 
 class PawControlDailyFeedingGoalMetBinarySensor(PawControlBinarySensorBase):
@@ -941,11 +1005,11 @@ class PawControlDailyFeedingGoalMetBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if daily feeding goals are met."""
-        feeding_data = self._get_module_data("feeding")
+        feeding_data = self._get_feeding_payload()
         if not feeding_data:
             return False
 
-        return feeding_data.get("daily_target_met", False)
+        return bool(feeding_data.get("daily_target_met", False))
 
 
 # Walk binary sensors
@@ -968,37 +1032,48 @@ class PawControlWalkInProgressBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if a walk is currently in progress."""
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_payload()
         if not walk_data:
             return False
 
         return bool(walk_data.get(WALK_IN_PROGRESS_FIELD, False))
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> BinarySensorAttributes:
         """Return additional walk progress attributes."""
         attrs = super().extra_state_attributes
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_payload()
 
         if walk_data and walk_data.get(WALK_IN_PROGRESS_FIELD):
-            attrs.update(
-                {
-                    "walk_start_time": walk_data.get("current_walk_start"),
-                    "walk_duration": walk_data.get("current_walk_duration", 0),
-                    "walk_distance": walk_data.get("current_walk_distance", 0),
-                    "estimated_remaining": self._estimate_remaining_time(walk_data),
-                }
-            )
+            walk_start = walk_data.get("current_walk_start")
+            if isinstance(walk_start, str):
+                attrs["walk_start_time"] = walk_start
+
+            current_duration = walk_data.get("current_walk_duration")
+            if isinstance(current_duration, int | float):
+                attrs["walk_duration"] = float(current_duration)
+
+            current_distance = walk_data.get("current_walk_distance")
+            if isinstance(current_distance, int | float):
+                attrs["walk_distance"] = float(current_distance)
+
+            estimated_remaining = self._estimate_remaining_time(walk_data)
+            if estimated_remaining is not None:
+                attrs["estimated_remaining"] = estimated_remaining
 
         return attrs
 
-    def _estimate_remaining_time(self, walk_data: dict[str, Any]) -> int | None:
+    def _estimate_remaining_time(self, walk_data: WalkModulePayload) -> int | None:
         """Estimate remaining walk time based on typical patterns."""
-        current_duration = walk_data.get("current_walk_duration", 0)
-        average_duration = walk_data.get("average_walk_duration")
+        current_duration_value = walk_data.get("current_walk_duration")
+        average_duration_value = walk_data.get("average_walk_duration")
 
-        if average_duration and current_duration < average_duration:
-            return int(average_duration - current_duration)
+        if (
+            isinstance(current_duration_value, int | float)
+            and isinstance(average_duration_value, int | float)
+            and current_duration_value < average_duration_value
+        ):
+            return int(average_duration_value - current_duration_value)
 
         return None
 
@@ -1021,35 +1096,40 @@ class PawControlNeedsWalkBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if the dog needs a walk."""
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_payload()
         if not walk_data:
             return False
 
-        return walk_data.get("needs_walk", False)
+        return bool(walk_data.get("needs_walk", False))
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> BinarySensorAttributes:
         """Return additional walk need attributes."""
         attrs = super().extra_state_attributes
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_payload()
 
         if walk_data:
-            attrs.update(
-                {
-                    "last_walk": walk_data.get("last_walk"),
-                    "last_walk_hours": walk_data.get("last_walk_hours"),
-                    "walks_today": walk_data.get("walks_today", 0),
-                    "urgency_level": self._calculate_walk_urgency(walk_data),
-                }
-            )
+            last_walk = walk_data.get("last_walk")
+            if isinstance(last_walk, str):
+                attrs["last_walk"] = last_walk
+
+            last_walk_hours = walk_data.get("last_walk_hours")
+            if isinstance(last_walk_hours, int | float):
+                attrs["last_walk_hours"] = float(last_walk_hours)
+
+            walks_today = walk_data.get("walks_today")
+            if isinstance(walks_today, int):
+                attrs["walks_today"] = walks_today
+
+            attrs["urgency_level"] = self._calculate_walk_urgency(walk_data)
 
         return attrs
 
-    def _calculate_walk_urgency(self, walk_data: dict[str, Any]) -> str:
+    def _calculate_walk_urgency(self, walk_data: WalkModulePayload) -> str:
         """Calculate walk urgency level."""
         last_walk_hours = walk_data.get("last_walk_hours")
 
-        if not last_walk_hours:
+        if not isinstance(last_walk_hours, int | float):
             return STATE_UNKNOWN
 
         if last_walk_hours > 12:
@@ -1080,11 +1160,11 @@ class PawControlWalkGoalMetBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if daily walk goals are met."""
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_payload()
         if not walk_data:
             return False
 
-        return walk_data.get("walk_goal_met", False)
+        return bool(walk_data.get("walk_goal_met", False))
 
 
 class PawControlLongWalkOverdueBinarySensor(PawControlBinarySensorBase):
@@ -1105,19 +1185,18 @@ class PawControlLongWalkOverdueBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if a longer walk is overdue."""
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_payload()
         if not walk_data:
             return False
 
         # Check if last long walk (>30 min) was more than 2 days ago
         last_long_walk = walk_data.get("last_long_walk")
-        if not last_long_walk:
-            return True  # No long walk recorded
+        if isinstance(last_long_walk, str | datetime):
+            return not self._calculate_time_based_status(
+                last_long_walk, 48, False
+            )  # 2 days
 
-        # OPTIMIZED: Use shared time-based logic
-        return not self._calculate_time_based_status(
-            last_long_walk, 48, False
-        )  # 2 days
+        return True  # No long walk recorded or invalid payload
 
 
 # GPS binary sensors
@@ -1140,27 +1219,38 @@ class PawControlIsHomeBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if the dog is at home."""
-        gps_data = self._get_module_data("gps")
+        gps_data = self._get_gps_payload()
         if not gps_data:
             return True  # Assume home if no GPS data
 
-        return gps_data.get("zone") == "home"
+        current_zone = gps_data.get("zone")
+        return isinstance(current_zone, str) and current_zone == "home"
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> BinarySensorAttributes:
         """Return additional location attributes."""
         attrs = super().extra_state_attributes
-        gps_data = self._get_module_data("gps")
+        gps_data = self._get_gps_payload()
 
         if gps_data:
-            attrs.update(
-                {
-                    "current_zone": gps_data.get("zone", STATE_UNKNOWN),
-                    "distance_from_home": gps_data.get("distance_from_home"),
-                    "last_seen": gps_data.get("last_seen"),
-                    "accuracy": gps_data.get("accuracy"),
-                }
+            current_zone = gps_data.get("zone")
+            attrs["current_zone"] = (
+                current_zone if isinstance(current_zone, str) else STATE_UNKNOWN
             )
+
+            distance_from_home = gps_data.get("distance_from_home")
+            if isinstance(distance_from_home, int | float):
+                attrs["distance_from_home"] = float(distance_from_home)
+
+            last_seen_value = gps_data.get("last_seen")
+            if isinstance(last_seen_value, datetime):
+                attrs["last_seen"] = last_seen_value.isoformat()
+            elif isinstance(last_seen_value, str):
+                attrs["last_seen"] = last_seen_value
+
+            accuracy = gps_data.get("accuracy")
+            if isinstance(accuracy, int | float):
+                attrs["accuracy"] = float(accuracy)
 
         return attrs
 
@@ -1184,15 +1274,15 @@ class PawControlInSafeZoneBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if the dog is in a safe zone."""
-        gps_data = self._get_module_data("gps")
+        gps_data = self._get_gps_payload()
         if not gps_data:
             return True  # Assume safe if no GPS data
 
         # Check if in home zone or other defined safe zones
         current_zone = gps_data.get("zone")
-        safe_zones = ["home", "park", "vet", "friend_house"]  # Configurable
+        safe_zones = {"home", "park", "vet", "friend_house"}  # Configurable
 
-        return current_zone in safe_zones
+        return isinstance(current_zone, str) and current_zone in safe_zones
 
 
 class PawControlGPSAccuratelyTrackedBinarySensor(PawControlBinarySensorBase):
@@ -1214,15 +1304,25 @@ class PawControlGPSAccuratelyTrackedBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if GPS tracking is accurate."""
-        gps_data = self._get_module_data("gps")
+        gps_data = self._get_gps_payload()
         if not gps_data:
             return False
 
         accuracy = gps_data.get("accuracy")
-        last_seen = gps_data.get("last_seen")
+        accuracy_value: float | None
+        accuracy_value = float(accuracy) if isinstance(accuracy, int | float) else None
+
+        last_seen_input = gps_data.get("last_seen")
+        last_seen: datetime | str | None
+        if isinstance(last_seen_input, datetime | str):
+            last_seen = last_seen_input
+        else:
+            last_seen = None
 
         # Check accuracy threshold and data freshness
-        accuracy_good = self._evaluate_threshold(accuracy, 50, "less_equal", False)
+        accuracy_good = self._evaluate_threshold(
+            accuracy_value, 50, "less_equal", False
+        )
         data_fresh = self._calculate_time_based_status(
             last_seen, 5.0 / 60, False
         )  # 5 minutes
@@ -1249,13 +1349,14 @@ class PawControlMovingBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if the dog is currently moving."""
-        gps_data = self._get_module_data("gps")
+        gps_data = self._get_gps_payload()
         if not gps_data:
             return False
 
-        speed = gps_data.get("speed", 0)
+        speed = gps_data.get("speed")
+        numeric_speed = float(speed) if isinstance(speed, int | float) else 0.0
         return self._evaluate_threshold(
-            speed, 1.0, "greater", False
+            numeric_speed, 1.0, "greater", False
         )  # 1 km/h threshold
 
 
@@ -1278,11 +1379,11 @@ class PawControlGeofenceAlertBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if there's an active geofence alert."""
-        gps_data = self._get_module_data("gps")
+        gps_data = self._get_gps_payload()
         if not gps_data:
             return False
 
-        return gps_data.get("geofence_alert", False)
+        return bool(gps_data.get("geofence_alert", False))
 
 
 class PawControlGPSBatteryLowBinarySensor(PawControlBinarySensorBase):
@@ -1304,13 +1405,15 @@ class PawControlGPSBatteryLowBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if GPS device battery is low."""
-        gps_data = self._get_module_data("gps")
+        gps_data = self._get_gps_payload()
         if not gps_data:
             return False
 
         battery_level = gps_data.get("battery_level")
+        if not isinstance(battery_level, int | float):
+            return False
         return self._evaluate_threshold(
-            battery_level, 20, "less_equal", False
+            float(battery_level), 20, "less_equal", False
         )  # 20% threshold
 
 
@@ -1334,27 +1437,36 @@ class PawControlHealthAlertBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if there are active health alerts."""
-        health_data = self._get_module_data("health")
+        health_data = self._get_health_payload()
         if not health_data:
             return False
 
         health_alerts = health_data.get("health_alerts", [])
-        return len(health_alerts) > 0
+        if isinstance(health_alerts, Sequence):
+            return len(health_alerts) > 0
+
+        return False
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> BinarySensorAttributes:
         """Return health alert details."""
         attrs = super().extra_state_attributes
-        health_data = self._get_module_data("health")
+        health_data = self._get_health_payload()
 
-        if health_data:
-            attrs.update(
-                {
-                    "health_alerts": health_data.get("health_alerts", []),
-                    "health_status": health_data.get("health_status", "good"),
-                    "alert_count": len(health_data.get("health_alerts", [])),
-                }
-            )
+        if not health_data:
+            return attrs
+
+        health_alerts = health_data.get("health_alerts")
+        if isinstance(health_alerts, list):
+            attrs["health_alerts"] = health_alerts
+            attrs["alert_count"] = len(health_alerts)
+
+        health_status = health_data.get("health_status")
+        if isinstance(health_status, str) or health_status is None:
+            attrs["health_status"] = health_status or "good"
+
+        if "alert_count" not in attrs:
+            attrs["alert_count"] = 0
 
         return attrs
 
@@ -1378,11 +1490,13 @@ class PawControlWeightAlertBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if there's a weight alert."""
-        health_data = self._get_module_data("health")
+        health_data = self._get_health_payload()
         if not health_data:
             return False
 
         weight_change_percent = health_data.get("weight_change_percent", 0)
+        if not isinstance(weight_change_percent, int | float):
+            return False
         return abs(weight_change_percent) > 10  # 10% weight change threshold
 
 
@@ -1404,12 +1518,15 @@ class PawControlMedicationDueBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if medication is due."""
-        health_data = self._get_module_data("health")
+        health_data = self._get_health_payload()
         if not health_data:
             return False
 
         medications_due = health_data.get("medications_due", [])
-        return len(medications_due) > 0
+        if isinstance(medications_due, Sequence):
+            return len(medications_due) > 0
+
+        return False
 
 
 class PawControlVetCheckupDueBinarySensor(PawControlBinarySensorBase):
@@ -1430,12 +1547,12 @@ class PawControlVetCheckupDueBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if vet checkup is due."""
-        health_data = self._get_module_data("health")
+        health_data = self._get_health_payload()
         if not health_data:
             return False
 
         next_checkup = health_data.get("next_checkup_due")
-        if not next_checkup:
+        if not isinstance(next_checkup, str):
             return False
 
         checkup_dt = ensure_utc_datetime(next_checkup)
@@ -1463,11 +1580,11 @@ class PawControlGroomingDueBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if grooming is due."""
-        health_data = self._get_module_data("health")
+        health_data = self._get_health_payload()
         if not health_data:
             return False
 
-        return health_data.get("grooming_due", False)
+        return bool(health_data.get("grooming_due", False))
 
 
 class PawControlActivityLevelConcernBinarySensor(PawControlBinarySensorBase):
@@ -1489,7 +1606,7 @@ class PawControlActivityLevelConcernBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if there's concern about activity level."""
-        health_data = self._get_module_data("health")
+        health_data = self._get_health_payload()
         if not health_data:
             return False
 
@@ -1499,13 +1616,18 @@ class PawControlActivityLevelConcernBinarySensor(PawControlBinarySensorBase):
         return activity_level in concerning_levels
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> BinarySensorAttributes:
         """Return activity level concern details."""
         attrs = super().extra_state_attributes
-        health_data = self._get_module_data("health")
+        health_data = self._get_health_payload()
 
         if health_data:
-            activity_level = health_data.get("activity_level", "normal")
+            activity_level_value = health_data.get("activity_level")
+            activity_level = (
+                activity_level_value
+                if isinstance(activity_level_value, str)
+                else "normal"
+            )
             attrs.update(
                 {
                     "current_activity_level": activity_level,
@@ -1553,24 +1675,34 @@ class PawControlHealthAwareFeedingBinarySensor(PawControlBinarySensorBase):
         )
 
     def _get_is_on_state(self) -> bool:
-        feeding_data = self._get_module_data("feeding")
+        feeding_data = self._get_feeding_payload()
         if not feeding_data:
             return False
         return bool(feeding_data.get("health_aware_feeding", False))
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> BinarySensorAttributes:
         """Return health-aware feeding metadata for the caregiver UI."""
         attrs = super().extra_state_attributes
-        feeding_data = self._get_module_data("feeding") or {}
-        attrs.update(
-            {
-                "portion_adjustment_factor": feeding_data.get(
-                    "portion_adjustment_factor"
-                ),
-                "health_conditions": feeding_data.get("health_conditions", []),
-            }
-        )
+        feeding_data = self._get_feeding_payload()
+
+        if feeding_data is None:
+            attrs["health_conditions"] = []
+            return attrs
+
+        portion_adjustment_factor = feeding_data.get("portion_adjustment_factor")
+        if isinstance(portion_adjustment_factor, int | float):
+            attrs["portion_adjustment_factor"] = float(portion_adjustment_factor)
+        elif portion_adjustment_factor is None:
+            attrs["portion_adjustment_factor"] = None
+
+        raw_conditions = feeding_data.get("health_conditions")
+        if isinstance(raw_conditions, list):
+            attrs["health_conditions"] = [
+                str(condition) for condition in raw_conditions
+            ]
+        else:
+            attrs["health_conditions"] = []
         return attrs
 
 
@@ -1592,17 +1724,25 @@ class PawControlMedicationWithMealsBinarySensor(PawControlBinarySensorBase):
         )
 
     def _get_is_on_state(self) -> bool:
-        feeding_data = self._get_module_data("feeding")
+        feeding_data = self._get_feeding_payload()
         if not feeding_data:
             return False
         return bool(feeding_data.get("medication_with_meals", False))
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> BinarySensorAttributes:
         """Report which health conditions require medication with meals."""
         attrs = super().extra_state_attributes
-        feeding_data = self._get_module_data("feeding") or {}
-        attrs["health_conditions"] = feeding_data.get("health_conditions", [])
+        feeding_data = self._get_feeding_payload()
+        if feeding_data:
+            raw_conditions = feeding_data.get("health_conditions")
+            if isinstance(raw_conditions, list):
+                attrs["health_conditions"] = [
+                    str(condition) for condition in raw_conditions
+                ]
+                return attrs
+
+        attrs["health_conditions"] = []
         return attrs
 
 
@@ -1624,28 +1764,43 @@ class PawControlHealthEmergencyBinarySensor(PawControlBinarySensorBase):
         )
 
     def _get_is_on_state(self) -> bool:
-        feeding_data = self._get_module_data("feeding")
+        feeding_data = self._get_feeding_payload()
         if not feeding_data:
             return False
 
         return bool(feeding_data.get("health_emergency", False))
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> BinarySensorAttributes:
         """Expose emergency context such as type, timing, and status."""
         attrs = super().extra_state_attributes
-        feeding_data = self._get_module_data("feeding") or {}
-        emergency = feeding_data.get("emergency_mode") or {}
-
-        attrs.update(
-            {
-                "emergency_type": emergency.get("emergency_type"),
-                "portion_adjustment": emergency.get("portion_adjustment"),
-                "activated_at": emergency.get("activated_at"),
-                "expires_at": emergency.get("expires_at"),
-                "status": emergency.get("status"),
-            }
+        feeding_data = self._get_feeding_payload()
+        emergency_payload = (
+            feeding_data.get("emergency_mode") if feeding_data is not None else None
         )
+
+        if isinstance(emergency_payload, Mapping):
+            emergency = cast(FeedingEmergencyState, emergency_payload)
+
+            emergency_type = emergency.get("emergency_type")
+            if isinstance(emergency_type, str):
+                attrs["emergency_type"] = emergency_type
+
+            portion_adjustment = emergency.get("portion_adjustment")
+            if isinstance(portion_adjustment, int | float):
+                attrs["portion_adjustment"] = float(portion_adjustment)
+
+            activated_at = emergency.get("activated_at")
+            if isinstance(activated_at, str):
+                attrs["activated_at"] = activated_at
+
+            expires_at = emergency.get("expires_at")
+            if isinstance(expires_at, str) or expires_at is None:
+                attrs["expires_at"] = expires_at
+
+            status = emergency.get("status")
+            if isinstance(status, str):
+                attrs["status"] = status
         return attrs
 
 
@@ -1667,7 +1822,8 @@ class PawControlGardenSessionActiveBinarySensor(PawControlGardenBinarySensorBase
 
     def _get_is_on_state(self) -> bool:
         data = self._get_garden_data()
-        if data.get("status") == "active":
+        status = data.get("status")
+        if isinstance(status, str) and status == "active":
             return True
 
         garden_manager = self._get_garden_manager()
@@ -1699,7 +1855,8 @@ class PawControlInGardenBinarySensor(PawControlGardenBinarySensorBase):
             return garden_manager.is_dog_in_garden(self._dog_id)
 
         data = self._get_garden_data()
-        return data.get("status") == "active"
+        status = data.get("status")
+        return isinstance(status, str) and status == "active"
 
 
 class PawControlGardenPoopPendingBinarySensor(PawControlGardenBinarySensorBase):
@@ -1725,12 +1882,16 @@ class PawControlGardenPoopPendingBinarySensor(PawControlGardenBinarySensorBase):
 
         data = self._get_garden_data()
         pending = data.get("pending_confirmations")
-        return bool(pending)
+        return isinstance(pending, Sequence) and len(pending) > 0
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> BinarySensorAttributes:
         """Expose how many confirmation prompts are outstanding."""
         attrs = super().extra_state_attributes
-        pending = self._get_garden_data().get("pending_confirmations") or []
-        attrs["pending_confirmation_count"] = len(pending)
+        pending = self._get_garden_data().get("pending_confirmations")
+        if isinstance(pending, list):
+            attrs["pending_confirmations"] = pending
+            attrs["pending_confirmation_count"] = len(pending)
+        else:
+            attrs["pending_confirmation_count"] = 0
         return attrs

@@ -51,6 +51,8 @@ from .coordinator_accessors import CoordinatorDataAccessMixin
 from .types import (
     CoordinatorDogData,
     CoordinatorModuleState,
+    OptimizedEntityCacheStats,
+    OptimizedEntityGlobalPerformanceStats,
 )
 from .utils import (
     PawControlDeviceLinkMixin,
@@ -1594,7 +1596,7 @@ async def create_optimized_entities_batched(
     )
 
 
-def get_global_performance_stats() -> dict[str, Any]:
+def get_global_performance_stats() -> OptimizedEntityGlobalPerformanceStats:
     """Get comprehensive performance statistics for all entities.
 
     Returns:
@@ -1603,7 +1605,7 @@ def get_global_performance_stats() -> dict[str, Any]:
     total_entities = len(_ENTITY_REGISTRY)
     active_entities = sum(1 for ref in _ENTITY_REGISTRY if ref() is not None)
 
-    cache_stats = {
+    cache_stats: OptimizedEntityCacheStats = {
         "state_cache_size": len(_STATE_CACHE),
         "attributes_cache_size": len(_ATTRIBUTES_CACHE),
         "availability_cache_size": len(_AVAILABILITY_CACHE),

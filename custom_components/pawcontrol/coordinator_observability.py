@@ -2,16 +2,33 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+import sys
+from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime
 from logging import getLogger
 from math import isfinite
-from typing import Any
+from typing import Any, Literal, cast
 
 from .coordinator_runtime import EntityBudgetSnapshot, summarize_entity_budgets
+from .coordinator_support import CoordinatorMetrics
 from .coordinator_tasks import default_rejection_metrics, derive_rejection_metrics
 from .telemetry import summarise_bool_coercion_metrics
-from .types import CoordinatorRejectionMetrics
+from .types import (
+    AdaptivePollingDiagnostics,
+    BoolCoercionSummary,
+    CoordinatorPerformanceSnapshot,
+    CoordinatorPerformanceSnapshotCounts,
+    CoordinatorPerformanceSnapshotMetrics,
+    CoordinatorRejectionMetrics,
+    CoordinatorResilienceSummary,
+    CoordinatorSecurityAdaptiveCheck,
+    CoordinatorSecurityChecks,
+    CoordinatorSecurityEntityCheck,
+    CoordinatorSecurityScorecard,
+    CoordinatorSecurityWebhookCheck,
+    EntityBudgetSummary,
+    WebhookSecurityStatus,
+)
 
 _LOGGER = getLogger(__name__)
 
@@ -45,7 +62,7 @@ class EntityBudgetTracker:
         )
         return max(0.0, min(1.0, total_allocated / total_capacity))
 
-    def summary(self) -> dict[str, Any]:
+    def summary(self) -> EntityBudgetSummary:
         """Return a diagnostics friendly summary."""
 
         return summarize_entity_budgets(self._snapshots.values())
@@ -58,42 +75,66 @@ class EntityBudgetTracker:
 
 def build_performance_snapshot(
     *,
-    metrics: Any,
-    adaptive: Mapping[str, Any],
-    entity_budget: Mapping[str, Any],
+    metrics: CoordinatorMetrics,
+    adaptive: AdaptivePollingDiagnostics,
+    entity_budget: EntityBudgetSummary,
     update_interval: float,
     last_update_time: datetime | None,
     last_update_success: bool,
-    webhook_status: Mapping[str, Any],
-    resilience: Mapping[str, Any] | None = None,
-) -> dict[str, Any]:
+    webhook_status: WebhookSecurityStatus,
+    resilience: CoordinatorResilienceSummary | None = None,
+) -> CoordinatorPerformanceSnapshot:
     """Generate the coordinator performance snapshot payload."""
 
     last_update = last_update_time.isoformat() if last_update_time else None
 
-    snapshot = {
-        "update_counts": {
-            "total": metrics.update_count,
-            "successful": metrics.successful_cycles,
-            "failed": metrics.failed_cycles,
-        },
-        "performance_metrics": {
-            "last_update": last_update,
-            "last_update_success": last_update_success,
-            "success_rate": round(metrics.success_rate_percent, 2),
-            "consecutive_errors": metrics.consecutive_errors,
-            "update_interval_s": round(update_interval, 3),
-            "current_cycle_ms": adaptive.get("current_interval_ms"),
-        },
-        "adaptive_polling": dict(adaptive),
-        "entity_budget": dict(entity_budget),
-        "webhook_security": dict(webhook_status),
+    update_counts: CoordinatorPerformanceSnapshotCounts = {
+        "total": metrics.update_count,
+        "successful": metrics.successful_cycles,
+        "failed": metrics.failed_cycles,
+    }
+    performance_metrics: CoordinatorPerformanceSnapshotMetrics = {
+        "last_update": last_update,
+        "last_update_success": last_update_success,
+        "success_rate": round(metrics.success_rate_percent, 2),
+        "consecutive_errors": metrics.consecutive_errors,
+        "update_interval_s": round(update_interval, 3),
+        "current_cycle_ms": adaptive.get("current_interval_ms"),
+        "rejected_call_count": 0,
+        "rejection_breaker_count": 0,
+        "rejection_rate": None,
+        "last_rejection_time": None,
+        "last_rejection_breaker_id": None,
+        "last_rejection_breaker_name": None,
+        "open_breaker_count": 0,
+        "half_open_breaker_count": 0,
+        "unknown_breaker_count": 0,
+        "open_breakers": [],
+        "open_breaker_ids": [],
+        "half_open_breakers": [],
+        "half_open_breaker_ids": [],
+        "unknown_breakers": [],
+        "unknown_breaker_ids": [],
+        "rejection_breaker_ids": [],
+        "rejection_breakers": [],
+    }
+    adaptive_snapshot = cast(AdaptivePollingDiagnostics, dict(adaptive))
+    entity_budget_snapshot = cast(EntityBudgetSummary, dict(entity_budget))
+    webhook_snapshot = cast(WebhookSecurityStatus, dict(webhook_status))
+
+    snapshot: CoordinatorPerformanceSnapshot = {
+        "update_counts": update_counts,
+        "performance_metrics": performance_metrics,
+        "adaptive_polling": adaptive_snapshot,
+        "entity_budget": entity_budget_snapshot,
+        "webhook_security": webhook_snapshot,
     }
 
     rejection_metrics: CoordinatorRejectionMetrics = default_rejection_metrics()
 
     if resilience:
-        resilience_payload = dict(resilience)
+        resilience_payload_raw = dict(resilience)
+        resilience_payload: dict[str, Any] = dict(resilience_payload_raw)
 
         list_fields = (
             "open_breakers",
@@ -121,19 +162,35 @@ def build_performance_snapshot(
                 resilience_payload[field] = [value]
 
         rejection_metrics.update(derive_rejection_metrics(resilience_payload))
-        snapshot["resilience_summary"] = resilience_payload
+        snapshot["resilience_summary"] = cast(
+            CoordinatorResilienceSummary, resilience_payload
+        )
 
-    snapshot["rejection_metrics"] = dict(rejection_metrics)
-    performance_metrics = snapshot["performance_metrics"]
+    snapshot["rejection_metrics"] = rejection_metrics
+    performance_metrics_mut = cast(dict[str, Any], snapshot["performance_metrics"])
     for key, value in rejection_metrics.items():
         if key == "schema_version":
             continue
         if isinstance(value, list):
-            performance_metrics[key] = list(value)
+            performance_metrics_mut[key] = list(value)
             continue
-        performance_metrics[key] = value
+        performance_metrics_mut[key] = value
 
-    snapshot["bool_coercion"] = dict(summarise_bool_coercion_metrics())
+    telemetry_module = sys.modules.get("custom_components.pawcontrol.telemetry")
+    bool_summary: BoolCoercionSummary = summarise_bool_coercion_metrics()
+    if telemetry_module is not None and hasattr(
+        telemetry_module, "summarise_bool_coercion_metrics"
+    ):
+        summary_func = cast(
+            Callable[[], BoolCoercionSummary],
+            telemetry_module.summarise_bool_coercion_metrics,
+        )
+        module_summary = summary_func()
+        if (
+            module_summary.get("total") or module_summary.get("reset_count")
+        ) and module_summary.get("total", 0) >= bool_summary.get("total", 0):
+            bool_summary = module_summary
+    snapshot["bool_coercion"] = cast(BoolCoercionSummary, dict(bool_summary))
 
     return snapshot
 
@@ -156,8 +213,8 @@ def build_security_scorecard(
     *,
     adaptive: Mapping[str, Any],
     entity_summary: Mapping[str, Any],
-    webhook_status: Mapping[str, Any],
-) -> dict[str, Any]:
+    webhook_status: WebhookSecurityStatus,
+) -> CoordinatorSecurityScorecard:
     """Return a pass/fail scorecard for coordinator safety checks."""
 
     target_ms = _coerce_float(adaptive.get("target_cycle_ms"), 200.0)
@@ -170,7 +227,7 @@ def build_security_scorecard(
 
     threshold_ms = 200.0
     adaptive_pass = current_ms <= threshold_ms
-    adaptive_check: dict[str, Any] = {
+    adaptive_check: CoordinatorSecurityAdaptiveCheck = {
         "pass": adaptive_pass,
         "current_ms": current_ms,
         "target_ms": target_ms,
@@ -183,9 +240,10 @@ def build_security_scorecard(
     peak_utilisation = max(0.0, min(100.0, peak_utilisation))
     entity_threshold = 95.0
     entity_pass = peak_utilisation <= entity_threshold
-    entity_check: dict[str, Any] = {
+    entity_summary_snapshot = cast(EntityBudgetSummary, dict(entity_summary))
+    entity_check: CoordinatorSecurityEntityCheck = {
         "pass": entity_pass,
-        "summary": dict(entity_summary),
+        "summary": entity_summary_snapshot,
         "threshold_percent": entity_threshold,
     }
     if not entity_pass:
@@ -194,22 +252,47 @@ def build_security_scorecard(
     webhook_pass = (not webhook_status.get("configured")) or bool(
         webhook_status.get("secure")
     )
-    webhook_check: dict[str, Any] = {"pass": webhook_pass, **webhook_status}
+    webhook_payload = dict(webhook_status)
+    webhook_payload.setdefault("configured", False)
+    webhook_payload.setdefault("secure", False)
+    webhook_payload.setdefault("hmac_ready", False)
+    webhook_payload.setdefault("insecure_configs", ())
+    webhook_snapshot = cast(WebhookSecurityStatus, webhook_payload)
+    webhook_check: CoordinatorSecurityWebhookCheck = {
+        "pass": webhook_pass,
+        "configured": webhook_snapshot["configured"],
+        "secure": webhook_snapshot["secure"],
+        "hmac_ready": webhook_snapshot["hmac_ready"],
+        "insecure_configs": webhook_snapshot["insecure_configs"],
+    }
+    if "error" in webhook_snapshot:
+        webhook_check["error"] = webhook_snapshot["error"]
     if not webhook_pass:
         webhook_check.setdefault(
             "reason", "Webhook configurations missing HMAC protection"
         )
 
-    checks = {
+    checks: CoordinatorSecurityChecks = {
         "adaptive_polling": adaptive_check,
         "entity_budget": entity_check,
         "webhooks": webhook_check,
     }
-    status = "pass" if all(check["pass"] for check in checks.values()) else "fail"
-    return {"status": status, "checks": checks}
+    all_checks = (
+        checks["adaptive_polling"],
+        checks["entity_budget"],
+        checks["webhooks"],
+    )
+    status_literal: Literal["pass", "fail"] = (
+        "pass" if all(check["pass"] for check in all_checks) else "fail"
+    )
+    scorecard: CoordinatorSecurityScorecard = {
+        "status": status_literal,
+        "checks": checks,
+    }
+    return scorecard
 
 
-def normalise_webhook_status(manager: Any) -> dict[str, Any]:
+def normalise_webhook_status(manager: Any) -> WebhookSecurityStatus:
     """Normalise webhook security payloads coming from notification manager."""
 
     if manager is None or not hasattr(manager, "webhook_security_status"):
@@ -242,4 +325,4 @@ def normalise_webhook_status(manager: Any) -> dict[str, Any]:
         status["insecure_configs"] = tuple(insecure)
     else:
         status["insecure_configs"] = (insecure,) if insecure else ()
-    return status
+    return cast(WebhookSecurityStatus, status)

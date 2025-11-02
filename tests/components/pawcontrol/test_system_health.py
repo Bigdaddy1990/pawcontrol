@@ -28,7 +28,13 @@ async def test_system_health_no_api(hass: HomeAssistant) -> None:
 
     assert info["can_reach_backend"] is False
     assert info["remaining_quota"] == "unknown"
-    assert "service_execution" not in info
+    service_execution = info["service_execution"]
+    assert service_execution["guard_summary"]["total_calls"] == 0
+    assert service_execution["breaker_overview"]["status"] == "healthy"
+    manual_events = service_execution["manual_events"]
+    assert manual_events["available"] is False
+    assert manual_events["event_history"] == []
+    assert manual_events["event_counters"]["total"] == 0
     mock_check.assert_not_called()
 
 

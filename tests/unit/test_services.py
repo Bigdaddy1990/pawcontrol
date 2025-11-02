@@ -861,6 +861,12 @@ async def test_perform_daily_reset_records_cache_diagnostics(
     assert coordinator.refresh_called
     assert runtime_data.walk_manager.cleaned
     assert runtime_data.notification_manager.cleaned
+    buckets = runtime_data.performance_stats["performance_buckets"]
+    assert "daily_reset_metrics" in buckets
+    bucket_snapshot = buckets["daily_reset_metrics"]
+    assert bucket_snapshot["runs"] == 1
+    assert bucket_snapshot["failures"] == 0
+    assert bucket_snapshot["durations_ms"]
     assert runtime_data.performance_stats["daily_resets"] == 1
     last_cache_capture = runtime_data.performance_stats["last_cache_diagnostics"]
     snapshots = last_cache_capture["snapshots"]

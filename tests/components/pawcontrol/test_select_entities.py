@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -18,7 +19,11 @@ from custom_components.pawcontrol.select import (
     PawControlGPSSourceSelect,
     PawControlNotificationPrioritySelect,
 )
-from custom_components.pawcontrol.types import PawControlRuntimeData
+from custom_components.pawcontrol.types import (
+    CoordinatorDataPayload,
+    CoordinatorDogData,
+    PawControlRuntimeData,
+)
 
 
 class _DummyCoordinator:
@@ -29,9 +34,15 @@ class _DummyCoordinator:
         self.config_entry = SimpleNamespace(
             entry_id="test-entry", runtime_data=runtime_data
         )
-        self.data: dict[str, dict[str, object]] = {
-            dog_id: {"gps": {}, "notifications": {}}
-        }
+        self.data: CoordinatorDataPayload = cast(
+            CoordinatorDataPayload,
+            {
+                dog_id: {
+                    "gps": {},
+                    "notifications": {},
+                }
+            },
+        )
         self.last_update_success = True
         self.runtime_managers = runtime_data.runtime_managers
 
@@ -45,10 +56,10 @@ class _DummyCoordinator:
     ) -> None:  # pragma: no cover - coordinator interface
         return None
 
-    async def async_set_updated_data(self, data: dict[str, dict[str, object]]) -> None:
+    async def async_set_updated_data(self, data: CoordinatorDataPayload) -> None:
         self.data = data
 
-    def get_dog_data(self, dog_id: str) -> dict[str, object] | None:
+    def get_dog_data(self, dog_id: str) -> CoordinatorDogData | None:
         return self.data.get(dog_id)
 
     @property

@@ -10,12 +10,22 @@ import logging
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import date, timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Literal, TypedDict
+from typing import TYPE_CHECKING, Literal, TypedDict, cast
 
 from homeassistant.util import dt as dt_util
 
+from .types import (
+    DietValidationResult,
+    FeedingGoalSettings,
+    FeedingHistoryAnalysis,
+    FeedingHistoryEvent,
+    FeedingHistoryStatus,
+    HealthReport,
+    HealthReportStatus,
+    WeatherConditionsPayload,
+)
 from .utils import ensure_local_datetime
 
 # TYPE_CHECKING import for weather integration
@@ -80,6 +90,13 @@ class DietInteractionDetails(TypedDict):
     risk_level: Literal["low", "medium", "high"]
 
 
+class FeedingHistoryDaySummary(TypedDict):
+    """Internal summary bucket for daily feeding analysis."""
+
+    calories: float
+    meals: int
+
+
 @dataclass(init=False)
 class HealthMetrics:
     """Comprehensive health metrics for a dog.
@@ -123,7 +140,7 @@ class HealthMetrics:
     weight_goal: str | None = None  # "maintain", "lose", "gain"
 
     # NEW: Weather-related adjustments
-    weather_conditions: dict[str, Any] | None = None
+    weather_conditions: WeatherConditionsPayload | None = None
     weather_health_score: int | None = None
 
     _BREED_ALLOWED_CHARACTERS = frozenset(" -'")
@@ -144,7 +161,7 @@ class HealthMetrics:
         daily_calorie_requirement: float | None = None,
         portion_adjustment_factor: float = 1.0,
         weight_goal: str | None = None,
-        weather_conditions: dict[str, Any] | None = None,
+        weather_conditions: WeatherConditionsPayload | None = None,
         weather_health_score: int | None = None,
     ) -> None:
         """Create a calculator pre-populated with the dog's baseline metrics."""
@@ -398,8 +415,8 @@ class HealthCalculator:
     @staticmethod
     def calculate_portion_adjustment_factor(
         health_metrics: HealthMetrics,
-        feeding_goals: dict[str, Any] | None = None,
-        diet_validation: dict[str, Any] | None = None,
+        feeding_goals: FeedingGoalSettings | None = None,
+        diet_validation: DietValidationResult | None = None,
     ) -> float:
         """Calculate comprehensive portion adjustment factor with diet validation.
 
@@ -481,7 +498,7 @@ class HealthCalculator:
 
     @staticmethod
     def calculate_diet_validation_adjustment(
-        diet_validation: dict[str, Any], special_diets: list[str]
+        diet_validation: DietValidationResult, special_diets: list[str]
     ) -> float:
         """Calculate portion adjustment based on diet validation results.
 
@@ -498,9 +515,8 @@ class HealthCalculator:
         adjustment = 1.0
 
         # Handle conflicts (more conservative adjustments)
-        conflicts = diet_validation.get("conflicts", [])
-        for conflict in conflicts:
-            conflict_type = conflict.get("type")
+        for conflict in diet_validation["conflicts"]:
+            conflict_type = conflict["type"]
 
             if conflict_type == "age_conflict":
                 # Age conflicts require veterinary guidance - use conservative portions
@@ -510,9 +526,8 @@ class HealthCalculator:
                 )
 
         # Handle warnings (milder adjustments)
-        warnings = diet_validation.get("warnings", [])
-        for warning in warnings:
-            warning_type = warning.get("type")
+        for warning in diet_validation["warnings"]:
+            warning_type = warning["type"]
 
             if warning_type == "multiple_prescription_warning":
                 # Multiple prescription diets need careful portion control
@@ -550,7 +565,7 @@ class HealthCalculator:
                 )
 
         # Additional adjustments based on total diet complexity
-        total_diets = diet_validation.get("total_diets", 0)
+        total_diets = diet_validation["total_diets"]
         if total_diets >= 4:
             # Complex diet combinations need careful monitoring
             adjustment *= 0.97  # 3% reduction for very complex diets
@@ -560,7 +575,7 @@ class HealthCalculator:
             )
 
         # Veterinary consultation recommendation adjustment
-        if diet_validation.get("recommended_vet_consultation", False):
+        if diet_validation["recommended_vet_consultation"]:
             # When vet consultation is recommended, use more conservative portions
             adjustment *= 0.95
             _LOGGER.info(
@@ -586,7 +601,7 @@ class HealthCalculator:
         dog_weight: float,
         life_stage: LifeStage,
         special_diets: list[str],
-        diet_validation: dict[str, Any] | None = None,
+        diet_validation: DietValidationResult | None = None,
     ) -> DietSafetyResult:
         """Validate calculated portion for safety concerns.
 
@@ -647,13 +662,13 @@ class HealthCalculator:
 
         # Diet validation safety checks
         if diet_validation:
-            if diet_validation.get("conflicts"):
+            if diet_validation["conflicts"]:
                 safety_result["warnings"].append(
                     "Diet conflicts detected - extra monitoring recommended"
                 )
                 safety_result["safe"] = False
 
-            if diet_validation.get("recommended_vet_consultation"):
+            if diet_validation["recommended_vet_consultation"]:
                 safety_result["recommendations"].append(
                     "Veterinary consultation recommended due to diet complexity"
                 )
@@ -752,10 +767,10 @@ class HealthCalculator:
 
     @staticmethod
     def analyze_feeding_history(
-        feeding_events: list[dict[str, Any]],
+        feeding_events: list[FeedingHistoryEvent],
         target_calories: float,
         food_calories_per_gram: float = 3.5,
-    ) -> dict[str, Any]:
+    ) -> FeedingHistoryAnalysis:
         """Analyze feeding history for patterns and recommendations.
 
         Args:
@@ -767,13 +782,13 @@ class HealthCalculator:
             Analysis results with recommendations
         """
         if not feeding_events:
-            return {
-                "status": "no_data",
-                "recommendation": "Start tracking feedings to analyze patterns",
-            }
+            return FeedingHistoryAnalysis(
+                status="no_data",
+                recommendation="Start tracking feedings to analyze patterns",
+            )
 
         # Calculate daily averages over last 7 days
-        recent_days = {}
+        recent_days: dict[date, FeedingHistoryDaySummary] = {}
         now = dt_util.now()
         week_ago = now - timedelta(days=7)
 
@@ -792,18 +807,22 @@ class HealthCalculator:
 
             bucket_date = (now - timedelta(days=day_index)).date()
             if bucket_date not in recent_days:
-                recent_days[bucket_date] = {"calories": 0.0, "meals": 0}
+                recent_days[bucket_date] = FeedingHistoryDaySummary(
+                    calories=0.0,
+                    meals=0,
+                )
 
-            amount = event.get("amount", 0)
+            amount = float(event.get("amount", 0))
             calories = amount * food_calories_per_gram
-            recent_days[bucket_date]["calories"] += calories
-            recent_days[bucket_date]["meals"] += 1
+            day_summary = recent_days[bucket_date]
+            day_summary["calories"] += calories
+            day_summary["meals"] += 1
 
         if not recent_days:
-            return {
-                "status": "insufficient_data",
-                "recommendation": "Need at least one week of feeding data",
-            }
+            return FeedingHistoryAnalysis(
+                status="insufficient_data",
+                recommendation="Need at least one week of feeding data",
+            )
 
         # Calculate averages
         avg_daily_calories = sum(day["calories"] for day in recent_days.values()) / len(
@@ -819,8 +838,8 @@ class HealthCalculator:
         )
 
         # Generate recommendations
-        recommendations = []
-        status = "good"
+        recommendations: list[str] = []
+        status: FeedingHistoryStatus = "good"
 
         if calorie_variance > 20:
             status = "overfeeding"
@@ -847,15 +866,15 @@ class HealthCalculator:
         elif avg_daily_meals > 4:
             recommendations.append("Consider consolidating into 2-3 larger meals")
 
-        return {
-            "status": status,
-            "avg_daily_calories": round(avg_daily_calories, 1),
-            "target_calories": target_calories,
-            "calorie_variance_percent": round(calorie_variance, 1),
-            "avg_daily_meals": round(avg_daily_meals, 1),
-            "recommendations": recommendations,
-            "analysis_period_days": len(recent_days),
-        }
+        return FeedingHistoryAnalysis(
+            status=status,
+            avg_daily_calories=round(avg_daily_calories, 1),
+            target_calories=target_calories,
+            calorie_variance_percent=round(calorie_variance, 1),
+            avg_daily_meals=round(avg_daily_meals, 1),
+            recommendations=recommendations,
+            analysis_period_days=len(recent_days),
+        )
 
     @staticmethod
     def calculate_ideal_weight_range(
@@ -922,16 +941,16 @@ class HealthCalculator:
         health_metrics: HealthMetrics,
         weather_conditions: WeatherConditions | None = None,
         weather_health_manager: WeatherHealthManager | None = None,
-    ) -> dict[str, Any]:
+    ) -> HealthReport:
         """Generate a detailed health report with recommendations."""
-        report = {
-            "timestamp": dt_util.now().isoformat(),
-            "overall_status": "good",
-            "recommendations": [],
-            "health_score": 85,  # Default good score
-            "areas_of_concern": [],
-            "positive_indicators": [],
-        }
+        report: HealthReport = HealthReport(
+            timestamp=dt_util.now().isoformat(),
+            overall_status=cast(HealthReportStatus, "good"),
+            recommendations=[],
+            health_score=85,
+            areas_of_concern=[],
+            positive_indicators=[],
+        )
 
         HealthCalculator._assess_weight(health_metrics, report)
         HealthCalculator._assess_body_condition(health_metrics, report)
@@ -950,7 +969,7 @@ class HealthCalculator:
         return report
 
     @staticmethod
-    def _assess_weight(health_metrics: HealthMetrics, report: dict[str, Any]) -> None:
+    def _assess_weight(health_metrics: HealthMetrics, report: HealthReport) -> None:
         if health_metrics.ideal_weight and health_metrics.current_weight:
             weight_ratio = health_metrics.current_weight / health_metrics.ideal_weight
             if weight_ratio < 0.85:
@@ -966,7 +985,7 @@ class HealthCalculator:
 
     @staticmethod
     def _assess_body_condition(
-        health_metrics: HealthMetrics, report: dict[str, Any]
+        health_metrics: HealthMetrics, report: HealthReport
     ) -> None:
         if not health_metrics.body_condition_score:
             return
@@ -989,7 +1008,7 @@ class HealthCalculator:
 
     @staticmethod
     def _assess_health_conditions(
-        health_metrics: HealthMetrics, report: dict[str, Any]
+        health_metrics: HealthMetrics, report: HealthReport
     ) -> None:
         serious_conditions = {
             "diabetes",
@@ -1008,7 +1027,7 @@ class HealthCalculator:
                 report["health_score"] -= 15
 
     @staticmethod
-    def _assess_age(health_metrics: HealthMetrics, report: dict[str, Any]) -> None:
+    def _assess_age(health_metrics: HealthMetrics, report: HealthReport) -> None:
         if not health_metrics.age_months:
             return
         age_years = health_metrics.age_months / 12
@@ -1024,7 +1043,7 @@ class HealthCalculator:
             report["recommendations"].append("Monitor for age-related conditions")
 
     @staticmethod
-    def _assess_activity(health_metrics: HealthMetrics, report: dict[str, Any]) -> None:
+    def _assess_activity(health_metrics: HealthMetrics, report: HealthReport) -> None:
         if health_metrics.activity_level == ActivityLevel.VERY_LOW:
             report["recommendations"].append(
                 "Gradually increase physical activity if health permits",
@@ -1033,7 +1052,7 @@ class HealthCalculator:
             report["positive_indicators"].append("excellent_activity_level")
 
     @staticmethod
-    def _finalize_status(report: dict[str, Any]) -> None:
+    def _finalize_status(report: HealthReport) -> None:
         score = report["health_score"]
         if score >= 90:
             report["overall_status"] = "excellent"
@@ -1049,7 +1068,7 @@ class HealthCalculator:
         health_metrics: HealthMetrics,
         weather_conditions: WeatherConditions,
         weather_health_manager: WeatherHealthManager,
-        report: dict[str, Any],
+        report: HealthReport,
     ) -> None:
         """Assess weather impact on dog health and update report.
 
