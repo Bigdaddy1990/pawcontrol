@@ -18,7 +18,7 @@ import asyncio
 import json
 import logging
 from collections.abc import Awaitable, Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Final, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Final, cast
 
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
@@ -54,11 +54,13 @@ from .types import (
     DOG_NAME_FIELD,
     CoordinatorRejectionMetrics,
     CoordinatorStatisticsPayload,
+    DashboardCardGlobalPerformanceStats,
     DashboardCardOptions,
     DashboardCardPerformanceStats,
     DogConfigData,
     DogModulesConfig,
     HelperManagerGuardMetrics,
+    JSONMutableMapping,
     RawDogConfig,
     coerce_dog_modules_config,
 )
@@ -76,15 +78,12 @@ CARD_GENERATION_TIMEOUT: Final[float] = 15.0
 VALIDATION_CACHE_SIZE: Final[int] = 200
 
 # OPTIMIZED: Type definitions for better performance
-CardConfigType = CardConfig
-EntityListType = list[str]
-ModulesConfigType = DogModulesConfig
-DogConfigType = DogConfigData
-ThemeConfigType = Mapping[str, str]
-OptionsConfigType = DashboardCardOptions
-
-# OPTIMIZED: Generic type for card generators
-T = TypeVar("T", bound="BaseCardGenerator")
+type CardConfigType = CardConfig
+type EntityListType = list[str]
+type ModulesConfigType = DogModulesConfig
+type DogConfigType = DogConfigData
+type ThemeConfigType = Mapping[str, str]
+type OptionsConfigType = DashboardCardOptions
 
 # OPTIMIZED: Entity validation cache for performance
 _entity_validation_cache: dict[str, tuple[float, bool]] = {}
@@ -773,22 +772,21 @@ class OverviewCardGenerator(BaseCardGenerator):
         valid_entity_set = set(valid_entities)
 
         # OPTIMIZED: Build cards only for validated entities
-        dog_cards = []
+        dog_cards: CardCollection = []
         for dog_id, dog_name, entity_id in dog_candidates:
             if entity_id in valid_entity_set:
-                dog_cards.append(
-                    {
-                        "type": "button",
-                        "entity": entity_id,
-                        "name": dog_name,
-                        "icon": "mdi:dog",
-                        "show_state": True,
-                        "tap_action": {
-                            "action": "navigate",
-                            "navigation_path": f"{dashboard_url}/{slugify(dog_id)}",
-                        },
-                    }
-                )
+                card: CardConfig = {
+                    "type": "button",
+                    "entity": entity_id,
+                    "name": dog_name,
+                    "icon": "mdi:dog",
+                    "show_state": True,
+                    "tap_action": {
+                        "action": "navigate",
+                        "navigation_path": f"{dashboard_url}/{slugify(dog_id)}",
+                    },
+                }
+                dog_cards.append(card)
 
         if not dog_cards:
             return None
@@ -796,11 +794,13 @@ class OverviewCardGenerator(BaseCardGenerator):
         # Optimize grid columns based on number of dogs
         columns = min(3, max(1, len(dog_cards)))
 
-        return {
+        grid_card: CardConfig = {
             "type": "grid",
             "columns": columns,
             "cards": dog_cards,
         }
+
+        return grid_card
 
     async def generate_quick_actions(
         self, dogs_config: Sequence[RawDogConfig]
@@ -843,7 +843,7 @@ class OverviewCardGenerator(BaseCardGenerator):
         valid_entities = await self._validate_entities_batch(validation_entities)
         valid_entity_set = set(valid_entities)
 
-        actions = []
+        actions: CardCollection = []
 
         # Build action buttons based on validated entities
         if has_feeding and f"button.{DOMAIN}_feed_all_dogs" in valid_entity_set:
@@ -860,39 +860,37 @@ class OverviewCardGenerator(BaseCardGenerator):
             )
 
         if has_walking and f"sensor.{DOMAIN}_dogs_walking" in valid_entity_set:
-            actions.append(
-                {
-                    "type": "button",
-                    "name": _translated_walk_label(language, "status"),
-                    "icon": "mdi:walk",
-                    "tap_action": {
-                        "action": "more-info",
-                        "entity": f"sensor.{DOMAIN}_dogs_walking",
-                    },
-                }
-            )
-
-        # Daily reset button (always available)
-        actions.append(
-            {
+            walking_card: CardConfig = {
                 "type": "button",
-                "name": _translated_quick_action_label(language, "daily_reset"),
-                "icon": "mdi:refresh",
+                "name": _translated_walk_label(language, "status"),
+                "icon": "mdi:walk",
                 "tap_action": {
-                    "action": "call-service",
-                    "service": f"{DOMAIN}.daily_reset",
+                    "action": "more-info",
+                    "entity": f"sensor.{DOMAIN}_dogs_walking",
                 },
             }
-        )
+            actions.append(walking_card)
 
-        return (
-            {
-                "type": "horizontal-stack",
-                "cards": actions,
-            }
-            if actions
-            else None
-        )
+        # Daily reset button (always available)
+        reset_card: CardConfig = {
+            "type": "button",
+            "name": _translated_quick_action_label(language, "daily_reset"),
+            "icon": "mdi:refresh",
+            "tap_action": {
+                "action": "call-service",
+                "service": f"{DOMAIN}.daily_reset",
+            },
+        }
+        actions.append(reset_card)
+
+        if not actions:
+            return None
+
+        stack_card: CardConfig = {
+            "type": "horizontal-stack",
+            "cards": actions,
+        }
+        return stack_card
 
 
 class DogCardGenerator(BaseCardGenerator):
@@ -1590,17 +1588,16 @@ class ModuleCardGenerator(BaseCardGenerator):
 
         # OPTIMIZED: Batch validate schedule entities
         valid_entities = await self._validate_entities_batch(schedule_entities)
-        cards = []
+        cards: list[CardConfigType] = []
 
         if valid_entities:
-            cards.append(
-                {
-                    "type": "entities",
-                    "title": "Feeding Schedule",
-                    "entities": valid_entities,
-                    "state_color": True,
-                }
-            )
+            schedule_card: CardConfig = {
+                "type": "entities",
+                "title": "Feeding Schedule",
+                "entities": valid_entities,
+                "state_color": True,
+            }
+            cards.append(schedule_card)
 
         # OPTIMIZED: Get feeding controls template asynchronously
         try:
@@ -2406,7 +2403,7 @@ class WeatherCardGenerator(BaseCardGenerator):
             return None
 
         # Create conditional alert chips
-        alert_chips = []
+        alert_chips: list[JSONMutableMapping] = []
         alert_configs = [
             ("heat_stress_alert", "🔥", "Heat Stress", "red"),
             ("cold_stress_alert", "🥶", "Cold Stress", "blue"),
@@ -2419,25 +2416,24 @@ class WeatherCardGenerator(BaseCardGenerator):
         for alert_type, icon, name, color in alert_configs:
             entity_id = f"binary_sensor.{dog_id}_{alert_type}"
             if entity_id in valid_alerts:
-                alert_chips.append(
-                    {
-                        "type": "conditional",
-                        "conditions": [{"entity": entity_id, "state": "on"}],
-                        "chip": {
-                            "type": "entity",
+                chip_definition: JSONMutableMapping = {
+                    "type": "conditional",
+                    "conditions": [{"entity": entity_id, "state": "on"}],
+                    "chip": {
+                        "type": "entity",
+                        "entity": entity_id,
+                        "name": f"{icon} {name}",
+                        "icon_color": color,
+                        "content_info": "none",
+                        "tap_action": {
+                            "action": "more-info",
                             "entity": entity_id,
-                            "name": f"{icon} {name}",
-                            "icon_color": color,
-                            "content_info": "none",
-                            "tap_action": {
-                                "action": "more-info",
-                                "entity": entity_id,
-                            },
                         },
-                    }
-                )
+                    },
+                }
+                alert_chips.append(chip_definition)
 
-        return {
+        card: CardConfig = {
             "type": "vertical-stack",
             "cards": [
                 {
@@ -2475,6 +2471,8 @@ class WeatherCardGenerator(BaseCardGenerator):
             ],
         }
 
+        return card
+
     async def _generate_weather_recommendations_card(
         self, dog_id: str, dog_name: str, options: OptionsConfigType
     ) -> CardConfigType | None:
@@ -2498,7 +2496,46 @@ class WeatherCardGenerator(BaseCardGenerator):
             overflow_recommendations=overflow,
         )
 
-        return {
+        quick_actions: CardCollection = []
+
+        update_weather_card: CardConfig = {
+            "type": "custom:mushroom-entity-card",
+            "entity": f"button.{dog_id}_update_weather_data",
+            "name": "Update Weather",
+            "icon": "mdi:weather-cloudy-clock",
+            "icon_color": "blue",
+            "tap_action": {
+                "action": "call-service",
+                "service": "pawcontrol.update_weather_data",
+                "service_data": {"dog_id": dog_id},
+            },
+        }
+        quick_actions.append(update_weather_card)
+
+        get_advice_card: CardConfig = {
+            "type": "custom:mushroom-entity-card",
+            "entity": f"button.{dog_id}_get_weather_recommendations",
+            "name": "Get Advice",
+            "icon": "mdi:lightbulb-on",
+            "icon_color": "amber",
+            "tap_action": {
+                "action": "call-service",
+                "service": "pawcontrol.get_weather_recommendations",
+                "service_data": {
+                    "dog_id": dog_id,
+                    "include_breed_specific": True,
+                    "include_health_conditions": True,
+                },
+            },
+        }
+        quick_actions.append(get_advice_card)
+
+        actions_card: CardConfig = {
+            "type": "horizontal-stack",
+            "cards": quick_actions,
+        }
+
+        card: CardConfig = {
             "type": "vertical-stack",
             "cards": [
                 {
@@ -2507,41 +2544,11 @@ class WeatherCardGenerator(BaseCardGenerator):
                     "subtitle": "Personalized recommendations based on current conditions",
                 },
                 markdown_card,
-                {
-                    "type": "horizontal-stack",
-                    "cards": [
-                        {
-                            "type": "custom:mushroom-entity-card",
-                            "entity": f"button.{dog_id}_update_weather_data",
-                            "name": "Update Weather",
-                            "icon": "mdi:weather-cloudy-clock",
-                            "icon_color": "blue",
-                            "tap_action": {
-                                "action": "call-service",
-                                "service": "pawcontrol.update_weather_data",
-                                "service_data": {"dog_id": dog_id},
-                            },
-                        },
-                        {
-                            "type": "custom:mushroom-entity-card",
-                            "entity": f"button.{dog_id}_get_weather_recommendations",
-                            "name": "Get Advice",
-                            "icon": "mdi:lightbulb-on",
-                            "icon_color": "amber",
-                            "tap_action": {
-                                "action": "call-service",
-                                "service": "pawcontrol.get_weather_recommendations",
-                                "service_data": {
-                                    "dog_id": dog_id,
-                                    "include_breed_specific": True,
-                                    "include_health_conditions": True,
-                                },
-                            },
-                        },
-                    ],
-                },
+                actions_card,
             ],
         }
+
+        return card
 
     async def _generate_current_weather_conditions_card(
         self, dog_id: str, dog_name: str, options: OptionsConfigType
@@ -3047,15 +3054,16 @@ async def cleanup_validation_cache() -> None:
 
 
 # OPTIMIZED: Export performance monitoring function
-def get_global_performance_stats() -> dict[str, Any]:
+def get_global_performance_stats() -> DashboardCardGlobalPerformanceStats:
     """Get global performance statistics for all card generators."""
-    return {
+    stats: DashboardCardGlobalPerformanceStats = {
         "validation_cache_size": len(_entity_validation_cache),
-        "cache_threshold": _cache_cleanup_threshold,
+        "cache_threshold": float(_cache_cleanup_threshold),
         "max_concurrent_validations": MAX_CONCURRENT_VALIDATIONS,
         "validation_timeout": ENTITY_VALIDATION_TIMEOUT,
         "card_generation_timeout": CARD_GENERATION_TIMEOUT,
     }
+    return stats
 
 
 def _unwrap_async_result[ResultT](

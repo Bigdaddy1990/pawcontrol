@@ -100,6 +100,9 @@ type NumberExtraAttributes = EntityAttributeMutableMapping
 type SelectExtraAttributes = EntityAttributeMutableMapping
 """Extra state attributes exposed by PawControl select entities."""
 
+type PersonEntityAttributePayload = JSONMutableMapping
+"""Mutable attribute payload stored alongside discovered person entities."""
+
 
 class ButtonExtraAttributes(TypedDict, total=False):
     """Extra state attributes exposed by PawControl button entities."""
@@ -1456,6 +1459,16 @@ class DashboardCardPerformanceStats(TypedDict):
     errors_handled: int
 
 
+class DashboardCardGlobalPerformanceStats(TypedDict):
+    """Static performance characteristics for dashboard card generation."""
+
+    validation_cache_size: int
+    cache_threshold: float
+    max_concurrent_validations: int
+    validation_timeout: float
+    card_generation_timeout: float
+
+
 class TemplateCacheStats(TypedDict):
     """Statistics returned by the in-memory dashboard template cache."""
 
@@ -1483,7 +1496,22 @@ class TemplateCacheSnapshot(TypedDict):
     metadata: TemplateCacheDiagnosticsMetadata
 
 
-type LovelaceCardConfig = JSONMutableMapping
+class CardModConfig(TypedDict, total=False):
+    """Styling payload supported by card-mod aware templates."""
+
+    style: str
+
+
+type LovelaceCardValue = (
+    JSONPrimitive
+    | Sequence["LovelaceCardValue"]
+    | Mapping[str, "LovelaceCardValue"]
+    | CardModConfig
+)
+"""Valid value stored inside a Lovelace card configuration."""
+
+
+type LovelaceCardConfig = dict[str, LovelaceCardValue]
 """Mutable Lovelace card configuration payload."""
 
 
@@ -2081,6 +2109,12 @@ class PersonEntitySnapshotEntry(TypedDict, total=False):
     last_updated: str
     mobile_device_id: str | None
     notification_service: str | None
+
+
+class PersonEntityStorageEntry(PersonEntitySnapshotEntry, total=False):
+    """Persistent storage payload for discovered person entities."""
+
+    attributes: PersonEntityAttributePayload
 
 
 class PersonEntitySnapshot(TypedDict):

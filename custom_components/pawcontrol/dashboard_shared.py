@@ -5,12 +5,16 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Mapping, Sequence
-from typing import Any
 
-from .types import DogConfigData, RawDogConfig, ensure_dog_config_data
+from .types import (
+    DogConfigData,
+    LovelaceCardConfig,
+    RawDogConfig,
+    ensure_dog_config_data,
+)
 
-type CardConfig = dict[str, Any]
-type CardCollection = list[CardConfig]
+type CardConfig = LovelaceCardConfig
+type CardCollection = list[LovelaceCardConfig]
 
 __all__ = [
     "CardCollection",

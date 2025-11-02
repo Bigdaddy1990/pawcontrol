@@ -28,11 +28,13 @@ from .coordinator_support import CacheMonitorRegistrar
 from .types import (
     CacheDiagnosticsSnapshot,
     JSONMutableMapping,
+    PersonEntityAttributePayload,
     PersonEntityCounters,
     PersonEntityDiagnostics,
     PersonEntitySnapshot,
     PersonEntitySnapshotEntry,
     PersonEntityStats,
+    PersonEntityStorageEntry,
     PersonNotificationCacheEntry,
     PersonNotificationContext,
 )
@@ -121,6 +123,12 @@ class PersonNotificationCache[EntryT: PersonNotificationCacheEntry]:
         return len(self._entries)
 
 
+def _empty_person_attributes() -> PersonEntityAttributePayload:
+    """Return an empty attribute payload for person entities."""
+
+    return {}
+
+
 @dataclass
 class PersonEntityInfo:
     """Information about a discovered person entity."""
@@ -133,15 +141,17 @@ class PersonEntityInfo:
     last_updated: datetime
     mobile_device_id: str | None = None
     notification_service: str | None = None
-    attributes: dict[str, Any] = field(default_factory=dict)
+    attributes: PersonEntityAttributePayload = field(
+        default_factory=_empty_person_attributes
+    )
 
     def __post_init__(self) -> None:
         """Post initialization to ensure data consistency."""
         self.is_home = self.state == STATE_HOME
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> PersonEntityStorageEntry:
         """Convert to dictionary for storage/serialization."""
-        return {
+        payload: PersonEntityStorageEntry = {
             "entity_id": self.entity_id,
             "name": self.name,
             "friendly_name": self.friendly_name,
@@ -152,9 +162,10 @@ class PersonEntityInfo:
             "notification_service": self.notification_service,
             "attributes": self.attributes,
         }
+        return payload
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> PersonEntityInfo:
+    def from_dict(cls, data: PersonEntityStorageEntry) -> PersonEntityInfo:
         """Create from dictionary."""
         last_updated = ensure_utc_datetime(data["last_updated"])
         if last_updated is None:
@@ -169,7 +180,10 @@ class PersonEntityInfo:
             last_updated=last_updated,
             mobile_device_id=data.get("mobile_device_id"),
             notification_service=data.get("notification_service"),
-            attributes=data.get("attributes", {}),
+            attributes=cast(
+                PersonEntityAttributePayload,
+                data.get("attributes", {}),
+            ),
         )
 
 

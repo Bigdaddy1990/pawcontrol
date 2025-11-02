@@ -44,6 +44,7 @@ from .service_guard import (
     normalise_guard_history,
 )
 from .types import (
+    CardModConfig,
     CoordinatorRejectionMetrics,
     CoordinatorStatisticsPayload,
     DogModulesConfig,
@@ -293,12 +294,6 @@ class WeatherThemeConfig(TypedDict):
     success_color: str
     warning_color: str
     danger_color: str
-
-
-class CardModConfig(TypedDict, total=False):
-    """card-mod styling payload shared across templates."""
-
-    style: str
 
 
 class ThemeIconStyle(TypedDict, total=False):
@@ -1041,6 +1036,19 @@ class DashboardTemplates:
             return cast(CardModConfig, {})
         return cast(CardModConfig, card_mod.copy())
 
+    def _ensure_card_mod(
+        self, template: CardConfig, theme_styles: ThemeStyles
+    ) -> CardModConfig:
+        """Return a card-mod payload attached to ``template``."""
+
+        existing = template.get("card_mod")
+        if isinstance(existing, dict):
+            return cast(CardModConfig, existing)
+
+        card_mod = self._card_mod(theme_styles)
+        template["card_mod"] = card_mod
+        return card_mod
+
     @staticmethod
     def _parse_int(value: object, *, default: int = 0) -> int:
         """Return an integer coerced from ``value`` with ``default`` fallback."""
@@ -1266,11 +1274,12 @@ class DashboardTemplates:
             )
 
         # Build template with theme
-        template = {
+        card_mod = self._card_mod(theme_styles)
+        template: CardConfig = {
             **base_template,
             "title": f"{self._get_dog_emoji(theme)} {dog_name} Status",
             "entities": entities,
-            "card_mod": self._card_mod(theme_styles),
+            "card_mod": card_mod,
         }
 
         # Add theme-specific enhancements
@@ -1426,44 +1435,55 @@ class DashboardTemplates:
             else button_style
         )
 
-        return [
+        cards: CardCollection = []
+
+        start_card: CardConfig = dict(base_button)
+        start_card.update(walk_style)
+        start_card.update(
             {
-                "type": "conditional",
-                "conditions": [
-                    {"entity": f"binary_sensor.{dog_id}_is_walking", "state": "off"}
-                ],
-                "card": {
-                    **base_button,
-                    **walk_style,
-                    "name": "Start Walk",
-                    "icon": "mdi:walk",
-                    "icon_color": theme_styles["colors"]["primary"],
-                    "tap_action": {
-                        "action": "call-service",
-                        "service": f"{DOMAIN}.start_walk",
-                        "service_data": {"dog_id": dog_id},
-                    },
+                "name": "Start Walk",
+                "icon": "mdi:walk",
+                "icon_color": theme_styles["colors"]["primary"],
+                "tap_action": {
+                    "action": "call-service",
+                    "service": f"{DOMAIN}.start_walk",
+                    "service_data": {"dog_id": dog_id},
                 },
-            },
+            }
+        )
+        start_wrapper: CardConfig = {
+            "type": "conditional",
+            "conditions": [
+                {"entity": f"binary_sensor.{dog_id}_is_walking", "state": "off"}
+            ],
+            "card": start_card,
+        }
+        cards.append(start_wrapper)
+
+        end_card: CardConfig = dict(base_button)
+        end_card.update(walk_style)
+        end_card.update(
             {
-                "type": "conditional",
-                "conditions": [
-                    {"entity": f"binary_sensor.{dog_id}_is_walking", "state": "on"}
-                ],
-                "card": {
-                    **base_button,
-                    **walk_style,
-                    "name": "End Walk",
-                    "icon": "mdi:stop",
-                    "icon_color": "red",
-                    "tap_action": {
-                        "action": "call-service",
-                        "service": f"{DOMAIN}.end_walk",
-                        "service_data": {"dog_id": dog_id},
-                    },
+                "name": "End Walk",
+                "icon": "mdi:stop",
+                "icon_color": "red",
+                "tap_action": {
+                    "action": "call-service",
+                    "service": f"{DOMAIN}.end_walk",
+                    "service_data": {"dog_id": dog_id},
                 },
-            },
-        ]
+            }
+        )
+        end_wrapper: CardConfig = {
+            "type": "conditional",
+            "conditions": [
+                {"entity": f"binary_sensor.{dog_id}_is_walking", "state": "on"}
+            ],
+            "card": end_card,
+        }
+        cards.append(end_wrapper)
+
+        return cards
 
     def _create_health_button(
         self,
@@ -1712,7 +1732,7 @@ class DashboardTemplates:
             theme == "dark" if dark_mode_override is None else dark_mode_override
         )
 
-        template = {
+        template: CardConfig = {
             **self._get_base_card_template("map"),
             "entities": [f"device_tracker.{dog_id}_location"],
             "default_zoom": final_default_zoom,
@@ -1725,23 +1745,25 @@ class DashboardTemplates:
 
         # Add theme-specific map styling
         if theme == "modern":
-            template["card_mod"] = {
-                "style": """
+            card_mod = CardModConfig(
+                style="""
                     ha-card {
                         border-radius: 16px;
                         overflow: hidden;
                     }
                 """
-            }
+            )
+            template["card_mod"] = card_mod
         elif theme == "playful":
-            template["card_mod"] = {
-                "style": """
+            card_mod = CardModConfig(
+                style="""
                     ha-card {
                         border-radius: 24px;
                         border: 4px solid #4ECDC4;
                     }
                 """
-            }
+            )
+            template["card_mod"] = card_mod
 
         return template
 
@@ -1790,10 +1812,11 @@ class DashboardTemplates:
                 hass_language, "statistics_health_section", dog_id=dog_id
             )
 
+        card_mod = self._card_mod(theme_styles)
         template: CardConfig = {
             "type": "markdown",
             "content": stats_content,
-            "card_mod": self._card_mod(theme_styles),
+            "card_mod": card_mod,
         }
 
         return template
@@ -2168,12 +2191,15 @@ class DashboardTemplates:
             hass_language, "summary_card_title"
         )
 
-        return {
+        card_mod = self._card_mod(theme_styles)
+        template: CardConfig = {
             "type": "markdown",
             "title": summary_title,
             "content": "\n".join(content_lines),
-            "card_mod": self._card_mod(theme_styles),
+            "card_mod": card_mod,
         }
+
+        return template
 
     async def get_notification_settings_card_template(
         self,
@@ -2193,13 +2219,16 @@ class DashboardTemplates:
             hass_language, "settings_title", dog_name=dog_name
         )
 
-        return {
+        card_mod = self._card_mod(theme_styles)
+        template: CardConfig = {
             "type": "entities",
             "title": f"🔔 {title_text}",
             "entities": list(entities),
             "state_color": True,
-            "card_mod": self._card_mod(theme_styles),
+            "card_mod": card_mod,
         }
+
+        return template
 
     async def get_notifications_overview_card_template(
         self,
@@ -2393,11 +2422,14 @@ class DashboardTemplates:
             },
         ]
 
-        return {
+        card_mod = self._card_mod(theme_styles)
+        template: CardConfig = {
             "type": "horizontal-stack",
             "cards": buttons,
-            "card_mod": self._card_mod(theme_styles),
+            "card_mod": card_mod,
         }
+
+        return template
 
     async def get_feeding_schedule_template(
         self, dog_id: str, theme: str = "modern"
@@ -2418,13 +2450,14 @@ class DashboardTemplates:
         template: CardConfig
         if theme == "modern":
             # Use a clean timeline view
+            card_mod = self._card_mod(theme_styles)
             template = {
                 "type": "custom:scheduler-card",
                 "title": f"🍽️ {schedule_label}",
                 "discover_existing": False,
                 "standard_configuration": True,
                 "entities": [f"sensor.{dog_id}_feeding_schedule"],
-                "card_mod": self._card_mod(theme_styles),
+                "card_mod": card_mod,
             }
         elif theme == "playful":
             # Use colorful meal buttons
@@ -2581,6 +2614,7 @@ class DashboardTemplates:
         template: CardConfig
         if theme in ["modern", "dark"]:
             # Use advanced graph card
+            card_mod = self._card_mod(theme_styles)
             template = {
                 "type": "custom:mini-graph-card",
                 "name": _translated_health_label(hass_language, "health_metrics"),
@@ -2608,7 +2642,7 @@ class DashboardTemplates:
                     "average": True,
                     "extrema": True,
                 },
-                "card_mod": self._card_mod(theme_styles),
+                "card_mod": card_mod,
             }
         elif theme == "playful":
             # Use colorful gauge cards
@@ -2702,10 +2736,11 @@ class DashboardTemplates:
 - **{last_health_label}**: {{{{ states('sensor.{dog_id}_last_health_check') }}}}
 """
 
+        card_mod = self._card_mod(theme_styles)
         template: CardConfig = {
             "type": "markdown",
             "content": timeline_content,
-            "card_mod": self._card_mod(theme_styles),
+            "card_mod": card_mod,
         }
 
         return template
@@ -2740,6 +2775,7 @@ class DashboardTemplates:
         template: CardConfig
         if compact:
             # Compact card for mobile/small spaces
+            card_mod = self._card_mod(theme_styles)
             template = {
                 "type": "custom:mushroom-entity",
                 "entity": f"sensor.{dog_id}_weather_health_score",
@@ -2754,7 +2790,7 @@ class DashboardTemplates:
                 "tap_action": {
                     "action": "more-info",
                 },
-                "card_mod": self._card_mod(theme_styles),
+                "card_mod": card_mod,
             }
         else:
             # Full weather status card
@@ -2783,6 +2819,7 @@ class DashboardTemplates:
                 },
             ]
 
+            card_mod = self._card_mod(theme_styles)
             template = {
                 "type": "entities",
                 "title": _translated_health_template(
@@ -2794,20 +2831,23 @@ class DashboardTemplates:
                 "entities": entities,
                 "state_color": True,
                 "show_header_toggle": False,
-                "card_mod": self._card_mod(theme_styles),
+                "card_mod": card_mod,
             }
 
             # Add theme-specific styling
             if theme == "modern":
-                template["card_mod"]["style"] += """
+                style = card_mod.get("style", "")
+                style += """
                     .card-header {
                         background: linear-gradient(90deg, #2196F3, #21CBF3);
                         color: white;
                         border-radius: 16px 16px 0 0;
                     }
                 """
+                card_mod["style"] = style
             elif theme == "playful":
-                template["card_mod"]["style"] += """
+                style = card_mod.get("style", "")
+                style += """
                     .card-header {
                         background: linear-gradient(45deg, #FF6B6B, #4ECDC4, #FFE66D);
                         background-size: 300% 300%;
@@ -2820,6 +2860,7 @@ class DashboardTemplates:
                         100% { background-position: 0% 50%; }
                     }
                 """
+                card_mod["style"] = style
 
         await self._cache.set(cache_key, template)
         return template
@@ -3002,14 +3043,14 @@ class DashboardTemplates:
 
         recommendations_content = "\n".join(lines).replace("{dog_id}", dog_id)
 
+        card_mod = self._card_mod(theme_styles)
         template: CardConfig = {
             "type": "markdown",
             "content": recommendations_content,
-            "card_mod": self._card_mod(theme_styles),
+            "card_mod": card_mod,
         }
 
         if theme == "modern":
-            card_mod = template.setdefault("card_mod", {})
             style = card_mod.get("style", "")
             style += """
                 .card-content {
@@ -3119,6 +3160,7 @@ class DashboardTemplates:
 
         template: CardConfig
         if theme in ["modern", "dark"]:
+            card_mod = self._card_mod(theme_styles)
             template = {
                 "type": "custom:mini-graph-card",
                 "name": chart_title,
@@ -3140,16 +3182,17 @@ class DashboardTemplates:
                     {"value": 60, "color": "#FF9800"},
                     {"value": 80, "color": "#F44336"},
                 ],
-                "card_mod": self._card_mod(theme_styles),
+                "card_mod": card_mod,
             }
         else:
             # Fallback to simple history graph
+            card_mod = self._card_mod(theme_styles)
             template = {
                 "type": "history-graph",
                 "title": chart_title,
                 "entities": [entity["entity"] for entity in entities],
                 "hours_to_show": hours_to_show,
-                "card_mod": self._card_mod(theme_styles),
+                "card_mod": card_mod,
             }
 
         return template
@@ -3299,57 +3342,63 @@ class DashboardTemplates:
         theme_styles = self._get_theme_styles(theme)
 
         # Weather update button
-        update_button = {
-            **base_button,
-            "name": "Update Weather",
-            "icon": "mdi:weather-cloudy-arrow-right",
-            "icon_color": theme_styles["colors"]["primary"],
-            "tap_action": {
-                "action": "call-service",
-                "service": f"{DOMAIN}.update_weather",
-                "service_data": {"force_update": True},
-            },
-        }
+        update_button: CardConfig = dict(base_button)
+        update_button.update(
+            {
+                "name": "Update Weather",
+                "icon": "mdi:weather-cloudy-arrow-right",
+                "icon_color": theme_styles["colors"]["primary"],
+                "tap_action": {
+                    "action": "call-service",
+                    "service": f"{DOMAIN}.update_weather",
+                    "service_data": {"force_update": True},
+                },
+            }
+        )
 
         # Get weather alerts button
-        alerts_button = {
-            **base_button,
-            "name": "Check Alerts",
-            "icon": "mdi:weather-lightning",
-            "icon_color": "orange",
-            "tap_action": {
-                "action": "call-service",
-                "service": f"{DOMAIN}.get_weather_alerts",
-                "service_data": {"dog_id": dog_id},
-            },
-        }
+        alerts_button: CardConfig = dict(base_button)
+        alerts_button.update(
+            {
+                "name": "Check Alerts",
+                "icon": "mdi:weather-lightning",
+                "icon_color": "orange",
+                "tap_action": {
+                    "action": "call-service",
+                    "service": f"{DOMAIN}.get_weather_alerts",
+                    "service_data": {"dog_id": dog_id},
+                },
+            }
+        )
 
         # Get recommendations button
-        recommendations_button = {
-            **base_button,
-            "name": "Get Advice",
-            "icon": "mdi:lightbulb-on",
-            "icon_color": theme_styles["colors"]["accent"],
-            "tap_action": {
-                "action": "call-service",
-                "service": f"{DOMAIN}.get_weather_recommendations",
-                "service_data": {
-                    "dog_id": dog_id,
-                    "include_breed_specific": True,
+        recommendations_button: CardConfig = dict(base_button)
+        recommendations_button.update(
+            {
+                "name": "Get Advice",
+                "icon": "mdi:lightbulb-on",
+                "icon_color": theme_styles["colors"]["accent"],
+                "tap_action": {
+                    "action": "call-service",
+                    "service": f"{DOMAIN}.get_weather_recommendations",
+                    "service_data": {
+                        "dog_id": dog_id,
+                        "include_breed_specific": True,
+                    },
                 },
-            },
-        }
+            }
+        )
 
         buttons: CardCollection = [update_button, alerts_button, recommendations_button]
 
         # Apply theme styling to buttons
         if theme == "modern":
-            for i, button in enumerate(buttons):
-                colors = ["#2196F3", "#FF9800", "#4CAF50"]
-                button["card_mod"] = {
-                    "style": f"""
+            colors = ["#2196F3", "#FF9800", "#4CAF50"]
+            for index, button in enumerate(buttons):
+                card_mod = CardModConfig(
+                    style=f"""
                         ha-card {{
-                            background: linear-gradient(135deg, {colors[i]}, {colors[i]}CC);
+                            background: linear-gradient(135deg, {colors[index]}, {colors[index]}CC);
                             color: white;
                             border-radius: 12px;
                             transition: all 0.3s ease;
@@ -3359,24 +3408,26 @@ class DashboardTemplates:
                             box-shadow: 0 8px 20px rgba(0,0,0,0.15);
                         }}
                     """
-                }
+                )
+                button["card_mod"] = card_mod
         elif theme == "playful":
+            playful_card_mod = CardModConfig(
+                style="""
+                    ha-card {
+                        background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+                        color: white;
+                        border-radius: 50px;
+                        animation: wiggle 2s ease-in-out infinite;
+                    }
+                    @keyframes wiggle {
+                        0%, 100% { transform: rotate(0deg); }
+                        25% { transform: rotate(-1deg); }
+                        75% { transform: rotate(1deg); }
+                    }
+                """
+            )
             for button in buttons:
-                button["card_mod"] = {
-                    "style": """
-                        ha-card {
-                            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
-                            color: white;
-                            border-radius: 50px;
-                            animation: wiggle 2s ease-in-out infinite;
-                        }
-                        @keyframes wiggle {
-                            0%, 100% { transform: rotate(0deg); }
-                            25% { transform: rotate(-1deg); }
-                            75% { transform: rotate(1deg); }
-                        }
-                    """
-                }
+                button["card_mod"] = playful_card_mod
 
         # Layout buttons according to specified layout
         if layout == "vertical":
@@ -3487,12 +3538,13 @@ class DashboardTemplates:
 
         theme_styles = self._get_theme_styles(theme)
 
-        template = {
+        card_mod = self._card_mod(theme_styles)
+        template: CardConfig = {
             **self._get_base_card_template("history_graph"),
             "title": title,
             "entities": valid_entities,
             "hours_to_show": hours_to_show,
-            "card_mod": self._card_mod(theme_styles),
+            "card_mod": card_mod,
         }
 
         return template

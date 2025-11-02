@@ -564,7 +564,7 @@ class PawControlNotificationManager:
         self._batch_task: asyncio.Task | None = None
 
         # OPTIMIZE: Advanced caching and batching
-        self._cache = NotificationCache()
+        self._cache: NotificationCache = NotificationCache()
         self._batch_queue: deque[NotificationEvent] = deque()
         self._pending_batches: dict[str, list[NotificationEvent]] = {}
 
