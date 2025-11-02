@@ -82,9 +82,9 @@ def calculate_activity_level(
 
     try:
         walks_today = int(walk_data.get("walks_today", 0)) if walk_data else 0
-        total_duration_today = float(
-            walk_data.get("total_duration_today", 0.0)
-        ) if walk_data else 0.0
+        total_duration_today = (
+            float(walk_data.get("total_duration_today", 0.0)) if walk_data else 0.0
+        )
 
         if walks_today >= 3 and total_duration_today >= 90:
             calculated_level = "very_high"
@@ -97,9 +97,7 @@ def calculate_activity_level(
         else:
             calculated_level = "very_low"
 
-        health_activity = (
-            health_data.get("activity_level") if health_data else None
-        )
+        health_activity = health_data.get("activity_level") if health_data else None
         if health_activity:
             activity_levels = ["very_low", "low", "moderate", "high", "very_high"]
             health_index = (
@@ -126,12 +124,8 @@ def calculate_calories_burned_today(
         return 0.0
 
     try:
-        total_duration_raw = (
-            walk_data.get("total_duration_today") if walk_data else 0.0
-        )
-        total_distance_raw = (
-            walk_data.get("total_distance_today") if walk_data else 0.0
-        )
+        total_duration_raw = walk_data.get("total_duration_today") if walk_data else 0.0
+        total_distance_raw = walk_data.get("total_distance_today") if walk_data else 0.0
         total_duration_minutes = float(total_duration_raw or 0.0)
         total_distance_meters = float(total_distance_raw or 0.0)
 
@@ -248,9 +242,7 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
         if health_data:
             attrs["health_activity_level"] = health_data.get("activity_level")
             attrs["activity_source"] = (
-                "health_data"
-                if health_data.get("activity_level")
-                else "calculated"
+                "health_data" if health_data.get("activity_level") else "calculated"
             )
 
         return attrs
@@ -369,9 +361,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
             attrs.update(
                 {
                     "last_feeding_time": feeding_data.get("last_feeding"),
-                    "feedings_today": int(
-                        feeding_data.get("total_feedings_today", 0)
-                    ),
+                    "feedings_today": int(feeding_data.get("total_feedings_today", 0)),
                     "is_overdue": self._is_feeding_overdue(feeding_data),
                     "next_feeding_due": derive_next_feeding_time(feeding_data),
                 }
@@ -415,9 +405,7 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
             return 0.0
 
         try:
-            total_distance_meters = float(
-                walk_data.get("total_distance_lifetime", 0.0)
-            )
+            total_distance_meters = float(walk_data.get("total_distance_lifetime", 0.0))
             if total_distance_meters == 0.0:
                 walks_history = cast(WalkHistory | None, walk_data.get("walks_history"))
                 if walks_history:
@@ -438,9 +426,7 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
             return attrs
 
         with contextlib.suppress(TypeError, ValueError):
-            total_distance_m = float(
-                walk_data.get("total_distance_lifetime") or 0.0
-            )
+            total_distance_m = float(walk_data.get("total_distance_lifetime") or 0.0)
             total_walks = int(walk_data.get("total_walks_lifetime", 0))
             attrs.update(
                 {
@@ -502,9 +488,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
                 walk_time_candidate = walk.get("timestamp")
                 if not walk_time_candidate:
                     walk_time_candidate = walk.get("end_time")
-                if not isinstance(
-                    walk_time_candidate, str | datetime | int | float
-                ):
+                if not isinstance(walk_time_candidate, str | datetime | int | float):
                     continue
                 walk_time = ensure_utc_datetime(walk_time_candidate)
                 if walk_time and walk_time >= start_of_week:

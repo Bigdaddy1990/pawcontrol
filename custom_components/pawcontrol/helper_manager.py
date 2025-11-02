@@ -237,9 +237,7 @@ class PawControlHelperManager:
             "executed": 0,
             "skipped": 0,
             "reasons": {},
-            "last_results": deque[ServiceGuardResultPayload](
-                maxlen=_MAX_GUARD_RESULTS
-            ),
+            "last_results": deque[ServiceGuardResultPayload](maxlen=_MAX_GUARD_RESULTS),
         }
 
     def _record_guard_result(self, result: ServiceGuardResult) -> None:

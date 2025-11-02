@@ -74,7 +74,9 @@ def test_service_guard_snapshot_summary_and_metrics() -> None:
         ({"executed": 0, "description": "skipped"}, False),
     ],
 )
-def test_normalise_guard_result_payload(raw_payload: dict[str, Any], expected: bool) -> None:
+def test_normalise_guard_result_payload(
+    raw_payload: dict[str, Any], expected: bool
+) -> None:
     """Guard result payload normalisation should coerce booleans and text."""
 
     payload = normalise_guard_result_payload(raw_payload)

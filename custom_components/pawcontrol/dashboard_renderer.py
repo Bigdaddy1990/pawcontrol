@@ -420,7 +420,9 @@ class DashboardRenderer:
         card_options = _as_card_options(options)
         dashboard_url = card_options.get("dashboard_url")
         navigation_url = (
-            dashboard_url if isinstance(dashboard_url, str) and dashboard_url else "/paw-control"
+            dashboard_url
+            if isinstance(dashboard_url, str) and dashboard_url
+            else "/paw-control"
         )
         task_definitions: list[tuple[str, Awaitable[LovelaceCardConfig | None]]] = [
             (

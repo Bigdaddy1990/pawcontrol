@@ -196,9 +196,7 @@ class GeofenceZone:
             metadata_dict = dict(metadata_raw)
             if tags_present:
                 metadata_dict["tags"] = list(metadata_raw["tags"])
-            metadata = cast(
-                GeofenceZoneMetadata, cast(Any, metadata_dict)
-            )
+            metadata = cast(GeofenceZoneMetadata, cast(Any, metadata_dict))
         else:
             metadata = cast(GeofenceZoneMetadata, cast(Any, {}))
 
@@ -329,9 +327,7 @@ class PawControlGeofencing:
                 if not isinstance(zones_data_raw, dict):
                     zones_data_raw = {}
 
-                zones_data = cast(
-                    dict[str, GeofenceZoneStoragePayload], zones_data_raw
-                )
+                zones_data = cast(dict[str, GeofenceZoneStoragePayload], zones_data_raw)
 
                 for zone_id, zone_data in zones_data.items():
                     try:

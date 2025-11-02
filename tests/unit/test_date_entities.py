@@ -45,7 +45,9 @@ class _DummyCoordinator:
     def get_dog_data(self, dog_id: str) -> CoordinatorDogData | None:
         return self.data.get(dog_id)
 
-    def get_enabled_modules(self, dog_id: str) -> frozenset[str]:  # pragma: no cover - unused
+    def get_enabled_modules(
+        self, dog_id: str
+    ) -> frozenset[str]:  # pragma: no cover - unused
         return frozenset()
 
     @property
@@ -54,7 +56,9 @@ class _DummyCoordinator:
 
 
 @pytest.mark.asyncio
-async def test_birthdate_extra_attributes_typed(hass, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_birthdate_extra_attributes_typed(
+    hass, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Ensure birthdate entities expose structured, typed attributes."""
 
     coordinator = _DummyCoordinator()
@@ -68,7 +72,9 @@ async def test_birthdate_extra_attributes_typed(hass, monkeypatch: pytest.Monkey
         },
     )
 
-    entity = PawControlBirthdateDate(cast(PawControlCoordinator, coordinator), "dog-1", "Buddy")
+    entity = PawControlBirthdateDate(
+        cast(PawControlCoordinator, coordinator), "dog-1", "Buddy"
+    )
     entity.hass = hass
 
     # Freeze time so the derived counters remain deterministic.
@@ -101,7 +107,9 @@ async def test_birthdate_extra_attributes_typed(hass, monkeypatch: pytest.Monkey
 
 
 @pytest.mark.asyncio
-async def test_last_vet_visit_extracts_datetime(hass, monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_last_vet_visit_extracts_datetime(
+    hass, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """Ensure health snapshots provide typed dates for vet visits."""
 
     coordinator = _DummyCoordinator()
@@ -113,12 +121,16 @@ async def test_last_vet_visit_extracts_datetime(hass, monkeypatch: pytest.Monkey
             "last_update": datetime.now(tz=UTC).isoformat(),
             "health": cast(
                 Mapping[str, object],
-                cast(HealthModulePayload, {"last_vet_visit": "2024-04-30T12:30:00+00:00"}),
+                cast(
+                    HealthModulePayload, {"last_vet_visit": "2024-04-30T12:30:00+00:00"}
+                ),
             ),
         },
     )
 
-    entity = PawControlLastVetVisitDate(cast(PawControlCoordinator, coordinator), "dog-1", "Buddy")
+    entity = PawControlLastVetVisitDate(
+        cast(PawControlCoordinator, coordinator), "dog-1", "Buddy"
+    )
     entity.hass = hass
 
     monkeypatch.setattr(

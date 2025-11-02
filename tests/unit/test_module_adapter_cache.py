@@ -228,4 +228,3 @@ def test_coordinator_module_cache_monitor_records_snapshot_errors() -> None:
     per_module = diagnostics["per_module"]
 
     assert per_module["walk"] == {"error": "broken snapshot"}
-

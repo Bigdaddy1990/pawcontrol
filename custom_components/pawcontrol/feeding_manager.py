@@ -203,7 +203,7 @@ def _normalise_health_override(
     if (age_months := data.get("age_months")) is not None:
         override["age_months"] = int(age_months)
 
-    if (conditions := data.get("health_conditions")):
+    if conditions := data.get("health_conditions"):
         override["health_conditions"] = [
             condition for condition in conditions if isinstance(condition, str)
         ]
@@ -557,7 +557,9 @@ class FeedingConfig:
 
         adjustments: list[str] = []
         if conflicts:
-            adjustments.extend([f"Conflict: {conflict['type']}" for conflict in conflicts])
+            adjustments.extend(
+                [f"Conflict: {conflict['type']}" for conflict in conflicts]
+            )
         if warnings:
             adjustments.extend([f"Warning: {warning['type']}" for warning in warnings])
 
@@ -581,7 +583,9 @@ class FeedingConfig:
         else:
             compatibility_level = "poor"
 
-        vet_recommended = bool(validation["recommended_vet_consultation"] or conflict_count > 0)
+        vet_recommended = bool(
+            validation["recommended_vet_consultation"] or conflict_count > 0
+        )
 
         if conflict_count > 0:
             consultation_urgency = "high"
@@ -596,15 +600,11 @@ class FeedingConfig:
 
         return FeedingDietValidationSummary(
             has_adjustments=has_adjustments,
-            adjustment_info="; ".join(adjustments)
-            if adjustments
-            else "No adjustments",
+            adjustment_info="; ".join(adjustments) if adjustments else "No adjustments",
             conflict_count=conflict_count,
             warning_count=warning_count,
             vet_consultation_recommended=vet_recommended,
-            vet_consultation_state="recommended"
-            if vet_recommended
-            else "not_needed",
+            vet_consultation_state="recommended" if vet_recommended else "not_needed",
             consultation_urgency=consultation_urgency,
             total_diets=total_diets,
             diet_validation_adjustment=round(validation_adjustment, 3),
@@ -763,14 +763,13 @@ class FeedingConfig:
             health_aware_enabled=self.health_aware_portions,
             current_weight=health_metrics.current_weight,
             ideal_weight=health_metrics.ideal_weight,
-            life_stage=
-            health_metrics.life_stage.value if health_metrics.life_stage else None,
-            activity_level=
-            health_metrics.activity_level.value
+            life_stage=health_metrics.life_stage.value
+            if health_metrics.life_stage
+            else None,
+            activity_level=health_metrics.activity_level.value
             if health_metrics.activity_level
             else None,
-            body_condition_score=
-            health_metrics.body_condition_score.value
+            body_condition_score=health_metrics.body_condition_score.value
             if health_metrics.body_condition_score
             else None,
             daily_calorie_requirement=daily_calories,
@@ -1648,11 +1647,14 @@ class FeedingManager:
         """Return today's feeding statistics for the given dog."""
 
         data = self.get_feeding_data(dog_id)
-        stats = data.get("daily_stats", {
-            "total_fed_today": 0.0,
-            "meals_today": 0,
-            "remaining_calories": None,
-        })
+        stats = data.get(
+            "daily_stats",
+            {
+                "total_fed_today": 0.0,
+                "meals_today": 0,
+                "remaining_calories": None,
+            },
+        )
         return FeedingDailyStats(
             total_fed_today=float(stats.get("total_fed_today", 0.0)),
             meals_today=int(stats.get("meals_today", 0)),
@@ -1713,7 +1715,10 @@ class FeedingManager:
                     scheduled_datetime = dt_util.as_local(
                         datetime.combine(today, schedule.scheduled_time)
                     )
-                    if scheduled_datetime <= now and schedule.meal_type.value not in feedings_today:
+                    if (
+                        scheduled_datetime <= now
+                        and schedule.meal_type.value not in feedings_today
+                    ):
                         missed_feedings.append(
                             FeedingMissedMeal(
                                 meal_type=schedule.meal_type.value,
@@ -1779,10 +1784,12 @@ class FeedingManager:
                     feeding_goals["weight_goal"] = cast(
                         Literal["maintain", "lose", "gain"], config.weight_goal
                     )
-                portion_adjustment = HealthCalculator.calculate_portion_adjustment_factor(
-                    health_metrics,
-                    feeding_goals if feeding_goals else None,
-                    config.diet_validation,
+                portion_adjustment = (
+                    HealthCalculator.calculate_portion_adjustment_factor(
+                        health_metrics,
+                        feeding_goals if feeding_goals else None,
+                        config.diet_validation,
+                    )
                 )
             except Exception as err:
                 _LOGGER.debug(
@@ -1807,7 +1814,9 @@ class FeedingManager:
 
         daily_activity_level: str | None = None
         if health_summary and health_summary.get("activity_level"):
-            daily_activity_level = cast(str | None, health_summary.get("activity_level"))
+            daily_activity_level = cast(
+                str | None, health_summary.get("activity_level")
+            )
 
         weight_goal_progress: float | None = None
         if config and health_summary:
@@ -1906,7 +1915,9 @@ class FeedingManager:
             missed_feedings=missed_feedings,
             feedings=[event.to_dict() for event in feedings],
             daily_stats=daily_stats,
-            medication_with_meals=bool(config.medication_with_meals if config else False),
+            medication_with_meals=bool(
+                config.medication_with_meals if config else False
+            ),
             health_aware_feeding=bool(
                 config.health_aware_portions if config else False
             ),
@@ -1939,7 +1950,9 @@ class FeedingManager:
             snapshot["health_conditions"] = health_conditions
         if daily_activity_level is not None:
             snapshot["daily_activity_level"] = daily_activity_level
-        if health_summary is not None and (portion_adjustment is not None or daily_activity_level is not None):
+        if health_summary is not None and (
+            portion_adjustment is not None or daily_activity_level is not None
+        ):
             snapshot["health_summary"] = health_summary
         if weight_goal_progress is not None:
             snapshot["weight_goal_progress"] = round(weight_goal_progress, 1)
@@ -1955,7 +1968,9 @@ class FeedingManager:
         remaining_calories: float | None = None
         daily_calorie_target: float | None = None
         if calories_per_gram is not None:
-            daily_calorie_target = round(daily_amount_target * float(calories_per_gram), 1)
+            daily_calorie_target = round(
+                daily_amount_target * float(calories_per_gram), 1
+            )
             remaining_calories = daily_calorie_target
 
         snapshot: FeedingSnapshot = FeedingSnapshot(
@@ -1982,7 +1997,9 @@ class FeedingManager:
                 if remaining_calories is not None
                 else None,
             ),
-            medication_with_meals=bool(config.medication_with_meals if config else False),
+            medication_with_meals=bool(
+                config.medication_with_meals if config else False
+            ),
             health_aware_feeding=bool(
                 config.health_aware_portions if config else False
             ),
@@ -2345,10 +2362,12 @@ class FeedingManager:
                         Literal["maintain", "lose", "gain"], config.weight_goal
                     )
 
-                portion_adjustment = HealthCalculator.calculate_portion_adjustment_factor(
-                    health_metrics,
-                    feeding_goal_settings if feeding_goal_settings else None,
-                    config.diet_validation,
+                portion_adjustment = (
+                    HealthCalculator.calculate_portion_adjustment_factor(
+                        health_metrics,
+                        feeding_goal_settings if feeding_goal_settings else None,
+                        config.diet_validation,
+                    )
                 )
 
                 feeding_insights: HealthFeedingInsights = HealthFeedingInsights(
@@ -3284,9 +3303,7 @@ class FeedingManager:
                     day=day,
                     old_food_percent=old_food_percent,
                     new_food_percent=new_food_percent,
-                    date=(dt_util.now() + timedelta(days=day - 1))
-                    .date()
-                    .isoformat(),
+                    date=(dt_util.now() + timedelta(days=day - 1)).date().isoformat(),
                 )
             )
 

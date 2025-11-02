@@ -158,12 +158,14 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
             "executed": int(metrics.get("executed", 0) or 0),
             "skipped": int(metrics.get("skipped", 0) or 0),
             "reasons": dict(cast(Mapping[str, int], metrics.get("reasons", {}))),
-            "last_results": cast(ServiceGuardResultHistory, metrics.get("last_results", [])),
+            "last_results": cast(
+                ServiceGuardResultHistory, metrics.get("last_results", [])
+            ),
         }
 
 
 def normalise_guard_result_payload(
-    payload: Mapping[str, Any]
+    payload: Mapping[str, Any],
 ) -> ServiceGuardResultPayload:
     """Return a JSON-compatible payload for a guard result mapping."""
 
@@ -191,7 +193,9 @@ def normalise_guard_result_payload(
 def normalise_guard_history(payload: Any) -> ServiceGuardResultHistory:
     """Convert an arbitrary sequence into a guard result history payload."""
 
-    if not isinstance(payload, Sequence) or isinstance(payload, str | bytes | bytearray):
+    if not isinstance(payload, Sequence) or isinstance(
+        payload, str | bytes | bytearray
+    ):
         return []
 
     history: ServiceGuardResultHistory = []

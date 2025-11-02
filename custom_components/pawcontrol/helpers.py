@@ -555,9 +555,7 @@ class PawControlDataStorage:
 
             # Cache the result
             payload = result if isinstance(result, dict) else {}
-            await self._cache.set(
-                f"store_{store_key}", payload, ttl_seconds=600
-            )
+            await self._cache.set(f"store_{store_key}", payload, ttl_seconds=600)
             return cast(StorageNamespacePayload, payload)
 
         except asyncio.CancelledError:

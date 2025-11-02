@@ -36,7 +36,11 @@ def _walk_payload(**overrides: Any) -> WalkModuleTelemetry:
 
 
 def _health_payload(**overrides: Any) -> HealthModulePayload:
-    base: dict[str, Any] = {"status": "ok", "activity_level": "moderate", "weight": 25.0}
+    base: dict[str, Any] = {
+        "status": "ok",
+        "activity_level": "moderate",
+        "weight": 25.0,
+    }
     base.update(overrides)
     return cast(HealthModulePayload, base)
 
@@ -67,7 +71,9 @@ def test_calculate_calories_burned_today_applies_multiplier() -> None:
 
 def test_calculate_hours_since_uses_reference_timestamp() -> None:
     reference = datetime(2024, 1, 1, 16, 0, tzinfo=timezone.utc)  # noqa: UP017
-    assert calculate_hours_since("2024-01-01T10:00:00+00:00", reference=reference) == 6.0
+    assert (
+        calculate_hours_since("2024-01-01T10:00:00+00:00", reference=reference) == 6.0
+    )
     assert calculate_hours_since(None, reference=reference) is None
 
 

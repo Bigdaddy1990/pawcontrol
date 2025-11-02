@@ -209,8 +209,13 @@ class DummySnapshot:
 def test_security_scorecard_passes_with_secure_configuration() -> None:
     """A healthy runtime should report a passing security scorecard."""
 
-    adaptive = cast(AdaptivePollingDiagnostics, {"current_interval_ms": 150.0, "target_cycle_ms": 180.0})
-    entity_summary = cast(EntityBudgetSummary, {"peak_utilization": 40.0, "active_dogs": 1})
+    adaptive = cast(
+        AdaptivePollingDiagnostics,
+        {"current_interval_ms": 150.0, "target_cycle_ms": 180.0},
+    )
+    entity_summary = cast(
+        EntityBudgetSummary, {"peak_utilization": 40.0, "active_dogs": 1}
+    )
     webhook_status = cast(
         WebhookSecurityStatus,
         {

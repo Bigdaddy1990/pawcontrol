@@ -2656,9 +2656,7 @@ class PawControlDataManager:
         safe_namespace = namespace.replace("/", "_")
         return self._storage_dir / f"{self.entry_id}_{safe_namespace}.json"
 
-    async def _get_namespace_data(
-        self, namespace: str
-    ) -> StorageNamespacePayload:
+    async def _get_namespace_data(self, namespace: str) -> StorageNamespacePayload:
         """Read a JSON payload for ``namespace`` from disk."""
 
         path = self._namespace_path(namespace)

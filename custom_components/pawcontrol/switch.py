@@ -501,8 +501,7 @@ class OptimizedSwitchBase(PawControlEntity, SwitchEntity, RestoreEntity):
     def available(self) -> bool:
         """Check availability with enhanced logic."""
         return (
-            self.coordinator.available
-            and self._get_coordinator_dog_data() is not None
+            self.coordinator.available and self._get_coordinator_dog_data() is not None
         )
 
 

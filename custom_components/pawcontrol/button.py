@@ -846,9 +846,7 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
     def _get_walk_payload(self) -> WalkModulePayload | None:
         """Return the walk module payload if available."""
 
-        walk_data = self._get_module_data(
-            cast(CoordinatorTypedModuleName, MODULE_WALK)
-        )
+        walk_data = self._get_module_data(cast(CoordinatorTypedModuleName, MODULE_WALK))
         return cast(WalkModulePayload, walk_data) if walk_data is not None else None
 
     def _get_gps_payload(self) -> GPSModulePayload | None:
@@ -1315,9 +1313,7 @@ class PawControlStartWalkButton(PawControlButtonBase):
                 walk_id = walk_data.get("current_walk_id", STATE_UNKNOWN)
                 if not isinstance(walk_id, str):
                     walk_id = STATE_UNKNOWN
-                start_time = self._parse_datetime(
-                    walk_data.get("current_walk_start")
-                )
+                start_time = self._parse_datetime(walk_data.get("current_walk_start"))
                 raise WalkAlreadyInProgressError(
                     dog_id=self._dog_id,
                     walk_id=walk_id,
@@ -2009,9 +2005,5 @@ class PawControlConfirmGardenPoopButton(PawControlButtonBase):
         if not super().available:
             return False
         garden_data = self._get_garden_payload()
-        pending = (
-            garden_data.get("pending_confirmations")
-            if garden_data
-            else None
-        )
+        pending = garden_data.get("pending_confirmations") if garden_data else None
         return bool(pending)

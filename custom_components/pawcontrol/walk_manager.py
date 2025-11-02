@@ -375,11 +375,15 @@ class WalkManager:
         ]
         stats = self._walk_data.get(dog_id)
         container["stats"] = (
-            cast(WalkStatisticsSnapshot, stats.copy()) if stats is not None else cast(WalkStatisticsSnapshot, {})
+            cast(WalkStatisticsSnapshot, stats.copy())
+            if stats is not None
+            else cast(WalkStatisticsSnapshot, {})
         )
         gps = self._gps_data.get(dog_id)
         container["gps"] = (
-            cast(WalkGPSSnapshot, gps.copy()) if gps is not None else cast(WalkGPSSnapshot, {})
+            cast(WalkGPSSnapshot, gps.copy())
+            if gps is not None
+            else cast(WalkGPSSnapshot, {})
         )
 
     async def async_initialize(self, dog_ids: list[str]) -> None:
@@ -854,9 +858,7 @@ class WalkManager:
         await self._update_daily_walk_stats_optimized(dog_id, walk_data)
 
         # OPTIMIZE: Store in history with size limit
-        self._walk_history[dog_id].append(
-            cast(WalkSessionSnapshot, dict(walk_data))
-        )
+        self._walk_history[dog_id].append(cast(WalkSessionSnapshot, dict(walk_data)))
 
         # Keep only last 100 walks to prevent memory leaks
         if len(self._walk_history[dog_id]) > 100:
@@ -1329,9 +1331,7 @@ class WalkManager:
             return snapshot
 
     # OPTIMIZE: Keep existing methods for compatibility but optimize internal calls
-    async def async_get_current_walk(
-        self, dog_id: str
-    ) -> WalkSessionSnapshot | None:
+    async def async_get_current_walk(self, dog_id: str) -> WalkSessionSnapshot | None:
         """Get current walk data for a dog."""
         async with self._data_lock:
             return (
@@ -1350,7 +1350,11 @@ class WalkManager:
             if dog_id not in self._gps_data:
                 return cast(
                     WalkGPSSnapshot,
-                    {"available": False, "zone": "unknown", "error": "Dog not initialized"},
+                    {
+                        "available": False,
+                        "zone": "unknown",
+                        "error": "Dog not initialized",
+                    },
                 )
 
             return cast(WalkGPSSnapshot, dict(self._gps_data[dog_id]))
@@ -1371,9 +1375,7 @@ class WalkManager:
                 try:
                     start_time = dt_util.parse_datetime(walk["start_time"])
                     if start_time and start_time >= cutoff:
-                        recent_walks.append(
-                            cast(WalkSessionSnapshot, dict(walk))
-                        )
+                        recent_walks.append(cast(WalkSessionSnapshot, dict(walk)))
                 except (ValueError, TypeError):
                     continue
 
@@ -1390,7 +1392,9 @@ class WalkManager:
 
         history_slice = history[-limit:] if limit is not None else history[:]
 
-        return [cast(WalkSessionSnapshot, dict(walk)) for walk in reversed(history_slice)]
+        return [
+            cast(WalkSessionSnapshot, dict(walk)) for walk in reversed(history_slice)
+        ]
 
     def get_last_walk_info(self, dog_id: str) -> WalkSessionSnapshot | None:
         """Return the most recent walk if available."""
@@ -1796,7 +1800,9 @@ class WalkManager:
         # Return None if too few valid points remain
         return validated_path if len(validated_path) >= 2 else None
 
-    def _calculate_route_bounds(self, walks: list[WalkSessionSnapshot]) -> dict[str, float]:
+    def _calculate_route_bounds(
+        self, walks: list[WalkSessionSnapshot]
+    ) -> dict[str, float]:
         """Calculate geographic bounds for all routes.
 
         Args:

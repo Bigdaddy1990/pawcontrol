@@ -92,9 +92,7 @@ async def test_notify_zone_event_uses_typed_payload(mock_hass) -> None:
     )
     location = GPSLocation(latitude=40.7130, longitude=-74.0055, accuracy=5.0)
 
-    await geofencing._notify_zone_event(
-        "doggo", zone, GeofenceEvent.ENTERED, location
-    )
+    await geofencing._notify_zone_event("doggo", zone, GeofenceEvent.ENTERED, location)
 
     notify.assert_awaited_once()
     payload = notify.await_args.kwargs["data"]

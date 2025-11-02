@@ -241,7 +241,7 @@ def _normalise_health_alert(payload: Mapping[str, Any]) -> HealthAlertEntry:
 
 
 def _normalise_health_medication(
-    payload: Mapping[str, Any]
+    payload: Mapping[str, Any],
 ) -> HealthMedicationReminder:
     """Normalise stored medication payloads into typed reminders."""
 
@@ -663,7 +663,9 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                                     _normalise_health_alert(
                                         {
                                             "type": stored_alert,
-                                            "message": stored_alert.replace("_", " ").title(),
+                                            "message": stored_alert.replace(
+                                                "_", " "
+                                            ).title(),
                                             "severity": "medium",
                                             "action_required": False,
                                         }

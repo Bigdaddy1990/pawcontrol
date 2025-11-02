@@ -784,7 +784,10 @@ class GardenManager:
         # Find and remove pending confirmation
         confirmation_id = None
         for conf_id, conf_data in self._pending_confirmations.items():
-            if conf_data["dog_id"] == dog_id and conf_data["type"] == "poop_confirmation":
+            if (
+                conf_data["dog_id"] == dog_id
+                and conf_data["type"] == "poop_confirmation"
+            ):
                 confirmation_id = conf_id
                 break
 
@@ -897,7 +900,9 @@ class GardenManager:
             activity_counts.items(), key=lambda item: item[1], reverse=True
         )[:3]:
             favorites.append(
-                cast(GardenFavoriteActivity, {"activity": activity_type, "count": count})
+                cast(
+                    GardenFavoriteActivity, {"activity": activity_type, "count": count}
+                )
             )
         stats.favorite_activities = favorites
 
@@ -982,12 +987,17 @@ class GardenManager:
             for confirmation in self._pending_confirmations.values()
         )
 
-    def get_pending_confirmations(self, dog_id: str) -> list[GardenConfirmationSnapshot]:
+    def get_pending_confirmations(
+        self, dog_id: str
+    ) -> list[GardenConfirmationSnapshot]:
         """Return pending confirmation requests for a dog."""
 
         confirmations: list[GardenConfirmationSnapshot] = []
         for confirmation in self._pending_confirmations.values():
-            if confirmation["dog_id"] != dog_id or confirmation["type"] != "poop_confirmation":
+            if (
+                confirmation["dog_id"] != dog_id
+                or confirmation["type"] != "poop_confirmation"
+            ):
                 continue
 
             timestamp = confirmation["timestamp"]

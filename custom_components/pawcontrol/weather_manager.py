@@ -442,7 +442,9 @@ class WeatherHealthManager:
         """Get English fallback text for translation keys."""
 
         try:
-            resolved = self._resolve_translation_value(self._english_translations, parts)
+            resolved = self._resolve_translation_value(
+                self._english_translations, parts
+            )
         except ValueError:
             resolved = None
 
@@ -742,9 +744,7 @@ class WeatherHealthManager:
                         if temp_low is not None:
                             temp_low = temp_low - 273.15
 
-                humidity = self._coerce_float(
-                    forecast_item.get(ATTR_FORECAST_HUMIDITY)
-                )
+                humidity = self._coerce_float(forecast_item.get(ATTR_FORECAST_HUMIDITY))
                 uv_index = self._coerce_float(forecast_item.get(ATTR_FORECAST_UV_INDEX))
                 wind_speed = self._coerce_float(
                     forecast_item.get(ATTR_FORECAST_WIND_SPEED)

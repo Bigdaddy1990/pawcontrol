@@ -464,9 +464,7 @@ class PawControlDateBase(PawControlEntity, DateEntity, RestoreEntity):
 
         super()._handle_coordinator_update()
 
-    def _extract_date_from_dog_data(
-        self, dog_data: CoordinatorDogData
-    ) -> date | None:
+    def _extract_date_from_dog_data(self, dog_data: CoordinatorDogData) -> date | None:
         """Extract date value from dog data.
 
         Subclasses should override this method to extract their specific
@@ -490,9 +488,7 @@ class PawControlBirthdateDate(PawControlDateBase):
         """Initialize the birthdate entity."""
         super().__init__(coordinator, dog_id, dog_name, "birthdate", "mdi:cake")
 
-    def _extract_date_from_dog_data(
-        self, dog_data: CoordinatorDogData
-    ) -> date | None:
+    def _extract_date_from_dog_data(self, dog_data: CoordinatorDogData) -> date | None:
         """Extract birthdate from dog data."""
         profile = dog_data.get("profile")
         if isinstance(profile, dict):
@@ -537,9 +533,7 @@ class PawControlAdoptionDate(PawControlDateBase):
             coordinator, dog_id, dog_name, "adoption_date", "mdi:home-heart"
         )
 
-    def _extract_date_from_dog_data(
-        self, dog_data: CoordinatorDogData
-    ) -> date | None:
+    def _extract_date_from_dog_data(self, dog_data: CoordinatorDogData) -> date | None:
         """Extract adoption date from dog data."""
         profile = dog_data.get("profile")
         if isinstance(profile, dict):
@@ -576,9 +570,7 @@ class PawControlLastVetVisitDate(PawControlDateBase):
             coordinator, dog_id, dog_name, "last_vet_visit", "mdi:medical-bag"
         )
 
-    def _extract_date_from_dog_data(
-        self, dog_data: CoordinatorDogData
-    ) -> date | None:
+    def _extract_date_from_dog_data(self, dog_data: CoordinatorDogData) -> date | None:
         """Extract last vet visit date from dog data."""
         health_state = dog_data.get("health")
         if isinstance(health_state, Mapping):
@@ -657,9 +649,7 @@ class PawControlLastGroomingDate(PawControlDateBase):
             coordinator, dog_id, dog_name, "last_grooming", "mdi:content-cut"
         )
 
-    def _extract_date_from_dog_data(
-        self, dog_data: CoordinatorDogData
-    ) -> date | None:
+    def _extract_date_from_dog_data(self, dog_data: CoordinatorDogData) -> date | None:
         """Extract last grooming date from dog data."""
         health_state = dog_data.get("health")
         if isinstance(health_state, Mapping):

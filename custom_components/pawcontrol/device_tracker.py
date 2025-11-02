@@ -448,9 +448,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
                 return
 
             accuracy_value = (
-                int(accuracy)
-                if accuracy is not None
-                else DEFAULT_GPS_ACCURACY
+                int(accuracy) if accuracy is not None else DEFAULT_GPS_ACCURACY
             )
             location_data: GPSLocationSample = {
                 "latitude": float(latitude),
@@ -466,9 +464,10 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
 
             # Update location if this source has higher priority
             last_location = self._last_location
-            if last_location is None or location_data[
-                "priority"
-            ] >= last_location["priority"]:
+            if (
+                last_location is None
+                or location_data["priority"] >= last_location["priority"]
+            ):
                 self._last_location = location_data
                 self._last_update = timestamp
 
@@ -523,9 +522,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
 
             # Cleanup old route points and enforce retention limits
             cutoff_time = dt_util.utcnow() - ROUTE_POINT_MAX_AGE
-            self._route_points.prune(
-                cutoff=cutoff_time, max_points=MAX_ROUTE_POINTS
-            )
+            self._route_points.prune(cutoff=cutoff_time, max_points=MAX_ROUTE_POINTS)
 
             _LOGGER.debug(
                 "Added route point for %s (total points: %d)",
@@ -805,7 +802,10 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
         """Export route as GPX format."""
         # Simplified GPX export matching the typed payload contract
         timestamp = dt_util.utcnow().strftime("%Y%m%d_%H%M%S")
-        content_lines = ["<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "<gpx version=\"1.1\" creator=\"PawControl\">"]
+        content_lines = [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            '<gpx version="1.1" creator="PawControl">',
+        ]
 
         for point in self._route_points:
             point_time = point["timestamp"]
@@ -815,7 +815,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
                 else str(point_time)
             )
             content_lines.append(
-                "  <trkpt lat=\"{lat}\" lon=\"{lon}\">".format(
+                '  <trkpt lat="{lat}" lon="{lon}">'.format(
                     lat=point["latitude"], lon=point["longitude"]
                 )
             )
