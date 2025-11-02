@@ -408,14 +408,18 @@ class TestDataRetrieval:
         data = mock_feeding_manager.get_feeding_data("test_dog")
 
         assert isinstance(data, dict)
+        assert data["status"] in {"ready", "no_data"}
         assert "feedings" in data
         assert "daily_target" in data
+        assert isinstance(data["daily_stats"], dict)
 
     async def test_get_feeding_data_nonexistent_dog(self, mock_feeding_manager):
         """Test retrieving data for non-existent dog."""
         data = mock_feeding_manager.get_feeding_data("nonexistent")
 
-        assert data == {}
+        assert data["status"] == "no_data"
+        assert data["health_feeding_status"] == "insufficient_data"
+        assert data["daily_stats"]["meals_today"] == 0
 
     async def test_get_daily_stats(self, mock_feeding_manager):
         """Test daily statistics calculation."""

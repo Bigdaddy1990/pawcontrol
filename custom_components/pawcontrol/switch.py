@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any, cast
 
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
@@ -24,8 +24,6 @@ from homeassistant.util import dt as dt_util
 
 from .compat import HomeAssistantError
 from .const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
     CONF_DOGS,
     DOMAIN,
     MODULE_FEEDING,
@@ -46,9 +44,12 @@ from .types import (
     DOG_ID_FIELD,
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
+    CoordinatorDogData,
     DogConfigData,
     DogModulesConfig,
     PawControlConfigEntry,
+    SwitchExtraAttributes,
+    SwitchFeatureAttributes,
     coerce_dog_modules_config,
 )
 from .utils import async_call_add_entities
@@ -398,20 +399,18 @@ class OptimizedSwitchBase(PawControlEntity, SwitchEntity, RestoreEntity):
         return self._is_on
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any]:
+    def extra_state_attributes(self) -> SwitchExtraAttributes:
         """Return enhanced attributes with profile information."""
-        attrs = {
-            ATTR_DOG_ID: self._dog_id,
-            ATTR_DOG_NAME: self._dog_name,
+        attrs: SwitchExtraAttributes = {
+            "dog_id": self._dog_id,
+            "dog_name": self._dog_name,
             "switch_type": self._switch_type,
             "last_changed": self._last_changed.isoformat(),
             "profile_optimized": True,
         }
 
-        # Add module information if available
-        dog_data = self._get_dog_data()
-        if dog_data:
-            modules = coerce_dog_modules_config(dog_data.get(DOG_MODULES_FIELD))
+        if dog_config := self._get_dog_config():
+            modules = coerce_dog_modules_config(dog_config.get(DOG_MODULES_FIELD))
             enabled_modules = [module for module, enabled in modules.items() if enabled]
             attrs["enabled_modules"] = enabled_modules
             attrs["total_modules"] = len(enabled_modules)
@@ -478,16 +477,33 @@ class OptimizedSwitchBase(PawControlEntity, SwitchEntity, RestoreEntity):
         cache_key = f"{self._dog_id}_{self._switch_type}"
         self._state_cache[cache_key] = (state, dt_util.utcnow().timestamp())
 
-    def _get_dog_data(self) -> dict[str, Any] | None:
+    def _get_coordinator_dog_data(self) -> CoordinatorDogData | None:
         """Get dog data from coordinator."""
+
         if self.coordinator.available:
             return self.coordinator.get_dog_data(self._dog_id)
+        return None
+
+    def _get_dog_config(self) -> DogConfigData | None:
+        """Return the typed dog configuration when available."""
+
+        payload = self._get_coordinator_dog_data()
+        if payload is None:
+            return None
+
+        dog_info = payload.get("dog_info")
+        if isinstance(dog_info, Mapping):
+            return cast(DogConfigData, dog_info)
+
         return None
 
     @property
     def available(self) -> bool:
         """Check availability with enhanced logic."""
-        return self.coordinator.available and self._get_dog_data() is not None
+        return (
+            self.coordinator.available
+            and self._get_coordinator_dog_data() is not None
+        )
 
 
 # Core switches (always created)
@@ -582,8 +598,8 @@ class PawControlVisitorModeSwitch(OptimizedSwitchBase):
     @property
     def is_on(self) -> bool:
         """Check visitor mode state from data."""
-        if dog_data := self._get_dog_data():
-            return dog_data.get("visitor_mode_active", False)
+        if dog_data := self._get_coordinator_dog_data():
+            return bool(dog_data.get("visitor_mode_active", False))
         return self._is_on
 
     async def _async_set_state(self, state: bool) -> None:
@@ -738,17 +754,20 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
         self._attr_name = f"{dog_name} {display_name}"
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any]:
+    def extra_state_attributes(self) -> SwitchFeatureAttributes:
         """Return feature-specific attributes."""
-        attrs = super().extra_state_attributes
-        attrs.update(
+        base_attrs = super().extra_state_attributes
+        feature_attrs: SwitchFeatureAttributes = cast(
+            SwitchFeatureAttributes, dict(base_attrs)
+        )
+        feature_attrs.update(
             {
                 "feature_id": self._feature_id,
                 "parent_module": self._module,
                 "feature_name": self._feature_name,
             }
         )
-        return attrs
+        return feature_attrs
 
     async def _async_set_state(self, state: bool) -> None:
         """Set feature state with module-specific handling."""

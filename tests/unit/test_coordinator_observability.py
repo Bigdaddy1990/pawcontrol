@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timezone
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from custom_components.pawcontrol.coordinator_observability import (
@@ -17,6 +17,14 @@ from custom_components.pawcontrol.coordinator_support import CoordinatorMetrics
 from custom_components.pawcontrol.telemetry import (
     record_bool_coercion_event,
     reset_bool_coercion_metrics,
+)
+from custom_components.pawcontrol.types import (
+    AdaptivePollingDiagnostics,
+    CoordinatorPerformanceSnapshot,
+    CoordinatorResilienceSummary,
+    CoordinatorSecurityScorecard,
+    EntityBudgetSummary,
+    WebhookSecurityStatus,
 )
 
 
@@ -59,11 +67,33 @@ def test_entity_budget_tracker_records_and_summarises() -> None:
 @pytest.mark.unit
 def test_build_performance_snapshot_includes_metrics() -> None:
     metrics = CoordinatorMetrics(update_count=3, failed_cycles=1, consecutive_errors=0)
-    adaptive = {"current_interval_ms": 120.0, "target_cycle_ms": 180.0}
-    entity_budget = {"active_dogs": 1}
-    webhook_status = {"configured": False, "secure": True, "hmac_ready": False}
+    adaptive: AdaptivePollingDiagnostics = {
+        "current_interval_ms": 120.0,
+        "target_cycle_ms": 180.0,
+        "average_cycle_ms": 0.0,
+        "history_samples": 0,
+        "error_streak": 0,
+        "entity_saturation": 0.0,
+        "idle_interval_ms": 0.0,
+        "idle_grace_ms": 0.0,
+    }
+    entity_budget: EntityBudgetSummary = {
+        "active_dogs": 1,
+        "total_capacity": 0,
+        "total_allocated": 0,
+        "total_remaining": 0,
+        "average_utilization": 0.0,
+        "peak_utilization": 0.0,
+        "denied_requests": 0,
+    }
+    webhook_status: WebhookSecurityStatus = {
+        "configured": False,
+        "secure": True,
+        "hmac_ready": False,
+        "insecure_configs": (),
+    }
 
-    resilience_summary = {
+    resilience_summary: CoordinatorResilienceSummary = {
         "total_breakers": 2,
         "states": {
             "closed": 1,
@@ -107,7 +137,7 @@ def test_build_performance_snapshot_includes_metrics() -> None:
     )
 
     try:
-        snapshot = build_performance_snapshot(
+        snapshot: CoordinatorPerformanceSnapshot = build_performance_snapshot(
             metrics=metrics,
             adaptive=adaptive,
             entity_budget=entity_budget,
@@ -196,9 +226,40 @@ def test_build_performance_snapshot_includes_metrics() -> None:
 @pytest.mark.unit
 def test_build_performance_snapshot_defaults_rejection_metrics() -> None:
     metrics = CoordinatorMetrics(update_count=2, failed_cycles=0, consecutive_errors=0)
-    adaptive = {"current_interval_ms": 90.0, "target_cycle_ms": 180.0}
-    entity_budget = {"active_dogs": 1}
-    webhook_status = {"configured": True, "secure": True, "hmac_ready": True}
+    adaptive = cast(
+        AdaptivePollingDiagnostics,
+        {
+            "current_interval_ms": 90.0,
+            "target_cycle_ms": 180.0,
+            "average_cycle_ms": 0.0,
+            "history_samples": 0,
+            "error_streak": 0,
+            "entity_saturation": 0.0,
+            "idle_interval_ms": 0.0,
+            "idle_grace_ms": 0.0,
+        },
+    )
+    entity_budget = cast(
+        EntityBudgetSummary,
+        {
+            "active_dogs": 1,
+            "total_capacity": 0,
+            "total_allocated": 0,
+            "total_remaining": 0,
+            "average_utilization": 0.0,
+            "peak_utilization": 0.0,
+            "denied_requests": 0,
+        },
+    )
+    webhook_status = cast(
+        WebhookSecurityStatus,
+        {
+            "configured": True,
+            "secure": True,
+            "hmac_ready": True,
+            "insecure_configs": (),
+        },
+    )
 
     reset_bool_coercion_metrics()
     try:
@@ -261,7 +322,7 @@ def test_build_security_scorecard_handles_failures() -> None:
     entity_summary = {"peak_utilization": 99.0}
     webhook_status = {"configured": True, "secure": False, "hmac_ready": False}
 
-    scorecard = build_security_scorecard(
+    scorecard: CoordinatorSecurityScorecard = build_security_scorecard(
         adaptive=adaptive,
         entity_summary=entity_summary,
         webhook_status=webhook_status,

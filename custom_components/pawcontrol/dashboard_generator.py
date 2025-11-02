@@ -18,7 +18,7 @@ import time
 from collections.abc import Awaitable, Coroutine, Mapping, Sequence
 from functools import partial
 from pathlib import Path
-from typing import Any, Final, NotRequired, TypedDict, TypeVar, cast
+from typing import Any, Final, Literal, NotRequired, TypedDict, TypeVar, cast
 
 import aiofiles  # type: ignore[import-not-found, import-untyped]
 from homeassistant.core import HomeAssistant, callback
@@ -41,12 +41,15 @@ from .dashboard_shared import (
 )
 from .dashboard_templates import DashboardTemplates
 from .runtime_data import get_runtime_data
+from .service_guard import normalise_guard_history
+from .telemetry import get_runtime_performance_stats
 from .types import (
     DOG_BREED_FIELD,
     DOG_ID_FIELD,
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
     CoordinatorStatisticsPayload,
+    DashboardRendererOptions,
     DogConfigData,
     DogModulesConfig,
     HelperManagerGuardMetrics,
@@ -86,6 +89,97 @@ class DashboardViewSummary(TypedDict):
     notifications: NotRequired[bool]
 
 
+class DashboardPerformanceMetrics(TypedDict):
+    """Core runtime metrics tracked for dashboard generation."""
+
+    total_generations: int
+    avg_generation_time: float
+    cache_hits: int
+    cache_misses: int
+    file_operations: int
+    errors: int
+
+
+class DashboardPerformanceSnapshot(TypedDict):
+    """Derived performance snapshot exposed through diagnostics."""
+
+    avg_generation_time: float
+    total_operations: int
+    error_rate: float
+    cache_efficiency: float
+
+
+class DashboardGenerationMetrics(TypedDict):
+    """Generation metrics captured when a dashboard is created."""
+
+    generation_time: float
+    entity_count: int
+
+
+class WeatherDashboardFeatures(TypedDict):
+    """Feature flags exported by weather dashboards."""
+
+    health_monitoring: bool
+    breed_specific: bool
+    interactive_charts: bool
+    recommendations: bool
+
+
+class DashboardMetadataBase(TypedDict):
+    """Common metadata shared by all dashboard variants."""
+
+    url: str
+    title: str
+    path: str
+    created: str
+    type: Literal["main", "dog", "weather"]
+    options: dict[str, Any]
+    entry_id: str
+    version: int
+    views: list[DashboardViewSummary]
+    has_notifications_view: bool
+
+
+class DashboardMetadata(DashboardMetadataBase, total=False):
+    """Extended metadata for specific dashboard variants."""
+
+    dogs: list[str]
+    performance: DashboardGenerationMetrics
+    dog_id: str
+    dog_name: str
+    breed: str
+    theme: str
+    layout: str
+    weather_features: WeatherDashboardFeatures
+    needs_regeneration: bool
+    updated: str
+    performance_metrics: DashboardPerformanceSnapshot
+    system_performance: DashboardPerformanceSnapshot
+
+
+type DashboardRegistry[MetaT: DashboardMetadataBase] = dict[str, MetaT]
+
+
+class DashboardStorePayload(TypedDict, total=False):
+    """Structure persisted in Home Assistant storage."""
+
+    dashboards: DashboardRegistry[DashboardMetadata]
+    updated: str
+    version: int
+    entry_id: str
+    performance_metrics: DashboardPerformanceMetrics
+
+
+class DashboardPerformanceReport(TypedDict, total=False):
+    """Public performance report exposed to diagnostics/UI callers."""
+
+    dashboards_count: int
+    initialized: bool
+    storage_version: int
+    metrics: DashboardPerformanceMetrics
+    renderer: dict[str, Any]
+
+
 _TrackedResultT = TypeVar("_TrackedResultT")
 
 
@@ -106,7 +200,7 @@ class PawControlDashboardGenerator:
         self.entry = entry
 
         # OPTIMIZED: Enhanced storage with better versioning
-        self._store = Store[dict[str, Any]](
+        self._store = Store[DashboardStorePayload](
             hass,
             DASHBOARD_STORAGE_VERSION,
             f"{DASHBOARD_STORAGE_KEY}_{entry.entry_id}",
@@ -120,7 +214,7 @@ class PawControlDashboardGenerator:
         self._dashboard_templates = DashboardTemplates(hass)
 
         # Dashboard registry with performance metadata
-        self._dashboards: dict[str, dict[str, Any]] = {}
+        self._dashboards: DashboardRegistry[DashboardMetadata] = {}
 
         # OPTIMIZED: Enhanced state management
         self._initialized = False
@@ -130,7 +224,7 @@ class PawControlDashboardGenerator:
         )
 
         # OPTIMIZED: Performance monitoring
-        self._performance_metrics = {
+        self._performance_metrics: DashboardPerformanceMetrics = {
             "total_generations": 0,
             "avg_generation_time": 0.0,
             "cache_hits": 0,
@@ -187,8 +281,8 @@ class PawControlDashboardGenerator:
         if runtime_data is None:
             return None
 
-        performance_stats = getattr(runtime_data, "performance_stats", None)
-        if not isinstance(performance_stats, Mapping):
+        performance_stats = get_runtime_performance_stats(runtime_data)
+        if performance_stats is None:
             return None
 
         rejection_metrics = performance_stats.get("rejection_metrics")
@@ -207,8 +301,8 @@ class PawControlDashboardGenerator:
         if runtime_data is None:
             return None
 
-        performance_stats = getattr(runtime_data, "performance_stats", None)
-        if not isinstance(performance_stats, Mapping):
+        performance_stats = get_runtime_performance_stats(runtime_data)
+        if performance_stats is None:
             return None
 
         guard_metrics = performance_stats.get("service_guard_metrics")
@@ -225,12 +319,7 @@ class PawControlDashboardGenerator:
             }
 
         raw_last_results = guard_metrics.get("last_results")
-        if isinstance(raw_last_results, Sequence):
-            last_results_payload = [
-                dict(entry) for entry in raw_last_results if isinstance(entry, Mapping)
-            ]
-        else:
-            last_results_payload = []
+        last_results_payload = normalise_guard_history(raw_last_results)
 
         return {
             "executed": int(guard_metrics.get("executed", 0)),
@@ -353,6 +442,36 @@ class PawControlDashboardGenerator:
             dog.get(DOG_MODULES_FIELD) if isinstance(dog, Mapping) else None
         )
         return coerce_dog_modules_config(modules_payload)
+
+    @staticmethod
+    def _coerce_performance_metrics(
+        payload: Mapping[str, Any],
+    ) -> DashboardPerformanceMetrics:
+        """Normalise performance metrics loaded from storage."""
+
+        return {
+            "total_generations": int(payload.get("total_generations", 0) or 0),
+            "avg_generation_time": float(
+                payload.get("avg_generation_time", 0.0) or 0.0
+            ),
+            "cache_hits": int(payload.get("cache_hits", 0) or 0),
+            "cache_misses": int(payload.get("cache_misses", 0) or 0),
+            "file_operations": int(payload.get("file_operations", 0) or 0),
+            "errors": int(payload.get("errors", 0) or 0),
+        }
+
+    @staticmethod
+    def _normalise_dashboard_registry(
+        payload: Mapping[str, Any],
+    ) -> DashboardRegistry[DashboardMetadata]:
+        """Return a typed dashboard registry copied from stored payload."""
+
+        registry: DashboardRegistry[DashboardMetadata] = {}
+        for url, info in payload.items():
+            if not isinstance(url, str) or not isinstance(info, Mapping):
+                continue
+            registry[url] = cast(DashboardMetadata, dict(info))
+        return registry
 
     @staticmethod
     def _monotonic_time() -> float:
@@ -536,8 +655,23 @@ class PawControlDashboardGenerator:
     async def _load_stored_data(self) -> None:
         """Load stored data with validation and cleanup."""
         try:
-            stored_data = await self._store.async_load() or {}
-            self._dashboards = stored_data.get("dashboards", {})
+            stored_data = await self._store.async_load()
+            if isinstance(stored_data, Mapping):
+                dashboards_payload = stored_data.get("dashboards")
+                if isinstance(dashboards_payload, Mapping):
+                    self._dashboards = self._normalise_dashboard_registry(
+                        dashboards_payload
+                    )
+                else:
+                    self._dashboards = {}
+
+                metrics_payload = stored_data.get("performance_metrics")
+                if isinstance(metrics_payload, Mapping):
+                    self._performance_metrics = self._coerce_performance_metrics(
+                        metrics_payload
+                    )
+            else:
+                self._dashboards = {}
 
             # OPTIMIZED: Async validation to prevent blocking
             validation_task = self._track_task(
@@ -589,7 +723,7 @@ class PawControlDashboardGenerator:
         if not typed_dogs:
             raise ValueError("At least one valid dog configuration is required")
 
-        options = options or {}
+        options = dict(options or {})
         start_time = self._monotonic_time()
 
         async with self._operation_semaphore:  # OPTIMIZED: Control concurrency
@@ -598,10 +732,11 @@ class PawControlDashboardGenerator:
                 service_execution_metrics = self._resolve_service_execution_metrics()
                 service_guard_metrics = self._resolve_service_guard_metrics()
                 # OPTIMIZED: Parallel config generation and URL preparation
+                renderer_options = cast(DashboardRendererOptions, options)
                 config_task = self._track_task(
                     self._renderer.render_main_dashboard(
                         typed_dogs,
-                        options,
+                        renderer_options,
                         coordinator_statistics=coordinator_statistics,
                         service_execution_metrics=service_execution_metrics,
                         service_guard_metrics=service_guard_metrics,
@@ -618,9 +753,11 @@ class PawControlDashboardGenerator:
                     config_task, url_task
                 )
 
+                dashboard_config_dict = cast(dict[str, Any], dashboard_config)
+
                 # OPTIMIZED: Async dashboard creation with batching
                 result_url = await self._create_dashboard_optimized(
-                    dashboard_url, dashboard_config, typed_dogs, options
+                    dashboard_url, dashboard_config_dict, typed_dogs, options
                 )
 
                 # OPTIMIZED: Update performance metrics
@@ -641,7 +778,7 @@ class PawControlDashboardGenerator:
                 _LOGGER.error("Dashboard creation failed: %s", err, exc_info=True)
                 raise HomeAssistantError(f"Dashboard creation failed: {err}") from err
 
-    async def _generate_unique_dashboard_url(self, options: dict[str, Any]) -> str:
+    async def _generate_unique_dashboard_url(self, options: Mapping[str, Any]) -> str:
         """Generate unique URL for dashboard."""
         base_url = options.get("url", DEFAULT_DASHBOARD_URL)
         dashboard_url = f"{base_url}-{self.entry.entry_id[:8]}"
@@ -750,14 +887,15 @@ class PawControlDashboardGenerator:
         typed_dogs = self._ensure_dog_configs(dogs_config)
         view_summaries = self._summarise_dashboard_views(dashboard_config)
 
-        self._dashboards[dashboard_url] = {
+        options_copy = dict(options)
+        dashboard_metadata: DashboardMetadata = {
             "url": dashboard_url,
             "title": title,
             "path": path,
             "created": dt_util.utcnow().isoformat(),
             "type": "main",
             "dogs": [dog[DOG_ID_FIELD] for dog in typed_dogs],
-            "options": options,
+            "options": options_copy,
             "entry_id": self.entry.entry_id,
             "version": DASHBOARD_STORAGE_VERSION,
             "performance": {
@@ -769,6 +907,8 @@ class PawControlDashboardGenerator:
             "views": view_summaries,
             "has_notifications_view": self._has_notifications_view(view_summaries),
         }
+
+        self._dashboards[dashboard_url] = dashboard_metadata
 
         await self._save_dashboard_metadata_async()
 
@@ -792,14 +932,15 @@ class PawControlDashboardGenerator:
         if not dog_id or not dog_name:
             raise ValueError("Dog ID and name are required")
 
-        options = options or {}
+        options = dict(options or {})
         start_time = self._monotonic_time()
 
         async with self._operation_semaphore:
             try:
                 # OPTIMIZED: Concurrent rendering and URL generation
+                renderer_options = cast(DashboardRendererOptions, options)
                 render_task = self._track_task(
-                    self._renderer.render_dog_dashboard(dog_config, options),
+                    self._renderer.render_dog_dashboard(dog_config, renderer_options),
                     name=f"pawcontrol_dashboard_render_dog_{slugify(dog_id)}",
                 )
 
@@ -807,21 +948,22 @@ class PawControlDashboardGenerator:
                 dashboard_title = f"🐕 {dog_name}"
 
                 dashboard_config = await render_task
+                dashboard_config_dict = cast(dict[str, Any], dashboard_config)
 
                 # OPTIMIZED: Async file operations
                 dashboard_path = await self._create_dashboard_file_async(
                     dashboard_url,
                     dashboard_title,
-                    dashboard_config,
+                    dashboard_config_dict,
                     "mdi:dog-side",
                     options.get("show_in_sidebar", False),
                 )
 
                 # Store metadata
-                view_summaries = self._summarise_dashboard_views(dashboard_config)
+                view_summaries = self._summarise_dashboard_views(dashboard_config_dict)
 
                 async with self._lock:
-                    self._dashboards[dashboard_url] = {
+                    dashboard_metadata: DashboardMetadata = {
                         "url": dashboard_url,
                         "title": dashboard_title,
                         "path": str(dashboard_path),
@@ -829,7 +971,7 @@ class PawControlDashboardGenerator:
                         "type": "dog",
                         "dog_id": dog_id,
                         "dog_name": dog_name,
-                        "options": options,
+                        "options": dict(options),
                         "entry_id": self.entry.entry_id,
                         "version": DASHBOARD_STORAGE_VERSION,
                         "views": view_summaries,
@@ -837,6 +979,8 @@ class PawControlDashboardGenerator:
                             view_summaries
                         ),
                     }
+
+                    self._dashboards[dashboard_url] = dashboard_metadata
 
                     await self._save_dashboard_metadata_async()
 
@@ -883,8 +1027,11 @@ class PawControlDashboardGenerator:
         async with self._operation_semaphore:
             try:
                 dashboard_type = dashboard_info.get("type", "main")
-                stored_options = dashboard_info.get("options", {})
-                options_merged = {**(options or {}), **stored_options}
+                stored_options = cast(dict[str, Any], dashboard_info.get("options", {}))
+                incoming_options = dict(options or {})
+                options_merged = {**incoming_options, **stored_options}
+
+                dashboard_config_dict: dict[str, Any]
 
                 if dashboard_type == "main":
                     coordinator_statistics = self._resolve_coordinator_statistics()
@@ -892,17 +1039,20 @@ class PawControlDashboardGenerator:
                         self._resolve_service_execution_metrics()
                     )
                     service_guard_metrics = self._resolve_service_guard_metrics()
-                    dashboard_config = await self._renderer.render_main_dashboard(
+                    renderer_options = cast(DashboardRendererOptions, options_merged)
+                    dashboard_result = await self._renderer.render_main_dashboard(
                         dogs_config,
-                        options_merged,
+                        renderer_options,
                         coordinator_statistics=coordinator_statistics,
                         service_execution_metrics=service_execution_metrics,
                         service_guard_metrics=service_guard_metrics,
                     )
 
+                    dashboard_config_dict = cast(dict[str, Any], dashboard_result)
+
                     if self._has_weather_module(dogs_config):
                         await self._add_weather_components_to_dashboard(
-                            dashboard_config, dogs_config, options_merged
+                            dashboard_config_dict, dogs_config, options_merged
                         )
 
                 elif dashboard_type == "dog":
@@ -914,13 +1064,16 @@ class PawControlDashboardGenerator:
                         _LOGGER.warning("Dog %s not found for update", dog_id)
                         return False
 
-                    dashboard_config = await self._renderer.render_dog_dashboard(
-                        dog_config, options_merged
+                    renderer_options = cast(DashboardRendererOptions, options_merged)
+                    dashboard_result = await self._renderer.render_dog_dashboard(
+                        dog_config, renderer_options
                     )
+
+                    dashboard_config_dict = cast(dict[str, Any], dashboard_result)
 
                     if self._has_weather_module([dog_config]):
                         await self._add_weather_components_to_dog_dashboard(
-                            dashboard_config, dog_config, options_merged
+                            dashboard_config_dict, dog_config, options_merged
                         )
 
                 elif dashboard_type == "weather":
@@ -993,6 +1146,8 @@ class PawControlDashboardGenerator:
                         ]
                     }
 
+                    dashboard_config_dict = dashboard_config
+
                     dashboard_info["theme"] = theme
                     dashboard_info["layout"] = layout
 
@@ -1007,11 +1162,11 @@ class PawControlDashboardGenerator:
                 # OPTIMIZED: Async file update
                 dashboard_path = Path(dashboard_info["path"])
                 await self._update_dashboard_file_async(
-                    dashboard_path, dashboard_config, dashboard_info
+                    dashboard_path, dashboard_config_dict, dict(dashboard_info)
                 )
 
                 # Update metadata
-                view_summaries = self._summarise_dashboard_views(dashboard_config)
+                view_summaries = self._summarise_dashboard_views(dashboard_config_dict)
 
                 async with self._lock:
                     dashboard_info["updated"] = dt_util.utcnow().isoformat()
@@ -1021,7 +1176,7 @@ class PawControlDashboardGenerator:
                     )
 
                     if options is not None:
-                        dashboard_info["options"] = options_merged
+                        dashboard_info["options"] = dict(options_merged)
 
                     await self._save_dashboard_metadata_async()
 
@@ -1152,12 +1307,21 @@ class PawControlDashboardGenerator:
     async def _save_dashboard_metadata_async(self) -> None:
         """Save metadata with async operations and error recovery."""
         try:
-            metadata = {
-                "dashboards": self._dashboards,
+            metadata: DashboardStorePayload = {
+                "dashboards": cast(
+                    DashboardRegistry[DashboardMetadata],
+                    {
+                        url: cast(DashboardMetadata, dict(info))
+                        for url, info in self._dashboards.items()
+                    },
+                ),
                 "updated": dt_util.utcnow().isoformat(),
                 "version": DASHBOARD_STORAGE_VERSION,
                 "entry_id": self.entry.entry_id,
-                "performance_metrics": self._performance_metrics.copy(),
+                "performance_metrics": cast(
+                    DashboardPerformanceMetrics,
+                    dict(self._performance_metrics),
+                ),
             }
 
             await self._store.async_save(metadata)
@@ -1294,7 +1458,7 @@ class PawControlDashboardGenerator:
         # OPTIMIZED: Prepare validation tasks
         for url, dashboard_info in self._dashboards.items():
             validation_tasks.append(
-                self._validate_single_dashboard(url, dashboard_info)
+                self._validate_single_dashboard(url, dict(dashboard_info))
             )
 
         # Execute validations concurrently
@@ -1398,20 +1562,26 @@ class PawControlDashboardGenerator:
         """Get dashboard information with performance data."""
         info = self._dashboards.get(dashboard_url)
         if info:
-            info = info.copy()
-            info["performance_metrics"] = self._get_dashboard_performance_metrics()
-        return info
+            typed_info = cast(DashboardMetadata, dict(info))
+            typed_info["performance_metrics"] = (
+                self._get_dashboard_performance_metrics()
+            )
+            return cast(dict[str, Any], typed_info)
+        return None
 
     @callback
     def get_all_dashboards(self) -> dict[str, dict[str, Any]]:
         """Get all dashboards with enhanced metadata."""
-        dashboards = self._dashboards.copy()
+        dashboards: DashboardRegistry[DashboardMetadata] = {
+            url: cast(DashboardMetadata, dict(info))
+            for url, info in self._dashboards.items()
+        }
         performance_data = self._get_dashboard_performance_metrics()
 
         for dashboard_info in dashboards.values():
             dashboard_info["system_performance"] = performance_data
 
-        return dashboards
+        return cast(dict[str, dict[str, Any]], dashboards)
 
     @callback
     def is_initialized(self) -> bool:
@@ -1438,7 +1608,7 @@ class PawControlDashboardGenerator:
 
         return base_stats
 
-    def _get_dashboard_performance_metrics(self) -> dict[str, Any]:
+    def _get_dashboard_performance_metrics(self) -> DashboardPerformanceSnapshot:
         """Get current performance metrics."""
         return {
             "avg_generation_time": self._performance_metrics["avg_generation_time"],
@@ -1497,7 +1667,7 @@ class PawControlDashboardGenerator:
         if not modules.get(MODULE_WEATHER, False):
             raise ValueError(f"Weather module not enabled for {dog_name}")
 
-        options = options or {}
+        options = dict(options or {})
         start_time = self._monotonic_time()
 
         async with self._operation_semaphore:
@@ -1550,7 +1720,7 @@ class PawControlDashboardGenerator:
                 view_summaries = self._summarise_dashboard_views(dashboard_config)
 
                 async with self._lock:
-                    self._dashboards[dashboard_url] = {
+                    dashboard_metadata: DashboardMetadata = {
                         "url": dashboard_url,
                         "title": dashboard_title,
                         "path": str(dashboard_path),
@@ -1561,7 +1731,7 @@ class PawControlDashboardGenerator:
                         "breed": breed,
                         "theme": theme,
                         "layout": layout,
-                        "options": options,
+                        "options": dict(options),
                         "entry_id": self.entry.entry_id,
                         "version": DASHBOARD_STORAGE_VERSION,
                         "weather_features": {
@@ -1575,6 +1745,8 @@ class PawControlDashboardGenerator:
                             view_summaries
                         ),
                     }
+
+                    self._dashboards[dashboard_url] = dashboard_metadata
 
                     await self._save_dashboard_metadata_async()
 
@@ -1808,8 +1980,8 @@ class PawControlDashboardGenerator:
             _LOGGER.info("No dogs with weather module enabled")
             return {}
 
-        options = options or {}
-        results = {}
+        options = dict(options or {})
+        results: dict[str, str] = {}
         start_time = self._monotonic_time()
 
         # Process in batches to avoid overwhelming the system
@@ -1820,7 +1992,7 @@ class PawControlDashboardGenerator:
             # Create batch tasks
             batch_tasks = [
                 self._track_task(
-                    self.async_create_weather_dashboard(dog, options),
+                    self.async_create_weather_dashboard(dog, dict(options)),
                     name=f"pawcontrol_dashboard_weather_{dog.get(DOG_ID_FIELD, 'unknown')}",
                 )
                 for dog in batch
@@ -1868,7 +2040,7 @@ class PawControlDashboardGenerator:
             Dictionary of weather dashboard information
         """
         return {
-            url: info
+            url: dict(info)
             for url, info in self._dashboards.items()
             if info.get("type") == "weather"
         }

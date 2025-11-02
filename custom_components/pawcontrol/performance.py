@@ -7,25 +7,25 @@ from collections.abc import Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from time import perf_counter
-from typing import TYPE_CHECKING, Any, Literal
+from typing import Literal, cast
 
 from homeassistant.util import dt as dt_util
 
 from .coordinator_support import ensure_cache_repair_aggregate
-from .types import CacheDiagnosticsMap, CacheDiagnosticsSnapshot
-
-if TYPE_CHECKING:
-    from .types import (
-        CacheDiagnosticsCapture,
-        MaintenanceExecutionDiagnostics,
-        MaintenanceExecutionResult,
-        PawControlRuntimeData,
-    )
-
+from .telemetry import ensure_runtime_performance_stats, get_runtime_performance_stats
+from .types import (
+    CacheDiagnosticsCapture,
+    CacheDiagnosticsMap,
+    CacheDiagnosticsSnapshot,
+    JSONValue,
+    MaintenanceExecutionDiagnostics,
+    MaintenanceExecutionResult,
+    MaintenanceMetadataPayload,
+    PawControlRuntimeData,
+    PerformanceTrackerBucket,
+)
 
 _LOGGER = logging.getLogger(__name__)
-
-_EMPTY_DICT: dict[str, Any] = {}
 
 
 @dataclass(slots=True)
@@ -57,7 +57,14 @@ def performance_tracker(
         yield result
         return
 
-    bucket = runtime_data.performance_stats.setdefault(
+    performance_stats = ensure_runtime_performance_stats(runtime_data)
+    raw_bucket_map = performance_stats.setdefault("performance_buckets", {})
+    if not isinstance(raw_bucket_map, dict):
+        raw_bucket_map = {}
+        performance_stats["performance_buckets"] = raw_bucket_map
+
+    bucket_map = cast(dict[str, PerformanceTrackerBucket], raw_bucket_map)
+    bucket = bucket_map.setdefault(
         bucket_name,
         {
             "runs": 0,
@@ -78,7 +85,7 @@ def performance_tracker(
         raise
     finally:
         duration_ms = max((perf_counter() - start) * 1000.0, 0.0)
-        durations = bucket.setdefault("durations_ms", [])
+        durations = cast(list[float], bucket.setdefault("durations_ms", []))
         durations.append(round(duration_ms, 3))
         if len(durations) > max_samples:
             del durations[:-max_samples]
@@ -100,7 +107,7 @@ def performance_tracker(
 
 
 def capture_cache_diagnostics(
-    runtime_data: Any,
+    runtime_data: PawControlRuntimeData | None,
 ) -> CacheDiagnosticsCapture | None:
     """Return cache diagnostics snapshots when available.
 
@@ -161,22 +168,22 @@ def capture_cache_diagnostics(
 
 
 def record_maintenance_result(
-    runtime_data: Any,
+    runtime_data: PawControlRuntimeData | None,
     *,
     task: str,
     status: Literal["success", "error"],
     message: str | None = None,
     diagnostics: CacheDiagnosticsCapture | None = None,
-    metadata: Mapping[str, Any] | None = None,
-    details: Mapping[str, Any] | None = None,
+    metadata: Mapping[str, JSONValue] | None = None,
+    details: Mapping[str, JSONValue] | None = None,
 ) -> None:
     """Store structured maintenance telemetry in runtime performance stats."""
 
     if runtime_data is None or not isinstance(task, str) or not task:
         return
 
-    performance_stats = getattr(runtime_data, "performance_stats", None)
-    if not isinstance(performance_stats, dict):
+    performance_stats = get_runtime_performance_stats(runtime_data)
+    if performance_stats is None:
         return
 
     result: MaintenanceExecutionResult = {
@@ -192,22 +199,28 @@ def record_maintenance_result(
     if diagnostics is not None:
         diagnostics_payload = {"cache": diagnostics}
 
-    if metadata is not None:
-        metadata_payload = dict(metadata) if metadata is not _EMPTY_DICT else {}
+    if metadata:
+        metadata_payload = cast(MaintenanceMetadataPayload, dict(metadata))
         if metadata_payload:
             if diagnostics_payload is None:
                 diagnostics_payload = {"metadata": metadata_payload}
             else:
                 diagnostics_payload["metadata"] = metadata_payload
 
-    if diagnostics_payload:
+    if diagnostics_payload is not None:
         result["diagnostics"] = diagnostics_payload
 
-    if details is not None:
-        detail_payload = {k: v for k, v in dict(details).items() if v is not None}
+    if details:
+        detail_payload = cast(
+            MaintenanceMetadataPayload,
+            {key: value for key, value in details.items() if value is not None},
+        )
         if detail_payload:
             result["details"] = detail_payload
 
     results = performance_stats.setdefault("maintenance_results", [])
-    results.append(result)
+    if isinstance(results, list):
+        results.append(result)
+    else:
+        performance_stats["maintenance_results"] = [result]
     performance_stats["last_maintenance_result"] = result

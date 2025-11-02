@@ -16,10 +16,18 @@ import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any
 
 from homeassistant.util import dt as dt_util
 
+from .types import (
+    HealthAlertEntry,
+    HealthAlertList,
+    HealthAppointmentRecommendation,
+    HealthMedicationQueue,
+    HealthStatusSnapshot,
+    HealthUpcomingCareEntry,
+    HealthUpcomingCareQueue,
+)
 from .utils import ensure_local_datetime
 
 _LOGGER = logging.getLogger(__name__)
@@ -159,12 +167,12 @@ class EnhancedHealthProfile:
     emergency_contact: str = ""
 
     # NEW: Medication tracking
-    current_medications: list[dict[str, Any]] = field(default_factory=list)
+    current_medications: HealthMedicationQueue = field(default_factory=list)
     medication_allergies: list[str] = field(default_factory=list)
 
     # NEW: Health conditions and history
     chronic_conditions: list[str] = field(default_factory=list)
-    health_alerts: list[dict[str, Any]] = field(default_factory=list)
+    health_alerts: HealthAlertList = field(default_factory=list)
     last_checkup_date: datetime | None = None
 
     def get_overdue_vaccinations(self) -> list[VaccinationRecord]:
@@ -365,15 +373,20 @@ class EnhancedHealthCalculator:
         return schedule
 
     @staticmethod
-    def update_health_status(health_profile: EnhancedHealthProfile) -> dict[str, Any]:
+    def update_health_status(
+        health_profile: EnhancedHealthProfile,
+    ) -> HealthStatusSnapshot:
         """Update overall health status with comprehensive analysis."""
         current_date = dt_util.now()
 
-        health_status = {
+        priority_alerts: HealthAlertList = []
+        upcoming_care: HealthUpcomingCareQueue = []
+        recommendations: list[str] = []
+        health_status: HealthStatusSnapshot = {
             "overall_score": 100,
-            "priority_alerts": [],
-            "upcoming_care": [],
-            "recommendations": [],
+            "priority_alerts": priority_alerts,
+            "upcoming_care": upcoming_care,
+            "recommendations": recommendations,
             "last_updated": current_date.isoformat(),
         }
 
@@ -396,14 +409,13 @@ class EnhancedHealthCalculator:
                     f"{vaccine.vaccine_type.value.title()} vaccination is "
                     f"{abs(days_until_due)} days overdue"
                 )
-                health_status["priority_alerts"].append(
-                    {
-                        "type": "vaccination_overdue",
-                        "message": message,
-                        "severity": "high",
-                        "action_required": True,
-                    }
-                )
+                overdue_vaccine_alert: HealthAlertEntry = {
+                    "type": "vaccination_overdue",
+                    "message": message,
+                    "severity": "high",
+                    "action_required": True,
+                }
+                priority_alerts.append(overdue_vaccine_alert)
 
         if due_soon_vaccines:
             for vaccine in due_soon_vaccines:
@@ -419,16 +431,15 @@ class EnhancedHealthCalculator:
                     f"{vaccine.vaccine_type.value.title()} vaccination due in "
                     f"{days_until_due} days"
                 )
-                health_status["upcoming_care"].append(
-                    {
-                        "type": "vaccination_due",
-                        "message": message,
-                        "due_date": vaccine.next_due_date.isoformat()
-                        if vaccine.next_due_date
-                        else None,
-                        "priority": "high",
-                    }
-                )
+                vaccination_entry: HealthUpcomingCareEntry = {
+                    "type": "vaccination_due",
+                    "message": message,
+                    "due_date": vaccine.next_due_date.isoformat()
+                    if vaccine.next_due_date
+                    else None,
+                    "priority": "high",
+                }
+                upcoming_care.append(vaccination_entry)
 
         # Check deworming status
         overdue_dewormings = health_profile.get_overdue_dewormings()
@@ -451,14 +462,13 @@ class EnhancedHealthCalculator:
                 message = (
                     f"{treatment_name} treatment is {abs(days_until_due)} days overdue"
                 )
-                health_status["priority_alerts"].append(
-                    {
-                        "type": "deworming_overdue",
-                        "message": message,
-                        "severity": "medium",
-                        "action_required": True,
-                    }
-                )
+                overdue_deworming_alert: HealthAlertEntry = {
+                    "type": "deworming_overdue",
+                    "message": message,
+                    "severity": "medium",
+                    "action_required": True,
+                }
+                priority_alerts.append(overdue_deworming_alert)
 
         if due_soon_dewormings:
             for deworming in due_soon_dewormings:
@@ -474,16 +484,15 @@ class EnhancedHealthCalculator:
                     "_", " "
                 ).title()
                 message = f"{treatment_name} treatment due in {days_until_due} days"
-                health_status["upcoming_care"].append(
-                    {
-                        "type": "deworming_due",
-                        "message": message,
-                        "due_date": deworming.next_due_date.isoformat()
-                        if deworming.next_due_date
-                        else None,
-                        "priority": "medium",
-                    }
-                )
+                deworming_entry: HealthUpcomingCareEntry = {
+                    "type": "deworming_due",
+                    "message": message,
+                    "due_date": deworming.next_due_date.isoformat()
+                    if deworming.next_due_date
+                    else None,
+                    "priority": "medium",
+                }
+                upcoming_care.append(deworming_entry)
 
         # Check for upcoming veterinary appointments
         upcoming_appointments = [
@@ -494,10 +503,12 @@ class EnhancedHealthCalculator:
 
         for appointment in upcoming_appointments[:3]:  # Next 3 appointments
             days_until = (appointment.appointment_date - current_date).days
-            health_status["upcoming_care"].append(
+            upcoming_care.append(
                 {
                     "type": "vet_appointment",
-                    "message": f"{appointment.appointment_type.title()} appointment in {days_until} days",
+                    "message": (
+                        f"{appointment.appointment_type.title()} appointment in {days_until} days"
+                    ),
                     "due_date": appointment.appointment_date.isoformat(),
                     "priority": "medium",
                     "details": appointment.purpose,
@@ -508,34 +519,34 @@ class EnhancedHealthCalculator:
         if health_profile.last_checkup_date:
             days_since_checkup = (current_date - health_profile.last_checkup_date).days
             if days_since_checkup > 365:
-                health_status["recommendations"].append(
+                recommendations.append(
                     f"Annual checkup recommended - last visit was {days_since_checkup} days ago"
                 )
                 health_status["overall_score"] -= 5
         else:
-            health_status["recommendations"].append(
+            recommendations.append(
                 "Schedule initial veterinary checkup to establish baseline health"
             )
             health_status["overall_score"] -= 10
 
         # Medication reminders
         for medication in health_profile.current_medications:
-            if not medication.get("next_dose"):
+            next_dose_value = medication.get("next_dose")
+            if not next_dose_value:
                 continue
 
-            next_dose = ensure_local_datetime(medication["next_dose"])
+            next_dose = ensure_local_datetime(next_dose_value)
             if next_dose is None:
                 continue
 
             if next_dose <= current_date + timedelta(hours=2):
-                health_status["priority_alerts"].append(
-                    {
-                        "type": "medication_due",
-                        "message": f"{medication['name']} dose due soon",
-                        "severity": "high",
-                        "action_required": True,
-                    }
-                )
+                medication_alert: HealthAlertEntry = {
+                    "type": "medication_due",
+                    "message": f"{medication['name']} dose due soon",
+                    "severity": "high",
+                    "action_required": True,
+                }
+                priority_alerts.append(medication_alert)
 
         # Final score adjustment
         health_status["overall_score"] = max(
@@ -547,7 +558,7 @@ class EnhancedHealthCalculator:
     @staticmethod
     def calculate_next_appointment_recommendation(
         health_profile: EnhancedHealthProfile, dog_age_months: int
-    ) -> dict[str, Any]:
+    ) -> HealthAppointmentRecommendation:
         """Calculate when the next veterinary appointment should be scheduled."""
         current_date = dt_util.now()
 
@@ -582,10 +593,11 @@ class EnhancedHealthCalculator:
                 days=7
             )  # Schedule soon if never seen
 
-        return {
+        recommendation: HealthAppointmentRecommendation = {
             "next_appointment_date": next_recommended.isoformat(),
             "appointment_type": appointment_type,
             "reason": f"Based on age ({dog_age_months} months) and health conditions",
             "urgency": "high" if next_recommended < current_date else "normal",
             "days_until": (next_recommended - current_date).days,
         }
+        return recommendation

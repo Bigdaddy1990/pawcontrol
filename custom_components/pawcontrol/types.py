@@ -54,7 +54,11 @@ from .const import (
     CONF_QUIET_START,
     CONF_REMINDER_REPEAT_MIN,
 )
-from .service_guard import ServiceGuardSummary
+from .service_guard import (
+    ServiceGuardMetricsSnapshot,
+    ServiceGuardResultHistory,
+    ServiceGuardSummary,
+)
 
 try:
     from homeassistant.util import dt as dt_util
@@ -68,6 +72,204 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
     dt_util = _DateTimeModule()
 
 from .utils import is_number
+
+type JSONPrimitive = None | bool | int | float | str
+"""Primitive JSON-compatible values."""
+
+type JSONValue = JSONPrimitive | Sequence["JSONValue"] | Mapping[str, "JSONValue"]
+"""Recursive JSON-compatible value used for diagnostics payloads."""
+
+type JSONMapping = Mapping[str, JSONValue]
+"""Mapping view for JSON-compatible payloads."""
+
+type JSONMutableMapping = dict[str, JSONValue]
+"""Mutable mapping containing JSON-compatible payloads."""
+
+type JSONMutableSequence = list[JSONValue]
+"""Mutable sequence containing JSON-compatible payload entries."""
+
+type EntityAttributePayload[T: JSONValue] = dict[str, T]
+"""Generic JSON-compatible attribute payload keyed by entity attribute name."""
+
+type EntityAttributeMutableMapping = EntityAttributePayload[JSONValue]
+"""Mutable attribute payload used when exporting Home Assistant entity state."""
+
+type NumberExtraAttributes = EntityAttributeMutableMapping
+"""Extra state attributes exposed by PawControl number entities."""
+
+type SelectExtraAttributes = EntityAttributeMutableMapping
+"""Extra state attributes exposed by PawControl select entities."""
+
+
+class ButtonExtraAttributes(TypedDict, total=False):
+    """Extra state attributes exposed by PawControl button entities."""
+
+    dog_id: Required[str]
+    dog_name: Required[str]
+    button_type: Required[str]
+    last_pressed: str | None
+    action_description: NotRequired[str]
+
+
+class BinarySensorAttributes(TypedDict, total=False):
+    """Extra state attributes exposed by PawControl binary sensor entities."""
+
+    dog_id: Required[str]
+    dog_name: Required[str]
+    sensor_type: Required[str]
+    last_update: Required[str]
+    dog_breed: NotRequired[str | None]
+    dog_age: NotRequired[int | float | None]
+    dog_size: NotRequired[str | None]
+    dog_weight: NotRequired[float | None]
+    status: NotRequired[str]
+    system_health: NotRequired[str]
+    enabled_modules: NotRequired[list[str]]
+    attention_reasons: NotRequired[list[str]]
+    urgency_level: NotRequired[str]
+    recommended_actions: NotRequired[list[str]]
+    recommended_action: NotRequired[str]
+    visitor_mode_started: NotRequired[str | None]
+    visitor_name: NotRequired[str | None]
+    modified_notifications: NotRequired[bool]
+    reduced_alerts: NotRequired[bool]
+    last_feeding: NotRequired[str | None]
+    last_feeding_hours: NotRequired[int | float | None]
+    next_feeding_due: NotRequired[str | None]
+    hunger_level: NotRequired[str]
+    walk_start_time: NotRequired[str | None]
+    walk_duration: NotRequired[int | float | None]
+    walk_distance: NotRequired[int | float | None]
+    estimated_remaining: NotRequired[int | None]
+    last_walk: NotRequired[str | None]
+    last_walk_hours: NotRequired[int | float | None]
+    walks_today: NotRequired[int]
+    garden_status: NotRequired[str]
+    sessions_today: NotRequired[int]
+    pending_confirmations: NotRequired[list[GardenConfirmationSnapshot]]
+    pending_confirmation_count: NotRequired[int]
+    current_zone: NotRequired[str]
+    distance_from_home: NotRequired[float | None]
+    last_seen: NotRequired[str | None]
+    accuracy: NotRequired[float | int | None]
+    health_alerts: NotRequired[HealthAlertList]
+    health_status: NotRequired[str | None]
+    alert_count: NotRequired[int]
+    current_activity_level: NotRequired[str]
+    concern_reason: NotRequired[str]
+    portion_adjustment_factor: NotRequired[float | None]
+    health_conditions: NotRequired[list[str]]
+    emergency_type: NotRequired[str | None]
+    portion_adjustment: NotRequired[int | float | str | None]
+    activated_at: NotRequired[str | None]
+    expires_at: NotRequired[str | None]
+
+
+class DateExtraAttributes(TypedDict, total=False):
+    """Extra state attributes exposed by PawControl date entities."""
+
+    dog_id: Required[str]
+    dog_name: Required[str]
+    date_type: Required[str]
+    days_from_today: NotRequired[int]
+    is_past: NotRequired[bool]
+    is_today: NotRequired[bool]
+    is_future: NotRequired[bool]
+    iso_string: NotRequired[str]
+    age_days: NotRequired[int]
+    age_years: NotRequired[float]
+    age_months: NotRequired[float]
+
+
+class TrackingModePreset(TypedDict, total=False):
+    """Configuration preset applied when selecting a GPS tracking mode."""
+
+    update_interval_seconds: int
+    auto_start_walk: bool
+    track_route: bool
+    route_smoothing: bool
+
+
+class LocationAccuracyConfig(TypedDict, total=False):
+    """Configuration payload applied when selecting a GPS accuracy profile."""
+
+    gps_accuracy_threshold: float
+    min_distance_for_point: float
+    route_smoothing: bool
+
+
+class DogSizeInfo(TypedDict, total=False):
+    """Additional metadata exposed by the dog size select entity."""
+
+    weight_range: str
+    exercise_needs: str
+    food_portion: str
+
+
+class PerformanceModeInfo(TypedDict, total=False):
+    """Metadata describing a performance mode option."""
+
+    description: str
+    update_interval: str
+    battery_impact: str
+
+
+class FoodTypeInfo(TypedDict, total=False):
+    """Metadata describing a feeding option exposed by selects."""
+
+    calories_per_gram: float
+    moisture_content: str
+    storage: str
+    shelf_life: str
+
+
+class WalkModeInfo(TypedDict, total=False):
+    """Descriptive metadata for walk mode select options."""
+
+    description: str
+    gps_required: bool
+    accuracy: str
+
+
+class GPSSourceInfo(TypedDict, total=False):
+    """Metadata describing a configured GPS telemetry source."""
+
+    accuracy: str
+    update_frequency: str
+    battery_usage: str
+
+
+class GroomingTypeInfo(TypedDict, total=False):
+    """Metadata describing a grooming routine selection."""
+
+    frequency: str
+    duration: str
+    difficulty: str
+
+
+type MetadataPayload[T: JSONValue] = dict[str, T]
+"""Generic JSON-compatible mapping used for diagnostics metadata sections."""
+
+type MaintenanceMetadataPayload = MetadataPayload[JSONValue]
+"""JSON-compatible metadata payload captured during maintenance routines."""
+
+type StorageNamespaceKey = Literal[
+    "walks",
+    "feedings",
+    "health",
+    "routes",
+    "statistics",
+]
+"""Supported storage namespaces handled by :class:`PawControlDataStorage`."""
+
+type StorageNamespacePayload = dict[str, JSONValue]
+"""Serialized payload persisted for a single storage namespace."""
+
+type StorageNamespaceState = dict[StorageNamespaceKey, StorageNamespacePayload]
+"""Combined storage state keyed by namespace identifier."""
+
+type StorageCacheValue = StorageNamespaceState | StorageNamespacePayload | None
+"""Union of cache payloads tracked by :class:`PawControlDataStorage`."""
 
 # OPTIMIZE: Resolve circular imports with proper conditional imports
 if TYPE_CHECKING:
@@ -263,6 +465,102 @@ class DietValidationResult(TypedDict):
     total_diets: int
 
 
+class FeedingGoalSettings(TypedDict, total=False):
+    """Targeted feeding goals that influence portion adjustments."""
+
+    weight_goal: Literal["maintain", "lose", "gain"]
+    weight_loss_rate: Literal["aggressive", "moderate", "gradual"]
+
+
+class HealthMetricsOverride(TypedDict, total=False):
+    """Runtime override values when building :class:`HealthMetrics`."""
+
+    weight: float | int
+    ideal_weight: float | int
+    age_months: int
+    health_conditions: list[str]
+
+
+class FeedingHistoryEvent(TypedDict, total=False):
+    """Normalised feeding event used for history analysis."""
+
+    time: datetime
+    amount: float | int
+    meal_type: str | None
+
+
+FeedingHistoryStatus = Literal[
+    "no_data",
+    "insufficient_data",
+    "no_recent_data",
+    "no_health_data",
+    "good",
+    "overfeeding",
+    "slight_overfeeding",
+    "underfeeding",
+    "slight_underfeeding",
+]
+"""Status values returned by ``analyze_feeding_history``."""
+
+
+class FeedingHealthContext(TypedDict, total=False):
+    """Contextual health information attached to feeding analysis."""
+
+    weight_goal: str | None
+    body_condition_score: float | int | None
+    life_stage: str | None
+    activity_level: str | None
+    health_conditions: list[str] | None
+    special_diet: list[str] | None
+
+
+class FeedingHistoryAnalysis(TypedDict, total=False):
+    """Structured payload returned by feeding history analysis."""
+
+    status: FeedingHistoryStatus
+    recommendation: str
+    message: str
+    avg_daily_calories: float
+    target_calories: float
+    calorie_variance_percent: float
+    avg_daily_meals: float
+    recommendations: list[str]
+    analysis_period_days: int
+    health_context: FeedingHealthContext
+
+
+class HealthFeedingInsights(TypedDict, total=False):
+    """Feeding-specific recommendations appended to health reports."""
+
+    daily_calorie_target: float | None
+    portion_adjustment_factor: float
+    recommended_meals_per_day: int
+    food_type_recommendation: str | None
+
+
+HealthReportStatus = Literal[
+    "excellent",
+    "good",
+    "needs_attention",
+    "concerning",
+    "managing_condition",
+]
+"""Overall status levels surfaced by comprehensive health reports."""
+
+
+class HealthReport(TypedDict, total=False):
+    """Comprehensive health report exported by the feeding manager."""
+
+    timestamp: str
+    overall_status: HealthReportStatus
+    recommendations: list[str]
+    health_score: int
+    areas_of_concern: list[str]
+    positive_indicators: list[str]
+    feeding_insights: HealthFeedingInsights
+    recent_feeding_performance: FeedingHistoryAnalysis
+
+
 class DogVaccinationRecord(TypedDict, total=False):
     """Details about a specific vaccination."""
 
@@ -315,6 +613,62 @@ class DogModulesConfig(TypedDict, total=False):
     medication: bool
     training: bool
     weather: bool
+
+
+class HealthMedicationReminder(TypedDict, total=False):
+    """Reminder entry describing an active medication schedule."""
+
+    name: str
+    dosage: str | None
+    frequency: str | None
+    next_dose: str | None
+    notes: str | None
+    with_meals: bool | None
+
+
+class HealthAlertEntry(TypedDict, total=False):
+    """Structured alert surfaced by the health enhancement routines."""
+
+    type: str
+    message: str
+    severity: Literal["low", "medium", "high", "critical"]
+    action_required: bool
+    details: Mapping[str, Any] | None
+
+
+class HealthUpcomingCareEntry(TypedDict, total=False):
+    """Scheduled or due-soon care entry tracked for a dog."""
+
+    type: str
+    message: str
+    due_date: str | None
+    priority: Literal["low", "medium", "high"]
+    details: str | Mapping[str, Any] | None
+
+
+type HealthAlertList = list[HealthAlertEntry]
+type HealthUpcomingCareQueue = list[HealthUpcomingCareEntry]
+type HealthMedicationQueue = list[HealthMedicationReminder]
+
+
+class HealthStatusSnapshot(TypedDict, total=False):
+    """Current health status summary exported to diagnostics consumers."""
+
+    overall_score: int
+    priority_alerts: HealthAlertList
+    upcoming_care: HealthUpcomingCareQueue
+    recommendations: list[str]
+    last_updated: str
+
+
+class HealthAppointmentRecommendation(TypedDict):
+    """Recommendation for the next veterinary appointment."""
+
+    next_appointment_date: str
+    appointment_type: str
+    reason: str
+    urgency: Literal["low", "normal", "high"]
+    days_until: int
 
 
 ModuleToggleKey = Literal[
@@ -573,6 +927,9 @@ def _coerce_str(value: Any, *, default: str) -> str:
 
 
 PerformanceMode = Literal["minimal", "balanced", "full"]
+
+type ConfigFlowPlaceholderValue = bool | int | float | str
+type ConfigFlowPlaceholders = Mapping[str, ConfigFlowPlaceholderValue]
 """Accepted performance mode values for coordinator tuning."""
 
 
@@ -1068,6 +1425,124 @@ class DashboardOptions(TypedDict, total=False):
     show_maps: bool
 
 
+class DashboardRendererOptions(DashboardOptions, total=False):
+    """Extended dashboard options consumed by the async renderer."""
+
+    show_settings: bool
+    show_activity_summary: bool
+    dashboard_url: str
+    theme: str
+    title: str
+    icon: str
+    url: str
+    layout: str
+    show_in_sidebar: bool
+    show_activity_graph: bool
+    show_breed_advice: bool
+    show_weather_forecast: bool
+
+
+type DashboardCardOptions = DashboardRendererOptions
+"""Card generator options forwarded from the dashboard renderer."""
+
+
+class DashboardCardPerformanceStats(TypedDict):
+    """Performance counters tracked while generating dashboard cards."""
+
+    validations_count: int
+    cache_hits: int
+    cache_misses: int
+    generation_time_total: float
+    errors_handled: int
+
+
+class TemplateCacheStats(TypedDict):
+    """Statistics returned by the in-memory dashboard template cache."""
+
+    hits: int
+    misses: int
+    hit_rate: float
+    cached_items: int
+    evictions: int
+    max_size: int
+
+
+class TemplateCacheDiagnosticsMetadata(TypedDict):
+    """Metadata describing the template cache configuration."""
+
+    cached_keys: list[str]
+    ttl_seconds: int
+    max_size: int
+    evictions: int
+
+
+class TemplateCacheSnapshot(TypedDict):
+    """Complete snapshot exported for diagnostics and telemetry."""
+
+    stats: TemplateCacheStats
+    metadata: TemplateCacheDiagnosticsMetadata
+
+
+type LovelaceCardConfig = JSONMutableMapping
+"""Mutable Lovelace card configuration payload."""
+
+
+class LovelaceViewConfig(TypedDict, total=False):
+    """Typed Lovelace view configuration produced by the renderer."""
+
+    title: str
+    path: str
+    icon: str
+    theme: NotRequired[str]
+    cards: list[LovelaceCardConfig]
+    badges: NotRequired[list[str]]
+    type: NotRequired[str]
+
+
+class DashboardRenderResult(TypedDict):
+    """Typed dashboard payload emitted by the async renderer."""
+
+    views: list[LovelaceViewConfig]
+
+
+class DashboardRenderJobConfig(TypedDict, total=False):
+    """Payload stored on queued render jobs."""
+
+    dogs: Sequence[DogConfigData]
+    dog: DogConfigData
+    coordinator_statistics: CoordinatorStatisticsPayload | JSONMapping
+    service_execution_metrics: CoordinatorRejectionMetrics | JSONMapping
+    service_guard_metrics: HelperManagerGuardMetrics | JSONMapping
+
+
+class DashboardRendererStatistics(TypedDict):
+    """Summary statistics describing renderer state."""
+
+    active_jobs: int
+    total_jobs_processed: int
+    template_cache: TemplateCacheStats
+
+
+class SwitchExtraAttributes(TypedDict, total=False):
+    """Common state attributes exposed by optimized switches."""
+
+    dog_id: str
+    dog_name: str
+    switch_type: str
+    last_changed: str
+    profile_optimized: bool
+    enabled_modules: list[str]
+    total_modules: int
+
+
+class SwitchFeatureAttributes(SwitchExtraAttributes, total=False):
+    """Additional metadata surfaced by feature-level switches."""
+
+    feature_id: str
+    parent_module: str
+    feature_name: str
+
+
 class AdvancedOptions(TypedDict, total=False):
     """Advanced diagnostics and integration toggles stored on the entry."""
 
@@ -1181,6 +1656,13 @@ class ConfigFlowDiscoveryData(TypedDict, total=False):
     last_seen: str
 
 
+class IntegrationNameValidationResult(TypedDict):
+    """Validation response for integration name checks during setup."""
+
+    valid: bool
+    errors: dict[str, str]
+
+
 class ConfigFlowGlobalSettings(TypedDict, total=False):
     """Global configuration captured during the setup flow."""
 
@@ -1189,6 +1671,19 @@ class ConfigFlowGlobalSettings(TypedDict, total=False):
     enable_cloud_backup: bool
     data_retention_days: int
     debug_logging: bool
+
+
+class ModuleConfigurationStepInput(TypedDict, total=False):
+    """User-provided values collected during the module setup step."""
+
+    performance_mode: str
+    enable_analytics: bool
+    enable_cloud_backup: bool
+    data_retention_days: int
+    debug_logging: bool
+    enable_notifications: bool
+    enable_dashboard: bool
+    auto_backup: bool
 
 
 class DashboardSetupConfig(TypedDict, total=False):
@@ -1210,6 +1705,36 @@ class DashboardSetupConfig(TypedDict, total=False):
     refresh_interval: int
 
 
+class DashboardConfigurationStepInput(TypedDict, total=False):
+    """Raw dashboard configuration payload received from the UI step."""
+
+    auto_create_dashboard: bool
+    create_per_dog_dashboards: bool
+    dashboard_theme: str
+    dashboard_template: str
+    dashboard_mode: str
+    show_statistics: bool
+    show_maps: bool
+    show_health_charts: bool
+    show_feeding_schedule: bool
+    show_alerts: bool
+    compact_mode: bool
+    auto_refresh: bool
+    refresh_interval: int
+
+
+class FeedingSizeDefaults(TypedDict):
+    """Default feeding configuration derived from the selected dog size."""
+
+    meals_per_day: int
+    daily_food_amount: int
+    feeding_times: list[str]
+    portion_size: int
+
+
+type FeedingSizeDefaultsMap = dict[str, FeedingSizeDefaults]
+
+
 class FeedingSetupConfig(TypedDict, total=False):
     """Feeding defaults gathered while configuring modules during setup."""
 
@@ -1222,6 +1747,45 @@ class FeedingSetupConfig(TypedDict, total=False):
     medication_with_meals: bool
     feeding_reminders: bool
     portion_tolerance: int
+
+
+class FeedingConfigurationStepInput(TypedDict, total=False):
+    """Raw feeding configuration payload received from the UI step."""
+
+    daily_food_amount: float | int
+    meals_per_day: int
+    food_type: str
+    special_diet: list[str]
+    feeding_schedule_type: str
+    portion_calculation: bool
+    medication_with_meals: bool
+    feeding_reminders: bool
+    portion_tolerance: int
+
+
+class ModuleConfigurationPlaceholders(TypedDict):
+    """Placeholders exposed while rendering the module configuration form."""
+
+    dog_count: int
+    module_summary: str
+    total_modules: int
+    gps_dogs: int
+    health_dogs: int
+
+
+class DashboardConfigurationPlaceholders(TypedDict):
+    """Placeholders used when rendering the dashboard configuration form."""
+
+    dog_count: int
+    dashboard_info: str
+    features: str
+
+
+class FeedingConfigurationPlaceholders(TypedDict):
+    """Placeholders used when rendering the feeding configuration form."""
+
+    dog_count: int
+    feeding_summary: str
 
 
 class ExternalEntityConfig(TypedDict, total=False):
@@ -1428,7 +1992,127 @@ class HelperManagerGuardMetrics(TypedDict):
     executed: int
     skipped: int
     reasons: dict[str, int]
-    last_results: list[dict[str, Any]]
+    last_results: ServiceGuardResultHistory
+
+
+class PersonEntityCounters(TypedDict):
+    """Low-level person manager counters used for cache statistics."""
+
+    persons_discovered: int
+    notifications_targeted: int
+    cache_hits: int
+    cache_misses: int
+    discovery_runs: int
+
+
+class PersonEntityConfigStats(TypedDict):
+    """Normalised configuration snapshot for the person entity manager."""
+
+    enabled: bool
+    auto_discovery: bool
+    discovery_interval: int
+    include_away_persons: bool
+    fallback_to_static: bool
+
+
+class PersonEntityStateStats(TypedDict):
+    """Runtime discovery metrics surfaced by the person entity manager."""
+
+    total_persons: int
+    home_persons: int
+    away_persons: int
+    last_discovery: str
+    uptime_seconds: float
+
+
+class PersonEntityCacheStats(TypedDict):
+    """Cache health metrics for person notification targeting."""
+
+    cache_entries: int
+    hit_rate: float
+
+
+class PersonEntityStats(PersonEntityCounters):
+    """Coordinator statistics payload exported by the person entity manager."""
+
+    config: PersonEntityConfigStats
+    current_state: PersonEntityStateStats
+    cache: PersonEntityCacheStats
+
+
+class PersonNotificationCacheEntry(TypedDict, total=False):
+    """Snapshot of cached notification targets for a specific context."""
+
+    targets: tuple[str, ...]
+    generated_at: str | None
+    age_seconds: float | None
+    stale: bool
+
+
+class PersonNotificationContext(TypedDict):
+    """Aggregated notification context surfaced to diagnostics panels."""
+
+    persons_home: int
+    persons_away: int
+    home_person_names: list[str]
+    away_person_names: list[str]
+    total_persons: int
+    has_anyone_home: bool
+    everyone_away: bool
+
+
+class NotificationQueueStats(TypedDict):
+    """Queue utilisation metrics for the notification manager."""
+
+    normal_queue_size: int
+    high_priority_queue_size: int
+    total_queued: int
+    max_queue_size: int
+
+
+class PersonEntitySnapshotEntry(TypedDict, total=False):
+    """Snapshot payload exported for each discovered person entity."""
+
+    entity_id: str
+    name: str
+    friendly_name: str
+    state: str
+    is_home: bool
+    last_updated: str
+    mobile_device_id: str | None
+    notification_service: str | None
+
+
+class PersonEntitySnapshot(TypedDict):
+    """Coordinator snapshot payload returned by the person entity manager."""
+
+    persons: dict[str, PersonEntitySnapshotEntry]
+    notification_context: PersonNotificationContext
+
+
+class ScriptManagerDogScripts(TypedDict):
+    """Snapshot of generated scripts for a single dog."""
+
+    count: int
+    scripts: list[str]
+
+
+class ScriptManagerStats(TypedDict, total=False):
+    """Summary metrics surfaced by the script manager cache monitor."""
+
+    scripts: int
+    dogs: int
+    entry_scripts: int
+    last_generated_age_seconds: int
+
+
+class ScriptManagerSnapshot(TypedDict, total=False):
+    """Detailed coordinator snapshot payload for the script manager."""
+
+    created_entities: list[str]
+    per_dog: dict[str, ScriptManagerDogScripts]
+    entry_scripts: list[str]
+    last_generated: str | None
 
 
 DogValidationCache = dict[str, DogValidationCacheEntry]
@@ -1455,53 +2139,526 @@ is needed with proper type hinting.
 """
 
 
-class FeedingModulePayload(TypedDict, total=False):
+class FeedingScheduleSnapshot(TypedDict, total=False):
+    """Schedule configuration associated with the feeding telemetry."""
+
+    meals_per_day: int
+    food_type: str | None
+    schedule_type: str | None
+
+
+class FeedingEventRecord(TypedDict, total=False):
+    """Serialized feeding event stored in manager telemetry."""
+
+    time: Required[str]
+    amount: Required[float]
+    meal_type: str | None
+    portion_size: float | None
+    food_type: str | None
+    notes: str | None
+    feeder: str | None
+    scheduled: Required[bool]
+    skipped: Required[bool]
+    with_medication: Required[bool]
+    medication_name: str | None
+    medication_dose: str | None
+    medication_time: str | None
+
+
+class FeedingMissedMeal(TypedDict):
+    """Scheduled meal that was not completed within the expected window."""
+
+    meal_type: str
+    scheduled_time: str
+
+
+class FeedingDailyStats(TypedDict):
+    """Daily feeding counters exposed alongside the active snapshot."""
+
+    total_fed_today: float
+    meals_today: int
+    remaining_calories: float | None
+
+
+class FeedingEmergencyState(TypedDict, total=False):
+    """State metadata tracked while emergency feeding mode is active."""
+
+    active: Required[bool]
+    status: Required[str]
+    emergency_type: Required[str]
+    portion_adjustment: Required[float]
+    duration_days: Required[int]
+    activated_at: Required[str]
+    expires_at: str | None
+    resolved_at: NotRequired[str]
+    food_type_recommendation: str | None
+
+
+type FeedingHealthStatus = Literal[
+    "insufficient_data",
+    "emergency",
+    "underfed",
+    "overfed",
+    "on_track",
+    "monitoring",
+    "unknown",
+]
+"""Possible health status indicators emitted by the feeding manager."""
+
+
+class FeedingHealthSummary(TypedDict, total=False):
+    """Structured health context calculated for a dog's feeding plan."""
+
+    health_aware_enabled: bool
+    current_weight: float | None
+    ideal_weight: float | None
+    life_stage: str | None
+    activity_level: str | None
+    body_condition_score: float | int | None
+    daily_calorie_requirement: float | None
+    calories_per_gram: float
+    health_conditions: list[str]
+    special_diet: list[str]
+    weight_goal: str | None
+    diet_validation_applied: bool
+
+
+class FeedingDietValidationSummary(TypedDict, total=False):
+    """Summary describing diet validation adjustments and conflicts."""
+
+    has_adjustments: bool
+    adjustment_info: str
+    conflict_count: int
+    warning_count: int
+    vet_consultation_recommended: bool
+    vet_consultation_state: str
+    consultation_urgency: str
+    total_diets: int
+    diet_validation_adjustment: float
+    percentage_adjustment: float
+    adjustment_direction: str
+    safety_factor: str
+    compatibility_score: int
+    compatibility_level: str
+    conflicts: NotRequired[list[JSONMapping]]
+    warnings: NotRequired[list[JSONMapping]]
+
+
+class FeedingSnapshot(TypedDict, total=False):
+    """Primary feeding telemetry snapshot returned by the manager."""
+
+    status: Required[Literal["ready", "no_data"]]
+    last_feeding: str | None
+    last_feeding_type: str | None
+    last_feeding_hours: float | None
+    last_feeding_amount: float | None
+    feedings_today: Required[dict[str, int]]
+    total_feedings_today: Required[int]
+    daily_amount_consumed: Required[float]
+    daily_amount_target: Required[float]
+    daily_target: Required[float]
+    daily_amount_percentage: Required[int]
+    schedule_adherence: Required[int]
+    next_feeding: str | None
+    next_feeding_type: str | None
+    missed_feedings: Required[list[FeedingMissedMeal]]
+    feedings: Required[list[FeedingEventRecord]]
+    feeding_schedule: NotRequired[list[JSONMapping]]
+    daily_portions: NotRequired[int]
+    daily_stats: Required[FeedingDailyStats]
+    calories_per_gram: NotRequired[float]
+    daily_calorie_target: NotRequired[float]
+    total_calories_today: NotRequired[float]
+    calorie_goal_progress: NotRequired[float]
+    portion_adjustment_factor: NotRequired[float]
+    diet_validation_summary: NotRequired[FeedingDietValidationSummary | None]
+    health_conditions: NotRequired[list[str]]
+    daily_activity_level: NotRequired[str | None]
+    health_summary: NotRequired[FeedingHealthSummary]
+    medication_with_meals: Required[bool]
+    health_aware_feeding: Required[bool]
+    weight_goal: Required[str | None]
+    weight_goal_progress: NotRequired[float]
+    emergency_mode: Required[FeedingEmergencyState | None]
+    health_emergency: Required[bool]
+    health_feeding_status: Required[FeedingHealthStatus]
+    config: NotRequired[FeedingScheduleSnapshot]
+
+
+class FeedingStatisticsSnapshot(TypedDict):
+    """Historical feeding statistics exported by the manager."""
+
+    period_days: int
+    total_feedings: int
+    average_daily_feedings: float
+    average_daily_amount: float
+    most_common_meal: str | None
+    schedule_adherence: int
+    daily_target_met_percentage: int
+
+
+class FeedingModulePayload(FeedingSnapshot, total=False):
     """Typed payload exposed by the feeding coordinator module."""
 
-    status: Required[str]
-    last_feeding: Any | None
-    feedings_today: dict[str, Any]
-    total_feedings_today: int
-    daily_amount_consumed: float
-    daily_portions: int
-    feeding_schedule: list[Any]
-    daily_calorie_target: float | None
-    total_calories_today: float | None
-    portion_adjustment_factor: float | None
-    health_feeding_status: str
-    medication_with_meals: bool
-    health_aware_feeding: bool
-    health_conditions: list[Any]
-    daily_activity_level: str | None
-    weight_goal: Any
-    weight_goal_progress: Any
-    health_emergency: bool
-    emergency_mode: Any
-    health_summary: dict[str, Any]
     message: NotRequired[str]
 
 
-class WalkModulePayload(TypedDict, total=False):
-    """Telemetry returned by the walk adapter."""
-
-    status: Required[str]
-    current_walk: dict[str, Any] | None
-    last_walk: dict[str, Any] | None
-    daily_walks: int
-    total_distance: float
-    message: NotRequired[str]
+class FeedingModuleTelemetry(FeedingModulePayload):
+    """Extended feeding module telemetry used by diagnostics consumers."""
 
 
-class GPSModulePayload(TypedDict, total=False):
+type FeedingSnapshotCache = dict[str, FeedingSnapshot]
+"""Cache of per-dog feeding snapshots keyed by dog identifier."""
+
+
+type FeedingStatisticsCache = dict[str, FeedingStatisticsSnapshot]
+"""Cache of historical feeding statistics keyed by cache key."""
+
+
+class GPSRoutePoint(TypedDict, total=False):
+    """Individual GPS sample collected during live tracking."""
+
+    latitude: Required[float]
+    longitude: Required[float]
+    timestamp: Required[datetime]
+    accuracy: Required[float | int]
+    altitude: float | None
+    speed: float | None
+    heading: float | None
+
+
+class GPSLocationSample(TypedDict):
+    """Validated GPS location sample with prioritisation metadata."""
+
+    latitude: float
+    longitude: float
+    accuracy: int
+    timestamp: datetime
+    source: str
+    priority: int
+    altitude: float | None
+    speed: float | None
+    heading: float | None
+
+
+class GPSRouteSnapshot(TypedDict, total=False):
+    """Snapshot of an active or historical GPS route."""
+
+    id: Required[str]
+    name: Required[str]
+    active: Required[bool]
+    start_time: Required[datetime]
+    end_time: datetime | None
+    duration: float | int | None
+    distance: float | None
+    points: list[GPSRoutePoint]
+    point_count: int
+    last_point_time: datetime | None
+
+
+class GPSCompletedRouteSnapshot(GPSRouteSnapshot, total=False):
+    """Snapshot returned when a GPS route recording completes."""
+
+    dog_id: Required[str]
+    dog_name: Required[str]
+
+
+class GeofenceZoneMetadata(TypedDict, total=False):
+    """Additional attributes persisted alongside configured geofence zones."""
+
+    auto_created: bool
+    color: str | None
+    created_by: str | None
+    notes: str | None
+    tags: list[str]
+
+
+class GeofenceZoneStoragePayload(TypedDict, total=False):
+    """Serialized representation of a stored :class:`GeofenceZone`."""
+
+    id: Required[str]
+    name: Required[str]
+    type: Required[str]
+    latitude: Required[float]
+    longitude: Required[float]
+    radius: Required[float]
+    enabled: bool
+    alerts_enabled: bool
+    description: str
+    created_at: str
+    updated_at: str
+    metadata: GeofenceZoneMetadata
+
+
+class GeofenceStoragePayload(TypedDict, total=False):
+    """Top-level storage payload tracked by :class:`PawControlGeofencing`."""
+
+    zones: dict[str, GeofenceZoneStoragePayload]
+    last_updated: str
+
+
+class GeofenceNotificationPayload(TypedDict, total=False):
+    """Notification payload emitted for geofence enter/exit events."""
+
+    zone_id: Required[str]
+    zone_name: Required[str]
+    zone_type: Required[str]
+    event_type: Required[str]
+    radius: Required[float]
+    latitude: float
+    longitude: float
+    distance_from_center_m: float
+    accuracy: float | int | None
+
+
+class GPSGeofenceLocationSnapshot(TypedDict, total=False):
+    """Current GPS location exported in geofence status snapshots."""
+
+    latitude: Required[float]
+    longitude: Required[float]
+    timestamp: Required[str]
+    accuracy: float | int | None
+
+
+class GPSGeofenceZoneStatusSnapshot(TypedDict):
+    """Status details for an individual configured geofence zone."""
+
+    inside: bool
+    zone_type: str
+    radius_meters: float
+    distance_to_center: float
+    notifications_enabled: bool
+
+
+class GPSGeofenceStatusSnapshot(TypedDict):
+    """Full geofence snapshot surfaced to diagnostics and dashboards."""
+
+    dog_id: str
+    zones_configured: int
+    current_location: GPSGeofenceLocationSnapshot | None
+    zone_status: dict[str, GPSGeofenceZoneStatusSnapshot]
+    safe_zone_breaches: int
+    last_update: str | None
+
+
+class GPSTelemetryPayload(TypedDict, total=False):
+    """Live GPS telemetry exposed to coordinators and diagnostics."""
+
+    latitude: float | None
+    longitude: float | None
+    accuracy: float | int | None
+    altitude: float | None
+    speed: float | None
+    heading: float | None
+    source: str | None
+    last_seen: datetime | None
+    last_update: str | None
+    battery: float | int | None
+    zone: str | None
+    satellites: int | None
+    distance_from_home: float | None
+    geofence_status: JSONMutableMapping | None
+    walk_info: JSONMutableMapping | None
+    current_route: GPSRouteSnapshot | None
+    active_route: JSONMutableMapping | None
+
+
+class GPSModulePayload(GPSTelemetryPayload, total=False):
     """GPS metrics surfaced through the GPS adapter."""
 
     status: Required[str]
-    latitude: float | None
-    longitude: float | None
-    accuracy: float | None
-    last_update: str | None
+
+
+class GPSManagerStats(TypedDict):
+    """Counters maintained by :class:`GPSGeofenceManager` for telemetry."""
+
+    gps_points_processed: int
+    routes_completed: int
+    geofence_events: int
+    last_update: datetime
+
+
+class GPSManagerStatisticsSnapshot(GPSManagerStats):
+    """Aggregated GPS statistics exposed via coordinator diagnostics."""
+
+    dogs_configured: int
+    active_tracking_sessions: int
+    total_routes_stored: int
+    geofence_zones_configured: int
+
+
+class GPSTrackerRouteAttributes(TypedDict, total=False):
+    """Route metadata surfaced as device tracker state attributes."""
+
+    route_active: bool
+    route_points: int
+    route_distance: float | None
+    route_duration: float | int | None
+    route_start_time: str | None
+
+
+class GPSTrackerGeofenceAttributes(TypedDict, total=False):
+    """Geofence attributes exposed on the GPS tracker entity."""
+
+    in_safe_zone: bool
+    zone_name: str | None
+    zone_distance: float | None
+
+
+class GPSTrackerWalkAttributes(TypedDict, total=False):
+    """Walk linkage metadata exposed on the GPS tracker entity."""
+
+    walk_active: bool
+    walk_id: str | None
+    walk_start_time: str | None
+
+
+class GPSTrackerExtraAttributes(
+    GPSTrackerRouteAttributes,
+    GPSTrackerGeofenceAttributes,
+    GPSTrackerWalkAttributes,
+    total=False,
+):
+    """Complete set of extra attributes returned by the GPS tracker entity."""
+
+    dog_id: Required[str]
+    dog_name: Required[str]
+    tracker_type: Required[str]
+    altitude: float | None
+    speed: float | None
+    heading: float | None
+    satellites: int | None
+    location_source: str
+    last_seen: str | None
+    distance_from_home: float | None
+
+
+class GPSRouteExportJSONPoint(TypedDict, total=False):
+    """GPS point exported in JSON route downloads."""
+
+    latitude: Required[float]
+    longitude: Required[float]
+    timestamp: Required[str]
+    altitude: float | None
+    accuracy: float | int | None
     source: str | None
-    active_route: dict[str, Any] | None
+
+
+class GPSRouteExportJSONEvent(TypedDict, total=False):
+    """Geofence event metadata included in JSON route exports."""
+
+    event_type: Required[str]
+    zone_name: Required[str]
+    timestamp: Required[str]
+    distance_from_center: float | None
+    severity: str | None
+
+
+class GPSRouteExportJSONRoute(TypedDict, total=False):
+    """Route details serialised in JSON exports."""
+
+    start_time: Required[str]
+    end_time: str | None
+    duration_minutes: float | None
+    distance_km: float | None
+    avg_speed_kmh: float | None
+    route_quality: str
+    gps_points: list[GPSRouteExportJSONPoint]
+    geofence_events: list[GPSRouteExportJSONEvent]
+
+
+class GPSRouteExportJSONContent(TypedDict):
+    """Top-level JSON payload returned when exporting GPS routes."""
+
+    dog_id: str
+    export_timestamp: str
+    routes: list[GPSRouteExportJSONRoute]
+
+
+class GPSRouteExportBasePayload(TypedDict):
+    """Base fields shared across all GPS route export payloads."""
+
+    filename: str
+    routes_count: int
+
+
+class GPSRouteExportGPXPayload(GPSRouteExportBasePayload):
+    """Payload returned when exporting GPS routes in GPX format."""
+
+    format: Literal["gpx"]
+    content: str
+
+
+class GPSRouteExportCSVPayload(GPSRouteExportBasePayload):
+    """Payload returned when exporting GPS routes in CSV format."""
+
+    format: Literal["csv"]
+    content: str
+
+
+class GPSRouteExportJSONPayload(GPSRouteExportBasePayload):
+    """Payload returned when exporting GPS routes in JSON format."""
+
+    format: Literal["json"]
+    content: GPSRouteExportJSONContent
+
+
+type GPSRouteExportPayload = (
+    GPSRouteExportGPXPayload | GPSRouteExportCSVPayload | GPSRouteExportJSONPayload
+)
+
+
+@dataclass(slots=True)
+class GPSRouteBuffer[TPoint: GPSRoutePoint]:
+    """Typed buffer that stores route samples for GPS tracking."""
+
+    _points: list[TPoint] = field(default_factory=list)
+
+    def append(self, point: TPoint) -> None:
+        """Append a new GPS sample to the buffer."""
+
+        self._points.append(point)
+
+    def prune(self, *, cutoff: datetime, max_points: int) -> None:
+        """Drop samples older than ``cutoff`` while enforcing ``max_points``."""
+
+        self._points = [point for point in self._points if point["timestamp"] > cutoff]
+        if len(self._points) > max_points:
+            self._points = self._points[-max_points:]
+
+    def snapshot(self, *, limit: int | None = None) -> list[TPoint]:
+        """Return a shallow copy of the most recent samples."""
+
+        if limit is None:
+            return list(self._points)
+        if limit <= 0:
+            return []
+        return list(self._points[-limit:])
+
+    def view(self) -> Sequence[TPoint]:
+        """Return a read-only view over the buffered route samples."""
+
+        return self._points
+
+    def clear(self) -> None:
+        """Remove all buffered samples."""
+
+        self._points.clear()
+
+    def __len__(self) -> int:
+        """Return the number of buffered samples."""
+
+        return len(self._points)
+
+    def __bool__(self) -> bool:  # pragma: no cover - delegated to __len__
+        """Return ``True`` when the buffer contains samples."""
+
+        return bool(self._points)
+
+    def __iter__(self) -> Iterator[TPoint]:
+        """Iterate over buffered samples in chronological order."""
+
+        return iter(self._points)
 
 
 class GeofencingModulePayload(TypedDict, total=False):
@@ -1509,10 +2666,10 @@ class GeofencingModulePayload(TypedDict, total=False):
 
     status: Required[str]
     zones_configured: int
-    zone_status: dict[str, Any]
-    current_location: dict[str, Any] | None
+    zone_status: dict[str, GPSGeofenceZoneStatusSnapshot]
+    current_location: GPSGeofenceLocationSnapshot | None
     safe_zone_breaches: int
-    last_update: Any
+    last_update: str | None
     message: NotRequired[str]
     error: NotRequired[str]
 
@@ -1524,12 +2681,12 @@ class HealthModulePayload(TypedDict, total=False):
     weight: float | None
     ideal_weight: float | None
     last_vet_visit: str | None
-    medications: list[Any]
-    health_alerts: list[Any]
+    medications: HealthMedicationQueue
+    health_alerts: HealthAlertList
     life_stage: str | None
     activity_level: str | None
     body_condition_score: float | int | None
-    health_conditions: list[Any]
+    health_conditions: list[str]
     emergency: dict[str, Any]
     medication: dict[str, Any]
     health_status: str | None
@@ -1539,15 +2696,113 @@ class HealthModulePayload(TypedDict, total=False):
     weight_goal: Any
 
 
+class WeatherConditionsPayload(TypedDict, total=False):
+    """Current weather snapshot consumed by dashboard entities."""
+
+    temperature_c: float | None
+    humidity_percent: float | None
+    uv_index: float | None
+    wind_speed_kmh: float | None
+    condition: str | None
+    last_updated: str
+
+
+class WeatherAlertPayload(TypedDict, total=False):
+    """Serialized weather alert returned by the adapter."""
+
+    type: Required[str]
+    severity: Required[str]
+    title: Required[str]
+    message: Required[str]
+    recommendations: list[str]
+    duration_hours: int | None
+    affected_breeds: list[str]
+    age_considerations: list[str]
+
+
+type WeatherModuleStatus = Literal["ready", "disabled", "error"]
+
+
 class WeatherModulePayload(TypedDict, total=False):
     """Weather-driven health insights returned by the weather adapter."""
 
-    status: Required[str]
+    status: Required[WeatherModuleStatus]
     health_score: float | int | None
-    alerts: list[Any]
-    recommendations: list[Any]
-    conditions: dict[str, Any]
+    alerts: list[WeatherAlertPayload]
+    recommendations: list[str]
+    conditions: WeatherConditionsPayload
     message: NotRequired[str]
+
+
+class GardenFavoriteActivity(TypedDict):
+    """Tracked activity that contributes to garden statistics."""
+
+    activity: str
+    count: int
+
+
+class GardenWeeklySummary(TypedDict, total=False):
+    """Rolling weekly garden performance summary."""
+
+    session_count: int
+    total_time_minutes: float
+    poop_events: int
+    average_duration: float
+    updated: str
+
+
+class GardenStatsSnapshot(TypedDict, total=False):
+    """Structured garden statistics payload."""
+
+    total_sessions: int
+    total_time_minutes: float
+    total_poop_count: int
+    average_session_duration: float
+    most_active_time_of_day: str | None
+    favorite_activities: list[GardenFavoriteActivity]
+    weekly_summary: GardenWeeklySummary
+    last_garden_visit: str | None
+    total_activities: int
+
+
+class GardenConfirmationSnapshot(TypedDict, total=False):
+    """Metadata describing pending garden confirmations."""
+
+    session_id: str | None
+    created: str | None
+    expires: str | None
+
+
+class GardenWeatherSummary(TypedDict, total=False):
+    """Summary of weather observations collected during garden sessions."""
+
+    conditions: list[str]
+    average_temperature: float | None
+
+
+class GardenSessionSnapshot(TypedDict, total=False):
+    """Serializable snapshot describing a garden session."""
+
+    session_id: str
+    start_time: str
+    end_time: str | None
+    duration_minutes: float
+    activity_count: int
+    poop_count: int
+    status: str
+    weather_conditions: str | None
+    temperature: float | None
+    notes: str | None
+
+
+class GardenActiveSessionSnapshot(TypedDict, total=False):
+    """Runtime view of an active garden session."""
+
+    session_id: str
+    start_time: str
+    duration_minutes: float
+    activity_count: int
+    poop_count: int
 
 
 class GardenModulePayload(TypedDict, total=False):
@@ -1555,9 +2810,164 @@ class GardenModulePayload(TypedDict, total=False):
 
     status: Required[str]
     message: NotRequired[str]
-    sessions: list[Any]
-    recent_activity: list[Any]
-    stats: dict[str, Any]
+    sessions_today: int
+    time_today_minutes: float
+    poop_today: int
+    activities_today: int
+    activities_total: int
+    active_session: GardenActiveSessionSnapshot | None
+    last_session: GardenSessionSnapshot | None
+    hours_since_last_session: float | None
+    stats: GardenStatsSnapshot
+    pending_confirmations: list[GardenConfirmationSnapshot]
+    weather_summary: GardenWeatherSummary | None
+
+
+class WalkRoutePoint(TypedDict, total=False):
+    """Normalised GPS sample recorded during a walk."""
+
+    latitude: float
+    longitude: float
+    timestamp: str
+    accuracy: NotRequired[float | None]
+    altitude: NotRequired[float | None]
+    speed: NotRequired[float | None]
+    heading: NotRequired[float | None]
+    source: NotRequired[str | None]
+    battery_level: NotRequired[int | None]
+    signal_strength: NotRequired[int | None]
+
+
+class GPSCacheStats(TypedDict):
+    """Statistics tracked by the GPS cache for diagnostics."""
+
+    hits: int
+    misses: int
+    hit_rate: float
+    cached_locations: int
+    distance_cache_entries: int
+    evictions: int
+    max_size: int
+
+
+class GPSCacheDiagnosticsMetadata(TypedDict):
+    """Metadata describing cache configuration and contents."""
+
+    cached_dogs: list[str]
+    max_size: int
+    distance_cache_entries: int
+    evictions: int
+
+
+class GPSCacheSnapshot(TypedDict):
+    """Combined telemetry exported by the GPS cache."""
+
+    stats: GPSCacheStats
+    metadata: GPSCacheDiagnosticsMetadata
+
+
+class WalkLocationSnapshot(TypedDict, total=False):
+    """Snapshot describing a recorded walk location."""
+
+    latitude: float
+    longitude: float
+    timestamp: str
+    accuracy: NotRequired[float | None]
+    altitude: NotRequired[float | None]
+    source: NotRequired[str | None]
+    battery_level: NotRequired[int | None]
+    signal_strength: NotRequired[int | None]
+
+
+class WalkPerformanceCounters(TypedDict):
+    """Performance counters captured by the walk manager."""
+
+    gps_updates: int
+    distance_calculations: int
+    cache_hits: int
+    cache_misses: int
+    memory_cleanups: int
+    gpx_exports: int
+    export_errors: int
+
+
+class WalkSessionSnapshot(TypedDict, total=False):
+    """Structured walk session metadata used for diagnostics and history."""
+
+    walk_id: str
+    dog_id: str
+    walk_type: str
+    start_time: str
+    walker: str | None
+    leash_used: bool
+    weather: str | None
+    track_route: bool
+    safety_alerts: bool
+    start_location: WalkLocationSnapshot | None
+    end_time: str | None
+    duration: float | None
+    distance: float | None
+    end_location: WalkLocationSnapshot | None
+    status: str
+    average_speed: float | None
+    max_speed: float | None
+    calories_burned: float | None
+    elevation_gain: float | None
+    path: list[WalkRoutePoint]
+    notes: str | None
+    dog_weight_kg: float | None
+    detection_confidence: float | None
+    door_sensor: str | None
+    detection_metadata: JSONMutableMapping | None
+    save_route: bool | None
+    path_optimization_applied: bool | None
+    current_distance: float | None
+    current_duration: float | None
+    elapsed_duration: NotRequired[float]
+
+
+class WalkStatisticsSnapshot(TypedDict, total=False):
+    """Aggregated walk statistics tracked per dog."""
+
+    status: str
+    message: str
+    walks_today: Required[int]
+    total_duration_today: Required[float]
+    total_distance_today: Required[float]
+    last_walk: str | None
+    last_walk_duration: float | None
+    last_walk_distance: float | None
+    average_duration: float | None
+    average_distance: float | None
+    weekly_walks: Required[int]
+    weekly_distance: Required[float]
+    needs_walk: Required[bool]
+    walk_streak: Required[int]
+    energy_level: Required[str]
+    walk_in_progress: bool
+    current_walk: WalkSessionSnapshot | None
+
+
+class WalkModulePayload(WalkStatisticsSnapshot, total=False):
+    """Telemetry returned by the walk adapter."""
+
+    daily_walks: NotRequired[int]
+    total_distance: NotRequired[float]
+
+
+class WalkModuleTelemetry(WalkModulePayload, total=False):
+    """Extended walk telemetry with historical and lifetime statistics."""
+
+    total_distance_lifetime: NotRequired[float]
+    total_walks_lifetime: NotRequired[int]
+    distance_this_week: NotRequired[float]
+    distance_this_month: NotRequired[float]
+    total_duration_this_week: NotRequired[float]
+    walks_this_week: NotRequired[int]
+    walks_history: NotRequired[list[WalkSessionSnapshot]]
+    daily_walk_counts: NotRequired[dict[str, int]]
+    weekly_walk_target: NotRequired[int]
+    walks_yesterday: NotRequired[int]
 
 
 ModuleAdapterPayload = (
@@ -1571,6 +2981,53 @@ ModuleAdapterPayload = (
 )
 
 type DogModulesMapping = Mapping[str, bool]
+
+
+class WalkGPSSnapshot(TypedDict, total=False):
+    """Latest GPS status exported by the walk manager."""
+
+    latitude: float | None
+    longitude: float | None
+    accuracy: float | None
+    altitude: float | None
+    speed: float | None
+    heading: float | None
+    last_seen: str | None
+    source: str | None
+    available: Required[bool]
+    zone: Required[str]
+    distance_from_home: float | None
+    signal_strength: int | None
+    battery_level: int | None
+    accuracy_threshold: float | None
+    update_interval: float | int | None
+    automatic_config: JSONMutableMapping | None
+    error: str
+
+
+class WalkManagerDogSnapshot(TypedDict):
+    """Composite snapshot exposed to diagnostics for each dog."""
+
+    active_walk: WalkSessionSnapshot | None
+    history: list[WalkSessionSnapshot]
+    stats: WalkStatisticsSnapshot
+    gps: WalkGPSSnapshot
+
+
+class WalkPerformanceSnapshot(TypedDict):
+    """Structured snapshot of walk manager performance telemetry."""
+
+    total_dogs: int
+    dogs_with_gps: int
+    active_walks: int
+    total_walks_today: int
+    total_distance_today: float
+    walk_detection_enabled: bool
+    performance_metrics: WalkPerformanceCounters
+    cache_stats: GPSCacheStats
+    statistics_cache_entries: int
+    location_analysis_queue_size: int
+    average_path_length: float
 
 
 @dataclass(slots=True)
@@ -1642,16 +3099,16 @@ class CacheDiagnosticsMetadata(TypedDict, total=False):
     active_override_flags: int
     active_override_entries: int
     tracked_entries: int
-    per_module: dict[str, Any]
-    per_dog: dict[str, Any]
+    per_module: JSONMutableMapping
+    per_dog: JSONMutableMapping
     entry_scripts: list[str]
-    per_dog_helpers: dict[str, Any]
+    per_dog_helpers: dict[str, int]
     entity_domains: dict[str, int]
     errors: list[str]
-    summary: dict[str, Any]
-    snapshots: list[dict[str, Any]]
+    summary: JSONMutableMapping
+    snapshots: list[JSONMutableMapping]
     created_entities: list[str]
-    detection_stats: dict[str, Any]
+    detection_stats: JSONMutableMapping
     cleanup_task_active: bool
     cleanup_listeners: int
     daily_reset_configured: bool
@@ -1665,34 +3122,54 @@ class CacheDiagnosticsMetadata(TypedDict, total=False):
     service_guard_metrics: HelperManagerGuardMetrics
 
 
+class PersonEntityDiagnostics(CacheDiagnosticsMetadata, total=False):
+    """Diagnostics payload enriched with person manager cache metadata."""
+
+    cache_entries: dict[str, PersonNotificationCacheEntry]
+    discovery_task_state: Literal["not_started", "running", "completed", "cancelled"]
+    listener_count: int
+
+
+class CacheDiagnosticsPayload(TypedDict, total=False):
+    """Structured mapping exported by :class:`CacheDiagnosticsSnapshot`."""
+
+    stats: JSONMutableMapping
+    diagnostics: CacheDiagnosticsMetadata
+    snapshot: JSONMutableMapping
+    error: str
+    repair_summary: JSONMutableMapping
+
+
 @dataclass(slots=True)
-class CacheDiagnosticsSnapshot(Mapping[str, Any]):
+class CacheDiagnosticsSnapshot(Mapping[str, JSONValue]):
     """Structured diagnostics snapshot returned by cache monitors."""
 
-    stats: dict[str, Any] | None = None
+    stats: JSONMapping | JSONMutableMapping | None = None
     diagnostics: CacheDiagnosticsMetadata | None = None
-    snapshot: dict[str, Any] | None = None
+    snapshot: JSONMapping | JSONMutableMapping | None = None
     error: str | None = None
     repair_summary: CacheRepairAggregate | None = None
 
-    def to_mapping(self) -> dict[str, Any]:
+    def to_mapping(self) -> JSONMutableMapping:
         """Return a mapping representation for downstream consumers."""
 
-        payload: dict[str, Any] = {}
+        payload: JSONMutableMapping = {}
         if self.stats is not None:
-            payload["stats"] = dict(self.stats)
+            payload["stats"] = cast(JSONValue, dict(self.stats))
         if self.diagnostics is not None:
-            payload["diagnostics"] = dict(self.diagnostics)
+            payload["diagnostics"] = cast(JSONValue, dict(self.diagnostics))
         if self.snapshot is not None:
-            payload["snapshot"] = dict(self.snapshot)
+            payload["snapshot"] = cast(JSONValue, dict(self.snapshot))
         if self.error is not None:
             payload["error"] = self.error
         if isinstance(self.repair_summary, CacheRepairAggregate):
-            payload["repair_summary"] = self.repair_summary.to_mapping()
+            payload["repair_summary"] = cast(
+                JSONValue, self.repair_summary.to_mapping()
+            )
         return payload
 
     @classmethod
-    def from_mapping(cls, payload: Mapping[str, Any]) -> CacheDiagnosticsSnapshot:
+    def from_mapping(cls, payload: JSONMapping) -> CacheDiagnosticsSnapshot:
         """Create a snapshot payload from an arbitrary mapping."""
 
         stats = payload.get("stats")
@@ -1729,7 +3206,7 @@ class CacheDiagnosticsSnapshot(Mapping[str, Any]):
             repair_summary=repair_summary,
         )
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: str) -> JSONValue:
         """Return the value associated with ``key`` from the mapping view."""
         return self.to_mapping()[key]
 
@@ -1796,7 +3273,7 @@ class CacheRepairTotals:
 
 
 @dataclass(slots=True)
-class CacheRepairAggregate(Mapping[str, Any]):
+class CacheRepairAggregate(Mapping[str, JSONValue]):
     """Aggregated cache health metrics surfaced through repairs issues."""
 
     total_caches: int
@@ -1811,10 +3288,10 @@ class CacheRepairAggregate(Mapping[str, Any]):
     totals: CacheRepairTotals | None = None
     issues: list[CacheRepairIssue] | None = None
 
-    def to_mapping(self) -> dict[str, Any]:
+    def to_mapping(self) -> JSONMutableMapping:
         """Return a mapping representation for Home Assistant repairs."""
 
-        payload: dict[str, Any] = {
+        payload: JSONMutableMapping = {
             "total_caches": self.total_caches,
             "anomaly_count": self.anomaly_count,
             "severity": self.severity,
@@ -1839,12 +3316,28 @@ class CacheRepairAggregate(Mapping[str, Any]):
         if self.totals is not None:
             payload["totals"] = self.totals.as_dict()
         if self.issues:
-            payload["issues"] = list(self.issues)
+            payload["issues"] = [
+                cast(JSONMutableMapping, dict(issue)) for issue in self.issues
+            ]
         return payload
 
     @classmethod
-    def from_mapping(cls, payload: Mapping[str, Any]) -> CacheRepairAggregate:
+    def from_mapping(cls, payload: JSONMapping) -> CacheRepairAggregate:
         """Return a :class:`CacheRepairAggregate` constructed from a mapping."""
+
+        def _coerce_int(value: JSONValue | object) -> int:
+            if isinstance(value, bool):
+                return int(value)
+            if isinstance(value, int):
+                return value
+            if isinstance(value, float):
+                return int(value)
+            if isinstance(value, str):
+                try:
+                    return int(float(value))
+                except ValueError:
+                    return 0
+            return 0
 
         totals_payload = payload.get("totals")
         totals = None
@@ -1862,21 +3355,21 @@ class CacheRepairAggregate(Mapping[str, Any]):
                 overall_hit_rate = None
 
             totals = CacheRepairTotals(
-                entries=int(totals_payload.get("entries", 0) or 0),
-                hits=int(totals_payload.get("hits", 0) or 0),
-                misses=int(totals_payload.get("misses", 0) or 0),
-                expired_entries=int(totals_payload.get("expired_entries", 0) or 0),
-                expired_via_override=int(
-                    totals_payload.get("expired_via_override", 0) or 0
+                entries=_coerce_int(totals_payload.get("entries")),
+                hits=_coerce_int(totals_payload.get("hits")),
+                misses=_coerce_int(totals_payload.get("misses")),
+                expired_entries=_coerce_int(totals_payload.get("expired_entries")),
+                expired_via_override=_coerce_int(
+                    totals_payload.get("expired_via_override")
                 ),
-                pending_expired_entries=int(
-                    totals_payload.get("pending_expired_entries", 0) or 0
+                pending_expired_entries=_coerce_int(
+                    totals_payload.get("pending_expired_entries")
                 ),
-                pending_override_candidates=int(
-                    totals_payload.get("pending_override_candidates", 0) or 0
+                pending_override_candidates=_coerce_int(
+                    totals_payload.get("pending_override_candidates")
                 ),
-                active_override_flags=int(
-                    totals_payload.get("active_override_flags", 0) or 0
+                active_override_flags=_coerce_int(
+                    totals_payload.get("active_override_flags")
                 ),
                 overall_hit_rate=overall_hit_rate,
             )
@@ -1901,8 +3394,8 @@ class CacheRepairAggregate(Mapping[str, Any]):
                 issues = filtered
 
         return cls(
-            total_caches=int(payload.get("total_caches", 0) or 0),
-            anomaly_count=int(payload.get("anomaly_count", 0) or 0),
+            total_caches=_coerce_int(payload.get("total_caches")),
+            anomaly_count=_coerce_int(payload.get("anomaly_count")),
             severity=str(payload.get("severity", "unknown")),
             generated_at=str(payload.get("generated_at", "")),
             caches_with_errors=_string_list("caches_with_errors"),
@@ -1916,7 +3409,7 @@ class CacheRepairAggregate(Mapping[str, Any]):
             issues=issues,
         )
 
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: str) -> JSONValue:
         """Return the value associated with ``key`` from the mapping view."""
         return self.to_mapping()[key]
 
@@ -1940,7 +3433,7 @@ class MaintenanceExecutionDiagnostics(TypedDict, total=False):
     """Diagnostics metadata captured by maintenance utilities."""
 
     cache: NotRequired[CacheDiagnosticsCapture]
-    metadata: NotRequired[dict[str, Any]]
+    metadata: NotRequired[MaintenanceMetadataPayload]
 
 
 class MaintenanceExecutionResult(TypedDict, total=False):
@@ -1951,14 +3444,14 @@ class MaintenanceExecutionResult(TypedDict, total=False):
     recorded_at: Required[str]
     message: NotRequired[str]
     diagnostics: NotRequired[MaintenanceExecutionDiagnostics]
-    details: NotRequired[dict[str, Any]]
+    details: NotRequired[MaintenanceMetadataPayload]
 
 
 class ServiceExecutionDiagnostics(TypedDict, total=False):
     """Diagnostics metadata captured while executing a service handler."""
 
     cache: NotRequired[CacheDiagnosticsCapture]
-    metadata: NotRequired[dict[str, Any]]
+    metadata: NotRequired[MaintenanceMetadataPayload]
     guard: NotRequired[ServiceGuardSummary]
     resilience_summary: NotRequired[CoordinatorResilienceSummary]
     rejection_metrics: NotRequired[CoordinatorRejectionMetrics]
@@ -2031,6 +3524,59 @@ class ManualResilienceEventSnapshot(TypedDict, total=False):
     data: dict[str, Any] | None
     sources: list[str] | None
     reasons: list[str]
+
+
+class ManualResilienceAutomationEntry(TypedDict, total=False):
+    """Metadata describing automation listeners for manual resilience events."""
+
+    config_entry_id: str | None
+    title: str | None
+    manual_guard_event: str | None
+    manual_breaker_event: str | None
+    manual_check_event: str | None
+    configured_guard: bool
+    configured_breaker: bool
+    configured_check: bool
+
+
+class ManualResilienceListenerMetadata(TypedDict, total=False):
+    """Aggregated listener metadata for manual resilience events."""
+
+    sources: list[str]
+    source_tags: list[str]
+    primary_source: str | None
+
+
+class ManualResilienceEventCounters(TypedDict):
+    """Aggregated counters for manual resilience event activity."""
+
+    total: int
+    by_event: dict[str, int]
+    by_reason: dict[str, int]
+
+
+class ManualResilienceEventsTelemetry(TypedDict, total=False):
+    """Telemetry payload embedded in resilience diagnostics snapshots."""
+
+    available: Required[bool]
+    automations: list[ManualResilienceAutomationEntry]
+    configured_guard_events: list[str]
+    configured_breaker_events: list[str]
+    configured_check_events: list[str]
+    system_guard_event: str | None
+    system_breaker_event: str | None
+    listener_events: dict[str, list[str]]
+    listener_sources: dict[str, list[str]]
+    listener_metadata: dict[str, ManualResilienceListenerMetadata]
+    preferred_events: dict[ManualResiliencePreferenceKey, str | None]
+    preferred_guard_event: str | None
+    preferred_breaker_event: str | None
+    preferred_check_event: str | None
+    active_listeners: list[str]
+    last_event: Required[ManualResilienceEventSnapshot | None]
+    last_trigger: ManualResilienceEventSnapshot | None
+    event_history: Required[list[ManualResilienceEventSnapshot]]
+    event_counters: ManualResilienceEventCounters
 
 
 class ServiceContextMetadata(TypedDict, total=False):
@@ -2150,6 +3696,174 @@ class AdaptivePollingDiagnostics(TypedDict):
     entity_saturation: float
     idle_interval_ms: float
     idle_grace_ms: float
+
+
+class CoordinatorRuntimeCycleSnapshot(TypedDict):
+    """Snapshot exported for a single coordinator update cycle."""
+
+    dog_count: int
+    errors: int
+    success_rate: float
+    duration_ms: float
+    next_interval_s: float
+    error_ratio: float
+    success: bool
+
+
+class PerformanceMonitorCountersSnapshot(TypedDict):
+    """Rolling counters surfaced by the performance monitor."""
+
+    operations: int
+    errors: int
+    cache_hits: int
+    cache_misses: int
+    avg_operation_time: float
+    last_cleanup: str | None
+
+
+class PerformanceMonitorSnapshot(PerformanceMonitorCountersSnapshot):
+    """Derived metrics exposed by the performance monitor."""
+
+    cache_hit_rate: float
+    error_rate: float
+    recent_operations: int
+
+
+class OptimizedEntityCacheStats(TypedDict):
+    """Cache statistics aggregated across optimized entities."""
+
+    state_cache_size: int
+    attributes_cache_size: int
+    availability_cache_size: int
+
+
+class OptimizedEntityGlobalPerformanceStats(TypedDict):
+    """Global performance snapshot returned by :func:`get_global_performance_stats`."""
+
+    total_entities_registered: int
+    active_entities: int
+    cache_statistics: OptimizedEntityCacheStats
+    average_operation_time_ms: float
+    average_cache_hit_rate: float
+    total_errors: int
+    entities_with_performance_data: int
+
+
+class WebhookSecurityStatus(TypedDict, total=False):
+    """Webhook security posture exported via coordinator diagnostics."""
+
+    configured: bool
+    secure: bool
+    hmac_ready: bool
+    insecure_configs: tuple[str, ...]
+    error: NotRequired[str]
+
+
+class CoordinatorPerformanceSnapshotCounts(TypedDict):
+    """Update counter payload surfaced via performance diagnostics."""
+
+    total: int
+    successful: int
+    failed: int
+
+
+class CoordinatorPerformanceSnapshotMetrics(TypedDict, total=False):
+    """Performance telemetry attached to coordinator diagnostics snapshots."""
+
+    last_update: str | None
+    last_update_success: bool
+    success_rate: float
+    consecutive_errors: int
+    update_interval_s: float
+    current_cycle_ms: float | None
+    rejected_call_count: int
+    rejection_breaker_count: int
+    rejection_rate: float | None
+    last_rejection_time: float | None
+    last_rejection_breaker_id: str | None
+    last_rejection_breaker_name: str | None
+    open_breaker_count: int
+    half_open_breaker_count: int
+    unknown_breaker_count: int
+    open_breakers: list[str]
+    open_breaker_ids: list[str]
+    half_open_breakers: list[str]
+    half_open_breaker_ids: list[str]
+    unknown_breakers: list[str]
+    unknown_breaker_ids: list[str]
+    rejection_breaker_ids: list[str]
+    rejection_breakers: list[str]
+
+
+class CoordinatorPerformanceSnapshot(TypedDict, total=False):
+    """Composite payload returned by performance snapshot helpers."""
+
+    update_counts: CoordinatorPerformanceSnapshotCounts
+    performance_metrics: CoordinatorPerformanceSnapshotMetrics
+    adaptive_polling: AdaptivePollingDiagnostics
+    entity_budget: EntityBudgetSummary
+    webhook_security: WebhookSecurityStatus
+    resilience_summary: CoordinatorResilienceSummary
+    rejection_metrics: CoordinatorRejectionMetrics
+    bool_coercion: BoolCoercionSummary
+    resilience: CoordinatorResilienceDiagnostics
+    service_execution: CoordinatorServiceExecutionSummary
+    last_cycle: CoordinatorRuntimeCycleSnapshot
+
+
+CoordinatorSecurityAdaptiveCheck = TypedDict(
+    "CoordinatorSecurityAdaptiveCheck",
+    {
+        "pass": Required[bool],
+        "current_ms": Required[float],
+        "target_ms": Required[float],
+        "threshold_ms": Required[float],
+        "reason": NotRequired[str],
+    },
+    total=False,
+)
+
+
+CoordinatorSecurityEntityCheck = TypedDict(
+    "CoordinatorSecurityEntityCheck",
+    {
+        "pass": Required[bool],
+        "summary": Required[EntityBudgetSummary],
+        "threshold_percent": Required[float],
+        "reason": NotRequired[str],
+    },
+    total=False,
+)
+
+
+CoordinatorSecurityWebhookCheck = TypedDict(
+    "CoordinatorSecurityWebhookCheck",
+    {
+        "pass": Required[bool],
+        "configured": Required[bool],
+        "secure": Required[bool],
+        "hmac_ready": Required[bool],
+        "insecure_configs": Required[tuple[str, ...]],
+        "error": NotRequired[str],
+        "reason": NotRequired[str],
+    },
+    total=False,
+)
+
+
+class CoordinatorSecurityChecks(TypedDict):
+    """Collection of security check results surfaced to diagnostics."""
+
+    adaptive_polling: CoordinatorSecurityAdaptiveCheck
+    entity_budget: CoordinatorSecurityEntityCheck
+    webhooks: CoordinatorSecurityWebhookCheck
+
+
+class CoordinatorSecurityScorecard(TypedDict):
+    """Aggregated security score surfaced via diagnostics endpoints."""
+
+    status: Literal["pass", "fail"]
+    checks: CoordinatorSecurityChecks
 
 
 class CircuitBreakerStatsPayload(TypedDict, total=False):
@@ -2332,12 +4046,13 @@ class CoordinatorDogData(TypedDict, total=False):
     health: NotRequired[CoordinatorModuleState]
     weather: NotRequired[CoordinatorModuleState]
     garden: NotRequired[CoordinatorModuleState]
-    notifications: NotRequired[dict[str, Any]]
-    dashboard: NotRequired[dict[str, Any]]
-    visitor: NotRequired[dict[str, Any]]
-    grooming: NotRequired[dict[str, Any]]
-    medication: NotRequired[dict[str, Any]]
-    training: NotRequired[dict[str, Any]]
+    profile: NotRequired[DogProfileSnapshot]
+    notifications: NotRequired[JSONMutableMapping]
+    dashboard: NotRequired[JSONMutableMapping]
+    visitor: NotRequired[JSONMutableMapping]
+    grooming: NotRequired[JSONMutableMapping]
+    medication: NotRequired[JSONMutableMapping]
+    training: NotRequired[JSONMutableMapping]
 
 
 CoordinatorDataPayload = dict[str, CoordinatorDogData]
@@ -2364,6 +4079,125 @@ class CoordinatorRejectionMetrics(TypedDict):
     unknown_breaker_ids: list[str]
     rejection_breaker_ids: list[str]
     rejection_breakers: list[str]
+
+
+class SystemHealthThresholdDetail(TypedDict, total=False):
+    """Threshold details exposed through the system health endpoint."""
+
+    count: int
+    ratio: float
+    percentage: float
+
+
+class SystemHealthThresholdSummary(TypedDict, total=False):
+    """Source metadata for guard and breaker threshold indicators."""
+
+    source: Required[str]
+    source_key: str | None
+    warning: SystemHealthThresholdDetail
+    critical: SystemHealthThresholdDetail
+
+
+class SystemHealthGuardReasonEntry(TypedDict):
+    """Top guard skip reason surfaced through system health."""
+
+    reason: str
+    count: int
+
+
+type SystemHealthIndicatorLevel = Literal["critical", "warning", "normal"]
+
+
+class SystemHealthIndicatorPayload(TypedDict, total=False):
+    """Indicator payload summarising guard/breaker health."""
+
+    level: Required[SystemHealthIndicatorLevel]
+    color: Required[Literal["red", "amber", "green"]]
+    message: Required[str]
+    metric_type: Required[str]
+    context: str
+    metric: float | int
+    threshold: float | int
+    threshold_type: str
+    threshold_source: str
+
+
+class SystemHealthGuardSummary(TypedDict):
+    """Aggregated guard statistics returned by system health."""
+
+    executed: int
+    skipped: int
+    total_calls: int
+    skip_ratio: float
+    skip_percentage: float
+    has_skips: bool
+    reasons: dict[str, int]
+    top_reasons: list[SystemHealthGuardReasonEntry]
+    thresholds: SystemHealthThresholdSummary
+    indicator: SystemHealthIndicatorPayload
+
+
+class SystemHealthBreakerOverview(TypedDict):
+    """Breaker metrics surfaced through the system health endpoint."""
+
+    status: Literal["open", "recovering", "monitoring", "healthy"]
+    open_breaker_count: int
+    half_open_breaker_count: int
+    unknown_breaker_count: int
+    rejection_rate: float
+    last_rejection_breaker_id: str | None
+    last_rejection_breaker_name: str | None
+    last_rejection_time: float | None
+    open_breakers: list[str]
+    half_open_breakers: list[str]
+    unknown_breakers: list[str]
+    thresholds: SystemHealthThresholdSummary
+    indicator: SystemHealthIndicatorPayload
+
+
+class SystemHealthServiceStatus(TypedDict):
+    """Composite indicator status for guard and breaker telemetry."""
+
+    guard: SystemHealthIndicatorPayload
+    breaker: SystemHealthIndicatorPayload
+    overall: SystemHealthIndicatorPayload
+
+
+type SystemHealthRemainingQuota = Literal["unknown", "untracked", "unlimited"] | int
+
+
+class SystemHealthServiceExecutionSnapshot(TypedDict):
+    """Structured service execution payload for system health diagnostics."""
+
+    guard_metrics: HelperManagerGuardMetrics
+    guard_summary: SystemHealthGuardSummary
+    rejection_metrics: CoordinatorRejectionMetrics
+    breaker_overview: SystemHealthBreakerOverview
+    status: SystemHealthServiceStatus
+    manual_events: ManualResilienceEventsTelemetry
+
+
+class SystemHealthInfoPayload(TypedDict):
+    """Top-level system health payload exposed by the integration."""
+
+    can_reach_backend: bool
+    remaining_quota: SystemHealthRemainingQuota
+    service_execution: SystemHealthServiceExecutionSnapshot
+
+
+class DogProfileSnapshot(TypedDict, total=False):
+    """Profile metadata exposed through coordinator dog snapshots."""
+
+    birthdate: str | None
+    adoption_date: str | None
+    diet_start_date: str | None
+    diet_end_date: str | None
+    training_start_date: str | None
+    next_training_date: str | None
+    dog_age: int | None
+    dog_weight: float | None
+    dog_size: str | None
+    entity_profile: str | None
 
 
 class DogConfigData(TypedDict, total=False):
@@ -2652,6 +4486,119 @@ class DetectionStatus(TypedDict):
     statistics: DetectionStatistics
 
 
+class DoorSensorStateHistoryEntry(TypedDict):
+    """Serialised state transition captured by the door sensor manager."""
+
+    timestamp: str | None
+    state: str
+
+
+class DoorSensorStateSnapshot(TypedDict, total=False):
+    """Detailed walk detection state exported in cache diagnostics."""
+
+    current_state: str
+    door_opened_at: str | None
+    door_closed_at: str | None
+    potential_walk_start: str | None
+    active_walk_id: str | None
+    confidence_score: float
+    last_door_state: str | None
+    consecutive_opens: int
+    state_history: list[DoorSensorStateHistoryEntry]
+    last_activity_age_seconds: int
+
+
+class DoorSensorDogSnapshot(TypedDict, total=False):
+    """Per-dog configuration snapshot for diagnostics exports."""
+
+    entity_id: str
+    enabled: bool
+    walk_detection_timeout: int
+    minimum_walk_duration: int
+    maximum_walk_duration: int
+    door_closed_delay: int
+    require_confirmation: bool
+    auto_end_walks: bool
+    confidence_threshold: float
+    state: DoorSensorStateSnapshot
+
+
+class DoorSensorManagerStats(DetectionStatistics, total=False):
+    """Aggregated statistics surfaced alongside detection telemetry."""
+
+    configured_sensors: int
+    active_detections: int
+    last_activity_age_seconds: int
+
+
+class DoorSensorManagerSnapshot(TypedDict):
+    """Coordinator snapshot payload returned by the door sensor cache monitor."""
+
+    per_dog: dict[str, DoorSensorDogSnapshot]
+    detection_stats: DetectionStatistics
+    manager_last_activity: str | None
+
+
+class StorageNamespaceDogSummary(TypedDict, total=False):
+    """Aggregated state persisted for a single storage namespace entry."""
+
+    entries: int
+    payload_type: str
+    timestamp: str | None
+    timestamp_age_seconds: int
+    timestamp_issue: str
+
+
+class StorageNamespaceStats(TypedDict):
+    """Summary metrics for coordinator storage namespace diagnostics."""
+
+    namespace: str
+    dogs: int
+    entries: int
+
+
+class StorageNamespaceSnapshot(TypedDict):
+    """Structured snapshot returned by storage namespace monitors."""
+
+    namespace: str
+    per_dog: dict[str, StorageNamespaceDogSummary]
+
+
+class DataManagerMetricsSnapshot(TypedDict):
+    """Metrics exposed by :class:`PawControlDataManager`."""
+
+    dogs: int
+    storage_path: str
+    cache_diagnostics: CacheDiagnosticsMap
+
+
+class EntityBudgetSnapshotEntry(TypedDict, total=False):
+    """Serialised budget snapshot exported for coordinator diagnostics."""
+
+    dog_id: str
+    profile: str
+    capacity: int | float
+    base_allocation: int | float
+    dynamic_allocation: int | float
+    requested_entities: tuple[str, ...]
+    denied_requests: tuple[str, ...]
+    recorded_at: str | None
+
+
+class EntityBudgetStats(TypedDict):
+    """Summary metrics for entity budget tracker diagnostics."""
+
+    tracked_dogs: int
+    saturation_percent: float
+
+
+class EntityBudgetDiagnostics(TypedDict):
+    """Structured diagnostics payload for entity budget telemetry."""
+
+    summary: dict[str, Any]
+    snapshots: list[EntityBudgetSnapshotEntry]
+
+
 class DoorSensorPersistenceFailure(TypedDict, total=False):
     """Telemetry entry captured when door sensor persistence fails."""
 
@@ -2661,6 +4608,43 @@ class DoorSensorPersistenceFailure(TypedDict, total=False):
     door_sensor: NotRequired[str | None]
     settings: NotRequired[dict[str, Any] | None]
     error: NotRequired[str]
+
+
+class PerformanceTrackerBucket(TypedDict, total=False):
+    """Execution metrics recorded by :func:`performance_tracker`."""
+
+    runs: int
+    failures: int
+    durations_ms: list[float]
+    average_ms: float
+    last_run: str | None
+    last_error: str | None
+
+
+class RuntimePerformanceStats(TypedDict, total=False):
+    """Mutable runtime telemetry stored on :class:`PawControlRuntimeData`."""
+
+    bool_coercion_summary: BoolCoercionSummary
+    reconfigure_summary: ReconfigureTelemetrySummary
+    resilience_summary: CoordinatorResilienceSummary
+    door_sensor_failures: list[DoorSensorPersistenceFailure]
+    door_sensor_failure_count: int
+    last_door_sensor_failure: DoorSensorPersistenceFailure
+    service_guard_metrics: ServiceGuardMetricsSnapshot
+    rejection_metrics: CoordinatorRejectionMetrics
+    service_results: list[ServiceExecutionResult]
+    last_service_result: ServiceExecutionResult
+    maintenance_results: list[MaintenanceExecutionResult]
+    last_maintenance_result: MaintenanceExecutionResult
+    last_cache_diagnostics: CacheDiagnosticsCapture
+    daily_resets: int
+    performance_buckets: dict[str, PerformanceTrackerBucket]
+
+
+def empty_runtime_performance_stats() -> RuntimePerformanceStats:
+    """Return an empty runtime performance stats mapping for dataclass defaults."""
+
+    return cast(RuntimePerformanceStats, {})
 
 
 @dataclass
@@ -2715,7 +4699,9 @@ class PawControlRuntimeData:
     device_api_client: PawControlDeviceClient | None = None
 
     # Enhanced runtime tracking for Platinum-targeted monitoring
-    performance_stats: dict[str, Any] = field(default_factory=dict)
+    performance_stats: RuntimePerformanceStats = field(
+        default_factory=empty_runtime_performance_stats
+    )
     error_history: list[dict[str, Any]] = field(default_factory=list)
     manual_event_history: deque[ManualResilienceEventRecord] = field(
         default_factory=lambda: deque(maxlen=5)
@@ -3022,19 +5008,6 @@ class FeedingData:
             raise ValueError("Portion size cannot be negative")
         if self.calories is not None and self.calories < 0:
             raise ValueError("Calories cannot be negative")
-
-
-class WalkRoutePoint(TypedDict, total=False):
-    """Normalised GPS sample recorded during a walk."""
-
-    latitude: float
-    longitude: float
-    accuracy: float
-    altitude: float
-    timestamp: str
-    source: str
-    battery_level: int
-    signal_strength: int
 
 
 @dataclass

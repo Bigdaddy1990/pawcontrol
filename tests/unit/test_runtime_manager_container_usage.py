@@ -44,7 +44,9 @@ class _GardenManagerStub:
         self.build_calls += 1
         return {
             "status": "active",
-            "pending_confirmations": ["pending"],
+            "pending_confirmations": [
+                {"session_id": "garden-session", "created": None, "expires": None}
+            ],
         }
 
     def is_dog_in_garden(self, dog_id: str) -> bool:

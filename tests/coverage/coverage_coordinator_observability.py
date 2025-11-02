@@ -9,6 +9,7 @@ import types
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
+from typing import cast
 
 import pytest
 
@@ -48,6 +49,14 @@ _ensure_package("custom_components", PACKAGE_ROOT.resolve())
 _ensure_package("custom_components.pawcontrol", PAWCONTROL_ROOT)
 
 _runtime_stub = types.ModuleType("custom_components.pawcontrol.coordinator_runtime")
+
+from custom_components.pawcontrol.types import (  # isort:skip
+    AdaptivePollingDiagnostics,
+    CoordinatorPerformanceSnapshot,
+    CoordinatorSecurityScorecard,
+    EntityBudgetSummary,
+    WebhookSecurityStatus,
+)
 
 
 @dataclass(slots=True)
@@ -200,16 +209,19 @@ class DummySnapshot:
 def test_security_scorecard_passes_with_secure_configuration() -> None:
     """A healthy runtime should report a passing security scorecard."""
 
-    adaptive = {"current_interval_ms": 150.0, "target_cycle_ms": 180.0}
-    entity_summary = {"peak_utilization": 40.0, "active_dogs": 1}
-    webhook_status = {
-        "configured": True,
-        "secure": True,
-        "hmac_ready": True,
-        "insecure_configs": (),
-    }
+    adaptive = cast(AdaptivePollingDiagnostics, {"current_interval_ms": 150.0, "target_cycle_ms": 180.0})
+    entity_summary = cast(EntityBudgetSummary, {"peak_utilization": 40.0, "active_dogs": 1})
+    webhook_status = cast(
+        WebhookSecurityStatus,
+        {
+            "configured": True,
+            "secure": True,
+            "hmac_ready": True,
+            "insecure_configs": (),
+        },
+    )
 
-    scorecard = build_security_scorecard(
+    scorecard: CoordinatorSecurityScorecard = build_security_scorecard(
         adaptive=adaptive,
         entity_summary=entity_summary,
         webhook_status=webhook_status,
@@ -223,9 +235,9 @@ def test_security_scorecard_gracefully_handles_missing_values() -> None:
     """Missing metrics should fall back to safe defaults without raising."""
 
     scorecard = build_security_scorecard(
-        adaptive={"current_interval_ms": None},
-        entity_summary={"peak_utilization": None},
-        webhook_status={},
+        adaptive=cast(AdaptivePollingDiagnostics, {"current_interval_ms": None}),
+        entity_summary=cast(EntityBudgetSummary, {"peak_utilization": None}),
+        webhook_status=cast(WebhookSecurityStatus, {}),
     )
 
     assert scorecard["checks"]["adaptive_polling"]["pass"] is True
@@ -237,9 +249,18 @@ def test_build_performance_snapshot_includes_runtime_metadata() -> None:
     """Performance snapshots expose update counters and webhook posture."""
 
     metrics = DummyMetrics(update_count=5, failed_cycles=1, consecutive_errors=0)
-    adaptive = {"current_interval_ms": 120.0, "target_cycle_ms": 180.0}
-    entity_budget = {"active_dogs": 1, "peak_utilization": 50.0}
-    webhook_status = {"configured": False, "secure": True, "hmac_ready": False}
+    adaptive = cast(
+        AdaptivePollingDiagnostics,
+        {"current_interval_ms": 120.0, "target_cycle_ms": 180.0},
+    )
+    entity_budget = cast(
+        EntityBudgetSummary,
+        {"active_dogs": 1, "peak_utilization": 50.0},
+    )
+    webhook_status = cast(
+        WebhookSecurityStatus,
+        {"configured": False, "secure": True, "hmac_ready": False},
+    )
 
     reset_bool_coercion_metrics()
     record_bool_coercion_event(
@@ -250,7 +271,7 @@ def test_build_performance_snapshot_includes_runtime_metadata() -> None:
     )
 
     try:
-        snapshot = build_performance_snapshot(
+        snapshot: CoordinatorPerformanceSnapshot = build_performance_snapshot(
             metrics=metrics,
             adaptive=adaptive,
             entity_budget=entity_budget,
@@ -331,13 +352,19 @@ def test_security_scorecard_reports_failure_reason() -> None:
     """Failing checks should include the appropriate remediation hints."""
 
     scorecard = build_security_scorecard(
-        adaptive={"current_interval_ms": 320.0, "target_cycle_ms": 180.0},
-        entity_summary={"peak_utilization": 99.0},
-        webhook_status={
-            "configured": True,
-            "secure": False,
-            "insecure_configs": ("dog-a",),
-        },
+        adaptive=cast(
+            AdaptivePollingDiagnostics,
+            {"current_interval_ms": 320.0, "target_cycle_ms": 180.0},
+        ),
+        entity_summary=cast(EntityBudgetSummary, {"peak_utilization": 99.0}),
+        webhook_status=cast(
+            WebhookSecurityStatus,
+            {
+                "configured": True,
+                "secure": False,
+                "insecure_configs": ("dog-a",),
+            },
+        ),
     )
 
     assert scorecard["status"] == "fail"
@@ -351,9 +378,12 @@ def test_security_scorecard_coerces_invalid_numbers() -> None:
     """Invalid numeric inputs should be normalised before evaluation."""
 
     scorecard = build_security_scorecard(
-        adaptive={"current_interval_ms": float("nan"), "target_cycle_ms": -50},
-        entity_summary={"peak_utilization": "150"},
-        webhook_status={"configured": False},
+        adaptive=cast(
+            AdaptivePollingDiagnostics,
+            {"current_interval_ms": float("nan"), "target_cycle_ms": -50},
+        ),
+        entity_summary=cast(EntityBudgetSummary, {"peak_utilization": "150"}),
+        webhook_status=cast(WebhookSecurityStatus, {"configured": False}),
     )
 
     adaptive_check = scorecard["checks"]["adaptive_polling"]
@@ -370,9 +400,12 @@ def test_security_scorecard_resets_negative_current_interval() -> None:
     """Negative current intervals should fall back to the target value."""
 
     scorecard = build_security_scorecard(
-        adaptive={"current_interval_ms": -10.0, "target_cycle_ms": 180.0},
-        entity_summary={"peak_utilization": 10.0},
-        webhook_status={"configured": False},
+        adaptive=cast(
+            AdaptivePollingDiagnostics,
+            {"current_interval_ms": -10.0, "target_cycle_ms": 180.0},
+        ),
+        entity_summary=cast(EntityBudgetSummary, {"peak_utilization": 10.0}),
+        webhook_status=cast(WebhookSecurityStatus, {"configured": False}),
     )
 
     adaptive_check = scorecard["checks"]["adaptive_polling"]

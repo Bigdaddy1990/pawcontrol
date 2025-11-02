@@ -182,20 +182,38 @@ def mock_coordinator() -> Mock:
                 "stats": {
                     "average_session_duration": 28.5,
                     "favorite_activities": [
-                        "sunbathing",
-                        "chasing butterflies",
+                        {"activity": "sunbathing", "count": 4},
+                        {"activity": "chasing butterflies", "count": 2},
                     ],
-                    "weekly_summary": {"sessions": 5, "poops_confirmed": 3},
+                    "weekly_summary": {
+                        "session_count": 5,
+                        "total_time_minutes": 140.0,
+                        "poop_events": 3,
+                        "average_duration": 28.0,
+                        "updated": dt_util.utcnow().isoformat(),
+                    },
                     "last_garden_visit": (
                         dt_util.utcnow() - timedelta(hours=3)
                     ).isoformat(),
+                    "total_sessions": 12,
+                    "total_time_minutes": 320.0,
+                    "total_poop_count": 6,
+                    "most_active_time_of_day": "evening",
+                    "total_activities": 42,
                 },
-                "weather_summary": "Pleasant sunshine",
+                "weather_summary": {
+                    "conditions": ["Pleasant sunshine"],
+                    "average_temperature": 23.5,
+                },
                 "pending_confirmations": [
                     {
                         "session_id": "garden-session-123",
-                        "activity_id": "activity-456",
-                        "type": "poop",
+                        "created": (
+                            dt_util.utcnow() - timedelta(minutes=5)
+                        ).isoformat(),
+                        "expires": (
+                            dt_util.utcnow() + timedelta(minutes=5)
+                        ).isoformat(),
                     }
                 ],
                 "hours_since_last_session": 1.25,
@@ -455,13 +473,12 @@ class TestSensorPlatform:
 
         attrs = garden_time_sensor.extra_state_attributes
         assert attrs["garden_status"] == "active"
-        assert attrs["pending_confirmations"] == [
-            {
-                "session_id": "garden-session-123",
-                "activity_id": "activity-456",
-                "type": "poop",
-            }
-        ]
+        pending = attrs["pending_confirmations"]
+        assert isinstance(pending, list)
+        assert pending
+        assert pending[0]["session_id"] == "garden-session-123"
+        assert "created" in pending[0]
+        assert "expires" in pending[0]
 
         sessions_sensor = PawControlGardenSessionsTodaySensor(
             coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"

@@ -40,6 +40,21 @@ from .notifications import (
     PawControlNotificationManager,
 )
 from .resilience import ResilienceManager, RetryConfig
+from .types import (
+    GPSGeofenceLocationSnapshot,
+    GPSGeofenceStatusSnapshot,
+    GPSGeofenceZoneStatusSnapshot,
+    GPSManagerStatisticsSnapshot,
+    GPSManagerStats,
+    GPSRouteExportCSVPayload,
+    GPSRouteExportGPXPayload,
+    GPSRouteExportJSONContent,
+    GPSRouteExportJSONEvent,
+    GPSRouteExportJSONPayload,
+    GPSRouteExportJSONPoint,
+    GPSRouteExportJSONRoute,
+    GPSRouteExportPayload,
+)
 from .utils import async_fire_event
 
 _LOGGER = logging.getLogger(__name__)
@@ -334,7 +349,7 @@ class GPSGeofenceManager:
         )
 
         # Performance tracking
-        self._stats = {
+        self._stats: GPSManagerStats = {
             "gps_points_processed": 0,
             "routes_completed": 0,
             "geofence_events": 0,
@@ -722,7 +737,7 @@ class GPSGeofenceManager:
         last_n_routes: int = 1,
         date_from: datetime | None = None,
         date_to: datetime | None = None,
-    ) -> dict[str, Any] | None:
+    ) -> GPSRouteExportPayload | None:
         """Export dog routes in specified format.
 
         Args:
@@ -763,9 +778,9 @@ class GPSGeofenceManager:
             # Export based on format
             if export_format.lower() == "gpx":
                 return await self._export_routes_gpx(dog_id, routes)
-            elif export_format.lower() == "json":
+            if export_format.lower() == "json":
                 return await self._export_routes_json(dog_id, routes)
-            elif export_format.lower() == "csv":
+            if export_format.lower() == "csv":
                 return await self._export_routes_csv(dog_id, routes)
             else:
                 raise ValueError(f"Unsupported export format: {export_format}")
@@ -796,7 +811,7 @@ class GPSGeofenceManager:
         """
         return self._active_routes.get(dog_id)
 
-    async def async_get_geofence_status(self, dog_id: str) -> dict[str, Any]:
+    async def async_get_geofence_status(self, dog_id: str) -> GPSGeofenceStatusSnapshot:
         """Get current geofence status for a dog.
 
         Args:
@@ -806,29 +821,31 @@ class GPSGeofenceManager:
             Geofence status information
         """
         zones = self._geofence_zones.get(dog_id, [])
-        zone_status = self._zone_status.get(dog_id, {})
+        zone_state = self._zone_status.get(dog_id, {})
         current_location = self._last_locations.get(dog_id)
 
-        status: dict[str, Any] = {
+        zone_status_payload: dict[str, GPSGeofenceZoneStatusSnapshot] = {}
+        status: GPSGeofenceStatusSnapshot = {
             "dog_id": dog_id,
             "zones_configured": len(zones),
             "current_location": None,
-            "zone_status": {},
+            "zone_status": zone_status_payload,
             "safe_zone_breaches": 0,
             "last_update": None,
         }
 
         if current_location:
-            status["current_location"] = {
+            current_location_snapshot: GPSGeofenceLocationSnapshot = {
                 "latitude": current_location.latitude,
                 "longitude": current_location.longitude,
                 "timestamp": current_location.timestamp.isoformat(),
                 "accuracy": current_location.accuracy,
             }
+            status["current_location"] = current_location_snapshot
             status["last_update"] = current_location.timestamp.isoformat()
 
         for zone in zones:
-            is_inside = zone_status.get(zone.name, True)
+            is_inside = zone_state.get(zone.name, True)
             distance_to_center = 0.0
 
             if current_location:
@@ -836,20 +853,21 @@ class GPSGeofenceManager:
                     current_location.latitude, current_location.longitude
                 )
 
-            status["zone_status"][zone.name] = {
+            zone_snapshot: GPSGeofenceZoneStatusSnapshot = {
                 "inside": is_inside,
                 "zone_type": zone.zone_type,
                 "radius_meters": zone.radius_meters,
                 "distance_to_center": distance_to_center,
                 "notifications_enabled": zone.notifications_enabled,
             }
+            zone_status_payload[zone.name] = zone_snapshot
 
             if zone.zone_type == "safe_zone" and not is_inside:
                 status["safe_zone_breaches"] += 1
 
         return status
 
-    async def async_get_statistics(self) -> dict[str, Any]:
+    async def async_get_statistics(self) -> GPSManagerStatisticsSnapshot:
         """Get GPS and geofencing statistics.
 
         Returns:
@@ -858,8 +876,11 @@ class GPSGeofenceManager:
         total_routes = sum(len(routes) for routes in self._route_history.values())
         active_tracking = len(self._active_routes)
 
-        return {
-            **self._stats,
+        snapshot: GPSManagerStatisticsSnapshot = {
+            "gps_points_processed": int(self._stats["gps_points_processed"]),
+            "routes_completed": int(self._stats["routes_completed"]),
+            "geofence_events": int(self._stats["geofence_events"]),
+            "last_update": self._stats["last_update"],
             "dogs_configured": len(self._dog_configs),
             "active_tracking_sessions": active_tracking,
             "total_routes_stored": total_routes,
@@ -867,6 +888,7 @@ class GPSGeofenceManager:
                 len(zones) for zones in self._geofence_zones.values()
             ),
         }
+        return snapshot
 
     def _enforce_route_history_limit(self, dog_id: str) -> None:
         """Clamp the stored route history to the most recent 100 entries."""
@@ -1266,7 +1288,7 @@ class GPSGeofenceManager:
 
     async def _export_routes_gpx(
         self, dog_id: str, routes: list[WalkRoute]
-    ) -> dict[str, Any]:
+    ) -> GPSRouteExportGPXPayload:
         """Export routes in GPX format."""
         gpx_content = '<?xml version="1.0" encoding="UTF-8"?>\n'
         gpx_content += '<gpx version="1.1" creator="PawControl">\n'
@@ -1292,65 +1314,70 @@ class GPSGeofenceManager:
 
         gpx_content += "</gpx>\n"
 
-        return {
+        payload: GPSRouteExportGPXPayload = {
             "format": "gpx",
             "content": gpx_content,
             "filename": f"{dog_id}_routes_{dt_util.utcnow().strftime('%Y%m%d')}.gpx",
             "routes_count": len(routes),
         }
+        return payload
 
     async def _export_routes_json(
         self, dog_id: str, routes: list[WalkRoute]
-    ) -> dict[str, Any]:
+    ) -> GPSRouteExportJSONPayload:
         """Export routes in JSON format."""
-        export_data = {
+        export_data: GPSRouteExportJSONContent = {
             "dog_id": dog_id,
             "export_timestamp": dt_util.utcnow().isoformat(),
             "routes": [],
         }
 
         for route in routes:
-            route_data = {
+            route_data: GPSRouteExportJSONRoute = {
                 "start_time": route.start_time.isoformat(),
                 "end_time": route.end_time.isoformat() if route.end_time else None,
                 "duration_minutes": route.duration_minutes,
                 "distance_km": route.distance_km,
                 "avg_speed_kmh": route.avg_speed_kmh,
                 "route_quality": route.route_quality.value,
-                "gps_points": [
-                    {
-                        "latitude": p.latitude,
-                        "longitude": p.longitude,
-                        "timestamp": p.timestamp.isoformat(),
-                        "altitude": p.altitude,
-                        "accuracy": p.accuracy,
-                        "source": p.source.value,
-                    }
-                    for p in route.gps_points
-                ],
-                "geofence_events": [
-                    {
-                        "event_type": e.event_type.value,
-                        "zone_name": e.zone.name,
-                        "timestamp": e.timestamp.isoformat(),
-                        "distance_from_center": e.distance_from_center,
-                        "severity": e.severity,
-                    }
-                    for e in route.geofence_events
-                ],
+                "gps_points": [],
+                "geofence_events": [],
             }
+
+            for point in route.gps_points:
+                point_payload: GPSRouteExportJSONPoint = {
+                    "latitude": point.latitude,
+                    "longitude": point.longitude,
+                    "timestamp": point.timestamp.isoformat(),
+                    "altitude": point.altitude,
+                    "accuracy": point.accuracy,
+                    "source": point.source.value,
+                }
+                route_data["gps_points"].append(point_payload)
+
+            for event in route.geofence_events:
+                event_payload: GPSRouteExportJSONEvent = {
+                    "event_type": event.event_type.value,
+                    "zone_name": event.zone.name,
+                    "timestamp": event.timestamp.isoformat(),
+                    "distance_from_center": event.distance_from_center,
+                    "severity": event.severity,
+                }
+                route_data["geofence_events"].append(event_payload)
+
             export_data["routes"].append(route_data)
 
-        return {
+        payload: GPSRouteExportJSONPayload = {
             "format": "json",
             "content": export_data,
             "filename": f"{dog_id}_routes_{dt_util.utcnow().strftime('%Y%m%d')}.json",
             "routes_count": len(routes),
         }
+        return payload
 
     async def _export_routes_csv(
         self, dog_id: str, routes: list[WalkRoute]
-    ) -> dict[str, Any]:
+    ) -> GPSRouteExportCSVPayload:
         """Export routes in CSV format."""
         csv_lines = [
             "timestamp,latitude,longitude,altitude,accuracy,route_id,distance_km,duration_min"
@@ -1377,12 +1404,13 @@ class GPSGeofenceManager:
 
         csv_content = "\n".join(csv_lines)
 
-        return {
+        payload: GPSRouteExportCSVPayload = {
             "format": "csv",
             "content": csv_content,
             "filename": f"{dog_id}_routes_{dt_util.utcnow().strftime('%Y%m%d')}.csv",
             "routes_count": len(routes),
         }
+        return payload
 
     async def async_cleanup(self) -> None:
         """Cleanup GPS manager resources."""

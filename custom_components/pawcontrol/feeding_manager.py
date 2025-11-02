@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from enum import Enum
@@ -14,6 +14,28 @@ from typing import Any, Literal, TypedDict, TypeVar, cast
 
 from homeassistant.util import dt as dt_util
 
+from .types import (
+    DietValidationResult,
+    FeedingDailyStats,
+    FeedingDietValidationSummary,
+    FeedingEmergencyState,
+    FeedingEventRecord,
+    FeedingGoalSettings,
+    FeedingHealthContext,
+    FeedingHealthStatus,
+    FeedingHealthSummary,
+    FeedingHistoryAnalysis,
+    FeedingHistoryEvent,
+    FeedingMissedMeal,
+    FeedingSnapshot,
+    FeedingSnapshotCache,
+    FeedingStatisticsCache,
+    FeedingStatisticsSnapshot,
+    HealthFeedingInsights,
+    HealthMetricsOverride,
+    HealthReport,
+    JSONMapping,
+)
 from .utils import is_number
 
 # Support running as standalone module in tests
@@ -84,23 +106,23 @@ class FeedingEvent:
     medication_dose: str | None = None
     medication_time: str | None = None
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> FeedingEventRecord:
         """Convert to dictionary for storage."""
-        return {
-            "time": self.time.isoformat(),
-            "amount": self.amount,
-            "meal_type": self.meal_type.value if self.meal_type else None,
-            "portion_size": self.portion_size,
-            "food_type": self.food_type,
-            "notes": self.notes,
-            "feeder": self.feeder,
-            "scheduled": self.scheduled,
-            "skipped": self.skipped,
-            "with_medication": self.with_medication,
-            "medication_name": self.medication_name,
-            "medication_dose": self.medication_dose,
-            "medication_time": self.medication_time,
-        }
+        return FeedingEventRecord(
+            time=self.time.isoformat(),
+            amount=float(self.amount),
+            meal_type=self.meal_type.value if self.meal_type else None,
+            portion_size=self.portion_size,
+            food_type=self.food_type,
+            notes=self.notes,
+            feeder=self.feeder,
+            scheduled=self.scheduled,
+            skipped=self.skipped,
+            with_medication=self.with_medication,
+            medication_name=self.medication_name,
+            medication_dose=self.medication_dose,
+            medication_time=self.medication_time,
+        )
 
 
 @dataclass(slots=True)
@@ -164,6 +186,40 @@ class MealSchedule:
         return next_feeding - timedelta(minutes=self.reminder_minutes_before)
 
 
+def _normalise_health_override(
+    data: Mapping[str, Any] | None,
+) -> HealthMetricsOverride | None:
+    """Coerce arbitrary mappings into ``HealthMetricsOverride`` payloads."""
+
+    if not data:
+        return None
+
+    override: HealthMetricsOverride = {}
+
+    if (weight := data.get("weight")) is not None:
+        override["weight"] = float(weight)
+    if (ideal_weight := data.get("ideal_weight")) is not None:
+        override["ideal_weight"] = float(ideal_weight)
+    if (age_months := data.get("age_months")) is not None:
+        override["age_months"] = int(age_months)
+
+    if (conditions := data.get("health_conditions")):
+        override["health_conditions"] = [
+            condition for condition in conditions if isinstance(condition, str)
+        ]
+
+    return override or None
+
+
+class FeedingTransitionScheduleEntry(TypedDict):
+    """Daily transition ratios applied while changing diets."""
+
+    day: int
+    old_food_percent: int
+    new_food_percent: int
+    date: str
+
+
 class FeedingTransitionData(TypedDict):
     """Telemetry describing an in-progress feeding transition."""
 
@@ -173,7 +229,7 @@ class FeedingTransitionData(TypedDict):
     new_food_type: str
     transition_days: int
     gradual_increase_percent: int
-    schedule: list[dict[str, Any]]
+    schedule: list[FeedingTransitionScheduleEntry]
     current_day: int
 
 
@@ -290,13 +346,13 @@ class FeedingConfig:
     spayed_neutered: bool = True
 
     # Diet validation integration
-    diet_validation: dict[str, Any] | None = None
+    diet_validation: DietValidationResult | None = None
     transition_data: FeedingTransitionData | None = None
 
     def calculate_portion_size(
         self,
         meal_type: MealType | None = None,
-        health_data: dict[str, Any] | None = None,
+        health_data: HealthMetricsOverride | None = None,
     ) -> float:
         """Calculate health-aware portion size with advanced algorithms.
 
@@ -357,7 +413,7 @@ class FeedingConfig:
     def _calculate_health_aware_portion(
         self,
         meal_type: MealType | None = None,
-        health_data: dict[str, Any] | None = None,
+        health_data: HealthMetricsOverride | None = None,
     ) -> float:
         """Calculate portion using health metrics and requirements.
 
@@ -386,13 +442,18 @@ class FeedingConfig:
         )
 
         # Calculate portion adjustment factor with diet validation
-        feeding_goals = {
-            "weight_goal": self.weight_goal,
-            "weight_loss_rate": "moderate",  # Could be configurable
-        }
+        feeding_goals: FeedingGoalSettings = {}
+        if self.weight_goal in {"maintain", "lose", "gain"}:
+            feeding_goals["weight_goal"] = cast(
+                Literal["maintain", "lose", "gain"], self.weight_goal
+            )
+        if self.weight_goal == "lose":
+            feeding_goals["weight_loss_rate"] = "moderate"  # Could be configurable
 
         adjustment_factor = HealthCalculator.calculate_portion_adjustment_factor(
-            health_metrics, feeding_goals, self.diet_validation
+            health_metrics,
+            feeding_goals if feeding_goals else None,
+            self.diet_validation,
         )
 
         # Convert calories to grams using food calorie density
@@ -438,42 +499,40 @@ class FeedingConfig:
 
         return round(portion, 1)
 
-    def _get_diet_validation_summary(self) -> dict[str, Any]:
+    def _get_diet_validation_summary(self) -> FeedingDietValidationSummary:
         """Get summary of diet validation adjustments."""
 
         total_diets = len(self.special_diet or [])
 
-        if not self.diet_validation:
-            return {
-                "has_adjustments": False,
-                "adjustment_info": "No validation data",
-                "conflict_count": 0,
-                "warning_count": 0,
-                "vet_consultation_recommended": False,
-                "vet_consultation_state": "not_needed",
-                "consultation_urgency": "none",
-                "total_diets": total_diets,
-                "diet_validation_adjustment": 1.0,
-                "percentage_adjustment": 0.0,
-                "adjustment_direction": "none",
-                "safety_factor": "normal",
-                "compatibility_score": 100,
-                "compatibility_level": "excellent",
-                "conflicts": [],
-                "warnings": [],
-            }
+        validation = self.diet_validation
+        if not validation:
+            return FeedingDietValidationSummary(
+                has_adjustments=False,
+                adjustment_info="No validation data",
+                conflict_count=0,
+                warning_count=0,
+                vet_consultation_recommended=False,
+                vet_consultation_state="not_needed",
+                consultation_urgency="none",
+                total_diets=total_diets,
+                diet_validation_adjustment=1.0,
+                percentage_adjustment=0.0,
+                adjustment_direction="none",
+                safety_factor="normal",
+                compatibility_score=100,
+                compatibility_level="excellent",
+                conflicts=[],
+                warnings=[],
+            )
 
-        conflicts = self.diet_validation.get("conflicts", [])
-        warnings = self.diet_validation.get("warnings", [])
-        total_diets = max(
-            total_diets,
-            int(self.diet_validation.get("total_diets", total_diets) or total_diets),
-        )
+        conflicts = validation["conflicts"]
+        warnings = validation["warnings"]
+        total_diets = max(total_diets, int(validation["total_diets"] or total_diets))
 
         try:
             validation_adjustment = (
                 HealthCalculator.calculate_diet_validation_adjustment(
-                    self.diet_validation,
+                    validation,
                     self.special_diet,
                 )
             )
@@ -496,15 +555,11 @@ class FeedingConfig:
 
         safety_factor = "conservative" if validation_adjustment < 1.0 else "normal"
 
-        adjustments = []
+        adjustments: list[str] = []
         if conflicts:
-            adjustments.extend(
-                [f"Conflict: {c.get('type', 'unknown')}" for c in conflicts]
-            )
+            adjustments.extend([f"Conflict: {conflict['type']}" for conflict in conflicts])
         if warnings:
-            adjustments.extend(
-                [f"Warning: {w.get('type', 'unknown')}" for w in warnings]
-            )
+            adjustments.extend([f"Warning: {warning['type']}" for warning in warnings])
 
         conflict_count = len(conflicts)
         warning_count = len(warnings)
@@ -526,10 +581,7 @@ class FeedingConfig:
         else:
             compatibility_level = "poor"
 
-        vet_recommended = bool(
-            self.diet_validation.get("recommended_vet_consultation", False)
-            or conflict_count > 0
-        )
+        vet_recommended = bool(validation["recommended_vet_consultation"] or conflict_count > 0)
 
         if conflict_count > 0:
             consultation_urgency = "high"
@@ -542,30 +594,30 @@ class FeedingConfig:
 
         has_adjustments = bool(adjustments) or abs(validation_adjustment - 1.0) > 0.005
 
-        return {
-            "has_adjustments": has_adjustments,
-            "adjustment_info": "; ".join(adjustments)
+        return FeedingDietValidationSummary(
+            has_adjustments=has_adjustments,
+            adjustment_info="; ".join(adjustments)
             if adjustments
             else "No adjustments",
-            "conflict_count": conflict_count,
-            "warning_count": warning_count,
-            "vet_consultation_recommended": vet_recommended,
-            "vet_consultation_state": "recommended"
+            conflict_count=conflict_count,
+            warning_count=warning_count,
+            vet_consultation_recommended=vet_recommended,
+            vet_consultation_state="recommended"
             if vet_recommended
             else "not_needed",
-            "consultation_urgency": consultation_urgency,
-            "total_diets": total_diets,
-            "diet_validation_adjustment": round(validation_adjustment, 3),
-            "percentage_adjustment": percentage_adjustment,
-            "adjustment_direction": adjustment_direction,
-            "safety_factor": safety_factor,
-            "compatibility_score": compatibility_score,
-            "compatibility_level": compatibility_level,
-            "conflicts": conflicts,
-            "warnings": warnings,
-        }
+            consultation_urgency=consultation_urgency,
+            total_diets=total_diets,
+            diet_validation_adjustment=round(validation_adjustment, 3),
+            percentage_adjustment=percentage_adjustment,
+            adjustment_direction=adjustment_direction,
+            safety_factor=safety_factor,
+            compatibility_score=compatibility_score,
+            compatibility_level=compatibility_level,
+            conflicts=cast(list[JSONMapping], conflicts),
+            warnings=cast(list[JSONMapping], warnings),
+        )
 
-    def update_diet_validation(self, validation_data: dict[str, Any]) -> None:
+    def update_diet_validation(self, validation_data: DietValidationResult) -> None:
         """Update diet validation data and trigger portion recalculation.
 
         Args:
@@ -583,7 +635,7 @@ class FeedingConfig:
             )
 
     def _build_health_metrics(
-        self, override_data: dict[str, Any] | None = None
+        self, override_data: HealthMetricsOverride | None = None
     ) -> HealthMetrics:
         """Build health metrics from config and optional override data.
 
@@ -601,11 +653,15 @@ class FeedingConfig:
 
         # Apply overrides if provided
         if override_data:
-            current_weight = override_data.get("weight", current_weight)
-            ideal_weight = override_data.get("ideal_weight", ideal_weight)
-            age_months = override_data.get("age_months", age_months)
-            additional_conditions = override_data.get("health_conditions", [])
-            health_conditions.extend(additional_conditions)
+            if (override_weight := override_data.get("weight")) is not None:
+                current_weight = float(override_weight)
+            if (override_ideal := override_data.get("ideal_weight")) is not None:
+                ideal_weight = float(override_ideal)
+            if (override_age := override_data.get("age_months")) is not None:
+                age_months = int(override_age)
+            additional_conditions = override_data.get("health_conditions")
+            if additional_conditions:
+                health_conditions.extend(additional_conditions)
 
         # Determine life stage
         life_stage = None
@@ -682,12 +738,9 @@ class FeedingConfig:
             MealType.SUPPLEMENT: 0.05,  # Tiny supplements
         }
 
-    def get_health_summary(self) -> dict[str, Any]:
-        """Get summary of health-related feeding configuration.
+    def get_health_summary(self) -> FeedingHealthSummary:
+        """Get summary of health-related feeding configuration."""
 
-        Returns:
-            Dictionary with health configuration summary
-        """
         health_metrics = self._build_health_metrics()
 
         # Calculate daily calorie requirement if possible
@@ -706,26 +759,27 @@ class FeedingConfig:
             except Exception as err:
                 _LOGGER.warning("Calorie calculation failed: %s", err)
 
-        return {
-            "health_aware_enabled": self.health_aware_portions,
-            "current_weight": health_metrics.current_weight,
-            "ideal_weight": health_metrics.ideal_weight,
-            "life_stage": health_metrics.life_stage.value
-            if health_metrics.life_stage
-            else None,
-            "activity_level": health_metrics.activity_level.value
+        return FeedingHealthSummary(
+            health_aware_enabled=self.health_aware_portions,
+            current_weight=health_metrics.current_weight,
+            ideal_weight=health_metrics.ideal_weight,
+            life_stage=
+            health_metrics.life_stage.value if health_metrics.life_stage else None,
+            activity_level=
+            health_metrics.activity_level.value
             if health_metrics.activity_level
             else None,
-            "body_condition_score": health_metrics.body_condition_score.value
+            body_condition_score=
+            health_metrics.body_condition_score.value
             if health_metrics.body_condition_score
             else None,
-            "daily_calorie_requirement": daily_calories,
-            "calories_per_gram": self._estimate_calories_per_gram(),
-            "health_conditions": health_metrics.health_conditions,
-            "special_diet": health_metrics.special_diet,
-            "weight_goal": self.weight_goal,
-            "diet_validation_applied": self.diet_validation is not None,
-        }
+            daily_calorie_requirement=daily_calories,
+            calories_per_gram=self._estimate_calories_per_gram(),
+            health_conditions=health_metrics.health_conditions,
+            special_diet=health_metrics.special_diet,
+            weight_goal=self.weight_goal,
+            diet_validation_applied=self.diet_validation is not None,
+        )
 
     def get_special_diet_info(self) -> dict[str, Any]:
         """Get information about special diet requirements.
@@ -798,7 +852,7 @@ class FeedingManager:
         self._next_reminders: dict[str, datetime] = {}
 
         # Track emergency feeding modes for health-aware entities
-        self._active_emergencies: dict[str, dict[str, Any]] = {}
+        self._active_emergencies: dict[str, FeedingEmergencyState] = {}
         self._emergency_restore_tasks: dict[str, asyncio.Task] = {}
 
         # Track scheduled reversion tasks so we can cancel or clean them up
@@ -809,12 +863,12 @@ class FeedingManager:
         self._profile_threshold = 0.05
 
         # OPTIMIZATION: Feeding data cache
-        self._data_cache: dict[str, dict] = {}
+        self._data_cache: FeedingSnapshotCache = {}
         self._cache_time: dict[str, datetime] = {}
         self._cache_ttl = timedelta(seconds=10)
 
         # OPTIMIZATION: Statistics cache
-        self._stats_cache: dict[str, dict] = {}
+        self._stats_cache: FeedingStatisticsCache = {}
         self._stats_cache_time: dict[str, datetime] = {}
         self._stats_cache_ttl = timedelta(minutes=5)
 
@@ -1532,7 +1586,7 @@ class FeedingManager:
 
             return list(feedings)
 
-    async def async_get_feeding_data(self, dog_id: str) -> dict[str, Any]:
+    async def async_get_feeding_data(self, dog_id: str) -> FeedingSnapshot:
         """Get comprehensive feeding data with caching.
 
         OPTIMIZATION: Caches feeding data for 10 seconds.
@@ -1545,7 +1599,10 @@ class FeedingManager:
         """
         async with self._lock:
             if dog_id not in self._configs and dog_id not in self._feedings:
-                return {}
+                empty_snapshot = self._empty_feeding_data(None)
+                self._data_cache[dog_id] = empty_snapshot
+                self._cache_time[dog_id] = dt_util.now()
+                return empty_snapshot
 
             # Check cache
             if dog_id in self._data_cache:
@@ -1562,7 +1619,7 @@ class FeedingManager:
 
             return data
 
-    def get_feeding_data(self, dog_id: str) -> dict[str, Any]:
+    def get_feeding_data(self, dog_id: str) -> FeedingSnapshot:
         """Synchronously return the feeding snapshot for ``dog_id``.
 
         Legacy tests and diagnostics relied on a synchronous accessor.  The
@@ -1571,7 +1628,10 @@ class FeedingManager:
         """
 
         if dog_id not in self._configs and dog_id not in self._feedings:
-            return {}
+            snapshot = self._empty_feeding_data(None)
+            self._data_cache[dog_id] = snapshot
+            self._cache_time[dog_id] = dt_util.now()
+            return snapshot
 
         cache_time = self._cache_time.get(dog_id)
         if cache_time and (dt_util.now() - cache_time) < self._cache_ttl:
@@ -1584,38 +1644,38 @@ class FeedingManager:
         self._cache_time[dog_id] = dt_util.now()
         return data
 
-    def get_daily_stats(self, dog_id: str) -> dict[str, Any]:
+    def get_daily_stats(self, dog_id: str) -> FeedingDailyStats:
         """Return today's feeding statistics for the given dog."""
 
         data = self.get_feeding_data(dog_id)
-        stats = data.get("daily_stats", {})
-        return dict(stats)
+        stats = data.get("daily_stats", {
+            "total_fed_today": 0.0,
+            "meals_today": 0,
+            "remaining_calories": None,
+        })
+        return FeedingDailyStats(
+            total_fed_today=float(stats.get("total_fed_today", 0.0)),
+            meals_today=int(stats.get("meals_today", 0)),
+            remaining_calories=cast(float | None, stats.get("remaining_calories")),
+        )
 
     def get_feeding_config(self, dog_id: str) -> FeedingConfig | None:
         """Return feeding configuration for a dog if available."""
 
         return self._configs.get(dog_id)
 
-    def get_active_emergency(self, dog_id: str) -> dict[str, Any] | None:
+    def get_active_emergency(self, dog_id: str) -> FeedingEmergencyState | None:
         """Return active or most recent emergency feeding state for a dog."""
 
         emergency = self._active_emergencies.get(dog_id)
         if not emergency:
             return None
 
-        return dict(emergency)
+        return FeedingEmergencyState(**emergency)
 
-    def _build_feeding_snapshot(self, dog_id: str) -> dict[str, Any]:
-        """Calculate feeding data without cache.
+    def _build_feeding_snapshot(self, dog_id: str) -> FeedingSnapshot:
+        """Calculate feeding data without cache."""
 
-        OPTIMIZATION: Single pass through data with minimal lookups.
-
-        Args:
-            dog_id: Dog identifier
-
-        Returns:
-            Feeding data dictionary
-        """
         feedings = self._feedings.get(dog_id, [])
         config = self._configs.get(dog_id)
 
@@ -1625,105 +1685,62 @@ class FeedingManager:
         now = dt_util.now()
         today = now.date()
 
-        # OPTIMIZATION: Single pass data collection
         feedings_today: dict[str, int] = {}
         daily_amount = 0.0
         last_feeding: FeedingEvent | None = None
-        scheduled_count = 0
 
         for event in reversed(feedings):
             if event.time.date() == today and not event.skipped:
                 meal = event.meal_type.value if event.meal_type else "unknown"
                 feedings_today[meal] = feedings_today.get(meal, 0) + 1
-                daily_amount += event.amount
+                daily_amount += float(event.amount)
 
-                if event.scheduled:
-                    scheduled_count += 1
-
-            if not last_feeding and not event.skipped:
+            if last_feeding is None and not event.skipped:
                 last_feeding = event
 
-        last_hours = None
+        last_hours: float | None = None
         if last_feeding:
             last_hours = (now - last_feeding.time).total_seconds() / 3600
 
-        # Calculate schedule adherence and missed feedings
         adherence = 100
-        missed_feedings: list[dict[str, Any]] = []
+        missed_feedings: list[FeedingMissedMeal] = []
 
         if config and config.schedule_type != FeedingScheduleType.FLEXIBLE:
             todays_schedules = config.get_todays_schedules()
             expected = len(todays_schedules)
-
             if expected > 0:
-                # OPTIMIZATION: Pre-calculate time windows
                 for schedule in todays_schedules:
-                    scheduled_datetime = datetime.combine(
-                        today, schedule.scheduled_time
+                    scheduled_datetime = dt_util.as_local(
+                        datetime.combine(today, schedule.scheduled_time)
                     )
-                    scheduled_datetime = dt_util.as_local(scheduled_datetime)
-
-                    if scheduled_datetime <= now:
-                        # Check if fed within window
-                        meal_type_found = schedule.meal_type.value in feedings_today
-
-                        if not meal_type_found:
-                            missed_feedings.append(
-                                {
-                                    "meal_type": schedule.meal_type.value,
-                                    "scheduled_time": scheduled_datetime.isoformat(),
-                                }
+                    if scheduled_datetime <= now and schedule.meal_type.value not in feedings_today:
+                        missed_feedings.append(
+                            FeedingMissedMeal(
+                                meal_type=schedule.meal_type.value,
+                                scheduled_time=scheduled_datetime.isoformat(),
                             )
+                        )
 
                 completed = expected - len(missed_feedings)
-                adherence = int((completed / expected) * 100)
+                adherence = int((completed / expected) * 100) if expected else 100
 
-        # Find next feeding
-        next_feeding = None
-        next_type = None
-
+        next_feeding: datetime | None = None
+        next_type: str | None = None
         if config:
             for schedule in config.get_active_schedules():
-                next_time = schedule.get_next_feeding_time()
-                if next_feeding is None or next_time < next_feeding:
-                    next_feeding = next_time
+                candidate = schedule.get_next_feeding_time()
+                if next_feeding is None or candidate < next_feeding:
+                    next_feeding = candidate
                     next_type = schedule.meal_type.value
 
-        data: dict[str, Any] = {
-            "last_feeding": last_feeding.time.isoformat() if last_feeding else None,
-            "last_feeding_type": (
-                last_feeding.meal_type.value
-                if last_feeding and last_feeding.meal_type
-                else None
-            ),
-            "last_feeding_hours": last_hours,
-            "last_feeding_amount": last_feeding.amount if last_feeding else None,
-            "feedings_today": feedings_today,
-            "total_feedings_today": sum(feedings_today.values()),
-            "daily_amount_consumed": daily_amount,
-            "daily_amount_target": config.daily_food_amount if config else 500,
-            "daily_amount_percentage": (
-                int(daily_amount / config.daily_food_amount * 100)
-                if config and config.daily_food_amount > 0
-                else 0
-            ),
-            "schedule_adherence": adherence,
-            "next_feeding": next_feeding.isoformat() if next_feeding else None,
-            "next_feeding_type": next_type,
-            "missed_feedings": missed_feedings,
-            "status": "ready" if feedings else "no_data",
-        }
+        daily_amount_target = float(config.daily_food_amount) if config else 500.0
+        daily_amount_percentage = (
+            int((daily_amount / daily_amount_target) * 100)
+            if daily_amount_target > 0
+            else 0
+        )
 
-        data["daily_target"] = data["daily_amount_target"]
-
-        if config:
-            data["config"] = {
-                "meals_per_day": config.meals_per_day,
-                "food_type": config.food_type,
-                "schedule_type": config.schedule_type.value,
-            }
-
-        health_summary: dict[str, Any] = {}
+        health_summary: FeedingHealthSummary | None = None
         calories_per_gram: float | None = None
         if config:
             health_summary = config.get_health_summary()
@@ -1731,44 +1748,41 @@ class FeedingManager:
             if calories_per_gram is None:
                 calories_per_gram = config._estimate_calories_per_gram()
 
-        if calories_per_gram is not None:
-            data["calories_per_gram"] = round(float(calories_per_gram), 2)
-
         daily_calorie_target: float | None = None
         if health_summary:
-            daily_calorie_target = health_summary.get("daily_calorie_requirement")
-
+            daily_calorie_target = cast(
+                float | None, health_summary.get("daily_calorie_requirement")
+            )
         if daily_calorie_target is None and config and calories_per_gram is not None:
             daily_calorie_target = round(
                 float(config.daily_food_amount) * float(calories_per_gram), 1
             )
 
-        if daily_calorie_target is not None:
-            data["daily_calorie_target"] = daily_calorie_target
-
         total_calories_today: float | None = None
+        calorie_goal_progress: float | None = None
         if calories_per_gram is not None and daily_amount:
             total_calories_today = round(daily_amount * float(calories_per_gram), 1)
-            data["total_calories_today"] = total_calories_today
-
-        if total_calories_today is not None and daily_calorie_target:
-            try:
-                progress = (total_calories_today / daily_calorie_target) * 100
-                data["calorie_goal_progress"] = round(min(progress, 150.0), 1)
-            except (TypeError, ZeroDivisionError):
-                data["calorie_goal_progress"] = 0.0
+            if daily_calorie_target:
+                try:
+                    progress = (total_calories_today / daily_calorie_target) * 100
+                except (TypeError, ZeroDivisionError):
+                    calorie_goal_progress = 0.0
+                else:
+                    calorie_goal_progress = round(min(progress, 150.0), 1)
 
         portion_adjustment: float | None = None
         if config:
             try:
                 health_metrics = config._build_health_metrics()
-                feeding_goals = {"weight_goal": config.weight_goal}
-                portion_adjustment = (
-                    HealthCalculator.calculate_portion_adjustment_factor(
-                        health_metrics,
-                        feeding_goals if config.weight_goal else None,
-                        config.diet_validation,
+                feeding_goals: FeedingGoalSettings = {}
+                if config.weight_goal in {"maintain", "lose", "gain"}:
+                    feeding_goals["weight_goal"] = cast(
+                        Literal["maintain", "lose", "gain"], config.weight_goal
                     )
+                portion_adjustment = HealthCalculator.calculate_portion_adjustment_factor(
+                    health_metrics,
+                    feeding_goals if feeding_goals else None,
+                    config.diet_validation,
                 )
             except Exception as err:
                 _LOGGER.debug(
@@ -1777,42 +1791,23 @@ class FeedingManager:
                     err,
                 )
 
-        if portion_adjustment is not None:
-            data["portion_adjustment_factor"] = portion_adjustment
-
+        diet_summary: FeedingDietValidationSummary | None = None
         if config and config.diet_validation:
-            data["diet_validation_summary"] = config._get_diet_validation_summary()
-        else:
-            data["diet_validation_summary"] = None
+            diet_summary = config._get_diet_validation_summary()
 
         health_conditions: list[str] = []
         if health_summary:
             health_conditions = list(health_summary.get("health_conditions", []))
-
         if config and config.health_conditions:
-            # Ensure unique conditions preserving order
             seen: set[str] = set(health_conditions)
             for condition in config.health_conditions:
                 if condition not in seen:
                     health_conditions.append(condition)
                     seen.add(condition)
 
-        if health_conditions:
-            data["health_conditions"] = health_conditions
-
+        daily_activity_level: str | None = None
         if health_summary and health_summary.get("activity_level"):
-            data["daily_activity_level"] = health_summary.get("activity_level")
-
-        if portion_adjustment is not None or data.get("daily_activity_level"):
-            data["health_summary"] = health_summary
-
-        data["medication_with_meals"] = bool(
-            config.medication_with_meals if config else False
-        )
-        data["health_aware_feeding"] = bool(
-            config.health_aware_portions if config else False
-        )
-        data["weight_goal"] = config.weight_goal if config else None
+            daily_activity_level = cast(str | None, health_summary.get("activity_level"))
 
         weight_goal_progress: float | None = None
         if config and health_summary:
@@ -1837,25 +1832,19 @@ class FeedingManager:
                 except (TypeError, ZeroDivisionError):
                     weight_goal_progress = None
 
-        if weight_goal_progress is not None:
-            data["weight_goal_progress"] = round(weight_goal_progress, 1)
-
+        emergency_mode: FeedingEmergencyState | None = None
+        health_emergency = False
         emergency_state = self._active_emergencies.get(dog_id)
         if emergency_state:
-            emergency_copy = dict(emergency_state)
+            emergency_copy = cast(FeedingEmergencyState, dict(emergency_state))
             expires_at = emergency_copy.get("expires_at")
             if expires_at:
                 expires_dt = dt_util.parse_datetime(expires_at)
                 if expires_dt and expires_dt < dt_util.utcnow():
                     emergency_copy["active"] = False
                     emergency_copy["status"] = emergency_copy.get("status", "resolved")
-            data["emergency_mode"] = emergency_copy
-            data["health_emergency"] = bool(emergency_copy.get("active", True))
-        else:
-            data["emergency_mode"] = None
-            data["health_emergency"] = False
-
-        data["feedings"] = [event.to_dict() for event in feedings]
+            health_emergency = bool(emergency_copy.get("active", True))
+            emergency_mode = emergency_copy
 
         meals_today = sum(feedings_today.values())
         remaining_calories: float | None = None
@@ -1863,113 +1852,158 @@ class FeedingManager:
             remaining_calories = max(0.0, daily_calorie_target - total_calories_today)
         elif calories_per_gram is not None:
             try:
-                target_calories = float(data["daily_amount_target"]) * float(
-                    calories_per_gram
-                )
+                target_calories = daily_amount_target * float(calories_per_gram)
                 consumed_calories = daily_amount * float(calories_per_gram)
                 remaining_calories = max(0.0, target_calories - consumed_calories)
             except (TypeError, ValueError):  # pragma: no cover - defensive
                 remaining_calories = None
 
-        data["daily_stats"] = {
-            "total_fed_today": round(daily_amount, 1),
-            "meals_today": meals_today,
-            "remaining_calories": round(remaining_calories, 1)
+        daily_stats = FeedingDailyStats(
+            total_fed_today=round(daily_amount, 1),
+            meals_today=meals_today,
+            remaining_calories=round(remaining_calories, 1)
             if remaining_calories is not None
             else None,
-        }
+        )
 
-        # Derive overall health feeding status
-        status = "insufficient_data"
-        if data.get("health_emergency"):
-            status = "emergency"
+        health_status: FeedingHealthStatus = "insufficient_data"
+        if health_emergency:
+            health_status = "emergency"
         elif total_calories_today is not None and daily_calorie_target:
             try:
                 ratio = total_calories_today / daily_calorie_target
-                if ratio < 0.85:
-                    status = "underfed"
-                elif ratio > 1.15:
-                    status = "overfed"
-                else:
-                    status = "on_track"
             except (TypeError, ZeroDivisionError):
-                status = "unknown"
+                health_status = "unknown"
+            else:
+                if ratio < 0.85:
+                    health_status = "underfed"
+                elif ratio > 1.15:
+                    health_status = "overfed"
+                else:
+                    health_status = "on_track"
         elif portion_adjustment is not None:
-            status = "monitoring"
+            health_status = "monitoring"
 
-        data["health_feeding_status"] = status
-
-        return data
-
-    def _empty_feeding_data(self, config: FeedingConfig | None) -> dict[str, Any]:
-        """Generate empty feeding data structure.
-
-        Args:
-            config: Optional feeding configuration
-
-        Returns:
-            Empty data dictionary
-        """
-        calories_per_gram = config._estimate_calories_per_gram() if config else None
-
-        data: dict[str, Any] = {
-            "last_feeding": None,
-            "feedings_today": {},
-            "total_feedings_today": 0,
-            "daily_amount_consumed": 0.0,
-            "daily_amount_target": config.daily_food_amount if config else 500,
-            "schedule_adherence": 100,
-            "next_feeding": None,
-            "missed_feedings": [],
-            "status": "no_data",
-            "health_feeding_status": "insufficient_data",
-            "medication_with_meals": bool(
-                config.medication_with_meals if config else False
+        snapshot: FeedingSnapshot = FeedingSnapshot(
+            status="ready",
+            last_feeding=last_feeding.time.isoformat() if last_feeding else None,
+            last_feeding_type=(
+                last_feeding.meal_type.value
+                if last_feeding and last_feeding.meal_type
+                else None
             ),
-            "health_aware_feeding": bool(
+            last_feeding_hours=last_hours,
+            last_feeding_amount=last_feeding.amount if last_feeding else None,
+            feedings_today=dict(feedings_today),
+            total_feedings_today=meals_today,
+            daily_amount_consumed=round(daily_amount, 1),
+            daily_amount_target=daily_amount_target,
+            daily_target=daily_amount_target,
+            daily_amount_percentage=daily_amount_percentage,
+            schedule_adherence=adherence,
+            next_feeding=next_feeding.isoformat() if next_feeding else None,
+            next_feeding_type=next_type,
+            missed_feedings=missed_feedings,
+            feedings=[event.to_dict() for event in feedings],
+            daily_stats=daily_stats,
+            medication_with_meals=bool(config.medication_with_meals if config else False),
+            health_aware_feeding=bool(
                 config.health_aware_portions if config else False
             ),
-            "weight_goal": config.weight_goal if config else None,
-            "weight_goal_progress": None,
-            "health_conditions": list(config.health_conditions)
-            if config and config.health_conditions
-            else [],
-            "daily_activity_level": None,
-            "health_emergency": False,
-            "emergency_mode": None,
-            "diet_validation_summary": None,
-        }
+            weight_goal=config.weight_goal if config else None,
+            emergency_mode=emergency_mode,
+            health_emergency=health_emergency,
+            health_feeding_status=health_status,
+        )
 
-        data["daily_target"] = data["daily_amount_target"]
+        if config:
+            snapshot["config"] = {
+                "meals_per_day": config.meals_per_day,
+                "food_type": config.food_type,
+                "schedule_type": config.schedule_type.value,
+            }
 
         if calories_per_gram is not None:
-            data["calories_per_gram"] = round(float(calories_per_gram), 2)
-            data["daily_calorie_target"] = round(
-                float(data["daily_amount_target"]) * float(calories_per_gram), 1
-            )
-            data["total_calories_today"] = 0.0
+            snapshot["calories_per_gram"] = round(float(calories_per_gram), 2)
+        if daily_calorie_target is not None:
+            snapshot["daily_calorie_target"] = daily_calorie_target
+        if total_calories_today is not None:
+            snapshot["total_calories_today"] = total_calories_today
+        if calorie_goal_progress is not None:
+            snapshot["calorie_goal_progress"] = calorie_goal_progress
+        if portion_adjustment is not None:
+            snapshot["portion_adjustment_factor"] = portion_adjustment
+        snapshot["diet_validation_summary"] = diet_summary
 
-        data["feedings"] = []
+        if health_conditions:
+            snapshot["health_conditions"] = health_conditions
+        if daily_activity_level is not None:
+            snapshot["daily_activity_level"] = daily_activity_level
+        if health_summary is not None and (portion_adjustment is not None or daily_activity_level is not None):
+            snapshot["health_summary"] = health_summary
+        if weight_goal_progress is not None:
+            snapshot["weight_goal_progress"] = round(weight_goal_progress, 1)
+
+        return snapshot
+
+    def _empty_feeding_data(self, config: FeedingConfig | None) -> FeedingSnapshot:
+        """Generate an empty feeding snapshot structure."""
+
+        calories_per_gram = config._estimate_calories_per_gram() if config else None
+        daily_amount_target = float(config.daily_food_amount) if config else 500.0
 
         remaining_calories: float | None = None
+        daily_calorie_target: float | None = None
         if calories_per_gram is not None:
-            try:
-                target_calories = float(data["daily_amount_target"]) * float(
-                    calories_per_gram
-                )
-                remaining_calories = max(0.0, target_calories)
-            except (TypeError, ValueError):  # pragma: no cover - defensive
-                remaining_calories = None
+            daily_calorie_target = round(daily_amount_target * float(calories_per_gram), 1)
+            remaining_calories = daily_calorie_target
 
-        data["daily_stats"] = {
-            "total_fed_today": 0.0,
-            "meals_today": 0,
-            "remaining_calories": round(remaining_calories, 1)
-            if remaining_calories is not None
-            else None,
-        }
+        snapshot: FeedingSnapshot = FeedingSnapshot(
+            status="no_data",
+            last_feeding=None,
+            last_feeding_type=None,
+            last_feeding_hours=None,
+            last_feeding_amount=None,
+            feedings_today={},
+            total_feedings_today=0,
+            daily_amount_consumed=0.0,
+            daily_amount_target=daily_amount_target,
+            daily_target=daily_amount_target,
+            daily_amount_percentage=0,
+            schedule_adherence=100,
+            next_feeding=None,
+            next_feeding_type=None,
+            missed_feedings=[],
+            feedings=[],
+            daily_stats=FeedingDailyStats(
+                total_fed_today=0.0,
+                meals_today=0,
+                remaining_calories=round(remaining_calories, 1)
+                if remaining_calories is not None
+                else None,
+            ),
+            medication_with_meals=bool(config.medication_with_meals if config else False),
+            health_aware_feeding=bool(
+                config.health_aware_portions if config else False
+            ),
+            weight_goal=config.weight_goal if config else None,
+            emergency_mode=None,
+            health_emergency=False,
+            health_feeding_status="insufficient_data",
+        )
 
-        return data
+        if config and config.health_conditions:
+            snapshot["health_conditions"] = list(config.health_conditions)
+        snapshot["diet_validation_summary"] = None
+        snapshot["daily_activity_level"] = None
+
+        if calories_per_gram is not None:
+            snapshot["calories_per_gram"] = round(float(calories_per_gram), 2)
+        if daily_calorie_target is not None:
+            snapshot["daily_calorie_target"] = daily_calorie_target
+            snapshot["total_calories_today"] = 0.0
+
+        return snapshot
 
     def _invalidate_cache(self, dog_id: str) -> None:
         """Invalidate caches for a dog.
@@ -2037,7 +2071,9 @@ class FeedingManager:
             if dog_id in self._reminder_events:
                 self._reminder_events[dog_id].set()
 
-    async def async_get_statistics(self, dog_id: str, days: int = 30) -> dict[str, Any]:
+    async def async_get_statistics(
+        self, dog_id: str, days: int = 30
+    ) -> FeedingStatisticsSnapshot:
         """Get feeding statistics with caching.
 
         OPTIMIZATION: Caches statistics for 5 minutes.
@@ -2067,7 +2103,9 @@ class FeedingManager:
 
             return stats
 
-    async def _calculate_statistics(self, dog_id: str, days: int) -> dict[str, Any]:
+    async def _calculate_statistics(
+        self, dog_id: str, days: int
+    ) -> FeedingStatisticsSnapshot:
         """Calculate statistics without cache.
 
         OPTIMIZATION: Efficient data aggregation.
@@ -2096,14 +2134,19 @@ class FeedingManager:
         recent_feedings = feedings[left:]
 
         if not recent_feedings:
-            return {
-                "period_days": days,
-                "total_feedings": 0,
-                "average_daily_feedings": 0,
-                "average_daily_amount": 0,
-                "most_common_meal": None,
-                "schedule_adherence": 100,
-            }
+            return FeedingStatisticsSnapshot(
+                period_days=days,
+                total_feedings=0,
+                average_daily_feedings=0,
+                average_daily_amount=0,
+                most_common_meal=None,
+                schedule_adherence=100,
+                daily_target_met_percentage=(
+                    int(0 / config.daily_food_amount * 100)
+                    if config and config.daily_food_amount > 0
+                    else 0
+                ),
+            )
 
         # OPTIMIZATION: Single pass aggregation
         daily_counts: dict[date, int] = {}
@@ -2143,19 +2186,19 @@ class FeedingManager:
             if expected_daily > 0:
                 adherence = min(100, int((avg_daily_feedings / expected_daily) * 100))
 
-        return {
-            "period_days": days,
-            "total_feedings": len([f for f in recent_feedings if not f.skipped]),
-            "average_daily_feedings": round(avg_daily_feedings, 1),
-            "average_daily_amount": round(avg_daily_amount, 1),
-            "most_common_meal": most_common_meal,
-            "schedule_adherence": adherence,
-            "daily_target_met_percentage": (
+        return FeedingStatisticsSnapshot(
+            period_days=days,
+            total_feedings=len([f for f in recent_feedings if not f.skipped]),
+            average_daily_feedings=round(avg_daily_feedings, 1),
+            average_daily_amount=round(avg_daily_amount, 1),
+            most_common_meal=most_common_meal,
+            schedule_adherence=adherence,
+            daily_target_met_percentage=(
                 int(avg_daily_amount / config.daily_food_amount * 100)
                 if config and config.daily_food_amount > 0
                 else 0
             ),
-        }
+        )
 
     async def async_get_reminders(self) -> dict[str, datetime]:
         """Get all next reminder times.
@@ -2167,7 +2210,7 @@ class FeedingManager:
             return dict(self._next_reminders)
 
     async def async_calculate_health_aware_portion(
-        self, dog_id: str, meal_type: str, health_data: dict[str, Any] | None = None
+        self, dog_id: str, meal_type: str, health_data: Mapping[str, Any] | None = None
     ) -> float | None:
         """Calculate health-aware portion for a specific meal.
 
@@ -2186,7 +2229,9 @@ class FeedingManager:
 
             try:
                 meal_type_enum = MealType(meal_type)
-                return config.calculate_portion_size(meal_type_enum, health_data)
+                return config.calculate_portion_size(
+                    meal_type_enum, _normalise_health_override(health_data)
+                )
             except (ValueError, Exception) as err:
                 _LOGGER.warning(
                     "Health-aware portion calculation failed for %s: %s", dog_id, err
@@ -2195,7 +2240,7 @@ class FeedingManager:
 
     async def async_analyze_feeding_health(
         self, dog_id: str, days: int = 7
-    ) -> dict[str, Any]:
+    ) -> FeedingHistoryAnalysis:
         """Analyze feeding patterns from health perspective.
 
         Args:
@@ -2210,38 +2255,40 @@ class FeedingManager:
             feedings = self._feedings.get(dog_id, [])
 
             if not config or not feedings:
-                return {
-                    "status": "insufficient_data",
-                    "message": "Need feeding configuration and history",
-                }
+                return FeedingHistoryAnalysis(
+                    status="insufficient_data",
+                    message="Need feeding configuration and history",
+                )
 
             # Get recent feeding events
             since = dt_util.now() - timedelta(days=days)
-            recent_events = [
-                {
-                    "time": event.time,
-                    "amount": event.amount,
-                    "meal_type": event.meal_type.value if event.meal_type else None,
-                }
-                for event in feedings
-                if event.time > since and not event.skipped
-            ]
+            recent_events: list[FeedingHistoryEvent] = []
+            for event in feedings:
+                if event.time <= since or event.skipped:
+                    continue
+                recent_events.append(
+                    FeedingHistoryEvent(
+                        time=event.time,
+                        amount=float(event.amount),
+                        meal_type=event.meal_type.value if event.meal_type else None,
+                    )
+                )
 
             if not recent_events:
-                return {
-                    "status": "no_recent_data",
-                    "message": f"No feeding data in last {days} days",
-                }
+                return FeedingHistoryAnalysis(
+                    status="no_recent_data",
+                    message=f"No feeding data in last {days} days",
+                )
 
             # Get health summary for target calories
             health_summary = config.get_health_summary()
             target_calories = health_summary.get("daily_calorie_requirement")
 
             if not target_calories:
-                return {
-                    "status": "no_health_data",
-                    "message": "Insufficient health data for analysis",
-                }
+                return FeedingHistoryAnalysis(
+                    status="no_health_data",
+                    message="Insufficient health data for analysis",
+                )
 
             # Use health calculator to analyze patterns
             calories_per_gram = health_summary.get("calories_per_gram", 3.5)
@@ -2251,18 +2298,25 @@ class FeedingManager:
             )
 
             # Add health-specific recommendations
-            analysis["health_context"] = {
-                "weight_goal": config.weight_goal,
-                "body_condition_score": health_summary.get("body_condition_score"),
-                "life_stage": health_summary.get("life_stage"),
-                "activity_level": health_summary.get("activity_level"),
-                "health_conditions": health_summary.get("health_conditions"),
-                "special_diet": health_summary.get("special_diet"),
-            }
+            health_context: FeedingHealthContext = {}
+            if config.weight_goal is not None:
+                health_context["weight_goal"] = config.weight_goal
+            if (bcs := health_summary.get("body_condition_score")) is not None:
+                health_context["body_condition_score"] = cast(float | int, bcs)
+            if (life_stage := health_summary.get("life_stage")) is not None:
+                health_context["life_stage"] = cast(str, life_stage)
+            if (activity := health_summary.get("activity_level")) is not None:
+                health_context["activity_level"] = cast(str, activity)
+            if (conditions := health_summary.get("health_conditions")) is not None:
+                health_context["health_conditions"] = cast(list[str], conditions)
+            if (diet := health_summary.get("special_diet")) is not None:
+                health_context["special_diet"] = cast(list[str], diet)
+            if health_context:
+                analysis["health_context"] = health_context
 
             return analysis
 
-    async def async_generate_health_report(self, dog_id: str) -> dict[str, Any] | None:
+    async def async_generate_health_report(self, dog_id: str) -> HealthReport | None:
         """Generate comprehensive health report for a dog.
 
         Args:
@@ -2285,20 +2339,29 @@ class FeedingManager:
 
                 # Add feeding-specific insights
                 health_summary = config.get_health_summary()
-                report["feeding_insights"] = {
-                    "daily_calorie_target": health_summary.get(
-                        "daily_calorie_requirement"
+                feeding_goal_settings: FeedingGoalSettings = {}
+                if config.weight_goal in {"maintain", "lose", "gain"}:
+                    feeding_goal_settings["weight_goal"] = cast(
+                        Literal["maintain", "lose", "gain"], config.weight_goal
+                    )
+
+                portion_adjustment = HealthCalculator.calculate_portion_adjustment_factor(
+                    health_metrics,
+                    feeding_goal_settings if feeding_goal_settings else None,
+                    config.diet_validation,
+                )
+
+                feeding_insights: HealthFeedingInsights = HealthFeedingInsights(
+                    daily_calorie_target=cast(
+                        float | None, health_summary.get("daily_calorie_requirement")
                     ),
-                    "portion_adjustment_factor": HealthCalculator.calculate_portion_adjustment_factor(
-                        health_metrics, {"weight_goal": config.weight_goal}
-                    ),
-                    "recommended_meals_per_day": self._recommend_meal_frequency(
+                    portion_adjustment_factor=portion_adjustment,
+                    recommended_meals_per_day=self._recommend_meal_frequency(
                         health_metrics
                     ),
-                    "food_type_recommendation": self._recommend_food_type(
-                        health_metrics
-                    ),
-                }
+                    food_type_recommendation=self._recommend_food_type(health_metrics),
+                )
+                report["feeding_insights"] = feeding_insights
 
                 # Add recent feeding analysis
                 feeding_analysis = await self.async_analyze_feeding_health(dog_id, 14)
@@ -2423,7 +2486,7 @@ class FeedingManager:
                 return False
 
     async def async_update_diet_validation(
-        self, dog_id: str, validation_data: dict[str, Any]
+        self, dog_id: str, validation_data: DietValidationResult
     ) -> bool:
         """Update diet validation data for a dog.
 
@@ -2450,8 +2513,8 @@ class FeedingManager:
                 _LOGGER.info(
                     "Updated diet validation for dog %s: %d conflicts, %d warnings",
                     dog_id,
-                    len(validation_data.get("conflicts", [])),
-                    len(validation_data.get("warnings", [])),
+                    len(validation_data["conflicts"]),
+                    len(validation_data["warnings"]),
                 )
                 return True
 
@@ -2488,7 +2551,7 @@ class FeedingManager:
         self,
         dog_id: str,
         meal_type: str,
-        override_health_data: dict[str, Any] | None = None,
+        override_health_data: Mapping[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Calculate portion with diet validation and safety checks.
 
@@ -2509,12 +2572,14 @@ class FeedingManager:
                 # Calculate health-aware portion
                 meal_type_enum = MealType(meal_type)
                 portion = config.calculate_portion_size(
-                    meal_type_enum, override_health_data
+                    meal_type_enum, _normalise_health_override(override_health_data)
                 )
 
                 # Growth safeguard for puppies
                 base_unadjusted = config.daily_food_amount / config.meals_per_day
-                health_metrics = config._build_health_metrics(override_health_data)
+                health_metrics = config._build_health_metrics(
+                    _normalise_health_override(override_health_data)
+                )
                 if health_metrics.life_stage == LifeStage.PUPPY:
                     portion = max(
                         portion, base_unadjusted * PUPPY_PORTION_SAFEGUARD_FACTOR
@@ -3037,16 +3102,16 @@ class FeedingManager:
                 "activated_at": dt_util.now().isoformat(),
             }
 
-            emergency_state = {
-                "active": True,
-                "status": "active",
-                "emergency_type": emergency_type,
-                "portion_adjustment": portion_adjustment,
-                "duration_days": duration_days,
-                "activated_at": result["activated_at"],
-                "expires_at": result["expires_at"],
-                "food_type_recommendation": config.food_type,
-            }
+            emergency_state: FeedingEmergencyState = FeedingEmergencyState(
+                active=True,
+                status="active",
+                emergency_type=emergency_type,
+                portion_adjustment=portion_adjustment,
+                duration_days=duration_days,
+                activated_at=result["activated_at"],
+                expires_at=result["expires_at"],
+                food_type_recommendation=config.food_type,
+            )
 
             self._active_emergencies[dog_id] = emergency_state
             result["emergency_state"] = dict(emergency_state)
@@ -3088,15 +3153,11 @@ class FeedingManager:
                     await _restore_normal_feeding()
                     emergency_details = self._active_emergencies.get(dog_id)
                     if emergency_details:
-                        emergency_details = dict(emergency_details)
-                        emergency_details.update(
-                            {
-                                "active": False,
-                                "status": "resolved",
-                                "resolved_at": dt_util.utcnow().isoformat(),
-                            }
+                        emergency_details["active"] = False
+                        emergency_details["status"] = emergency_details.get(
+                            "status", "resolved"
                         )
-                        self._active_emergencies[dog_id] = emergency_details
+                        emergency_details["resolved_at"] = dt_util.utcnow().isoformat()
                 finally:
                     self._emergency_restore_tasks.pop(dog_id, None)
 
@@ -3195,7 +3256,7 @@ class FeedingManager:
 
     def _create_transition_schedule(
         self, transition_days: int, increase_percent: int
-    ) -> list[dict[str, Any]]:
+    ) -> list[FeedingTransitionScheduleEntry]:
         """Create day-by-day transition schedule.
 
         Args:
@@ -3205,7 +3266,7 @@ class FeedingManager:
         Returns:
             List of daily transition ratios
         """
-        schedule = []
+        schedule: list[FeedingTransitionScheduleEntry] = []
 
         for day in range(1, transition_days + 1):
             if day == 1:
@@ -3219,14 +3280,14 @@ class FeedingManager:
             old_food_percent = 100 - new_food_percent
 
             schedule.append(
-                {
-                    "day": day,
-                    "old_food_percent": old_food_percent,
-                    "new_food_percent": new_food_percent,
-                    "date": (dt_util.now() + timedelta(days=day - 1))
+                FeedingTransitionScheduleEntry(
+                    day=day,
+                    old_food_percent=old_food_percent,
+                    new_food_percent=new_food_percent,
+                    date=(dt_util.now() + timedelta(days=day - 1))
                     .date()
                     .isoformat(),
-                }
+                )
             )
 
         return schedule

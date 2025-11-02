@@ -3,11 +3,35 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import Any, Final
+from typing import Final, TypedDict, cast
 
 DEFAULT_LANGUAGE: Final[str] = "en"
 
-_WEATHER_TRANSLATIONS: dict[str, dict[str, Any]] = {
+
+class WeatherAlertTranslation(TypedDict):
+    """Localized strings for a specific weather alert."""
+
+    title: str
+    message: str
+
+
+type WeatherAlertTranslations = dict[str, WeatherAlertTranslation]
+
+
+type WeatherRecommendationTranslations = dict[str, str]
+
+
+class WeatherTranslations(TypedDict):
+    """Structured translation catalog for weather health guidance."""
+
+    alerts: WeatherAlertTranslations
+    recommendations: WeatherRecommendationTranslations
+
+
+type LanguageMap[T] = dict[str, T]
+
+
+_WEATHER_TRANSLATIONS: LanguageMap[WeatherTranslations] = {
     "en": {
         "alerts": {
             "extreme_heat_warning": {
@@ -217,10 +241,10 @@ _WEATHER_TRANSLATIONS: dict[str, dict[str, Any]] = {
 SUPPORTED_LANGUAGES: Final[frozenset[str]] = frozenset(_WEATHER_TRANSLATIONS)
 
 
-def get_weather_translations(language: str) -> dict[str, Any]:
+def get_weather_translations(language: str) -> WeatherTranslations:
     """Return weather translations for the requested language.
 
     Falls back to English when translations are unavailable.
     """
     base = _WEATHER_TRANSLATIONS.get(language, _WEATHER_TRANSLATIONS[DEFAULT_LANGUAGE])
-    return deepcopy(base)
+    return cast(WeatherTranslations, deepcopy(base))

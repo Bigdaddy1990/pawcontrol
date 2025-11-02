@@ -18,7 +18,9 @@ from .performance import (
     record_maintenance_result,
 )
 from .runtime_data import get_runtime_data
+from .service_guard import normalise_guard_history
 from .telemetry import (
+    get_runtime_performance_stats,
     get_runtime_reconfigure_summary,
     summarise_reconfigure_options,
     update_runtime_bool_coercion_summary,
@@ -39,6 +41,8 @@ from .types import (
     CoordinatorStatisticsPayload,
     EntityBudgetSummary,
     HelperManagerGuardMetrics,
+    MaintenanceMetadataPayload,
+    PawControlRuntimeData,
     ReconfigureTelemetrySummary,
 )
 
@@ -613,16 +617,7 @@ def _normalise_guard_metrics(payload: Any) -> HelperManagerGuardMetrics:
     guard_metrics["reasons"] = reasons
 
     last_results_payload = payload.get("last_results")
-    results: list[dict[str, Any]] = []
-    if isinstance(last_results_payload, Sequence) and not isinstance(
-        last_results_payload, bytes | bytearray | str
-    ):
-        results = [
-            {str(key): value for key, value in entry.items()}
-            for entry in last_results_payload
-            if isinstance(entry, Mapping)
-        ]
-    guard_metrics["last_results"] = results
+    guard_metrics["last_results"] = normalise_guard_history(last_results_payload)
 
     return guard_metrics
 
@@ -997,8 +992,8 @@ def build_runtime_statistics(
     stats["adaptive_polling"] = _normalise_adaptive_diagnostics(
         coordinator._adaptive_polling.as_diagnostics()
     )
-    performance_stats_payload = (
-        getattr(runtime_data, "performance_stats", None) if runtime_data else None
+    performance_stats_payload = get_runtime_performance_stats(
+        cast(PawControlRuntimeData | None, runtime_data)
     )
     guard_metrics = resolve_service_guard_metrics(performance_stats_payload)
     rejection_metrics = default_rejection_metrics()
@@ -1078,11 +1073,11 @@ async def run_maintenance(coordinator: PawControlCoordinator) -> None:
     now = dt_util.utcnow()
 
     diagnostics = None
-    metadata = {
+    metadata: MaintenanceMetadataPayload = {
         "schedule": "hourly",
         "runtime_available": runtime_data is not None,
     }
-    details: dict[str, Any] = {}
+    details: MaintenanceMetadataPayload = {}
 
     with performance_tracker(
         runtime_data,

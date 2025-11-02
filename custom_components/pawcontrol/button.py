@@ -15,7 +15,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Mapping, Sequence
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Protocol, TypedDict, cast, runtime_checkable
 
 from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
@@ -58,8 +58,17 @@ from .types import (
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
     WALK_IN_PROGRESS_FIELD,
+    ButtonExtraAttributes,
+    CoordinatorDogData,
+    CoordinatorModuleState,
+    CoordinatorTypedModuleName,
     DogConfigData,
+    GardenModulePayload,
+    GPSModulePayload,
+    HealthModulePayload,
+    JSONMutableMapping,
     PawControlConfigEntry,
+    WalkModulePayload,
     ensure_dog_config_data,
     ensure_dog_modules_projection,
 )
@@ -756,7 +765,7 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
         self.update_device_metadata(model="Virtual Dog", sw_version="1.0.0")
 
         # OPTIMIZED: Thread-safe instance-level caching
-        self._dog_data_cache: dict[str, Any] = {}
+        self._dog_data_cache: dict[str, CoordinatorDogData] = {}
         self._cache_timestamp: dict[str, float] = {}
         self._cache_ttl = 2.0  # 2 second cache for button actions
 
@@ -769,21 +778,26 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
         super().__setattr__(name, value)
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any]:
+    def extra_state_attributes(self) -> ButtonExtraAttributes:
         """Return attributes with optimized caching."""
-        attrs = {
-            ATTR_DOG_ID: self._dog_id,
-            ATTR_DOG_NAME: self._dog_name,
-            "button_type": self._button_type,
-            "last_pressed": getattr(self, "_last_pressed", None),
-        }
+
+        last_pressed = cast(str | None, getattr(self, "_last_pressed", None))
+        attrs = cast(
+            ButtonExtraAttributes,
+            {
+                ATTR_DOG_ID: self._dog_id,
+                ATTR_DOG_NAME: self._dog_name,
+                "button_type": self._button_type,
+                "last_pressed": last_pressed,
+            },
+        )
 
         if self._action_description:
             attrs["action_description"] = self._action_description
 
         return attrs
 
-    def _get_dog_data_cached(self) -> dict[str, Any] | None:
+    def _get_dog_data_cached(self) -> CoordinatorDogData | None:
         """Get dog data with thread-safe instance-level caching."""
         cache_key = f"{self._dog_id}_data"
         now = dt_util.utcnow().timestamp()
@@ -799,30 +813,73 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
         # Cache miss - fetch fresh data
         if self.coordinator.available:
             data = self.coordinator.get_dog_data(self._dog_id)
-            if isinstance(data, dict):
+            if data is not None:
                 self._dog_data_cache[cache_key] = data
                 self._cache_timestamp[cache_key] = now
                 return data
 
         return None
 
-    def _get_module_data(self, module: str) -> dict[str, Any] | None:
+    def _get_module_data(
+        self, module: CoordinatorTypedModuleName
+    ) -> CoordinatorModuleState | None:
         """Get module data from cached dog data."""
         dog_data = self._get_dog_data_cached()
         if not dog_data:
             return None
 
-        module_data = dog_data.get(module, {})
-        if not isinstance(module_data, dict):
-            _LOGGER.warning(
-                "Invalid module data for %s/%s: expected dict, got %s",
-                self._dog_id,
-                module,
-                type(module_data).__name__,
-            )
-            return {}
+        module_data = dog_data.get(module)
+        if module_data is None:
+            return None
 
-        return module_data
+        if isinstance(module_data, Mapping):
+            return cast(CoordinatorModuleState, module_data)
+
+        _LOGGER.warning(
+            "Invalid module data for %s/%s: expected mapping, got %s",
+            self._dog_id,
+            module,
+            type(module_data).__name__,
+        )
+        return None
+
+    def _get_walk_payload(self) -> WalkModulePayload | None:
+        """Return the walk module payload if available."""
+
+        walk_data = self._get_module_data(
+            cast(CoordinatorTypedModuleName, MODULE_WALK)
+        )
+        return cast(WalkModulePayload, walk_data) if walk_data is not None else None
+
+    def _get_gps_payload(self) -> GPSModulePayload | None:
+        """Return the GPS module payload if available."""
+
+        gps_data = self._get_module_data(cast(CoordinatorTypedModuleName, MODULE_GPS))
+        return cast(GPSModulePayload, gps_data) if gps_data is not None else None
+
+    def _get_garden_payload(self) -> GardenModulePayload | None:
+        """Return the garden module payload if available."""
+
+        garden_data = self._get_module_data(
+            cast(CoordinatorTypedModuleName, MODULE_GARDEN)
+        )
+        return (
+            cast(GardenModulePayload, garden_data) if garden_data is not None else None
+        )
+
+    @staticmethod
+    def _parse_datetime(value: Any) -> datetime | None:
+        """Parse ISO-formatted datetime strings into aware datetimes."""
+
+        if isinstance(value, datetime):
+            return value
+
+        if isinstance(value, str):
+            parsed = dt_util.parse_datetime(value)
+            if parsed is not None:
+                return parsed
+
+        return None
 
     @property
     def available(self) -> bool:
@@ -850,7 +907,11 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
         return None
 
     async def _async_service_call(
-        self, domain: str, service: str, data: dict[str, Any], **kwargs: Any
+        self,
+        domain: str,
+        service: str,
+        data: JSONMutableMapping,
+        **kwargs: Any,
     ) -> None:
         """Call a Home Assistant service via a patch-friendly proxy."""
 
@@ -1249,12 +1310,18 @@ class PawControlStartWalkButton(PawControlButtonBase):
         await super().async_press()
 
         try:
-            walk_data = self._get_module_data("walk")
+            walk_data = self._get_walk_payload()
             if walk_data and walk_data.get(WALK_IN_PROGRESS_FIELD):
+                walk_id = walk_data.get("current_walk_id", STATE_UNKNOWN)
+                if not isinstance(walk_id, str):
+                    walk_id = STATE_UNKNOWN
+                start_time = self._parse_datetime(
+                    walk_data.get("current_walk_start")
+                )
                 raise WalkAlreadyInProgressError(
                     dog_id=self._dog_id,
-                    walk_id=walk_data.get("current_walk_id", STATE_UNKNOWN),
-                    start_time=walk_data.get("current_walk_start"),
+                    walk_id=walk_id,
+                    start_time=start_time,
                 )
 
             await self._async_service_call(
@@ -1279,7 +1346,7 @@ class PawControlStartWalkButton(PawControlButtonBase):
         if not super().available:
             return False
 
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_payload()
         return not bool(walk_data and walk_data.get(WALK_IN_PROGRESS_FIELD, False))
 
 
@@ -1305,11 +1372,16 @@ class PawControlEndWalkButton(PawControlButtonBase):
         await super().async_press()
 
         try:
-            walk_data = self._get_module_data("walk")
+            walk_data = self._get_walk_payload()
             if not walk_data or not walk_data.get(WALK_IN_PROGRESS_FIELD):
+                last_walk_time = (
+                    self._parse_datetime(walk_data.get("last_walk"))
+                    if walk_data
+                    else None
+                )
                 raise WalkNotInProgressError(
                     dog_id=self._dog_id,
-                    last_walk_time=walk_data.get("last_walk") if walk_data else None,
+                    last_walk_time=last_walk_time,
                 )
 
             await self._async_service_call(
@@ -1331,7 +1403,7 @@ class PawControlEndWalkButton(PawControlButtonBase):
         if not super().available:
             return False
 
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_payload()
         return bool(walk_data and walk_data.get(WALK_IN_PROGRESS_FIELD, False))
 
 
@@ -1536,7 +1608,7 @@ class PawControlCenterMapButton(PawControlButtonBase):
         """Center map on dog."""
         await super().async_press()
 
-        gps_data = self._get_module_data("gps")
+        gps_data = self._get_gps_payload()
         if not gps_data:
             raise HomeAssistantError("No GPS data available")
 
@@ -1564,7 +1636,7 @@ class PawControlCallDogButton(PawControlButtonBase):
         await super().async_press()
 
         try:
-            gps_data = self._get_module_data("gps")
+            gps_data = self._get_gps_payload()
             if not gps_data or gps_data.get("source") in ["none", "manual"]:
                 raise HomeAssistantError(
                     f"GPS tracker not available for {self._dog_id}"
@@ -1729,15 +1801,23 @@ class PawControlHealthCheckButton(PawControlButtonBase):
         """Perform comprehensive health check."""
         await super().async_press()
 
-        health_data = self._get_module_data("health")
+        health_data_raw = self._get_module_data(
+            cast(CoordinatorTypedModuleName, MODULE_HEALTH)
+        )
+        health_data = (
+            cast(HealthModulePayload, health_data_raw)
+            if health_data_raw is not None
+            else None
+        )
         if health_data:
             status = health_data.get("health_status", STATE_UNKNOWN)
             alerts = health_data.get("health_alerts", [])
+            alert_count = len(alerts) if isinstance(alerts, Sequence) else 0
             _LOGGER.info(
                 "Health check for %s: Status=%s, Alerts=%d",
                 self._dog_name,
                 status,
-                len(alerts),
+                alert_count,
             )
 
 
@@ -1761,8 +1841,8 @@ class PawControlStartGardenSessionButton(PawControlButtonBase):
         """Start a new garden session via the service layer."""
         await super().async_press()
 
-        garden_data = self._get_module_data("garden") or {}
-        if garden_data.get("status") == "active":
+        garden_data = self._get_garden_payload()
+        if garden_data and garden_data.get("status") == "active":
             raise HomeAssistantError("Garden session is already active")
 
         try:
@@ -1783,8 +1863,8 @@ class PawControlStartGardenSessionButton(PawControlButtonBase):
         """Return True when a garden session can be started."""
         if not super().available:
             return False
-        garden_data = self._get_module_data("garden") or {}
-        return garden_data.get("status") != "active"
+        garden_data = self._get_garden_payload()
+        return garden_data is None or garden_data.get("status") != "active"
 
 
 class PawControlEndGardenSessionButton(PawControlButtonBase):
@@ -1807,8 +1887,8 @@ class PawControlEndGardenSessionButton(PawControlButtonBase):
         """Trigger the integration service to end the active session."""
         await super().async_press()
 
-        garden_data = self._get_module_data("garden") or {}
-        if garden_data.get("status") != "active":
+        garden_data = self._get_garden_payload()
+        if not garden_data or garden_data.get("status") != "active":
             raise HomeAssistantError("No active garden session to end")
 
         try:
@@ -1829,8 +1909,8 @@ class PawControlEndGardenSessionButton(PawControlButtonBase):
         """Return True only while a session is active."""
         if not super().available:
             return False
-        garden_data = self._get_module_data("garden") or {}
-        return garden_data.get("status") == "active"
+        garden_data = self._get_garden_payload()
+        return bool(garden_data and garden_data.get("status") == "active")
 
 
 class PawControlLogGardenActivityButton(PawControlButtonBase):
@@ -1853,8 +1933,8 @@ class PawControlLogGardenActivityButton(PawControlButtonBase):
         """Log a generic garden activity via the integration service."""
         await super().async_press()
 
-        garden_data = self._get_module_data("garden") or {}
-        if garden_data.get("status") != "active":
+        garden_data = self._get_garden_payload()
+        if not garden_data or garden_data.get("status") != "active":
             raise HomeAssistantError("Start a garden session before logging activity")
 
         try:
@@ -1880,8 +1960,8 @@ class PawControlLogGardenActivityButton(PawControlButtonBase):
         """Return True while a garden session is running."""
         if not super().available:
             return False
-        garden_data = self._get_module_data("garden") or {}
-        return garden_data.get("status") == "active"
+        garden_data = self._get_garden_payload()
+        return bool(garden_data and garden_data.get("status") == "active")
 
 
 class PawControlConfirmGardenPoopButton(PawControlButtonBase):
@@ -1928,6 +2008,10 @@ class PawControlConfirmGardenPoopButton(PawControlButtonBase):
         """Return True when pending garden poop confirmations exist."""
         if not super().available:
             return False
-        garden_data = self._get_module_data("garden") or {}
-        pending = garden_data.get("pending_confirmations") or []
+        garden_data = self._get_garden_payload()
+        pending = (
+            garden_data.get("pending_confirmations")
+            if garden_data
+            else None
+        )
         return bool(pending)

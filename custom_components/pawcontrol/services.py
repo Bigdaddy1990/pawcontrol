@@ -85,8 +85,15 @@ from .performance import (
 )
 from .repairs import async_publish_feeding_compliance_issue
 from .runtime_data import get_runtime_data
-from .service_guard import ServiceGuardResult, ServiceGuardSummary
+from .service_guard import (
+    ServiceGuardMetricsSnapshot,
+    ServiceGuardResult,
+    ServiceGuardSnapshot,
+    ServiceGuardSummary,
+)
 from .telemetry import (
+    ensure_runtime_performance_stats,
+    get_runtime_performance_stats,
     get_runtime_resilience_summary,
     update_runtime_reconfigure_summary,
 )
@@ -428,8 +435,8 @@ def _record_service_result(
     if runtime_data is None:
         return
 
-    performance_stats = getattr(runtime_data, "performance_stats", None)
-    if not isinstance(performance_stats, dict):
+    performance_stats = get_runtime_performance_stats(runtime_data)
+    if performance_stats is None:
         return
 
     result: ServiceExecutionResult = {"service": service, "status": status}
@@ -497,21 +504,8 @@ def _record_service_result(
 
     guard_summary: ServiceGuardSummary | None = None
     if guard_results:
-        executed_count = sum(1 for entry in guard_results if entry.executed)
-        skipped_count = len(guard_results) - executed_count
-        reason_counts: dict[str, int] = {}
-        for entry in guard_results:
-            if entry.executed:
-                continue
-            reason_key = entry.reason or "unknown"
-            reason_counts[reason_key] = reason_counts.get(reason_key, 0) + 1
-
-        guard_summary = {
-            "executed": executed_count,
-            "skipped": skipped_count,
-            "results": [entry.to_mapping() for entry in guard_results],
-            "reasons": reason_counts,
-        }
+        guard_snapshot = ServiceGuardSnapshot.from_sequence(guard_results)
+        guard_summary = guard_snapshot.to_summary()
 
         if details_payload is None:
             details_payload = {}
@@ -521,16 +515,25 @@ def _record_service_result(
             diagnostics_payload = {}
         diagnostics_payload.setdefault("guard", guard_summary)
 
-        guard_metrics = performance_stats.setdefault(
-            "service_guard_metrics",
-            {"executed": 0, "skipped": 0, "reasons": {}},
+        guard_metrics = cast(
+            ServiceGuardMetricsSnapshot,
+            performance_stats.setdefault(
+                "service_guard_metrics",
+                ServiceGuardSnapshot.zero_metrics(),
+            ),
         )
-        guard_metrics["executed"] = guard_metrics.get("executed", 0) + executed_count
-        guard_metrics["skipped"] = guard_metrics.get("skipped", 0) + skipped_count
+        guard_metrics["executed"] = (
+            int(guard_metrics.get("executed", 0) or 0) + guard_snapshot.executed
+        )
+        guard_metrics["skipped"] = (
+            int(guard_metrics.get("skipped", 0) or 0) + guard_snapshot.skipped
+        )
         reason_bucket = guard_metrics.setdefault("reasons", {})
-        for reason_key, count in reason_counts.items():
-            reason_bucket[reason_key] = reason_bucket.get(reason_key, 0) + count
-        guard_metrics["last_results"] = [entry.to_mapping() for entry in guard_results]
+        for reason_key, count in guard_snapshot.reasons.items():
+            reason_bucket[reason_key] = (
+                int(reason_bucket.get(reason_key, 0) or 0) + count
+            )
+        guard_metrics["last_results"] = guard_snapshot.history()
 
     if rejection_snapshot is not None:
         stored_metrics = cast(
@@ -2142,10 +2145,12 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 last_n_routes=last_n_walks,
             )
 
+            routes_count = export_data["routes_count"] if export_data else 0
+
             if export_data:
                 _LOGGER.info(
                     "Exported %d route(s) for %s in %s format",
-                    export_data.get("routes_count", 0),
+                    routes_count,
                     dog_id,
                     export_format,
                 )
@@ -2161,8 +2166,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                             notification_type=NotificationType.SYSTEM_INFO,
                             title="Route Export Complete",
                             message=(
-                                f"Exported {export_data.get('routes_count', 0)} route(s) "
-                                f"for {dog_id} in {export_format} format"
+                                f"Exported {routes_count} route(s) for {dog_id} "
+                                f"in {export_format} format"
                             ),
                             dog_id=dog_id,
                         )
@@ -2170,16 +2175,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 details_result = "exported"
             else:
                 _LOGGER.warning("No routes found for export for %s", dog_id)
-                export_data = {"routes_count": 0}
                 details_result = "no_routes"
 
             details = _normalise_service_details(
                 {
                     "export_format": export_format,
                     "last_n_walks": last_n_walks,
-                    "routes_count": export_data.get("routes_count", 0)
-                    if isinstance(export_data, Mapping)
-                    else export_data,
+                    "routes_count": routes_count,
                     "result": details_result,
                 }
             )
@@ -4776,6 +4778,8 @@ async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
     refresh_requested = False
     reconfigure_summary = update_runtime_reconfigure_summary(runtime_data)
 
+    performance_stats = ensure_runtime_performance_stats(runtime_data)
+
     with performance_tracker(
         runtime_data,
         "daily_reset_metrics",
@@ -4798,11 +4802,11 @@ async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
 
             diagnostics = _capture_cache_diagnostics(runtime_data)
             if diagnostics is not None:
-                runtime_data.performance_stats["last_cache_diagnostics"] = diagnostics
+                performance_stats["last_cache_diagnostics"] = diagnostics
 
-            runtime_data.performance_stats.setdefault("daily_resets", 0)
-            runtime_data.performance_stats["daily_resets"] = (
-                runtime_data.performance_stats.get("daily_resets", 0) + 1
+            performance_stats.setdefault("daily_resets", 0)
+            performance_stats["daily_resets"] = (
+                int(performance_stats.get("daily_resets", 0) or 0) + 1
             )
             metadata: dict[str, Any] = {"refresh_requested": refresh_requested}
             if reconfigure_summary is not None:

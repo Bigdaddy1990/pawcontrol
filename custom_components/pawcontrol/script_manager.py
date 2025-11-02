@@ -65,10 +65,17 @@ from .types import (
     CacheDiagnosticsMetadata,
     CacheDiagnosticsSnapshot,
     DogConfigData,
+    JSONMutableMapping,
+    ManualResilienceAutomationEntry,
     ManualResilienceEventRecord,
     ManualResilienceEventSnapshot,
     ManualResilienceEventSource,
+    ManualResilienceEventsTelemetry,
+    ManualResilienceListenerMetadata,
     ManualResiliencePreferenceKey,
+    ScriptManagerDogScripts,
+    ScriptManagerSnapshot,
+    ScriptManagerStats,
     ensure_dog_modules_mapping,
 )
 
@@ -249,7 +256,7 @@ class _ScriptManagerCacheMonitor:
 
     def _build_payload(
         self,
-    ) -> tuple[dict[str, Any], dict[str, Any], CacheDiagnosticsMetadata]:
+    ) -> tuple[ScriptManagerStats, ScriptManagerSnapshot, CacheDiagnosticsMetadata]:
         manager = self._manager
         created_entities = cast(
             Iterable[str], getattr(manager, "_created_entities", set())
@@ -265,7 +272,7 @@ class _ScriptManagerCacheMonitor:
         created_list = sorted(
             entity for entity in created_entities if isinstance(entity, str)
         )
-        per_dog: dict[str, dict[str, Any]] = {}
+        per_dog: dict[str, ScriptManagerDogScripts] = {}
         for dog_id, scripts in dog_scripts.items():
             if not isinstance(dog_id, str):
                 continue
@@ -276,7 +283,7 @@ class _ScriptManagerCacheMonitor:
             }
         entry_list = [entity for entity in entry_scripts if isinstance(entity, str)]
 
-        stats: dict[str, Any] = {
+        stats: ScriptManagerStats = {
             "scripts": len(created_list),
             "dogs": len(per_dog),
         }
@@ -287,7 +294,7 @@ class _ScriptManagerCacheMonitor:
         if age_seconds is not None:
             stats["last_generated_age_seconds"] = age_seconds
 
-        snapshot: dict[str, Any] = {
+        snapshot: ScriptManagerSnapshot = {
             "created_entities": created_list,
             "per_dog": per_dog,
             "last_generated": _serialize_datetime(last_generation),
@@ -295,8 +302,9 @@ class _ScriptManagerCacheMonitor:
         if entry_list:
             snapshot["entry_scripts"] = entry_list
 
+        per_dog_payload = cast(JSONMutableMapping, per_dog)
         diagnostics: CacheDiagnosticsMetadata = {
-            "per_dog": per_dog,
+            "per_dog": per_dog_payload,
             "created_entities": created_list,
             "last_generated": _serialize_datetime(last_generation),
         }
@@ -314,14 +322,14 @@ class _ScriptManagerCacheMonitor:
     def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         stats, snapshot, diagnostics = self._build_payload()
         return CacheDiagnosticsSnapshot(
-            stats=stats,
-            snapshot=snapshot,
+            stats=cast(JSONMutableMapping, dict(stats)),
+            snapshot=cast(JSONMutableMapping, dict(snapshot)),
             diagnostics=diagnostics,
         )
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> JSONMutableMapping:
         stats, _snapshot, _diagnostics = self._build_payload()
-        return stats
+        return cast(JSONMutableMapping, dict(stats))
 
     def get_diagnostics(self) -> CacheDiagnosticsMetadata:
         _stats, _snapshot, diagnostics = self._build_payload()
@@ -649,7 +657,7 @@ class PawControlScriptManager:
 
         return updated_options
 
-    def _resolve_manual_resilience_events(self) -> dict[str, Any]:
+    def _resolve_manual_resilience_events(self) -> ManualResilienceEventsTelemetry:
         """Return configured manual escalation events from blueprint automations."""
 
         manager = getattr(self._hass, "config_entries", None)
@@ -665,6 +673,12 @@ class PawControlScriptManager:
                 "system_breaker_event": None,
                 "listener_events": {},
                 "listener_sources": {},
+                "listener_metadata": {},
+                "event_history": [],
+                "last_event": None,
+                "last_trigger": None,
+                "event_counters": {"total": 0, "by_event": {}, "by_reason": {}},
+                "active_listeners": [],
             }
 
         options = getattr(self._entry, "options", {})
@@ -688,7 +702,7 @@ class PawControlScriptManager:
                 if breaker_override is not None:
                     system_breaker = breaker_override
 
-        automations = []
+        automations: list[ManualResilienceAutomationEntry] = []
         guard_events: set[str] = set()
         breaker_events: set[str] = set()
         check_events: set[str] = set()
@@ -741,18 +755,26 @@ class PawControlScriptManager:
                 check_events.add(manual_check)
                 _register_listener(manual_check, "check", "blueprint")
 
-            automations.append(
-                {
-                    "config_entry_id": getattr(entry, "entry_id", None),
-                    "title": getattr(entry, "title", None),
-                    "manual_guard_event": manual_guard,
-                    "manual_breaker_event": manual_breaker,
-                    "manual_check_event": manual_check,
-                    "configured_guard": bool(manual_guard),
-                    "configured_breaker": bool(manual_breaker),
-                    "configured_check": bool(manual_check),
-                }
-            )
+            entry_id = getattr(entry, "entry_id", None)
+            config_entry_id = entry_id if isinstance(entry_id, str) else None
+            title_value = getattr(entry, "title", None)
+            title = title_value if isinstance(title_value, str) else None
+
+            automation_entry: ManualResilienceAutomationEntry = {
+                "config_entry_id": config_entry_id,
+                "title": title,
+                "configured_guard": bool(manual_guard),
+                "configured_breaker": bool(manual_breaker),
+                "configured_check": bool(manual_check),
+            }
+            if manual_guard:
+                automation_entry["manual_guard_event"] = manual_guard
+            if manual_breaker:
+                automation_entry["manual_breaker_event"] = manual_breaker
+            if manual_check:
+                automation_entry["manual_check_event"] = manual_check
+
+            automations.append(automation_entry)
 
         available = bool(automations)
         if system_guard is not None or system_breaker is not None:
@@ -837,6 +859,11 @@ class PawControlScriptManager:
                 }
                 for event, source_set in canonical_sources.items()
             },
+            "event_history": [],
+            "last_event": None,
+            "last_trigger": None,
+            "event_counters": {"total": 0, "by_event": {}, "by_reason": {}},
+            "active_listeners": [],
         }
 
     def _manual_event_preferences(
@@ -903,7 +930,7 @@ class PawControlScriptManager:
 
         manual_events = self._resolve_manual_resilience_events()
         listener_metadata = manual_events.get("listener_metadata")
-        canonical_lookup: dict[str, dict[str, Any]] = {}
+        canonical_lookup: dict[str, ManualResilienceListenerMetadata] = {}
         if isinstance(listener_metadata, Mapping):
             for event, metadata in listener_metadata.items():
                 if not isinstance(event, str) or not isinstance(metadata, Mapping):
@@ -925,7 +952,7 @@ class PawControlScriptManager:
                         primary_source,
                         *[tag for tag in canonical_tags if tag != primary_source],
                     ]
-                lookup_entry: dict[str, Any] = {}
+                lookup_entry: ManualResilienceListenerMetadata = {}
                 if canonical_tags:
                     lookup_entry["source_tags"] = canonical_tags
                 if isinstance(primary_source, str) and primary_source:
@@ -948,23 +975,23 @@ class PawControlScriptManager:
                     "configured_role",
                     cast(Literal["check", "guard", "breaker"], role),
                 )
-                metadata = canonical_lookup.get(event_type)
-                if metadata:
-                    tags = metadata.get("source_tags")
+                metadata_entry = canonical_lookup.get(event_type)
+                if metadata_entry:
+                    tags = metadata_entry.get("source_tags")
                     if isinstance(tags, list):
                         entry["source_tags"] = list(dict.fromkeys(tags))
-                    primary = metadata.get("primary_source")
+                    primary = metadata_entry.get("primary_source")
                     if isinstance(primary, str) and primary:
                         entry["primary_source"] = primary
 
-        for event_type, metadata in canonical_lookup.items():
+        for event_type, metadata_entry in canonical_lookup.items():
             existing_entry = sources.get(event_type)
             if existing_entry is None:
                 continue
-            tags = metadata.get("source_tags")
+            tags = metadata_entry.get("source_tags")
             if isinstance(tags, list):
                 existing_entry["source_tags"] = list(dict.fromkeys(tags))
-            primary = metadata.get("primary_source")
+            primary = metadata_entry.get("primary_source")
             if isinstance(primary, str) and primary:
                 existing_entry["primary_source"] = primary
 
@@ -2069,7 +2096,7 @@ class PawControlScriptManager:
         if not self._manual_event_sources:
             self._refresh_manual_event_listeners()
         source_mapping = self._manual_event_source_mapping()
-        manual_payload = dict(manual_events)
+        manual_payload = manual_events
         active_listeners = sorted({*self._manual_event_sources, *source_mapping})
         manual_payload["preferred_events"] = manual_preferences
         manual_payload["preferred_guard_event"] = manual_preferences.get(
@@ -2211,7 +2238,9 @@ class PawControlScriptManager:
                         counters_by_reason.get(reason, 0) + event_count
                     )
 
-        manual_payload["last_trigger"] = manual_last_trigger
+        manual_payload["last_trigger"] = cast(
+            ManualResilienceEventSnapshot | None, manual_last_trigger
+        )
         manual_payload["event_counters"] = {
             "total": sum(counters_by_event.values()),
             "by_event": counters_by_event,

@@ -18,7 +18,7 @@ import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any, Final, cast
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
@@ -33,13 +33,26 @@ from .const import (
     STORAGE_VERSION,
 )
 from .notifications import NotificationPriority, NotificationType
-from .types import GPSLocation
+from .types import (
+    GeofenceNotificationPayload,
+    GeofenceStoragePayload,
+    GeofenceZoneMetadata,
+    GeofenceZoneStoragePayload,
+    GPSLocation,
+)
 from .utils import async_fire_event
 
 if TYPE_CHECKING:
     from .notifications import PawControlNotificationManager
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _empty_zone_metadata() -> GeofenceZoneMetadata:
+    """Provide an empty, typed metadata mapping for geofence zones."""
+
+    return cast(GeofenceZoneMetadata, {})
+
 
 # Geofencing constants
 DEFAULT_HOME_ZONE_RADIUS: Final[int] = 50  # meters
@@ -95,7 +108,7 @@ class GeofenceZone:
     description: str = ""
     created_at: datetime = field(default_factory=dt_util.utcnow)
     updated_at: datetime = field(default_factory=dt_util.utcnow)
-    metadata: dict[str, Any] = field(default_factory=dict)
+    metadata: GeofenceZoneMetadata = field(default_factory=_empty_zone_metadata)
 
     def __post_init__(self) -> None:
         """Validate zone parameters after initialization."""
@@ -135,9 +148,28 @@ class GeofenceZone:
             self.latitude, self.longitude, location.latitude, location.longitude
         )
 
-    def to_dict(self) -> dict[str, Any]:
-        """Convert zone to dictionary for storage."""
-        return {
+    def to_storage_payload(self) -> GeofenceZoneStoragePayload:
+        """Convert zone to a typed storage payload."""
+
+        auto_created = self.metadata.get("auto_created")
+        color_present = "color" in self.metadata
+        created_by_present = "created_by" in self.metadata
+        notes_present = "notes" in self.metadata
+        tags_present = "tags" in self.metadata
+
+        metadata_dict: dict[str, object] = {}
+        if auto_created is not None:
+            metadata_dict["auto_created"] = auto_created
+        if color_present:
+            metadata_dict["color"] = self.metadata["color"]
+        if created_by_present:
+            metadata_dict["created_by"] = self.metadata["created_by"]
+        if notes_present:
+            metadata_dict["notes"] = self.metadata["notes"]
+        if tags_present:
+            metadata_dict["tags"] = list(self.metadata["tags"])
+
+        payload_dict: dict[str, object] = {
             "id": self.id,
             "name": self.name,
             "type": self.type.value,
@@ -149,12 +181,27 @@ class GeofenceZone:
             "description": self.description,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
-            "metadata": self.metadata,
+            "metadata": cast(GeofenceZoneMetadata, cast(Any, metadata_dict)),
         }
+        return cast(GeofenceZoneStoragePayload, cast(Any, payload_dict))
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> GeofenceZone:
+    def from_storage_payload(cls, data: GeofenceZoneStoragePayload) -> GeofenceZone:
         """Create zone from dictionary data."""
+
+        metadata_raw = data.get("metadata", {})
+        if isinstance(metadata_raw, dict):
+            tags_present = "tags" in metadata_raw
+
+            metadata_dict = dict(metadata_raw)
+            if tags_present:
+                metadata_dict["tags"] = list(metadata_raw["tags"])
+            metadata = cast(
+                GeofenceZoneMetadata, cast(Any, metadata_dict)
+            )
+        else:
+            metadata = cast(GeofenceZoneMetadata, cast(Any, {}))
+
         return cls(
             id=data["id"],
             name=data["name"],
@@ -169,7 +216,7 @@ class GeofenceZone:
             or dt_util.utcnow(),
             updated_at=dt_util.parse_datetime(data.get("updated_at"))
             or dt_util.utcnow(),
-            metadata=data.get("metadata", {}),
+            metadata=metadata,
         )
 
 
@@ -274,13 +321,23 @@ class PawControlGeofencing:
         async with self._lock:
             try:
                 # Load stored data
-                stored_data = await self._store.async_load() or {}
+                stored_data_raw = await self._store.async_load()
+                stored_data = cast(GeofenceStoragePayload, stored_data_raw or {})
 
                 # Load zones
-                zones_data = stored_data.get("zones", {})
+                zones_data_raw = stored_data.get("zones", {})
+                if not isinstance(zones_data_raw, dict):
+                    zones_data_raw = {}
+
+                zones_data = cast(
+                    dict[str, GeofenceZoneStoragePayload], zones_data_raw
+                )
+
                 for zone_id, zone_data in zones_data.items():
                     try:
-                        self._zones[zone_id] = GeofenceZone.from_dict(zone_data)
+                        self._zones[zone_id] = GeofenceZone.from_storage_payload(
+                            zone_data
+                        )
                     except Exception as err:
                         _LOGGER.warning(
                             "Failed to load geofence zone %s: %s", zone_id, err
@@ -691,10 +748,12 @@ class PawControlGeofencing:
     async def _save_data(self) -> None:
         """Save geofencing data to storage."""
         try:
-            data = {
-                "zones": {
-                    zone_id: zone.to_dict() for zone_id, zone in self._zones.items()
-                },
+            zones_payload: dict[str, GeofenceZoneStoragePayload] = {
+                zone_id: zone.to_storage_payload()
+                for zone_id, zone in self._zones.items()
+            }
+            data: GeofenceStoragePayload = {
+                "zones": zones_payload,
                 "last_updated": dt_util.utcnow().isoformat(),
             }
 
@@ -729,7 +788,7 @@ class PawControlGeofencing:
             dog_id, zone, event, location
         )
 
-        notification_data: dict[str, Any] = {
+        notification_data: GeofenceNotificationPayload = {
             "zone_id": zone.id,
             "zone_name": zone.name,
             "zone_type": zone.type.value,
@@ -739,14 +798,10 @@ class PawControlGeofencing:
 
         if location:
             distance = zone.distance_to_location(location)
-            notification_data.update(
-                {
-                    "latitude": location.latitude,
-                    "longitude": location.longitude,
-                    "distance_from_center_m": round(distance, 2),
-                    "accuracy": location.accuracy,
-                }
-            )
+            notification_data["latitude"] = location.latitude
+            notification_data["longitude"] = location.longitude
+            notification_data["distance_from_center_m"] = round(distance, 2)
+            notification_data["accuracy"] = location.accuracy
 
         try:
             await self._notification_manager.async_send_notification(
@@ -755,7 +810,7 @@ class PawControlGeofencing:
                 message=message,
                 dog_id=dog_id,
                 priority=priority,
-                data=notification_data,
+                data=cast(dict[str, Any], notification_data),
                 allow_batching=False,
             )
         except Exception as err:  # pragma: no cover - defensive logging

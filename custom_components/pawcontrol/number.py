@@ -10,7 +10,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, cast
+from collections.abc import Mapping
+from typing import cast
 
 from homeassistant.components.number import NumberDeviceClass, NumberEntity, NumberMode
 from homeassistant.const import (
@@ -48,16 +49,17 @@ from .types import (
     DOG_ID_FIELD,
     DOG_NAME_FIELD,
     DOG_WEIGHT_FIELD,
+    CoordinatorDogData,
+    CoordinatorModuleState,
     DogConfigData,
     DogModulesMapping,
+    DogProfileSnapshot,
+    NumberExtraAttributes,
     ensure_dog_modules_mapping,
 )
 from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
-
-# Type aliases for better code readability
-AttributeDict = dict[str, Any]
 
 # Many number entities trigger write operations (service calls). The
 # coordinator applies its own throttling so we can keep Home Assistant's
@@ -398,7 +400,7 @@ class PawControlNumberBase(PawControlEntity, NumberEntity, RestoreEntity):
         return self._value
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> NumberExtraAttributes:
         """Return additional state attributes for the number.
 
         Provides information about the number's function and constraints.
@@ -406,7 +408,7 @@ class PawControlNumberBase(PawControlEntity, NumberEntity, RestoreEntity):
         Returns:
             Dictionary of additional state attributes
         """
-        attrs: AttributeDict = {
+        attrs: NumberExtraAttributes = {
             ATTR_DOG_ID: self._dog_id,
             ATTR_DOG_NAME: self._dog_name,
             "number_type": self._number_type,
@@ -477,7 +479,7 @@ class PawControlNumberBase(PawControlEntity, NumberEntity, RestoreEntity):
         # Base implementation - subclasses should override
         pass
 
-    def _get_dog_data(self) -> dict[str, Any] | None:
+    def _get_dog_data(self) -> CoordinatorDogData | None:
         """Get data for this number's dog from the coordinator.
 
         Returns:
@@ -488,7 +490,7 @@ class PawControlNumberBase(PawControlEntity, NumberEntity, RestoreEntity):
 
         return self.coordinator.get_dog_data(self._dog_id)
 
-    def _get_module_data(self, module: str) -> dict[str, Any] | None:
+    def _get_module_data(self, module: str) -> CoordinatorModuleState | None:
         """Get specific module data for this dog.
 
         Args:
@@ -553,22 +555,27 @@ class PawControlDogWeightNumber(PawControlNumberBase):
         await self.coordinator.async_refresh_dog(self._dog_id)
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> NumberExtraAttributes:
         """Return additional attributes for the weight number."""
         attrs = super().extra_state_attributes
         health_data = self._get_module_data("health")
 
-        if health_data:
-            attrs.update(
-                {
-                    "weight_trend": health_data.get("weight_trend", "stable"),
-                    "weight_change_percent": health_data.get(
-                        "weight_change_percent", 0
-                    ),
-                    "last_weight_date": health_data.get("last_weight_date"),
-                    "target_weight": health_data.get("target_weight"),
-                }
-            )
+        if isinstance(health_data, Mapping):
+            weight_trend = health_data.get("weight_trend")
+            if isinstance(weight_trend, str):
+                attrs["weight_trend"] = weight_trend
+
+            weight_change_percent = health_data.get("weight_change_percent")
+            if isinstance(weight_change_percent, int | float):
+                attrs["weight_change_percent"] = float(weight_change_percent)
+
+            last_weight_date = health_data.get("last_weight_date")
+            if isinstance(last_weight_date, str):
+                attrs["last_weight_date"] = last_weight_date
+
+            target_weight = health_data.get("target_weight")
+            if isinstance(target_weight, int | float):
+                attrs["target_weight"] = float(target_weight)
 
         return attrs
 
@@ -609,8 +616,13 @@ class PawControlDogAgeNumber(PawControlNumberBase):
         int_value = int(value)
 
         # Update coordinator cache so other entities see the new value immediately
-        dog_data = self._get_dog_data() or {}
-        dog_data.setdefault("profile", {})[DOG_AGE_FIELD] = int_value
+        dog_data = self._get_dog_data()
+        if dog_data is not None:
+            profile_data = cast(
+                DogProfileSnapshot,
+                dog_data.setdefault("profile", cast(DogProfileSnapshot, {})),
+            )
+            profile_data[DOG_AGE_FIELD] = int_value
 
         # Persist the change if the data manager is available
         data_manager = self._get_data_manager()
@@ -683,7 +695,7 @@ class PawControlDailyFoodAmountNumber(PawControlNumberBase):
         pass
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> NumberExtraAttributes:
         """Return additional attributes for daily food amount."""
         attrs = super().extra_state_attributes
 
@@ -692,9 +704,10 @@ class PawControlDailyFoodAmountNumber(PawControlNumberBase):
         if dog_data and "dog_info" in dog_data:
             info = dog_data["dog_info"]
             weight_value = info.get("dog_weight")
-            weight = (
-                float(weight_value) if isinstance(weight_value, int | float) else 20.0
-            )
+            if isinstance(weight_value, int | float):
+                weight = float(weight_value)
+            else:
+                weight = 20.0
             recommended = self._calculate_recommended_amount(weight)
             attrs["recommended_amount"] = recommended
             current_value = self.native_value

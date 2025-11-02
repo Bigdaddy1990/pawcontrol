@@ -38,6 +38,7 @@ from .types import (
     DASHBOARD_THEME_FIELD,
     SHOW_MAPS_FIELD,
     SHOW_STATISTICS_FIELD,
+    DashboardConfigurationStepInput,
     DashboardSetupConfig,
     DogConfigData,
     DogModulesConfig,
@@ -120,7 +121,7 @@ class DashboardFlowMixin:
             ...
 
     async def async_step_configure_dashboard(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: DashboardConfigurationStepInput | None = None
     ) -> ConfigFlowResult:
         """Configure dashboard settings.
 

@@ -11,6 +11,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
@@ -50,6 +51,7 @@ from .resilience import ResilienceManager, RetryConfig
 from .weather_translations import (
     DEFAULT_LANGUAGE,
     SUPPORTED_LANGUAGES,
+    WeatherTranslations,
     get_weather_translations,
 )
 
@@ -342,8 +344,10 @@ class WeatherHealthManager:
         self.hass = hass
         self._current_conditions: WeatherConditions | None = None
         self._active_alerts: list[WeatherAlert] = []
-        self._translations: dict[str, Any] = {}
-        self._english_translations: dict[str, Any] = {}
+        self._translations: WeatherTranslations = get_weather_translations(
+            DEFAULT_LANGUAGE
+        )
+        self._english_translations: WeatherTranslations = self._translations
         self._current_forecast: WeatherForecast | None = None
 
         # RESILIENCE: Fault tolerance for weather API calls
@@ -417,47 +421,82 @@ class WeatherHealthManager:
         Returns:
             Translated string or fallback English text
         """
+        parts = [part for part in key.split(".") if part]
+        if parts and parts[0] == "weather":
+            parts = parts[1:]
+
         try:
-            # Navigate through nested translation dict
-            value: Any = self._translations
-            for part in key.split("."):
-                if not isinstance(value, dict):
-                    break
-                value = value.get(part)
-
-            if isinstance(value, str):
-                return value.format(**kwargs) if kwargs else value
-
-        except (KeyError, AttributeError, ValueError) as err:
+            resolved = self._resolve_translation_value(self._translations, parts)
+        except ValueError as err:
             _LOGGER.debug("Translation key not found: %s (%s)", key, err)
+            resolved = None
 
-        # Fallback to English if translation not found
-        return self._get_english_fallback(key, **kwargs)
+        if resolved is not None:
+            return resolved.format(**kwargs) if kwargs else resolved
 
-    def _get_english_fallback(self, key: str, **kwargs: Any) -> str:
-        """Get English fallback text for translation keys.
+        return self._get_english_fallback(parts, key, **kwargs)
 
-        Args:
-            key: Translation key
-            **kwargs: Variables for string formatting
+    def _get_english_fallback(
+        self, parts: Sequence[str], original_key: str, **kwargs: Any
+    ) -> str:
+        """Get English fallback text for translation keys."""
 
-        Returns:
-            English fallback text
-        """
-        value: Any = self._english_translations
-        for part in key.split("."):
-            if not isinstance(value, dict):
-                value = None
-                break
-            value = value.get(part)
+        try:
+            resolved = self._resolve_translation_value(self._english_translations, parts)
+        except ValueError:
+            resolved = None
 
-        if isinstance(value, str):
-            try:
-                return value.format(**kwargs) if kwargs else value
-            except (KeyError, ValueError):
-                return value
+        if resolved is None:
+            return original_key
 
-        return key
+        try:
+            return resolved.format(**kwargs) if kwargs else resolved
+        except (KeyError, ValueError):
+            return resolved
+
+    @staticmethod
+    def _resolve_translation_value(
+        catalog: Mapping[str, object], parts: Sequence[str]
+    ) -> str | None:
+        """Resolve a nested translation value from the provided catalog."""
+
+        node: object = catalog
+        for part in parts:
+            if not isinstance(node, Mapping):
+                raise ValueError(f"Cannot descend into non-mapping node for {part!r}")
+            node = node.get(part)
+            if node is None:
+                return None
+
+        if isinstance(node, str):
+            return node
+
+        if isinstance(node, Mapping):
+            raise ValueError("Incomplete translation key; mapping encountered at leaf")
+
+        return None
+
+    @staticmethod
+    def _coerce_float(value: object) -> float | None:
+        """Convert integers or floats to float, rejecting bools and others."""
+
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, int | float):
+            return float(value)
+        return None
+
+    @staticmethod
+    def _coerce_int(value: object) -> int | None:
+        """Convert numeric values to integers for probability fields."""
+
+        if isinstance(value, bool):
+            return None
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            return int(value)
+        return None
 
     async def async_update_weather_data(
         self, weather_entity_id: str | None = None
@@ -656,7 +695,7 @@ class WeatherHealthManager:
             return None
 
     async def _process_forecast_data(
-        self, forecast_data: list[dict[str, Any]], horizon_hours: int
+        self, forecast_data: Sequence[Mapping[str, object]], horizon_hours: int
     ) -> list[ForecastPoint]:
         """Process raw forecast data into structured forecast points.
 
@@ -673,23 +712,21 @@ class WeatherHealthManager:
         for forecast_item in forecast_data:
             try:
                 # Parse forecast timestamp
-                forecast_time_str = forecast_item.get(ATTR_FORECAST_TIME)
-                if not forecast_time_str:
-                    continue
-
-                if isinstance(forecast_time_str, str):
-                    forecast_time = dt_util.parse_datetime(forecast_time_str)
-                elif isinstance(forecast_time_str, datetime):
-                    forecast_time = forecast_time_str
+                forecast_time_obj = forecast_item.get(ATTR_FORECAST_TIME)
+                forecast_time: datetime | None
+                if isinstance(forecast_time_obj, str):
+                    forecast_time = dt_util.parse_datetime(forecast_time_obj)
+                elif isinstance(forecast_time_obj, datetime):
+                    forecast_time = forecast_time_obj
                 else:
-                    continue
+                    forecast_time = None
 
                 if not forecast_time or forecast_time > cutoff_time:
                     continue
 
                 # Extract temperature data
-                temp_high = forecast_item.get(ATTR_FORECAST_TEMP)
-                temp_low = forecast_item.get(ATTR_FORECAST_TEMP_LOW)
+                temp_high = self._coerce_float(forecast_item.get(ATTR_FORECAST_TEMP))
+                temp_low = self._coerce_float(forecast_item.get(ATTR_FORECAST_TEMP_LOW))
 
                 # Convert temperature units if needed
                 if temp_high is not None:
@@ -697,28 +734,43 @@ class WeatherHealthManager:
                         "temperature_unit", UnitOfTemperature.CELSIUS
                     )
                     if temp_unit == UnitOfTemperature.FAHRENHEIT:
-                        temp_high = (temp_high - 32) * 5 / 9
+                        temp_high = (temp_high - 32.0) * 5 / 9
                         if temp_low is not None:
-                            temp_low = (temp_low - 32) * 5 / 9
+                            temp_low = (temp_low - 32.0) * 5 / 9
                     elif temp_unit == UnitOfTemperature.KELVIN:
                         temp_high = temp_high - 273.15
                         if temp_low is not None:
                             temp_low = temp_low - 273.15
+
+                humidity = self._coerce_float(
+                    forecast_item.get(ATTR_FORECAST_HUMIDITY)
+                )
+                uv_index = self._coerce_float(forecast_item.get(ATTR_FORECAST_UV_INDEX))
+                wind_speed = self._coerce_float(
+                    forecast_item.get(ATTR_FORECAST_WIND_SPEED)
+                )
+                pressure = self._coerce_float(forecast_item.get(ATTR_FORECAST_PRESSURE))
+                precipitation = self._coerce_float(
+                    forecast_item.get(ATTR_FORECAST_PRECIPITATION)
+                )
+                precipitation_probability = self._coerce_int(
+                    forecast_item.get(ATTR_FORECAST_PRECIPITATION_PROBABILITY)
+                )
+                condition_obj = forecast_item.get(ATTR_FORECAST_CONDITION)
+                condition = condition_obj if isinstance(condition_obj, str) else None
 
                 # Create forecast point
                 forecast_point = ForecastPoint(
                     timestamp=forecast_time,
                     temperature_c=temp_high,
                     temperature_low_c=temp_low,
-                    humidity_percent=forecast_item.get(ATTR_FORECAST_HUMIDITY),
-                    uv_index=forecast_item.get(ATTR_FORECAST_UV_INDEX),
-                    wind_speed_kmh=forecast_item.get(ATTR_FORECAST_WIND_SPEED),
-                    pressure_hpa=forecast_item.get(ATTR_FORECAST_PRESSURE),
-                    precipitation_mm=forecast_item.get(ATTR_FORECAST_PRECIPITATION),
-                    precipitation_probability=forecast_item.get(
-                        ATTR_FORECAST_PRECIPITATION_PROBABILITY
-                    ),
-                    condition=forecast_item.get(ATTR_FORECAST_CONDITION),
+                    humidity_percent=humidity,
+                    uv_index=uv_index,
+                    wind_speed_kmh=wind_speed,
+                    pressure_hpa=pressure,
+                    precipitation_mm=precipitation,
+                    precipitation_probability=precipitation_probability,
+                    condition=condition,
                 )
 
                 # Calculate derived values for forecast point
@@ -736,7 +788,7 @@ class WeatherHealthManager:
         return forecast_points
 
     def _assess_forecast_quality(
-        self, forecast_data: list[dict[str, Any]]
+        self, forecast_data: Sequence[Mapping[str, object]]
     ) -> ForecastQuality:
         """Assess the quality of forecast data.
 
@@ -2037,5 +2089,6 @@ class WeatherHealthManager:
         self._active_alerts.clear()
         self._current_conditions = None
         self._current_forecast = None
-        self._translations.clear()
+        self._translations = get_weather_translations(DEFAULT_LANGUAGE)
+        self._english_translations = self._translations
         _LOGGER.debug("Weather health manager cleaned up")

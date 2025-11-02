@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
+from custom_components.pawcontrol.types import DietValidationResult, FeedingHistoryEvent
 from tests.unit.test_health_metrics import (  # type: ignore[import-not-found]
     HealthCalculator,
     HealthMetrics,
@@ -106,11 +107,28 @@ class TestPortionCalculations:
     def test_diet_validation_adjustment_applies_conflicts_and_warnings(self) -> None:
         """Conflicts and warnings reduce the adjustment factor cumulatively."""
 
+        validation: DietValidationResult = {
+            "valid": False,
+            "conflicts": [
+                {
+                    "type": "age_conflict",
+                    "diets": ["puppy_formula"],
+                    "message": "Age conflict",
+                }
+            ],
+            "warnings": [
+                {
+                    "type": "multiple_prescription_warning",
+                    "diets": ["prescription"],
+                    "message": "Multiple prescription diets",
+                }
+            ],
+            "recommended_vet_consultation": False,
+            "total_diets": 2,
+        }
+
         adjustment = HealthCalculator.calculate_diet_validation_adjustment(
-            {
-                "conflicts": [{"type": "age_conflict"}],
-                "warnings": [{"type": "multiple_prescription_warning"}],
-            },
+            validation,
             ["prescription"],
         )
 
@@ -151,7 +169,7 @@ class TestFeedingHistoryAnalysis:
 
         old_event_time = dt_util.now() - timedelta(days=10)
         result = HealthCalculator.analyze_feeding_history(
-            [{"time": old_event_time, "amount": 200}],
+            [FeedingHistoryEvent(time=old_event_time, amount=200.0)],
             600.0,
         )
         assert result["status"] == "insufficient_data"
@@ -161,10 +179,14 @@ class TestFeedingHistoryAnalysis:
 
         now = dt_util.now()
         events = [
-            {"time": now - timedelta(days=1), "amount": 100},
-            {"time": now - timedelta(days=1) + timedelta(hours=1), "amount": 100},
-            {"time": now - timedelta(days=2), "amount": 100},
-            {"time": now - timedelta(days=2) + timedelta(hours=2), "amount": 100},
+            FeedingHistoryEvent(time=now - timedelta(days=1), amount=100.0),
+            FeedingHistoryEvent(
+                time=now - timedelta(days=1) + timedelta(hours=1), amount=100.0
+            ),
+            FeedingHistoryEvent(time=now - timedelta(days=2), amount=100.0),
+            FeedingHistoryEvent(
+                time=now - timedelta(days=2) + timedelta(hours=2), amount=100.0
+            ),
         ]
         result = HealthCalculator.analyze_feeding_history(events, 700.0)
 

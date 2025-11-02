@@ -22,7 +22,7 @@ from itertools import islice
 from math import isfinite
 from pathlib import Path
 from time import perf_counter
-from typing import Any, Final, cast
+from typing import Any, Final, NotRequired, TypedDict, cast
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -45,6 +45,11 @@ from .coordinator_support import (
     CoordinatorMetrics,
     CoordinatorModuleAdapter,
 )
+from .module_adapters import (
+    ModuleAdapterCacheError,
+    ModuleAdapterCacheSnapshot,
+    ModuleAdapterCacheStats,
+)
 from .notifications import NotificationPriority, NotificationType
 from .types import (
     DOG_ID_FIELD,
@@ -56,11 +61,20 @@ from .types import (
     CacheRepairIssue,
     CacheRepairTotals,
     DailyStats,
+    DataManagerMetricsSnapshot,
     DogConfigData,
+    EntityBudgetDiagnostics,
+    EntityBudgetSnapshotEntry,
+    EntityBudgetStats,
     FeedingData,
     GPSLocation,
     HealthData,
+    JSONMutableMapping,
     ModuleCacheMetrics,
+    StorageNamespaceDogSummary,
+    StorageNamespacePayload,
+    StorageNamespaceSnapshot,
+    StorageNamespaceStats,
     WalkData,
     WalkRoutePoint,
     ensure_dog_config_data,
@@ -89,15 +103,34 @@ if __name__ not in sys.modules and "pawcontrol_data_manager" in sys.modules:
     sys.modules[__name__] = sys.modules["pawcontrol_data_manager"]
 
 
-class AdaptiveCache:
+class AdaptiveCacheEntry(TypedDict, total=False):
+    """Metadata stored for each AdaptiveCache entry."""
+
+    expiry: NotRequired[datetime | None]
+    created_at: NotRequired[datetime]
+    ttl: NotRequired[int]
+    override_applied: NotRequired[bool]
+
+
+class AdaptiveCacheStats(TypedDict):
+    """Statistics payload returned by :meth:`AdaptiveCache.get_stats`."""
+
+    size: int
+    hits: int
+    misses: int
+    hit_rate: float
+    memory_mb: float
+
+
+class AdaptiveCache[ValueT = Any]:
     """Simple asynchronous cache used by legacy tests."""
 
     def __init__(self, default_ttl: int = 300) -> None:
         """Initialise the cache with the provided default TTL."""
 
         self._default_ttl = default_ttl
-        self._data: dict[str, Any] = {}
-        self._metadata: dict[str, dict[str, Any]] = {}
+        self._data: dict[str, ValueT] = {}
+        self._metadata: dict[str, AdaptiveCacheEntry] = {}
         self._lock = asyncio.Lock()
         self._hits = 0
         self._misses = 0
@@ -110,7 +143,7 @@ class AdaptiveCache:
             "last_expired_count": 0,
         }
 
-    async def get(self, key: str) -> tuple[Any | None, bool]:
+    async def get(self, key: str) -> tuple[ValueT | None, bool]:
         """Return cached value for ``key`` and whether it was a cache hit."""
 
         async with self._lock:
@@ -140,7 +173,7 @@ class AdaptiveCache:
             self._hits += 1
             return self._data[key], True
 
-    async def set(self, key: str, value: Any, base_ttl: int = 300) -> None:
+    async def set(self, key: str, value: ValueT, base_ttl: int = 300) -> None:
         """Store ``value`` for ``key`` honouring ``base_ttl`` when positive."""
 
         async with self._lock:
@@ -222,18 +255,19 @@ class AdaptiveCache:
 
             return len(expired)
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> AdaptiveCacheStats:
         """Return basic cache statistics used by diagnostics."""
 
         total = self._hits + self._misses
         hit_rate = (self._hits / total * 100) if total else 0
-        return {
+        stats: AdaptiveCacheStats = {
             "size": len(self._data),
             "hits": self._hits,
             "misses": self._misses,
             "hit_rate": round(hit_rate, 2),
             "memory_mb": 0.0,
         }
+        return stats
 
     def get_diagnostics(self) -> CacheDiagnosticsMetadata:
         """Return cleanup metrics to surface override activity in diagnostics."""
@@ -252,14 +286,17 @@ class AdaptiveCache:
     def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         """Return a combined statistics/diagnostics payload for coordinators."""
 
+        stats = self.get_stats()
+        diagnostics = self.get_diagnostics()
+        stats_payload = cast(JSONMutableMapping, dict(stats))
         return CacheDiagnosticsSnapshot(
-            stats=self.get_stats(),
-            diagnostics=self.get_diagnostics(),
+            stats=stats_payload,
+            diagnostics=diagnostics,
         )
 
     def _normalize_entry_locked(
-        self, key: str, entry: dict[str, Any], now: datetime
-    ) -> dict[str, Any]:
+        self, key: str, entry: AdaptiveCacheEntry, now: datetime
+    ) -> AdaptiveCacheEntry:
         """Clamp metadata when cached entries originate from the future."""
 
         ttl = int(entry.get("ttl", self._default_ttl))
@@ -298,7 +335,7 @@ class _EntityBudgetMonitor:
     def __init__(self, tracker: Any) -> None:
         self._tracker = tracker
 
-    def _build_payload(self) -> tuple[dict[str, Any], dict[str, Any]]:
+    def _build_payload(self) -> tuple[EntityBudgetStats, EntityBudgetDiagnostics]:
         tracker = self._tracker
         try:
             raw_snapshots = tracker.snapshots()
@@ -322,39 +359,59 @@ class _EntityBudgetMonitor:
                     else {"value": summary}
                 )
 
-        serialised: list[dict[str, Any]] = []
+        serialised: list[EntityBudgetSnapshotEntry] = []
         for snapshot in snapshots:
             recorded_at = getattr(snapshot, "recorded_at", None)
-            serialised.append(
-                {
-                    "dog_id": getattr(snapshot, "dog_id", ""),
-                    "profile": getattr(snapshot, "profile", ""),
-                    "capacity": getattr(snapshot, "capacity", 0),
-                    "base_allocation": getattr(snapshot, "base_allocation", 0),
-                    "dynamic_allocation": getattr(snapshot, "dynamic_allocation", 0),
-                    "requested_entities": tuple(
-                        getattr(snapshot, "requested_entities", ())
-                    ),
-                    "denied_requests": tuple(getattr(snapshot, "denied_requests", ())),
-                    "recorded_at": (
-                        recorded_at.isoformat()
-                        if isinstance(recorded_at, datetime)
-                        else None
-                    ),
-                }
-            )
+            entry: EntityBudgetSnapshotEntry = {
+                "dog_id": str(getattr(snapshot, "dog_id", "")),
+                "profile": str(getattr(snapshot, "profile", "")),
+                "requested_entities": tuple(
+                    str(entity)
+                    for entity in getattr(snapshot, "requested_entities", ())
+                ),
+                "denied_requests": tuple(
+                    str(entity) for entity in getattr(snapshot, "denied_requests", ())
+                ),
+            }
+
+            capacity = getattr(snapshot, "capacity", None)
+            if is_number(capacity):
+                entry["capacity"] = float(capacity)
+
+            base_allocation = getattr(snapshot, "base_allocation", None)
+            if is_number(base_allocation):
+                entry["base_allocation"] = float(base_allocation)
+
+            dynamic_allocation = getattr(snapshot, "dynamic_allocation", None)
+            if is_number(dynamic_allocation):
+                entry["dynamic_allocation"] = float(dynamic_allocation)
+
+            if isinstance(recorded_at, datetime):
+                entry["recorded_at"] = recorded_at.isoformat()
+            else:
+                parsed = (
+                    None
+                    if recorded_at is None
+                    else dt_util.parse_datetime(str(recorded_at))
+                )
+                if isinstance(parsed, datetime):
+                    entry["recorded_at"] = dt_util.as_utc(parsed).isoformat()
+                else:
+                    entry["recorded_at"] = None
+
+            serialised.append(entry)
 
         try:
             saturation = float(tracker.saturation())
         except Exception:  # pragma: no cover - defensive fallback
             saturation = 0.0
 
-        stats = {
+        stats: EntityBudgetStats = {
             "tracked_dogs": len(serialised),
             "saturation_percent": round(max(0.0, min(saturation, 1.0)) * 100.0, 2),
         }
 
-        diagnostics = {
+        diagnostics: EntityBudgetDiagnostics = {
             "summary": dict(summary_payload),
             "snapshots": serialised,
         }
@@ -363,11 +420,14 @@ class _EntityBudgetMonitor:
     def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         stats, diagnostics = self._build_payload()
         diagnostics_payload = cast(CacheDiagnosticsMetadata, diagnostics)
-        return CacheDiagnosticsSnapshot(stats=stats, diagnostics=diagnostics_payload)
+        return CacheDiagnosticsSnapshot(
+            stats=cast(JSONMutableMapping, dict(stats)),
+            diagnostics=diagnostics_payload,
+        )
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> JSONMutableMapping:
         stats, _diagnostics = self._build_payload()
-        return stats
+        return cast(JSONMutableMapping, dict(stats))
 
     def get_diagnostics(self) -> CacheDiagnosticsMetadata:
         _stats, diagnostics = self._build_payload()
@@ -383,65 +443,94 @@ class _CoordinatorModuleCacheMonitor:
         self._modules: CoordinatorModuleAdapter = modules
 
     @staticmethod
-    def _metrics_to_dict(metrics: ModuleCacheMetrics | None) -> dict[str, Any]:
+    def _metrics_to_stats(
+        metrics: ModuleCacheMetrics | None,
+    ) -> ModuleAdapterCacheStats:
         if metrics is None:
-            return {"entries": 0, "hits": 0, "misses": 0, "hit_rate": 0.0}
+            return {
+                "entries": 0,
+                "hits": 0,
+                "misses": 0,
+                "hit_rate": 0.0,
+            }
 
         entries = int(metrics.entries)
         hits = int(metrics.hits)
         misses = int(metrics.misses)
-        hit_rate = metrics.hit_rate
+        hit_rate = round(float(metrics.hit_rate), 2)
         return {
             "entries": entries,
             "hits": hits,
             "misses": misses,
-            "hit_rate": round(float(hit_rate), 2),
+            "hit_rate": hit_rate,
         }
 
-    def _aggregate_metrics(self) -> tuple[dict[str, Any], list[str]]:
+    def _aggregate_metrics(self) -> tuple[ModuleAdapterCacheStats, list[str]]:
         errors: list[str] = []
         try:
             metrics = self._modules.cache_metrics()
         except Exception as err:  # pragma: no cover - diagnostics guard
             errors.append(str(err))
             metrics = None
-        return self._metrics_to_dict(metrics), errors
+        return self._metrics_to_stats(metrics), errors
 
-    def _per_module_metrics(self) -> dict[str, Any]:
-        payload: dict[str, Any] = {}
+    def _per_module_snapshots(
+        self,
+    ) -> dict[
+        str,
+        ModuleAdapterCacheSnapshot | ModuleAdapterCacheError | ModuleAdapterCacheStats,
+    ]:
+        payload: dict[
+            str,
+            ModuleAdapterCacheSnapshot
+            | ModuleAdapterCacheError
+            | ModuleAdapterCacheStats,
+        ] = {}
         for name in ("feeding", "walk", "geofencing", "health", "weather", "garden"):
             adapter = getattr(self._modules, name, None)
             if adapter is None:
                 continue
+            snapshot_fn = getattr(adapter, "cache_snapshot", None)
+            if callable(snapshot_fn):
+                try:
+                    snapshot = cast(ModuleAdapterCacheSnapshot, snapshot_fn())
+                except Exception as err:  # pragma: no cover - defensive guard
+                    payload[name] = ModuleAdapterCacheError(error=str(err))
+                    continue
+                payload[name] = snapshot
+                continue
+
             metrics_fn = getattr(adapter, "cache_metrics", None)
-            if not callable(metrics_fn):
-                continue
-            try:
-                adapter_metrics = cast(ModuleCacheMetrics | None, metrics_fn())
-            except Exception as err:  # pragma: no cover - defensive guard
-                payload[name] = {"error": str(err)}
-                continue
-            payload[name] = self._metrics_to_dict(adapter_metrics)
+            if callable(metrics_fn):
+                try:
+                    metrics = metrics_fn()
+                except Exception as err:  # pragma: no cover - defensive guard
+                    payload[name] = ModuleAdapterCacheError(error=str(err))
+                    continue
+                payload[name] = self._metrics_to_stats(metrics)
         return payload
 
     def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         stats, errors = self._aggregate_metrics()
         diagnostics_payload: CacheDiagnosticsMetadata = cast(
             CacheDiagnosticsMetadata,
-            {"per_module": self._per_module_metrics()},
+            {"per_module": self._per_module_snapshots()},
         )
         if errors:
             diagnostics_payload["errors"] = errors
-        return CacheDiagnosticsSnapshot(stats=stats, diagnostics=diagnostics_payload)
+        return CacheDiagnosticsSnapshot(
+            stats=cast(JSONMutableMapping, dict(stats)),
+            diagnostics=diagnostics_payload,
+        )
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> ModuleAdapterCacheStats:
         stats, _errors = self._aggregate_metrics()
         return stats
 
     def get_diagnostics(self) -> CacheDiagnosticsMetadata:
         diagnostics_payload: CacheDiagnosticsMetadata = cast(
             CacheDiagnosticsMetadata,
-            {"per_module": self._per_module_metrics()},
+            {"per_module": self._per_module_snapshots()},
         )
         _, errors = self._aggregate_metrics()
         if errors:
@@ -515,9 +604,13 @@ class _StorageNamespaceCacheMonitor:
         self._namespace = namespace
         self._label = label
 
-    def _build_payload(self) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    def _build_payload(
+        self,
+    ) -> tuple[
+        StorageNamespaceStats, StorageNamespaceSnapshot, CacheDiagnosticsMetadata
+    ]:
         state = self._manager._namespace_state.get(self._namespace, {})
-        per_dog: dict[str, dict[str, Any]] = {}
+        per_dog: dict[str, StorageNamespaceDogSummary] = {}
         timestamp_anomalies: dict[str, str] = {}
         total_entries = 0
 
@@ -526,7 +619,7 @@ class _StorageNamespaceCacheMonitor:
             entry_count = _estimate_namespace_entries(value)
             total_entries += entry_count
 
-            summary: dict[str, Any] = {
+            summary: StorageNamespaceDogSummary = {
                 "entries": entry_count,
                 "payload_type": type(value).__name__,
             }
@@ -554,21 +647,22 @@ class _StorageNamespaceCacheMonitor:
 
             per_dog[dog_id] = summary
 
-        stats = {
+        stats: StorageNamespaceStats = {
             "namespace": self._label,
             "dogs": len(per_dog),
             "entries": total_entries,
         }
 
-        snapshot = {
+        snapshot: StorageNamespaceSnapshot = {
             "namespace": self._label,
             "per_dog": per_dog,
         }
 
-        diagnostics: dict[str, Any] = {
+        per_dog_payload = cast(JSONMutableMapping, per_dog)
+        diagnostics: CacheDiagnosticsMetadata = {
             "namespace": self._namespace,
             "storage_path": str(self._manager._namespace_path(self._namespace)),
-            "per_dog": per_dog,
+            "per_dog": per_dog_payload,
         }
 
         if timestamp_anomalies:
@@ -580,14 +674,14 @@ class _StorageNamespaceCacheMonitor:
         stats, snapshot, diagnostics = self._build_payload()
         diagnostics_payload = cast(CacheDiagnosticsMetadata, diagnostics)
         return CacheDiagnosticsSnapshot(
-            stats=stats,
-            snapshot=snapshot,
+            stats=cast(JSONMutableMapping, dict(stats)),
+            snapshot=cast(JSONMutableMapping, dict(snapshot)),
             diagnostics=diagnostics_payload,
         )
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> JSONMutableMapping:
         stats, _snapshot, _diagnostics = self._build_payload()
-        return stats
+        return cast(JSONMutableMapping, dict(stats))
 
     def get_diagnostics(self) -> CacheDiagnosticsMetadata:
         _stats, _snapshot, diagnostics = self._build_payload()
@@ -922,7 +1016,7 @@ class PawControlDataManager:
         self._save_lock = asyncio.Lock()
         self._initialised = False
         self._namespace_locks: dict[str, asyncio.Lock] = {}
-        self._namespace_state: dict[str, dict[str, Any]] = {}
+        self._namespace_state: dict[str, StorageNamespacePayload] = {}
         self._session_id_factory: Callable[[], str] = _default_session_id_generator
 
         self._ensure_metrics_containers()
@@ -1359,13 +1453,13 @@ class PawControlDataManager:
                     if isinstance(payload, Mapping):
                         return CacheDiagnosticsSnapshot.from_mapping(payload)
 
-                stats_payload: dict[str, Any] | None = None
+                stats_payload: JSONMutableMapping | None = None
                 if callable(stats_method):
                     raw_stats = stats_method()
                     if isinstance(raw_stats, Mapping):
-                        stats_payload = dict(raw_stats)
+                        stats_payload = cast(JSONMutableMapping, dict(raw_stats))
                     elif raw_stats is not None:
-                        stats_payload = cast(dict[str, Any], raw_stats)
+                        stats_payload = cast(JSONMutableMapping, raw_stats)
 
                 diagnostics_payload: CacheDiagnosticsMetadata | None = None
                 if callable(diagnostics_method):
@@ -1676,7 +1770,10 @@ class PawControlDataManager:
 
         profile = self._ensure_profile(dog_id)
         namespace = await self._get_namespace_data("module_state")
-        overrides = _coerce_mapping(namespace.get(dog_id))
+        raw_overrides = namespace.get(dog_id)
+        overrides = _coerce_mapping(
+            raw_overrides if isinstance(raw_overrides, Mapping) else None
+        )
         modules = _coerce_mapping(profile.config.get("modules"))
         return _merge_dicts(modules, overrides)
 
@@ -2538,14 +2635,15 @@ class PawControlDataManager:
             "health_status_progression": status_progression,
         }
 
-    def get_metrics(self) -> dict[str, Any]:
+    def get_metrics(self) -> DataManagerMetricsSnapshot:
         """Expose lightweight metrics for diagnostics tests."""
 
-        return {
+        metrics: DataManagerMetricsSnapshot = {
             "dogs": len(self._dog_profiles),
             "storage_path": str(self._storage_path),
             "cache_diagnostics": self.cache_snapshots(),
         }
+        return metrics
 
     async def async_get_registered_dogs(self) -> list[str]:
         """Return the list of configured dog identifiers."""
@@ -2558,7 +2656,9 @@ class PawControlDataManager:
         safe_namespace = namespace.replace("/", "_")
         return self._storage_dir / f"{self.entry_id}_{safe_namespace}.json"
 
-    async def _get_namespace_data(self, namespace: str) -> dict[str, Any]:
+    async def _get_namespace_data(
+        self, namespace: str
+    ) -> StorageNamespacePayload:
         """Read a JSON payload for ``namespace`` from disk."""
 
         path = self._namespace_path(namespace)
@@ -2590,14 +2690,16 @@ class PawControlDataManager:
             return {}
 
         if isinstance(payload, dict):
-            snapshot = dict(payload)
+            snapshot = cast(StorageNamespacePayload, dict(payload))
             self._namespace_state[namespace] = snapshot
             return snapshot
 
         self._namespace_state[namespace] = {}
         return {}
 
-    async def _save_namespace(self, namespace: str, data: dict[str, Any]) -> None:
+    async def _save_namespace(
+        self, namespace: str, data: StorageNamespacePayload
+    ) -> None:
         """Persist a JSON payload for ``namespace`` to disk."""
 
         path = self._namespace_path(namespace)
@@ -2612,7 +2714,7 @@ class PawControlDataManager:
 
         self._ensure_metrics_containers()
         self._metrics["saves"] += 1
-        self._namespace_state[namespace] = dict(data)
+        self._namespace_state[namespace] = cast(StorageNamespacePayload, dict(data))
 
     async def _async_load_storage(self) -> dict[str, Any]:
         """Load stored JSON data, falling back to the backup if required."""

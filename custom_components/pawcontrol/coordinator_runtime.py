@@ -10,7 +10,7 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from statistics import fmean
-from typing import Any, cast
+from typing import cast
 
 from .compat import ConfigEntryAuthFailed
 
@@ -45,10 +45,13 @@ from .exceptions import GPSUnavailableError, NetworkError, ValidationError
 from .module_adapters import CoordinatorModuleAdapters
 from .resilience import ResilienceManager, RetryConfig
 from .types import (
+    AdaptivePollingDiagnostics,
     CoordinatorDataPayload,
     CoordinatorDogData,
     CoordinatorModuleTask,
+    CoordinatorRuntimeCycleSnapshot,
     CoordinatorTypedModuleName,
+    EntityBudgetSummary,
     ModuleAdapterPayload,
     ensure_dog_modules_mapping,
 )
@@ -223,12 +226,12 @@ class AdaptivePollingController:
         )
         return self._current_interval
 
-    def as_diagnostics(self) -> dict[str, Any]:
+    def as_diagnostics(self) -> AdaptivePollingDiagnostics:
         """Return diagnostics for adaptive polling behaviour."""
 
         history_count = len(self._history)
         average_duration = fmean(self._history) if history_count else 0.0
-        return {
+        diagnostics: AdaptivePollingDiagnostics = {
             "target_cycle_ms": round(self._target_cycle * 1000, 2),
             "current_interval_ms": round(self._current_interval * 1000, 2),
             "average_cycle_ms": round(average_duration * 1000, 2),
@@ -238,6 +241,7 @@ class AdaptivePollingController:
             "idle_interval_ms": round(self._idle_interval * 1000, 2),
             "idle_grace_ms": round(self._idle_grace * 1000, 2),
         }
+        return diagnostics
 
 
 @dataclass(slots=True)
@@ -252,10 +256,10 @@ class RuntimeCycleInfo:
     error_ratio: float
     success: bool
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> CoordinatorRuntimeCycleSnapshot:
         """Return a serialisable representation of the cycle."""
 
-        return {
+        snapshot: CoordinatorRuntimeCycleSnapshot = {
             "dog_count": self.dog_count,
             "errors": self.errors,
             "success_rate": round(self.success_rate * 100, 2),
@@ -264,11 +268,12 @@ class RuntimeCycleInfo:
             "error_ratio": round(self.error_ratio, 3),
             "success": self.success,
         }
+        return snapshot
 
 
 def summarize_entity_budgets(
     snapshots: Iterable[EntityBudgetSnapshot],
-) -> dict[str, Any]:
+) -> EntityBudgetSummary:
     """Summarise entity budget usage for diagnostics."""
 
     snapshots = list(snapshots)
@@ -290,7 +295,7 @@ def summarize_entity_budgets(
     average_utilisation = (total_allocated / total_capacity) if total_capacity else 0.0
     peak_utilisation = max((snapshot.saturation for snapshot in snapshots), default=0.0)
 
-    return {
+    summary: EntityBudgetSummary = {
         "active_dogs": len(snapshots),
         "total_capacity": total_capacity,
         "total_allocated": total_allocated,
@@ -299,6 +304,7 @@ def summarize_entity_budgets(
         "peak_utilization": round(peak_utilisation * 100, 1),
         "denied_requests": denied_requests,
     }
+    return summary
 
 
 class CoordinatorRuntime:

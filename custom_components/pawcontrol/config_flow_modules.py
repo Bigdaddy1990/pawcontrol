@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Final, Protocol, cast
+from typing import TYPE_CHECKING, Final, Protocol, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -42,12 +42,20 @@ from .language import normalize_language
 from .selector_shim import selector
 from .types import (
     ConfigFlowGlobalSettings,
+    ConfigFlowPlaceholders,
+    DashboardConfigurationPlaceholders,
+    DashboardConfigurationStepInput,
     DashboardSetupConfig,
     DogConfigData,
     DogModulesConfig,
     ExternalEntityConfig,
+    FeedingConfigurationPlaceholders,
+    FeedingConfigurationStepInput,
     FeedingSetupConfig,
+    ModuleConfigurationPlaceholders,
+    ModuleConfigurationStepInput,
     ModuleConfigurationSummary,
+    normalize_performance_mode,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -126,6 +134,121 @@ def translated_dashboard_feature(language: str | None, key: str) -> str:
     )
 
 
+def _coerce_module_global_settings(
+    user_input: ModuleConfigurationStepInput,
+) -> ConfigFlowGlobalSettings:
+    """Normalise module configuration input into structured settings."""
+
+    return ConfigFlowGlobalSettings(
+        performance_mode=normalize_performance_mode(
+            user_input.get("performance_mode"), fallback="balanced"
+        ),
+        enable_analytics=cast(bool, user_input.get("enable_analytics", False)),
+        enable_cloud_backup=cast(bool, user_input.get("enable_cloud_backup", False)),
+        data_retention_days=cast(int, user_input.get("data_retention_days", 90)),
+        debug_logging=cast(bool, user_input.get("debug_logging", False)),
+    )
+
+
+def _coerce_dashboard_configuration(
+    user_input: DashboardConfigurationStepInput,
+    *,
+    has_gps: bool,
+    has_health: bool,
+    has_feeding: bool,
+    per_dog_default: bool,
+    mode_default: str,
+) -> DashboardSetupConfig:
+    """Normalise dashboard configuration values from the setup form."""
+
+    return DashboardSetupConfig(
+        dashboard_enabled=True,
+        dashboard_auto_create=cast(bool, user_input.get("auto_create_dashboard", True)),
+        dashboard_per_dog=cast(
+            bool, user_input.get("create_per_dog_dashboards", per_dog_default)
+        ),
+        dashboard_theme=cast(str, user_input.get("dashboard_theme", "modern")),
+        dashboard_template=cast(str, user_input.get("dashboard_template", "cards")),
+        dashboard_mode=cast(str, user_input.get("dashboard_mode", mode_default)),
+        show_statistics=cast(bool, user_input.get("show_statistics", True)),
+        show_maps=cast(bool, user_input.get("show_maps", has_gps)),
+        show_health_charts=cast(bool, user_input.get("show_health_charts", has_health)),
+        show_feeding_schedule=cast(
+            bool, user_input.get("show_feeding_schedule", has_feeding)
+        ),
+        show_alerts=cast(bool, user_input.get("show_alerts", True)),
+        compact_mode=cast(bool, user_input.get("compact_mode", False)),
+        auto_refresh=cast(bool, user_input.get("auto_refresh", True)),
+        refresh_interval=cast(int, user_input.get("refresh_interval", 60)),
+    )
+
+
+def _coerce_feeding_configuration(
+    user_input: FeedingConfigurationStepInput,
+) -> FeedingSetupConfig:
+    """Normalise feeding configuration values captured during setup."""
+
+    return FeedingSetupConfig(
+        default_daily_food_amount=cast(
+            float | int, user_input.get("daily_food_amount", 500.0)
+        ),
+        default_meals_per_day=cast(int, user_input.get("meals_per_day", 2)),
+        default_food_type=cast(str, user_input.get("food_type", "dry_food")),
+        default_special_diet=list(cast(list[str], user_input.get("special_diet", []))),
+        default_feeding_schedule_type=cast(
+            str, user_input.get("feeding_schedule_type", "flexible")
+        ),
+        auto_portion_calculation=cast(
+            bool, user_input.get("portion_calculation", True)
+        ),
+        medication_with_meals=cast(
+            bool, user_input.get("medication_with_meals", False)
+        ),
+        feeding_reminders=cast(bool, user_input.get("feeding_reminders", True)),
+        portion_tolerance=cast(int, user_input.get("portion_tolerance", 10)),
+    )
+
+
+def _build_module_placeholders(
+    *, summary: ModuleConfigurationSummary, dog_count: int
+) -> ModuleConfigurationPlaceholders:
+    """Return the placeholders rendered for the module configuration step."""
+
+    return ModuleConfigurationPlaceholders(
+        dog_count=dog_count,
+        module_summary=summary["description"],
+        total_modules=summary["total"],
+        gps_dogs=summary["gps_dogs"],
+        health_dogs=summary["health_dogs"],
+    )
+
+
+def _build_dashboard_placeholders(
+    *,
+    dog_count: int,
+    dashboard_info: str,
+    features: str,
+) -> DashboardConfigurationPlaceholders:
+    """Return the placeholders for the dashboard configuration step."""
+
+    return DashboardConfigurationPlaceholders(
+        dog_count=dog_count,
+        dashboard_info=dashboard_info,
+        features=features,
+    )
+
+
+def _build_feeding_placeholders(
+    *, dog_count: int, summary: str
+) -> FeedingConfigurationPlaceholders:
+    """Return the placeholders rendered for the feeding configuration step."""
+
+    return FeedingConfigurationPlaceholders(
+        dog_count=dog_count,
+        feeding_summary=summary,
+    )
+
+
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
@@ -141,25 +264,25 @@ if TYPE_CHECKING:
         hass: HomeAssistant
 
         async def async_step_configure_external_entities(
-            self, user_input: dict[str, Any] | None = None
+            self, user_input: dict[str, object] | None = None
         ) -> ConfigFlowResult:
             """Type-checking stub for the external entity step."""
             ...
 
         async def async_step_configure_feeding_details(
-            self, user_input: dict[str, Any] | None = None
+            self, user_input: FeedingConfigurationStepInput | None = None
         ) -> ConfigFlowResult:
             """Type-checking stub for the feeding configuration step."""
             ...
 
         async def async_step_configure_dashboard(
-            self, user_input: dict[str, Any] | None = None
+            self, user_input: DashboardConfigurationStepInput | None = None
         ) -> ConfigFlowResult:
             """Type-checking stub for the dashboard configuration step."""
             ...
 
         async def async_step_final_setup(
-            self, user_input: dict[str, Any] | None = None
+            self, user_input: dict[str, object] | None = None
         ) -> ConfigFlowResult:
             """Type-checking stub for the final setup step."""
             ...
@@ -169,7 +292,7 @@ if TYPE_CHECKING:
             *,
             step_id: str,
             data_schema: vol.Schema,
-            description_placeholders: dict[str, Any] | None = None,
+            description_placeholders: ConfigFlowPlaceholders | None = None,
             errors: dict[str, str] | None = None,
         ) -> ConfigFlowResult:
             """Type-checking stub for form rendering within the flow."""
@@ -185,7 +308,7 @@ class ModuleConfigurationMixin:
     """
 
     async def async_step_configure_modules(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ModuleConfigurationStepInput | None = None
     ) -> ConfigFlowResult:
         """Configure global settings after per-dog configuration.
 
@@ -202,13 +325,7 @@ class ModuleConfigurationMixin:
 
         if user_input is not None:
             # Store global settings
-            flow._global_settings = ConfigFlowGlobalSettings(
-                performance_mode=user_input.get("performance_mode", "balanced"),
-                enable_analytics=user_input.get("enable_analytics", False),
-                enable_cloud_backup=user_input.get("enable_cloud_backup", False),
-                data_retention_days=user_input.get("data_retention_days", 90),
-                debug_logging=user_input.get("debug_logging", False),
-            )
+            flow._global_settings = _coerce_module_global_settings(user_input)
 
             # Check if any dog has dashboard enabled
             dashboard_enabled = any(
@@ -302,17 +419,17 @@ class ModuleConfigurationMixin:
         return flow.async_show_form(
             step_id="configure_modules",
             data_schema=schema,
-            description_placeholders={
-                "dog_count": len(flow._dogs),
-                "module_summary": module_summary["description"],
-                "total_modules": module_summary["total"],
-                "gps_dogs": module_summary["gps_dogs"],
-                "health_dogs": module_summary["health_dogs"],
-            },
+            description_placeholders=cast(
+                ConfigFlowPlaceholders,
+                _build_module_placeholders(
+                    dog_count=len(flow._dogs),
+                    summary=module_summary,
+                ),
+            ),
         )
 
     async def async_step_configure_dashboard(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: DashboardConfigurationStepInput | None = None
     ) -> ConfigFlowResult:
         """Configure dashboard settings after per-dog setup.
 
@@ -338,27 +455,14 @@ class ModuleConfigurationMixin:
             ]
 
             # Store dashboard configuration
-            dashboard_config: DashboardSetupConfig = {
-                "dashboard_enabled": True,
-                "dashboard_auto_create": user_input.get("auto_create_dashboard", True),
-                "dashboard_per_dog": user_input.get(
-                    "create_per_dog_dashboards", len(dashboard_dogs) > 1
-                ),
-                "dashboard_theme": user_input.get("dashboard_theme", "modern"),
-                "dashboard_template": user_input.get("dashboard_template", "cards"),
-                "dashboard_mode": user_input.get(
-                    "dashboard_mode", "full" if len(dashboard_dogs) > 1 else "cards"
-                ),
-                "show_statistics": user_input.get("show_statistics", True),
-                "show_maps": user_input.get("show_maps", self._has_gps_dogs()),
-                "show_health_charts": user_input.get("show_health_charts", True),
-                "show_feeding_schedule": user_input.get("show_feeding_schedule", True),
-                "show_alerts": user_input.get("show_alerts", True),
-                "compact_mode": user_input.get("compact_mode", False),
-                "auto_refresh": user_input.get("auto_refresh", True),
-                "refresh_interval": user_input.get("refresh_interval", 60),
-            }
-            flow._dashboard_config = dashboard_config
+            flow._dashboard_config = _coerce_dashboard_configuration(
+                user_input,
+                has_gps=self._has_gps_dogs(),
+                has_health=self._has_health_dogs(),
+                has_feeding=self._has_feeding_dogs(),
+                per_dog_default=len(dashboard_dogs) > 1,
+                mode_default="full" if len(dashboard_dogs) > 1 else "cards",
+            )
 
             # Continue to external entities if GPS is enabled
             if self._has_gps_dogs():
@@ -487,11 +591,14 @@ class ModuleConfigurationMixin:
         return flow.async_show_form(
             step_id="configure_dashboard",
             data_schema=schema,
-            description_placeholders={
-                "dog_count": len(dashboard_dogs),
-                "dashboard_info": self._get_dashboard_setup_info(),
-                "features": self._get_dashboard_features_string(has_gps),
-            },
+            description_placeholders=cast(
+                ConfigFlowPlaceholders,
+                _build_dashboard_placeholders(
+                    dog_count=len(dashboard_dogs),
+                    dashboard_info=self._get_dashboard_setup_info(),
+                    features=self._get_dashboard_features_string(has_gps),
+                ),
+            ),
         )
 
     def _analyze_configured_modules(self) -> ModuleConfigurationSummary:
@@ -654,7 +761,7 @@ class ModuleConfigurationMixin:
         )
 
     async def async_step_configure_feeding_details(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: FeedingConfigurationStepInput | None = None
     ) -> ConfigFlowResult:
         """Configure detailed feeding settings when feeding module is enabled.
 
@@ -668,22 +775,7 @@ class ModuleConfigurationMixin:
 
         if user_input is not None:
             # Store feeding configuration
-            feeding_config: FeedingSetupConfig = {
-                "default_daily_food_amount": user_input.get("daily_food_amount", 500.0),
-                "default_meals_per_day": user_input.get("meals_per_day", 2),
-                "default_food_type": user_input.get("food_type", "dry_food"),
-                "default_special_diet": user_input.get("special_diet", []),
-                "default_feeding_schedule_type": user_input.get(
-                    "feeding_schedule_type", "flexible"
-                ),
-                "auto_portion_calculation": user_input.get("portion_calculation", True),
-                "medication_with_meals": user_input.get("medication_with_meals", False),
-                "feeding_reminders": user_input.get("feeding_reminders", True),
-                "portion_tolerance": user_input.get(
-                    "portion_tolerance", 10
-                ),  # percentage
-            }
-            flow._feeding_config = feeding_config
+            flow._feeding_config = _coerce_feeding_configuration(user_input)
 
             # Continue to GPS configuration if needed
             if self._has_gps_dogs():
@@ -775,10 +867,13 @@ class ModuleConfigurationMixin:
         return flow.async_show_form(
             step_id="configure_feeding_details",
             data_schema=schema,
-            description_placeholders={
-                "dog_count": len(feeding_dogs),
-                "feeding_summary": self._get_feeding_summary(feeding_dogs),
-            },
+            description_placeholders=cast(
+                ConfigFlowPlaceholders,
+                _build_feeding_placeholders(
+                    dog_count=len(feeding_dogs),
+                    summary=self._get_feeding_summary(feeding_dogs),
+                ),
+            ),
         )
 
     def _get_feeding_summary(self, feeding_dogs: list[DogConfigData]) -> str:

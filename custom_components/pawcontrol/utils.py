@@ -175,7 +175,7 @@ P = ParamSpec("P")
 R = TypeVar("R")
 Number = Real
 
-type DateTimeConvertible = datetime | date | str | Number
+type DateTimeConvertible = datetime | date | str | float | int | Number
 
 
 async def async_call_hass_service_if_available(
@@ -1386,9 +1386,9 @@ def format_relative_time(dt: datetime) -> str:
 
     # Make both timezone-aware for comparison
     if dt.tzinfo is None:
-        dt = dt_util.as_local(dt)
+        dt = cast(datetime, dt_util.as_local(dt))
     if now.tzinfo is None:
-        now = dt_util.as_local(now)
+        now = cast(datetime, dt_util.as_local(now))
 
     delta = now - dt
 
@@ -1435,13 +1435,15 @@ def ensure_utc_datetime(value: DateTimeConvertible | None) -> datetime | None:
     elif isinstance(value, str):
         if not value:
             return None
-        dt_value = _parse_datetime_string(value)
-        if dt_value is None:
+        parsed_value = _parse_datetime_string(value)
+        if parsed_value is None:
             return None
+        dt_value = parsed_value
     elif is_number(value):
-        dt_value = _datetime_from_timestamp(value)
-        if dt_value is None:
+        timestamp_value = _datetime_from_timestamp(value)
+        if timestamp_value is None:
             return None
+        dt_value = timestamp_value
     else:
         return None
 
@@ -1489,10 +1491,10 @@ def _datetime_from_timestamp(value: Number) -> datetime | None:
 
     utc_from_timestamp = getattr(dt_util, "utc_from_timestamp", None)
     if callable(utc_from_timestamp):
-        with suppress((OverflowError, OSError, ValueError)):
+        with suppress(OverflowError, OSError, ValueError):
             return utc_from_timestamp(timestamp)
 
-    with suppress((OverflowError, OSError, ValueError)):
+    with suppress(OverflowError, OSError, ValueError):
         return datetime.fromtimestamp(timestamp, UTC)
 
     return None

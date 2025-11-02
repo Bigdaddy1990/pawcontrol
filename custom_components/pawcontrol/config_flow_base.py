@@ -15,7 +15,7 @@ import asyncio
 import logging
 import re
 import time
-from typing import Any, ClassVar, Final
+from typing import ClassVar, Final
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow
@@ -57,6 +57,9 @@ from .types import (
     DogSetupStepInput,
     DogValidationCache,
     FeedingSetupConfig,
+    FeedingSizeDefaults,
+    FeedingSizeDefaultsMap,
+    IntegrationNameValidationResult,
     ensure_dog_modules_mapping,
 )
 
@@ -180,7 +183,9 @@ class PawControlBaseConfigFlow(ConfigFlow):
         ]
         return "\n".join(features)
 
-    async def _async_validate_integration_name(self, name: str) -> dict[str, Any]:
+    async def _async_validate_integration_name(
+        self, name: str
+    ) -> IntegrationNameValidationResult:
         """Validate integration name with enhanced checks.
 
         Args:
@@ -200,10 +205,12 @@ class PawControlBaseConfigFlow(ConfigFlow):
         elif name.lower() in ("home assistant", "ha", "hassio"):
             errors[CONF_NAME] = "reserved_integration_name"
 
-        return {
+        result: IntegrationNameValidationResult = {
             "valid": len(errors) == 0,
             "errors": errors,
         }
+
+        return result
 
     def _is_weight_size_compatible(self, weight: float, size: str) -> bool:
         """Check if weight is compatible with selected size category.
@@ -235,7 +242,7 @@ class PawControlBaseConfigFlow(ConfigFlow):
         # Allow some flexibility with overlapping ranges for realistic breed variations
         return range_min <= weight <= range_max
 
-    def _get_feeding_defaults_by_size(self, size: str) -> dict[str, Any]:
+    def _get_feeding_defaults_by_size(self, size: str) -> FeedingSizeDefaults:
         """Get intelligent feeding defaults based on dog size.
 
         Args:
@@ -244,40 +251,42 @@ class PawControlBaseConfigFlow(ConfigFlow):
         Returns:
             Dictionary of feeding configuration defaults
         """
-        feeding_configs = {
+        feeding_configs: FeedingSizeDefaultsMap = {
             "toy": {
                 "meals_per_day": 3,
-                "daily_amount": 150,  # grams
+                "daily_food_amount": 150,  # grams
                 "feeding_times": ["07:00:00", "12:00:00", "18:00:00"],
                 "portion_size": 50,
             },
             "small": {
                 "meals_per_day": 2,
-                "daily_amount": 300,
+                "daily_food_amount": 300,
                 "feeding_times": ["07:30:00", "18:00:00"],
                 "portion_size": 150,
             },
             "medium": {
                 "meals_per_day": 2,
-                "daily_amount": 500,
+                "daily_food_amount": 500,
                 "feeding_times": ["07:30:00", "18:00:00"],
                 "portion_size": 250,
             },
             "large": {
                 "meals_per_day": 2,
-                "daily_amount": 800,
+                "daily_food_amount": 800,
                 "feeding_times": ["07:00:00", "18:30:00"],
                 "portion_size": 400,
             },
             "giant": {
                 "meals_per_day": 2,
-                "daily_amount": 1200,
+                "daily_food_amount": 1200,
                 "feeding_times": ["07:00:00", "18:30:00"],
                 "portion_size": 600,
             },
         }
 
-        return feeding_configs.get(size, feeding_configs["medium"])
+        default_config: FeedingSizeDefaults = feeding_configs["medium"]
+
+        return feeding_configs.get(size, default_config)
 
     def _format_dogs_list(self) -> str:
         """Format the current dogs list with enhanced readability.
