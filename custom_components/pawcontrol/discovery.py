@@ -540,7 +540,9 @@ class PawControlDiscovery:
 
 
 # Legacy compatibility functions for existing code
-async def async_get_discovered_devices(hass: HomeAssistant) -> list[LegacyDiscoveryEntry]:
+async def async_get_discovered_devices(
+    hass: HomeAssistant,
+) -> list[LegacyDiscoveryEntry]:
     """Legacy compatibility function for basic device discovery.
 
     Args:

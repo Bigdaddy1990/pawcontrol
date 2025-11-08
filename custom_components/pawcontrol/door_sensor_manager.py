@@ -299,7 +299,9 @@ def ensure_door_sensor_settings_config(
     )
 
 
-def _settings_to_payload(settings: DoorSensorSettingsConfig) -> DoorSensorSettingsPayload:
+def _settings_to_payload(
+    settings: DoorSensorSettingsConfig,
+) -> DoorSensorSettingsPayload:
     """Return a serialisable payload for ``settings``."""
 
     payload: DoorSensorSettingsPayload = {

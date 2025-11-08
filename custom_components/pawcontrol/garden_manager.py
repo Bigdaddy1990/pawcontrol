@@ -74,9 +74,7 @@ def _stats_from_payload(payload: GardenStatsPayload) -> GardenStats:
     favorite_activities = cast(
         list[GardenFavoriteActivity], payload.get("favorite_activities", [])
     )
-    weekly_summary = cast(
-        GardenWeeklySummary, payload.get("weekly_summary", {}) or {}
-    )
+    weekly_summary = cast(GardenWeeklySummary, payload.get("weekly_summary", {}) or {})
     return GardenStats(
         total_sessions=payload.get("total_sessions", 0),
         total_time_minutes=payload.get("total_time_minutes", 0.0),
@@ -450,9 +448,7 @@ class GardenManager:
             try:
                 self._dog_stats[dog_id] = _stats_from_payload(stats_dict)
             except Exception as err:  # pragma: no cover - defensive
-                _LOGGER.warning(
-                    "Failed to load garden stats for %s: %s", dog_id, err
-                )
+                _LOGGER.warning("Failed to load garden stats for %s: %s", dog_id, err)
 
         _LOGGER.debug(
             "Loaded %d garden sessions and stats for %d dogs",

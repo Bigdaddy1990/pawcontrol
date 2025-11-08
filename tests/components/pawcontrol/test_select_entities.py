@@ -62,7 +62,9 @@ class _DummyCoordinator:
     ) -> Callable[[], None]:
         return lambda: None
 
-    async def async_request_refresh(self) -> None:  # pragma: no cover - coordinator interface
+    async def async_request_refresh(
+        self,
+    ) -> None:  # pragma: no cover - coordinator interface
         return None
 
     async def async_set_updated_data(self, data: CoordinatorDataPayload) -> None:
@@ -89,9 +91,7 @@ def runtime_data_fixture() -> PawControlRuntimeData:
         SimpleNamespace(async_set_priority_threshold=AsyncMock()),
     )
     coordinator = cast(PawControlCoordinator, MagicMock())
-    coordinator.runtime_managers = CoordinatorRuntimeManagers(
-        data_manager=data_manager
-    )
+    coordinator.runtime_managers = CoordinatorRuntimeManagers(data_manager=data_manager)
 
     runtime = PawControlRuntimeData(
         coordinator=coordinator,

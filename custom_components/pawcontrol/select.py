@@ -205,26 +205,24 @@ DOG_SIZE_DETAILS: Final[Mapping[str, DogSizeInfo]] = MappingProxyType(
     }
 )
 
-PERFORMANCE_MODE_DETAILS: Final[Mapping[str, PerformanceModeInfo]] = (
-    MappingProxyType(
-        {
-            "minimal": {
-                "description": "Minimal resource usage, longer update intervals",
-                "update_interval": "5 minutes",
-                "battery_impact": "minimal",
-            },
-            "balanced": {
-                "description": "Balanced performance and resource usage",
-                "update_interval": "2 minutes",
-                "battery_impact": "moderate",
-            },
-            "full": {
-                "description": "Maximum performance, frequent updates",
-                "update_interval": "30 seconds",
-                "battery_impact": "high",
-            },
-        }
-    )
+PERFORMANCE_MODE_DETAILS: Final[Mapping[str, PerformanceModeInfo]] = MappingProxyType(
+    {
+        "minimal": {
+            "description": "Minimal resource usage, longer update intervals",
+            "update_interval": "5 minutes",
+            "battery_impact": "minimal",
+        },
+        "balanced": {
+            "description": "Balanced performance and resource usage",
+            "update_interval": "2 minutes",
+            "battery_impact": "moderate",
+        },
+        "full": {
+            "description": "Maximum performance, frequent updates",
+            "update_interval": "30 seconds",
+            "battery_impact": "high",
+        },
+    }
 )
 
 WALK_MODE_DETAILS: Final[Mapping[str, WalkModeInfo]] = MappingProxyType(

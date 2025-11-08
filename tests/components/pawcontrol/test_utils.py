@@ -36,9 +36,9 @@ async def test_retry_on_exception_async_success() -> None:
             raise ValueError("temporary")
         return "ok"
 
-    flaky: Callable[[], Awaitable[str]] = retry_on_exception(
-        max_retries=2, delay=0
-    )(flaky_inner)
+    flaky: Callable[[], Awaitable[str]] = retry_on_exception(max_retries=2, delay=0)(
+        flaky_inner
+    )
 
     result: str = await flaky()
 

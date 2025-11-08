@@ -161,7 +161,7 @@ DEFAULT_FEEDING_TIMES: Final[dict[str, str]] = {
 
 
 def _collate_entity_domains(
-    entities: Mapping[str, HelperEntityMetadata]
+    entities: Mapping[str, HelperEntityMetadata],
 ) -> dict[str, int]:
     """Return a histogram of entity domains managed by the helper manager."""
 
@@ -345,7 +345,9 @@ class PawControlHelperManager:
                 if not isinstance(dog_config, Mapping):
                     continue
                 mapping_candidate: dict[str, object] = {
-                    str(key): value for key, value in dog_config.items() if isinstance(key, str)
+                    str(key): value
+                    for key, value in dog_config.items()
+                    if isinstance(key, str)
                 }
                 mapping_candidate.setdefault(DOG_ID_FIELD, str(dog_id))
                 if not isinstance(mapping_candidate.get(DOG_NAME_FIELD), str):
@@ -360,7 +362,9 @@ class PawControlHelperManager:
                 if not isinstance(dog_config, Mapping):
                     continue
                 sequence_candidate: dict[str, object] = {
-                    str(key): value for key, value in dog_config.items() if isinstance(key, str)
+                    str(key): value
+                    for key, value in dog_config.items()
+                    if isinstance(key, str)
                 }
                 dog_id = sequence_candidate.get(DOG_ID_FIELD)
                 if not isinstance(dog_id, str) or not dog_id:

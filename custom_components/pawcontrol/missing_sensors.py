@@ -243,14 +243,10 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
 
         if walk_data:
             with contextlib.suppress(TypeError, ValueError):
-                last_walk = cast(
-                    DateTimeConvertible | None, walk_data.get("last_walk")
-                )
+                last_walk = cast(DateTimeConvertible | None, walk_data.get("last_walk"))
                 attrs.update(
                     {
-                        "walks_today": int(
-                            cast(int, walk_data.get("walks_today", 0))
-                        ),
+                        "walks_today": int(cast(int, walk_data.get("walks_today", 0))),
                         "total_walk_minutes_today": float(
                             cast(float, walk_data.get("total_duration_today", 0.0))
                         ),
@@ -259,13 +255,9 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
                 )
 
         if health_data:
-            activity_level = cast(
-                str | None, health_data.get("activity_level")
-            )
+            activity_level = cast(str | None, health_data.get("activity_level"))
             attrs["health_activity_level"] = activity_level
-            attrs["activity_source"] = (
-                "health_data" if activity_level else "calculated"
-            )
+            attrs["activity_source"] = "health_data" if activity_level else "calculated"
 
         return attrs
 
@@ -393,9 +385,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
             last_feeding = cast(
                 DateTimeConvertible | None, feeding_data.get("last_feeding")
             )
-            feedings_today = cast(
-                int, feeding_data.get("total_feedings_today", 0)
-            )
+            feedings_today = cast(int, feeding_data.get("total_feedings_today", 0))
             attrs.update(
                 {
                     "last_feeding_time": last_feeding,
@@ -535,9 +525,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
             return 0
 
         try:
-            walks_this_week = int(
-                cast(int, walk_data.get("walks_this_week", 0))
-            )
+            walks_this_week = int(cast(int, walk_data.get("walks_this_week", 0)))
             if walks_this_week:
                 return walks_this_week
 
@@ -554,9 +542,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
                 walk_time_candidate = walk.get("timestamp")
                 if not walk_time_candidate:
                     walk_time_candidate = walk.get("end_time")
-                if not isinstance(
-                    walk_time_candidate, str | datetime | int | float
-                ):
+                if not isinstance(walk_time_candidate, str | datetime | int | float):
                     continue
                 walk_time = ensure_utc_datetime(walk_time_candidate)
                 if walk_time and walk_time >= start_of_week:

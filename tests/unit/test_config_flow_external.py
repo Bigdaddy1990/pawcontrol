@@ -34,7 +34,9 @@ class _FakeServices:
     def __init__(self, services: dict[str, dict[str, object]]) -> None:
         self._services = services
 
-    def async_services(self) -> dict[str, dict[str, object]]:  # pragma: no cover - passthrough
+    def async_services(
+        self,
+    ) -> dict[str, dict[str, object]]:  # pragma: no cover - passthrough
         return self._services
 
 
@@ -136,7 +138,9 @@ async def test_async_step_configure_external_entities_accepts_valid_payload() ->
 
 
 @pytest.mark.asyncio
-async def test_async_step_configure_external_entities_rejects_unknown_notify_service() -> None:
+async def test_async_step_configure_external_entities_rejects_unknown_notify_service() -> (
+    None
+):
     """Invalid notify service selections surface the validation error in the form."""
 
     hass = _FakeHomeAssistant(

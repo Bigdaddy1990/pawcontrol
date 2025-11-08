@@ -176,15 +176,13 @@ class EntityCreationConfig(Mapping[str, EntityCreationValue]):
         return payload
 
 
-_EMPTY_ENTITY_CONFIG_EXTRAS: Final[Mapping[str, EntityCreationValue]] = MappingProxyType({})
+_EMPTY_ENTITY_CONFIG_EXTRAS: Final[Mapping[str, EntityCreationValue]] = (
+    MappingProxyType({})
+)
 
 
 type EntityProfileValue = (
-    str
-    | int
-    | tuple[Platform, ...]
-    | tuple[str, ...]
-    | EntityPerformanceImpact
+    str | int | tuple[Platform, ...] | tuple[str, ...] | EntityPerformanceImpact
 )
 
 
@@ -1357,9 +1355,7 @@ class EntityFactory:
             _LOGGER.error("Unsupported module for config creation: %s", module)
             return None
 
-        if not self.should_create_entity(
-            profile, platform, module, resolved_priority
-        ):
+        if not self.should_create_entity(profile, platform, module, resolved_priority):
             _LOGGER.debug(
                 "Skipping %s entity for %s/%s (profile: %s, priority: %d)",
                 normalized_type,
@@ -1394,7 +1390,9 @@ class EntityFactory:
         profile_config = ENTITY_PROFILES.get(profile, ENTITY_PROFILES["standard"])
         platform_value = self._coerce_platform_output(entity_type, platform)
 
-        extras_mapping = MappingProxyType(extras) if extras else _EMPTY_ENTITY_CONFIG_EXTRAS
+        extras_mapping = (
+            MappingProxyType(extras) if extras else _EMPTY_ENTITY_CONFIG_EXTRAS
+        )
 
         return EntityCreationConfig(
             dog_id=dog_id,
