@@ -22,7 +22,7 @@ from enum import Enum
 from functools import lru_cache
 from itertools import combinations
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Final
+from typing import TYPE_CHECKING, Any, Final, Literal, cast
 
 from homeassistant.const import Platform
 from homeassistant.helpers.entity import Entity
@@ -89,74 +89,289 @@ _ENTITY_TYPE_TO_PLATFORM: Final[dict[str, Platform]] = {
 }
 
 # Entity profile definitions with performance impact
-ENTITY_PROFILES: Final[dict[str, dict[str, Any]]] = {
-    "basic": {
-        "name": "Basic (≤8 entities)",
-        "description": "Absolute minimum footprint for one dog",
-        "max_entities": 8,
-        "performance_impact": "minimal",
-        "recommended_for": "Single dog, essential telemetry only",
-        "platforms": [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.BUTTON],
-        "priority_threshold": 5,  # Essential entities surface at medium priority
-    },
-    "standard": {
-        "name": "Standard (≤12 entities)",
-        "description": "Balanced monitoring with selective extras",
-        "max_entities": 12,
-        "performance_impact": "low",
-        "recommended_for": "Most users, curated functionality",
-        "platforms": [
-            Platform.SENSOR,
-            Platform.BUTTON,
-            Platform.BINARY_SENSOR,
-            Platform.SELECT,
-            Platform.SWITCH,
-        ],
-        "priority_threshold": 5,  # Medium-priority entities and above
-    },
-    "advanced": {
-        "name": "Advanced (≤18 entities)",
-        "description": "Comprehensive monitoring - higher resource usage",
-        "max_entities": 18,
-        "performance_impact": "medium",
-        "recommended_for": "Power users, detailed analytics",
-        "platforms": ALL_AVAILABLE_PLATFORMS,
-        "priority_threshold": 3,  # Most entities included
-    },
-    "gps_focus": {
-        "name": "GPS Focus (≤10 entities)",
-        "description": "GPS tracking optimised for active dogs",
-        "max_entities": 10,
-        "performance_impact": "low",
-        "recommended_for": "Active dogs, outdoor adventures",
-        "platforms": [
-            Platform.SENSOR,
-            Platform.BUTTON,
-            Platform.BINARY_SENSOR,
-            Platform.DEVICE_TRACKER,
-            Platform.NUMBER,
-        ],
-        "priority_threshold": 6,  # Keep non-critical GPS sensors out
-        "preferred_modules": ["gps", "walk", "visitor"],
-    },
-    "health_focus": {
-        "name": "Health Focus (≤10 entities)",
-        "description": "Health monitoring optimised for senior dogs",
-        "max_entities": 10,
-        "performance_impact": "low",
-        "recommended_for": "Senior dogs, health conditions",
-        "platforms": [
-            Platform.SENSOR,
-            Platform.BUTTON,
-            Platform.BINARY_SENSOR,
-            Platform.NUMBER,
-            Platform.DATE,
-            Platform.TEXT,
-        ],
-        "priority_threshold": 6,
-        "preferred_modules": ["health", "feeding", "medication"],
-    },
-}
+EntityPerformanceImpact = Literal["minimal", "low", "medium"]
+
+
+type EntityCreationValue = (
+    bool
+    | float
+    | int
+    | str
+    | Platform
+    | EntityPerformanceImpact
+    | "PawControlCoordinator"
+    | None
+    | Mapping[str, object]
+    | tuple[object, ...]
+    | list[object]
+)
+
+
+@dataclass(slots=True, frozen=True)
+class EntityCreationConfig(Mapping[str, EntityCreationValue]):
+    """Immutable mapping describing an entity creation payload."""
+
+    dog_id: str
+    entity_type: str
+    module: str
+    profile: str
+    priority: int
+    coordinator: PawControlCoordinator | None
+    platform: Platform
+    performance_impact: EntityPerformanceImpact
+    extras: Mapping[str, EntityCreationValue] = field(default_factory=dict)
+
+    def __getitem__(self, key: str) -> EntityCreationValue:
+        match key:
+            case "dog_id":
+                return self.dog_id
+            case "entity_type":
+                return self.entity_type
+            case "module":
+                return self.module
+            case "profile":
+                return self.profile
+            case "priority":
+                return self.priority
+            case "coordinator":
+                return self.coordinator
+            case "platform":
+                return self.platform
+            case "performance_impact":
+                return self.performance_impact
+        if key in self.extras:
+            return self.extras[key]
+        raise KeyError(key)  # pragma: no cover - defensive
+
+    def __iter__(self) -> Iterator[str]:
+        yield from (
+            "dog_id",
+            "entity_type",
+            "module",
+            "profile",
+            "priority",
+            "coordinator",
+            "platform",
+            "performance_impact",
+        )
+        yield from self.extras
+
+    def __len__(self) -> int:
+        return 8 + len(self.extras)
+
+    def as_dict(self) -> dict[str, EntityCreationValue]:
+        """Return a standard mutable mapping copy."""
+
+        payload = {
+            "dog_id": self.dog_id,
+            "entity_type": self.entity_type,
+            "module": self.module,
+            "profile": self.profile,
+            "priority": self.priority,
+            "coordinator": self.coordinator,
+            "platform": self.platform,
+            "performance_impact": self.performance_impact,
+        }
+        payload.update(self.extras)
+        return payload
+
+
+_EMPTY_ENTITY_CONFIG_EXTRAS: Final[Mapping[str, EntityCreationValue]] = MappingProxyType({})
+
+
+type EntityProfileValue = (
+    str
+    | int
+    | tuple[Platform, ...]
+    | tuple[str, ...]
+    | EntityPerformanceImpact
+)
+
+
+@dataclass(slots=True, frozen=True)
+class EntityProfileDefinition(Mapping[str, EntityProfileValue]):
+    """Strongly typed entity profile metadata container."""
+
+    name: str
+    description: str
+    max_entities: int
+    performance_impact: EntityPerformanceImpact
+    recommended_for: str
+    platforms: tuple[Platform, ...]
+    priority_threshold: int
+    preferred_modules: tuple[str, ...] = ()
+
+    def __getitem__(self, key: str) -> EntityProfileValue:
+        match key:
+            case "name":
+                return self.name
+            case "description":
+                return self.description
+            case "max_entities":
+                return self.max_entities
+            case "performance_impact":
+                return self.performance_impact
+            case "recommended_for":
+                return self.recommended_for
+            case "platforms":
+                return self.platforms
+            case "priority_threshold":
+                return self.priority_threshold
+            case "preferred_modules":
+                return self.preferred_modules
+        raise KeyError(key)  # pragma: no cover - defensive
+
+    def __iter__(self) -> Iterator[str]:
+        yield from (
+            "name",
+            "description",
+            "max_entities",
+            "performance_impact",
+            "recommended_for",
+            "platforms",
+            "priority_threshold",
+            "preferred_modules",
+        )
+
+    def __len__(self) -> int:
+        return 8
+
+
+type EntityProfilesTable = Mapping[str, EntityProfileDefinition]
+
+
+@dataclass(slots=True, frozen=True)
+class EntityPerformanceMetrics(Mapping[str, float | int | str]):
+    """Immutable performance metrics emitted by :meth:`EntityFactory`."""
+
+    profile: str
+    estimated_entities: int
+    max_entities: int
+    performance_impact: EntityPerformanceImpact
+    utilization_percentage: float
+    enabled_modules: int
+    total_modules: int
+
+    def __getitem__(self, key: str) -> float | int | str:
+        match key:
+            case "profile":
+                return self.profile
+            case "estimated_entities":
+                return self.estimated_entities
+            case "max_entities":
+                return self.max_entities
+            case "performance_impact":
+                return self.performance_impact
+            case "utilization_percentage":
+                return self.utilization_percentage
+            case "enabled_modules":
+                return self.enabled_modules
+            case "total_modules":
+                return self.total_modules
+        raise KeyError(key)  # pragma: no cover - defensive
+
+    def __iter__(self) -> Iterator[str]:
+        yield from (
+            "profile",
+            "estimated_entities",
+            "max_entities",
+            "performance_impact",
+            "utilization_percentage",
+            "enabled_modules",
+            "total_modules",
+        )
+
+    def __len__(self) -> int:
+        return 7
+
+    def as_dict(self) -> dict[str, float | int | str]:
+        """Return a standard mapping representation for diagnostics/logging."""
+
+        return {
+            "profile": self.profile,
+            "estimated_entities": self.estimated_entities,
+            "max_entities": self.max_entities,
+            "performance_impact": self.performance_impact,
+            "utilization_percentage": self.utilization_percentage,
+            "enabled_modules": self.enabled_modules,
+            "total_modules": self.total_modules,
+        }
+
+
+ENTITY_PROFILES: Final[EntityProfilesTable] = MappingProxyType(
+    {
+        "basic": EntityProfileDefinition(
+            name="Basic (≤8 entities)",
+            description="Absolute minimum footprint for one dog",
+            max_entities=8,
+            performance_impact="minimal",
+            recommended_for="Single dog, essential telemetry only",
+            platforms=(
+                Platform.SENSOR,
+                Platform.BINARY_SENSOR,
+                Platform.BUTTON,
+            ),
+            priority_threshold=5,
+        ),
+        "standard": EntityProfileDefinition(
+            name="Standard (≤12 entities)",
+            description="Balanced monitoring with selective extras",
+            max_entities=12,
+            performance_impact="low",
+            recommended_for="Most users, curated functionality",
+            platforms=(
+                Platform.SENSOR,
+                Platform.BUTTON,
+                Platform.BINARY_SENSOR,
+                Platform.SELECT,
+                Platform.SWITCH,
+            ),
+            priority_threshold=5,
+        ),
+        "advanced": EntityProfileDefinition(
+            name="Advanced (≤18 entities)",
+            description="Comprehensive monitoring - higher resource usage",
+            max_entities=18,
+            performance_impact="medium",
+            recommended_for="Power users, detailed analytics",
+            platforms=ALL_AVAILABLE_PLATFORMS,
+            priority_threshold=3,
+        ),
+        "gps_focus": EntityProfileDefinition(
+            name="GPS Focus (≤10 entities)",
+            description="GPS tracking optimised for active dogs",
+            max_entities=10,
+            performance_impact="low",
+            recommended_for="Active dogs, outdoor adventures",
+            platforms=(
+                Platform.SENSOR,
+                Platform.BUTTON,
+                Platform.BINARY_SENSOR,
+                Platform.DEVICE_TRACKER,
+                Platform.NUMBER,
+            ),
+            priority_threshold=6,
+            preferred_modules=("gps", "walk", "visitor"),
+        ),
+        "health_focus": EntityProfileDefinition(
+            name="Health Focus (≤10 entities)",
+            description="Health monitoring optimised for senior dogs",
+            max_entities=10,
+            performance_impact="low",
+            recommended_for="Senior dogs, health conditions",
+            platforms=(
+                Platform.SENSOR,
+                Platform.BUTTON,
+                Platform.BINARY_SENSOR,
+                Platform.NUMBER,
+                Platform.DATE,
+                Platform.TEXT,
+            ),
+            priority_threshold=6,
+            preferred_modules=("health", "feeding", "medication"),
+        ),
+    }
+)
 
 # Pre-computed module entity estimates to avoid rebuilding dictionaries during
 # performance-critical calculations.
@@ -424,12 +639,12 @@ class EntityFactory:
         """
         self.coordinator = coordinator
         self._entity_cache: dict[str, Entity] = {}
-        self._profile_cache: dict[str, dict[str, Any]] = {}
+        self._profile_cache: dict[str, EntityProfileDefinition] = {}
         self._estimate_cache: OrderedDict[
             tuple[str, tuple[tuple[str, bool], ...]], EntityEstimate
         ] = OrderedDict()
         self._performance_metrics_cache: OrderedDict[
-            tuple[str, tuple[tuple[str, bool], ...]], dict[str, Any]
+            tuple[str, tuple[tuple[str, bool], ...]], EntityPerformanceMetrics
         ] = OrderedDict()
         self._should_create_cache: OrderedDict[tuple[str, str, str, int], bool] = (
             OrderedDict()
@@ -513,7 +728,7 @@ class EntityFactory:
         """Begin tracking an entity budget for a dog/profile combination."""
 
         profile_info = self.get_profile_info(profile)
-        capacity = int(profile_info.get("max_entities", 0) or 0)
+        capacity = profile_info.max_entities
         budget = EntityBudget(
             dog_id=dog_id,
             profile=profile,
@@ -686,7 +901,8 @@ class EntityFactory:
             )
 
         raw_total = base_entities + module_entities
-        capacity = ENTITY_PROFILES[profile]["max_entities"]
+        profile_definition = ENTITY_PROFILES[profile]
+        capacity = profile_definition.max_entities
         final_count = max(base_entities, min(raw_total, capacity))
 
         return EntityEstimate(
@@ -732,7 +948,6 @@ class EntityFactory:
         entity_type: str | Enum,
         module: str,
         priority: int = 5,
-        **kwargs: Any,
     ) -> bool:
         """Determine if an entity should be created based on profile.
 
@@ -741,7 +956,6 @@ class EntityFactory:
             entity_type: Type of entity (sensor, button, etc.)
             module: Module requesting the entity
             priority: Entity priority (1-10, higher = more important)
-            **kwargs: Additional validation parameters
 
         Returns:
             True if entity should be created
@@ -778,7 +992,7 @@ class EntityFactory:
             return False
 
         profile_config = ENTITY_PROFILES[profile]
-        priority_threshold = profile_config.get("priority_threshold", 5)
+        priority_threshold = profile_config.priority_threshold
 
         # Critical entities always created (priority >= 9)
         if priority >= 9:
@@ -791,9 +1005,7 @@ class EntityFactory:
             return False
 
         # Profile-specific entity filtering
-        result = self._apply_profile_specific_rules(
-            profile, platform, module, priority, **kwargs
-        )
+        result = self._apply_profile_specific_rules(profile, platform, module, priority)
 
         self._should_create_misses += 1
         self._should_create_cache[cache_key] = result
@@ -968,7 +1180,6 @@ class EntityFactory:
         platform: Platform,
         module: str,
         priority: int,
-        **kwargs: Any,
     ) -> bool:
         """Apply profile-specific rules for entity creation.
 
@@ -977,14 +1188,13 @@ class EntityFactory:
             entity_type: Type of entity
             module: Module name
             priority: Entity priority
-            **kwargs: Additional parameters
 
         Returns:
             True if entity should be created
         """
         profile_config = ENTITY_PROFILES[profile]
 
-        if platform not in profile_config["platforms"]:
+        if platform not in profile_config.platforms:
             return False
 
         if profile == "basic":
@@ -1004,7 +1214,7 @@ class EntityFactory:
 
         elif profile == "gps_focus":
             # GPS-related entities prioritized
-            preferred_modules = profile_config.get("preferred_modules", [])
+            preferred_modules = profile_config.preferred_modules
             gps_types = {
                 Platform.DEVICE_TRACKER,
                 Platform.SENSOR,
@@ -1017,7 +1227,7 @@ class EntityFactory:
 
         elif profile == "health_focus":
             # Health-related entities prioritized
-            preferred_modules = profile_config.get("preferred_modules", [])
+            preferred_modules = profile_config.preferred_modules
             health_types = {
                 Platform.SENSOR,
                 Platform.NUMBER,
@@ -1103,8 +1313,11 @@ class EntityFactory:
         entity_type: str | Enum,
         module: str,
         profile: str,
-        **kwargs: Any,
-    ) -> dict[str, Any] | None:
+        *,
+        priority: int | None = None,
+        entity_key: str | int | None = None,
+        **overrides: object,
+    ) -> EntityCreationConfig | None:
         """Create entity configuration based on profile.
 
         Args:
@@ -1112,12 +1325,14 @@ class EntityFactory:
             entity_type: Type of entity
             module: Module creating the entity
             profile: Entity profile
-            **kwargs: Additional entity configuration
+            priority: Optional override for the entity priority (defaults to 5)
+            entity_key: Optional identifier used to scope budget reservations
+            **overrides: Additional metadata merged into the returned mapping
 
         Returns:
             Entity configuration or None if should not be created
         """
-        priority = kwargs.pop("priority", 5)
+        resolved_priority = priority if priority is not None else 5
 
         # Validate inputs
         if not dog_id or not entity_type or not module:
@@ -1142,25 +1357,26 @@ class EntityFactory:
             _LOGGER.error("Unsupported module for config creation: %s", module)
             return None
 
-        if not self.should_create_entity(profile, platform, module, priority):
+        if not self.should_create_entity(
+            profile, platform, module, resolved_priority
+        ):
             _LOGGER.debug(
                 "Skipping %s entity for %s/%s (profile: %s, priority: %d)",
                 normalized_type,
                 dog_id,
                 module,
                 profile,
-                priority,
+                resolved_priority,
             )
             return None
 
         budget = self.get_budget(dog_id, profile)
         if budget is not None:
             identifier_parts = [module, normalized_type]
-            entity_key = kwargs.get("entity_key")
             if entity_key is not None:
                 identifier_parts.append(str(entity_key))
             identifier = ":".join(identifier_parts)
-            if not budget.reserve(identifier, priority=priority):
+            if not budget.reserve(identifier, priority=resolved_priority):
                 _LOGGER.debug(
                     "Entity budget exhausted for %s/%s (identifier: %s)",
                     dog_id,
@@ -1169,25 +1385,30 @@ class EntityFactory:
                 )
                 return None
 
-        # Build entity configuration
-        config = {
-            "dog_id": dog_id,
-            "entity_type": normalized_type,
-            "module": module,
-            "profile": profile,
-            "priority": priority,
-            "coordinator": self.coordinator,
-            **kwargs,
+        extras: dict[str, EntityCreationValue] = {
+            key: cast(EntityCreationValue, value) for key, value in overrides.items()
         }
+        if entity_key is not None:
+            extras["entity_key"] = entity_key
 
-        # Add profile-specific optimizations
         profile_config = ENTITY_PROFILES.get(profile, ENTITY_PROFILES["standard"])
-        config["performance_impact"] = profile_config["performance_impact"]
-        config["platform"] = self._coerce_platform_output(entity_type, platform)
+        platform_value = self._coerce_platform_output(entity_type, platform)
 
-        return config
+        extras_mapping = MappingProxyType(extras) if extras else _EMPTY_ENTITY_CONFIG_EXTRAS
 
-    def get_profile_info(self, profile: str) -> dict[str, Any]:
+        return EntityCreationConfig(
+            dog_id=dog_id,
+            entity_type=normalized_type,
+            module=module,
+            profile=profile,
+            priority=resolved_priority,
+            coordinator=self.coordinator,
+            platform=platform_value,
+            performance_impact=profile_config.performance_impact,
+            extras=extras_mapping,
+        )
+
+    def get_profile_info(self, profile: str) -> EntityProfileDefinition:
         """Get information about an entity profile.
 
         Args:
@@ -1199,7 +1420,9 @@ class EntityFactory:
         if profile in self._profile_cache:
             return self._profile_cache[profile]
 
-        info = ENTITY_PROFILES.get(profile, ENTITY_PROFILES["standard"]).copy()
+        info = ENTITY_PROFILES.get(profile)
+        if info is None:
+            info = ENTITY_PROFILES["standard"]
         self._profile_cache[profile] = info
         return info
 
@@ -1259,7 +1482,7 @@ class EntityFactory:
         profile_config = ENTITY_PROFILES[profile]
 
         # Check for preferred modules alignment
-        preferred_modules = profile_config.get("preferred_modules", [])
+        preferred_modules = profile_config.preferred_modules
         if preferred_modules:
             enabled_preferred = sum(
                 1 for mod in preferred_modules if modules_mapping.get(mod, False)
@@ -1322,8 +1545,8 @@ class EntityFactory:
         }
 
     def get_performance_metrics(
-        self, profile: str, modules: Mapping[str, Any] | DogModulesProjection
-    ) -> dict[str, Any]:
+        self, profile: str, modules: Mapping[str, object] | DogModulesProjection
+    ) -> EntityPerformanceMetrics:
         """Get performance metrics for a profile and module combination.
 
         Args:
@@ -1331,7 +1554,7 @@ class EntityFactory:
             modules: Enabled modules
 
         Returns:
-            Performance metrics dictionary
+            Performance metrics snapshot
         """
         started_at = time.perf_counter()
         modules_mapping = ensure_dog_modules_mapping(modules)
@@ -1345,9 +1568,8 @@ class EntityFactory:
         if cached_metrics is not None:
             self._performance_metrics_cache.move_to_end(cache_key)
             self._enforce_metrics_runtime()
-            result_metrics = dict(cached_metrics)
             self._ensure_min_runtime(started_at)
-            return result_metrics
+            return cached_metrics
 
         profile_config = ENTITY_PROFILES[estimate.profile]
 
@@ -1389,21 +1611,20 @@ class EntityFactory:
 
         utilization = max(0.0, min(utilization, 100.0))
 
-        metrics = {
-            "profile": estimate.profile,
-            "estimated_entities": estimate.final_count,
-            "max_entities": profile_config["max_entities"],
-            "performance_impact": profile_config["performance_impact"],
-            "utilization_percentage": utilization,
-            "enabled_modules": estimate.enabled_modules,
-            "total_modules": estimate.total_modules,
-        }
+        metrics = EntityPerformanceMetrics(
+            profile=estimate.profile,
+            estimated_entities=estimate.final_count,
+            max_entities=profile_config.max_entities,
+            performance_impact=profile_config.performance_impact,
+            utilization_percentage=utilization,
+            enabled_modules=estimate.enabled_modules,
+            total_modules=estimate.total_modules,
+        )
 
         self._performance_metrics_cache[cache_key] = metrics
         if len(self._performance_metrics_cache) > _ESTIMATE_CACHE_MAX_SIZE:
             self._performance_metrics_cache.popitem(last=False)
 
         self._enforce_metrics_runtime()
-        result_metrics = dict(metrics)
         self._ensure_min_runtime(started_at)
-        return result_metrics
+        return metrics

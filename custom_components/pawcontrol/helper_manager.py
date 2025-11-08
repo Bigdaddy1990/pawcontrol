@@ -17,8 +17,9 @@ from __future__ import annotations
 import logging
 from collections import deque
 from collections.abc import Callable, Collection, Mapping, Sequence
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Final, cast
+from typing import Final, cast
 
 from homeassistant.components import (
     input_boolean,
@@ -46,11 +47,7 @@ from .const import (
 )
 from .coordinator_support import CacheMonitorRegistrar
 from .grooming_translations import translated_grooming_template
-from .service_guard import (
-    ServiceGuardResult,
-    ServiceGuardResultPayload,
-    normalise_guard_history,
-)
+from .service_guard import ServiceGuardResult, ServiceGuardResultPayload
 from .types import (
     DOG_ID_FIELD,
     DOG_NAME_FIELD,
@@ -58,7 +55,10 @@ from .types import (
     CacheDiagnosticsMetadata,
     CacheDiagnosticsSnapshot,
     DogConfigData,
+    DogHelperAssignments,
     DogModulesConfig,
+    HelperEntityMetadata,
+    HelperEntityMetadataMapping,
     HelperManagerGuardMetrics,
     HelperManagerSnapshot,
     HelperManagerStats,
@@ -72,6 +72,51 @@ from .utils import async_call_hass_service_if_available
 _LOGGER = logging.getLogger(__name__)
 
 _MAX_GUARD_RESULTS: Final[int] = 25
+
+
+@dataclass(slots=True)
+class _HelperGuardMetricsState:
+    """Mutable guard metrics accumulator for helper service calls."""
+
+    executed: int = 0
+    skipped: int = 0
+    reasons: dict[str, int] = field(default_factory=dict)
+    last_results: deque[ServiceGuardResultPayload] = field(
+        default_factory=lambda: deque[ServiceGuardResultPayload](
+            maxlen=_MAX_GUARD_RESULTS
+        )
+    )
+
+    def reset(self) -> None:
+        """Reset aggregated metrics to their initial state."""
+
+        self.executed = 0
+        self.skipped = 0
+        self.reasons.clear()
+        self.last_results.clear()
+
+    def record(self, result: ServiceGuardResult) -> None:
+        """Accumulate the outcome of a guarded service call."""
+
+        if result.executed:
+            self.executed += 1
+        else:
+            self.skipped += 1
+            reason_key = result.reason or "unknown"
+            self.reasons[reason_key] = self.reasons.get(reason_key, 0) + 1
+
+        self.last_results.append(result.to_mapping())
+
+    def snapshot(self) -> HelperManagerGuardMetrics:
+        """Return a JSON-compatible diagnostics payload."""
+
+        return {
+            "executed": self.executed,
+            "skipped": self.skipped,
+            "reasons": dict(self.reasons),
+            "last_results": list(self.last_results),
+        }
+
 
 # Helper entity ID templates
 HELPER_FEEDING_MEAL_TEMPLATE: Final[str] = (
@@ -115,7 +160,9 @@ DEFAULT_FEEDING_TIMES: Final[dict[str, str]] = {
 # Diagnostics helpers
 
 
-def _collate_entity_domains(entities: Mapping[str, dict[str, Any]]) -> dict[str, int]:
+def _collate_entity_domains(
+    entities: Mapping[str, HelperEntityMetadata]
+) -> dict[str, int]:
     """Return a histogram of entity domains managed by the helper manager."""
 
     domains: dict[str, int] = {}
@@ -141,12 +188,10 @@ class _HelperManagerCacheMonitor:
     ) -> tuple[HelperManagerStats, HelperManagerSnapshot, CacheDiagnosticsMetadata]:
         manager = self._manager
         created_helpers: Collection[str] = getattr(manager, "_created_helpers", set())
-        managed_entities: Mapping[str, dict[str, Any]] = getattr(
-            manager, "_managed_entities", {}
+        managed_entities = cast(
+            HelperEntityMetadataMapping, getattr(manager, "_managed_entities", {})
         )
-        dog_helpers: Mapping[str, Collection[str]] = getattr(
-            manager, "_dog_helpers", {}
-        )
+        dog_helpers = cast(DogHelperAssignments, getattr(manager, "_dog_helpers", {}))
         cleanup_listeners: Sequence[Callable[[], None]] = getattr(
             manager, "_cleanup_listeners", []
         )
@@ -170,10 +215,7 @@ class _HelperManagerCacheMonitor:
             "entity_domains": domains,
         }
 
-        raw_guard_metrics = getattr(manager, "guard_metrics", None)
-        guard_metrics: HelperManagerGuardMetrics | None = None
-        if isinstance(raw_guard_metrics, Mapping):
-            guard_metrics = cast(HelperManagerGuardMetrics, raw_guard_metrics)
+        guard_metrics = manager.guard_metrics
 
         diagnostics: CacheDiagnosticsMetadata = {
             "per_dog_helpers": per_dog,
@@ -184,15 +226,21 @@ class _HelperManagerCacheMonitor:
             ),
         }
 
-        if guard_metrics is not None:
-            diagnostics["service_guard_metrics"] = guard_metrics
+        diagnostics["service_guard_metrics"] = guard_metrics
 
         return stats, snapshot, diagnostics
 
     def coordinator_snapshot(self) -> CacheDiagnosticsSnapshot:
         stats, snapshot, diagnostics = self._build_payload()
-        stats_payload = cast(JSONMutableMapping, dict(stats))
-        snapshot_payload = cast(JSONMutableMapping, dict(snapshot))
+        stats_payload: JSONMutableMapping = {
+            "helpers": stats["helpers"],
+            "dogs": stats["dogs"],
+            "managed_entities": stats["managed_entities"],
+        }
+        snapshot_payload: JSONMutableMapping = {
+            "per_dog": dict(snapshot["per_dog"]),
+            "entity_domains": dict(snapshot["entity_domains"]),
+        }
         return CacheDiagnosticsSnapshot(
             stats=stats_payload,
             snapshot=snapshot_payload,
@@ -201,7 +249,12 @@ class _HelperManagerCacheMonitor:
 
     def get_stats(self) -> JSONMutableMapping:
         stats, _snapshot, _diagnostics = self._build_payload()
-        return cast(JSONMutableMapping, dict(stats))
+        stats_payload: JSONMutableMapping = {
+            "helpers": stats["helpers"],
+            "dogs": stats["dogs"],
+            "managed_entities": stats["managed_entities"],
+        }
+        return stats_payload
 
     def get_diagnostics(self) -> CacheDiagnosticsMetadata:
         _stats, _snapshot, diagnostics = self._build_payload()
@@ -224,69 +277,26 @@ class PawControlHelperManager:
         self._cleanup_listeners: list[Callable[[], None]] = []
 
         # Track entities that were created by this manager
-        self._managed_entities: dict[str, dict[str, Any]] = {}
-        self._dog_helpers: dict[str, list[str]] = {}
+        self._managed_entities: HelperEntityMetadataMapping = {}
+        self._dog_helpers: DogHelperAssignments = {}
         self._daily_reset_configured = False
-        self._guard_metrics: dict[str, Any] = {}
-        self._reset_guard_metrics()
+        self._guard_metrics = _HelperGuardMetricsState()
 
     def _reset_guard_metrics(self) -> None:
         """Reset aggregated guard telemetry for helper service calls."""
 
-        self._guard_metrics = {
-            "executed": 0,
-            "skipped": 0,
-            "reasons": {},
-            "last_results": deque[ServiceGuardResultPayload](maxlen=_MAX_GUARD_RESULTS),
-        }
+        self._guard_metrics.reset()
 
     def _record_guard_result(self, result: ServiceGuardResult) -> None:
         """Store guard telemetry for diagnostics and cache exports."""
 
-        metrics = self._guard_metrics
-        if result.executed:
-            metrics["executed"] = int(metrics.get("executed", 0)) + 1
-        else:
-            metrics["skipped"] = int(metrics.get("skipped", 0)) + 1
-            reasons = metrics.setdefault("reasons", {})
-            reason_key = result.reason or "unknown"
-            reasons[reason_key] = int(reasons.get(reason_key, 0)) + 1
-
-        last_results = metrics.get("last_results")
-        if isinstance(last_results, deque):
-            queue: deque[ServiceGuardResultPayload] = last_results
-        else:
-            queue = deque[ServiceGuardResultPayload](maxlen=_MAX_GUARD_RESULTS)
-            queue.extend(normalise_guard_history(last_results or []))
-            metrics["last_results"] = queue
-
-        queue.append(result.to_mapping())
+        self._guard_metrics.record(result)
 
     @property
     def guard_metrics(self) -> HelperManagerGuardMetrics:
         """Return a copy of aggregated guard telemetry."""
 
-        last_results = self._guard_metrics.get("last_results")
-        if isinstance(last_results, deque):
-            results_list = list(last_results)
-        else:
-            results_list = normalise_guard_history(last_results or [])
-
-        raw_reasons = self._guard_metrics.get("reasons", {})
-        reasons: dict[str, int] = {}
-        if isinstance(raw_reasons, Mapping):
-            reasons = {
-                str(key): int(value)
-                for key, value in raw_reasons.items()
-                if isinstance(key, str)
-            }
-
-        return {
-            "executed": int(self._guard_metrics.get("executed", 0)),
-            "skipped": int(self._guard_metrics.get("skipped", 0)),
-            "reasons": reasons,
-            "last_results": normalise_guard_history(results_list),
-        }
+        return self._guard_metrics.snapshot()
 
     async def async_initialize(self) -> None:
         """Reset internal state prior to creating helpers."""
@@ -320,12 +330,12 @@ class PawControlHelperManager:
         registrar.register_cache_monitor(f"{prefix}_cache", monitor)
 
     @staticmethod
-    def _normalize_dogs_config(dogs: Any) -> list[DogConfigData]:
+    def _normalize_dogs_config(dogs: object) -> list[DogConfigData]:
         """Convert raw config entry dog data into typed dictionaries."""
 
         normalized: list[DogConfigData] = []
 
-        def _append(candidate: Mapping[str, Any]) -> None:
+        def _append(candidate: Mapping[str, object]) -> None:
             typed = ensure_dog_config_data(candidate)
             if typed is not None:
                 normalized.append(typed)
@@ -334,29 +344,35 @@ class PawControlHelperManager:
             for dog_id, dog_config in dogs.items():
                 if not isinstance(dog_config, Mapping):
                     continue
-                dog_dict: dict[str, Any] = dict(dog_config)
-                dog_dict.setdefault(DOG_ID_FIELD, str(dog_id))
-                if not isinstance(dog_dict.get(DOG_NAME_FIELD), str):
-                    dog_dict[DOG_NAME_FIELD] = cast(str, dog_dict[DOG_ID_FIELD])
-                _append(dog_dict)
+                mapping_candidate: dict[str, object] = {
+                    str(key): value for key, value in dog_config.items() if isinstance(key, str)
+                }
+                mapping_candidate.setdefault(DOG_ID_FIELD, str(dog_id))
+                if not isinstance(mapping_candidate.get(DOG_NAME_FIELD), str):
+                    mapping_candidate[DOG_NAME_FIELD] = cast(
+                        str, mapping_candidate[DOG_ID_FIELD]
+                    )
+                _append(mapping_candidate)
             return normalized
 
         if isinstance(dogs, Sequence) and not isinstance(dogs, str | bytes):
             for dog_config in dogs:
                 if not isinstance(dog_config, Mapping):
                     continue
-                dog_dict = dict(dog_config)
-                dog_id = dog_dict.get(DOG_ID_FIELD)
+                sequence_candidate: dict[str, object] = {
+                    str(key): value for key, value in dog_config.items() if isinstance(key, str)
+                }
+                dog_id = sequence_candidate.get(DOG_ID_FIELD)
                 if not isinstance(dog_id, str) or not dog_id:
                     continue
-                if not isinstance(dog_dict.get(DOG_NAME_FIELD), str):
-                    dog_dict[DOG_NAME_FIELD] = dog_id
-                _append(dog_dict)
+                if not isinstance(sequence_candidate.get(DOG_NAME_FIELD), str):
+                    sequence_candidate[DOG_NAME_FIELD] = dog_id
+                _append(sequence_candidate)
 
         return normalized
 
     @staticmethod
-    def _normalize_enabled_modules(modules: Any) -> frozenset[str]:
+    def _normalize_enabled_modules(modules: object) -> frozenset[str]:
         """Return a normalized set of enabled module identifiers."""
 
         normalized: set[str] = set()
@@ -679,12 +695,13 @@ class PawControlHelperManager:
                 return
 
             self._created_helpers.add(entity_id)
-            self._managed_entities[entity_id] = {
+            metadata: HelperEntityMetadata = {
                 "domain": input_boolean.DOMAIN,
                 "name": name,
                 "icon": icon,
                 "initial": initial,
             }
+            self._managed_entities[entity_id] = metadata
 
             _LOGGER.debug("Created input_boolean helper: %s", entity_id)
 
@@ -742,13 +759,15 @@ class PawControlHelperManager:
                 return
 
             self._created_helpers.add(entity_id)
-            self._managed_entities[entity_id] = {
+            metadata: HelperEntityMetadata = {
                 "domain": input_datetime.DOMAIN,
                 "name": name,
                 "has_date": has_date,
                 "has_time": has_time,
-                "initial": initial,
             }
+            if initial is not None:
+                metadata["initial"] = initial
+            self._managed_entities[entity_id] = metadata
 
             _LOGGER.debug("Created input_datetime helper: %s", entity_id)
 
@@ -820,17 +839,21 @@ class PawControlHelperManager:
                 return
 
             self._created_helpers.add(entity_id)
-            self._managed_entities[entity_id] = {
+            metadata: HelperEntityMetadata = {
                 "domain": input_number.DOMAIN,
                 "name": name,
                 "min": min,
                 "max": max,
                 "step": step,
                 "mode": mode,
-                "unit_of_measurement": unit_of_measurement,
-                "icon": icon,
-                "initial": initial,
             }
+            if unit_of_measurement is not None:
+                metadata["unit_of_measurement"] = unit_of_measurement
+            if icon is not None:
+                metadata["icon"] = icon
+            if initial is not None:
+                metadata["initial"] = initial
+            self._managed_entities[entity_id] = metadata
 
             _LOGGER.debug("Created input_number helper: %s", entity_id)
 
@@ -889,13 +912,16 @@ class PawControlHelperManager:
                 return
 
             self._created_helpers.add(entity_id)
-            self._managed_entities[entity_id] = {
+            metadata: HelperEntityMetadata = {
                 "domain": input_select.DOMAIN,
                 "name": name,
                 "options": options,
-                "initial": initial,
-                "icon": icon,
             }
+            if initial is not None:
+                metadata["initial"] = initial
+            if icon is not None:
+                metadata["icon"] = icon
+            self._managed_entities[entity_id] = metadata
 
             _LOGGER.debug("Created input_select helper: %s", entity_id)
 
@@ -989,7 +1015,7 @@ class PawControlHelperManager:
             _LOGGER.error("Failed to reset feeding toggles: %s", err)
 
     async def async_add_dog_helpers(
-        self, dog_id: str, dog_config: Mapping[str, Any]
+        self, dog_id: str, dog_config: Mapping[str, object]
     ) -> None:
         """Add helpers for a newly added dog.
 
@@ -997,13 +1023,18 @@ class PawControlHelperManager:
             dog_id: Unique identifier for the dog
             dog_config: Dog configuration dictionary
         """
-        dog_data_raw: dict[str, Any] = dict(dog_config)
-        dog_data_raw[DOG_ID_FIELD] = dog_id
-        dog_name_value = dog_data_raw.get(DOG_NAME_FIELD)
+        dog_data_payload: dict[str, object] = {
+            str(key): value for key, value in dog_config.items() if isinstance(key, str)
+        }
+        dog_data_payload[DOG_ID_FIELD] = dog_id
+        dog_name_value = dog_data_payload.get(DOG_NAME_FIELD)
         if not isinstance(dog_name_value, str) or not dog_name_value:
-            dog_data_raw[DOG_NAME_FIELD] = dog_id
+            dog_data_payload[DOG_NAME_FIELD] = dog_id
 
-        dog_data = cast(DogConfigData, dog_data_raw)
+        dog_data = ensure_dog_config_data(dog_data_payload)
+        if dog_data is None:
+            _LOGGER.debug("Skipping helper creation for invalid dog config: %s", dog_id)
+            return
 
         modules_option = (
             self._entry.options.get(CONF_MODULES)
@@ -1057,7 +1088,7 @@ class PawControlHelperManager:
         _LOGGER.info("Removed %d helpers for dog: %s", removed_count, dog_id)
 
     async def async_update_dog_helpers(
-        self, dog_id: str, dog_config: Mapping[str, Any]
+        self, dog_id: str, dog_config: Mapping[str, object]
     ) -> None:
         """Update helpers when dog configuration changes.
 
@@ -1141,9 +1172,9 @@ class PawControlHelperManager:
         return len(self._created_helpers)
 
     @property
-    def managed_entities(self) -> dict[str, dict[str, Any]]:
+    def managed_entities(self) -> HelperEntityMetadataMapping:
         """Return information about managed entities."""
-        return self._managed_entities.copy()
+        return dict(self._managed_entities)
 
     async def async_cleanup(self) -> None:
         """Cleanup helper manager resources."""

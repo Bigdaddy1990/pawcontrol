@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
@@ -49,6 +50,46 @@ MAX_GARDEN_SESSION_DURATION = 7200  # 2 hours
 POOP_CONFIRMATION_TIMEOUT = 300  # 5 minutes
 
 
+def _parse_datetime_or_now(value: str | None) -> datetime:
+    """Return a parsed datetime or UTC now if parsing fails."""
+
+    if not value:
+        return dt_util.utcnow()
+    parsed = dt_util.parse_datetime(value)
+    return parsed or dt_util.utcnow()
+
+
+def _parse_datetime_or_none(value: str | None) -> datetime | None:
+    """Return a parsed datetime or ``None`` when parsing fails."""
+
+    if not value:
+        return None
+    parsed = dt_util.parse_datetime(value)
+    return parsed or None
+
+
+def _stats_from_payload(payload: GardenStatsPayload) -> GardenStats:
+    """Convert persisted statistics into a :class:`GardenStats` instance."""
+
+    favorite_activities = cast(
+        list[GardenFavoriteActivity], payload.get("favorite_activities", [])
+    )
+    weekly_summary = cast(
+        GardenWeeklySummary, payload.get("weekly_summary", {}) or {}
+    )
+    return GardenStats(
+        total_sessions=payload.get("total_sessions", 0),
+        total_time_minutes=payload.get("total_time_minutes", 0.0),
+        total_poop_count=payload.get("total_poop_count", 0),
+        average_session_duration=payload.get("average_session_duration", 0.0),
+        most_active_time_of_day=payload.get("most_active_time_of_day"),
+        favorite_activities=favorite_activities,
+        total_activities=payload.get("total_activities", 0),
+        weekly_summary=weekly_summary,
+        last_garden_visit=_parse_datetime_or_none(payload.get("last_garden_visit")),
+    )
+
+
 class GardenActivityType(Enum):
     """Types of garden activities."""
 
@@ -69,6 +110,87 @@ class GardenSessionStatus(Enum):
     CANCELLED = "cancelled"
 
 
+type GardenActivityTypeSlug = Literal[
+    "general", "poop", "play", "sniffing", "digging", "resting"
+]
+
+
+type GardenSessionStatusSlug = Literal["active", "completed", "timeout", "cancelled"]
+
+
+class GardenActivityPayload(TypedDict):
+    """Serialized representation of a :class:`GardenActivity`."""
+
+    activity_type: GardenActivityTypeSlug
+    timestamp: str
+    duration_seconds: int | None
+    location: str | None
+    notes: str | None
+    confirmed: bool
+
+
+class GardenActivityInputPayload(TypedDict, total=False):
+    """Activity payload accepted when ending a garden session."""
+
+    type: GardenActivityTypeSlug
+    timestamp: str
+    duration_seconds: int
+    location: str
+    notes: str
+    confirmed: bool
+
+
+class GardenSessionPayload(TypedDict):
+    """Serialized representation of a :class:`GardenSession`."""
+
+    session_id: str
+    dog_id: str
+    dog_name: str
+    start_time: str
+    end_time: str | None
+    status: GardenSessionStatusSlug
+    activities: list[GardenActivityPayload]
+    total_duration_seconds: int
+    poop_count: int
+    weather_conditions: str | None
+    temperature: float | None
+    notes: str | None
+
+
+class GardenStatsPayload(TypedDict, total=False):
+    """Serialized statistics payload tracked per dog."""
+
+    total_sessions: int
+    total_time_minutes: float
+    total_poop_count: int
+    average_session_duration: float
+    most_active_time_of_day: str | None
+    favorite_activities: list[GardenFavoriteActivity]
+    total_activities: int
+    weekly_summary: GardenWeeklySummary
+    last_garden_visit: str | None
+
+
+class GardenStorageData(TypedDict, total=False):
+    """Structured payload persisted by :class:`GardenManager`."""
+
+    sessions: list[GardenSessionPayload]
+    stats: dict[str, GardenStatsPayload]
+    last_updated: str
+
+
+class GardenManagerConfig(TypedDict, total=False):
+    """Configuration overrides for :class:`GardenManager`."""
+
+    session_timeout: int
+    auto_poop_detection: bool
+    confirmation_required: bool
+
+
+type GardenSessionHistory = list[GardenSessionPayload]
+type GardenStatsMapping = dict[str, GardenStatsPayload]
+
+
 @dataclass
 class GardenActivity:
     """Represents a single garden activity within a session."""
@@ -80,23 +202,25 @@ class GardenActivity:
     notes: str | None = None
     confirmed: bool = False
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> GardenActivityPayload:
         """Convert to dictionary for storage."""
-        return {
-            "activity_type": self.activity_type.value,
-            "timestamp": self.timestamp.isoformat(),
-            "duration_seconds": self.duration_seconds,
-            "location": self.location,
-            "notes": self.notes,
-            "confirmed": self.confirmed,
-        }
+
+        return GardenActivityPayload(
+            activity_type=self.activity_type.value,
+            timestamp=self.timestamp.isoformat(),
+            duration_seconds=self.duration_seconds,
+            location=self.location,
+            notes=self.notes,
+            confirmed=self.confirmed,
+        )
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> GardenActivity:
+    def from_dict(cls, data: GardenActivityPayload) -> GardenActivity:
         """Create from dictionary data."""
+
         return cls(
             activity_type=GardenActivityType(data["activity_type"]),
-            timestamp=dt_util.parse_datetime(data["timestamp"]) or dt_util.utcnow(),
+            timestamp=_parse_datetime_or_now(data["timestamp"]),
             duration_seconds=data.get("duration_seconds"),
             location=data.get("location"),
             notes=data.get("notes"),
@@ -144,34 +268,34 @@ class GardenSession:
             )
         return self.total_duration_seconds
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> GardenSessionPayload:
         """Convert to dictionary for storage."""
-        return {
-            "session_id": self.session_id,
-            "dog_id": self.dog_id,
-            "dog_name": self.dog_name,
-            "start_time": self.start_time.isoformat(),
-            "end_time": self.end_time.isoformat() if self.end_time else None,
-            "status": self.status.value,
-            "activities": [activity.to_dict() for activity in self.activities],
-            "total_duration_seconds": self.total_duration_seconds,
-            "poop_count": self.poop_count,
-            "weather_conditions": self.weather_conditions,
-            "temperature": self.temperature,
-            "notes": self.notes,
-        }
+
+        return GardenSessionPayload(
+            session_id=self.session_id,
+            dog_id=self.dog_id,
+            dog_name=self.dog_name,
+            start_time=self.start_time.isoformat(),
+            end_time=self.end_time.isoformat() if self.end_time else None,
+            status=self.status.value,
+            activities=[activity.to_dict() for activity in self.activities],
+            total_duration_seconds=self.total_duration_seconds,
+            poop_count=self.poop_count,
+            weather_conditions=self.weather_conditions,
+            temperature=self.temperature,
+            notes=self.notes,
+        )
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> GardenSession:
+    def from_dict(cls, data: GardenSessionPayload) -> GardenSession:
         """Create from dictionary data."""
+
         session = cls(
             session_id=data["session_id"],
             dog_id=data["dog_id"],
             dog_name=data["dog_name"],
-            start_time=dt_util.parse_datetime(data["start_time"]) or dt_util.utcnow(),
-            end_time=dt_util.parse_datetime(data["end_time"])
-            if data.get("end_time")
-            else None,
+            start_time=_parse_datetime_or_now(data["start_time"]),
+            end_time=(_parse_datetime_or_none(data.get("end_time"))),
             status=GardenSessionStatus(data["status"]),
             total_duration_seconds=data["total_duration_seconds"],
             poop_count=data["poop_count"],
@@ -234,7 +358,9 @@ class GardenManager:
         self.entry_id = entry_id
 
         # Storage for garden data
-        self._store = Store(hass, STORAGE_VERSION, f"{DOMAIN}_{entry_id}_garden")
+        self._store: Store[GardenStorageData] = Store(
+            hass, STORAGE_VERSION, f"{DOMAIN}_{entry_id}_garden"
+        )
 
         # Runtime state
         self._active_sessions: dict[str, GardenSession] = {}
@@ -260,7 +386,7 @@ class GardenManager:
         dogs: list[str],
         notification_manager: Any | None = None,
         door_sensor_manager: Any | None = None,
-        config: dict[str, Any] | None = None,
+        config: GardenManagerConfig | None = None,
     ) -> None:
         """Initialize garden manager with dependencies.
 
@@ -301,57 +427,62 @@ class GardenManager:
     async def _load_stored_data(self) -> None:
         """Load garden data from storage."""
         try:
-            stored_data = await self._store.async_load() or {}
-
-            # Load session history
-            session_data = stored_data.get("sessions", [])
-            for session_dict in session_data[-100:]:  # Keep last 100 sessions
-                try:
-                    session = GardenSession.from_dict(session_dict)
-                    self._session_history.append(session)
-                except Exception as err:
-                    _LOGGER.warning("Failed to load garden session: %s", err)
-
-            # Load dog statistics
-            stats_data = stored_data.get("stats", {})
-            for dog_id, stats_dict in stats_data.items():
-                try:
-                    self._dog_stats[dog_id] = GardenStats(**stats_dict)
-                except Exception as err:
-                    _LOGGER.warning(
-                        "Failed to load garden stats for %s: %s", dog_id, err
-                    )
-
-            _LOGGER.debug(
-                "Loaded %d garden sessions and stats for %d dogs",
-                len(self._session_history),
-                len(self._dog_stats),
-            )
-
-        except Exception as err:
+            stored_data = await self._store.async_load()
+        except Exception as err:  # pragma: no cover - defensive
             _LOGGER.error("Failed to load garden data: %s", err)
+            return
+
+        if not stored_data:
+            return
+
+        # Load session history
+        session_data: GardenSessionHistory = stored_data.get("sessions", [])
+        for session_dict in session_data[-100:]:  # Keep last 100 sessions
+            try:
+                session = GardenSession.from_dict(session_dict)
+                self._session_history.append(session)
+            except Exception as err:  # pragma: no cover - defensive
+                _LOGGER.warning("Failed to load garden session: %s", err)
+
+        # Load dog statistics
+        stats_data: GardenStatsMapping = stored_data.get("stats", {})
+        for dog_id, stats_dict in stats_data.items():
+            try:
+                self._dog_stats[dog_id] = _stats_from_payload(stats_dict)
+            except Exception as err:  # pragma: no cover - defensive
+                _LOGGER.warning(
+                    "Failed to load garden stats for %s: %s", dog_id, err
+                )
+
+        _LOGGER.debug(
+            "Loaded %d garden sessions and stats for %d dogs",
+            len(self._session_history),
+            len(self._dog_stats),
+        )
 
     async def _save_data(self) -> None:
         """Save garden data to storage."""
         try:
-            data = {
+            data: GardenStorageData = {
                 "sessions": [
                     session.to_dict() for session in self._session_history[-100:]
                 ],
                 "stats": {
-                    dog_id: {
-                        "total_sessions": stats.total_sessions,
-                        "total_time_minutes": stats.total_time_minutes,
-                        "total_poop_count": stats.total_poop_count,
-                        "average_session_duration": stats.average_session_duration,
-                        "most_active_time_of_day": stats.most_active_time_of_day,
-                        "favorite_activities": stats.favorite_activities,
-                        "total_activities": stats.total_activities,
-                        "weekly_summary": stats.weekly_summary,
-                        "last_garden_visit": stats.last_garden_visit.isoformat()
-                        if stats.last_garden_visit
-                        else None,
-                    }
+                    dog_id: GardenStatsPayload(
+                        total_sessions=stats.total_sessions,
+                        total_time_minutes=stats.total_time_minutes,
+                        total_poop_count=stats.total_poop_count,
+                        average_session_duration=stats.average_session_duration,
+                        most_active_time_of_day=stats.most_active_time_of_day,
+                        favorite_activities=stats.favorite_activities,
+                        total_activities=stats.total_activities,
+                        weekly_summary=stats.weekly_summary,
+                        last_garden_visit=(
+                            stats.last_garden_visit.isoformat()
+                            if stats.last_garden_visit
+                            else None
+                        ),
+                    )
                     for dog_id, stats in self._dog_stats.items()
                 },
                 "last_updated": dt_util.utcnow().isoformat(),
@@ -359,7 +490,7 @@ class GardenManager:
 
             await self._store.async_save(data)
 
-        except Exception as err:
+        except Exception as err:  # pragma: no cover - defensive
             _LOGGER.error("Failed to save garden data: %s", err)
 
     async def _start_background_tasks(self) -> None:
@@ -472,7 +603,7 @@ class GardenManager:
         self,
         dog_id: str,
         notes: str | None = None,
-        activities: list[dict[str, Any]] | None = None,
+        activities: Sequence[GardenActivityInputPayload] | None = None,
     ) -> GardenSession | None:
         """End the active garden session for a dog.
 
@@ -499,12 +630,14 @@ class GardenManager:
         if activities:
             for activity_data in activities:
                 try:
+                    activity_type = GardenActivityType(
+                        activity_data.get("type", GardenActivityType.GENERAL.value)
+                    )
                     activity = GardenActivity(
-                        activity_type=GardenActivityType(
-                            activity_data.get("type", "general")
+                        activity_type=activity_type,
+                        timestamp=_parse_datetime_or_now(
+                            activity_data.get("timestamp")
                         ),
-                        timestamp=dt_util.parse_datetime(activity_data.get("timestamp"))
-                        or dt_util.utcnow(),
                         duration_seconds=activity_data.get("duration_seconds"),
                         location=activity_data.get("location"),
                         notes=activity_data.get("notes"),
@@ -982,8 +1115,8 @@ class GardenManager:
         """Return True if a poop confirmation is pending for the dog."""
 
         return any(
-            confirmation.get("dog_id") == dog_id
-            and confirmation.get("type") == "poop_confirmation"
+            confirmation["dog_id"] == dog_id
+            and confirmation["type"] == "poop_confirmation"
             for confirmation in self._pending_confirmations.values()
         )
 

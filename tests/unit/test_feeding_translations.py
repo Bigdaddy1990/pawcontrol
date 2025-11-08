@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from collections import UserString
-from collections.abc import Callable, Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from itertools import count
 from pathlib import Path
+from typing import cast
 
 from custom_components.pawcontrol.feeding_translations import (
     _MAX_ISSUES,
@@ -42,15 +43,16 @@ def test_normalise_sequence_supports_nested_iteration() -> None:
     """Snapshots should remain reusable even with nested iteration."""
 
     generator = (value for value in range(5))
-    snapshot = _normalise_sequence(generator)
+    snapshot: Sequence[object] | None = _normalise_sequence(generator)
     assert snapshot is not None
+    typed_snapshot = cast(Sequence[object], snapshot)
 
-    outer_iterator = iter(snapshot)
+    outer_iterator = iter(typed_snapshot)
     first_item = next(outer_iterator)
     assert first_item == 0
 
     # Re-iterate while the original iterator is still active.
-    replayed = list(snapshot)
+    replayed = list(typed_snapshot)
     assert replayed == [0, 1, 2, 3, 4]
 
     remaining = list(outer_iterator)
@@ -61,10 +63,11 @@ def test_normalise_sequence_handles_parallel_iteration() -> None:
     """Multiple iterators should be able to advance in lockstep."""
 
     generator = (value for value in range(4))
-    snapshot = _normalise_sequence(generator)
+    snapshot: Sequence[object] | None = _normalise_sequence(generator)
     assert snapshot is not None
+    typed_snapshot = cast(Sequence[object], snapshot)
 
-    paired = list(zip(snapshot, snapshot, strict=False))
+    paired = list(zip(typed_snapshot, typed_snapshot, strict=False))
     assert paired == [(0, 0), (1, 1), (2, 2), (3, 3)]
 
 
@@ -79,19 +82,20 @@ def test_normalise_sequence_preserves_bounded_snapshot_identity() -> None:
             consumed += 1
             yield index
 
-    snapshot = _normalise_sequence(_source())
+    snapshot: Sequence[int] | None = _normalise_sequence(_source())
     assert snapshot is not None
+    typed_snapshot = cast(Sequence[int], snapshot)
     assert consumed == 0
 
-    reused = _normalise_sequence(snapshot)
-    assert reused is snapshot
+    reused: Sequence[int] | None = _normalise_sequence(typed_snapshot)
+    assert reused is typed_snapshot
     assert consumed == 0
 
-    first_pass = list(snapshot)
+    first_pass = list(typed_snapshot)
     assert first_pass == list(range(_SEQUENCE_SCAN_LIMIT))
     assert consumed == _SEQUENCE_SCAN_LIMIT
 
-    second_pass = list(snapshot)
+    second_pass = list(typed_snapshot)
     assert second_pass == first_pass
     assert consumed == _SEQUENCE_SCAN_LIMIT
 
@@ -132,6 +136,7 @@ def test_build_notification_includes_translated_headers() -> None:
     title_en, message_en = build_feeding_compliance_notification(
         "en", display_name="Buddy", compliance=compliance
     )
+    assert message_en is not None
     assert "Missed meals:" in message_en
     assert "Next steps:" in message_en
     assert "Buddy" in title_en
@@ -139,6 +144,7 @@ def test_build_notification_includes_translated_headers() -> None:
     title_de, message_de = build_feeding_compliance_notification(
         "de", display_name="Buddy", compliance=compliance
     )
+    assert message_de is not None
     assert "Verpasste Mahlzeiten:" in message_de
     assert "Nächste Schritte:" in message_de
     assert "Buddy" in title_de
@@ -156,6 +162,7 @@ def test_build_notification_handles_no_data() -> None:
         "en", display_name="Buddy", compliance=compliance
     )
     assert "Feeding telemetry missing" in title
+    assert message is not None
     assert "No telemetry available" in message
 
 
@@ -236,7 +243,7 @@ def test_bounded_sequence_snapshot_supports_slices() -> None:
     """Bounded snapshots should support slicing semantics."""
 
     generator = (value for value in range(_SEQUENCE_SCAN_LIMIT + 3))
-    snapshot = _normalise_sequence(generator)
+    snapshot: Sequence[int] | None = _normalise_sequence(generator)
     assert snapshot is not None
 
     sliced = snapshot[1:4]
@@ -479,7 +486,9 @@ def test_build_summary_decodes_byte_recommendations() -> None:
     )
 
     assert summary["recommendations"] == ["Check feeder"]
-    assert "Check feeder" in summary["message"]
+    message = summary["message"]
+    assert message is not None
+    assert "Check feeder" in message
 
 
 def test_build_summary_decodes_scalar_byte_recommendations() -> None:
@@ -499,7 +508,9 @@ def test_build_summary_decodes_scalar_byte_recommendations() -> None:
     )
 
     assert summary["recommendations"] == ["Offer puzzle feeder"]
-    assert "Offer puzzle feeder" in summary["message"]
+    message = summary["message"]
+    assert message is not None
+    assert "Offer puzzle feeder" in message
 
 
 def test_build_summary_decodes_memoryview_recommendations() -> None:
@@ -519,7 +530,9 @@ def test_build_summary_decodes_memoryview_recommendations() -> None:
     )
 
     assert summary["recommendations"] == ["Check dispenser"]
-    assert "Check dispenser" in summary["message"]
+    message = summary["message"]
+    assert message is not None
+    assert "Check dispenser" in message
 
 
 def test_build_summary_handles_generator_recommendations() -> None:
@@ -539,7 +552,9 @@ def test_build_summary_handles_generator_recommendations() -> None:
     )
 
     assert summary["recommendations"] == ["Add lunchtime portion"]
-    assert "Add lunchtime portion" in summary["message"]
+    message = summary["message"]
+    assert message is not None
+    assert "Add lunchtime portion" in message
 
 
 def test_build_summary_extracts_mapping_recommendations() -> None:
@@ -559,7 +574,9 @@ def test_build_summary_extracts_mapping_recommendations() -> None:
     )
 
     assert summary["recommendations"] == ["Refill the kibble hopper"]
-    assert "Refill the kibble hopper" in summary["message"]
+    message = summary["message"]
+    assert message is not None
+    assert "Refill the kibble hopper" in message
 
 
 def test_build_summary_extracts_nested_mapping_recommendations() -> None:
@@ -581,7 +598,9 @@ def test_build_summary_extracts_nested_mapping_recommendations() -> None:
     )
 
     assert summary["recommendations"] == ["Warm meals during cold snaps"]
-    assert "Warm meals during cold snaps" in summary["message"]
+    message = summary["message"]
+    assert message is not None
+    assert "Warm meals during cold snaps" in message
 
 
 def test_build_summary_decodes_byte_issue_details() -> None:
@@ -606,7 +625,9 @@ def test_build_summary_decodes_byte_issue_details() -> None:
     )
 
     assert summary["issues"][0].endswith("Sensor unreachable")
-    assert "Sensor unreachable" in summary["message"]
+    message = summary["message"]
+    assert message is not None
+    assert "Sensor unreachable" in message
 
 
 def test_build_summary_decodes_memoryview_issue_details() -> None:
@@ -631,7 +652,9 @@ def test_build_summary_decodes_memoryview_issue_details() -> None:
     )
 
     assert summary["issues"][0].endswith("Scale offline")
-    assert "Scale offline" in summary["message"]
+    message = summary["message"]
+    assert message is not None
+    assert "Scale offline" in message
 
 
 def test_build_summary_accepts_mapping_issue() -> None:
@@ -654,7 +677,9 @@ def test_build_summary_accepts_mapping_issue() -> None:
     )
 
     assert summary["issues"] == ["2024-03-12: Late breakfast"]
-    assert "Late breakfast" in summary["message"]
+    message = summary["message"]
+    assert message is not None
+    assert "Late breakfast" in message
 
 
 def test_build_summary_handles_nested_issue_mapping() -> None:
@@ -679,7 +704,9 @@ def test_build_summary_handles_nested_issue_mapping() -> None:
     )
 
     assert summary["issues"] == ["2024-05-05: Skipped evening meal"]
-    assert "Skipped evening meal" in summary["message"]
+    message = summary["message"]
+    assert message is not None
+    assert "Skipped evening meal" in message
 
 
 def test_build_summary_accepts_mapping_missed_meal() -> None:
@@ -699,7 +726,9 @@ def test_build_summary_accepts_mapping_missed_meal() -> None:
     )
 
     assert summary["missed_meals"] == ["2024-04-11: 0/2 meals"]
-    assert "0/2 meals" in summary["message"]
+    message = summary["message"]
+    assert message is not None
+    assert "0/2 meals" in message
 
 
 def test_build_summary_returns_localised_sections() -> None:
@@ -724,7 +753,9 @@ def test_build_summary_returns_localised_sections() -> None:
     )
 
     assert summary["title"].startswith("🍽️ Feeding compliance alert")
-    assert summary["score_line"].startswith("Score: 75.0%")
+    score_line = summary["score_line"]
+    assert score_line is not None
+    assert score_line.startswith("Score: 75.0%")
     assert summary["missed_meals"][0].startswith("2024-05-01")
     assert summary["issues"][0].startswith("2024-05-02")
     assert summary["recommendations"] == ["Schedule a vet visit"]
@@ -734,7 +765,9 @@ def test_build_summary_returns_localised_sections() -> None:
     )
 
     assert summary_de["title"].startswith("🍽️ Fütterungs-Compliance-Warnung")
-    assert summary_de["score_line"].startswith("Punktzahl")
+    score_line_de = summary_de["score_line"]
+    assert score_line_de is not None
+    assert score_line_de.startswith("Punktzahl")
     assert summary_de["missed_meals"][0].endswith("Mahlzeiten")
 
 

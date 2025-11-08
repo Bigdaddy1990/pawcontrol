@@ -35,7 +35,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .entity import PawControlEntity
-from .entity_factory import EntityFactory
+from .entity_factory import EntityFactory, EntityProfileDefinition
 from .runtime_data import get_runtime_data
 from .types import (
     DOG_ID_FIELD,
@@ -714,16 +714,14 @@ def _log_setup_metrics(
     total_entities = len(all_entities)
     avg_entities_per_dog = total_entities / len(dogs) if dogs else 0
 
-    profile_info: dict[str, Any] | None = None
+    profile_info: EntityProfileDefinition | None = None
     if hasattr(entity_factory, "get_profile_info"):
         try:
             profile_info = entity_factory.get_profile_info(profile)
         except Exception:  # pragma: no cover - defensive for mock objects
             profile_info = None
 
-    max_entities = 0
-    if isinstance(profile_info, Mapping) and "max_entities" in profile_info:
-        max_entities = int(profile_info["max_entities"])
+    max_entities = profile_info.max_entities if profile_info is not None else 0
 
     max_possible = max_entities * len(dogs)
     efficiency = (

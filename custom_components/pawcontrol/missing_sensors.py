@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import contextlib
+from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, Protocol, cast
+from typing import Protocol, cast
 
 from homeassistant.components.sensor import SensorStateClass
 from homeassistant.const import UnitOfEnergy, UnitOfLength, UnitOfTime
@@ -13,12 +14,13 @@ from homeassistant.util import dt as dt_util
 from .coordinator import PawControlCoordinator
 from .sensor import AttributeDict, PawControlSensorBase, register_sensor
 from .types import (
+    DogConfigData,
     FeedingModuleTelemetry,
     HealthModulePayload,
     WalkModuleTelemetry,
     WalkSessionSnapshot,
 )
-from .utils import ensure_utc_datetime
+from .utils import DateTimeConvertible, ensure_utc_datetime
 
 __all__ = [
     "PawControlActivityLevelSensor",
@@ -40,7 +42,7 @@ type WalkHistory = list[WalkSessionSnapshot]
 class _ModuleDataProvider(Protocol):
     """Protocol describing objects that expose module data accessors."""
 
-    def _get_module_data(self, module: str) -> dict[str, Any] | None:
+    def _get_module_data(self, module: str) -> Mapping[str, object] | None:
         """Return coordinator data for the requested module."""
 
 
@@ -48,7 +50,7 @@ def _walk_payload(
     provider: _ModuleDataProvider,
 ) -> ModuleSnapshot[WalkModuleTelemetry]:
     module_data = provider._get_module_data("walk")
-    if module_data is None:
+    if module_data is None or not isinstance(module_data, Mapping):
         return None
     return cast(WalkModuleTelemetry, module_data)
 
@@ -57,7 +59,7 @@ def _health_payload(
     provider: _ModuleDataProvider,
 ) -> ModuleSnapshot[HealthModulePayload]:
     module_data = provider._get_module_data("health")
-    if module_data is None:
+    if module_data is None or not isinstance(module_data, Mapping):
         return None
     return cast(HealthModulePayload, module_data)
 
@@ -66,7 +68,7 @@ def _feeding_payload(
     provider: _ModuleDataProvider,
 ) -> ModuleSnapshot[FeedingModuleTelemetry]:
     module_data = provider._get_module_data("feeding")
-    if module_data is None:
+    if module_data is None or not isinstance(module_data, Mapping):
         return None
     return cast(FeedingModuleTelemetry, module_data)
 
@@ -77,13 +79,13 @@ def calculate_activity_level(
 ) -> str:
     """Determine the activity level based on walk telemetry and health inputs."""
 
-    if not walk_data and not health_data:
+    if walk_data is None and health_data is None:
         return "unknown"
 
     try:
-        walks_today = int(walk_data.get("walks_today", 0)) if walk_data else 0
+        walks_today = int(walk_data["walks_today"]) if walk_data else 0
         total_duration_today = (
-            float(walk_data.get("total_duration_today", 0.0)) if walk_data else 0.0
+            float(walk_data["total_duration_today"]) if walk_data else 0.0
         )
 
         if walks_today >= 3 and total_duration_today >= 90:
@@ -97,7 +99,11 @@ def calculate_activity_level(
         else:
             calculated_level = "very_low"
 
-        health_activity = health_data.get("activity_level") if health_data else None
+        health_activity: str | None = None
+        if health_data and "activity_level" in health_data:
+            candidate = health_data["activity_level"]
+            health_activity = candidate if isinstance(candidate, str) else None
+
         if health_activity:
             activity_levels = ["very_low", "low", "moderate", "high", "very_high"]
             health_index = (
@@ -120,14 +126,16 @@ def calculate_calories_burned_today(
 ) -> float:
     """Estimate calories burned today using walk telemetry and weight."""
 
-    if not walk_data and not health_data:
+    if walk_data is None and health_data is None:
         return 0.0
 
     try:
-        total_duration_raw = walk_data.get("total_duration_today") if walk_data else 0.0
-        total_distance_raw = walk_data.get("total_distance_today") if walk_data else 0.0
-        total_duration_minutes = float(total_duration_raw or 0.0)
-        total_distance_meters = float(total_distance_raw or 0.0)
+        total_duration_minutes = (
+            float(walk_data["total_duration_today"]) if walk_data else 0.0
+        )
+        total_distance_meters = (
+            float(walk_data["total_distance_today"]) if walk_data else 0.0
+        )
 
         calories_burned = 0.0
         if total_duration_minutes > 0:
@@ -135,8 +143,11 @@ def calculate_calories_burned_today(
         if total_distance_meters > 0:
             calories_burned += dog_weight_kg * (total_distance_meters / 100.0)
 
-        raw_activity = health_data.get("activity_level") if health_data else None
-        activity_level = raw_activity if isinstance(raw_activity, str) else "moderate"
+        raw_activity: str | None = None
+        if health_data and "activity_level" in health_data:
+            candidate = health_data["activity_level"]
+            raw_activity = candidate if isinstance(candidate, str) else None
+        activity_level = raw_activity or "moderate"
         multipliers = {
             "very_low": 0.7,
             "low": 0.85,
@@ -151,7 +162,7 @@ def calculate_calories_burned_today(
 
 
 def calculate_hours_since(
-    timestamp: Any,
+    timestamp: DateTimeConvertible | None,
     *,
     reference: datetime | None = None,
 ) -> float | None:
@@ -173,21 +184,23 @@ def derive_next_feeding_time(
 ) -> str | None:
     """Compute the next feeding time based on the configured schedule."""
 
-    if not feeding_data:
+    if feeding_data is None:
         return None
 
     try:
-        config = feeding_data.get("config") or {}
-        meals_per_day = int(config.get("meals_per_day", 2))
+        if "config" not in feeding_data:
+            return None
+        config = feeding_data["config"]
+        if "meals_per_day" not in config:
+            return None
+        meals_per_day = int(config["meals_per_day"])
         if meals_per_day <= 0:
             return None
 
         hours_between_meals = 24 / meals_per_day
-        last_feeding = feeding_data.get("last_feeding")
-        if not last_feeding:
+        if "last_feeding" not in feeding_data or feeding_data["last_feeding"] is None:
             return None
-
-        last_feeding_dt = ensure_utc_datetime(last_feeding)
+        last_feeding_dt = ensure_utc_datetime(feeding_data["last_feeding"])
         if last_feeding_dt is None:
             return None
 
@@ -230,22 +243,28 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
 
         if walk_data:
             with contextlib.suppress(TypeError, ValueError):
+                last_walk = cast(
+                    DateTimeConvertible | None, walk_data.get("last_walk")
+                )
                 attrs.update(
                     {
-                        "walks_today": int(walk_data.get("walks_today", 0)),
+                        "walks_today": int(
+                            cast(int, walk_data.get("walks_today", 0))
+                        ),
                         "total_walk_minutes_today": float(
-                            walk_data.get("total_duration_today", 0.0)
+                            cast(float, walk_data.get("total_duration_today", 0.0))
                         ),
-                        "last_walk_hours_ago": calculate_hours_since(
-                            walk_data.get("last_walk")
-                        ),
+                        "last_walk_hours_ago": calculate_hours_since(last_walk),
                     }
                 )
 
         if health_data:
-            attrs["health_activity_level"] = health_data.get("activity_level")
+            activity_level = cast(
+                str | None, health_data.get("activity_level")
+            )
+            attrs["health_activity_level"] = activity_level
             attrs["activity_source"] = (
-                "health_data" if health_data.get("activity_level") else "calculated"
+                "health_data" if activity_level else "calculated"
             )
 
         return attrs
@@ -274,15 +293,18 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
         self, health_data: ModuleSnapshot[HealthModulePayload]
     ) -> float:
         weight = 25.0
-        if health_data and (reported_weight := health_data.get("weight")) is not None:
-            with contextlib.suppress(TypeError, ValueError):
-                weight = float(reported_weight)
+        if health_data and "weight" in health_data:
+            reported_weight = health_data["weight"]
+            if reported_weight is not None:
+                with contextlib.suppress(TypeError, ValueError):
+                    weight = float(reported_weight)
 
         dog_data = self._get_dog_data()
-        if dog_data and isinstance(dog_data.get("dog_info"), dict):
-            dog_info = cast(dict[str, Any], dog_data["dog_info"])
-            with contextlib.suppress(TypeError, ValueError):
-                weight = float(dog_info.get("dog_weight", weight))
+        if dog_data and "dog_info" in dog_data:
+            dog_info = cast(DogConfigData, dog_data["dog_info"])
+            if "dog_weight" in dog_info and dog_info["dog_weight"] is not None:
+                with contextlib.suppress(TypeError, ValueError):
+                    weight = float(dog_info["dog_weight"])
         return weight
 
     @property
@@ -302,19 +324,17 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
         dog_weight = self._resolve_dog_weight(health_data)
 
         with contextlib.suppress(TypeError, ValueError):
-            walk_minutes_raw = (
-                walk_data.get("total_duration_today") if walk_data else 0.0
+            walk_minutes = (
+                float(walk_data["total_duration_today"]) if walk_data else 0.0
             )
-            walk_distance_raw = (
-                walk_data.get("total_distance_today") if walk_data else 0.0
+            walk_distance = (
+                float(walk_data["total_distance_today"]) if walk_data else 0.0
             )
-            walk_minutes = float(walk_minutes_raw or 0.0)
-            walk_distance = float(walk_distance_raw or 0.0)
-            activity_level = (
-                health_data.get("activity_level", "moderate")
-                if health_data
-                else "moderate"
-            )
+            activity_level = "moderate"
+            if health_data and "activity_level" in health_data:
+                candidate = health_data["activity_level"]
+                if isinstance(candidate, str):
+                    activity_level = candidate
             attrs.update(
                 {
                     "dog_weight_kg": dog_weight,
@@ -352,10 +372,13 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
     def native_value(self) -> float | None:
         """Return hours elapsed since the last recorded feeding."""
         feeding_data = _feeding_payload(self)
-        if not feeding_data:
+        if feeding_data is None:
             return None
 
-        hours_since = calculate_hours_since(feeding_data.get("last_feeding"))
+        last_feeding = cast(
+            DateTimeConvertible | None, feeding_data.get("last_feeding")
+        )
+        hours_since = calculate_hours_since(last_feeding)
         return round(hours_since, 1) if hours_since is not None else None
 
     @property
@@ -363,14 +386,20 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
         """Return contextual feeding metadata for diagnostics."""
         attrs: AttributeDict = dict(super().extra_state_attributes or {})
         feeding_data = _feeding_payload(self)
-        if not feeding_data:
+        if feeding_data is None:
             return attrs
 
         with contextlib.suppress(TypeError, ValueError):
+            last_feeding = cast(
+                DateTimeConvertible | None, feeding_data.get("last_feeding")
+            )
+            feedings_today = cast(
+                int, feeding_data.get("total_feedings_today", 0)
+            )
             attrs.update(
                 {
-                    "last_feeding_time": feeding_data.get("last_feeding"),
-                    "feedings_today": int(feeding_data.get("total_feedings_today", 0)),
+                    "last_feeding_time": last_feeding,
+                    "feedings_today": int(feedings_today),
                     "is_overdue": self._is_feeding_overdue(feeding_data),
                     "next_feeding_due": derive_next_feeding_time(feeding_data),
                 }
@@ -381,9 +410,11 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
     def _is_feeding_overdue(
         self, feeding_data: ModuleSnapshot[FeedingModuleTelemetry]
     ) -> bool:
-        hours_since = calculate_hours_since(
-            feeding_data.get("last_feeding") if feeding_data else None
+        last_feeding = cast(
+            DateTimeConvertible | None,
+            feeding_data.get("last_feeding") if feeding_data else None,
         )
+        hours_since = calculate_hours_since(last_feeding)
         if hours_since is None:
             return False
         return hours_since > 8.0
@@ -412,17 +443,23 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
     def native_value(self) -> float:
         """Return the lifetime walking distance expressed in kilometres."""
         walk_data = _walk_payload(self)
-        if not walk_data:
+        if walk_data is None:
             return 0.0
 
         try:
-            total_distance_meters = float(walk_data.get("total_distance_lifetime", 0.0))
-            if total_distance_meters == 0.0:
-                walks_history = cast(WalkHistory | None, walk_data.get("walks_history"))
+            total_distance_value = cast(
+                float | int | None,
+                walk_data.get("total_distance_lifetime", 0.0),
+            )
+            total_distance_meters = float(total_distance_value or 0.0)
+            if total_distance_meters == 0.0 and "walks_history" in walk_data:
+                walks_history = walk_data["walks_history"]
                 if walks_history:
                     for walk in walks_history:
                         with contextlib.suppress(TypeError, ValueError):
-                            distance_value = walk.get("distance")
+                            distance_value = cast(
+                                float | int | None, walk.get("distance")
+                            )
                             if isinstance(distance_value, int | float):
                                 total_distance_meters += float(distance_value)
             return round(total_distance_meters / 1000, 2)
@@ -434,12 +471,25 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
         """Return aggregated walk distance metrics for the dog."""
         attrs: AttributeDict = dict(super().extra_state_attributes or {})
         walk_data = _walk_payload(self)
-        if not walk_data:
+        if walk_data is None:
             return attrs
 
         with contextlib.suppress(TypeError, ValueError):
-            total_distance_m = float(walk_data.get("total_distance_lifetime") or 0.0)
-            total_walks = int(walk_data.get("total_walks_lifetime", 0))
+            total_distance_value = cast(
+                float | int | None,
+                walk_data.get("total_distance_lifetime", 0.0),
+            )
+            total_distance_m = float(total_distance_value or 0.0)
+            total_walks_value = cast(
+                int | float | None, walk_data.get("total_walks_lifetime", 0)
+            )
+            total_walks = int(total_walks_value or 0)
+            distance_this_week = cast(
+                float | int | None, walk_data.get("distance_this_week", 0.0)
+            )
+            distance_this_month = cast(
+                float | int | None, walk_data.get("distance_this_month", 0.0)
+            )
             attrs.update(
                 {
                     "total_walks": total_walks,
@@ -448,10 +498,10 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
                         (total_distance_m / 1000) / max(1, total_walks), 2
                     ),
                     "distance_this_week_km": round(
-                        float(walk_data.get("distance_this_week") or 0.0) / 1000, 2
+                        float(distance_this_week or 0.0) / 1000, 2
                     ),
                     "distance_this_month_km": round(
-                        float(walk_data.get("distance_this_month") or 0.0) / 1000, 2
+                        float(distance_this_month or 0.0) / 1000, 2
                     ),
                 }
             )
@@ -481,17 +531,19 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
     def native_value(self) -> int:
         """Return the total number of walks completed during the week."""
         walk_data = _walk_payload(self)
-        if not walk_data:
+        if walk_data is None:
             return 0
 
         try:
-            walks_this_week = int(walk_data.get("walks_this_week", 0))
+            walks_this_week = int(
+                cast(int, walk_data.get("walks_this_week", 0))
+            )
             if walks_this_week:
                 return walks_this_week
 
-            walks_history = cast(WalkHistory | None, walk_data.get("walks_history"))
-            if not walks_history:
+            if "walks_history" not in walk_data:
                 return walks_this_week
+            walks_history = walk_data["walks_history"]
 
             now = dt_util.utcnow()
             start_of_week = now - timedelta(days=now.weekday())
@@ -502,7 +554,9 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
                 walk_time_candidate = walk.get("timestamp")
                 if not walk_time_candidate:
                     walk_time_candidate = walk.get("end_time")
-                if not isinstance(walk_time_candidate, str | datetime | int | float):
+                if not isinstance(
+                    walk_time_candidate, str | datetime | int | float
+                ):
                     continue
                 walk_time = ensure_utc_datetime(walk_time_candidate)
                 if walk_time and walk_time >= start_of_week:
@@ -516,15 +570,17 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
         """Expose weekly walk statistics derived from coordinator payloads."""
         attrs: AttributeDict = dict(super().extra_state_attributes or {})
         walk_data = _walk_payload(self)
-        if not walk_data:
+        if walk_data is None:
             return attrs
 
         with contextlib.suppress(TypeError, ValueError):
-            walks_today = int(walk_data.get("walks_today", 0))
-            total_duration_raw = walk_data.get("total_duration_this_week") or 0.0
-            distance_week_raw = walk_data.get("distance_this_week") or 0.0
-            total_duration_this_week = float(total_duration_raw)
-            distance_this_week = float(distance_week_raw)
+            walks_today = int(cast(int, walk_data.get("walks_today", 0)))
+            total_duration_this_week = float(
+                cast(float, walk_data.get("total_duration_this_week", 0.0))
+            )
+            distance_this_week = float(
+                cast(float, walk_data.get("distance_this_week", 0.0))
+            )
             now = dt_util.utcnow()
             days_this_week = now.weekday() + 1
             avg_walks_per_day = (self.native_value or 0) / max(1, days_this_week)

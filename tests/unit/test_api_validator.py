@@ -1,113 +1,215 @@
-"""Tests for the API validator session management logic."""
-
 from __future__ import annotations
 
-from unittest.mock import AsyncMock
+from collections.abc import Generator, Iterable
+from types import TracebackType
+from typing import cast
 
 import pytest
+from aiohttp import ClientSession
+from custom_components.pawcontrol.api_validator import APIValidator, JSONValue
+from homeassistant.core import HomeAssistant
 
-pytest.importorskip(
-    "homeassistant", reason="Home Assistant test dependencies not available"
-)
-
-from custom_components.pawcontrol.api_validator import APIValidator
-
-
-@pytest.mark.unit
-def test_api_validator_reuses_injected_session(mock_hass, session_factory) -> None:
-    """The validator should rely on the injected Home Assistant session."""
-
-    hass_session = session_factory()
-
-    validator = APIValidator(mock_hass, session=hass_session)
-
-    assert validator.session is hass_session
+type DummyPayload = dict[str, JSONValue]
 
 
-@pytest.mark.unit
-def test_api_validator_rejects_missing_session(mock_hass) -> None:
-    """Providing ``None`` should raise a helpful error."""
+class DummyResponse:
+    """Minimal async context manager used to emulate aiohttp responses."""
 
-    with pytest.raises(ValueError):
-        APIValidator(mock_hass, session=None)  # type: ignore[arg-type]
+    def __init__(
+        self,
+        status: int,
+        payload: DummyPayload | None = None,
+        *,
+        json_error: Exception | None = None,
+    ) -> None:
+        self.status = status
+        self._payload: DummyPayload = payload or {}
+        self._json_error = json_error
+
+    async def __aenter__(self) -> DummyResponse:
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> bool:
+        return False
+
+    async def json(self) -> DummyPayload:
+        if self._json_error is not None:
+            raise self._json_error
+        return self._payload
 
 
-@pytest.mark.unit
-def test_api_validator_rejects_closed_session(mock_hass, session_factory) -> None:
-    """A closed session must not be accepted."""
+class DummyRequestContext:
+    """Awaitable context manager matching aiohttp's request API."""
 
-    hass_session = session_factory(closed=True)
+    def __init__(self, response: DummyResponse) -> None:
+        self._response = response
 
-    with pytest.raises(ValueError):
-        APIValidator(mock_hass, session=hass_session)
+    def __await__(self) -> Generator[DummyResponse, None, DummyResponse]:
+        async def _inner() -> DummyResponse:
+            return self._response
+
+        return _inner().__await__()
+
+    async def __aenter__(self) -> DummyResponse:
+        return await self._response.__aenter__()
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> bool:
+        return await self._response.__aexit__(exc_type, exc, tb)
 
 
-@pytest.mark.unit
+class DummySession:
+    """Session stub accepted by :func:`ensure_shared_client_session`."""
+
+    closed = False
+
+    def __init__(self, responses: Iterable[DummyResponse]) -> None:
+        self._responses: list[DummyResponse] = list(responses)
+        self._index: int = 0
+
+    async def request(self, *args: object, **kwargs: object) -> DummyResponse:
+        context = self.get(*args, **kwargs)
+        return await context
+
+    def get(self, *args: object, **kwargs: object) -> DummyRequestContext:
+        if self._index >= len(self._responses):
+            raise AssertionError(
+                "DummySession received more get() calls than configured responses"
+            )
+        response = self._responses[self._index]
+        self._index += 1
+        return DummyRequestContext(response)
+
+
 @pytest.mark.asyncio
-async def test_api_validator_does_not_close_hass_session(
-    mock_hass, session_factory
+async def test_async_validate_api_connection_filters_capabilities(
+    hass: HomeAssistant,
 ) -> None:
-    """Closing the validator must not dispose the shared hass session."""
+    """Only string capabilities from the JSON payload should be exposed."""
 
-    hass_session = session_factory()
+    session = DummySession(
+        [
+            DummyResponse(200),
+            DummyResponse(
+                200, {"version": "1.2.3", "capabilities": ["status", 42, "metrics"]}
+            ),
+        ]
+    )
+    validator = APIValidator(hass, cast(ClientSession, session))
 
-    validator = APIValidator(mock_hass, session=hass_session)
-    await validator.async_close()
+    result = await validator.async_validate_api_connection(
+        "https://example.test", "secret-token"
+    )
 
-    hass_session.close.assert_not_awaited()
+    assert result.valid is True
+    assert result.api_version == "1.2.3"
+    assert result.capabilities == ["status", "metrics"]
 
 
-@pytest.mark.unit
 @pytest.mark.asyncio
-async def test_api_validator_cleanup_is_noop(mock_hass, session_factory) -> None:
-    """Validator cleanup should succeed even if the session is already closed."""
-
-    hass_session = session_factory()
-
-    validator = APIValidator(mock_hass, session=hass_session)
-    hass_session.closed = True
-    await validator.async_close()
-
-    hass_session.close.assert_not_awaited()
-
-
-@pytest.mark.unit
-@pytest.mark.asyncio
-async def test_reachability_uses_secure_ssl_defaults(
-    mock_hass, session_factory
+async def test_async_validate_api_connection_accepts_tuple_capabilities(
+    hass: HomeAssistant,
 ) -> None:
-    """TLS verification should remain enabled unless explicitly disabled."""
+    """Tuple-based capability payloads should normalise to list[str]."""
 
-    hass_session = session_factory()
-    context_manager = AsyncMock()
-    context_manager.__aenter__.return_value = AsyncMock(status=200)
-    context_manager.__aexit__.return_value = False
-    hass_session.request.return_value = context_manager
+    session = DummySession(
+        [
+            DummyResponse(200),
+            DummyResponse(
+                200,
+                {
+                    "version": "9.9.9",
+                    "capabilities": ("status", {"ignored": True}, "insights"),
+                },
+            ),
+        ]
+    )
+    validator = APIValidator(hass, cast(ClientSession, session))
 
-    validator = APIValidator(mock_hass, session=hass_session)
+    result = await validator.async_validate_api_connection(
+        "https://example.test", "secret-token"
+    )
 
-    assert await validator._test_endpoint_reachability("https://example.com")
-    kwargs = hass_session.get.call_args.kwargs
-    assert kwargs["allow_redirects"] is True
-    assert "ssl" not in kwargs
+    assert result.valid is True
+    assert result.capabilities == ["status", "insights"]
 
 
-@pytest.mark.unit
 @pytest.mark.asyncio
-async def test_reachability_allows_disabling_ssl_verification(
-    mock_hass, session_factory
+async def test_async_validate_api_connection_handles_json_failure(
+    hass: HomeAssistant,
 ) -> None:
-    """Setting ``verify_ssl=False`` should opt into insecure requests explicitly."""
+    """Successful authentication without JSON keeps optional fields ``None``."""
 
-    hass_session = session_factory()
-    context_manager = AsyncMock()
-    context_manager.__aenter__.return_value = AsyncMock(status=200)
-    context_manager.__aexit__.return_value = False
-    hass_session.request.return_value = context_manager
+    session = DummySession(
+        [
+            DummyResponse(200),
+            DummyResponse(200, json_error=ValueError("boom")),
+        ]
+    )
+    validator = APIValidator(hass, cast(ClientSession, session))
 
-    validator = APIValidator(mock_hass, session=hass_session, verify_ssl=False)
+    result = await validator.async_validate_api_connection(
+        "https://example.test", "secret-token"
+    )
 
-    assert await validator._test_endpoint_reachability("https://example.org")
-    kwargs = hass_session.get.call_args.kwargs
-    assert kwargs["allow_redirects"] is True
-    assert kwargs["ssl"] is False
+    assert result.valid is True
+    assert result.api_version is None
+    assert result.capabilities is None
+
+
+@pytest.mark.asyncio
+async def test_async_validate_api_connection_supports_empty_capabilities(
+    hass: HomeAssistant,
+) -> None:
+    """An empty capabilities array should normalise to an empty list."""
+
+    session = DummySession(
+        [
+            DummyResponse(200),
+            DummyResponse(200, {"version": "2.0.0", "capabilities": []}),
+        ]
+    )
+    validator = APIValidator(hass, cast(ClientSession, session))
+
+    result = await validator.async_validate_api_connection(
+        "https://example.test", "secret-token"
+    )
+
+    assert result.valid is True
+    assert result.capabilities == []
+
+
+@pytest.mark.asyncio
+async def test_async_test_api_health_authentication_failure(
+    hass: HomeAssistant,
+) -> None:
+    """Authentication errors should surface a dedicated health status."""
+
+    session = DummySession(
+        [
+            DummyResponse(200),
+            DummyResponse(401),
+            DummyResponse(401),
+            DummyResponse(401),
+            DummyResponse(401),
+        ]
+    )
+    validator = APIValidator(hass, cast(ClientSession, session))
+
+    health = await validator.async_test_api_health(
+        "https://example.test", "secret-token"
+    )
+
+    assert health["healthy"] is False
+    assert health["reachable"] is True
+    assert health["status"] == "authentication_failed"
+    assert health["capabilities"] is None

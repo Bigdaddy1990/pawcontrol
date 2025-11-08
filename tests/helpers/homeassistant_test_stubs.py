@@ -1712,6 +1712,18 @@ def _install_helper_modules() -> None:
         manufacturer: str | None = None
         model: str | None = None
         name: str | None = None
+        name_by_user: str | None = None
+        hw_version: str | None = None
+        sw_version: str | None = None
+        configuration_url: str | None = None
+        area_id: str | None = None
+        via_device_id: str | None = None
+        connections: set[tuple[str, str]] = field(default_factory=set)
+
+    @dataclass
+    class DeviceRegistryEvent:
+        action: str
+        device_id: str
 
     @dataclass
     class DeviceInfo:
@@ -1754,9 +1766,20 @@ def _install_helper_modules() -> None:
             self._devices[device.id] = device
             return device
 
+        def async_listen(
+            self, callback: Callable[[DeviceRegistryEvent], None]
+        ) -> Callable[[], None]:
+            """Register a registry listener."""
+
+            def _remove() -> None:
+                return None
+
+            return _remove
+
     _device_registry = DeviceRegistry()
 
     device_registry_module.DeviceEntry = DeviceEntry
+    device_registry_module.DeviceRegistryEvent = DeviceRegistryEvent
     device_registry_module.DeviceInfo = DeviceInfo
     device_registry_module.DeviceRegistry = DeviceRegistry
     device_registry_module.async_get = lambda hass: _device_registry
@@ -1770,6 +1793,11 @@ def _install_helper_modules() -> None:
         unique_id: str
         platform: str
         device_id: str | None = None
+
+    @dataclass
+    class EntityRegistryEvent:
+        action: str
+        entity_id: str
 
     class EntityRegistry:
         def __init__(self) -> None:
@@ -1801,9 +1829,21 @@ def _install_helper_modules() -> None:
 
             return self._entities.get(entity_id)
 
+        def async_listen(
+            self, callback: Callable[[EntityRegistryEvent], None]
+        ) -> Callable[[], None]:
+            """Register an entity registry listener."""
+
+            def _remove() -> None:
+                return None
+
+            return _remove
+
     _entity_registry = EntityRegistry()
 
     entity_registry_module.EntityRegistryEntry = EntityRegistryEntry
+    entity_registry_module.EntityRegistryEvent = EntityRegistryEvent
+    entity_registry_module.EntityRegistry = EntityRegistry
     entity_registry_module.async_get = lambda hass: _entity_registry
     sys.modules["homeassistant.helpers.entity_registry"] = entity_registry_module
 

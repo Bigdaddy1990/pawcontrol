@@ -165,6 +165,13 @@ else:  # pragma: no branch - executed under tests without Home Assistant install
 from .const import DEFAULT_MODEL, DOMAIN, MANUFACTURER
 from .service_guard import ServiceGuardResult
 
+if TYPE_CHECKING:
+    from .types import DeviceLinkDetails, JSONMapping, JSONMutableMapping, JSONValue
+else:
+    JSONValue = Any
+    JSONMapping = Mapping[str, Any]
+    JSONMutableMapping = dict[str, Any]
+
 _LOGGER = logging.getLogger(__name__)
 
 # Type variables for generic functions
@@ -588,7 +595,7 @@ class PawControlDeviceLinkMixin:
         """Set up default device link metadata."""
 
         super().__init__(*args, **kwargs)
-        self._device_link_defaults: dict[str, Any] = {
+        self._device_link_defaults: DeviceLinkDetails = {
             "manufacturer": MANUFACTURER,
             "model": DEFAULT_MODEL,
             "sw_version": "1.0.0",
@@ -600,12 +607,12 @@ class PawControlDeviceLinkMixin:
     def _set_device_link_info(self, **info: Any) -> None:
         """Update device link metadata used when creating the device entry."""
 
-        self._device_link_defaults.update(info)
+        self._device_link_defaults.update(cast("DeviceLinkDetails", info))
 
-    def _device_link_details(self) -> dict[str, Any]:
+    def _device_link_details(self) -> DeviceLinkDetails:
         """Return a copy of the device metadata for linking."""
 
-        return dict(self._device_link_defaults)
+        return cast("DeviceLinkDetails", dict(self._device_link_defaults))
 
     # Home Assistant's cooperative multiple inheritance confuses type checkers
     # about the precise async_added_to_hass signature, so we silence the
@@ -699,44 +706,37 @@ class PawControlDeviceLinkMixin:
                 )
 
 
-def deep_merge_dicts(base: dict[str, Any], updates: dict[str, Any]) -> dict[str, Any]:
-    """Recursively merge two dictionaries.
+def deep_merge_dicts[T: JSONMutableMapping](
+    base: T, updates: Mapping[str, JSONValue]
+) -> T:
+    """Recursively merge JSON-compatible mappings without mutating inputs."""
 
-    Args:
-        base: Base dictionary to merge into
-        updates: Updates to apply
-
-    Returns:
-        New dictionary with merged values
-    """
-    result = base.copy()
+    result = cast(T, base.copy())
 
     for key, value in updates.items():
-        if key in result and isinstance(result[key], dict) and isinstance(value, dict):
-            result[key] = deep_merge_dicts(result[key], value)
+        existing = result.get(key)
+        if isinstance(existing, dict) and isinstance(value, Mapping):
+            result[key] = deep_merge_dicts(
+                cast(JSONMutableMapping, existing),
+                cast(Mapping[str, JSONValue], value),
+            )
         else:
             result[key] = value
 
     return result
 
 
-def safe_get_nested(
-    data: dict[str, Any], path: str, default: Any = None, separator: str = "."
-) -> Any:
-    """Safely get nested dictionary value using dot notation.
-
-    Args:
-        data: Dictionary to search
-        path: Dot-separated path (e.g., "dog.health.weight")
-        default: Default value if path not found
-        separator: Path separator character
-
-    Returns:
-        Value at path or default
-    """
+def safe_get_nested[DefaultT](
+    data: JSONMapping,
+    path: str,
+    *,
+    default: DefaultT | None = None,
+    separator: str = ".",
+) -> JSONValue | DefaultT | None:
+    """Safely resolve a dotted path from a JSON-compatible mapping."""
     try:
         keys = path.split(separator)
-        current = data
+        current: JSONValue | Mapping[str, JSONValue] = data
 
         for key in keys:
             if isinstance(current, dict) and key in current:
@@ -749,28 +749,26 @@ def safe_get_nested(
         return default
 
 
-def safe_set_nested(
-    data: dict[str, Any], path: str, value: Any, separator: str = "."
-) -> dict[str, Any]:
-    """Safely set nested dictionary value using dot notation.
-
-    Args:
-        data: Dictionary to update
-        path: Dot-separated path
-        value: Value to set
-        separator: Path separator character
-
-    Returns:
-        Updated dictionary
-    """
+def safe_set_nested[T: JSONMutableMapping](
+    data: T,
+    path: str,
+    value: JSONValue,
+    *,
+    separator: str = ".",
+) -> T:
+    """Safely set a dotted path within a JSON-compatible mapping."""
     keys = path.split(separator)
-    current = data
+    current: JSONMutableMapping = cast(JSONMutableMapping, data)
 
     # Navigate to parent of target key
     for key in keys[:-1]:
-        if key not in current or not isinstance(current[key], dict):
-            current[key] = {}
-        current = current[key]
+        next_value = current.get(key)
+        if not isinstance(next_value, dict):
+            branch: JSONMutableMapping = {}
+            current[key] = branch
+            current = branch
+        else:
+            current = cast(JSONMutableMapping, next_value)
 
     # Set the final value
     current[keys[-1]] = value
@@ -1188,45 +1186,41 @@ def is_dict_subset(subset: Mapping[K, V], superset: Mapping[K, V]) -> bool:
 
 
 def flatten_dict(
-    data: dict[str, Any], separator: str = ".", prefix: str = ""
-) -> dict[str, Any]:
-    """Flatten nested dictionary using dot notation.
+    data: JSONMapping,
+    *,
+    separator: str = ".",
+    prefix: str = "",
+) -> JSONMutableMapping:
+    """Flatten a JSON mapping using dot notation for nested keys."""
 
-    Args:
-        data: Dictionary to flatten
-        separator: Separator for keys
-        prefix: Prefix for keys
-
-    Returns:
-        Flattened dictionary
-    """
-    flattened: dict[str, Any] = {}
+    flattened: JSONMutableMapping = {}
 
     for key, value in data.items():
         new_key = f"{prefix}{separator}{key}" if prefix else key
 
-        if isinstance(value, dict):
-            flattened.update(flatten_dict(value, separator, new_key))
+        if isinstance(value, Mapping):
+            flattened.update(
+                flatten_dict(
+                    cast(Mapping[str, JSONValue], value),
+                    separator=separator,
+                    prefix=new_key,
+                )
+            )
         else:
             flattened[new_key] = value
 
     return flattened
 
 
-def unflatten_dict(data: dict[str, Any], separator: str = ".") -> dict[str, Any]:
-    """Unflatten dictionary from dot notation.
+def unflatten_dict(
+    data: Mapping[str, JSONValue], *, separator: str = "."
+) -> JSONMutableMapping:
+    """Expand a flattened JSON mapping that uses dot notation keys."""
 
-    Args:
-        data: Flattened dictionary
-        separator: Key separator
-
-    Returns:
-        Nested dictionary
-    """
-    result: dict[str, Any] = {}
+    result: JSONMutableMapping = {}
 
     for key, value in data.items():
-        safe_set_nested(result, key, value, separator)
+        safe_set_nested(result, key, value, separator=separator)
 
     return result
 

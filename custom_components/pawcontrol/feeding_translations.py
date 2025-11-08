@@ -8,10 +8,13 @@ from itertools import islice
 from math import isfinite
 from numbers import Real
 from os import PathLike, fspath
-from typing import TYPE_CHECKING, Any, Final, overload
+from typing import TYPE_CHECKING, Any, Final, TypeVar, cast, overload
 
 if TYPE_CHECKING:
-    from .types import FeedingComplianceLocalizedSummary
+    from .types import (
+        FeedingComplianceDisplayMapping,
+        FeedingComplianceLocalizedSummary,
+    )
 
 DEFAULT_LANGUAGE: Final[str] = "en"
 
@@ -96,7 +99,7 @@ _ALLOWED_SINGLE_WORDS: Final[frozenset[str]] = frozenset(
 )
 
 
-def _is_structured_message_payload(value: Any) -> bool:
+def _is_structured_message_payload(value: object) -> bool:
     """Return ``True`` when the message represents structured metadata."""
 
     if isinstance(value, str | UserString):
@@ -114,9 +117,12 @@ def _is_structured_message_payload(value: Any) -> bool:
     return isinstance(value, Iterable)
 
 
+_T = TypeVar("_T")
+
+
 def _normalise_sequence(
-    value: Any, *, limit: int | None = None
-) -> Sequence[Any] | None:
+    value: object, *, limit: int | None = None
+) -> Sequence[_T] | None:
     """Return a bounded, re-iterable snapshot for sequence-like payloads."""
 
     if isinstance(value, str | bytes | bytearray | memoryview):
@@ -127,23 +133,23 @@ def _normalise_sequence(
     )
     max_items = max(max_allowed, 0)
     if max_items == 0:
-        return ()
+        return cast(Sequence[_T], ())
 
     if isinstance(value, Mapping):
-        return (value,)
+        return cast(Sequence[_T], (value,))
 
     if isinstance(value, _BoundedSequenceSnapshot):
-        return value
+        return cast(Sequence[_T], value)
 
     if isinstance(value, Sequence):
         if not value:
-            return ()
+            return cast(Sequence[_T], ())
         if len(value) <= max_items:
-            return tuple(value)
-        return tuple(islice(value, max_items))
+            return cast(Sequence[_T], tuple(value))
+        return cast(Sequence[_T], tuple(islice(value, max_items)))
 
     if isinstance(value, Iterable):
-        return _BoundedSequenceSnapshot(value, max_items)
+        return _BoundedSequenceSnapshot(cast(Iterable[_T], value), max_items)
 
     return None
 
@@ -241,7 +247,7 @@ def _iter_text_candidates(
                 yield candidate
             return
 
-        sequence = _normalise_sequence(value)
+        sequence = cast(Sequence[object] | None, _normalise_sequence(value))
         if sequence is not None:
             for item in sequence:
                 if item is value:
@@ -351,12 +357,14 @@ def _format_structured_message(value: Any) -> str | None:
 
 
 def _collect_missed_meals(
-    translations: dict[str, str],
-    raw_entries: Any,
+    translations: Mapping[str, str],
+    raw_entries: object,
 ) -> list[str]:
     """Build the missed meals section with sanitised values."""
 
-    entries = _normalise_sequence(raw_entries)
+    entries = cast(
+        Sequence[Mapping[str, object]] | None, _normalise_sequence(raw_entries)
+    )
     if entries is None:
         return []
 
@@ -377,10 +385,10 @@ def _collect_missed_meals(
     return summary
 
 
-def _describe_issue(issue: Mapping[str, Any]) -> str:
+def _describe_issue(issue: Mapping[str, object]) -> str:
     """Return a readable description for an issue entry."""
 
-    issues = _normalise_sequence(issue.get("issues"))
+    issues = cast(Sequence[object] | None, _normalise_sequence(issue.get("issues")))
     if issues:
         for candidate in issues:
             text = _first_text_candidate(candidate)
@@ -400,12 +408,14 @@ def _describe_issue(issue: Mapping[str, Any]) -> str:
 
 
 def _collect_issue_summaries(
-    translations: dict[str, str],
-    raw_entries: Any,
+    translations: Mapping[str, str],
+    raw_entries: object,
 ) -> list[str]:
     """Return normalised issue summary lines."""
 
-    entries = _normalise_sequence(raw_entries)
+    entries = cast(
+        Sequence[Mapping[str, object]] | None, _normalise_sequence(raw_entries)
+    )
     if entries is None:
         return []
 
@@ -426,13 +436,15 @@ def _collect_issue_summaries(
 
 
 def _collect_recommendations(
-    translations: dict[str, str], raw_entries: Any
+    translations: Mapping[str, str], raw_entries: object
 ) -> list[str]:
     """Return cleaned recommendation text entries."""
 
-    entries = _normalise_sequence(raw_entries)
+    entries = cast(Sequence[object] | None, _normalise_sequence(raw_entries))
     if entries is None:
-        iterable: Iterable[Any] = (raw_entries,)
+        if raw_entries is None:
+            return []
+        iterable: Iterable[object] = (raw_entries,)
     else:
         iterable = entries
 
@@ -448,8 +460,8 @@ def _collect_recommendations(
 
 
 def _build_localised_sections(
-    translations: dict[str, str],
-    compliance: dict[str, Any],
+    translations: Mapping[str, str],
+    compliance: FeedingComplianceDisplayMapping,
 ) -> tuple[list[str], list[str], list[str]]:
     """Return localised summary sections for missed meals, issues, and recommendations."""
 
@@ -471,7 +483,7 @@ def build_feeding_compliance_summary(
     language: str | None,
     *,
     display_name: str,
-    compliance: dict[str, Any],
+    compliance: FeedingComplianceDisplayMapping,
 ) -> FeedingComplianceLocalizedSummary:
     """Return a localised summary for a feeding compliance result."""
 
@@ -537,7 +549,7 @@ def build_feeding_compliance_notification(
     language: str | None,
     *,
     display_name: str,
-    compliance: dict[str, Any],
+    compliance: FeedingComplianceDisplayMapping,
 ) -> tuple[str, str | None]:
     """Return localised title and body for a feeding compliance result."""
 
@@ -547,17 +559,17 @@ def build_feeding_compliance_notification(
     return summary["title"], summary["message"]
 
 
-class _BoundedSequenceSnapshot(Sequence[Any]):
+class _BoundedSequenceSnapshot[T](Sequence[T]):
     """Cache at most ``limit`` items from an iterable for safe re-iteration."""
 
     __slots__ = ("_cache", "_iterator", "_limit")
 
-    def __init__(self, source: Iterable[Any], limit: int) -> None:
-        self._iterator: Iterator[Any] | None = iter(source)
-        self._cache: list[Any] = []
+    def __init__(self, source: Iterable[T], limit: int) -> None:
+        self._iterator: Iterator[T] | None = iter(source)
+        self._cache: list[T] = []
         self._limit = limit
 
-    def __iter__(self) -> Iterator[Any]:
+    def __iter__(self) -> Iterator[T]:
         index = 0
         while True:
             self._consume_to(index + 1)
@@ -571,16 +583,16 @@ class _BoundedSequenceSnapshot(Sequence[Any]):
         return len(self._cache)
 
     @overload
-    def __getitem__(self, index: int, /) -> Any:  # pragma: no cover - defensive
+    def __getitem__(self, index: int, /) -> T:  # pragma: no cover - defensive
         """Return the cached item at ``index``."""
 
     @overload
     def __getitem__(
         self, index: slice, /
-    ) -> Sequence[Any]:  # pragma: no cover - defensive
+    ) -> Sequence[T]:  # pragma: no cover - defensive
         """Return a sliced view of the cached items."""
 
-    def __getitem__(self, index: int | slice, /) -> Any | Sequence[Any]:
+    def __getitem__(self, index: int | slice, /) -> T | Sequence[T]:
         """Return cached values, supporting both index and slice access."""
 
         if isinstance(index, slice):

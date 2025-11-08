@@ -49,10 +49,19 @@ from .const import ATTR_DOG_ID, ATTR_DOG_NAME, MANUFACTURER
 from .coordinator import PawControlCoordinator
 from .coordinator_accessors import CoordinatorDataAccessMixin
 from .types import (
+    CoordinatorDataPayload,
     CoordinatorDogData,
     CoordinatorModuleState,
+    CoordinatorUntypedModuleState,
+    DeviceLinkDetails,
+    OptimizedEntityAttributesPayload,
     OptimizedEntityCacheStats,
     OptimizedEntityGlobalPerformanceStats,
+    OptimizedEntityMemoryConfig,
+    OptimizedEntityMemoryEstimate,
+    OptimizedEntityPerformanceMetrics,
+    OptimizedEntityPerformanceSummary,
+    OptimizedEntityStateCachePayload,
 )
 from .utils import (
     PawControlDeviceLinkMixin,
@@ -69,7 +78,7 @@ CACHE_TTL_SECONDS: Final[dict[str, int]] = {
     "availability": 10,  # Availability cache TTL
 }
 
-MEMORY_OPTIMIZATION: Final[dict[str, Any]] = {
+MEMORY_OPTIMIZATION: Final[OptimizedEntityMemoryConfig] = {
     "max_cache_entries": 1000,  # Maximum cache entries per entity type
     "cache_cleanup_threshold": 0.8,  # When to trigger aggressive cleanup
     "weak_ref_cleanup_interval": 300,  # Seconds between weak reference cleanup
@@ -83,7 +92,7 @@ MEMORY_OPTIMIZATION: Final[dict[str, Any]] = {
 class _StateCacheEntry:
     """State cache entry storing payload snapshots and coordinator status."""
 
-    payload: dict[str, Any]
+    payload: OptimizedEntityStateCachePayload
     timestamp: float
     coordinator_available: bool | None = None
 
@@ -92,7 +101,7 @@ class _StateCacheEntry:
 class _AttributesCacheEntry:
     """Attribute cache entry storing generated attributes and timestamp."""
 
-    attributes: dict[str, Any]
+    attributes: OptimizedEntityAttributesPayload
     timestamp: float
 
 
@@ -256,7 +265,7 @@ class PerformanceTracker:
         """Record a cache miss for performance metrics."""
         self._cache_misses += 1
 
-    def get_performance_summary(self) -> dict[str, Any]:
+    def get_performance_summary(self) -> OptimizedEntityPerformanceSummary:
         """Get comprehensive performance summary.
 
         Returns:
@@ -365,7 +374,7 @@ class OptimizedEntityBase(
 
         # Initialize caches
         self._cached_state: Any = None
-        self._cached_attributes: dict[str, Any] = {}
+        self._cached_attributes: OptimizedEntityAttributesPayload = {}
         self._last_updated: datetime | None = None
         self._state_change_listeners: list[callback] = []
 
@@ -451,10 +460,10 @@ class OptimizedEntityBase(
 
         return getattr(self, "_attr_icon", None)
 
-    def _device_link_details(self) -> dict[str, Any]:
+    def _device_link_details(self) -> DeviceLinkDetails:
         """Extend base device metadata with dynamic dog information."""
 
-        info = super()._device_link_details()
+        info = cast(DeviceLinkDetails, super()._device_link_details())
         dog_data = self._get_dog_data_cached()
         if dog_data and (dog_info := dog_data.get("dog_info")):
             if dog_breed := dog_info.get("dog_breed"):
@@ -638,7 +647,7 @@ class OptimizedEntityBase(
         return True
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any]:
+    def extra_state_attributes(self) -> OptimizedEntityAttributesPayload:
         """Enhanced state attributes with caching and performance tracking.
 
         Returns:
@@ -654,7 +663,7 @@ class OptimizedEntityBase(
                 entry.timestamp = cache_time
             if now - cache_time < CACHE_TTL_SECONDS["attributes"]:
                 self._performance_tracker.record_cache_hit()
-                return dict(entry.attributes)
+                return cast(OptimizedEntityAttributesPayload, dict(entry.attributes))
 
         # Generate attributes
         start_time = dt_util.utcnow()
@@ -668,7 +677,7 @@ class OptimizedEntityBase(
 
             # Cache result
             _ATTRIBUTES_CACHE[cache_key] = _AttributesCacheEntry(
-                attributes=dict(attributes),
+                attributes=cast(OptimizedEntityAttributesPayload, dict(attributes)),
                 timestamp=now,
             )
             self._performance_tracker.record_cache_miss()
@@ -682,7 +691,7 @@ class OptimizedEntityBase(
             )
             return self._get_fallback_attributes()
 
-    def _generate_state_attributes(self) -> dict[str, Any]:
+    def _generate_state_attributes(self) -> OptimizedEntityAttributesPayload:
         """Generate state attributes - can be overridden in subclasses.
 
         Returns:
@@ -699,7 +708,7 @@ class OptimizedEntityBase(
         elif not previous_available:
             base_status = "recovering"
 
-        attributes: dict[str, Any] = {
+        attributes: OptimizedEntityAttributesPayload = {
             ATTR_DOG_ID: self._dog_id,
             ATTR_DOG_NAME: self._dog_name,
             "entity_type": self._entity_type,
@@ -753,7 +762,7 @@ class OptimizedEntityBase(
 
         return getattr(self, "_previous_coordinator_available", current)
 
-    def _get_fallback_attributes(self) -> dict[str, Any]:
+    def _get_fallback_attributes(self) -> OptimizedEntityAttributesPayload:
         """Get minimal fallback attributes when normal generation fails.
 
         Returns:
@@ -830,7 +839,7 @@ class OptimizedEntityBase(
 
         # Cache result (including empty dicts) to prevent repeated lookups
         _STATE_CACHE[cache_key] = _StateCacheEntry(
-            payload=dict(cast(Mapping[str, Any], dog_data)),
+            payload=cast(OptimizedEntityStateCachePayload, dict(dog_data)),
             timestamp=now,
             coordinator_available=coordinator_available,
         )
@@ -868,7 +877,8 @@ class OptimizedEntityBase(
                 return payload
 
         # Fetch from coordinator
-        module_payload: dict[str, Any] = {}
+        module_payload: CoordinatorModuleState | CoordinatorUntypedModuleState
+        module_payload = cast(CoordinatorUntypedModuleState, {})
         if coordinator_available:
             result: Any = None
             if isinstance(self.coordinator, PawControlCoordinator):
@@ -878,15 +888,20 @@ class OptimizedEntityBase(
                     self.coordinator, "get_module_data", self._dog_id, module
                 )
             if isinstance(result, Mapping):
-                module_payload = dict(result)
+                mapped_result = dict(result)
+                module_payload = (
+                    cast(CoordinatorModuleState, mapped_result)
+                    if typed_module
+                    else cast(CoordinatorUntypedModuleState, mapped_result)
+                )
             elif typed_module:
-                module_payload = {"status": "unknown"}
+                module_payload = cast(CoordinatorModuleState, {"status": "unknown"})
         elif typed_module:
-            module_payload = {"status": "unknown"}
+            module_payload = cast(CoordinatorModuleState, {"status": "unknown"})
 
         # Cache result
         _STATE_CACHE[cache_key] = _StateCacheEntry(
-            payload=dict(module_payload),
+            payload=cast(OptimizedEntityStateCachePayload, dict(module_payload)),
             timestamp=now,
             coordinator_available=coordinator_available,
         )
@@ -895,7 +910,7 @@ class OptimizedEntityBase(
         if typed_module:
             return cast(CoordinatorModuleState, dict(module_payload))
 
-        return module_payload
+        return cast(CoordinatorUntypedModuleState, dict(module_payload))
 
     async def async_update(self) -> None:
         """Enhanced update method with performance tracking and error handling."""
@@ -966,7 +981,7 @@ class OptimizedEntityBase(
             _ATTRIBUTES_CACHE.pop(cache_key, None)
             _AVAILABILITY_CACHE.pop(cache_key, None)
 
-    def get_performance_metrics(self) -> dict[str, Any]:
+    def get_performance_metrics(self) -> OptimizedEntityPerformanceMetrics:
         """Get comprehensive performance metrics for this entity.
 
         Returns:
@@ -984,7 +999,7 @@ class OptimizedEntityBase(
             "memory_usage_estimate": self._estimate_memory_usage(),
         }
 
-    def _estimate_memory_usage(self) -> dict[str, Any]:
+    def _estimate_memory_usage(self) -> OptimizedEntityMemoryEstimate:
         """Estimate memory usage for this entity.
 
         Returns:
@@ -1270,9 +1285,12 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
         """Get switch state."""
         return self.is_on
 
-    def _generate_state_attributes(self) -> dict[str, Any]:
+    def _generate_state_attributes(self) -> OptimizedEntityAttributesPayload:
         """Generate switch-specific attributes."""
-        attributes = super()._generate_state_attributes()
+        attributes = cast(
+            OptimizedEntityAttributesPayload,
+            super()._generate_state_attributes(),
+        )
         attributes.update(
             {
                 "last_changed": self._last_changed.isoformat(),
@@ -1461,7 +1479,7 @@ class _RegistrySentinelCoordinator:
     def __init__(self) -> None:
         self.available = True
         self.config_entry = None
-        self.data: dict[str, Any] = {}
+        self.data: CoordinatorDataPayload = {}
         self.hass = None
         self.last_update_success = True
         self.name = "PawControl Registry Sentinel"
@@ -1491,10 +1509,12 @@ class _RegistrySentinelCoordinator:
     async def async_refresh(self) -> None:
         return None
 
-    def get_dog_data(self, dog_id: str) -> dict[str, Any]:
-        return {}
+    def get_dog_data(self, dog_id: str) -> CoordinatorDogData:
+        return cast(CoordinatorDogData, {})
 
-    def get_module_data(self, dog_id: str, module: str) -> dict[str, Any]:
+    def get_module_data(
+        self, dog_id: str, module: str
+    ) -> CoordinatorUntypedModuleState:
         return {}
 
 
@@ -1515,10 +1535,10 @@ class _RegistrySentinelEntity(OptimizedEntityBase):
             entity_category=None,
         )
 
-    def _get_entity_state(self) -> dict[str, Any]:
+    def _get_entity_state(self) -> CoordinatorUntypedModuleState:
         return {"status": "sentinel"}
 
-    def _generate_state_attributes(self) -> dict[str, Any]:
+    def _generate_state_attributes(self) -> OptimizedEntityAttributesPayload:
         return {"registry": "sentinel"}
 
 

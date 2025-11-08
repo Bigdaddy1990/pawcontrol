@@ -4,7 +4,13 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable, Mapping
-from typing import Any
+from typing import Final
+
+from custom_components.pawcontrol.types import (
+    JSONMutableMapping,
+    JSONMutableSequence,
+    JSONValue,
+)
 
 __all__ = [
     "compile_redaction_patterns",
@@ -12,7 +18,15 @@ __all__ = [
 ]
 
 
-def compile_redaction_patterns(keys: Iterable[str]) -> tuple[re.Pattern[str], ...]:
+type RedactionPatterns = tuple[re.Pattern[str], ...]
+"""Precompiled redaction expressions keyed by normalised field names."""
+
+
+_REDACTED_REPLACEMENT: Final = "**REDACTED**"
+"""Marker inserted when a value matches the redaction guardrails."""
+
+
+def compile_redaction_patterns(keys: Iterable[str]) -> RedactionPatterns:
     """Return compiled regex patterns for ``keys`` respecting word boundaries."""
 
     normalized = {key.lower() for key in keys}
@@ -22,25 +36,28 @@ def compile_redaction_patterns(keys: Iterable[str]) -> tuple[re.Pattern[str], ..
     )
 
 
-def redact_sensitive_data(data: Any, *, patterns: tuple[re.Pattern[str], ...]) -> Any:
+def redact_sensitive_data(data: JSONValue, *, patterns: RedactionPatterns) -> JSONValue:
     """Recursively redact sensitive data using precompiled ``patterns``."""
 
     if isinstance(data, Mapping):
-        redacted: dict[str, Any] = {}
+        redacted: JSONMutableMapping = {}
         for key, value in dict(data).items():
             key_lower = key.lower()
             if any(pattern.search(key_lower) for pattern in patterns):
-                redacted[key] = "**REDACTED**"
+                redacted[key] = _REDACTED_REPLACEMENT
             else:
                 redacted[key] = redact_sensitive_data(value, patterns=patterns)
         return redacted
 
     if isinstance(data, list):
-        return [redact_sensitive_data(item, patterns=patterns) for item in data]
+        redacted_sequence: JSONMutableSequence = [
+            redact_sensitive_data(item, patterns=patterns) for item in data
+        ]
+        return redacted_sequence
 
     if isinstance(data, str):
         if _looks_like_sensitive_string(data):
-            return "**REDACTED**"
+            return _REDACTED_REPLACEMENT
         return data
 
     return data

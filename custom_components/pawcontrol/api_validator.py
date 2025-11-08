@@ -12,8 +12,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Final, Literal, NotRequired, TypedDict, cast
 
 import aiohttp
 from homeassistant.core import HomeAssistant
@@ -26,6 +27,59 @@ _LOGGER = logging.getLogger(__name__)
 API_CONNECTION_TIMEOUT = 10.0  # seconds
 API_TOKEN_VALIDATION_TIMEOUT = 15.0  # seconds
 API_HEALTH_CHECK_TIMEOUT = 20.0  # seconds
+AUTH_SUCCESS_STATUS_CODES: Final = (200, 201, 204)
+
+
+type CapabilityList = list[str]
+type JSONPrimitive = None | bool | float | int | str
+type JSONValue = JSONPrimitive | Mapping[str, "JSONValue"] | Sequence["JSONValue"]
+type JSONMapping = Mapping[str, JSONValue]
+type JSONSequence = Sequence[JSONValue]
+
+
+class APIAuthenticationResult(TypedDict):
+    """Structured authentication probe response."""
+
+    authenticated: bool
+    api_version: str | None
+    capabilities: CapabilityList | None
+
+
+type HealthStatus = Literal[
+    "healthy",
+    "degraded",
+    "unreachable",
+    "authentication_failed",
+    "timeout",
+    "error",
+]
+
+
+class APIHealthStatus(TypedDict):
+    """Structured payload returned by :meth:`async_test_api_health`."""
+
+    healthy: bool
+    reachable: bool
+    authenticated: bool
+    response_time_ms: float | None
+    error: str | None
+    status: HealthStatus
+    api_version: str | None
+    capabilities: CapabilityList | None
+
+
+class _APIAuthPayload(TypedDict, total=False):
+    """Subset of fields returned by PawControl API authentication endpoints."""
+
+    version: str
+    capabilities: NotRequired[JSONSequence]
+
+
+class _RequestOptions(TypedDict, total=False):
+    """Subset of aiohttp request keyword arguments used by the validator."""
+
+    allow_redirects: bool
+    ssl: bool
 
 
 @dataclass
@@ -38,7 +92,7 @@ class APIValidationResult:
     response_time_ms: float | None
     error_message: str | None
     api_version: str | None
-    capabilities: list[str] | None
+    capabilities: CapabilityList | None
 
 
 class APIValidator:
@@ -62,12 +116,12 @@ class APIValidator:
         """
         self.hass = hass
         self._session = ensure_shared_client_session(session, owner="APIValidator")
-        self._request_kwargs: dict[str, Any] = {}
+        self._ssl_override: bool | None = None
         if not verify_ssl:
             # aiohttp accepts ``ssl=False`` to bypass certificate validation.
-            # We only add the flag when explicitly requested so production
+            # We only store the override when explicitly requested so production
             # systems keep the secure defaults provided by Home Assistant.
-            self._request_kwargs["ssl"] = False
+            self._ssl_override = False
 
     @property
     def session(self) -> aiohttp.ClientSession:
@@ -125,8 +179,8 @@ class APIValidator:
 
             # Test authentication if token provided
             authenticated = False
-            api_version = None
-            capabilities = None
+            api_version: str | None = None
+            capabilities: CapabilityList | None = None
 
             if api_token:
                 async with asyncio.timeout(API_TOKEN_VALIDATION_TIMEOUT):
@@ -134,8 +188,8 @@ class APIValidator:
                         api_endpoint, api_token
                     )
                     authenticated = auth_result["authenticated"]
-                    api_version = auth_result.get("api_version")
-                    capabilities = auth_result.get("capabilities")
+                    api_version = auth_result["api_version"]
+                    capabilities = auth_result["capabilities"]
 
                 if not authenticated:
                     response_time_ms = (time.monotonic() - start_time) * 1000
@@ -223,14 +277,16 @@ class APIValidator:
         try:
             session = self._session
 
-            # Try to connect to the endpoint. ``aiohttp`` returns an awaitable
-            # context manager so we explicitly await it to play nicely with the
-            # ``AsyncMock`` based session doubles used in the tests.
-            response_ctx = await session.get(
-                endpoint,
-                allow_redirects=True,
-                **self._request_kwargs,
-            )
+            request_kwargs: _RequestOptions
+            if self._ssl_override is None:
+                request_kwargs = {"allow_redirects": True}
+            else:
+                request_kwargs = {
+                    "allow_redirects": True,
+                    "ssl": self._ssl_override,
+                }
+
+            response_ctx = await session.get(endpoint, **request_kwargs)
 
             async with response_ctx:
                 # Any response (even 404) means the endpoint is reachable
@@ -243,7 +299,9 @@ class APIValidator:
             _LOGGER.debug("Unexpected error testing reachability: %s", err)
             return False
 
-    async def _test_authentication(self, endpoint: str, token: str) -> dict[str, Any]:
+    async def _test_authentication(
+        self, endpoint: str, token: str
+    ) -> APIAuthenticationResult:
         """Test API authentication with token.
 
         Args:
@@ -257,17 +315,25 @@ class APIValidator:
             session = self._session
 
             # Construct auth endpoint (common patterns)
-            auth_endpoints = [
+            # Try the most common validation endpoints before falling back to
+            # the base URL with an auth header.
+            auth_endpoints: tuple[str, ...] = (
                 f"{endpoint}/auth/validate",
                 f"{endpoint}/api/auth",
                 f"{endpoint}/validate",
-                endpoint,  # Try base endpoint with auth header
-            ]
+                endpoint,
+            )
 
-            headers = {
+            headers: dict[str, str] = {
                 "Authorization": f"Bearer {token}",
                 "Content-Type": "application/json",
             }
+
+            request_kwargs: _RequestOptions
+            if self._ssl_override is None:
+                request_kwargs = {}
+            else:
+                request_kwargs = {"ssl": self._ssl_override}
 
             # Try each endpoint until one works
             for auth_endpoint in auth_endpoints:
@@ -275,48 +341,54 @@ class APIValidator:
                     async with session.get(
                         auth_endpoint,
                         headers=headers,
-                        **self._request_kwargs,
+                        **request_kwargs,
                     ) as response:
-                        if response.status in (200, 201, 204):
+                        if response.status in AUTH_SUCCESS_STATUS_CODES:
                             # Try to parse response for additional info
                             try:
                                 data = await response.json()
-                                return {
-                                    "authenticated": True,
-                                    "api_version": data.get("version"),
-                                    "capabilities": data.get("capabilities"),
-                                }
                             except Exception:
-                                # JSON parsing failed, but auth succeeded
-                                return {
-                                    "authenticated": True,
-                                    "api_version": None,
-                                    "capabilities": None,
-                                }
+                                return APIAuthenticationResult(
+                                    authenticated=True,
+                                    api_version=None,
+                                    capabilities=None,
+                                )
+                            if not isinstance(data, Mapping):
+                                return APIAuthenticationResult(
+                                    authenticated=True,
+                                    api_version=None,
+                                    capabilities=None,
+                                )
+                            payload = cast(_APIAuthPayload, data)
+                            return APIAuthenticationResult(
+                                authenticated=True,
+                                api_version=_extract_api_version(payload),
+                                capabilities=_extract_capabilities(payload),
+                            )
 
                 except aiohttp.ClientError:
                     continue
 
             # No endpoint accepted the token
-            return {
-                "authenticated": False,
-                "api_version": None,
-                "capabilities": None,
-            }
+            return APIAuthenticationResult(
+                authenticated=False,
+                api_version=None,
+                capabilities=None,
+            )
 
         except Exception as err:
             _LOGGER.error("Authentication test failed: %s", err)
-            return {
-                "authenticated": False,
-                "api_version": None,
-                "capabilities": None,
-            }
+            return APIAuthenticationResult(
+                authenticated=False,
+                api_version=None,
+                capabilities=None,
+            )
 
     async def async_test_api_health(
         self,
         api_endpoint: str,
         api_token: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> APIHealthStatus:
         """Perform comprehensive API health check.
 
         Args:
@@ -332,15 +404,16 @@ class APIValidator:
                     api_endpoint, api_token
                 )
 
-                health_status = {
-                    "healthy": validation_result.valid,
-                    "reachable": validation_result.reachable,
-                    "authenticated": validation_result.authenticated,
-                    "response_time_ms": validation_result.response_time_ms,
-                    "error": validation_result.error_message,
-                    "api_version": validation_result.api_version,
-                    "capabilities": validation_result.capabilities,
-                }
+                health_status = APIHealthStatus(
+                    healthy=validation_result.valid,
+                    reachable=validation_result.reachable,
+                    authenticated=validation_result.authenticated,
+                    response_time_ms=validation_result.response_time_ms,
+                    error=validation_result.error_message,
+                    api_version=validation_result.api_version,
+                    capabilities=validation_result.capabilities,
+                    status="degraded",
+                )
 
                 # Determine overall health
                 if not validation_result.reachable:
@@ -349,34 +422,32 @@ class APIValidator:
                     health_status["status"] = "authentication_failed"
                 elif validation_result.valid:
                     health_status["status"] = "healthy"
-                else:
-                    health_status["status"] = "degraded"
 
                 return health_status
 
         except TimeoutError:
-            return {
-                "healthy": False,
-                "reachable": False,
-                "authenticated": False,
-                "response_time_ms": None,
-                "error": "Health check timeout",
-                "status": "timeout",
-                "api_version": None,
-                "capabilities": None,
-            }
+            return APIHealthStatus(
+                healthy=False,
+                reachable=False,
+                authenticated=False,
+                response_time_ms=None,
+                error="Health check timeout",
+                status="timeout",
+                api_version=None,
+                capabilities=None,
+            )
         except Exception as err:
             _LOGGER.error("API health check failed: %s", err)
-            return {
-                "healthy": False,
-                "reachable": False,
-                "authenticated": False,
-                "response_time_ms": None,
-                "error": str(err),
-                "status": "error",
-                "api_version": None,
-                "capabilities": None,
-            }
+            return APIHealthStatus(
+                healthy=False,
+                reachable=False,
+                authenticated=False,
+                response_time_ms=None,
+                error=str(err),
+                status="error",
+                api_version=None,
+                capabilities=None,
+            )
 
     async def async_close(self) -> None:
         """Close the API validator and cleanup resources."""
@@ -384,3 +455,33 @@ class APIValidator:
             # The validator never owns the session; leave lifecycle management to
             # Home Assistant to avoid closing the shared pool.
             return
+
+
+def _extract_api_version(data: JSONMapping | _APIAuthPayload) -> str | None:
+    """Return the reported API version when present."""
+
+    if isinstance(data, Mapping):
+        version = data.get("version")
+        if isinstance(version, str):
+            return version
+    return None
+
+
+def _extract_capabilities(data: JSONMapping | _APIAuthPayload) -> CapabilityList | None:
+    """Return normalised capability data from a JSON payload."""
+
+    if not isinstance(data, Mapping):
+        return None
+
+    capabilities = data.get("capabilities")
+    if isinstance(capabilities, Sequence) and not isinstance(
+        capabilities, str | bytes | bytearray
+    ):
+        string_capabilities = [
+            capability for capability in capabilities if isinstance(capability, str)
+        ]
+        if string_capabilities:
+            return list(string_capabilities)
+        if len(capabilities) == 0:
+            return []
+    return None

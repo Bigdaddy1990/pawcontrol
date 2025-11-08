@@ -5,9 +5,11 @@ from typing import cast
 
 from custom_components.pawcontrol.garden_manager import (
     GardenActivity,
+    GardenActivityPayload,
     GardenActivityType,
     GardenManager,
     GardenSession,
+    GardenSessionPayload,
     GardenSessionStatus,
     GardenStats,
 )
@@ -101,3 +103,59 @@ def test_build_garden_snapshot_returns_structured_payload(hass: HomeAssistant) -
     assert snapshot["pending_confirmations"][0]["session_id"] == "garden-active"
     assert snapshot["weather_summary"]
     assert snapshot["weather_summary"]["conditions"] == ["Cloudy", "Sunny"]
+
+
+def test_garden_activity_payload_roundtrip() -> None:
+    """Activity payloads should round-trip through the TypedDict helpers."""
+
+    now = dt_util.utcnow()
+    activity = GardenActivity(
+        activity_type=GardenActivityType.SNIFFING,
+        timestamp=now,
+        duration_seconds=45,
+        location="rose bush",
+        notes="Investigated new scents",
+        confirmed=True,
+    )
+
+    payload = activity.to_dict()
+    assert isinstance(payload, dict)
+    assert payload["activity_type"] == "sniffing"
+
+    restored = GardenActivity.from_dict(cast(GardenActivityPayload, payload))
+    assert restored.activity_type is GardenActivityType.SNIFFING
+    assert restored.duration_seconds == 45
+    assert restored.confirmed is True
+
+
+def test_garden_session_payload_roundtrip() -> None:
+    """Session payloads should maintain structured activity lists."""
+
+    now = dt_util.utcnow()
+    session = GardenSession(
+        session_id="garden-round-trip",
+        dog_id="dog",
+        dog_name="Buddy",
+        start_time=now - timedelta(minutes=15),
+        end_time=now,
+        status=GardenSessionStatus.COMPLETED,
+    )
+    session.activities.append(
+        GardenActivity(
+            activity_type=GardenActivityType.DIGGING,
+            timestamp=now - timedelta(minutes=10),
+            duration_seconds=120,
+        )
+    )
+    session.total_duration_seconds = 900
+    session.poop_count = 0
+
+    payload = session.to_dict()
+    assert isinstance(payload, dict)
+    assert payload["status"] == "completed"
+    assert payload["activities"][0]["activity_type"] == "digging"
+
+    restored = GardenSession.from_dict(cast(GardenSessionPayload, payload))
+    assert restored.session_id == "garden-round-trip"
+    assert restored.activities[0].activity_type is GardenActivityType.DIGGING
+    assert restored.total_duration_seconds == 900

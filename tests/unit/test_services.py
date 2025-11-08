@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
@@ -15,6 +15,7 @@ from custom_components.pawcontrol.const import (
     SERVICE_DAILY_RESET,
 )
 from custom_components.pawcontrol.coordinator_tasks import default_rejection_metrics
+from custom_components.pawcontrol.garden_manager import GardenActivityInputPayload
 from custom_components.pawcontrol.notifications import (
     NotificationChannel,
     NotificationPriority,
@@ -443,7 +444,7 @@ class _GardenManagerStub:
         *,
         dog_id: str,
         notes: object | None,
-        activities: object | None,
+        activities: Sequence[GardenActivityInputPayload] | None,
     ) -> object | None:
         if self.fail_end:
             raise self.fail_end
