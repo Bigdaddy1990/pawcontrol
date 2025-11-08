@@ -122,6 +122,8 @@ class EntityCreationConfig(Mapping[str, EntityCreationValue]):
     extras: Mapping[str, EntityCreationValue] = field(default_factory=dict)
 
     def __getitem__(self, key: str) -> EntityCreationValue:
+        """Return the requested creation attribute for mapping compatibility."""
+
         match key:
             case "dog_id":
                 return self.dog_id
@@ -144,6 +146,8 @@ class EntityCreationConfig(Mapping[str, EntityCreationValue]):
         raise KeyError(key)  # pragma: no cover - defensive
 
     def __iter__(self) -> Iterator[str]:
+        """Yield entity creation keys to mimic mapping iteration."""
+
         yield from (
             "dog_id",
             "entity_type",
@@ -157,6 +161,8 @@ class EntityCreationConfig(Mapping[str, EntityCreationValue]):
         yield from self.extras
 
     def __len__(self) -> int:
+        """Return the number of defined creation attributes."""
+
         return 8 + len(self.extras)
 
     def as_dict(self) -> dict[str, EntityCreationValue]:
@@ -200,6 +206,8 @@ class EntityProfileDefinition(Mapping[str, EntityProfileValue]):
     preferred_modules: tuple[str, ...] = ()
 
     def __getitem__(self, key: str) -> EntityProfileValue:
+        """Return the requested profile metadata attribute."""
+
         match key:
             case "name":
                 return self.name
@@ -220,6 +228,8 @@ class EntityProfileDefinition(Mapping[str, EntityProfileValue]):
         raise KeyError(key)  # pragma: no cover - defensive
 
     def __iter__(self) -> Iterator[str]:
+        """Yield profile attribute keys in canonical order."""
+
         yield from (
             "name",
             "description",
@@ -232,6 +242,8 @@ class EntityProfileDefinition(Mapping[str, EntityProfileValue]):
         )
 
     def __len__(self) -> int:
+        """Return the number of profile attributes."""
+
         return 8
 
 
@@ -251,6 +263,8 @@ class EntityPerformanceMetrics(Mapping[str, float | int | str]):
     total_modules: int
 
     def __getitem__(self, key: str) -> float | int | str:
+        """Return the requested performance metric value."""
+
         match key:
             case "profile":
                 return self.profile
@@ -269,6 +283,8 @@ class EntityPerformanceMetrics(Mapping[str, float | int | str]):
         raise KeyError(key)  # pragma: no cover - defensive
 
     def __iter__(self) -> Iterator[str]:
+        """Yield metric keys in deterministic order."""
+
         yield from (
             "profile",
             "estimated_entities",
@@ -280,6 +296,8 @@ class EntityPerformanceMetrics(Mapping[str, float | int | str]):
         )
 
     def __len__(self) -> int:
+        """Return the number of metrics tracked."""
+
         return 7
 
     def as_dict(self) -> dict[str, float | int | str]:
