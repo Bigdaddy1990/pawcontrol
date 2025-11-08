@@ -20,7 +20,7 @@ def _load_module(name: str, path: Path) -> ModuleType:
     return module
 
 
-def _load_redaction_helpers():
+def _load_redaction_helpers() -> ModuleType:
     return _load_module(
         "pawcontrol_diagnostics_redaction",
         PROJECT_ROOT / "custom_components" / "pawcontrol" / "diagnostics_redaction.py",

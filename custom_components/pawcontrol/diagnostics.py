@@ -59,6 +59,8 @@ from .types import (
     CoordinatorRejectionMetrics,
     CoordinatorStatisticsPayload,
     CoordinatorUpdateCounts,
+    JSONMutableMapping,
+    JSONValue,
     PawControlConfigEntry,
     PawControlRuntimeData,
 )
@@ -606,7 +608,10 @@ async def async_get_config_entry_diagnostics(
         )
 
     # Redact sensitive information
-    redacted_diagnostics = _redact_sensitive_data(diagnostics)
+    redacted_diagnostics = cast(
+        JSONMutableMapping,
+        _redact_sensitive_data(cast(JSONValue, diagnostics)),
+    )
 
     _LOGGER.info("Diagnostics generated successfully for entry %s", entry.entry_id)
     return redacted_diagnostics
@@ -1607,7 +1612,7 @@ def _calculate_module_usage(dogs: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def _redact_sensitive_data(data: Any) -> Any:
+def _redact_sensitive_data(data: JSONValue) -> JSONValue:
     """Recursively redact sensitive data from diagnostic information."""
 
     return redact_sensitive_data(data, patterns=_REDACTED_KEY_PATTERNS)

@@ -14,7 +14,7 @@ import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Final, cast
+from typing import Any, Final, Literal, TypedDict, cast
 
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
@@ -35,14 +35,68 @@ _LOGGER = logging.getLogger(__name__)
 DISCOVERY_SCAN_INTERVAL: Final[timedelta] = timedelta(minutes=5)
 DISCOVERY_TIMEOUT: Final[float] = 10.0
 
-CATEGORY_KEYWORDS: Final[dict[str, tuple[str, ...]]] = {
+type DiscoveryCategory = Literal[
+    "gps_tracker",
+    "smart_feeder",
+    "activity_monitor",
+    "health_device",
+    "smart_collar",
+    "treat_dispenser",
+    "water_fountain",
+    "camera",
+    "door_sensor",
+]
+
+type DiscoveryConnectionType = Literal["bluetooth", "network", "usb", "unknown"]
+
+type DiscoveryCapabilityList = list[str]
+
+
+class DiscoveryConnectionInfo(TypedDict, total=False):
+    """Connection metadata extracted from the device registry."""
+
+    address: str
+    mac: str
+    usb: str
+    configuration_url: str
+    via_device_id: str
+
+
+class DiscoveredDeviceMetadata(TypedDict, total=False):
+    """Extra metadata describing the registry device."""
+
+    identifiers: list[str]
+    via_device_id: str | None
+    sw_version: str | None
+    hw_version: str | None
+    configuration_url: str
+    area_id: str
+
+
+class LegacyDiscoveryData(DiscoveryConnectionInfo):
+    """Legacy payload exported for config flow consumers."""
+
+    device_id: str
+    name: str
+    manufacturer: str
+    category: DiscoveryCategory
+
+
+class LegacyDiscoveryEntry(TypedDict):
+    """Legacy compatibility wrapper used by config flows."""
+
+    source: DiscoveryConnectionType
+    data: LegacyDiscoveryData
+
+
+CATEGORY_KEYWORDS: Final[dict[DiscoveryCategory, tuple[str, ...]]] = {
     "gps_tracker": ("tractive", "whistle", "fi", "link"),
     "smart_feeder": ("petnet", "sureflap", "pawcontrol feeder"),
     "activity_monitor": ("fitbark", "whistle", "fi"),
     "health_device": ("whistle", "fitbark", "petpuls"),
 }
 
-CATEGORY_CAPABILITIES: Final[dict[str, list[str]]] = {
+CATEGORY_CAPABILITIES: Final[dict[DiscoveryCategory, DiscoveryCapabilityList]] = {
     "gps_tracker": ["gps", "activity_tracking", "geofence"],
     "smart_feeder": ["portion_control", "scheduling", "monitoring"],
     "activity_monitor": ["activity_tracking", "sleep_tracking"],
@@ -56,15 +110,15 @@ class DiscoveredDevice:
 
     device_id: str
     name: str
-    category: str
+    category: DiscoveryCategory
     manufacturer: str
     model: str
-    connection_type: str
-    connection_info: dict[str, Any]
-    capabilities: list[str]
+    connection_type: DiscoveryConnectionType
+    connection_info: DiscoveryConnectionInfo
+    capabilities: DiscoveryCapabilityList
     discovered_at: str
     confidence: float  # 0.0 - 1.0, discovery confidence
-    metadata: dict[str, Any]
+    metadata: DiscoveredDeviceMetadata
 
 
 class PawControlDiscovery:
@@ -110,7 +164,9 @@ class PawControlDiscovery:
             raise HomeAssistantError(f"Discovery initialization failed: {err}") from err
 
     async def async_discover_devices(
-        self, categories: list[str] | None = None, quick_scan: bool = False
+        self,
+        categories: list[DiscoveryCategory] | None = None,
+        quick_scan: bool = False,
     ) -> list[DiscoveredDevice]:
         """Perform comprehensive device discovery.
 
@@ -128,9 +184,11 @@ class PawControlDiscovery:
             _LOGGER.warning("Discovery scan already active, waiting for completion")
             await self._wait_for_scan_completion()
 
-        categories_list: list[str]
+        categories_list: list[DiscoveryCategory]
         if categories is None:
-            categories_list = list(DEVICE_CATEGORIES)
+            categories_list = [
+                cast(DiscoveryCategory, category) for category in DEVICE_CATEGORIES
+            ]
         else:
             categories_list = list(categories)
         scan_timeout = DISCOVERY_TIMEOUT if quick_scan else DISCOVERY_TIMEOUT * 3
@@ -183,7 +241,7 @@ class PawControlDiscovery:
             self._scan_active = False
 
     async def _discover_usb_devices(
-        self, categories: list[str]
+        self, categories: list[DiscoveryCategory]
     ) -> list[DiscoveredDevice]:
         """Discover USB-connected dog devices (placeholder)."""
 
@@ -191,7 +249,7 @@ class PawControlDiscovery:
         return []
 
     async def _discover_registry_devices(
-        self, categories: list[str]
+        self, categories: list[DiscoveryCategory]
     ) -> list[DiscoveredDevice]:
         """Discover devices by inspecting Home Assistant registries."""
 
@@ -219,7 +277,7 @@ class PawControlDiscovery:
                 or f"{manufacturer} {model}".strip()
             )
 
-            metadata = {
+            metadata: DiscoveredDeviceMetadata = {
                 "identifiers": [
                     f"{domain}:{identifier}"
                     for domain, identifier in device_entry.identifiers
@@ -256,7 +314,7 @@ class PawControlDiscovery:
         self,
         device_entry: DeviceEntry,
         entity_registry: er.EntityRegistry,
-    ) -> tuple[str, list[str], float] | None:
+    ) -> tuple[DiscoveryCategory, DiscoveryCapabilityList, float] | None:
         manufacturer = (device_entry.manufacturer or "").lower()
         model = (device_entry.model or "").lower()
         related_entities = [
@@ -266,7 +324,7 @@ class PawControlDiscovery:
         ]
         domains = {entry.domain for entry in related_entities}
 
-        matched_categories: set[str] = set()
+        matched_categories: set[DiscoveryCategory] = set()
         confidence = 0.4
 
         for category, keywords in CATEGORY_KEYWORDS.items():
@@ -307,9 +365,9 @@ class PawControlDiscovery:
 
     def _connection_details(
         self, device_entry: DeviceEntry
-    ) -> tuple[str, dict[str, Any]]:
-        connection_info: dict[str, Any] = {}
-        connection_type = "unknown"
+    ) -> tuple[DiscoveryConnectionType, DiscoveryConnectionInfo]:
+        connection_info: DiscoveryConnectionInfo = {}
+        connection_type: DiscoveryConnectionType = "unknown"
 
         for conn_type, conn_id in device_entry.connections:
             if conn_type in (dr.CONNECTION_BLUETOOTH, "bluetooth"):
@@ -482,7 +540,9 @@ class PawControlDiscovery:
 
 
 # Legacy compatibility functions for existing code
-async def async_get_discovered_devices(hass: HomeAssistant) -> list[dict[str, Any]]:
+async def async_get_discovered_devices(
+    hass: HomeAssistant,
+) -> list[LegacyDiscoveryEntry]:
     """Legacy compatibility function for basic device discovery.
 
     Args:
@@ -499,18 +559,29 @@ async def async_get_discovered_devices(hass: HomeAssistant) -> list[dict[str, An
         devices = await discovery.async_discover_devices(quick_scan=True)
 
         # Convert to legacy format
-        legacy_devices = []
+        legacy_devices: list[LegacyDiscoveryEntry] = []
         for device in devices:
-            legacy_devices.append(  # noqa: PERF401
+            data: LegacyDiscoveryData = {
+                "device_id": device.device_id,
+                "name": device.name,
+                "manufacturer": device.manufacturer,
+                "category": device.category,
+            }
+            if address := device.connection_info.get("address"):
+                data["address"] = address
+            if mac := device.connection_info.get("mac"):
+                data["mac"] = mac
+            if usb := device.connection_info.get("usb"):
+                data["usb"] = usb
+            if configuration_url := device.connection_info.get("configuration_url"):
+                data["configuration_url"] = configuration_url
+            if via_device_id := device.connection_info.get("via_device_id"):
+                data["via_device_id"] = via_device_id
+
+            legacy_devices.append(
                 {
                     "source": device.connection_type,
-                    "data": {
-                        "device_id": device.device_id,
-                        "name": device.name,
-                        "manufacturer": device.manufacturer,
-                        "category": device.category,
-                        **device.connection_info,
-                    },
+                    "data": data,
                 }
             )
 

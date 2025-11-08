@@ -35,6 +35,7 @@ from .coordinator_support import ensure_cache_repair_aggregate
 from .feeding_translations import build_feeding_compliance_summary
 from .runtime_data import get_runtime_data
 from .types import (
+    FeedingComplianceDisplayMapping,
     FeedingComplianceEventPayload,
     FeedingComplianceLocalizedSummary,
     ReconfigureTelemetry,
@@ -220,7 +221,7 @@ async def async_publish_feeding_compliance_issue(
         localized_summary = build_feeding_compliance_summary(
             language,
             display_name=dog_name,
-            compliance=dict(result),
+            compliance=cast(FeedingComplianceDisplayMapping, result),
         )
 
     summary_copy: FeedingComplianceLocalizedSummary = {

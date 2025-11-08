@@ -34,6 +34,7 @@ from .types import (
     DogConfigData,
     DogModulesConfig,
     ExternalEntityConfig,
+    ExternalEntitySelectorOption,
 )
 
 GPS_SOURCE_KEY: Final[Literal["gps_source"]] = cast(
@@ -60,7 +61,7 @@ if TYPE_CHECKING:
         hass: HomeAssistant
 
         async def async_step_final_setup(
-            self, user_input: dict[str, Any] | None = None
+            self, user_input: ExternalEntityConfig | None = None
         ) -> ConfigFlowResult:
             """Type-checking stub for the mixin's final step delegation."""
             ...
@@ -120,7 +121,7 @@ class ExternalEntityConfigurationMixin:
         def _get_available_notify_services(self) -> dict[str, str]: ...
 
     async def async_step_configure_external_entities(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ExternalEntityConfig | None = None
     ) -> ConfigFlowResult:
         """Configure external entities required for enabled modules.
 
@@ -182,21 +183,21 @@ class ExternalEntityConfigurationMixin:
         device_trackers = self._get_available_device_trackers()
         person_entities = self._get_available_person_entities()
 
-        options: list[dict[str, str]] = []
+        options: list[ExternalEntitySelectorOption] = []
         if device_trackers:
             options.extend(
-                {
-                    "value": entity_id,
-                    "label": f"📍 {name} (Device Tracker)",
-                }
+                ExternalEntitySelectorOption(
+                    value=entity_id,
+                    label=f"📍 {name} (Device Tracker)",
+                )
                 for entity_id, name in device_trackers.items()
             )
         if person_entities:
             options.extend(
-                {
-                    "value": entity_id,
-                    "label": f"👤 {name} (Person)",
-                }
+                ExternalEntitySelectorOption(
+                    value=entity_id,
+                    label=f"👤 {name} (Person)",
+                )
                 for entity_id, name in person_entities.items()
             )
 
@@ -210,7 +211,11 @@ class ExternalEntityConfigurationMixin:
             }
 
         selector_config = selector.SelectSelectorConfig(
-            options=[{"value": "manual", "label": "📝 Manual GPS (configure later)"}],
+            options=[
+                ExternalEntitySelectorOption(
+                    value="manual", label="📝 Manual GPS (configure later)"
+                )
+            ],
             mode=selector.SelectSelectorMode.DROPDOWN,
         )
         return {
@@ -225,9 +230,11 @@ class ExternalEntityConfigurationMixin:
         if not door_sensors:
             return {}
 
-        options = [{"value": "", "label": "None (optional)"}]
+        options: list[ExternalEntitySelectorOption] = [
+            ExternalEntitySelectorOption(value="", label="None (optional)")
+        ]
         options.extend(
-            {"value": entity_id, "label": f"🚪 {name}"}
+            ExternalEntitySelectorOption(value=entity_id, label=f"🚪 {name}")
             for entity_id, name in door_sensors.items()
         )
 
@@ -246,9 +253,13 @@ class ExternalEntityConfigurationMixin:
         if not notify_services:
             return {}
 
-        options = [{"value": "", "label": "Default (persistent_notification)"}]
+        options: list[ExternalEntitySelectorOption] = [
+            ExternalEntitySelectorOption(
+                value="", label="Default (persistent_notification)"
+            )
+        ]
         options.extend(
-            {"value": service_id, "label": f"🔔 {name}"}
+            ExternalEntitySelectorOption(value=service_id, label=f"🔔 {name}")
             for service_id, name in notify_services.items()
         )
 
@@ -278,7 +289,7 @@ class ExternalEntityConfigurationMixin:
             target[NOTIFY_FALLBACK_KEY] = new_config[NOTIFY_FALLBACK_KEY]
 
     async def _async_validate_external_entities(
-        self, user_input: dict[str, Any]
+        self, user_input: ExternalEntityConfig
     ) -> ExternalEntityConfig:
         """Validate external entity selections.
 
@@ -293,15 +304,18 @@ class ExternalEntityConfigurationMixin:
         """
         validated: ExternalEntityConfig = {}
 
+        gps_source = cast(str | None, user_input.get(CONF_GPS_SOURCE))
+        door_sensor = cast(str | None, user_input.get(CONF_DOOR_SENSOR))
+        notify_service = cast(str | None, user_input.get(CONF_NOTIFY_FALLBACK))
+
         self._merge_external_entity_config(
-            validated, self._validate_gps_source(user_input.get(CONF_GPS_SOURCE))
+            validated, self._validate_gps_source(gps_source)
         )
         self._merge_external_entity_config(
-            validated, self._validate_door_sensor(user_input.get(CONF_DOOR_SENSOR))
+            validated, self._validate_door_sensor(door_sensor)
         )
         self._merge_external_entity_config(
-            validated,
-            self._validate_notify_service(user_input.get(CONF_NOTIFY_FALLBACK)),
+            validated, self._validate_notify_service(notify_service)
         )
 
         return validated

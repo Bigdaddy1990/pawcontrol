@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from custom_components.pawcontrol.const import (
@@ -37,6 +37,7 @@ from custom_components.pawcontrol.script_manager import PawControlScriptManager
 from custom_components.pawcontrol.types import (
     CoordinatorRuntimeManagers,
     FeedingData,
+    HelperEntityMetadata,
 )
 from homeassistant.components.script.const import CONF_FIELDS
 from homeassistant.const import (
@@ -327,7 +328,9 @@ def test_helper_manager_register_cache_monitor() -> None:
         "buddy": ["input_boolean.pawcontrol_buddy_breakfast_fed"],
     }
     helper_manager._managed_entities = {
-        "input_boolean.pawcontrol_buddy_breakfast_fed": {"domain": "input_boolean"}
+        "input_boolean.pawcontrol_buddy_breakfast_fed": cast(
+            HelperEntityMetadata, {"domain": "input_boolean"}
+        )
     }
     helper_manager._cleanup_listeners = [lambda: None]
     helper_manager._daily_reset_configured = True
@@ -428,7 +431,9 @@ async def test_helper_manager_guard_metrics_accumulate_skips(
         "input_boolean.pawcontrol_buddy_breakfast_fed",
     }
     helper_manager._managed_entities = {
-        "input_boolean.pawcontrol_buddy_breakfast_fed": {"domain": "input_boolean"},
+        "input_boolean.pawcontrol_buddy_breakfast_fed": cast(
+            HelperEntityMetadata, {"domain": "input_boolean"}
+        ),
     }
 
     await helper_manager.async_remove_dog_helpers("buddy")

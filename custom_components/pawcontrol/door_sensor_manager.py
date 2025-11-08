@@ -13,9 +13,9 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Mapping
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Final, cast
 
 from homeassistant.const import STATE_OFF, STATE_ON
 from homeassistant.core import (
@@ -56,10 +56,14 @@ from .types import (
     DetectionStatus,
     DetectionStatusEntry,
     DogConfigData,
+    DoorSensorConfigUpdate,
     DoorSensorDogSnapshot,
     DoorSensorManagerSnapshot,
     DoorSensorManagerStats,
+    DoorSensorOverrideScalar,
     DoorSensorSettingsConfig,
+    DoorSensorSettingsInput,
+    DoorSensorSettingsPayload,
     DoorSensorStateHistoryEntry,
     DoorSensorStateSnapshot,
     JSONMutableMapping,
@@ -75,11 +79,9 @@ _LOGGER = logging.getLogger(__name__)
 
 _UNSET: object = object()
 
-DEFAULT_DOOR_SENSOR_SETTINGS_PAYLOAD = asdict(DEFAULT_DOOR_SENSOR_SETTINGS)
-
 
 def _coerce_int(
-    value: Any,
+    value: DoorSensorOverrideScalar,
     *,
     default: int,
     minimum: int | None = None,
@@ -94,11 +96,11 @@ def _coerce_int(
     if isinstance(value, int | float):
         candidate = int(value)
     elif isinstance(value, str):
-        value = value.strip()
-        if not value:
+        stripped = value.strip()
+        if not stripped:
             return default
         try:
-            candidate = int(float(value))
+            candidate = int(float(stripped))
         except ValueError:
             return default
     else:
@@ -112,7 +114,7 @@ def _coerce_int(
 
 
 def _coerce_float(
-    value: Any,
+    value: DoorSensorOverrideScalar,
     *,
     default: float,
     minimum: float | None = None,
@@ -127,11 +129,11 @@ def _coerce_float(
     if isinstance(value, int | float):
         candidate = float(value)
     elif isinstance(value, str):
-        value = value.strip()
-        if not value:
+        stripped = value.strip()
+        if not stripped:
             return default
         try:
-            candidate = float(value)
+            candidate = float(stripped)
         except ValueError:
             return default
     else:
@@ -144,7 +146,7 @@ def _coerce_float(
     return candidate
 
 
-def _coerce_bool(value: Any, *, default: bool) -> bool:
+def _coerce_bool(value: DoorSensorOverrideScalar, *, default: bool) -> bool:
     """Normalise ``value`` to a boolean."""
 
     if isinstance(value, bool):
@@ -196,7 +198,7 @@ def _settings_from_config(
 
 
 def ensure_door_sensor_settings_config(
-    overrides: Mapping[str, Any] | DoorSensorSettingsConfig | None,
+    overrides: DoorSensorSettingsInput | None,
     *,
     base: DoorSensorSettingsConfig | DoorSensorConfig | None = None,
 ) -> DoorSensorSettingsConfig:
@@ -207,21 +209,28 @@ def ensure_door_sensor_settings_config(
     if overrides is None:
         return base_settings
 
+    raw_items: list[tuple[str, DoorSensorOverrideScalar]]
     if isinstance(overrides, DoorSensorSettingsConfig):
-        raw: Mapping[str, Any] = asdict(overrides)
+        raw_items = [
+            (key, cast(DoorSensorOverrideScalar, value))
+            for key, value in _settings_to_payload(overrides).items()
+        ]
     elif isinstance(overrides, Mapping):
-        raw = overrides
+        raw_items = [
+            (key, cast(DoorSensorOverrideScalar, value))
+            for key, value in overrides.items()
+            if isinstance(key, str)
+        ]
     else:
         raise TypeError(
             "door sensor settings must be a mapping or DoorSensorSettingsConfig"
         )
 
-    normalised: dict[str, Any] = {}
-    for key, value in raw.items():
-        if isinstance(key, str):
-            normalised[key.strip().lower()] = value
+    normalised: dict[str, DoorSensorOverrideScalar] = {}
+    for key, value in raw_items:
+        normalised[key.strip().lower()] = value
 
-    def pick(*aliases: str) -> Any:
+    def pick(*aliases: str) -> DoorSensorOverrideScalar:
         for alias in aliases:
             alias_key = alias.lower()
             if alias_key in normalised:
@@ -290,10 +299,26 @@ def ensure_door_sensor_settings_config(
     )
 
 
-def _settings_to_payload(settings: DoorSensorSettingsConfig) -> dict[str, Any]:
+def _settings_to_payload(
+    settings: DoorSensorSettingsConfig,
+) -> DoorSensorSettingsPayload:
     """Return a serialisable payload for ``settings``."""
 
-    return asdict(settings)
+    payload: DoorSensorSettingsPayload = {
+        "walk_detection_timeout": settings.walk_detection_timeout,
+        "minimum_walk_duration": settings.minimum_walk_duration,
+        "maximum_walk_duration": settings.maximum_walk_duration,
+        "door_closed_delay": settings.door_closed_delay,
+        "require_confirmation": settings.require_confirmation,
+        "auto_end_walks": settings.auto_end_walks,
+        "confidence_threshold": settings.confidence_threshold,
+    }
+    return payload
+
+
+DEFAULT_DOOR_SENSOR_SETTINGS_PAYLOAD: Final[DoorSensorSettingsPayload] = (
+    _settings_to_payload(DEFAULT_DOOR_SENSOR_SETTINGS)
+)
 
 
 def _apply_settings_to_config(
@@ -658,10 +683,10 @@ class DoorSensorManager:
             )
             return
 
-        updates: dict[str, Any] = {}
+        updates: DoorSensorConfigUpdate = {}
 
         if sensor is not _UNSET:
-            updates[CONF_DOOR_SENSOR] = sensor
+            updates[CONF_DOOR_SENSOR] = cast(str | None, sensor)
 
         if settings is not _UNSET:
             if isinstance(settings, DoorSensorSettingsConfig):
@@ -670,8 +695,12 @@ class DoorSensorManager:
                     updates[CONF_DOOR_SENSOR_SETTINGS] = payload
                 else:
                     updates[CONF_DOOR_SENSOR_SETTINGS] = None
+            elif settings is None:
+                updates[CONF_DOOR_SENSOR_SETTINGS] = None
             else:
-                updates[CONF_DOOR_SENSOR_SETTINGS] = settings
+                updates[CONF_DOOR_SENSOR_SETTINGS] = cast(
+                    DoorSensorSettingsPayload | None, settings
+                )
 
         if not updates:
             return
@@ -685,16 +714,24 @@ class DoorSensorManager:
 
     @staticmethod
     def _settings_for_persistence(
-        raw_settings: Any, normalised: DoorSensorSettingsConfig
+        raw_settings: object, normalised: DoorSensorSettingsConfig
     ) -> object:
         """Return payload to persist when ``raw_settings`` differs from ``normalised``."""
 
         desired_payload = _settings_to_payload(normalised)
 
+        current_payload: DoorSensorSettingsPayload | None
         if isinstance(raw_settings, DoorSensorSettingsConfig):
             current_payload = _settings_to_payload(raw_settings)
         elif isinstance(raw_settings, Mapping):
-            current_payload = dict(raw_settings)
+            current_payload = cast(
+                DoorSensorSettingsPayload | None,
+                {
+                    key: value
+                    for key, value in raw_settings.items()
+                    if isinstance(key, str)
+                },
+            )
         else:
             current_payload = None
 
@@ -1348,7 +1385,7 @@ class DoorSensorManager:
         self,
         dog_id: str,
         door_sensor: str | None,
-        settings: dict[str, Any] | None = None,
+        settings: DoorSensorSettingsInput | None = None,
     ) -> bool:
         """Update door sensor configuration for a dog.
 

@@ -427,6 +427,58 @@ class DoorSensorSettingsConfig:
 
 DEFAULT_DOOR_SENSOR_SETTINGS = DoorSensorSettingsConfig()
 
+type DoorSensorOverrideScalar = bool | int | float | str | None
+"""Scalar values accepted when overriding door sensor settings."""
+
+type DoorSensorSettingsMapping = Mapping[str, DoorSensorOverrideScalar]
+"""Mapping of setting names to override scalars."""
+
+
+class DoorSensorSettingsOverrides(TypedDict, total=False):
+    """User-provided overrides for :class:`DoorSensorSettingsConfig`."""
+
+    timeout: DoorSensorOverrideScalar
+    walk_detection_timeout: DoorSensorOverrideScalar
+    walk_timeout: DoorSensorOverrideScalar
+    minimum_walk_duration: DoorSensorOverrideScalar
+    min_walk_duration: DoorSensorOverrideScalar
+    minimum_duration: DoorSensorOverrideScalar
+    min_duration: DoorSensorOverrideScalar
+    maximum_walk_duration: DoorSensorOverrideScalar
+    max_walk_duration: DoorSensorOverrideScalar
+    maximum_duration: DoorSensorOverrideScalar
+    max_duration: DoorSensorOverrideScalar
+    door_closed_delay: DoorSensorOverrideScalar
+    door_closed_timeout: DoorSensorOverrideScalar
+    close_delay: DoorSensorOverrideScalar
+    close_timeout: DoorSensorOverrideScalar
+    require_confirmation: DoorSensorOverrideScalar
+    confirmation_required: DoorSensorOverrideScalar
+    auto_end_walks: DoorSensorOverrideScalar
+    auto_end_walk: DoorSensorOverrideScalar
+    auto_close: DoorSensorOverrideScalar
+    confidence_threshold: DoorSensorOverrideScalar
+    confidence: DoorSensorOverrideScalar
+    threshold: DoorSensorOverrideScalar
+
+
+class DoorSensorSettingsPayload(TypedDict):
+    """Serialised payload representing normalised door sensor settings."""
+
+    walk_detection_timeout: int
+    minimum_walk_duration: int
+    maximum_walk_duration: int
+    door_closed_delay: int
+    require_confirmation: bool
+    auto_end_walks: bool
+    confidence_threshold: float
+
+
+type DoorSensorSettingsInput = (
+    DoorSensorSettingsConfig | DoorSensorSettingsOverrides | DoorSensorSettingsMapping
+)
+"""Accepted inputs when normalising door sensor settings."""
+
 # Type aliases for improved code readability and maintainability
 DogId = str
 """Type alias for dog identifier strings.
@@ -1118,7 +1170,7 @@ def ensure_dog_modules_projection(
 
 
 def ensure_dog_modules_config(
-    data: Mapping[str, Any] | DogModulesProjection,
+    data: Mapping[str, object] | DogModulesProjection,
 ) -> DogModulesConfig:
     """Extract a :class:`DogModulesConfig` from supported module payloads."""
 
@@ -1135,7 +1187,7 @@ def _is_modules_projection_like(value: Any) -> bool:
 
 
 def coerce_dog_modules_config(
-    payload: Mapping[str, Any] | DogModulesProjection | None,
+    payload: Mapping[str, object] | DogModulesProjection | None,
 ) -> DogModulesConfig:
     """Return a defensive ``DogModulesConfig`` copy tolerant of projections."""
 
@@ -1152,7 +1204,7 @@ def coerce_dog_modules_config(
 
 
 def ensure_dog_modules_mapping(
-    data: Mapping[str, Any] | DogModulesProjection,
+    data: Mapping[str, object] | DogModulesProjection,
 ) -> DogModulesMapping:
     """Return a ``DogModulesMapping`` projection from ``data``."""
 
@@ -1816,6 +1868,13 @@ class FeedingConfigurationPlaceholders(TypedDict):
     feeding_summary: str
 
 
+class ExternalEntitySelectorOption(TypedDict):
+    """Selectable option exposed while configuring external entities."""
+
+    value: str
+    label: str
+
+
 class ExternalEntityConfig(TypedDict, total=False):
     """External entity mappings selected throughout the setup flow."""
 
@@ -1997,6 +2056,31 @@ class DogSetupStepInput(TypedDict, total=False):
     dog_age: int | float | None
     dog_weight: float | int | None
     dog_size: str | None
+
+
+class HelperEntityMetadata(TypedDict, total=False):
+    """Metadata captured for helpers created by the helper manager."""
+
+    domain: str
+    name: str
+    icon: str | None
+    initial: bool | int | float | str | None
+    has_date: bool
+    has_time: bool
+    options: list[str]
+    min: int | float
+    max: int | float
+    step: int | float
+    mode: str
+    unit_of_measurement: str | None
+
+
+type HelperEntityMetadataMapping = dict[str, HelperEntityMetadata]
+"""Mapping of entity identifiers to helper metadata payloads."""
+
+
+type DogHelperAssignments = dict[str, list[str]]
+"""Mapping of dog identifiers to the helpers provisioned for them."""
 
 
 class HelperManagerStats(TypedDict):
@@ -3637,6 +3721,10 @@ class FeedingComplianceEventPayload(TypedDict, total=False):
     localized_summary: NotRequired[FeedingComplianceLocalizedSummary]
 
 
+type FeedingComplianceDisplayMapping = Mapping[str, object]
+"""Mapping-compatible compliance payload accepted by translation helpers."""
+
+
 class FeedingComplianceLocalizedSummary(TypedDict):
     """Localised representation of a feeding compliance result."""
 
@@ -3763,6 +3851,15 @@ class PerformanceMonitorSnapshot(PerformanceMonitorCountersSnapshot):
     recent_operations: int
 
 
+class OptimizedEntityMemoryConfig(TypedDict):
+    """Memory optimisation tuning options for optimized entity caches."""
+
+    max_cache_entries: int
+    cache_cleanup_threshold: float
+    weak_ref_cleanup_interval: int
+    performance_sample_size: int
+
+
 class OptimizedEntityCacheStats(TypedDict):
     """Cache statistics aggregated across optimized entities."""
 
@@ -3781,6 +3878,40 @@ class OptimizedEntityGlobalPerformanceStats(TypedDict):
     average_cache_hit_rate: float
     total_errors: int
     entities_with_performance_data: int
+
+
+class OptimizedEntityPerformanceSummary(TypedDict, total=False):
+    """Per-entity performance metrics recorded by :class:`PerformanceTracker`."""
+
+    status: str
+    avg_operation_time: float
+    min_operation_time: float
+    max_operation_time: float
+    total_operations: int
+    error_count: int
+    error_rate: float
+    cache_hit_rate: float
+    total_cache_operations: int
+
+
+class OptimizedEntityMemoryEstimate(TypedDict):
+    """Approximate memory usage reported by optimized entities."""
+
+    base_entity_bytes: int
+    cache_contribution_bytes: int
+    estimated_total_bytes: int
+
+
+class OptimizedEntityPerformanceMetrics(TypedDict):
+    """Composite telemetry returned by :meth:`OptimizedEntityBase.get_performance_metrics`."""
+
+    entity_id: str
+    dog_id: str
+    entity_type: str
+    initialization_time: str
+    uptime_seconds: float
+    performance: OptimizedEntityPerformanceSummary
+    memory_usage_estimate: OptimizedEntityMemoryEstimate
 
 
 class WebhookSecurityStatus(TypedDict, total=False):
@@ -4065,6 +4196,35 @@ CoordinatorTypedModuleName = Literal[
     "walk",
     "weather",
 ]
+
+
+type CoordinatorUntypedModuleState = dict[str, object]
+"""Fallback module payload used when adapters expose open-ended mappings."""
+
+
+type OptimizedEntityStateCachePayload = (
+    CoordinatorDogData | CoordinatorModuleState | CoordinatorUntypedModuleState
+)
+"""Union of cache payloads stored by :mod:`optimized_entity_base`."""
+
+
+type OptimizedEntityAttributesPayload = JSONMutableMapping
+"""Mutable attribute payload generated by optimized entities."""
+
+
+class DeviceLinkDetails(TypedDict, total=False):
+    """Device metadata mapping used by :class:`PawControlDeviceLinkMixin`."""
+
+    manufacturer: str
+    model: str
+    sw_version: str | None
+    configuration_url: str | None
+    breed: str | None
+    microchip_id: str | None
+    serial_number: str | None
+    hw_version: str | None
+    suggested_area: str | None
+    extra_identifiers: Sequence[tuple[str, str]]
 
 
 class CoordinatorDogData(TypedDict, total=False):
@@ -4555,6 +4715,13 @@ class DoorSensorDogSnapshot(TypedDict, total=False):
     auto_end_walks: bool
     confidence_threshold: float
     state: DoorSensorStateSnapshot
+
+
+type DoorSensorConfigUpdateValue = DoorSensorSettingsPayload | str | None
+"""Union of values persisted alongside door sensor configuration updates."""
+
+type DoorSensorConfigUpdate = dict[str, DoorSensorConfigUpdateValue]
+"""Mutable payload pushed to the data manager during door sensor updates."""
 
 
 class DoorSensorManagerStats(DetectionStatistics, total=False):

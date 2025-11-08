@@ -16,10 +16,11 @@ import sys
 import time
 import weakref
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
+from custom_components.pawcontrol.coordinator import PawControlCoordinator
 from custom_components.pawcontrol.optimized_entity_base import (
     _ENTITY_REGISTRY,
     OptimizedBinarySensorBase,
@@ -31,6 +32,11 @@ from custom_components.pawcontrol.optimized_entity_base import (
     create_optimized_entities_batched,
     get_global_performance_stats,
 )
+from custom_components.pawcontrol.types import (
+    CoordinatorDataPayload,
+    CoordinatorDogData,
+    CoordinatorModuleState,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
@@ -41,38 +47,43 @@ class MockCoordinator:
 
     def __init__(self, available: bool = True) -> None:
         self.available = available
-        self._data = {
-            "test_dog": {
-                "dog_info": {
-                    "dog_breed": "Test Breed",
-                    "dog_age": 5,
-                    "dog_size": "medium",
-                    "dog_weight": 25.0,
+        self._data: CoordinatorDataPayload = {
+            "test_dog": cast(
+                CoordinatorDogData,
+                {
+                    "dog_info": {
+                        "dog_id": "test_dog",
+                        "dog_name": "Test Dog",
+                        "dog_breed": "Test Breed",
+                        "dog_age": 5,
+                        "dog_size": "medium",
+                        "dog_weight": 25.0,
+                    },
+                    "last_update": dt_util.utcnow().isoformat(),
+                    "feeding": {
+                        "last_feeding": "2025-01-01T12:00:00",
+                        "portions_today": 2,
+                    },
+                    "walk": {
+                        "last_walk": "2025-01-01T10:00:00",
+                        "walks_today": 1,
+                    },
+                    "health": {
+                        "health_status": "good",
+                        "weight": 25.0,
+                    },
                 },
-                "last_update": dt_util.utcnow().isoformat(),
-                "feeding": {
-                    "last_feeding": "2025-01-01T12:00:00",
-                    "portions_today": 2,
-                },
-                "walk": {
-                    "last_walk": "2025-01-01T10:00:00",
-                    "walks_today": 1,
-                },
-                "health": {
-                    "health_status": "good",
-                    "weight": 25.0,
-                },
-            }
+            )
         }
 
-    def get_dog_data(self, dog_id: str) -> dict[str, Any] | None:
+    def get_dog_data(self, dog_id: str) -> CoordinatorDogData | None:
         """Get dog data for testing."""
         return self._data.get(dog_id)
 
-    def get_module_data(self, dog_id: str, module: str) -> dict[str, Any]:
+    def get_module_data(self, dog_id: str, module: str) -> CoordinatorModuleState:
         """Get module data for testing."""
-        dog_data = self._data.get(dog_id, {})
-        return dog_data.get(module, {})
+        dog_data = self._data.get(dog_id, cast(CoordinatorDogData, {}))
+        return cast(CoordinatorModuleState, dog_data.get(module, {}))
 
 
 @pytest.fixture(name="mock_coordinator")
@@ -87,7 +98,9 @@ def test_entity(mock_coordinator: MockCoordinator) -> TestEntityBase:
     """Create test entity instance."""
 
     return TestEntityBase(
-        coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+        coordinator=cast(PawControlCoordinator, mock_coordinator),
+        dog_id="test_dog",
+        dog_name="Test Dog",
     )
 
 
@@ -96,7 +109,7 @@ def sensor_entity(mock_coordinator: MockCoordinator) -> OptimizedSensorBase:
     """Create test sensor entity."""
 
     return OptimizedSensorBase(
-        coordinator=mock_coordinator,
+        coordinator=cast(PawControlCoordinator, mock_coordinator),
         dog_id="test_dog",
         dog_name="Test Dog",
         sensor_type="test_sensor",
@@ -113,7 +126,7 @@ def binary_sensor_entity(
     """Create test binary sensor entity."""
 
     return OptimizedBinarySensorBase(
-        coordinator=mock_coordinator,
+        coordinator=cast(PawControlCoordinator, mock_coordinator),
         dog_id="test_dog",
         dog_name="Test Dog",
         sensor_type="test_binary_sensor",
@@ -128,7 +141,7 @@ def switch_entity(mock_coordinator: MockCoordinator) -> OptimizedSwitchBase:
     """Create test switch entity."""
 
     return OptimizedSwitchBase(
-        coordinator=mock_coordinator,
+        coordinator=cast(PawControlCoordinator, mock_coordinator),
         dog_id="test_dog",
         dog_name="Test Dog",
         switch_type="test_switch",
@@ -142,7 +155,13 @@ class TestEntityBase(OptimizedEntityBase):
 
     __test__ = False
 
-    def __init__(self, coordinator, dog_id: str, dog_name: str, **kwargs) -> None:
+    def __init__(
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(
             coordinator=coordinator,
             dog_id=dog_id,
@@ -152,7 +171,7 @@ class TestEntityBase(OptimizedEntityBase):
         )
         self._test_state = "test_value"
 
-    def _get_entity_state(self) -> Any:
+    def _get_entity_state(self) -> str:
         """Return test state."""
         return self._test_state
 
@@ -259,11 +278,11 @@ class TestOptimizedEntityBase:
         assert isinstance(test_entity._performance_tracker, PerformanceTracker)
 
     def test_entity_initialization_with_custom_attributes(
-        self, mock_coordinator
+        self, mock_coordinator: MockCoordinator
     ) -> None:
         """Test entity initialization with custom attributes."""
         entity = TestEntityBase(
-            coordinator=mock_coordinator,
+            cast(PawControlCoordinator, mock_coordinator),
             dog_id="custom_dog",
             dog_name="Custom Dog",
             unique_id_suffix="custom_suffix",
@@ -314,31 +333,39 @@ class TestOptimizedEntityBase:
         # Should be available with good coordinator and recent data
         assert test_entity.available is True
 
-    def test_availability_unavailable_coordinator(self, mock_coordinator) -> None:
+    def test_availability_unavailable_coordinator(
+        self, mock_coordinator: MockCoordinator
+    ) -> None:
         """Test availability when coordinator is unavailable."""
         mock_coordinator.available = False
         entity = TestEntityBase(
-            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+            cast(PawControlCoordinator, mock_coordinator),
+            dog_id="test_dog",
+            dog_name="Test Dog",
         )
 
         assert entity.available is False
 
-    def test_availability_no_dog_data(self, mock_coordinator) -> None:
+    def test_availability_no_dog_data(self, mock_coordinator: MockCoordinator) -> None:
         """Test availability when no dog data exists."""
         mock_coordinator._data = {}  # Remove dog data
         entity = TestEntityBase(
-            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+            cast(PawControlCoordinator, mock_coordinator),
+            dog_id="test_dog",
+            dog_name="Test Dog",
         )
 
         assert entity.available is False
 
-    def test_availability_old_data(self, mock_coordinator) -> None:
+    def test_availability_old_data(self, mock_coordinator: MockCoordinator) -> None:
         """Test availability when data is too old."""
         old_time = (dt_util.utcnow() - timedelta(minutes=15)).isoformat()
         mock_coordinator._data["test_dog"]["last_update"] = old_time
 
         entity = TestEntityBase(
-            coordinator=mock_coordinator, dog_id="test_dog", dog_name="Test Dog"
+            cast(PawControlCoordinator, mock_coordinator),
+            dog_id="test_dog",
+            dog_name="Test Dog",
         )
 
         assert entity.available is False
@@ -481,12 +508,12 @@ class TestOptimizedSensorBase:
         assert sensor_entity.native_value is None
 
         # Set value
-        sensor_entity._attr_native_value = 25.5
+        cast(Any, sensor_entity)._attr_native_value = 25.5
         assert sensor_entity.native_value == 25.5
 
     def test_sensor_state(self, sensor_entity: OptimizedSensorBase) -> None:
         """Test sensor state retrieval."""
-        sensor_entity._attr_native_value = 30.0
+        cast(Any, sensor_entity)._attr_native_value = 30.0
         assert sensor_entity._get_entity_state() == 30.0
 
 
@@ -626,7 +653,11 @@ class TestGlobalCacheManagement:
 
         live_before = sum(1 for ref in _ENTITY_REGISTRY if ref() is not None)
 
-        entity = TestEntityBase(MockCoordinator(), "live_dog", "Live Dog")
+        entity = TestEntityBase(
+            cast(PawControlCoordinator, MockCoordinator()),
+            "live_dog",
+            "Live Dog",
+        )
 
         live_with_entity = sum(1 for ref in _ENTITY_REGISTRY if ref() is not None)
         assert live_with_entity == live_before + 1
@@ -680,11 +711,16 @@ class TestOptimizedEntityBatching:
         mock_callback.assert_not_called()
 
     async def test_create_optimized_entities_batched_single_batch(
-        self, mock_coordinator
+        self, mock_coordinator: MockCoordinator
     ) -> None:
         """Test batched entity creation with single batch."""
         entities = [
-            TestEntityBase(mock_coordinator, f"dog_{i}", f"Dog {i}") for i in range(5)
+            TestEntityBase(
+                cast(PawControlCoordinator, mock_coordinator),
+                f"dog_{i}",
+                f"Dog {i}",
+            )
+            for i in range(5)
         ]
 
         mock_callback = Mock()
@@ -700,11 +736,16 @@ class TestOptimizedEntityBatching:
         assert args[1] is False  # update_before_add=False
 
     async def test_create_optimized_entities_batched_multiple_batches(
-        self, mock_coordinator
+        self, mock_coordinator: MockCoordinator
     ) -> None:
         """Test batched entity creation with multiple batches."""
         entities = [
-            TestEntityBase(mock_coordinator, f"dog_{i}", f"Dog {i}") for i in range(25)
+            TestEntityBase(
+                cast(PawControlCoordinator, mock_coordinator),
+                f"dog_{i}",
+                f"Dog {i}",
+            )
+            for i in range(25)
         ]
 
         mock_callback = Mock()
@@ -729,9 +770,11 @@ class TestOptimizedEntityBatching:
 class TestPerformanceOptimizations:
     """Test suite for performance optimizations and memory management."""
 
-    def test_cache_ttl_behavior(self, mock_coordinator) -> None:
+    def test_cache_ttl_behavior(self, mock_coordinator: MockCoordinator) -> None:
         """Test cache TTL behavior with time manipulation."""
-        entity = TestEntityBase(mock_coordinator, "test_dog", "Test Dog")
+        entity = TestEntityBase(
+            cast(PawControlCoordinator, mock_coordinator), "test_dog", "Test Dog"
+        )
 
         # First call should populate cache
         data1 = entity._get_dog_data_cached()
@@ -743,12 +786,18 @@ class TestPerformanceOptimizations:
         # Cache hit should be recorded
         assert entity._performance_tracker._cache_hits > 0
 
-    def test_memory_pressure_simulation(self, mock_coordinator) -> None:
+    def test_memory_pressure_simulation(
+        self, mock_coordinator: MockCoordinator
+    ) -> None:
         """Test behavior under memory pressure simulation."""
         # Create many entities to simulate memory pressure
-        entities = []
+        entities: list[TestEntityBase] = []
         for i in range(50):
-            entity = TestEntityBase(mock_coordinator, f"dog_{i}", f"Dog {i}")
+            entity = TestEntityBase(
+                cast(PawControlCoordinator, mock_coordinator),
+                f"dog_{i}",
+                f"Dog {i}",
+            )
             # Generate some data to populate caches
             entity._get_dog_data_cached()
             cached_attributes = entity.extra_state_attributes
@@ -762,26 +811,41 @@ class TestPerformanceOptimizations:
         for entity in entities[:5]:  # Test subset for performance
             assert entity._get_dog_data_cached() is not None
 
-    def test_concurrent_access_simulation(self, mock_coordinator) -> None:
+    def test_concurrent_access_simulation(
+        self, mock_coordinator: MockCoordinator
+    ) -> None:
         """Test concurrent access patterns (simulated)."""
-        entity = TestEntityBase(mock_coordinator, "concurrent_dog", "Concurrent Dog")
+        entity = TestEntityBase(
+            cast(PawControlCoordinator, mock_coordinator),
+            "concurrent_dog",
+            "Concurrent Dog",
+        )
 
         # Simulate rapid concurrent access
         results = []
         for _ in range(100):
             dog_data = entity._get_dog_data_cached()
             attributes = entity.extra_state_attributes
+            assert dog_data is not None
             results.append((dog_data, attributes))
 
         # All results should be consistent
         first_dog_data, first_attrs = results[0]
+        assert first_dog_data is not None
         for dog_data, attrs in results:
+            assert dog_data is not None
             assert dog_data["dog_info"] == first_dog_data["dog_info"]
             assert attrs["dog_id"] == first_attrs["dog_id"]
 
-    def test_performance_metrics_accuracy(self, mock_coordinator) -> None:
+    def test_performance_metrics_accuracy(
+        self, mock_coordinator: MockCoordinator
+    ) -> None:
         """Test accuracy of performance metrics tracking."""
-        entity = TestEntityBase(mock_coordinator, "perf_dog", "Performance Dog")
+        entity = TestEntityBase(
+            cast(PawControlCoordinator, mock_coordinator),
+            "perf_dog",
+            "Performance Dog",
+        )
 
         # Record known operations
         entity._performance_tracker.record_operation_time(0.1)
@@ -802,9 +866,15 @@ class TestPerformanceOptimizations:
         assert perf_data["error_count"] == 1
         assert perf_data["cache_hit_rate"] == 50.0  # 1 hit, 1 miss = 50%
 
-    async def test_error_recovery_resilience(self, mock_coordinator) -> None:
+    async def test_error_recovery_resilience(
+        self, mock_coordinator: MockCoordinator
+    ) -> None:
         """Test entity resilience during error conditions."""
-        entity = TestEntityBase(mock_coordinator, "error_dog", "Error Dog")
+        entity = TestEntityBase(
+            cast(PawControlCoordinator, mock_coordinator),
+            "error_dog",
+            "Error Dog",
+        )
 
         # Simulate coordinator becoming unavailable
         mock_coordinator.available = False
@@ -821,10 +891,12 @@ class TestPerformanceOptimizations:
         mock_coordinator.available = True
         assert entity.available is True
 
-    async def test_state_restoration_behavior(self, mock_coordinator) -> None:
+    async def test_state_restoration_behavior(
+        self, mock_coordinator: MockCoordinator
+    ) -> None:
         """Test state restoration behavior."""
         switch = OptimizedSwitchBase(
-            coordinator=mock_coordinator,
+            coordinator=cast(PawControlCoordinator, mock_coordinator),
             dog_id="restore_dog",
             dog_name="Restore Dog",
             switch_type="test_switch",

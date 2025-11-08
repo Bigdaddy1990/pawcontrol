@@ -14,7 +14,11 @@ import time
 from unittest.mock import Mock
 
 import pytest
-from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES, EntityFactory
+from custom_components.pawcontrol.entity_factory import (
+    ENTITY_PROFILES,
+    EntityFactory,
+    EntityPerformanceMetrics,
+)
 from homeassistant.const import Platform
 
 
@@ -236,7 +240,7 @@ class TestEntityPerformanceScaling:
         # Verify all results are valid
         for result in results:
             assert result["count"] > 0
-            assert isinstance(result["metrics"], dict)
+            assert isinstance(result["metrics"], EntityPerformanceMetrics)
             assert "utilization_percentage" in result["metrics"]
 
     def test_concurrent_access_simulation(self, entity_factory: EntityFactory) -> None:
@@ -327,7 +331,7 @@ class TestEntityPerformanceScaling:
             assert execution_time < 0.15  # Edge cases should be fast
             assert isinstance(count, int)
             assert count >= 0
-            assert isinstance(metrics, dict)
+            assert isinstance(metrics, EntityPerformanceMetrics)
 
     def test_cache_efficiency(self, entity_factory: EntityFactory) -> None:
         """Test caching efficiency for repeated operations."""

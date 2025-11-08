@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import cast
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -23,7 +24,13 @@ from custom_components.pawcontrol.door_sensor_manager import (
     _coerce_bool,
     ensure_door_sensor_settings_config,
 )
-from custom_components.pawcontrol.types import DogConfigData
+from custom_components.pawcontrol.types import (
+    DogConfigData,
+    DoorSensorConfigUpdate,
+    DoorSensorOverrideScalar,
+    DoorSensorSettingsInput,
+    DoorSensorSettingsPayload,
+)
 
 
 @pytest.mark.parametrize(
@@ -85,7 +92,9 @@ from custom_components.pawcontrol.types import DogConfigData
         ),
     ],
 )
-def test_ensure_door_sensor_settings_config(overrides, expected) -> None:
+def test_ensure_door_sensor_settings_config(
+    overrides: DoorSensorSettingsInput | None, expected: DoorSensorSettingsConfig
+) -> None:
     """Normalisation should coerce aliases, clamp values, and honour dataclasses."""
 
     result = ensure_door_sensor_settings_config(overrides)
@@ -134,7 +143,7 @@ def test_settings_clamp_extreme_values() -> None:
     ],
 )
 def test_coerce_bool_numeric_inputs(
-    value: object, default: bool, expected: bool
+    value: DoorSensorOverrideScalar, default: bool, expected: bool
 ) -> None:
     """Numeric strings and numbers should coerce using non-zero semantics."""
 
@@ -267,23 +276,29 @@ async def test_initialize_persists_trimmed_payload(
         manager, "_validate_sensor_entity", AsyncMock(return_value=True)
     )
 
-    dog: DogConfigData = {
-        "dog_id": "dog-1",
-        "dog_name": "Buddy",
-        CONF_DOOR_SENSOR: " binary_sensor.garage_door ",
-        CONF_DOOR_SENSOR_SETTINGS: {
-            "minimum_duration": "240",
-            "auto_end_walk": "false",
+    dog = cast(
+        DogConfigData,
+        {
+            "dog_id": "dog-1",
+            "dog_name": "Buddy",
+            CONF_DOOR_SENSOR: " binary_sensor.garage_door ",
+            CONF_DOOR_SENSOR_SETTINGS: {
+                "minimum_duration": "240",
+                "auto_end_walk": "false",
+            },
         },
-    }
+    )
 
     await manager.async_initialize([dog], data_manager=data_manager)
 
     data_manager.async_update_dog_data.assert_awaited_once()
-    persisted_dog_id, updates = data_manager.async_update_dog_data.await_args[0]
+    persisted_dog_id, updates_raw = data_manager.async_update_dog_data.await_args[0]
+    updates = cast(DoorSensorConfigUpdate, updates_raw)
     assert persisted_dog_id == "dog-1"
     assert updates[CONF_DOOR_SENSOR] == "binary_sensor.garage_door"
-    persisted_settings = updates[CONF_DOOR_SENSOR_SETTINGS]
+    persisted_settings_raw = updates[CONF_DOOR_SENSOR_SETTINGS]
+    assert isinstance(persisted_settings_raw, dict)
+    persisted_settings = cast(DoorSensorSettingsPayload, persisted_settings_raw)
     assert persisted_settings["minimum_walk_duration"] == 240
     assert persisted_settings["auto_end_walks"] is False
 
@@ -300,11 +315,14 @@ async def test_initialize_ignores_non_string_sensor(
     validate_mock = AsyncMock(side_effect=AssertionError("should not validate"))
     monkeypatch.setattr(manager, "_validate_sensor_entity", validate_mock)
 
-    dog: DogConfigData = {
-        "dog_id": "dog-1",
-        "dog_name": "Buddy",
-        CONF_DOOR_SENSOR: 42,
-    }
+    dog = cast(
+        DogConfigData,
+        {
+            "dog_id": "dog-1",
+            "dog_name": "Buddy",
+            CONF_DOOR_SENSOR: 42,
+        },
+    )
 
     await manager.async_initialize([dog], data_manager=data_manager)
 
@@ -326,12 +344,15 @@ async def test_initialize_discards_non_mapping_settings(
         manager, "_validate_sensor_entity", AsyncMock(return_value=True)
     )
 
-    dog: DogConfigData = {
-        "dog_id": "dog-1",
-        "dog_name": "Buddy",
-        CONF_DOOR_SENSOR: "binary_sensor.back_door",
-        CONF_DOOR_SENSOR_SETTINGS: object(),
-    }
+    dog = cast(
+        DogConfigData,
+        {
+            "dog_id": "dog-1",
+            "dog_name": "Buddy",
+            CONF_DOOR_SENSOR: "binary_sensor.back_door",
+            CONF_DOOR_SENSOR_SETTINGS: object(),
+        },
+    )
 
     await manager.async_initialize([dog], data_manager=data_manager)
 
@@ -363,5 +384,9 @@ async def test_update_persists_changes(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
     manager._data_manager.async_update_dog_data.assert_awaited_once()
-    _, updates = manager._data_manager.async_update_dog_data.await_args[0]
-    assert updates[CONF_DOOR_SENSOR_SETTINGS]["minimum_walk_duration"] == 600
+    _, updates_raw = manager._data_manager.async_update_dog_data.await_args[0]
+    updates = cast(DoorSensorConfigUpdate, updates_raw)
+    updated_settings_raw = updates[CONF_DOOR_SENSOR_SETTINGS]
+    assert isinstance(updated_settings_raw, dict)
+    updated_settings = cast(DoorSensorSettingsPayload, updated_settings_raw)
+    assert updated_settings["minimum_walk_duration"] == 600

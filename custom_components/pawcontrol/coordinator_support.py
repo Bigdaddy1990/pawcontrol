@@ -32,6 +32,7 @@ from .types import (
     CacheRepairAggregate,
     CacheRepairIssue,
     CoordinatorDogData,
+    CoordinatorModuleState,
     CoordinatorModuleTask,
     CoordinatorRepairsSummary,
     CoordinatorRuntimeManagers,
@@ -75,17 +76,17 @@ if TYPE_CHECKING:
 class SupportsCoordinatorSnapshot(Protocol):
     """Protocol for caches that expose coordinator diagnostics snapshots."""
 
-    def coordinator_snapshot(self) -> Mapping[str, Any]:
+    def coordinator_snapshot(self) -> Mapping[str, object]:
         """Return a diagnostics snapshot consumable by coordinators."""
 
 
 class SupportsCacheTelemetry(Protocol):
     """Protocol for caches exposing discrete stats/diagnostics callables."""
 
-    def get_stats(self) -> Mapping[str, Any]:
+    def get_stats(self) -> Mapping[str, object]:
         """Return cache statistics used by diagnostics exporters."""
 
-    def get_diagnostics(self) -> Mapping[str, Any]:
+    def get_diagnostics(self) -> Mapping[str, object]:
         """Return cache diagnostics used by coordinator panels."""
 
 
@@ -310,7 +311,7 @@ class DogConfigRegistry:
         config = self.get(dog_id)
         if not config:
             return frozenset()
-        modules_payload = cast(Mapping[str, Any] | None, config.get(CONF_MODULES))
+        modules_payload = cast(Mapping[str, object] | None, config.get(CONF_MODULES))
         modules = coerce_dog_modules_config(modules_payload)
         return frozenset(module for module, enabled in modules.items() if bool(enabled))
 
@@ -328,7 +329,7 @@ class DogConfigRegistry:
     def empty_payload(self) -> CoordinatorDogData:
         """Return an empty coordinator payload for a dog."""
 
-        payload: dict[str, Any] = {
+        payload: dict[str, object] = {
             "dog_info": cast(
                 DogConfigData,
                 {
@@ -342,13 +343,13 @@ class DogConfigRegistry:
 
         for module in sorted(ALL_MODULES):
             if module in _STATUS_DEFAULT_MODULES:
-                payload[module] = {"status": "unknown"}
+                payload[module] = cast(CoordinatorModuleState, {"status": "unknown"})
             else:
-                payload[module] = {}
+                payload[module] = cast(CoordinatorModuleState, {})
 
         return cast(CoordinatorDogData, payload)
 
-    def calculate_update_interval(self, options: Mapping[str, Any]) -> int:
+    def calculate_update_interval(self, options: Mapping[str, object]) -> int:
         """Derive the polling interval from configuration options."""
         provided_interval = options.get(CONF_GPS_UPDATE_INTERVAL)
         validated_interval: int | None = None

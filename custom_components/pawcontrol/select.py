@@ -11,7 +11,8 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Final, cast
+from types import MappingProxyType
+from typing import TYPE_CHECKING, Final, cast
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.core import HomeAssistant
@@ -55,6 +56,7 @@ from .types import (
     GroomingTypeInfo,
     JSONMapping,
     JSONMutableMapping,
+    JSONValue,
     LocationAccuracyConfig,
     PawControlConfigEntry,
     PawControlRuntimeData,
@@ -98,48 +100,54 @@ TRACKING_MODES = [
     "battery_saver",
 ]
 
-TRACKING_MODE_PRESETS: Final[dict[str, TrackingModePreset]] = {
-    "continuous": {
-        "update_interval_seconds": 15,
-        "auto_start_walk": True,
-        "track_route": True,
-    },
-    "interval": {
-        "update_interval_seconds": 60,
-        "auto_start_walk": True,
-        "track_route": True,
-    },
-    "on_demand": {
-        "update_interval_seconds": 300,
-        "auto_start_walk": False,
-        "track_route": False,
-    },
-    "battery_saver": {
-        "update_interval_seconds": 180,
-        "auto_start_walk": True,
-        "route_smoothing": True,
-    },
-}
+TRACKING_MODE_PRESETS: Final[Mapping[str, TrackingModePreset]] = MappingProxyType(
+    {
+        "continuous": {
+            "update_interval_seconds": 15,
+            "auto_start_walk": True,
+            "track_route": True,
+        },
+        "interval": {
+            "update_interval_seconds": 60,
+            "auto_start_walk": True,
+            "track_route": True,
+        },
+        "on_demand": {
+            "update_interval_seconds": 300,
+            "auto_start_walk": False,
+            "track_route": False,
+        },
+        "battery_saver": {
+            "update_interval_seconds": 180,
+            "auto_start_walk": True,
+            "route_smoothing": True,
+        },
+    }
+)
 
-LOCATION_ACCURACY_CONFIGS: Final[dict[str, LocationAccuracyConfig]] = {
-    "low": {
-        "gps_accuracy_threshold": 150.0,
-        "min_distance_for_point": 50.0,
-    },
-    "balanced": {
-        "gps_accuracy_threshold": 75.0,
-        "min_distance_for_point": 25.0,
-    },
-    "high": {
-        "gps_accuracy_threshold": 30.0,
-        "min_distance_for_point": 10.0,
-    },
-    "best": {
-        "gps_accuracy_threshold": 10.0,
-        "min_distance_for_point": 5.0,
-        "route_smoothing": False,
-    },
-}
+LOCATION_ACCURACY_CONFIGS: Final[Mapping[str, LocationAccuracyConfig]] = (
+    MappingProxyType(
+        {
+            "low": {
+                "gps_accuracy_threshold": 150.0,
+                "min_distance_for_point": 50.0,
+            },
+            "balanced": {
+                "gps_accuracy_threshold": 75.0,
+                "min_distance_for_point": 25.0,
+            },
+            "high": {
+                "gps_accuracy_threshold": 30.0,
+                "min_distance_for_point": 10.0,
+            },
+            "best": {
+                "gps_accuracy_threshold": 10.0,
+                "min_distance_for_point": 5.0,
+                "route_smoothing": False,
+            },
+        }
+    )
+)
 
 FEEDING_SCHEDULES = [
     "flexible",
@@ -165,6 +173,207 @@ WEATHER_CONDITIONS = [
     "warm",
     "cool",
 ]
+
+
+DOG_SIZE_DETAILS: Final[Mapping[str, DogSizeInfo]] = MappingProxyType(
+    {
+        "toy": {
+            "weight_range": "1-6kg",
+            "exercise_needs": "low",
+            "food_portion": "small",
+        },
+        "small": {
+            "weight_range": "6-12kg",
+            "exercise_needs": "moderate",
+            "food_portion": "small",
+        },
+        "medium": {
+            "weight_range": "12-27kg",
+            "exercise_needs": "moderate",
+            "food_portion": "medium",
+        },
+        "large": {
+            "weight_range": "27-45kg",
+            "exercise_needs": "high",
+            "food_portion": "large",
+        },
+        "giant": {
+            "weight_range": "45-90kg",
+            "exercise_needs": "high",
+            "food_portion": "extra_large",
+        },
+    }
+)
+
+PERFORMANCE_MODE_DETAILS: Final[Mapping[str, PerformanceModeInfo]] = MappingProxyType(
+    {
+        "minimal": {
+            "description": "Minimal resource usage, longer update intervals",
+            "update_interval": "5 minutes",
+            "battery_impact": "minimal",
+        },
+        "balanced": {
+            "description": "Balanced performance and resource usage",
+            "update_interval": "2 minutes",
+            "battery_impact": "moderate",
+        },
+        "full": {
+            "description": "Maximum performance, frequent updates",
+            "update_interval": "30 seconds",
+            "battery_impact": "high",
+        },
+    }
+)
+
+WALK_MODE_DETAILS: Final[Mapping[str, WalkModeInfo]] = MappingProxyType(
+    {
+        "automatic": {
+            "description": "Automatically detect walk start/end",
+            "gps_required": True,
+            "accuracy": "high",
+        },
+        "manual": {
+            "description": "Manually start and end walks",
+            "gps_required": False,
+            "accuracy": "user-dependent",
+        },
+        "hybrid": {
+            "description": "Automatic detection with manual override",
+            "gps_required": True,
+            "accuracy": "very high",
+        },
+    }
+)
+
+FOOD_TYPE_DETAILS: Final[Mapping[str, FoodTypeInfo]] = MappingProxyType(
+    {
+        "dry_food": {
+            "calories_per_gram": 3.5,
+            "moisture_content": "10%",
+            "storage": "dry place",
+            "shelf_life": "12-18 months",
+        },
+        "wet_food": {
+            "calories_per_gram": 1.2,
+            "moisture_content": "75%",
+            "storage": "refrigerate after opening",
+            "shelf_life": "2-3 days opened",
+        },
+        "barf": {
+            "calories_per_gram": 2.0,
+            "moisture_content": "70%",
+            "storage": "frozen until use",
+            "shelf_life": "3-6 months frozen",
+        },
+        "home_cooked": {
+            "calories_per_gram": 1.8,
+            "moisture_content": "65%",
+            "storage": "refrigerate",
+            "shelf_life": "2-3 days",
+        },
+        "mixed": {
+            "calories_per_gram": 2.5,
+            "moisture_content": "40%",
+            "storage": "varies",
+            "shelf_life": "varies",
+        },
+    }
+)
+
+GPS_SOURCE_DETAILS: Final[Mapping[str, GPSSourceInfo]] = MappingProxyType(
+    {
+        "manual": {
+            "accuracy": "user-dependent",
+            "update_frequency": "manual",
+            "battery_usage": "none",
+        },
+        "device_tracker": {
+            "accuracy": "high",
+            "update_frequency": "automatic",
+            "battery_usage": "low",
+        },
+        "person_entity": {
+            "accuracy": "device-dependent",
+            "update_frequency": "automatic",
+            "battery_usage": "low",
+        },
+        "gps_logger": {
+            "accuracy": "medium",
+            "update_frequency": "15 minutes",
+            "battery_usage": "medium",
+        },
+        "ble_beacon": {
+            "accuracy": "near proximity",
+            "update_frequency": "on demand",
+            "battery_usage": "low",
+        },
+        "smartphone": {
+            "accuracy": "high",
+            "update_frequency": "real-time",
+            "battery_usage": "medium",
+        },
+        "tractive": {
+            "accuracy": "very high",
+            "update_frequency": "real-time",
+            "battery_usage": "device-dependent",
+        },
+        "webhook": {
+            "accuracy": "source-dependent",
+            "update_frequency": "real-time",
+            "battery_usage": "none",
+        },
+        "mqtt": {
+            "accuracy": "source-dependent",
+            "update_frequency": "real-time",
+            "battery_usage": "none",
+        },
+    }
+)
+
+GROOMING_TYPE_DETAILS: Final[Mapping[str, GroomingTypeInfo]] = MappingProxyType(
+    {
+        "bath": {
+            "frequency": "4-6 weeks",
+            "duration": "30-60 minutes",
+            "difficulty": "medium",
+        },
+        "brush": {
+            "frequency": "daily",
+            "duration": "5-15 minutes",
+            "difficulty": "easy",
+        },
+        "nails": {
+            "frequency": "2-4 weeks",
+            "duration": "10-20 minutes",
+            "difficulty": "medium",
+        },
+        "teeth": {
+            "frequency": "daily",
+            "duration": "2-5 minutes",
+            "difficulty": "easy",
+        },
+        "trim": {
+            "frequency": "6-8 weeks",
+            "duration": "60-90 minutes",
+            "difficulty": "hard",
+        },
+        "full_grooming": {
+            "frequency": "6-8 weeks",
+            "duration": "120-180 minutes",
+            "difficulty": "hard",
+        },
+    }
+)
+
+
+def _merge_json_mappings(
+    base: Mapping[str, JSONValue] | None, updates: Mapping[str, JSONValue]
+) -> JSONMutableMapping:
+    """Return a JSON-compatible mapping that merges base and updates."""
+
+    base_payload: dict[str, JSONValue] = dict(base) if base is not None else {}
+    merged = deep_merge_dicts(base_payload, dict(updates))
+    return cast(JSONMutableMapping, merged)
 
 
 async def _async_add_entities_in_batches(
@@ -480,18 +689,15 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
 
         dog_data = self._get_dog_data()
         if dog_data is None:
-            return {}
+            return cast(JSONMutableMapping, {})
 
         gps_data = dog_data.get("gps")
-        if not isinstance(gps_data, Mapping):
-            return {}
+        if isinstance(gps_data, Mapping):
+            config = gps_data.get("config")
+            if isinstance(config, Mapping):
+                return cast(JSONMutableMapping, dict(config))
 
-        config = gps_data.get("config")
-        if isinstance(config, Mapping):
-            return cast(JSONMutableMapping, dict(config))
-        if isinstance(config, dict):
-            return cast(JSONMutableMapping, config)
-        return {}
+        return cast(JSONMutableMapping, {})
 
     async def _async_update_module_settings(
         self,
@@ -524,13 +730,8 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
         dog_data: JSONMutableMapping = (
             dict(existing_dog) if isinstance(existing_dog, Mapping) else {}
         )
-        existing_module = dog_data.get(module)
-        base_payload: dict[str, Any]
-        if isinstance(existing_module, Mapping):
-            base_payload = dict(existing_module)
-        else:
-            base_payload = {}
-        merged = cast(JSONMutableMapping, deep_merge_dicts(base_payload, dict(updates)))
+        existing_module = cast(Mapping[str, JSONValue] | None, dog_data.get(module))
+        merged = _merge_json_mappings(existing_module, updates)
         dog_data[module] = merged
         coordinator_data[self._dog_id] = dog_data
         update_result = self.coordinator.async_set_updated_data(coordinator_data)
@@ -549,14 +750,11 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
         merged_config: JSONMutableMapping | None = None
 
         if state_updates:
-            gps_updates.update(dict(state_updates))
+            gps_updates.update(state_updates)
 
         if config_updates:
             current_config = self._get_current_gps_config()
-            merged_config = cast(
-                JSONMutableMapping,
-                deep_merge_dicts(current_config, dict(config_updates)),
-            )
+            merged_config = _merge_json_mappings(current_config, config_updates)
             gps_updates.setdefault("config", merged_config)
 
         if gps_updates:
@@ -618,32 +816,31 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
             Dictionary of additional state attributes
         """
         base_attrs = super().extra_state_attributes
-        attrs: SelectExtraAttributes = (
-            dict(base_attrs) if base_attrs is not None else {}
-        )
+        attrs: SelectExtraAttributes = {}
+        if base_attrs:
+            attrs.update(cast(SelectExtraAttributes, base_attrs))
 
-        attrs.update(
-            {
-                ATTR_DOG_ID: self._dog_id,
-                ATTR_DOG_NAME: self._dog_name,
-                "select_type": self._select_type,
-                "available_options": list(self.options),
-                "last_changed": dt_util.utcnow().isoformat(),
-            }
-        )
+        attrs[ATTR_DOG_ID] = self._dog_id
+        attrs[ATTR_DOG_NAME] = self._dog_name
+        attrs["select_type"] = self._select_type
+        attrs["available_options"] = list(self.options)
+        attrs["last_changed"] = dt_util.utcnow().isoformat()
 
-        # Add dog-specific information
         dog_data = self._get_dog_data()
-        if dog_data is not None:
+        if isinstance(dog_data, Mapping):
             dog_info = dog_data.get("dog_info")
-            if dog_info is not None:
-                attrs.update(
-                    {
-                        "dog_breed": dog_info.get("dog_breed", ""),
-                        "dog_age": dog_info.get("dog_age"),
-                        "dog_size": dog_info.get("dog_size"),
-                    }
-                )
+            if isinstance(dog_info, Mapping):
+                breed = dog_info.get("dog_breed")
+                if isinstance(breed, str):
+                    attrs["dog_breed"] = breed
+
+                age = dog_info.get("dog_age")
+                if isinstance(age, int | float):
+                    attrs["dog_age"] = age
+
+                size = dog_info.get("dog_size")
+                if isinstance(size, str):
+                    attrs["dog_size"] = size
 
         return attrs
 
@@ -781,41 +978,13 @@ class PawControlDogSizeSelect(PawControlSelectBase):
             Size information dictionary
         """
         if size is None:
-            return {}
+            return cast(DogSizeInfo, {})
 
-        size_data = {
-            "toy": {
-                "weight_range": "1-6kg",
-                "exercise_needs": "low",
-                "food_portion": "small",
-            },
-            "small": {
-                "weight_range": "6-12kg",
-                "exercise_needs": "moderate",
-                "food_portion": "small",
-            },
-            "medium": {
-                "weight_range": "12-27kg",
-                "exercise_needs": "moderate",
-                "food_portion": "medium",
-            },
-            "large": {
-                "weight_range": "27-45kg",
-                "exercise_needs": "high",
-                "food_portion": "large",
-            },
-            "giant": {
-                "weight_range": "45-90kg",
-                "exercise_needs": "high",
-                "food_portion": "extra_large",
-            },
-        }
+        info = DOG_SIZE_DETAILS.get(size)
+        if info is None:
+            return cast(DogSizeInfo, {})
 
-        if size is None:
-            return {}
-
-        info = size_data.get(size)
-        return cast(DogSizeInfo, info) if info is not None else {}
+        return cast(DogSizeInfo, dict(info))
 
 
 class PawControlPerformanceModeSelect(PawControlSelectBase):
@@ -860,29 +1029,14 @@ class PawControlPerformanceModeSelect(PawControlSelectBase):
         Returns:
             Performance mode information
         """
-        mode_data = {
-            "minimal": {
-                "description": "Minimal resource usage, longer update intervals",
-                "update_interval": "5 minutes",
-                "battery_impact": "minimal",
-            },
-            "balanced": {
-                "description": "Balanced performance and resource usage",
-                "update_interval": "2 minutes",
-                "battery_impact": "moderate",
-            },
-            "full": {
-                "description": "Maximum performance, frequent updates",
-                "update_interval": "30 seconds",
-                "battery_impact": "high",
-            },
-        }
-
         if mode is None:
-            return {}
+            return cast(PerformanceModeInfo, {})
 
-        info = mode_data.get(mode)
-        return cast(PerformanceModeInfo, info) if info is not None else {}
+        info = PERFORMANCE_MODE_DETAILS.get(mode)
+        if info is None:
+            return cast(PerformanceModeInfo, {})
+
+        return cast(PerformanceModeInfo, dict(info))
 
 
 class PawControlNotificationPrioritySelect(PawControlSelectBase):
@@ -938,14 +1092,12 @@ class PawControlNotificationPrioritySelect(PawControlSelectBase):
             )
 
         timestamp = dt_util.utcnow().isoformat()
-        await self._async_update_module_settings(
-            "notifications",
-            {
-                "default_priority": option,
-                "priority_last_updated": timestamp,
-                "priority_numeric": priority.value_numeric,
-            },
-        )
+        updates: JSONMutableMapping = {
+            "default_priority": option,
+            "priority_last_updated": timestamp,
+            "priority_numeric": priority.value_numeric,
+        }
+        await self._async_update_module_settings("notifications", updates)
 
 
 # Feeding selects
@@ -990,44 +1142,14 @@ class PawControlFoodTypeSelect(PawControlSelectBase):
         Returns:
             Food type information
         """
-        food_data = {
-            "dry_food": {
-                "calories_per_gram": 3.5,
-                "moisture_content": "10%",
-                "storage": "dry place",
-                "shelf_life": "12-18 months",
-            },
-            "wet_food": {
-                "calories_per_gram": 1.2,
-                "moisture_content": "75%",
-                "storage": "refrigerate after opening",
-                "shelf_life": "2-3 days opened",
-            },
-            "barf": {
-                "calories_per_gram": 2.0,
-                "moisture_content": "70%",
-                "storage": "frozen until use",
-                "shelf_life": "3-6 months frozen",
-            },
-            "home_cooked": {
-                "calories_per_gram": 1.8,
-                "moisture_content": "65%",
-                "storage": "refrigerate",
-                "shelf_life": "2-3 days",
-            },
-            "mixed": {
-                "calories_per_gram": 2.5,
-                "moisture_content": "40%",
-                "storage": "varies",
-                "shelf_life": "varies",
-            },
-        }
-
         if food_type is None:
-            return {}
+            return cast(FoodTypeInfo, {})
 
-        info = food_data.get(food_type)
-        return cast(FoodTypeInfo, info) if info is not None else {}
+        info = FOOD_TYPE_DETAILS.get(food_type)
+        if info is None:
+            return cast(FoodTypeInfo, {})
+
+        return cast(FoodTypeInfo, dict(info))
 
 
 class PawControlFeedingScheduleSelect(PawControlSelectBase):
@@ -1141,29 +1263,14 @@ class PawControlWalkModeSelect(PawControlSelectBase):
         Returns:
             Walk mode information
         """
-        mode_data = {
-            "automatic": {
-                "description": "Automatically detect walk start/end",
-                "gps_required": True,
-                "accuracy": "high",
-            },
-            "manual": {
-                "description": "Manually start and end walks",
-                "gps_required": False,
-                "accuracy": "user-dependent",
-            },
-            "hybrid": {
-                "description": "Automatic detection with manual override",
-                "gps_required": True,
-                "accuracy": "very high",
-            },
-        }
-
         if mode is None:
-            return {}
+            return cast(WalkModeInfo, {})
 
-        info = mode_data.get(mode)
-        return cast(WalkModeInfo, info) if info is not None else {}
+        info = WALK_MODE_DETAILS.get(mode)
+        if info is None:
+            return cast(WalkModeInfo, {})
+
+        return cast(WalkModeInfo, dict(info))
 
 
 class PawControlWeatherPreferenceSelect(PawControlSelectBase):
@@ -1261,49 +1368,14 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
         Returns:
             GPS source information
         """
-        source_data = {
-            "manual": {
-                "accuracy": "user-dependent",
-                "update_frequency": "manual",
-                "battery_usage": "none",
-            },
-            "device_tracker": {
-                "accuracy": "device-dependent",
-                "update_frequency": "automatic",
-                "battery_usage": "low",
-            },
-            "person_entity": {
-                "accuracy": "device-dependent",
-                "update_frequency": "automatic",
-                "battery_usage": "low",
-            },
-            "smartphone": {
-                "accuracy": "high",
-                "update_frequency": "real-time",
-                "battery_usage": "medium",
-            },
-            "tractive": {
-                "accuracy": "very high",
-                "update_frequency": "real-time",
-                "battery_usage": "device-dependent",
-            },
-            "webhook": {
-                "accuracy": "source-dependent",
-                "update_frequency": "real-time",
-                "battery_usage": "none",
-            },
-            "mqtt": {
-                "accuracy": "source-dependent",
-                "update_frequency": "real-time",
-                "battery_usage": "none",
-            },
-        }
-
         if source is None:
-            return {}
+            return cast(GPSSourceInfo, {})
 
-        info = source_data.get(source)
-        return cast(GPSSourceInfo, info) if info is not None else {}
+        info = GPS_SOURCE_DETAILS.get(source)
+        if info is None:
+            return cast(GPSSourceInfo, {})
+
+        return cast(GPSSourceInfo, dict(info))
 
 
 class PawControlTrackingModeSelect(PawControlSelectBase):
@@ -1510,41 +1582,11 @@ class PawControlGroomingTypeSelect(PawControlSelectBase):
         Returns:
             Grooming type information
         """
-        grooming_data = {
-            "bath": {
-                "frequency": "4-6 weeks",
-                "duration": "30-60 minutes",
-                "difficulty": "medium",
-            },
-            "brush": {
-                "frequency": "daily",
-                "duration": "5-15 minutes",
-                "difficulty": "easy",
-            },
-            "nails": {
-                "frequency": "2-4 weeks",
-                "duration": "10-20 minutes",
-                "difficulty": "medium",
-            },
-            "teeth": {
-                "frequency": "daily",
-                "duration": "2-5 minutes",
-                "difficulty": "easy",
-            },
-            "trim": {
-                "frequency": "6-8 weeks",
-                "duration": "60-90 minutes",
-                "difficulty": "hard",
-            },
-            "full_grooming": {
-                "frequency": "6-8 weeks",
-                "duration": "120-180 minutes",
-                "difficulty": "hard",
-            },
-        }
-
         if grooming_type is None:
-            return {}
+            return cast(GroomingTypeInfo, {})
 
-        info = grooming_data.get(grooming_type)
-        return cast(GroomingTypeInfo, info) if info is not None else {}
+        info = GROOMING_TYPE_DETAILS.get(grooming_type)
+        if info is None:
+            return cast(GroomingTypeInfo, {})
+
+        return cast(GroomingTypeInfo, dict(info))

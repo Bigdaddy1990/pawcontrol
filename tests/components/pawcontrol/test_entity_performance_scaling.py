@@ -16,12 +16,16 @@ import logging
 import sys
 import time
 from collections import defaultdict
+from collections.abc import Mapping
 from typing import Any
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
-from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES, EntityFactory
+from custom_components.pawcontrol.entity_factory import (
+    ENTITY_PROFILES,
+    EntityFactory,
+)
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 
@@ -343,7 +347,7 @@ class TestEntityPerformanceScaling:
             isinstance(result, int) and result > 0 for result in estimate_results
         )
         assert all(
-            result is None or isinstance(result, dict) for result in config_results
+            result is None or isinstance(result, Mapping) for result in config_results
         )
         assert all(isinstance(result, bool) for result in decision_results)
 
