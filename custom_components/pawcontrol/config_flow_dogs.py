@@ -1856,9 +1856,7 @@ class DogManagementMixin(DogManagementMixinBase):
         if user_input is not None:
             # Store global module settings
             self._global_modules = ModuleConfigurationSnapshot(
-                enable_notifications=bool(
-                    user_input.get("enable_notifications", True)
-                ),
+                enable_notifications=bool(user_input.get("enable_notifications", True)),
                 enable_dashboard=bool(user_input.get("enable_dashboard", True)),
                 performance_mode=normalize_performance_mode(
                     user_input.get("performance_mode"), fallback="balanced"

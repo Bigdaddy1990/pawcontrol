@@ -233,10 +233,7 @@ def _coerce_json_mutable(
     if isinstance(mapping, dict):
         return cast(JSONMutableMapping, dict(mapping))
 
-    return {
-        key: cast(JSONValue, value)
-        for key, value in mapping.items()
-    }
+    return {key: cast(JSONValue, value) for key, value in mapping.items()}
 
 
 async def async_call_hass_service_if_available(

@@ -25,10 +25,10 @@ from .entity import PawControlEntity
 from .notifications import NotificationPriority, NotificationType
 from .runtime_data import get_runtime_data
 from .types import (
-    ConfigFlowUserInput,
     DOG_ID_FIELD,
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
+    ConfigFlowUserInput,
     DogConfigData,
     DogModulesConfig,
     DogModulesProjection,
@@ -87,12 +87,13 @@ def _normalize_dog_configs(
             continue
 
         modules_payload = typed_mapping.get(DOG_MODULES_FIELD)
-        modules_source: ConfigFlowUserInput | DogModulesProjection | DogModulesConfig | None
+        modules_source: (
+            ConfigFlowUserInput | DogModulesProjection | DogModulesConfig | None
+        )
         if isinstance(modules_payload, Mapping):
             modules_source = cast(ConfigFlowUserInput, modules_payload)
         elif isinstance(modules_payload, DogModulesProjection) or (
-            hasattr(modules_payload, "config")
-            and hasattr(modules_payload, "mapping")
+            hasattr(modules_payload, "config") and hasattr(modules_payload, "mapping")
         ):
             modules_source = cast(DogModulesProjection, modules_payload)
         else:

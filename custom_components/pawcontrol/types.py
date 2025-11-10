@@ -854,7 +854,9 @@ MODULE_TOGGLE_KEYS: Final[tuple[ModuleToggleKey, ...]] = (
     "training",
 )
 
-MODULE_TOGGLE_FLOW_FLAGS: Final[tuple[tuple[ModuleToggleFlowFlag, ModuleToggleKey], ...]] = (
+MODULE_TOGGLE_FLOW_FLAGS: Final[
+    tuple[tuple[ModuleToggleFlowFlag, ModuleToggleKey], ...]
+] = (
     ("enable_feeding", "feeding"),
     ("enable_walk", "walk"),
     ("enable_health", "health"),
@@ -887,6 +889,7 @@ class DogModuleSelectionInput(TypedDict, total=False):
     enable_grooming: bool
     enable_medication: bool
     enable_training: bool
+
 
 FeedingConfigKey = Literal[
     "meals_per_day",
@@ -5004,9 +5007,7 @@ class CoordinatorRejectionMetrics(TypedDict):
 
 
 type RejectionMetricsTarget = (
-    CoordinatorRejectionMetrics
-    | CoordinatorPerformanceMetrics
-    | JSONMutableMapping
+    CoordinatorRejectionMetrics | CoordinatorPerformanceMetrics | JSONMutableMapping
 )
 """Mutable mapping that can receive rejection metric updates."""
 
@@ -5883,6 +5884,7 @@ class DailyStats:
 
         raw_date = payload.get("date")
         date_value = cls._parse_datetime(raw_date) or dt_util.utcnow()
+
         def _coerce_int(value: JSONDateValue | None, *, default: int = 0) -> int:
             if isinstance(value, bool):
                 return int(value)
@@ -5900,7 +5902,9 @@ class DailyStats:
                     return default
             return default
 
-        def _coerce_float(value: JSONDateValue | None, *, default: float = 0.0) -> float:
+        def _coerce_float(
+            value: JSONDateValue | None, *, default: float = 0.0
+        ) -> float:
             if isinstance(value, bool):
                 return float(value)
             if isinstance(value, int | float):

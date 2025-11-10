@@ -1189,7 +1189,12 @@ class FeedingManager:
 
                 feeding_config = cast(
                     JSONMutableMapping,
-                    dict(cast(JSONMapping | JSONMutableMapping, dog.get("feeding_config", {}))),
+                    dict(
+                        cast(
+                            JSONMapping | JSONMutableMapping,
+                            dog.get("feeding_config", {}),
+                        )
+                    ),
                 )
                 config = await self._create_feeding_config(dog_id, feeding_config)
 
@@ -2742,9 +2747,7 @@ class FeedingManager:
                 if "age_months" in health_data:
                     age_months_value = health_data["age_months"]
                     config.age_months = (
-                        int(age_months_value)
-                        if age_months_value is not None
-                        else None
+                        int(age_months_value) if age_months_value is not None else None
                     )
                 if "activity_level" in health_data:
                     config.activity_level = health_data["activity_level"]

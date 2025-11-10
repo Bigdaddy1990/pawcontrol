@@ -845,9 +845,7 @@ class PawControlNotificationManager:
         """
         async with self._lock:
             configs: NotificationConfigInputMap = (
-                {}
-                if notification_configs is None
-                else dict(notification_configs)
+                {} if notification_configs is None else dict(notification_configs)
             )
 
             for config_id, config_data in configs.items():
@@ -871,7 +869,9 @@ class PawControlNotificationManager:
                     # Parse quiet hours
                     quiet_hours = None
                     if "quiet_hours" in config_data:
-                        quiet_config = cast(NotificationQuietHoursConfig, config_data["quiet_hours"])
+                        quiet_config = cast(
+                            NotificationQuietHoursConfig, config_data["quiet_hours"]
+                        )
                         quiet_start = quiet_config.get("start", 22)
                         quiet_end = quiet_config.get("end", 7)
                         quiet_hours = (quiet_start, quiet_end)
@@ -2441,7 +2441,10 @@ class PawControlNotificationManager:
             Discovery results
         """
         if self._person_manager:
-            return cast(PersonDiscoveryResult, await self._person_manager.async_force_discovery())
+            return cast(
+                PersonDiscoveryResult,
+                await self._person_manager.async_force_discovery(),
+            )
         return {"error": "Person manager not available"}
 
     def get_person_notification_context(self) -> PersonNotificationContext:

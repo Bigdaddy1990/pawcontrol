@@ -206,9 +206,7 @@ def _parse_manual_resilience_system_settings(
     if skip_threshold is not None:
         settings["resilience_skip_threshold"] = skip_threshold
 
-    breaker_threshold = _coerce_optional_int(
-        value.get("resilience_breaker_threshold")
-    )
+    breaker_threshold = _coerce_optional_int(value.get("resilience_breaker_threshold"))
     if breaker_threshold is not None:
         settings["resilience_breaker_threshold"] = breaker_threshold
 
@@ -234,9 +232,7 @@ def _parse_manual_resilience_options(
     if skip_threshold is not None:
         options["resilience_skip_threshold"] = skip_threshold
 
-    breaker_threshold = _coerce_optional_int(
-        value.get("resilience_breaker_threshold")
-    )
+    breaker_threshold = _coerce_optional_int(value.get("resilience_breaker_threshold"))
     if breaker_threshold is not None:
         options["resilience_breaker_threshold"] = breaker_threshold
 
@@ -270,7 +266,9 @@ def _parse_event_selection(
     return selection
 
 
-def _coerce_threshold(value: object, *, default: int, minimum: int, maximum: int) -> int:
+def _coerce_threshold(
+    value: object, *, default: int, minimum: int, maximum: int
+) -> int:
     """Return a clamped integer threshold for resilience configuration."""
 
     candidate = _coerce_optional_int(value)
@@ -514,7 +512,9 @@ class PawControlScriptManager:
         )
         self._restore_manual_event_history_from_runtime()
         if self._manual_event_history:
-            self._last_manual_event = cast(ManualResilienceEventRecord, dict(self._manual_event_history[-1]))
+            self._last_manual_event = cast(
+                ManualResilienceEventRecord, dict(self._manual_event_history[-1])
+            )
         self._sync_manual_history_to_runtime()
 
     async def async_initialize(self) -> None:
@@ -531,7 +531,9 @@ class PawControlScriptManager:
         self._manual_event_sources.clear()
         self._manual_event_counters.clear()
         if self._manual_event_history:
-            self._last_manual_event = cast(ManualResilienceEventRecord, dict(self._manual_event_history[-1]))
+            self._last_manual_event = cast(
+                ManualResilienceEventRecord, dict(self._manual_event_history[-1])
+            )
         else:
             self._last_manual_event = None
         self._refresh_manual_event_listeners()
@@ -762,7 +764,9 @@ class PawControlScriptManager:
             if "manual_guard_event" in system_settings:
                 updated["manual_guard_event"] = system_settings["manual_guard_event"]
             if "manual_breaker_event" in system_settings:
-                updated["manual_breaker_event"] = system_settings["manual_breaker_event"]
+                updated["manual_breaker_event"] = system_settings[
+                    "manual_breaker_event"
+                ]
             if "resilience_skip_threshold" in system_settings:
                 updated["resilience_skip_threshold"] = system_settings[
                     "resilience_skip_threshold"
@@ -2253,9 +2257,7 @@ class PawControlScriptManager:
             JSONMutableMapping, dict(manual_events)
         )
         active_listeners = sorted({*self._manual_event_sources, *source_mapping})
-        manual_payload["preferred_events"] = cast(
-            JSONValue, dict(manual_preferences)
-        )
+        manual_payload["preferred_events"] = cast(JSONValue, dict(manual_preferences))
         manual_payload["preferred_guard_event"] = cast(
             JSONValue, manual_preferences.get("manual_guard_event")
         )
@@ -2328,7 +2330,9 @@ class PawControlScriptManager:
         timestamp_issue, last_generated_age = _classify_timestamp(self._last_generation)
 
         manual_last_trigger: ManualResilienceEventSnapshot | None = None
-        candidate_record: ManualResilienceEventRecord | Mapping[str, object] | None = None
+        candidate_record: ManualResilienceEventRecord | Mapping[str, object] | None = (
+            None
+        )
         if self._manual_event_history:
             candidate_record = self._manual_event_history[-1]
         elif isinstance(self._last_manual_event, Mapping):

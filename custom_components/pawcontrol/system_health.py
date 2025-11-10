@@ -481,9 +481,7 @@ async def system_health_info(hass: HomeAssistant) -> SystemHealthInfoPayload:
     service_status = _build_service_status(guard_summary, breaker_overview)
 
     script_manager = getattr(runtime, "script_manager", None)
-    manual_snapshot: (
-        ManualResilienceEventsTelemetry | JSONLikeMapping | None
-    ) = None
+    manual_snapshot: ManualResilienceEventsTelemetry | JSONLikeMapping | None = None
     if script_manager is not None:
         snapshot = getattr(script_manager, "get_resilience_escalation_snapshot", None)
         if callable(snapshot):
@@ -867,9 +865,7 @@ def _build_breaker_overview(
     half_open_breakers = _coerce_str_list(rejection_metrics.get("half_open_breakers"))
     unknown_breakers = _coerce_str_list(rejection_metrics.get("unknown_breakers"))
 
-    last_breaker_id = _coerce_str(
-        rejection_metrics.get("last_rejection_breaker_id")
-    )
+    last_breaker_id = _coerce_str(rejection_metrics.get("last_rejection_breaker_id"))
     last_breaker_name = _coerce_str(
         rejection_metrics.get("last_rejection_breaker_name")
     )

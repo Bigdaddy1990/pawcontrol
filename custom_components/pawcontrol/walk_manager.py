@@ -2181,9 +2181,7 @@ class WalkManager:
                 # Update detection parameters based on config
                 accuracy_value = config.get("gps_accuracy_threshold")
                 if isinstance(accuracy_value, (int, float)):
-                    self._gps_data[dog_id]["accuracy_threshold"] = float(
-                        accuracy_value
-                    )
+                    self._gps_data[dog_id]["accuracy_threshold"] = float(accuracy_value)
 
                 update_interval_value = config.get("update_interval_seconds")
                 if isinstance(update_interval_value, (int, float)):

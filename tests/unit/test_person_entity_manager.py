@@ -89,7 +89,9 @@ async def test_force_discovery_returns_typed_payload(
     async def _noop_discovery() -> None:
         manager._last_discovery = dt_util.utcnow()
 
-    monkeypatch.setattr(manager, "_discover_person_entities", AsyncMock(side_effect=_noop_discovery))
+    monkeypatch.setattr(
+        manager, "_discover_person_entities", AsyncMock(side_effect=_noop_discovery)
+    )
 
     result: PersonEntityDiscoveryResult = await manager.async_force_discovery()
 
@@ -109,9 +111,7 @@ async def test_validate_configuration_returns_structured_payload(
     mock_hass.services.has_service = lambda *_: False
     manager = PersonEntityManager(mock_hass, "validate-entry")
 
-    result: PersonEntityValidationResult = (
-        await manager.async_validate_configuration()
-    )
+    result: PersonEntityValidationResult = await manager.async_validate_configuration()
 
     assert result["valid"] is False
     assert any("Fallback to static enabled" in issue for issue in result["issues"])

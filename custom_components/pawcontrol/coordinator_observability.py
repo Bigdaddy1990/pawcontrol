@@ -255,21 +255,19 @@ def _apply_rejection_metrics_to_performance(
             "rejection_rate": rejection_metrics["rejection_rate"],
             "last_rejection_time": rejection_metrics["last_rejection_time"],
             "last_rejection_breaker_id": rejection_metrics["last_rejection_breaker_id"],
-            "last_rejection_breaker_name": rejection_metrics["last_rejection_breaker_name"],
+            "last_rejection_breaker_name": rejection_metrics[
+                "last_rejection_breaker_name"
+            ],
             "open_breaker_count": rejection_metrics["open_breaker_count"],
             "half_open_breaker_count": rejection_metrics["half_open_breaker_count"],
             "unknown_breaker_count": rejection_metrics["unknown_breaker_count"],
             "open_breakers": list(rejection_metrics["open_breakers"]),
             "open_breaker_ids": list(rejection_metrics["open_breaker_ids"]),
             "half_open_breakers": list(rejection_metrics["half_open_breakers"]),
-            "half_open_breaker_ids": list(
-                rejection_metrics["half_open_breaker_ids"]
-            ),
+            "half_open_breaker_ids": list(rejection_metrics["half_open_breaker_ids"]),
             "unknown_breakers": list(rejection_metrics["unknown_breakers"]),
             "unknown_breaker_ids": list(rejection_metrics["unknown_breaker_ids"]),
-            "rejection_breaker_ids": list(
-                rejection_metrics["rejection_breaker_ids"]
-            ),
+            "rejection_breaker_ids": list(rejection_metrics["rejection_breaker_ids"]),
             "rejection_breakers": list(rejection_metrics["rejection_breakers"]),
         }
     )

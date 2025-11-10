@@ -7,7 +7,7 @@ import contextlib
 import logging
 from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
-from typing import Any, TypeAlias, cast
+from typing import Any, cast
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -60,7 +60,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # Type aliases for better readability
 SensorValue = str | int | float | datetime | None
-AttributeDict: TypeAlias = JSONMutableMapping
+type AttributeDict = JSONMutableMapping
 
 # Home Assistant platform configuration
 PARALLEL_UPDATES = 0
@@ -1229,7 +1229,9 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
         walk_payload = self._coerce_module_payload(dog_data.get("walk"))
         if walk_payload:
             try:
-                score = self._calculate_walk_score(cast(WalkModuleTelemetry, walk_payload))
+                score = self._calculate_walk_score(
+                    cast(WalkModuleTelemetry, walk_payload)
+                )
                 if score is not None:
                     weighted_sum += score * 0.4
                     total_weight += 0.4
@@ -1244,7 +1246,9 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
         feeding_payload = self._coerce_module_payload(dog_data.get("feeding"))
         if feeding_payload:
             try:
-                score = self._calculate_feeding_score(cast(FeedingModulePayload, feeding_payload))
+                score = self._calculate_feeding_score(
+                    cast(FeedingModulePayload, feeding_payload)
+                )
                 if score is not None:
                     weighted_sum += score * 0.2
                     total_weight += 0.2
@@ -1274,7 +1278,9 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
         health_payload = self._coerce_module_payload(dog_data.get("health"))
         if health_payload:
             try:
-                score = self._calculate_health_score(cast(HealthModulePayload, health_payload))
+                score = self._calculate_health_score(
+                    cast(HealthModulePayload, health_payload)
+                )
                 if score is not None:
                     weighted_sum += score * 0.15
                     total_weight += 0.15
@@ -1308,7 +1314,9 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
         except (TypeError, ValueError):
             return None
 
-    def _calculate_feeding_score(self, feeding_data: FeedingModulePayload) -> float | None:
+    def _calculate_feeding_score(
+        self, feeding_data: FeedingModulePayload
+    ) -> float | None:
         """Calculate feeding regularity score."""
         try:
             adherence = float(feeding_data.get("feeding_schedule_adherence", 0))
@@ -3215,7 +3223,9 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
             )
             return 0.0
 
-    def _calculate_calories_from_activity(self, walk_data: WalkModuleTelemetry) -> float:
+    def _calculate_calories_from_activity(
+        self, walk_data: WalkModuleTelemetry
+    ) -> float:
         """Calculate calories burned from walk activity data."""
         try:
             # Get dog weight for calculation
@@ -3230,8 +3240,12 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
             # Get walk metrics
             duration_value = walk_data.get("total_duration_today")
             distance_value = walk_data.get("total_distance_today")
-            total_duration_minutes = float(duration_value) if duration_value is not None else 0.0
-            total_distance_meters = float(distance_value) if distance_value is not None else 0.0
+            total_duration_minutes = (
+                float(duration_value) if duration_value is not None else 0.0
+            )
+            total_distance_meters = (
+                float(distance_value) if distance_value is not None else 0.0
+            )
 
             if total_duration_minutes == 0:
                 return 0.0

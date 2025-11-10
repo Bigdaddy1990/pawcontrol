@@ -416,15 +416,11 @@ def _coerce_service_details_value(value: Any) -> JSONValue:
 
     if isinstance(value, Mapping):
         return {
-            str(key): _coerce_service_details_value(item)
-            for key, item in value.items()
+            str(key): _coerce_service_details_value(item) for key, item in value.items()
         }
 
     if isinstance(value, (list, tuple, set)):
-        return [
-            _coerce_service_details_value(item)
-            for item in value
-        ]
+        return [_coerce_service_details_value(item) for item in value]
 
     return str(value)
 
@@ -442,9 +438,7 @@ def _normalise_service_details(payload: Any) -> ServiceDetailsPayload | None:
         }
 
     if isinstance(payload, (list, tuple, set)):
-        return {
-            "items": _coerce_service_details_value(list(payload))
-        }
+        return {"items": _coerce_service_details_value(list(payload))}
 
     return {"value": _coerce_service_details_value(payload)}
 
@@ -4873,9 +4867,7 @@ async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
                 status="success",
                 diagnostics=diagnostics,
                 metadata=success_metadata,
-                details=(
-                    service_details_payload if service_details_payload else None
-                ),
+                details=(service_details_payload if service_details_payload else None),
             )
             record_maintenance_result(
                 runtime_data,

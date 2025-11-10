@@ -482,7 +482,9 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
         self._supports_reconfigure: bool | None = None
         self.reason: str | None = None
         self.error_reason_translation_key: str | None = None
-        self.error_reason_translation_placeholders: TranslationPlaceholders | None = None
+        self.error_reason_translation_placeholders: TranslationPlaceholders | None = (
+            None
+        )
         self.runtime_data: RuntimeT | None = None
         self.update_listeners: list[
             Callable[[Any, ConfigEntry[RuntimeT]], Awaitable[None] | None]

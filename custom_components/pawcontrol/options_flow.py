@@ -1422,9 +1422,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
         options = self._current_options()
         raw = options.get(ADVANCED_SETTINGS_FIELD)
-        source = (
-            cast(JSONLikeMapping, dict(raw)) if isinstance(raw, Mapping) else {}
-        )
+        source = cast(JSONLikeMapping, dict(raw)) if isinstance(raw, Mapping) else {}
         defaults = cast(JSONMutableMapping, dict(options))
         return ensure_advanced_options(source, defaults=defaults)
 
@@ -3578,7 +3576,9 @@ class PawControlOptionsFlow(OptionsFlow):
             }
         )
 
-    def _get_remove_dog_schema(self, dogs: Sequence[Mapping[str, object]]) -> vol.Schema:
+    def _get_remove_dog_schema(
+        self, dogs: Sequence[Mapping[str, object]]
+    ) -> vol.Schema:
         """Build the removal confirmation schema for the provided dog list."""
 
         dog_options: list[dict[str, str]] = []

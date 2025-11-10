@@ -270,15 +270,11 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             static_notification_targets=cls._coerce_string_list(
                 config.get("static_notification_targets")
             ),
-            excluded_entities=cls._coerce_string_list(
-                config.get("excluded_entities")
-            ),
+            excluded_entities=cls._coerce_string_list(config.get("excluded_entities")),
             notification_mapping=cls._coerce_string_mapping(
                 config.get("notification_mapping")
             ),
-            priority_persons=cls._coerce_string_list(
-                config.get("priority_persons")
-            ),
+            priority_persons=cls._coerce_string_list(config.get("priority_persons")),
         )
 
     def __init__(self, hass: HomeAssistant, entry_id: str) -> None:

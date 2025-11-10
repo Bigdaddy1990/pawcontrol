@@ -299,9 +299,7 @@ def _build_tracking_config(config: GPSTrackingConfigInput) -> GPSTrackingConfig:
         geofence_notifications=_coerce_tracking_bool(
             config.get("geofence_notifications"), True
         ),
-        auto_detect_home=_coerce_tracking_bool(
-            config.get("auto_detect_home"), True
-        ),
+        auto_detect_home=_coerce_tracking_bool(config.get("auto_detect_home"), True),
         accuracy_threshold=_coerce_tracking_float(
             config.get("gps_accuracy_threshold"), 50.0
         ),

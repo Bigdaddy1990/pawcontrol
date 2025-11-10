@@ -2840,9 +2840,7 @@ class StatisticsCardGenerator(BaseCardGenerator):
         service_execution_metrics: CoordinatorRejectionMetrics
         | JSONMapping
         | None = None,
-        service_guard_metrics: HelperManagerGuardMetrics
-        | JSONMapping
-        | None = None,
+        service_guard_metrics: HelperManagerGuardMetrics | JSONMapping | None = None,
     ) -> list[CardConfigType]:
         """Generate optimized statistics cards for all dogs.
 
@@ -3026,9 +3024,7 @@ class StatisticsCardGenerator(BaseCardGenerator):
         service_execution_metrics: CoordinatorRejectionMetrics
         | JSONMapping
         | None = None,
-        service_guard_metrics: HelperManagerGuardMetrics
-        | JSONMapping
-        | None = None,
+        service_guard_metrics: HelperManagerGuardMetrics | JSONMapping | None = None,
     ) -> CardConfigType:
         """Generate optimized statistics summary card."""
         return self.templates.get_statistics_summary_template(

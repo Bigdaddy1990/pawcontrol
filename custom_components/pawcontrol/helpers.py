@@ -958,9 +958,7 @@ class PawControlData:
             return cast(StorageNamespacePayload, dict(value))
 
         if value not in (None, {}):
-            _LOGGER.warning(
-                "Invalid data structure for '%s'; resetting namespace", key
-            )
+            _LOGGER.warning("Invalid data structure for '%s'; resetting namespace", key)
         return PawControlData._empty_namespace_payload()
 
     def _ensure_namespace(self, key: StorageNamespaceKey) -> StorageNamespacePayload:
@@ -1101,7 +1099,7 @@ class PawControlData:
 
     @staticmethod
     def _serialize_health_namespace(
-        namespace: Mapping[str, object]
+        namespace: Mapping[str, object],
     ) -> StorageNamespacePayload:
         """Convert health namespace to storage-safe data."""
 
@@ -1121,7 +1119,7 @@ class PawControlData:
 
     @staticmethod
     def _serialize_walk_namespace(
-        namespace: Mapping[str, object]
+        namespace: Mapping[str, object],
     ) -> StorageNamespacePayload:
         """Convert walk namespace to storage-safe data."""
 
@@ -1397,9 +1395,7 @@ class PawControlData:
                             "Skipping unsupported walk history entry type: %s",
                             type(entry).__name__,
                         )
-                history_list = cast(
-                    list[WalkHistoryEntry], normalized_history
-                )
+                history_list = cast(list[WalkHistoryEntry], normalized_history)
                 dog_walks["history"] = history_list
             else:
                 history_list = cast(list[WalkHistoryEntry], dog_walks["history"])
@@ -1532,7 +1528,9 @@ class PawControlData:
 
             # Set active walk
             timestamp_raw = walk_payload.get("timestamp")
-            timestamp_override = timestamp_raw if isinstance(timestamp_raw, str) else None
+            timestamp_override = (
+                timestamp_raw if isinstance(timestamp_raw, str) else None
+            )
 
             active_walk = WalkEvent.from_raw(
                 dog_id,

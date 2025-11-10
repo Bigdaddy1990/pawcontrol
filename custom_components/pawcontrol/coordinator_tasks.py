@@ -432,6 +432,7 @@ _REJECTION_SEQUENCE_KEYS: Final[tuple[str, ...]] = (
     "rejection_breakers",
 )
 
+
 def default_rejection_metrics() -> CoordinatorRejectionMetrics:
     """Return a baseline rejection metric payload for diagnostics consumers."""
 

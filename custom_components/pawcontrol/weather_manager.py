@@ -484,7 +484,10 @@ class WeatherHealthManager:
             if len(segments) != 3:
                 return None
             alert_key, field_token = segments[1], segments[2]
-            if alert_key not in WEATHER_ALERT_KEY_SET or field_token not in ALERT_FIELD_TOKENS:
+            if (
+                alert_key not in WEATHER_ALERT_KEY_SET
+                or field_token not in ALERT_FIELD_TOKENS
+            ):
                 return None
             return (
                 "alerts",

@@ -143,7 +143,9 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
         """Accumulate snapshot counts into ``metrics`` and return the payload."""
 
         executed_value = metrics.get("executed", 0)
-        executed = int(executed_value) if isinstance(executed_value, (int, float)) else 0
+        executed = (
+            int(executed_value) if isinstance(executed_value, (int, float)) else 0
+        )
         metrics["executed"] = executed + self.executed
 
         skipped_value = metrics.get("skipped", 0)
@@ -159,7 +161,9 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
 
         for reason_key, count in self.reasons.items():
             existing_value = reasons_payload.get(reason_key)
-            existing = int(existing_value) if isinstance(existing_value, (int, float)) else 0
+            existing = (
+                int(existing_value) if isinstance(existing_value, (int, float)) else 0
+            )
             reasons_payload[reason_key] = existing + count
 
         metrics["last_results"] = self.history()

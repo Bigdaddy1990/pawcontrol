@@ -1420,9 +1420,8 @@ class PawControlConfigFlow(
         if user_input is not None:
             try:
                 # Validate modules configuration
-                if (
-                    isinstance(user_input, Mapping)
-                    and all(key in MODULE_TOGGLE_KEYS for key in user_input)
+                if isinstance(user_input, Mapping) and all(
+                    key in MODULE_TOGGLE_KEYS for key in user_input
                 ):
                     validated_input = MODULES_SCHEMA(dict(user_input))
                     modules = cast(DogModulesConfig, dict(validated_input))
@@ -2884,10 +2883,15 @@ class PawControlConfigFlow(
         modules_override = candidate.get(DOG_MODULES_FIELD)
         if isinstance(modules_override, Mapping):
             current_modules = coerce_dog_modules_config(
-                cast(Mapping[str, object] | DogModulesProjection | None, combined.get(DOG_MODULES_FIELD))
+                cast(
+                    Mapping[str, object] | DogModulesProjection | None,
+                    combined.get(DOG_MODULES_FIELD),
+                )
             )
             override_modules = coerce_dog_modules_config(
-                cast(Mapping[str, object] | DogModulesProjection | None, modules_override)
+                cast(
+                    Mapping[str, object] | DogModulesProjection | None, modules_override
+                )
             )
             merged_modules: DogModulesConfig = cast(
                 DogModulesConfig, dict(current_modules)

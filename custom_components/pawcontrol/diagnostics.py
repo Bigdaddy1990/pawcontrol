@@ -252,18 +252,12 @@ def _collect_setup_flag_snapshots(entry: ConfigEntry) -> dict[str, SetupFlagSnap
     """Return analytics, backup, and debug logging flag states and sources."""
 
     raw_options = entry.options
-    options = (
-        cast(JSONMapping, raw_options) if isinstance(raw_options, Mapping) else {}
-    )
+    options = cast(JSONMapping, raw_options) if isinstance(raw_options, Mapping) else {}
     system_raw = options.get("system_settings")
-    system = (
-        cast(JSONMapping, system_raw) if isinstance(system_raw, Mapping) else {}
-    )
+    system = cast(JSONMapping, system_raw) if isinstance(system_raw, Mapping) else {}
     advanced_raw = options.get("advanced_settings")
     advanced = (
-        cast(JSONMapping, advanced_raw)
-        if isinstance(advanced_raw, Mapping)
-        else {}
+        cast(JSONMapping, advanced_raw) if isinstance(advanced_raw, Mapping) else {}
     )
     entry_data = cast(JSONMapping, entry.data)
 
@@ -687,18 +681,18 @@ async def _get_config_entry_diagnostics(entry: ConfigEntry) -> JSONMutableMappin
         {
             "entry_id": entry.entry_id,
             "title": getattr(entry, "title", entry.entry_id),
-        "version": version,
-        "domain": entry.domain,
-        "state": state_value,
-        "source": getattr(entry, "source", None),
-        "unique_id": getattr(entry, "unique_id", None),
-        "created_at": created_at.isoformat() if created_at else None,
-        "modified_at": modified_at.isoformat() if modified_at else None,
-        "data_keys": list(entry.data.keys()),
-        "options_keys": list(getattr(entry, "options", {})),
-        "supports_options": supports_options,
-        "supports_reconfigure": supports_reconfigure,
-        "supports_remove_device": supports_remove_device,
+            "version": version,
+            "domain": entry.domain,
+            "state": state_value,
+            "source": getattr(entry, "source", None),
+            "unique_id": getattr(entry, "unique_id", None),
+            "created_at": created_at.isoformat() if created_at else None,
+            "modified_at": modified_at.isoformat() if modified_at else None,
+            "data_keys": list(entry.data.keys()),
+            "options_keys": list(getattr(entry, "options", {})),
+            "supports_options": supports_options,
+            "supports_reconfigure": supports_reconfigure,
+            "supports_remove_device": supports_remove_device,
             "supports_unload": supports_unload,
             "dogs_configured": len(entry.data.get(CONF_DOGS, [])),
         },

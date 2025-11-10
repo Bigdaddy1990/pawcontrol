@@ -496,9 +496,7 @@ def record_door_sensor_persistence_failure(
         failure["door_sensor"] = door_sensor
 
     if settings is not None:
-        failure["settings"] = cast(
-            DoorSensorSettingsPayload, dict(settings)
-        )
+        failure["settings"] = cast(DoorSensorSettingsPayload, dict(settings))
 
     if error is not None:
         failure["error"] = str(error)

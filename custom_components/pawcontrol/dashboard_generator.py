@@ -515,9 +515,7 @@ class PawControlDashboardGenerator:
             ),
             "cache_hits": cls._coerce_int_value(payload.get("cache_hits")),
             "cache_misses": cls._coerce_int_value(payload.get("cache_misses")),
-            "file_operations": cls._coerce_int_value(
-                payload.get("file_operations")
-            ),
+            "file_operations": cls._coerce_int_value(payload.get("file_operations")),
             "errors": cls._coerce_int_value(payload.get("errors")),
         }
 
@@ -1218,7 +1216,9 @@ class PawControlDashboardGenerator:
                         ]
                     }
 
-                    dashboard_config_payload = cast(DashboardRenderResult, dashboard_config)
+                    dashboard_config_payload = cast(
+                        DashboardRenderResult, dashboard_config
+                    )
 
                     dashboard_info["theme"] = theme
                     dashboard_info["layout"] = layout
@@ -1287,10 +1287,14 @@ class PawControlDashboardGenerator:
             "data": {
                 "config": {
                     "title": cast(str, dashboard_info["title"]),
-                    "icon": cast(str, dashboard_info.get("icon", DEFAULT_DASHBOARD_ICON)),
+                    "icon": cast(
+                        str, dashboard_info.get("icon", DEFAULT_DASHBOARD_ICON)
+                    ),
                     "path": cast(str, dashboard_info["url"]),
                     "require_admin": False,
-                    "show_in_sidebar": bool(dashboard_info.get("show_in_sidebar", True)),
+                    "show_in_sidebar": bool(
+                        dashboard_info.get("show_in_sidebar", True)
+                    ),
                     "views": list(dashboard_config.get("views", [])),
                     "updated": dt_util.utcnow().isoformat(),
                 }
@@ -1611,15 +1615,11 @@ class PawControlDashboardGenerator:
                 dashboard_info["needs_regeneration"] = True
                 metadata_updated = True
 
-            view_summaries = self._normalize_view_summaries(
-                dashboard_info.get("views")
-            )
+            view_summaries = self._normalize_view_summaries(dashboard_info.get("views"))
             if view_summaries is None:
                 config = await self._load_dashboard_config(path_obj)
                 view_summaries = self._summarise_dashboard_views(
-                    config
-                    if config is not None
-                    else cast(JSONMapping, {"views": []})
+                    config if config is not None else cast(JSONMapping, {"views": []})
                 )
                 dashboard_info["views"] = view_summaries
                 metadata_updated = True

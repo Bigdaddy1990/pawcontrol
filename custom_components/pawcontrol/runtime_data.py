@@ -107,7 +107,9 @@ def _coerce_runtime_data(
     if runtime_data is None:
         return None, True
 
-    is_plain_mapping = isinstance(value, dict) and set(mapping_value.keys()) == {"runtime_data"}
+    is_plain_mapping = isinstance(value, dict) and set(mapping_value.keys()) == {
+        "runtime_data"
+    }
     return runtime_data, not is_plain_mapping
 
 

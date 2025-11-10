@@ -459,7 +459,9 @@ class PawControlCoordinator(
         """Return typed module data for the dog."""
 
     @overload
-    def get_module_data(self, dog_id: str, module: str) -> CoordinatorModuleLookupResult:
+    def get_module_data(
+        self, dog_id: str, module: str
+    ) -> CoordinatorModuleLookupResult:
         """Return module-specific data for the dog."""
 
     def get_module_data(

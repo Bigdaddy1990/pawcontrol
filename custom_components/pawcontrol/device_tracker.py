@@ -558,9 +558,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
             else:
                 mutable_gps_state = cast(GPSModulePayload, {})
                 runtime_payload = cast(CoordinatorDogData, dog_data)
-                runtime_payload["gps"] = cast(
-                    CoordinatorModuleState, mutable_gps_state
-                )
+                runtime_payload["gps"] = cast(CoordinatorModuleState, mutable_gps_state)
 
             mutable_gps_state.update(
                 {

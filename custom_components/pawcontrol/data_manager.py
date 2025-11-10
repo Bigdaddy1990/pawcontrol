@@ -815,10 +815,7 @@ def _coerce_mapping(value: JSONLikeMapping | None) -> JSONMutableMapping:
         return {}
     if isinstance(value, dict):
         return cast(JSONMutableMapping, dict(value))
-    return {
-        key: cast(JSONValue, item)
-        for key, item in value.items()
-    }
+    return {key: cast(JSONValue, item) for key, item in value.items()}
 
 
 def _merge_dicts(
@@ -874,9 +871,7 @@ def _coerce_health_payload(data: HealthData | JSONLikeMapping) -> JSONMutableMap
             "respiratory_rate": data.respiratory_rate,
         }
     elif isinstance(data, Mapping):
-        payload = _coerce_json_mutable(
-            cast(JSONMappingLike | JSONMutableMapping, data)
-        )
+        payload = _coerce_json_mutable(cast(JSONMappingLike | JSONMutableMapping, data))
     else:  # pragma: no cover - guard for unexpected input
         raise TypeError("health data must be a mapping or HealthData instance")
 
@@ -946,9 +941,7 @@ class DogProfile:
             else []
         )
         walk_history = (
-            _normalise_history_entries(stored.get("walk_history", ()))
-            if stored
-            else []
+            _normalise_history_entries(stored.get("walk_history", ())) if stored else []
         )
         health_history = (
             _normalise_history_entries(stored.get("health_history", ()))
@@ -961,9 +954,7 @@ class DogProfile:
             else []
         )
         poop_history = (
-            _normalise_history_entries(stored.get("poop_history", ()))
-            if stored
-            else []
+            _normalise_history_entries(stored.get("poop_history", ())) if stored else []
         )
         grooming_sessions = (
             _normalise_history_entries(stored.get("grooming_sessions", ()))
@@ -1160,7 +1151,9 @@ class PawControlDataManager:
         """Persist ``profile`` for ``dog_id`` and update cached config."""
 
         self._dog_profiles[dog_id] = profile
-        typed_config = ensure_dog_config_data(cast(Mapping[str, JSONValue], profile.config))
+        typed_config = ensure_dog_config_data(
+            cast(Mapping[str, JSONValue], profile.config)
+        )
         if typed_config is None:
             error_cls = _resolve_homeassistant_error()
             raise error_cls(f"Invalid PawControl profile for {dog_id}")
@@ -1915,7 +1908,7 @@ class PawControlDataManager:
             prepared.append((timestamp, payload))
 
         def _sort_key(
-            item: tuple[datetime | None, JSONMutableMapping]
+            item: tuple[datetime | None, JSONMutableMapping],
         ) -> tuple[int, str]:
             timestamp, payload = item
             if timestamp is not None:
@@ -2617,7 +2610,9 @@ class PawControlDataManager:
                         if isinstance(existing, Mapping)
                         else None
                     )
-                    config[section] = _merge_dicts(current, cast(JSONLikeMapping, payload))
+                    config[section] = _merge_dicts(
+                        current, cast(JSONLikeMapping, payload)
+                    )
                 else:
                     config[section] = cast(JSONValue, payload)
             typed_config = ensure_dog_config_data(

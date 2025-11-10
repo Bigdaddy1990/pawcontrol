@@ -322,12 +322,10 @@ WEATHER_RECOMMENDATION_KEYS: Final[tuple[WeatherRecommendationKey, ...]] = tuple
     for key in _WEATHER_TRANSLATIONS[DEFAULT_LANGUAGE]["recommendations"]
 )
 
-WEATHER_ALERT_KEY_SET: Final[frozenset[WeatherAlertKey]] = frozenset(
-    WEATHER_ALERT_KEYS
+WEATHER_ALERT_KEY_SET: Final[frozenset[WeatherAlertKey]] = frozenset(WEATHER_ALERT_KEYS)
+WEATHER_RECOMMENDATION_KEY_SET: Final[frozenset[WeatherRecommendationKey]] = frozenset(
+    WEATHER_RECOMMENDATION_KEYS
 )
-WEATHER_RECOMMENDATION_KEY_SET: Final[
-    frozenset[WeatherRecommendationKey]
-] = frozenset(WEATHER_RECOMMENDATION_KEYS)
 
 SUPPORTED_LANGUAGES: Final[frozenset[LanguageCode]] = frozenset(_WEATHER_TRANSLATIONS)
 
