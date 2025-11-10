@@ -1804,10 +1804,10 @@ class PawControlConfigFlow(
                 if properties:
                     raw_https = properties.get("https")
                     if isinstance(raw_https, bool):
-                        https_enabled = raw_https
-                    elif isinstance(raw_https, (int, float)):
-                        https_enabled = raw_https != 0
-                scheme = "https" if https_enabled else "http"
+                    if isinstance(raw_https, str):
+                        https_enabled = raw_https.lower().strip() in ("true", "1", "on", "yes")
+                    elif isinstance(raw_https, (bool, int, float)):
+                        https_enabled = bool(raw_https)
                 if port is not None:
                     options_data[API_ENDPOINT_KEY] = f"{scheme}://{host}:{port}"
                 else:
