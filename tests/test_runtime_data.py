@@ -7,7 +7,7 @@ import sys
 from dataclasses import fields, make_dataclass
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
-from typing import cast
+from typing import TYPE_CHECKING, cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -51,9 +51,9 @@ def _install_homeassistant_stub() -> None:
 
     class HomeAssistant:  # pragma: no cover - simple attribute container
         def __init__(self) -> None:
-            self.data = {}
+            self.data: dict[str, object] = {}
 
-    core.HomeAssistant = HomeAssistant
+    core.HomeAssistant = HomeAssistant  # type: ignore[attr-defined]
     sys.modules["homeassistant.core"] = core
 
 
@@ -71,6 +71,21 @@ types_module = _load_module(
     "custom_components.pawcontrol.types",
     PROJECT_ROOT / "custom_components" / "pawcontrol" / "types.py",
 )
+
+if TYPE_CHECKING:
+    from custom_components.pawcontrol.types import (
+        LegacyRuntimeStorePayload as LegacyRuntimeStorePayloadType,
+    )
+    from custom_components.pawcontrol.types import (
+        PawControlConfigEntry as PawControlConfigEntryType,
+    )
+    from custom_components.pawcontrol.types import (
+        PawControlRuntimeData as PawControlRuntimeDataType,
+    )
+else:  # pragma: no cover - runtime aliases for type checkers
+    LegacyRuntimeStorePayloadType = types_module.LegacyRuntimeStorePayload
+    PawControlConfigEntryType = types_module.PawControlConfigEntry
+    PawControlRuntimeDataType = types_module.PawControlRuntimeData
 _install_homeassistant_stub()
 runtime_module = _load_module(
     "custom_components.pawcontrol.runtime_data",
@@ -93,11 +108,11 @@ class _DummyEntry:
     def __init__(self, entry_id: str) -> None:
         self.entry_id = entry_id
         self.domain = DOMAIN
-        self.runtime_data: PawControlRuntimeData | None = None
+        self.runtime_data: PawControlRuntimeDataType | None = None
 
 
 @pytest.fixture
-def runtime_data() -> PawControlRuntimeData:
+def runtime_data() -> PawControlRuntimeDataType:
     """Return a fully initialised runtime data container for tests."""
 
     return PawControlRuntimeData(
@@ -112,23 +127,23 @@ def runtime_data() -> PawControlRuntimeData:
     )
 
 
-def _entry(entry_id: str = "test-entry") -> PawControlConfigEntry:
+def _entry(entry_id: str = "test-entry") -> PawControlConfigEntryType:
     """Create a dummy config entry with the given identifier."""
 
-    return cast(PawControlConfigEntry, _DummyEntry(entry_id))
+    return cast(PawControlConfigEntryType, _DummyEntry(entry_id))
 
 
 def _build_hass(
     *,
     data: dict[str, object] | None = None,
-    entries: dict[str, PawControlConfigEntry] | None = None,
+    entries: dict[str, PawControlConfigEntryType] | None = None,
 ) -> SimpleNamespace:
     """Create a Home Assistant stub exposing config entry lookups."""
 
-    store = data or {}
-    entry_map = entries or {}
+    store: dict[str, object] = data or {}
+    entry_map: dict[str, PawControlConfigEntryType] = entries or {}
 
-    def _async_get_entry(entry_id: str) -> PawControlConfigEntry | None:
+    def _async_get_entry(entry_id: str) -> PawControlConfigEntryType | None:
         return entry_map.get(entry_id)
 
     return SimpleNamespace(
@@ -138,7 +153,7 @@ def _build_hass(
 
 
 def test_store_and_get_runtime_data_roundtrip(
-    runtime_data: PawControlRuntimeData,
+    runtime_data: PawControlRuntimeDataType,
 ) -> None:
     """Storing runtime data should make it retrievable via the helper."""
 
@@ -152,13 +167,14 @@ def test_store_and_get_runtime_data_roundtrip(
 
 
 def test_get_runtime_data_handles_legacy_container(
-    runtime_data: PawControlRuntimeData,
+    runtime_data: PawControlRuntimeDataType,
 ) -> None:
     """Legacy dict containers should still be unwrapped."""
 
     entry = _entry("legacy")
+    legacy_payload: LegacyRuntimeStorePayloadType = {"runtime_data": runtime_data}
     hass = _build_hass(
-        data={DOMAIN: {entry.entry_id: {"runtime_data": runtime_data}}},
+        data={DOMAIN: {entry.entry_id: legacy_payload}},
         entries={entry.entry_id: entry},
     )
 
@@ -177,7 +193,7 @@ def test_get_runtime_data_ignores_unknown_entries() -> None:
 
 
 def test_get_runtime_data_with_unexpected_container_type(
-    runtime_data: PawControlRuntimeData,
+    runtime_data: PawControlRuntimeDataType,
 ) -> None:
     """Non-mapping containers are treated as absent data."""
 
@@ -198,7 +214,9 @@ def test_get_runtime_data_with_unexpected_container_type(
     assert get_runtime_data(hass, entry.entry_id) is runtime_data
 
 
-def test_pop_runtime_data_removes_entry(runtime_data: PawControlRuntimeData) -> None:
+def test_pop_runtime_data_removes_entry(
+    runtime_data: PawControlRuntimeDataType,
+) -> None:
     """Popping runtime data should remove the stored value."""
 
     entry = _entry("pop-entry")
@@ -210,18 +228,19 @@ def test_pop_runtime_data_removes_entry(runtime_data: PawControlRuntimeData) -> 
 
 
 def test_pop_runtime_data_handles_legacy_container(
-    runtime_data: PawControlRuntimeData,
+    runtime_data: PawControlRuntimeDataType,
 ) -> None:
     """Legacy dict containers should be handled by ``pop_runtime_data`` too."""
 
-    hass = _build_hass(data={DOMAIN: {"legacy": {"runtime_data": runtime_data}}})
+    legacy_payload: LegacyRuntimeStorePayloadType = {"runtime_data": runtime_data}
+    hass = _build_hass(data={DOMAIN: {"legacy": legacy_payload}})
 
     assert pop_runtime_data(hass, "legacy") is runtime_data
     assert DOMAIN not in hass.data
 
 
 def test_pop_runtime_data_cleans_up_domain_store(
-    runtime_data: PawControlRuntimeData,
+    runtime_data: PawControlRuntimeDataType,
 ) -> None:
     """Removing the final entry should drop the PawControl data namespace."""
 
@@ -237,6 +256,19 @@ def test_coerce_runtime_data_returns_none_for_unknown_payload() -> None:
     coerced, needs_migration = _coerce_runtime_data("not-runtime-data")
 
     assert coerced is None
+    assert needs_migration is False
+
+
+def test_coerce_runtime_data_accepts_typed_payload(
+    runtime_data: PawControlRuntimeDataType,
+) -> None:
+    """Typed legacy payloads should be returned without migration."""
+
+    payload: LegacyRuntimeStorePayloadType = {"runtime_data": runtime_data}
+
+    coerced, needs_migration = _coerce_runtime_data(payload)
+
+    assert coerced is runtime_data
     assert needs_migration is False
 
 
@@ -263,7 +295,8 @@ def test_get_runtime_data_discards_uncoercible_legacy_payload(
 ) -> None:
     """Legacy payloads that cannot be migrated should be removed."""
 
-    hass = _build_hass(data={DOMAIN: {"legacy": {"runtime_data": object()}}})
+    invalid_payload: dict[str, object] = {"runtime_data": object()}
+    hass = _build_hass(data={DOMAIN: {"legacy": invalid_payload}})
 
     monkeypatch.setattr(
         runtime_module,
@@ -276,7 +309,7 @@ def test_get_runtime_data_discards_uncoercible_legacy_payload(
 
 
 def test_runtime_data_roundtrip_survives_module_reload(
-    runtime_data: PawControlRuntimeData,
+    runtime_data: PawControlRuntimeDataType,
 ) -> None:
     """Runtime data stored from a previous module load should still resolve."""
 
@@ -296,13 +329,13 @@ def test_runtime_data_roundtrip_survives_module_reload(
         }
     )
 
-    entry.runtime_data = cast(PawControlRuntimeData, reloaded_instance)
+    entry.runtime_data = cast(PawControlRuntimeDataType, reloaded_instance)
 
     assert get_runtime_data(hass, entry) is reloaded_instance
 
 
 def test_coerce_runtime_data_handles_reloaded_payload(
-    runtime_data: PawControlRuntimeData,
+    runtime_data: PawControlRuntimeDataType,
 ) -> None:
     """Legacy stores containing reloaded runtime data should be accepted."""
 
@@ -320,8 +353,11 @@ def test_coerce_runtime_data_handles_reloaded_payload(
     )
 
     entry = _entry("reloaded-legacy")
+    compatibility_payload: LegacyRuntimeStorePayloadType = {
+        "runtime_data": cast(PawControlRuntimeDataType, reloaded_instance)
+    }
     hass = _build_hass(
-        data={DOMAIN: {entry.entry_id: {"runtime_data": reloaded_instance}}},
+        data={DOMAIN: {entry.entry_id: compatibility_payload}},
         entries={entry.entry_id: entry},
     )
 

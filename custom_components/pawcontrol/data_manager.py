@@ -69,17 +69,22 @@ from .types import (
     FeedingData,
     GPSLocation,
     HealthData,
+    JSONLikeMapping,
     JSONMutableMapping,
+    JSONMutableSequence,
+    JSONValue,
     ModuleCacheMetrics,
+    RawDogConfig,
     StorageNamespaceDogSummary,
     StorageNamespacePayload,
     StorageNamespaceSnapshot,
     StorageNamespaceStats,
+    VisitorModeSettingsPayload,
     WalkData,
     WalkRoutePoint,
     ensure_dog_config_data,
 )
-from .utils import is_number
+from .utils import JSONMappingLike, Number, _coerce_json_mutable, is_number
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -337,11 +342,13 @@ class _EntityBudgetMonitor:
 
     def _build_payload(self) -> tuple[EntityBudgetStats, EntityBudgetDiagnostics]:
         tracker = self._tracker
+        summary_payload: JSONMutableMapping
+
         try:
             raw_snapshots = tracker.snapshots()
         except Exception as err:  # pragma: no cover - diagnostics guard
             snapshots: Iterable[Any] = ()
-            summary_payload: Mapping[str, Any] | dict[str, Any] = {"error": str(err)}
+            summary_payload = _coerce_json_mutable({"error": str(err)})
         else:
             snapshots = (
                 raw_snapshots
@@ -351,12 +358,12 @@ class _EntityBudgetMonitor:
             try:
                 summary = tracker.summary()
             except Exception as err:  # pragma: no cover - defensive guard
-                summary_payload = {"error": str(err)}
+                summary_payload = _coerce_json_mutable({"error": str(err)})
             else:
                 summary_payload = (
-                    dict(summary)
+                    _coerce_json_mutable(summary)
                     if isinstance(summary, Mapping)
-                    else {"value": summary}
+                    else _coerce_json_mutable({"value": summary})
                 )
 
         serialised: list[EntityBudgetSnapshotEntry] = []
@@ -376,15 +383,15 @@ class _EntityBudgetMonitor:
 
             capacity = getattr(snapshot, "capacity", None)
             if is_number(capacity):
-                entry["capacity"] = float(capacity)
+                entry["capacity"] = float(cast(Number, capacity))
 
             base_allocation = getattr(snapshot, "base_allocation", None)
             if is_number(base_allocation):
-                entry["base_allocation"] = float(base_allocation)
+                entry["base_allocation"] = float(cast(Number, base_allocation))
 
             dynamic_allocation = getattr(snapshot, "dynamic_allocation", None)
             if is_number(dynamic_allocation):
-                entry["dynamic_allocation"] = float(dynamic_allocation)
+                entry["dynamic_allocation"] = float(cast(Number, dynamic_allocation))
 
             if isinstance(recorded_at, datetime):
                 entry["recorded_at"] = recorded_at.isoformat()
@@ -412,7 +419,7 @@ class _EntityBudgetMonitor:
         }
 
         diagnostics: EntityBudgetDiagnostics = {
-            "summary": dict(summary_payload),
+            "summary": summary_payload,
             "snapshots": serialised,
         }
         return stats, diagnostics
@@ -801,27 +808,46 @@ def _serialize_timestamp(value: Any | None) -> str:
     return _utcnow().isoformat()
 
 
-def _coerce_mapping(value: Mapping[str, Any] | None) -> dict[str, Any]:
+def _coerce_mapping(value: JSONLikeMapping | None) -> JSONMutableMapping:
     """Return a shallow copy of ``value`` ensuring a mutable mapping."""
 
-    return dict(value) if isinstance(value, Mapping) else {}
+    if value is None:
+        return {}
+    if isinstance(value, dict):
+        return cast(JSONMutableMapping, dict(value))
+    return {
+        key: cast(JSONValue, item)
+        for key, item in value.items()
+    }
 
 
-def _merge_dicts(base: Mapping[str, Any], updates: Mapping[str, Any]) -> dict[str, Any]:
+def _merge_dicts(
+    base: JSONLikeMapping | None, updates: JSONLikeMapping | None
+) -> JSONMutableMapping:
     """Deep merge ``updates`` into ``base`` using Home Assistant semantics."""
 
-    merged = dict(base) if isinstance(base, Mapping) else {}
-    for key, value in (updates or {}).items():
-        if isinstance(value, Mapping) and isinstance(merged.get(key), Mapping):
-            merged[key] = _merge_dicts(merged[key], value)
+    merged = _coerce_mapping(base)
+    if updates is None:
+        return merged
+
+    for key, value in updates.items():
+        existing = merged.get(key)
+        if isinstance(value, Mapping) and isinstance(existing, Mapping):
+            merged[key] = cast(
+                JSONValue,
+                _merge_dicts(
+                    cast(JSONLikeMapping, existing),
+                    cast(JSONLikeMapping, value),
+                ),
+            )
         else:
-            merged[key] = value
+            merged[key] = cast(JSONValue, value)
     return merged
 
 
 def _limit_entries(
-    entries: list[dict[str, Any]], *, limit: int | None
-) -> list[dict[str, Any]]:
+    entries: list[JSONMutableMapping], *, limit: int | None
+) -> list[JSONMutableMapping]:
     """Return ``entries`` optionally constrained to the most recent ``limit``."""
 
     if limit is None or limit <= 0:
@@ -829,11 +855,11 @@ def _limit_entries(
     return list(islice(entries, max(len(entries) - limit, 0), None))
 
 
-def _coerce_health_payload(data: HealthData | Mapping[str, Any]) -> dict[str, Any]:
+def _coerce_health_payload(data: HealthData | JSONLikeMapping) -> JSONMutableMapping:
     """Return a dict payload from ``data`` regardless of the input type."""
 
     if isinstance(data, HealthData):
-        payload = {
+        payload: JSONMutableMapping = {
             "timestamp": data.timestamp,
             "weight": data.weight,
             "temperature": data.temperature,
@@ -848,7 +874,9 @@ def _coerce_health_payload(data: HealthData | Mapping[str, Any]) -> dict[str, An
             "respiratory_rate": data.respiratory_rate,
         }
     elif isinstance(data, Mapping):
-        payload = dict(data)
+        payload = _coerce_json_mutable(
+            cast(JSONMappingLike | JSONMutableMapping, data)
+        )
     else:  # pragma: no cover - guard for unexpected input
         raise TypeError("health data must be a mapping or HealthData instance")
 
@@ -856,15 +884,25 @@ def _coerce_health_payload(data: HealthData | Mapping[str, Any]) -> dict[str, An
     return payload
 
 
-def _coerce_medication_payload(data: Mapping[str, Any]) -> dict[str, Any]:
+def _coerce_medication_payload(data: JSONLikeMapping) -> JSONMutableMapping:
     """Return normalised medication data for persistence."""
 
-    payload = dict(data)
+    payload = _coerce_json_mutable(cast(JSONMappingLike | JSONMutableMapping, data))
     payload["administration_time"] = _serialize_timestamp(
         payload.get("administration_time")
     )
     payload.setdefault("logged_at", _utcnow().isoformat())
     return payload
+
+
+def _normalise_history_entries(entries: Iterable[object]) -> list[JSONMutableMapping]:
+    """Convert ``entries`` into JSON-compatible mutable mappings."""
+
+    return [
+        _coerce_json_mutable(cast(JSONMappingLike | JSONMutableMapping, entry))
+        for entry in entries
+        if isinstance(entry, Mapping)
+    ]
 
 
 def _default_session_id_generator() -> str:
@@ -881,36 +919,71 @@ class DogProfile:
 
     config: DogConfigData
     daily_stats: DailyStats
-    feeding_history: list[dict[str, Any]] = field(default_factory=list)
-    walk_history: list[dict[str, Any]] = field(default_factory=list)
-    health_history: list[dict[str, Any]] = field(default_factory=list)
-    medication_history: list[dict[str, Any]] = field(default_factory=list)
-    poop_history: list[dict[str, Any]] = field(default_factory=list)
-    grooming_sessions: list[dict[str, Any]] = field(default_factory=list)
+    feeding_history: list[JSONMutableMapping] = field(default_factory=list)
+    walk_history: list[JSONMutableMapping] = field(default_factory=list)
+    health_history: list[JSONMutableMapping] = field(default_factory=list)
+    medication_history: list[JSONMutableMapping] = field(default_factory=list)
+    poop_history: list[JSONMutableMapping] = field(default_factory=list)
+    grooming_sessions: list[JSONMutableMapping] = field(default_factory=list)
     current_walk: WalkData | None = None
 
     @classmethod
     def from_storage(
-        cls, config: Mapping[str, Any], stored: Mapping[str, Any] | None
+        cls, config: JSONLikeMapping, stored: JSONLikeMapping | None
     ) -> DogProfile:
         """Restore a profile from persisted JSON data."""
 
-        daily_stats_payload = stored.get("daily_stats", {}) if stored else {}
-        feeding_history = list(stored.get("feeding_history", [])) if stored else []
-        walk_history = list(stored.get("walk_history", [])) if stored else []
-        health_history = list(stored.get("health_history", [])) if stored else []
-        medication_history = (
-            list(stored.get("medication_history", [])) if stored else []
+        daily_stats_payload: JSONMappingLike | JSONMutableMapping | None = None
+        if stored:
+            raw_daily_stats = stored.get("daily_stats")
+            if isinstance(raw_daily_stats, Mapping):
+                daily_stats_payload = cast(
+                    JSONMappingLike | JSONMutableMapping, raw_daily_stats
+                )
+        feeding_history = (
+            _normalise_history_entries(stored.get("feeding_history", ()))
+            if stored
+            else []
         )
-        poop_history = list(stored.get("poop_history", [])) if stored else []
-        grooming_sessions = list(stored.get("grooming_sessions", [])) if stored else []
+        walk_history = (
+            _normalise_history_entries(stored.get("walk_history", ()))
+            if stored
+            else []
+        )
+        health_history = (
+            _normalise_history_entries(stored.get("health_history", ()))
+            if stored
+            else []
+        )
+        medication_history = (
+            _normalise_history_entries(stored.get("medication_history", ()))
+            if stored
+            else []
+        )
+        poop_history = (
+            _normalise_history_entries(stored.get("poop_history", ()))
+            if stored
+            else []
+        )
+        grooming_sessions = (
+            _normalise_history_entries(stored.get("grooming_sessions", ()))
+            if stored
+            else []
+        )
 
         try:
-            daily_stats = DailyStats.from_dict(daily_stats_payload)
+            daily_stats = DailyStats.from_dict(
+                cast(
+                    JSONMappingLike | JSONMutableMapping,
+                    daily_stats_payload or {},
+                )
+            )
         except Exception:  # pragma: no cover - only triggered by corrupt files
             daily_stats = DailyStats(date=_utcnow())
 
-        typed_config = ensure_dog_config_data(config)
+        typed_config = ensure_dog_config_data(
+            cast(JSONMappingLike | JSONMutableMapping, config)
+        )
         if typed_config is None:
             raise HomeAssistantError("Invalid dog configuration in storage")
 
@@ -925,11 +998,11 @@ class DogProfile:
             grooming_sessions=grooming_sessions,
         )
 
-    def as_dict(self) -> dict[str, Any]:
+    def as_dict(self) -> JSONMutableMapping:
         """Return a serialisable representation of the profile."""
 
-        data: dict[str, Any] = {
-            "config": self.config,
+        data: JSONMutableMapping = {
+            "config": cast(JSONValue, self.config),
             "daily_stats": self.daily_stats.as_dict(),
             "feeding_history": list(self.feeding_history),
             "walk_history": list(self.walk_history),
@@ -945,7 +1018,7 @@ class DogProfile:
         return data
 
 
-def _serialize_walk(walk: WalkData) -> dict[str, Any]:
+def _serialize_walk(walk: WalkData) -> JSONMutableMapping:
     """Serialise a :class:`WalkData` instance into JSON friendly data."""
 
     return {
@@ -974,7 +1047,7 @@ class PawControlDataManager:
         entry_id: str | None = None,
         *,
         coordinator: Any | None = None,
-        dogs_config: list[dict[str, Any]] | None = None,
+        dogs_config: Sequence[RawDogConfig] | None = None,
     ) -> None:
         """Create a new data manager tied to ``entry_id`` and configuration."""
 
@@ -984,7 +1057,7 @@ class PawControlDataManager:
         for config in dogs_config or []:
             if not isinstance(config, Mapping):
                 continue
-            candidate: dict[str, Any] = dict(config)
+            candidate = cast(dict[str, JSONValue], dict(config))
             dog_id = candidate.get(DOG_ID_FIELD)
             if not isinstance(dog_id, str) or not dog_id:
                 continue
@@ -1087,7 +1160,7 @@ class PawControlDataManager:
         """Persist ``profile`` for ``dog_id`` and update cached config."""
 
         self._dog_profiles[dog_id] = profile
-        typed_config = ensure_dog_config_data(profile.config)
+        typed_config = ensure_dog_config_data(cast(Mapping[str, JSONValue], profile.config))
         if typed_config is None:
             error_cls = _resolve_homeassistant_error()
             raise error_cls(f"Invalid PawControl profile for {dog_id}")
@@ -1100,7 +1173,7 @@ class PawControlDataManager:
         """Initialise in-memory metrics containers if missing."""
 
         if not hasattr(self, "_metrics"):
-            self._metrics: dict[str, Any] = {
+            self._metrics: JSONMutableMapping = {
                 "operations": 0,
                 "saves": 0,
                 "errors": 0,
@@ -1194,7 +1267,7 @@ class PawControlDataManager:
     async def async_set_visitor_mode(
         self,
         dog_id: str,
-        settings: Mapping[str, Any] | None = None,
+        settings: VisitorModeSettingsPayload | JSONLikeMapping | None = None,
         **kwargs: Any,
     ) -> bool:
         """Persist visitor mode configuration for ``dog_id``."""
@@ -1202,20 +1275,22 @@ class PawControlDataManager:
         if not dog_id:
             raise ValueError("dog_id is required")
 
-        payload: Mapping[str, Any] | None = settings
+        payload: VisitorModeSettingsPayload | JSONLikeMapping | None = settings
         if payload is None and "visitor_data" in kwargs:
-            payload = kwargs["visitor_data"]
+            payload = cast(VisitorModeSettingsPayload, kwargs["visitor_data"])
         elif payload is None and kwargs:
-            payload = kwargs
+            payload = cast(VisitorModeSettingsPayload, kwargs)
 
         if payload is None:
             raise ValueError("Visitor mode payload is required")
 
-        payload = dict(payload)
-        timestamp = payload.pop("timestamp", None)
-        if timestamp is None:
-            timestamp = _utcnow()
-        serialized_timestamp = _serialize_timestamp(timestamp)
+        payload = _coerce_json_mutable(
+            cast(JSONMappingLike | JSONMutableMapping, payload)
+        )
+        raw_timestamp = payload.pop("timestamp", None)
+        timestamp_value: Any
+        timestamp_value = _utcnow() if raw_timestamp is None else raw_timestamp
+        serialized_timestamp = _serialize_timestamp(timestamp_value)
 
         namespace = "visitor_mode"
         self._ensure_metrics_containers()
@@ -1243,15 +1318,17 @@ class PawControlDataManager:
             self._metrics["visitor_mode_last_updated"] = serialized_timestamp
         return True
 
-    async def async_get_visitor_mode_status(self, dog_id: str) -> dict[str, Any]:
+    async def async_get_visitor_mode_status(
+        self, dog_id: str
+    ) -> VisitorModeSettingsPayload:
         """Return the visitor mode status for ``dog_id``."""
 
         namespace = "visitor_mode"
         data = await self._get_namespace_data(namespace)
         entry = data.get(dog_id)
         if isinstance(entry, Mapping):
-            return dict(entry)
-        return {"enabled": False}
+            return cast(VisitorModeSettingsPayload, dict(entry))
+        return cast(VisitorModeSettingsPayload, {"enabled": False})
 
     def set_metrics_sink(self, metrics: CoordinatorMetrics | None) -> None:
         """Register a metrics sink used for coordinator diagnostics."""
@@ -1714,7 +1791,7 @@ class PawControlDataManager:
         if sink is not None:
             sink.record_visitor_timing(max(duration, 0.0))
 
-    def get_daily_feeding_stats(self, dog_id: str) -> dict[str, Any] | None:
+    def get_daily_feeding_stats(self, dog_id: str) -> JSONMutableMapping | None:
         """Return aggregated feeding information for today."""
 
         profile = self._dog_profiles.get(dog_id)
@@ -1735,16 +1812,22 @@ class PawControlDataManager:
             if isinstance(entry.get("calories"), int | float)
         )
 
+        feeding_times: JSONMutableSequence = [
+            cast(JSONValue, entry["timestamp"])
+            for entry in feedings_today
+            if isinstance(entry.get("timestamp"), str)
+        ]
+
         return {
             "total_feedings": profile.daily_stats.feedings_count,
             "total_food_amount": round(profile.daily_stats.total_food_amount, 2),
             "total_calories": round(total_calories, 2),
-            "feeding_times": [entry["timestamp"] for entry in feedings_today],
+            "feeding_times": feeding_times,
         }
 
     def get_feeding_history(
         self, dog_id: str, *, limit: int | None = None
-    ) -> list[dict[str, Any]]:
+    ) -> list[JSONMutableMapping]:
         """Return historical feeding entries."""
 
         profile = self._dog_profiles.get(dog_id)
@@ -1765,7 +1848,7 @@ class PawControlDataManager:
             profile.daily_stats = DailyStats(date=_utcnow())
         await self._async_save_profile(dog_id, profile)
 
-    async def async_get_module_data(self, dog_id: str) -> dict[str, Any]:
+    async def async_get_module_data(self, dog_id: str) -> JSONMutableMapping:
         """Return merged module configuration for ``dog_id``."""
 
         profile = self._ensure_profile(dog_id)
@@ -1785,7 +1868,7 @@ class PawControlDataManager:
         limit: int | None = None,
         since: datetime | str | None = None,
         until: datetime | str | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[JSONMutableMapping]:
         """Return stored history entries for ``module`` and ``dog_id``.
 
         The entries are normalised dictionaries sorted in reverse chronological
@@ -1810,12 +1893,14 @@ class PawControlDataManager:
         since_bound = _deserialize_datetime(since) if since is not None else None
         until_bound = _deserialize_datetime(until) if until is not None else None
 
-        prepared: list[tuple[datetime | None, dict[str, Any]]] = []
+        prepared: list[tuple[datetime | None, JSONMutableMapping]] = []
         for entry in entries:
             if not isinstance(entry, Mapping):
                 continue
 
-            payload = dict(entry)
+            payload = _coerce_json_mutable(
+                cast(JSONMappingLike | JSONMutableMapping, entry)
+            )
             timestamp = _deserialize_datetime(payload.get(timestamp_key))
 
             if since_bound is not None and (
@@ -1829,7 +1914,9 @@ class PawControlDataManager:
 
             prepared.append((timestamp, payload))
 
-        def _sort_key(item: tuple[datetime | None, dict[str, Any]]) -> tuple[int, str]:
+        def _sort_key(
+            item: tuple[datetime | None, JSONMutableMapping]
+        ) -> tuple[int, str]:
             timestamp, payload = item
             if timestamp is not None:
                 return (1, timestamp.isoformat())
@@ -1858,7 +1945,7 @@ class PawControlDataManager:
     async def async_set_dog_power_state(self, dog_id: str, enabled: bool) -> None:
         """Persist the main power state for ``dog_id``."""
 
-        def updater(current: Any | None) -> dict[str, Any]:
+        def updater(current: Any | None) -> JSONMutableMapping:
             payload = _coerce_mapping(current)
             payload["main_power"] = bool(enabled)
             payload.setdefault("updated_at", _utcnow().isoformat())
@@ -1869,7 +1956,7 @@ class PawControlDataManager:
     async def async_set_gps_tracking(self, dog_id: str, enabled: bool) -> None:
         """Persist GPS tracking preference for ``dog_id``."""
 
-        def updater(current: Any | None) -> dict[str, Any]:
+        def updater(current: Any | None) -> JSONMutableMapping:
             payload = _coerce_mapping(current)
             gps_state = _coerce_mapping(payload.get("gps"))
             gps_state["enabled"] = bool(enabled)
@@ -1880,14 +1967,16 @@ class PawControlDataManager:
         await self._update_namespace_for_dog("module_state", dog_id, updater)
 
     async def async_log_poop_data(
-        self, dog_id: str, poop_data: Mapping[str, Any], *, limit: int = 100
+        self, dog_id: str, poop_data: JSONLikeMapping, *, limit: int = 100
     ) -> bool:
         """Store poop events for ``dog_id`` with optional history limit."""
 
         if dog_id not in self._dog_profiles:
             return False
 
-        payload = dict(poop_data)
+        payload = _coerce_json_mutable(
+            cast(JSONMappingLike | JSONMutableMapping, poop_data)
+        )
         payload.setdefault("timestamp", _utcnow())
         payload["timestamp"] = _serialize_timestamp(payload.get("timestamp"))
 
@@ -1905,14 +1994,16 @@ class PawControlDataManager:
     async def async_start_grooming_session(
         self,
         dog_id: str,
-        session_data: Mapping[str, Any],
+        session_data: JSONLikeMapping,
         *,
         session_id: str | None = None,
     ) -> str:
         """Record the start of a grooming session and return the session id."""
 
         profile = self._ensure_profile(dog_id)
-        payload = dict(session_data)
+        payload = _coerce_json_mutable(
+            cast(JSONMappingLike | JSONMutableMapping, session_data)
+        )
         session_identifier = session_id or self._session_id_factory()
         payload.setdefault("session_id", session_identifier)
         payload.setdefault("started_at", _utcnow())
@@ -1933,7 +2024,7 @@ class PawControlDataManager:
         analysis_type: str,
         *,
         days: int = 30,
-    ) -> dict[str, Any]:
+    ) -> JSONMutableMapping:
         """Analyze historic data for ``dog_id``."""
 
         self._ensure_profile(dog_id)
@@ -1942,7 +2033,7 @@ class PawControlDataManager:
         cutoff = now - timedelta(days=max(days, 1))
         tolerance = timedelta(seconds=1)
 
-        result: dict[str, Any] = {
+        result: JSONMutableMapping = {
             "dog_id": dog_id,
             "analysis_type": analysis_type,
             "days": days,
@@ -1955,7 +2046,7 @@ class PawControlDataManager:
             feedings_raw = await self.async_get_module_history(
                 MODULE_FEEDING, dog_id, since=window_start
             )
-            feedings: list[tuple[datetime, dict[str, Any]]] = []
+            feedings: list[tuple[datetime, JSONMutableMapping]] = []
             for entry in feedings_raw:
                 ts = _deserialize_datetime(entry.get("timestamp"))
                 if ts:
@@ -1973,7 +2064,7 @@ class PawControlDataManager:
             walks_raw = await self.async_get_module_history(
                 MODULE_WALK, dog_id, since=window_start
             )
-            walks: list[tuple[datetime, dict[str, Any]]] = []
+            walks: list[tuple[datetime, JSONMutableMapping]] = []
             for entry in walks_raw:
                 ts = _deserialize_datetime(entry.get("end_time"))
                 if ts:
@@ -2038,7 +2129,7 @@ class PawControlDataManager:
         include_sections: list[str] | None = None,
         format: str = "json",
         send_notification: bool | None = None,
-    ) -> dict[str, Any]:
+    ) -> JSONMutableMapping:
         """Generate a summary report for ``dog_id``."""
 
         profile = self._ensure_profile(dog_id)
@@ -2054,7 +2145,7 @@ class PawControlDataManager:
         if not sections:
             sections = {"feeding", "walks", "health"}
 
-        report: dict[str, Any] = {
+        report: JSONMutableMapping = {
             "dog_id": dog_id,
             "report_type": report_type,
             "generated_at": now.isoformat(),
@@ -2164,7 +2255,7 @@ class PawControlDataManager:
 
     async def async_generate_weekly_health_report(
         self, dog_id: str, *, include_medication: bool = True
-    ) -> dict[str, Any]:
+    ) -> JSONMutableMapping:
         """Generate a weekly health overview for ``dog_id``."""
 
         self._ensure_profile(dog_id)
@@ -2175,7 +2266,7 @@ class PawControlDataManager:
             MODULE_HEALTH, dog_id, since=cutoff
         )
 
-        report: dict[str, Any] = {
+        report: JSONMutableMapping = {
             "dog_id": dog_id,
             "generated_at": now.isoformat(),
             "entries": len(health_entries),
@@ -2252,7 +2343,7 @@ class PawControlDataManager:
             module_name, dog_id, since=start, until=end
         )
 
-        def _sort_key(payload: Mapping[str, Any]) -> tuple[int, str]:
+        def _sort_key(payload: JSONLikeMapping) -> tuple[int, str]:
             timestamp = _deserialize_datetime(payload.get(timestamp_key))
             if timestamp is not None:
                 return (1, timestamp.isoformat())
@@ -2261,7 +2352,10 @@ class PawControlDataManager:
                 return (1, raw_value.isoformat())
             return (0, str(raw_value))
 
-        entries = [dict(item) for item in sorted(history, key=_sort_key)]
+        entries: list[JSONMutableMapping] = [
+            _coerce_json_mutable(cast(JSONMappingLike | JSONMutableMapping, item))
+            for item in sorted(history, key=_sort_key)
+        ]
 
         export_dir = self._storage_dir / "exports"
         export_dir.mkdir(parents=True, exist_ok=True)
@@ -2404,7 +2498,7 @@ class PawControlDataManager:
 
     def get_walk_history(
         self, dog_id: str, *, limit: int | None = None
-    ) -> list[dict[str, Any]]:
+    ) -> list[JSONMutableMapping]:
         """Return stored walk history."""
 
         profile = self._dog_profiles.get(dog_id)
@@ -2456,7 +2550,7 @@ class PawControlDataManager:
         return True
 
     async def async_log_health_data(
-        self, dog_id: str, health: HealthData | Mapping[str, Any]
+        self, dog_id: str, health: HealthData | JSONLikeMapping
     ) -> bool:
         """Record a health measurement."""
 
@@ -2470,7 +2564,7 @@ class PawControlDataManager:
             profile = self._dog_profiles[dog_id]
             self._maybe_roll_daily_stats(profile, timestamp)
 
-            entry = dict(payload)
+            entry = _coerce_json_mutable(payload)
             entry["timestamp"] = _serialize_timestamp(timestamp)
 
             profile.health_history.append(entry)
@@ -2483,7 +2577,7 @@ class PawControlDataManager:
         return True
 
     async def async_log_medication(
-        self, dog_id: str, medication_data: Mapping[str, Any]
+        self, dog_id: str, medication_data: JSONLikeMapping
     ) -> bool:
         """Persist medication information for ``dog_id``."""
 
@@ -2503,29 +2597,32 @@ class PawControlDataManager:
         return True
 
     async def async_update_dog_data(
-        self, dog_id: str, updates: Mapping[str, Any], *, persist: bool = True
+        self, dog_id: str, updates: JSONLikeMapping, *, persist: bool = True
     ) -> bool:
         """Merge ``updates`` into the stored dog configuration."""
 
         if dog_id not in self._dog_profiles:
             return False
 
-        if not isinstance(updates, Mapping):
-            raise ValueError("updates must be a mapping")
-
         async with self._data_lock:
             profile = self._dog_profiles[dog_id]
-            config = dict(profile.config)
+            config = _coerce_json_mutable(
+                cast(JSONMappingLike | JSONMutableMapping, profile.config)
+            )
             for section, payload in updates.items():
                 if isinstance(payload, Mapping):
                     existing = config.get(section)
                     current = _coerce_mapping(
-                        existing if isinstance(existing, Mapping) else None
+                        cast(JSONLikeMapping | None, existing)
+                        if isinstance(existing, Mapping)
+                        else None
                     )
-                    config[section] = _merge_dicts(current, payload)
+                    config[section] = _merge_dicts(current, cast(JSONLikeMapping, payload))
                 else:
-                    config[section] = payload
-            typed_config = ensure_dog_config_data(config)
+                    config[section] = cast(JSONValue, payload)
+            typed_config = ensure_dog_config_data(
+                cast(JSONMappingLike | JSONMutableMapping, config)
+            )
             if typed_config is None:
                 error_cls = _resolve_homeassistant_error()
                 raise error_cls(f"Invalid PawControl update for {dog_id}")
@@ -2544,7 +2641,7 @@ class PawControlDataManager:
         return True
 
     async def async_update_dog_profile(
-        self, dog_id: str, profile_updates: Mapping[str, Any], *, persist: bool = True
+        self, dog_id: str, profile_updates: JSONLikeMapping, *, persist: bool = True
     ) -> bool:
         """Persist profile-specific updates for ``dog_id``."""
 
@@ -2554,7 +2651,7 @@ class PawControlDataManager:
 
     def get_health_history(
         self, dog_id: str, *, limit: int | None = None
-    ) -> list[dict[str, Any]]:
+    ) -> list[JSONMutableMapping]:
         """Return stored health entries."""
 
         profile = self._dog_profiles.get(dog_id)
@@ -2567,7 +2664,9 @@ class PawControlDataManager:
             return history[:limit]
         return history
 
-    def get_health_trends(self, dog_id: str, *, days: int = 7) -> dict[str, Any] | None:
+    def get_health_trends(
+        self, dog_id: str, *, days: int = 7
+    ) -> JSONMutableMapping | None:
         """Analyse health entries recorded within ``days``."""
 
         profile = self._dog_profiles.get(dog_id)
@@ -2584,11 +2683,14 @@ class PawControlDataManager:
         ]
 
         if not relevant:
-            return {
-                "entries": 0,
-                "weight_trend": None,
-                "mood_distribution": {},
-            }
+            return cast(
+                JSONMutableMapping,
+                {
+                    "entries": 0,
+                    "weight_trend": None,
+                    "mood_distribution": {},
+                },
+            )
 
         weights = [entry["weight"] for entry in relevant if entry.get("weight")]
         if weights:
@@ -2607,13 +2709,16 @@ class PawControlDataManager:
                 direction = "decreasing"
             else:
                 direction = "stable"
-            weight_trend: dict[str, Any] | None = {
-                "start": weights[0],
-                "end": weights[-1],
-                "change": round(change, 2),
-                "direction": direction,
-                "data_points": data_points,
-            }
+            weight_trend: JSONMutableMapping | None = cast(
+                JSONMutableMapping,
+                {
+                    "start": weights[0],
+                    "end": weights[-1],
+                    "change": round(change, 2),
+                    "direction": direction,
+                    "data_points": data_points,
+                },
+            )
         else:
             weight_trend = None
 
@@ -2628,12 +2733,15 @@ class PawControlDataManager:
             if entry.get("health_status")
         ]
 
-        return {
-            "entries": len(relevant),
-            "weight_trend": weight_trend,
-            "mood_distribution": mood_distribution,
-            "health_status_progression": status_progression,
-        }
+        return cast(
+            JSONMutableMapping,
+            {
+                "entries": len(relevant),
+                "weight_trend": weight_trend,
+                "mood_distribution": mood_distribution,
+                "health_status_progression": status_progression,
+            },
+        )
 
     def get_metrics(self) -> DataManagerMetricsSnapshot:
         """Expose lightweight metrics for diagnostics tests."""
@@ -2714,13 +2822,18 @@ class PawControlDataManager:
         self._metrics["saves"] += 1
         self._namespace_state[namespace] = cast(StorageNamespacePayload, dict(data))
 
-    async def _async_load_storage(self) -> dict[str, Any]:
+    async def _async_load_storage(self) -> JSONMutableMapping:
         """Load stored JSON data, falling back to the backup if required."""
 
         try:
             if Path.exists(self._storage_path):
                 with open(self._storage_path, encoding="utf-8") as handle:
-                    return json.load(handle)
+                    data = json.load(handle)
+                    if isinstance(data, Mapping):
+                        return _coerce_json_mutable(
+                            cast(JSONMappingLike | JSONMutableMapping, data)
+                        )
+                    return {}
         except FileNotFoundError:
             return {}
         except json.JSONDecodeError:
@@ -2734,7 +2847,12 @@ class PawControlDataManager:
         try:
             if Path.exists(self._backup_path):
                 with open(self._backup_path, encoding="utf-8") as handle:
-                    return json.load(handle)
+                    data = json.load(handle)
+                    if isinstance(data, Mapping):
+                        return _coerce_json_mutable(
+                            cast(JSONMappingLike | JSONMutableMapping, data)
+                        )
+                    return {}
         except FileNotFoundError:
             return {}
         except json.JSONDecodeError:
@@ -2751,8 +2869,9 @@ class PawControlDataManager:
         """Persist all dog data to disk."""
 
         async with self._save_lock:
-            payload = {
-                k: profile.as_dict() for k, profile in self._dog_profiles.items()
+            payload: JSONMutableMapping = {
+                k: cast(JSONValue, profile.as_dict())
+                for k, profile in self._dog_profiles.items()
             }
             try:
                 self._write_storage(payload)
@@ -2760,7 +2879,7 @@ class PawControlDataManager:
                 error_cls = _resolve_homeassistant_error()
                 raise error_cls(f"Failed to persist PawControl data: {err}") from err
 
-    def _write_storage(self, payload: dict[str, Any]) -> None:
+    def _write_storage(self, payload: JSONMutableMapping) -> None:
         """Write data to the JSON storage file."""
 
         if self._storage_path.exists():

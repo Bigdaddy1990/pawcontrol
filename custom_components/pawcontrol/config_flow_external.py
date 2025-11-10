@@ -31,10 +31,12 @@ from .types import (
     DOOR_SENSOR_FIELD,
     GPS_SOURCE_FIELD,
     NOTIFY_FALLBACK_FIELD,
+    ConfigFlowPlaceholders,
     DogConfigData,
     DogModulesConfig,
     ExternalEntityConfig,
     ExternalEntitySelectorOption,
+    MutableConfigFlowPlaceholders,
 )
 
 GPS_SOURCE_KEY: Final[Literal["gps_source"]] = cast(
@@ -71,7 +73,7 @@ if TYPE_CHECKING:
             *,
             step_id: str,
             data_schema: vol.Schema,
-            description_placeholders: dict[str, Any] | None = None,
+            description_placeholders: ConfigFlowPlaceholders | None = None,
             errors: dict[str, str] | None = None,
         ) -> ConfigFlowResult:
             """Type-checking stub for Home Assistant form rendering."""
@@ -153,14 +155,16 @@ class ExternalEntityConfigurationMixin:
                     errors={"base": str(err)},
                 )
 
+        placeholders: MutableConfigFlowPlaceholders = {
+            "gps_enabled": flow._enabled_modules.get(MODULE_GPS, False),
+            "visitor_enabled": flow._enabled_modules.get(MODULE_VISITOR, False),
+            "dog_count": len(flow._dogs),
+        }
+
         return flow.async_show_form(
             step_id="configure_external_entities",
             data_schema=self._get_external_entities_schema(),
-            description_placeholders={
-                "gps_enabled": flow._enabled_modules.get(MODULE_GPS, False),
-                "visitor_enabled": flow._enabled_modules.get(MODULE_VISITOR, False),
-                "dog_count": len(flow._dogs),
-            },
+            description_placeholders=placeholders,
         )
 
     def _get_external_entities_schema(self) -> vol.Schema:

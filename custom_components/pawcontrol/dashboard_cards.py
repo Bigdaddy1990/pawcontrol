@@ -18,7 +18,7 @@ import asyncio
 import json
 import logging
 from collections.abc import Awaitable, Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, Final, cast
+from typing import TYPE_CHECKING, Final, cast
 
 from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant
@@ -60,6 +60,7 @@ from .types import (
     DogConfigData,
     DogModulesConfig,
     HelperManagerGuardMetrics,
+    JSONMapping,
     JSONMutableMapping,
     RawDogConfig,
     coerce_dog_modules_config,
@@ -1531,11 +1532,15 @@ class ModuleCardGenerator(BaseCardGenerator):
             )
 
             try:
-                overview_result, controls_result = await asyncio.gather(
+                gather_result: tuple[
+                    list[CardConfigType] | BaseException,
+                    list[CardConfigType] | BaseException,
+                ] = await asyncio.gather(
                     health_overview_task,
                     health_controls_task,
                     return_exceptions=True,
                 )
+                overview_result, controls_result = gather_result
 
                 health_overview_cards = _unwrap_async_result(
                     overview_result,
@@ -2830,13 +2835,13 @@ class StatisticsCardGenerator(BaseCardGenerator):
         options: OptionsConfigType,
         *,
         coordinator_statistics: CoordinatorStatisticsPayload
-        | Mapping[str, Any]
+        | JSONMapping
         | None = None,
         service_execution_metrics: CoordinatorRejectionMetrics
-        | Mapping[str, Any]
+        | JSONMapping
         | None = None,
         service_guard_metrics: HelperManagerGuardMetrics
-        | Mapping[str, Any]
+        | JSONMapping
         | None = None,
     ) -> list[CardConfigType]:
         """Generate optimized statistics cards for all dogs.
@@ -3016,13 +3021,13 @@ class StatisticsCardGenerator(BaseCardGenerator):
         theme: str,
         *,
         coordinator_statistics: CoordinatorStatisticsPayload
-        | Mapping[str, Any]
+        | JSONMapping
         | None = None,
         service_execution_metrics: CoordinatorRejectionMetrics
-        | Mapping[str, Any]
+        | JSONMapping
         | None = None,
         service_guard_metrics: HelperManagerGuardMetrics
-        | Mapping[str, Any]
+        | JSONMapping
         | None = None,
     ) -> CardConfigType:
         """Generate optimized statistics summary card."""

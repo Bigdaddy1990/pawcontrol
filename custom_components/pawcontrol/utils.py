@@ -168,9 +168,9 @@ from .service_guard import ServiceGuardResult
 if TYPE_CHECKING:
     from .types import DeviceLinkDetails, JSONMapping, JSONMutableMapping, JSONValue
 else:
-    JSONValue = Any
-    JSONMapping = Mapping[str, Any]
-    JSONMutableMapping = dict[str, Any]
+    JSONValue = object
+    JSONMapping = Mapping[str, object]
+    JSONMutableMapping = dict[str, object]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -183,15 +183,69 @@ R = TypeVar("R")
 Number = Real
 
 type DateTimeConvertible = datetime | date | str | float | int | Number
+type JSONMappingLike = Mapping[str, "JSONValue"]
+
+
+class ServiceCallKeywordArgs(TypedDict, total=False):
+    """Keyword arguments forwarded to Home Assistant service calls."""
+
+    blocking: bool
+    target: JSONMutableMapping
+    context: Context
+
+
+class FireEventKeywordArgs(TypedDict, total=False):
+    """Keyword arguments supported by Home Assistant bus events."""
+
+    context: Context
+    origin: EventOrigin
+    time_fired: datetime
+
+
+class ConfigurationValidationResult(TypedDict):
+    """Validation report returned by :func:`validate_configuration_schema`."""
+
+    valid: bool
+    missing_keys: list[str]
+    unknown_keys: list[str]
+    has_all_required: bool
+    has_unknown: bool
+
+
+class DeviceRegistryUpdate(TypedDict, total=False):
+    """Fields forwarded to ``device_registry.async_update_device``."""
+
+    suggested_area: str
+    serial_number: str
+    hw_version: str
+    sw_version: str
+    configuration_url: str
+
+
+def _coerce_json_mutable(
+    mapping: JSONMappingLike | JSONMutableMapping | None,
+) -> JSONMutableMapping:
+    """Create a JSON-compatible mutable mapping copy from any mapping input."""
+
+    if mapping is None:
+        return {}
+
+    if isinstance(mapping, dict):
+        return cast(JSONMutableMapping, dict(mapping))
+
+    return {
+        key: cast(JSONValue, value)
+        for key, value in mapping.items()
+    }
 
 
 async def async_call_hass_service_if_available(
     hass: HomeAssistant | None,
     domain: str,
     service: str,
-    service_data: Mapping[str, Any] | None = None,
+    service_data: JSONMappingLike | JSONMutableMapping | None = None,
     *,
-    target: Mapping[str, Any] | None = None,
+    target: JSONMappingLike | JSONMutableMapping | None = None,
     blocking: bool = False,
     context: Context | None = None,
     description: str | None = None,
@@ -244,10 +298,10 @@ async def async_call_hass_service_if_available(
             capture.append(guard_result)
         return guard_result
 
-    payload = dict(service_data) if service_data is not None else {}
-    target_payload = dict(target) if target is not None else None
+    payload = _coerce_json_mutable(service_data)
+    target_payload = _coerce_json_mutable(target) if target is not None else None
 
-    kwargs: dict[str, Any] = {"blocking": blocking}
+    kwargs: ServiceCallKeywordArgs = ServiceCallKeywordArgs(blocking=blocking)
     if target_payload is not None:
         kwargs["target"] = target_payload
     if context is not None:
@@ -283,7 +337,7 @@ class PortionValidationResult(TypedDict):
 async def async_fire_event(
     hass: HomeAssistant,
     event_type: str,
-    event_data: Mapping[str, Any] | None = None,
+    event_data: JSONMapping | JSONMutableMapping | None = None,
     *,
     context: Context | None = None,
     origin: EventOrigin | None = None,
@@ -310,7 +364,7 @@ async def async_fire_event(
     def _supports(keyword: str) -> bool:
         return accepts_any_kw or keyword in supported_keywords
 
-    kwargs: dict[str, Any] = {}
+    kwargs: FireEventKeywordArgs = FireEventKeywordArgs()
     if context is not None and _supports("context"):
         kwargs["context"] = context
     if origin is not None and _supports("origin"):
@@ -559,7 +613,7 @@ async def async_get_or_create_dog_device_entry(
         configuration_url=device_info.get("configuration_url"),
     )
 
-    update_kwargs: dict[str, Any] = {}
+    update_kwargs: DeviceRegistryUpdate = DeviceRegistryUpdate()
     for field in (
         "suggested_area",
         "serial_number",
@@ -1516,64 +1570,60 @@ def ensure_local_datetime(value: datetime | str | None) -> datetime | None:
 
 
 def merge_configurations(
-    base_config: dict[str, Any],
-    user_config: dict[str, Any],
+    base_config: JSONMappingLike | JSONMutableMapping,
+    user_config: JSONMappingLike | JSONMutableMapping,
     protected_keys: set[str] | None = None,
-) -> dict[str, Any]:
-    """Merge user configuration with base configuration.
+) -> JSONMutableMapping:
+    """Merge two JSON-compatible configuration mappings."""
 
-    Args:
-        base_config: Base configuration with defaults
-        user_config: User-provided configuration
-        protected_keys: Keys that cannot be overridden
-
-    Returns:
-        Merged configuration
-    """
-    protected_keys = protected_keys or set()
-    merged = base_config.copy()
+    protected_keys = set() if protected_keys is None else set(protected_keys)
+    merged = _coerce_json_mutable(base_config)
 
     for key, value in user_config.items():
         if key in protected_keys:
             _LOGGER.warning("Ignoring protected configuration key: %s", key)
             continue
 
-        if key in merged and isinstance(merged[key], dict) and isinstance(value, dict):
-            merged[key] = merge_configurations(merged[key], value, protected_keys)
-        else:
-            merged[key] = value
+        existing_value = merged.get(key)
+        if isinstance(value, Mapping):
+            base_child: JSONMutableMapping
+            if isinstance(existing_value, dict):
+                base_child = cast(JSONMutableMapping, existing_value)
+            else:
+                base_child = cast(JSONMutableMapping, {})
+            merged[key] = merge_configurations(
+                base_child,
+                cast(JSONMappingLike, value),
+                protected_keys,
+            )
+            continue
+
+        merged[key] = cast(JSONValue, value)
 
     return merged
 
 
 def validate_configuration_schema(
-    config: dict[str, Any],
+    config: JSONMappingLike | JSONMutableMapping,
     required_keys: set[str],
     optional_keys: set[str] | None = None,
-) -> dict[str, Any]:
-    """Validate configuration against schema.
+) -> ConfigurationValidationResult:
+    """Validate configuration keys against a simple schema definition."""
 
-    Args:
-        config: Configuration to validate
-        required_keys: Required configuration keys
-        optional_keys: Optional configuration keys
-
-    Returns:
-        Validation result with missing/unknown keys
-    """
-    optional_keys = optional_keys or set()
+    optional_keys = set() if optional_keys is None else set(optional_keys)
     all_valid_keys = required_keys | optional_keys
+    config_keys = set(config)
 
-    missing_keys = required_keys - config.keys()
-    unknown_keys = config.keys() - all_valid_keys
+    missing_keys = required_keys - config_keys
+    unknown_keys = config_keys - all_valid_keys
 
-    return {
-        "valid": len(missing_keys) == 0,
-        "missing_keys": list(missing_keys),
-        "unknown_keys": list(unknown_keys),
-        "has_all_required": len(missing_keys) == 0,
-        "has_unknown": len(unknown_keys) > 0,
-    }
+    return ConfigurationValidationResult(
+        valid=not missing_keys,
+        missing_keys=sorted(missing_keys),
+        unknown_keys=sorted(unknown_keys),
+        has_all_required=not missing_keys,
+        has_unknown=bool(unknown_keys),
+    )
 
 
 def convert_units(value: float, from_unit: str, to_unit: str) -> float:

@@ -3,14 +3,19 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping
-from typing import Any, cast
+from typing import cast
 
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
-from .types import PawControlConfigEntry, PawControlRuntimeData
+from .types import (
+    LegacyRuntimeStoreEntry,
+    LegacyRuntimeStorePayload,
+    PawControlConfigEntry,
+    PawControlRuntimeData,
+)
 
-DomainRuntimeStore = MutableMapping[str, PawControlRuntimeData | Mapping[str, Any]]
+type DomainRuntimeStore = MutableMapping[str, LegacyRuntimeStoreEntry]
 
 
 def _resolve_entry_id(entry_or_id: PawControlConfigEntry | str) -> str:
@@ -38,7 +43,7 @@ def _get_domain_store(
 ) -> DomainRuntimeStore | None:
     """Return the PawControl storage dictionary from ``hass.data``."""
 
-    domain_data: Any
+    domain_data: object
     domain_data = hass.data.setdefault(DOMAIN, {}) if create else hass.data.get(DOMAIN)
 
     if not isinstance(domain_data, MutableMapping):
@@ -59,7 +64,7 @@ _RUNTIME_REQUIRED_ATTRS: tuple[str, ...] = (
 )
 
 
-def _as_runtime_data(value: Any) -> PawControlRuntimeData | None:
+def _as_runtime_data(value: object | None) -> PawControlRuntimeData | None:
     """Return ``value`` when it looks like runtime data, otherwise ``None``."""
 
     if isinstance(value, PawControlRuntimeData):
@@ -85,7 +90,7 @@ def _as_runtime_data(value: Any) -> PawControlRuntimeData | None:
 
 
 def _coerce_runtime_data(
-    value: Any,
+    value: object | None,
 ) -> tuple[PawControlRuntimeData | None, bool]:
     """Return runtime data and whether the store needs migration."""
 
@@ -93,13 +98,17 @@ def _coerce_runtime_data(
     if runtime_data is not None:
         return runtime_data, False
 
-    if isinstance(value, Mapping):
-        legacy_value = value.get("runtime_data")
-        runtime_data = _as_runtime_data(legacy_value)
-        if runtime_data is not None:
-            return runtime_data, True
+    if not isinstance(value, Mapping):
+        return None, False
 
-    return None, False
+    mapping_value = cast(Mapping[str, object], value)
+    legacy_value = mapping_value.get("runtime_data")
+    runtime_data = _as_runtime_data(legacy_value)
+    if runtime_data is None:
+        return None, True
+
+    is_plain_mapping = isinstance(value, dict) and set(mapping_value.keys()) == {"runtime_data"}
+    return runtime_data, not is_plain_mapping
 
 
 def _cleanup_domain_store(
@@ -158,7 +167,8 @@ def store_runtime_data(
                 store.pop(key, None)
             continue
         if needs_migration:
-            store[key] = {"runtime_data": resolved}
+            payload: LegacyRuntimeStorePayload = {"runtime_data": resolved}
+            store[key] = payload
 
     _cleanup_domain_store(hass, store)
 

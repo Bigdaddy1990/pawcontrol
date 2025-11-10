@@ -212,6 +212,13 @@ class _DummyTracker:
         return 0.5
 
 
+class _ErrorSummaryTracker(_DummyTracker):
+    """Tracker that raises when building a summary to exercise fallbacks."""
+
+    def summary(self) -> dict[str, Any]:  # type: ignore[override]
+        raise RuntimeError("tracker summary failed")
+
+
 @pytest.mark.unit
 def test_auto_registered_cache_monitors(tmp_path: Path) -> None:
     """Data manager should surface coordinator caches via diagnostics snapshots."""
@@ -260,6 +267,35 @@ def test_auto_registered_cache_monitors(tmp_path: Path) -> None:
         storage_snapshot = snapshots[name]
         assert storage_snapshot["stats"]["entries"] == 0
         assert storage_snapshot["stats"]["dogs"] == 0
+
+
+@pytest.mark.unit
+def test_entity_budget_tracker_handles_summary_errors(tmp_path: Path) -> None:
+    """Entity budget diagnostics should expose serialised error payloads."""
+
+    hass = SimpleNamespace(config=SimpleNamespace(config_dir=str(tmp_path)))
+    modules = _DummyModules()
+    tracker = _ErrorSummaryTracker()
+    coordinator = SimpleNamespace(
+        hass=hass,
+        config_entry=SimpleNamespace(entry_id="test-entry"),
+        _modules=modules,
+        _entity_budget=tracker,
+    )
+
+    manager = PawControlDataManager(
+        hass=hass,
+        coordinator=coordinator,
+        dogs_config=[],
+    )
+
+    snapshots = manager.cache_snapshots()
+    diagnostics = snapshots["entity_budget_tracker"]["diagnostics"]
+
+    summary = diagnostics["summary"]
+    assert summary["error"] == "tracker summary failed"
+    summary["extra"] = True  # ensure mapping is mutable for downstream updates
+    assert summary["extra"] is True
 
 
 @pytest.mark.unit
@@ -925,7 +961,9 @@ def test_script_manager_manual_event_listener_records_last_trigger() -> None:
         def __init__(self) -> None:
             self.listeners: dict[str, Callable[[Event], None]] = {}
 
-        def async_listen(self, event_type: str, callback: Callable[[Event], None]):
+        def async_listen(
+            self, event_type: str, callback: Callable[[Event], None]
+        ) -> Callable[[], None]:
             self.listeners[event_type] = callback
 
             def _unsub() -> None:

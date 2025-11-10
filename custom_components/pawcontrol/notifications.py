@@ -15,7 +15,7 @@ import inspect
 import json
 import logging
 from collections import deque
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
@@ -33,7 +33,7 @@ from .feeding_translations import build_feeding_compliance_notification
 from .http_client import ensure_shared_client_session
 from .person_entity_manager import PersonEntityManager
 from .resilience import CircuitBreakerConfig, ResilienceManager
-from .types import PersonNotificationContext
+from .types import JSONMutableMapping, PersonEntityStats, PersonNotificationContext
 from .utils import async_call_hass_service_if_available
 from .webhook_security import WebhookSecurityError, WebhookSecurityManager
 
@@ -110,6 +110,134 @@ class NotificationChannel(Enum):
     DISCORD = "discord"  # OPTIMIZE: Added Discord notifications
 
 
+class NotificationQuietHoursConfig(TypedDict, total=False):
+    """Raw quiet-hours payload accepted by the notification manager."""
+
+    start: int
+    end: int
+
+
+class NotificationCustomSettings(TypedDict, total=False):
+    """Channel-specific overrides applied during notification delivery."""
+
+    mobile_service: str
+    mobile_services: list[str]
+    webhook_url: str
+    webhook_secret: str
+    webhook_header_prefix: str
+    webhook_algorithm: str
+    webhook_tolerance_seconds: int | float | str
+    webhook_timeout: int | float | str
+    tts_service: str
+    tts_entity: str
+    media_player_entity: str
+    slack_service: str
+    slack_channel: str
+    discord_service: str
+    discord_channel: str | None
+
+
+class NotificationRateLimitConfig(TypedDict, total=False):
+    """Per-channel rate limit definitions in minutes."""
+
+    persistent_limit_minutes: int
+    mobile_limit_minutes: int
+    email_limit_minutes: int
+    sms_limit_minutes: int
+    webhook_limit_minutes: int
+    tts_limit_minutes: int
+    media_player_limit_minutes: int
+    slack_limit_minutes: int
+    discord_limit_minutes: int
+
+
+type NotificationTemplateOverrides = dict[str, str]
+"""Template override mapping keyed by template identifier."""
+
+
+type NotificationTemplateData = JSONMutableMapping
+"""JSON-compatible mapping injected into notification templates."""
+
+
+type NotificationSendAttempts = dict[str, int]
+"""Channel-specific delivery attempt counters."""
+
+
+type NotificationServicePayload = JSONMutableMapping
+"""Service call payload passed to Home Assistant notify integrations."""
+
+
+def _empty_custom_settings() -> NotificationCustomSettings:
+    """Return a freshly typed custom settings mapping."""
+
+    return cast(NotificationCustomSettings, {})
+
+
+def _empty_rate_limit_config() -> NotificationRateLimitConfig:
+    """Return a freshly typed rate-limit configuration mapping."""
+
+    return cast(NotificationRateLimitConfig, {})
+
+
+class NotificationEventSerialized(TypedDict):
+    """Serialized notification payload stored for diagnostics."""
+
+    id: str
+    dog_id: str | None
+    notification_type: str
+    priority: str
+    title: str
+    message: str
+    created_at: str
+    expires_at: str | None
+    channels: list[str]
+    data: NotificationTemplateData
+    sent_to: list[str]
+    failed_channels: list[str]
+    retry_count: int
+    acknowledged: bool
+    acknowledged_at: str | None
+    grouped_with: list[str]
+    template_used: str | None
+    send_attempts: NotificationSendAttempts
+    targeted_persons: list[str]
+    notification_services: list[str]
+
+
+class NotificationWebhookPayload(TypedDict):
+    """Payload dispatched to webhook listeners."""
+
+    id: str
+    title: str
+    message: str
+    dog_id: str | None
+    priority: str
+    priority_numeric: int
+    channels: list[str]
+    created_at: str
+    expires_at: str | None
+    data: NotificationTemplateData
+    targeted_persons: list[str]
+
+
+class PersonDiscoveryResult(TypedDict):
+    """Result payload returned by person discovery routines."""
+
+    previous_count: int
+    current_count: int
+    persons_added: int
+    persons_removed: int
+    home_persons: int
+    away_persons: int
+    discovery_time: str
+
+
+class PersonDiscoveryError(TypedDict):
+    """Fallback payload returned when discovery is unavailable."""
+
+    error: str
+
+
 @dataclass
 class NotificationConfig:
     """Enhanced configuration for notification delivery."""
@@ -121,12 +249,14 @@ class NotificationConfig:
     priority_threshold: NotificationPriority = NotificationPriority.NORMAL
     quiet_hours: tuple[int, int] | None = None  # (start_hour, end_hour)
     retry_failed: bool = True
-    custom_settings: dict[str, Any] = field(default_factory=dict)
-    rate_limit: dict[str, int] = field(
-        default_factory=dict
+    custom_settings: NotificationCustomSettings = field(
+        default_factory=_empty_custom_settings
+    )
+    rate_limit: NotificationRateLimitConfig = field(
+        default_factory=_empty_rate_limit_config
     )  # OPTIMIZE: Added rate limiting
     batch_enabled: bool = True  # OPTIMIZE: Allow batching per config
-    template_overrides: dict[str, str] = field(
+    template_overrides: NotificationTemplateOverrides = field(
         default_factory=dict
     )  # OPTIMIZE: Custom templates
     # NEW: Person entity targeting
@@ -148,7 +278,7 @@ class NotificationEvent:
     created_at: datetime
     expires_at: datetime | None = None
     channels: list[NotificationChannel] = field(default_factory=list)
-    data: dict[str, Any] = field(default_factory=dict)
+    data: NotificationTemplateData = field(default_factory=dict)
     sent_to: list[NotificationChannel] = field(default_factory=list)
     failed_channels: list[NotificationChannel] = field(default_factory=list)
     retry_count: int = 0
@@ -158,7 +288,9 @@ class NotificationEvent:
     # OPTIMIZE: Enhanced metadata
     grouped_with: list[str] = field(default_factory=list)  # For batched notifications
     template_used: str | None = None
-    send_attempts: dict[str, int] = field(default_factory=dict)  # Per-channel attempts
+    send_attempts: NotificationSendAttempts = field(
+        default_factory=dict
+    )  # Per-channel attempts
 
     # NEW: Person targeting metadata
     targeted_persons: list[str] = field(default_factory=list)  # Person entity IDs
@@ -166,7 +298,7 @@ class NotificationEvent:
         default_factory=list
     )  # Actual services used
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> NotificationEventSerialized:
         """Convert to dictionary for storage."""
         return {
             "id": self.id,
@@ -279,7 +411,37 @@ class NotificationManagerStats(TypedDict):
     pending_batches: int
     available_channels: list[str]
     handlers_registered: int
-    person_entity_stats: Mapping[str, Any]
+    person_entity_stats: PersonEntityStats | None
+
+
+class WebhookSecurityStatus(TypedDict):
+    """Aggregated HMAC webhook security information."""
+
+    configured: bool
+    secure: bool
+    hmac_ready: bool
+    insecure_configs: tuple[str, ...]
+
+
+class NotificationConfigInput(TypedDict, total=False):
+    """Raw configuration payload accepted by ``async_initialize``."""
+
+    enabled: bool
+    channels: list[str]
+    priority_threshold: str
+    quiet_hours: NotificationQuietHoursConfig
+    retry_failed: bool
+    custom_settings: NotificationCustomSettings
+    rate_limit: NotificationRateLimitConfig
+    batch_enabled: bool
+    template_overrides: NotificationTemplateOverrides
+    use_person_entities: bool
+    include_away_persons: bool
+    fallback_to_static: bool
+
+
+type NotificationConfigInputMap = Mapping[str, NotificationConfigInput]
+"""Mapping of configuration identifiers to raw notification payloads."""
 
 
 class NotificationCache[ConfigT: NotificationConfig]:
@@ -672,8 +834,8 @@ class PawControlNotificationManager:
 
     async def async_initialize(
         self,
-        notification_configs: dict[str, dict[str, Any]] | None = None,
-        person_entity_config: dict[str, Any] | None = None,
+        notification_configs: NotificationConfigInputMap | None = None,
+        person_entity_config: Mapping[str, object] | None = None,
     ) -> None:
         """Initialize notification configurations with enhanced validation.
 
@@ -682,13 +844,18 @@ class PawControlNotificationManager:
             person_entity_config: Configuration for person entity integration
         """
         async with self._lock:
-            configs = notification_configs or {}
+            configs: NotificationConfigInputMap = (
+                {}
+                if notification_configs is None
+                else dict(notification_configs)
+            )
 
             for config_id, config_data in configs.items():
                 try:
                     # Parse channels with validation
-                    channels = []
-                    for channel_str in config_data.get("channels", ["persistent"]):
+                    channels: list[NotificationChannel] = []
+                    raw_channels = config_data.get("channels", ["persistent"])
+                    for channel_str in cast(Sequence[str], raw_channels):
                         try:
                             channels.append(NotificationChannel(channel_str))
                         except ValueError:
@@ -704,15 +871,35 @@ class PawControlNotificationManager:
                     # Parse quiet hours
                     quiet_hours = None
                     if "quiet_hours" in config_data:
-                        quiet_start = config_data["quiet_hours"].get("start", 22)
-                        quiet_end = config_data["quiet_hours"].get("end", 7)
+                        quiet_config = cast(NotificationQuietHoursConfig, config_data["quiet_hours"])
+                        quiet_start = quiet_config.get("start", 22)
+                        quiet_end = quiet_config.get("end", 7)
                         quiet_hours = (quiet_start, quiet_end)
 
                     # Parse rate limits
-                    rate_limit = config_data.get("rate_limit", {})
+                    rate_limit: NotificationRateLimitConfig
+                    if "rate_limit" in config_data:
+                        rate_limit = cast(
+                            NotificationRateLimitConfig, config_data["rate_limit"]
+                        )
+                    else:
+                        rate_limit = cast(NotificationRateLimitConfig, {})
 
                     # Parse template overrides
-                    template_overrides = config_data.get("template_overrides", {})
+                    if "template_overrides" in config_data:
+                        template_overrides = cast(
+                            NotificationTemplateOverrides,
+                            config_data["template_overrides"],
+                        )
+                    else:
+                        template_overrides = {}
+
+                    if "custom_settings" in config_data:
+                        custom_settings = cast(
+                            NotificationCustomSettings, config_data["custom_settings"]
+                        )
+                    else:
+                        custom_settings = cast(NotificationCustomSettings, {})
 
                     config = NotificationConfig(
                         enabled=config_data.get("enabled", True),
@@ -720,7 +907,7 @@ class PawControlNotificationManager:
                         priority_threshold=priority_threshold,
                         quiet_hours=quiet_hours,
                         retry_failed=config_data.get("retry_failed", True),
-                        custom_settings=config_data.get("custom_settings", {}),
+                        custom_settings=custom_settings,
                         rate_limit=rate_limit,
                         batch_enabled=config_data.get("batch_enabled", True),
                         template_overrides=template_overrides,
@@ -747,7 +934,7 @@ class PawControlNotificationManager:
         await self._start_background_tasks()
 
     async def _initialize_person_manager(
-        self, config: dict[str, Any] | None = None
+        self, config: Mapping[str, object] | None = None
     ) -> None:
         """Initialize person entity manager for dynamic targeting.
 
@@ -758,13 +945,17 @@ class PawControlNotificationManager:
             self._person_manager = PersonEntityManager(self._hass, self._entry_id)
 
             # Use provided config or defaults
-            person_config = config or {
-                "enabled": True,
-                "auto_discovery": True,
-                "discovery_interval": 300,
-                "include_away_persons": False,
-                "fallback_to_static": True,
-            }
+            person_config: dict[str, object]
+            if config is None:
+                person_config = {
+                    "enabled": True,
+                    "auto_discovery": True,
+                    "discovery_interval": 300,
+                    "include_away_persons": False,
+                    "fallback_to_static": True,
+                }
+            else:
+                person_config = dict(config)
 
             await self._person_manager.async_initialize(person_config)
             self._register_person_cache_monitor()
@@ -826,7 +1017,7 @@ class PawControlNotificationManager:
         message: str,
         dog_id: str | None = None,
         priority: NotificationPriority = NotificationPriority.NORMAL,
-        data: dict[str, Any] | None = None,
+        data: NotificationTemplateData | None = None,
         expires_in: timedelta | None = None,
         force_channels: list[NotificationChannel] | None = None,
         allow_batching: bool = True,
@@ -923,7 +1114,7 @@ class PawControlNotificationManager:
             allowed_channels = []
             for channel in channels:
                 rate_limit_key = f"{channel.value}_limit_minutes"
-                limit_minutes = config.rate_limit.get(rate_limit_key, 0)
+                limit_minutes = cast(int, config.rate_limit.get(rate_limit_key, 0))
 
                 if limit_minutes == 0 or self._cache.check_rate_limit(
                     config_key, channel.value, limit_minutes
@@ -940,7 +1131,11 @@ class PawControlNotificationManager:
                 return notification_id
 
             # Apply template if available with person context
-            template_data = data or {}
+            template_data: NotificationTemplateData = (
+                cast(NotificationTemplateData, dict(data))
+                if data is not None
+                else cast(NotificationTemplateData, {})
+            )
             if targeted_persons and self._person_manager:
                 person_context = self._person_manager.get_notification_context()
                 template_data.update(person_context)
@@ -1116,7 +1311,7 @@ class PawControlNotificationManager:
         title: str,
         message: str,
         config: NotificationConfig,
-        data: dict[str, Any],
+        data: NotificationTemplateData,
     ) -> tuple[str, str]:
         """Apply template formatting to notification.
 
@@ -1395,7 +1590,9 @@ class PawControlNotificationManager:
                 notification.failed_channels.append(channel)
             raise
 
-    def _build_webhook_payload(self, notification: NotificationEvent) -> dict[str, Any]:
+    def _build_webhook_payload(
+        self, notification: NotificationEvent
+    ) -> NotificationWebhookPayload:
         """Build a structured payload for webhook delivery."""
 
         return {
@@ -1554,7 +1751,7 @@ class PawControlNotificationManager:
         self, notification: NotificationEvent
     ) -> None:
         """Send persistent notification in Home Assistant."""
-        service_data = {
+        service_data: NotificationServicePayload = {
             "notification_id": f"{self._entry_id}_{notification.id}",
             "title": notification.title,
             "message": notification.message,
@@ -1576,7 +1773,7 @@ class PawControlNotificationManager:
             # Send to each targeted service
             for service_name in notification.notification_services:
                 try:
-                    service_data: dict[str, Any] = {
+                    service_data: NotificationServicePayload = {
                         "title": notification.title,
                         "message": notification.message,
                         "data": {
@@ -1630,7 +1827,7 @@ class PawControlNotificationManager:
 
             mobile_service = config.custom_settings.get("mobile_service", "mobile_app")
 
-            fallback_service_data: dict[str, Any] = {
+            fallback_service_data: NotificationServicePayload = {
                 "title": notification.title,
                 "message": notification.message,
                 "data": {
@@ -1735,7 +1932,7 @@ class PawControlNotificationManager:
 
         slack_service = config.custom_settings.get("slack_service", "slack")
 
-        service_data = {
+        service_data: NotificationServicePayload = {
             "title": notification.title,
             "message": notification.message,
             "target": config.custom_settings.get("slack_channel", "#pawcontrol"),
@@ -1764,7 +1961,7 @@ class PawControlNotificationManager:
 
         discord_service = config.custom_settings.get("discord_service", "discord")
 
-        service_data = {
+        service_data: NotificationServicePayload = {
             "title": notification.title,
             "message": notification.message,
             "target": config.custom_settings.get("discord_channel"),
@@ -1929,7 +2126,7 @@ class PawControlNotificationManager:
                 priority_counts[priority] = priority_counts.get(priority, 0) + 1
 
             # NEW: Person targeting statistics
-            person_stats: Mapping[str, Any] = {}
+            person_stats: PersonEntityStats | None = None
             if self._person_manager:
                 person_stats = self._person_manager.get_statistics()
 
@@ -1970,7 +2167,7 @@ class PawControlNotificationManager:
             self._cache_monitor_registrar, prefix="person_entity"
         )
 
-    def webhook_security_status(self) -> dict[str, Any]:
+    def webhook_security_status(self) -> WebhookSecurityStatus:
         """Return aggregated HMAC webhook security information."""
 
         webhook_configs: list[str] = []
@@ -2220,7 +2417,9 @@ class PawControlNotificationManager:
         )
 
     # NEW: Person entity management methods
-    async def async_update_person_entity_config(self, config: dict[str, Any]) -> bool:
+    async def async_update_person_entity_config(
+        self, config: Mapping[str, object]
+    ) -> bool:
         """Update person entity configuration.
 
         Args:
@@ -2230,17 +2429,19 @@ class PawControlNotificationManager:
             True if update was successful
         """
         if self._person_manager:
-            return await self._person_manager.async_update_config(config)
+            return await self._person_manager.async_update_config(dict(config))
         return False
 
-    async def async_force_person_discovery(self) -> dict[str, Any]:
+    async def async_force_person_discovery(
+        self,
+    ) -> PersonDiscoveryResult | PersonDiscoveryError:
         """Force person entity discovery.
 
         Returns:
             Discovery results
         """
         if self._person_manager:
-            return await self._person_manager.async_force_discovery()
+            return cast(PersonDiscoveryResult, await self._person_manager.async_force_discovery())
         return {"error": "Person manager not available"}
 
     def get_person_notification_context(self) -> PersonNotificationContext:

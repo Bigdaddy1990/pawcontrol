@@ -7,7 +7,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from datetime import timedelta
 from inspect import isawaitable
 from time import perf_counter
-from typing import TYPE_CHECKING, Any, cast, overload
+from typing import TYPE_CHECKING, Any, Literal, cast, overload
 
 from aiohttp import ClientSession
 from homeassistant.core import HomeAssistant, callback
@@ -72,13 +72,14 @@ from .telemetry import get_runtime_performance_stats
 from .types import (
     CoordinatorDataPayload,
     CoordinatorDogData,
+    CoordinatorModuleLookupResult,
     CoordinatorModuleState,
     CoordinatorPerformanceSnapshot,
     CoordinatorRuntimeManagers,
     CoordinatorRuntimeStatisticsPayload,
     CoordinatorSecurityScorecard,
     CoordinatorStatisticsPayload,
-    CoordinatorTypedModuleName,
+    DogConfigData,
     PawControlConfigEntry,
     PawControlRuntimeData,
     WebhookSecurityStatus,
@@ -443,15 +444,27 @@ class PawControlCoordinator(
 
     @overload
     def get_module_data(
-        self, dog_id: str, module: CoordinatorTypedModuleName
+        self,
+        dog_id: str,
+        module: Literal[
+            "feeding",
+            "garden",
+            "geofencing",
+            "gps",
+            "health",
+            "walk",
+            "weather",
+        ],
     ) -> CoordinatorModuleState:
         """Return typed module data for the dog."""
 
     @overload
-    def get_module_data(self, dog_id: str, module: str) -> Mapping[str, Any]:
+    def get_module_data(self, dog_id: str, module: str) -> CoordinatorModuleLookupResult:
         """Return module-specific data for the dog."""
 
-    def get_module_data(self, dog_id: str, module: str) -> Mapping[str, Any]:
+    def get_module_data(
+        self, dog_id: str, module: str
+    ) -> CoordinatorModuleLookupResult:
         """Return module-specific data for the dog."""
 
         return CoordinatorDataAccessMixin.get_module_data(self, dog_id, module)
@@ -461,7 +474,7 @@ class PawControlCoordinator(
 
         return CoordinatorDataAccessMixin.get_configured_dog_name(self, dog_id)
 
-    def get_dog_info(self, dog_id: str) -> Mapping[str, Any]:
+    def get_dog_info(self, dog_id: str) -> DogConfigData:
         """Return core dog information from the coordinator cache."""
 
         return CoordinatorDataAccessMixin.get_dog_info(self, dog_id)

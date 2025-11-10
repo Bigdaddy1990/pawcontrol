@@ -62,6 +62,10 @@ from .types import (
     HelperManagerGuardMetrics,
     HelperManagerSnapshot,
     HelperManagerStats,
+    InputBooleanCreateServiceData,
+    InputDatetimeCreateServiceData,
+    InputNumberCreateServiceData,
+    InputSelectCreateServiceData,
     JSONMutableMapping,
     ModuleToggleKey,
     ensure_dog_config_data,
@@ -677,16 +681,19 @@ class PawControlHelperManager:
                 _LOGGER.debug("Helper %s already exists, skipping creation", entity_id)
                 return
 
+            service_data: InputBooleanCreateServiceData = {
+                "name": name,
+                "initial": initial,
+            }
+            if icon is not None:
+                service_data["icon"] = icon
+
             # Create the helper
             guard_result = await async_call_hass_service_if_available(
                 self._hass,
                 input_boolean.DOMAIN,
                 "create",
-                {
-                    "name": name,
-                    "icon": icon,
-                    "initial": initial,
-                },
+                service_data,
                 target={"entity_id": entity_id},
                 blocking=True,
                 description=f"creating helper {entity_id}",
@@ -736,13 +743,13 @@ class PawControlHelperManager:
                 _LOGGER.debug("Helper %s already exists, skipping creation", entity_id)
                 return
 
-            service_data = {
+            service_data: InputDatetimeCreateServiceData = {
                 "name": name,
                 "has_date": has_date,
                 "has_time": has_time,
             }
 
-            if initial:
+            if initial is not None:
                 service_data["initial"] = initial
 
             # Create the helper
@@ -810,7 +817,7 @@ class PawControlHelperManager:
                 _LOGGER.debug("Helper %s already exists, skipping creation", entity_id)
                 return
 
-            service_data = {
+            service_data: InputNumberCreateServiceData = {
                 "name": name,
                 "min": min,
                 "max": max,
@@ -818,9 +825,9 @@ class PawControlHelperManager:
                 "mode": mode,
             }
 
-            if unit_of_measurement:
+            if unit_of_measurement is not None:
                 service_data["unit_of_measurement"] = unit_of_measurement
-            if icon:
+            if icon is not None:
                 service_data["icon"] = icon
             if initial is not None:
                 service_data["initial"] = initial
@@ -888,14 +895,14 @@ class PawControlHelperManager:
                 _LOGGER.debug("Helper %s already exists, skipping creation", entity_id)
                 return
 
-            service_data = {
+            service_data: InputSelectCreateServiceData = {
                 "name": name,
                 "options": options,
             }
 
-            if initial:
+            if initial is not None:
                 service_data["initial"] = initial
-            if icon:
+            if icon is not None:
                 service_data["icon"] = icon
 
             # Create the helper

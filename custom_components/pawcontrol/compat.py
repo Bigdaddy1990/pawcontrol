@@ -4,13 +4,37 @@ from __future__ import annotations
 
 import inspect
 import sys
-from collections.abc import Awaitable, Callable, Coroutine, Mapping
+from collections.abc import Awaitable, Callable, Coroutine, Mapping, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
 from enum import Enum
 from itertools import count
 from types import ModuleType
 from typing import Any, TypeVar, cast
+
+type JSONPrimitive = None | bool | int | float | str
+"""Primitive JSON-compatible value."""
+
+type JSONValue = JSONPrimitive | Sequence["JSONValue"] | Mapping[str, "JSONValue"]
+"""Recursive JSON-compatible value supporting nested mappings."""
+
+type JSONMapping = Mapping[str, JSONValue]
+"""Immutable JSON mapping payload."""
+
+type JSONMutableMapping = dict[str, JSONValue]
+"""Mutable JSON mapping payload used for config entry data."""
+
+type ConfigEntryData = JSONMutableMapping
+"""Mutable configuration data stored on compatibility config entries."""
+
+type ConfigEntryDataMapping = JSONMapping
+"""Readonly view for compatibility config entry payloads."""
+
+type ConfigEntryOptions = JSONMutableMapping
+"""Mutable options payload stored on compatibility config entries."""
+
+type TranslationPlaceholders = dict[str, str]
+"""Translation placeholder mapping for compatibility error payloads."""
 
 RuntimeT = TypeVar("RuntimeT")
 
@@ -419,8 +443,8 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
         entry_id: str | None = None,
         *,
         domain: str | None = None,
-        data: Mapping[str, Any] | None = None,
-        options: Mapping[str, Any] | None = None,
+        data: ConfigEntryDataMapping | None = None,
+        options: ConfigEntryDataMapping | None = None,
         title: str | None = None,
         source: str = "user",
         version: int = 1,
@@ -435,8 +459,8 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
 
         self.entry_id = entry_id or f"entry_{next(self._id_source)}"
         self.domain = domain or "unknown"
-        self.data: dict[str, Any] = dict(data or {})
-        self.options: dict[str, Any] = dict(options or {})
+        self.data: ConfigEntryData = dict(data or {})
+        self.options: ConfigEntryOptions = dict(options or {})
         self.title = title or self.domain
         self.source = source
         self.version = version
@@ -458,7 +482,7 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
         self._supports_reconfigure: bool | None = None
         self.reason: str | None = None
         self.error_reason_translation_key: str | None = None
-        self.error_reason_translation_placeholders: dict[str, Any] | None = None
+        self.error_reason_translation_placeholders: TranslationPlaceholders | None = None
         self.runtime_data: RuntimeT | None = None
         self.update_listeners: list[
             Callable[[Any, ConfigEntry[RuntimeT]], Awaitable[None] | None]
@@ -621,7 +645,7 @@ def _fallback_service_registry() -> type[Any]:
     class _ServiceCall:
         domain: str
         service: str
-        data: Mapping[str, Any]
+        data: JSONMapping
 
     class ServiceRegistry:
         """Simplified service registry for offline test environments."""
@@ -642,7 +666,7 @@ def _fallback_service_registry() -> type[Any]:
             self,
             domain: str,
             service: str,
-            data: Mapping[str, Any] | None = None,
+            data: JSONMapping | None = None,
         ) -> None:
             handler = self._services.get(domain, {}).get(service)
             if handler is None:

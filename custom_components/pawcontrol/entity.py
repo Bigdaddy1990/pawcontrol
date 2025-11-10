@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import callback
@@ -13,8 +12,9 @@ from .const import ATTR_DOG_ID, ATTR_DOG_NAME
 from .coordinator import PawControlCoordinator
 from .runtime_data import get_runtime_data
 from .service_guard import ServiceGuardResult
-from .types import CoordinatorRuntimeManagers
+from .types import CoordinatorRuntimeManagers, JSONMutableMapping
 from .utils import (
+    JSONMappingLike,
     PawControlDeviceLinkMixin,
     async_call_hass_service_if_available,
 )
@@ -172,7 +172,7 @@ class PawControlEntity(
         self,
         domain: str,
         service: str,
-        service_data: Mapping[str, Any],
+        service_data: JSONMappingLike | JSONMutableMapping | None = None,
         *,
         blocking: bool = False,
     ) -> ServiceGuardResult:

@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime, timedelta
+from typing import cast
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -26,6 +27,7 @@ from custom_components.pawcontrol.gps_manager import (
     calculate_bearing,
     calculate_distance,
 )
+from custom_components.pawcontrol.types import GPSTrackingConfigInput
 
 
 @pytest.mark.unit
@@ -45,7 +47,7 @@ class TestGPSManagerInitialization:
 
     async def test_configure_dog_gps_basic(self, mock_gps_manager):
         """Test configuring GPS for a dog."""
-        config = {
+        config: GPSTrackingConfigInput = {
             "enabled": True,
             "auto_start_walk": True,
             "track_route": True,
@@ -59,7 +61,7 @@ class TestGPSManagerInitialization:
 
     async def test_configure_dog_gps_custom_settings(self, mock_gps_manager):
         """Test GPS configuration with custom settings."""
-        config = {
+        config: GPSTrackingConfigInput = {
             "enabled": True,
             "gps_accuracy_threshold": 25.0,
             "update_interval_seconds": 30,
@@ -85,14 +87,12 @@ class TestGPSTrackingTasks:
         """Ensure fallback scheduling engages when hass returns AsyncMock."""
 
         manager = mock_gps_manager
-        await manager.async_configure_dog_gps(
-            "test_dog",
-            {
-                "enabled": True,
-                "track_route": True,
-                "update_interval_seconds": 0,
-            },
-        )
+        tracking_config: GPSTrackingConfigInput = {
+            "enabled": True,
+            "track_route": True,
+            "update_interval_seconds": 0,
+        }
+        await manager.async_configure_dog_gps("test_dog", tracking_config)
 
         manager._active_routes["test_dog"] = WalkRoute(
             dog_id="test_dog",
@@ -312,7 +312,8 @@ class TestGPSTracking:
         """Test that points with poor accuracy are rejected."""
         # Configure strict accuracy threshold
         await mock_gps_manager.async_configure_dog_gps(
-            "test_dog", {"gps_accuracy_threshold": 20.0}
+            "test_dog",
+            cast(GPSTrackingConfigInput, {"gps_accuracy_threshold": 20.0}),
         )
 
         success = await mock_gps_manager.async_add_gps_point(
@@ -327,7 +328,8 @@ class TestGPSTracking:
     async def test_add_gps_point_filters_minimum_distance(self, mock_gps_manager):
         """Test minimum distance filter."""
         await mock_gps_manager.async_configure_dog_gps(
-            "test_dog", {"min_distance_for_point": 10.0}
+            "test_dog",
+            cast(GPSTrackingConfigInput, {"min_distance_for_point": 10.0}),
         )
 
         # Start walk
@@ -734,7 +736,9 @@ class TestStatistics:
 
     async def test_get_statistics_basic(self, mock_gps_manager):
         """Test getting GPS statistics."""
-        await mock_gps_manager.async_configure_dog_gps("test_dog", {})
+        await mock_gps_manager.async_configure_dog_gps(
+            "test_dog", cast(GPSTrackingConfigInput, {})
+        )
 
         stats = await mock_gps_manager.async_get_statistics()
 
@@ -844,7 +848,9 @@ class TestEdgeCases:
 
     async def test_cleanup_clears_all_data(self, mock_gps_manager):
         """Test that cleanup clears all data."""
-        await mock_gps_manager.async_configure_dog_gps("test_dog", {})
+        await mock_gps_manager.async_configure_dog_gps(
+            "test_dog", cast(GPSTrackingConfigInput, {})
+        )
         await mock_gps_manager.async_start_gps_tracking("test_dog")
 
         await mock_gps_manager.async_cleanup()

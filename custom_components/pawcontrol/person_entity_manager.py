@@ -16,7 +16,7 @@ import logging
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Literal, Protocol, cast
+from typing import Literal, cast
 
 from homeassistant.const import STATE_HOME
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, State
@@ -24,17 +24,20 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt as dt_util
 
-from .coordinator_support import CacheMonitorRegistrar
+from .coordinator_support import CacheMonitorRegistrar, SupportsCoordinatorSnapshot
 from .types import (
     CacheDiagnosticsSnapshot,
     JSONMutableMapping,
     PersonEntityAttributePayload,
+    PersonEntityConfigInput,
     PersonEntityCounters,
     PersonEntityDiagnostics,
+    PersonEntityDiscoveryResult,
     PersonEntitySnapshot,
     PersonEntitySnapshotEntry,
     PersonEntityStats,
     PersonEntityStorageEntry,
+    PersonEntityValidationResult,
     PersonNotificationCacheEntry,
     PersonNotificationContext,
 )
@@ -205,15 +208,78 @@ class PersonEntityConfig:
     priority_persons: list[str] = field(default_factory=list)  # High priority persons
 
 
-class SupportsCoordinatorSnapshot(Protocol):
-    """Protocol describing the cache snapshot contract."""
-
-    def coordinator_snapshot(self) -> Mapping[str, Any]:
-        """Return a diagnostics payload for coordinator consumption."""
-
-
 class PersonEntityManager(SupportsCoordinatorSnapshot):
     """Manager for person entity discovery and notification targeting."""
+
+    @staticmethod
+    def _coerce_discovery_interval(value: int | None) -> int:
+        """Clamp the discovery interval to supported bounds."""
+
+        if not isinstance(value, int):
+            return DEFAULT_DISCOVERY_INTERVAL
+        return max(MIN_DISCOVERY_INTERVAL, min(MAX_DISCOVERY_INTERVAL, value))
+
+    @staticmethod
+    def _coerce_positive_int(value: int | None, *, default: int) -> int:
+        """Return ``default`` when ``value`` is not a positive integer."""
+
+        if not isinstance(value, int) or value <= 0:
+            return default
+        return value
+
+    @staticmethod
+    def _coerce_string_list(values: Sequence[str] | None) -> list[str]:
+        """Return a canonical list of strings from ``values``."""
+
+        if not values:
+            return []
+        return [item for item in values if isinstance(item, str)]
+
+    @staticmethod
+    def _coerce_string_mapping(values: Mapping[str, str] | None) -> dict[str, str]:
+        """Return mapping entries with string keys and values only."""
+
+        if not values:
+            return {}
+        return {
+            key: val
+            for key, val in values.items()
+            if isinstance(key, str) and isinstance(val, str)
+        }
+
+    @classmethod
+    def _build_config_from_input(
+        cls, config: PersonEntityConfigInput
+    ) -> PersonEntityConfig:
+        """Normalise ``config`` into a :class:`PersonEntityConfig` instance."""
+
+        discovery_interval = cls._coerce_discovery_interval(
+            config.get("discovery_interval")
+        )
+        cache_ttl = cls._coerce_positive_int(
+            config.get("cache_ttl"), default=DEFAULT_CACHE_TTL
+        )
+
+        return PersonEntityConfig(
+            enabled=bool(config.get("enabled", True)),
+            auto_discovery=bool(config.get("auto_discovery", True)),
+            discovery_interval=discovery_interval,
+            cache_ttl=cache_ttl,
+            include_away_persons=bool(config.get("include_away_persons", False)),
+            fallback_to_static=bool(config.get("fallback_to_static", True)),
+            static_notification_targets=cls._coerce_string_list(
+                config.get("static_notification_targets")
+            ),
+            excluded_entities=cls._coerce_string_list(
+                config.get("excluded_entities")
+            ),
+            notification_mapping=cls._coerce_string_mapping(
+                config.get("notification_mapping")
+            ),
+            priority_persons=cls._coerce_string_list(
+                config.get("priority_persons")
+            ),
+        )
 
     def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
         """Initialize person entity manager.
@@ -249,7 +315,9 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             "discovery_runs": 0,
         }
 
-    async def async_initialize(self, config: dict[str, Any] | None = None) -> None:
+    async def async_initialize(
+        self, config: PersonEntityConfigInput | None = None
+    ) -> None:
         """Initialize person entity manager with configuration.
 
         Args:
@@ -258,28 +326,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         async with self._lock:
             # Update configuration
             if config:
-                self._config = PersonEntityConfig(
-                    enabled=config.get("enabled", True),
-                    auto_discovery=config.get("auto_discovery", True),
-                    discovery_interval=max(
-                        MIN_DISCOVERY_INTERVAL,
-                        min(
-                            MAX_DISCOVERY_INTERVAL,
-                            config.get(
-                                "discovery_interval", DEFAULT_DISCOVERY_INTERVAL
-                            ),
-                        ),
-                    ),
-                    cache_ttl=config.get("cache_ttl", DEFAULT_CACHE_TTL),
-                    include_away_persons=config.get("include_away_persons", False),
-                    fallback_to_static=config.get("fallback_to_static", True),
-                    static_notification_targets=config.get(
-                        "static_notification_targets", []
-                    ),
-                    excluded_entities=config.get("excluded_entities", []),
-                    notification_mapping=config.get("notification_mapping", {}),
-                    priority_persons=config.get("priority_persons", []),
-                )
+                self._config = self._build_config_from_input(config)
 
             if not self._config.enabled:
                 _LOGGER.debug("Person entity integration disabled")
@@ -466,7 +513,9 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         person_info.state = new_state.state
         person_info.is_home = new_state.state == STATE_HOME
         person_info.last_updated = new_state.last_updated
-        person_info.attributes = dict(new_state.attributes)
+        person_info.attributes = cast(
+            PersonEntityAttributePayload, dict(new_state.attributes)
+        )
 
         # Clear cache if home status changed
         if old_is_home != person_info.is_home:
@@ -626,7 +675,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             "everyone_away": len(home_persons) == 0 and len(away_persons) > 0,
         }
 
-    async def async_force_discovery(self) -> dict[str, Any]:
+    async def async_force_discovery(self) -> PersonEntityDiscoveryResult:
         """Force immediate person discovery.
 
         Returns:
@@ -637,7 +686,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             await self._discover_person_entities()
             new_count = len(self._persons)
 
-            return {
+            result: PersonEntityDiscoveryResult = {
                 "previous_count": old_count,
                 "current_count": new_count,
                 "persons_added": max(0, new_count - old_count),
@@ -647,7 +696,9 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
                 "discovery_time": self._last_discovery.isoformat(),
             }
 
-    async def async_update_config(self, new_config: dict[str, Any]) -> bool:
+            return result
+
+    async def async_update_config(self, new_config: PersonEntityConfigInput) -> bool:
         """Update person entity configuration.
 
         Args:
@@ -712,7 +763,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             },
         }
 
-    async def async_validate_configuration(self) -> dict[str, Any]:
+    async def async_validate_configuration(self) -> PersonEntityValidationResult:
         """Validate person entity configuration.
 
         Returns:
@@ -753,13 +804,15 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             if excluded not in [p.entity_id for p in self._persons.values()]:
                 issues.append(f"Excluded entity {excluded} not found")  # noqa: PERF401
 
-        return {
+        result: PersonEntityValidationResult = {
             "valid": len(issues) == 0,
             "issues": issues,
             "recommendations": recommendations,
             "persons_configured": len(self._persons),
             "notification_targets_available": len(self.get_notification_targets()),
         }
+
+        return result
 
     async def async_shutdown(self) -> None:
         """Shutdown person entity manager."""

@@ -34,6 +34,7 @@ from custom_components.pawcontrol.const import (
 )
 from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
 from custom_components.pawcontrol.exceptions import PawControlSetupError
+from custom_components.pawcontrol.types import DogModuleSelectionInput
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -175,6 +176,60 @@ async def test_full_user_flow(hass: HomeAssistant) -> None:
     assert dog_result[CONF_DOG_AGE] == 5
     assert dog_result[CONF_DOG_WEIGHT] == 25.0
     assert dog_result[CONF_DOG_SIZE] == "medium"
+
+
+async def test_dog_modules_accepts_flow_flags(hass: HomeAssistant) -> None:
+    """Module step accepts both flow flags and stored module mappings."""
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    assert result["type"] == FlowResultType.FORM
+    _assert_step_id(result, "add_dog")
+
+    dog = {
+        CONF_DOG_ID: "spot",
+        CONF_DOG_NAME: "Spot",
+        CONF_DOG_BREED: "Beagle",
+        CONF_DOG_AGE: 4,
+        CONF_DOG_WEIGHT: 12.5,
+        CONF_DOG_SIZE: "small",
+    }
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input=dog
+    )
+    assert result["type"] == FlowResultType.FORM
+    _assert_step_id(result, "dog_modules")
+
+    selection = DogModuleSelectionInput(
+        enable_feeding=True,
+        enable_notifications=True,
+        enable_gps=False,
+    )
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        user_input=selection,
+    )
+    assert result["type"] == FlowResultType.FORM
+    _assert_step_id(result, "add_another")
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={"add_another": False}
+    )
+    assert result["type"] == FlowResultType.FORM
+    _assert_step_id(result, "entity_profile")
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], user_input={"entity_profile": "standard"}
+    )
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+
+    modules = result["data"][CONF_DOGS][0][CONF_MODULES]
+    assert modules[MODULE_FEEDING] is True
+    assert modules[MODULE_NOTIFICATIONS] is True
+    assert modules[MODULE_GPS] is False
 
 
 async def test_dog_modules_invalid_input(hass: HomeAssistant) -> None:

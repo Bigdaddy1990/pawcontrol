@@ -12,7 +12,8 @@ from __future__ import annotations
 import asyncio
 import contextlib
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
+from typing import cast
 from unittest.mock import AsyncMock, Mock, call
 
 import pytest
@@ -25,6 +26,10 @@ from custom_components.pawcontrol.notifications import (
     NotificationPriority,
     NotificationType,
     PawControlNotificationManager,
+)
+from custom_components.pawcontrol.types import (
+    PersonEntityStats,
+    PersonNotificationContext,
 )
 
 
@@ -75,16 +80,40 @@ class _NoTargetsPersonManager:
     def get_all_persons(self) -> list[object]:
         return []
 
-    def get_notification_context(self) -> dict[str, object]:
+    def get_notification_context(self) -> PersonNotificationContext:
         return {
             "home_person_names": [],
             "away_person_names": [],
             "persons_home": 0,
             "persons_away": 0,
+            "total_persons": 0,
+            "has_anyone_home": False,
+            "everyone_away": False,
         }
 
-    def get_statistics(self) -> dict[str, object]:
-        return {}
+    def get_statistics(self) -> PersonEntityStats:
+        return {
+            "persons_discovered": 0,
+            "notifications_targeted": 0,
+            "cache_hits": 0,
+            "cache_misses": 0,
+            "discovery_runs": 0,
+            "config": {
+                "enabled": True,
+                "auto_discovery": True,
+                "discovery_interval": 300,
+                "include_away_persons": False,
+                "fallback_to_static": True,
+            },
+            "current_state": {
+                "total_persons": 0,
+                "home_persons": 0,
+                "away_persons": 0,
+                "last_discovery": datetime.now(UTC).isoformat(),
+                "uptime_seconds": 0.0,
+            },
+            "cache": {"cache_entries": 0, "hit_rate": 0.0},
+        }
 
 
 @dataclass(slots=True)
@@ -105,7 +134,7 @@ class _DynamicPersonManager:
         away_persons: list[_StubPersonEntity],
         home_services: list[str],
         away_services: list[str],
-        context: dict[str, object] | None = None,
+        context: PersonNotificationContext | None = None,
     ) -> None:
         self._home_persons = home_persons
         self._away_persons = away_persons
@@ -113,14 +142,9 @@ class _DynamicPersonManager:
         self._away_services = away_services
         self.requests: list[tuple[bool, str]] = []
         if context is None:
-            self._context = {
-                "home_person_names": [person.name for person in home_persons],
-                "away_person_names": [person.name for person in away_persons],
-                "persons_home": len(home_persons),
-                "persons_away": len(away_persons),
-            }
+            self._context_override: PersonNotificationContext | None = None
         else:
-            self._context = context
+            self._context_override = cast(PersonNotificationContext, dict(context))
 
     def register_cache_monitors(
         self, registrar: CacheMonitorRegistrar, *, prefix: str = "person_entity"
@@ -141,13 +165,43 @@ class _DynamicPersonManager:
     def get_all_persons(self) -> list[_StubPersonEntity]:
         return [*self._home_persons, *self._away_persons]
 
-    def get_notification_context(self) -> dict[str, object]:
-        return dict(self._context)
+    def get_notification_context(self) -> PersonNotificationContext:
+        if self._context_override is not None:
+            return cast(PersonNotificationContext, dict(self._context_override))
 
-    def get_statistics(self) -> dict[str, object]:
         return {
-            "home_persons": len(self._home_persons),
-            "away_persons": len(self._away_persons),
+            "home_person_names": [person.name for person in self._home_persons],
+            "away_person_names": [person.name for person in self._away_persons],
+            "persons_home": len(self._home_persons),
+            "persons_away": len(self._away_persons),
+            "total_persons": len(self._home_persons) + len(self._away_persons),
+            "has_anyone_home": bool(self._home_persons),
+            "everyone_away": not self._home_persons and bool(self._away_persons),
+        }
+
+    def get_statistics(self) -> PersonEntityStats:
+        total_persons = len(self._home_persons) + len(self._away_persons)
+        return {
+            "persons_discovered": total_persons,
+            "notifications_targeted": 0,
+            "cache_hits": 0,
+            "cache_misses": 0,
+            "discovery_runs": 0,
+            "config": {
+                "enabled": True,
+                "auto_discovery": True,
+                "discovery_interval": 300,
+                "include_away_persons": False,
+                "fallback_to_static": True,
+            },
+            "current_state": {
+                "total_persons": total_persons,
+                "home_persons": len(self._home_persons),
+                "away_persons": len(self._away_persons),
+                "last_discovery": datetime.now(UTC).isoformat(),
+                "uptime_seconds": 0.0,
+            },
+            "cache": {"cache_entries": 0, "hit_rate": 0.0},
         }
 
 

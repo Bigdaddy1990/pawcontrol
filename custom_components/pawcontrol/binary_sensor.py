@@ -15,7 +15,7 @@ import logging
 import os
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, cast
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
@@ -54,6 +54,7 @@ from .types import (
     GardenModulePayload,
     GPSModulePayload,
     HealthModulePayload,
+    JSONMapping,
     PawControlConfigEntry,
     WalkModulePayload,
     ensure_dog_config_data,
@@ -238,7 +239,7 @@ async def async_setup_entry(
         if not isinstance(raw_dog, Mapping):
             continue
 
-        normalised = ensure_dog_config_data(cast(Mapping[str, Any], raw_dog))
+        normalised = ensure_dog_config_data(cast(JSONMapping, raw_dog))
         if normalised is None:
             continue
 
@@ -833,7 +834,7 @@ class PawControlVisitorModeBinarySensor(PawControlBinarySensorBase):
 
         if dog_data:
             visitor_settings = cast(
-                Mapping[str, Any], dog_data.get("visitor_mode_settings", {})
+                JSONMapping, dog_data.get("visitor_mode_settings", {})
             )
             visitor_mode_started = cast(
                 str | None, dog_data.get("visitor_mode_started")

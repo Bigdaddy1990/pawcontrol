@@ -54,11 +54,13 @@ from .const import (
     CONF_QUIET_START,
     CONF_REMINDER_REPEAT_MIN,
 )
-from .service_guard import (
-    ServiceGuardMetricsSnapshot,
-    ServiceGuardResultHistory,
-    ServiceGuardSummary,
-)
+
+if TYPE_CHECKING:
+    from .service_guard import (
+        ServiceGuardMetricsSnapshot,
+        ServiceGuardResultHistory,
+        ServiceGuardSummary,
+    )
 
 try:
     from homeassistant.util import dt as dt_util
@@ -70,8 +72,6 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
             return datetime.now(UTC)
 
     dt_util = _DateTimeModule()
-
-from .utils import is_number
 
 type JSONPrimitive = None | bool | int | float | str
 """Primitive JSON-compatible values."""
@@ -85,8 +85,50 @@ type JSONMapping = Mapping[str, JSONValue]
 type JSONMutableMapping = dict[str, JSONValue]
 """Mutable mapping containing JSON-compatible payloads."""
 
+type JSONLikeMapping = JSONMapping | JSONMutableMapping
+"""Union covering immutable and mutable JSON-compatible mappings."""
+
+type ConfigFlowUserInput = Mapping[str, object] | JSONMutableMapping
+"""Config flow user input payload accepted by setup and options steps."""
+
 type JSONMutableSequence = list[JSONValue]
 """Mutable sequence containing JSON-compatible payload entries."""
+
+type JSONDateValue = JSONValue | datetime
+"""JSON-compatible value extended with ``datetime`` for legacy payloads."""
+
+type JSONDateMapping = Mapping[str, JSONDateValue]
+"""Mapping that tolerates ``datetime`` values during legacy hydration."""
+
+type VisitorModeSettingsPayload = JSONMutableMapping
+"""Mutable payload persisted for visitor-mode configuration."""
+
+from .utils import is_number  # noqa: E402
+
+type ErrorContext = JSONMutableMapping
+"""Structured context payload attached to :class:`PawControlError` instances."""
+
+
+class ErrorPayload(TypedDict):
+    """Serialized representation of :class:`PawControlError` instances."""
+
+    error_code: str
+    message: str
+    user_message: str
+    severity: str
+    category: str
+    context: ErrorContext
+    recovery_suggestions: list[str]
+    technical_details: str | None
+    timestamp: str
+    exception_type: str
+
+
+type GPXAttributeValue = JSONPrimitive
+"""Primitive attribute value allowed in GPX attribute mappings."""
+
+type GPXAttributeMap = Mapping[str, GPXAttributeValue]
+"""Mapping for GPX/XML attribute rendering."""
 
 type EntityAttributePayload[T: JSONValue] = dict[str, T]
 """Generic JSON-compatible attribute payload keyed by entity attribute name."""
@@ -102,6 +144,15 @@ type SelectExtraAttributes = EntityAttributeMutableMapping
 
 type PersonEntityAttributePayload = JSONMutableMapping
 """Mutable attribute payload stored alongside discovered person entities."""
+
+
+class TextEntityExtraAttributes(TypedDict):
+    """Extra attributes exposed by PawControl text entities."""
+
+    dog_id: str
+    dog_name: str
+    text_type: str
+    character_count: int
 
 
 class ButtonExtraAttributes(TypedDict, total=False):
@@ -256,6 +307,9 @@ type MetadataPayload[T: JSONValue] = dict[str, T]
 type MaintenanceMetadataPayload = MetadataPayload[JSONValue]
 """JSON-compatible metadata payload captured during maintenance routines."""
 
+type ServiceDetailsPayload = MaintenanceMetadataPayload
+"""Normalised service details payload stored alongside execution results."""
+
 type StorageNamespaceKey = Literal[
     "walks",
     "feedings",
@@ -273,6 +327,27 @@ type StorageNamespaceState = dict[StorageNamespaceKey, StorageNamespacePayload]
 
 type StorageCacheValue = StorageNamespaceState | StorageNamespacePayload | None
 """Union of cache payloads tracked by :class:`PawControlDataStorage`."""
+
+type HealthHistoryEntry = HealthEvent | JSONMutableMapping
+"""Health history entry stored in runtime storage queues."""
+
+type HealthNamespaceMutable = dict[str, list[HealthHistoryEntry] | JSONValue]
+"""Mutable mapping of per-dog health history payloads."""
+
+type WalkHistoryEntry = WalkEvent | JSONMutableMapping
+"""Walk history entry captured during runtime processing."""
+
+type WalkNamespaceValue = JSONValue | WalkEvent | list[WalkHistoryEntry] | None
+"""Allowed value types persisted inside a walk namespace entry."""
+
+type WalkNamespaceMutableEntry = dict[str, WalkNamespaceValue]
+"""Mutable walk namespace payload for a single dog identifier."""
+
+type WalkNamespaceMutable = dict[str, WalkNamespaceMutableEntry | JSONValue]
+"""Runtime mapping of walk namespace entries keyed by dog identifier."""
+
+type WalkStartPayload = Mapping[str, JSONValue]
+"""Structured payload accepted when starting an immediate walk."""
 
 # OPTIMIZE: Resolve circular imports with proper conditional imports
 if TYPE_CHECKING:
@@ -376,7 +451,15 @@ Supports multiple GPS input methods to accommodate different hardware setups
 and integration scenarios with various tracking devices and services.
 """
 
-VALID_NOTIFICATION_PRIORITIES: Final[frozenset[str]] = frozenset(
+type NotificationPriority = Literal["low", "normal", "high", "urgent"]
+"""Supported notification priority values.
+
+The alias is reused across the helper and notification managers so every queue,
+options flow, and service call enforces the Home Assistant priority contract
+without falling back to loosely typed strings.
+"""
+
+VALID_NOTIFICATION_PRIORITIES: Final[frozenset[NotificationPriority]] = frozenset(
     ["low", "normal", "high", "urgent"]
 )
 """Valid notification priority levels for alert management.
@@ -688,7 +771,7 @@ class HealthAlertEntry(TypedDict, total=False):
     message: str
     severity: Literal["low", "medium", "high", "critical"]
     action_required: bool
-    details: Mapping[str, Any] | None
+    details: JSONLikeMapping | None
 
 
 class HealthUpcomingCareEntry(TypedDict, total=False):
@@ -698,7 +781,7 @@ class HealthUpcomingCareEntry(TypedDict, total=False):
     message: str
     due_date: str | None
     priority: Literal["low", "medium", "high"]
-    details: str | Mapping[str, Any] | None
+    details: str | JSONLikeMapping | None
 
 
 type HealthAlertList = list[HealthAlertEntry]
@@ -740,6 +823,23 @@ ModuleToggleKey = Literal[
     "training",
 ]
 
+ModuleToggleFlowFlag = Literal[
+    "enable_feeding",
+    "enable_walk",
+    "enable_health",
+    "enable_gps",
+    "enable_garden",
+    "enable_notifications",
+    "enable_dashboard",
+    "enable_visitor",
+    "enable_grooming",
+    "enable_medication",
+    "enable_training",
+]
+
+type ModuleToggleMapping = Mapping[ModuleToggleKey, JSONValue]
+"""Mapping of module toggle keys to JSON-compatible values."""
+
 MODULE_TOGGLE_KEYS: Final[tuple[ModuleToggleKey, ...]] = (
     "feeding",
     "walk",
@@ -754,7 +854,7 @@ MODULE_TOGGLE_KEYS: Final[tuple[ModuleToggleKey, ...]] = (
     "training",
 )
 
-MODULE_TOGGLE_FLOW_FLAGS: Final[tuple[tuple[str, ModuleToggleKey], ...]] = (
+MODULE_TOGGLE_FLOW_FLAGS: Final[tuple[tuple[ModuleToggleFlowFlag, ModuleToggleKey], ...]] = (
     ("enable_feeding", "feeding"),
     ("enable_walk", "walk"),
     ("enable_health", "health"),
@@ -767,6 +867,26 @@ MODULE_TOGGLE_FLOW_FLAGS: Final[tuple[tuple[str, ModuleToggleKey], ...]] = (
     ("enable_medication", "medication"),
     ("enable_training", "training"),
 )
+
+MODULE_TOGGLE_FLAG_BY_KEY: Final[dict[ModuleToggleKey, ModuleToggleFlowFlag]] = {
+    module: flag for flag, module in MODULE_TOGGLE_FLOW_FLAGS
+}
+
+
+class DogModuleSelectionInput(TypedDict, total=False):
+    """Raw module toggle payload collected during per-dog setup."""
+
+    enable_feeding: bool
+    enable_walk: bool
+    enable_health: bool
+    enable_gps: bool
+    enable_garden: bool
+    enable_notifications: bool
+    enable_dashboard: bool
+    enable_visitor: bool
+    enable_grooming: bool
+    enable_medication: bool
+    enable_training: bool
 
 FeedingConfigKey = Literal[
     "meals_per_day",
@@ -872,6 +992,14 @@ class BoolCoercionSummary(TypedDict):
     reason_counts: dict[str, int]
     type_counts: dict[str, int]
     samples: list[BoolCoercionSample]
+
+
+class BoolCoercionDiagnosticsPayload(TypedDict, total=False):
+    """Diagnostics payload combining bool coercion summary and metrics."""
+
+    recorded: bool
+    summary: BoolCoercionSummary
+    metrics: BoolCoercionMetrics
 
 
 _TRUTHY_BOOL_STRINGS: Final[frozenset[str]] = frozenset(
@@ -985,6 +1113,7 @@ PerformanceMode = Literal["minimal", "balanced", "full"]
 
 type ConfigFlowPlaceholderValue = bool | int | float | str
 type ConfigFlowPlaceholders = Mapping[str, ConfigFlowPlaceholderValue]
+type MutableConfigFlowPlaceholders = dict[str, ConfigFlowPlaceholderValue]
 """Accepted performance mode values for coordinator tuning."""
 
 
@@ -1039,9 +1168,9 @@ def normalize_performance_mode(
 
 
 def ensure_advanced_options(
-    source: Mapping[str, Any],
+    source: JSONLikeMapping,
     *,
-    defaults: Mapping[str, Any] | None = None,
+    defaults: JSONLikeMapping | None = None,
 ) -> AdvancedOptions:
     """Normalise advanced options payloads for config entry storage."""
 
@@ -1089,7 +1218,9 @@ def ensure_advanced_options(
     return advanced
 
 
-def _project_modules_mapping(config: Mapping[str, Any]) -> dict[str, bool]:
+def _project_modules_mapping(
+    config: ModuleToggleMapping | DogModulesConfig,
+) -> dict[str, bool]:
     """Return a stable ``dict[str, bool]`` projection for module toggles."""
 
     mapping: dict[str, bool] = {}
@@ -1100,7 +1231,7 @@ def _project_modules_mapping(config: Mapping[str, Any]) -> dict[str, bool]:
 
 
 def dog_modules_projection_from_flow_input(
-    user_input: Mapping[str, Any],
+    user_input: ConfigFlowUserInput,
     *,
     existing: DogModulesConfig | None = None,
 ) -> DogModulesProjection:
@@ -1128,7 +1259,7 @@ def dog_modules_projection_from_flow_input(
 
 
 def dog_modules_from_flow_input(
-    user_input: Mapping[str, Any],
+    user_input: ConfigFlowUserInput,
     *,
     existing: DogModulesConfig | None = None,
 ) -> DogModulesConfig:
@@ -1138,7 +1269,7 @@ def dog_modules_from_flow_input(
 
 
 def ensure_dog_modules_projection(
-    data: Mapping[str, Any] | DogModulesProjection,
+    data: ConfigFlowUserInput | DogModulesProjection,
 ) -> DogModulesProjection:
     """Extract module toggle projections from ``data``.
 
@@ -1187,7 +1318,7 @@ def _is_modules_projection_like(value: Any) -> bool:
 
 
 def coerce_dog_modules_config(
-    payload: Mapping[str, object] | DogModulesProjection | None,
+    payload: ConfigFlowUserInput | DogModulesProjection | DogModulesConfig | None,
 ) -> DogModulesConfig:
     """Return a defensive ``DogModulesConfig`` copy tolerant of projections."""
 
@@ -1211,7 +1342,7 @@ def ensure_dog_modules_mapping(
     return ensure_dog_modules_projection(data).mapping
 
 
-def dog_feeding_config_from_flow(user_input: Mapping[str, Any]) -> DogFeedingConfig:
+def dog_feeding_config_from_flow(user_input: DogFeedingStepInput) -> DogFeedingConfig:
     """Build a :class:`DogFeedingConfig` structure from flow input data."""
 
     meals_per_day = max(1, _coerce_int(user_input.get(CONF_MEALS_PER_DAY), default=2))
@@ -1263,6 +1394,89 @@ class DogGPSConfig(TypedDict, total=False):
     gps_accuracy_filter: float | int
     enable_geofencing: bool
     home_zone_radius: int | float
+
+
+class DogGPSStepInput(TypedDict, total=False):
+    """Raw GPS form payload provided during per-dog configuration."""
+
+    gps_source: str
+    gps_update_interval: int
+    gps_accuracy_filter: float | int
+    enable_geofencing: bool
+    home_zone_radius: float | int
+
+
+class DogFeedingStepInput(TypedDict, total=False):
+    """Form payload captured during the per-dog feeding configuration step."""
+
+    meals_per_day: int | float | str | None
+    daily_food_amount: float | int | str | None
+    food_type: str | None
+    feeding_schedule: str | None
+    breakfast_enabled: bool
+    breakfast_time: str | None
+    lunch_enabled: bool
+    lunch_time: str | None
+    dinner_enabled: bool
+    dinner_time: str | None
+    snacks_enabled: bool
+    enable_reminders: bool
+    reminder_minutes_before: int | float | str | None
+
+
+class DogHealthStepInput(TypedDict, total=False):
+    """Health configuration form payload recorded for a single dog."""
+
+    vet_name: str | None
+    vet_phone: str | None
+    last_vet_visit: str | None
+    next_checkup: str | None
+    weight_tracking: bool
+    ideal_weight: float | int | str | None
+    body_condition_score: int | str | None
+    activity_level: str | None
+    weight_goal: str | None
+    spayed_neutered: bool
+    health_aware_portions: bool
+    other_health_conditions: str | None
+    has_diabetes: bool
+    has_kidney_disease: bool
+    has_heart_disease: bool
+    has_arthritis: bool
+    has_allergies: bool
+    has_digestive_issues: bool
+    grain_free: bool
+    hypoallergenic: bool
+    low_fat: bool
+    senior_formula: bool
+    puppy_formula: bool
+    weight_control: bool
+    sensitive_stomach: bool
+    organic: bool
+    raw_diet: bool
+    prescription: bool
+    diabetic: bool
+    kidney_support: bool
+    dental_care: bool
+    joint_support: bool
+    rabies_vaccination: str | None
+    rabies_next: str | None
+    dhpp_vaccination: str | None
+    dhpp_next: str | None
+    bordetella_vaccination: str | None
+    bordetella_next: str | None
+    medication_1_name: str | None
+    medication_1_dosage: str | None
+    medication_1_frequency: str | None
+    medication_1_time: str | None
+    medication_1_notes: str | None
+    medication_1_with_meals: bool
+    medication_2_name: str | None
+    medication_2_dosage: str | None
+    medication_2_frequency: str | None
+    medication_2_time: str | None
+    medication_2_notes: str | None
+    medication_2_with_meals: bool
 
 
 class DogFeedingConfig(TypedDict, total=False):
@@ -1338,11 +1552,15 @@ NOTIFICATION_PRIORITY_FIELD: Final[NotificationOptionsField] = "priority_notific
 NOTIFICATION_MOBILE_FIELD: Final[NotificationOptionsField] = "mobile_notifications"
 
 
+type NotificationOptionsInput = JSONMapping
+"""Mapping accepted by :func:`ensure_notification_options`."""
+
+
 def ensure_notification_options(
-    value: Mapping[str, Any],
+    value: NotificationOptionsInput,
     /,
     *,
-    defaults: Mapping[str, Any] | None = None,
+    defaults: NotificationOptionsInput | None = None,
 ) -> NotificationOptions:
     """Normalise a mapping into :class:`NotificationOptions`.
 
@@ -1713,6 +1931,42 @@ ConfigFlowDiscoverySource = Literal[
 ]
 
 
+type ConfigFlowDiscoveryPropertyValue = bool | int | float | str | bytes | Sequence[str]
+
+
+type ConfigFlowDiscoveryProperties = dict[str, ConfigFlowDiscoveryPropertyValue]
+
+
+type ConfigFlowInputMapping = Mapping[str, JSONValue]
+"""Generic mapping accepted by config flow steps for user input payloads."""
+
+
+class ConfigFlowImportData(TypedDict):
+    """Config entry data payload produced when importing YAML configuration."""
+
+    name: str
+    dogs: list[DogConfigData]
+    entity_profile: str
+    import_warnings: list[str]
+    import_timestamp: str
+
+
+class ConfigFlowImportOptions(TypedDict):
+    """Config entry options payload produced when importing YAML configuration."""
+
+    entity_profile: str
+    dashboard_enabled: bool
+    dashboard_auto_create: bool
+    import_source: Literal["configuration_yaml"]
+
+
+class ConfigFlowImportResult(TypedDict):
+    """Structured result returned by enhanced config-flow import validation."""
+
+    data: ConfigFlowImportData
+    options: ConfigFlowImportOptions
+
+
 class ConfigFlowDiscoveryData(TypedDict, total=False):
     """Metadata captured from config flow discovery sources."""
 
@@ -1722,7 +1976,7 @@ class ConfigFlowDiscoveryData(TypedDict, total=False):
     port: int
     ip: str
     macaddress: str
-    properties: dict[str, Any]
+    properties: ConfigFlowDiscoveryProperties
     type: str
     name: str
     description: str
@@ -1734,6 +1988,48 @@ class ConfigFlowDiscoveryData(TypedDict, total=False):
     address: str
     service_uuids: list[str]
     last_seen: str
+
+
+type ConfigFlowDiscoveryComparison = ConfigFlowDiscoveryData
+"""Normalized discovery payload used for change comparison in config flows."""
+
+
+type DiscoveryUpdateValue = ConfigFlowDiscoveryData | str
+"""Allowed value types stored in discovery update payloads."""
+
+
+class DiscoveryUpdatePayload(TypedDict, total=False):
+    """Updates persisted on config entries when discovery metadata changes."""
+
+    discovery_info: ConfigFlowDiscoveryData
+    host: str
+    device: str
+    address: str
+
+
+class DiscoveryConfirmInput(TypedDict, total=False):
+    """Form payload submitted when the user confirms discovery."""
+
+    confirm: bool
+
+
+class ProfileSelectionInput(TypedDict, total=False):
+    """User input captured when selecting an entity profile."""
+
+    entity_profile: str
+
+
+class ProfileSelectorOption(TypedDict):
+    """Selector option exposed when rendering profile choices."""
+
+    value: str
+    label: str
+
+
+class EntityProfileOptionsInput(ProfileSelectionInput, total=False):
+    """Options flow payload for selecting an entity profile."""
+
+    preview_estimate: bool
 
 
 class IntegrationNameValidationResult(TypedDict):
@@ -1753,6 +2049,43 @@ class ConfigFlowGlobalSettings(TypedDict, total=False):
     debug_logging: bool
 
 
+class FinalSetupValidationResult(TypedDict):
+    """Outcome returned by the final setup validation pass."""
+
+    valid: bool
+    errors: list[str]
+    estimated_entities: int
+
+
+class ConfigEntryDataPayload(TypedDict, total=False):
+    """Config entry data stored when onboarding PawControl."""
+
+    name: Required[str]
+    dogs: Required[list[DogConfigData]]
+    entity_profile: Required[str]
+    setup_timestamp: Required[str]
+    discovery_info: NotRequired[ConfigFlowDiscoveryData]
+
+
+class ConfigEntryOptionsPayload(TypedDict, total=False):
+    """Options mapping persisted alongside PawControl config entries."""
+
+    entity_profile: Required[str]
+    dashboard_enabled: bool
+    dashboard_auto_create: bool
+    performance_monitoring: bool
+    enable_analytics: bool
+    enable_cloud_backup: bool
+    debug_logging: bool
+    data_retention_days: int
+    performance_mode: PerformanceMode
+    api_endpoint: str
+    api_token: str
+    last_reconfigure: NotRequired[str]
+    previous_profile: NotRequired[str]
+    reconfigure_telemetry: NotRequired[ReconfigureTelemetry]
+
+
 class ModuleConfigurationStepInput(TypedDict, total=False):
     """User-provided values collected during the module setup step."""
 
@@ -1764,6 +2097,17 @@ class ModuleConfigurationStepInput(TypedDict, total=False):
     enable_notifications: bool
     enable_dashboard: bool
     auto_backup: bool
+
+
+class ModuleConfigurationSnapshot(TypedDict):
+    """Persisted view of the global module configuration toggles."""
+
+    enable_notifications: bool
+    enable_dashboard: bool
+    performance_mode: PerformanceMode
+    data_retention_days: int
+    auto_backup: bool
+    debug_logging: bool
 
 
 class DashboardSetupConfig(TypedDict, total=False):
@@ -1801,6 +2145,30 @@ class DashboardConfigurationStepInput(TypedDict, total=False):
     compact_mode: bool
     auto_refresh: bool
     refresh_interval: int
+
+
+class AddAnotherDogInput(TypedDict, total=False):
+    """Payload for yes/no "add another dog" prompts in flows."""
+
+    add_another: bool
+
+
+class ConfigFlowOperationMetrics(TypedDict):
+    """Aggregated metrics collected for a single config-flow operation."""
+
+    avg_time: float
+    max_time: float
+    count: int
+
+
+type ConfigFlowOperationMetricsMap = dict[str, ConfigFlowOperationMetrics]
+
+
+class ConfigFlowPerformanceStats(TypedDict):
+    """Snapshot describing config-flow performance diagnostics."""
+
+    operations: ConfigFlowOperationMetricsMap
+    validations: dict[str, int]
 
 
 class FeedingSizeDefaults(TypedDict):
@@ -1937,6 +2305,12 @@ class ReauthOptionsUpdates(TypedDict, total=False):
     last_reauth_summary: str
 
 
+class ReauthConfirmInput(TypedDict, total=False):
+    """Schema-constrained payload submitted by the reauth confirmation form."""
+
+    confirm: bool
+
+
 class ReauthPlaceholders(TypedDict):
     """Description placeholders rendered on the reauth confirm form."""
 
@@ -2056,6 +2430,46 @@ class DogSetupStepInput(TypedDict, total=False):
     dog_age: int | float | None
     dog_weight: float | int | None
     dog_size: str | None
+    weight: float | int | str | None
+
+
+class InputBooleanCreateServiceData(TypedDict, total=False):
+    """Service payload accepted by ``input_boolean.create``."""
+
+    name: Required[str]
+    initial: NotRequired[bool]
+    icon: NotRequired[str | None]
+
+
+class InputDatetimeCreateServiceData(TypedDict, total=False):
+    """Service payload accepted by ``input_datetime.create``."""
+
+    name: Required[str]
+    has_date: Required[bool]
+    has_time: Required[bool]
+    initial: NotRequired[str]
+
+
+class InputNumberCreateServiceData(TypedDict, total=False):
+    """Service payload accepted by ``input_number.create``."""
+
+    name: Required[str]
+    min: Required[int | float]
+    max: Required[int | float]
+    step: Required[int | float]
+    mode: Required[str]
+    initial: NotRequired[int | float]
+    icon: NotRequired[str]
+    unit_of_measurement: NotRequired[str]
+
+
+class InputSelectCreateServiceData(TypedDict, total=False):
+    """Service payload accepted by ``input_select.create``."""
+
+    name: Required[str]
+    options: Required[list[str]]
+    initial: NotRequired[str]
+    icon: NotRequired[str]
 
 
 class HelperEntityMetadata(TypedDict, total=False):
@@ -2105,6 +2519,21 @@ class HelperManagerGuardMetrics(TypedDict):
     skipped: int
     reasons: dict[str, int]
     last_results: ServiceGuardResultHistory
+
+
+class PersonEntityConfigInput(TypedDict, total=False):
+    """Configuration payload accepted by :class:`PersonEntityManager`."""
+
+    enabled: bool
+    auto_discovery: bool
+    discovery_interval: int
+    cache_ttl: int
+    include_away_persons: bool
+    fallback_to_static: bool
+    static_notification_targets: list[str]
+    excluded_entities: list[str]
+    notification_mapping: dict[str, str]
+    priority_persons: list[str]
 
 
 class PersonEntityCounters(TypedDict):
@@ -2171,6 +2600,39 @@ class PersonNotificationContext(TypedDict):
     total_persons: int
     has_anyone_home: bool
     everyone_away: bool
+
+
+class PersonEntityDiscoveryResult(TypedDict):
+    """Discovery summary returned by ``PersonEntityManager.async_force_discovery``."""
+
+    previous_count: int
+    current_count: int
+    persons_added: int
+    persons_removed: int
+    home_persons: int
+    away_persons: int
+    discovery_time: str
+
+
+class PersonEntityValidationResult(TypedDict):
+    """Validation payload produced by ``PersonEntityManager.async_validate_configuration``."""
+
+    valid: bool
+    issues: list[str]
+    recommendations: list[str]
+    persons_configured: int
+    notification_targets_available: int
+
+
+class QueuedNotificationPayload(TypedDict, total=False):
+    """Notification entry stored in helper queues before delivery."""
+
+    dog_id: Required[str]
+    title: Required[str]
+    message: Required[str]
+    priority: Required[NotificationPriority]
+    data: NotRequired[JSONMutableMapping]
+    timestamp: Required[str]
 
 
 class NotificationQueueStats(TypedDict):
@@ -2242,19 +2704,11 @@ Standardizes timestamp handling across the integration with proper timezone
 awareness through Home Assistant's utility functions.
 """
 
-ServiceData = dict[str, Any]
-"""Type alias for Home Assistant service call data.
+type ServiceData = JSONMutableMapping
+"""Mutable service data payload used when invoking Home Assistant services."""
 
-Represents the data payload structure used in Home Assistant service calls,
-providing type hints for service-related functionality.
-"""
-
-ConfigData = dict[str, Any]
-"""Type alias for general configuration data structures.
-
-Used for various configuration contexts where a flexible dictionary structure
-is needed with proper type hinting.
-"""
+type ConfigData = JSONMutableMapping
+"""Generic mutable configuration payload consumed by PawControl helpers."""
 
 
 class FeedingScheduleSnapshot(TypedDict, total=False):
@@ -2559,6 +3013,54 @@ class GPSGeofenceStatusSnapshot(TypedDict):
     last_update: str | None
 
 
+class GPSTrackingConfigInput(TypedDict, total=False):
+    """Mutable configuration payload accepted by the GPS manager."""
+
+    enabled: bool
+    auto_start_walk: bool
+    track_route: bool
+    safety_alerts: bool
+    geofence_notifications: bool
+    auto_detect_home: bool
+    gps_accuracy_threshold: float | int
+    update_interval_seconds: int | float
+    min_distance_for_point: float | int
+    route_smoothing: bool
+    configured_at: datetime | str | None
+
+
+class GeofenceNotificationCoordinates(TypedDict):
+    """Latitude and longitude payload bundled with geofence notifications."""
+
+    latitude: float
+    longitude: float
+
+
+class GeofenceEventPayload(TypedDict, total=False):
+    """Event data fired on the Home Assistant event bus for geofence changes."""
+
+    dog_id: Required[str]
+    zone: Required[str]
+    zone_type: Required[str]
+    event: Required[str]
+    distance_meters: Required[float]
+    timestamp: Required[str]
+    latitude: Required[float]
+    longitude: Required[float]
+    duration_seconds: int
+
+
+class GeofenceNotificationData(TypedDict, total=False):
+    """Structured data payload passed to notification templates for geofences."""
+
+    zone: Required[str]
+    zone_type: Required[str]
+    event: Required[str]
+    distance_meters: Required[float]
+    coordinates: Required[GeofenceNotificationCoordinates]
+    duration_seconds: int
+
+
 class GPSTelemetryPayload(TypedDict, total=False):
     """Live GPS telemetry exposed to coordinators and diagnostics."""
 
@@ -2805,8 +3307,8 @@ class HealthModulePayload(TypedDict, total=False):
     activity_level: str | None
     body_condition_score: float | int | None
     health_conditions: list[str]
-    emergency: dict[str, Any]
-    medication: dict[str, Any]
+    emergency: JSONMutableMapping
+    medication: JSONMutableMapping
     health_status: str | None
     daily_calorie_target: float | None
     total_calories_today: float | None
@@ -3123,6 +3625,73 @@ class WalkGPSSnapshot(TypedDict, total=False):
     error: str
 
 
+class WalkRouteBounds(TypedDict):
+    """Bounding box describing the extents of exported walk routes."""
+
+    min_lat: float
+    max_lat: float
+    min_lon: float
+    max_lon: float
+
+
+class WalkDailyStatistics(TypedDict):
+    """Aggregated walk statistics for the active day."""
+
+    total_walks_today: int
+    total_duration_today: float
+    total_distance_today: float
+    average_duration: float | None
+    average_distance: float | None
+    energy_level: str
+
+
+class WalkWeeklyStatistics(TypedDict):
+    """Aggregated walk statistics for the active week."""
+
+    total_walks_this_week: int
+    total_distance_this_week: float
+    walk_streak: int
+
+
+type WalkRouteExportFormat = Literal["gpx", "json", "csv"]
+"""Supported export formats for walk routes."""
+
+
+type WalkDetectionMetadata = Mapping[str, JSONValue]
+"""Immutable walk detection metadata forwarded by auto-detection sources."""
+
+type WalkDetectionMutableMetadata = dict[str, JSONValue]
+"""Mutable walk detection metadata payload stored during active sessions."""
+
+
+class WalkRouteExportMetadata(TypedDict):
+    """Metadata describing the exported walk routes."""
+
+    creator: str
+    version: str
+    generated_by: str
+    bounds: WalkRouteBounds
+
+
+class WalkRouteExportPayload(TypedDict, total=False):
+    """Serialized walk route export payload returned to callers."""
+
+    dog_id: str
+    export_timestamp: str
+    format: WalkRouteExportFormat
+    walks_count: int
+    total_distance_meters: float
+    total_duration_seconds: float
+    total_gps_points: int
+    walks: list[WalkSessionSnapshot]
+    export_metadata: WalkRouteExportMetadata
+    file_extension: NotRequired[str]
+    mime_type: NotRequired[str]
+    gpx_data: NotRequired[str]
+    json_data: NotRequired[str]
+    csv_data: NotRequired[str]
+
+
 class WalkManagerDogSnapshot(TypedDict):
     """Composite snapshot exposed to diagnostics for each dog."""
 
@@ -3130,6 +3699,12 @@ class WalkManagerDogSnapshot(TypedDict):
     history: list[WalkSessionSnapshot]
     stats: WalkStatisticsSnapshot
     gps: WalkGPSSnapshot
+
+
+class WalkOverviewSnapshot(WalkManagerDogSnapshot, total=False):
+    """Composite snapshot returned by :func:`WalkManager.get_walk_data`."""
+
+    statistics: Required[WalkStatisticsSnapshot]
 
 
 class WalkPerformanceSnapshot(TypedDict):
@@ -3339,6 +3914,43 @@ class CacheDiagnosticsSnapshot(Mapping[str, JSONValue]):
 
 CacheDiagnosticsMap = dict[str, CacheDiagnosticsSnapshot]
 """Mapping from cache identifiers to diagnostics snapshots."""
+
+
+class DataStatisticsPayload(TypedDict):
+    """Diagnostics payload returned by data statistics collectors."""
+
+    data_manager_available: bool
+    metrics: JSONMutableMapping
+
+
+class RecentErrorEntry(TypedDict):
+    """Placeholder entry returned when detailed error history is unavailable."""
+
+    note: str
+    suggestion: str
+    entry_id: str
+
+
+class DebugInformationPayload(TypedDict):
+    """Static debug metadata exported by diagnostics handlers."""
+
+    debug_logging_enabled: bool
+    integration_version: str
+    quality_scale: str
+    supported_features: list[str]
+    documentation_url: str
+    issue_tracker: str
+    entry_id: str
+    ha_version: str
+
+
+class ModuleUsageBreakdown(TypedDict):
+    """Aggregated module usage counters used in diagnostics exports."""
+
+    counts: dict[str, int]
+    percentages: dict[str, float]
+    most_used_module: str | None
+    least_used_module: str | None
 
 
 class CacheRepairIssue(TypedDict, total=False):
@@ -3583,7 +4195,7 @@ class ServiceExecutionResult(TypedDict, total=False):
     dog_id: NotRequired[str]
     message: NotRequired[str]
     diagnostics: NotRequired[ServiceExecutionDiagnostics]
-    details: NotRequired[dict[str, Any]]
+    details: NotRequired[ServiceDetailsPayload]
     guard: NotRequired[ServiceGuardSummary]
 
 
@@ -3615,7 +4227,7 @@ class ManualResilienceEventRecord(TypedDict, total=False):
     context_id: str | None
     user_id: str | None
     origin: str | None
-    data: dict[str, Any] | None
+    data: JSONMutableMapping | None
     sources: Sequence[str]
     source_tags: list[str]
     primary_source: str
@@ -3639,9 +4251,52 @@ class ManualResilienceEventSnapshot(TypedDict, total=False):
     origin: str | None
     context_id: str | None
     user_id: str | None
-    data: dict[str, Any] | None
+    data: JSONMutableMapping | None
     sources: list[str] | None
     reasons: list[str]
+
+
+class ResilienceEscalationFieldEntry(TypedDict, total=False):
+    """Active and default field values for resilience escalation scripts."""
+
+    default: JSONValue | None
+    active: JSONValue | None
+
+
+class ResilienceEscalationFollowupEntry(ResilienceEscalationFieldEntry, total=False):
+    """Follow-up script metadata with configuration state."""
+
+    configured: bool
+
+
+type ResilienceEscalationThresholds = dict[str, ResilienceEscalationFieldEntry]
+"""Mapping of resilience escalation thresholds keyed by identifier."""
+
+
+type ResilienceEscalationFields = dict[str, ResilienceEscalationFieldEntry]
+"""Mapping of resilience escalation field defaults keyed by field name."""
+
+
+class ResilienceEscalationSnapshot(TypedDict, total=False):
+    """Snapshot describing the resilience escalation helper state."""
+
+    available: bool
+    state_available: bool
+    entity_id: str | None
+    object_id: str | None
+    alias: str | None
+    description: str | None
+    last_generated: str | None
+    last_generated_age_seconds: int | None
+    last_generated_status: str | None
+    last_triggered: str | None
+    last_triggered_age_seconds: int | None
+    thresholds: ResilienceEscalationThresholds
+    fields: ResilienceEscalationFields
+    followup_script: ResilienceEscalationFollowupEntry
+    statistics_entity_id: ResilienceEscalationFieldEntry
+    escalation_service: ResilienceEscalationFieldEntry
+    manual_events: JSONMutableMapping
 
 
 class ManualResilienceAutomationEntry(TypedDict, total=False):
@@ -3695,6 +4350,32 @@ class ManualResilienceEventsTelemetry(TypedDict, total=False):
     last_trigger: ManualResilienceEventSnapshot | None
     event_history: Required[list[ManualResilienceEventSnapshot]]
     event_counters: ManualResilienceEventCounters
+
+
+class ManualResilienceSystemSettingsSnapshot(TypedDict, total=False):
+    """Normalised resilience system settings derived from config entry options."""
+
+    manual_check_event: str | None
+    manual_guard_event: str | None
+    manual_breaker_event: str | None
+    resilience_skip_threshold: int
+    resilience_breaker_threshold: int
+
+
+class ManualResilienceOptionsSnapshot(TypedDict, total=False):
+    """Normalised config-entry options impacting manual resilience behaviour."""
+
+    manual_check_event: str | None
+    manual_guard_event: str | None
+    manual_breaker_event: str | None
+    resilience_skip_threshold: int
+    resilience_breaker_threshold: int
+    manual_event_history_size: int
+    system_settings: ManualResilienceSystemSettingsSnapshot
+
+
+type ManualResilienceEventSelection = dict[ManualResiliencePreferenceKey, str | None]
+"""Preferred manual resilience events pushed to automation blueprints."""
 
 
 class ServiceContextMetadata(TypedDict, total=False):
@@ -3818,6 +4499,47 @@ class AdaptivePollingDiagnostics(TypedDict):
     entity_saturation: float
     idle_interval_ms: float
     idle_grace_ms: float
+
+
+class SetupFlagPanelEntry(TypedDict):
+    """Single setup flag entry used by the diagnostics panel."""
+
+    key: str
+    label: str
+    label_default: str
+    label_translation_key: str
+    enabled: bool
+    source: str
+    source_label: str
+    source_label_default: str
+    source_label_translation_key: str
+
+
+type SetupFlagSourceBreakdown = dict[str, int]
+"""Aggregated setup-flag counts keyed by their source identifier."""
+
+
+type SetupFlagSourceLabels = dict[str, str]
+"""Mapping of setup-flag sources to the human-readable label."""
+
+
+class SetupFlagsPanelPayload(TypedDict):
+    """Structured payload rendered by the setup flag diagnostics panel."""
+
+    title: str
+    title_translation_key: str
+    title_default: str
+    description: str
+    description_translation_key: str
+    description_default: str
+    flags: list[SetupFlagPanelEntry]
+    enabled_count: int
+    disabled_count: int
+    source_breakdown: SetupFlagSourceBreakdown
+    source_labels: SetupFlagSourceLabels
+    source_labels_default: SetupFlagSourceLabels
+    source_label_translation_keys: SetupFlagSourceLabels
+    language: str
 
 
 class CoordinatorRuntimeCycleSnapshot(TypedDict):
@@ -4198,8 +4920,14 @@ CoordinatorTypedModuleName = Literal[
 ]
 
 
-type CoordinatorUntypedModuleState = dict[str, object]
+type CoordinatorUntypedModuleState = JSONMutableMapping
 """Fallback module payload used when adapters expose open-ended mappings."""
+
+
+type CoordinatorModuleLookupResult = (
+    CoordinatorModuleState | CoordinatorUntypedModuleState
+)
+"""Result payload returned when accessing coordinator module snapshots."""
 
 
 type OptimizedEntityStateCachePayload = (
@@ -4273,6 +5001,20 @@ class CoordinatorRejectionMetrics(TypedDict):
     unknown_breaker_ids: list[str]
     rejection_breaker_ids: list[str]
     rejection_breakers: list[str]
+
+
+type RejectionMetricsTarget = (
+    CoordinatorRejectionMetrics
+    | CoordinatorPerformanceMetrics
+    | JSONMutableMapping
+)
+"""Mutable mapping that can receive rejection metric updates."""
+
+
+type RejectionMetricsSource = (
+    CoordinatorRejectionMetrics | CoordinatorResilienceSummary | JSONMapping
+)
+"""Mapping payload that exposes coordinator rejection metrics."""
 
 
 class SystemHealthThresholdDetail(TypedDict, total=False):
@@ -4440,7 +5182,7 @@ class DogConfigData(TypedDict, total=False):
     feeding_config: NotRequired[DogFeedingConfig]
     health_config: NotRequired[DogHealthConfig]
     door_sensor: NotRequired[str | None]
-    door_sensor_settings: NotRequired[dict[str, Any]]
+    door_sensor_settings: NotRequired[DoorSensorSettingsPayload | None]
 
 
 # TypedDict key literals for dog configuration structures.
@@ -4487,7 +5229,7 @@ COMPACT_MODE_FIELD: Final[Literal["compact_mode"]] = "compact_mode"
 AUTO_REFRESH_FIELD: Final[Literal["auto_refresh"]] = "auto_refresh"
 
 
-def ensure_dog_config_data(data: Mapping[str, Any]) -> DogConfigData | None:
+def ensure_dog_config_data(data: Mapping[str, JSONValue]) -> DogConfigData | None:
     """Return a ``DogConfigData`` structure extracted from ``data`` mappings."""
 
     dog_id = data.get(DOG_ID_FIELD)
@@ -4536,10 +5278,14 @@ def ensure_dog_config_data(data: Mapping[str, Any]) -> DogConfigData | None:
         config[DOG_EMERGENCY_CONTACT_FIELD] = emergency_contact
 
     modules_payload = data.get(DOG_MODULES_FIELD)
-    if _is_modules_projection_like(modules_payload) or isinstance(
-        modules_payload, Mapping
-    ):
-        config[DOG_MODULES_FIELD] = coerce_dog_modules_config(modules_payload)
+    if _is_modules_projection_like(modules_payload):
+        config[DOG_MODULES_FIELD] = coerce_dog_modules_config(
+            cast(DogModulesProjection, modules_payload)
+        )
+    elif isinstance(modules_payload, Mapping):
+        config[DOG_MODULES_FIELD] = coerce_dog_modules_config(
+            cast(Mapping[str, object], modules_payload)
+        )
 
     discovery_info = data.get(DOG_DISCOVERY_FIELD)
     if isinstance(discovery_info, Mapping):
@@ -4581,12 +5327,12 @@ def ensure_dog_config_data(data: Mapping[str, Any]) -> DogConfigData | None:
     return config
 
 
-RawDogConfig = Mapping[str, Any] | DogConfigData
+RawDogConfig = JSONMapping | DogConfigData
 
 
 def _normalise_door_sensor_settings_payload(
     payload: Any,
-) -> dict[str, Any] | None:
+) -> DoorSensorSettingsPayload | None:
     """Return a stored payload for door sensor overrides when available."""
 
     if payload is None:
@@ -4601,18 +5347,20 @@ def _normalise_door_sensor_settings_payload(
     else:
         return None
 
-    settings_payload = asdict(settings)
+    settings_payload = cast(DoorSensorSettingsPayload, asdict(settings))
     if not settings_payload:
         return None
 
-    if settings_payload == asdict(DEFAULT_DOOR_SENSOR_SETTINGS):
+    if settings_payload == cast(
+        DoorSensorSettingsPayload, asdict(DEFAULT_DOOR_SENSOR_SETTINGS)
+    ):
         return None
 
     return settings_payload
 
 
 def ensure_dog_options_entry(
-    value: Mapping[str, Any],
+    value: JSONLikeMapping,
     /,
     *,
     dog_id: str | None = None,
@@ -4628,10 +5376,14 @@ def ensure_dog_options_entry(
         entry["dog_id"] = dog_id
 
     modules_payload = value.get(DOG_MODULES_FIELD)
-    if _is_modules_projection_like(modules_payload) or isinstance(
-        modules_payload, Mapping
-    ):
-        entry["modules"] = coerce_dog_modules_config(modules_payload)
+    if _is_modules_projection_like(modules_payload):
+        entry["modules"] = coerce_dog_modules_config(
+            cast(DogModulesProjection, modules_payload)
+        )
+    elif isinstance(modules_payload, Mapping):
+        entry["modules"] = coerce_dog_modules_config(
+            cast(Mapping[str, object], modules_payload)
+        )
 
     return entry
 
@@ -4796,8 +5548,22 @@ class EntityBudgetStats(TypedDict):
 class EntityBudgetDiagnostics(TypedDict):
     """Structured diagnostics payload for entity budget telemetry."""
 
-    summary: dict[str, Any]
+    summary: JSONMutableMapping
     snapshots: list[EntityBudgetSnapshotEntry]
+
+
+class RuntimeErrorHistoryEntry(TypedDict, total=False):
+    """Structured runtime error metadata stored for diagnostics."""
+
+    timestamp: Required[str]
+    source: Required[str]
+    dog_id: NotRequired[str]
+    door_sensor: NotRequired[str | None]
+    error: NotRequired[str]
+    context: NotRequired[ErrorContext | None]
+
+
+type RuntimeErrorHistory = list[RuntimeErrorHistoryEntry]
 
 
 class DoorSensorPersistenceFailure(TypedDict, total=False):
@@ -4807,7 +5573,7 @@ class DoorSensorPersistenceFailure(TypedDict, total=False):
     recorded_at: Required[str]
     dog_name: NotRequired[str | None]
     door_sensor: NotRequired[str | None]
-    settings: NotRequired[dict[str, Any] | None]
+    settings: NotRequired[DoorSensorSettingsPayload | None]
     error: NotRequired[str]
 
 
@@ -4903,7 +5669,7 @@ class PawControlRuntimeData:
     performance_stats: RuntimePerformanceStats = field(
         default_factory=empty_runtime_performance_stats
     )
-    error_history: list[dict[str, Any]] = field(default_factory=list)
+    error_history: RuntimeErrorHistory = field(default_factory=list)
     manual_event_history: deque[ManualResilienceEventRecord] = field(
         default_factory=lambda: deque(maxlen=5)
     )
@@ -4940,7 +5706,7 @@ class PawControlRuntimeData:
         self._runtime_managers_cache = container
         return container
 
-    def as_dict(self) -> dict[str, Any]:
+    def as_dict(self) -> PawControlRuntimeDataExport:
         """Return a dictionary representation of the runtime data.
 
         Provides dictionary access to all runtime components for scenarios
@@ -5009,6 +5775,15 @@ class PawControlRuntimeData:
         return getattr(self, key, default)
 
 
+class LegacyRuntimeStorePayload(TypedDict):
+    """Compatibility container for runtime data stored in ``hass.data``."""
+
+    runtime_data: PawControlRuntimeData
+
+
+type LegacyRuntimeStoreEntry = PawControlRuntimeData | LegacyRuntimeStorePayload
+
+
 # PLATINUM: Custom ConfigEntry type for PawControl integrations
 type PawControlConfigEntry = ConfigEntry[PawControlRuntimeData]
 """Type alias for PawControl-specific config entries.
@@ -5019,6 +5794,49 @@ integration.  This keeps call sites expressive, improves type-checker feedback,
 and remains compatible with forward-looking changes to Home Assistant's
 ``ConfigEntry`` generics.
 """
+
+
+class DailyStatsPayload(TypedDict, total=False):
+    """Serialized representation of :class:`DailyStats` records."""
+
+    date: str
+    feedings_count: int
+    walks_count: int
+    health_logs_count: int
+    gps_updates_count: int
+    total_food_amount: float
+    total_walk_distance: float
+    total_walk_time: int
+    total_calories_burned: float
+    last_feeding: str | None
+    last_walk: str | None
+    last_health_event: str | None
+
+
+class PawControlRuntimeDataExport(TypedDict):
+    """Dictionary-style runtime data export returned by ``as_dict``."""
+
+    coordinator: PawControlCoordinator
+    data_manager: PawControlDataManager
+    notification_manager: PawControlNotificationManager
+    feeding_manager: FeedingManager
+    walk_manager: WalkManager
+    runtime_managers: CoordinatorRuntimeManagers
+    entity_factory: EntityFactory
+    entity_profile: str
+    dogs: list[DogConfigData]
+    garden_manager: GardenManager | None
+    geofencing_manager: PawControlGeofencing | None
+    script_manager: PawControlScriptManager | None
+    gps_geofence_manager: GPSGeofenceManager | None
+    door_sensor_manager: DoorSensorManager | None
+    helper_manager: PawControlHelperManager | None
+    device_api_client: PawControlDeviceClient | None
+    performance_stats: RuntimePerformanceStats
+    error_history: RuntimeErrorHistory
+    manual_event_history: list[ManualResilienceEventRecord]
+    background_monitor_task: Task[None] | None
+    daily_reset_unsub: Any
 
 
 @dataclass
@@ -5060,27 +5878,59 @@ class DailyStats:
         return None
 
     @classmethod
-    def from_dict(cls, payload: Mapping[str, Any]) -> DailyStats:
+    def from_dict(cls, payload: JSONDateMapping) -> DailyStats:
         """Deserialize daily statistics from a dictionary structure."""
 
         raw_date = payload.get("date")
         date_value = cls._parse_datetime(raw_date) or dt_util.utcnow()
+        def _coerce_int(value: JSONDateValue | None, *, default: int = 0) -> int:
+            if isinstance(value, bool):
+                return int(value)
+            if isinstance(value, int):
+                return value
+            if isinstance(value, float):
+                return int(value)
+            if isinstance(value, str):
+                stripped = value.strip()
+                if not stripped:
+                    return default
+                try:
+                    return int(float(stripped))
+                except ValueError:
+                    return default
+            return default
+
+        def _coerce_float(value: JSONDateValue | None, *, default: float = 0.0) -> float:
+            if isinstance(value, bool):
+                return float(value)
+            if isinstance(value, int | float):
+                return float(value)
+            if isinstance(value, str):
+                stripped = value.strip()
+                if not stripped:
+                    return default
+                try:
+                    return float(stripped)
+                except ValueError:
+                    return default
+            return default
+
         return cls(
             date=date_value,
-            feedings_count=int(payload.get("feedings_count", 0)),
-            walks_count=int(payload.get("walks_count", 0)),
-            health_logs_count=int(payload.get("health_logs_count", 0)),
-            gps_updates_count=int(payload.get("gps_updates_count", 0)),
-            total_food_amount=float(payload.get("total_food_amount", 0.0)),
-            total_walk_distance=float(payload.get("total_walk_distance", 0.0)),
-            total_walk_time=int(payload.get("total_walk_time", 0)),
-            total_calories_burned=float(payload.get("total_calories_burned", 0.0)),
+            feedings_count=_coerce_int(payload.get("feedings_count")),
+            walks_count=_coerce_int(payload.get("walks_count")),
+            health_logs_count=_coerce_int(payload.get("health_logs_count")),
+            gps_updates_count=_coerce_int(payload.get("gps_updates_count")),
+            total_food_amount=_coerce_float(payload.get("total_food_amount")),
+            total_walk_distance=_coerce_float(payload.get("total_walk_distance")),
+            total_walk_time=_coerce_int(payload.get("total_walk_time")),
+            total_calories_burned=_coerce_float(payload.get("total_calories_burned")),
             last_feeding=cls._parse_datetime(payload.get("last_feeding")),
             last_walk=cls._parse_datetime(payload.get("last_walk")),
             last_health_event=cls._parse_datetime(payload.get("last_health_event")),
         )
 
-    def as_dict(self) -> dict[str, Any]:
+    def as_dict(self) -> DailyStatsPayload:
         """Serialize the statistics for storage."""
 
         return {
@@ -5291,13 +6141,13 @@ class HealthEvent:
 
     dog_id: str
     timestamp: str | None = None
-    metrics: dict[str, Any] = field(default_factory=dict)
+    metrics: JSONMutableMapping = field(default_factory=dict)
 
     @classmethod
     def from_raw(
         cls,
         dog_id: str,
-        payload: Mapping[str, Any],
+        payload: JSONDateMapping,
         timestamp: str | None = None,
     ) -> HealthEvent:
         """Create a health event from raw payload data.
@@ -5313,15 +6163,25 @@ class HealthEvent:
         Returns:
             Initialized HealthEvent instance with validated data
         """
-        event_data = dict(payload)
-        event_timestamp = event_data.pop("timestamp", None) or timestamp
-        if isinstance(event_timestamp, datetime):
-            event_timestamp = event_timestamp.isoformat()
+        event_data = cast(
+            JSONMutableMapping,
+            {
+                key: value.isoformat() if isinstance(value, datetime) else value
+                for key, value in payload.items()
+            },
+        )
+        event_data.pop("timestamp", None)
+        raw_timestamp = payload.get("timestamp")
+        event_timestamp = raw_timestamp if isinstance(raw_timestamp, str) else None
+        if isinstance(raw_timestamp, datetime):
+            event_timestamp = raw_timestamp.isoformat()
+        if event_timestamp is None:
+            event_timestamp = timestamp
 
         return cls(dog_id=dog_id, timestamp=event_timestamp, metrics=event_data)
 
     @classmethod
-    def from_storage(cls, dog_id: str, payload: Mapping[str, Any]) -> HealthEvent:
+    def from_storage(cls, dog_id: str, payload: JSONDateMapping) -> HealthEvent:
         """Create a health event from stored data.
 
         Factory method specifically for deserializing health events from
@@ -5336,7 +6196,7 @@ class HealthEvent:
         """
         return cls.from_raw(dog_id, payload)
 
-    def as_dict(self) -> dict[str, Any]:
+    def as_dict(self) -> JSONMutableMapping:
         """Return a storage-friendly representation of the health event.
 
         Serializes the health event into a dictionary format suitable for
@@ -5345,7 +6205,7 @@ class HealthEvent:
         Returns:
             Dictionary representation suitable for storage
         """
-        payload = dict(self.metrics)
+        payload = cast(JSONMutableMapping, dict(self.metrics))
         if self.timestamp is not None:
             payload["timestamp"] = self.timestamp
         return payload
@@ -5375,13 +6235,13 @@ class WalkEvent:
     action: str | None = None
     session_id: str | None = None
     timestamp: str | None = None
-    details: dict[str, Any] = field(default_factory=dict)
+    details: JSONMutableMapping = field(default_factory=dict)
 
     @classmethod
     def from_raw(
         cls,
         dog_id: str,
-        payload: Mapping[str, Any],
+        payload: JSONDateMapping,
         timestamp: str | None = None,
     ) -> WalkEvent:
         """Create a walk event from raw payload data.
@@ -5397,12 +6257,22 @@ class WalkEvent:
         Returns:
             Initialized WalkEvent instance with validated structure
         """
-        event_data = dict(payload)
-        action = event_data.pop("action", None)
-        session = event_data.pop("session_id", None)
-        event_timestamp = event_data.pop("timestamp", None) or timestamp
-        if isinstance(event_timestamp, datetime):
-            event_timestamp = event_timestamp.isoformat()
+        event_data = cast(
+            JSONMutableMapping,
+            {
+                key: value.isoformat() if isinstance(value, datetime) else value
+                for key, value in payload.items()
+            },
+        )
+        raw_timestamp = event_data.pop("timestamp", None)
+        timestamp_value = raw_timestamp if isinstance(raw_timestamp, str) else None
+        if isinstance(raw_timestamp, datetime):
+            timestamp_value = raw_timestamp.isoformat()
+        raw_action = event_data.pop("action", None)
+        action = raw_action if isinstance(raw_action, str) else None
+        raw_session = event_data.pop("session_id", None)
+        session = raw_session if isinstance(raw_session, str) else None
+        event_timestamp = timestamp_value if timestamp_value is not None else timestamp
 
         return cls(
             dog_id=dog_id,
@@ -5413,7 +6283,7 @@ class WalkEvent:
         )
 
     @classmethod
-    def from_storage(cls, dog_id: str, payload: Mapping[str, Any]) -> WalkEvent:
+    def from_storage(cls, dog_id: str, payload: JSONDateMapping) -> WalkEvent:
         """Create a walk event from stored data.
 
         Factory method for deserializing walk events from persistent storage
@@ -5428,7 +6298,7 @@ class WalkEvent:
         """
         return cls.from_raw(dog_id, payload)
 
-    def as_dict(self) -> dict[str, Any]:
+    def as_dict(self) -> JSONMutableMapping:
         """Return a storage-friendly representation of the walk event.
 
         Serializes the walk event into a dictionary format optimized for
@@ -5437,7 +6307,7 @@ class WalkEvent:
         Returns:
             Dictionary representation suitable for storage and transmission
         """
-        payload = dict(self.details)
+        payload = cast(JSONMutableMapping, dict(self.details))
         if self.action is not None:
             payload["action"] = self.action
         if self.session_id is not None:
@@ -5446,7 +6316,7 @@ class WalkEvent:
             payload["timestamp"] = self.timestamp
         return payload
 
-    def merge(self, payload: Mapping[str, Any], timestamp: str | None = None) -> None:
+    def merge(self, payload: JSONDateMapping, timestamp: str | None = None) -> None:
         """Merge incremental updates into the existing walk event.
 
         Allows for incremental updates to walk events during active sessions
@@ -5456,16 +6326,22 @@ class WalkEvent:
             payload: New or updated event data
             timestamp: Optional timestamp for the update
         """
-        updates = dict(payload)
+        updates = {
+            key: value.isoformat() if isinstance(value, datetime) else value
+            for key, value in payload.items()
+        }
         if "action" in updates:
-            self.action = updates.pop("action")
+            raw_action = updates.pop("action")
+            if isinstance(raw_action, str):
+                self.action = raw_action
         if "session_id" in updates:
-            self.session_id = updates.pop("session_id")
+            raw_session = updates.pop("session_id")
+            if isinstance(raw_session, str):
+                self.session_id = raw_session
         if "timestamp" in updates:
             raw_timestamp = updates.pop("timestamp")
-            if isinstance(raw_timestamp, datetime):
-                raw_timestamp = raw_timestamp.isoformat()
-            self.timestamp = raw_timestamp
+            if isinstance(raw_timestamp, str):
+                self.timestamp = raw_timestamp
         elif timestamp and self.timestamp is None:
             self.timestamp = timestamp
 
@@ -5505,7 +6381,7 @@ class HealthData:
     activity_level: str = ""
     health_status: str = ""
     symptoms: str = ""
-    medication: dict[str, Any] | None = None
+    medication: JSONMutableMapping | None = None
     note: str = ""
     logged_by: str = ""
     heart_rate: int | None = None

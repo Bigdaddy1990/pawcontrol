@@ -15,7 +15,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Literal, NamedTuple
+from typing import Any, Final, Literal, NamedTuple, TypedDict, cast
 
 from homeassistant.components.weather import (
     ATTR_FORECAST,
@@ -51,9 +51,61 @@ from .resilience import ResilienceManager, RetryConfig
 from .weather_translations import (
     DEFAULT_LANGUAGE,
     SUPPORTED_LANGUAGES,
+    WEATHER_ALERT_KEY_SET,
+    WEATHER_RECOMMENDATION_KEY_SET,
+    WeatherAlertKey,
+    WeatherAlertTranslations,
+    WeatherRecommendationKey,
+    WeatherRecommendationTranslations,
     WeatherTranslations,
     get_weather_translations,
 )
+
+
+class ForecastEntry(TypedDict, total=False):
+    """Raw weather forecast entry provided by Home Assistant."""
+
+    datetime: datetime | str
+    temperature: float | int
+    templow: float | int
+    temperature_unit: UnitOfTemperature | str
+    condition: str
+    humidity: float | int
+    uv_index: float | int
+    wind_speed: float | int
+    pressure: float | int
+    precipitation: float | int
+    precipitation_probability: float | int
+
+
+class WeatherEntityAttributes(TypedDict, total=False):
+    """Subset of weather entity attributes consumed by the manager."""
+
+    temperature: float | int
+    humidity: float | int
+    uv_index: float | int
+    wind_speed: float | int
+    pressure: float | int
+    visibility: float | int
+    temperature_unit: UnitOfTemperature | str
+    forecast: Sequence[ForecastEntry]
+
+
+type ForecastEntries = Sequence[ForecastEntry]
+type AlertField = Literal["title", "message"]
+type ActivityType = Literal["walk", "play", "exercise", "basic_needs"]
+type ActivityThresholdMap = dict[ActivityType, int]
+type AlertTranslationParts = tuple[Literal["alerts"], WeatherAlertKey, AlertField]
+type RecommendationTranslationParts = tuple[
+    Literal["recommendations"], WeatherRecommendationKey
+]
+type WeatherTranslationParts = AlertTranslationParts | RecommendationTranslationParts
+
+TRANSLATION_PREFIX: Final[str] = "weather"
+ALERT_FIELD_TOKENS: Final[frozenset[AlertField]] = frozenset(("title", "message"))
+PRIMARY_ACTIVITIES: Final[
+    tuple[Literal["walk"], Literal["play"], Literal["exercise"]]
+] = ("walk", "play", "exercise")
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -65,6 +117,11 @@ class WeatherSeverity(Enum):
     MODERATE = "moderate"
     HIGH = "high"
     EXTREME = "extreme"
+
+
+type SeverityMap[T] = dict[WeatherSeverity, T]
+type TemperatureBand = Literal["hot", "cold"]
+type TemperatureThresholdMap = dict[TemperatureBand, SeverityMap[float]]
 
 
 class WeatherHealthImpact(Enum):
@@ -95,7 +152,7 @@ class ActivityTimeSlot(NamedTuple):
     start_time: datetime
     end_time: datetime
     health_score: int
-    activity_type: str  # "walk", "play", "exercise", "basic_needs"
+    activity_type: ActivityType
     recommendations: list[str]
     alert_level: WeatherSeverity
 
@@ -190,7 +247,7 @@ class WeatherForecast:
             return f"Dangerous conditions - outdoor activities not recommended (avg score: {score}/100)"
 
     def get_next_optimal_window(
-        self, activity_type: str = "walk"
+        self, activity_type: ActivityType = "walk"
     ) -> ActivityTimeSlot | None:
         """Get the next optimal time window for specified activity."""
         for window in self.optimal_activity_windows:
@@ -229,11 +286,11 @@ class CriticalPeriodSummary:
 class OptimalWindowSummary:
     """Summary of optimal activity windows."""
 
-    activity: str
+    activity: ActivityType
     start: str
     end: str
     health_score: int
-    alert_level: str
+    alert_level: WeatherSeverity
     recommendations: list[str]
 
 
@@ -243,7 +300,7 @@ class ActivityWindowSummary:
 
     start: str
     health_score: int
-    alert_level: str
+    alert_level: WeatherSeverity
 
 
 @dataclass(slots=True)
@@ -361,7 +418,7 @@ class WeatherHealthManager:
         )
 
         # Temperature thresholds for different severity levels (Celsius)
-        self.temperature_thresholds = {
+        self.temperature_thresholds: TemperatureThresholdMap = {
             "hot": {
                 WeatherSeverity.MODERATE: 25.0,
                 WeatherSeverity.HIGH: 30.0,
@@ -375,14 +432,14 @@ class WeatherHealthManager:
         }
 
         # UV Index thresholds
-        self.uv_thresholds = {
+        self.uv_thresholds: SeverityMap[float] = {
             WeatherSeverity.MODERATE: 6.0,
             WeatherSeverity.HIGH: 8.0,
             WeatherSeverity.EXTREME: 11.0,
         }
 
         # Humidity thresholds (%)
-        self.humidity_thresholds = {
+        self.humidity_thresholds: SeverityMap[float] = {
             WeatherSeverity.MODERATE: 70.0,
             WeatherSeverity.HIGH: 85.0,
             WeatherSeverity.EXTREME: 95.0,
@@ -411,6 +468,43 @@ class WeatherHealthManager:
             self._translations = get_weather_translations(DEFAULT_LANGUAGE)
             self._english_translations = self._translations
 
+    @staticmethod
+    def _parse_translation_key(key: str) -> WeatherTranslationParts | None:
+        """Normalise dotted translation keys into typed translation segments."""
+
+        segments = tuple(part for part in key.split(".") if part)
+        if segments and segments[0] == TRANSLATION_PREFIX:
+            segments = segments[1:]
+
+        if not segments:
+            return None
+
+        section = segments[0]
+        if section == "alerts":
+            if len(segments) != 3:
+                return None
+            alert_key, field_token = segments[1], segments[2]
+            if alert_key not in WEATHER_ALERT_KEY_SET or field_token not in ALERT_FIELD_TOKENS:
+                return None
+            return (
+                "alerts",
+                cast(WeatherAlertKey, alert_key),
+                cast(AlertField, field_token),
+            )
+
+        if section == "recommendations":
+            if len(segments) != 2:
+                return None
+            recommendation_key = segments[1]
+            if recommendation_key not in WEATHER_RECOMMENDATION_KEY_SET:
+                return None
+            return (
+                "recommendations",
+                cast(WeatherRecommendationKey, recommendation_key),
+            )
+
+        return None
+
     def _get_translation(self, key: str, **kwargs: Any) -> str:
         """Get translated string with variable substitution.
 
@@ -421,9 +515,10 @@ class WeatherHealthManager:
         Returns:
             Translated string or fallback English text
         """
-        parts = [part for part in key.split(".") if part]
-        if parts and parts[0] == "weather":
-            parts = parts[1:]
+
+        parts = self._parse_translation_key(key)
+        if parts is None:
+            return key
 
         try:
             resolved = self._resolve_translation_value(self._translations, parts)
@@ -437,7 +532,7 @@ class WeatherHealthManager:
         return self._get_english_fallback(parts, key, **kwargs)
 
     def _get_english_fallback(
-        self, parts: Sequence[str], original_key: str, **kwargs: Any
+        self, parts: WeatherTranslationParts, original_key: str, **kwargs: Any
     ) -> str:
         """Get English fallback text for translation keys."""
 
@@ -458,25 +553,57 @@ class WeatherHealthManager:
 
     @staticmethod
     def _resolve_translation_value(
-        catalog: Mapping[str, object], parts: Sequence[str]
+        catalog: WeatherTranslations, parts: WeatherTranslationParts
     ) -> str | None:
         """Resolve a nested translation value from the provided catalog."""
 
-        node: object = catalog
-        for part in parts:
-            if not isinstance(node, Mapping):
-                raise ValueError(f"Cannot descend into non-mapping node for {part!r}")
-            node = node.get(part)
-            if node is None:
-                return None
+        section = parts[0]
+        if section == "alerts":
+            alert_parts = cast(AlertTranslationParts, parts)
+            _, alert_key, field = alert_parts
+            return WeatherHealthManager._resolve_alert_translation(
+                catalog["alerts"], alert_key, field
+            )
 
-        if isinstance(node, str):
-            return node
+        if section == "recommendations":
+            recommendation_parts = cast(RecommendationTranslationParts, parts)
+            _, recommendation_key = recommendation_parts
+            return WeatherHealthManager._resolve_recommendation_translation(
+                catalog["recommendations"], recommendation_key
+            )
 
-        if isinstance(node, Mapping):
-            raise ValueError("Incomplete translation key; mapping encountered at leaf")
+        raise ValueError(f"Unknown weather translation section: {section}")
 
-        return None
+    @staticmethod
+    def _resolve_alert_translation(
+        alerts: WeatherAlertTranslations,
+        alert_key: WeatherAlertKey,
+        field: AlertField,
+    ) -> str | None:
+        """Resolve an alert translation field from the alerts catalog."""
+
+        if alert_key not in alerts:
+            return None
+
+        alert = alerts[alert_key]
+        if field not in ALERT_FIELD_TOKENS:
+            raise ValueError(f"Unsupported alert translation field: {field}")
+
+        value = cast(object, alert.get(field))
+        return value if isinstance(value, str) else None
+
+    @staticmethod
+    def _resolve_recommendation_translation(
+        recommendations: WeatherRecommendationTranslations,
+        recommendation_key: WeatherRecommendationKey,
+    ) -> str | None:
+        """Resolve a recommendation translation string from the catalog."""
+
+        if recommendation_key not in recommendations:
+            return None
+
+        value = cast(object, recommendations[recommendation_key])
+        return value if isinstance(value, str) else None
 
     @staticmethod
     def _coerce_float(value: object) -> float | None:
@@ -539,13 +666,14 @@ class WeatherHealthManager:
                 return None
 
             # Extract weather data
-            attributes = weather_state.attributes
+            attributes = cast(WeatherEntityAttributes, weather_state.attributes)
 
-            temperature_c = attributes.get(ATTR_WEATHER_TEMPERATURE)
+            temperature_c = self._coerce_float(attributes.get(ATTR_WEATHER_TEMPERATURE))
             if temperature_c is not None:
                 # Convert temperature to Celsius if needed
-                temp_unit = attributes.get(
-                    "temperature_unit", UnitOfTemperature.CELSIUS
+                temp_unit = cast(
+                    UnitOfTemperature | str,
+                    attributes.get("temperature_unit", UnitOfTemperature.CELSIUS),
                 )
                 if temp_unit == UnitOfTemperature.FAHRENHEIT:
                     temperature_c = (temperature_c - 32) * 5 / 9
@@ -554,11 +682,17 @@ class WeatherHealthManager:
 
             self._current_conditions = WeatherConditions(
                 temperature_c=temperature_c,
-                humidity_percent=attributes.get(ATTR_WEATHER_HUMIDITY),
-                uv_index=attributes.get(ATTR_WEATHER_UV_INDEX),
-                wind_speed_kmh=attributes.get(ATTR_WEATHER_WIND_SPEED),
-                pressure_hpa=attributes.get(ATTR_WEATHER_PRESSURE),
-                visibility_km=attributes.get(ATTR_WEATHER_VISIBILITY),
+                humidity_percent=self._coerce_float(
+                    attributes.get(ATTR_WEATHER_HUMIDITY)
+                ),
+                uv_index=self._coerce_float(attributes.get(ATTR_WEATHER_UV_INDEX)),
+                wind_speed_kmh=self._coerce_float(
+                    attributes.get(ATTR_WEATHER_WIND_SPEED)
+                ),
+                pressure_hpa=self._coerce_float(attributes.get(ATTR_WEATHER_PRESSURE)),
+                visibility_km=self._coerce_float(
+                    attributes.get(ATTR_WEATHER_VISIBILITY)
+                ),
                 condition=weather_state.state,
                 source_entity=weather_entity_id_local,
                 last_updated=dt_util.utcnow(),
@@ -637,7 +771,25 @@ class WeatherHealthManager:
                 return None
 
             # Extract forecast data from attributes
-            forecast_data = weather_state.attributes.get(ATTR_FORECAST)
+            attributes = cast(WeatherEntityAttributes, weather_state.attributes)
+            forecast_data_raw = attributes.get(ATTR_FORECAST)
+            if not isinstance(forecast_data_raw, Sequence):
+                _LOGGER.debug(
+                    "Weather entity %s does not expose a forecast sequence",
+                    weather_entity_id_local,
+                )
+                return None
+
+            if not all(isinstance(item, Mapping) for item in forecast_data_raw):
+                _LOGGER.debug(
+                    "Weather entity %s returned non-mapping forecast entries",
+                    weather_entity_id_local,
+                )
+                return None
+
+            forecast_data: ForecastEntries = [
+                cast(ForecastEntry, item) for item in forecast_data_raw
+            ]
             if not forecast_data:
                 _LOGGER.debug(
                     "No forecast data available in weather entity %s", weather_entity_id
@@ -697,7 +849,7 @@ class WeatherHealthManager:
             return None
 
     async def _process_forecast_data(
-        self, forecast_data: Sequence[Mapping[str, object]], horizon_hours: int
+        self, forecast_data: ForecastEntries, horizon_hours: int
     ) -> list[ForecastPoint]:
         """Process raw forecast data into structured forecast points.
 
@@ -788,7 +940,7 @@ class WeatherHealthManager:
         return forecast_points
 
     def _assess_forecast_quality(
-        self, forecast_data: Sequence[Mapping[str, object]]
+        self, forecast_data: ForecastEntries
     ) -> ForecastQuality:
         """Assess the quality of forecast data.
 
@@ -1095,7 +1247,7 @@ class WeatherHealthManager:
             return
 
         # Activity thresholds (minimum health scores)
-        activity_thresholds = {
+        activity_thresholds: ActivityThresholdMap = {
             "walk": 60,  # Regular walks
             "play": 70,  # Active play sessions
             "exercise": 75,  # Intensive exercise
@@ -1110,7 +1262,7 @@ class WeatherHealthManager:
         self._current_forecast.optimal_activity_windows.sort(key=lambda x: x.start_time)
 
     def _find_activity_windows(
-        self, activity_type: str, min_score: int, min_duration_hours: int = 1
+        self, activity_type: ActivityType, min_score: int, min_duration_hours: int = 1
     ) -> list[ActivityTimeSlot]:
         """Find optimal time windows for a specific activity.
 
@@ -1211,7 +1363,10 @@ class WeatherHealthManager:
         return windows
 
     def _get_activity_recommendations(
-        self, activity_type: str, avg_score: int, alert_level: WeatherSeverity
+        self,
+        activity_type: ActivityType,
+        avg_score: int,
+        alert_level: WeatherSeverity,
     ) -> list[str]:
         """Get recommendations for specific activity during a time window.
 
@@ -1815,7 +1970,7 @@ class WeatherHealthManager:
         return self._current_forecast
 
     def get_next_optimal_activity_time(
-        self, activity_type: str = "walk"
+        self, activity_type: ActivityType = "walk"
     ) -> ActivityTimeSlot | None:
         """Get the next optimal time for a specific activity.
 
@@ -1875,7 +2030,7 @@ class WeatherHealthManager:
                     start=window.start_time.isoformat(),
                     end=window.end_time.isoformat(),
                     health_score=window.health_score,
-                    alert_level=window.alert_level.value,
+                    alert_level=window.alert_level,
                     recommendations=window.recommendations,
                 )
                 for window in forecast.optimal_activity_windows[:5]
@@ -1883,7 +2038,8 @@ class WeatherHealthManager:
         )
 
         # Add next optimal times for common activities
-        for activity in ["walk", "play", "exercise"]:
+        for activity_literal in PRIMARY_ACTIVITIES:
+            activity: ActivityType = cast(ActivityType, activity_literal)
             next_window = forecast.get_next_optimal_window(activity)
             if next_window:
                 setattr(
@@ -1892,7 +2048,7 @@ class WeatherHealthManager:
                     ActivityWindowSummary(
                         start=next_window.start_time.isoformat(),
                         health_score=next_window.health_score,
-                        alert_level=next_window.alert_level.value,
+                        alert_level=next_window.alert_level,
                     ),
                 )
 

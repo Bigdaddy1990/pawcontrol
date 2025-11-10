@@ -7,7 +7,7 @@ from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime
 from logging import getLogger
 from math import isfinite
-from typing import Any, Literal, cast
+from typing import Any, Final, Literal, cast
 
 from .coordinator_runtime import EntityBudgetSnapshot, summarize_entity_budgets
 from .coordinator_support import CoordinatorMetrics
@@ -27,7 +27,30 @@ from .types import (
     CoordinatorSecurityScorecard,
     CoordinatorSecurityWebhookCheck,
     EntityBudgetSummary,
+    JSONMapping,
     WebhookSecurityStatus,
+)
+
+type ResilienceListField = Literal[
+    "open_breakers",
+    "open_breaker_ids",
+    "half_open_breakers",
+    "half_open_breaker_ids",
+    "unknown_breakers",
+    "unknown_breaker_ids",
+    "rejection_breakers",
+    "rejection_breaker_ids",
+]
+
+_RESILIENCE_LIST_FIELDS: Final[tuple[ResilienceListField, ...]] = (
+    "open_breakers",
+    "open_breaker_ids",
+    "half_open_breakers",
+    "half_open_breaker_ids",
+    "unknown_breakers",
+    "unknown_breaker_ids",
+    "rejection_breakers",
+    "rejection_breaker_ids",
 )
 
 _LOGGER = getLogger(__name__)
@@ -133,48 +156,12 @@ def build_performance_snapshot(
     rejection_metrics: CoordinatorRejectionMetrics = default_rejection_metrics()
 
     if resilience:
-        resilience_payload_raw = dict(resilience)
-        resilience_payload: dict[str, Any] = dict(resilience_payload_raw)
-
-        list_fields = (
-            "open_breakers",
-            "open_breaker_ids",
-            "half_open_breakers",
-            "half_open_breaker_ids",
-            "unknown_breakers",
-            "unknown_breaker_ids",
-            "rejection_breakers",
-            "rejection_breaker_ids",
-        )
-
-        for field in list_fields:
-            value = resilience_payload.get(field)
-            if isinstance(value, list):
-                continue
-            if value is None:
-                resilience_payload[field] = []
-                continue
-            if isinstance(value, Iterable) and not isinstance(
-                value, str | bytes | bytearray
-            ):
-                resilience_payload[field] = list(value)
-            else:
-                resilience_payload[field] = [value]
-
+        resilience_payload = _normalise_resilience_summary(resilience)
         rejection_metrics.update(derive_rejection_metrics(resilience_payload))
-        snapshot["resilience_summary"] = cast(
-            CoordinatorResilienceSummary, resilience_payload
-        )
+        snapshot["resilience_summary"] = resilience_payload
 
     snapshot["rejection_metrics"] = rejection_metrics
-    performance_metrics_mut = cast(dict[str, Any], snapshot["performance_metrics"])
-    for key, value in rejection_metrics.items():
-        if key == "schema_version":
-            continue
-        if isinstance(value, list):
-            performance_metrics_mut[key] = list(value)
-            continue
-        performance_metrics_mut[key] = value
+    _apply_rejection_metrics_to_performance(performance_metrics, rejection_metrics)
 
     telemetry_module = sys.modules.get("custom_components.pawcontrol.telemetry")
     bool_summary: BoolCoercionSummary = summarise_bool_coercion_metrics()
@@ -190,7 +177,7 @@ def build_performance_snapshot(
             module_summary.get("total") or module_summary.get("reset_count")
         ) and module_summary.get("total", 0) >= bool_summary.get("total", 0):
             bool_summary = module_summary
-    snapshot["bool_coercion"] = cast(BoolCoercionSummary, dict(bool_summary))
+    snapshot["bool_coercion"] = bool_summary
 
     return snapshot
 
@@ -209,10 +196,89 @@ def _coerce_float(value: Any, default: float) -> float:
     return number
 
 
+def _normalise_resilience_summary(
+    summary: CoordinatorResilienceSummary | Mapping[str, object],
+) -> CoordinatorResilienceSummary:
+    """Return a resilience summary with stable string list payloads."""
+
+    payload = cast(CoordinatorResilienceSummary, dict(summary))
+
+    for field in _RESILIENCE_LIST_FIELDS:
+        payload[field] = _coerce_string_list(payload.get(field))
+
+    return payload
+
+
+def _coerce_string_list(value: object) -> list[str]:
+    """Return a list of strings for resilience diagnostics fields."""
+
+    if value is None:
+        return []
+
+    if isinstance(value, (str, bytes, bytearray)):
+        return [_stringify_resilience_value(value)]
+
+    if isinstance(value, Iterable):
+        items: list[str] = []
+        for item in value:
+            if item is None:
+                continue
+            items.append(_stringify_resilience_value(item))
+        return items
+
+    return [_stringify_resilience_value(value)]
+
+
+def _stringify_resilience_value(value: object) -> str:
+    """Convert resilience identifiers to safe diagnostic strings."""
+
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (bytes, bytearray)):
+        try:
+            return value.decode()
+        except Exception:  # pragma: no cover - defensive fallback
+            return value.decode(errors="ignore")
+    return str(value)
+
+
+def _apply_rejection_metrics_to_performance(
+    performance_metrics: CoordinatorPerformanceSnapshotMetrics,
+    rejection_metrics: CoordinatorRejectionMetrics,
+) -> None:
+    """Merge rejection diagnostics into the performance snapshot payload."""
+
+    performance_metrics.update(
+        {
+            "rejected_call_count": rejection_metrics["rejected_call_count"],
+            "rejection_breaker_count": rejection_metrics["rejection_breaker_count"],
+            "rejection_rate": rejection_metrics["rejection_rate"],
+            "last_rejection_time": rejection_metrics["last_rejection_time"],
+            "last_rejection_breaker_id": rejection_metrics["last_rejection_breaker_id"],
+            "last_rejection_breaker_name": rejection_metrics["last_rejection_breaker_name"],
+            "open_breaker_count": rejection_metrics["open_breaker_count"],
+            "half_open_breaker_count": rejection_metrics["half_open_breaker_count"],
+            "unknown_breaker_count": rejection_metrics["unknown_breaker_count"],
+            "open_breakers": list(rejection_metrics["open_breakers"]),
+            "open_breaker_ids": list(rejection_metrics["open_breaker_ids"]),
+            "half_open_breakers": list(rejection_metrics["half_open_breakers"]),
+            "half_open_breaker_ids": list(
+                rejection_metrics["half_open_breaker_ids"]
+            ),
+            "unknown_breakers": list(rejection_metrics["unknown_breakers"]),
+            "unknown_breaker_ids": list(rejection_metrics["unknown_breaker_ids"]),
+            "rejection_breaker_ids": list(
+                rejection_metrics["rejection_breaker_ids"]
+            ),
+            "rejection_breakers": list(rejection_metrics["rejection_breakers"]),
+        }
+    )
+
+
 def build_security_scorecard(
     *,
-    adaptive: Mapping[str, Any],
-    entity_summary: Mapping[str, Any],
+    adaptive: JSONMapping,
+    entity_summary: JSONMapping,
     webhook_status: WebhookSecurityStatus,
 ) -> CoordinatorSecurityScorecard:
     """Return a pass/fail scorecard for coordinator safety checks."""

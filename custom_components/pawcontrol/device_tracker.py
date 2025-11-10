@@ -16,7 +16,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, cast
+from typing import cast
 
 from homeassistant.components.device_tracker import (
     SourceType,
@@ -35,6 +35,7 @@ from .types import (
     DOG_ID_FIELD,
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
+    CoordinatorDogData,
     CoordinatorModuleState,
     DogConfigData,
     GPSCompletedRouteSnapshot,
@@ -51,6 +52,7 @@ from .types import (
     GPSRoutePoint,
     GPSRouteSnapshot,
     GPSTrackerExtraAttributes,
+    JSONMapping,
     PawControlConfigEntry,
     ensure_dog_config_data,
     ensure_dog_modules_projection,
@@ -101,7 +103,7 @@ async def async_setup_entry(
         if not isinstance(raw_dog, Mapping):
             continue
 
-        normalised = ensure_dog_config_data(cast(Mapping[str, Any], raw_dog))
+        normalised = ensure_dog_config_data(cast(JSONMapping, raw_dog))
         if normalised is None:
             continue
 
@@ -555,8 +557,8 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
                 mutable_gps_state = cast(GPSModulePayload, dict(gps_state))
             else:
                 mutable_gps_state = cast(GPSModulePayload, {})
-                runtime_payload = cast(dict[str, Any], dog_data)
-                runtime_payload[MODULE_GPS] = cast(
+                runtime_payload = cast(CoordinatorDogData, dog_data)
+                runtime_payload["gps"] = cast(
                     CoordinatorModuleState, mutable_gps_state
                 )
 

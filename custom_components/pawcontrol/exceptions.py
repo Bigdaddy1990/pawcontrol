@@ -13,10 +13,19 @@ Python: 3.12+
 from __future__ import annotations
 
 import traceback
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Final
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Final,
+    ParamSpec,
+    TypedDict,
+    TypeVar,
+    Unpack,
+    cast,
+)
 
 if TYPE_CHECKING:
     from homeassistant.exceptions import HomeAssistantError as HomeAssistantErrorType
@@ -39,7 +48,10 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
 
     dt_util = _DateTimeModule()
 
-from .types import GPSLocation
+from .types import ErrorContext, ErrorPayload, GPSLocation, JSONValue
+
+P = ParamSpec("P")
+T = TypeVar("T")
 
 
 class ErrorSeverity(Enum):
@@ -66,6 +78,52 @@ class ErrorCategory(Enum):
     SYSTEM = "system"  # System and resource errors
 
 
+class PawControlErrorKwargs(TypedDict, total=False):
+    """Optional keyword arguments supported by PawControl error helpers."""
+
+    severity: ErrorSeverity
+    recovery_suggestions: list[str]
+    user_message: str
+    technical_details: str | None
+    timestamp: datetime
+
+
+def _serialise_json_value(value: object) -> JSONValue:
+    """Convert arbitrary objects to JSON-compatible values for error payloads."""
+
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return cast(JSONValue, value)
+
+    if isinstance(value, datetime):
+        return value.isoformat()
+
+    if isinstance(value, Mapping):
+        serialised_mapping: dict[str, JSONValue] = {}
+        for key, mapping_value in value.items():
+            serialised_mapping[str(key)] = _serialise_json_value(mapping_value)
+        return serialised_mapping
+
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        return [_serialise_json_value(item) for item in value]
+
+    return str(value)
+
+
+def _ensure_error_context(context: Mapping[str, object] | None) -> ErrorContext:
+    """Normalise error context payloads to JSON-compatible dictionaries."""
+
+    if not context:
+        return {}
+
+    normalised: ErrorContext = {}
+    for key, value in context.items():
+        serialised = _serialise_json_value(value)
+        if serialised is not None:
+            normalised[str(key)] = serialised
+
+    return normalised
+
+
 class PawControlError(HomeAssistantErrorType):
     """Base exception for all Paw Control related errors with enhanced features.
 
@@ -80,7 +138,7 @@ class PawControlError(HomeAssistantErrorType):
         error_code: str | None = None,
         severity: ErrorSeverity = ErrorSeverity.MEDIUM,
         category: ErrorCategory = ErrorCategory.SYSTEM,
-        context: dict[str, Any] | None = None,
+        context: Mapping[str, object] | None = None,
         recovery_suggestions: list[str] | None = None,
         user_message: str | None = None,
         technical_details: str | None = None,
@@ -104,14 +162,14 @@ class PawControlError(HomeAssistantErrorType):
         self.error_code = error_code or self.__class__.__name__.lower()
         self.severity = severity
         self.category = category
-        self.context = context or {}
-        self.recovery_suggestions = recovery_suggestions or []
+        self.context = _ensure_error_context(context)
+        self.recovery_suggestions = list(recovery_suggestions or [])
         self.user_message = user_message or message
         self.technical_details = technical_details
         self.timestamp = timestamp or dt_util.utcnow()
         self.stack_trace = traceback.format_stack()
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> ErrorPayload:
         """Convert exception to dictionary for serialization.
 
         Returns:
@@ -130,7 +188,7 @@ class PawControlError(HomeAssistantErrorType):
             "exception_type": self.__class__.__name__,
         }
 
-    def add_context(self, key: str, value: Any) -> PawControlError:
+    def add_context(self, key: str, value: object) -> PawControlError:
         """Add context information to the exception.
 
         Args:
@@ -140,7 +198,7 @@ class PawControlError(HomeAssistantErrorType):
         Returns:
             Self for method chaining
         """
-        self.context[key] = value
+        self.context[str(key)] = _serialise_json_value(value)
         return self
 
     def add_recovery_suggestion(self, suggestion: str) -> PawControlError:
@@ -277,7 +335,10 @@ class GPSError(PawControlError):
         message: str,
         dog_id: str | None = None,
         location: GPSLocation | None = None,
-        **kwargs: Any,
+        *,
+        error_code: str | None = None,
+        context: Mapping[str, object] | None = None,
+        **kwargs: Unpack[PawControlErrorKwargs],
     ) -> None:
         """Initialize GPS error.
 
@@ -287,16 +348,21 @@ class GPSError(PawControlError):
             location: GPS location data if available
             **kwargs: Additional arguments for parent class
         """
-        extra_context = kwargs.pop("context", {})
-        context = {
-            "dog_id": dog_id,
-            "location": location.__dict__ if location else None,
-            **extra_context,
-        }
+        location_context: ErrorContext | None = (
+            _ensure_error_context(cast(Mapping[str, object], location.__dict__))
+            if location
+            else None
+        )
+        context_payload: dict[str, object] = {"dog_id": dog_id}
+        if location_context is not None:
+            context_payload["location"] = location_context
+        if context:
+            context_payload.update(context)
         super().__init__(
             message,
+            error_code=error_code,
             category=ErrorCategory.GPS,
-            context=context,
+            context=context_payload,
             **kwargs,
         )
 
@@ -406,8 +472,9 @@ class WalkError(PawControlError):
         dog_id: str,
         walk_id: str | None = None,
         *,
-        context: dict[str, Any] | None = None,
-        **kwargs: Any,
+        error_code: str | None = None,
+        context: Mapping[str, object] | None = None,
+        **kwargs: Unpack[PawControlErrorKwargs],
     ) -> None:
         """Initialize walk error.
 
@@ -417,11 +484,12 @@ class WalkError(PawControlError):
             walk_id: Walk ID if applicable
             **kwargs: Additional arguments for parent class
         """
-        base_context = {"dog_id": dog_id, "walk_id": walk_id}
+        base_context: dict[str, object] = {"dog_id": dog_id, "walk_id": walk_id}
         if context:
             base_context.update(context)
         super().__init__(
             message,
+            error_code=error_code,
             category=ErrorCategory.BUSINESS_LOGIC,
             context=base_context,
             **kwargs,
@@ -944,7 +1012,10 @@ def get_exception_class(error_code: str) -> type[PawControlError]:
 def raise_from_error_code(
     error_code: str,
     message: str,
-    **kwargs: Any,
+    *,
+    context: Mapping[str, object] | None = None,
+    category: ErrorCategory | None = None,
+    **kwargs: Unpack[PawControlErrorKwargs],
 ) -> None:
     """Raise an exception based on an error code.
 
@@ -957,15 +1028,38 @@ def raise_from_error_code(
         PawControlError: The appropriate exception for the error code
     """
     exception_class = EXCEPTION_MAP.get(error_code, PawControlError)
+    if category is not None and context is not None:
+        raise exception_class(
+            message,
+            error_code=error_code,
+            category=category,
+            context=context,
+            **kwargs,
+        )
+    if category is not None:
+        raise exception_class(
+            message,
+            error_code=error_code,
+            category=category,
+            **kwargs,
+        )
+    if context is not None:
+        raise exception_class(
+            message,
+            error_code=error_code,
+            context=context,
+            **kwargs,
+        )
     raise exception_class(message, error_code=error_code, **kwargs)
 
 
 def handle_exception_gracefully(
-    func: Callable[..., Any],
-    default_return: Any = None,
+    func: Callable[P, T],
+    default_return: T | None = None,
+    *,
     log_errors: bool = True,
     reraise_critical: bool = True,
-) -> Callable[..., Any]:
+) -> Callable[P, T | None]:
     """Decorator for graceful exception handling with logging.
 
     Args:
@@ -978,7 +1072,7 @@ def handle_exception_gracefully(
         Callable that wraps ``func`` and handles exceptions gracefully
     """
 
-    def wrapper(*args: Any, **kwargs: Any) -> Any:
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> T | None:
         try:
             return func(*args, **kwargs)
         except PawControlError as e:
@@ -1010,8 +1104,8 @@ def handle_exception_gracefully(
 def create_error_context(
     dog_id: str | None = None,
     operation: str | None = None,
-    **additional_context: Any,
-) -> dict[str, Any]:
+    **additional_context: object,
+) -> ErrorContext:
     """Create standardized error context dictionary.
 
     Args:
@@ -1022,11 +1116,16 @@ def create_error_context(
     Returns:
         Structured error context dictionary
     """
-    context = {
-        "timestamp": dt_util.utcnow().isoformat(),
-        "dog_id": dog_id,
-        "operation": operation,
-    }
+    context: ErrorContext = {"timestamp": dt_util.utcnow().isoformat()}
 
-    context.update(additional_context)
-    return {k: v for k, v in context.items() if v is not None}
+    if dog_id is not None:
+        context["dog_id"] = dog_id
+    if operation is not None:
+        context["operation"] = operation
+
+    for key, value in additional_context.items():
+        serialised = _serialise_json_value(value)
+        if serialised is not None:
+            context[str(key)] = serialised
+
+    return context

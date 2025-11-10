@@ -32,7 +32,6 @@ from .types import (
     CacheRepairAggregate,
     CircuitBreakerStateSummary,
     CircuitBreakerStatsPayload,
-    CoordinatorPerformanceMetrics,
     CoordinatorRejectionMetrics,
     CoordinatorResilienceDiagnostics,
     CoordinatorResilienceSummary,
@@ -41,9 +40,13 @@ from .types import (
     CoordinatorStatisticsPayload,
     EntityBudgetSummary,
     HelperManagerGuardMetrics,
+    JSONMapping,
+    JSONMutableMapping,
     MaintenanceMetadataPayload,
     PawControlRuntimeData,
     ReconfigureTelemetrySummary,
+    RejectionMetricsSource,
+    RejectionMetricsTarget,
 )
 
 if TYPE_CHECKING:  # pragma: no cover - import for typing only
@@ -429,17 +432,6 @@ _REJECTION_SEQUENCE_KEYS: Final[tuple[str, ...]] = (
     "rejection_breakers",
 )
 
-type RejectionTargetMapping = (
-    MutableMapping[str, Any]
-    | CoordinatorPerformanceMetrics
-    | CoordinatorRejectionMetrics
-)
-
-type RejectionSourceMapping = (
-    Mapping[str, Any] | CoordinatorRejectionMetrics | CoordinatorResilienceSummary
-)
-
-
 def default_rejection_metrics() -> CoordinatorRejectionMetrics:
     """Return a baseline rejection metric payload for diagnostics consumers."""
 
@@ -466,16 +458,16 @@ def default_rejection_metrics() -> CoordinatorRejectionMetrics:
 
 
 def merge_rejection_metric_values(
-    target: RejectionTargetMapping,
-    *sources: RejectionSourceMapping,
+    target: RejectionMetricsTarget,
+    *sources: RejectionMetricsSource,
 ) -> None:
     """Populate ``target`` with rejection metrics extracted from ``sources``."""
 
     if not sources:
         return
 
-    mutable_target = cast(MutableMapping[str, Any], target)
-    source_mappings = [cast(Mapping[str, Any], source) for source in sources]
+    mutable_target = cast(JSONMutableMapping, target)
+    source_mappings = [cast(JSONMapping, source) for source in sources]
 
     for key in _REJECTION_SCALAR_KEYS:
         for source in source_mappings:
@@ -499,7 +491,7 @@ def merge_rejection_metric_values(
 
 
 def derive_rejection_metrics(
-    summary: Mapping[str, Any] | CoordinatorResilienceSummary | None,
+    summary: JSONMapping | CoordinatorResilienceSummary | None,
 ) -> CoordinatorRejectionMetrics:
     """Return rejection counters extracted from a resilience summary."""
 
@@ -571,7 +563,7 @@ def derive_rejection_metrics(
 
 
 def _derive_rejection_metrics(
-    summary: Mapping[str, Any],
+    summary: JSONMapping | CoordinatorResilienceSummary,
 ) -> CoordinatorRejectionMetrics:
     """Backwards-compatible wrapper for legacy imports."""
 

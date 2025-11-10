@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any
 
 from aiohttp import ClientError, ClientResponse, ClientSession, ClientTimeout
 from aiohttp.client_exceptions import ContentTypeError
@@ -14,6 +12,8 @@ from .compat import ConfigEntryAuthFailed
 from .exceptions import NetworkError, RateLimitError
 from .http_client import ensure_shared_client_session
 from .resilience import ResilienceManager, RetryConfig
+from .types import JSONMutableMapping
+from .utils import _coerce_json_mutable
 
 _DEFAULT_TIMEOUT = ClientTimeout(total=15.0)
 
@@ -92,7 +92,7 @@ class PawControlDeviceClient:
 
         return self._endpoint.base_url
 
-    async def async_get_json(self, path: str) -> Mapping[str, Any]:
+    async def async_get_json(self, path: str) -> JSONMutableMapping:
         """Perform a JSON GET request against the companion device with resilience."""
 
         # RESILIENCE: Wrap in circuit breaker and retry if available
@@ -113,9 +113,9 @@ class PawControlDeviceClient:
             raise NetworkError(
                 "Device API returned a non-JSON response. Check the configured endpoint."
             ) from err
-        return payload
+        return _coerce_json_mutable(payload)
 
-    async def async_get_feeding_payload(self, dog_id: str) -> Mapping[str, Any]:
+    async def async_get_feeding_payload(self, dog_id: str) -> JSONMutableMapping:
         """Fetch the latest feeding payload for a dog from the companion device."""
 
         return await self.async_get_json(f"/api/dogs/{dog_id}/feeding")

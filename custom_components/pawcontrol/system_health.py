@@ -15,15 +15,21 @@ from .coordinator_tasks import derive_rejection_metrics, resolve_service_guard_m
 from .runtime_data import get_runtime_data
 from .telemetry import get_runtime_performance_stats
 from .types import (
+    ConfigEntryOptionsPayload,
     CoordinatorRejectionMetrics,
     HelperManagerGuardMetrics,
+    JSONLikeMapping,
     ManualResilienceAutomationEntry,
     ManualResilienceEventCounters,
     ManualResilienceEventSnapshot,
     ManualResilienceEventsTelemetry,
     ManualResilienceListenerMetadata,
+    ManualResilienceOptionsSnapshot,
     ManualResiliencePreferenceKey,
+    ManualResilienceSystemSettingsSnapshot,
     PawControlRuntimeData,
+    ResilienceEscalationFieldEntry,
+    ResilienceEscalationThresholds,
     SystemHealthBreakerOverview,
     SystemHealthGuardReasonEntry,
     SystemHealthGuardSummary,
@@ -301,7 +307,7 @@ def _coerce_preferred_events(
 
 
 def _normalise_manual_events_snapshot(
-    snapshot: Mapping[str, Any] | None,
+    snapshot: ManualResilienceEventsTelemetry | JSONLikeMapping | None,
 ) -> ManualResilienceEventsTelemetry:
     """Return the manual events snapshot normalised for system health."""
 
@@ -475,13 +481,18 @@ async def system_health_info(hass: HomeAssistant) -> SystemHealthInfoPayload:
     service_status = _build_service_status(guard_summary, breaker_overview)
 
     script_manager = getattr(runtime, "script_manager", None)
-    manual_snapshot: Mapping[str, Any] | None = None
+    manual_snapshot: (
+        ManualResilienceEventsTelemetry | JSONLikeMapping | None
+    ) = None
     if script_manager is not None:
         snapshot = getattr(script_manager, "get_resilience_escalation_snapshot", None)
         if callable(snapshot):
             manager_snapshot = snapshot()
             if isinstance(manager_snapshot, Mapping):
-                manual_snapshot = manager_snapshot.get("manual_events")
+                manual_snapshot = cast(
+                    JSONLikeMapping | ManualResilienceEventsTelemetry | None,
+                    manager_snapshot.get("manual_events"),
+                )
 
     manual_events_info = _normalise_manual_events_snapshot(manual_snapshot)
 
@@ -506,16 +517,14 @@ def _async_get_first_entry(hass: HomeAssistant) -> ConfigEntry | None:
 
 
 def _extract_service_execution_metrics(
-    runtime: Any,
+    runtime: PawControlRuntimeData | None,
 ) -> tuple[HelperManagerGuardMetrics, CoordinatorRejectionMetrics]:
     """Return guard and rejection metrics derived from runtime statistics."""
 
-    performance_stats = get_runtime_performance_stats(
-        cast(PawControlRuntimeData | None, runtime)
-    )
+    performance_stats = get_runtime_performance_stats(runtime)
     guard_metrics = resolve_service_guard_metrics(performance_stats)
 
-    rejection_source: Mapping[str, Any] | None = None
+    rejection_source: CoordinatorRejectionMetrics | JSONLikeMapping | None = None
     if performance_stats is not None:
         raw_rejection = performance_stats.get("rejection_metrics")
         if isinstance(raw_rejection, Mapping):
@@ -527,7 +536,7 @@ def _extract_service_execution_metrics(
 
 
 def _extract_threshold_value(
-    payload: Mapping[str, Any],
+    payload: ResilienceEscalationFieldEntry,
 ) -> tuple[int | None, str | None]:
     """Return a positive threshold value and the key it originated from."""
 
@@ -540,15 +549,23 @@ def _extract_threshold_value(
 
 
 def _resolve_option_threshold(
-    options: Mapping[str, Any] | None, key: str
+    options: ConfigEntryOptionsPayload
+    | ManualResilienceOptionsSnapshot
+    | JSONLikeMapping
+    | None,
+    key: str,
 ) -> tuple[int | None, str | None]:
     """Return a positive threshold sourced from config entry options."""
 
     if not isinstance(options, Mapping):
         return None, None
 
-    system_settings = options.get("system_settings")
-    if isinstance(system_settings, Mapping):
+    system_settings_raw = options.get("system_settings")
+    if isinstance(system_settings_raw, Mapping):
+        system_settings = cast(
+            ManualResilienceSystemSettingsSnapshot,
+            dict(system_settings_raw),
+        )
         value = _coerce_positive_int(system_settings.get(key))
         if value is not None:
             return value, "system_settings"
@@ -563,7 +580,10 @@ def _resolve_option_threshold(
 def _merge_option_thresholds(
     guard_thresholds: GuardIndicatorThresholds,
     breaker_thresholds: BreakerIndicatorThresholds,
-    options: Mapping[str, Any] | None,
+    options: ConfigEntryOptionsPayload
+    | ManualResilienceOptionsSnapshot
+    | JSONLikeMapping
+    | None,
 ) -> tuple[GuardIndicatorThresholds, BreakerIndicatorThresholds]:
     """Overlay config entry thresholds when script metadata is unavailable."""
 
@@ -595,7 +615,11 @@ def _merge_option_thresholds(
 
 
 def _resolve_indicator_thresholds(
-    runtime: Any, options: Mapping[str, Any] | None = None
+    runtime: PawControlRuntimeData | None,
+    options: ConfigEntryOptionsPayload
+    | ManualResilienceOptionsSnapshot
+    | JSONLikeMapping
+    | None = None,
 ) -> tuple[GuardIndicatorThresholds, BreakerIndicatorThresholds]:
     """Resolve guard and breaker thresholds from runtime configuration."""
 
@@ -626,9 +650,13 @@ def _resolve_indicator_thresholds(
     if not isinstance(thresholds_payload, Mapping):
         return _merge_option_thresholds(guard_thresholds, breaker_thresholds, options)
 
-    skip_payload = thresholds_payload.get("skip_threshold")
+    thresholds = cast(ResilienceEscalationThresholds, dict(thresholds_payload))
+
+    skip_payload = thresholds.get("skip_threshold")
     if isinstance(skip_payload, Mapping):
-        skip_value, source_key = _extract_threshold_value(skip_payload)
+        skip_value, source_key = _extract_threshold_value(
+            cast(ResilienceEscalationFieldEntry, dict(skip_payload))
+        )
         if skip_value is not None:
             guard_thresholds = GuardIndicatorThresholds(
                 warning_count=skip_value - 1 if skip_value > 1 else None,
@@ -638,9 +666,11 @@ def _resolve_indicator_thresholds(
                 source_key=source_key,
             )
 
-    breaker_payload = thresholds_payload.get("breaker_threshold")
+    breaker_payload = thresholds.get("breaker_threshold")
     if isinstance(breaker_payload, Mapping):
-        breaker_value, source_key = _extract_threshold_value(breaker_payload)
+        breaker_value, source_key = _extract_threshold_value(
+            cast(ResilienceEscalationFieldEntry, dict(breaker_payload))
+        )
         if breaker_value is not None:
             warning_value = breaker_value - 1
             breaker_thresholds = BreakerIndicatorThresholds(
@@ -746,7 +776,7 @@ BREAKER_CRITICAL_THRESHOLD = 3
 
 
 def _build_guard_summary(
-    guard_metrics: Mapping[str, Any],
+    guard_metrics: HelperManagerGuardMetrics | JSONLikeMapping,
     thresholds: GuardIndicatorThresholds,
 ) -> SystemHealthGuardSummary:
     """Return aggregated guard statistics for system health output."""
@@ -799,7 +829,7 @@ def _build_guard_summary(
 
 
 def _build_breaker_overview(
-    rejection_metrics: Mapping[str, Any],
+    rejection_metrics: CoordinatorRejectionMetrics | JSONLikeMapping,
     thresholds: BreakerIndicatorThresholds,
 ) -> SystemHealthBreakerOverview:
     """Return breaker state information derived from rejection metrics."""
@@ -837,17 +867,28 @@ def _build_breaker_overview(
     half_open_breakers = _coerce_str_list(rejection_metrics.get("half_open_breakers"))
     unknown_breakers = _coerce_str_list(rejection_metrics.get("unknown_breakers"))
 
+    last_breaker_id = _coerce_str(
+        rejection_metrics.get("last_rejection_breaker_id")
+    )
+    last_breaker_name = _coerce_str(
+        rejection_metrics.get("last_rejection_breaker_name")
+    )
+    raw_last_rejection_time = rejection_metrics.get("last_rejection_time")
+    last_rejection_time = (
+        float(raw_last_rejection_time)
+        if isinstance(raw_last_rejection_time, (int, float))
+        else None
+    )
+
     overview: SystemHealthBreakerOverview = {
         "status": status,
         "open_breaker_count": open_count,
         "half_open_breaker_count": half_open_count,
         "unknown_breaker_count": unknown_count,
         "rejection_rate": rejection_rate,
-        "last_rejection_breaker_id": rejection_metrics.get("last_rejection_breaker_id"),
-        "last_rejection_breaker_name": rejection_metrics.get(
-            "last_rejection_breaker_name"
-        ),
-        "last_rejection_time": rejection_metrics.get("last_rejection_time"),
+        "last_rejection_breaker_id": last_breaker_id,
+        "last_rejection_breaker_name": last_breaker_name,
+        "last_rejection_time": last_rejection_time,
         "open_breakers": open_breakers,
         "half_open_breakers": half_open_breakers,
         "unknown_breakers": unknown_breakers,

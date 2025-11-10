@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import Final, TypedDict, cast
+from typing import Final, Literal, TypedDict, cast
 
-DEFAULT_LANGUAGE: Final[str] = "en"
+DEFAULT_LANGUAGE: Final[LanguageCode] = "en"
 
 
 class WeatherAlertTranslation(TypedDict):
@@ -15,10 +15,81 @@ class WeatherAlertTranslation(TypedDict):
     message: str
 
 
-type WeatherAlertTranslations = dict[str, WeatherAlertTranslation]
+type WeatherAlertKey = Literal[
+    "extreme_cold_warning",
+    "extreme_heat_warning",
+    "extreme_uv_warning",
+    "high_cold_advisory",
+    "high_heat_advisory",
+    "high_humidity_alert",
+    "high_uv_advisory",
+    "snow_ice_alert",
+    "storm_warning",
+    "warm_weather_caution",
+    "wet_weather_advisory",
+]
 
 
-type WeatherRecommendationTranslations = dict[str, str]
+type WeatherAlertTranslations = dict[WeatherAlertKey, WeatherAlertTranslation]
+
+
+type WeatherRecommendationKey = Literal[
+    "avoid_peak_hours",
+    "avoid_peak_uv",
+    "avoid_until_passes",
+    "breed_specific_caution",
+    "check_toe_irritation",
+    "cold_surface_protection",
+    "comfort_anxious",
+    "consider_clothing",
+    "cool_ventilated_areas",
+    "cooler_day_parts",
+    "cooler_surfaces",
+    "dry_paws_thoroughly",
+    "ensure_shade",
+    "essential_only",
+    "extra_water",
+    "good_air_circulation",
+    "heart_avoid_strenuous",
+    "keep_indoors",
+    "keep_indoors_storm",
+    "limit_outdoor_time",
+    "limit_peak_exposure",
+    "monitor_breathing",
+    "monitor_overheating",
+    "monitor_skin_irritation",
+    "never_leave_in_car",
+    "pet_sunscreen",
+    "postpone_activities",
+    "protect_nose_ears",
+    "protect_paws",
+    "protective_clothing",
+    "provide_shade_always",
+    "provide_traction",
+    "provide_water",
+    "puppy_extra_monitoring",
+    "reduce_exercise_intensity",
+    "respiratory_monitoring",
+    "rinse_salt_chemicals",
+    "secure_id_tags",
+    "senior_extra_protection",
+    "shade_during_activities",
+    "shorten_activities",
+    "use_cooling_aids",
+    "use_paw_balm",
+    "use_paw_protection",
+    "uv_protective_clothing",
+    "warm_shelter",
+    "warm_shelter_available",
+    "watch_heat_signs",
+    "watch_heat_stress",
+    "watch_hypothermia",
+    "watch_ice_buildup",
+    "waterproof_protection",
+]
+
+
+type WeatherRecommendationTranslations = dict[WeatherRecommendationKey, str]
 
 
 class WeatherTranslations(TypedDict):
@@ -28,7 +99,10 @@ class WeatherTranslations(TypedDict):
     recommendations: WeatherRecommendationTranslations
 
 
-type LanguageMap[T] = dict[str, T]
+type LanguageCode = Literal["de", "en"]
+
+
+type LanguageMap[T] = dict[LanguageCode, T]
 
 
 _WEATHER_TRANSLATIONS: LanguageMap[WeatherTranslations] = {
@@ -238,7 +312,24 @@ _WEATHER_TRANSLATIONS: LanguageMap[WeatherTranslations] = {
     },
 }
 
-SUPPORTED_LANGUAGES: Final[frozenset[str]] = frozenset(_WEATHER_TRANSLATIONS)
+WEATHER_ALERT_KEYS: Final[tuple[WeatherAlertKey, ...]] = tuple(
+    cast(WeatherAlertKey, key)
+    for key in _WEATHER_TRANSLATIONS[DEFAULT_LANGUAGE]["alerts"]
+)
+
+WEATHER_RECOMMENDATION_KEYS: Final[tuple[WeatherRecommendationKey, ...]] = tuple(
+    cast(WeatherRecommendationKey, key)
+    for key in _WEATHER_TRANSLATIONS[DEFAULT_LANGUAGE]["recommendations"]
+)
+
+WEATHER_ALERT_KEY_SET: Final[frozenset[WeatherAlertKey]] = frozenset(
+    WEATHER_ALERT_KEYS
+)
+WEATHER_RECOMMENDATION_KEY_SET: Final[
+    frozenset[WeatherRecommendationKey]
+] = frozenset(WEATHER_RECOMMENDATION_KEYS)
+
+SUPPORTED_LANGUAGES: Final[frozenset[LanguageCode]] = frozenset(_WEATHER_TRANSLATIONS)
 
 
 def get_weather_translations(language: str) -> WeatherTranslations:
@@ -246,5 +337,10 @@ def get_weather_translations(language: str) -> WeatherTranslations:
 
     Falls back to English when translations are unavailable.
     """
-    base = _WEATHER_TRANSLATIONS.get(language, _WEATHER_TRANSLATIONS[DEFAULT_LANGUAGE])
+    if language in SUPPORTED_LANGUAGES:
+        language_code = cast(LanguageCode, language)
+    else:
+        language_code = DEFAULT_LANGUAGE
+
+    base = _WEATHER_TRANSLATIONS[language_code]
     return cast(WeatherTranslations, deepcopy(base))

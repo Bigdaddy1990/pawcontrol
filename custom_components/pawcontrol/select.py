@@ -53,6 +53,7 @@ from .types import (
     DogSizeInfo,
     FoodTypeInfo,
     GPSSourceInfo,
+    GPSTrackingConfigInput,
     GroomingTypeInfo,
     JSONMapping,
     JSONMutableMapping,
@@ -770,7 +771,8 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
             if gps_manager:
                 try:
                     await gps_manager.async_configure_dog_gps(
-                        self._dog_id, merged_config
+                        self._dog_id,
+                        cast(GPSTrackingConfigInput, dict(merged_config)),
                     )
                 except Exception as err:  # pragma: no cover - defensive log
                     _LOGGER.warning(

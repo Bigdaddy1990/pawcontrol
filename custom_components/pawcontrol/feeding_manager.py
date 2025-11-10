@@ -5,12 +5,12 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from enum import Enum
 from time import perf_counter
-from typing import Any, Literal, TypedDict, TypeVar, cast
+from typing import Any, Literal, NotRequired, Required, TypedDict, TypeVar, cast
 
 from homeassistant.util import dt as dt_util
 
@@ -35,6 +35,7 @@ from .types import (
     HealthMetricsOverride,
     HealthReport,
     JSONMapping,
+    JSONMutableMapping,
 )
 from .utils import is_number
 
@@ -86,6 +87,246 @@ class FeedingScheduleType(Enum):
     FLEXIBLE = "flexible"
     STRICT = "strict"
     CUSTOM = "custom"
+
+
+class FeedingMedicationData(TypedDict, total=False):
+    """Optional medication context attached to scheduled feedings."""
+
+    name: str
+    dose: str
+    time: str
+
+
+class FeedingBatchEntry(TypedDict, total=False):
+    """Batch-feeding payload accepted by ``async_batch_add_feedings``."""
+
+    dog_id: Required[str]
+    amount: float
+    meal_type: str | None
+    time: datetime | None
+    timestamp: datetime | None
+    notes: str | None
+    feeder: str | None
+    scheduled: bool
+    with_medication: bool
+    medication_name: str | None
+    medication_dose: str | None
+    medication_time: str | None
+
+
+class FeedingAddParams(TypedDict, total=False):
+    """Keyword parameters forwarded to ``async_add_feeding``."""
+
+    amount: float
+    meal_type: str | None
+    time: datetime | None
+    timestamp: datetime | None
+    notes: str | None
+    feeder: str | None
+    scheduled: bool
+    with_medication: bool
+    medication_name: str | None
+    medication_dose: str | None
+    medication_time: str | None
+
+
+class FeedingHealthUpdatePayload(TypedDict, total=False):
+    """Incremental health-update payload consumed by the feeding manager."""
+
+    weight: float | int
+    ideal_weight: float | int
+    age_months: int
+    activity_level: str
+    body_condition_score: float | int
+    health_conditions: list[str]
+    weight_goal: str
+
+
+class FeedingDogMetadata(TypedDict, total=False):
+    """Cached dog metadata maintained for compatibility with legacy helpers."""
+
+    dog_id: Required[str]
+    dog_name: str | None
+    weight: float
+    ideal_weight: float | None
+    activity_level: str | None
+    age_months: int | None
+    breed: str | None
+    breed_size: str
+    weight_goal: str | None
+    health_conditions: list[str]
+    feeding_config: JSONMutableMapping | JSONMapping
+    meals_per_day: int
+    diabetic_mode: bool
+    carb_limit_percent: int | None
+
+
+class FeedingEmergencyConfigSnapshot(TypedDict):
+    """Snapshot of configuration values adjusted during emergency feeding."""
+
+    daily_food_amount: float
+    meals_per_day: int
+    schedule_type: FeedingScheduleType
+    food_type: str
+
+
+class FeedingSpecialDietInfo(TypedDict, total=False):
+    """Structured special-diet metadata for dashboards and diagnostics."""
+
+    has_special_diet: Required[bool]
+    requirements: list[str]
+    categories: dict[str, list[str]]
+    total_requirements: int
+    priority_level: Literal["high", "normal"]
+    validation: DietValidationResult | None
+
+
+class FeedingDietValidationStatus(TypedDict):
+    """Diet-validation payload exported via ``async_get_diet_validation_status``."""
+
+    validation_data: DietValidationResult
+    summary: FeedingDietValidationSummary
+    special_diets: list[str]
+    last_updated: str
+
+
+class FeedingPortionValidationSuccess(TypedDict):
+    """Successful portion-validation payload."""
+
+    portion: float
+    meal_type: str
+    safety_validation: DietSafetyResult
+    diet_validation_summary: FeedingDietValidationSummary | None
+    health_aware_calculation: bool
+    config_id: str
+
+
+class FeedingPortionValidationError(TypedDict):
+    """Failed portion-validation payload."""
+
+    error: str
+    portion: float
+    meal_type: NotRequired[str]
+
+
+FeedingPortionValidationResult = (
+    FeedingPortionValidationSuccess | FeedingPortionValidationError
+)
+
+
+class FeedingRecalculationResult(TypedDict, total=False):
+    """Result payload returned by ``async_recalculate_health_portions``."""
+
+    status: Required[str]
+    dog_id: Required[str]
+    new_portions: dict[str, float]
+    total_daily_amount: float
+    previous_daily_target: float
+    updated_schedules: int
+    health_metrics_used: dict[str, float | str | None]
+    recalculated_at: str
+    message: str
+
+
+class FeedingActivityAdjustmentResult(TypedDict, total=False):
+    """Result payload returned by ``async_adjust_calories_for_activity``."""
+
+    status: Required[str]
+    dog_id: Required[str]
+    old_activity_level: str | None
+    new_activity_level: str
+    old_daily_calories: float | int | None
+    new_daily_calories: float | int | None
+    old_daily_amount_g: float
+    new_daily_amount_g: float
+    adjustment_percent: float
+    temporary: bool
+    duration_hours: int | None
+    adjusted_at: str
+    message: str
+    reversion_scheduled: NotRequired[bool]
+
+
+class FeedingDiabeticActivationResult(TypedDict, total=False):
+    """Result payload returned by ``async_activate_diabetic_feeding_mode``."""
+
+    status: Required[str]
+    dog_id: Required[str]
+    old_meals_per_day: int
+    new_meals_per_day: int
+    carb_limit_percent: int
+    monitor_blood_glucose: bool
+    schedule_type: str
+    meal_times: list[str]
+    portion_sizes: list[float]
+    special_diet_updated: list[str]
+    activated_at: str
+
+
+class FeedingEmergencyActivationResult(TypedDict, total=False):
+    """Result payload returned by ``async_activate_emergency_feeding_mode``."""
+
+    status: Required[str]
+    dog_id: Required[str]
+    emergency_type: str
+    duration_days: int
+    portion_adjustment: float
+    old_daily_amount: float
+    new_daily_amount: float
+    old_meals_per_day: int
+    new_meals_per_day: int
+    food_type_recommendation: str
+    original_config: FeedingEmergencyConfigSnapshot
+    expires_at: str
+    activated_at: str
+    emergency_state: FeedingEmergencyState
+    restoration_scheduled: NotRequired[bool]
+
+
+class FeedingTransitionResult(TypedDict, total=False):
+    """Result payload returned by ``async_start_diet_transition``."""
+
+    status: Required[str]
+    dog_id: Required[str]
+    old_food_type: str
+    new_food_type: str
+    transition_days: int
+    gradual_increase_percent: int
+    transition_schedule: list[FeedingTransitionScheduleEntry]
+    expected_completion: str
+    started_at: str
+    message: str
+
+
+class FeedingPortionAdjustmentResult(TypedDict, total=False):
+    """Result payload returned by ``async_adjust_daily_portions``."""
+
+    status: Required[str]
+    dog_id: Required[str]
+    adjustment_percent: int
+    original_daily_amount: float
+    new_daily_amount: float
+    absolute_change_g: float
+    updated_schedules: int
+    reason: str | None
+    temporary: bool
+    duration_days: int | None
+    adjusted_at: str
+    reversion_scheduled: bool
+    reversion_date: str
+
+
+class FeedingHealthSnackResult(TypedDict, total=False):
+    """Result payload returned by ``async_add_health_snack``."""
+
+    status: Required[str]
+    dog_id: Required[str]
+    snack_type: str
+    amount: float
+    health_benefit: str | None
+    feeding_event_id: str
+    notes: str | None
+    added_at: str
 
 
 @dataclass(slots=True, frozen=True)
@@ -187,7 +428,7 @@ class MealSchedule:
 
 
 def _normalise_health_override(
-    data: Mapping[str, Any] | None,
+    data: JSONMapping | JSONMutableMapping | None,
 ) -> HealthMetricsOverride | None:
     """Coerce arbitrary mappings into ``HealthMetricsOverride`` payloads."""
 
@@ -780,7 +1021,7 @@ class FeedingConfig:
             diet_validation_applied=self.diet_validation is not None,
         )
 
-    def get_special_diet_info(self) -> dict[str, Any]:
+    def get_special_diet_info(self) -> FeedingSpecialDietInfo:
         """Get information about special diet requirements.
 
         Returns:
@@ -804,16 +1045,18 @@ class FeedingConfig:
             "care": [d for d in self.special_diet if d in care_related],
         }
 
-        return {
-            "has_special_diet": True,
-            "requirements": self.special_diet,
-            "categories": {k: v for k, v in categorized.items() if v},
-            "total_requirements": len(self.special_diet),
-            "priority_level": "high"
-            if any(d in health_related for d in self.special_diet)
-            else "normal",
-            "validation": self.diet_validation,
-        }
+        return FeedingSpecialDietInfo(
+            has_special_diet=True,
+            requirements=list(self.special_diet),
+            categories={k: v for k, v in categorized.items() if v},
+            total_requirements=len(self.special_diet),
+            priority_level=(
+                "high"
+                if any(d in health_related for d in self.special_diet)
+                else "normal"
+            ),
+            validation=self.diet_validation,
+        )
 
     def get_active_schedules(self) -> list[MealSchedule]:
         """Get enabled meal schedules."""
@@ -841,7 +1084,7 @@ class FeedingManager:
         # of per-dog metadata.  Several diagnostics and tests rely on that
         # attribute, so we continue to populate it even though the refactored
         # manager primarily works with FeedingConfig instances.
-        self._dogs: dict[str, dict[str, Any]] = {}
+        self._dogs: dict[str, FeedingDogMetadata] = {}
         self._lock = asyncio.Lock()
         self._max_history = max_history
 
@@ -894,7 +1137,7 @@ class FeedingManager:
     def _apply_emergency_restoration(
         self,
         config: FeedingConfig,
-        original_config: dict[str, Any],
+        original_config: FeedingEmergencyConfigSnapshot,
         dog_id: str,
     ) -> None:
         """Restore baseline feeding parameters after emergency mode."""
@@ -906,7 +1149,9 @@ class FeedingManager:
 
         self._invalidate_cache(dog_id)
 
-    async def async_initialize(self, dogs: list[dict[str, Any]]) -> None:
+    async def async_initialize(
+        self, dogs: Sequence[JSONMapping | JSONMutableMapping]
+    ) -> None:
         """Initialize feeding configurations for dogs.
 
         Args:
@@ -929,7 +1174,7 @@ class FeedingManager:
             self._stats_cache_time.clear()
 
             batch_configs: dict[str, FeedingConfig] = {}
-            batch_dogs: dict[str, dict[str, Any]] = {}
+            batch_dogs: dict[str, FeedingDogMetadata] = {}
 
             for dog in dogs:
                 dog_id = dog.get("dog_id")
@@ -942,7 +1187,10 @@ class FeedingManager:
                         f"Invalid feeding configuration for {dog_id}: weight is required"
                     )
 
-                feeding_config = dog.get("feeding_config", {})
+                feeding_config = cast(
+                    JSONMutableMapping,
+                    dict(cast(JSONMapping | JSONMutableMapping, dog.get("feeding_config", {}))),
+                )
                 config = await self._create_feeding_config(dog_id, feeding_config)
 
                 config.dog_weight = float(weight)
@@ -969,21 +1217,22 @@ class FeedingManager:
                 self._feedings[dog_id] = []
                 batch_configs[dog_id] = config
 
-                batch_dogs[dog_id] = {
-                    "dog_id": dog_id,
-                    "dog_name": dog.get("dog_name"),
-                    "weight": float(weight),
-                    "ideal_weight": config.ideal_weight,
-                    "activity_level": config.activity_level or "moderate",
-                    "age_months": config.age_months,
-                    "breed": dog.get("breed"),
-                    "breed_size": config.breed_size,
-                    "weight_goal": config.weight_goal,
-                    "health_conditions": list(config.health_conditions),
-                    "feeding_config": feeding_config,
-                    "meals_per_day": config.meals_per_day,
-                    "diabetic_mode": False,
-                }
+                batch_dogs[dog_id] = FeedingDogMetadata(
+                    dog_id=dog_id,
+                    dog_name=cast(str | None, dog.get("dog_name")),
+                    weight=float(weight),
+                    ideal_weight=config.ideal_weight,
+                    activity_level=config.activity_level or "moderate",
+                    age_months=config.age_months,
+                    breed=cast(str | None, dog.get("breed")),
+                    breed_size=config.breed_size,
+                    weight_goal=config.weight_goal,
+                    health_conditions=list(config.health_conditions),
+                    feeding_config=feeding_config,
+                    meals_per_day=config.meals_per_day,
+                    diabetic_mode=False,
+                    carb_limit_percent=None,
+                )
 
             # OPTIMIZATION: Batch update configs
             self._configs.update(batch_configs)
@@ -995,7 +1244,7 @@ class FeedingManager:
                     await self._setup_reminder(dog_id)
 
     async def _create_feeding_config(
-        self, dog_id: str, config_data: dict[str, Any]
+        self, dog_id: str, config_data: JSONMapping | JSONMutableMapping
     ) -> FeedingConfig:
         """Create enhanced feeding configuration with health integration."""
         special_diet = self._normalize_special_diet(config_data.get("special_diet", []))
@@ -1122,7 +1371,7 @@ class FeedingManager:
             raise KeyError(dog_id)
         return config
 
-    def _require_dog_record(self, dog_id: str) -> dict[str, Any]:
+    def _require_dog_record(self, dog_id: str) -> FeedingDogMetadata:
         """Return the cached dog metadata for ``dog_id``."""
 
         try:
@@ -1212,9 +1461,11 @@ class FeedingManager:
         config = self._require_config(dog_id)
 
         daily_grams = float(config.daily_food_amount)
-        dog_record = self._dogs.get(dog_id, {})
-        meals = dog_record.get("meals_per_day", config.meals_per_day)
-        meals = max(1, int(meals))
+        dog_record = self._dogs.get(dog_id)
+        meals_source = (
+            dog_record.get("meals_per_day") if dog_record else config.meals_per_day
+        )
+        meals = max(1, int(meals_source or config.meals_per_day))
         portion = daily_grams / meals
         return round(portion, 1)
 
@@ -1462,7 +1713,7 @@ class FeedingManager:
         dog_id: str,
         amount: float,
         meal_type: str,
-        medication_data: dict[str, Any] | None = None,
+        medication_data: FeedingMedicationData | None = None,
         time: datetime | None = None,
         notes: str | None = None,
         feeder: str | None = None,
@@ -1537,7 +1788,7 @@ class FeedingManager:
         )
 
     async def async_batch_add_feedings(
-        self, feedings: list[dict[str, Any]]
+        self, feedings: Sequence[FeedingBatchEntry]
     ) -> list[FeedingEvent]:
         """OPTIMIZATION: Add multiple feeding events at once.
 
@@ -1550,9 +1801,11 @@ class FeedingManager:
         events = []
 
         async with self._lock:
-            for feeding_data in feedings:
-                dog_id = feeding_data.pop("dog_id")
-                event = await self.async_add_feeding(dog_id, **feeding_data)
+            for raw_data in feedings:
+                batch_payload = dict(raw_data)
+                dog_id = cast(str, batch_payload.pop("dog_id"))
+                params = cast(FeedingAddParams, batch_payload)
+                event = await self.async_add_feeding(dog_id, **params)
                 events.append(event)
 
         return events
@@ -2040,7 +2293,7 @@ class FeedingManager:
             self._stats_cache_time.pop(key, None)
 
     async def async_update_config(
-        self, dog_id: str, config_data: dict[str, Any]
+        self, dog_id: str, config_data: JSONMapping | JSONMutableMapping
     ) -> None:
         """Update feeding configuration for a dog.
 
@@ -2227,7 +2480,10 @@ class FeedingManager:
             return dict(self._next_reminders)
 
     async def async_calculate_health_aware_portion(
-        self, dog_id: str, meal_type: str, health_data: Mapping[str, Any] | None = None
+        self,
+        dog_id: str,
+        meal_type: str,
+        health_data: JSONMapping | JSONMutableMapping | None = None,
     ) -> float | None:
         """Calculate health-aware portion for a specific meal.
 
@@ -2461,7 +2717,7 @@ class FeedingManager:
         return "dry_food"
 
     async def async_update_health_data(
-        self, dog_id: str, health_data: dict[str, Any]
+        self, dog_id: str, health_data: FeedingHealthUpdatePayload
     ) -> bool:
         """Update health data for a dog and recalculate portions.
 
@@ -2484,11 +2740,21 @@ class FeedingManager:
                 if "ideal_weight" in health_data:
                     config.ideal_weight = health_data["ideal_weight"]
                 if "age_months" in health_data:
-                    config.age_months = health_data["age_months"]
+                    age_months_value = health_data["age_months"]
+                    config.age_months = (
+                        int(age_months_value)
+                        if age_months_value is not None
+                        else None
+                    )
                 if "activity_level" in health_data:
                     config.activity_level = health_data["activity_level"]
                 if "body_condition_score" in health_data:
-                    config.body_condition_score = health_data["body_condition_score"]
+                    body_condition_value = health_data["body_condition_score"]
+                    config.body_condition_score = (
+                        int(body_condition_value)
+                        if body_condition_value is not None
+                        else None
+                    )
                 if "health_conditions" in health_data:
                     config.health_conditions = health_data["health_conditions"]
                 if "weight_goal" in health_data:
@@ -2545,7 +2811,7 @@ class FeedingManager:
 
     async def async_get_diet_validation_status(
         self, dog_id: str
-    ) -> dict[str, Any] | None:
+    ) -> FeedingDietValidationStatus | None:
         """Get current diet validation status for a dog.
 
         Args:
@@ -2559,19 +2825,19 @@ class FeedingManager:
             if not config or not config.diet_validation:
                 return None
 
-            return {
-                "validation_data": config.diet_validation,
-                "summary": config._get_diet_validation_summary(),
-                "special_diets": config.special_diet,
-                "last_updated": dt_util.now().isoformat(),
-            }
+            return FeedingDietValidationStatus(
+                validation_data=config.diet_validation,
+                summary=config._get_diet_validation_summary(),
+                special_diets=list(config.special_diet),
+                last_updated=dt_util.now().isoformat(),
+            )
 
     async def async_validate_portion_with_diet(
         self,
         dog_id: str,
         meal_type: str,
-        override_health_data: Mapping[str, Any] | None = None,
-    ) -> dict[str, Any]:
+        override_health_data: JSONMapping | JSONMutableMapping | None = None,
+    ) -> FeedingPortionValidationResult:
         """Calculate portion with diet validation and safety checks.
 
         Args:
@@ -2585,7 +2851,9 @@ class FeedingManager:
         async with self._lock:
             config = self._configs.get(dog_id)
             if not config:
-                return {"error": "No configuration found", "portion": 0.0}
+                return FeedingPortionValidationError(
+                    error="No configuration found", portion=0.0
+                )
 
             try:
                 # Calculate health-aware portion
@@ -2637,25 +2905,27 @@ class FeedingManager:
                     else None
                 )
 
-                return {
-                    "portion": portion,
-                    "meal_type": meal_type,
-                    "safety_validation": safety_result,
-                    "diet_validation_summary": validation_summary,
-                    "health_aware_calculation": config.health_aware_portions,
-                    "config_id": dog_id,
-                }
+                return FeedingPortionValidationSuccess(
+                    portion=portion,
+                    meal_type=meal_type,
+                    safety_validation=safety_result,
+                    diet_validation_summary=validation_summary,
+                    health_aware_calculation=config.health_aware_portions,
+                    config_id=dog_id,
+                )
 
             except Exception as err:
                 _LOGGER.error("Portion validation failed for %s: %s", dog_id, err)
-                return {"error": str(err), "portion": 0.0, "meal_type": meal_type}
+                return FeedingPortionValidationError(
+                    error=str(err), portion=0.0, meal_type=meal_type
+                )
 
     async def async_recalculate_health_portions(
         self,
         dog_id: str,
         force_recalculation: bool = False,
         update_feeding_schedule: bool = True,
-    ) -> dict[str, Any]:
+    ) -> FeedingRecalculationResult:
         """Recalculate health-aware portions and optionally update feeding schedule.
 
         Args:
@@ -2672,10 +2942,17 @@ class FeedingManager:
                 raise ValueError(f"No feeding configuration found for dog {dog_id}")
 
             if not config.health_aware_portions:
-                return {
-                    "status": "disabled",
-                    "message": "Health-aware portions are disabled for this dog",
-                }
+                return FeedingRecalculationResult(
+                    status="disabled",
+                    dog_id=dog_id,
+                    new_portions={},
+                    total_daily_amount=0.0,
+                    previous_daily_target=config.daily_food_amount,
+                    updated_schedules=0,
+                    health_metrics_used={},
+                    recalculated_at=dt_util.now().isoformat(),
+                    message="Health-aware portions are disabled for this dog",
+                )
 
             # Build current health metrics
             health_metrics = await self._offload_blocking(
@@ -2684,10 +2961,17 @@ class FeedingManager:
             )
 
             if not health_metrics.current_weight:
-                return {
-                    "status": "insufficient_data",
-                    "message": "Weight data required for health-aware portion calculation",
-                }
+                return FeedingRecalculationResult(
+                    status="insufficient_data",
+                    dog_id=dog_id,
+                    new_portions={},
+                    total_daily_amount=0.0,
+                    previous_daily_target=config.daily_food_amount,
+                    updated_schedules=0,
+                    health_metrics_used={},
+                    recalculated_at=dt_util.now().isoformat(),
+                    message="Weight data required for health-aware portion calculation",
+                )
 
             # Calculate new portions for all meal types
             new_portions = {}
@@ -2720,14 +3004,14 @@ class FeedingManager:
             # Invalidate caches
             self._invalidate_cache(dog_id)
 
-            result = {
-                "status": "success",
-                "dog_id": dog_id,
-                "new_portions": new_portions,
-                "total_daily_amount": round(total_daily_calculated, 1),
-                "previous_daily_target": config.daily_food_amount,
-                "updated_schedules": updated_schedules,
-                "health_metrics_used": {
+            result = FeedingRecalculationResult(
+                status="success",
+                dog_id=dog_id,
+                new_portions=new_portions,
+                total_daily_amount=round(total_daily_calculated, 1),
+                previous_daily_target=config.daily_food_amount,
+                updated_schedules=updated_schedules,
+                health_metrics_used={
                     "weight": health_metrics.current_weight,
                     "life_stage": health_metrics.life_stage.value
                     if health_metrics.life_stage
@@ -2739,8 +3023,8 @@ class FeedingManager:
                     if health_metrics.body_condition_score
                     else None,
                 },
-                "recalculated_at": dt_util.now().isoformat(),
-            }
+                recalculated_at=dt_util.now().isoformat(),
+            )
 
             _LOGGER.info(
                 "Recalculated health portions for %s: %s",
@@ -2756,7 +3040,7 @@ class FeedingManager:
         activity_level: str,
         duration_hours: int | None = None,
         temporary: bool = True,
-    ) -> dict[str, Any]:
+    ) -> FeedingActivityAdjustmentResult:
         """Adjust daily calorie target based on activity level change.
 
         Args:
@@ -2793,10 +3077,21 @@ class FeedingManager:
             )
 
             if not health_metrics.current_weight:
-                return {
-                    "status": "insufficient_data",
-                    "message": "Weight data required for calorie adjustment",
-                }
+                return FeedingActivityAdjustmentResult(
+                    status="insufficient_data",
+                    dog_id=dog_id,
+                    old_activity_level=original_activity,
+                    new_activity_level=activity_level,
+                    old_daily_calories=None,
+                    new_daily_calories=None,
+                    old_daily_amount_g=config.daily_food_amount,
+                    new_daily_amount_g=config.daily_food_amount,
+                    adjustment_percent=0.0,
+                    temporary=temporary,
+                    duration_hours=duration_hours,
+                    adjusted_at=dt_util.now().isoformat(),
+                    message="Weight data required for calorie adjustment",
+                )
 
             # Calculate new daily calorie requirement
             try:
@@ -2829,24 +3124,24 @@ class FeedingManager:
             # Invalidate caches
             self._invalidate_cache(dog_id)
 
-            result = {
-                "status": "success",
-                "dog_id": dog_id,
-                "old_activity_level": original_activity,
-                "new_activity_level": activity_level,
-                "old_daily_calories": round(old_daily_amount * calories_per_gram, 0),
-                "new_daily_calories": round(new_daily_calories, 0),
-                "old_daily_amount_g": old_daily_amount,
-                "new_daily_amount_g": config.daily_food_amount,
-                "adjustment_percent": round(
+            result = FeedingActivityAdjustmentResult(
+                status="success",
+                dog_id=dog_id,
+                old_activity_level=original_activity,
+                new_activity_level=activity_level,
+                old_daily_calories=round(old_daily_amount * calories_per_gram, 0),
+                new_daily_calories=round(new_daily_calories, 0),
+                old_daily_amount_g=old_daily_amount,
+                new_daily_amount_g=config.daily_food_amount,
+                adjustment_percent=round(
                     ((config.daily_food_amount - old_daily_amount) / old_daily_amount)
                     * 100,
                     1,
                 ),
-                "temporary": temporary,
-                "duration_hours": duration_hours,
-                "adjusted_at": dt_util.now().isoformat(),
-            }
+                temporary=temporary,
+                duration_hours=duration_hours,
+                adjusted_at=dt_util.now().isoformat(),
+            )
 
             _LOGGER.info(
                 "Adjusted calories for %s: %s activity level, %.0fg daily (was %.0fg)",
@@ -2894,7 +3189,7 @@ class FeedingManager:
         meal_frequency: int = 4,
         carb_limit_percent: int = 20,
         monitor_blood_glucose: bool = True,
-    ) -> dict[str, Any]:
+    ) -> FeedingDiabeticActivationResult:
         """Activate specialized feeding mode for diabetic dogs.
 
         Args:
@@ -2948,24 +3243,24 @@ class FeedingManager:
             # Setup reminders if needed
             await self._setup_reminder(dog_id)
 
-            result = {
-                "status": "activated",
-                "dog_id": dog_id,
-                "old_meals_per_day": old_meals_per_day,
-                "new_meals_per_day": meal_frequency,
-                "carb_limit_percent": carb_limit_percent,
-                "monitor_blood_glucose": monitor_blood_glucose,
-                "schedule_type": "strict",
-                "meal_times": [
+            result = FeedingDiabeticActivationResult(
+                status="activated",
+                dog_id=dog_id,
+                old_meals_per_day=old_meals_per_day,
+                new_meals_per_day=meal_frequency,
+                carb_limit_percent=carb_limit_percent,
+                monitor_blood_glucose=monitor_blood_glucose,
+                schedule_type="strict",
+                meal_times=[
                     schedule.scheduled_time.strftime("%H:%M")
                     for schedule in diabetic_schedules
                 ],
-                "portion_sizes": [
+                portion_sizes=[
                     round(schedule.portion_size, 1) for schedule in diabetic_schedules
                 ],
-                "special_diet_updated": config.special_diet,
-                "activated_at": dt_util.now().isoformat(),
-            }
+                special_diet_updated=list(config.special_diet),
+                activated_at=dt_util.now().isoformat(),
+            )
 
             _LOGGER.info(
                 "Activated diabetic feeding mode for %s: %d meals/day, %d%% carb limit",
@@ -3039,7 +3334,7 @@ class FeedingManager:
         emergency_type: str,
         duration_days: int = 3,
         portion_adjustment: float = 0.8,
-    ) -> dict[str, Any]:
+    ) -> FeedingEmergencyActivationResult:
         """Activate emergency feeding mode for sick or recovering dogs.
 
         Args:
@@ -3077,12 +3372,12 @@ class FeedingManager:
                 self._emergency_restore_tasks.pop(dog_id, None)
 
             # Store original configuration for restoration
-            original_config = {
-                "daily_food_amount": config.daily_food_amount,
-                "meals_per_day": config.meals_per_day,
-                "schedule_type": config.schedule_type,
-                "food_type": config.food_type,
-            }
+            original_config = FeedingEmergencyConfigSnapshot(
+                daily_food_amount=config.daily_food_amount,
+                meals_per_day=config.meals_per_day,
+                schedule_type=config.schedule_type,
+                food_type=config.food_type,
+            )
 
             # Adjust daily amount
             old_daily_amount = config.daily_food_amount
@@ -3103,37 +3398,36 @@ class FeedingManager:
             # Invalidate caches
             self._invalidate_cache(dog_id)
 
-            result = {
-                "status": "activated",
-                "dog_id": dog_id,
-                "emergency_type": emergency_type,
-                "duration_days": duration_days,
-                "portion_adjustment": portion_adjustment,
-                "old_daily_amount": old_daily_amount,
-                "new_daily_amount": config.daily_food_amount,
-                "old_meals_per_day": original_config["meals_per_day"],
-                "new_meals_per_day": config.meals_per_day,
-                "food_type_recommendation": config.food_type,
-                "original_config": original_config,
-                "expires_at": (
-                    dt_util.now() + timedelta(days=duration_days)
-                ).isoformat(),
-                "activated_at": dt_util.now().isoformat(),
-            }
+            activated_at_dt = dt_util.now()
+            expires_at_dt = activated_at_dt + timedelta(days=duration_days)
 
-            emergency_state: FeedingEmergencyState = FeedingEmergencyState(
-                active=True,
-                status="active",
+            result = FeedingEmergencyActivationResult(
+                status="activated",
+                dog_id=dog_id,
                 emergency_type=emergency_type,
-                portion_adjustment=portion_adjustment,
                 duration_days=duration_days,
-                activated_at=result["activated_at"],
-                expires_at=result["expires_at"],
+                portion_adjustment=portion_adjustment,
+                old_daily_amount=old_daily_amount,
+                new_daily_amount=config.daily_food_amount,
+                old_meals_per_day=original_config["meals_per_day"],
+                new_meals_per_day=config.meals_per_day,
                 food_type_recommendation=config.food_type,
+                original_config=original_config,
+                expires_at=expires_at_dt.isoformat(),
+                activated_at=activated_at_dt.isoformat(),
+                emergency_state=FeedingEmergencyState(
+                    active=True,
+                    status="active",
+                    emergency_type=emergency_type,
+                    portion_adjustment=portion_adjustment,
+                    duration_days=duration_days,
+                    activated_at=activated_at_dt.isoformat(),
+                    expires_at=expires_at_dt.isoformat(),
+                    food_type_recommendation=config.food_type,
+                ),
             )
 
-            self._active_emergencies[dog_id] = emergency_state
-            result["emergency_state"] = dict(emergency_state)
+            self._active_emergencies[dog_id] = result["emergency_state"]
 
             _LOGGER.info(
                 "Activated emergency feeding mode for %s: %s for %d days (%.1f%% portions)",
@@ -3192,7 +3486,7 @@ class FeedingManager:
         new_food_type: str,
         transition_days: int = 7,
         gradual_increase_percent: int = 25,
-    ) -> dict[str, Any]:
+    ) -> FeedingTransitionResult:
         """Start a gradual diet transition to prevent digestive upset.
 
         Args:
@@ -3217,10 +3511,19 @@ class FeedingManager:
 
             old_food_type = config.food_type
             if old_food_type == new_food_type:
-                return {
-                    "status": "no_change",
-                    "message": f"Dog is already on {new_food_type} diet",
-                }
+                now = dt_util.now()
+                return FeedingTransitionResult(
+                    status="no_change",
+                    dog_id=dog_id,
+                    old_food_type=old_food_type,
+                    new_food_type=new_food_type,
+                    transition_days=transition_days,
+                    gradual_increase_percent=gradual_increase_percent,
+                    transition_schedule=[],
+                    expected_completion=now.date().isoformat(),
+                    started_at=now.isoformat(),
+                    message=f"Dog is already on {new_food_type} diet",
+                )
 
             # Create transition schedule
             transition_schedule = self._create_transition_schedule(
@@ -3249,19 +3552,20 @@ class FeedingManager:
             # Invalidate caches
             self._invalidate_cache(dog_id)
 
-            result = {
-                "status": "started",
-                "dog_id": dog_id,
-                "old_food_type": old_food_type,
-                "new_food_type": new_food_type,
-                "transition_days": transition_days,
-                "gradual_increase_percent": gradual_increase_percent,
-                "transition_schedule": transition_schedule,
-                "expected_completion": (dt_util.now() + timedelta(days=transition_days))
-                .date()
-                .isoformat(),
-                "started_at": dt_util.now().isoformat(),
-            }
+            started_at = dt_util.now()
+            expected_completion = (started_at + timedelta(days=transition_days)).date()
+
+            result = FeedingTransitionResult(
+                status="started",
+                dog_id=dog_id,
+                old_food_type=old_food_type,
+                new_food_type=new_food_type,
+                transition_days=transition_days,
+                gradual_increase_percent=gradual_increase_percent,
+                transition_schedule=transition_schedule,
+                expected_completion=expected_completion.isoformat(),
+                started_at=started_at.isoformat(),
+            )
 
             _LOGGER.info(
                 "Started diet transition for %s from %s to %s over %d days",
@@ -3537,7 +3841,7 @@ class FeedingManager:
         reason: str | None = None,
         temporary: bool = False,
         duration_days: int | None = None,
-    ) -> dict[str, Any]:
+    ) -> FeedingPortionAdjustmentResult:
         """Adjust daily portions by a percentage.
 
         Args:
@@ -3583,19 +3887,19 @@ class FeedingManager:
             # Invalidate caches
             self._invalidate_cache(dog_id)
 
-            result = {
-                "status": "adjusted",
-                "dog_id": dog_id,
-                "adjustment_percent": adjustment_percent,
-                "original_daily_amount": original_amount,
-                "new_daily_amount": new_amount,
-                "absolute_change_g": round(new_amount - original_amount, 1),
-                "updated_schedules": updated_schedules,
-                "reason": reason,
-                "temporary": temporary,
-                "duration_days": duration_days,
-                "adjusted_at": dt_util.now().isoformat(),
-            }
+            result = FeedingPortionAdjustmentResult(
+                status="adjusted",
+                dog_id=dog_id,
+                adjustment_percent=adjustment_percent,
+                original_daily_amount=original_amount,
+                new_daily_amount=new_amount,
+                absolute_change_g=round(new_amount - original_amount, 1),
+                updated_schedules=updated_schedules,
+                reason=reason,
+                temporary=temporary,
+                duration_days=duration_days,
+                adjusted_at=dt_util.now().isoformat(),
+            )
 
             _LOGGER.info(
                 "Adjusted daily portions for %s by %+d%% (%.0fg -> %.0fg) - %s",
@@ -3658,7 +3962,7 @@ class FeedingManager:
         amount: float,
         health_benefit: str | None = None,
         notes: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> FeedingHealthSnackResult:
         """Add a health-focused snack/supplement to feeding log.
 
         Args:
@@ -3710,16 +4014,16 @@ class FeedingManager:
             )
 
             # Track health snack in daily stats (don't count towards meal requirements)
-            result = {
-                "status": "added",
-                "dog_id": dog_id,
-                "snack_type": snack_type,
-                "amount": amount,
-                "health_benefit": health_benefit,
-                "feeding_event_id": feeding_event.time.isoformat(),
-                "notes": enhanced_notes,
-                "added_at": dt_util.now().isoformat(),
-            }
+            result = FeedingHealthSnackResult(
+                status="added",
+                dog_id=dog_id,
+                snack_type=snack_type,
+                amount=amount,
+                health_benefit=health_benefit,
+                feeding_event_id=feeding_event.time.isoformat(),
+                notes=enhanced_notes,
+                added_at=dt_util.now().isoformat(),
+            )
 
             _LOGGER.info(
                 "Added health snack for %s: %.1fg %s (%s)",

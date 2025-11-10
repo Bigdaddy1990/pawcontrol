@@ -25,6 +25,7 @@ from custom_components.pawcontrol.types import (
     CacheDiagnosticsSnapshot,
     CacheRepairAggregate,
     CoordinatorRuntimeManagers,
+    GPSTrackingConfigInput,
 )
 from custom_components.pawcontrol.utils import async_call_hass_service_if_available
 
@@ -635,11 +636,11 @@ class _GPSManagerStub:
         self.safe_zone: dict[str, object] | None = None
 
     async def async_configure_dog_gps(
-        self, *, dog_id: str, config: dict[str, object]
+        self, *, dog_id: str, config: GPSTrackingConfigInput
     ) -> None:
         if self.fail_configure:
             raise services.HomeAssistantError("configure failed")
-        self.last_config = {"dog_id": dog_id, "config": config}
+        self.last_config = {"dog_id": dog_id, "config": dict(config)}
 
     async def async_setup_safe_zone(
         self,
