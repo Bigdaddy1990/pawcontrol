@@ -12,6 +12,7 @@ Python: 3.13+
 from __future__ import annotations
 
 from collections.abc import Mapping
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Final, cast
 
 import voluptuous as vol
@@ -40,12 +41,12 @@ from .types import (
     SHOW_STATISTICS_FIELD,
     ConfigFlowInputMapping,
     ConfigFlowPlaceholders,
+    DashboardConfigurationPlaceholders,
     DashboardConfigurationStepInput,
     DashboardSetupConfig,
     DogConfigData,
     DogModulesConfig,
     ExternalEntityConfig,
-    MutableConfigFlowPlaceholders,
 )
 
 _DASHBOARD_INFO_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
@@ -70,6 +71,19 @@ _DASHBOARD_INFO_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
         "de": "🐕 Individuelle Dashboards für {count} Hunde empfohlen",
     },
 }
+
+
+def _build_dashboard_configure_placeholders(
+    *, dog_count: int, dashboard_info: str, features: str
+) -> ConfigFlowPlaceholders:
+    """Return immutable placeholders for the dashboard configuration form."""
+
+    placeholders: DashboardConfigurationPlaceholders = {
+        "dog_count": dog_count,
+        "dashboard_info": dashboard_info,
+        "features": features,
+    }
+    return MappingProxyType(placeholders)
 
 
 def _translated_dashboard_info_line(
@@ -234,13 +248,13 @@ class DashboardFlowMixin:
             }
         )
 
-        placeholders: MutableConfigFlowPlaceholders = {
-            "dog_count": len(self._dogs),
-            "dashboard_info": self._get_dashboard_info(hass_language),
-            "features": self._build_dashboard_features_string(
+        placeholders = _build_dashboard_configure_placeholders(
+            dog_count=len(self._dogs),
+            dashboard_info=self._get_dashboard_info(hass_language),
+            features=self._build_dashboard_features_string(
                 hass_language, has_gps_enabled
             ),
-        }
+        )
 
         return self.async_show_form(
             step_id="configure_dashboard",

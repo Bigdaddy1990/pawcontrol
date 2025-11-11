@@ -39,6 +39,7 @@ from custom_components.pawcontrol.const import (
     MODULE_WALK,
 )
 from custom_components.pawcontrol.options_flow import PawControlOptionsFlow
+from custom_components.pawcontrol.runtime_data import RuntimeDataUnavailableError
 from custom_components.pawcontrol.types import (
     DOG_ID_FIELD,
     DOG_MODULES_FIELD,
@@ -1498,9 +1499,15 @@ async def test_configure_door_sensor_normalises_and_persists(
         "confidence_threshold": "0.85",
     }
 
-    with patch(
-        "custom_components.pawcontrol.options_flow.get_runtime_data",
-        return_value=runtime,
+    with (
+        patch(
+            "custom_components.pawcontrol.options_flow.get_runtime_data",
+            return_value=runtime,
+        ),
+        patch(
+            "custom_components.pawcontrol.options_flow.require_runtime_data",
+            return_value=runtime,
+        ),
     ):
         result = await flow.async_step_configure_door_sensor(user_input)
 
@@ -1569,9 +1576,15 @@ async def test_configure_door_sensor_removal_clears_persistence(
     runtime = Mock()
     runtime.data_manager = data_manager
 
-    with patch(
-        "custom_components.pawcontrol.options_flow.get_runtime_data",
-        return_value=runtime,
+    with (
+        patch(
+            "custom_components.pawcontrol.options_flow.get_runtime_data",
+            return_value=runtime,
+        ),
+        patch(
+            "custom_components.pawcontrol.options_flow.require_runtime_data",
+            return_value=runtime,
+        ),
     ):
         result = await flow.async_step_configure_door_sensor({CONF_DOOR_SENSOR: ""})
 
@@ -1641,6 +1654,10 @@ async def test_configure_door_sensor_persistence_failure_records_telemetry(
             return_value=runtime,
         ),
         patch(
+            "custom_components.pawcontrol.options_flow.require_runtime_data",
+            return_value=runtime,
+        ),
+        patch(
             "custom_components.pawcontrol.options_flow.async_create_issue",
             new_callable=AsyncMock,
         ) as create_issue,
@@ -1673,6 +1690,55 @@ async def test_configure_door_sensor_persistence_failure_records_telemetry(
     assert failures[0]["dog_id"] == dog_id
     assert failures[0]["error"] == "storage offline"
     assert runtime.error_history[-1]["source"] == "door_sensor_persistence"
+
+
+@pytest.mark.asyncio
+async def test_configure_door_sensor_runtime_cache_unavailable(
+    hass: HomeAssistant, mock_config_entry
+) -> None:
+    """Door sensor updates should fail when runtime data is missing."""
+
+    hass.states.async_set(
+        "binary_sensor.front_door",
+        "off",
+        {"device_class": "door", "friendly_name": "Front Door"},
+    )
+
+    flow = PawControlOptionsFlow()
+    flow.hass = hass
+    flow.initialize_from_config_entry(mock_config_entry)
+    flow.hass.config_entries.async_update_entry = Mock()
+    flow._current_dog = flow._dogs[0]
+    dog_id = flow._current_dog[DOG_ID_FIELD]
+
+    user_input = {
+        CONF_DOOR_SENSOR: "binary_sensor.front_door",
+        "walk_detection_timeout": 60,
+        "minimum_walk_duration": 90,
+        "maximum_walk_duration": 3600,
+        "door_closed_delay": 30,
+        "require_confirmation": True,
+        "auto_end_walks": False,
+        "confidence_threshold": 0.75,
+    }
+
+    with (
+        patch(
+            "custom_components.pawcontrol.options_flow.require_runtime_data",
+            side_effect=RuntimeDataUnavailableError("store unavailable"),
+        ),
+        patch(
+            "custom_components.pawcontrol.options_flow.async_create_issue",
+            new_callable=AsyncMock,
+        ) as create_issue,
+    ):
+        result = await flow.async_step_configure_door_sensor(user_input)
+
+    assert result["type"] == FlowResultType.FORM
+    assert result["errors"]["base"] == "runtime_cache_unavailable"
+    flow.hass.config_entries.async_update_entry.assert_not_called()
+    create_issue.assert_not_called()
+    assert flow._current_dog[DOG_ID_FIELD] == dog_id
 
 
 @pytest.mark.asyncio

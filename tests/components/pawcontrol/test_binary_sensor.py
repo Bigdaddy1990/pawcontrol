@@ -12,7 +12,9 @@ pytest.importorskip("homeassistant")
 
 from custom_components.pawcontrol.binary_sensor import (
     PawControlGardenPoopPendingBinarySensor,
+    PawControlGeofenceAlertBinarySensor,
     PawControlHealthAwareFeedingBinarySensor,
+    PawControlHealthEmergencyBinarySensor,
     PawControlIsHomeBinarySensor,
     PawControlIsHungryBinarySensor,
     PawControlOnlineBinarySensor,
@@ -251,6 +253,61 @@ async def test_is_home_binary_sensor_serializes_gps_payload(
 
 
 @pytest.mark.asyncio
+async def test_geofence_alert_sensor_requires_boolean_payload(
+    hass, coordinator: _DummyCoordinator
+) -> None:
+    """Ensure the geofence alert sensor only toggles for strict booleans."""
+
+    invalid_payload = cast(
+        GPSModulePayload,
+        {
+            "status": "tracking",
+            "zone": "yard",
+            "geofence_alert": "false",
+        },
+    )
+    coordinator.data["dog-1"] = cast(
+        CoordinatorDogData,
+        {
+            "dog_info": {"dog_id": "dog-1", "dog_name": "Buddy"},
+            MODULE_GPS: invalid_payload,
+        },
+    )
+
+    sensor = PawControlGeofenceAlertBinarySensor(
+        cast(PawControlCoordinator, coordinator), "dog-1", "Buddy"
+    )
+    sensor.hass = hass
+
+    assert sensor.is_on is False
+    attrs = sensor.extra_state_attributes
+    assert attrs["sensor_type"] == "geofence_alert"
+
+    valid_payload = cast(
+        GPSModulePayload,
+        {
+            "status": "tracking",
+            "zone": "vet",
+            "geofence_alert": True,
+        },
+    )
+    coordinator.data["dog-1"] = cast(
+        CoordinatorDogData,
+        {
+            "dog_info": {"dog_id": "dog-1", "dog_name": "Buddy"},
+            MODULE_GPS: valid_payload,
+        },
+    )
+
+    sensor_valid = PawControlGeofenceAlertBinarySensor(
+        cast(PawControlCoordinator, coordinator), "dog-1", "Buddy"
+    )
+    sensor_valid.hass = hass
+
+    assert sensor_valid.is_on is True
+
+
+@pytest.mark.asyncio
 async def test_health_aware_feeding_sensor_typed_attributes(
     hass, coordinator: _DummyCoordinator
 ) -> None:
@@ -282,6 +339,83 @@ async def test_health_aware_feeding_sensor_typed_attributes(
     attrs = sensor.extra_state_attributes
     assert attrs["portion_adjustment_factor"] == pytest.approx(1.1)
     assert attrs["health_conditions"] == ["diabetes"]
+
+
+@pytest.mark.asyncio
+async def test_health_emergency_sensor_sanitises_payload(
+    hass, coordinator: _DummyCoordinator
+) -> None:
+    """Verify the health emergency sensor normalises invalid payloads."""
+
+    invalid_payload = cast(
+        FeedingModulePayload,
+        {
+            "status": "ready",
+            "health_emergency": "true",
+            "emergency_mode": {
+                "emergency_type": 42,
+                "portion_adjustment": "increase",
+                "activated_at": 12,
+                "expires_at": {"unexpected": "value"},
+                "status": None,
+            },
+        },
+    )
+    coordinator.data["dog-1"] = cast(
+        CoordinatorDogData,
+        {
+            "dog_info": {"dog_id": "dog-1", "dog_name": "Buddy"},
+            MODULE_FEEDING: invalid_payload,
+        },
+    )
+
+    sensor = PawControlHealthEmergencyBinarySensor(
+        cast(PawControlCoordinator, coordinator), "dog-1", "Buddy"
+    )
+    sensor.hass = hass
+
+    assert sensor.is_on is False
+    attrs = sensor.extra_state_attributes
+    assert "emergency_type" not in attrs
+    assert "portion_adjustment" not in attrs
+    assert "activated_at" not in attrs
+    assert "expires_at" not in attrs
+    assert "status" not in attrs
+
+    valid_payload = cast(
+        FeedingModulePayload,
+        {
+            "status": "ready",
+            "health_emergency": True,
+            "emergency_mode": {
+                "emergency_type": "medical",
+                "portion_adjustment": 0.75,
+                "activated_at": "2024-04-01T08:30:00+00:00",
+                "expires_at": None,
+                "status": "active",
+            },
+        },
+    )
+    coordinator.data["dog-1"] = cast(
+        CoordinatorDogData,
+        {
+            "dog_info": {"dog_id": "dog-1", "dog_name": "Buddy"},
+            MODULE_FEEDING: valid_payload,
+        },
+    )
+
+    sensor_valid = PawControlHealthEmergencyBinarySensor(
+        cast(PawControlCoordinator, coordinator), "dog-1", "Buddy"
+    )
+    sensor_valid.hass = hass
+
+    assert sensor_valid.is_on is True
+    valid_attrs = sensor_valid.extra_state_attributes
+    assert valid_attrs["emergency_type"] == "medical"
+    assert valid_attrs["portion_adjustment"] == pytest.approx(0.75)
+    assert valid_attrs["activated_at"] == "2024-04-01T08:30:00+00:00"
+    assert valid_attrs["expires_at"] is None
+    assert valid_attrs["status"] == "active"
 
 
 @pytest.mark.asyncio

@@ -16,13 +16,22 @@ install_homeassistant_stubs()
 
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 from unittest.mock import AsyncMock, Mock
 
 import pytest
 from aiohttp import ClientSession
+from custom_components.pawcontrol.types import FeedingManagerDogSetupPayload
 from homeassistant.core import HomeAssistant
 from sitecustomize import _patch_pytest_async_fixture
+
+if TYPE_CHECKING:
+    from custom_components.pawcontrol.feeding_manager import (
+        FeedingBatchEntry,
+        FeedingManager,
+    )
+    from custom_components.pawcontrol.walk_manager import WalkManager
+    from homeassistant.config_entries import ConfigEntry
 
 _patch_pytest_async_fixture()
 
@@ -46,13 +55,13 @@ def hass() -> HomeAssistant:
 
 
 @pytest.fixture
-def mock_dog_config() -> dict[str, Any]:
+def mock_dog_config() -> FeedingManagerDogSetupPayload:
     """Standard dog configuration for testing.
 
     Returns:
-        Complete dog configuration dictionary
+        Complete dog configuration mapping for FeedingManager
     """
-    return {
+    config: FeedingManagerDogSetupPayload = {
         "dog_id": "test_dog",
         "dog_name": "Buddy",
         "breed": "Golden Retriever",
@@ -78,35 +87,40 @@ def mock_dog_config() -> dict[str, Any]:
             "calories_per_100g": 350,
         },
     }
+    return config
 
 
 @pytest.fixture
-def mock_multi_dog_config(mock_dog_config: dict[str, Any]) -> list[dict[str, Any]]:
+def mock_multi_dog_config(
+    mock_dog_config: FeedingManagerDogSetupPayload,
+) -> list[FeedingManagerDogSetupPayload]:
     """Multiple dog configurations for testing.
 
     Args:
         mock_dog_config: Base dog configuration
 
     Returns:
-        List of dog configurations
+        List of dog configuration payloads
     """
-    dog1 = mock_dog_config.copy()
-    dog1["dog_id"] = "buddy"
-    dog1["dog_name"] = "Buddy"
-    dog1["weight"] = 30.0
+    dog1_data = dict(mock_dog_config)
+    dog1_data["dog_id"] = "buddy"
+    dog1_data["dog_name"] = "Buddy"
+    dog1_data["weight"] = 30.0
+    dog1 = cast(FeedingManagerDogSetupPayload, dog1_data)
 
-    dog2 = mock_dog_config.copy()
-    dog2["dog_id"] = "max"
-    dog2["dog_name"] = "Max"
-    dog2["weight"] = 15.0
-    dog2["breed"] = "Beagle"
-    dog2["activity_level"] = "high"
+    dog2_data = dict(mock_dog_config)
+    dog2_data["dog_id"] = "max"
+    dog2_data["dog_name"] = "Max"
+    dog2_data["weight"] = 15.0
+    dog2_data["breed"] = "Beagle"
+    dog2_data["activity_level"] = "high"
+    dog2 = cast(FeedingManagerDogSetupPayload, dog2_data)
 
     return [dog1, dog2]
 
 
 @pytest.fixture
-def mock_config_entry(mock_dog_config: dict[str, Any]):
+def mock_config_entry(mock_dog_config: FeedingManagerDogSetupPayload) -> ConfigEntry:
     """Mock Home Assistant config entry.
 
     Args:
@@ -276,7 +290,9 @@ async def mock_coordinator(
 
 
 @pytest.fixture
-async def mock_feeding_manager(mock_dog_config):
+async def mock_feeding_manager(
+    mock_dog_config: FeedingManagerDogSetupPayload,
+) -> FeedingManager:
     """Mock FeedingManager for testing.
 
     Args:
@@ -294,7 +310,9 @@ async def mock_feeding_manager(mock_dog_config):
 
 
 @pytest.fixture
-async def mock_walk_manager(mock_dog_config):
+async def mock_walk_manager(
+    mock_dog_config: FeedingManagerDogSetupPayload,
+) -> WalkManager:
     """Mock WalkManager for testing.
 
     Args:
@@ -456,7 +474,7 @@ def assert_valid_dog_data():
 
 
 @pytest.fixture
-def create_feeding_event():
+def create_feeding_event() -> Callable[..., FeedingBatchEntry]:
     """Helper to create feeding events.
 
     Returns:
@@ -468,9 +486,11 @@ def create_feeding_event():
         amount: float = 200.0,
         meal_type: str = "breakfast",
         timestamp: datetime | None = None,
-    ) -> dict[str, Any]:
+    ) -> FeedingBatchEntry:
         """Create feeding event data."""
-        return {
+        from custom_components.pawcontrol.feeding_manager import FeedingBatchEntry
+
+        event: FeedingBatchEntry = {
             "dog_id": dog_id,
             "amount": amount,
             "meal_type": meal_type,
@@ -478,7 +498,12 @@ def create_feeding_event():
             "notes": None,
             "feeder": None,
             "scheduled": False,
+            "with_medication": False,
+            "medication_name": None,
+            "medication_dose": None,
+            "medication_time": None,
         }
+        return event
 
     return _create
 

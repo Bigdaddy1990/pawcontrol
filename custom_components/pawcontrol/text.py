@@ -170,7 +170,16 @@ async def async_setup_entry(
         return
 
     coordinator = runtime_data.coordinator
-    dogs: list[DogConfigData] = runtime_data.dogs
+    raw_dogs = list(cast(Iterable[Any], runtime_data.dogs))
+    dogs = _normalize_dog_configs(raw_dogs)
+
+    skipped_configs = len(raw_dogs) - len(dogs)
+    if skipped_configs:
+        _LOGGER.debug(
+            "Filtered %d invalid dog configurations for entry %s",
+            skipped_configs,
+            entry.entry_id,
+        )
 
     if not dogs:
         _LOGGER.info("No dogs configured for PawControl entry %s", entry.entry_id)
@@ -289,8 +298,12 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
 
     async def async_set_value(self, value: str) -> None:
         """Set new value."""
-        if len(value) > self.native_max:
-            value = value[: self.native_max]
+        max_length = getattr(self, "native_max", None)
+        if max_length is None:
+            max_length = getattr(self, "_attr_native_max", None)
+
+        if isinstance(max_length, int) and len(value) > max_length:
+            value = value[:max_length]
 
         self._current_value = value
         self.async_write_ha_state()

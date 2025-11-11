@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from types import SimpleNamespace
+from types import MappingProxyType, SimpleNamespace
 from typing import Any, cast
 
 import pytest
@@ -167,3 +167,27 @@ async def test_async_step_configure_external_entities_rejects_unknown_notify_ser
         "Notification service unknown_service not found"
     )
     assert flow._external_entities == {}
+
+
+@pytest.mark.asyncio
+async def test_async_step_configure_external_entities_exposes_placeholders() -> None:
+    """The mixin should expose immutable placeholders for the configuration form."""
+
+    hass = _FakeHomeAssistant(
+        states=_FakeStates({}),
+        services=_FakeServices({"notify": {}}),
+    )
+    modules = cast(
+        DogModulesConfig,
+        {MODULE_GPS: True, MODULE_VISITOR: False, MODULE_NOTIFICATIONS: False},
+    )
+    flow = _ExternalEntityFlow(hass, modules=modules)
+
+    result = await flow.async_step_configure_external_entities()
+
+    assert result["type"] == "form"
+    placeholders = result["description_placeholders"]
+    assert isinstance(placeholders, MappingProxyType)
+    assert placeholders["gps_enabled"] is True
+    assert placeholders["visitor_enabled"] is False
+    assert placeholders["dog_count"] == 0

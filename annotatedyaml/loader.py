@@ -5,15 +5,16 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-try:  # pragma: no cover - exercised in environments missing PyYAML
-    from yaml import (  # type: ignore[import-untyped]  # TODO: PyYAML lacks type stubs
+try:  # pragma: no cover - exercised in environments missing system PyYAML
+    from yaml import (  # type: ignore[import-untyped]  # Vendored package lacks type hints
         YAMLError,
         safe_load,
     )
-except ModuleNotFoundError as err:  # pragma: no cover - defensive
-    raise RuntimeError(
-        "PyYAML is required to use the annotatedyaml fallback loader"
-    ) from err
+except ModuleNotFoundError:
+    from ._vendor.yaml import (  # type: ignore[import-not-found]
+        YAMLError,
+        safe_load,
+    )
 
 
 def load_yaml(path: str, secrets: Any | None = None) -> Any:

@@ -90,10 +90,15 @@ class LegacyDiscoveryEntry(TypedDict):
 
 
 CATEGORY_KEYWORDS: Final[dict[DiscoveryCategory, tuple[str, ...]]] = {
-    "gps_tracker": ("tractive", "whistle", "fi", "link"),
-    "smart_feeder": ("petnet", "sureflap", "pawcontrol feeder"),
-    "activity_monitor": ("fitbark", "whistle", "fi"),
-    "health_device": ("whistle", "fitbark", "petpuls"),
+    "gps_tracker": ("tractive", "whistle", "fi", "link", "pawtrack"),
+    "smart_feeder": ("petnet", "sureflap", "pawcontrol feeder", "smartfeeder"),
+    "activity_monitor": ("fitbark", "whistle", "fi", "activity"),
+    "health_device": ("whistle", "fitbark", "petpuls", "vital"),
+    "smart_collar": ("collar", "halo", "wagz", "pawcontrol collar"),
+    "treat_dispenser": ("furbo", "petcube", "treat", "petzi"),
+    "water_fountain": ("fountain", "petlibro", "drinkwell", "hydration"),
+    "camera": ("camera", "pawcam", "pawcontrol cam", "petcam"),
+    "door_sensor": ("door", "gate", "entry", "petdoor"),
 }
 
 CATEGORY_CAPABILITIES: Final[dict[DiscoveryCategory, DiscoveryCapabilityList]] = {
@@ -101,7 +106,24 @@ CATEGORY_CAPABILITIES: Final[dict[DiscoveryCategory, DiscoveryCapabilityList]] =
     "smart_feeder": ["portion_control", "scheduling", "monitoring"],
     "activity_monitor": ["activity_tracking", "sleep_tracking"],
     "health_device": ["health_monitoring", "weight_tracking"],
+    "smart_collar": ["gps", "activity_tracking", "health_monitoring"],
+    "treat_dispenser": ["remote_treats", "camera_stream", "two_way_audio"],
+    "water_fountain": ["water_monitoring", "filter_tracking", "flow_control"],
+    "camera": ["camera_stream", "two_way_audio"],
+    "door_sensor": ["door_state", "entry_logging"],
 }
+
+CATEGORY_PRIORITY: Final[tuple[DiscoveryCategory, ...]] = (
+    "gps_tracker",
+    "smart_feeder",
+    "smart_collar",
+    "activity_monitor",
+    "health_device",
+    "treat_dispenser",
+    "water_fountain",
+    "camera",
+    "door_sensor",
+)
 
 
 @dataclass(frozen=True)
@@ -327,35 +349,88 @@ class PawControlDiscovery:
         matched_categories: set[DiscoveryCategory] = set()
         confidence = 0.4
 
+        def _register_category(category: DiscoveryCategory, boost: float) -> None:
+            nonlocal confidence
+            if category in matched_categories:
+                return
+            matched_categories.add(category)
+            confidence += boost
+
         for category, keywords in CATEGORY_KEYWORDS.items():
             if any(keyword in manufacturer or keyword in model for keyword in keywords):
-                matched_categories.add(category)
-                confidence += 0.15
+                _register_category(category, 0.15)
+
+        entry_names = [
+            (getattr(entry, "original_name", None) or entry.entity_id).lower()
+            for entry in related_entities
+        ]
 
         if "device_tracker" in domains:
-            matched_categories.add("gps_tracker")
-            confidence += 0.2
+            _register_category("gps_tracker", 0.2)
 
-        if {"switch", "select"} & domains:
-            matched_categories.add("smart_feeder")
+        bluetooth_aliases = {
+            getattr(dr, "CONNECTION_BLUETOOTH", "bluetooth"),
+            "bluetooth",
+        }
+        if any(
+            conn_type in bluetooth_aliases for conn_type, _ in device_entry.connections
+        ):
+            _register_category("smart_collar", 0.1)
+
+        if {
+            "switch",
+            "select",
+        } & domains and any(
+            term in name
+            for name in entry_names
+            for term in ("feed", "feeder", "meal", "portion")
+        ):
+            _register_category("smart_feeder", 0.1)
+
+        if {
+            "switch",
+            "sensor",
+        } & domains and any(
+            term in name
+            for name in entry_names
+            for term in ("fountain", "water", "hydration", "drink")
+        ):
+            _register_category("water_fountain", 0.1)
+
+        if {
+            "button",
+            "switch",
+        } & domains and any(
+            term in name
+            for name in entry_names
+            for term in ("treat", "reward", "snack", "dispenser")
+        ):
+            _register_category("treat_dispenser", 0.1)
+
+        if "camera" in domains:
+            _register_category("camera", 0.1)
 
         if "sensor" in domains:
-            for entry in related_entities:
-                name = (entry.original_name or entry.entity_id).lower()
+            for name in entry_names:
                 if "activity" in name:
-                    matched_categories.add("activity_monitor")
-                if any(keyword in name for keyword in ("health", "weight", "vet")):
-                    matched_categories.add("health_device")
+                    _register_category("activity_monitor", 0.1)
+                if any(term in name for term in ("health", "weight", "vet")):
+                    _register_category("health_device", 0.1)
+                if "collar" in name:
+                    _register_category("smart_collar", 0.1)
+
+        if "binary_sensor" in domains and any(
+            term in name for name in entry_names for term in ("door", "gate", "entry")
+        ):
+            _register_category("door_sensor", 0.1)
 
         if not matched_categories:
             return None
 
-        if "gps_tracker" in matched_categories:
-            category = "gps_tracker"
-        elif "smart_feeder" in matched_categories:
-            category = "smart_feeder"
-        elif "activity_monitor" in matched_categories:
-            category = "activity_monitor"
+        for candidate in CATEGORY_PRIORITY:
+            if candidate in matched_categories:
+                category = candidate
+                break
         else:
             category = next(iter(matched_categories))
 

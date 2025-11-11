@@ -69,6 +69,18 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
+def _coerce_bool_flag(value: object) -> bool | None:
+    """Return a strict boolean for 0/1 sentinel payloads."""
+
+    if isinstance(value, bool):
+        return value
+
+    if isinstance(value, (int, float)) and value in (0, 1):
+        return bool(value)
+
+    return None
+
+
 def _as_local(dt_value: datetime) -> datetime:
     """Return a timezone-aware datetime in the local timezone."""
 
@@ -1384,7 +1396,11 @@ class PawControlGeofenceAlertBinarySensor(PawControlBinarySensorBase):
         if not gps_data:
             return False
 
-        return bool(gps_data.get("geofence_alert", False))
+        flag = _coerce_bool_flag(gps_data.get("geofence_alert"))
+        if flag is not None:
+            return flag
+
+        return False
 
 
 class PawControlGPSBatteryLowBinarySensor(PawControlBinarySensorBase):
@@ -1769,7 +1785,11 @@ class PawControlHealthEmergencyBinarySensor(PawControlBinarySensorBase):
         if not feeding_data:
             return False
 
-        return bool(feeding_data.get("health_emergency", False))
+        flag = _coerce_bool_flag(feeding_data.get("health_emergency"))
+        if flag is not None:
+            return flag
+
+        return False
 
     @property
     def extra_state_attributes(self) -> BinarySensorAttributes:

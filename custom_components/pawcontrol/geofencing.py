@@ -15,6 +15,7 @@ import asyncio
 import contextlib
 import logging
 import math
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
@@ -52,10 +53,56 @@ if TYPE_CHECKING:
 _LOGGER = logging.getLogger(__name__)
 
 
+def _sanitize_zone_metadata(
+    metadata: Mapping[str, object] | GeofenceZoneMetadata | None,
+) -> GeofenceZoneMetadata:
+    """Normalise persisted geofence metadata to the typed contract."""
+
+    if not metadata:
+        return cast(GeofenceZoneMetadata, {})
+
+    metadata_map = dict(metadata)
+    result: GeofenceZoneMetadata = {}
+
+    if "auto_created" in metadata_map:
+        auto_created = metadata_map.get("auto_created")
+        if isinstance(auto_created, bool):
+            result["auto_created"] = auto_created
+
+    if "color" in metadata_map:
+        color = metadata_map.get("color")
+        if isinstance(color, str) or color is None:
+            result["color"] = color
+
+    if "created_by" in metadata_map:
+        created_by = metadata_map.get("created_by")
+        if isinstance(created_by, str) or created_by is None:
+            result["created_by"] = created_by
+
+    if "notes" in metadata_map:
+        notes = metadata_map.get("notes")
+        if isinstance(notes, str) or notes is None:
+            result["notes"] = notes
+
+    if "tags" in metadata_map:
+        tags_value = metadata_map.get("tags")
+        tags: list[str] = []
+        if isinstance(tags_value, str):
+            tags = [tags_value]
+        elif isinstance(tags_value, Mapping):
+            tags = [value for value in tags_value.values() if isinstance(value, str)]
+        elif isinstance(tags_value, Iterable):
+            tags = [tag for tag in tags_value if isinstance(tag, str)]
+        if tags:
+            result["tags"] = tags
+
+    return result
+
+
 def _empty_zone_metadata() -> GeofenceZoneMetadata:
     """Provide an empty, typed metadata mapping for geofence zones."""
 
-    return cast(GeofenceZoneMetadata, {})
+    return _sanitize_zone_metadata({})
 
 
 # Geofencing constants
@@ -125,6 +172,8 @@ class GeofenceZone:
                 f"Radius must be between {MIN_GEOFENCE_RADIUS} and {MAX_GEOFENCE_RADIUS} meters"
             )
 
+        self.metadata = _sanitize_zone_metadata(self.metadata)
+
     def contains_location(self, location: GPSLocation, hysteresis: float = 1.0) -> bool:
         """Check if a location is within this geofence zone.
 
@@ -155,23 +204,9 @@ class GeofenceZone:
     def to_storage_payload(self) -> GeofenceZoneStoragePayload:
         """Convert zone to a typed storage payload."""
 
-        auto_created = self.metadata.get("auto_created")
-        color_present = "color" in self.metadata
-        created_by_present = "created_by" in self.metadata
-        notes_present = "notes" in self.metadata
-        tags_present = "tags" in self.metadata
-
-        metadata_dict: dict[str, object] = {}
-        if auto_created is not None:
-            metadata_dict["auto_created"] = auto_created
-        if color_present:
-            metadata_dict["color"] = self.metadata["color"]
-        if created_by_present:
-            metadata_dict["created_by"] = self.metadata["created_by"]
-        if notes_present:
-            metadata_dict["notes"] = self.metadata["notes"]
-        if tags_present:
-            metadata_dict["tags"] = list(self.metadata["tags"])
+        metadata_dict = _sanitize_zone_metadata(self.metadata)
+        if "tags" in metadata_dict:
+            metadata_dict["tags"] = list(metadata_dict["tags"])
 
         payload_dict: dict[str, object] = {
             "id": self.id,
@@ -194,15 +229,9 @@ class GeofenceZone:
         """Create zone from dictionary data."""
 
         metadata_raw = data.get("metadata", {})
-        if isinstance(metadata_raw, dict):
-            tags_present = "tags" in metadata_raw
-
-            metadata_dict = dict(metadata_raw)
-            if tags_present:
-                metadata_dict["tags"] = list(metadata_raw["tags"])
-            metadata = cast(GeofenceZoneMetadata, cast(Any, metadata_dict))
-        else:
-            metadata = cast(GeofenceZoneMetadata, cast(Any, {}))
+        metadata = _sanitize_zone_metadata(
+            metadata_raw if isinstance(metadata_raw, Mapping) else {}
+        )
 
         return cls(
             id=data["id"],
@@ -214,9 +243,17 @@ class GeofenceZone:
             enabled=data.get("enabled", True),
             alerts_enabled=data.get("alerts_enabled", True),
             description=data.get("description", ""),
-            created_at=dt_util.parse_datetime(data.get("created_at"))
+            created_at=(
+                dt_util.parse_datetime(created_at)
+                if isinstance(created_at := data.get("created_at"), str)
+                else None
+            )
             or dt_util.utcnow(),
-            updated_at=dt_util.parse_datetime(data.get("updated_at"))
+            updated_at=(
+                dt_util.parse_datetime(updated_at)
+                if isinstance(updated_at := data.get("updated_at"), str)
+                else None
+            )
             or dt_util.utcnow(),
             metadata=metadata,
         )
@@ -328,10 +365,21 @@ class PawControlGeofencing:
 
                 # Load zones
                 zones_data_raw = stored_data.get("zones", {})
-                if not isinstance(zones_data_raw, dict):
+                if isinstance(zones_data_raw, list):
+                    zones_data_raw = {
+                        cast(str, zone.get("id")): cast(
+                            GeofenceZoneStoragePayload, zone
+                        )
+                        for zone in zones_data_raw
+                        if isinstance(zone, Mapping) and isinstance(zone.get("id"), str)
+                    }
+                elif not isinstance(zones_data_raw, Mapping):
                     zones_data_raw = {}
 
-                zones_data = cast(dict[str, GeofenceZoneStoragePayload], zones_data_raw)
+                zones_data = cast(
+                    dict[str, GeofenceZoneStoragePayload],
+                    dict(zones_data_raw),
+                )
 
                 for zone_id, zone_data in zones_data.items():
                     try:

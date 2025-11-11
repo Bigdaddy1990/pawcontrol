@@ -184,6 +184,24 @@ def _prepare_service_proxy(
 # Home Assistant platform configuration
 PARALLEL_UPDATES = 0
 
+_TRUTHY_FLAG_VALUES: set[str] = {
+    "true",
+    "1",
+    "yes",
+    "y",
+    "on",
+    "active",
+}
+_FALSY_FLAG_VALUES: set[str] = {
+    "false",
+    "0",
+    "no",
+    "n",
+    "off",
+    "inactive",
+    "",
+}
+
 # OPTIMIZATION: Profile-based entity reduction
 PROFILE_BUTTON_LIMITS = {
     "basic": 3,  # Essential buttons only: test_notification, reset_stats, mark_fed
@@ -867,6 +885,33 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
         )
 
     @staticmethod
+    def _normalize_module_flag(value: Any, field: str) -> bool:
+        """Normalise boolean-like flags reported by module payloads."""
+
+        if isinstance(value, bool):
+            return value
+
+        if isinstance(value, (int, float)) and value in {0, 1}:
+            return bool(value)
+
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in _TRUTHY_FLAG_VALUES:
+                return True
+            if normalized in _FALSY_FLAG_VALUES:
+                return False
+
+        if value is not None:
+            _LOGGER.debug(
+                "Unhandled boolean flag for %s: %r (%s); treating as False",
+                field,
+                value,
+                type(value).__name__,
+            )
+
+        return False
+
+    @staticmethod
     def _parse_datetime(value: Any) -> datetime | None:
         """Parse ISO-formatted datetime strings into aware datetimes."""
 
@@ -1310,7 +1355,9 @@ class PawControlStartWalkButton(PawControlButtonBase):
 
         try:
             walk_data = self._get_walk_payload()
-            if walk_data and walk_data.get(WALK_IN_PROGRESS_FIELD):
+            if walk_data and self._normalize_module_flag(
+                walk_data.get(WALK_IN_PROGRESS_FIELD), WALK_IN_PROGRESS_FIELD
+            ):
                 walk_id = walk_data.get("current_walk_id", STATE_UNKNOWN)
                 if not isinstance(walk_id, str):
                     walk_id = STATE_UNKNOWN
@@ -1344,7 +1391,12 @@ class PawControlStartWalkButton(PawControlButtonBase):
             return False
 
         walk_data = self._get_walk_payload()
-        return not bool(walk_data and walk_data.get(WALK_IN_PROGRESS_FIELD, False))
+        if walk_data is None:
+            return True
+
+        return not self._normalize_module_flag(
+            walk_data.get(WALK_IN_PROGRESS_FIELD), WALK_IN_PROGRESS_FIELD
+        )
 
 
 class PawControlEndWalkButton(PawControlButtonBase):
@@ -1370,7 +1422,9 @@ class PawControlEndWalkButton(PawControlButtonBase):
 
         try:
             walk_data = self._get_walk_payload()
-            if not walk_data or not walk_data.get(WALK_IN_PROGRESS_FIELD):
+            if not walk_data or not self._normalize_module_flag(
+                walk_data.get(WALK_IN_PROGRESS_FIELD), WALK_IN_PROGRESS_FIELD
+            ):
                 last_walk_time = (
                     self._parse_datetime(walk_data.get("last_walk"))
                     if walk_data
@@ -1401,7 +1455,12 @@ class PawControlEndWalkButton(PawControlButtonBase):
             return False
 
         walk_data = self._get_walk_payload()
-        return bool(walk_data and walk_data.get(WALK_IN_PROGRESS_FIELD, False))
+        if walk_data is None:
+            return False
+
+        return self._normalize_module_flag(
+            walk_data.get(WALK_IN_PROGRESS_FIELD), WALK_IN_PROGRESS_FIELD
+        )
 
 
 class PawControlQuickWalkButton(PawControlButtonBase):

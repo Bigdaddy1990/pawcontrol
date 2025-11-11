@@ -109,7 +109,11 @@ from .repairs import (
     async_create_issue,
     async_schedule_repair_evaluation,  # noqa: F401 - imported for flow-side effects
 )
-from .runtime_data import get_runtime_data
+from .runtime_data import (
+    RuntimeDataUnavailableError,
+    get_runtime_data,
+    require_runtime_data,
+)
 from .script_manager import resolve_resilience_script_thresholds
 from .selector_shim import selector
 from .telemetry import record_door_sensor_persistence_failure
@@ -3000,13 +3004,27 @@ class PawControlOptionsFlow(OptionsFlow):
                     ) and existing_settings_payload != settings_store:
                         persist_updates[CONF_DOOR_SENSOR_SETTINGS] = settings_store
 
-                    runtime = get_runtime_data(self.hass, self._entry)
-                    data_manager = (
-                        getattr(runtime, "data_manager", None)
-                        if runtime is not None
-                        else None
-                    )
-                    if data_manager and persist_updates:
+                    data_manager = None
+                    if persist_updates:
+                        try:
+                            runtime = require_runtime_data(self.hass, self._entry)
+                        except RuntimeDataUnavailableError:
+                            _LOGGER.error(
+                                "Runtime data unavailable while updating door sensor "
+                                "overrides for dog %s",
+                                dog_id,
+                            )
+                            errors["base"] = "runtime_cache_unavailable"
+                        else:
+                            data_manager = getattr(runtime, "data_manager", None)
+                            if data_manager is None:
+                                _LOGGER.error(
+                                    "Door sensor overrides require an active data manager; "
+                                    "runtime payload missing data_manager for dog %s",
+                                    dog_id,
+                                )
+                                errors["base"] = "runtime_cache_unavailable"
+                    if data_manager and persist_updates and "base" not in errors:
                         try:
                             await data_manager.async_update_dog_data(
                                 dog_id, persist_updates
@@ -3056,7 +3074,7 @@ class PawControlOptionsFlow(OptionsFlow):
                                     issue_err,
                                 )
                             errors["base"] = "door_sensor_update_failed"
-                    elif persist_updates:
+                    elif persist_updates and "base" not in errors:
                         _LOGGER.debug(
                             "Data manager unavailable while updating door sensor for %s",
                             dog_id,

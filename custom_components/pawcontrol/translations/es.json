@@ -545,7 +545,8 @@
       "dog_missing_id": "Each imported dog must include a unique ID",
       "dog_invalid_modules": "Dog module settings could not be interpreted",
       "dog_invalid_config": "Imported dog configuration is invalid",
-      "dog_duplicate": "Duplicate dog IDs detected in the import file"
+      "dog_duplicate": "Duplicate dog IDs detected in the import file",
+      "runtime_cache_unavailable": "Runtime data is temporarily unavailable. Please retry after the integration reloads."
     }
   },
   "entity": {
