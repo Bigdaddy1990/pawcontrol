@@ -539,22 +539,29 @@ class Emitter:
             self.analysis = self.analyze_scalar(self.event.value)
         if self.event.style == '"' or self.canonical:
             return '"'
-        if not self.event.style and self.event.implicit[0]:
-            if not (
+        if (
+            not self.event.style
+            and self.event.implicit[0]
+            and not (
                 self.simple_key_context
                 and (self.analysis.empty or self.analysis.multiline)
-            ) and (
+            )
+            and (
                 (self.flow_level and self.analysis.allow_flow_plain)
                 or (not self.flow_level and self.analysis.allow_block_plain)
-            ):
-                return ""
-        if self.event.style and self.event.style in "|>":
-            if (
+            )
+        ):
+            return ""
+        if (
+            self.event.style
+            and self.event.style in "|>"
+            and (
                 not self.flow_level
                 and not self.simple_key_context
                 and self.analysis.allow_block
-            ):
-                return self.event.style
+            )
+        ):
+            return self.event.style
         if not self.event.style or self.event.style == "'":
             if self.analysis.allow_single_quoted and not (
                 self.simple_key_context and self.analysis.multiline

@@ -160,7 +160,9 @@ def compose(stream, loader: type[_loader_module.BaseLoader] | None = None, /, **
         loader_instance.dispose()
 
 
-def compose_all(stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs):
+def compose_all(
+    stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs
+):
     """
     Parse all YAML documents in a stream
     and produce corresponding representation trees.
@@ -572,7 +574,9 @@ def add_path_resolver(
     dumper_cls.add_path_resolver(tag, path, kind)
 
 
-def add_constructor(tag, constructor, loader: type[_loader_module.BaseLoader] | None = None, **kwargs):
+def add_constructor(
+    tag, constructor, loader: type[_loader_module.BaseLoader] | None = None, **kwargs
+):
     """
     Add a constructor for the given tag.
     Constructor is a function that accepts a Loader instance
