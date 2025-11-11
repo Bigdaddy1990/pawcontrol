@@ -40,6 +40,19 @@ select = ["E","F","W","I","UP","B","SIM","RUF","PERF","FURB","N"]
 extend-select = ["D200","D205"]
 ignore = ["E501","D100","D101","D102","D103","D104","D105","D106","D107"]
 
+[tool.ruff.lint.per-file-ignores]
+"annotatedyaml/_vendor/yaml/**/*.py" = [
+  "F401",
+  "F403",
+  "F405",
+  "N803",
+  "RUF012",
+  "B904",
+  "UP031",
+  "SIM102",
+  "PERF401",
+]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"

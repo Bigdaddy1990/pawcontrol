@@ -183,7 +183,7 @@ def compose_all(
         loader_instance.dispose()
 
 
-def load(stream, loader: type[_loader_module.BaseLoader] | None, /, **kwargs):
+def load(stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs):
     """
     Parse the first YAML document in a stream
     and produce the corresponding Python object.
@@ -191,9 +191,9 @@ def load(stream, loader: type[_loader_module.BaseLoader] | None, /, **kwargs):
     loader_cls = _normalize_loader_argument(
         loader,
         kwargs,
-        default=None,
+        default=_loader_module.Loader,
         func_name="load",
-        require=True,
+        require=False,
     )
     _reject_unexpected_kwargs("load", kwargs)
     assert loader_cls is not None
@@ -204,7 +204,9 @@ def load(stream, loader: type[_loader_module.BaseLoader] | None, /, **kwargs):
         loader_instance.dispose()
 
 
-def load_all(stream, loader: type[_loader_module.BaseLoader] | None, /, **kwargs):
+def load_all(
+    stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs
+):
     """
     Parse all YAML documents in a stream
     and produce corresponding Python objects.
@@ -212,9 +214,9 @@ def load_all(stream, loader: type[_loader_module.BaseLoader] | None, /, **kwargs
     loader_cls = _normalize_loader_argument(
         loader,
         kwargs,
-        default=None,
+        default=_loader_module.Loader,
         func_name="load_all",
-        require=True,
+        require=False,
     )
     _reject_unexpected_kwargs("load_all", kwargs)
     assert loader_cls is not None
@@ -226,7 +228,9 @@ def load_all(stream, loader: type[_loader_module.BaseLoader] | None, /, **kwargs
         loader_instance.dispose()
 
 
-def full_load(stream):
+def full_load(
+    stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs
+):
     """
     Parse the first YAML document in a stream
     and produce the corresponding Python object.
@@ -234,10 +238,21 @@ def full_load(stream):
     Resolve all tags except those known to be
     unsafe on untrusted input.
     """
-    return load(stream, _loader_module.FullLoader)
+    loader_cls = _normalize_loader_argument(
+        loader,
+        kwargs,
+        default=_loader_module.FullLoader,
+        func_name="full_load",
+        require=False,
+    )
+    _reject_unexpected_kwargs("full_load", kwargs)
+    assert loader_cls is not None
+    return load(stream, loader_cls)
 
 
-def full_load_all(stream):
+def full_load_all(
+    stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs
+):
     """
     Parse all YAML documents in a stream
     and produce corresponding Python objects.
@@ -245,10 +260,21 @@ def full_load_all(stream):
     Resolve all tags except those known to be
     unsafe on untrusted input.
     """
-    return load_all(stream, _loader_module.FullLoader)
+    loader_cls = _normalize_loader_argument(
+        loader,
+        kwargs,
+        default=_loader_module.FullLoader,
+        func_name="full_load_all",
+        require=False,
+    )
+    _reject_unexpected_kwargs("full_load_all", kwargs)
+    assert loader_cls is not None
+    return load_all(stream, loader_cls)
 
 
-def safe_load(stream):
+def safe_load(
+    stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs
+):
     """
     Parse the first YAML document in a stream
     and produce the corresponding Python object.
@@ -256,10 +282,21 @@ def safe_load(stream):
     Resolve only basic YAML tags. This is known
     to be safe for untrusted input.
     """
-    return load(stream, _loader_module.SafeLoader)
+    loader_cls = _normalize_loader_argument(
+        loader,
+        kwargs,
+        default=_loader_module.SafeLoader,
+        func_name="safe_load",
+        require=False,
+    )
+    _reject_unexpected_kwargs("safe_load", kwargs)
+    assert loader_cls is not None
+    return load(stream, loader_cls)
 
 
-def safe_load_all(stream):
+def safe_load_all(
+    stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs
+):
     """
     Parse all YAML documents in a stream
     and produce corresponding Python objects.
@@ -267,10 +304,21 @@ def safe_load_all(stream):
     Resolve only basic YAML tags. This is known
     to be safe for untrusted input.
     """
-    return load_all(stream, _loader_module.SafeLoader)
+    loader_cls = _normalize_loader_argument(
+        loader,
+        kwargs,
+        default=_loader_module.SafeLoader,
+        func_name="safe_load_all",
+        require=False,
+    )
+    _reject_unexpected_kwargs("safe_load_all", kwargs)
+    assert loader_cls is not None
+    return load_all(stream, loader_cls)
 
 
-def unsafe_load(stream):
+def unsafe_load(
+    stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs
+):
     """
     Parse the first YAML document in a stream
     and produce the corresponding Python object.
@@ -278,10 +326,21 @@ def unsafe_load(stream):
     Resolve all tags, even those known to be
     unsafe on untrusted input.
     """
-    return load(stream, _loader_module.UnsafeLoader)
+    loader_cls = _normalize_loader_argument(
+        loader,
+        kwargs,
+        default=_loader_module.UnsafeLoader,
+        func_name="unsafe_load",
+        require=False,
+    )
+    _reject_unexpected_kwargs("unsafe_load", kwargs)
+    assert loader_cls is not None
+    return load(stream, loader_cls)
 
 
-def unsafe_load_all(stream):
+def unsafe_load_all(
+    stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs
+):
     """
     Parse all YAML documents in a stream
     and produce corresponding Python objects.
@@ -289,7 +348,16 @@ def unsafe_load_all(stream):
     Resolve all tags, even those known to be
     unsafe on untrusted input.
     """
-    return load_all(stream, _loader_module.UnsafeLoader)
+    loader_cls = _normalize_loader_argument(
+        loader,
+        kwargs,
+        default=_loader_module.UnsafeLoader,
+        func_name="unsafe_load_all",
+        require=False,
+    )
+    _reject_unexpected_kwargs("unsafe_load_all", kwargs)
+    assert loader_cls is not None
+    return load_all(stream, loader_cls)
 
 
 def emit(
