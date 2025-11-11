@@ -88,6 +88,7 @@ THIRD_PARTY_OVERRIDES: dict[str, DependencyRule] = {
 
 LOCAL_MODULE_PREFIXES = {
     "__future__",
+    "annotatedyaml",
     "blueprint_context",
     "blueprint_helpers",
     "custom_components",
