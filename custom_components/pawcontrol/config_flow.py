@@ -12,6 +12,7 @@ import time
 from collections.abc import AsyncIterator, Awaitable, Mapping, Sequence
 from contextlib import asynccontextmanager, suppress
 from datetime import datetime
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, cast
 
 import voluptuous as vol
@@ -70,7 +71,7 @@ from .const import (
     MODULE_NOTIFICATIONS,
     MODULE_WALK,
 )
-from .entity_factory import ENTITY_PROFILES, EntityFactory
+from .entity_factory import ENTITY_PROFILES, EntityFactory, EntityProfileDefinition
 from .exceptions import ConfigurationError, PawControlSetupError, ValidationError
 from .options_flow import PawControlOptionsFlow
 from .types import (
@@ -78,15 +79,29 @@ from .types import (
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
     MODULE_TOGGLE_KEYS,
+    AddAnotherDogPlaceholders,
+    AddDogSummaryPlaceholders,
+    ConfigEntryDataPayload,
+    ConfigEntryOptionsPayload,
     ConfigFlowDiscoveryData,
+    ConfigFlowDiscoveryProperties,
     ConfigFlowDiscoverySource,
     ConfigFlowGlobalSettings,
+    ConfigFlowImportResult,
+    ConfigFlowOperationMetricsMap,
+    ConfigFlowPerformanceStats,
+    ConfigFlowPlaceholders,
+    ConfigFlowUserInput,
     DashboardConfigurationStepInput,
+    DiscoveryUpdatePayload,
     DogConfigData,
     DogModulesConfig,
+    DogModulesSmartDefaultsPlaceholders,
     DogSetupStepInput,
     DogValidationCacheEntry,
     ExternalEntityConfig,
+    FinalSetupValidationResult,
+    JSONMutableMapping,
     ModuleConfigurationStepInput,
     ModuleToggleKey,
     PerformanceMode,
@@ -141,6 +156,53 @@ REAUTH_TIMEOUT_SECONDS = 30.0
 CONFIG_HEALTH_CHECK_TIMEOUT = 15.0
 NETWORK_OPERATION_TIMEOUT = 10.0
 
+
+def _build_add_dog_summary_placeholders(
+    *, dogs_configured: int, max_dogs: int, discovery_hint: str
+) -> ConfigFlowPlaceholders:
+    """Return placeholders for the main add-dog form."""
+
+    placeholders: AddDogSummaryPlaceholders = {
+        "dogs_configured": str(dogs_configured),
+        "max_dogs": str(max_dogs),
+        "discovery_hint": discovery_hint,
+    }
+    return MappingProxyType(placeholders)
+
+
+def _build_dog_modules_form_placeholders(
+    *, dog_name: str, dogs_configured: int, smart_defaults: str
+) -> ConfigFlowPlaceholders:
+    """Return placeholders for the module selection form."""
+
+    placeholders: DogModulesSmartDefaultsPlaceholders = {
+        "dog_name": dog_name,
+        "dogs_configured": str(dogs_configured),
+        "smart_defaults": smart_defaults,
+    }
+    return MappingProxyType(placeholders)
+
+
+def _build_add_another_placeholders(
+    *,
+    dogs_configured: int,
+    dogs_list: str,
+    can_add_more: bool,
+    max_dogs: int,
+    performance_note: str,
+) -> ConfigFlowPlaceholders:
+    """Return placeholders used when prompting to add another dog."""
+
+    placeholders: AddAnotherDogPlaceholders = {
+        "dogs_configured": str(dogs_configured),
+        "dogs_list": dogs_list,
+        "can_add_more": "yes" if can_add_more else "no",
+        "max_dogs": str(max_dogs),
+        "performance_note": performance_note,
+    }
+    return MappingProxyType(placeholders)
+
+
 # Optimized schema definitions using constants from const.py
 DOG_SCHEMA = vol.Schema(
     {
@@ -184,21 +246,23 @@ class ConfigFlowPerformanceMonitor:
             self.validation_counts.get(validation_type, 0) + 1
         )
 
-    def get_stats(self) -> dict[str, Any]:
+    def get_stats(self) -> ConfigFlowPerformanceStats:
         """Return aggregated statistics for diagnostics."""
 
-        stats: dict[str, Any] = {}
+        operations: ConfigFlowOperationMetricsMap = {}
         for operation, times in self.operation_times.items():
             if not times:
                 continue
-            stats[operation] = {
+            operations[operation] = {
                 "avg_time": sum(times) / len(times),
                 "max_time": max(times),
                 "count": len(times),
             }
 
-        stats["validations"] = self.validation_counts.copy()
-        return stats
+        return ConfigFlowPerformanceStats(
+            operations=operations,
+            validations=self.validation_counts.copy(),
+        )
 
 
 config_flow_monitor = ConfigFlowPerformanceMonitor()
@@ -300,7 +364,7 @@ class PawControlConfigFlow(
         self._external_entities: ExternalEntityConfig = {}
 
     async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> ConfigFlowResult:
         """Handle initial step with enhanced uniqueness validation.
 
@@ -336,7 +400,7 @@ class PawControlConfigFlow(
         # Extract device information from Zeroconf
         hostname = discovery_info.hostname or ""
         properties_raw = discovery_info.properties or {}
-        properties: dict[str, Any] = dict(properties_raw)
+        properties: ConfigFlowDiscoveryProperties = dict(properties_raw)
 
         # Check if this is a supported device
         if not self._is_supported_device(hostname, properties):
@@ -427,7 +491,7 @@ class PawControlConfigFlow(
         description = discovery_info.description or ""
         serial_number = discovery_info.serial_number or ""
         hostname_hint = description or serial_number
-        properties: dict[str, Any] = {
+        properties: ConfigFlowDiscoveryProperties = {
             "serial": serial_number,
             "vid": discovery_info.vid,
             "pid": discovery_info.pid,
@@ -476,7 +540,7 @@ class PawControlConfigFlow(
         service_uuids = list(getattr(discovery_info, "service_uuids", []) or [])
 
         hostname_hint = name or address
-        properties: dict[str, Any] = {
+        properties: ConfigFlowDiscoveryProperties = {
             "address": address,
             "service_uuids": service_uuids,
             "name": name,
@@ -509,7 +573,7 @@ class PawControlConfigFlow(
         return await self.async_step_discovery_confirm()
 
     async def async_step_discovery_confirm(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> ConfigFlowResult:
         """Confirm discovered device setup.
 
@@ -543,7 +607,7 @@ class PawControlConfigFlow(
         )
 
     async def async_step_import(
-        self, import_config: dict[str, Any]
+        self, import_config: ConfigFlowUserInput
     ) -> ConfigFlowResult:
         """Handle import from configuration.yaml.
 
@@ -584,15 +648,15 @@ class PawControlConfigFlow(
                 raise ConfigEntryNotReady(f"Import validation failed: {err}") from err
 
     async def _validate_import_config(
-        self, import_config: dict[str, Any]
-    ) -> dict[str, Any]:
+        self, import_config: ConfigFlowUserInput
+    ) -> ConfigFlowImportResult:
         """Backward-compatible wrapper for enhanced import validation."""
 
         return await self._validate_import_config_enhanced(import_config)
 
     async def _validate_import_config_enhanced(
-        self, import_config: dict[str, Any]
-    ) -> dict[str, Any]:
+        self, import_config: ConfigFlowUserInput
+    ) -> ConfigFlowImportResult:
         """Enhanced validation for imported configuration with better error reporting.
 
         Args:
@@ -695,25 +759,29 @@ class PawControlConfigFlow(
 
                 config_flow_monitor.record_validation("import_validated")
 
-                return {
-                    "data": {
-                        "name": import_config.get("name", "PawControl (Imported)"),
-                        CONF_DOGS: validated_dogs,
-                        "entity_profile": profile,
-                        "import_warnings": validation_errors,
-                        "import_timestamp": dt_util.utcnow().isoformat(),
-                    },
-                    "options": {
-                        "entity_profile": profile,
-                        "dashboard_enabled": import_config.get(
-                            "dashboard_enabled", True
-                        ),
-                        "dashboard_auto_create": import_config.get(
-                            "dashboard_auto_create", True
-                        ),
-                        "import_source": "configuration_yaml",
-                    },
+                data_payload: ConfigEntryDataPayload = {
+                    "name": import_config.get("name", "PawControl (Imported)"),
+                    CONF_DOGS: validated_dogs,
+                    "entity_profile": profile,
+                    "import_warnings": validation_errors,
+                    "import_timestamp": dt_util.utcnow().isoformat(),
                 }
+                options_payload: ConfigEntryOptionsPayload = {
+                    "entity_profile": profile,
+                    "dashboard_enabled": bool(
+                        import_config.get("dashboard_enabled", True)
+                    ),
+                    "dashboard_auto_create": bool(
+                        import_config.get("dashboard_auto_create", True)
+                    ),
+                    "import_source": "configuration_yaml",
+                }
+
+                result: ConfigFlowImportResult = {
+                    "data": data_payload,
+                    "options": options_payload,
+                }
+                return result
 
             except Exception as err:
                 raise ValidationError(
@@ -721,7 +789,9 @@ class PawControlConfigFlow(
                     constraint=f"Import configuration validation failed: {err}",
                 ) from err
 
-    def _is_supported_device(self, hostname: str, properties: dict[str, Any]) -> bool:
+    def _is_supported_device(
+        self, hostname: str, properties: ConfigFlowDiscoveryProperties
+    ) -> bool:
         """Check if discovered device is supported.
 
         Args:
@@ -743,7 +813,9 @@ class PawControlConfigFlow(
             re.match(pattern, hostname, re.IGNORECASE) for pattern in supported_patterns
         )
 
-    def _extract_device_id(self, properties: dict[str, Any]) -> str | None:
+    def _extract_device_id(
+        self, properties: ConfigFlowDiscoveryProperties
+    ) -> str | None:
         """Extract device ID from discovery properties.
 
         Args:
@@ -760,7 +832,7 @@ class PawControlConfigFlow(
 
     def _normalise_discovery_metadata(
         self,
-        payload: Mapping[str, Any] | None,
+        payload: Mapping[str, object] | None,
         *,
         source: ConfigFlowDiscoverySource | None = None,
         include_last_seen: bool = True,
@@ -777,7 +849,7 @@ class PawControlConfigFlow(
             else UNKNOWN_DISCOVERY_SOURCE
         )
 
-        normalised: dict[str, Any] = {
+        normalised: ConfigFlowDiscoveryData = {
             "source": cast(ConfigFlowDiscoverySource, resolved_source)
         }
 
@@ -818,7 +890,7 @@ class PawControlConfigFlow(
 
         properties_value = data.get("properties")
         if isinstance(properties_value, Mapping):
-            properties: dict[str, Any] = {}
+            properties: ConfigFlowDiscoveryProperties = {}
             for key, value in properties_value.items():
                 key_str = str(key)
                 if isinstance(value, str | int | float | bool):
@@ -860,11 +932,16 @@ class PawControlConfigFlow(
         return cast(ConfigFlowDiscoveryData, normalised)
 
     def _strip_dynamic_discovery_fields(
-        self, info: Mapping[str, Any]
-    ) -> dict[str, Any]:
+        self, info: Mapping[str, object]
+    ) -> ConfigFlowDiscoveryData:
         """Remove dynamic fields (like timestamps) for comparison."""
 
-        return {key: value for key, value in info.items() if key != "last_seen"}
+        cleaned = {
+            key: value
+            for key, value in info.items()
+            if key != "last_seen"
+        }
+        return cast(ConfigFlowDiscoveryData, cleaned)
 
     async def _async_get_entry_for_unique_id(self) -> ConfigEntry | None:
         """Return the current entry matching the configured unique ID."""
@@ -898,8 +975,8 @@ class PawControlConfigFlow(
         self,
         entry: ConfigEntry,
         *,
-        updates: Mapping[str, Any],
-        comparison: Mapping[str, Any],
+        updates: Mapping[str, object],
+        comparison: Mapping[str, object],
     ) -> bool:
         """Return whether discovery updates require entry persistence."""
 
@@ -937,8 +1014,8 @@ class PawControlConfigFlow(
     async def _handle_existing_discovery_entry(
         self,
         *,
-        updates: Mapping[str, Any],
-        comparison: Mapping[str, Any],
+        updates: Mapping[str, object],
+        comparison: Mapping[str, object],
         reload_on_update: bool,
     ) -> ConfigFlowResult | None:
         """Abort or update when discovery encounters an existing entry."""
@@ -966,10 +1043,10 @@ class PawControlConfigFlow(
 
     def _prepare_discovery_updates(
         self,
-        payload: Mapping[str, Any],
+        payload: Mapping[str, object],
         *,
         source: ConfigFlowDiscoverySource,
-    ) -> tuple[dict[str, Any], dict[str, Any]]:
+    ) -> tuple[DiscoveryUpdatePayload, ConfigFlowDiscoveryData]:
         """Normalise discovery metadata and build update payloads."""
 
         normalised = self._normalise_discovery_metadata(payload, source=source)
@@ -980,8 +1057,10 @@ class PawControlConfigFlow(
         )
         self._discovery_info = cast(ConfigFlowDiscoveryData, copy.deepcopy(normalised))
 
-        updates: dict[str, Any] = {
-            "discovery_info": cast(ConfigFlowDiscoveryData, copy.deepcopy(normalised))
+        updates: DiscoveryUpdatePayload = {
+            "discovery_info": cast(
+                ConfigFlowDiscoveryData, copy.deepcopy(normalised)
+            )
         }
 
         host = discovery_info.get("host") or discovery_info.get("ip")
@@ -1012,7 +1091,7 @@ class PawControlConfigFlow(
         return "Unknown device"
 
     async def async_step_add_dog(
-        self, user_input: Mapping[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> ConfigFlowResult:
         """Add a dog configuration with optimized validation.
 
@@ -1052,11 +1131,11 @@ class PawControlConfigFlow(
                 step_id="add_dog",
                 data_schema=DOG_SCHEMA,
                 errors=errors,
-                description_placeholders={
-                    "dogs_configured": str(len(self._dogs)),
-                    "max_dogs": str(MAX_DOGS_PER_INTEGRATION),
-                    "discovery_hint": self._get_discovery_hint(),
-                },
+                description_placeholders=_build_add_dog_summary_placeholders(
+                    dogs_configured=len(self._dogs),
+                    max_dogs=MAX_DOGS_PER_INTEGRATION,
+                    discovery_hint=self._get_discovery_hint(),
+                ),
             )
 
     def _get_validation_state_signature(self) -> str:
@@ -1066,7 +1145,7 @@ class PawControlConfigFlow(
         return f"{len(self._dogs)}::{existing_ids}"
 
     async def _validate_dog_input_cached(
-        self, user_input: dict[str, Any]
+        self, user_input: ConfigFlowUserInput
     ) -> DogSetupStepInput | None:
         """Validate dog input with caching for repeated validations."""
 
@@ -1167,7 +1246,7 @@ class PawControlConfigFlow(
         return ""
 
     async def _validate_dog_input_optimized(
-        self, user_input: dict[str, Any]
+        self, user_input: ConfigFlowUserInput
     ) -> DogSetupStepInput | None:
         """Validate dog input data with optimized performance.
 
@@ -1324,7 +1403,7 @@ class PawControlConfigFlow(
         return config
 
     async def async_step_dog_modules(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> ConfigFlowResult:
         """Configure optional modules for the newly added dog.
 
@@ -1354,11 +1433,11 @@ class PawControlConfigFlow(
                     step_id="dog_modules",
                     data_schema=MODULES_SCHEMA,
                     errors={"base": "invalid_modules"},
-                    description_placeholders={
-                        "dog_name": current_dog[DOG_NAME_FIELD],
-                        "dogs_configured": str(len(self._dogs)),
-                        "smart_defaults": self._get_smart_module_defaults(current_dog),
-                    },
+                    description_placeholders=_build_dog_modules_form_placeholders(
+                        dog_name=current_dog[DOG_NAME_FIELD],
+                        dogs_configured=len(self._dogs),
+                        smart_defaults=self._get_smart_module_defaults(current_dog),
+                    ),
                 )
 
         # Enhanced schema with smart defaults based on discovery
@@ -1367,11 +1446,11 @@ class PawControlConfigFlow(
         return self.async_show_form(
             step_id="dog_modules",
             data_schema=enhanced_schema,
-            description_placeholders={
-                "dog_name": current_dog[DOG_NAME_FIELD],
-                "dogs_configured": str(len(self._dogs)),
-                "smart_defaults": self._get_smart_module_defaults(current_dog),
-            },
+            description_placeholders=_build_dog_modules_form_placeholders(
+                dog_name=current_dog[DOG_NAME_FIELD],
+                dogs_configured=len(self._dogs),
+                smart_defaults=self._get_smart_module_defaults(current_dog),
+            ),
         )
 
     def _get_enhanced_modules_schema(self, dog_config: DogConfigData) -> vol.Schema:
@@ -1445,7 +1524,7 @@ class PawControlConfigFlow(
         return "; ".join(reasons) if reasons else "Standard defaults applied"
 
     async def async_step_add_another(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> ConfigFlowResult:
         """Ask if user wants to add another dog with enhanced logic.
 
@@ -1480,13 +1559,13 @@ class PawControlConfigFlow(
         return self.async_show_form(
             step_id="add_another",
             data_schema=schema,
-            description_placeholders={
-                "dogs_configured": str(len(self._dogs)),
-                "dogs_list": self._format_dogs_list_enhanced(),
-                "can_add_more": "yes" if can_add_more else "no",
-                "max_dogs": str(MAX_DOGS_PER_INTEGRATION),
-                "performance_note": self._get_performance_note(),
-            },
+            description_placeholders=_build_add_another_placeholders(
+                dogs_configured=len(self._dogs),
+                dogs_list=self._format_dogs_list_enhanced(),
+                can_add_more=can_add_more,
+                max_dogs=MAX_DOGS_PER_INTEGRATION,
+                performance_note=self._get_performance_note(),
+            ),
         )
 
     def _get_performance_note(self) -> str:
@@ -1503,7 +1582,7 @@ class PawControlConfigFlow(
         return "Single/few dogs - 'advanced' profile available for full features"
 
     async def async_step_entity_profile(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> ConfigFlowResult:
         """Select entity profile with performance guidance.
 
@@ -1564,7 +1643,7 @@ class PawControlConfigFlow(
             return "Recommended: 'standard' or 'advanced' profile for full features"
 
     async def async_step_final_setup(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> ConfigFlowResult:
         """Complete setup and create config entry with enhanced validation.
 
@@ -1609,7 +1688,7 @@ class PawControlConfigFlow(
                 _LOGGER.error("Final setup failed: %s", err)
                 raise PawControlSetupError(f"Setup failed: {err}") from err
 
-    async def _perform_comprehensive_validation(self) -> dict[str, Any]:
+    async def _perform_comprehensive_validation(self) -> FinalSetupValidationResult:
         """Perform comprehensive final validation."""
 
         async with timed_operation("final_validation"):
@@ -1626,7 +1705,7 @@ class PawControlConfigFlow(
             if self._entity_profile not in VALID_PROFILES:
                 errors.append(f"Invalid profile: {self._entity_profile}")
 
-            result = {
+            result: FinalSetupValidationResult = {
                 "valid": len(errors) == 0,
                 "errors": errors,
                 "estimated_entities": estimated_entities,
@@ -1650,13 +1729,15 @@ class PawControlConfigFlow(
 
         return True
 
-    def _build_config_entry_data(self) -> tuple[dict[str, Any], dict[str, Any]]:
+    def _build_config_entry_data(
+        self,
+    ) -> tuple[ConfigEntryDataPayload, ConfigEntryOptionsPayload]:
         """Build optimized config entry data.
 
         Returns:
             Tuple of (config_data, options_data)
         """
-        config_data = {
+        config_data: ConfigEntryDataPayload = {
             "name": self._integration_name,
             CONF_DOGS: self._dogs,
             "entity_profile": self._entity_profile,
@@ -1667,7 +1748,7 @@ class PawControlConfigFlow(
         if self._discovery_info:
             config_data["discovery_info"] = self._discovery_info
 
-        options_data = {
+        options_data: ConfigEntryOptionsPayload = {
             "entity_profile": self._entity_profile,
             "dashboard_enabled": True,
             "dashboard_auto_create": True,
@@ -1721,7 +1802,9 @@ class PawControlConfigFlow(
 
         return config_data, options_data
 
-    def _generate_entry_title(self, profile_info: dict[str, Any]) -> str:
+    def _generate_entry_title(
+        self, profile_info: EntityProfileDefinition
+    ) -> str:
         """Generate descriptive entry title.
 
         Args:
@@ -1883,7 +1966,9 @@ class PawControlConfigFlow(
         }
         return placeholders
 
-    async def async_step_reauth(self, entry_data: dict[str, Any]) -> ConfigFlowResult:
+    async def async_step_reauth(
+        self, entry_data: ConfigEntryDataPayload
+    ) -> ConfigFlowResult:
         """PLATINUM: Handle reauthentication flow with enhanced error handling.
 
         Args:
@@ -2019,7 +2104,7 @@ class PawControlConfigFlow(
         return await DashboardFlowMixin.async_step_configure_dashboard(self, user_input)
 
     async def async_step_reauth_confirm(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> ConfigFlowResult:
         """PLATINUM: Confirm reauthentication with enhanced validation and error handling.
 
@@ -2215,13 +2300,19 @@ class PawControlConfigFlow(
         estimated_entities = 0
         try:
             factory = EntityFactory(None)
-            estimated_entities = sum(
-                factory.estimate_entity_count(
-                    profile, cast(dict[str, Any], dog.get(CONF_MODULES, {}))
+            estimated_entities = 0
+            for dog in dogs:
+                if not is_dog_config_valid(dog):
+                    continue
+                modules_payload = dog.get(CONF_MODULES, {})
+                modules_mapping = (
+                    modules_payload
+                    if isinstance(modules_payload, Mapping)
+                    else {}
                 )
-                for dog in dogs
-                if is_dog_config_valid(dog)
-            )
+                estimated_entities += factory.estimate_entity_count(
+                    profile, cast(DogModulesConfig, dict(modules_mapping))
+                )
             if estimated_entities > 200:
                 warnings.append(
                     f"High entity count ({estimated_entities}) may impact performance"
@@ -2261,7 +2352,7 @@ class PawControlConfigFlow(
             return f"Health check failed: {err}"
 
     async def async_step_reconfigure(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> ConfigFlowResult:
         """Handle reconfiguration with typed telemetry and validation."""
 
@@ -2477,7 +2568,7 @@ class PawControlConfigFlow(
         return placeholders
 
     def _reconfigure_history_placeholders(
-        self, options: Mapping[str, Any]
+        self, options: Mapping[str, object]
     ) -> ReconfigureFormPlaceholders:
         """Return placeholders describing the latest reconfigure telemetry."""
 
@@ -2644,12 +2735,12 @@ class PawControlConfigFlow(
 
     def _merge_nested_mapping(
         self,
-        base: Mapping[str, Any] | None,
-        override: Mapping[str, Any],
-    ) -> dict[str, Any]:
+        base: Mapping[str, object] | None,
+        override: Mapping[str, object],
+    ) -> JSONMutableMapping:
         """Merge nested mappings without mutating the original payloads."""
 
-        merged: dict[str, Any] = {}
+        merged: JSONMutableMapping = {}
 
         if isinstance(base, Mapping):
             for key, value in base.items():
@@ -2711,7 +2802,7 @@ class PawControlConfigFlow(
                 )
             return
 
-        combined: dict[str, Any] = dict(existing)
+        combined: JSONMutableMapping = dict(existing)
 
         existing_name_value = existing.get(DOG_NAME_FIELD)
         existing_name = (
@@ -2724,7 +2815,7 @@ class PawControlConfigFlow(
         modules_override = candidate.get(DOG_MODULES_FIELD)
         if isinstance(modules_override, Mapping):
             current_modules = coerce_dog_modules_config(
-                cast(Mapping[str, Any] | None, combined.get(DOG_MODULES_FIELD))
+                cast(Mapping[str, object] | None, combined.get(DOG_MODULES_FIELD))
             )
             override_modules = coerce_dog_modules_config(modules_override)
             merged_modules: DogModulesConfig = cast(
@@ -2845,7 +2936,7 @@ class PawControlConfigFlow(
         if not isinstance(raw, Mapping):
             return None
 
-        candidate: dict[str, Any] = {
+        candidate: JSONMutableMapping = {
             str(key): value for key, value in raw.items() if isinstance(key, str)
         }
 
@@ -2914,7 +3005,7 @@ class PawControlConfigFlow(
 
     @staticmethod
     def _resolve_dog_identifier(
-        candidate: Mapping[str, Any], fallback_id: str | None
+        candidate: Mapping[str, object], fallback_id: str | None
     ) -> str | None:
         """Return a trimmed dog identifier from legacy payloads when available."""
 

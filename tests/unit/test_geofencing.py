@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -13,7 +14,11 @@ from custom_components.pawcontrol.geofencing import (
     PawControlGeofencing,
     calculate_distance,
 )
-from custom_components.pawcontrol.types import GeofenceZoneMetadata, GPSLocation
+from custom_components.pawcontrol.types import (
+    GeofenceZoneMetadata,
+    GeofenceZoneStoragePayload,
+    GPSLocation,
+)
 
 
 @pytest.mark.unit
@@ -107,3 +112,99 @@ async def test_notify_zone_event_uses_typed_payload(mock_hass) -> None:
         expected_distance, abs=0.01
     )
     assert payload["accuracy"] == 5.0
+
+
+@pytest.mark.unit
+def test_geofence_zone_metadata_sanitization() -> None:
+    """Zone metadata should drop unsupported legacy values."""
+
+    raw_metadata: dict[str, object] = {
+        "auto_created": "yes",
+        "color": 128934,
+        "created_by": None,
+        "notes": "legacy",  # valid entry remains
+        "tags": ("garden", 42, "safe"),
+    }
+
+    zone = GeofenceZone(
+        id="garden",
+        name="Garden",
+        type=GeofenceType.SAFE_ZONE,
+        latitude=52.52,
+        longitude=13.405,
+        radius=25.0,
+        metadata=cast(GeofenceZoneMetadata, raw_metadata),
+    )
+
+    assert "auto_created" not in zone.metadata
+    assert "color" not in zone.metadata
+    assert zone.metadata["created_by"] is None
+    assert zone.metadata["notes"] == "legacy"
+    assert zone.metadata["tags"] == ["garden", "safe"]
+
+
+@pytest.mark.unit
+def test_from_storage_payload_sanitizes_metadata() -> None:
+    """Stored payloads with invalid metadata types are normalised."""
+
+    payload: GeofenceZoneStoragePayload = cast(
+        GeofenceZoneStoragePayload,
+        {
+            "id": "legacy",
+            "name": "Legacy",
+            "type": GeofenceType.POINT_OF_INTEREST.value,
+            "latitude": 1.0,
+            "longitude": 2.0,
+            "radius": 30.0,
+            "metadata": {
+                "auto_created": 1,
+                "color": None,
+                "notes": "memo",
+                "tags": {"first": 1},
+            },
+        },
+    )
+
+    zone = GeofenceZone.from_storage_payload(payload)
+
+    assert "auto_created" not in zone.metadata
+    assert zone.metadata["color"] is None
+    assert zone.metadata["notes"] == "memo"
+    assert "tags" not in zone.metadata
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_initialize_accepts_legacy_list_storage(mock_hass) -> None:
+    """Legacy list-based storage payloads should load successfully."""
+
+    geofencing = PawControlGeofencing(mock_hass, "entry")
+    store = MagicMock()
+    legacy_zone: GeofenceZoneStoragePayload = cast(
+        GeofenceZoneStoragePayload,
+        {
+            "id": "park",
+            "name": "Park",
+            "type": GeofenceType.SAFE_ZONE.value,
+            "latitude": 51.0,
+            "longitude": 7.0,
+            "radius": 45.0,
+        },
+    )
+    store.async_load = AsyncMock(return_value={"zones": [legacy_zone]})
+    store.async_save = AsyncMock()
+    geofencing._store = store
+
+    await geofencing.async_initialize(
+        dogs=["dog-1"],
+        enabled=False,
+        use_home_location=False,
+        home_zone_radius=30,
+        check_interval=10,
+    )
+
+    store.async_load.assert_awaited_once()
+    zones = geofencing.get_zones()
+    assert "park" in zones
+    assert zones["park"].name == "Park"
+    assert geofencing.get_dog_state("dog-1") is not None

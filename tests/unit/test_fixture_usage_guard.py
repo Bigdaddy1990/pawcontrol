@@ -228,6 +228,7 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
                     "asynccontextmanager",
                     "nullcontext",
                     "closing",
+                    "aclosing",
                 }:
                     self._wrapper_aliases[alias.asname] = alias.name
         if node.module == "dataclasses":
@@ -862,7 +863,9 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
                     return self._resolve_name(keyword.value)
             return None
 
-        if callee_name.endswith("nullcontext") or callee_name.endswith("closing"):
+        if callee_name.endswith("nullcontext") or callee_name.endswith("closing") or callee_name.endswith(
+            "aclosing"
+        ):
             if node.args:
                 return self._resolve_name(node.args[0])
             for keyword in node.keywords:
@@ -887,7 +890,9 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
                     return fixture_name
             return None
 
-        if callee_name.endswith("push") or callee_name.endswith("push_async_callback"):
+        if callee_name.endswith("push") or callee_name.endswith("push_async_callback") or callee_name.endswith(
+            "push_async_exit"
+        ):
             for argument in node.args:
                 fixture_name = self._resolve_name(argument)
                 if fixture_name is not None:
@@ -1160,6 +1165,7 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
                 "asynccontextmanager",
                 "nullcontext",
                 "closing",
+                "aclosing",
                 "select",
                 "get",
                 "entry_points",
@@ -1210,6 +1216,7 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
                 "asynccontextmanager",
                 "nullcontext",
                 "closing",
+                "aclosing",
                 "entry_points",
                 "resolve_name",
                 "get_importer",
@@ -1259,12 +1266,14 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
                 "staticmethod",
                 "nullcontext",
                 "closing",
+                "aclosing",
                 "ModuleType",
                 "resolve_name",
                 "enter_context",
                 "enter_async_context",
                 "push",
                 "push_async_callback",
+                "push_async_exit",
                 "callback",
                 "select",
                 "get",
@@ -1307,7 +1316,9 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
                 return dotted
             if dotted.endswith("classmethod") or dotted.endswith("staticmethod"):
                 return dotted
-            if dotted.endswith("nullcontext") or dotted.endswith("closing"):
+            if dotted.endswith("nullcontext") or dotted.endswith("closing") or dotted.endswith(
+                "aclosing"
+            ):
                 return dotted
             if dotted.endswith("select") or dotted.endswith("get"):
                 return dotted
@@ -1427,6 +1438,12 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
                     return "contextlib.contextmanager"
                 if alias_target == "contextlib" and node.attr == "asynccontextmanager":
                     return "contextlib.asynccontextmanager"
+                if alias_target == "contextlib" and node.attr == "nullcontext":
+                    return "contextlib.nullcontext"
+                if alias_target == "contextlib" and node.attr == "closing":
+                    return "contextlib.closing"
+                if alias_target == "contextlib" and node.attr == "aclosing":
+                    return "contextlib.aclosing"
                 if alias_target == "dataclasses" and node.attr == "field":
                     return "dataclasses.field"
                 if alias_target == "dataclasses" and node.attr == "make_dataclass":
@@ -1502,6 +1519,8 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
             if dotted.endswith("push"):
                 return dotted
             if dotted.endswith("push_async_callback"):
+                return dotted
+            if dotted.endswith("push_async_exit"):
                 return dotted
             if dotted.endswith("callback"):
                 return dotted
@@ -3661,6 +3680,20 @@ def test_detects_closing_fixture_wrapper() -> None:
     assert "hass_client_admin" in offenders[0]
 
 
+def test_detects_aclosing_fixture_wrapper() -> None:
+    """Detect aclosing wrappers that forward forbidden fixtures."""
+
+    offenders = _scan_source(
+        "from contextlib import aclosing\n"
+        "async def run():\n"
+        "    async with aclosing(hass_voice_assistant_ws_client):\n"
+        "        pass\n"
+    )
+
+    assert len(offenders) == 1
+    assert "hass_voice_assistant_ws_client" in offenders[0]
+
+
 def test_detects_task_group_fixture_invocation() -> None:
     """Detect TaskGroup helpers that schedule forbidden fixtures."""
 
@@ -3715,6 +3748,20 @@ def test_detects_async_exit_stack_async_callback_wrapper() -> None:
 
     assert len(offenders) == 1
     assert "hass_client" in offenders[0]
+
+
+def test_detects_async_exit_stack_async_exit_wrapper() -> None:
+    """Detect AsyncExitStack helpers that push forbidden async exits."""
+
+    offenders = _scan_source(
+        "from contextlib import AsyncExitStack\n"
+        "async def run():\n"
+        "    stack = AsyncExitStack()\n"
+        "    stack.push_async_exit(hass_owner_ws_client)\n"
+    )
+
+    assert len(offenders) == 1
+    assert "hass_owner_ws_client" in offenders[0]
 
 
 def test_detects_exitstack_fixture_alias() -> None:

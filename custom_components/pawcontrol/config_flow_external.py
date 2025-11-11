@@ -12,6 +12,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import logging
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Final, Literal, Protocol, cast
 
 import voluptuous as vol
@@ -34,9 +35,9 @@ from .types import (
     ConfigFlowPlaceholders,
     DogConfigData,
     DogModulesConfig,
+    ExternalEntitiesPlaceholders,
     ExternalEntityConfig,
     ExternalEntitySelectorOption,
-    MutableConfigFlowPlaceholders,
 )
 
 GPS_SOURCE_KEY: Final[Literal["gps_source"]] = cast(
@@ -50,6 +51,19 @@ NOTIFY_FALLBACK_KEY: Final[Literal["notify_fallback"]] = cast(
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _build_external_entities_placeholders(
+    *, gps_enabled: bool, visitor_enabled: bool, dog_count: int
+) -> ConfigFlowPlaceholders:
+    """Return immutable placeholders for the external entities step."""
+
+    placeholders: ExternalEntitiesPlaceholders = {
+        "gps_enabled": gps_enabled,
+        "visitor_enabled": visitor_enabled,
+        "dog_count": dog_count,
+    }
+    return MappingProxyType(placeholders)
 
 
 if TYPE_CHECKING:
@@ -155,16 +169,16 @@ class ExternalEntityConfigurationMixin:
                     errors={"base": str(err)},
                 )
 
-        placeholders: MutableConfigFlowPlaceholders = {
-            "gps_enabled": flow._enabled_modules.get(MODULE_GPS, False),
-            "visitor_enabled": flow._enabled_modules.get(MODULE_VISITOR, False),
-            "dog_count": len(flow._dogs),
-        }
-
         return flow.async_show_form(
             step_id="configure_external_entities",
             data_schema=self._get_external_entities_schema(),
-            description_placeholders=placeholders,
+            description_placeholders=_build_external_entities_placeholders(
+                gps_enabled=bool(flow._enabled_modules.get(MODULE_GPS, False)),
+                visitor_enabled=bool(
+                    flow._enabled_modules.get(MODULE_VISITOR, False)
+                ),
+                dog_count=len(flow._dogs),
+            ),
         )
 
     def _get_external_entities_schema(self) -> vol.Schema:

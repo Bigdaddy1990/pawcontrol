@@ -6,16 +6,15 @@ from collections.abc import Mapping, MutableMapping
 from typing import cast
 
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN
 from .types import (
-    LegacyRuntimeStoreEntry,
-    LegacyRuntimeStorePayload,
+    DomainRuntimeStore,
+    DomainRuntimeStoreEntry,
     PawControlConfigEntry,
     PawControlRuntimeData,
 )
-
-type DomainRuntimeStore = MutableMapping[str, LegacyRuntimeStoreEntry]
 
 
 def _resolve_entry_id(entry_or_id: PawControlConfigEntry | str) -> str:
@@ -56,14 +55,6 @@ def _get_domain_store(
     return cast(DomainRuntimeStore, domain_data)
 
 
-_RUNTIME_REQUIRED_ATTRS: tuple[str, ...] = (
-    "coordinator",
-    "entity_factory",
-    "entity_profile",
-    "dogs",
-)
-
-
 def _as_runtime_data(value: object | None) -> PawControlRuntimeData | None:
     """Return ``value`` when it looks like runtime data, otherwise ``None``."""
 
@@ -83,34 +74,64 @@ def _as_runtime_data(value: object | None) -> PawControlRuntimeData | None:
     if getattr(value_cls, "__module__", "") != PawControlRuntimeData.__module__:
         return None
 
-    if not all(hasattr(value, attr) for attr in _RUNTIME_REQUIRED_ATTRS):
-        return None
-
     return cast(PawControlRuntimeData, value)
 
 
-def _coerce_runtime_data(
-    value: object | None,
-) -> tuple[PawControlRuntimeData | None, bool]:
-    """Return runtime data and whether the store needs migration."""
+def _coerce_version(candidate: object | None) -> int | None:
+    """Return a positive integer version extracted from ``candidate``."""
+
+    if isinstance(candidate, bool):
+        return None
+    if isinstance(candidate, int) and candidate > 0:
+        return candidate
+    return None
+
+
+def _as_store_entry(value: object | None) -> DomainRuntimeStoreEntry | None:
+    """Return a :class:`DomainRuntimeStoreEntry` if ``value`` resembles one."""
+
+    if isinstance(value, DomainRuntimeStoreEntry):
+        return value.ensure_current()
+
+    if value is None:
+        return None
 
     runtime_data = _as_runtime_data(value)
     if runtime_data is not None:
-        return runtime_data, False
+        return DomainRuntimeStoreEntry(runtime_data=runtime_data)
 
-    if not isinstance(value, Mapping):
-        return None, False
+    value_cls = getattr(value, "__class__", None)
+    if value_cls is None:
+        return None
 
-    mapping_value = cast(Mapping[str, object], value)
-    legacy_value = mapping_value.get("runtime_data")
-    runtime_data = _as_runtime_data(legacy_value)
+    if getattr(value_cls, "__name__", "") != "DomainRuntimeStoreEntry":
+        if isinstance(value, Mapping):
+            mapping_value: Mapping[str, object]
+            mapping_value = cast(Mapping[str, object], value)
+            runtime_candidate = mapping_value.get("runtime_data")
+            runtime_data = _as_runtime_data(runtime_candidate)
+            if runtime_data is None:
+                return None
+
+            version = _coerce_version(mapping_value.get("version"))
+            if version is None:
+                return DomainRuntimeStoreEntry(runtime_data=runtime_data)
+            return DomainRuntimeStoreEntry(runtime_data=runtime_data, version=version)
+
+        return None
+
+    if getattr(value_cls, "__module__", "") != DomainRuntimeStoreEntry.__module__:
+        return None
+
+    runtime_candidate = getattr(value, "runtime_data", None)
+    runtime_data = _as_runtime_data(runtime_candidate)
     if runtime_data is None:
-        return None, True
+        return None
 
-    is_plain_mapping = isinstance(value, dict) and set(mapping_value.keys()) == {
-        "runtime_data"
-    }
-    return runtime_data, not is_plain_mapping
+    version = _coerce_version(getattr(value, "version", None))
+    if version is None:
+        return DomainRuntimeStoreEntry(runtime_data=runtime_data)
+    return DomainRuntimeStoreEntry(runtime_data=runtime_data, version=version)
 
 
 def _cleanup_domain_store(
@@ -153,26 +174,10 @@ def store_runtime_data(
 
     entry.runtime_data = runtime_data
 
-    store = _get_domain_store(hass, create=False)
-    if store is None:
-        return
-
-    # Remove the compatibility payload for the entry we just populated so
-    # ``get_runtime_data`` always prefers the config entry attribute.
-    store.pop(entry.entry_id, None)
-
-    # Normalise any remaining compatibility payloads for other entries.
-    for key, value in list(store.items()):
-        resolved, needs_migration = _coerce_runtime_data(value)
-        if resolved is None:
-            if needs_migration:
-                store.pop(key, None)
-            continue
-        if needs_migration:
-            payload: LegacyRuntimeStorePayload = {"runtime_data": resolved}
-            store[key] = payload
-
-    _cleanup_domain_store(hass, store)
+    store = _get_domain_store(hass, create=True)
+    store[entry.entry_id] = DomainRuntimeStoreEntry(
+        runtime_data=runtime_data
+    ).ensure_current()
 
 
 def get_runtime_data(
@@ -183,6 +188,19 @@ def get_runtime_data(
     entry = _get_entry(hass, entry_or_id)
     runtime = _get_runtime_from_entry(entry)
     if runtime is not None:
+        if entry is not None:
+            store = _get_domain_store(hass, create=True)
+            if store is not None:
+                current_entry = DomainRuntimeStoreEntry(
+                    runtime_data=runtime
+                ).ensure_current()
+                existing_entry = _as_store_entry(store.get(entry.entry_id))
+                if (
+                    existing_entry is None
+                    or existing_entry.unwrap() is not runtime
+                    or existing_entry.version != current_entry.version
+                ):
+                    store[entry.entry_id] = current_entry
         return runtime
 
     entry_id = _resolve_entry_id(entry_or_id)
@@ -190,19 +208,19 @@ def get_runtime_data(
     if store is None:
         return None
 
-    runtime_data, needs_migration = _coerce_runtime_data(store.get(entry_id))
-    if runtime_data is not None:
-        store.pop(entry_id, None)
-        _cleanup_domain_store(hass, store)
-        if entry is not None:
-            entry.runtime_data = runtime_data
-        return runtime_data
+    store_entry = _as_store_entry(store.get(entry_id))
+    if store_entry is None:
+        if store.pop(entry_id, None) is not None:
+            _cleanup_domain_store(hass, store)
+        return None
 
-    if needs_migration:
-        store.pop(entry_id, None)
-        _cleanup_domain_store(hass, store)
+    current_entry = store_entry.ensure_current()
+    store[entry_id] = current_entry
 
-    return None
+    runtime_data = current_entry.unwrap()
+    if entry is not None:
+        entry.runtime_data = runtime_data
+    return runtime_data
 
 
 def pop_runtime_data(
@@ -214,6 +232,11 @@ def pop_runtime_data(
     runtime_data = _get_runtime_from_entry(entry)
     if runtime_data is not None:
         _detach_runtime_from_entry(entry)
+        store = _get_domain_store(hass, create=False)
+        if store is not None and entry is not None:
+            entry_id = entry.entry_id
+            if store.pop(entry_id, None) is not None:
+                _cleanup_domain_store(hass, store)
         return runtime_data
 
     entry_id = _resolve_entry_id(entry_or_id)
@@ -221,9 +244,29 @@ def pop_runtime_data(
     store_runtime: PawControlRuntimeData | None = None
     if store is not None:
         value = store.pop(entry_id, None)
-        resolved_runtime, _needs_migration = _coerce_runtime_data(value)
-        if resolved_runtime is not None:
-            store_runtime = resolved_runtime
+        store_entry = _as_store_entry(value)
+        if store_entry is not None:
+            store_runtime = store_entry.ensure_current().unwrap()
         _cleanup_domain_store(hass, store)
 
     return store_runtime
+class RuntimeDataUnavailableError(HomeAssistantError):
+    """Raised when PawControl runtime data cannot be resolved."""
+
+
+def require_runtime_data(
+    hass: HomeAssistant, entry_or_id: PawControlConfigEntry | str
+) -> PawControlRuntimeData:
+    """Return runtime data or raise when unavailable."""
+
+    runtime = get_runtime_data(hass, entry_or_id)
+    if runtime is None:
+        entry_id = (
+            entry_or_id
+            if isinstance(entry_or_id, str)
+            else getattr(entry_or_id, "entry_id", "unknown")
+        )
+        raise RuntimeDataUnavailableError(
+            f"Runtime data unavailable for PawControl entry {entry_id}"
+        )
+    return runtime

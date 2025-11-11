@@ -33,7 +33,7 @@ from .const import (
 )
 from .coordinator_support import ensure_cache_repair_aggregate
 from .feeding_translations import build_feeding_compliance_summary
-from .runtime_data import get_runtime_data
+from .runtime_data import RuntimeDataUnavailableError, require_runtime_data
 from .types import (
     ConfigFlowUserInput,
     DogConfigData,
@@ -772,9 +772,9 @@ async def _publish_cache_health_issue(hass: HomeAssistant, entry: ConfigEntry) -
     """Publish aggregated cache diagnostics to the repairs dashboard."""
 
     issue_id = f"{entry.entry_id}_cache_health"
-    runtime_data = get_runtime_data(hass, entry)
-
-    if runtime_data is None:
+    try:
+        runtime_data = require_runtime_data(hass, entry)
+    except RuntimeDataUnavailableError:
         delete_issue = getattr(ir, "async_delete_issue", None)
         if callable(delete_issue):
             await delete_issue(hass, DOMAIN, issue_id)
@@ -835,42 +835,42 @@ async def _check_coordinator_health(hass: HomeAssistant, entry: ConfigEntry) -> 
         entry: Configuration entry
     """
     try:
-        runtime_data = get_runtime_data(hass, entry)
-        if runtime_data is None:
-            await async_create_issue(
-                hass,
-                entry,
-                f"{entry.entry_id}_coordinator_missing",
-                ISSUE_COORDINATOR_ERROR,
-                {
-                    "error": "coordinator_not_initialized",
-                    "suggestion": "Try reloading the integration",
-                },
-                severity="error",
-            )
-            return
-
-        coordinator = runtime_data.coordinator
-
-        if not getattr(coordinator, "last_update_success", True):
-            last_update_time = getattr(coordinator, "last_update_time", None)
-            await async_create_issue(
-                hass,
-                entry,
-                f"{entry.entry_id}_coordinator_failed",
-                ISSUE_COORDINATOR_ERROR,
-                {
-                    "error": "last_update_failed",
-                    "last_update": last_update_time.isoformat()
-                    if last_update_time
-                    else None,
-                    "suggestion": "Check logs for detailed error information",
-                },
-                severity="warning",
-            )
-
+        runtime_data = require_runtime_data(hass, entry)
+    except RuntimeDataUnavailableError:
+        await async_create_issue(
+            hass,
+            entry,
+            f"{entry.entry_id}_coordinator_missing",
+            ISSUE_COORDINATOR_ERROR,
+            {
+                "error": "coordinator_not_initialized",
+                "suggestion": "Try reloading the integration",
+            },
+            severity="error",
+        )
+        return
     except Exception as err:
         _LOGGER.error("Error checking coordinator health: %s", err)
+        return
+
+    coordinator = runtime_data.coordinator
+
+    if not getattr(coordinator, "last_update_success", True):
+        last_update_time = getattr(coordinator, "last_update_time", None)
+        await async_create_issue(
+            hass,
+            entry,
+            f"{entry.entry_id}_coordinator_failed",
+            ISSUE_COORDINATOR_ERROR,
+            {
+                "error": "last_update_failed",
+                "last_update": last_update_time.isoformat()
+                if last_update_time
+                else None,
+                "suggestion": "Check logs for detailed error information",
+            },
+            severity="warning",
+        )
 
 
 class PawControlRepairsFlow(RepairsFlow):
@@ -1798,6 +1798,8 @@ async def async_register_repairs(hass: HomeAssistant) -> None:
 
     # Iterate over all loaded entries and run checks for those with runtime data
     for entry in hass.config_entries.async_entries(DOMAIN):
-        if get_runtime_data(hass, entry) is None:
+        try:
+            require_runtime_data(hass, entry)
+        except RuntimeDataUnavailableError:
             continue
         await async_check_for_issues(hass, entry)

@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import logging
 import re
 import threading
 from collections.abc import Awaitable, Callable, Iterable
+from types import MappingProxyType
 from typing import cast
 
 import pytest
@@ -14,6 +16,7 @@ from custom_components.pawcontrol.utils import (
     chunk_list,
     create_device_info,
     flatten_dict,
+    merge_configurations,
     retry_on_exception,
     safe_divide,
     safe_get_nested,
@@ -168,3 +171,48 @@ def test_chunk_list_and_safe_divide_utilities() -> None:
     assert safe_divide(10, 2) == 5
     assert safe_divide(10, 0, default=-1) == -1
     assert safe_divide(cast(float, "a"), 3, default=7) == 7
+
+
+def test_merge_configurations_nested_mappings_and_protected_keys(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Nested mappings merge recursively while respecting protected keys."""
+
+    base_config: JSONMutableMapping = {
+        "dog": {
+            "profile": {"name": "Fido", "weight": 12.5},
+            "modules": {"walk": {"enabled": True}},
+        },
+        "schedule": {"thresholds": {"min": 1}},
+        "protected": {"secret": True},
+    }
+
+    user_config = MappingProxyType(
+        {
+            "dog": {
+                "profile": {"weight": 10.0, "tags": ["energetic"]},
+                "modules": {"walk": {"enabled": False}, "health": {"enabled": True}},
+            },
+            "schedule": {"thresholds": {"max": 5}},
+            "protected": {"secret": False},
+            "new_field": {"child": 1},
+        }
+    )
+
+    caplog.set_level(logging.WARNING)
+
+    merged = merge_configurations(base_config, user_config, {"protected"})
+
+    assert merged["dog"]["profile"] == {
+        "name": "Fido",
+        "weight": 10.0,
+        "tags": ["energetic"],
+    }
+    assert merged["dog"]["modules"] == {
+        "walk": {"enabled": False},
+        "health": {"enabled": True},
+    }
+    assert merged["schedule"]["thresholds"] == {"min": 1, "max": 5}
+    assert merged["new_field"] == {"child": 1}
+    assert merged["protected"] == {"secret": True}
+    assert "Ignoring protected configuration key" in caplog.text

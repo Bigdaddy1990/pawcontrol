@@ -26,8 +26,14 @@ filterwarnings = [
 target-version = "py313"
 line-length = 88
 src = ["custom_components/pawcontrol", "tests"]
-extend-exclude = ["tests", "docs", "scripts", "pylint"]
-exclude = ["pylint/**/*"]
+extend-exclude = [
+    "tests",
+    "docs",
+    "scripts",
+    "pylint",
+    "annotatedyaml/_vendor",
+]
+exclude = ["pylint/**/*", "annotatedyaml/_vendor/**/*"]
 
 [tool.ruff.lint]
 select = ["E","F","W","I","UP","B","SIM","RUF","PERF","FURB","N"]

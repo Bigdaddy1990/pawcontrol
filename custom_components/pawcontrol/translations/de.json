@@ -545,7 +545,8 @@
       "dog_missing_id": "Jeder importierte Hund benötigt eine eindeutige ID",
       "dog_invalid_modules": "Modulkonfiguration des Hundes konnte nicht interpretiert werden",
       "dog_invalid_config": "Importierte Hundekonfiguration ist ungültig",
-      "dog_duplicate": "Doppelte Hund-IDs in der Importdatei gefunden"
+      "dog_duplicate": "Doppelte Hund-IDs in der Importdatei gefunden",
+      "runtime_cache_unavailable": "Laufzeitdaten sind vorübergehend nicht verfügbar. Bitte nach dem Neuladen der Integration erneut versuchen."
     }
   },
   "entity": {

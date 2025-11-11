@@ -9,10 +9,16 @@ Python: 3.13+
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime, timedelta
 from unittest.mock import Mock
 
 import pytest
+from custom_components.pawcontrol.types import WalkRoutePoint, WalkSessionSnapshot
+from custom_components.pawcontrol.walk_manager import dt_util as walk_dt_util
+
+if not hasattr(walk_dt_util, "UTC"):
+    walk_dt_util.UTC = UTC  # type: ignore[attr-defined]
 from custom_components.pawcontrol.walk_manager import (
     WalkManager,
     WalkSession,
@@ -680,3 +686,186 @@ class TestEdgeCases:
 
         # Data should be cleared
         assert len(mock_walk_manager._dogs) == 0
+
+
+def _build_export_snapshot(
+    *,
+    walk_id: str,
+    start: datetime,
+    distance: float,
+    duration: float,
+    include_invalid_point: bool = False,
+) -> WalkSessionSnapshot:
+    """Create a typed walk snapshot for export regression tests."""
+
+    start_ts = start.isoformat()
+    end_ts = (start + timedelta(seconds=duration)).isoformat()
+
+    path: list[WalkRoutePoint] = [
+        {
+            "latitude": 52.5200,
+            "longitude": 13.4050,
+            "timestamp": start_ts,
+            "accuracy": 5.0,
+        },
+        {
+            "latitude": 52.5210,
+            "longitude": 13.4065,
+            "timestamp": (start + timedelta(minutes=5)).isoformat(),
+            "speed": 1.4,
+        },
+    ]
+
+    if include_invalid_point:
+        path.append(
+            {
+                "latitude": 123.456,
+                "longitude": 789.012,
+                "timestamp": (start + timedelta(minutes=10)).isoformat(),
+            }
+        )
+
+    snapshot: WalkSessionSnapshot = {
+        "walk_id": walk_id,
+        "dog_id": "test_dog",
+        "walk_type": "manual",
+        "start_time": start_ts,
+        "end_time": end_ts,
+        "duration": duration,
+        "distance": distance,
+        "status": "completed",
+        "path": path,
+        "start_location": {
+            "latitude": 52.5200,
+            "longitude": 13.4050,
+        },
+        "end_location": {
+            "latitude": 52.5210,
+            "longitude": 13.4065,
+        },
+    }
+
+    return snapshot
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+class TestRouteExport:
+    """Validate typed walk route exports."""
+
+    async def test_export_routes_gpx_payload(self, mock_walk_manager) -> None:
+        """GPX exports should include bounds, metadata, and sanitized paths."""
+
+        mock_walk_manager._walk_history["test_dog"] = [
+            _build_export_snapshot(
+                walk_id="walk-1",
+                start=datetime.now(UTC) - timedelta(hours=1),
+                distance=185.5,
+                duration=900.0,
+                include_invalid_point=True,
+            )
+        ]
+
+        payload = await mock_walk_manager.async_export_routes(
+            dog_id="test_dog", format="gpx", last_n_walks=1
+        )
+
+        assert payload is not None
+        assert payload["format"] == "gpx"
+        assert payload["walks_count"] == 1
+        assert payload["total_distance_meters"] == pytest.approx(185.5)
+        assert payload["total_gps_points"] == 2  # invalid sample filtered
+        assert payload["file_extension"] == ".gpx"
+        assert payload["mime_type"] == "application/gpx+xml"
+        assert "<gpx" in payload["gpx_data"]
+
+        metadata = payload["export_metadata"]
+        assert metadata["bounds"]["min_lat"] <= metadata["bounds"]["max_lat"]
+        assert metadata["bounds"]["min_lon"] <= metadata["bounds"]["max_lon"]
+
+        walk = payload["walks"][0]
+        assert walk["walk_id"] == "walk-1"
+        assert len(walk["path"]) == 2
+
+    async def test_export_routes_json_payload(self, mock_walk_manager) -> None:
+        """JSON exports should serialise walks and retain sanitized points."""
+
+        mock_walk_manager._walk_history["test_dog"] = [
+            _build_export_snapshot(
+                walk_id="walk-json",
+                start=datetime.now(UTC) - timedelta(minutes=45),
+                distance=320.0,
+                duration=1500.0,
+            )
+        ]
+
+        payload = await mock_walk_manager.async_export_routes(
+            dog_id="test_dog", format="json", last_n_walks=1
+        )
+
+        assert payload is not None
+        assert payload["format"] == "json"
+        assert payload["file_extension"] == ".json"
+        decoded = json.loads(payload["json_data"])
+        assert isinstance(decoded, list)
+        assert decoded[0]["walk_id"] == "walk-json"
+        assert len(decoded[0]["path"]) == 2
+
+    async def test_export_routes_csv_payload(self, mock_walk_manager) -> None:
+        """CSV exports should include headers and typed walk samples."""
+
+        mock_walk_manager._walk_history["test_dog"] = [
+            _build_export_snapshot(
+                walk_id="walk-csv",
+                start=datetime.now(UTC) - timedelta(minutes=30),
+                distance=240.0,
+                duration=1200.0,
+            )
+        ]
+
+        payload = await mock_walk_manager.async_export_routes(
+            dog_id="test_dog", format="csv", last_n_walks=1
+        )
+
+        assert payload is not None
+        assert payload["format"] == "csv"
+        assert payload["file_extension"] == ".csv"
+        assert payload["mime_type"] == "text/csv"
+        lines = payload["csv_data"].splitlines()
+        header_line = next(line for line in lines if not line.startswith("#"))
+        assert header_line.startswith("walk_id,walk_number,timestamp")
+        assert any("walk-csv" in line for line in lines)
+
+    async def test_export_routes_without_history(self, mock_walk_manager) -> None:
+        """Return ``None`` when no completed walks exist."""
+
+        mock_walk_manager._walk_history.pop("test_dog", None)
+
+        payload = await mock_walk_manager.async_export_routes(
+            dog_id="test_dog", format="gpx"
+        )
+
+        assert payload is None
+
+    async def test_export_routes_limits_recent_walks(self, mock_walk_manager) -> None:
+        """Only the requested number of walks should be exported."""
+
+        base = datetime.now(UTC) - timedelta(hours=2)
+        mock_walk_manager._walk_history["test_dog"] = [
+            _build_export_snapshot(
+                walk_id=f"walk-{index}",
+                start=base + timedelta(minutes=20 * index),
+                distance=150.0 + index,
+                duration=800.0 + index,
+            )
+            for index in range(3)
+        ]
+
+        payload = await mock_walk_manager.async_export_routes(
+            dog_id="test_dog", format="json", last_n_walks=2
+        )
+
+        assert payload is not None
+        exported_ids = [walk["walk_id"] for walk in payload["walks"]]
+        assert exported_ids == ["walk-1", "walk-2"]
+        assert payload["walks_count"] == 2

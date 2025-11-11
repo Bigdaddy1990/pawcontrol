@@ -26,6 +26,7 @@ from .types import (
     FeedingHealthSummary,
     FeedingHistoryAnalysis,
     FeedingHistoryEvent,
+    FeedingManagerDogSetupPayload,
     FeedingMissedMeal,
     FeedingSnapshot,
     FeedingSnapshotCache,
@@ -135,9 +136,9 @@ class FeedingHealthUpdatePayload(TypedDict, total=False):
 
     weight: float | int
     ideal_weight: float | int
-    age_months: int
+    age_months: int | float | None
     activity_level: str
-    body_condition_score: float | int
+    body_condition_score: float | int | None
     health_conditions: list[str]
     weight_goal: str
 
@@ -1150,12 +1151,16 @@ class FeedingManager:
         self._invalidate_cache(dog_id)
 
     async def async_initialize(
-        self, dogs: Sequence[JSONMapping | JSONMutableMapping]
+        self,
+        dogs: Sequence[
+            FeedingManagerDogSetupPayload | JSONMapping | JSONMutableMapping
+        ],
     ) -> None:
         """Initialize feeding configurations for dogs.
 
         Args:
-            dogs: List of dog configurations
+            dogs: Sequence of dog configuration payloads
+                compatible with ``FeedingManagerDogSetupPayload``
         """
         async with self._lock:
             # Reset caches so repeated initialisation (common in tests) does not

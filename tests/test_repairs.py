@@ -16,7 +16,7 @@ from enum import StrEnum
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from typing import Any
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, call
 
 import pytest
 from custom_components.pawcontrol.types import CacheRepairAggregate
@@ -530,9 +530,9 @@ def test_coordinator_error_flow_handles_failed_reload(
 
     assert reload_mock.await_count == 1
     cache_delete_calls = [
-        call
-        for call in delete_issue_mock.await_args_list
-        if call.args and str(call.args[-1]).endswith("_cache_health")
+        invocation
+        for invocation in delete_issue_mock.await_args_list
+        if invocation.args and str(invocation.args[-1]).endswith("_cache_health")
     ]
     assert not cache_delete_calls
     assert result["type"] == "form"
@@ -544,7 +544,7 @@ def test_async_check_for_issues_checks_coordinator_health(
 ) -> None:
     """Coordinator health should be validated when scanning for issues."""
 
-    module, create_issue_mock, _, _ = repairs_module
+    module, create_issue_mock, _, delete_issue_mock = repairs_module
 
     hass = SimpleNamespace()
     hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
@@ -564,18 +564,29 @@ def test_async_check_for_issues_checks_coordinator_health(
         version=1,
     )
 
-    original_get_runtime_data = module.get_runtime_data
-    module.get_runtime_data = lambda _hass, _entry: None
+    original_require_runtime_data = module.require_runtime_data
+
+    def _raise_runtime_error(*_: Any, **__: Any) -> Any:
+        raise module.RuntimeDataUnavailableError("runtime missing")
+
+    module.require_runtime_data = _raise_runtime_error
 
     try:
         asyncio.run(module.async_check_for_issues(hass, entry))
     finally:
-        module.get_runtime_data = original_get_runtime_data
+        module.require_runtime_data = original_require_runtime_data
 
     assert create_issue_mock.await_count == 1
     kwargs = create_issue_mock.await_args.kwargs
     assert kwargs["translation_key"] == module.ISSUE_COORDINATOR_ERROR
     assert kwargs["data"]["error"] == "coordinator_not_initialized"
+
+    cache_delete_calls = [
+        invocation
+        for invocation in delete_issue_mock.await_args_list
+        if invocation.args and str(invocation.args[-1]).endswith("_cache_health")
+    ]
+    assert len(cache_delete_calls) == 1
 
 
 def test_async_check_for_issues_publishes_cache_health_issue(
@@ -632,22 +643,22 @@ def test_async_check_for_issues_publishes_cache_health_issue(
         version=1,
     )
 
-    original_get_runtime_data = module.get_runtime_data
-    module.get_runtime_data = lambda _hass, _entry: runtime_data
+    original_require_runtime_data = module.require_runtime_data
+    module.require_runtime_data = lambda _hass, _entry: runtime_data
 
     try:
         asyncio.run(module.async_check_for_issues(hass, entry))
     finally:
-        module.get_runtime_data = original_get_runtime_data
+        module.require_runtime_data = original_require_runtime_data
 
     assert create_issue_mock.await_count == 1
     kwargs = create_issue_mock.await_args.kwargs
     assert kwargs["translation_key"] == module.ISSUE_CACHE_HEALTH_SUMMARY
     assert kwargs["data"]["summary"] == summary.to_mapping()
     cache_delete_calls = [
-        call
-        for call in delete_issue_mock.await_args_list
-        if call.args and str(call.args[-1]).endswith("_cache_health")
+        invocation
+        for invocation in delete_issue_mock.await_args_list
+        if invocation.args and str(invocation.args[-1]).endswith("_cache_health")
     ]
     assert not cache_delete_calls
 
@@ -695,19 +706,19 @@ def test_async_check_for_issues_clears_cache_issue_without_anomalies(
         version=1,
     )
 
-    original_get_runtime_data = module.get_runtime_data
-    module.get_runtime_data = lambda _hass, _entry: runtime_data
+    original_require_runtime_data = module.require_runtime_data
+    module.require_runtime_data = lambda _hass, _entry: runtime_data
 
     try:
         asyncio.run(module.async_check_for_issues(hass, entry))
     finally:
-        module.get_runtime_data = original_get_runtime_data
+        module.require_runtime_data = original_require_runtime_data
 
     assert create_issue_mock.await_count == 0
     cache_delete_calls = [
-        call
-        for call in delete_issue_mock.await_args_list
-        if call.args and str(call.args[-1]).endswith("_cache_health")
+        invocation
+        for invocation in delete_issue_mock.await_args_list
+        if invocation.args and str(invocation.args[-1]).endswith("_cache_health")
     ]
     assert len(cache_delete_calls) == 1
 
@@ -757,17 +768,17 @@ def test_async_check_for_issues_surfaces_reconfigure_warnings(
         version=1,
     )
 
-    original_get_runtime_data = module.get_runtime_data
-    module.get_runtime_data = lambda _hass, _entry: runtime_data
+    original_require_runtime_data = module.require_runtime_data
+    module.require_runtime_data = lambda _hass, _entry: runtime_data
 
     try:
         asyncio.run(module.async_check_for_issues(hass, entry))
     finally:
-        module.get_runtime_data = original_get_runtime_data
+        module.require_runtime_data = original_require_runtime_data
 
     assert any(
-        call.kwargs["translation_key"] == module.ISSUE_RECONFIGURE_WARNINGS
-        for call in create_issue_mock.await_args_list
+        invocation.kwargs["translation_key"] == module.ISSUE_RECONFIGURE_WARNINGS
+        for invocation in create_issue_mock.await_args_list
     )
 
 
@@ -818,17 +829,17 @@ def test_async_check_for_issues_surfaces_reconfigure_health_issue(
         version=1,
     )
 
-    original_get_runtime_data = module.get_runtime_data
-    module.get_runtime_data = lambda _hass, _entry: runtime_data
+    original_require_runtime_data = module.require_runtime_data
+    module.require_runtime_data = lambda _hass, _entry: runtime_data
 
     try:
         asyncio.run(module.async_check_for_issues(hass, entry))
     finally:
-        module.get_runtime_data = original_get_runtime_data
+        module.require_runtime_data = original_require_runtime_data
 
     assert any(
-        call.kwargs["translation_key"] == module.ISSUE_RECONFIGURE_HEALTH
-        for call in create_issue_mock.await_args_list
+        invocation.kwargs["translation_key"] == module.ISSUE_RECONFIGURE_HEALTH
+        for invocation in create_issue_mock.await_args_list
     )
 
 
@@ -875,26 +886,26 @@ def test_async_check_for_issues_clears_reconfigure_issues_when_clean(
         version=1,
     )
 
-    original_get_runtime_data = module.get_runtime_data
-    module.get_runtime_data = lambda _hass, _entry: runtime_data
+    original_require_runtime_data = module.require_runtime_data
+    module.require_runtime_data = lambda _hass, _entry: runtime_data
 
     try:
         asyncio.run(module.async_check_for_issues(hass, entry))
     finally:
-        module.get_runtime_data = original_get_runtime_data
+        module.require_runtime_data = original_require_runtime_data
 
     assert not any(
-        call.kwargs["translation_key"]
+        invocation.kwargs["translation_key"]
         in {module.ISSUE_RECONFIGURE_WARNINGS, module.ISSUE_RECONFIGURE_HEALTH}
-        for call in create_issue_mock.await_args_list
+        for invocation in create_issue_mock.await_args_list
     )
     assert any(
-        call.args and str(call.args[-1]).endswith("reconfigure_warnings")
-        for call in delete_issue_mock.await_args_list
+        invocation.args and str(invocation.args[-1]).endswith("reconfigure_warnings")
+        for invocation in delete_issue_mock.await_args_list
     )
     assert any(
-        call.args and str(call.args[-1]).endswith("reconfigure_health")
-        for call in delete_issue_mock.await_args_list
+        invocation.args and str(invocation.args[-1]).endswith("reconfigure_health")
+        for invocation in delete_issue_mock.await_args_list
     )
 
 

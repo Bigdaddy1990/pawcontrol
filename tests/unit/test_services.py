@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
-from types import SimpleNamespace
+from types import MappingProxyType, SimpleNamespace
 
 import pytest
 from custom_components.pawcontrol import compat, services
@@ -91,6 +92,47 @@ def test_service_validation_error_trims_whitespace(
 
     assert isinstance(error, SentinelServiceValidationError)
     assert str(error) == "trimmed"
+
+
+@pytest.mark.unit
+def test_coerce_service_details_value_handles_nested_payloads() -> None:
+    """``_coerce_service_details_value`` should return JSON-safe structures."""
+
+    payload = {
+        "timestamp": datetime(2024, 1, 1, tzinfo=UTC),
+        "details": {
+            1: {
+                "tuple": ("alpha", "beta"),
+                "set_values": {1, 2},
+                "proxy": MappingProxyType({("zone", 1): {"value": 5.0}}),
+                "namespace": SimpleNamespace(flag=True),
+            }
+        },
+        "sequence": (
+            "first",
+            {"second": SimpleNamespace(extra="value")},
+        ),
+        "none": None,
+    }
+
+    result = services._coerce_service_details_value(payload)
+
+    assert result["timestamp"] == "2024-01-01 00:00:00+00:00"
+
+    nested = result["details"]["1"]
+    assert nested["tuple"] == ["alpha", "beta"]
+    assert sorted(nested["set_values"]) == [1, 2]
+    assert nested["proxy"]["('zone', 1)"]["value"] == 5.0
+    assert nested["namespace"].startswith("namespace(flag=")
+
+    sequence = result["sequence"]
+    assert sequence[0] == "first"
+    assert sequence[1]["second"].startswith("namespace(extra=")
+
+    assert result["none"] is None
+
+    # Ensure the coerced payload serialises to JSON without raising errors.
+    json.dumps(result)
 
 
 def test_record_service_result_merges_rejection_metrics() -> None:
@@ -1014,6 +1056,138 @@ async def test_perform_daily_reset_records_failure(
         runtime_data.performance_stats["reconfigure_summary"]["requested_profile"]
         == "advanced"
     )
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_perform_daily_reset_normalises_complex_reconfigure_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Daily reset metadata should remain JSON-safe for complex summaries."""
+
+    complex_summary = {
+        "timestamp": datetime(2024, 3, 15, tzinfo=UTC),
+        "warnings": {"critical": ("gps", "walk")},
+        "note_sequence": (
+            "restore",
+            SimpleNamespace(code="501", reason={"id": 9}),
+        ),
+        "overrides": MappingProxyType(
+            {
+                1: {
+                    "threshold": 5.5,
+                    "set": {1, 2},
+                    "scheduled_at": datetime(2024, 3, 15, tzinfo=UTC),
+                }
+            }
+        ),
+    }
+
+    coordinator = _DummyCoordinator()
+    runtime_data = SimpleNamespace(
+        coordinator=coordinator,
+        walk_manager=_DummyWalkManager(),
+        notification_manager=_DummyNotificationManager(),
+        performance_stats={},
+    )
+
+    monkeypatch.setattr(services, "_capture_cache_diagnostics", lambda _: None)
+
+    def fake_update(runtime: SimpleNamespace) -> Mapping[str, object]:
+        runtime.performance_stats["reconfigure_summary"] = complex_summary
+        return complex_summary
+
+    monkeypatch.setattr(services, "update_runtime_reconfigure_summary", fake_update)
+    monkeypatch.setattr(
+        services, "get_runtime_data", lambda hass, entry: runtime_data
+    )
+
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(entry_id="test-entry")
+
+    await services._perform_daily_reset(hass, entry)
+
+    metadata = runtime_data.performance_stats["last_service_result"]["diagnostics"][
+        "metadata"
+    ]
+    reconfigure = metadata["reconfigure"]
+
+    assert reconfigure["timestamp"] == "2024-03-15 00:00:00+00:00"
+    assert reconfigure["warnings"]["critical"] == ["gps", "walk"]
+    assert reconfigure["note_sequence"][1].startswith("namespace(code='501'")
+    overrides = reconfigure["overrides"]["1"]
+    assert overrides["threshold"] == 5.5
+    assert overrides["scheduled_at"] == "2024-03-15 00:00:00+00:00"
+    assert sorted(overrides["set"]) == [1, 2]
+
+    maintenance_metadata = runtime_data.performance_stats["last_maintenance_result"][
+        "diagnostics"
+    ]["metadata"]["reconfigure"]
+    assert maintenance_metadata == reconfigure
+
+    json.dumps(reconfigure)
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_perform_daily_reset_failure_normalises_complex_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Failure telemetry should also coerce complex metadata payloads."""
+
+    complex_summary = {
+        "timestamp": datetime(2024, 4, 1, tzinfo=UTC),
+        "categories": {1: {"issues": {"primary": {"ids": {42, 43}}}}},
+        "notes": SimpleNamespace(message="Reset failed"),
+        "history": (
+            {"attempt": 1, "status": False},
+            SimpleNamespace(code="retry"),
+        ),
+    }
+
+    coordinator = _DummyCoordinator(fail=True, error=RuntimeError("boom"))
+    runtime_data = SimpleNamespace(
+        coordinator=coordinator,
+        walk_manager=_DummyWalkManager(),
+        notification_manager=_DummyNotificationManager(),
+        performance_stats={},
+    )
+
+    monkeypatch.setattr(services, "_capture_cache_diagnostics", lambda _: None)
+
+    def fake_update(runtime: SimpleNamespace) -> Mapping[str, object]:
+        runtime.performance_stats["reconfigure_summary"] = complex_summary
+        return complex_summary
+
+    monkeypatch.setattr(services, "update_runtime_reconfigure_summary", fake_update)
+    monkeypatch.setattr(
+        services, "get_runtime_data", lambda hass, entry: runtime_data
+    )
+
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(entry_id="test-entry")
+
+    with pytest.raises(RuntimeError):
+        await services._perform_daily_reset(hass, entry)
+
+    metadata = runtime_data.performance_stats["last_service_result"]["diagnostics"][
+        "metadata"
+    ]
+    reconfigure = metadata["reconfigure"]
+
+    assert reconfigure["timestamp"] == "2024-04-01 00:00:00+00:00"
+    categories = reconfigure["categories"]["1"]["issues"]["primary"]
+    assert sorted(categories["ids"]) == [42, 43]
+    assert reconfigure["notes"].startswith("namespace(message='Reset failed'")
+    assert reconfigure["history"][0] == {"attempt": 1, "status": False}
+    assert reconfigure["history"][1].startswith("namespace(code='retry'")
+
+    maintenance_metadata = runtime_data.performance_stats["last_maintenance_result"][
+        "diagnostics"
+    ]["metadata"]["reconfigure"]
+    assert maintenance_metadata == reconfigure
+
+    json.dumps(reconfigure)
 
 
 @pytest.mark.unit

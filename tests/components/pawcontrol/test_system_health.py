@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
 from custom_components.pawcontrol import system_health as system_health_module
 from custom_components.pawcontrol.const import DOMAIN
-from custom_components.pawcontrol.types import PawControlRuntimeData
+from custom_components.pawcontrol.types import (
+    CoordinatorRejectionMetrics,
+    ManualResilienceOptionsSnapshot,
+    PawControlRuntimeData,
+)
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -442,6 +447,127 @@ async def test_system_health_threshold_disabled_fallbacks(
 
     status = info["service_execution"]["status"]
     assert status["overall"]["level"] == "critical"
+
+
+def test_resolve_indicator_thresholds_prefers_script_snapshot() -> None:
+    """Prefer resilience script thresholds over config entry options."""
+
+    script_manager = MagicMock()
+    script_manager.get_resilience_escalation_snapshot.return_value = {
+        "thresholds": {
+            "skip_threshold": {"active": 4, "default": 2},
+            "breaker_threshold": {"active": 3, "default": 1},
+        }
+    }
+
+    runtime = SimpleNamespace(script_manager=script_manager)
+
+    options: ManualResilienceOptionsSnapshot = {
+        "resilience_skip_threshold": 6,
+        "resilience_breaker_threshold": 5,
+        "system_settings": {
+            "resilience_skip_threshold": 7,
+            "resilience_breaker_threshold": 6,
+        },
+    }
+
+    guard_thresholds, breaker_thresholds = (
+        system_health_module._resolve_indicator_thresholds(runtime, options)
+    )
+
+    script_manager.get_resilience_escalation_snapshot.assert_called_once()
+    assert guard_thresholds.source == "resilience_script"
+    assert guard_thresholds.source_key == "active"
+    assert guard_thresholds.critical_count == 4
+    assert guard_thresholds.warning_count == 3
+    assert guard_thresholds.warning_ratio == pytest.approx(
+        system_health_module.GUARD_SKIP_WARNING_RATIO
+    )
+    assert breaker_thresholds.source == "resilience_script"
+    assert breaker_thresholds.source_key == "active"
+    assert breaker_thresholds.critical_count == 3
+    assert breaker_thresholds.warning_count == 2
+
+
+def test_resolve_indicator_thresholds_uses_config_entry_fallback() -> None:
+    """Fallback to config entry thresholds when script metadata is absent."""
+
+    options: ManualResilienceOptionsSnapshot = {
+        "resilience_skip_threshold": 5,
+        "system_settings": {"resilience_breaker_threshold": 4},
+    }
+
+    guard_thresholds, breaker_thresholds = (
+        system_health_module._resolve_indicator_thresholds(None, options)
+    )
+
+    assert guard_thresholds.source == "config_entry"
+    assert guard_thresholds.source_key == "root_options"
+    assert guard_thresholds.critical_count == 5
+    assert guard_thresholds.warning_count == 4
+    assert guard_thresholds.warning_ratio == pytest.approx(
+        system_health_module.GUARD_SKIP_WARNING_RATIO
+    )
+
+    assert breaker_thresholds.source == "config_entry"
+    assert breaker_thresholds.source_key == "system_settings"
+    assert breaker_thresholds.critical_count == 4
+    assert breaker_thresholds.warning_count == 3
+
+
+def test_build_breaker_overview_serialises_metrics_and_thresholds() -> None:
+    """Serialise breaker overview using rejection metrics and thresholds."""
+
+    thresholds = system_health_module.BreakerIndicatorThresholds(
+        warning_count=1,
+        critical_count=2,
+        source="resilience_script",
+        source_key="active",
+    )
+
+    metrics: CoordinatorRejectionMetrics = {
+        "schema_version": 3,
+        "rejected_call_count": 5,
+        "rejection_breaker_count": 2,
+        "rejection_rate": 0.5,
+        "open_breaker_count": 2,
+        "half_open_breaker_count": 1,
+        "unknown_breaker_count": 1,
+        "open_breakers": ["Primary API", "Telemetry"],
+        "half_open_breakers": ["Sync"],
+        "unknown_breakers": ["Legacy"],
+        "last_rejection_breaker_id": "primary",
+        "last_rejection_breaker_name": "Primary API",
+        "last_rejection_time": 1_700_000_500.0,
+    }
+
+    overview = system_health_module._build_breaker_overview(metrics, thresholds)
+
+    assert overview["status"] == "open"
+    assert overview["open_breaker_count"] == 2
+    assert overview["half_open_breaker_count"] == 1
+    assert overview["unknown_breaker_count"] == 1
+    assert overview["rejection_rate"] == pytest.approx(0.5)
+    assert overview["last_rejection_breaker_id"] == "primary"
+    assert overview["last_rejection_breaker_name"] == "Primary API"
+    assert overview["last_rejection_time"] == pytest.approx(1_700_000_500.0)
+    assert overview["open_breakers"] == ["Primary API", "Telemetry"]
+    assert overview["half_open_breakers"] == ["Sync"]
+    assert overview["unknown_breakers"] == ["Legacy"]
+
+    thresholds_summary = overview["thresholds"]
+    assert thresholds_summary["source"] == "resilience_script"
+    assert thresholds_summary["source_key"] == "active"
+    assert thresholds_summary["warning"] == {"count": 1}
+    assert thresholds_summary["critical"] == {"count": 2}
+
+    indicator = overview["indicator"]
+    assert indicator["level"] == "critical"
+    assert indicator["color"] == "red"
+    assert indicator["metric"] == 3
+    assert indicator["threshold"] == 2
+    assert indicator["threshold_source"] == "active"
+    assert indicator["context"] == "breaker"
 
 
 async def test_system_health_uses_option_thresholds(

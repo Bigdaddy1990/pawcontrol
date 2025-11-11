@@ -21,13 +21,22 @@ from __future__ import annotations
 
 from asyncio import Task
 from collections import deque
-from collections.abc import Awaitable, Callable, Iterator, Mapping, Sequence
+from collections.abc import (
+    Awaitable,
+    Callable,
+    Iterable,
+    Iterator,
+    Mapping,
+    MutableMapping,
+    Sequence,
+)
 from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from types import MappingProxyType
 from typing import (
     TYPE_CHECKING,
     Any,
+    ClassVar,
     Final,
     Literal,
     NotRequired,
@@ -1352,7 +1361,7 @@ def dog_feeding_config_from_flow(user_input: DogFeedingStepInput) -> DogFeedingC
     daily_amount = _coerce_float(user_input.get(CONF_DAILY_FOOD_AMOUNT), default=500.0)
     portion_size = daily_amount / meals_per_day if meals_per_day else 0.0
 
-    feeding_config: dict[FeedingConfigKey, Any] = {
+    feeding_config: DogFeedingConfig = {
         "meals_per_day": meals_per_day,
         "daily_food_amount": daily_amount,
         "portion_size": portion_size,
@@ -1386,7 +1395,7 @@ def dog_feeding_config_from_flow(user_input: DogFeedingStepInput) -> DogFeedingC
     if _coerce_bool(user_input.get("snacks_enabled"), default=False):
         feeding_config["snack_times"] = list(DEFAULT_FEEDING_SCHEDULE)
 
-    return cast(DogFeedingConfig, feeding_config)
+    return feeding_config
 
 
 class DogGPSConfig(TypedDict, total=False):
@@ -2224,6 +2233,59 @@ class ModuleConfigurationPlaceholders(TypedDict):
     health_dogs: int
 
 
+class AddDogCapacityPlaceholders(TypedDict):
+    """Placeholders rendered when summarising configured dogs."""
+
+    dog_count: int
+    max_dogs: int
+    current_dogs: str
+    remaining_spots: int
+
+
+class DogModulesSuggestionPlaceholders(TypedDict):
+    """Placeholders exposed while recommending per-dog modules."""
+
+    dog_name: str
+    dog_size: str
+    dog_age: int
+
+
+class AddDogSummaryPlaceholders(TypedDict):
+    """Placeholders rendered on the main add-dog form."""
+
+    dogs_configured: str
+    max_dogs: str
+    discovery_hint: str
+
+
+class DogModulesSmartDefaultsPlaceholders(TypedDict):
+    """Placeholders surfaced alongside smart module defaults."""
+
+    dog_name: str
+    dogs_configured: str
+    smart_defaults: str
+
+
+class AddAnotherDogPlaceholders(TypedDict):
+    """Placeholders shown when asking to add another dog."""
+
+    dogs_configured: str
+    dogs_list: str
+    can_add_more: str
+    max_dogs: str
+    performance_note: str
+
+
+class AddAnotherDogSummaryPlaceholders(TypedDict):
+    """Placeholders shown when summarising configured dogs."""
+
+    dogs_list: str
+    dog_count: str
+    max_dogs: int
+    remaining_spots: int
+    at_limit: str
+
+
 class DashboardConfigurationPlaceholders(TypedDict):
     """Placeholders used when rendering the dashboard configuration form."""
 
@@ -2237,6 +2299,54 @@ class FeedingConfigurationPlaceholders(TypedDict):
 
     dog_count: int
     feeding_summary: str
+
+
+class DogGPSPlaceholders(TypedDict):
+    """Placeholders surfaced in the per-dog GPS configuration step."""
+
+    dog_name: str
+
+
+class DogFeedingPlaceholders(TypedDict):
+    """Placeholders rendered alongside the per-dog feeding configuration."""
+
+    dog_name: str
+    dog_weight: str
+    suggested_amount: str
+    portion_info: str
+
+
+class DogHealthPlaceholders(TypedDict):
+    """Placeholders rendered alongside the per-dog health configuration."""
+
+    dog_name: str
+    dog_age: str
+    dog_weight: str
+    suggested_ideal_weight: str
+    suggested_activity: str
+    medication_enabled: str
+    bcs_info: str
+    special_diet_count: str
+    health_diet_info: str
+
+
+class ModuleSetupSummaryPlaceholders(TypedDict):
+    """Placeholders rendered when summarising enabled modules."""
+
+    total_dogs: str
+    gps_dogs: str
+    health_dogs: str
+    suggested_performance: str
+    complexity_info: str
+    next_step_info: str
+
+
+class ExternalEntitiesPlaceholders(TypedDict):
+    """Placeholders rendered while configuring external entities."""
+
+    gps_enabled: bool
+    visitor_enabled: bool
+    dog_count: int
 
 
 class ExternalEntitySelectorOption(TypedDict):
@@ -2745,6 +2855,23 @@ class FeedingMissedMeal(TypedDict):
 
     meal_type: str
     scheduled_time: str
+
+
+class FeedingManagerDogSetupPayload(TypedDict, total=False):
+    """Normalized dog payload consumed by ``FeedingManager.async_initialize``."""
+
+    dog_id: Required[str]
+    weight: Required[float | int | str]
+    dog_name: NotRequired[str | None]
+    ideal_weight: NotRequired[float | int | str | None]
+    age_months: NotRequired[int | float | None]
+    activity_level: NotRequired[str | None]
+    health_conditions: NotRequired[Iterable[str] | None]
+    weight_goal: NotRequired[str | None]
+    special_diet: NotRequired[Iterable[str] | str | None]
+    feeding_config: NotRequired[JSONMutableMapping | JSONMapping]
+    breed: NotRequired[str | None]
+    modules: NotRequired[Mapping[str, bool]]
 
 
 class FeedingDailyStats(TypedDict):
@@ -5776,13 +5903,43 @@ class PawControlRuntimeData:
         return getattr(self, key, default)
 
 
-class LegacyRuntimeStorePayload(TypedDict):
-    """Compatibility container for runtime data stored in ``hass.data``."""
+DOMAIN_RUNTIME_STORE_VERSION: Final[int] = 1
+"""Current schema version for domain runtime store entries."""
+
+
+class LegacyDomainRuntimeStoreEntry(TypedDict, total=False):
+    """Serialized representation of legacy runtime store entries."""
 
     runtime_data: PawControlRuntimeData
+    version: int
 
 
-type LegacyRuntimeStoreEntry = PawControlRuntimeData | LegacyRuntimeStorePayload
+@dataclass(slots=True)
+class DomainRuntimeStoreEntry:
+    """Container persisting runtime data within ``hass.data`` namespaces."""
+
+    runtime_data: PawControlRuntimeData
+    version: int = DOMAIN_RUNTIME_STORE_VERSION
+
+    CURRENT_VERSION: ClassVar[int] = DOMAIN_RUNTIME_STORE_VERSION
+
+    def unwrap(self) -> PawControlRuntimeData:
+        """Return the stored runtime payload."""
+
+        return self.runtime_data
+
+    def ensure_current(self) -> DomainRuntimeStoreEntry:
+        """Return an entry stamped with the current schema version."""
+
+        if self.version == self.CURRENT_VERSION:
+            return self
+        return DomainRuntimeStoreEntry(
+            runtime_data=self.runtime_data,
+            version=self.CURRENT_VERSION,
+        )
+
+
+type DomainRuntimeStore = MutableMapping[str, DomainRuntimeStoreEntry]
 
 
 # PLATINUM: Custom ConfigEntry type for PawControl integrations

@@ -530,7 +530,14 @@ class WeatherHealthManager:
             resolved = None
 
         if resolved is not None:
-            return resolved.format(**kwargs) if kwargs else resolved
+            if not kwargs:
+                return resolved
+            try:
+                return resolved.format(**kwargs)
+            except (KeyError, ValueError) as err:
+                _LOGGER.debug(
+                    "Translation formatting failed for %s: %s", key, err
+                )
 
         return self._get_english_fallback(parts, key, **kwargs)
 
