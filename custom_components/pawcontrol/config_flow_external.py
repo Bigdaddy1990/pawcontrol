@@ -174,9 +174,7 @@ class ExternalEntityConfigurationMixin:
             data_schema=self._get_external_entities_schema(),
             description_placeholders=_build_external_entities_placeholders(
                 gps_enabled=bool(flow._enabled_modules.get(MODULE_GPS, False)),
-                visitor_enabled=bool(
-                    flow._enabled_modules.get(MODULE_VISITOR, False)
-                ),
+                visitor_enabled=bool(flow._enabled_modules.get(MODULE_VISITOR, False)),
                 dog_count=len(flow._dogs),
             ),
         )

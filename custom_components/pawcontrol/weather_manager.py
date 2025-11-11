@@ -535,9 +535,7 @@ class WeatherHealthManager:
             try:
                 return resolved.format(**kwargs)
             except (KeyError, ValueError) as err:
-                _LOGGER.debug(
-                    "Translation formatting failed for %s: %s", key, err
-                )
+                _LOGGER.debug("Translation formatting failed for %s: %s", key, err)
 
         return self._get_english_fallback(parts, key, **kwargs)
 

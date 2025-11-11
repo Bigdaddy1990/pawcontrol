@@ -936,11 +936,7 @@ class PawControlConfigFlow(
     ) -> ConfigFlowDiscoveryData:
         """Remove dynamic fields (like timestamps) for comparison."""
 
-        cleaned = {
-            key: value
-            for key, value in info.items()
-            if key != "last_seen"
-        }
+        cleaned = {key: value for key, value in info.items() if key != "last_seen"}
         return cast(ConfigFlowDiscoveryData, cleaned)
 
     async def _async_get_entry_for_unique_id(self) -> ConfigEntry | None:
@@ -1058,9 +1054,7 @@ class PawControlConfigFlow(
         self._discovery_info = cast(ConfigFlowDiscoveryData, copy.deepcopy(normalised))
 
         updates: DiscoveryUpdatePayload = {
-            "discovery_info": cast(
-                ConfigFlowDiscoveryData, copy.deepcopy(normalised)
-            )
+            "discovery_info": cast(ConfigFlowDiscoveryData, copy.deepcopy(normalised))
         }
 
         host = discovery_info.get("host") or discovery_info.get("ip")
@@ -1802,9 +1796,7 @@ class PawControlConfigFlow(
 
         return config_data, options_data
 
-    def _generate_entry_title(
-        self, profile_info: EntityProfileDefinition
-    ) -> str:
+    def _generate_entry_title(self, profile_info: EntityProfileDefinition) -> str:
         """Generate descriptive entry title.
 
         Args:
@@ -2306,9 +2298,7 @@ class PawControlConfigFlow(
                     continue
                 modules_payload = dog.get(CONF_MODULES, {})
                 modules_mapping = (
-                    modules_payload
-                    if isinstance(modules_payload, Mapping)
-                    else {}
+                    modules_payload if isinstance(modules_payload, Mapping) else {}
                 )
                 estimated_entities += factory.estimate_entity_count(
                     profile, cast(DogModulesConfig, dict(modules_mapping))

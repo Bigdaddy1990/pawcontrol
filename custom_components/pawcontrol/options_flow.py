@@ -3007,9 +3007,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     data_manager = None
                     if persist_updates:
                         try:
-                            runtime = require_runtime_data(
-                                self.hass, self._entry
-                            )
+                            runtime = require_runtime_data(self.hass, self._entry)
                         except RuntimeDataUnavailableError:
                             _LOGGER.error(
                                 "Runtime data unavailable while updating door sensor "

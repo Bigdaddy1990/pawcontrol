@@ -863,8 +863,10 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
                     return self._resolve_name(keyword.value)
             return None
 
-        if callee_name.endswith("nullcontext") or callee_name.endswith("closing") or callee_name.endswith(
-            "aclosing"
+        if (
+            callee_name.endswith("nullcontext")
+            or callee_name.endswith("closing")
+            or callee_name.endswith("aclosing")
         ):
             if node.args:
                 return self._resolve_name(node.args[0])
@@ -890,8 +892,10 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
                     return fixture_name
             return None
 
-        if callee_name.endswith("push") or callee_name.endswith("push_async_callback") or callee_name.endswith(
-            "push_async_exit"
+        if (
+            callee_name.endswith("push")
+            or callee_name.endswith("push_async_callback")
+            or callee_name.endswith("push_async_exit")
         ):
             for argument in node.args:
                 fixture_name = self._resolve_name(argument)
@@ -1316,8 +1320,10 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
                 return dotted
             if dotted.endswith("classmethod") or dotted.endswith("staticmethod"):
                 return dotted
-            if dotted.endswith("nullcontext") or dotted.endswith("closing") or dotted.endswith(
-                "aclosing"
+            if (
+                dotted.endswith("nullcontext")
+                or dotted.endswith("closing")
+                or dotted.endswith("aclosing")
             ):
                 return dotted
             if dotted.endswith("select") or dotted.endswith("get"):

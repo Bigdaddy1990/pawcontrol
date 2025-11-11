@@ -226,9 +226,7 @@ async def test_async_update_weather_data_missing_translation_falls_back_to_engli
 
     manager = WeatherHealthManager(hass)
     await manager.async_load_translations("de")
-    assert (
-        "extreme_heat_warning" not in manager._translations["alerts"]
-    )
+    assert "extreme_heat_warning" not in manager._translations["alerts"]
     assert (
         manager._english_translations["alerts"]["extreme_heat_warning"]["title"]
         == "🔥 Extreme Heat Warning"
@@ -311,10 +309,7 @@ async def test_async_update_weather_data_handles_formatting_errors_in_translatio
             and alert.severity == WeatherSeverity.HIGH
         )
     )
-    assert (
-        advisory.message
-        == "Temperature 32.0°C requires heat precautions for dogs"
-    )
+    assert advisory.message == "Temperature 32.0°C requires heat precautions for dogs"
 
 
 @pytest.mark.unit

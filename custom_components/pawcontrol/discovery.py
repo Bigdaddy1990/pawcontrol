@@ -372,7 +372,9 @@ class PawControlDiscovery:
             getattr(dr, "CONNECTION_BLUETOOTH", "bluetooth"),
             "bluetooth",
         }
-        if any(conn_type in bluetooth_aliases for conn_type, _ in device_entry.connections):
+        if any(
+            conn_type in bluetooth_aliases for conn_type, _ in device_entry.connections
+        ):
             _register_category("smart_collar", 0.1)
 
         if {

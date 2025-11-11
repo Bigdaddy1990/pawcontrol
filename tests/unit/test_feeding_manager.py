@@ -437,7 +437,9 @@ class TestFeedingModeScheduling:
         created_tasks: list[asyncio.Task[object]] = []
         original_create_task = asyncio.create_task
 
-        def capture_task(coro: Coroutine[object, object, object]) -> asyncio.Task[object]:
+        def capture_task(
+            coro: Coroutine[object, object, object],
+        ) -> asyncio.Task[object]:
             task = original_create_task(coro)
             created_tasks.append(task)
             return task
@@ -469,7 +471,8 @@ class TestFeedingModeScheduling:
 
         assert "test_dog" not in mock_feeding_manager._activity_reversion_tasks
         assert (
-            mock_feeding_manager._configs["test_dog"].activity_level == original_activity
+            mock_feeding_manager._configs["test_dog"].activity_level
+            == original_activity
         )
         assert reversion_task.done() is True
 
@@ -481,7 +484,9 @@ class TestFeedingModeScheduling:
         created_tasks: list[asyncio.Task[object]] = []
         original_create_task = asyncio.create_task
 
-        def capture_task(coro: Coroutine[object, object, object]) -> asyncio.Task[object]:
+        def capture_task(
+            coro: Coroutine[object, object, object],
+        ) -> asyncio.Task[object]:
             task = original_create_task(coro)
             created_tasks.append(task)
             return task
@@ -569,9 +574,7 @@ class TestHealthDataUpdates:
             "age_months": 36,
             "body_condition_score": 6,
         }
-        await mock_feeding_manager.async_update_health_data(
-            "test_dog", priming_payload
-        )
+        await mock_feeding_manager.async_update_health_data("test_dog", priming_payload)
 
         reset_payload: FeedingHealthUpdatePayload = {
             "age_months": None,
@@ -612,7 +615,9 @@ class TestDataRetrieval:
         feedings: list[FeedingEventRecord] = data["feedings"]
         assert isinstance(feedings, list)
         for event in feedings:
-            assert {"time", "amount", "scheduled", "with_medication", "skipped"} <= set(event)
+            assert {"time", "amount", "scheduled", "with_medication", "skipped"} <= set(
+                event
+            )
             assert isinstance(event["amount"], float)
             assert isinstance(event["scheduled"], bool)
             assert isinstance(event["with_medication"], bool)
@@ -649,9 +654,7 @@ class TestDataRetrieval:
         assert data["health_aware_feeding"] is False
         assert data["emergency_mode"] is None
 
-    async def test_get_daily_stats(
-        self, mock_feeding_manager: FeedingManager
-    ) -> None:
+    async def test_get_daily_stats(self, mock_feeding_manager: FeedingManager) -> None:
         """Test daily statistics calculation."""
         await mock_feeding_manager.async_add_feeding(
             dog_id="test_dog",

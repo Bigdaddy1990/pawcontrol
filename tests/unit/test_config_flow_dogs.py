@@ -132,10 +132,7 @@ def test_build_dog_feeding_placeholders_normalises_strings() -> None:
     assert placeholders["dog_name"] == "Luna"
     assert placeholders["dog_weight"] == "21.5"
     assert placeholders["suggested_amount"] == "320"
-    assert (
-        placeholders["portion_info"]
-        == "Automatic portion calculation: 320g per day"
-    )
+    assert placeholders["portion_info"] == "Automatic portion calculation: 320g per day"
 
 
 @pytest.mark.unit
@@ -209,4 +206,3 @@ def test_build_module_setup_placeholders_is_immutable() -> None:
     assert placeholders["suggested_performance"] == "balanced"
     assert placeholders["complexity_info"] == "info"
     assert placeholders["next_step_info"] == "Next"
-

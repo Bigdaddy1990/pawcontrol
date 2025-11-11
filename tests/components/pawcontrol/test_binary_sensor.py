@@ -413,10 +413,7 @@ async def test_health_emergency_sensor_sanitises_payload(
     valid_attrs = sensor_valid.extra_state_attributes
     assert valid_attrs["emergency_type"] == "medical"
     assert valid_attrs["portion_adjustment"] == pytest.approx(0.75)
-    assert (
-        valid_attrs["activated_at"]
-        == "2024-04-01T08:30:00+00:00"
-    )
+    assert valid_attrs["activated_at"] == "2024-04-01T08:30:00+00:00"
     assert valid_attrs["expires_at"] is None
     assert valid_attrs["status"] == "active"
 

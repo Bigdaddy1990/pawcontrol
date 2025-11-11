@@ -69,8 +69,7 @@ async def test_async_build_setup_flags_panel_returns_typed_payload(
     assert typed_panel["language"] == "de"
     assert typed_panel["title"] == translations[3]
     assert (
-        typed_panel["title_translation_key"]
-        == SETUP_FLAGS_PANEL_TITLE_TRANSLATION_KEY
+        typed_panel["title_translation_key"] == SETUP_FLAGS_PANEL_TITLE_TRANSLATION_KEY
     )
     assert typed_panel["title_default"] == SETUP_FLAGS_PANEL_TITLE
     assert typed_panel["description"] == translations[4]
@@ -109,9 +108,7 @@ async def test_async_build_setup_flags_panel_returns_typed_payload(
         "key": "enable_analytics",
         "label": "Analysen aktiviert",
         "label_default": SETUP_FLAG_LABELS["enable_analytics"],
-        "label_translation_key": SETUP_FLAG_LABEL_TRANSLATION_KEYS[
-            "enable_analytics"
-        ],
+        "label_translation_key": SETUP_FLAG_LABEL_TRANSLATION_KEYS["enable_analytics"],
         "enabled": True,
         "source": "options",
         "source_label": "Optionen (übersetzt)",
@@ -143,9 +140,7 @@ async def test_async_build_setup_flags_panel_returns_typed_payload(
         "key": "debug_logging",
         "label": "Protokollierung",
         "label_default": SETUP_FLAG_LABELS["debug_logging"],
-        "label_translation_key": SETUP_FLAG_LABEL_TRANSLATION_KEYS[
-            "debug_logging"
-        ],
+        "label_translation_key": SETUP_FLAG_LABEL_TRANSLATION_KEYS["debug_logging"],
         "enabled": True,
         "source": "advanced_settings",
         "source_label": "Erweitert (übersetzt)",

@@ -68,7 +68,9 @@ def _build_mock_coordinator(flag: Any) -> Mock:
         (None, True, False),
     ],
 )
-def test_walk_button_availability(flag: Any, start_available: bool, end_available: bool) -> None:
+def test_walk_button_availability(
+    flag: Any, start_available: bool, end_available: bool
+) -> None:
     """Walk buttons normalise module flags before reporting availability."""
 
     coordinator = _build_mock_coordinator(flag)
@@ -111,9 +113,10 @@ async def test_start_walk_blocks_truthy_strings(
     start_button = PawControlStartWalkButton(coordinator, "test_dog", "Test Dog")
     start_button.hass = hass
 
-    with patch.object(hass.services, "async_call", AsyncMock()) as mock_call, pytest.raises(
-        HomeAssistantError
-    ) as captured:
+    with (
+        patch.object(hass.services, "async_call", AsyncMock()) as mock_call,
+        pytest.raises(HomeAssistantError) as captured,
+    ):
         await start_button.async_press()
 
     mock_call.assert_not_called()
@@ -130,9 +133,10 @@ async def test_end_walk_blocks_falsey_strings(
     end_button = PawControlEndWalkButton(coordinator, "test_dog", "Test Dog")
     end_button.hass = hass
 
-    with patch.object(hass.services, "async_call", AsyncMock()) as mock_call, pytest.raises(
-        HomeAssistantError
-    ) as captured:
+    with (
+        patch.object(hass.services, "async_call", AsyncMock()) as mock_call,
+        pytest.raises(HomeAssistantError) as captured,
+    ):
         await end_button.async_press()
 
     mock_call.assert_not_called()
@@ -206,9 +210,10 @@ async def test_start_walk_reports_unknown_walk_id(hass: HomeAssistant) -> None:
     start_button = PawControlStartWalkButton(coordinator, "test_dog", "Test Dog")
     start_button.hass = hass
 
-    with patch.object(hass.services, "async_call", AsyncMock()) as mock_call, pytest.raises(
-        HomeAssistantError
-    ) as captured:
+    with (
+        patch.object(hass.services, "async_call", AsyncMock()) as mock_call,
+        pytest.raises(HomeAssistantError) as captured,
+    ):
         await start_button.async_press()
 
     mock_call.assert_not_called()

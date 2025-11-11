@@ -229,7 +229,9 @@ class GeofenceZone:
         """Create zone from dictionary data."""
 
         metadata_raw = data.get("metadata", {})
-        metadata = _sanitize_zone_metadata(metadata_raw if isinstance(metadata_raw, Mapping) else {})
+        metadata = _sanitize_zone_metadata(
+            metadata_raw if isinstance(metadata_raw, Mapping) else {}
+        )
 
         return cls(
             id=data["id"],
@@ -365,10 +367,11 @@ class PawControlGeofencing:
                 zones_data_raw = stored_data.get("zones", {})
                 if isinstance(zones_data_raw, list):
                     zones_data_raw = {
-                        cast(str, zone.get("id")): cast(GeofenceZoneStoragePayload, zone)
+                        cast(str, zone.get("id")): cast(
+                            GeofenceZoneStoragePayload, zone
+                        )
                         for zone in zones_data_raw
-                        if isinstance(zone, Mapping)
-                        and isinstance(zone.get("id"), str)
+                        if isinstance(zone, Mapping) and isinstance(zone.get("id"), str)
                     }
                 elif not isinstance(zones_data_raw, Mapping):
                     zones_data_raw = {}

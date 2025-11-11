@@ -357,7 +357,9 @@ def test_pop_runtime_data_handles_store_entry(
     """Domain store entries should be returned and removed by ``pop``."""
 
     hass = _build_hass(
-        data={DOMAIN: {"stored": DomainRuntimeStoreEntryType(runtime_data=runtime_data)}}
+        data={
+            DOMAIN: {"stored": DomainRuntimeStoreEntryType(runtime_data=runtime_data)}
+        }
     )
 
     assert pop_runtime_data(hass, "stored") is runtime_data
@@ -503,4 +505,3 @@ def test_get_runtime_data_upgrades_outdated_version(
     persisted = store[entry.entry_id]
     assert persisted.version == DomainRuntimeStoreEntryType.CURRENT_VERSION
     assert persisted.runtime_data is runtime_data
-

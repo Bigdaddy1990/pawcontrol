@@ -154,4 +154,3 @@ async def test_helper_manager_creates_typed_helper_services(
     metrics = manager.guard_metrics
     assert metrics["executed"] == 4
     assert metrics["skipped"] == 0
-

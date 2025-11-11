@@ -250,6 +250,8 @@ def pop_runtime_data(
         _cleanup_domain_store(hass, store)
 
     return store_runtime
+
+
 class RuntimeDataUnavailableError(HomeAssistantError):
     """Raised when PawControl runtime data cannot be resolved."""
 

@@ -1098,9 +1098,7 @@ async def test_perform_daily_reset_normalises_complex_reconfigure_metadata(
         return complex_summary
 
     monkeypatch.setattr(services, "update_runtime_reconfigure_summary", fake_update)
-    monkeypatch.setattr(
-        services, "get_runtime_data", lambda hass, entry: runtime_data
-    )
+    monkeypatch.setattr(services, "get_runtime_data", lambda hass, entry: runtime_data)
 
     hass = SimpleNamespace()
     entry = SimpleNamespace(entry_id="test-entry")
@@ -1160,9 +1158,7 @@ async def test_perform_daily_reset_failure_normalises_complex_metadata(
         return complex_summary
 
     monkeypatch.setattr(services, "update_runtime_reconfigure_summary", fake_update)
-    monkeypatch.setattr(
-        services, "get_runtime_data", lambda hass, entry: runtime_data
-    )
+    monkeypatch.setattr(services, "get_runtime_data", lambda hass, entry: runtime_data)
 
     hass = SimpleNamespace()
     entry = SimpleNamespace(entry_id="test-entry")

@@ -51,7 +51,9 @@ class _CoordinatorStub:
         self.last_update_success_time = None
         self.runtime_managers = CoordinatorRuntimeManagers()
 
-    def async_add_listener(self, _callback: Any) -> Any:  # pragma: no cover - interface hook
+    def async_add_listener(
+        self, _callback: Any
+    ) -> Any:  # pragma: no cover - interface hook
         return lambda: None
 
     async def async_request_refresh(self) -> None:  # pragma: no cover - interface hook
@@ -146,14 +148,20 @@ async def test_async_setup_entry_creates_text_entities_from_normalized_configs(
         ],
     )
 
-    def _get_runtime_data(_hass: HomeAssistant, _entry: PawControlConfigEntry) -> PawControlRuntimeData:
+    def _get_runtime_data(
+        _hass: HomeAssistant, _entry: PawControlConfigEntry
+    ) -> PawControlRuntimeData:
         return runtime_data
 
-    monkeypatch.setattr("custom_components.pawcontrol.text.get_runtime_data", _get_runtime_data)
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.text.get_runtime_data", _get_runtime_data
+    )
 
     added_entities: list[PawControlTextBase] = []
 
-    def _add_entities(entities: Iterable[PawControlTextBase], update_before_add: bool = False) -> None:
+    def _add_entities(
+        entities: Iterable[PawControlTextBase], update_before_add: bool = False
+    ) -> None:
         assert not update_before_add
         added_entities.extend(list(entities))
 
@@ -172,7 +180,9 @@ async def test_async_setup_entry_creates_text_entities_from_normalized_configs(
 
 
 @pytest.mark.asyncio
-async def test_custom_label_character_count_updates_with_value(hass: HomeAssistant) -> None:
+async def test_custom_label_character_count_updates_with_value(
+    hass: HomeAssistant,
+) -> None:
     """Text entities expose typed attributes and clamp native values."""
 
     coordinator = cast(PawControlCoordinator, _CoordinatorStub(hass))

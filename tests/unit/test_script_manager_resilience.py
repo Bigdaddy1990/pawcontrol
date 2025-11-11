@@ -173,10 +173,7 @@ def test_resilience_snapshot_serialises_manual_payload() -> None:
     snapshot = manager.get_resilience_escalation_snapshot()
     assert snapshot is not None
     assert snapshot["available"] is True
-    assert (
-        snapshot["entity_id"]
-        == "script.pawcontrol_buddy_resilience_escalation"
-    )
+    assert snapshot["entity_id"] == "script.pawcontrol_buddy_resilience_escalation"
     assert snapshot["manual_events"]["available"] is True
     assert snapshot["manual_events"]["preferred_guard_event"] == "manual.guard"
     assert snapshot["manual_events"]["preferred_breaker_event"] == "manual.breaker"
