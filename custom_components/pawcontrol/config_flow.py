@@ -1700,7 +1700,16 @@ class PawControlConfigFlow(
             properties = discovery_info.get("properties", {})
 
             if host and CONF_API_ENDPOINT not in options_data:
-                scheme = "https" if properties.get("https", False) else "http"
+                raw_https: object = properties.get("https")
+                if isinstance(raw_https, str):
+                    normalized = raw_https.strip().lower()
+                    https_enabled = normalized in {"true", "1", "on", "yes"}
+                elif isinstance(raw_https, (bool, int, float)):
+                    https_enabled = bool(raw_https)
+                else:
+                    https_enabled = False
+
+                scheme = "https" if https_enabled else "http"
                 if port:
                     options_data[CONF_API_ENDPOINT] = f"{scheme}://{host}:{port}"
                 else:

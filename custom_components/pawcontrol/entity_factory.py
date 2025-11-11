@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
-_MIN_OPERATION_DURATION: Final[float] = 0.0008
+_MIN_OPERATION_DURATION: Final[float] = 0.00045
 _COARSE_SLEEP_THRESHOLD: Final[float] = 0.0015  # 1.5ms
 _COARSE_SLEEP_BUFFER: Final[float] = 0.0005  # 0.5ms
 _SPIN_YIELD_THRESHOLD: Final[float] = 0.002  # 2ms

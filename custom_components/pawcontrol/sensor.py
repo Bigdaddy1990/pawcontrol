@@ -845,7 +845,10 @@ class PawControlSensorBase(PawControlEntity, SensorEntity):
     def _base_attributes(self) -> AttributeDict:
         """Return a copy of the base extra state attributes."""
 
-        base = super().extra_state_attributes
+        base = cast(
+            AttributeDict,
+            PawControlSensorBase.extra_state_attributes.__get__(self, type(self)),
+        )
         return cast(AttributeDict, dict(base) if base else {})
 
     @property
