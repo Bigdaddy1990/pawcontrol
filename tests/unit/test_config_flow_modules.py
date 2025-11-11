@@ -11,10 +11,14 @@ from custom_components.pawcontrol.config_flow_modules import (
     _coerce_module_global_settings,
 )
 from custom_components.pawcontrol.types import (
+    MODULE_TOGGLE_KEYS,
     DashboardConfigurationStepInput,
+    DogModulesConfig,
+    DogModuleSelectionInput,
     FeedingConfigurationStepInput,
     ModuleConfigurationStepInput,
     ModuleConfigurationSummary,
+    dog_modules_from_flow_input,
 )
 
 
@@ -140,3 +144,34 @@ def test_build_dashboard_and_feeding_placeholders() -> None:
         "features": "status_cards, quick_actions",
     }
     assert feeding == {"dog_count": 1, "feeding_summary": "Doggo"}
+
+
+def test_dog_modules_from_flow_input_flags() -> None:
+    """Config-flow flag payloads normalise into module configs."""
+
+    selection = DogModuleSelectionInput(enable_feeding=True, enable_gps=False)
+
+    modules = dog_modules_from_flow_input(selection)
+
+    assert set(modules) == set(MODULE_TOGGLE_KEYS)
+    assert modules["feeding"] is True
+    assert modules["gps"] is False
+    assert all(isinstance(value, bool) for value in modules.values())
+
+
+def test_dog_modules_from_flow_input_merges_existing_defaults() -> None:
+    """Existing module toggles persist when flow payload omits them."""
+
+    existing: DogModulesConfig = {
+        "walk": True,
+        "notifications": True,
+        "garden": False,
+    }
+    selection = DogModuleSelectionInput()
+
+    modules = dog_modules_from_flow_input(selection, existing=existing)
+
+    assert set(modules) == set(MODULE_TOGGLE_KEYS)
+    assert modules["walk"] is True
+    assert modules["notifications"] is True
+    assert modules["garden"] is False

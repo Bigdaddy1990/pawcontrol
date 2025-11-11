@@ -29,18 +29,27 @@ from .types import (
     GPSCacheDiagnosticsMetadata,
     GPSCacheSnapshot,
     GPSCacheStats,
+    GPXAttributeMap,
     JSONMutableMapping,
     JSONValue,
+    WalkDailyStatistics,
+    WalkDetectionMetadata,
+    WalkDetectionMutableMetadata,
     WalkGPSSnapshot,
     WalkLocationSnapshot,
     WalkManagerDogSnapshot,
+    WalkOverviewSnapshot,
     WalkPerformanceCounters,
     WalkPerformanceSnapshot,
+    WalkRouteBounds,
+    WalkRouteExportFormat,
+    WalkRouteExportPayload,
     WalkRoutePoint,
     WalkSessionSnapshot,
     WalkStatisticsSnapshot,
+    WalkWeeklyStatistics,
 )
-from .utils import is_number
+from .utils import Number, is_number
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -260,7 +269,7 @@ class WalkSession:
     path: list[WalkRoutePoint] = field(default_factory=list)
     detection_confidence: float | None = None
     door_sensor: str | None = None
-    detection_metadata: JSONMutableMapping | None = None
+    detection_metadata: WalkDetectionMutableMetadata | None = None
 
     def as_dict(self) -> WalkSessionSnapshot:
         """Convert the session to a mutable dictionary."""
@@ -271,7 +280,7 @@ class WalkSession:
             else None
         )
         detection_metadata = (
-            cast(JSONMutableMapping, dict(self.detection_metadata))
+            cast(WalkDetectionMutableMetadata, dict(self.detection_metadata))
             if self.detection_metadata is not None
             else None
         )
@@ -624,7 +633,9 @@ class WalkManager:
         safety_alerts: bool = True,
         detection_confidence: float | None = None,
         door_sensor: str | None = None,
-        detection_metadata: Mapping[str, Any] | None = None,
+        detection_metadata: (
+            WalkDetectionMetadata | WalkDetectionMutableMetadata | None
+        ) = None,
     ) -> str | None:
         """Start a walk with optimized data structure.
 
@@ -678,11 +689,11 @@ class WalkManager:
                 except (TypeError, ValueError):
                     confidence_value = None
 
-            detection_payload: JSONMutableMapping | None = None
+            detection_payload: WalkDetectionMutableMetadata | None = None
             if detection_metadata:
                 try:
                     detection_payload = cast(
-                        JSONMutableMapping,
+                        WalkDetectionMutableMetadata,
                         {
                             str(key): cast(JSONValue, value)
                             for key, value in dict(detection_metadata).items()
@@ -1427,18 +1438,17 @@ class WalkManager:
 
         return info
 
-    def get_walk_data(self, dog_id: str) -> dict[str, Any]:
+    def get_walk_data(self, dog_id: str) -> WalkOverviewSnapshot | None:
         """Return a snapshot of walk data for a dog."""
 
         if dog_id not in self._dogs:
-            return {}
+            return None
 
-        container = self._dogs[dog_id]
-        active_walk = container.get("active_walk")
+        active_walk = self._dogs[dog_id].get("active_walk")
         active_snapshot = (
             cast(WalkSessionSnapshot, dict(active_walk))
             if isinstance(active_walk, dict)
-            else active_walk
+            else cast(WalkSessionSnapshot | None, active_walk)
         )
 
         stats = self._walk_data.get(dog_id)
@@ -1455,22 +1465,23 @@ class WalkManager:
             else cast(WalkGPSSnapshot, {"available": False, "zone": "unknown"})
         )
 
-        return {
+        overview: WalkOverviewSnapshot = {
             "active_walk": active_snapshot,
             "history": self.get_walk_history(dog_id),
             "stats": stats_snapshot,
             "statistics": cast(WalkStatisticsSnapshot, dict(stats_snapshot)),
             "gps": gps_snapshot,
         }
+        return overview
 
-    def get_daily_walk_stats(self, dog_id: str) -> dict[str, Any]:
+    def get_daily_walk_stats(self, dog_id: str) -> WalkDailyStatistics | None:
         """Return aggregated statistics for the current day."""
 
         stats = self._walk_data.get(dog_id)
         if stats is None:
-            return {}
+            return None
 
-        return {
+        daily_stats: WalkDailyStatistics = {
             "total_walks_today": stats["walks_today"],
             "total_duration_today": stats["total_duration_today"],
             "total_distance_today": stats["total_distance_today"],
@@ -1486,19 +1497,21 @@ class WalkManager:
             ),
             "energy_level": stats["energy_level"],
         }
+        return daily_stats
 
-    def get_weekly_walk_stats(self, dog_id: str) -> dict[str, Any]:
+    def get_weekly_walk_stats(self, dog_id: str) -> WalkWeeklyStatistics | None:
         """Return aggregated statistics for the current week."""
 
         stats = self._walk_data.get(dog_id)
         if stats is None:
-            return {}
+            return None
 
-        return {
+        weekly_stats: WalkWeeklyStatistics = {
             "total_walks_this_week": stats["weekly_walks"],
             "total_distance_this_week": stats["weekly_distance"],
             "walk_streak": stats["walk_streak"],
         }
+        return weekly_stats
 
     async def _update_location_analysis(
         self, dog_id: str, latitude: float, longitude: float
@@ -1542,12 +1555,20 @@ class WalkManager:
         """Calculate average speed for a walk."""
 
         duration_raw = walk_data.get("duration")
-        duration_seconds = float(duration_raw) if is_number(duration_raw) else 0.0
+        if not is_number(duration_raw):
+            return None
+
+        duration_value: Number = duration_raw
+        duration_seconds = float(duration_value)
         if duration_seconds <= 0.0:
             return None
 
         distance_raw = walk_data.get("distance")
-        distance_meters = float(distance_raw) if is_number(distance_raw) else 0.0
+        if not is_number(distance_raw):
+            return None
+
+        distance_value: Number = distance_raw
+        distance_meters = float(distance_value)
         if distance_meters <= 0.0:
             return None
 
@@ -1563,8 +1584,11 @@ class WalkManager:
         speeds: list[float] = []
         for point in path:
             speed = point.get("speed")
-            if is_number(speed):
-                speeds.append(float(speed))
+            if not is_number(speed):
+                continue
+
+            speed_value: Number = speed
+            speeds.append(float(speed_value))
         return max(speeds) if speeds else None
 
     def _estimate_calories_burned(
@@ -1572,23 +1596,31 @@ class WalkManager:
     ) -> float | None:
         """Estimate calories burned during walk."""
         duration_raw = walk_data.get("duration")
-        duration_seconds = float(duration_raw) if is_number(duration_raw) else 0.0
+        if not is_number(duration_raw):
+            return None
+
+        duration_value: Number = duration_raw
+        duration_seconds = float(duration_value)
         if duration_seconds <= 0.0:
             return None
 
         # Enhanced calorie estimation with elevation
         weight = walk_data.get("dog_weight_kg")
-        estimated_weight = (
-            float(weight) if is_number(weight) and float(weight) > 0 else 20.0
-        )
+        estimated_weight = 20.0
+        if is_number(weight):
+            weight_value: Number = weight
+            coerced_weight = float(weight_value)
+            if coerced_weight > 0:
+                estimated_weight = coerced_weight
         duration_minutes = duration_seconds / 60.0
         base_calories = estimated_weight * duration_minutes * 0.5
 
         # Add elevation bonus
         elevation_gain_raw = walk_data.get("elevation_gain", 0)
-        elevation_gain = (
-            float(elevation_gain_raw) if is_number(elevation_gain_raw) else 0.0
-        )
+        elevation_gain = 0.0
+        if is_number(elevation_gain_raw):
+            elevation_gain_value: Number = elevation_gain_raw
+            elevation_gain = float(elevation_gain_value)
         elevation_bonus = elevation_gain * 0.1  # 0.1 cal per meter elevation gain
 
         return base_calories + elevation_bonus
@@ -1625,9 +1657,9 @@ class WalkManager:
         self,
         dog_id: str,
         *,
-        format: str = "gpx",
+        format: WalkRouteExportFormat = "gpx",
         last_n_walks: int = 1,
-    ) -> dict[str, Any] | None:
+    ) -> WalkRouteExportPayload | None:
         """Export walk routes in specified format with enhanced validation.
 
         OPTIMIZED: Full GPX 1.1 compliance, robust error handling, comprehensive metadata.
@@ -1666,15 +1698,20 @@ class WalkManager:
                     return None
 
                 # Calculate route statistics
-                total_distance = sum(
-                    float(walk.get("distance") or 0.0) for walk in recent_walks
-                )
-                total_duration = sum(
-                    float(walk.get("duration") or 0.0) for walk in recent_walks
-                )
+                total_distance = 0.0
+                total_duration = 0.0
+                for walk_snapshot in recent_walks:
+                    distance_raw = walk_snapshot.get("distance")
+                    if is_number(distance_raw):
+                        distance_value: Number = distance_raw
+                        total_distance += float(distance_value)
+                    duration_raw = walk_snapshot.get("duration")
+                    if is_number(duration_raw):
+                        duration_value: Number = duration_raw
+                        total_duration += float(duration_value)
                 total_points = sum(len(walk["path"]) for walk in recent_walks)
 
-                export_data = {
+                export_data: WalkRouteExportPayload = {
                     "dog_id": dog_id,
                     "export_timestamp": dt_util.now().isoformat(),
                     "format": format,
@@ -1802,7 +1839,7 @@ class WalkManager:
 
     def _calculate_route_bounds(
         self, walks: list[WalkSessionSnapshot]
-    ) -> dict[str, float]:
+    ) -> WalkRouteBounds:
         """Calculate geographic bounds for all routes.
 
         Args:
@@ -1855,7 +1892,7 @@ class WalkManager:
             escaped = escape(value, quote=True)
             return escaped.replace("&#x27;", "&apos;")
 
-        def _format_attrs(attrs: dict[str, Any]) -> str:
+        def _format_attrs(attrs: GPXAttributeMap) -> str:
             parts: list[str] = []
             for key, raw_value in attrs.items():
                 if raw_value is None:
@@ -1870,7 +1907,7 @@ class WalkManager:
             _append(level, f"<{tag}>{_escape(value)}</{tag}>")
 
         def _open_tag(
-            level: int, tag: str, attrs: dict[str, Any] | None = None
+            level: int, tag: str, attrs: GPXAttributeMap | None = None
         ) -> None:
             _append(level, f"<{tag}{_format_attrs(attrs or {})}>")
 
@@ -2116,7 +2153,7 @@ class WalkManager:
         return "\n".join(csv_lines)
 
     async def async_configure_automatic_gps(
-        self, dog_id: str, config: dict[str, Any]
+        self, dog_id: str, config: Mapping[str, JSONValue]
     ) -> bool:
         """Configure automatic GPS settings for a dog.
 
@@ -2136,18 +2173,19 @@ class WalkManager:
                     return False
 
                 # Store GPS configuration
-                self._gps_data[dog_id]["automatic_config"] = config.copy()
+                automatic_config: JSONMutableMapping = {
+                    str(key): cast(JSONValue, value) for key, value in config.items()
+                }
+                self._gps_data[dog_id]["automatic_config"] = automatic_config
 
                 # Update detection parameters based on config
-                if config.get("gps_accuracy_threshold"):
-                    self._gps_data[dog_id]["accuracy_threshold"] = config[
-                        "gps_accuracy_threshold"
-                    ]
+                accuracy_value = config.get("gps_accuracy_threshold")
+                if isinstance(accuracy_value, (int, float)):
+                    self._gps_data[dog_id]["accuracy_threshold"] = float(accuracy_value)
 
-                if config.get("update_interval_seconds"):
-                    self._gps_data[dog_id]["update_interval"] = config[
-                        "update_interval_seconds"
-                    ]
+                update_interval_value = config.get("update_interval_seconds")
+                if isinstance(update_interval_value, (int, float)):
+                    self._gps_data[dog_id]["update_interval"] = update_interval_value
 
                 _LOGGER.info(
                     "Configured automatic GPS for %s: %s",

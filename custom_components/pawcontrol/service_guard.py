@@ -6,6 +6,8 @@ from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from typing import Any, NotRequired, Required, TypedDict, cast
 
+from .types import JSONLikeMapping, JSONMutableMapping, JSONValue
+
 
 @dataclass(slots=True, frozen=True)
 class ServiceGuardResult:
@@ -136,36 +138,63 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
         return metrics
 
     def accumulate(
-        self, metrics: MutableMapping[str, Any]
+        self, metrics: MutableMapping[str, JSONValue]
     ) -> ServiceGuardMetricsSnapshot:
         """Accumulate snapshot counts into ``metrics`` and return the payload."""
 
-        metrics["executed"] = int(metrics.get("executed", 0) or 0) + self.executed
-        metrics["skipped"] = int(metrics.get("skipped", 0) or 0) + self.skipped
+        executed_value = metrics.get("executed", 0)
+        executed = (
+            int(executed_value) if isinstance(executed_value, (int, float)) else 0
+        )
+        metrics["executed"] = executed + self.executed
 
-        reasons_payload = metrics.get("reasons")
-        if not isinstance(reasons_payload, MutableMapping):
-            reasons_payload = {}
+        skipped_value = metrics.get("skipped", 0)
+        skipped = int(skipped_value) if isinstance(skipped_value, (int, float)) else 0
+        metrics["skipped"] = skipped + self.skipped
+
+        reasons_payload_raw = metrics.get("reasons")
+        if isinstance(reasons_payload_raw, MutableMapping):
+            reasons_payload = cast(MutableMapping[str, JSONValue], reasons_payload_raw)
+        else:
+            reasons_payload = cast(JSONMutableMapping, {})
             metrics["reasons"] = reasons_payload
 
         for reason_key, count in self.reasons.items():
-            existing = int(cast(Any, reasons_payload.get(reason_key, 0)) or 0)
+            existing_value = reasons_payload.get(reason_key)
+            existing = (
+                int(existing_value) if isinstance(existing_value, (int, float)) else 0
+            )
             reasons_payload[reason_key] = existing + count
 
         metrics["last_results"] = self.history()
 
+        reasons_snapshot = metrics.get("reasons")
+        reasons_dict: dict[str, int]
+        if isinstance(reasons_snapshot, Mapping):
+            reasons_dict = {
+                key: int(value) if isinstance(value, (int, float)) else 0
+                for key, value in reasons_snapshot.items()
+            }
+        else:
+            reasons_dict = {}
+
+        last_results_raw = metrics.get("last_results", [])
+        last_results = (
+            last_results_raw
+            if isinstance(last_results_raw, list)
+            else list(self.history())
+        )
+
         return {
             "executed": int(metrics.get("executed", 0) or 0),
             "skipped": int(metrics.get("skipped", 0) or 0),
-            "reasons": dict(cast(Mapping[str, int], metrics.get("reasons", {}))),
-            "last_results": cast(
-                ServiceGuardResultHistory, metrics.get("last_results", [])
-            ),
+            "reasons": reasons_dict,
+            "last_results": cast(ServiceGuardResultHistory, last_results),
         }
 
 
 def normalise_guard_result_payload(
-    payload: Mapping[str, Any],
+    payload: JSONLikeMapping,
 ) -> ServiceGuardResultPayload:
     """Return a JSON-compatible payload for a guard result mapping."""
 

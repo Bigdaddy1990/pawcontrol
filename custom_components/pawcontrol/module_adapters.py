@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING, Any, Literal, TypedDict, cast
+from typing import TYPE_CHECKING, Literal, TypedDict, cast
 
 from aiohttp import ClientSession
 
@@ -51,6 +51,9 @@ from .types import (
     HealthMedicationQueue,
     HealthMedicationReminder,
     HealthModulePayload,
+    JSONLikeMapping,
+    JSONMutableMapping,
+    JSONValue,
     ModuleCacheMetrics,
     PawControlConfigEntry,
     WalkModulePayload,
@@ -210,7 +213,7 @@ class _ExpiringCache[PayloadT]:
         }
 
 
-def _normalise_health_alert(payload: Mapping[str, Any]) -> HealthAlertEntry:
+def _normalise_health_alert(payload: Mapping[str, object]) -> HealthAlertEntry:
     """Return a typed health alert entry with defaulted metadata."""
 
     alert_type = str(payload.get("type", "custom"))
@@ -224,10 +227,13 @@ def _normalise_health_alert(payload: Mapping[str, Any]) -> HealthAlertEntry:
     else:
         severity = "medium"
 
-    details: Mapping[str, Any] | None = None
+    details: JSONMutableMapping | None = None
     raw_details = payload.get("details")
     if isinstance(raw_details, Mapping):
-        details = raw_details
+        details = cast(
+            JSONMutableMapping,
+            {str(key): cast(JSONValue, value) for key, value in raw_details.items()},
+        )
 
     alert: HealthAlertEntry = {
         "type": alert_type,
@@ -241,7 +247,7 @@ def _normalise_health_alert(payload: Mapping[str, Any]) -> HealthAlertEntry:
 
 
 def _normalise_health_medication(
-    payload: Mapping[str, Any],
+    payload: Mapping[str, object],
 ) -> HealthMedicationReminder:
     """Normalise stored medication payloads into typed reminders."""
 
@@ -384,7 +390,7 @@ class FeedingModuleAdapter(_BaseModuleAdapter[FeedingModulePayload]):
             return payload
 
         default_data: FeedingModulePayload = FeedingModulePayload(
-            status="no_data",
+            status="ready",
             last_feeding=None,
             last_feeding_type=None,
             last_feeding_hours=None,
@@ -612,14 +618,14 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
 
         medications: HealthMedicationQueue = []
         health_alerts: HealthAlertList = []
-        health_data: dict[str, Any] = {
-            "weight": None,
-            "ideal_weight": None,
-            "last_vet_visit": None,
-            "medications": medications,
-            "health_alerts": health_alerts,
-            "status": "healthy",
-        }
+        health_data: HealthModulePayload = HealthModulePayload(
+            weight=None,
+            ideal_weight=None,
+            last_vet_visit=None,
+            medications=medications,
+            health_alerts=health_alerts,
+            status="healthy",
+        )
 
         if self._data_manager is not None:
             try:
@@ -633,7 +639,7 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
             else:
                 if entries:
                     latest = entries[0]
-                    health_data.update(latest)
+                    health_data.update(cast(JSONLikeMapping, latest))
                     health_data.setdefault("status", "healthy")
 
                     stored_medications = latest.get("medications")
@@ -710,8 +716,14 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                 )
 
             if feeding_context.get("health_emergency"):
-                emergency: Mapping[str, Any] = cast(
-                    Mapping[str, Any], feeding_context.get("emergency_mode") or {}
+                emergency: JSONMutableMapping = cast(
+                    JSONMutableMapping,
+                    dict(
+                        cast(
+                            JSONLikeMapping,
+                            feeding_context.get("emergency_mode") or {},
+                        )
+                    ),
                 )
                 health_data["status"] = "attention"
                 health_data["emergency"] = emergency
@@ -721,8 +733,7 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                     "severity": "critical",
                     "action_required": True,
                 }
-                if isinstance(emergency, Mapping):
-                    emergency_alert["details"] = dict(emergency)
+                emergency_alert["details"] = emergency
                 health_alerts.append(emergency_alert)
 
             if feeding_context.get("medication_with_meals"):
@@ -779,7 +790,7 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
         """Attach the weather health manager to source observations."""
         self._manager = manager
 
-    def _resolve_dog_config(self, dog_id: str) -> Mapping[str, Any] | None:
+    def _resolve_dog_config(self, dog_id: str) -> JSONLikeMapping | None:
         """Return the config entry mapping for ``dog_id`` if available."""
 
         raw_dogs = self._config_entry.data.get(CONF_DOGS)
@@ -791,7 +802,7 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
                 continue
             configured_id = candidate.get(CONF_DOG_ID)
             if isinstance(configured_id, str) and configured_id == dog_id:
-                return candidate
+                return cast(JSONLikeMapping, candidate)
 
         return None
 

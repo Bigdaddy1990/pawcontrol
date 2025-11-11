@@ -61,6 +61,7 @@ from custom_components.pawcontrol.types import (
     NotificationOptions,
     OptionsExportPayload,
     PawControlOptionsData,
+    RuntimeErrorHistoryEntry,
     SystemOptions,
     WeatherOptions,
     ensure_notification_options,
@@ -1618,7 +1619,7 @@ async def test_configure_door_sensor_persistence_failure_records_telemetry(
     runtime = SimpleNamespace(
         data_manager=data_manager,
         performance_stats={},
-        error_history=[],
+        error_history=cast(list[RuntimeErrorHistoryEntry], []),
     )
 
     user_input = {

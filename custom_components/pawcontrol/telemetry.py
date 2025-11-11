@@ -11,11 +11,16 @@ from .types import (
     BoolCoercionMetrics,
     BoolCoercionSample,
     BoolCoercionSummary,
+    ConfigEntryOptionsPayload,
     CoordinatorResilienceSummary,
     DoorSensorPersistenceFailure,
+    DoorSensorSettingsPayload,
+    JSONLikeMapping,
     PawControlRuntimeData,
+    ReconfigureOptionsUpdates,
     ReconfigureTelemetry,
     ReconfigureTelemetrySummary,
+    RuntimeErrorHistoryEntry,
     RuntimePerformanceStats,
 )
 
@@ -324,7 +329,10 @@ def _as_list(value: Any) -> list[str]:
 
 
 def summarise_reconfigure_options(
-    options: Mapping[str, Any] | MutableMapping[str, Any] | None,
+    options: ConfigEntryOptionsPayload
+    | ReconfigureOptionsUpdates
+    | JSONLikeMapping
+    | None,
 ) -> ReconfigureTelemetrySummary | None:
     """Build a condensed telemetry payload from config-entry options."""
 
@@ -452,7 +460,7 @@ def record_door_sensor_persistence_failure(
     dog_id: str,
     dog_name: str | None = None,
     door_sensor: str | None = None,
-    settings: Mapping[str, Any] | None = None,
+    settings: DoorSensorSettingsPayload | JSONLikeMapping | None = None,
     error: Exception | str | None = None,
     limit: int = 10,
 ) -> DoorSensorPersistenceFailure | None:
@@ -464,10 +472,15 @@ def record_door_sensor_persistence_failure(
     performance_stats = ensure_runtime_performance_stats(runtime_data)
 
     failures_raw = performance_stats.get("door_sensor_failures")
+    failures: list[DoorSensorPersistenceFailure]
     if isinstance(failures_raw, list):
-        failures = failures_raw
+        failures = cast(list[DoorSensorPersistenceFailure], failures_raw)
     elif isinstance(failures_raw, Sequence):
-        failures = [dict(entry) for entry in failures_raw if isinstance(entry, Mapping)]
+        failures = [
+            cast(DoorSensorPersistenceFailure, dict(entry))
+            for entry in failures_raw
+            if isinstance(entry, Mapping)
+        ]
     else:
         failures = []
 
@@ -483,7 +496,7 @@ def record_door_sensor_persistence_failure(
         failure["door_sensor"] = door_sensor
 
     if settings is not None:
-        failure["settings"] = dict(settings)
+        failure["settings"] = cast(DoorSensorSettingsPayload, dict(settings))
 
     if error is not None:
         failure["error"] = str(error)
@@ -497,9 +510,10 @@ def record_door_sensor_persistence_failure(
     performance_stats["door_sensor_failure_count"] = len(failures)
     performance_stats["last_door_sensor_failure"] = failure
 
-    error_history = getattr(runtime_data, "error_history", None)
-    if isinstance(error_history, list):
-        error_entry: dict[str, Any] = {
+    error_history_raw = getattr(runtime_data, "error_history", None)
+    if isinstance(error_history_raw, list):
+        error_history = cast(list[RuntimeErrorHistoryEntry], error_history_raw)
+        error_entry: RuntimeErrorHistoryEntry = {
             "timestamp": failure["recorded_at"],
             "source": "door_sensor_persistence",
             "dog_id": dog_id,

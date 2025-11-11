@@ -51,6 +51,7 @@ from .coordinator_accessors import CoordinatorDataAccessMixin
 from .types import (
     CoordinatorDataPayload,
     CoordinatorDogData,
+    CoordinatorModuleLookupResult,
     CoordinatorModuleState,
     CoordinatorUntypedModuleState,
     DeviceLinkDetails,
@@ -65,6 +66,7 @@ from .types import (
 )
 from .utils import (
     PawControlDeviceLinkMixin,
+    _coerce_json_mutable,
     async_call_add_entities,
     ensure_utc_datetime,
 )
@@ -317,6 +319,14 @@ class OptimizedEntityBase(
 
     # Essential attributes for optimal memory usage
     __slots__ = (
+        "_attr_device_class",
+        "_attr_entity_category",
+        "_attr_has_entity_name",
+        "_attr_icon",
+        "_attr_name",
+        "_attr_should_poll",
+        "_attr_suggested_area",
+        "_attr_unique_id",
         "_cached_attributes",
         "_cached_state",
         "_dog_id",
@@ -326,6 +336,7 @@ class OptimizedEntityBase(
         "_last_coordinator_available",
         "_last_updated",
         "_performance_tracker",
+        "_previous_coordinator_available",
         "_state_change_listeners",
     )
 
@@ -847,7 +858,7 @@ class OptimizedEntityBase(
 
         return dog_data
 
-    def _get_module_data_cached(self, module: str) -> Mapping[str, Any]:
+    def _get_module_data_cached(self, module: str) -> CoordinatorModuleLookupResult:
         """Get module data with caching.
 
         Args:
@@ -874,10 +885,13 @@ class OptimizedEntityBase(
                 payload = dict(entry.payload)
                 if typed_module:
                     return cast(CoordinatorModuleState, payload)
-                return payload
+                return cast(
+                    CoordinatorUntypedModuleState,
+                    _coerce_json_mutable(payload),
+                )
 
         # Fetch from coordinator
-        module_payload: CoordinatorModuleState | CoordinatorUntypedModuleState
+        module_payload: CoordinatorModuleLookupResult
         module_payload = cast(CoordinatorUntypedModuleState, {})
         if coordinator_available:
             result: Any = None
@@ -892,7 +906,10 @@ class OptimizedEntityBase(
                 module_payload = (
                     cast(CoordinatorModuleState, mapped_result)
                     if typed_module
-                    else cast(CoordinatorUntypedModuleState, mapped_result)
+                    else cast(
+                        CoordinatorUntypedModuleState,
+                        _coerce_json_mutable(mapped_result),
+                    )
                 )
             elif typed_module:
                 module_payload = cast(CoordinatorModuleState, {"status": "unknown"})
@@ -900,8 +917,19 @@ class OptimizedEntityBase(
             module_payload = cast(CoordinatorModuleState, {"status": "unknown"})
 
         # Cache result
+        cached_payload: OptimizedEntityStateCachePayload
+        if typed_module:
+            cached_payload = cast(
+                OptimizedEntityStateCachePayload, dict(module_payload)
+            )
+        else:
+            cached_payload = cast(
+                OptimizedEntityStateCachePayload,
+                _coerce_json_mutable(dict(module_payload)),
+            )
+
         _STATE_CACHE[cache_key] = _StateCacheEntry(
-            payload=cast(OptimizedEntityStateCachePayload, dict(module_payload)),
+            payload=cached_payload,
             timestamp=now,
             coordinator_available=coordinator_available,
         )
@@ -910,7 +938,10 @@ class OptimizedEntityBase(
         if typed_module:
             return cast(CoordinatorModuleState, dict(module_payload))
 
-        return cast(CoordinatorUntypedModuleState, dict(module_payload))
+        return cast(
+            CoordinatorUntypedModuleState,
+            _coerce_json_mutable(dict(module_payload)),
+        )
 
     async def async_update(self) -> None:
         """Enhanced update method with performance tracking and error handling."""

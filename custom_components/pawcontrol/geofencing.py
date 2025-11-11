@@ -32,7 +32,11 @@ from .const import (
     MIN_GEOFENCE_RADIUS,
     STORAGE_VERSION,
 )
-from .notifications import NotificationPriority, NotificationType
+from .notifications import (
+    NotificationPriority,
+    NotificationTemplateData,
+    NotificationType,
+)
 from .types import (
     GeofenceNotificationPayload,
     GeofenceStoragePayload,
@@ -806,7 +810,7 @@ class PawControlGeofencing:
                 message=message,
                 dog_id=dog_id,
                 priority=priority,
-                data=cast(dict[str, Any], notification_data),
+                data=cast(NotificationTemplateData, dict(notification_data)),
                 allow_batching=False,
             )
         except Exception as err:  # pragma: no cover - defensive logging

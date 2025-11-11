@@ -263,7 +263,7 @@ def _iter_text_candidates(
 
 
 def _iter_mapping_text_candidates(
-    mapping: Mapping[str, Any], *, _visited: set[int]
+    mapping: Mapping[str, object], *, _visited: set[int]
 ) -> Iterable[str]:
     """Yield textual candidates from a mapping, preferring descriptive keys."""
 

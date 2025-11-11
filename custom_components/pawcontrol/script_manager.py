@@ -21,7 +21,7 @@ from collections.abc import (
 )
 from contextlib import suppress
 from datetime import datetime
-from typing import Any, Final, Literal, cast
+from typing import Any, Final, Literal, Protocol, cast
 
 from homeassistant.components.script import DOMAIN as SCRIPT_DOMAIN
 from homeassistant.components.script import ScriptEntity
@@ -66,13 +66,19 @@ from .types import (
     CacheDiagnosticsSnapshot,
     DogConfigData,
     JSONMutableMapping,
+    JSONValue,
     ManualResilienceAutomationEntry,
     ManualResilienceEventRecord,
+    ManualResilienceEventSelection,
     ManualResilienceEventSnapshot,
     ManualResilienceEventSource,
     ManualResilienceEventsTelemetry,
     ManualResilienceListenerMetadata,
+    ManualResilienceOptionsSnapshot,
     ManualResiliencePreferenceKey,
+    ManualResilienceSystemSettingsSnapshot,
+    ResilienceEscalationSnapshot,
+    ResilienceEscalationThresholds,
     ScriptManagerDogScripts,
     ScriptManagerSnapshot,
     ScriptManagerStats,
@@ -131,12 +137,142 @@ def _classify_timestamp(value: datetime | None) -> tuple[str | None, int | None]
     return None, age_seconds
 
 
-def _coerce_threshold(value: Any, *, default: int, minimum: int, maximum: int) -> int:
+MANUAL_EVENT_KEYS: tuple[ManualResiliencePreferenceKey, ...] = (
+    "manual_check_event",
+    "manual_guard_event",
+    "manual_breaker_event",
+)
+
+
+class _FieldDefaultProvider(Protocol):
+    """Protocol for script field objects exposing ``default`` attributes."""
+
+    default: JSONValue
+
+
+type ScriptFieldEntry = Mapping[str, JSONValue] | _FieldDefaultProvider
+type ScriptFieldDefinitions = Mapping[str, ScriptFieldEntry]
+
+
+def _coerce_optional_int(value: object) -> int | None:
+    """Return an ``int`` when ``value`` can be losslessly coerced."""
+
+    if isinstance(value, bool):
+        # ``bool`` subclasses ``int`` but should not participate in resilience
+        # thresholds to avoid confusing ``True``/``False`` inputs.
+        return int(value) if value else None
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float) and value.is_integer():
+        return int(value)
+    if isinstance(value, str):
+        candidate = value.strip()
+        if not candidate:
+            return None
+        try:
+            return int(candidate)
+        except ValueError:
+            return None
+    return None
+
+
+def _coerce_manual_history_size(value: object) -> int | None:
+    """Validate manual history length candidates from config mappings."""
+
+    candidate = _coerce_optional_int(value)
+    if candidate is None:
+        return None
+    if not (_MANUAL_EVENT_HISTORY_MIN <= candidate <= _MANUAL_EVENT_HISTORY_MAX):
+        return None
+    return candidate
+
+
+def _parse_manual_resilience_system_settings(
+    value: object,
+) -> ManualResilienceSystemSettingsSnapshot | None:
+    """Normalise system-settings mappings into typed resilience payloads."""
+
+    if not isinstance(value, Mapping):
+        return None
+
+    settings: ManualResilienceSystemSettingsSnapshot = {}
+
+    for key in MANUAL_EVENT_KEYS:
+        manual_event = _normalise_manual_event(value.get(key))
+        if manual_event is not None:
+            settings[key] = manual_event
+
+    skip_threshold = _coerce_optional_int(value.get("resilience_skip_threshold"))
+    if skip_threshold is not None:
+        settings["resilience_skip_threshold"] = skip_threshold
+
+    breaker_threshold = _coerce_optional_int(value.get("resilience_breaker_threshold"))
+    if breaker_threshold is not None:
+        settings["resilience_breaker_threshold"] = breaker_threshold
+
+    return settings or None
+
+
+def _parse_manual_resilience_options(
+    value: object,
+) -> ManualResilienceOptionsSnapshot:
+    """Normalise config-entry options related to manual resilience flows."""
+
+    options: ManualResilienceOptionsSnapshot = {}
+
+    if not isinstance(value, Mapping):
+        return options
+
+    for key in MANUAL_EVENT_KEYS:
+        manual_event = _normalise_manual_event(value.get(key))
+        if manual_event is not None:
+            options[key] = manual_event
+
+    skip_threshold = _coerce_optional_int(value.get("resilience_skip_threshold"))
+    if skip_threshold is not None:
+        options["resilience_skip_threshold"] = skip_threshold
+
+    breaker_threshold = _coerce_optional_int(value.get("resilience_breaker_threshold"))
+    if breaker_threshold is not None:
+        options["resilience_breaker_threshold"] = breaker_threshold
+
+    history_size = _coerce_manual_history_size(value.get("manual_event_history_size"))
+    if history_size is not None:
+        options["manual_event_history_size"] = history_size
+
+    system_settings = _parse_manual_resilience_system_settings(
+        value.get("system_settings")
+    )
+    if system_settings is not None:
+        options["system_settings"] = system_settings
+
+    return options
+
+
+def _parse_event_selection(
+    value: Mapping[str, object] | None,
+) -> ManualResilienceEventSelection:
+    """Normalise manual event selections used for automation updates."""
+
+    selection: ManualResilienceEventSelection = {}
+    if value is None:
+        return selection
+
+    for key in MANUAL_EVENT_KEYS:
+        manual_event = _normalise_manual_event(value.get(key))
+        if key in value:
+            selection[key] = manual_event
+
+    return selection
+
+
+def _coerce_threshold(
+    value: object, *, default: int, minimum: int, maximum: int
+) -> int:
     """Return a clamped integer threshold for resilience configuration."""
 
-    try:
-        candidate = int(value)
-    except (TypeError, ValueError):
+    candidate = _coerce_optional_int(value)
+    if candidate is None:
         return default
 
     if candidate < minimum:
@@ -146,13 +282,14 @@ def _coerce_threshold(value: Any, *, default: int, minimum: int, maximum: int) -
     return candidate
 
 
-def _extract_field_int(fields: Mapping[str, Any] | None, key: str) -> int | None:
+def _extract_field_int(fields: ScriptFieldDefinitions | None, key: str) -> int | None:
     """Return the integer default stored under ``key`` in ``fields``."""
 
     if not isinstance(fields, Mapping):
         return None
 
     field = fields.get(key)
+    candidate: JSONValue | None
     if isinstance(field, Mapping):
         candidate = field.get("default")
     else:
@@ -161,10 +298,7 @@ def _extract_field_int(fields: Mapping[str, Any] | None, key: str) -> int | None
     if candidate is None:
         return None
 
-    try:
-        return int(candidate)
-    except (TypeError, ValueError):
-        return None
+    return _coerce_optional_int(candidate)
 
 
 def resolve_resilience_script_thresholds(
@@ -182,14 +316,19 @@ def resolve_resilience_script_thresholds(
         return None, None
 
     attributes = getattr(state, "attributes", {})
-    fields = attributes.get("fields") if isinstance(attributes, Mapping) else None
+    raw_fields = attributes.get("fields") if isinstance(attributes, Mapping) else None
+    fields: ScriptFieldDefinitions | None
+    if isinstance(raw_fields, Mapping):
+        fields = cast(ScriptFieldDefinitions, raw_fields)
+    else:
+        fields = None
 
     skip = _extract_field_int(fields, "skip_threshold")
     breaker = _extract_field_int(fields, "breaker_threshold")
     return skip, breaker
 
 
-def _is_resilience_blueprint(use_blueprint: Mapping[str, Any] | None) -> bool:
+def _is_resilience_blueprint(use_blueprint: Mapping[str, object] | None) -> bool:
     """Return ``True`` when ``use_blueprint`` targets the resilience blueprint."""
 
     if not isinstance(use_blueprint, Mapping):
@@ -211,7 +350,7 @@ def _is_resilience_blueprint(use_blueprint: Mapping[str, Any] | None) -> bool:
     return normalized.endswith(expected_suffix)
 
 
-def _normalise_manual_event(value: Any) -> str | None:
+def _normalise_manual_event(value: object) -> str | None:
     """Return a stripped event string when ``value`` contains text."""
 
     if not isinstance(value, str):
@@ -220,10 +359,10 @@ def _normalise_manual_event(value: Any) -> str | None:
     return candidate or None
 
 
-def _serialise_event_data(data: Mapping[str, Any]) -> dict[str, Any]:
+def _serialise_event_data(data: Mapping[str, object]) -> JSONMutableMapping:
     """Return a JSON-friendly copy of ``data``."""
 
-    serialised: dict[str, Any] = {}
+    serialised: JSONMutableMapping = {}
     for key, value in data.items():
         key_text = str(key)
         if isinstance(value, str | int | float | bool) or value is None:
@@ -355,7 +494,7 @@ class PawControlScriptManager:
         self._dog_scripts: dict[str, list[str]] = {}
         self._entry_scripts: list[str] = []
         self._last_generation: datetime | None = None
-        self._resilience_escalation_definition: dict[str, Any] | None = None
+        self._resilience_escalation_definition: JSONMutableMapping | None = None
         self._manual_event_unsubs: dict[str, Callable[[], None]] = {}
         self._manual_event_reasons: dict[str, set[str]] = {}
         self._manual_event_sources: dict[str, ManualResilienceEventSource] = {}
@@ -365,7 +504,7 @@ class PawControlScriptManager:
         self._manual_event_history: deque[ManualResilienceEventRecord] = deque(
             maxlen=self._manual_history_maxlen
         )
-        self._last_manual_event: dict[str, Any] | None = None
+        self._last_manual_event: ManualResilienceEventRecord | None = None
         self._entry_slug = _normalise_entry_slug(entry)
         title = getattr(entry, "title", None)
         self._entry_title = (
@@ -373,7 +512,9 @@ class PawControlScriptManager:
         )
         self._restore_manual_event_history_from_runtime()
         if self._manual_event_history:
-            self._last_manual_event = dict(self._manual_event_history[-1])
+            self._last_manual_event = cast(
+                ManualResilienceEventRecord, dict(self._manual_event_history[-1])
+            )
         self._sync_manual_history_to_runtime()
 
     async def async_initialize(self) -> None:
@@ -390,7 +531,9 @@ class PawControlScriptManager:
         self._manual_event_sources.clear()
         self._manual_event_counters.clear()
         if self._manual_event_history:
-            self._last_manual_event = dict(self._manual_event_history[-1])
+            self._last_manual_event = cast(
+                ManualResilienceEventRecord, dict(self._manual_event_history[-1])
+            )
         else:
             self._last_manual_event = None
         self._refresh_manual_event_listeners()
@@ -410,7 +553,7 @@ class PawControlScriptManager:
             f"{prefix}_cache", _ScriptManagerCacheMonitor(self)
         )
 
-    def attach_runtime_manual_history(self, runtime: Any) -> None:
+    def attach_runtime_manual_history(self, runtime: object) -> None:
         """Attach the current manual event history to ``runtime``."""
 
         if runtime is None:
@@ -424,7 +567,8 @@ class PawControlScriptManager:
             self._update_manual_history_size()
         else:
             with suppress(AttributeError):
-                runtime.manual_event_history = self._manual_event_history
+                runtime_any = cast(Any, runtime)
+                runtime_any.manual_event_history = self._manual_event_history
 
     def sync_manual_event_history(self) -> None:
         """Persist the manual event history back to runtime storage."""
@@ -434,31 +578,27 @@ class PawControlScriptManager:
     def _resolve_manual_history_size(self) -> int:
         """Determine the configured manual event history length."""
 
-        def _coerce(value: Any) -> int | None:
-            if isinstance(value, str):
-                value = value.strip()
-            try:
-                candidate = int(value)
-            except (TypeError, ValueError):
-                return None
-            if not (
-                _MANUAL_EVENT_HISTORY_MIN <= candidate <= _MANUAL_EVENT_HISTORY_MAX
-            ):
-                return None
-            return candidate
+        raw_options = getattr(self._entry, "options", None)
+        options = _parse_manual_resilience_options(raw_options)
 
-        options = getattr(self._entry, "options", {})
-        system_settings = (
-            options.get("system_settings") if isinstance(options, Mapping) else None
-        )
-        data = getattr(self._entry, "data", {})
+        configured = options.get("manual_event_history_size")
+        if configured is not None:
+            return configured
 
-        for mapping in (system_settings, options, data):
+        raw_system_settings = None
+        if isinstance(raw_options, Mapping):
+            raw_system_settings = raw_options.get("system_settings")
+
+        raw_data = getattr(self._entry, "data", None)
+
+        for mapping in (raw_system_settings, raw_options, raw_data):
             if not isinstance(mapping, Mapping):
                 continue
-            configured = _coerce(mapping.get("manual_event_history_size"))
-            if configured is not None:
-                return configured
+            candidate = _coerce_manual_history_size(
+                mapping.get("manual_event_history_size")
+            )
+            if candidate is not None:
+                return candidate
 
         return _DEFAULT_MANUAL_EVENT_HISTORY_SIZE
 
@@ -488,59 +628,54 @@ class PawControlScriptManager:
     def _resolve_resilience_thresholds(self) -> tuple[int, int]:
         """Return configured guard skip and breaker thresholds."""
 
-        options = getattr(self._entry, "options", {})
+        raw_options = getattr(self._entry, "options", None)
+        options = _parse_manual_resilience_options(raw_options)
         skip_threshold = DEFAULT_RESILIENCE_SKIP_THRESHOLD
         breaker_threshold = DEFAULT_RESILIENCE_BREAKER_THRESHOLD
 
-        def _merge_threshold(
-            source: Mapping[str, Any] | None,
+        def _merge_candidate(
+            candidate: int | None,
             *,
-            key: str,
             default: int,
             minimum: int,
             maximum: int,
         ) -> int:
-            if not isinstance(source, Mapping):
+            if candidate is None:
                 return default
             return _coerce_threshold(
-                source.get(key),
+                candidate,
                 default=default,
                 minimum=minimum,
                 maximum=maximum,
             )
 
-        if isinstance(options, Mapping):
-            system_settings = options.get("system_settings")
-            if isinstance(system_settings, Mapping):
-                skip_threshold = _merge_threshold(
-                    system_settings,
-                    key="resilience_skip_threshold",
-                    default=skip_threshold,
-                    minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
-                    maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
-                )
-                breaker_threshold = _merge_threshold(
-                    system_settings,
-                    key="resilience_breaker_threshold",
-                    default=breaker_threshold,
-                    minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
-                    maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
-                )
-
-            skip_threshold = _merge_threshold(
-                options,
-                key="resilience_skip_threshold",
+        system_settings = options.get("system_settings")
+        if system_settings is not None:
+            skip_threshold = _merge_candidate(
+                system_settings.get("resilience_skip_threshold"),
                 default=skip_threshold,
                 minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
                 maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
             )
-            breaker_threshold = _merge_threshold(
-                options,
-                key="resilience_breaker_threshold",
+            breaker_threshold = _merge_candidate(
+                system_settings.get("resilience_breaker_threshold"),
                 default=breaker_threshold,
                 minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
                 maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
             )
+
+        skip_threshold = _merge_candidate(
+            options.get("resilience_skip_threshold"),
+            default=skip_threshold,
+            minimum=RESILIENCE_SKIP_THRESHOLD_MIN,
+            maximum=RESILIENCE_SKIP_THRESHOLD_MAX,
+        )
+        breaker_threshold = _merge_candidate(
+            options.get("resilience_breaker_threshold"),
+            default=breaker_threshold,
+            minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,
+            maximum=RESILIENCE_BREAKER_THRESHOLD_MAX,
+        )
 
         script_skip, script_breaker = resolve_resilience_script_thresholds(
             self._hass, self._entry
@@ -562,13 +697,12 @@ class PawControlScriptManager:
 
         return skip_threshold, breaker_threshold
 
-    def ensure_resilience_threshold_options(self) -> dict[str, Any] | None:
+    def ensure_resilience_threshold_options(self) -> dict[str, object] | None:
         """Return updated options when legacy script defaults need migration."""
 
-        options = getattr(self._entry, "options", {})
-        system_settings = (
-            options.get("system_settings") if isinstance(options, Mapping) else None
-        )
+        raw_options = getattr(self._entry, "options", None)
+        options = _parse_manual_resilience_options(raw_options)
+        system_settings = options.get("system_settings")
         script_skip, script_breaker = resolve_resilience_script_thresholds(
             self._hass, self._entry
         )
@@ -587,20 +721,24 @@ class PawControlScriptManager:
         if migrated_system is None:
             return None
 
-        return self._apply_resilience_system_settings(options, migrated_system)
+        options_mapping: Mapping[str, object] = (
+            raw_options if isinstance(raw_options, Mapping) else {}
+        )
+
+        return self._apply_resilience_system_settings(options_mapping, migrated_system)
 
     @staticmethod
     def _should_migrate_resilience_thresholds(
         script_skip: int | None,
         script_breaker: int | None,
-        system_settings: Mapping[str, Any] | None,
+        system_settings: ManualResilienceSystemSettingsSnapshot | None,
     ) -> bool:
         """Return ``True`` when script defaults should populate options."""
 
         if script_skip is None and script_breaker is None:
             return False
 
-        if not isinstance(system_settings, Mapping):
+        if system_settings is None:
             return True
 
         missing_skip = "resilience_skip_threshold" not in system_settings
@@ -610,15 +748,33 @@ class PawControlScriptManager:
 
     @staticmethod
     def _build_resilience_system_settings(
-        system_settings: Mapping[str, Any] | None,
+        system_settings: ManualResilienceSystemSettingsSnapshot | None,
         *,
         script_skip: int | None,
         script_breaker: int | None,
-    ) -> dict[str, Any] | None:
+    ) -> ManualResilienceSystemSettingsSnapshot | None:
         """Return a system settings payload with migrated thresholds."""
 
-        original = dict(system_settings) if isinstance(system_settings, Mapping) else {}
-        updated = dict(original)
+        original: dict[str, object]
+        original = dict(system_settings) if system_settings is not None else {}
+        updated: ManualResilienceSystemSettingsSnapshot = {}
+        if system_settings is not None:
+            if "manual_check_event" in system_settings:
+                updated["manual_check_event"] = system_settings["manual_check_event"]
+            if "manual_guard_event" in system_settings:
+                updated["manual_guard_event"] = system_settings["manual_guard_event"]
+            if "manual_breaker_event" in system_settings:
+                updated["manual_breaker_event"] = system_settings[
+                    "manual_breaker_event"
+                ]
+            if "resilience_skip_threshold" in system_settings:
+                updated["resilience_skip_threshold"] = system_settings[
+                    "resilience_skip_threshold"
+                ]
+            if "resilience_breaker_threshold" in system_settings:
+                updated["resilience_breaker_threshold"] = system_settings[
+                    "resilience_breaker_threshold"
+                ]
 
         if script_skip is not None and "resilience_skip_threshold" not in updated:
             updated["resilience_skip_threshold"] = _coerce_threshold(
@@ -643,9 +799,9 @@ class PawControlScriptManager:
 
     @staticmethod
     def _apply_resilience_system_settings(
-        options: Mapping[str, Any],
-        system_settings: Mapping[str, Any],
-    ) -> dict[str, Any]:
+        options: Mapping[str, object],
+        system_settings: ManualResilienceSystemSettingsSnapshot,
+    ) -> dict[str, object]:
         """Return updated options including migrated system settings."""
 
         updated_options = dict(options)
@@ -681,26 +837,19 @@ class PawControlScriptManager:
                 "active_listeners": [],
             }
 
-        options = getattr(self._entry, "options", {})
-        system_guard: str | None = None
-        system_breaker: str | None = None
-        if isinstance(options, Mapping):
-            system_guard = _normalise_manual_event(options.get("manual_guard_event"))
-            system_breaker = _normalise_manual_event(
-                options.get("manual_breaker_event")
-            )
-            system_settings = options.get("system_settings")
-            if isinstance(system_settings, Mapping):
-                guard_override = _normalise_manual_event(
-                    system_settings.get("manual_guard_event")
-                )
-                breaker_override = _normalise_manual_event(
-                    system_settings.get("manual_breaker_event")
-                )
-                if guard_override is not None:
-                    system_guard = guard_override
-                if breaker_override is not None:
-                    system_breaker = breaker_override
+        raw_options = getattr(self._entry, "options", None)
+        options = _parse_manual_resilience_options(raw_options)
+        system_guard = options.get("manual_guard_event")
+        system_breaker = options.get("manual_breaker_event")
+
+        system_settings = options.get("system_settings")
+        if system_settings is not None:
+            guard_override = system_settings.get("manual_guard_event")
+            breaker_override = system_settings.get("manual_breaker_event")
+            if guard_override is not None:
+                system_guard = guard_override
+            if breaker_override is not None:
+                system_breaker = breaker_override
 
         automations: list[ManualResilienceAutomationEntry] = []
         guard_events: set[str] = set()
@@ -735,15 +884,17 @@ class PawControlScriptManager:
             if not _is_resilience_blueprint(use_blueprint):
                 continue
 
-            blueprint = cast(Mapping[str, Any], use_blueprint)
+            blueprint = cast(Mapping[str, object], use_blueprint)
 
-            inputs = blueprint.get("input") or blueprint.get("inputs")
-            if not isinstance(inputs, Mapping):
-                inputs = {}
-
-            manual_guard = _normalise_manual_event(inputs.get("manual_guard_event"))
-            manual_breaker = _normalise_manual_event(inputs.get("manual_breaker_event"))
-            manual_check = _normalise_manual_event(inputs.get("manual_check_event"))
+            inputs_key = "input" if "input" in blueprint else "inputs"
+            existing_inputs = blueprint.get(inputs_key)
+            inputs_mapping = (
+                existing_inputs if isinstance(existing_inputs, Mapping) else None
+            )
+            inputs_selection = _parse_event_selection(inputs_mapping)
+            manual_guard = inputs_selection.get("manual_guard_event")
+            manual_breaker = inputs_selection.get("manual_breaker_event")
+            manual_check = inputs_selection.get("manual_check_event")
 
             if manual_guard:
                 guard_events.add(manual_guard)
@@ -780,18 +931,17 @@ class PawControlScriptManager:
         if system_guard is not None or system_breaker is not None:
             available = True
 
-        options_mapping = getattr(self._entry, "options", {})
-        if isinstance(options_mapping, Mapping):
+        if isinstance(raw_options, Mapping):
             for key in (
                 "manual_check_event",
                 "manual_guard_event",
                 "manual_breaker_event",
             ):
-                option_value = _normalise_manual_event(options_mapping.get(key))
+                option_value = _normalise_manual_event(raw_options.get(key))
                 if option_value:
                     canonical_sources.setdefault(option_value, set()).add("options")
 
-            system_settings_map = options_mapping.get("system_settings")
+            system_settings_map = raw_options.get("system_settings")
             if isinstance(system_settings_map, Mapping):
                 for key in (
                     "manual_check_event",
@@ -1055,7 +1205,7 @@ class PawControlScriptManager:
         self._manual_event_sources.clear()
 
     def _coerce_manual_event_record(
-        self, value: Any
+        self, value: object
     ) -> ManualResilienceEventRecord | None:
         """Normalise ``value`` into a manual event record when possible."""
 
@@ -1088,7 +1238,7 @@ class PawControlScriptManager:
                 Literal["check", "guard", "breaker"], configured_role
             )
 
-        def _normalise_datetime(value: Any) -> datetime | None:
+        def _normalise_datetime(value: object) -> datetime | None:
             if isinstance(value, datetime):
                 return dt_util.as_utc(value)
             if isinstance(value, str):
@@ -1121,7 +1271,7 @@ class PawControlScriptManager:
         if isinstance(raw_data, Mapping):
             record["data"] = _serialise_event_data(raw_data)
         elif raw_data is None or isinstance(raw_data, dict):
-            record["data"] = cast(dict[str, Any] | None, raw_data)
+            record["data"] = cast(JSONMutableMapping | None, raw_data)
 
         raw_sources = value.get("sources")
         if isinstance(raw_sources, Sequence) and not isinstance(
@@ -1143,7 +1293,7 @@ class PawControlScriptManager:
         runtime = getattr(self._entry, "runtime_data", None)
 
         if isinstance(runtime, Mapping):
-            candidates: Any = runtime.get("manual_event_history")
+            candidates: object = runtime.get("manual_event_history")
         else:
             candidates = getattr(runtime, "manual_event_history", None)
 
@@ -1189,11 +1339,12 @@ class PawControlScriptManager:
             return
 
         with suppress(AttributeError):
-            runtime.manual_event_history = self._manual_event_history
+            runtime_any = cast(Any, runtime)
+            runtime_any.manual_event_history = self._manual_event_history
 
     def _serialise_manual_event_record(
         self,
-        record: Mapping[str, Any] | None,
+        record: ManualResilienceEventRecord | Mapping[str, object] | None,
         *,
         recorded_at: datetime | str | None = None,
     ) -> ManualResilienceEventSnapshot | None:
@@ -1275,8 +1426,11 @@ class PawControlScriptManager:
             recorded_iso = received_iso
             recorded_age = received_age
 
+        event_type_value = record.get("event_type")
+        event_type = event_type_value if isinstance(event_type_value, str) else None
+
         snapshot: ManualResilienceEventSnapshot = {
-            "event_type": record.get("event_type"),
+            "event_type": event_type,
             "category": category,
             "matched_preference": cast(
                 ManualResiliencePreferenceKey | None, record.get("preference_key")
@@ -1288,11 +1442,14 @@ class PawControlScriptManager:
             "origin": cast(str | None, record.get("origin")),
             "context_id": cast(str | None, record.get("context_id")),
             "user_id": cast(str | None, record.get("user_id")),
-            "data": cast(dict[str, Any] | None, record.get("data")),
             "sources": sources_list,
         }
         snapshot["recorded_at"] = recorded_iso
         snapshot["recorded_age_seconds"] = recorded_age
+
+        data_payload = record.get("data")
+        if isinstance(data_payload, Mapping):
+            snapshot["data"] = cast(JSONMutableMapping, dict(data_payload))
         reasons = record.get("reasons")
         if isinstance(reasons, Sequence) and not isinstance(
             reasons, str | bytes | bytearray
@@ -1386,7 +1543,7 @@ class PawControlScriptManager:
         if configured_role is not None:
             record["configured_role"] = configured_role
         self._manual_event_history.append(record)
-        self._last_manual_event = dict(record)
+        self._last_manual_event = cast(ManualResilienceEventRecord, dict(record))
         self._sync_manual_history_to_runtime()
         reasons: list[str] = []
         if isinstance(configured_role, str) and configured_role:
@@ -1424,10 +1581,10 @@ class PawControlScriptManager:
                 self._manual_event_counters.get(event_type, 0) + 1
             )
 
-        self._last_manual_event = dict(record)
+        self._last_manual_event = cast(ManualResilienceEventRecord, dict(record))
 
     async def async_sync_manual_resilience_events(
-        self, events: Mapping[str, Any]
+        self, events: ManualResilienceEventSelection
     ) -> None:
         """Update resilience blueprint automations with preferred manual events."""
 
@@ -1451,7 +1608,7 @@ class PawControlScriptManager:
             )
             return
 
-        desired_events: dict[str, str | None] = {}
+        desired_events: ManualResilienceEventSelection = {}
         for key in ("manual_check_event", "manual_guard_event", "manual_breaker_event"):
             if key not in events:
                 continue
@@ -1471,13 +1628,13 @@ class PawControlScriptManager:
             if not _is_resilience_blueprint(use_blueprint):
                 continue
 
-            blueprint = cast(Mapping[str, Any], use_blueprint)
+            blueprint = cast(Mapping[str, object], use_blueprint)
             inputs_key = "input" if "input" in blueprint else "inputs"
             existing_inputs = blueprint.get(inputs_key)
-            inputs = (
-                dict(existing_inputs) if isinstance(existing_inputs, Mapping) else {}
-            )
-
+            if isinstance(existing_inputs, Mapping):
+                inputs: dict[str, str | None] = dict(existing_inputs)
+            else:
+                inputs = {}
             changed = False
             for key, desired in desired_events.items():
                 current_value = inputs.get(key)
@@ -2056,7 +2213,7 @@ class PawControlScriptManager:
             CONF_TRACE: {},
         }
 
-        field_defaults: dict[str, Any] = {}
+        field_defaults: JSONMutableMapping = {}
         for field_name, field_config in fields.items():
             if isinstance(field_config, Mapping):
                 field_defaults[field_name] = field_config.get(CONF_DEFAULT)
@@ -2070,7 +2227,7 @@ class PawControlScriptManager:
 
         return object_id, raw_config
 
-    def get_resilience_escalation_snapshot(self) -> dict[str, Any] | None:
+    def get_resilience_escalation_snapshot(self) -> ResilienceEscalationSnapshot | None:
         """Return diagnostics metadata for the resilience escalation helper."""
 
         definition = self._resilience_escalation_definition
@@ -2090,27 +2247,33 @@ class PawControlScriptManager:
         if entity_id is None and isinstance(object_id, str):
             entity_id = f"{SCRIPT_DOMAIN}.{object_id}"
 
-        field_defaults = cast(dict[str, Any], definition.get("field_defaults", {}))
+        field_defaults = cast(JSONMutableMapping, definition.get("field_defaults", {}))
         manual_events = self._resolve_manual_resilience_events()
         manual_preferences = self._manual_event_preferences()
         if not self._manual_event_sources:
             self._refresh_manual_event_listeners()
         source_mapping = self._manual_event_source_mapping()
-        manual_payload = manual_events
+        manual_payload: JSONMutableMapping = cast(
+            JSONMutableMapping, dict(manual_events)
+        )
         active_listeners = sorted({*self._manual_event_sources, *source_mapping})
-        manual_payload["preferred_events"] = manual_preferences
-        manual_payload["preferred_guard_event"] = manual_preferences.get(
-            "manual_guard_event"
+        manual_payload["preferred_events"] = cast(JSONValue, dict(manual_preferences))
+        manual_payload["preferred_guard_event"] = cast(
+            JSONValue, manual_preferences.get("manual_guard_event")
         )
-        manual_payload["preferred_breaker_event"] = manual_preferences.get(
-            "manual_breaker_event"
+        manual_payload["preferred_breaker_event"] = cast(
+            JSONValue, manual_preferences.get("manual_breaker_event")
         )
-        manual_payload["preferred_check_event"] = manual_preferences.get(
-            "manual_check_event"
+        manual_payload["preferred_check_event"] = cast(
+            JSONValue, manual_preferences.get("manual_check_event")
         )
-        manual_payload["active_listeners"] = active_listeners
-        manual_payload["last_event"] = self.get_last_manual_event_snapshot()
-        manual_payload["event_history"] = self.get_manual_event_history()
+        manual_payload["active_listeners"] = cast(JSONValue, list(active_listeners))
+        manual_payload["last_event"] = cast(
+            JSONValue, self.get_last_manual_event_snapshot()
+        )
+        manual_payload["event_history"] = cast(
+            JSONValue, self.get_manual_event_history()
+        )
 
         state = None
         if entity_id is not None:
@@ -2134,7 +2297,7 @@ class PawControlScriptManager:
                 (dt_util.utcnow() - dt_util.as_utc(last_triggered)).total_seconds()
             )
 
-        active_field_defaults: dict[str, Any] = {}
+        active_field_defaults: JSONMutableMapping = {}
         if state_available:
             fields_attr = getattr(state, "attributes", {}).get("fields")
             if isinstance(fields_attr, Mapping):
@@ -2146,12 +2309,12 @@ class PawControlScriptManager:
                     if default_value is not None or field_name in field_defaults:
                         active_field_defaults[field_name] = default_value
 
-        def _active_value(key: str) -> Any:
+        def _active_value(key: str) -> JSONValue | None:
             if key in active_field_defaults:
                 return active_field_defaults[key]
             return field_defaults.get(key)
 
-        thresholds = {
+        thresholds: ResilienceEscalationThresholds = {
             "skip_threshold": {
                 "default": field_defaults.get("skip_threshold"),
                 "active": _active_value("skip_threshold"),
@@ -2166,8 +2329,10 @@ class PawControlScriptManager:
 
         timestamp_issue, last_generated_age = _classify_timestamp(self._last_generation)
 
-        manual_last_trigger: dict[str, Any] | None = None
-        candidate_record: Mapping[str, Any] | None = None
+        manual_last_trigger: ManualResilienceEventSnapshot | None = None
+        candidate_record: ManualResilienceEventRecord | Mapping[str, object] | None = (
+            None
+        )
         if self._manual_event_history:
             candidate_record = self._manual_event_history[-1]
         elif isinstance(self._last_manual_event, Mapping):
@@ -2178,7 +2343,7 @@ class PawControlScriptManager:
                 candidate_record, recorded_at=dt_util.utcnow()
             )
             if snapshot is not None:
-                manual_last_trigger = dict(snapshot)
+                manual_last_trigger = snapshot
 
         counters_by_event: dict[str, int] = {}
         candidate_events: set[str] = set()
@@ -2238,50 +2403,53 @@ class PawControlScriptManager:
                         counters_by_reason.get(reason, 0) + event_count
                     )
 
-        manual_payload["last_trigger"] = cast(
-            ManualResilienceEventSnapshot | None, manual_last_trigger
-        )
+        manual_payload["last_trigger"] = cast(JSONValue, manual_last_trigger)
         manual_payload["event_counters"] = {
             "total": sum(counters_by_event.values()),
             "by_event": counters_by_event,
             "by_reason": dict(sorted(counters_by_reason.items())),
         }
 
-        return {
-            "available": entity_id is not None,
-            "state_available": state_available,
-            "entity_id": entity_id,
-            "object_id": object_id,
-            "alias": definition.get("alias"),
-            "description": definition.get("description"),
-            "last_generated": _serialize_datetime(self._last_generation),
-            "last_generated_age_seconds": last_generated_age,
-            "last_generated_status": timestamp_issue,
-            "last_triggered": _serialize_datetime(last_triggered),
-            "last_triggered_age_seconds": last_triggered_age,
-            "thresholds": thresholds,
-            "fields": {
-                key: {
-                    "default": field_defaults.get(key),
-                    "active": _active_value(key),
-                }
-                for key in field_defaults
+        manual_payload_json = cast(JSONMutableMapping, dict(manual_payload))
+
+        return cast(
+            ResilienceEscalationSnapshot,
+            {
+                "available": entity_id is not None,
+                "state_available": state_available,
+                "entity_id": entity_id,
+                "object_id": object_id,
+                "alias": definition.get("alias"),
+                "description": definition.get("description"),
+                "last_generated": _serialize_datetime(self._last_generation),
+                "last_generated_age_seconds": last_generated_age,
+                "last_generated_status": timestamp_issue,
+                "last_triggered": _serialize_datetime(last_triggered),
+                "last_triggered_age_seconds": last_triggered_age,
+                "thresholds": thresholds,
+                "fields": {
+                    key: {
+                        "default": field_defaults.get(key),
+                        "active": _active_value(key),
+                    }
+                    for key in field_defaults
+                },
+                "followup_script": {
+                    "default": field_defaults.get("followup_script"),
+                    "active": followup_active,
+                    "configured": bool(followup_active),
+                },
+                "statistics_entity_id": {
+                    "default": field_defaults.get("statistics_entity_id"),
+                    "active": _active_value("statistics_entity_id"),
+                },
+                "escalation_service": {
+                    "default": field_defaults.get("escalation_service"),
+                    "active": _active_value("escalation_service"),
+                },
+                "manual_events": manual_payload_json,
             },
-            "followup_script": {
-                "default": field_defaults.get("followup_script"),
-                "active": followup_active,
-                "configured": bool(followup_active),
-            },
-            "statistics_entity_id": {
-                "default": field_defaults.get("statistics_entity_id"),
-                "active": _active_value("statistics_entity_id"),
-            },
-            "escalation_service": {
-                "default": field_defaults.get("escalation_service"),
-                "active": _active_value("escalation_service"),
-            },
-            "manual_events": manual_payload,
-        }
+        )
 
     def _build_confirmation_script(
         self, slug: str, dog_id: str, dog_name: str

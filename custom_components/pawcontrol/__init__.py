@@ -23,6 +23,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.device_registry import DeviceEntry
+from homeassistant.helpers.typing import ConfigType
 
 from . import compat
 from .const import (
@@ -66,7 +67,9 @@ from .telemetry import update_runtime_reconfigure_summary
 from .types import (
     DOG_ID_FIELD,
     DOG_MODULES_FIELD,
+    DOG_NAME_FIELD,
     DogConfigData,
+    ManualResilienceEventRecord,
     PawControlConfigEntry,
     PawControlRuntimeData,
     ensure_dog_config_data,
@@ -451,7 +454,7 @@ def get_platforms_for_profile_and_modules(
     return ordered_platforms
 
 
-async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the PawControl integration from configuration.yaml.
 
     Args:
@@ -694,9 +697,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         # Initialize managers with specific error handling and timeout protection
         manager_init_start = time.time()
         try:
-            dogs_config_payload: list[dict[str, Any]] = [
-                dict(dog) for dog in dogs_config
-            ]
+            dogs_config_payload: list[DogConfigData] = list(dogs_config)
             dog_ids: list[str] = [dog[DOG_ID_FIELD] for dog in dogs_config]
 
             data_manager = PawControlDataManager(
@@ -1484,7 +1485,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     """
     unload_start_time = time.time()
     runtime_data = get_runtime_data(hass, entry)
-    manual_history: list[dict[str, Any]] | None = None
+    manual_history: list[ManualResilienceEventRecord] | None = None
 
     # Get platforms for unloading
     if runtime_data:
@@ -1589,22 +1590,39 @@ async def async_remove_config_entry_device(
 ) -> bool:
     """Determine whether a stale PawControl device can be removed."""
 
-    def _iter_dogs(source: Any) -> list[Mapping[str, Any]]:
+    def _iter_dogs(source: Any) -> list[DogConfigData]:
+        dogs: list[DogConfigData] = []
+
         if isinstance(source, Mapping):
-            dogs: list[Mapping[str, Any]] = []
             for dog_id, dog_cfg in source.items():
-                if isinstance(dog_cfg, Mapping):
-                    dog_data = dict(dog_cfg)
-                    dog_data.setdefault(CONF_DOG_ID, str(dog_id))
-                    dogs.append(dog_data)
+                if not isinstance(dog_cfg, Mapping):
+                    continue
+                candidate = dict(dog_cfg)
+                candidate.setdefault(DOG_ID_FIELD, str(dog_id))
+                if not isinstance(candidate.get(DOG_NAME_FIELD), str):
+                    candidate[DOG_NAME_FIELD] = str(candidate[DOG_ID_FIELD])
+                normalised = ensure_dog_config_data(candidate)
+                if normalised is not None:
+                    dogs.append(normalised)
             return dogs
 
         if isinstance(source, Sequence) and not isinstance(
-            source, str | bytes | bytearray
+            source, (str, bytes, bytearray)
         ):
-            return [dog for dog in source if isinstance(dog, Mapping)]
+            for dog_cfg in source:
+                if not isinstance(dog_cfg, Mapping):
+                    continue
+                candidate = dict(dog_cfg)
+                if DOG_ID_FIELD not in candidate:
+                    continue
+                if not isinstance(candidate.get(DOG_NAME_FIELD), str):
+                    candidate[DOG_NAME_FIELD] = str(candidate[DOG_ID_FIELD])
+                normalised = ensure_dog_config_data(candidate)
+                if normalised is not None:
+                    dogs.append(normalised)
+            return dogs
 
-        return []
+        return dogs
 
     identifiers = {
         identifier
@@ -1624,22 +1642,19 @@ async def async_remove_config_entry_device(
         source: Any,
     ) -> Iterable[tuple[str, str]]:
         for dog in _iter_dogs(source):
-            dog_id = dog.get(CONF_DOG_ID)
-            if not isinstance(dog_id, str):
-                continue
+            dog_id = dog[DOG_ID_FIELD]
             sanitized = sanitize_dog_id(dog_id)
             if not sanitized:
                 continue
             yield sanitized, dog_id
 
     runtime_data = get_runtime_data(hass, entry)
+    active_ids: dict[str, str] = {}
     if runtime_data and isinstance(runtime_data.dogs, Sequence):
-        active_ids: dict[str, str] = {
+        active_ids = {
             sanitized: dog_id
             for sanitized, dog_id in _iter_configured_dog_ids(runtime_data.dogs)
         }
-    else:
-        active_ids = {}
 
     for sanitized, dog_id in _iter_configured_dog_ids(entry.data.get(CONF_DOGS)):
         active_ids.setdefault(sanitized, dog_id)

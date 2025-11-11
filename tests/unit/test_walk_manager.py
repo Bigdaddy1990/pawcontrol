@@ -294,6 +294,7 @@ class TestWalkStatistics:
 
         stats = mock_walk_manager.get_daily_walk_stats("test_dog")
 
+        assert stats is not None
         assert "total_walks_today" in stats
         assert "total_duration_today" in stats
         assert stats["total_walks_today"] >= 3
@@ -350,7 +351,9 @@ class TestWalkStatistics:
 
         stats = mock_walk_manager.get_weekly_walk_stats("test_dog")
 
+        assert stats is not None
         assert "total_walks_this_week" in stats
+        assert "total_distance_this_week" in stats
         assert stats["total_walks_this_week"] >= 1
 
 
@@ -465,15 +468,16 @@ class TestWalkDataRetrieval:
         """Test getting walk data for existing dog."""
         data = mock_walk_manager.get_walk_data("test_dog")
 
-        assert isinstance(data, dict)
+        assert data is not None
         assert "active_walk" in data
         assert "history" in data
+        assert "statistics" in data
 
     async def test_get_walk_data_nonexistent_dog(self, mock_walk_manager):
         """Test getting walk data for non-existent dog."""
         data = mock_walk_manager.get_walk_data("nonexistent")
 
-        assert data == {}
+        assert data is None
 
     async def test_get_last_walk_info(self, mock_walk_manager):
         """Test getting last walk information."""

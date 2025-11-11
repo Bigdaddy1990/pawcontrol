@@ -22,6 +22,7 @@ from uuid import uuid4
 from jinja2.nativetypes import NativeEnvironment
 
 if TYPE_CHECKING:  # pragma: no cover - only used for static analysis
+    from custom_components.pawcontrol.types import AddAnotherDogInput, DogModulesConfig
     from homeassistant.config_entries import OptionsFlow as _HAOptionsFlow
     from homeassistant.core import HomeAssistant as _HAHomeAssistant
 else:  # pragma: no cover - runtime fallbacks
@@ -700,10 +701,12 @@ def _install_core_module() -> None:
             while current.get("type") == "form":
                 step_id = current.get("step_id")
                 if step_id == "dog_modules":
-                    current = await flow.async_step_dog_modules({})
+                    empty_modules = cast("DogModulesConfig", {})
+                    current = await flow.async_step_dog_modules(empty_modules)
                     continue
                 if step_id == "add_another":
-                    current = await flow.async_step_add_another({})
+                    decision = cast("AddAnotherDogInput", {})
+                    current = await flow.async_step_add_another(decision)
                     continue
                 if step_id == "entity_profile":
                     current = await flow.async_step_entity_profile({})

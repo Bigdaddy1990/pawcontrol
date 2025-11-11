@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections import deque
-from collections.abc import Awaitable, Callable, Sized
+from collections.abc import Awaitable, Callable, Mapping, Sized
 from contextlib import suppress
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -23,7 +23,6 @@ from homeassistant.util import dt as dt_util
 
 from .compat import ConfigEntry, HomeAssistantError
 from .const import (
-    CONF_DOG_ID,
     CONF_DOGS,
     CONF_NOTIFICATIONS,
     CONF_QUIET_END,
@@ -41,16 +40,28 @@ from .const import (
     EVENT_WALK_STARTED,
 )
 from .types import (
+    VALID_NOTIFICATION_PRIORITIES,
     CacheDiagnosticsMetadata,
+    DogConfigData,
     HealthEvent,
+    HealthHistoryEntry,
+    HealthNamespaceMutable,
+    JSONLikeMapping,
+    JSONMutableMapping,
     JSONValue,
+    NotificationPriority,
     NotificationQueueStats,
     PerformanceMonitorSnapshot,
+    QueuedNotificationPayload,
     StorageCacheValue,
     StorageNamespaceKey,
     StorageNamespacePayload,
     StorageNamespaceState,
     WalkEvent,
+    WalkHistoryEntry,
+    WalkNamespaceMutable,
+    WalkNamespaceMutableEntry,
+    WalkStartPayload,
 )
 from .utils import (
     async_call_hass_service_if_available,
@@ -73,6 +84,8 @@ MAX_NOTIFICATION_QUEUE = 100  # Max queued notifications
 DATA_CLEANUP_INTERVAL = 3600  # 1 hour cleanup interval
 MAX_HISTORY_ITEMS = 1000  # Max items per dog per category
 
+DEFAULT_NOTIFICATION_PRIORITY: Final[NotificationPriority] = "normal"
+
 
 @dataclass(slots=True)
 class PerformanceCounters:
@@ -86,7 +99,7 @@ class PerformanceCounters:
     last_cleanup: datetime | None = None
 
 
-DEFAULT_DATA_KEYS: Final[tuple[str, ...]] = (
+DEFAULT_DATA_KEYS: Final[tuple[StorageNamespaceKey, ...]] = (
     "walks",
     "feedings",
     "health",
@@ -100,7 +113,7 @@ class QueuedEvent(TypedDict):
 
     type: str
     dog_id: str
-    data: dict[str, Any]
+    data: JSONMutableMapping
     timestamp: str
 
 
@@ -813,8 +826,10 @@ class PawControlData:
         self.hass = hass
         self.config_entry = config_entry
         self.storage = PawControlDataStorage(hass, config_entry)
-        self._data: dict[str, Any] = {}
-        self._dogs: list[dict[str, Any]] = config_entry.data.get(CONF_DOGS, [])
+        self._data: StorageNamespaceState = self._create_empty_data()
+        self._dogs: list[DogConfigData] = self._coerce_dog_configs(
+            config_entry.data.get(CONF_DOGS, [])
+        )
 
         # OPTIMIZATION: Event queue for batch processing
         self._event_queue: deque[QueuedEvent] = deque(maxlen=1000)
@@ -911,12 +926,53 @@ class PawControlData:
         )
 
     @staticmethod
-    def _create_empty_data() -> dict[str, Any]:
+    def _coerce_dog_configs(raw: Any) -> list[DogConfigData]:
+        """Return dog configuration entries as ``DogConfigData`` payloads."""
+
+        if not isinstance(raw, list):
+            return []
+
+        return [
+            cast(DogConfigData, dict(entry))
+            for entry in raw
+            if isinstance(entry, Mapping)
+        ]
+
+    @staticmethod
+    def _empty_namespace_payload() -> StorageNamespacePayload:
+        """Return an empty storage namespace mapping."""
+
+        return cast(StorageNamespacePayload, {})
+
+    @classmethod
+    def _create_empty_data(cls) -> StorageNamespaceState:
         """Return a fresh default data structure for runtime use."""
 
-        return {key: {} for key in DEFAULT_DATA_KEYS}
+        return {key: cls._empty_namespace_payload() for key in DEFAULT_DATA_KEYS}
 
-    def _ensure_data_structure(self, data: Any) -> dict[str, Any]:
+    @staticmethod
+    def _coerce_namespace_payload(value: Any, key: str) -> StorageNamespacePayload:
+        """Return a storage namespace mapping, logging if payloads are invalid."""
+
+        if isinstance(value, dict):
+            return cast(StorageNamespacePayload, dict(value))
+
+        if value not in (None, {}):
+            _LOGGER.warning("Invalid data structure for '%s'; resetting namespace", key)
+        return PawControlData._empty_namespace_payload()
+
+    def _ensure_namespace(self, key: StorageNamespaceKey) -> StorageNamespacePayload:
+        """Return the namespace payload for ``key``, creating a default if needed."""
+
+        namespace = self._data.get(key)
+        if isinstance(namespace, dict):
+            return cast(StorageNamespacePayload, namespace)
+
+        payload = self._empty_namespace_payload()
+        self._data[key] = payload
+        return payload
+
+    def _ensure_data_structure(self, data: Any) -> StorageNamespaceState:
         """Normalize stored data to the expected namespace layout.
 
         The storage backend may return malformed payloads if the underlying
@@ -926,7 +982,7 @@ class PawControlData:
 
         sanitized = self._create_empty_data()
 
-        if not isinstance(data, dict):
+        if not isinstance(data, Mapping):
             if data not in (None, {}):
                 _LOGGER.warning(
                     "Unexpected data payload type %s; using default layout",
@@ -935,27 +991,26 @@ class PawControlData:
             return sanitized
 
         for key in DEFAULT_DATA_KEYS:
-            value = data.get(key)
-            if isinstance(value, dict):
-                sanitized[key] = value
-            elif value not in (None, {}):
-                _LOGGER.warning(
-                    "Invalid data structure for '%s'; resetting namespace", key
-                )
+            sanitized[key] = self._coerce_namespace_payload(data.get(key), key)
 
         for key, value in data.items():
             if key not in sanitized:
-                sanitized[key] = value
+                _LOGGER.debug(
+                    "Skipping unsupported storage namespace '%s' with %s payload",
+                    key,
+                    type(value).__name__,
+                )
 
         return sanitized
 
     def _hydrate_event_models(self) -> None:
         """Ensure stored history entries use structured dataclasses."""
 
-        health_namespace = self._data.setdefault("health", {})
+        health_namespace_payload = self._ensure_namespace("health")
+        health_namespace = cast(HealthNamespaceMutable, health_namespace_payload)
         for dog_id, history in list(health_namespace.items()):
             if not isinstance(history, list):
-                health_namespace[dog_id] = []
+                health_namespace[dog_id] = cast(list[HealthHistoryEntry], [])
                 continue
 
             normalized_health_history: list[HealthEvent] = []
@@ -978,37 +1033,52 @@ class PawControlData:
                         "Skipping unsupported health history entry type: %s",
                         type(entry).__name__,
                     )
-            health_namespace[dog_id] = normalized_health_history
+            health_namespace[dog_id] = cast(
+                list[HealthHistoryEntry], normalized_health_history
+            )
 
-        walk_namespace = self._data.setdefault("walks", {})
-        for dog_id, walk_data in list(walk_namespace.items()):
-            if not isinstance(walk_data, dict):
-                walk_namespace[dog_id] = {"active": None, "history": []}
+        walk_namespace_payload = self._ensure_namespace("walks")
+        walk_namespace = cast(WalkNamespaceMutable, walk_namespace_payload)
+        for dog_id, walk_data_any in list(walk_namespace.items()):
+            if not isinstance(walk_data_any, dict):
+                walk_namespace[dog_id] = cast(
+                    WalkNamespaceMutableEntry,
+                    {
+                        "active": None,
+                        "history": cast(list[WalkHistoryEntry], []),
+                    },
+                )
                 continue
 
-            history = walk_data.get("history", [])
+            walk_data = cast(WalkNamespaceMutableEntry, walk_data_any)
+            history_value = walk_data.get("history")
+            if isinstance(history_value, list):
+                history_list = cast(list[WalkHistoryEntry], history_value)
+            else:
+                history_list = cast(list[WalkHistoryEntry], [])
+                walk_data["history"] = history_list
+
             normalized_walk_history: list[WalkEvent] = []
-            if isinstance(history, list):
-                for entry in history:
-                    if isinstance(entry, WalkEvent):
-                        normalized_walk_history.append(entry)
-                    elif isinstance(entry, dict):
-                        try:
-                            normalized_walk_history.append(
-                                WalkEvent.from_storage(dog_id, entry)
-                            )
-                        except Exception as err:
-                            _LOGGER.debug(
-                                "Unable to hydrate walk history for %s: %s",
-                                dog_id,
-                                err,
-                            )
-                    else:
-                        _LOGGER.debug(
-                            "Skipping unsupported walk history entry type: %s",
-                            type(entry).__name__,
+            for entry in history_list:
+                if isinstance(entry, WalkEvent):
+                    normalized_walk_history.append(entry)
+                elif isinstance(entry, Mapping):
+                    try:
+                        normalized_walk_history.append(
+                            WalkEvent.from_storage(dog_id, entry)
                         )
-            walk_data["history"] = normalized_walk_history
+                    except Exception as err:
+                        _LOGGER.debug(
+                            "Unable to hydrate walk history for %s: %s",
+                            dog_id,
+                            err,
+                        )
+                else:
+                    _LOGGER.debug(
+                        "Skipping unsupported walk history entry type: %s",
+                        type(entry).__name__,
+                    )
+            walk_data["history"] = cast(list[WalkHistoryEntry], normalized_walk_history)
 
             active_entry = walk_data.get("active")
             if isinstance(active_entry, WalkEvent):
@@ -1028,69 +1098,88 @@ class PawControlData:
                 walk_data["active"] = None
 
     @staticmethod
-    def _serialize_health_namespace(namespace: dict[str, Any]) -> dict[str, Any]:
+    def _serialize_health_namespace(
+        namespace: Mapping[str, object],
+    ) -> StorageNamespacePayload:
         """Convert health namespace to storage-safe data."""
 
-        serialized: dict[str, Any] = {}
+        serialized: StorageNamespacePayload = cast(StorageNamespacePayload, {})
         for dog_id, history in namespace.items():
             if isinstance(history, list):
-                serialized[dog_id] = [
-                    entry.as_dict() if isinstance(entry, HealthEvent) else entry
-                    for entry in history
-                ]
+                serialized[dog_id] = cast(
+                    JSONValue,
+                    [
+                        entry.as_dict() if isinstance(entry, HealthEvent) else entry
+                        for entry in history
+                    ],
+                )
             else:
-                serialized[dog_id] = history
+                serialized[dog_id] = cast(JSONValue, history)
         return serialized
 
     @staticmethod
-    def _serialize_walk_namespace(namespace: dict[str, Any]) -> dict[str, Any]:
+    def _serialize_walk_namespace(
+        namespace: Mapping[str, object],
+    ) -> StorageNamespacePayload:
         """Convert walk namespace to storage-safe data."""
 
-        serialized: dict[str, Any] = {}
+        serialized: StorageNamespacePayload = cast(StorageNamespacePayload, {})
         for dog_id, walk_data in namespace.items():
             if not isinstance(walk_data, dict):
-                serialized[dog_id] = walk_data
+                serialized[dog_id] = cast(JSONValue, walk_data)
                 continue
 
             active_entry = walk_data.get("active")
             if isinstance(active_entry, WalkEvent):
-                active_value: Any = active_entry.as_dict()
+                active_value: JSONValue = cast(JSONValue, active_entry.as_dict())
             else:
-                active_value = active_entry
+                active_value = cast(JSONValue, active_entry)
 
             history = walk_data.get("history", [])
             if isinstance(history, list):
-                history_value: Any = [
-                    entry.as_dict() if isinstance(entry, WalkEvent) else entry
-                    for entry in history
-                ]
+                history_value: JSONValue = cast(
+                    JSONValue,
+                    [
+                        entry.as_dict() if isinstance(entry, WalkEvent) else entry
+                        for entry in history
+                    ],
+                )
             else:
-                history_value = history
+                history_value = cast(JSONValue, history)
 
-            serialized[dog_id] = {
-                **{
-                    key: value
-                    for key, value in walk_data.items()
-                    if key not in {"active", "history"}
-                },
-                "active": active_value,
-                "history": history_value,
+            serialized_walk: dict[str, JSONValue] = {
+                key: cast(JSONValue, value)
+                for key, value in walk_data.items()
+                if key not in {"active", "history"}
             }
+            serialized_walk["active"] = active_value
+            serialized_walk["history"] = history_value
+            serialized[dog_id] = cast(JSONValue, serialized_walk)
 
         return serialized
 
+    @staticmethod
+    def _coerce_event_payload(payload: Mapping[str, object]) -> JSONMutableMapping:
+        """Return a JSON-compatible mutable payload for queued events."""
+
+        return cast(
+            JSONMutableMapping,
+            {str(key): cast(JSONValue, value) for key, value in payload.items()},
+        )
+
     async def async_log_feeding(
-        self, dog_id: str, feeding_data: dict[str, Any]
+        self, dog_id: str, feeding_data: Mapping[str, object]
     ) -> None:
         """OPTIMIZED: Log feeding with event queue."""
         if not self._is_valid_dog_id(dog_id):
             raise HomeAssistantError(f"Invalid dog ID: {dog_id}")
 
         # Add to event queue for batch processing
+        event_payload = self._coerce_event_payload(feeding_data)
         event: QueuedEvent = {
             "type": "feeding",
             "dog_id": dog_id,
-            "data": feeding_data,
+            "data": event_payload,
             "timestamp": dt_util.utcnow().isoformat(),
         }
 
@@ -1152,10 +1241,13 @@ class PawControlData:
             dog_id = events[0]["dog_id"]
 
             # Ensure data structure exists
-            if "feedings" not in self._data:
-                self._data["feedings"] = {}
-            if dog_id not in self._data["feedings"]:
-                self._data["feedings"][dog_id] = []
+            feedings_namespace = self._ensure_namespace("feedings")
+            existing_history = feedings_namespace.get(dog_id)
+            if isinstance(existing_history, list):
+                dog_history = cast(list[JSONMutableMapping], existing_history)
+            else:
+                dog_history = []
+                feedings_namespace[dog_id] = cast(JSONValue, dog_history)
 
             # Add all feeding entries
             for event in events:
@@ -1163,17 +1255,15 @@ class PawControlData:
                 if "timestamp" not in feeding_data:
                     feeding_data["timestamp"] = event["timestamp"]
 
-                self._data["feedings"][dog_id].append(feeding_data)
+                dog_history.append(feeding_data)
 
             # Enforce size limits
-            if len(self._data["feedings"][dog_id]) > MAX_HISTORY_ITEMS:
+            if len(dog_history) > MAX_HISTORY_ITEMS:
                 # Keep most recent entries
-                self._data["feedings"][dog_id] = self._data["feedings"][dog_id][
-                    -MAX_HISTORY_ITEMS:
-                ]
+                dog_history[:] = dog_history[-MAX_HISTORY_ITEMS:]
 
             # Save to storage (will be batched)
-            await self.storage.async_save_data("feedings", self._data["feedings"])
+            await self.storage.async_save_data("feedings", feedings_namespace)
 
             # Fire events for each feeding
             for event in events:
@@ -1206,15 +1296,19 @@ class PawControlData:
             return
 
         try:
-            health_namespace = self._data.setdefault("health", {})
-            dog_history = health_namespace.setdefault(dog_id, [])
+            health_namespace_payload = self._ensure_namespace("health")
+            health_namespace = cast(HealthNamespaceMutable, health_namespace_payload)
+            history_value = health_namespace.setdefault(
+                dog_id, cast(list[HealthHistoryEntry], [])
+            )
+            dog_history = cast(list[HealthHistoryEntry], history_value)
 
             if dog_history:
                 normalized_history: list[HealthEvent] = []
                 for entry in dog_history:
                     if isinstance(entry, HealthEvent):
                         normalized_history.append(entry)
-                    elif isinstance(entry, dict):
+                    elif isinstance(entry, Mapping):
                         normalized_history.append(
                             HealthEvent.from_storage(dog_id, entry)
                         )
@@ -1223,13 +1317,17 @@ class PawControlData:
                             "Skipping unsupported health history entry type: %s",
                             type(entry).__name__,
                         )
-                health_namespace[dog_id] = normalized_history
-                dog_history = normalized_history
+                health_namespace[dog_id] = cast(
+                    list[HealthHistoryEntry], normalized_history
+                )
+                dog_history = cast(list[HealthHistoryEntry], normalized_history)
 
             new_events: list[HealthEvent] = []
 
             for event in events:
-                event_data = event.get("data", {})
+                event_data: JSONMutableMapping = cast(
+                    JSONMutableMapping, event.get("data", {})
+                )
                 timestamp = event.get("timestamp")
                 health_event = HealthEvent.from_raw(dog_id, event_data, timestamp)
                 dog_history.append(health_event)
@@ -1265,26 +1363,47 @@ class PawControlData:
             return
 
         try:
-            walk_namespace = self._data.setdefault("walks", {})
-            dog_walks = walk_namespace.setdefault(
-                dog_id, {"active": None, "history": []}
+            walk_namespace_payload = self._ensure_namespace("walks")
+            walk_namespace = cast(WalkNamespaceMutable, walk_namespace_payload)
+            walk_entry = walk_namespace.setdefault(
+                dog_id,
+                cast(
+                    WalkNamespaceMutableEntry,
+                    {
+                        "active": None,
+                        "history": cast(list[WalkHistoryEntry], []),
+                    },
+                ),
             )
-            history_list = dog_walks.setdefault("history", [])
+            dog_walks = cast(WalkNamespaceMutableEntry, walk_entry)
+            history_value = dog_walks.get("history")
+            if isinstance(history_value, list):
+                history_list = cast(list[WalkHistoryEntry], history_value)
+            else:
+                history_list = cast(list[WalkHistoryEntry], [])
+                dog_walks["history"] = history_list
+
             if history_list:
                 normalized_history: list[WalkEvent] = []
                 for entry in history_list:
                     if isinstance(entry, WalkEvent):
                         normalized_history.append(entry)
-                    elif isinstance(entry, dict):
+                    elif isinstance(entry, Mapping):
                         normalized_history.append(WalkEvent.from_storage(dog_id, entry))
                     else:
                         _LOGGER.debug(
                             "Skipping unsupported walk history entry type: %s",
                             type(entry).__name__,
                         )
-                dog_walks["history"] = normalized_history
+                history_list = cast(list[WalkHistoryEntry], normalized_history)
+                dog_walks["history"] = history_list
+            else:
+                history_list = cast(list[WalkHistoryEntry], dog_walks["history"])
 
-            history: list[WalkEvent] = dog_walks["history"]
+            history = [entry for entry in history_list if isinstance(entry, WalkEvent)]
+            if len(history) != len(history_list):
+                history_list = cast(list[WalkHistoryEntry], history)
+                dog_walks["history"] = history_list
 
             active_session = dog_walks.get("active")
             if isinstance(active_session, dict):
@@ -1299,7 +1418,9 @@ class PawControlData:
             updated = False
 
             for event in events:
-                event_data = event.get("data", {})
+                event_data: JSONMutableMapping = cast(
+                    JSONMutableMapping, event.get("data", {})
+                )
                 timestamp = event.get("timestamp")
                 walk_event = WalkEvent.from_raw(dog_id, event_data, timestamp)
 
@@ -1362,39 +1483,65 @@ class PawControlData:
             _LOGGER.error("Failed to process walk event batch: %s", err)
 
     # Keep existing methods but add async optimizations where needed
-    async def async_start_walk(self, dog_id: str, walk_data: dict[str, Any]) -> None:
+    async def async_start_walk(
+        self, dog_id: str, walk_data: WalkStartPayload | None = None
+    ) -> None:
         """Start walk with immediate processing for real-time needs."""
         if not self._is_valid_dog_id(dog_id):
             raise HomeAssistantError(f"Invalid dog ID: {dog_id}")
 
         try:
             # Ensure walks data structure exists
-            if "walks" not in self._data:
-                self._data["walks"] = {}
-            if dog_id not in self._data["walks"]:
-                self._data["walks"][dog_id] = {"active": None, "history": []}
+            walk_namespace_payload = self._ensure_namespace("walks")
+            walk_namespace = cast(WalkNamespaceMutable, walk_namespace_payload)
+            walk_entry = walk_namespace.setdefault(
+                dog_id,
+                cast(
+                    WalkNamespaceMutableEntry,
+                    {
+                        "active": None,
+                        "history": cast(list[WalkHistoryEntry], []),
+                    },
+                ),
+            )
+            dog_walks = cast(WalkNamespaceMutableEntry, walk_entry)
+            if not isinstance(dog_walks.get("history"), list):
+                dog_walks["history"] = cast(list[WalkHistoryEntry], [])
 
             # Check if a walk is already active
-            active_entry = self._data["walks"][dog_id].get("active")
+            active_entry = dog_walks.get("active")
             if isinstance(active_entry, dict):
                 try:
                     active_entry = WalkEvent.from_storage(dog_id, active_entry)
                 except Exception:
                     active_entry = None
-                self._data["walks"][dog_id]["active"] = active_entry
+                dog_walks["active"] = active_entry
 
             if active_entry:
                 raise HomeAssistantError(f"Walk already active for {dog_id}")
 
+            walk_payload: JSONMutableMapping
+            if walk_data is None:
+                walk_payload = cast(JSONMutableMapping, {})
+            else:
+                walk_payload = cast(JSONMutableMapping, dict(walk_data))
+
             # Set active walk
-            active_walk = WalkEvent.from_raw(
-                dog_id, walk_data, walk_data.get("timestamp")
+            timestamp_raw = walk_payload.get("timestamp")
+            timestamp_override = (
+                timestamp_raw if isinstance(timestamp_raw, str) else None
             )
-            self._data["walks"][dog_id]["active"] = active_walk
+
+            active_walk = WalkEvent.from_raw(
+                dog_id,
+                walk_payload,
+                timestamp_override,
+            )
+            dog_walks["active"] = active_walk
 
             # Save immediately for real-time operations
             await self.storage.async_save_data(
-                "walks", self._serialize_walk_namespace(self._data["walks"])
+                "walks", self._serialize_walk_namespace(walk_namespace)
             )
 
             # Fire event
@@ -1416,7 +1563,7 @@ class PawControlData:
         """Validate dog ID with caching."""
         # Cache valid dog IDs for performance
         if self._valid_dog_ids is None:
-            self._valid_dog_ids = {dog[CONF_DOG_ID] for dog in self._dogs}
+            self._valid_dog_ids = {dog["dog_id"] for dog in self._dogs}
 
         return dog_id in self._valid_dog_ids
 
@@ -1448,10 +1595,10 @@ class PawControlNotificationManager:
         self.config_entry = config_entry
 
         # OPTIMIZATION: Use deque for efficient queue operations
-        self._notification_queue: deque[dict[str, Any]] = deque(
+        self._notification_queue: deque[QueuedNotificationPayload] = deque(
             maxlen=MAX_NOTIFICATION_QUEUE
         )
-        self._high_priority_queue: deque[dict[str, Any]] = deque(
+        self._high_priority_queue: deque[QueuedNotificationPayload] = deque(
             maxlen=50
         )  # Separate urgent queue
 
@@ -1505,35 +1652,59 @@ class PawControlNotificationManager:
                 _LOGGER.error("Notification processor error: %s", err)
                 await asyncio.sleep(5)  # Error recovery
 
+    @staticmethod
+    def _coerce_notification_data(data: JSONLikeMapping) -> JSONMutableMapping:
+        """Return JSON-compatible notification extras."""
+
+        return cast(
+            JSONMutableMapping,
+            {str(key): cast(JSONValue, value) for key, value in data.items()},
+        )
+
     async def async_send_notification(
         self,
         dog_id: str,
         title: str,
         message: str,
-        priority: str = "normal",
-        data: dict[str, Any] | None = None,
+        priority: NotificationPriority = DEFAULT_NOTIFICATION_PRIORITY,
+        data: JSONLikeMapping | None = None,
     ) -> None:
         """OPTIMIZED: Send notification with async queuing."""
-        if not self._should_send_notification(priority):
+        if priority not in VALID_NOTIFICATION_PRIORITIES:
+            _LOGGER.warning(
+                "Unknown notification priority '%s'; falling back to normal",
+                priority,
+            )
+            priority_value: NotificationPriority = DEFAULT_NOTIFICATION_PRIORITY
+        else:
+            priority_value = priority
+
+        if not self._should_send_notification(priority_value):
             _LOGGER.debug("Notification suppressed due to quiet hours")
             return
 
-        notification = {
+        notification: QueuedNotificationPayload = {
             "dog_id": dog_id,
             "title": title,
             "message": message,
-            "priority": priority,
-            "data": data or {},
+            "priority": priority_value,
             "timestamp": dt_util.utcnow().isoformat(),
         }
 
+        if data:
+            notification["data"] = self._coerce_notification_data(data)
+        else:
+            notification["data"] = cast(JSONMutableMapping, {})
+
         # Route to appropriate queue
-        if priority in ["high", "urgent"]:
+        if priority_value in ("high", "urgent"):
             self._high_priority_queue.append(notification)
         else:
             self._notification_queue.append(notification)
 
-    async def _send_notification_now(self, notification: dict[str, Any]) -> None:
+    async def _send_notification_now(
+        self, notification: QueuedNotificationPayload
+    ) -> None:
         """OPTIMIZED: Send notification with error handling."""
         async with self._processing_lock:
             try:
@@ -1587,7 +1758,7 @@ class PawControlNotificationManager:
             except Exception as err:
                 _LOGGER.error("Failed to send notification: %s", err)
 
-    def _should_send_notification(self, priority: str) -> bool:
+    def _should_send_notification(self, priority: NotificationPriority) -> bool:
         """OPTIMIZED: Check notification rules with caching."""
         # Cache quiet hours calculation for performance
         cache_key = f"quiet_hours_{priority}"
@@ -1605,7 +1776,7 @@ class PawControlNotificationManager:
 
         return result
 
-    def _calculate_notification_allowed(self, priority: str) -> bool:
+    def _calculate_notification_allowed(self, priority: NotificationPriority) -> bool:
         """Calculate if notification should be sent."""
         notification_config = self.config_entry.options.get(CONF_NOTIFICATIONS, {})
 

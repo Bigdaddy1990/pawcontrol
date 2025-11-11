@@ -14,7 +14,6 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import (
     ATTR_DOG_ID,
-    ATTR_DOG_NAME,
     DOMAIN,
     MODULE_GPS,
     MODULE_HEALTH,
@@ -29,10 +28,14 @@ from .types import (
     DOG_ID_FIELD,
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
+    ConfigFlowUserInput,
     DogConfigData,
     DogModulesConfig,
+    DogModulesProjection,
+    JSONMapping,
     ModuleToggleKey,
     PawControlConfigEntry,
+    TextEntityExtraAttributes,
     coerce_dog_modules_config,
     ensure_dog_config_data,
 )
@@ -74,7 +77,7 @@ def _normalize_dog_configs(
             )
             continue
 
-        typed_mapping = cast(Mapping[str, Any], config)
+        typed_mapping = cast(JSONMapping, config)
         typed_config = ensure_dog_config_data(typed_mapping)
         if typed_config is None:
             _LOGGER.warning(
@@ -83,9 +86,19 @@ def _normalize_dog_configs(
             )
             continue
 
-        modules: DogModulesConfig = coerce_dog_modules_config(
-            typed_mapping.get(DOG_MODULES_FIELD)
+        modules_payload = typed_mapping.get(DOG_MODULES_FIELD)
+        modules_source: (
+            ConfigFlowUserInput | DogModulesProjection | DogModulesConfig | None
         )
+        if isinstance(modules_payload, Mapping):
+            modules_source = cast(ConfigFlowUserInput, modules_payload)
+        elif isinstance(modules_payload, DogModulesProjection) or (
+            hasattr(modules_payload, "config") and hasattr(modules_payload, "mapping")
+        ):
+            modules_source = cast(DogModulesProjection, modules_payload)
+        else:
+            modules_source = None
+        modules: DogModulesConfig = coerce_dog_modules_config(modules_source)
         typed_config = {**typed_config, DOG_MODULES_FIELD: modules}
         normalized_configs.append(cast(DogConfigData, typed_config))
 
@@ -255,14 +268,15 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
         return self._current_value
 
     @property
-    def extra_state_attributes(self) -> dict[str, Any]:
+    def extra_state_attributes(self) -> TextEntityExtraAttributes:
         """Return extra state attributes."""
-        return {
-            ATTR_DOG_ID: self._dog_id,
-            ATTR_DOG_NAME: self._dog_name,
+        attributes: TextEntityExtraAttributes = {
+            "dog_id": self._dog_id,
+            "dog_name": self._dog_name,
             "text_type": self._text_type,
             "character_count": len(self._current_value),
         }
+        return attributes
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""

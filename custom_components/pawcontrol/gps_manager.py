@@ -36,11 +36,15 @@ from .const import (
 )
 from .notifications import (
     NotificationPriority,
+    NotificationTemplateData,
     NotificationType,
     PawControlNotificationManager,
 )
 from .resilience import ResilienceManager, RetryConfig
 from .types import (
+    GeofenceEventPayload,
+    GeofenceNotificationCoordinates,
+    GeofenceNotificationData,
     GPSGeofenceLocationSnapshot,
     GPSGeofenceStatusSnapshot,
     GPSGeofenceZoneStatusSnapshot,
@@ -54,6 +58,7 @@ from .types import (
     GPSRouteExportJSONPoint,
     GPSRouteExportJSONRoute,
     GPSRouteExportPayload,
+    GPSTrackingConfigInput,
 )
 from .utils import async_fire_event
 
@@ -255,6 +260,57 @@ class GPSTrackingConfig(NamedTuple):
     route_smoothing: bool = True
 
 
+def _coerce_tracking_bool(value: object | None, default: bool) -> bool:
+    """Return a boolean configuration flag, falling back to ``default``."""
+
+    return value if isinstance(value, bool) else default
+
+
+def _coerce_tracking_float(value: object | None, default: float) -> float:
+    """Return a floating-point configuration value with defensive conversion."""
+
+    if isinstance(value, bool):
+        return default
+    if isinstance(value, (int, float)):
+        return float(value)
+    return default
+
+
+def _coerce_tracking_int(value: object | None, default: int) -> int:
+    """Return an integer configuration value while filtering bools."""
+
+    if isinstance(value, bool):
+        return default
+    if isinstance(value, int):
+        return value
+    if isinstance(value, float):
+        return int(value)
+    return default
+
+
+def _build_tracking_config(config: GPSTrackingConfigInput) -> GPSTrackingConfig:
+    """Normalise external GPS tracking inputs into the runtime configuration."""
+
+    return GPSTrackingConfig(
+        enabled=_coerce_tracking_bool(config.get("enabled"), True),
+        auto_start_walk=_coerce_tracking_bool(config.get("auto_start_walk"), True),
+        track_route=_coerce_tracking_bool(config.get("track_route"), True),
+        safety_alerts=_coerce_tracking_bool(config.get("safety_alerts"), True),
+        geofence_notifications=_coerce_tracking_bool(
+            config.get("geofence_notifications"), True
+        ),
+        auto_detect_home=_coerce_tracking_bool(config.get("auto_detect_home"), True),
+        accuracy_threshold=_coerce_tracking_float(
+            config.get("gps_accuracy_threshold"), 50.0
+        ),
+        update_interval=_coerce_tracking_int(config.get("update_interval_seconds"), 60),
+        min_distance_for_point=_coerce_tracking_float(
+            config.get("min_distance_for_point"), 10.0
+        ),
+        route_smoothing=_coerce_tracking_bool(config.get("route_smoothing"), True),
+    )
+
+
 def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """Calculate distance between two GPS points using Haversine formula.
 
@@ -364,7 +420,7 @@ class GPSGeofenceManager:
         self._notification_manager = manager
 
     async def async_configure_dog_gps(
-        self, dog_id: str, config: dict[str, Any]
+        self, dog_id: str, config: GPSTrackingConfigInput
     ) -> None:
         """Configure GPS tracking for a specific dog.
 
@@ -373,18 +429,7 @@ class GPSGeofenceManager:
             config: GPS configuration dictionary
         """
         try:
-            gps_config = GPSTrackingConfig(
-                enabled=config.get("enabled", True),
-                auto_start_walk=config.get("auto_start_walk", True),
-                track_route=config.get("track_route", True),
-                safety_alerts=config.get("safety_alerts", True),
-                geofence_notifications=config.get("geofence_notifications", True),
-                auto_detect_home=config.get("auto_detect_home", True),
-                accuracy_threshold=config.get("gps_accuracy_threshold", 50.0),
-                update_interval=config.get("update_interval_seconds", 60),
-                min_distance_for_point=config.get("min_distance_for_point", 10.0),
-                route_smoothing=config.get("route_smoothing", True),
-            )
+            gps_config = _build_tracking_config(config)
 
             self._dog_configs[dog_id] = gps_config
 
@@ -1113,7 +1158,7 @@ class GPSGeofenceManager:
     async def _send_geofence_notification(self, event: GeofenceEvent) -> None:
         """Send notification for geofence event."""
         try:
-            event_payload: dict[str, Any] = {
+            event_payload: GeofenceEventPayload = {
                 "dog_id": event.dog_id,
                 "zone": event.zone.name,
                 "zone_type": event.zone.zone_type,
@@ -1161,15 +1206,16 @@ class GPSGeofenceManager:
                 message = f"{event.dog_id} has been outside {zone_name} for {minutes:.1f} minutes"
                 priority = NotificationPriority.URGENT
 
-            notification_data = {
+            coordinates: GeofenceNotificationCoordinates = {
+                "latitude": event.location.latitude,
+                "longitude": event.location.longitude,
+            }
+            notification_data: GeofenceNotificationData = {
                 "zone": zone_name,
                 "zone_type": event.zone.zone_type,
                 "event": event.event_type.value,
                 "distance_meters": distance,
-                "coordinates": {
-                    "latitude": event.location.latitude,
-                    "longitude": event.location.longitude,
-                },
+                "coordinates": coordinates,
             }
             if event.duration_outside:
                 notification_data["duration_seconds"] = event_payload[
@@ -1185,7 +1231,7 @@ class GPSGeofenceManager:
                     message,
                     dog_id=event.dog_id,
                     priority=priority,
-                    data=notification_data,
+                    data=cast(NotificationTemplateData, dict(notification_data)),
                 )
 
         except Exception as err:

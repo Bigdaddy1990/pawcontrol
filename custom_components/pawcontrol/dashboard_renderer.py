@@ -14,10 +14,10 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from collections.abc import Awaitable, Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Sequence
 from functools import partial
 from pathlib import Path
-from typing import Any, Literal, cast
+from typing import Literal, cast
 
 import aiofiles  # type: ignore[import-not-found, import-untyped]
 from homeassistant.core import HomeAssistant
@@ -745,7 +745,7 @@ class DashboardRenderer:
         title: str,
         icon: str,
         generator: Callable[
-            [Mapping[str, Any] | DogConfigData, DashboardCardOptions],
+            [JSONMapping | DogConfigData, DashboardCardOptions],
             Awaitable[list[LovelaceCardConfig]],
         ],
     ) -> LovelaceViewConfig | None:

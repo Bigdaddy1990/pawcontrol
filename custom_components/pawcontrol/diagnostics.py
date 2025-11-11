@@ -43,13 +43,18 @@ from .coordinator_tasks import (
 )
 from .diagnostics_redaction import compile_redaction_patterns, redact_sensitive_data
 from .runtime_data import get_runtime_data
-from .service_guard import normalise_guard_history
+from .service_guard import (
+    ServiceGuardMetricsSnapshot,
+    ServiceGuardResultHistory,
+    normalise_guard_history,
+)
 from .telemetry import (
     get_bool_coercion_metrics,
     get_runtime_performance_stats,
     update_runtime_bool_coercion_summary,
 )
 from .types import (
+    BoolCoercionDiagnosticsPayload,
     CacheDiagnosticsMap,
     CacheDiagnosticsMetadata,
     CacheDiagnosticsSnapshot,
@@ -59,10 +64,22 @@ from .types import (
     CoordinatorRejectionMetrics,
     CoordinatorStatisticsPayload,
     CoordinatorUpdateCounts,
+    DataStatisticsPayload,
+    DebugInformationPayload,
+    DogConfigData,
+    JSONLikeMapping,
+    JSONMapping,
     JSONMutableMapping,
     JSONValue,
+    ModuleUsageBreakdown,
     PawControlConfigEntry,
     PawControlRuntimeData,
+    RecentErrorEntry,
+    ResilienceEscalationSnapshot,
+    SetupFlagPanelEntry,
+    SetupFlagSourceBreakdown,
+    SetupFlagSourceLabels,
+    SetupFlagsPanelPayload,
 )
 
 if TYPE_CHECKING:
@@ -235,20 +252,14 @@ def _collect_setup_flag_snapshots(entry: ConfigEntry) -> dict[str, SetupFlagSnap
     """Return analytics, backup, and debug logging flag states and sources."""
 
     raw_options = entry.options
-    options = (
-        cast(Mapping[str, Any], raw_options) if isinstance(raw_options, Mapping) else {}
-    )
+    options = cast(JSONMapping, raw_options) if isinstance(raw_options, Mapping) else {}
     system_raw = options.get("system_settings")
-    system = (
-        cast(Mapping[str, Any], system_raw) if isinstance(system_raw, Mapping) else {}
-    )
+    system = cast(JSONMapping, system_raw) if isinstance(system_raw, Mapping) else {}
     advanced_raw = options.get("advanced_settings")
     advanced = (
-        cast(Mapping[str, Any], advanced_raw)
-        if isinstance(advanced_raw, Mapping)
-        else {}
+        cast(JSONMapping, advanced_raw) if isinstance(advanced_raw, Mapping) else {}
     )
-    entry_data = cast(Mapping[str, Any], entry.data)
+    entry_data = cast(JSONMapping, entry.data)
 
     def _resolve_flag(
         key: str,
@@ -290,19 +301,24 @@ def _summarise_setup_flags(entry: ConfigEntry) -> dict[str, bool]:
 
 async def _async_build_setup_flags_panel(
     hass: HomeAssistant, entry: ConfigEntry
-) -> dict[str, Any]:
+) -> SetupFlagsPanelPayload:
     """Expose setup flag metadata in a dashboard-friendly structure."""
 
     (
         language,
         flag_labels,
-        source_labels,
+        resolved_source_labels,
         title,
         description,
     ) = await _async_resolve_setup_flag_translations(hass)
 
     snapshots = _collect_setup_flag_snapshots(entry)
-    flags: list[dict[str, Any]] = []
+    flags: list[SetupFlagPanelEntry] = []
+    source_labels: SetupFlagSourceLabels = dict(resolved_source_labels)
+    source_labels_default: SetupFlagSourceLabels = dict(SETUP_FLAG_SOURCE_LABELS)
+    source_label_translation_keys: SetupFlagSourceLabels = dict(
+        SETUP_FLAG_SOURCE_LABEL_TRANSLATION_KEYS
+    )
 
     for key, snapshot in snapshots.items():
         source = snapshot["source"]
@@ -318,16 +334,14 @@ async def _async_build_setup_flags_panel(
                     source, SETUP_FLAG_SOURCE_LABELS[source]
                 ),
                 "source_label_default": SETUP_FLAG_SOURCE_LABELS[source],
-                "source_label_translation_key": SETUP_FLAG_SOURCE_LABEL_TRANSLATION_KEYS[
-                    source
-                ],
+                "source_label_translation_key": source_label_translation_keys[source],
             }
         )
 
     enabled_count = sum(1 for flag in flags if flag["enabled"])
     disabled_count = len(flags) - enabled_count
 
-    source_breakdown: dict[str, int] = {}
+    source_breakdown: SetupFlagSourceBreakdown = {}
     for flag in flags:
         source = cast(str, flag["source"])
         source_breakdown[source] = source_breakdown.get(source, 0) + 1
@@ -344,8 +358,8 @@ async def _async_build_setup_flags_panel(
         "disabled_count": disabled_count,
         "source_breakdown": source_breakdown,
         "source_labels": source_labels,
-        "source_labels_default": SETUP_FLAG_SOURCE_LABELS,
-        "source_label_translation_keys": SETUP_FLAG_SOURCE_LABEL_TRANSLATION_KEYS,
+        "source_labels_default": source_labels_default,
+        "source_label_translation_keys": source_label_translation_keys,
         "language": language,
     }
 
@@ -414,7 +428,7 @@ def _apply_rejection_metrics_to_performance(
 
 
 def _build_statistics_payload(
-    payload: Mapping[str, Any],
+    payload: JSONLikeMapping,
 ) -> CoordinatorStatisticsPayload:
     """Normalise coordinator statistics into the active typed structure."""
 
@@ -559,7 +573,7 @@ def _device_registry_entries_for_config_entry(
 
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: PawControlConfigEntry
-) -> dict[str, Any]:
+) -> JSONMutableMapping:
     """Return diagnostics for a config entry.
 
     This function collects comprehensive diagnostic information including
@@ -582,7 +596,7 @@ async def async_get_config_entry_diagnostics(
     # Base diagnostics structure
     cache_snapshots = _collect_cache_diagnostics(runtime_data)
 
-    diagnostics = {
+    diagnostics: JSONMutableMapping = {
         "config_entry": await _get_config_entry_diagnostics(entry),
         "system_info": await _get_system_diagnostics(hass),
         "integration_status": await _get_integration_status(hass, entry, runtime_data),
@@ -619,7 +633,7 @@ async def async_get_config_entry_diagnostics(
 
 def _get_resilience_escalation_snapshot(
     runtime_data: PawControlRuntimeData | None,
-) -> dict[str, Any]:
+) -> ResilienceEscalationSnapshot:
     """Build diagnostics metadata for the resilience escalation helper."""
 
     if runtime_data is None:
@@ -636,7 +650,7 @@ def _get_resilience_escalation_snapshot(
     return snapshot
 
 
-async def _get_config_entry_diagnostics(entry: ConfigEntry) -> dict[str, Any]:
+async def _get_config_entry_diagnostics(entry: ConfigEntry) -> JSONMutableMapping:
     """Get configuration entry diagnostic information.
 
     Args:
@@ -662,27 +676,30 @@ async def _get_config_entry_diagnostics(entry: ConfigEntry) -> dict[str, Any]:
     supports_remove_device = getattr(entry, "supports_remove_device", False)
     supports_unload = getattr(entry, "supports_unload", False)
 
-    return {
-        "entry_id": entry.entry_id,
-        "title": getattr(entry, "title", entry.entry_id),
-        "version": version,
-        "domain": entry.domain,
-        "state": state_value,
-        "source": getattr(entry, "source", None),
-        "unique_id": getattr(entry, "unique_id", None),
-        "created_at": created_at.isoformat() if created_at else None,
-        "modified_at": modified_at.isoformat() if modified_at else None,
-        "data_keys": list(entry.data.keys()),
-        "options_keys": list(getattr(entry, "options", {})),
-        "supports_options": supports_options,
-        "supports_reconfigure": supports_reconfigure,
-        "supports_remove_device": supports_remove_device,
-        "supports_unload": supports_unload,
-        "dogs_configured": len(entry.data.get(CONF_DOGS, [])),
-    }
+    return cast(
+        JSONMutableMapping,
+        {
+            "entry_id": entry.entry_id,
+            "title": getattr(entry, "title", entry.entry_id),
+            "version": version,
+            "domain": entry.domain,
+            "state": state_value,
+            "source": getattr(entry, "source", None),
+            "unique_id": getattr(entry, "unique_id", None),
+            "created_at": created_at.isoformat() if created_at else None,
+            "modified_at": modified_at.isoformat() if modified_at else None,
+            "data_keys": list(entry.data.keys()),
+            "options_keys": list(getattr(entry, "options", {})),
+            "supports_options": supports_options,
+            "supports_reconfigure": supports_reconfigure,
+            "supports_remove_device": supports_remove_device,
+            "supports_unload": supports_unload,
+            "dogs_configured": len(entry.data.get(CONF_DOGS, [])),
+        },
+    )
 
 
-async def _get_system_diagnostics(hass: HomeAssistant) -> dict[str, Any]:
+async def _get_system_diagnostics(hass: HomeAssistant) -> JSONMutableMapping:
     """Get Home Assistant system diagnostic information.
 
     Args:
@@ -700,17 +717,20 @@ async def _get_system_diagnostics(hass: HomeAssistant) -> dict[str, Any]:
     if start_time:
         uptime_seconds = (dt_util.utcnow() - start_time).total_seconds()
 
-    return {
-        "ha_version": getattr(config, "version", None),
-        "python_version": getattr(config, "python_version", None),
-        "timezone": str(time_zone) if time_zone else None,
-        "config_dir": getattr(config, "config_dir", None),
-        "is_running": getattr(hass, "is_running", False),
-        "safe_mode": safe_mode,
-        "recovery_mode": recovery_mode,
-        "current_time": dt_util.utcnow().isoformat(),
-        "uptime_seconds": uptime_seconds,
-    }
+    return cast(
+        JSONMutableMapping,
+        {
+            "ha_version": getattr(config, "version", None),
+            "python_version": getattr(config, "python_version", None),
+            "timezone": str(time_zone) if time_zone else None,
+            "config_dir": getattr(config, "config_dir", None),
+            "is_running": getattr(hass, "is_running", False),
+            "safe_mode": safe_mode,
+            "recovery_mode": recovery_mode,
+            "current_time": dt_util.utcnow().isoformat(),
+            "uptime_seconds": uptime_seconds,
+        },
+    )
 
 
 def _collect_cache_diagnostics(
@@ -765,7 +785,7 @@ def _normalise_cache_snapshot(payload: Any) -> CacheDiagnosticsSnapshot:
     if isinstance(payload, CacheDiagnosticsSnapshot):
         snapshot = payload
     elif isinstance(payload, Mapping):
-        snapshot = CacheDiagnosticsSnapshot.from_mapping(payload)
+        snapshot = CacheDiagnosticsSnapshot.from_mapping(cast(JSONMapping, payload))
     else:
         return CacheDiagnosticsSnapshot(
             error=f"Unsupported diagnostics payload: {type(payload).__name__}",
@@ -785,7 +805,7 @@ def _normalise_cache_snapshot(payload: Any) -> CacheDiagnosticsSnapshot:
         snapshot.repair_summary = None
 
     if snapshot.stats is not None:
-        snapshot.stats = cast(dict[str, Any], _normalise_json(snapshot.stats))
+        snapshot.stats = cast(JSONMutableMapping, _normalise_json(snapshot.stats))
 
     if snapshot.diagnostics is not None:
         diagnostics_payload = _normalise_json(snapshot.diagnostics)
@@ -798,7 +818,7 @@ def _normalise_cache_snapshot(payload: Any) -> CacheDiagnosticsSnapshot:
             snapshot.diagnostics = None
 
     if snapshot.snapshot is not None:
-        snapshot.snapshot = cast(dict[str, Any], _normalise_json(snapshot.snapshot))
+        snapshot.snapshot = cast(JSONMutableMapping, _normalise_json(snapshot.snapshot))
 
     if not snapshot.to_mapping():
         snapshot.snapshot = {"value": _normalise_json(payload)}
@@ -807,17 +827,17 @@ def _normalise_cache_snapshot(payload: Any) -> CacheDiagnosticsSnapshot:
 
 
 def _serialise_cache_diagnostics_payload(
-    payload: Mapping[str, Any] | CacheDiagnosticsMap,
-) -> dict[str, Any]:
+    payload: JSONLikeMapping | CacheDiagnosticsMap,
+) -> JSONMutableMapping:
     """Convert cache diagnostics snapshots into JSON-safe payloads."""
 
-    serialised: dict[str, Any] = {}
+    serialised: JSONMutableMapping = {}
     for name, snapshot in payload.items():
         serialised[str(name)] = _serialise_cache_snapshot(snapshot)
     return serialised
 
 
-def _serialise_cache_snapshot(snapshot: Any) -> dict[str, Any]:
+def _serialise_cache_snapshot(snapshot: Any) -> JSONMutableMapping:
     """Return a JSON-serialisable payload for a cache diagnostics snapshot."""
 
     snapshot_input: Any
@@ -839,7 +859,7 @@ def _serialise_cache_snapshot(snapshot: Any) -> dict[str, Any]:
     else:
         snapshot_payload.pop("repair_summary", None)
 
-    return cast(dict[str, Any], _normalise_json(snapshot_payload))
+    return cast(JSONMutableMapping, _normalise_json(snapshot_payload))
 
 
 def _normalise_json(value: Any) -> Any:
@@ -869,7 +889,7 @@ async def _get_integration_status(
     hass: HomeAssistant,
     entry: ConfigEntry,
     runtime_data: PawControlRuntimeData | None,
-) -> dict[str, Any]:
+) -> JSONMutableMapping:
     """Get integration status diagnostics.
 
     Args:
@@ -891,26 +911,29 @@ async def _get_integration_status(
 
     entry_loaded = entry.state is ConfigEntryState.LOADED
 
-    return {
-        "entry_loaded": entry_loaded,
-        "coordinator_available": coordinator is not None,
-        "coordinator_success": coordinator.last_update_success
-        if coordinator
-        else False,
-        "coordinator_last_update": coordinator.last_update_time.isoformat()
-        if coordinator and coordinator.last_update_time
-        else None,
-        "data_manager_available": data_manager is not None,
-        "notification_manager_available": notification_manager is not None,
-        "platforms_loaded": await _get_loaded_platforms(hass, entry),
-        "services_registered": await _get_registered_services(hass),
-        "setup_completed": True,  # If we're here, setup completed
-    }
+    return cast(
+        JSONMutableMapping,
+        {
+            "entry_loaded": entry_loaded,
+            "coordinator_available": coordinator is not None,
+            "coordinator_success": coordinator.last_update_success
+            if coordinator
+            else False,
+            "coordinator_last_update": coordinator.last_update_time.isoformat()
+            if coordinator and coordinator.last_update_time
+            else None,
+            "data_manager_available": data_manager is not None,
+            "notification_manager_available": notification_manager is not None,
+            "platforms_loaded": await _get_loaded_platforms(hass, entry),
+            "services_registered": await _get_registered_services(hass),
+            "setup_completed": True,
+        },
+    )
 
 
 async def _get_coordinator_diagnostics(
     coordinator: PawControlCoordinator | None,
-) -> dict[str, Any]:
+) -> JSONMutableMapping:
     """Get coordinator diagnostic information.
 
     Args:
@@ -920,7 +943,10 @@ async def _get_coordinator_diagnostics(
         Coordinator diagnostics
     """
     if not coordinator:
-        return {"available": False, "reason": "Coordinator not initialized"}
+        return cast(
+            JSONMutableMapping,
+            {"available": False, "reason": "Coordinator not initialized"},
+        )
 
     try:
         stats: CoordinatorStatisticsPayload = coordinator.get_update_statistics()
@@ -934,27 +960,30 @@ async def _get_coordinator_diagnostics(
         else None
     )
 
-    return {
-        "available": coordinator.available,
-        "last_update_success": coordinator.last_update_success,
-        "last_update_time": coordinator.last_update_time.isoformat()
-        if coordinator.last_update_time
-        else None,
-        "update_interval_seconds": update_interval_seconds,
-        "update_method": str(coordinator.update_method)
-        if hasattr(coordinator, "update_method")
-        else "unknown",
-        "logger_name": coordinator.logger.name,
-        "name": coordinator.name,
-        "statistics": stats,
-        "config_entry_id": coordinator.config_entry.entry_id,
-        "dogs_managed": len(getattr(coordinator, "dogs", [])),
-    }
+    return cast(
+        JSONMutableMapping,
+        {
+            "available": coordinator.available,
+            "last_update_success": coordinator.last_update_success,
+            "last_update_time": coordinator.last_update_time.isoformat()
+            if coordinator.last_update_time
+            else None,
+            "update_interval_seconds": update_interval_seconds,
+            "update_method": str(coordinator.update_method)
+            if hasattr(coordinator, "update_method")
+            else "unknown",
+            "logger_name": coordinator.logger.name,
+            "name": coordinator.name,
+            "statistics": stats,
+            "config_entry_id": coordinator.config_entry.entry_id,
+            "dogs_managed": len(getattr(coordinator, "dogs", [])),
+        },
+    )
 
 
 async def _get_entities_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
-) -> dict[str, Any]:
+) -> JSONMutableMapping:
     """Get entities diagnostic information.
 
     Args:
@@ -972,14 +1001,14 @@ async def _get_entities_diagnostics(
     )
 
     # Group entities by platform
-    entities_by_platform: dict[str, list[dict[str, Any]]] = {}
+    entities_by_platform: dict[str, list[JSONMutableMapping]] = {}
 
     for entity in entities:
         platform = entity.platform
         if platform not in entities_by_platform:
             entities_by_platform[platform] = []
 
-        entity_info = {
+        entity_info: JSONMutableMapping = {
             "entity_id": entity.entity_id,
             "unique_id": entity.unique_id,
             "platform": entity.platform,
@@ -1010,21 +1039,24 @@ async def _get_entities_diagnostics(
 
         entities_by_platform[platform].append(entity_info)
 
-    return {
-        "total_entities": len(entities),
-        "entities_by_platform": entities_by_platform,
-        "platform_counts": {
-            platform: len(entities)
-            for platform, entities in entities_by_platform.items()
+    return cast(
+        JSONMutableMapping,
+        {
+            "total_entities": len(entities),
+            "entities_by_platform": entities_by_platform,
+            "platform_counts": {
+                platform: len(platform_entities)
+                for platform, platform_entities in entities_by_platform.items()
+            },
+            "disabled_entities": len([e for e in entities if e.disabled]),
+            "hidden_entities": len([e for e in entities if e.hidden]),
         },
-        "disabled_entities": len([e for e in entities if e.disabled]),
-        "hidden_entities": len([e for e in entities if e.hidden]),
-    }
+    )
 
 
 async def _get_devices_diagnostics(
     hass: HomeAssistant, entry: ConfigEntry
-) -> dict[str, Any]:
+) -> JSONMutableMapping:
     """Get devices diagnostic information.
 
     Args:
@@ -1039,9 +1071,9 @@ async def _get_devices_diagnostics(
     # Get all devices for this integration
     devices = _device_registry_entries_for_config_entry(device_registry, entry.entry_id)
 
-    devices_info = []
+    devices_info: list[JSONMutableMapping] = []
     for device in devices:
-        device_info = {
+        device_info: JSONMutableMapping = {
             "id": device.id,
             "name": device.name,
             "manufacturer": device.manufacturer,
@@ -1058,16 +1090,19 @@ async def _get_devices_diagnostics(
         }
         devices_info.append(device_info)
 
-    return {
-        "total_devices": len(devices),
-        "devices": devices_info,
-        "disabled_devices": len([d for d in devices if d.disabled]),
-    }
+    return cast(
+        JSONMutableMapping,
+        {
+            "total_devices": len(devices),
+            "devices": devices_info,
+            "disabled_devices": len([d for d in devices if d.disabled]),
+        },
+    )
 
 
 async def _get_dogs_summary(
     entry: ConfigEntry, coordinator: PawControlCoordinator | None
-) -> dict[str, Any]:
+) -> JSONMutableMapping:
     """Get summary of configured dogs.
 
     Args:
@@ -1079,10 +1114,10 @@ async def _get_dogs_summary(
     """
     dogs = entry.data.get(CONF_DOGS, [])
 
-    dogs_summary = []
+    dogs_summary: list[JSONMutableMapping] = []
     for dog in dogs:
         dog_id = dog[CONF_DOG_ID]
-        dog_summary = {
+        dog_summary: JSONMutableMapping = {
             "dog_id": dog_id,
             "dog_name": dog[CONF_DOG_NAME],
             "dog_breed": dog.get("dog_breed", ""),
@@ -1117,16 +1152,19 @@ async def _get_dogs_summary(
 
         dogs_summary.append(dog_summary)
 
-    return {
-        "total_dogs": len(dogs),
-        "dogs": dogs_summary,
-        "module_usage": _calculate_module_usage(dogs),
-    }
+    return cast(
+        JSONMutableMapping,
+        {
+            "total_dogs": len(dogs),
+            "dogs": dogs_summary,
+            "module_usage": _calculate_module_usage(dogs),
+        },
+    )
 
 
 async def _get_performance_metrics(
     coordinator: PawControlCoordinator | None,
-) -> dict[str, Any]:
+) -> JSONMutableMapping:
     """Get performance metrics.
 
     Args:
@@ -1136,18 +1174,22 @@ async def _get_performance_metrics(
         Performance metrics
     """
     if not coordinator:
-        return {"available": False}
+        return cast(JSONMutableMapping, {"available": False})
 
     try:
         raw_stats = coordinator.get_update_statistics()
     except Exception as err:
         _LOGGER.debug("Could not get performance metrics: %s", err)
-        return {"available": False, "error": str(err)}
+        return cast(JSONMutableMapping, {"available": False, "error": str(err)})
 
-    stats_mapping = raw_stats if isinstance(raw_stats, Mapping) else {}
+    stats_mapping: JSONLikeMapping = (
+        cast(JSONLikeMapping, raw_stats) if isinstance(raw_stats, Mapping) else {}
+    )
     statistics = _build_statistics_payload(stats_mapping)
-    stats_payload: dict[str, Any] = (
-        dict(stats_mapping) if isinstance(stats_mapping, Mapping) else {}
+    stats_payload: JSONMutableMapping = (
+        cast(JSONMutableMapping, dict(stats_mapping))
+        if isinstance(stats_mapping, Mapping)
+        else {}
     )
     stats_payload["update_counts"] = statistics["update_counts"]
     stats_payload["performance_metrics"] = statistics["performance_metrics"]
@@ -1195,14 +1237,14 @@ async def _get_performance_metrics(
     if resilience is not None:
         stats_payload["resilience"] = resilience
 
-    metrics_output: dict[str, Any] = {
+    metrics_output: JSONMutableMapping = {
         "update_frequency": performance_metrics["update_interval"],
         "data_freshness": "fresh" if coordinator.last_update_success else "stale",
-        "memory_efficient": True,  # Placeholder - could add actual memory usage
-        "cpu_efficient": True,  # Placeholder - could add actual CPU usage
-        "network_efficient": True,  # Placeholder - could add network usage stats
+        "memory_efficient": True,
+        "cpu_efficient": True,
+        "network_efficient": True,
         "error_rate": error_rate,
-        "response_time": "fast",  # Placeholder - could track actual response times
+        "response_time": "fast",
         "rejection_metrics": rejection_metrics,
         "statistics": stats_payload,
     }
@@ -1221,19 +1263,19 @@ async def _get_performance_metrics(
 
 async def _get_door_sensor_diagnostics(
     runtime_data: PawControlRuntimeData | None,
-) -> dict[str, Any]:
+) -> JSONMutableMapping:
     """Summarise door sensor manager status and failure telemetry."""
 
     if runtime_data is None:
-        return {"available": False}
+        return cast(JSONMutableMapping, {"available": False})
 
     manager = getattr(runtime_data, "door_sensor_manager", None)
-    diagnostics: dict[str, Any] = {
+    diagnostics: JSONMutableMapping = {
         "available": manager is not None,
         "manager_type": type(manager).__name__ if manager is not None else None,
     }
 
-    telemetry: dict[str, Any] = {}
+    telemetry: JSONMutableMapping = {}
     performance_stats = get_runtime_performance_stats(runtime_data)
     if performance_stats is not None:
         failure_count = performance_stats.get("door_sensor_failure_count")
@@ -1242,14 +1284,16 @@ async def _get_door_sensor_diagnostics(
 
         last_failure = performance_stats.get("last_door_sensor_failure")
         if isinstance(last_failure, Mapping):
-            telemetry["last_failure"] = dict(last_failure)
+            telemetry["last_failure"] = cast(JSONMutableMapping, dict(last_failure))
 
         failures = performance_stats.get("door_sensor_failures")
         if isinstance(failures, Sequence) and not isinstance(
             failures, str | bytes | bytearray
         ):
-            serialised_failures = [
-                dict(entry) for entry in failures if isinstance(entry, Mapping)
+            serialised_failures: list[JSONMutableMapping] = [
+                cast(JSONMutableMapping, dict(entry))
+                for entry in failures
+                if isinstance(entry, Mapping)
             ]
             if serialised_failures:
                 telemetry["failures"] = serialised_failures
@@ -1279,17 +1323,17 @@ async def _get_door_sensor_diagnostics(
 
 async def _get_service_execution_diagnostics(
     runtime_data: PawControlRuntimeData | None,
-) -> dict[str, Any]:
+) -> JSONMutableMapping:
     """Summarise guarded Home Assistant service execution telemetry."""
 
     if runtime_data is None:
-        return {"available": False}
+        return cast(JSONMutableMapping, {"available": False})
 
     performance_stats = get_runtime_performance_stats(runtime_data)
     if performance_stats is None:
-        return {"available": False}
+        return cast(JSONMutableMapping, {"available": False})
 
-    diagnostics: dict[str, Any] = {"available": True}
+    diagnostics: JSONMutableMapping = {"available": True}
 
     guard_metrics = performance_stats.get("service_guard_metrics")
     guard_payload = _normalise_service_guard_metrics(guard_metrics)
@@ -1301,7 +1345,7 @@ async def _get_service_execution_diagnostics(
         metrics_payload = default_rejection_metrics()
         merge_rejection_metric_values(
             metrics_payload,
-            cast(Mapping[str, Any], rejection_metrics),
+            cast(JSONMapping, rejection_metrics),
         )
         diagnostics["rejection_metrics"] = metrics_payload
 
@@ -1309,8 +1353,8 @@ async def _get_service_execution_diagnostics(
     if isinstance(service_results, Sequence) and not isinstance(
         service_results, str | bytes | bytearray
     ):
-        normalised_results = [
-            cast(dict[str, Any], _normalise_json(dict(result)))
+        normalised_results: list[JSONMutableMapping] = [
+            cast(JSONMutableMapping, _normalise_json(dict(result)))
             for result in service_results
             if isinstance(result, Mapping)
         ]
@@ -1320,7 +1364,7 @@ async def _get_service_execution_diagnostics(
     last_result = performance_stats.get("last_service_result")
     if isinstance(last_result, Mapping):
         diagnostics["last_service_result"] = cast(
-            dict[str, Any], _normalise_json(dict(last_result))
+            JSONMutableMapping, _normalise_json(dict(last_result))
         )
 
     return diagnostics
@@ -1328,24 +1372,26 @@ async def _get_service_execution_diagnostics(
 
 def _get_bool_coercion_diagnostics(
     runtime_data: PawControlRuntimeData | None,
-) -> dict[str, Any]:
+) -> BoolCoercionDiagnosticsPayload:
     """Expose recent bool coercion telemetry captured during normalisation."""
 
     metrics = get_bool_coercion_metrics()
     summary = update_runtime_bool_coercion_summary(runtime_data)
-    recorded = bool(summary.get("recorded"))
-    payload: dict[str, Any] = {
+    recorded = bool(summary["recorded"])
+    payload: BoolCoercionDiagnosticsPayload = {
         "recorded": recorded,
         "summary": summary,
     }
 
-    if recorded:
+    if recorded and metrics:
         payload["metrics"] = metrics
 
     return payload
 
 
-def _normalise_service_guard_metrics(payload: Any) -> dict[str, Any] | None:
+def _normalise_service_guard_metrics(
+    payload: Any,
+) -> ServiceGuardMetricsSnapshot | None:
     """Return a JSON-safe snapshot of aggregated guard metrics when available."""
 
     if not isinstance(payload, Mapping):
@@ -1365,15 +1411,10 @@ def _normalise_service_guard_metrics(payload: Any) -> dict[str, Any] | None:
         if serialised_reasons:
             reasons_payload = serialised_reasons
 
-    last_results_payload: list[dict[str, Any]] | None = None
+    last_results_payload: ServiceGuardResultHistory | None = None
     history_payload = normalise_guard_history(payload.get("last_results"))
     if history_payload:
-        serialised_results = [
-            cast(dict[str, Any], _normalise_json(dict(entry)))
-            for entry in history_payload
-        ]
-        if serialised_results:
-            last_results_payload = serialised_results
+        last_results_payload = history_payload
 
     if (
         executed is None
@@ -1383,7 +1424,7 @@ def _normalise_service_guard_metrics(payload: Any) -> dict[str, Any] | None:
     ):
         return None
 
-    guard_metrics: dict[str, Any] = {}
+    guard_metrics: ServiceGuardMetricsSnapshot = {}
     if executed is not None:
         guard_metrics["executed"] = executed
     if skipped is not None:
@@ -1420,7 +1461,7 @@ def _coerce_int(value: Any) -> int | None:
 async def _get_data_statistics(
     runtime_data: PawControlRuntimeData | None,
     cache_snapshots: CacheDiagnosticsMap | None,
-) -> dict[str, Any]:
+) -> DataStatisticsPayload:
     """Get data storage statistics.
 
     Args:
@@ -1430,13 +1471,13 @@ async def _get_data_statistics(
         Data statistics
     """
     if runtime_data is None:
-        return {"available": False}
+        return {"data_manager_available": False, "metrics": {}}
 
     data_manager = _resolve_data_manager(runtime_data)
     if data_manager is None:
-        return {"available": False}
+        return {"data_manager_available": False, "metrics": {}}
 
-    metrics_payload: dict[str, Any] | None = None
+    metrics_payload: JSONLikeMapping | None = None
     metrics_method = getattr(data_manager, "get_metrics", None)
     if callable(metrics_method):
         try:
@@ -1445,11 +1486,11 @@ async def _get_data_statistics(
             _LOGGER.debug("Failed to gather data manager metrics: %s", err)
 
     if isinstance(metrics_payload, Mapping):
-        metrics = {
-            str(key): _normalise_json(value) for key, value in metrics_payload.items()
-        }
+        metrics: JSONMutableMapping = {}
+        for key, value in metrics_payload.items():
+            metrics[str(key)] = cast(JSONValue, _normalise_json(value))
     else:
-        metrics = {}
+        metrics = cast(JSONMutableMapping, {})
 
     if cache_snapshots is None:
         cache_payload = _collect_cache_diagnostics(runtime_data)
@@ -1469,7 +1510,7 @@ async def _get_data_statistics(
     }
 
 
-async def _get_recent_errors(entry_id: str) -> list[dict[str, Any]]:
+async def _get_recent_errors(entry_id: str) -> list[RecentErrorEntry]:
     """Get recent error logs for this integration.
 
     Args:
@@ -1491,7 +1532,7 @@ async def _get_recent_errors(entry_id: str) -> list[dict[str, Any]]:
 
 async def _get_debug_information(
     hass: HomeAssistant, entry: ConfigEntry
-) -> dict[str, Any]:
+) -> DebugInformationPayload:
     """Get debug information.
 
     Args:
@@ -1564,7 +1605,7 @@ async def _get_registered_services(hass: HomeAssistant) -> list[str]:
     return list(domain_services.keys())
 
 
-def _calculate_module_usage(dogs: list[dict[str, Any]]) -> dict[str, Any]:
+def _calculate_module_usage(dogs: Sequence[DogConfigData]) -> ModuleUsageBreakdown:
     """Calculate module usage statistics across all dogs.
 
     Args:
@@ -1573,7 +1614,7 @@ def _calculate_module_usage(dogs: list[dict[str, Any]]) -> dict[str, Any]:
     Returns:
         Module usage statistics
     """
-    module_counts = {
+    module_counts: dict[str, int] = {
         MODULE_FEEDING: 0,
         MODULE_WALK: 0,
         MODULE_GPS: 0,
@@ -1590,7 +1631,7 @@ def _calculate_module_usage(dogs: list[dict[str, Any]]) -> dict[str, Any]:
                 module_counts[module] += 1
 
     # Calculate percentages
-    module_percentages = {}
+    module_percentages: dict[str, float] = {}
     for module, count in module_counts.items():
         percentage = (count / total_dogs * 100) if total_dogs > 0 else 0
         module_percentages[f"{module}_percentage"] = round(percentage, 1)

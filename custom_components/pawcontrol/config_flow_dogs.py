@@ -15,6 +15,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Mapping
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, cast
 
 import voluptuous as vol
@@ -65,22 +66,34 @@ from custom_components.pawcontrol.types import (
     DOG_NAME_FIELD,
     DOG_SIZE_FIELD,
     DOG_WEIGHT_FIELD,
+    MODULE_TOGGLE_FLAG_BY_KEY,
+    MODULE_TOGGLE_KEYS,
+    AddAnotherDogInput,
     DietCompatibilityIssue,
     DietValidationResult,
     DogConfigData,
     DogFeedingConfig,
+    DogFeedingStepInput,
     DogGPSConfig,
+    DogGPSStepInput,
     DogHealthConfig,
+    DogHealthStepInput,
     DogMedicationEntry,
     DogModulesConfig,
+    DogModuleSelectionInput,
     DogSetupStepInput,
     DogVaccinationRecord,
     DogValidationCacheEntry,
     DogValidationResult,
+    JSONMapping,
+    ModuleConfigurationSnapshot,
     ModuleConfigurationStepInput,
+    ModuleToggleKey,
+    MutableConfigFlowPlaceholders,
     dog_feeding_config_from_flow,
     dog_modules_from_flow_input,
     ensure_dog_modules_config,
+    normalize_performance_mode,
 )
 from homeassistant.config_entries import ConfigFlowResult
 
@@ -244,7 +257,14 @@ class DogManagementMixin(DogManagementMixinBase):
         """Initialize dog management mixin."""
         super().__init__(*args, **kwargs)
         self._lower_dog_names: set[str] = set()
-        self._global_modules: dict[str, Any] = {}
+        self._global_modules: ModuleConfigurationSnapshot = {
+            "enable_notifications": True,
+            "enable_dashboard": True,
+            "performance_mode": "balanced",
+            "data_retention_days": 90,
+            "auto_backup": False,
+            "debug_logging": False,
+        }
 
     async def async_step_add_dog(
         self, user_input: DogSetupStepInput | None = None
@@ -314,20 +334,23 @@ class DogManagementMixin(DogManagementMixinBase):
             user_input, suggested_id, suggested_breed
         )
 
+        placeholders: MutableConfigFlowPlaceholders = {
+            "dog_count": len(self._dogs),
+            "max_dogs": MAX_DOGS_PER_ENTRY,
+            "current_dogs": self._format_dogs_list(),
+            "remaining_spots": MAX_DOGS_PER_ENTRY - len(self._dogs),
+        }
+
         return self.async_show_form(
             step_id="add_dog",
             data_schema=schema,
             errors=errors,
-            description_placeholders={
-                "dog_count": len(self._dogs),
-                "max_dogs": MAX_DOGS_PER_ENTRY,
-                "current_dogs": self._format_dogs_list(),
-                "remaining_spots": MAX_DOGS_PER_ENTRY - len(self._dogs),
-            },
+            description_placeholders=placeholders,
         )
 
     async def async_step_dog_modules(
-        self, user_input: dict[str, Any] | None = None
+        self,
+        user_input: DogModuleSelectionInput | DogModulesConfig | None = None,
     ) -> ConfigFlowResult:
         """Configure modules for the specific dog being added.
 
@@ -349,8 +372,20 @@ class DogManagementMixin(DogManagementMixinBase):
                 return await self.async_step_add_dog()
 
             existing_modules = ensure_dog_modules_config(current_dog)
+            if all(key in MODULE_TOGGLE_KEYS for key in user_input):
+                modules_input = cast(DogModulesConfig, user_input)
+                selection: DogModuleSelectionInput = {}
+                for module_key, enabled in modules_input.items():
+                    module_literal = cast(ModuleToggleKey, module_key)
+                    flag = MODULE_TOGGLE_FLAG_BY_KEY.get(module_literal)
+                    if flag is not None:
+                        selection[flag] = bool(enabled)
+                input_payload: DogModuleSelectionInput = selection
+            else:
+                input_payload = cast(DogModuleSelectionInput, user_input)
+
             modules: DogModulesConfig = dog_modules_from_flow_input(
-                user_input, existing=existing_modules
+                input_payload, existing=existing_modules
             )
 
             current_dog[DOG_MODULES_FIELD] = modules
@@ -422,18 +457,20 @@ class DogManagementMixin(DogManagementMixinBase):
             }
         )
 
+        placeholders: MutableConfigFlowPlaceholders = {
+            "dog_name": current_dog[DOG_NAME_FIELD],
+            "dog_size": dog_size,
+            "dog_age": dog_age,
+        }
+
         return self.async_show_form(
             step_id="dog_modules",
             data_schema=schema,
-            description_placeholders={
-                "dog_name": current_dog[DOG_NAME_FIELD],
-                "dog_size": dog_size,
-                "dog_age": dog_age,
-            },
+            description_placeholders=placeholders,
         )
 
     async def async_step_dog_gps(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: DogGPSStepInput | None = None
     ) -> ConfigFlowResult:
         """Configure GPS settings for the specific dog.
 
@@ -551,16 +588,18 @@ class DogManagementMixin(DogManagementMixinBase):
             }
         )
 
+        placeholders: MutableConfigFlowPlaceholders = {
+            "dog_name": current_dog[DOG_NAME_FIELD],
+        }
+
         return self.async_show_form(
             step_id="dog_gps",
             data_schema=schema,
-            description_placeholders={
-                "dog_name": current_dog[DOG_NAME_FIELD],
-            },
+            description_placeholders=placeholders,
         )
 
     async def async_step_dog_feeding(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: DogFeedingStepInput | None = None
     ) -> ConfigFlowResult:
         """Configure feeding settings for the specific dog.
 
@@ -693,19 +732,23 @@ class DogManagementMixin(DogManagementMixinBase):
             }
         )
 
+        placeholders: MutableConfigFlowPlaceholders = {
+            "dog_name": current_dog[DOG_NAME_FIELD],
+            "dog_weight": str(dog_weight_value),
+            "suggested_amount": str(suggested_amount),
+            "portion_info": (
+                f"Automatic portion calculation: {suggested_amount}g per day"
+            ),
+        }
+
         return self.async_show_form(
             step_id="dog_feeding",
             data_schema=schema,
-            description_placeholders={
-                "dog_name": current_dog[DOG_NAME_FIELD],
-                "dog_weight": str(dog_weight_value),
-                "suggested_amount": str(suggested_amount),
-                "portion_info": f"Automatic portion calculation: {suggested_amount}g per day",
-            },
+            description_placeholders=placeholders,
         )
 
     async def async_step_dog_health(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: DogHealthStepInput | None = None
     ) -> ConfigFlowResult:
         """Configure comprehensive health settings including health-aware feeding.
 
@@ -1061,22 +1104,28 @@ class DogManagementMixin(DogManagementMixinBase):
             dog_age, dog_size
         )
 
+        placeholders: MutableConfigFlowPlaceholders = {
+            "dog_name": current_dog[DOG_NAME_FIELD],
+            "dog_age": str(dog_age),
+            "dog_weight": str(dog_weight),
+            "suggested_ideal_weight": str(suggested_ideal_weight),
+            "suggested_activity": suggested_activity,
+            "medication_enabled": (
+                "yes" if modules.get(MODULE_MEDICATION, False) else "no"
+            ),
+            "bcs_info": "Body Condition Score: 1=Emaciated, 5=Ideal, 9=Obese",
+            "special_diet_count": str(len(SPECIAL_DIET_OPTIONS)),
+            "health_diet_info": (
+                "Select all special diet requirements that apply to optimize "
+                "feeding calculations\n\n⚠️ Compatibility Info:\n"
+                f"{diet_compatibility_info}"
+            ),
+        }
+
         return self.async_show_form(
             step_id="dog_health",
             data_schema=schema,
-            description_placeholders={
-                "dog_name": current_dog[DOG_NAME_FIELD],
-                "dog_age": str(dog_age),
-                "dog_weight": str(dog_weight),
-                "suggested_ideal_weight": str(suggested_ideal_weight),
-                "suggested_activity": suggested_activity,
-                "medication_enabled": "yes"
-                if modules.get(MODULE_MEDICATION, False)
-                else "no",
-                "bcs_info": "Body Condition Score: 1=Emaciated, 5=Ideal, 9=Obese",
-                "special_diet_count": str(len(SPECIAL_DIET_OPTIONS)),
-                "health_diet_info": f"Select all special diet requirements that apply to optimize feeding calculations\n\n⚠️ Compatibility Info:\n{diet_compatibility_info}",
-            },
+            description_placeholders=placeholders,
         )
 
     async def _async_validate_dog_config(
@@ -1312,7 +1361,7 @@ class DogManagementMixin(DogManagementMixinBase):
 
     async def _create_enhanced_dog_schema(
         self,
-        user_input: DogSetupStepInput | Mapping[str, Any] | None,
+        user_input: DogSetupStepInput | JSONMapping | None,
         suggested_id: str,
         suggested_breed: str,
     ) -> vol.Schema:
@@ -1329,13 +1378,11 @@ class DogManagementMixin(DogManagementMixinBase):
         Returns:
             Enhanced Voluptuous schema for the form
         """
-        current_values: Mapping[str, Any]
-        if user_input is None:
-            current_values = {}
-        elif isinstance(user_input, Mapping):
-            current_values = user_input
+        current_values: JSONMapping
+        if isinstance(user_input, Mapping):
+            current_values = cast(JSONMapping, user_input)
         else:
-            current_values = {}
+            current_values = cast(JSONMapping, MappingProxyType({}))
 
         return vol.Schema(
             {
@@ -1419,7 +1466,7 @@ class DogManagementMixin(DogManagementMixinBase):
         )
 
     async def async_step_add_another_dog(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: AddAnotherDogInput | None = None
     ) -> ConfigFlowResult:
         """Ask if the user wants to add another dog with enhanced UX.
 
@@ -1433,7 +1480,7 @@ class DogManagementMixin(DogManagementMixinBase):
             Configuration flow result for next step or dog addition
         """
         if user_input is not None:
-            if user_input.get("add_another", False):
+            if bool(user_input.get("add_another", False)):
                 # Clear cache and errors for fresh start
                 self._validation_cache.clear()
                 self._errors.clear()
@@ -1452,7 +1499,7 @@ class DogManagementMixin(DogManagementMixinBase):
             }
         )
 
-        description_placeholders = {
+        description_placeholders: MutableConfigFlowPlaceholders = {
             "dogs_list": self._format_dogs_list(),
             "dog_count": str(len(self._dogs)),
             "max_dogs": MAX_DOGS_PER_ENTRY,
@@ -1467,7 +1514,7 @@ class DogManagementMixin(DogManagementMixinBase):
         )
 
     def _build_vaccination_records(
-        self, user_input: Mapping[str, Any]
+        self, user_input: DogHealthStepInput
     ) -> dict[str, DogVaccinationRecord]:
         """Build vaccination records from user form input."""
 
@@ -1496,7 +1543,7 @@ class DogManagementMixin(DogManagementMixinBase):
         return vaccinations
 
     def _build_medication_entries(
-        self, user_input: Mapping[str, Any]
+        self, user_input: DogHealthStepInput
     ) -> list[DogMedicationEntry]:
         """Construct typed medication entries from the configuration form."""
 
@@ -1535,7 +1582,7 @@ class DogManagementMixin(DogManagementMixinBase):
 
         return medications
 
-    def _collect_health_conditions(self, user_input: Mapping[str, Any]) -> list[str]:
+    def _collect_health_conditions(self, user_input: DogHealthStepInput) -> list[str]:
         """Collect health conditions from user input for feeding calculations."""
 
         conditions: list[str] = []
@@ -1566,7 +1613,7 @@ class DogManagementMixin(DogManagementMixinBase):
 
         return conditions
 
-    def _collect_special_diet(self, user_input: Mapping[str, Any]) -> list[str]:
+    def _collect_special_diet(self, user_input: DogHealthStepInput) -> list[str]:
         """Collect special diet requirements from user input.
 
         Uses SPECIAL_DIET_OPTIONS from const.py to ensure consistency
@@ -1808,14 +1855,16 @@ class DogManagementMixin(DogManagementMixinBase):
         """
         if user_input is not None:
             # Store global module settings
-            self._global_modules = {
-                "notifications": user_input.get("enable_notifications", True),
-                "dashboard": user_input.get("enable_dashboard", True),
-                "performance_mode": user_input.get("performance_mode", "balanced"),
-                "data_retention_days": user_input.get("data_retention_days", 90),
-                "auto_backup": user_input.get("auto_backup", False),
-                "debug_logging": user_input.get("debug_logging", False),
-            }
+            self._global_modules = ModuleConfigurationSnapshot(
+                enable_notifications=bool(user_input.get("enable_notifications", True)),
+                enable_dashboard=bool(user_input.get("enable_dashboard", True)),
+                performance_mode=normalize_performance_mode(
+                    user_input.get("performance_mode"), fallback="balanced"
+                ),
+                data_retention_days=int(user_input.get("data_retention_days", 90)),
+                auto_backup=bool(user_input.get("auto_backup", False)),
+                debug_logging=bool(user_input.get("debug_logging", False)),
+            )
 
             # UPDATED: Redirect to entity profile selection for performance optimization
             _LOGGER.info(
@@ -1892,17 +1941,21 @@ class DogManagementMixin(DogManagementMixinBase):
             }
         )
 
+        placeholders: MutableConfigFlowPlaceholders = {
+            "total_dogs": str(total_dogs),
+            "gps_dogs": str(has_gps_dogs),
+            "health_dogs": str(has_health_tracking),
+            "suggested_performance": suggested_performance,
+            "complexity_info": self._get_setup_complexity_info(),
+            "next_step_info": (
+                "Next: Entity profile selection for performance optimization"
+            ),
+        }
+
         return self.async_show_form(
             step_id="configure_modules",
             data_schema=schema,
-            description_placeholders={
-                "total_dogs": str(total_dogs),
-                "gps_dogs": str(has_gps_dogs),
-                "health_dogs": str(has_health_tracking),
-                "suggested_performance": suggested_performance,
-                "complexity_info": self._get_setup_complexity_info(),
-                "next_step_info": "Next: Entity profile selection for performance optimization",
-            },
+            description_placeholders=placeholders,
         )
 
     def _get_setup_complexity_info(self) -> str:

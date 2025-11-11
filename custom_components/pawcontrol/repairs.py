@@ -35,9 +35,13 @@ from .coordinator_support import ensure_cache_repair_aggregate
 from .feeding_translations import build_feeding_compliance_summary
 from .runtime_data import get_runtime_data
 from .types import (
+    ConfigFlowUserInput,
+    DogConfigData,
     FeedingComplianceDisplayMapping,
     FeedingComplianceEventPayload,
     FeedingComplianceLocalizedSummary,
+    JSONLikeMapping,
+    JSONMutableMapping,
     ReconfigureTelemetry,
     ServiceContextMetadata,
 )
@@ -104,7 +108,7 @@ async def async_create_issue(
     entry: ConfigEntry,
     issue_id: str,
     issue_type: str,
-    data: dict[str, Any] | None = None,
+    data: JSONLikeMapping | None = None,
     severity: str | ir.IssueSeverity = ir.IssueSeverity.WARNING,
 ) -> None:
     """Create a repair issue for the integration.
@@ -128,7 +132,7 @@ async def async_create_issue(
         )
         return
 
-    issue_data = {
+    issue_data: JSONMutableMapping = {
         "config_entry_id": entry.entry_id,
         "issue_type": issue_type,
         "created_at": dt_util.utcnow().isoformat(),
@@ -136,7 +140,7 @@ async def async_create_issue(
     }
 
     if data:
-        issue_data.update(data)
+        issue_data.update(dict(data))
 
     def _serialise_issue_value(value: Any) -> JSONType:
         """Serialise issue metadata to JSON-compatible structures."""
@@ -233,7 +237,7 @@ async def async_publish_feeding_compliance_issue(
         "recommendations": list(localized_summary.get("recommendations", [])),
     }
 
-    issue_data: dict[str, Any] = {
+    issue_data: JSONMutableMapping = {
         "dog_id": dog_id,
         "dog_name": dog_name,
         "days_to_check": payload.get("days_to_check"),
@@ -277,7 +281,7 @@ async def async_publish_feeding_compliance_issue(
         )
         return
 
-    completed = cast(dict[str, Any], result)
+    completed = cast(JSONMutableMapping, result)
     missed_meals = [dict(entry) for entry in completed.get("missed_meals", [])]
     issues = [dict(issue) for issue in completed.get("compliance_issues", [])]
     recommendations = list(completed.get("recommendations", []))
@@ -612,8 +616,10 @@ async def _check_reconfigure_telemetry_issues(
 ) -> None:
     """Surface reconfigure warnings and health summaries via repairs."""
 
-    options: Mapping[str, Any] = (
-        entry.options if isinstance(entry.options, Mapping) else {}
+    options: JSONLikeMapping = (
+        cast(JSONLikeMapping, entry.options)
+        if isinstance(entry.options, Mapping)
+        else {}
     )
     telemetry_raw = options.get("reconfigure_telemetry")
 
@@ -873,11 +879,11 @@ class PawControlRepairsFlow(RepairsFlow):
     def __init__(self) -> None:
         """Initialize the repair flow."""
         super().__init__()
-        self._issue_data: dict[str, Any] = {}
+        self._issue_data: JSONMutableMapping = {}
         self._repair_type: str = ""
 
     async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> FlowResult:
         """Handle the initial step of a repair flow.
 
@@ -887,7 +893,9 @@ class PawControlRepairsFlow(RepairsFlow):
         Returns:
             Flow result for next step or completion
         """
-        self._issue_data = self.hass.data[ir.DOMAIN][self.issue_id].data
+        self._issue_data = cast(
+            JSONMutableMapping, self.hass.data[ir.DOMAIN][self.issue_id].data
+        )
         self._repair_type = self._issue_data.get("issue_type", "")
 
         # Route to appropriate repair flow based on issue type
@@ -918,7 +926,7 @@ class PawControlRepairsFlow(RepairsFlow):
             return await self.async_step_unknown_issue()
 
     async def async_step_missing_dog_config(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> FlowResult:
         """Handle repair flow for missing dog configuration.
 
@@ -967,7 +975,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_add_first_dog(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> FlowResult:
         """Handle adding the first dog.
 
@@ -1048,7 +1056,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_duplicate_dog_ids(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> FlowResult:
         """Handle repair flow for duplicate dog IDs.
 
@@ -1102,7 +1110,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_invalid_gps_config(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> FlowResult:
         """Handle repair flow for invalid GPS configuration.
 
@@ -1153,7 +1161,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_configure_gps(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> FlowResult:
         """Handle GPS configuration step.
 
@@ -1218,7 +1226,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_missing_notifications(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> FlowResult:
         """Handle repair flow for missing notification services.
 
@@ -1273,7 +1281,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_performance_warning(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> FlowResult:
         """Handle performance warning repair flow.
 
@@ -1323,7 +1331,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_storage_warning(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> FlowResult:
         """Handle repair flow for storage warnings."""
 
@@ -1370,7 +1378,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_module_conflict(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> FlowResult:
         """Handle repair flow for high resource module conflicts."""
 
@@ -1424,7 +1432,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_invalid_dog_data(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> FlowResult:
         """Handle repair flow for invalid dog configuration data."""
 
@@ -1470,7 +1478,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_coordinator_error(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> FlowResult:
         """Handle repair flow for coordinator errors."""
 
@@ -1522,7 +1530,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_complete_repair(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> FlowResult:
         """Complete the repair flow.
 
@@ -1541,7 +1549,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_unknown_issue(
-        self, user_input: dict[str, Any] | None = None
+        self, user_input: ConfigFlowUserInput | None = None
     ) -> FlowResult:
         """Handle unknown issue types.
 
@@ -1687,12 +1695,12 @@ class PawControlRepairsFlow(RepairsFlow):
             return
 
         dogs = entry.data.get(CONF_DOGS, [])
-        updated_dogs: list[dict[str, Any]] = []
+        updated_dogs: list[DogConfigData] = []
         high_resource_limit = 5
         high_resource_count = 0
 
         for dog in dogs:
-            updated_dog = dog.copy()
+            updated_dog = cast(DogConfigData, dict(dog))
             modules = dict(updated_dog.get("modules", {}))
 
             if modules.get(MODULE_GPS) and modules.get(MODULE_HEALTH):
@@ -1764,7 +1772,7 @@ class PawControlRepairsFlow(RepairsFlow):
 async def async_create_fix_flow(
     hass: HomeAssistant,
     issue_id: str,
-    data: dict[str, Any] | None,
+    data: JSONLikeMapping | None,
 ) -> PawControlRepairsFlow:
     """Create a repair flow compatible with the Repairs integration.
 

@@ -12,7 +12,7 @@ Python: 3.13+
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any, Final, cast
+from typing import TYPE_CHECKING, Final, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -38,10 +38,14 @@ from .types import (
     DASHBOARD_THEME_FIELD,
     SHOW_MAPS_FIELD,
     SHOW_STATISTICS_FIELD,
+    ConfigFlowInputMapping,
+    ConfigFlowPlaceholders,
     DashboardConfigurationStepInput,
     DashboardSetupConfig,
     DogConfigData,
     DogModulesConfig,
+    ExternalEntityConfig,
+    MutableConfigFlowPlaceholders,
 )
 
 _DASHBOARD_INFO_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
@@ -98,13 +102,13 @@ class DashboardFlowMixin:
         _dashboard_config: DashboardSetupConfig
 
         async def async_step_configure_external_entities(
-            self, user_input: dict[str, Any] | None = None
+            self, user_input: ExternalEntityConfig | None = None
         ) -> ConfigFlowResult:
             """Type-checking stub for the GPS entity configuration step."""
             ...
 
         async def async_step_final_setup(
-            self, user_input: dict[str, Any] | None = None
+            self, user_input: ConfigFlowInputMapping | None = None
         ) -> ConfigFlowResult:
             """Type-checking stub for the concluding config flow step."""
             ...
@@ -114,7 +118,7 @@ class DashboardFlowMixin:
             *,
             step_id: str,
             data_schema: vol.Schema,
-            description_placeholders: dict[str, Any] | None = None,
+            description_placeholders: ConfigFlowPlaceholders | None = None,
             errors: dict[str, str] | None = None,
         ) -> ConfigFlowResult:
             """Type-checking stub for Home Assistant form rendering."""
@@ -230,16 +234,18 @@ class DashboardFlowMixin:
             }
         )
 
+        placeholders: MutableConfigFlowPlaceholders = {
+            "dog_count": len(self._dogs),
+            "dashboard_info": self._get_dashboard_info(hass_language),
+            "features": self._build_dashboard_features_string(
+                hass_language, has_gps_enabled
+            ),
+        }
+
         return self.async_show_form(
             step_id="configure_dashboard",
             data_schema=schema,
-            description_placeholders={
-                "dog_count": len(self._dogs),
-                "dashboard_info": self._get_dashboard_info(hass_language),
-                "features": self._build_dashboard_features_string(
-                    hass_language, has_gps_enabled
-                ),
-            },
+            description_placeholders=placeholders,
         )
 
     def _get_dashboard_info(self, language: str | None) -> str:

@@ -3,18 +3,20 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
-from typing import TYPE_CHECKING, Any
+from datetime import datetime
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.core import callback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
 
 from .const import ATTR_DOG_ID, ATTR_DOG_NAME
 from .coordinator import PawControlCoordinator
 from .runtime_data import get_runtime_data
 from .service_guard import ServiceGuardResult
-from .types import CoordinatorRuntimeManagers
+from .types import CoordinatorRuntimeManagers, JSONMutableMapping
 from .utils import (
+    JSONMappingLike,
     PawControlDeviceLinkMixin,
     async_call_hass_service_if_available,
 )
@@ -113,6 +115,26 @@ class PawControlEntity(
 
         return getattr(self, "_attr_icon", None)
 
+    @property
+    def extra_state_attributes(self) -> JSONMutableMapping:
+        """Expose the entity's extra state attributes payload."""
+
+        attrs = getattr(self, "_attr_extra_state_attributes", None)
+        if attrs is None:
+            attributes: JSONMutableMapping = cast(JSONMutableMapping, {})
+        elif isinstance(attrs, dict):
+            attributes = cast(JSONMutableMapping, attrs)
+        else:
+            attributes = cast(JSONMutableMapping, dict(attrs))
+
+        last_update = getattr(self.coordinator, "last_update_success_time", None)
+        if isinstance(last_update, datetime):
+            attributes["last_updated"] = dt_util.as_local(last_update).isoformat()
+        else:
+            attributes["last_updated"] = None
+
+        return attributes
+
     @callback
     def update_device_metadata(self, **details: Any) -> None:
         """Update device metadata shared with the device registry."""
@@ -172,7 +194,7 @@ class PawControlEntity(
         self,
         domain: str,
         service: str,
-        service_data: Mapping[str, Any],
+        service_data: JSONMappingLike | JSONMutableMapping | None = None,
         *,
         blocking: bool = False,
     ) -> ServiceGuardResult:

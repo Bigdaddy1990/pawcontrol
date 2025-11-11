@@ -22,7 +22,7 @@ from enum import Enum
 from functools import lru_cache
 from itertools import combinations
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, Final, Literal, cast
+from typing import TYPE_CHECKING, Final, Literal, cast
 
 from homeassistant.const import Platform
 from homeassistant.helpers.entity import Entity
@@ -35,7 +35,7 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
-_MIN_OPERATION_DURATION: Final[float] = 0.0008
+_MIN_OPERATION_DURATION: Final[float] = 0.00045
 _COARSE_SLEEP_THRESHOLD: Final[float] = 0.0015  # 1.5ms
 _COARSE_SLEEP_BUFFER: Final[float] = 0.0005  # 0.5ms
 _SPIN_YIELD_THRESHOLD: Final[float] = 0.002  # 2ms
@@ -1458,7 +1458,7 @@ class EntityFactory:
         )
 
     def validate_profile_for_modules(
-        self, profile: str, modules: Mapping[str, Any] | DogModulesProjection
+        self, profile: str, modules: Mapping[str, object] | DogModulesProjection
     ) -> bool:
         """Validate if a profile is suitable for the given modules.
 
@@ -1471,7 +1471,7 @@ class EntityFactory:
         """
         modules_mapping = ensure_dog_modules_mapping(modules)
 
-        original_modules: Mapping[str, Any] | None = None
+        original_modules: Mapping[str, object] | None = None
         if isinstance(modules, DogModulesProjection):
             original_modules = modules.mapping
         elif isinstance(modules, Mapping):

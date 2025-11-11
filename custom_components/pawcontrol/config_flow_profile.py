@@ -9,12 +9,12 @@ utilities that standardize how entity profiles are presented and validated.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
-from typing import Any, Final
+from typing import Final, cast
 
 import voluptuous as vol
 
 from .entity_factory import ENTITY_PROFILES
+from .types import ProfileSelectionInput, ProfileSelectorOption
 
 #: Default profile used when the user has not made a choice yet.
 DEFAULT_PROFILE: Final[str] = "standard"
@@ -31,7 +31,7 @@ PROFILE_SCHEMA: Final[vol.Schema] = vol.Schema(
 )
 
 
-def validate_profile_selection(user_input: Mapping[str, Any]) -> str:
+def validate_profile_selection(user_input: ProfileSelectionInput) -> str:
     """Validate and return the selected profile.
 
     Args:
@@ -51,7 +51,7 @@ def validate_profile_selection(user_input: Mapping[str, Any]) -> str:
     except vol.Invalid as err:  # pragma: no cover - exercised by HA UI
         raise vol.Invalid("invalid_profile") from err
 
-    profile = profile_data["entity_profile"]
+    profile = cast(str, profile_data["entity_profile"])
 
     if profile not in ENTITY_PROFILES:
         # This should never happen because of the schema, but keeping this
@@ -61,10 +61,10 @@ def validate_profile_selection(user_input: Mapping[str, Any]) -> str:
     return profile
 
 
-def get_profile_selector_options() -> list[dict[str, str]]:
+def get_profile_selector_options() -> list[ProfileSelectorOption]:
     """Return selector options with descriptive labels for each profile."""
 
-    options: list[dict[str, str]] = []
+    options: list[ProfileSelectorOption] = []
     for profile, config in ENTITY_PROFILES.items():
         name = config.get("name", profile.title())
         description = config.get("description", "")
@@ -77,7 +77,11 @@ def get_profile_selector_options() -> list[dict[str, str]]:
             # Use second-person tone to match the global writing guidance.
             label_parts.append(description)
 
-        options.append({"value": profile, "label": " - ".join(label_parts)})
+        option: ProfileSelectorOption = {
+            "value": profile,
+            "label": " - ".join(label_parts),
+        }
+        options.append(option)
 
     return options
 

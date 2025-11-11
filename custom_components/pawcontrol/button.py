@@ -66,6 +66,7 @@ from .types import (
     GardenModulePayload,
     GPSModulePayload,
     HealthModulePayload,
+    JSONMapping,
     JSONMutableMapping,
     PawControlConfigEntry,
     WalkModulePayload,
@@ -96,7 +97,7 @@ class ServiceRegistryLike(Protocol):
         self,
         domain: str,
         service: str,
-        service_data: Mapping[str, Any] | None = None,
+        service_data: JSONMapping | JSONMutableMapping | None = None,
         blocking: bool = False,
         context: Context | None = None,
     ) -> None:
@@ -134,7 +135,7 @@ class _ServiceRegistryProxy(ServiceRegistryLike):
         self,
         domain: str,
         service: str,
-        service_data: Mapping[str, Any] | None = None,
+        service_data: JSONMapping | JSONMutableMapping | None = None,
         blocking: bool = False,
         context: Context | None = None,
     ) -> None:
@@ -635,7 +636,7 @@ async def async_setup_entry(
         if not isinstance(raw_dog, Mapping):
             continue
 
-        normalised = ensure_dog_config_data(cast(Mapping[str, Any], raw_dog))
+        normalised = ensure_dog_config_data(cast(JSONMapping, raw_dog))
         if normalised is None:
             continue
 

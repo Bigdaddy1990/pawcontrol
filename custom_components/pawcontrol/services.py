@@ -107,7 +107,12 @@ from .types import (
     DogConfigData,
     FeedingComplianceEventPayload,
     FeedingComplianceLocalizedSummary,
+    GPSTrackingConfigInput,
+    JSONLikeMapping,
+    JSONValue,
     ServiceContextMetadata,
+    ServiceData,
+    ServiceDetailsPayload,
     ServiceExecutionDiagnostics,
     ServiceExecutionResult,
 )
@@ -403,19 +408,39 @@ def _get_runtime_data_for_coordinator(
         return None
 
 
-def _normalise_service_details(payload: Any) -> dict[str, Any] | None:
+def _coerce_service_details_value(value: Any) -> JSONValue:
+    """Return a JSON-compatible representation for service detail values."""
+
+    if value is None or isinstance(value, (bool, int, float, str)):
+        return value
+
+    if isinstance(value, Mapping):
+        return {
+            str(key): _coerce_service_details_value(item) for key, item in value.items()
+        }
+
+    if isinstance(value, (list, tuple, set)):
+        return [_coerce_service_details_value(item) for item in value]
+
+    return str(value)
+
+
+def _normalise_service_details(payload: Any) -> ServiceDetailsPayload | None:
     """Convert ``payload`` into a serialisable mapping for service telemetry."""
 
     if payload is None:
         return None
 
     if isinstance(payload, Mapping):
-        return dict(payload)
+        return {
+            str(key): _coerce_service_details_value(value)
+            for key, value in payload.items()
+        }
 
-    if isinstance(payload, list | tuple | set):
-        return {"items": list(payload)}
+    if isinstance(payload, (list, tuple, set)):
+        return {"items": _coerce_service_details_value(list(payload))}
 
-    return {"value": payload}
+    return {"value": _coerce_service_details_value(payload)}
 
 
 def _record_service_result(
@@ -426,8 +451,8 @@ def _record_service_result(
     dog_id: str | None = None,
     message: str | None = None,
     diagnostics: CacheDiagnosticsCapture | None = None,
-    metadata: Mapping[str, Any] | None = None,
-    details: dict[str, Any] | None = None,
+    metadata: Mapping[str, JSONValue] | None = None,
+    details: ServiceDetailsPayload | None = None,
     guard: ServiceGuardResult | Sequence[ServiceGuardResult] | None = None,
 ) -> None:
     """Append a service execution result to runtime performance statistics."""
@@ -463,12 +488,15 @@ def _record_service_result(
     if message:
         result["message"] = message
 
-    diagnostics_payload: dict[str, Any] | None = None
+    diagnostics_payload: ServiceExecutionDiagnostics | None = None
     if diagnostics is not None:
         diagnostics_payload = {"cache": diagnostics}
 
     if metadata is not None:
-        metadata_payload = dict(metadata)
+        metadata_payload: ServiceDetailsPayload = {
+            str(key): _coerce_service_details_value(value)
+            for key, value in metadata.items()
+        }
         if diagnostics_payload is None:
             diagnostics_payload = {"metadata": metadata_payload}
         else:
@@ -487,9 +515,9 @@ def _record_service_result(
             diagnostics_payload.setdefault("rejection_metrics", rejection_snapshot)
 
     if diagnostics_payload:
-        result["diagnostics"] = cast(ServiceExecutionDiagnostics, diagnostics_payload)
+        result["diagnostics"] = diagnostics_payload
 
-    details_payload: dict[str, Any] | None = None
+    details_payload: ServiceDetailsPayload | None = None
     if details:
         details_payload = dict(details)
 
@@ -509,7 +537,9 @@ def _record_service_result(
 
         if details_payload is None:
             details_payload = {}
-        details_payload.setdefault("guard", guard_summary)
+        details_payload.setdefault(
+            "guard", _coerce_service_details_value(guard_summary)
+        )
 
         if diagnostics_payload is None:
             diagnostics_payload = {}
@@ -555,7 +585,10 @@ def _record_service_result(
             if filtered_rejection:
                 if details_payload is None:
                     details_payload = {}
-                details_payload.setdefault("resilience", filtered_rejection)
+                details_payload.setdefault(
+                    "resilience",
+                    _coerce_service_details_value(filtered_rejection),
+                )
 
     if details_payload:
         result["details"] = details_payload
@@ -592,8 +625,8 @@ def _normalise_context_identifier(value: Any) -> str | None:
 
 
 def _merge_service_context_metadata(
-    target: MutableMapping[str, Any],
-    metadata: Mapping[str, Any] | None,
+    target: MutableMapping[str, JSONValue],
+    metadata: ServiceContextMetadata | None,
     *,
     include_none: bool = False,
 ) -> None:
@@ -609,7 +642,7 @@ def _merge_service_context_metadata(
         if value is None and not include_none:
             continue
 
-        target[key] = value
+        target[key] = _coerce_service_details_value(value)
 
 
 def _extract_service_context(
@@ -621,9 +654,9 @@ def _extract_service_context(
     if context_like is None:
         return None, None
 
-    mapping_source: Mapping[str, Any] | None = None
+    mapping_source: JSONLikeMapping | None = None
     if isinstance(context_like, Mapping):
-        mapping_source = context_like
+        mapping_source = cast(JSONLikeMapping, context_like)
 
     metadata: ServiceContextMetadata = {}
 
@@ -1280,7 +1313,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         return dog_id, dog_config
 
     async def _async_handle_feeding_request(
-        data: Mapping[str, Any], *, service_name: str
+        data: ServiceData, *, service_name: str
     ) -> None:
         """Shared implementation for feeding-related services."""
 
@@ -2246,7 +2279,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         try:
             # Configure automatic GPS settings for the dog
-            gps_config = {
+            gps_config: GPSTrackingConfigInput = {
                 "enabled": True,
                 "auto_start_walk": auto_start_walk,
                 "track_route": track_route,
@@ -2475,7 +2508,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
             _LOGGER.info("Sent notification %s: %s", notification_id, title)
 
-            details_payload: dict[str, Any] = {
+            details_payload: ServiceDetailsPayload = {
                 "notification_id": notification_id,
                 "notification_type": notification_type_enum.value,
                 "priority": priority_enum.value,
@@ -3268,7 +3301,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
         context, context_metadata = _extract_service_context(call)
         notification_id: str | None = None
-        request_metadata: dict[str, Any] = {
+        request_metadata: ServiceDetailsPayload = {
             "days_to_check": days_to_check,
             "notify_on_issues": notify_on_issues,
         }
@@ -3324,7 +3357,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             if notification_id is not None:
                 event_payload["notification_id"] = notification_id
             _merge_service_context_metadata(
-                cast(MutableMapping[str, Any], event_payload), context_metadata
+                cast(MutableMapping[str, JSONValue], event_payload), context_metadata
             )
 
             await async_publish_feeding_compliance_issue(
@@ -3341,9 +3374,11 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 context=context,
                 time_fired=dt_util.utcnow(),
             )
-            details: dict[str, Any] = {
+            details: ServiceDetailsPayload = {
                 "status": status,
-                "localized_summary": dict(localized_summary),
+                "localized_summary": _coerce_service_details_value(
+                    dict(localized_summary)
+                ),
             }
             if status == "completed":
                 completed = cast(FeedingComplianceCompleted, compliance_result)
@@ -3364,7 +3399,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 if isinstance(message, str):
                     details["message"] = message
 
-            metadata: dict[str, Any] = dict(request_metadata)
+            metadata: ServiceDetailsPayload = dict(request_metadata)
             metadata["notification_sent"] = notification_id is not None
             if notification_id is not None:
                 metadata["notification_id"] = notification_id
@@ -3389,7 +3424,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             )
 
         except HomeAssistantError as err:
-            error_metadata = dict(request_metadata)
+            error_metadata: ServiceDetailsPayload = dict(request_metadata)
             _record_service_result(
                 runtime_data,
                 service=SERVICE_CHECK_FEEDING_COMPLIANCE,
@@ -3636,7 +3671,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 else:
                     reminder_sent_at_iso = str(reminder_sent_at_input)
 
-        reminder_metadata: dict[str, Any] = {"reminder_attached": False}
+        reminder_metadata: ServiceDetailsPayload = {"reminder_attached": False}
         if any(
             value is not None
             for value in (reminder_id, reminder_type, reminder_sent_at_iso)
@@ -3729,7 +3764,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     )
                 guard_snapshot = tuple(guard_results)
 
-            details_payload: dict[str, Any] = {
+            details_payload: ServiceDetailsPayload = {
                 "session_id": session_id,
                 "grooming_type": grooming_type,
                 "groomer": groomer,
@@ -3739,7 +3774,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 "reminder_attached": reminder_metadata["reminder_attached"],
             }
             if reminder_metadata["reminder_attached"]:
-                reminder_details: dict[str, Any] = {}
+                reminder_details: ServiceDetailsPayload = {}
                 if reminder_id is not None:
                     reminder_details["id"] = reminder_id
                 if reminder_type is not None:
@@ -3810,7 +3845,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         fallback_reason = call.data.get("fallback_reason")
         automation_source = call.data.get("automation_source")
 
-        fallback_metadata: dict[str, Any] = {"automation_fallback": automation_fallback}
+        fallback_metadata: ServiceDetailsPayload = {
+            "automation_fallback": automation_fallback
+        }
         if fallback_reason:
             fallback_metadata["fallback_reason"] = fallback_reason
         if automation_source:
@@ -3902,7 +3939,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         notes = call.data.get("notes")
         activities = call.data.get("activities")
 
-        failure_details: dict[str, Any] | None = None
+        failure_details: ServiceDetailsPayload | None = None
 
         try:
             session = await garden_manager.async_end_garden_session(
@@ -3941,7 +3978,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 error_message = (
                     f"No active garden session is currently running for {dog_id}."
                 )
-                failure_payload: dict[str, Any] = {}
+                failure_payload: ServiceDetailsPayload = {}
                 if notes is not None:
                     failure_payload["notes"] = notes
                 if activities is not None:
@@ -4000,7 +4037,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         notes = call.data.get("notes")
         confirmed = call.data.get("confirmed", True)
 
-        details_payload: dict[str, Any] = {
+        details_payload: ServiceDetailsPayload = {
             "activity_type": activity_type,
             "confirmed": confirmed,
         }
@@ -4091,7 +4128,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         size = call.data.get("size")
         location = call.data.get("location")
 
-        details_payload: dict[str, Any] = {"confirmed": confirmed}
+        details_payload: ServiceDetailsPayload = {"confirmed": confirmed}
         if quality is not None:
             details_payload["quality"] = quality
         if size is not None:
@@ -4808,17 +4845,20 @@ async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
             performance_stats["daily_resets"] = (
                 int(performance_stats.get("daily_resets", 0) or 0) + 1
             )
-            metadata: dict[str, Any] = {"refresh_requested": refresh_requested}
-            if reconfigure_summary is not None:
-                metadata["reconfigure"] = reconfigure_summary
-            service_details = {
-                "walk_cleanup_performed": walk_cleanup_performed,
-                "notifications_cleaned": notification_cleanup_count,
-                "cache_snapshot": diagnostics is not None,
+            success_metadata: ServiceDetailsPayload = {
+                "refresh_requested": refresh_requested
             }
-            service_details = {
+            if reconfigure_summary is not None:
+                success_metadata["reconfigure"] = _coerce_service_details_value(
+                    reconfigure_summary
+                )
+            service_details_payload: ServiceDetailsPayload = {
                 key: value
-                for key, value in service_details.items()
+                for key, value in {
+                    "walk_cleanup_performed": walk_cleanup_performed,
+                    "notifications_cleaned": notification_cleanup_count,
+                    "cache_snapshot": diagnostics is not None,
+                }.items()
                 if value is not None
             }
             _record_service_result(
@@ -4826,31 +4866,34 @@ async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
                 service=SERVICE_DAILY_RESET,
                 status="success",
                 diagnostics=diagnostics,
-                metadata=metadata,
-                details=_normalise_service_details(service_details),
+                metadata=success_metadata,
+                details=(service_details_payload if service_details_payload else None),
             )
             record_maintenance_result(
                 runtime_data,
                 task="daily_reset",
                 status="success",
                 diagnostics=diagnostics,
-                metadata=metadata,
-                details=service_details,
+                metadata=success_metadata,
+                details=service_details_payload,
             )
             _LOGGER.debug("Daily reset completed for entry %s", entry.entry_id)
         except Exception as err:  # pragma: no cover - defensive logging
             perf.mark_failure(err)
-            metadata = {"refresh_requested": refresh_requested}
-            if reconfigure_summary is not None:
-                metadata["reconfigure"] = reconfigure_summary
-            failure_details = {
-                "walk_cleanup_performed": walk_cleanup_performed,
-                "notifications_cleaned": notification_cleanup_count,
-                "cache_snapshot": diagnostics is not None,
+            failure_metadata: ServiceDetailsPayload = {
+                "refresh_requested": refresh_requested
             }
-            failure_details = {
+            if reconfigure_summary is not None:
+                failure_metadata["reconfigure"] = _coerce_service_details_value(
+                    reconfigure_summary
+                )
+            failure_details: ServiceDetailsPayload = {
                 key: value
-                for key, value in failure_details.items()
+                for key, value in {
+                    "walk_cleanup_performed": walk_cleanup_performed,
+                    "notifications_cleaned": notification_cleanup_count,
+                    "cache_snapshot": diagnostics is not None,
+                }.items()
                 if value is not None
             }
             record_maintenance_result(
@@ -4859,7 +4902,7 @@ async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
                 status="error",
                 message=str(err),
                 diagnostics=diagnostics,
-                metadata=metadata,
+                metadata=failure_metadata,
                 details=failure_details,
             )
             _record_service_result(
@@ -4867,8 +4910,8 @@ async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
                 service=SERVICE_DAILY_RESET,
                 status="error",
                 message=str(err),
-                metadata=metadata,
-                details=_normalise_service_details(failure_details),
+                metadata=failure_metadata,
+                details=failure_details if failure_details else None,
             )
             _LOGGER.error("Daily reset failed for entry %s: %s", entry.entry_id, err)
             raise
