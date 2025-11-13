@@ -18,8 +18,7 @@ python_files = [
 ]
 asyncio_mode = "auto"
 filterwarnings = [
-    "error",
-    "ignore:Inheritance class HomeAssistantApplication from web.Application is discouraged:DeprecationWarning",
+    "error"
 ]
 
 [tool.ruff]
@@ -95,3 +94,6 @@ directory = "htmlcov"
 
 [tool.coverage.xml]
 output = "coverage.xml"
+
+[project]
+requires-python = ">=3.13"
