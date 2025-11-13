@@ -1589,6 +1589,10 @@ class PawControlConfigFlow(
         if user_input is not None:
             try:
                 self._entity_profile = validate_profile_selection(user_input)
+                modules = self._aggregate_enabled_modules()
+                if modules.get(MODULE_GPS, False):
+                    self._enabled_modules = modules
+                    return await self.async_step_configure_modules()
                 return await self.async_step_final_setup()
 
             except vol.Invalid as err:
@@ -1737,6 +1741,9 @@ class PawControlConfigFlow(
             "entity_profile": self._entity_profile,
             "setup_timestamp": dt_util.utcnow().isoformat(),
         }
+
+        if self._external_entities:
+            config_data["external_entities"] = dict(self._external_entities)
 
         # Add discovery info if available
         if self._discovery_info:
@@ -2976,7 +2983,7 @@ class PawControlConfigFlow(
                         legacy_key = raw_key.strip()
                         break
 
-                if legacy_key not in MODULE_TOGGLE_KEYS:
+                if legacy_key is None or legacy_key not in MODULE_TOGGLE_KEYS:
                     continue
 
                 enabled_value = module.get("enabled")

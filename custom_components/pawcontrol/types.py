@@ -155,13 +155,72 @@ type PersonEntityAttributePayload = JSONMutableMapping
 """Mutable attribute payload stored alongside discovered person entities."""
 
 
-class TextEntityExtraAttributes(TypedDict):
+class TextEntityExtraAttributes(TypedDict, total=False):
     """Extra attributes exposed by PawControl text entities."""
 
     dog_id: str
     dog_name: str
     text_type: str
     character_count: int
+    last_updated: str | None
+    last_updated_context_id: str | None
+    last_updated_parent_id: str | None
+    last_updated_user_id: str | None
+
+
+class DogTextSnapshot(TypedDict, total=False):
+    """Stored text values associated with a PawControl dog configuration."""
+
+    notes: NotRequired[str]
+    custom_label: NotRequired[str]
+    walk_notes: NotRequired[str]
+    current_walk_label: NotRequired[str]
+    health_notes: NotRequired[str]
+    medication_notes: NotRequired[str]
+    vet_notes: NotRequired[str]
+    grooming_notes: NotRequired[str]
+    custom_message: NotRequired[str]
+    emergency_contact: NotRequired[str]
+    microchip: NotRequired[str]
+    breeder_info: NotRequired[str]
+    registration: NotRequired[str]
+    insurance_info: NotRequired[str]
+    allergies: NotRequired[str]
+    training_notes: NotRequired[str]
+    behavior_notes: NotRequired[str]
+    location_description: NotRequired[str]
+
+
+class DogTextMetadataEntry(TypedDict, total=False):
+    """Metadata captured for an individual PawControl text value."""
+
+    last_updated: str
+    context_id: str | None
+    parent_id: str | None
+    user_id: str | None
+
+
+class DogTextMetadataSnapshot(TypedDict, total=False):
+    """Stored metadata associated with PawControl dog text values."""
+
+    notes: NotRequired[DogTextMetadataEntry]
+    custom_label: NotRequired[DogTextMetadataEntry]
+    walk_notes: NotRequired[DogTextMetadataEntry]
+    current_walk_label: NotRequired[DogTextMetadataEntry]
+    health_notes: NotRequired[DogTextMetadataEntry]
+    medication_notes: NotRequired[DogTextMetadataEntry]
+    vet_notes: NotRequired[DogTextMetadataEntry]
+    grooming_notes: NotRequired[DogTextMetadataEntry]
+    custom_message: NotRequired[DogTextMetadataEntry]
+    emergency_contact: NotRequired[DogTextMetadataEntry]
+    microchip: NotRequired[DogTextMetadataEntry]
+    breeder_info: NotRequired[DogTextMetadataEntry]
+    registration: NotRequired[DogTextMetadataEntry]
+    insurance_info: NotRequired[DogTextMetadataEntry]
+    allergies: NotRequired[DogTextMetadataEntry]
+    training_notes: NotRequired[DogTextMetadataEntry]
+    behavior_notes: NotRequired[DogTextMetadataEntry]
+    location_description: NotRequired[DogTextMetadataEntry]
 
 
 class ButtonExtraAttributes(TypedDict, total=False):
@@ -5105,6 +5164,7 @@ class CoordinatorDogData(TypedDict, total=False):
     grooming: NotRequired[JSONMutableMapping]
     medication: NotRequired[JSONMutableMapping]
     training: NotRequired[JSONMutableMapping]
+    text_values: NotRequired[DogTextSnapshot]
 
 
 CoordinatorDataPayload = dict[str, CoordinatorDogData]
@@ -5311,6 +5371,8 @@ class DogConfigData(TypedDict, total=False):
     health_config: NotRequired[DogHealthConfig]
     door_sensor: NotRequired[str | None]
     door_sensor_settings: NotRequired[DoorSensorSettingsPayload | None]
+    text_values: NotRequired[DogTextSnapshot]
+    text_metadata: NotRequired[DogTextMetadataSnapshot]
 
 
 # TypedDict key literals for dog configuration structures.
@@ -5330,8 +5392,123 @@ DOG_FEEDING_CONFIG_FIELD: Final[Literal["feeding_config"]] = "feeding_config"
 DOG_HEALTH_CONFIG_FIELD: Final[Literal["health_config"]] = "health_config"
 DOG_GPS_CONFIG_FIELD: Final[Literal["gps_config"]] = "gps_config"
 DOG_IMAGE_FIELD: Final[Literal["dog_image"]] = "dog_image"
+DOG_TEXT_VALUES_FIELD: Final[Literal["text_values"]] = "text_values"
+DOG_TEXT_METADATA_FIELD: Final[Literal["text_metadata"]] = "text_metadata"
 WALK_IN_PROGRESS_FIELD: Final[Literal["walk_in_progress"]] = "walk_in_progress"
 VISITOR_MODE_ACTIVE_FIELD: Final[Literal["visitor_mode_active"]] = "visitor_mode_active"
+
+# Text snapshot keys maintained for text entity persistence.
+TextSnapshotKey = Literal[
+    "notes",
+    "custom_label",
+    "walk_notes",
+    "current_walk_label",
+    "health_notes",
+    "medication_notes",
+    "vet_notes",
+    "grooming_notes",
+    "custom_message",
+    "emergency_contact",
+    "microchip",
+    "breeder_info",
+    "registration",
+    "insurance_info",
+    "allergies",
+    "training_notes",
+    "behavior_notes",
+    "location_description",
+]
+
+_DOG_TEXT_SNAPSHOT_KEYS: Final[tuple[TextSnapshotKey, ...]] = (
+    "notes",
+    "custom_label",
+    "walk_notes",
+    "current_walk_label",
+    "health_notes",
+    "medication_notes",
+    "vet_notes",
+    "grooming_notes",
+    "custom_message",
+    "emergency_contact",
+    "microchip",
+    "breeder_info",
+    "registration",
+    "insurance_info",
+    "allergies",
+    "training_notes",
+    "behavior_notes",
+    "location_description",
+)
+
+
+def ensure_dog_text_snapshot(
+    payload: Mapping[str, JSONValue],
+) -> DogTextSnapshot | None:
+    """Return a normalised :class:`DogTextSnapshot` built from ``payload``."""
+
+    snapshot: dict[str, str] = {}
+    for key in _DOG_TEXT_SNAPSHOT_KEYS:
+        raw_value = payload.get(key)
+        if isinstance(raw_value, str):
+            snapshot[key] = raw_value
+
+    if not snapshot:
+        return None
+
+    return cast(DogTextSnapshot, snapshot)
+
+
+def _normalise_text_metadata_entry(
+    raw_value: object | None,
+) -> DogTextMetadataEntry | None:
+    """Return a typed metadata entry built from ``raw_value`` when possible."""
+
+    if isinstance(raw_value, Mapping):
+        entry: dict[str, str | None] = {}
+        last_updated = raw_value.get("last_updated")
+        if isinstance(last_updated, str) and last_updated:
+            entry["last_updated"] = last_updated
+
+        context_id = raw_value.get("context_id")
+        if isinstance(context_id, str) and context_id:
+            entry["context_id"] = context_id
+
+        parent_id = raw_value.get("parent_id")
+        if isinstance(parent_id, str) and parent_id:
+            entry["parent_id"] = parent_id
+
+        user_id = raw_value.get("user_id")
+        if isinstance(user_id, str) and user_id:
+            entry["user_id"] = user_id
+
+        if not entry:
+            return None
+
+        return cast(DogTextMetadataEntry, entry)
+
+    if isinstance(raw_value, str) and raw_value:
+        return cast(DogTextMetadataEntry, {"last_updated": raw_value})
+
+    return None
+
+
+def ensure_dog_text_metadata_snapshot(
+    payload: Mapping[str, JSONValue],
+) -> DogTextMetadataSnapshot | None:
+    """Return a normalised :class:`DogTextMetadataSnapshot` from ``payload``."""
+
+    metadata: dict[str, DogTextMetadataEntry] = {}
+    for key in _DOG_TEXT_SNAPSHOT_KEYS:
+        raw_value = payload.get(key)
+        entry = _normalise_text_metadata_entry(raw_value)
+        if entry is not None:
+            metadata[key] = entry
+
+    if not metadata:
+        return None
+
+    return cast(DogTextMetadataSnapshot, metadata)
+
 
 # Field literals for external entity configuration helpers.
 GPS_SOURCE_FIELD: Final[Literal["gps_source"]] = "gps_source"
@@ -5451,6 +5628,18 @@ def ensure_dog_config_data(data: Mapping[str, JSONValue]) -> DogConfigData | Non
     )
     if normalised_settings is not None:
         config["door_sensor_settings"] = normalised_settings
+
+    text_payload = data.get(DOG_TEXT_VALUES_FIELD)
+    if isinstance(text_payload, Mapping):
+        snapshot = ensure_dog_text_snapshot(text_payload)
+        if snapshot is not None:
+            config[DOG_TEXT_VALUES_FIELD] = snapshot
+
+    text_metadata_payload = data.get(DOG_TEXT_METADATA_FIELD)
+    if isinstance(text_metadata_payload, Mapping):
+        metadata_snapshot = ensure_dog_text_metadata_snapshot(text_metadata_payload)
+        if metadata_snapshot is not None:
+            config[DOG_TEXT_METADATA_FIELD] = metadata_snapshot
 
     return config
 
@@ -5705,6 +5894,15 @@ class DoorSensorPersistenceFailure(TypedDict, total=False):
     error: NotRequired[str]
 
 
+class DoorSensorFailureSummary(TypedDict, total=False):
+    """Aggregated telemetry for door sensor persistence failures per dog."""
+
+    dog_id: Required[str]
+    failure_count: Required[int]
+    last_failure: Required[DoorSensorPersistenceFailure]
+    dog_name: NotRequired[str | None]
+
+
 class PerformanceTrackerBucket(TypedDict, total=False):
     """Execution metrics recorded by :func:`performance_tracker`."""
 
@@ -5725,6 +5923,7 @@ class RuntimePerformanceStats(TypedDict, total=False):
     door_sensor_failures: list[DoorSensorPersistenceFailure]
     door_sensor_failure_count: int
     last_door_sensor_failure: DoorSensorPersistenceFailure
+    door_sensor_failure_summary: dict[str, DoorSensorFailureSummary]
     service_guard_metrics: ServiceGuardMetricsSnapshot
     rejection_metrics: CoordinatorRejectionMetrics
     service_results: list[ServiceExecutionResult]

@@ -13,6 +13,7 @@ from .types import (
     BoolCoercionSummary,
     ConfigEntryOptionsPayload,
     CoordinatorResilienceSummary,
+    DoorSensorFailureSummary,
     DoorSensorPersistenceFailure,
     DoorSensorSettingsPayload,
     JSONLikeMapping,
@@ -509,6 +510,32 @@ def record_door_sensor_persistence_failure(
     performance_stats["door_sensor_failures"] = failures
     performance_stats["door_sensor_failure_count"] = len(failures)
     performance_stats["last_door_sensor_failure"] = failure
+
+    summaries_raw = performance_stats.get("door_sensor_failure_summary")
+    summaries: dict[str, DoorSensorFailureSummary]
+    if isinstance(summaries_raw, Mapping):
+        summaries = {
+            str(key): cast(DoorSensorFailureSummary, dict(value))
+            for key, value in summaries_raw.items()
+            if isinstance(key, str) and isinstance(value, Mapping)
+        }
+    else:
+        summaries = {}
+
+    summary = summaries.get(dog_id)
+    if summary is None:
+        summary = {
+            "dog_id": dog_id,
+            "failure_count": 0,
+        }
+
+    summary["failure_count"] = int(summary.get("failure_count", 0)) + 1
+    if "dog_name" in failure:
+        summary["dog_name"] = failure.get("dog_name")
+    summary["last_failure"] = failure
+
+    summaries[dog_id] = cast(DoorSensorFailureSummary, dict(summary))
+    performance_stats["door_sensor_failure_summary"] = summaries
 
     error_history_raw = getattr(runtime_data, "error_history", None)
     if isinstance(error_history_raw, list):
