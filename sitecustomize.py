@@ -246,4 +246,3 @@ if _VENDOR_PATH.exists():
     vendor_entry = str(_VENDOR_PATH)
     if vendor_entry not in sys.path:
         sys.path.insert(0, vendor_entry)
-
