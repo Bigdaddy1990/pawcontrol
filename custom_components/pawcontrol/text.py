@@ -45,6 +45,7 @@ from .types import (
     ModuleToggleKey,
     PawControlConfigEntry,
     TextEntityExtraAttributes,
+    _normalise_text_metadata_entry,
     coerce_dog_modules_config,
     ensure_dog_config_data,
 )
@@ -55,39 +56,6 @@ _LOGGER = logging.getLogger(__name__)
 # Text helpers persist updates back to the coordinator. Coordinator-side
 # locking keeps writes safe, so we remove the entity-level concurrency cap.
 PARALLEL_UPDATES = 0
-
-
-def _normalize_metadata_entry(value: object | None) -> DogTextMetadataEntry | None:
-    """Return a metadata entry built from ``value`` when available."""
-
-    if isinstance(value, Mapping):
-        entry: dict[str, str | None] = {}
-        last_updated = value.get("last_updated")
-        if isinstance(last_updated, str) and last_updated:
-            entry["last_updated"] = last_updated
-
-        context_id = value.get("context_id")
-        if isinstance(context_id, str) and context_id:
-            entry["context_id"] = context_id
-
-        parent_id = value.get("parent_id")
-        if isinstance(parent_id, str) and parent_id:
-            entry["parent_id"] = parent_id
-
-        user_id = value.get("user_id")
-        if isinstance(user_id, str) and user_id:
-            entry["user_id"] = user_id
-
-        if not entry:
-            return None
-
-        return cast(DogTextMetadataEntry, entry)
-
-    if isinstance(value, str) and value:
-        return cast(DogTextMetadataEntry, {"last_updated": value})
-
-    return None
-
 
 MODULE_GPS_KEY = cast(ModuleToggleKey, MODULE_GPS)
 MODULE_WALK_KEY = cast(ModuleToggleKey, MODULE_WALK)
@@ -391,7 +359,7 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
 
                 metadata_snapshot = dog.get(DOG_TEXT_METADATA_FIELD)
                 if isinstance(metadata_snapshot, Mapping):
-                    runtime_metadata = _normalize_metadata_entry(
+                    runtime_metadata = _normalise_text_metadata_entry(
                         metadata_snapshot.get(self._text_type)
                     )
 
@@ -415,7 +383,7 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
 
                 metadata_snapshot = dog_payload.get(DOG_TEXT_METADATA_FIELD)
                 if isinstance(metadata_snapshot, Mapping):
-                    coordinator_metadata = _normalize_metadata_entry(
+                    coordinator_metadata = _normalise_text_metadata_entry(
                         metadata_snapshot.get(self._text_type)
                     )
 
@@ -468,6 +436,7 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
                     self._text_type,
                     self._dog_name,
                 )
+                return
 
         if runtime_data is not None:
             for dog in runtime_data.dogs:
@@ -500,7 +469,7 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
                     for key, stored in metadata_existing.items():
                         if not isinstance(key, str):
                             continue
-                        entry = _normalize_metadata_entry(stored)
+                        entry = _normalise_text_metadata_entry(stored)
                         if entry is not None:
                             metadata_merged[key] = entry
 
@@ -555,7 +524,7 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
                 for key, stored in existing_metadata.items():
                     if not isinstance(key, str):
                         continue
-                    entry = _normalize_metadata_entry(stored)
+                    entry = _normalise_text_metadata_entry(stored)
                     if entry is not None:
                         merged_metadata[key] = entry
 
@@ -671,7 +640,7 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
                 if isinstance(user_id, str) and user_id:
                     attr_user_id = user_id
 
-            metadata_from_state = _normalize_metadata_entry(
+            metadata_from_state = _normalise_text_metadata_entry(
                 {
                     "last_updated": last_state_timestamp,
                     "context_id": attr_context_id,
