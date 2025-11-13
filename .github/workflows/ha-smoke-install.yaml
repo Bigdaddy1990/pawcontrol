@@ -5,16 +5,52 @@ on:
   schedule:
     - cron: "0 5 * * *"
 
+env:
+  PYTHON_VERSION: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.13' }}
+  HA_VERSION: ${{ vars.HA_VERSION != '' && vars.HA_VERSION || '2025.9.3' }}
+
 jobs:
   smoke:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-python@v6
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
         with:
-          python-version: "3.13"
-      - name: Show Python
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements_test.txt
+            pyproject.toml
+
+      - name: Show Python environment
         run: python --version && pip --version
+
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
-      - name: Install Home Assistant (latest patch)
-        run: python -m pip install --no-cache-dir "homeassistant>=2025.8.0"
+
+      - name: Install Home Assistant and PawControl
+        env:
+          HA_SPEC: ${{ format('=={0}', env.HA_VERSION) }}
+        run: |
+          python -m pip install --no-cache-dir "homeassistant${HA_SPEC}"
+          python -m pip install --no-cache-dir -e .
+
+      - name: Prepare Home Assistant config
+        run: |
+          mkdir -p smoke-config/custom_components
+          cp -r custom_components/pawcontrol smoke-config/custom_components/
+          cat <<'YAML' > smoke-config/configuration.yaml
+          default_config:
+          logger:
+            default: warning
+          YAML
+
+      - name: Validate installation with hass --script check_config
+        env:
+          PYTHONPATH: .
+        run: |
+          hass --script check_config --config smoke-config

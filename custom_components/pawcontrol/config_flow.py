@@ -13,7 +13,7 @@ from collections.abc import AsyncIterator, Awaitable, Mapping, Sequence
 from contextlib import asynccontextmanager, suppress
 from datetime import datetime
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any, Final, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -78,6 +78,7 @@ from .types import (
     DOG_ID_FIELD,
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
+    MODULE_TOGGLE_FLAG_BY_KEY,
     MODULE_TOGGLE_KEYS,
     AddAnotherDogPlaceholders,
     AddDogSummaryPlaceholders,
@@ -116,6 +117,7 @@ from .types import (
     ReconfigureProfileInput,
     ReconfigureTelemetry,
     coerce_dog_modules_config,
+    dog_modules_from_flow_input,
     ensure_dog_modules_mapping,
     is_dog_config_valid,
     normalize_performance_mode,
@@ -285,6 +287,14 @@ async def timed_operation(operation_name: str) -> AsyncIterator[None]:
                 duration,
             )
 
+
+MODULE_SELECTION_KEYS: Final[tuple[str, ...]] = (
+    MODULE_FEEDING,
+    MODULE_WALK,
+    MODULE_HEALTH,
+    MODULE_GPS,
+    MODULE_NOTIFICATIONS,
+)
 
 MODULES_SCHEMA = vol.Schema(
     {
@@ -1413,9 +1423,36 @@ class PawControlConfigFlow(
         current_dog = self._dogs[-1]
 
         if user_input is not None:
+            existing_modules = cast(
+                DogModulesConfig | None, current_dog.get(DOG_MODULES_FIELD)
+            )
+            mapping_candidate: DogModulesConfig
+            raw_mapping: ConfigFlowUserInput = {}
+
+            if isinstance(user_input, Mapping):
+                raw_mapping = cast(ConfigFlowUserInput, dict(user_input))
+
+            if raw_mapping and any(
+                flag in raw_mapping for flag in MODULE_TOGGLE_FLAG_BY_KEY.values()
+            ):
+                mapping_candidate = dog_modules_from_flow_input(
+                    raw_mapping,
+                    existing=existing_modules,
+                )
+            elif raw_mapping:
+                mapping_candidate = cast(DogModulesConfig, dict(raw_mapping))
+            else:
+                mapping_candidate = coerce_dog_modules_config(user_input)
+
+            filtered_candidate = {
+                key: mapping_candidate.get(key)
+                for key in MODULE_SELECTION_KEYS
+                if key in mapping_candidate
+            }
+
             try:
                 # Validate modules configuration
-                modules = MODULES_SCHEMA(user_input or {})
+                modules = MODULES_SCHEMA(filtered_candidate)
                 typed_modules = cast(DogModulesConfig, dict(modules))
                 current_dog[DOG_MODULES_FIELD] = typed_modules
                 self._invalidate_profile_caches()

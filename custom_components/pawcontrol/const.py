@@ -1,13 +1,13 @@
 """Optimized constants for the Paw Control integration.
 
-OPTIMIZED for HA 2025.9.1+ with enhanced performance patterns:
+OPTIMIZED for HA 2025.9.3+ with enhanced performance patterns:
 - Frozen sets for O(1) lookups
 - Tuples for immutable sequences
 - Streamlined exports
 - Memory-efficient data structures
 
 Quality Scale: Platinum target
-Home Assistant: 2025.9.1+
+Home Assistant: 2025.9.3+
 Python: 3.13+
 """
 

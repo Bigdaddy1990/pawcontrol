@@ -1,7 +1,7 @@
 # PawControl v1.0.0 - Production Release Notes
 
 **Release Date:** September 8, 2025
-**Environment:** Home Assistant 2025.9.1+ | Python 3.13+ | Quality Scale Platinum
+**Environment:** Home Assistant 2025.9.3+ | Python 3.13+ | Quality Scale Platinum
 
 ---
 
@@ -181,7 +181,7 @@ Code Quality:
 ### 🔧 **System Requirements**
 ```yaml
 Minimum:
-  - Home Assistant: 2025.9.1+
+  - Home Assistant: 2025.9.3+
   - Python: 3.13+
   - Memory: 512MB available
   - Storage: 100MB free space

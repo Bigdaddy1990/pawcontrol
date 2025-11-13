@@ -1,6 +1,6 @@
 # 🐾 PawControl Integration - Production Documentation
 
-**Environment:** Home Assistant 2025.9.1+ | Python 3.13+ | Quality Scale Platinum
+**Environment:** Home Assistant 2025.9.3+ | Python 3.13+ | Quality Scale Platinum
 **Integration Type:** Hub | IoT Class: Local Push | Version: 1.0.0
 
 ---
@@ -27,7 +27,7 @@
 ### System Requirements
 
 **Minimum Requirements:**
-- Home Assistant Core 2025.9.1 or later
+- Home Assistant Core 2025.9.3 or later
 - Python 3.13+
 - RAM: 512MB available
 - Storage: 100MB free space
@@ -482,7 +482,7 @@ deployment_checklist:
 
   # System Requirements
   system_requirements:
-    - home_assistant_version: "≥2025.9.1"
+    - home_assistant_version: "≥2025.9.3"
     - python_version: "≥3.13"
     - available_memory: "≥512MB"
     - available_storage: "≥100MB"
@@ -605,7 +605,7 @@ core_integrations:
 ## 📋 Production Checklist Summary
 
 ### ✅ Pre-Production Validation
-- [ ] **System Requirements Met**: HA 2025.9.1+, Python 3.13+, 512MB+ RAM
+- [ ] **System Requirements Met**: HA 2025.9.3+, Python 3.13+, 512MB+ RAM
 - [ ] **Integration Installed**: Via HACS or manual installation
 - [ ] **Configuration Validated**: All dog configs and modules verified
 - [ ] **Entity Creation Tested**: All expected entities created successfully

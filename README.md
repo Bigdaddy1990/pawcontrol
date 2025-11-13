@@ -1,6 +1,6 @@
 # 🐾 Paw Control - Smart Dog Management for Home Assistant
 
-[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.9.1%2B-blue.svg)](https://www.home-assistant.io/)
+[![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.9.3%2B-blue.svg)](https://www.home-assistant.io/)
 [![HACS](https://img.shields.io/badge/HACS-Ready-41BDF5.svg)](https://hacs.xyz/)
 [![Quality Scale](https://img.shields.io/badge/Quality%20Scale-Platinum-e5e4e2.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -9,7 +9,7 @@
 [![Downloads](https://img.shields.io/github/downloads/BigDaddy1990/pawcontrol/total.svg)](https://github.com/bigdaddy1990/pawcontrol/releases)
 [![Version](https://img.shields.io/badge/Version-1.0.0-blue.svg)](https://github.com/BigDaddy1990/pawcontrol/releases)
 [![Coverage](https://img.shields.io/endpoint?url=https://bigdaddy1990.github.io/pawcontrol/coverage/latest/shields.json)](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/index.html)
-[![Tests](https://github.com/BigDaddy1990/pawcontrol/actions/workflows/coverage.yml/badge.svg)](https://github.com/BigDaddy1990/pawcontrol/actions/workflows/coverage.yml)
+[![Tests](https://github.com/BigDaddy1990/pawcontrol/actions/workflows/ci.yml/badge.svg)](https://github.com/BigDaddy1990/pawcontrol/actions/workflows/ci.yml)
 
 **PawControl** is a comprehensive Home Assistant integration for smart dog management, featuring advanced GPS tracking, automated feeding reminders, health monitoring, and intelligent automation workflows. The integration meets the **Platinum quality scale** and keeps runtime data, options flow, diagnostics, and testing evidence synchronised with the Home Assistant guidance captured in this repository’s compliance reports.
 
@@ -908,7 +908,7 @@ If you need to uninstall PawControl—whether you're migrating hardware or just 
 **Integration won't load**:
 ```bash
 # Check Home Assistant version
-# Requirement: 2025.9.1 or later
+# Requirement: 2025.9.3 or later
 Settings → System → General → Check version
 
 # Verify installation
@@ -1202,7 +1202,7 @@ class NewGPSDevicePlugin(PawControlPlugin):
 ### Current Version: 1.0.0 (Production Ready)
 
 **✨ Major Features**:
-- Complete Home Assistant 2025.9.1+ integration
+- Complete Home Assistant 2025.9.3+ integration
 - 10 platform support with 150+ entities
 - Advanced GPS tracking with geofencing
 - Multi-dog management with independent configurations

@@ -1,13 +1,13 @@
 """End-to-end integration regression tests for Platinum compliance.
 
 These scenarios simulate the documented validation steps for the
-Home Assistant 2025.9.1 nightly build and the supervised installation
+Home Assistant 2025.9.3 nightly build and the supervised installation
 smoke run.  They exercise the public setup/unload contracts while
 capturing the runtime telemetry that Platinum reviewers expect to see
 in the traceability matrix.
 
 Quality Scale: Platinum target
-Home Assistant: 2025.9.1+
+Home Assistant: 2025.9.3+
 Python: 3.12+
 """
 
@@ -60,7 +60,7 @@ pytestmark = [
 ]
 
 
-REQUIRED_NIGHTLY = AwesomeVersion("2025.9.1")
+REQUIRED_NIGHTLY = AwesomeVersion("2025.9.3")
 
 
 @dataclass(slots=True)
@@ -397,7 +397,7 @@ def _require_nightly() -> None:
 
     if AwesomeVersion(ha_version) < REQUIRED_NIGHTLY:
         pytest.skip(
-            "Requires Home Assistant 2025.9.1 nightly build or newer for Platinum QA"
+            "Requires Home Assistant 2025.9.3 nightly build or newer for Platinum QA"
         )
 
 

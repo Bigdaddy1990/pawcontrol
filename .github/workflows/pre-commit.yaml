@@ -1,9 +1,7 @@
 name: pre-commit
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  schedule:
+    - cron: "0 5 * * 1"
   workflow_dispatch:
 
 concurrency:
@@ -11,14 +9,6 @@ concurrency:
   cancel-in-progress: true
 jobs:
   pre-commit:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.13"
-      - uses: pre-commit/action@v3.0.1
-        with:
-          extra_args: --all-files
-      - uses: pre-commit-ci/lite-action@v1.1.0
-        if: always()
+    uses: ./.github/workflows/reusable-pre-commit.yml
+    with:
+      python-version: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.13' }}
