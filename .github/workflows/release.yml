@@ -12,7 +12,8 @@ on:
         type: string
 
 env:
-  PYTHON_VERSION: "3.13"
+  PYTHON_VERSION: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.13' }}
+  HA_VERSION: ${{ vars.HA_VERSION != '' && vars.HA_VERSION || '2025.9.3' }}
 
 jobs:
   prepare-release:
@@ -70,35 +71,39 @@ jobs:
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-  test-and-validate:
+  test-suite:
     name: Test & Validate
     needs: prepare-release
-    runs-on: ubuntu-latest
+    uses: ./.github/workflows/reusable-python-tests.yml
+    with:
+      python-version: ${{ env.PYTHON_VERSION }}
+      home-assistant-spec: ${{ format('=={0}', env.HA_VERSION) }}
+      coverage-min: ${{ vars.RELEASE_COVERAGE_MIN != '' && vars.RELEASE_COVERAGE_MIN || (vars.CI_COVERAGE_MIN != '' && vars.CI_COVERAGE_MIN || '95') }}
+      run-codecov: false
+      upload-coverage-artifact: false
+      upload-junit-artifact: false
+    secrets: inherit
 
+  marketplace-validation:
+    name: Marketplace validation
+    needs:
+      - prepare-release
+      - test-suite
+    uses: ./.github/workflows/reusable-marketplace-validation.yml
+    with:
+      category: integration
+      ignore: brands
+
+  validate-release:
+    name: Validate release metadata
+    needs:
+      - prepare-release
+      - test-suite
+      - marketplace-validation
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION || '3.13' }}
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -U pytest pytest-asyncio pytest-cov
-          pip install -U homeassistant==2025.9.1
-          pip install -U pytest-homeassistant-custom-component
-          pip install -r requirements.txt || true
-          pip install -r requirements_test.txt || true
-
-      - name: Run tests
-        env:
-          PYTHONPATH: .
-        run: |
-          python -m pytest --maxfail=5 --tb=short tests/
 
       - name: Validate manifest version
         run: |
@@ -111,18 +116,13 @@ jobs:
           fi
           echo "✅ Version validated: $VERSION"
 
-      - name: Run Hassfest
-        uses: home-assistant/actions/hassfest@master
-
-      - name: HACS validation
-        uses: hacs/action@main
-        with:
-          category: integration
-          ignore: brands
-
   build-release:
     name: Build Release Package
-    needs: [prepare-release, test-and-validate]
+    needs:
+      - prepare-release
+      - test-suite
+      - marketplace-validation
+      - validate-release
     runs-on: ubuntu-latest
 
     steps:
@@ -188,8 +188,8 @@ jobs:
           ${{ needs.prepare-release.outputs.changelog }}
 
           ## Requirements
-          - Home Assistant 2025.9.1+
-          - Python 3.13+
+          - Home Assistant ${{ env.HA_VERSION }}+
+          - Python ${{ env.PYTHON_VERSION }}+
 
           ## Support
           - [Documentation](https://github.com/BigDaddy1990/pawcontrol#readme)
@@ -242,8 +242,8 @@ jobs:
             Download `pawcontrol_v${{ needs.prepare-release.outputs.version }}.zip` and extract to `config/custom_components/`
 
             ## Requirements
-            - Home Assistant 2025.9.1 or newer
-            - Python 3.13+
+            - Home Assistant ${{ env.HA_VERSION }} or newer
+            - Python ${{ env.PYTHON_VERSION }}+
 
             ## Documentation
             - [Setup Guide](https://github.com/BigDaddy1990/pawcontrol/blob/main/docs/setup_installation_guide.md)

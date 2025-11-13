@@ -21,6 +21,7 @@ import os
 import sys
 import types
 import uuid
+from pathlib import Path
 
 if not hasattr(uuid, "_uuid_generate_time"):
 
@@ -240,3 +241,9 @@ except Exception:  # pragma: no cover - module not available outside tests
     pass
 else:
     _patch_performance_monitor(_perf_module)
+_VENDOR_PATH = Path(__file__).resolve().parent / "annotatedyaml" / "_vendor"
+if _VENDOR_PATH.exists():
+    vendor_entry = str(_VENDOR_PATH)
+    if vendor_entry not in sys.path:
+        sys.path.insert(0, vendor_entry)
+

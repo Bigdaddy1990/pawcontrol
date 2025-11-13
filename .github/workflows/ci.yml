@@ -8,9 +8,9 @@ on:
   workflow_dispatch:
 
 env:
-  PYTHON_VERSION: "3.13"
-  HA_VERSION: "2025.9.3"
-  COVERAGE_MIN: "95"
+  PYTHON_VERSION: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.13' }}
+  HA_VERSION: ${{ vars.HA_VERSION != '' && vars.HA_VERSION || '2025.9.3' }}
+  CI_COVERAGE_MIN: ${{ vars.CI_COVERAGE_MIN != '' && vars.CI_COVERAGE_MIN || '95' }}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -19,29 +19,99 @@ concurrency:
 jobs:
   lint:
     name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-        with:
-          fetch-depth: 0
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install pre-commit
-
-      - name: Run pre-commit
-        run: pre-commit run --show-diff-on-failure --color always --all-files
+    uses: ./.github/workflows/reusable-pre-commit.yml
+    with:
+      python-version: ${{ env.PYTHON_VERSION }}
+    secrets: inherit
 
   test-coverage:
     name: Test & Coverage
+    uses: ./.github/workflows/reusable-python-tests.yml
+    with:
+      python-version: ${{ env.PYTHON_VERSION }}
+      home-assistant-spec: ${{ format('=={0}', env.HA_VERSION) }}
+      coverage-min: ${{ env.CI_COVERAGE_MIN }}
+      coverage-xml-path: generated/coverage/coverage.xml
+      coverage-html-dir: generated/coverage/html
+      upload-junit-artifact: true
+      junit-artifact-name: junit-results
+    secrets: inherit
+
+  coverage-comment:
+    name: Coverage Summary Comment
+    needs: test-coverage
+    if: ${{ github.event_name == 'pull_request' && needs.test-coverage.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prepare coverage summary
+        id: summary
+        env:
+          COVERAGE_PERCENT: ${{ needs.test-coverage.outputs.coverage-percent }}
+          COVERAGE_THRESHOLD: ${{ needs.test-coverage.outputs.coverage-threshold }}
+        run: |
+          if [ -z "$COVERAGE_PERCENT" ]; then
+            echo "::warning::Coverage percent unavailable; skipping comment"
+            exit 0
+          fi
+
+          cat <<MARKDOWN > coverage-comment.md
+<!-- coverage-report -->
+### ✅ Coverage results
+
+| Metric | Value |
+| --- | --- |
+| Lines covered | ${COVERAGE_PERCENT}% |
+| Required minimum | ${COVERAGE_THRESHOLD}% |
+
+- Coverage artifacts uploaded with flag \`unittests\`.
+- [HTML report (latest main build)](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/index.html)
+MARKDOWN
+
+          echo "has_comment=true" >> "$GITHUB_OUTPUT"
+
+      - name: Publish PR comment
+        if: steps.summary.outputs.has_comment == 'true'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body-path: coverage-comment.md
+          comment-identifier: coverage-report
+
+  coverage-pages:
+    name: Publish Coverage to GitHub Pages
+    needs: test-coverage
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.test-coverage.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: coverage-report
+          path: artifacts/coverage
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Publish coverage bundle
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          python -m script.publish_coverage \
+            --coverage-xml artifacts/coverage/generated/coverage/coverage.xml \
+            --coverage-html-index artifacts/coverage/generated/coverage/html/index.html \
+            --artifact-directory artifacts/coverage/generated/coverage/artifacts \
+            --mode pages \
+            --pages-branch gh-pages \
+            --pages-prefix coverage \
+            --prune-expired-runs
+
+  docs-diff-comment:
+    name: Document change summary
+    if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -49,66 +119,92 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -U pytest pytest-asyncio pytest-cov coverage[toml]
-          pip install -U homeassistant==${{ env.HA_VERSION }}
-          pip install -U pytest-homeassistant-custom-component
-          pip install -r requirements.txt
-          pip install -r requirements_test.txt
-
-      - name: Audit test requirements
-        run: |
-          python -m script.enforce_test_requirements
-
-      - name: Run tests with coverage gate
+      - name: Summarise documentation & localization changes
+        id: docs
         env:
-          PYTHONPATH: .
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          python -m pytest \
-            --cov=custom_components/pawcontrol \
-            --cov-branch \
-            --cov-report=xml:coverage.xml \
-            --cov-report=term-missing:skip-covered \
-            --cov-report=html:htmlcov \
-            --cov-fail-under=${{ env.COVERAGE_MIN }} \
-            --junitxml=junit.xml \
-            -o junit_family=legacy \
-            --maxfail=5 \
-            --tb=short \
-            tests/
+          git diff --name-status "$BASE_SHA"...HEAD > changed_files.txt
+          python - <<'PY'
+          from __future__ import annotations
 
-      - name: Upload coverage to Codecov
-        if: always()
-        uses: codecov/codecov-action@v5
-        with:
-          files: coverage.xml
-          fail_ci_if_error: false
-          token: ${{ secrets.CODECOV_TOKEN }}
-          flags: unittests
-          name: pawcontrol-coverage
+          from collections import defaultdict
 
-      - name: Upload test results to Codecov
-        if: always()
-        uses: codecov/test-results-action@v1
-        with:
-          files: junit.xml
-          token: ${{ secrets.CODECOV_TOKEN }}
+          categories: dict[str, list[str]] = defaultdict(list)
+          category_map = {
+              "README.md": "Documentation",
+              "INSTALLATION.md": "Documentation",
+              "info.md": "Documentation",
+              "dev.md": "Documentation",
+              "docs": "Documentation",
+              "docs/": "Documentation",
+              "custom_components/pawcontrol/strings.json": "Localization",
+              "custom_components/pawcontrol/translations": "Localization",
+              "custom_components/pawcontrol/translations/": "Localization",
+          }
 
-      - name: Upload HTML coverage report
-        if: always()
-        uses: actions/upload-artifact@v5
+          def categorise(path: str) -> str | None:
+              for key, category in category_map.items():
+                  if key.endswith("/"):
+                      if path.startswith(key):
+                          return category
+                  elif path == key:
+                      return category
+              if path.startswith("docs/"):
+                  return "Documentation"
+              if path.startswith("custom_components/pawcontrol/translations/"):
+                  return "Localization"
+              if path.startswith("docs-"):
+                  return "Documentation"
+              return None
+
+          changed: list[tuple[str, str]] = []
+          with open("changed_files.txt", "r", encoding="utf-8") as handle:
+              for line in handle:
+                  line = line.strip()
+                  if not line:
+                      continue
+                  status, file_path = line.split("\t", 1)
+                  category = categorise(file_path)
+                  if category is not None:
+                      categories[category].append(f"{status} {file_path}")
+                      changed.append((status, file_path))
+
+          if not changed:
+              with open("docs-diff-flag", "w", encoding="utf-8") as marker:
+                  marker.write("false")
+              raise SystemExit
+
+          lines = ["<!-- docs-diff -->", "### 📚 Documentation & localization changes", ""]
+          for category in sorted(categories):
+              entries = sorted(categories[category])
+              lines.append(f"- **{category} ({len(entries)})**")
+              for entry in entries:
+                  lines.append(f"  - `{entry}`")
+
+          lines.append("")
+          lines.append(
+              "Run `python -m script.sync_contributor_guides` after adjusting contributor docs to keep assistants in sync."
+          )
+
+          with open("docs-diff-comment.md", "w", encoding="utf-8") as outfile:
+              outfile.write("\n".join(lines) + "\n")
+
+          with open("docs-diff-flag", "w", encoding="utf-8") as marker:
+              marker.write("true")
+          PY
+          if [ -f docs-diff-flag ] && [ "$(cat docs-diff-flag)" = "true" ]; then
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Publish PR comment
+        if: steps.docs.outputs.has_changes == 'true'
+        uses: peter-evans/create-or-update-comment@v4
         with:
-          name: coverage-report
-          path: htmlcov/
-          retention-days: 7
+          issue-number: ${{ github.event.pull_request.number }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body-path: docs-diff-comment.md
+          comment-identifier: docs-diff
 
   code-quality:
     name: Code Quality
@@ -121,7 +217,10 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: "pip"
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
 
       - name: Install Ruff
         run: |
@@ -150,6 +249,10 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
 
       - name: Validate localization tables and contributor guides
         env:
@@ -171,7 +274,10 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          cache: "pip"
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
 
       - name: Install mypy
         run: |
@@ -228,19 +334,10 @@ jobs:
 
   marketplace-validation:
     name: Hassfest & HACS validation
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
-
-      - name: Run Hassfest
-        uses: home-assistant/actions/hassfest@master
-
-      - name: Run HACS validation
-        uses: hacs/action@main
-        with:
-          category: integration
-          ignore: brands
+    uses: ./.github/workflows/reusable-marketplace-validation.yml
+    with:
+      category: integration
+      ignore: brands
 
   all-checks:
     name: All Checks Passed
@@ -249,94 +346,24 @@ jobs:
       [lint, test-coverage, code-quality, localization-guards, mypy-config, validate-manifest, marketplace-validation]
     runs-on: ubuntu-latest
     steps:
-      - name: Collect localization guard result
-        id: localization_guard
-        uses: actions/github-script@v8
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const JOB_NAME = 'Localization & Guide Sync';
-            const runId = process.env.GITHUB_RUN_ID;
-
-            async function fetchJob() {
-              const response = await github.rest.actions.listJobsForWorkflowRun({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                run_id: runId,
-                per_page: 100,
-              });
-
-              return response.data.jobs.find((job) => job.name === JOB_NAME);
-            }
-
-            let job = await fetchJob();
-            let attempts = 60;
-
-            while ((!job || job.status !== 'completed') && attempts > 0) {
-              await new Promise((resolve) => setTimeout(resolve, 10000));
-              job = await fetchJob();
-              attempts -= 1;
-            }
-
-            if (!job || job.status !== 'completed') {
-              core.setOutput('result', 'timed_out');
-              return;
-            }
-
-            core.setOutput('result', job.conclusion ?? 'neutral');
-            if (job.html_url) {
-              core.setOutput('url', job.html_url);
-            }
-
-      - name: Check status
+      - name: Summarise upstream results
         run: |
-          failures=()
+          cat <<'SUMMARY'
+          lint: ${{ needs.lint.result }}
+          test-coverage: ${{ needs.test-coverage.result }}
+          code-quality: ${{ needs.code-quality.result }}
+          localization-guards: ${{ needs.localization-guards.result }}
+          mypy-config: ${{ needs.mypy-config.result }}
+          validate-manifest: ${{ needs.validate-manifest.result }}
+          marketplace-validation: ${{ needs.marketplace-validation.result }}
+          SUMMARY
 
-          if [[ "${{ needs.lint.result }}" != "success" ]]; then
-            failures+=("lint")
-          fi
+      - name: Fail when any prerequisite did not succeed
+        if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped') }}
+        run: |
+          echo "❌ At least one required job did not complete successfully." >&2
+          exit 1
 
-          if [[ "${{ needs.test-coverage.result }}" != "success" ]]; then
-            failures+=("test coverage")
-          fi
-
-          if [[ "${{ needs.code-quality.result }}" != "success" ]]; then
-            failures+=("code quality")
-          fi
-
-          if [[ "${{ needs.mypy-config.result }}" != "success" ]]; then
-            failures+=("mypy config")
-          fi
-
-          if [[ "${{ needs.validate-manifest.result }}" != "success" ]]; then
-            failures+=("manifest validation")
-          fi
-
-          if [[ "${{ needs.marketplace-validation.result }}" != "success" ]]; then
-            failures+=("marketplace validation")
-          fi
-
-          localization_guard_result='${{ steps.localization_guard.outputs.result }}'
-          localization_guard_url='${{ steps.localization_guard.outputs.url }}'
-
-          if [[ -z "${localization_guard_result}" ]]; then
-            localization_guard_result="success"
-          fi
-
-          if [[ "${localization_guard_result}" != "success" ]]; then
-            if [[ -n "${localization_guard_url}" ]]; then
-              failures+=("localization & guide sync → ${localization_guard_result} (${localization_guard_url})")
-            else
-              failures+=("localization & guide sync → ${localization_guard_result}")
-            fi
-          fi
-
-          if [[ ${#failures[@]} -gt 0 ]]; then
-            echo "❌ Some checks failed:" >&2
-            for failure in "${failures[@]}"; do
-              echo " - $failure" >&2
-            done
-            exit 1
-          fi
-
-          echo "✅ All checks passed successfully"
+      - name: Confirm success
+        if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result, 'skipped') }}
+        run: echo "✅ All prerequisite checks succeeded"

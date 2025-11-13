@@ -2,13 +2,23 @@
 name: Ruff baseline (web only)
 on: { workflow_dispatch: {} }
 permissions: { contents: write, pull-requests: write }
+env:
+  PYTHON_VERSION: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.13' }}
 jobs:
   baseline:
+    if: >-
+      ${{
+        github.event_name == 'workflow_dispatch' && (
+          (vars.RUFF_BASELINE_ALLOWLIST == '' && github.actor == github.repository_owner) ||
+          (vars.RUFF_BASELINE_ALLOWLIST != '' && contains(format(',{0},', vars.RUFF_BASELINE_ALLOWLIST), format(',{0},', github.actor)))
+        )
+      }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
-        with: { python-version: "3.13" }
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
       - run: python -m pip install --upgrade pip ruff
       - run: |
           ruff check . --fix all || true

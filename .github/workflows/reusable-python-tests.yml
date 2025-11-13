@@ -1,0 +1,271 @@
+name: Python Tests with Coverage
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: Python version to install
+        required: false
+        type: string
+      home-assistant-spec:
+        description: Version specifier (e.g. ==2025.9.3 or >=2025.9.3)
+        required: false
+        type: string
+      coverage-min:
+        description: Minimum coverage percentage required to pass
+        required: false
+        type: string
+      coverage-xml-path:
+        description: Destination for the XML coverage report
+        required: false
+        type: string
+      coverage-html-dir:
+        description: Destination directory for the HTML coverage report
+        required: false
+        type: string
+      junit-path:
+        description: Destination path for the junit XML report
+        required: false
+        type: string
+      pytest-extra-args:
+        description: Extra arguments forwarded to pytest
+        required: false
+        type: string
+      run-codecov:
+        description: Upload coverage and test results to Codecov
+        required: false
+        default: true
+        type: boolean
+      upload-coverage-artifact:
+        description: Upload HTML coverage results as an artifact
+        required: false
+        default: true
+        type: boolean
+      coverage-artifact-name:
+        description: Name for the coverage artifact upload
+        required: false
+        default: coverage-report
+        type: string
+      upload-junit-artifact:
+        description: Upload junit results as an artifact
+        required: false
+        default: false
+        type: boolean
+      junit-artifact-name:
+        description: Name for the junit artifact upload
+        required: false
+        default: junit-results
+        type: string
+      publish-pages:
+        description: Publish a condensed coverage report to GitHub Pages
+        required: false
+        default: false
+        type: boolean
+      pages-branch:
+        description: Target branch for GitHub Pages publications
+        required: false
+        default: gh-pages
+        type: string
+      pages-prefix:
+        description: Prefix directory for GitHub Pages uploads
+        required: false
+        default: coverage
+        type: string
+      pages-artifact-name:
+        description: Artifact name containing the GitHub Pages upload bundle
+        required: false
+        default: coverage-pages-archive
+        type: string
+      pages-artifact-directory:
+        description: Directory that should be archived for GitHub Pages uploads
+        required: false
+        default: generated/coverage/artifacts
+        type: string
+      pytest-maxfail:
+        description: Maximum number of pytest failures before aborting
+        required: false
+        default: '5'
+        type: string
+      pytest-traceback:
+        description: Pytest traceback style to use
+        required: false
+        default: short
+        type: string
+    secrets:
+      CODECOV_TOKEN:
+        required: false
+    outputs:
+      coverage-percent:
+        description: Line coverage percentage reported by pytest-cov
+        value: ${{ jobs.tests.outputs.coverage-percent }}
+      coverage-threshold:
+        description: Coverage threshold enforced during the run
+        value: ${{ jobs.tests.outputs.coverage-threshold }}
+
+jobs:
+  tests:
+    name: Run pytest with coverage
+    runs-on: ubuntu-latest
+    outputs:
+      coverage-percent: ${{ steps.coverage_summary.outputs.coverage_percent }}
+      coverage-threshold: ${{ env.COVERAGE_MIN }}
+    env:
+      PYTHON_VERSION: ${{ inputs.python-version != '' && inputs.python-version || (vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.13') }}
+      HA_SPEC: ${{ inputs.home-assistant-spec != '' && inputs.home-assistant-spec || (vars.HA_VERSION != '' && format('=={0}', vars.HA_VERSION) || '==2025.9.3') }}
+      COVERAGE_MIN: ${{ inputs.coverage-min != '' && inputs.coverage-min || (vars.CI_COVERAGE_MIN != '' && vars.CI_COVERAGE_MIN || '95') }}
+      COVERAGE_XML: ${{ inputs.coverage-xml-path != '' && inputs.coverage-xml-path || 'coverage.xml' }}
+      COVERAGE_HTML_DIR: ${{ inputs.coverage-html-dir != '' && inputs.coverage-html-dir || 'htmlcov' }}
+      JUNIT_PATH: ${{ inputs.junit-path != '' && inputs.junit-path || 'junit.xml' }}
+      PYTEST_ARGS: ${{ inputs.pytest-extra-args != '' && inputs.pytest-extra-args || 'tests/' }}
+      PYTEST_MAXFAIL: ${{ inputs.pytest-maxfail }}
+      PYTEST_TRACEBACK: ${{ inputs.pytest-traceback }}
+      PAGES_BRANCH: ${{ inputs.pages-branch }}
+      PAGES_PREFIX: ${{ inputs.pages-prefix }}
+      PAGES_ARTIFACT_DIR: ${{ inputs.pages-artifact-directory }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            requirements_test.txt
+            pyproject.toml
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -U pytest pytest-asyncio pytest-cov coverage[toml]
+          pip install -U pytest-homeassistant-custom-component
+          pip install -U "homeassistant${{ env.HA_SPEC }}"
+          pip install -r requirements.txt
+          pip install -r requirements_test.txt
+
+      - name: Audit declared test requirements
+        run: |
+          python -m script.enforce_test_requirements
+
+      - name: Prepare coverage directories
+        run: |
+          mkdir -p "$(dirname '${{ env.COVERAGE_XML }}')"
+          mkdir -p "${{ env.COVERAGE_HTML_DIR }}"
+          mkdir -p "$(dirname '${{ env.JUNIT_PATH }}')"
+          if [ "${{ inputs.publish-pages }}" = 'true' ]; then
+            mkdir -p "${{ env.PAGES_ARTIFACT_DIR }}"
+          fi
+
+      - name: Run pytest
+        id: pytest
+        env:
+          PYTHONPATH: .
+        run: |
+          python -m pytest \
+            --cov=custom_components/pawcontrol \
+            --cov-branch \
+            --cov-report=xml:"${{ env.COVERAGE_XML }}" \
+            --cov-report=term-missing:skip-covered \
+            --cov-report=html:"${{ env.COVERAGE_HTML_DIR }}" \
+            --cov-fail-under="${{ env.COVERAGE_MIN }}" \
+            --junitxml="${{ env.JUNIT_PATH }}" \
+            -o junit_family=legacy \
+            --maxfail="${{ env.PYTEST_MAXFAIL }}" \
+            --tb="${{ env.PYTEST_TRACEBACK }}" \
+            ${{ env.PYTEST_ARGS }}
+
+      - name: Extract coverage summary
+        id: coverage_summary
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+
+          xml_path = Path(r"${{ env.COVERAGE_XML }}")
+          if not xml_path.is_file():
+              raise SystemExit("missing coverage xml")
+
+          tree = ET.parse(xml_path)
+          root = tree.getroot()
+          line_rate = root.attrib.get("line-rate")
+          if line_rate is None:
+              raise SystemExit("missing line-rate attribute")
+
+          try:
+              percent = round(float(line_rate) * 100, 2)
+          except ValueError as exc:  # pragma: no cover - defensive only
+              raise SystemExit(f"invalid line-rate: {line_rate!r}") from exc
+
+          print(f"coverage_percent={percent}")
+          with open("coverage-summary.txt", "w", encoding="utf-8") as handle:
+              handle.write(f"{percent}\n")
+          PY
+          percent=$(tail -n1 coverage-summary.txt)
+          echo "coverage_percent=${percent}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload coverage to Codecov
+        if: inputs.run-codecov == true
+        uses: codecov/codecov-action@v5
+        with:
+          files: ${{ env.COVERAGE_XML }}
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unittests
+          name: pawcontrol-coverage
+
+      - name: Upload test results to Codecov
+        if: inputs.run-codecov == true
+        uses: codecov/test-results-action@v1
+        with:
+          files: ${{ env.JUNIT_PATH }}
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload coverage artifact
+        if: inputs.upload-coverage-artifact == true
+        uses: actions/upload-artifact@v5
+        with:
+          name: ${{ inputs.coverage-artifact-name }}
+          path: |
+            ${{ env.COVERAGE_HTML_DIR }}
+            ${{ env.COVERAGE_XML }}
+          retention-days: 7
+
+      - name: Upload junit artifact
+        if: inputs.upload-junit-artifact == true
+        uses: actions/upload-artifact@v5
+        with:
+          name: ${{ inputs.junit-artifact-name }}
+          path: ${{ env.JUNIT_PATH }}
+          retention-days: 7
+
+      - name: Publish coverage to GitHub Pages
+        if: inputs.publish-pages == true && steps.pytest.outcome == 'success'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          python -m script.publish_coverage \
+            --coverage-xml "${{ env.COVERAGE_XML }}" \
+            --coverage-html-index "${{ env.COVERAGE_HTML_DIR }}/index.html" \
+            --artifact-directory "${{ env.PAGES_ARTIFACT_DIR }}" \
+            --mode pages \
+            --pages-branch "${{ env.PAGES_BRANCH }}" \
+            --pages-prefix "${{ env.PAGES_PREFIX }}" \
+            --run-id "${{ github.run_id }}" \
+            --run-attempt "${{ github.run_attempt }}" \
+            --commit-sha "${{ github.sha }}" \
+            --ref "${{ github.ref }}"
+
+      - name: Upload GitHub Pages bundle
+        if: inputs.publish-pages == true && steps.pytest.outcome == 'success'
+        uses: actions/upload-artifact@v5
+        with:
+          name: ${{ inputs.pages-artifact-name }}
+          path: ${{ env.PAGES_ARTIFACT_DIR }}
+          retention-days: 7
