@@ -7,6 +7,7 @@ import logging
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from types import MappingProxyType, SimpleNamespace
+from typing import TypedDict, cast
 
 import pytest
 from custom_components.pawcontrol import compat, services
@@ -16,6 +17,11 @@ from custom_components.pawcontrol.const import (
     SERVICE_DAILY_RESET,
 )
 from custom_components.pawcontrol.coordinator_tasks import default_rejection_metrics
+from custom_components.pawcontrol.feeding_manager import (
+    FeedingComplianceCompleted,
+    FeedingComplianceNoData,
+    FeedingComplianceResult,
+)
 from custom_components.pawcontrol.garden_manager import GardenActivityInputPayload
 from custom_components.pawcontrol.notifications import (
     NotificationChannel,
@@ -26,6 +32,7 @@ from custom_components.pawcontrol.types import (
     CacheDiagnosticsSnapshot,
     CacheRepairAggregate,
     CoordinatorRuntimeManagers,
+    FeedingComplianceEventPayload,
     GPSTrackingConfigInput,
 )
 from custom_components.pawcontrol.utils import async_call_hass_service_if_available
@@ -138,7 +145,7 @@ def test_coerce_service_details_value_handles_nested_payloads() -> None:
 def test_record_service_result_merges_rejection_metrics() -> None:
     """Service telemetry should reuse the rejection metrics helper."""
 
-    resilience_summary = {
+    resilience_summary: dict[str, object] = {
         "total_breakers": 1,
         "states": {
             "closed": 0,
@@ -205,7 +212,7 @@ def test_record_service_result_merges_rejection_metrics() -> None:
 def test_record_service_result_defaults_rejection_metrics_without_breakers() -> None:
     """Circuit recovery snapshots should keep rejection metrics at defaults."""
 
-    resilience_summary = {
+    resilience_summary: dict[str, object] = {
         "rejected_call_count": 0,
         "rejection_breaker_count": 0,
         "rejection_rate": 0.0,
@@ -352,14 +359,32 @@ class _DummyDataManager:
         return self._summary
 
 
+class _ComplianceCheckCall(TypedDict):
+    """Typed payload recorded for feeding compliance checks."""
+
+    dog_id: str
+    days_to_check: int
+    notify_on_issues: bool
+
+
+class _HealthSnackCall(TypedDict):
+    """Typed payload captured for health snack submissions."""
+
+    dog_id: str
+    snack_type: str
+    amount: float
+    health_benefit: object | None
+    notes: object | None
+
+
 class _FeedingManagerStub:
     """Provide deterministic behaviour for health snack telemetry tests."""
 
     def __init__(self) -> None:
-        self.calls: list[dict[str, object]] = []
+        self.calls: list[_HealthSnackCall] = []
         self.fail_with: Exception | None = None
-        self.compliance_calls: list[dict[str, object]] = []
-        self.compliance_result: dict[str, object] = {
+        self.compliance_calls: list[_ComplianceCheckCall] = []
+        self.compliance_result: FeedingComplianceResult = {
             "status": "no_data",
             "message": "No feeding data available",
         }
@@ -377,15 +402,14 @@ class _FeedingManagerStub:
         if self.fail_with:
             raise self.fail_with
 
-        self.calls.append(
-            {
-                "dog_id": dog_id,
-                "snack_type": snack_type,
-                "amount": amount,
-                "health_benefit": health_benefit,
-                "notes": notes,
-            }
-        )
+        call: _HealthSnackCall = {
+            "dog_id": dog_id,
+            "snack_type": snack_type,
+            "amount": amount,
+            "health_benefit": health_benefit,
+            "notes": notes,
+        }
+        self.calls.append(call)
 
     async def async_check_feeding_compliance(
         self,
@@ -393,7 +417,7 @@ class _FeedingManagerStub:
         dog_id: str,
         days_to_check: int,
         notify_on_issues: bool,
-    ) -> dict[str, object]:
+    ) -> FeedingComplianceResult:
         if self.compliance_error:
             raise self.compliance_error
 
@@ -579,6 +603,14 @@ class _ResolverStub:
         return self._coordinator
 
 
+class _ComplianceNotificationCall(TypedDict):
+    """Typed payload recorded for compliance notification requests."""
+
+    dog_id: str
+    dog_name: str | None
+    compliance: FeedingComplianceResult
+
+
 class _NotificationManagerStub:
     """Provide deterministic notification behaviour for telemetry tests."""
 
@@ -587,7 +619,7 @@ class _NotificationManagerStub:
         self.fail_ack = False
         self.ack_exists = True
         self.sent: list[dict[str, object]] = []
-        self.compliance_calls: list[dict[str, object]] = []
+        self.compliance_calls: list[_ComplianceNotificationCall] = []
         self.fail_compliance = False
 
     async def async_send_notification(self, **kwargs: object) -> str:
@@ -614,19 +646,19 @@ class _NotificationManagerStub:
         *,
         dog_id: str,
         dog_name: str | None,
-        compliance: dict[str, object],
+        compliance: FeedingComplianceResult,
     ) -> str | None:
         if self.fail_compliance:
             raise services.HomeAssistantError("compliance failed")
 
-        status = compliance.get("status")
+        status = compliance["status"]
         if status == "completed":
-            score = float(compliance.get("compliance_score", 100))
+            completed = cast(FeedingComplianceCompleted, compliance)
             has_issues = bool(
-                compliance.get("days_with_issues")
-                or compliance.get("compliance_issues")
-                or compliance.get("missed_meals")
-                or score < 100
+                completed["days_with_issues"]
+                or completed["compliance_issues"]
+                or completed["missed_meals"]
+                or completed["compliance_score"] < 100
             )
             if not has_issues:
                 return None
@@ -649,10 +681,11 @@ class _NotificationManagerStub:
         return None
 
 
-class _GuardSkippingNotificationManager:
+class _GuardSkippingNotificationManager(_NotificationManagerStub):
     """Notification manager stub that exercises guard skip telemetry."""
 
     def __init__(self) -> None:
+        super().__init__()
         self.calls = 0
 
     async def async_send_notification(self, **kwargs: object) -> str:
@@ -1869,14 +1902,14 @@ async def test_check_feeding_compliance_notifies_on_issues(
     compliance_payload = notification_manager.compliance_calls[0]
     assert compliance_payload["dog_id"] == "buddy"
     assert compliance_payload["dog_name"] == "Buddy"
-    assert compliance_payload["compliance"]["status"] == "completed"
+    compliance_result = cast(FeedingComplianceCompleted, compliance_payload["compliance"])
+    assert compliance_result["status"] == "completed"
 
     fired_events = hass.bus.fired
     assert len(fired_events) == 1
     event = fired_events[0]
     assert event["event_type"] == EVENT_FEEDING_COMPLIANCE_CHECKED
-    event_data = event["event_data"]
-    assert isinstance(event_data, dict)
+    event_data = cast(FeedingComplianceEventPayload, event["event_data"])
     assert event_data["dog_id"] == "buddy"
     assert event_data["dog_name"] == "Buddy"
     assert event_data["notification_sent"] is True
@@ -1973,7 +2006,7 @@ async def test_check_feeding_compliance_skips_when_clean(
     assert len(fired_events) == 1
     event = fired_events[0]
     assert event["event_type"] == EVENT_FEEDING_COMPLIANCE_CHECKED
-    event_data = event["event_data"]
+    event_data = cast(FeedingComplianceEventPayload, event["event_data"])
     assert isinstance(event_data, dict)
     assert event_data["dog_id"] == "buddy"
     assert event_data["notification_sent"] is False
@@ -2055,7 +2088,7 @@ async def test_check_feeding_compliance_respects_notify_toggle(
     assert len(fired_events) == 1
     event = fired_events[0]
     assert event["event_type"] == EVENT_FEEDING_COMPLIANCE_CHECKED
-    event_data = event["event_data"]
+    event_data = cast(FeedingComplianceEventPayload, event["event_data"])
     assert isinstance(event_data, dict)
     assert event_data["notify_on_issues"] is False
     assert event_data["notification_sent"] is False
@@ -2090,12 +2123,12 @@ async def test_check_feeding_compliance_sanitises_structured_messages(
     coordinator.register_dog("buddy", name="Buddy")
     runtime_data = SimpleNamespace(performance_stats={})
 
-    published_payloads: list[dict[str, object]] = []
+    published_payloads: list[FeedingComplianceEventPayload] = []
 
     async def _capture_publish(
         hass: object,
         entry: object,
-        payload: dict[str, object],
+        payload: FeedingComplianceEventPayload,
         *,
         context_metadata: dict[str, object] | None = None,
     ) -> None:
@@ -2124,7 +2157,7 @@ async def test_check_feeding_compliance_sanitises_structured_messages(
     assert published_payloads
 
     event = hass.bus.fired[0]
-    event_data = event["event_data"]
+    event_data = cast(FeedingComplianceEventPayload, event["event_data"])
     assert event_data["result"]["message"] == "Telemetry offline"
 
     summary = event_data["localized_summary"]
@@ -2136,7 +2169,8 @@ async def test_check_feeding_compliance_sanitises_structured_messages(
     assert details["localized_summary"]["message"] == "Telemetry offline"
 
     published = published_payloads[0]
-    assert published["result"]["message"] == "Telemetry offline"
+    published_result = cast(FeedingComplianceNoData, published["result"])
+    assert published_result["message"] == "Telemetry offline"
 
 
 @pytest.mark.unit
@@ -2246,7 +2280,7 @@ async def test_check_feeding_compliance_builds_context_from_stub(
     assert getattr(event_context, "parent_id", None) == "parent-stub"
     assert getattr(event_context, "user_id", None) == "user-stub"
 
-    event_data = event["event_data"]
+    event_data = cast(FeedingComplianceEventPayload, event["event_data"])
     assert event_data["context_id"] == "ctx-stub"
     assert event_data["parent_id"] == "parent-stub"
     assert event_data["user_id"] == "user-stub"
@@ -2323,7 +2357,7 @@ async def test_check_feeding_compliance_builds_context_from_mapping(
     assert getattr(event_context, "parent_id", None) == "parent-mapping"
     assert getattr(event_context, "user_id", None) == "user-mapping"
 
-    event_data = event["event_data"]
+    event_data = cast(FeedingComplianceEventPayload, event["event_data"])
     assert event_data["context_id"] == "ctx-mapping"
     assert event_data["parent_id"] == "parent-mapping"
     assert event_data["user_id"] == "user-mapping"

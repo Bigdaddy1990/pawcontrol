@@ -12,13 +12,15 @@ from __future__ import annotations
 import asyncio
 from collections.abc import Callable, Coroutine
 from datetime import UTC, datetime, timedelta
-from unittest.mock import Mock
+from typing import cast
 
 import pytest
 from custom_components.pawcontrol.feeding_manager import (
     FeedingBatchEntry,
+    FeedingComplianceCompleted,
     FeedingHealthUpdatePayload,
     FeedingManager,
+    FeedingMedicationData,
 )
 from custom_components.pawcontrol.types import (
     FeedingDailyStats,
@@ -26,6 +28,7 @@ from custom_components.pawcontrol.types import (
     FeedingManagerDogSetupPayload,
     FeedingSnapshot,
 )
+from tests.helpers import typed_deepcopy
 
 
 @pytest.mark.unit
@@ -57,7 +60,7 @@ class TestFeedingManagerInitialization:
         assert "buddy" in manager._dogs
         assert "max" in manager._dogs
 
-    async def test_initialization_empty_config(self):
+    async def test_initialization_empty_config(self) -> None:
         """Test initialization with empty configuration."""
         manager = FeedingManager()
 
@@ -65,7 +68,7 @@ class TestFeedingManagerInitialization:
 
         assert len(manager._dogs) == 0
 
-    async def test_initialization_validates_required_fields(self):
+    async def test_initialization_validates_required_fields(self) -> None:
         """Test that initialization validates required fields."""
         manager = FeedingManager()
 
@@ -80,7 +83,9 @@ class TestFeedingManagerInitialization:
 class TestCalorieCalculations:
     """Test calorie calculation algorithms."""
 
-    async def test_calculate_rer_basic(self, mock_feeding_manager):
+    async def test_calculate_rer_basic(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
         """Test Resting Energy Requirement (RER) calculation."""
         # RER = 70 * (weight_kg ^ 0.75)
         # For 30kg dog: 70 * (30 ^ 0.75) ≈ 742 kcal
@@ -90,7 +95,9 @@ class TestCalorieCalculations:
         assert 730 < rer < 750  # Allow small margin
         assert isinstance(rer, float)
 
-    async def test_calculate_rer_small_dog(self, mock_feeding_manager):
+    async def test_calculate_rer_small_dog(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
         """Test RER calculation for small dog."""
         # For 5kg dog: 70 * (5 ^ 0.75) ≈ 234 kcal
 
@@ -98,7 +105,9 @@ class TestCalorieCalculations:
 
         assert 220 < rer < 245
 
-    async def test_calculate_rer_large_dog(self, mock_feeding_manager):
+    async def test_calculate_rer_large_dog(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
         """Test RER calculation for large dog."""
         # For 50kg dog: 70 * (50 ^ 0.75) ≈ 1176 kcal
 
@@ -107,8 +116,8 @@ class TestCalorieCalculations:
         assert 1150 < rer < 1200
 
     async def test_calculate_daily_calories_moderate_activity(
-        self, mock_feeding_manager
-    ):
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
         """Test daily calorie calculation for moderate activity."""
         # TDEE = RER * activity_multiplier
         # Moderate = 1.6
@@ -118,11 +127,13 @@ class TestCalorieCalculations:
         # For 30kg moderate: ~742 * 1.6 ≈ 1187
         assert 1150 < calories < 1250
 
-    async def test_calculate_daily_calories_high_activity(self, mock_dog_config):
+    async def test_calculate_daily_calories_high_activity(
+        self, mock_dog_config: FeedingManagerDogSetupPayload
+    ) -> None:
         """Test daily calorie calculation for high activity."""
         manager = FeedingManager()
 
-        config = mock_dog_config.copy()
+        config = typed_deepcopy(mock_dog_config)
         config["activity_level"] = "high"
 
         await manager.async_initialize([config])
@@ -133,11 +144,13 @@ class TestCalorieCalculations:
         # For 30kg: ~742 * 2.0 ≈ 1484
         assert 1450 < calories < 1550
 
-    async def test_calculate_daily_calories_weight_loss(self, mock_dog_config):
+    async def test_calculate_daily_calories_weight_loss(
+        self, mock_dog_config: FeedingManagerDogSetupPayload
+    ) -> None:
         """Test calorie reduction for weight loss."""
         manager = FeedingManager()
 
-        config = mock_dog_config.copy()
+        config = typed_deepcopy(mock_dog_config)
         config["weight"] = 35.0
         config["ideal_weight"] = 30.0
         config["weight_goal"] = "lose"
@@ -158,7 +171,9 @@ class TestCalorieCalculations:
 class TestPortionCalculations:
     """Test portion size calculations."""
 
-    async def test_calculate_portion_basic(self, mock_feeding_manager):
+    async def test_calculate_portion_basic(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
         """Test basic portion calculation."""
         portion = mock_feeding_manager.calculate_portion("test_dog", "breakfast")
 
@@ -166,7 +181,9 @@ class TestPortionCalculations:
         assert 100 < portion < 500
         assert isinstance(portion, float)
 
-    async def test_calculate_portion_equal_distribution(self, mock_feeding_manager):
+    async def test_calculate_portion_equal_distribution(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
         """Test that portions are distributed equally across meals."""
         breakfast = mock_feeding_manager.calculate_portion("test_dog", "breakfast")
         dinner = mock_feeding_manager.calculate_portion("test_dog", "dinner")
@@ -174,11 +191,13 @@ class TestPortionCalculations:
         # Should be roughly equal (within 10%)
         assert abs(breakfast - dinner) < breakfast * 0.1
 
-    async def test_calculate_portion_custom_food_calories(self, mock_dog_config):
+    async def test_calculate_portion_custom_food_calories(
+        self, mock_dog_config: FeedingManagerDogSetupPayload
+    ) -> None:
         """Test portion calculation with custom food calorie content."""
         manager = FeedingManager()
 
-        config = mock_dog_config.copy()
+        config = typed_deepcopy(mock_dog_config)
         config["feeding_config"]["calories_per_100g"] = 400  # Higher calorie food
 
         await manager.async_initialize([config])
@@ -188,11 +207,13 @@ class TestPortionCalculations:
         # Higher calorie food should result in smaller portions
         assert 100 < portion_high < 400
 
-    async def test_calculate_portion_multiple_meals(self, mock_dog_config):
+    async def test_calculate_portion_multiple_meals(
+        self, mock_dog_config: FeedingManagerDogSetupPayload
+    ) -> None:
         """Test portion calculation with different meal frequencies."""
         manager = FeedingManager()
 
-        config = mock_dog_config.copy()
+        config = typed_deepcopy(mock_dog_config)
         config["feeding_config"]["meals_per_day"] = 3
 
         await manager.async_initialize([config])
@@ -233,7 +254,9 @@ class TestFeedingLogging:
         assert isinstance(record["time"], str)
         assert isinstance(record["with_medication"], bool)
 
-    async def test_add_feeding_with_notes(self, mock_feeding_manager):
+    async def test_add_feeding_with_notes(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
         """Test adding feeding with notes."""
         await mock_feeding_manager.async_add_feeding(
             dog_id="test_dog",
@@ -246,7 +269,9 @@ class TestFeedingLogging:
 
         assert data["feedings"][0]["notes"] == "Added extra vitamins"
 
-    async def test_add_feeding_tracks_daily_total(self, mock_feeding_manager):
+    async def test_add_feeding_tracks_daily_total(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
         """Test that daily totals are tracked correctly."""
         await mock_feeding_manager.async_add_feeding(
             dog_id="test_dog",
@@ -264,7 +289,9 @@ class TestFeedingLogging:
 
         assert stats["total_fed_today"] == 450.0
 
-    async def test_add_feeding_isolates_dogs(self, mock_multi_dog_config):
+    async def test_add_feeding_isolates_dogs(
+        self, mock_multi_dog_config: list[FeedingManagerDogSetupPayload]
+    ) -> None:
         """Test that feeding data is isolated between dogs."""
         manager = FeedingManager()
         await manager.async_initialize(mock_multi_dog_config)
@@ -281,9 +308,11 @@ class TestFeedingLogging:
         assert len(buddy_data["feedings"]) == 1
         assert len(max_data["feedings"]) == 0
 
-    async def test_add_feeding_handles_medication(self, mock_feeding_manager):
+    async def test_add_feeding_handles_medication(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
         """Test feeding with medication tracking."""
-        medication_data = {
+        medication_data: FeedingMedicationData = {
             "name": "Rimadyl",
             "dose": "50mg",
             "time": datetime.now(UTC).isoformat(),
@@ -307,7 +336,9 @@ class TestFeedingLogging:
 class TestScheduleCompliance:
     """Test feeding schedule compliance tracking."""
 
-    async def test_compliance_perfect_schedule(self, mock_feeding_manager):
+    async def test_compliance_perfect_schedule(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
         """Test compliance calculation with perfect adherence."""
         # Add feedings at scheduled times
         now = datetime.now(UTC)
@@ -334,9 +365,13 @@ class TestScheduleCompliance:
             days_to_check=1,
         )
 
-        assert compliance["compliance_rate"] == 100.0
+        assert compliance["status"] == "completed"
+        completed = cast(FeedingComplianceCompleted, compliance)
+        assert completed["compliance_rate"] == 100.0
 
-    async def test_compliance_missed_meal(self, mock_feeding_manager):
+    async def test_compliance_missed_meal(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
         """Test compliance calculation with missed meal."""
         now = datetime.now(UTC)
 
@@ -356,10 +391,14 @@ class TestScheduleCompliance:
             days_to_check=1,
         )
 
-        assert compliance["compliance_rate"] == 50.0
-        assert len(compliance["missed_meals"]) == 1
+        assert compliance["status"] == "completed"
+        completed = cast(FeedingComplianceCompleted, compliance)
+        assert completed["compliance_rate"] == 50.0
+        assert len(completed["missed_meals"]) == 1
 
-    async def test_compliance_late_feeding(self, mock_feeding_manager):
+    async def test_compliance_late_feeding(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
         """Test compliance with late feeding (within tolerance)."""
         now = datetime.now(UTC)
 
@@ -379,7 +418,9 @@ class TestScheduleCompliance:
         )
 
         # Should still count as compliant if within tolerance
-        assert compliance["compliance_rate"] >= 50.0
+        assert compliance["status"] == "completed"
+        completed = cast(FeedingComplianceCompleted, compliance)
+        assert completed["compliance_rate"] >= 50.0
 
 
 @pytest.mark.unit
@@ -387,11 +428,13 @@ class TestScheduleCompliance:
 class TestHealthConditionAdjustments:
     """Test adjustments for health conditions."""
 
-    async def test_diabetic_mode_increases_meal_frequency(self, mock_dog_config):
+    async def test_diabetic_mode_increases_meal_frequency(
+        self, mock_dog_config: FeedingManagerDogSetupPayload
+    ) -> None:
         """Test diabetic feeding mode adjustment."""
         manager = FeedingManager()
 
-        config = mock_dog_config.copy()
+        config = typed_deepcopy(mock_dog_config)
         config["health_conditions"] = ["diabetes"]
 
         await manager.async_initialize([config])
@@ -406,7 +449,9 @@ class TestHealthConditionAdjustments:
 
         assert dog_data.get("diabetic_mode") is True
 
-    async def test_emergency_mode_reduces_portions(self, mock_feeding_manager):
+    async def test_emergency_mode_reduces_portions(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
         """Test emergency feeding mode reduces portions."""
         normal_portion = mock_feeding_manager.calculate_portion("test_dog", "breakfast")
 
@@ -543,7 +588,7 @@ class TestHealthDataUpdates:
     """Test incremental health data updates and coercion."""
 
     async def test_async_update_health_data_casts_numeric_fields(
-        self, mock_feeding_manager
+        self, mock_feeding_manager: FeedingManager
     ) -> None:
         """Ensure float payload values are coerced to integers."""
 
@@ -565,7 +610,7 @@ class TestHealthDataUpdates:
         assert isinstance(config.body_condition_score, int)
 
     async def test_async_update_health_data_allows_none_overrides(
-        self, mock_feeding_manager
+        self, mock_feeding_manager: FeedingManager
     ) -> None:
         """Ensure ``None`` resets optional health metrics."""
 
@@ -674,7 +719,9 @@ class TestDataRetrieval:
 class TestEdgeCases:
     """Test edge cases and error handling."""
 
-    async def test_negative_feeding_amount_rejected(self, mock_feeding_manager):
+    async def test_negative_feeding_amount_rejected(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
         """Test that negative amounts are rejected."""
         with pytest.raises(ValueError):
             await mock_feeding_manager.async_add_feeding(
@@ -683,7 +730,9 @@ class TestEdgeCases:
                 meal_type="breakfast",
             )
 
-    async def test_zero_feeding_amount_rejected(self, mock_feeding_manager):
+    async def test_zero_feeding_amount_rejected(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
         """Test that zero amounts are rejected."""
         with pytest.raises(ValueError):
             await mock_feeding_manager.async_add_feeding(
@@ -692,7 +741,9 @@ class TestEdgeCases:
                 meal_type="breakfast",
             )
 
-    async def test_extremely_large_feeding_rejected(self, mock_feeding_manager):
+    async def test_extremely_large_feeding_rejected(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
         """Test that unreasonably large amounts are rejected."""
         with pytest.raises(ValueError):
             await mock_feeding_manager.async_add_feeding(
@@ -701,7 +752,9 @@ class TestEdgeCases:
                 meal_type="breakfast",
             )
 
-    async def test_invalid_dog_id_rejected(self, mock_feeding_manager):
+    async def test_invalid_dog_id_rejected(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
         """Test that invalid dog ID is handled."""
         with pytest.raises(KeyError):
             await mock_feeding_manager.async_add_feeding(
@@ -710,11 +763,13 @@ class TestEdgeCases:
                 meal_type="breakfast",
             )
 
-    async def test_concurrent_feeding_operations(self, mock_feeding_manager):
+    async def test_concurrent_feeding_operations(
+        self, mock_feeding_manager: FeedingManager
+    ) -> None:
         """Test concurrent feeding operations don't corrupt data."""
         import asyncio
 
-        async def add_feeding(i: int):
+        async def add_feeding(i: int) -> None:
             await mock_feeding_manager.async_add_feeding(
                 dog_id="test_dog",
                 amount=50.0,

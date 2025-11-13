@@ -16,7 +16,7 @@ install_homeassistant_stubs()
 
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -24,6 +24,8 @@ from aiohttp import ClientSession
 from custom_components.pawcontrol.types import FeedingManagerDogSetupPayload
 from homeassistant.core import HomeAssistant
 from sitecustomize import _patch_pytest_async_fixture
+
+from tests.helpers import typed_deepcopy
 
 if TYPE_CHECKING:
     from custom_components.pawcontrol.feeding_manager import (
@@ -102,19 +104,17 @@ def mock_multi_dog_config(
     Returns:
         List of dog configuration payloads
     """
-    dog1_data = dict(mock_dog_config)
-    dog1_data["dog_id"] = "buddy"
-    dog1_data["dog_name"] = "Buddy"
-    dog1_data["weight"] = 30.0
-    dog1 = cast(FeedingManagerDogSetupPayload, dog1_data)
+    dog1 = typed_deepcopy(mock_dog_config)
+    dog1["dog_id"] = "buddy"
+    dog1["dog_name"] = "Buddy"
+    dog1["weight"] = 30.0
 
-    dog2_data = dict(mock_dog_config)
-    dog2_data["dog_id"] = "max"
-    dog2_data["dog_name"] = "Max"
-    dog2_data["weight"] = 15.0
-    dog2_data["breed"] = "Beagle"
-    dog2_data["activity_level"] = "high"
-    dog2 = cast(FeedingManagerDogSetupPayload, dog2_data)
+    dog2 = typed_deepcopy(mock_dog_config)
+    dog2["dog_id"] = "max"
+    dog2["dog_name"] = "Max"
+    dog2["weight"] = 15.0
+    dog2["breed"] = "Beagle"
+    dog2["activity_level"] = "high"
 
     return [dog1, dog2]
 

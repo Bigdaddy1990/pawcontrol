@@ -1298,6 +1298,16 @@ async def _get_door_sensor_diagnostics(
             if serialised_failures:
                 telemetry["failures"] = serialised_failures
 
+        failure_summary = performance_stats.get("door_sensor_failure_summary")
+        if isinstance(failure_summary, Mapping):
+            serialised_summary = {
+                str(key): cast(JSONMutableMapping, dict(value))
+                for key, value in failure_summary.items()
+                if isinstance(key, str) and isinstance(value, Mapping)
+            }
+            if serialised_summary:
+                telemetry["failure_summary"] = serialised_summary
+
     if telemetry:
         diagnostics["telemetry"] = telemetry
 

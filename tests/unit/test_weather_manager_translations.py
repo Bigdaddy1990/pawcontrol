@@ -51,6 +51,9 @@ from custom_components.pawcontrol.weather_manager import (
 )
 from custom_components.pawcontrol.weather_translations import (
     DEFAULT_LANGUAGE,
+    SUPPORTED_LANGUAGES,
+    WEATHER_ALERT_KEY_SET,
+    WEATHER_RECOMMENDATION_KEY_SET,
     get_weather_translations,
 )
 
@@ -220,3 +223,20 @@ def test_resolve_translation_value_rejects_unknown_section() -> None:
         WeatherHealthManager._resolve_translation_value(
             catalog, cast(WeatherTranslationParts, ("unknown",))
         )
+
+
+def test_translation_catalog_keys_match_literal_definitions() -> None:
+    """Every catalog must provide entries for all declared translation keys."""
+
+    for language in SUPPORTED_LANGUAGES:
+        catalog = get_weather_translations(language)
+
+        assert frozenset(catalog["alerts"]) == WEATHER_ALERT_KEY_SET
+        assert frozenset(catalog["recommendations"]) == WEATHER_RECOMMENDATION_KEY_SET
+
+        for translation in catalog["alerts"].values():
+            assert isinstance(translation["title"], str)
+            assert isinstance(translation["message"], str)
+
+        for recommendation in catalog["recommendations"].values():
+            assert isinstance(recommendation, str)

@@ -15,7 +15,7 @@ from unittest.mock import patch
 import pytest
 from custom_components.pawcontrol.const import DOMAIN
 from homeassistant import config_entries
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
 from homeassistant.helpers.service_info.zeroconf import ZeroconfServiceInfo
@@ -25,6 +25,14 @@ DEFAULT_MODULE_SELECTION = {
     "walk": True,
     "health": True,
     "gps": False,
+    "notifications": True,
+}
+
+EXTERNAL_ENTITY_MODULE_TOGGLES = {
+    "feeding": False,
+    "walk": False,
+    "health": False,
+    "gps": True,
     "notifications": True,
 }
 
@@ -157,6 +165,119 @@ async def test_user_flow_multiple_dogs(hass: HomeAssistant):
 
     assert result["type"] == FlowResultType.CREATE_ENTRY
     assert len(result["data"]["dogs"]) == 2
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_user_flow_configures_external_entities(hass: HomeAssistant) -> None:
+    """Validate that the flow collects and stores external entity selections."""
+
+    hass.states.async_set(
+        "device_tracker.main_phone",
+        "home",
+        {"friendly_name": "Main phone"},
+    )
+    hass.states.async_set(
+        "person.dog_walker",
+        "home",
+        {"friendly_name": "Dog Walker"},
+    )
+    hass.states.async_set(
+        "binary_sensor.back_door",
+        "off",
+        {"device_class": "door", "friendly_name": "Back door"},
+    )
+
+    async def _notify_handler(call: ServiceCall) -> None:
+        return None
+
+    hass.services.async_register(
+        "notify", "mobile_app_main_phone", _notify_handler
+    )
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "add_dog"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            "dog_name": "Buddy",
+            "dog_id": "buddy",
+            "dog_weight": 30.0,
+        },
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "dog_modules"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        dict(EXTERNAL_ENTITY_MODULE_TOGGLES),
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "add_another"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"add_another": False}
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "entity_profile"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"entity_profile": "standard"}
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "configure_modules"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {}
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "configure_dashboard"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            "auto_create_dashboard": True,
+            "create_per_dog_dashboards": False,
+            "dashboard_theme": "modern",
+            "dashboard_mode": "cards",
+            "show_statistics": True,
+            "show_maps": True,
+        },
+    )
+
+    assert result["type"] == FlowResultType.FORM
+    assert _current_step(result) == "configure_external_entities"
+
+    placeholders = result["description_placeholders"]
+    assert placeholders["gps_enabled"] is True
+    assert placeholders["visitor_enabled"] is False
+    assert placeholders["dog_count"] == 1
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {
+            "gps_source": "device_tracker.main_phone",
+            "door_sensor": "binary_sensor.back_door",
+            "notify_fallback": "notify.mobile_app_main_phone",
+        },
+    )
+
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert result["data"]["external_entities"] == {
+        "gps_source": "device_tracker.main_phone",
+        "door_sensor": "binary_sensor.back_door",
+        "notify_fallback": "notify.mobile_app_main_phone",
+    }
 
 
 @pytest.mark.integration

@@ -7,7 +7,7 @@ import contextlib
 import logging
 from collections.abc import Callable, Mapping
 from datetime import datetime, timedelta
-from typing import Any, cast
+from typing import Any, Final, TypeGuard, cast
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -42,6 +42,8 @@ from .types import (
     DOG_NAME_FIELD,
     CoordinatorDogData,
     CoordinatorModuleLookupResult,
+    CoordinatorModuleState,
+    CoordinatorTypedModuleName,
     CoordinatorUntypedModuleState,
     DogConfigData,
     FeedingDietValidationSummary,
@@ -69,6 +71,16 @@ PARALLEL_UPDATES = 0
 ENTITY_CREATION_DELAY = 0.005  # 5ms between batches (optimized for profiles)
 MAX_ENTITIES_PER_BATCH = 6  # Smaller batches for profile-based creation
 PARALLEL_THRESHOLD = 12  # Lower threshold for profile-optimized entity counts
+
+_TYPED_SENSOR_MODULES: Final[frozenset[CoordinatorTypedModuleName]] = frozenset(
+    {"feeding", "garden", "geofencing", "gps", "health", "walk", "weather"}
+)
+
+
+def _is_typed_sensor_module(module: str) -> TypeGuard[CoordinatorTypedModuleName]:
+    """Return True when ``module`` stores structured coordinator payloads."""
+
+    return module in _TYPED_SENSOR_MODULES
 
 # Gracefully handle Home Assistant constant backports in the test harness
 try:  # pragma: no cover - executed indirectly during import
@@ -875,34 +887,33 @@ class PawControlSensorBase(PawControlEntity, SensorEntity):
 
         return self.native_value
 
-    def _get_module_data(self, module: str) -> CoordinatorModuleLookupResult | None:
-        """Get module data with enhanced error handling and validation."""
+    def _get_module_data(self, module: str) -> CoordinatorModuleLookupResult:
+        """Return coordinator module data with strict mapping validation."""
+
+        if not isinstance(module, str) or not module:
+            return cast(CoordinatorUntypedModuleState, {})
+
         try:
-            dog_data = self._get_dog_data()
-            if not dog_data:
-                return None
-
-            raw_module = dog_data.get(module)
-            if raw_module is None:
-                return None
-
-            # Validate module data structure
-            if not isinstance(raw_module, Mapping):
-                _LOGGER.warning(
-                    "Invalid module data for %s/%s: expected dict, got %s",
-                    self._dog_id,
-                    module,
-                    type(raw_module).__name__,
-                )
-                return cast(CoordinatorUntypedModuleState, {})
-
-            return cast(CoordinatorModuleLookupResult, raw_module)
-
-        except Exception as err:
+            payload = self.coordinator.get_module_data(self._dog_id, module)
+        except Exception as err:  # pragma: no cover - defensive log path
             _LOGGER.error(
                 "Error fetching module data for %s/%s: %s", self._dog_id, module, err
             )
-            return None
+            return cast(CoordinatorUntypedModuleState, {})
+
+        if not isinstance(payload, Mapping):
+            _LOGGER.warning(
+                "Invalid module payload for %s/%s: expected mapping, got %s",
+                self._dog_id,
+                module,
+                type(payload).__name__,
+            )
+            return cast(CoordinatorUntypedModuleState, {})
+
+        if _is_typed_sensor_module(module):
+            return cast(CoordinatorModuleState, payload)
+
+        return cast(CoordinatorModuleLookupResult, payload)
 
     @property
     def available(self) -> bool:

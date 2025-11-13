@@ -7,7 +7,8 @@ import contextlib
 import json
 from collections.abc import Awaitable, Sequence
 from pathlib import Path
-from types import SimpleNamespace
+from types import MappingProxyType, SimpleNamespace
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -22,6 +23,30 @@ from custom_components.pawcontrol.dashboard_generator import (
     PawControlDashboardGenerator,
 )
 from custom_components.pawcontrol.dashboard_renderer import DashboardRenderer
+
+
+def test_copy_dashboard_options_returns_plain_dict() -> None:
+    """Dashboard options should be copied into a JSON-compatible dict."""
+
+    readonly_options = MappingProxyType({"theme": "modern", "layout": "full"})
+
+    copied = PawControlDashboardGenerator._copy_dashboard_options(readonly_options)
+
+    assert copied == {"theme": "modern", "layout": "full"}
+    assert isinstance(copied, dict)
+    assert copied is not readonly_options
+
+    copied["theme"] = "legacy"
+    assert readonly_options["theme"] == "modern"
+
+
+def test_copy_dashboard_options_returns_empty_dict_for_none() -> None:
+    """``None`` options should yield an empty JSON-compatible dict."""
+
+    copied = PawControlDashboardGenerator._copy_dashboard_options(None)
+
+    assert copied == {}
+    assert isinstance(copied, dict)
 
 
 def test_summarise_dashboard_views_marks_notifications() -> None:
@@ -60,6 +85,62 @@ def test_summarise_dashboard_views_marks_notifications() -> None:
     assert notifications_summary["card_count"] == 2
     assert notifications_summary.get("module") == MODULE_NOTIFICATIONS
     assert notifications_summary.get("notifications") is True
+
+
+def test_normalise_dashboard_registry_filters_invalid_entries() -> None:
+    """Stored dashboard registry payloads should be normalised to plain dicts."""
+
+    stored_dashboard = MappingProxyType(
+        {
+            "url": "dashboard-1",
+            "title": "Primary dashboard",
+            "path": "/config/.storage/lovelace.dashboard-1",
+            "options": {"theme": "modern", "layout": "full"},
+            "updated": "2024-04-02T12:34:56+00:00",
+        }
+    )
+
+    registry = PawControlDashboardGenerator._normalise_dashboard_registry(
+        {
+            "dashboard-1": stored_dashboard,
+            "skipped": "not a mapping",
+            42: {"url": "wrong-key"},
+        }
+    )
+
+    assert registry == {
+        "dashboard-1": {
+            "url": "dashboard-1",
+            "title": "Primary dashboard",
+            "path": "/config/.storage/lovelace.dashboard-1",
+            "options": {"theme": "modern", "layout": "full"},
+            "updated": "2024-04-02T12:34:56+00:00",
+        }
+    }
+
+    restored_dashboard = registry["dashboard-1"]
+    assert isinstance(restored_dashboard, dict)
+    assert restored_dashboard is not stored_dashboard
+
+    metrics = PawControlDashboardGenerator._coerce_performance_metrics(
+        {
+            "total_generations": "5",
+            "avg_generation_time": "2.5",
+            "cache_hits": True,
+            "cache_misses": 3.9,
+            "file_operations": "7",
+            "errors": "0",
+        }
+    )
+
+    assert metrics == {
+        "total_generations": 5,
+        "avg_generation_time": 2.5,
+        "cache_hits": 1,
+        "cache_misses": 3,
+        "file_operations": 7,
+        "errors": 0,
+    }
 
 
 @pytest.mark.asyncio
