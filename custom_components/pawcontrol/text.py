@@ -419,6 +419,120 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
             if candidate is not None:
                 data_manager = candidate
 
+        def apply_in_memory_updates() -> None:
+            if runtime_data is not None:
+                for dog in runtime_data.dogs:
+                    if dog.get(DOG_ID_FIELD) != self._dog_id:
+                        continue
+                    existing = dog.get(DOG_TEXT_VALUES_FIELD)
+                    merged: dict[str, str]
+                    if isinstance(existing, Mapping):
+                        merged = {
+                            key: stored
+                            for key, stored in existing.items()
+                            if isinstance(key, str) and isinstance(stored, str)
+                        }
+                    else:
+                        merged = {}
+
+                    if should_remove:
+                        merged.pop(self._text_type, None)
+                    elif snapshot_update is not None:
+                        merged.update(snapshot_update)
+
+                    if merged:
+                        dog[DOG_TEXT_VALUES_FIELD] = cast(
+                            DogTextSnapshot, merged
+                        )
+                    else:
+                        dog.pop(DOG_TEXT_VALUES_FIELD, None)
+
+                    metadata_existing = dog.get(DOG_TEXT_METADATA_FIELD)
+                    metadata_merged: dict[str, DogTextMetadataEntry] = {}
+                    if isinstance(metadata_existing, Mapping):
+                        for key, stored in metadata_existing.items():
+                            if not isinstance(key, str):
+                                continue
+                            entry = _normalise_text_metadata_entry(stored)
+                            if entry is not None:
+                                metadata_merged[key] = entry
+
+                    if metadata_update is not None:
+                        for key, entry in metadata_update.items():
+                            metadata_merged[key] = cast(
+                                DogTextMetadataEntry, dict(entry)
+                            )
+                    elif remove_metadata:
+                        metadata_merged.pop(self._text_type, None)
+
+                    if metadata_merged:
+                        dog[DOG_TEXT_METADATA_FIELD] = cast(
+                            DogTextMetadataSnapshot, metadata_merged
+                        )
+                    else:
+                        dog.pop(DOG_TEXT_METADATA_FIELD, None)
+                    break
+
+            coordinator_data = getattr(self.coordinator, "data", None)
+            if isinstance(coordinator_data, dict):
+                dog_payload = coordinator_data.get(self._dog_id)
+                if isinstance(dog_payload, Mapping):
+                    mutable_payload: dict[str, Any] = dict(dog_payload)
+                else:
+                    mutable_payload = {}
+
+                existing_snapshot = mutable_payload.get(DOG_TEXT_VALUES_FIELD)
+                merged_snapshot = (
+                    {
+                        key: stored
+                        for key, stored in existing_snapshot.items()
+                        if isinstance(key, str) and isinstance(stored, str)
+                    }
+                    if isinstance(existing_snapshot, Mapping)
+                    else {}
+                )
+
+                if should_remove:
+                    merged_snapshot.pop(self._text_type, None)
+                elif snapshot_update is not None:
+                    merged_snapshot.update(snapshot_update)
+
+                if merged_snapshot:
+                    mutable_payload[DOG_TEXT_VALUES_FIELD] = cast(
+                        DogTextSnapshot, merged_snapshot
+                    )
+                else:
+                    mutable_payload.pop(DOG_TEXT_VALUES_FIELD, None)
+
+                existing_metadata = mutable_payload.get(DOG_TEXT_METADATA_FIELD)
+                merged_metadata: dict[str, DogTextMetadataEntry] = {}
+                if isinstance(existing_metadata, Mapping):
+                    for key, stored in existing_metadata.items():
+                        if not isinstance(key, str):
+                            continue
+                        entry = _normalise_text_metadata_entry(stored)
+                        if entry is not None:
+                            merged_metadata[key] = entry
+
+                if metadata_update is not None:
+                    for key, entry in metadata_update.items():
+                        merged_metadata[key] = cast(
+                            DogTextMetadataEntry, dict(entry)
+                        )
+                elif remove_metadata:
+                    merged_metadata.pop(self._text_type, None)
+
+                if merged_metadata:
+                    mutable_payload[DOG_TEXT_METADATA_FIELD] = cast(
+                        DogTextMetadataSnapshot, merged_metadata
+                    )
+                else:
+                    mutable_payload.pop(DOG_TEXT_METADATA_FIELD, None)
+
+                coordinator_data[self._dog_id] = cast(
+                    CoordinatorDogData, mutable_payload
+                )
+
         if data_manager is not None:
             update_sections: dict[str, Any] = {DOG_TEXT_VALUES_FIELD: update_payload}
             if metadata_update is not None:
@@ -437,111 +551,11 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
                     self._dog_name,
                 )
                 return
-
-        if runtime_data is not None:
-            for dog in runtime_data.dogs:
-                if dog.get(DOG_ID_FIELD) != self._dog_id:
-                    continue
-                existing = dog.get(DOG_TEXT_VALUES_FIELD)
-                merged: dict[str, str]
-                if isinstance(existing, Mapping):
-                    merged = {
-                        key: stored
-                        for key, stored in existing.items()
-                        if isinstance(key, str) and isinstance(stored, str)
-                    }
-                else:
-                    merged = {}
-
-                if should_remove:
-                    merged.pop(self._text_type, None)
-                elif snapshot_update is not None:
-                    merged.update(snapshot_update)
-
-                if merged:
-                    dog[DOG_TEXT_VALUES_FIELD] = cast(DogTextSnapshot, merged)
-                else:
-                    dog.pop(DOG_TEXT_VALUES_FIELD, None)
-
-                metadata_existing = dog.get(DOG_TEXT_METADATA_FIELD)
-                metadata_merged: dict[str, DogTextMetadataEntry] = {}
-                if isinstance(metadata_existing, Mapping):
-                    for key, stored in metadata_existing.items():
-                        if not isinstance(key, str):
-                            continue
-                        entry = _normalise_text_metadata_entry(stored)
-                        if entry is not None:
-                            metadata_merged[key] = entry
-
-                if metadata_update is not None:
-                    for key, entry in metadata_update.items():
-                        metadata_merged[key] = cast(DogTextMetadataEntry, dict(entry))
-                elif remove_metadata:
-                    metadata_merged.pop(self._text_type, None)
-
-                if metadata_merged:
-                    dog[DOG_TEXT_METADATA_FIELD] = cast(
-                        DogTextMetadataSnapshot, metadata_merged
-                    )
-                else:
-                    dog.pop(DOG_TEXT_METADATA_FIELD, None)
-                break
-
-        coordinator_data = getattr(self.coordinator, "data", None)
-        if isinstance(coordinator_data, dict):
-            dog_payload = coordinator_data.get(self._dog_id)
-            if isinstance(dog_payload, Mapping):
-                mutable_payload: dict[str, Any] = dict(dog_payload)
             else:
-                mutable_payload = {}
+                apply_in_memory_updates()
+                return
 
-            existing_snapshot = mutable_payload.get(DOG_TEXT_VALUES_FIELD)
-            merged_snapshot = (
-                {
-                    key: stored
-                    for key, stored in existing_snapshot.items()
-                    if isinstance(key, str) and isinstance(stored, str)
-                }
-                if isinstance(existing_snapshot, Mapping)
-                else {}
-            )
-
-            if should_remove:
-                merged_snapshot.pop(self._text_type, None)
-            elif snapshot_update is not None:
-                merged_snapshot.update(snapshot_update)
-
-            if merged_snapshot:
-                mutable_payload[DOG_TEXT_VALUES_FIELD] = cast(
-                    DogTextSnapshot, merged_snapshot
-                )
-            else:
-                mutable_payload.pop(DOG_TEXT_VALUES_FIELD, None)
-
-            existing_metadata = mutable_payload.get(DOG_TEXT_METADATA_FIELD)
-            merged_metadata: dict[str, DogTextMetadataEntry] = {}
-            if isinstance(existing_metadata, Mapping):
-                for key, stored in existing_metadata.items():
-                    if not isinstance(key, str):
-                        continue
-                    entry = _normalise_text_metadata_entry(stored)
-                    if entry is not None:
-                        merged_metadata[key] = entry
-
-            if metadata_update is not None:
-                for key, entry in metadata_update.items():
-                    merged_metadata[key] = cast(DogTextMetadataEntry, dict(entry))
-            elif remove_metadata:
-                merged_metadata.pop(self._text_type, None)
-
-            if merged_metadata:
-                mutable_payload[DOG_TEXT_METADATA_FIELD] = cast(
-                    DogTextMetadataSnapshot, merged_metadata
-                )
-            else:
-                mutable_payload.pop(DOG_TEXT_METADATA_FIELD, None)
-
-            coordinator_data[self._dog_id] = cast(CoordinatorDogData, mutable_payload)
+        apply_in_memory_updates()
 
     def _build_metadata_entry(self, timestamp: str) -> DogTextMetadataEntry:
         """Return metadata describing an update at ``timestamp`` with context."""
