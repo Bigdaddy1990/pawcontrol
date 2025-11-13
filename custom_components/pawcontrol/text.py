@@ -88,6 +88,7 @@ def _normalize_metadata_entry(value: object | None) -> DogTextMetadataEntry | No
 
     return None
 
+
 MODULE_GPS_KEY = cast(ModuleToggleKey, MODULE_GPS)
 MODULE_WALK_KEY = cast(ModuleToggleKey, MODULE_WALK)
 MODULE_HEALTH_KEY = cast(ModuleToggleKey, MODULE_HEALTH)
@@ -361,7 +362,9 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
     def _clamp_value(self, value: str) -> str:
         """Clamp ``value`` to the configured maximum length when necessary."""
 
-        max_length = getattr(self, "native_max", getattr(self, "_attr_native_max", None))
+        max_length = getattr(
+            self, "native_max", getattr(self, "_attr_native_max", None)
+        )
         if isinstance(max_length, int) and len(value) > max_length:
             return value[:max_length]
         return value
@@ -449,15 +452,11 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
                 data_manager = candidate
 
         if data_manager is not None:
-            update_sections: dict[str, Any] = {
-                DOG_TEXT_VALUES_FIELD: update_payload
-            }
+            update_sections: dict[str, Any] = {DOG_TEXT_VALUES_FIELD: update_payload}
             if metadata_update is not None:
                 update_sections[DOG_TEXT_METADATA_FIELD] = metadata_update
             elif remove_metadata:
-                update_sections[DOG_TEXT_METADATA_FIELD] = {
-                    self._text_type: None
-                }
+                update_sections[DOG_TEXT_METADATA_FIELD] = {self._text_type: None}
             try:
                 await data_manager.async_update_dog_data(
                     self._dog_id,
@@ -507,9 +506,7 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
 
                 if metadata_update is not None:
                     for key, entry in metadata_update.items():
-                        metadata_merged[key] = cast(
-                            DogTextMetadataEntry, dict(entry)
-                        )
+                        metadata_merged[key] = cast(DogTextMetadataEntry, dict(entry))
                 elif remove_metadata:
                     metadata_merged.pop(self._text_type, None)
 
@@ -564,9 +561,7 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
 
             if metadata_update is not None:
                 for key, entry in metadata_update.items():
-                    merged_metadata[key] = cast(
-                        DogTextMetadataEntry, dict(entry)
-                    )
+                    merged_metadata[key] = cast(DogTextMetadataEntry, dict(entry))
             elif remove_metadata:
                 merged_metadata.pop(self._text_type, None)
 
@@ -577,9 +572,7 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
             else:
                 mutable_payload.pop(DOG_TEXT_METADATA_FIELD, None)
 
-            coordinator_data[self._dog_id] = cast(
-                CoordinatorDogData, mutable_payload
-            )
+            coordinator_data[self._dog_id] = cast(CoordinatorDogData, mutable_payload)
 
     def _build_metadata_entry(self, timestamp: str) -> DogTextMetadataEntry:
         """Return metadata describing an update at ``timestamp`` with context."""
@@ -602,9 +595,7 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
 
         return metadata
 
-    def _set_metadata_fields(
-        self, metadata: DogTextMetadataEntry | None
-    ) -> None:
+    def _set_metadata_fields(self, metadata: DogTextMetadataEntry | None) -> None:
         """Update cached metadata fields for ``self`` from ``metadata``."""
 
         timestamp = metadata.get("last_updated") if metadata is not None else None
@@ -742,9 +733,7 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
         metadata_entry = self._build_metadata_entry(timestamp)
         self._set_metadata_fields(metadata_entry)
         self.async_write_ha_state()
-        await self._async_persist_text_value(
-            normalized_value, metadata=metadata_entry
-        )
+        await self._async_persist_text_value(normalized_value, metadata=metadata_entry)
         _LOGGER.debug(
             "Set %s for %s to: %s",
             self._text_type,

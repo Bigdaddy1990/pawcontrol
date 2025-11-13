@@ -26,7 +26,9 @@ class _CoordinatorStub:
 
         return self._data.get(dog_id)
 
-    def get_module_data(self, dog_id: str, module: str) -> CoordinatorModuleLookupResult:
+    def get_module_data(
+        self, dog_id: str, module: str
+    ) -> CoordinatorModuleLookupResult:
         """Return module data for ``dog_id`` and ``module``."""
 
         dog_payload = self._data.get(dog_id, cast(CoordinatorDogData, {}))

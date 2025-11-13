@@ -54,9 +54,7 @@ async def test_geofencing_restores_zones_and_notifies_on_entry(
     await geofencing._store.async_save(stored_payload)
 
     notify = AsyncMock(return_value=None)
-    geofencing.set_notification_manager(
-        SimpleNamespace(async_send_notification=notify)
-    )
+    geofencing.set_notification_manager(SimpleNamespace(async_send_notification=notify))
 
     original_async_create_task = hass.async_create_task
 

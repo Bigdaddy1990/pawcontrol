@@ -37,7 +37,9 @@ from homeassistant.core import HomeAssistant
 class TestGPSManagerInitialization:
     """Test GPS manager initialization and setup."""
 
-    async def test_initialization_basic(self, mock_hass: HomeAssistant, mock_resilience_manager: ResilienceManager) -> None:
+    async def test_initialization_basic(
+        self, mock_hass: HomeAssistant, mock_resilience_manager: ResilienceManager
+    ) -> None:
         """Test basic GPS manager initialization."""
         manager = GPSGeofenceManager(mock_hass)
         manager.resilience_manager = mock_resilience_manager
@@ -47,7 +49,9 @@ class TestGPSManagerInitialization:
         assert len(manager._active_routes) == 0
         assert len(manager._geofence_zones) == 0
 
-    async def test_configure_dog_gps_basic(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_configure_dog_gps_basic(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test configuring GPS for a dog."""
         config: GPSTrackingConfigInput = {
             "enabled": True,
@@ -61,7 +65,9 @@ class TestGPSManagerInitialization:
         assert "test_dog" in mock_gps_manager._dog_configs
         assert mock_gps_manager._dog_configs["test_dog"].enabled is True
 
-    async def test_configure_dog_gps_custom_settings(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_configure_dog_gps_custom_settings(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test GPS configuration with custom settings."""
         config: GPSTrackingConfigInput = {
             "enabled": True,
@@ -284,7 +290,9 @@ class TestGPSPointCreation:
 class TestGPSTracking:
     """Test GPS tracking and point addition."""
 
-    async def test_add_gps_point_basic(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_add_gps_point_basic(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test adding basic GPS point."""
         success = await mock_gps_manager.async_add_gps_point(
             dog_id="test_dog",
@@ -296,7 +304,9 @@ class TestGPSTracking:
         assert success is True
         assert "test_dog" in mock_gps_manager._last_locations
 
-    async def test_add_gps_point_updates_last_location(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_add_gps_point_updates_last_location(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test that adding point updates last known location."""
         await mock_gps_manager.async_add_gps_point(
             dog_id="test_dog",
@@ -310,7 +320,9 @@ class TestGPSTracking:
         assert location.latitude == 52.5200
         assert location.longitude == 13.4050
 
-    async def test_add_gps_point_rejects_poor_accuracy(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_add_gps_point_rejects_poor_accuracy(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test that points with poor accuracy are rejected."""
         # Configure strict accuracy threshold
         await mock_gps_manager.async_configure_dog_gps(
@@ -327,7 +339,9 @@ class TestGPSTracking:
 
         assert success is False
 
-    async def test_add_gps_point_filters_minimum_distance(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_add_gps_point_filters_minimum_distance(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test minimum distance filter."""
         await mock_gps_manager.async_configure_dog_gps(
             "test_dog",
@@ -355,7 +369,9 @@ class TestGPSTracking:
         route = await mock_gps_manager.async_get_active_route("test_dog")
         assert len(route.gps_points) <= 2  # May include first point
 
-    async def test_add_gps_point_to_active_route(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_add_gps_point_to_active_route(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test adding GPS points to active route."""
         await mock_gps_manager.async_start_gps_tracking("test_dog")
 
@@ -376,7 +392,9 @@ class TestGPSTracking:
 class TestWalkSessions:
     """Test walk session management."""
 
-    async def test_start_gps_tracking_basic(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_start_gps_tracking_basic(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test starting GPS tracking."""
         session_id = await mock_gps_manager.async_start_gps_tracking(
             dog_id="test_dog",
@@ -386,7 +404,9 @@ class TestWalkSessions:
         assert session_id is not None
         assert "test_dog" in mock_gps_manager._active_routes
 
-    async def test_start_gps_tracking_ends_previous_session(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_start_gps_tracking_ends_previous_session(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test that starting new tracking ends previous session."""
         # Start first session
         session1 = await mock_gps_manager.async_start_gps_tracking("test_dog")
@@ -397,7 +417,9 @@ class TestWalkSessions:
         assert session1 != session2
         assert "test_dog" in mock_gps_manager._active_routes
 
-    async def test_end_gps_tracking_basic(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_end_gps_tracking_basic(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test ending GPS tracking."""
         await mock_gps_manager.async_start_gps_tracking("test_dog")
 
@@ -414,7 +436,9 @@ class TestWalkSessions:
         assert route.end_time is not None
         assert "test_dog" not in mock_gps_manager._active_routes
 
-    async def test_end_gps_tracking_saves_to_history(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_end_gps_tracking_saves_to_history(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test that ended routes are saved to history."""
         await mock_gps_manager.async_start_gps_tracking("test_dog")
 
@@ -429,7 +453,9 @@ class TestWalkSessions:
         assert "test_dog" in mock_gps_manager._route_history
         assert len(mock_gps_manager._route_history["test_dog"]) == 1
 
-    async def test_end_gps_tracking_without_save(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_end_gps_tracking_without_save(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test ending tracking without saving route."""
         await mock_gps_manager.async_start_gps_tracking("test_dog")
 
@@ -438,13 +464,17 @@ class TestWalkSessions:
         history = mock_gps_manager._route_history.get("test_dog", [])
         assert len(history) == 0
 
-    async def test_end_gps_tracking_no_active_route(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_end_gps_tracking_no_active_route(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test ending tracking when no active route."""
         route = await mock_gps_manager.async_end_gps_tracking("test_dog")
 
         assert route is None
 
-    async def test_route_statistics_calculation(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_route_statistics_calculation(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test that route statistics are calculated on end."""
         await mock_gps_manager.async_start_gps_tracking("test_dog")
 
@@ -468,7 +498,9 @@ class TestWalkSessions:
 class TestGeofencing:
     """Test geofencing functionality."""
 
-    async def test_setup_geofence_zone_basic(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_setup_geofence_zone_basic(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test setting up a geofence zone."""
         await mock_gps_manager.async_setup_geofence_zone(
             dog_id="test_dog",
@@ -481,7 +513,9 @@ class TestGeofencing:
         assert "test_dog" in mock_gps_manager._geofence_zones
         assert len(mock_gps_manager._geofence_zones["test_dog"]) == 1
 
-    async def test_setup_safe_zone_convenience_method(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_setup_safe_zone_convenience_method(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test safe zone setup convenience method."""
         await mock_gps_manager.async_setup_safe_zone(
             dog_id="test_dog",
@@ -494,7 +528,9 @@ class TestGeofencing:
         assert len(zones) == 1
         assert zones[0].zone_type == "safe_zone"
 
-    async def test_geofence_zone_contains_point(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_geofence_zone_contains_point(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test geofence zone contains point detection."""
         zone = GeofenceZone(
             name="home",
@@ -511,7 +547,9 @@ class TestGeofencing:
         outside = zone.contains_point(52.5300, 13.4050)  # ~1km away
         assert outside is False
 
-    async def test_geofence_zone_distance_to_center(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_geofence_zone_distance_to_center(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test distance calculation from zone center."""
         zone = GeofenceZone(
             name="home",
@@ -528,7 +566,9 @@ class TestGeofencing:
         distance = zone.distance_to_center(52.5210, 13.4050)
         assert distance > 100
 
-    async def test_geofence_enter_event(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_geofence_enter_event(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test geofence enter event detection."""
         await mock_gps_manager.async_setup_safe_zone(
             dog_id="test_dog",
@@ -560,7 +600,9 @@ class TestGeofencing:
         # (Event firing is tested separately)
         assert route is not None
 
-    async def test_geofence_exit_event(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_geofence_exit_event(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test geofence exit event detection."""
         await mock_gps_manager.async_setup_safe_zone(
             dog_id="test_dog",
@@ -595,7 +637,9 @@ class TestGeofencing:
 class TestGeofenceStatus:
     """Test geofence status reporting."""
 
-    async def test_get_geofence_status_basic(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_get_geofence_status_basic(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test getting geofence status."""
         await mock_gps_manager.async_setup_safe_zone(
             dog_id="test_dog",
@@ -610,7 +654,9 @@ class TestGeofenceStatus:
         assert status["zones_configured"] == 1
         assert "zone_status" in status
 
-    async def test_get_geofence_status_with_location(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_get_geofence_status_with_location(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test geofence status with current location."""
         await mock_gps_manager.async_setup_safe_zone(
             dog_id="test_dog",
@@ -630,7 +676,9 @@ class TestGeofenceStatus:
         assert status["current_location"] is not None
         assert status["current_location"]["latitude"] == 52.5200
 
-    async def test_get_geofence_status_breach_count(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_get_geofence_status_breach_count(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test safe zone breach counting."""
         await mock_gps_manager.async_setup_safe_zone(
             dog_id="test_dog",
@@ -657,7 +705,9 @@ class TestGeofenceStatus:
 class TestRouteExport:
     """Test route export functionality."""
 
-    async def test_export_routes_gpx_format(self, mock_gps_manager: GPSGeofenceManager, mock_walk_route: WalkRoute) -> None:
+    async def test_export_routes_gpx_format(
+        self, mock_gps_manager: GPSGeofenceManager, mock_walk_route: WalkRoute
+    ) -> None:
         """Test exporting routes in GPX format."""
         # Setup route history
         mock_gps_manager._route_history["test_dog"] = [mock_walk_route]
@@ -673,7 +723,9 @@ class TestRouteExport:
         assert "content" in export_data
         assert "<gpx" in export_data["content"]
 
-    async def test_export_routes_json_format(self, mock_gps_manager: GPSGeofenceManager, mock_walk_route: WalkRoute) -> None:
+    async def test_export_routes_json_format(
+        self, mock_gps_manager: GPSGeofenceManager, mock_walk_route: WalkRoute
+    ) -> None:
         """Test exporting routes in JSON format."""
         mock_gps_manager._route_history["test_dog"] = [mock_walk_route]
 
@@ -688,7 +740,9 @@ class TestRouteExport:
         assert isinstance(export_data["content"], dict)
         assert "routes" in export_data["content"]
 
-    async def test_export_routes_csv_format(self, mock_gps_manager: GPSGeofenceManager, mock_walk_route: WalkRoute) -> None:
+    async def test_export_routes_csv_format(
+        self, mock_gps_manager: GPSGeofenceManager, mock_walk_route: WalkRoute
+    ) -> None:
         """Test exporting routes in CSV format."""
         mock_gps_manager._route_history["test_dog"] = [mock_walk_route]
 
@@ -702,7 +756,9 @@ class TestRouteExport:
         assert export_data["format"] == "csv"
         assert "timestamp,latitude,longitude" in export_data["content"]
 
-    async def test_export_routes_no_history(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_export_routes_no_history(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test exporting with no route history."""
         export_data = await mock_gps_manager.async_export_routes(
             dog_id="test_dog",
@@ -736,7 +792,9 @@ class TestRouteExport:
 class TestStatistics:
     """Test GPS statistics and monitoring."""
 
-    async def test_get_statistics_basic(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_get_statistics_basic(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test getting GPS statistics."""
         await mock_gps_manager.async_configure_dog_gps(
             "test_dog", cast(GPSTrackingConfigInput, {})
@@ -749,7 +807,9 @@ class TestStatistics:
         assert "total_routes_stored" in stats
         assert stats["dogs_configured"] == 1
 
-    async def test_statistics_track_gps_points(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_statistics_track_gps_points(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test that statistics track GPS points processed."""
         initial_stats = await mock_gps_manager.async_get_statistics()
         initial_count = initial_stats["gps_points_processed"]
@@ -764,7 +824,9 @@ class TestStatistics:
 
         assert final_stats["gps_points_processed"] > initial_count
 
-    async def test_statistics_track_routes_completed(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_statistics_track_routes_completed(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test that statistics track completed routes."""
         initial_stats = await mock_gps_manager.async_get_statistics()
         initial_count = initial_stats["routes_completed"]
@@ -787,7 +849,9 @@ class TestStatistics:
 class TestEdgeCases:
     """Test edge cases and error handling."""
 
-    async def test_add_gps_point_invalid_coordinates(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_add_gps_point_invalid_coordinates(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test handling of invalid GPS coordinates."""
         # Latitude out of range
         with pytest.raises(ValueError):
@@ -797,7 +861,9 @@ class TestEdgeCases:
                 longitude=13.4050,
             )
 
-    async def test_geofence_zone_negative_radius(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_geofence_zone_negative_radius(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test that negative radius is rejected."""
         with pytest.raises(ValueError):
             await mock_gps_manager.async_setup_geofence_zone(
@@ -808,7 +874,9 @@ class TestEdgeCases:
                 radius_meters=-10.0,
             )
 
-    async def test_concurrent_gps_point_additions(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_concurrent_gps_point_additions(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test concurrent GPS point additions."""
         import asyncio
 
@@ -829,7 +897,9 @@ class TestEdgeCases:
         # Should have all points
         assert len(route.gps_points) >= 10
 
-    async def test_route_history_limit(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_route_history_limit(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test that route history is limited."""
         # Add many routes
         for i in range(150):
@@ -848,7 +918,9 @@ class TestEdgeCases:
         # Should be limited to 100
         assert len(mock_gps_manager._route_history["test_dog"]) <= 101
 
-    async def test_cleanup_clears_all_data(self, mock_gps_manager: GPSGeofenceManager) -> None:
+    async def test_cleanup_clears_all_data(
+        self, mock_gps_manager: GPSGeofenceManager
+    ) -> None:
         """Test that cleanup clears all data."""
         await mock_gps_manager.async_configure_dog_gps(
             "test_dog", cast(GPSTrackingConfigInput, {})

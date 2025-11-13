@@ -1902,7 +1902,9 @@ async def test_check_feeding_compliance_notifies_on_issues(
     compliance_payload = notification_manager.compliance_calls[0]
     assert compliance_payload["dog_id"] == "buddy"
     assert compliance_payload["dog_name"] == "Buddy"
-    compliance_result = cast(FeedingComplianceCompleted, compliance_payload["compliance"])
+    compliance_result = cast(
+        FeedingComplianceCompleted, compliance_payload["compliance"]
+    )
     assert compliance_result["status"] == "completed"
 
     fired_events = hass.bus.fired

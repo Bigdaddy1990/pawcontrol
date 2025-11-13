@@ -82,6 +82,7 @@ def _is_typed_sensor_module(module: str) -> TypeGuard[CoordinatorTypedModuleName
 
     return module in _TYPED_SENSOR_MODULES
 
+
 # Gracefully handle Home Assistant constant backports in the test harness
 try:  # pragma: no cover - executed indirectly during import
     _SPEED_UNIT = UnitOfSpeed.KILOMETERS_PER_HOUR

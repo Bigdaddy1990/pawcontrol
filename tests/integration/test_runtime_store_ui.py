@@ -103,7 +103,9 @@ async def test_options_flow_recovers_runtime_cache_after_manual_deletion(
     flow.hass = hass
     flow.initialize_from_config_entry(entry)
 
-    select_result = await flow.async_step_select_dog_for_door_sensor({"dog_id": "buddy"})
+    select_result = await flow.async_step_select_dog_for_door_sensor(
+        {"dog_id": "buddy"}
+    )
     assert select_result["type"] == FlowResultType.FORM
     assert select_result["step_id"] == "configure_door_sensor"
 
@@ -178,7 +180,9 @@ async def test_repair_checks_restore_runtime_cache_after_manual_deletion(
         cache_repair_summary=lambda: summary,
     )
     coordinator = SimpleNamespace(last_update_success=True)
-    runtime = _build_runtime_data(typed_dog, data_manager=data_manager, coordinator=coordinator)
+    runtime = _build_runtime_data(
+        typed_dog, data_manager=data_manager, coordinator=coordinator
+    )
     store_runtime_data(hass, entry, runtime)
 
     hass.data.pop(DOMAIN, None)
@@ -251,7 +255,9 @@ async def test_repair_checks_upgrade_legacy_store_entry(
         cache_repair_summary=lambda: summary,
     )
     coordinator = SimpleNamespace(last_update_success=True)
-    runtime = _build_runtime_data(typed_dog, data_manager=data_manager, coordinator=coordinator)
+    runtime = _build_runtime_data(
+        typed_dog, data_manager=data_manager, coordinator=coordinator
+    )
 
     hass.data[DOMAIN] = {
         entry.entry_id: {

@@ -191,9 +191,7 @@ async def test_user_flow_configures_external_entities(hass: HomeAssistant) -> No
     async def _notify_handler(call: ServiceCall) -> None:
         return None
 
-    hass.services.async_register(
-        "notify", "mobile_app_main_phone", _notify_handler
-    )
+    hass.services.async_register("notify", "mobile_app_main_phone", _notify_handler)
 
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": config_entries.SOURCE_USER}
@@ -236,9 +234,7 @@ async def test_user_flow_configures_external_entities(hass: HomeAssistant) -> No
     assert result["type"] == FlowResultType.FORM
     assert _current_step(result) == "configure_modules"
 
-    result = await hass.config_entries.flow.async_configure(
-        result["flow_id"], {}
-    )
+    result = await hass.config_entries.flow.async_configure(result["flow_id"], {})
 
     assert result["type"] == FlowResultType.FORM
     assert _current_step(result) == "configure_dashboard"

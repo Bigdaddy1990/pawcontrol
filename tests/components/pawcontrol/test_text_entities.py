@@ -455,9 +455,7 @@ async def test_async_set_value_persists_runtime_text_snapshot(
 
     coordinator_metadata = coordinator.data["dog-1"][DOG_TEXT_METADATA_FIELD]
     assert isinstance(coordinator_metadata, dict)
-    assert (
-        coordinator_metadata["custom_label"]["last_updated"] == expected_timestamp
-    )
+    assert coordinator_metadata["custom_label"]["last_updated"] == expected_timestamp
 
 
 @pytest.mark.asyncio
@@ -645,9 +643,7 @@ async def test_async_added_to_hass_restores_runtime_snapshot(
 
     runtime_data = PawControlRuntimeData(
         coordinator=coordinator,
-        data_manager=cast(
-            PawControlDataManager, MagicMock(spec=PawControlDataManager)
-        ),
+        data_manager=cast(PawControlDataManager, MagicMock(spec=PawControlDataManager)),
         notification_manager=cast(
             PawControlNotificationManager, MagicMock(spec=PawControlNotificationManager)
         ),
@@ -663,9 +659,7 @@ async def test_async_added_to_hass_restores_runtime_snapshot(
                     DOG_NAME_FIELD: "Bailey",
                     DOG_TEXT_VALUES_FIELD: {"custom_label": "Runtime label"},
                     DOG_TEXT_METADATA_FIELD: {
-                        "custom_label": {
-                            "last_updated": "2024-04-01T05:06:07+00:00"
-                        }
+                        "custom_label": {"last_updated": "2024-04-01T05:06:07+00:00"}
                     },
                 },
             )
@@ -677,9 +671,7 @@ async def test_async_added_to_hass_restores_runtime_snapshot(
         "dog-2": {
             DOG_TEXT_VALUES_FIELD: {"custom_label": "Coordinator label"},
             DOG_TEXT_METADATA_FIELD: {
-                "custom_label": {
-                    "last_updated": "2024-04-02T05:06:07+00:00"
-                }
+                "custom_label": {"last_updated": "2024-04-02T05:06:07+00:00"}
             },
         }
     }
@@ -702,10 +694,7 @@ async def test_async_added_to_hass_restores_runtime_snapshot(
     assert text.native_value == "Runtime label"
     text.async_write_ha_state.assert_called()
     runtime_data.data_manager.async_update_dog_data.assert_not_called()
-    assert (
-        text.extra_state_attributes["last_updated"]
-        == "2024-04-01T05:06:07+00:00"
-    )
+    assert text.extra_state_attributes["last_updated"] == "2024-04-01T05:06:07+00:00"
     assert text.extra_state_attributes["last_updated_context_id"] is None
     assert text.extra_state_attributes["last_updated_parent_id"] is None
     assert text.extra_state_attributes["last_updated_user_id"] is None
@@ -760,9 +749,7 @@ async def test_async_added_to_hass_restores_context_metadata(
     store_runtime_data(hass, entry, runtime_data)
     coordinator.data = {}
 
-    text = PawControlCustomLabelText(
-        coordinator, "dog-restore-context", "Luna"
-    )
+    text = PawControlCustomLabelText(coordinator, "dog-restore-context", "Luna")
     text.hass = hass
     text.async_write_ha_state = MagicMock()
 
@@ -789,16 +776,9 @@ async def test_async_added_to_hass_restores_context_metadata(
 
     assert text.native_value == "Restored label"
     assert text.extra_state_attributes["last_updated"] == restore_state_timestamp
-    assert (
-        text.extra_state_attributes["last_updated_context_id"] == "ctx-from-attrs"
-    )
-    assert (
-        text.extra_state_attributes["last_updated_parent_id"]
-        == "parent-from-attrs"
-    )
-    assert (
-        text.extra_state_attributes["last_updated_user_id"] == "user-from-attrs"
-    )
+    assert text.extra_state_attributes["last_updated_context_id"] == "ctx-from-attrs"
+    assert text.extra_state_attributes["last_updated_parent_id"] == "parent-from-attrs"
+    assert text.extra_state_attributes["last_updated_user_id"] == "user-from-attrs"
 
     data_manager.async_update_dog_data.assert_awaited_once_with(
         "dog-restore-context",
@@ -827,7 +807,9 @@ async def test_async_added_to_hass_restores_context_metadata(
     }
 
     coordinator_payload = coordinator.data["dog-restore-context"]
-    assert coordinator_payload[DOG_TEXT_VALUES_FIELD] == {"custom_label": "Restored label"}
+    assert coordinator_payload[DOG_TEXT_VALUES_FIELD] == {
+        "custom_label": "Restored label"
+    }
     assert coordinator_payload[DOG_TEXT_METADATA_FIELD]["custom_label"] == {
         "last_updated": restore_state_timestamp,
         "context_id": "ctx-from-attrs",

@@ -5442,7 +5442,7 @@ _DOG_TEXT_SNAPSHOT_KEYS: Final[tuple[TextSnapshotKey, ...]] = (
 
 
 def ensure_dog_text_snapshot(
-    payload: Mapping[str, JSONValue]
+    payload: Mapping[str, JSONValue],
 ) -> DogTextSnapshot | None:
     """Return a normalised :class:`DogTextSnapshot` built from ``payload``."""
 
@@ -5458,7 +5458,9 @@ def ensure_dog_text_snapshot(
     return cast(DogTextSnapshot, snapshot)
 
 
-def _normalise_text_metadata_entry(raw_value: object | None) -> DogTextMetadataEntry | None:
+def _normalise_text_metadata_entry(
+    raw_value: object | None,
+) -> DogTextMetadataEntry | None:
     """Return a typed metadata entry built from ``raw_value`` when possible."""
 
     if isinstance(raw_value, Mapping):
@@ -5491,7 +5493,7 @@ def _normalise_text_metadata_entry(raw_value: object | None) -> DogTextMetadataE
 
 
 def ensure_dog_text_metadata_snapshot(
-    payload: Mapping[str, JSONValue]
+    payload: Mapping[str, JSONValue],
 ) -> DogTextMetadataSnapshot | None:
     """Return a normalised :class:`DogTextMetadataSnapshot` from ``payload``."""
 
