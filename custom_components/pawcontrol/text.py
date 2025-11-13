@@ -441,9 +441,7 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
                         merged.update(snapshot_update)
 
                     if merged:
-                        dog[DOG_TEXT_VALUES_FIELD] = cast(
-                            DogTextSnapshot, merged
-                        )
+                        dog[DOG_TEXT_VALUES_FIELD] = cast(DogTextSnapshot, merged)
                     else:
                         dog.pop(DOG_TEXT_VALUES_FIELD, None)
 
@@ -516,9 +514,7 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
 
                 if metadata_update is not None:
                     for key, entry in metadata_update.items():
-                        merged_metadata[key] = cast(
-                            DogTextMetadataEntry, dict(entry)
-                        )
+                        merged_metadata[key] = cast(DogTextMetadataEntry, dict(entry))
                 elif remove_metadata:
                     merged_metadata.pop(self._text_type, None)
 
