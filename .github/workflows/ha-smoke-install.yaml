@@ -44,10 +44,10 @@ jobs:
           mkdir -p smoke-config/custom_components
           cp -r custom_components/pawcontrol smoke-config/custom_components/
           cat <<'YAML' > smoke-config/configuration.yaml
-default_config:
-logger:
-  default: warning
-YAML
+          default_config:
+          logger:
+            default: warning
+          YAML
 
       - name: Validate installation with hass --script check_config
         env:

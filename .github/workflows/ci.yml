@@ -55,17 +55,17 @@ jobs:
           fi
 
           cat <<MARKDOWN > coverage-comment.md
-<!-- coverage-report -->
-### ✅ Coverage results
+          <!-- coverage-report -->
+          ### ✅ Coverage results
 
-| Metric | Value |
-| --- | --- |
-| Lines covered | ${COVERAGE_PERCENT}% |
-| Required minimum | ${COVERAGE_THRESHOLD}% |
+          | Metric | Value |
+          | --- | --- |
+          | Lines covered | ${COVERAGE_PERCENT}% |
+          | Required minimum | ${COVERAGE_THRESHOLD}% |
 
-- Coverage artifacts uploaded with flag \`unittests\`.
-- [HTML report (latest main build)](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/index.html)
-MARKDOWN
+          - Coverage artifacts uploaded with flag \`unittests\`.
+          - [HTML report (latest main build)](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/index.html)
+          MARKDOWN
 
           echo "has_comment=true" >> "$GITHUB_OUTPUT"
 
