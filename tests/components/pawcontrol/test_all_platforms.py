@@ -13,7 +13,7 @@ from __future__ import annotations
 import sys
 from datetime import datetime, timedelta
 from types import ModuleType, SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -21,12 +21,19 @@ from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
     CONF_DOGS,
+    CONF_MODULES,
     DOMAIN,
     MODULE_GROOMING,
 )
 from custom_components.pawcontrol.runtime_data import store_runtime_data
 from custom_components.pawcontrol.types import (
+    ConfigEntryDataPayload,
+    CoordinatorDataPayload,
+    CoordinatorDogData,
+    CoordinatorModuleState,
     CoordinatorRuntimeManagers,
+    DogConfigData,
+    DogModulesConfig,
     PawControlRuntimeData,
 )
 from homeassistant.components.binary_sensor import BinarySensorDeviceClass
@@ -46,31 +53,33 @@ pytestmark = pytest.mark.usefixtures("enable_custom_integrations")
 
 
 @pytest.fixture
-def mock_config_entry_data() -> dict[str, Any]:
+def mock_config_entry_data() -> ConfigEntryDataPayload:
     """Create mock config entry data with comprehensive dog setup."""
-    return {
-        "name": "PawControl Platform Test",
-        CONF_DOGS: [
-            {
-                CONF_DOG_ID: "test_dog",
-                CONF_DOG_NAME: "Test Dog",
-                "dog_breed": "Test Breed",
-                "dog_age": 4,
-                "dog_weight": 22.5,
-                "dog_size": "medium",
-                "modules": {
-                    "feeding": True,
-                    "walk": True,
-                    "health": True,
-                    "gps": True,
-                    "garden": True,
-                    "notifications": True,
-                    "dashboard": True,
-                },
-            }
-        ],
-        "entity_profile": "standard",
+    dog_modules: DogModulesConfig = {
+        "feeding": True,
+        "walk": True,
+        "health": True,
+        "gps": True,
+        "garden": True,
+        "notifications": True,
+        "dashboard": True,
     }
+    dog: DogConfigData = {
+        CONF_DOG_ID: "test_dog",
+        CONF_DOG_NAME: "Test Dog",
+        "dog_breed": "Test Breed",
+        "dog_age": 4,
+        "dog_weight": 22.5,
+        "dog_size": "medium",
+        CONF_MODULES: dog_modules,
+    }
+
+    return ConfigEntryDataPayload(
+        name="PawControl Platform Test",
+        dogs=[dog],
+        entity_profile="standard",
+        setup_timestamp="2024-01-01T00:00:00+00:00",
+    )
 
 
 @pytest.fixture
@@ -84,8 +93,9 @@ def mock_coordinator() -> Mock:
     # Mock comprehensive dog data
     last_garden_start = dt_util.utcnow() - timedelta(hours=2)
     last_garden_end = dt_util.utcnow() - timedelta(hours=1, minutes=10)
-    coordinator.data = {
-        "test_dog": {
+    dog_payload: CoordinatorDogData = cast(
+        CoordinatorDogData,
+        {
             "dog_info": {
                 "dog_breed": "Test Breed",
                 "dog_age": 4,
@@ -220,15 +230,22 @@ def mock_coordinator() -> Mock:
             },
             "visitor_mode_active": False,
             "visitor_mode_started": None,
-        }
-    }
+        },
+    )
+    coordinator.data = cast(
+        CoordinatorDataPayload,
+        {"test_dog": dog_payload},
+    )
 
-    def get_dog_data(dog_id: str) -> dict[str, Any] | None:
-        return coordinator.data.get(dog_id)
+    def get_dog_data(dog_id: str) -> CoordinatorDogData | None:
+        return cast(CoordinatorDogData | None, coordinator.data.get(dog_id))
 
-    def get_module_data(dog_id: str, module: str) -> dict[str, Any]:
-        dog_data = coordinator.data.get(dog_id, {})
-        return dog_data.get(module, {})
+    def get_module_data(dog_id: str, module: str) -> CoordinatorModuleState:
+        dog_data = cast(CoordinatorDogData, coordinator.data.get(dog_id, {}))
+        return cast(
+            CoordinatorModuleState,
+            dog_data.get(module, cast(CoordinatorModuleState, {})),
+        )
 
     coordinator.get_dog_data = get_dog_data
     coordinator.get_module_data = get_module_data
@@ -255,7 +272,7 @@ class TestSensorPlatform:
     async def test_sensor_platform_setup(
         self,
         hass: HomeAssistant,
-        mock_config_entry_data: dict[str, Any],
+        mock_config_entry_data: ConfigEntryDataPayload,
         mock_coordinator: Mock,
     ) -> None:
         """Test sensor platform setup and entity creation."""
@@ -306,7 +323,7 @@ class TestSensorPlatform:
     async def test_feeding_sensors(
         self,
         hass: HomeAssistant,
-        mock_config_entry_data: dict[str, Any],
+        mock_config_entry_data: ConfigEntryDataPayload,
         mock_coordinator: Mock,
     ) -> None:
         """Test feeding-related sensor entities."""
@@ -345,7 +362,7 @@ class TestSensorPlatform:
     async def test_walk_sensors(
         self,
         hass: HomeAssistant,
-        mock_config_entry_data: dict[str, Any],
+        mock_config_entry_data: ConfigEntryDataPayload,
         mock_coordinator: Mock,
     ) -> None:
         """Test walk-related sensor entities."""
@@ -381,7 +398,7 @@ class TestSensorPlatform:
     async def test_health_sensors(
         self,
         hass: HomeAssistant,
-        mock_config_entry_data: dict[str, Any],
+        mock_config_entry_data: ConfigEntryDataPayload,
         mock_coordinator: Mock,
     ) -> None:
         """Test health-related sensor entities."""
@@ -417,7 +434,7 @@ class TestSensorPlatform:
     async def test_gps_sensors(
         self,
         hass: HomeAssistant,
-        mock_config_entry_data: dict[str, Any],
+        mock_config_entry_data: ConfigEntryDataPayload,
         mock_coordinator: Mock,
     ) -> None:
         """Test GPS-related sensor entities."""
@@ -569,7 +586,7 @@ class TestBinarySensorPlatform:
     async def test_binary_sensor_platform_setup(
         self,
         hass: HomeAssistant,
-        mock_config_entry_data: dict[str, Any],
+        mock_config_entry_data: ConfigEntryDataPayload,
         mock_coordinator: Mock,
     ) -> None:
         """Test binary sensor platform setup and entity creation."""
@@ -897,7 +914,7 @@ class TestSwitchPlatform:
     async def test_switch_platform_setup(
         self,
         hass: HomeAssistant,
-        mock_config_entry_data: dict[str, Any],
+        mock_config_entry_data: ConfigEntryDataPayload,
         mock_coordinator: Mock,
     ) -> None:
         """Test switch platform setup and entity creation."""
@@ -1076,7 +1093,7 @@ class TestButtonPlatform:
     async def test_button_platform_setup(
         self,
         hass: HomeAssistant,
-        mock_config_entry_data: dict[str, Any],
+        mock_config_entry_data: ConfigEntryDataPayload,
         mock_coordinator: Mock,
     ) -> None:
         """Test button platform setup and entity creation."""
@@ -1355,7 +1372,7 @@ class TestPlatformIntegration:
     async def test_entity_registry_integration(
         self,
         hass: HomeAssistant,
-        mock_config_entry_data: dict[str, Any],
+        mock_config_entry_data: ConfigEntryDataPayload,
         mock_coordinator: Mock,
     ) -> None:
         """Test integration with Home Assistant entity registry."""
@@ -1390,7 +1407,7 @@ class TestPlatformIntegration:
     async def test_platform_unload_cleanup(
         self,
         hass: HomeAssistant,
-        mock_config_entry_data: dict[str, Any],
+        mock_config_entry_data: ConfigEntryDataPayload,
         mock_coordinator: Mock,
     ) -> None:
         """Test proper cleanup during platform unload."""
@@ -1468,7 +1485,7 @@ class TestPlatformIntegration:
     async def test_performance_characteristics(
         self,
         hass: HomeAssistant,
-        mock_config_entry_data: dict[str, Any],
+        mock_config_entry_data: ConfigEntryDataPayload,
         mock_coordinator: Mock,
         pytestconfig: pytest.Config,
     ) -> None:

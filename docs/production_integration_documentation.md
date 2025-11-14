@@ -631,6 +631,16 @@ core_integrations:
 - [ ] **Updates**: Regular integration updates and maintenance
 - [ ] **Backup Verification**: Regular backup and recovery testing
 - [ ] **Security Audits**: Periodic security reviews and updates
+- [ ] **CI Full Suite Schedule**: `scheduled-pytest.yml` reserviert dienstags und freitags um 03:00 UTC den Volltest-Slot;
+      manuelle Dispatches benötigen `override_ci_window=true` plus `run_reason`.
+- [ ] **Vendor-PyYAML Monitoring**: `vendor-pyyaml-monitor.yml` prüft mittwochs
+      PyPI- und OSV-Daten, meldet neue PyYAML-Releases sowie Advisories und
+      weist auf `cp313`-Wheels hin, damit das Vendor-Verzeichnis rechtzeitig
+      entfernt werden kann.
+- [ ] **TypedDict Guard**: Der CI-Job „TypedDict audit“ aus `ci.yml` ruft das
+      Guard-Skript mit `--fail-on-findings` für Integration und Tests auf und
+      blockiert Deployments, sobald untypisierte Dictionary-Aliase erneut
+      auftauchen.
 
 ---
 

@@ -101,6 +101,17 @@ HTTP calls reuse Home Assistant’s managed aiohttp session.
 ## Qualitäts- und Supportstatus
 - Docstrings und Typannotationen werden projektweit erzwungen; ein Skript
   überwacht die Ruff-Baseline für fehlende Docstrings.
+- Der Volltest-Workflow [`scheduled-pytest.yml`](.github/workflows/scheduled-pytest.yml) reserviert dienstags und freitags um
+  03:00 UTC einen dedizierten Slot; manuelle Läufe erfordern `override_ci_window=true` und einen dokumentierten `run_reason`,
+  damit abgestimmte Wartungsfenster priorisiert bleiben.
+- Der Vendor-Wächter [`vendor-pyyaml-monitor.yml`](.github/workflows/vendor-pyyaml-monitor.yml)
+  prüft mittwochs die PyPI- und OSV-Daten für PyYAML, meldet veröffentlichte
+  Sicherheitsmeldungen und signalisiert, sobald ein `cp313`-Wheel das Entfernen
+  des Vendor-Verzeichnisses ermöglicht.
+- Der CI-Job „TypedDict audit“ aus [`ci.yml`](.github/workflows/ci.yml) führt bei
+  jedem Push sowie in Pull Requests `python -m script.check_typed_dicts --path
+  custom_components/pawcontrol --path tests --fail-on-findings` aus und blockiert
+  Releases sofort, falls neue untypisierte Dictionaries auftauchen.
 - Der Async-Dependency-Audit dokumentiert alle synchronen Bibliotheken, die
   `_offload_blocking`-Messwerte und die gewählten Mitigationsstrategien.
 - Unit-Tests decken die Session-Garantie und Kernadapter ab, benötigen jedoch

@@ -17,26 +17,24 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from .blueprint_context import (
     RESILIENCE_BLUEPRINT_REGISTERED_SERVICES,
-    ResilienceBlueprintContext,
+    ResilienceBlueprintHarness,
     create_resilience_blueprint_context,
 )
-from .blueprint_helpers import BLUEPRINT_RELATIVE_PATH
+from .blueprint_helpers import BLUEPRINT_RELATIVE_PATH, ResilienceBlueprintContext
 
 
 @pytest.mark.asyncio
 async def test_resilience_blueprint_manual_events_execute(hass: HomeAssistant) -> None:
     """Manual guard/breaker events should execute the blueprint automation."""
 
-    context: ResilienceBlueprintContext = create_resilience_blueprint_context(
-        hass, watch_automation_events=True
-    )
+    context = create_resilience_blueprint_context(hass, watch_automation_events=True)
 
-    assert context.registered_services == RESILIENCE_BLUEPRINT_REGISTERED_SERVICES, (
+    assert context.registered_services == (RESILIENCE_BLUEPRINT_REGISTERED_SERVICES), (
         "Context factory should register the shared resilience services"
     )
 
     try:
-        base_context = context.base_context
+        base_context: ResilienceBlueprintContext = context.build_context()
 
         script_calls = context.script_calls
         guard_calls = context.guard_calls
@@ -159,4 +157,25 @@ async def test_resilience_blueprint_manual_events_execute(hass: HomeAssistant) -
         ]
         assert len(automation_triggers) >= 2
     finally:
-        context.cleanup()
+        await context.async_cleanup()
+
+
+@pytest.mark.asyncio
+async def test_resilience_blueprint_context_overrides(hass: HomeAssistant) -> None:
+    """Blueprint context factory should merge overrides into the base payload."""
+
+    context = create_resilience_blueprint_context(
+        hass,
+        overrides={
+            "manual_guard_event": "custom_manual_guard",
+            "watchdog_interval_minutes": 15,
+        },
+    )
+
+    try:
+        base_context = context.build_context()
+        assert base_context["manual_guard_event"] == "custom_manual_guard"
+        assert base_context["watchdog_interval_minutes"] == 15
+        assert base_context["manual_breaker_event"] == "pawcontrol_manual_breaker"
+    finally:
+        await context.async_cleanup()

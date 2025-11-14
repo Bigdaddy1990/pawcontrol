@@ -43,6 +43,29 @@
   mypy
   pytest -q
   ```
+- 🛡️ Über `python -m script.check_vendor_pyyaml --fail-on-outdated` lässt sich
+  lokal prüfen, ob die gebündelte PyYAML-Version noch den aktuellen PyPI- und
+  OSV-Daten entspricht; der Check läuft zusätzlich automatisiert in CI.
+- 🧮 Der CI-Job **TypedDict audit** ruft `python -m script.check_typed_dicts` für
+  `custom_components/pawcontrol` und `tests` mit `--fail-on-findings` auf, damit
+  keine neuen `dict[str, Any]`-/`Mapping[str, Any]`-Stellen in Fixtures oder
+  Integrationscode landen. Lokal denselben Befehl ausführen, sobald Payloads
+  oder Stubs angepasst werden.
+
+### 🗓️ Testkapazitätsplanung
+
+- ⏱️ Der Workflow [`scheduled-pytest.yml`](.github/workflows/scheduled-pytest.yml) blockt dienstags und freitags um 03:00 UTC einen dedizierten GitHub-Actions-Slot für den vollständigen `pytest -q`-Durchlauf inklusive Coverage-Artefakten.
+- 🧪 Manuelle `workflow_dispatch`-Runs verlangen `override_ci_window=true` plus einen dokumentierten `run_reason`, damit nur abgestimmte Sonderläufe das reservierte Zeitfenster nutzen; außerhalb abgestimmter Wartungen sollte der Slot frei bleiben.
+- 💻 Lokale Komplettläufe planen wir weiterhin außerhalb der Kernarbeitszeit (z. B. täglich nach 18:00 lokaler Zeit) und nutzen `PYTEST_ADDOPTS="-n auto"` nur auf Workstations mit ≥8 vCPUs, um Engpässe mit parallelen CI-Läufen zu vermeiden.
+- 🛡️ Der Workflow [`vendor-pyyaml-monitor.yml`](.github/workflows/vendor-pyyaml-monitor.yml)
+  überprüft mittwochs um 02:30 UTC die PyYAML-Releases samt OSV-Meldungen und
+  meldet, sobald ein `cp313`-Wheel das Entfernen des Vendor-Verzeichnisses
+  erlaubt; manuelle Dispatches können den Lauf optional auf neue Releases
+  abklemmen.
+- 🧮 Der Workflow [`ci.yml`](.github/workflows/ci.yml) enthält den Job „TypedDict
+  audit“, der jede Pull-Request- und Push-Pipeline stoppt, sobald das
+  Guard-Skript neue `dict[str, Any]`-/`Mapping[str, Any]`-Vorkommen meldet. Für
+  lokale Kontrollen denselben Befehl wie im Joblog verwenden.
 
 ## 🚀 Installation & Setup
 

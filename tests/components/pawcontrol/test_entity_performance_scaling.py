@@ -17,7 +17,7 @@ import sys
 import time
 from collections import defaultdict
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, TypedDict
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -40,6 +40,16 @@ MEMORY_THRESHOLD_MB = 100  # Maximum memory increase during tests
 PERFORMANCE_TIMEOUT = 30.0  # Maximum seconds for operations
 
 
+class PerformanceMetrics(TypedDict):
+    """Structured view of collected performance metrics."""
+
+    execution_time: float
+    memory_increase_mb: float
+    operations_count: int
+    operations_per_second: float
+    memory_per_operation_kb: float
+
+
 class PerformanceMonitor:
     """Monitor performance metrics during tests."""
 
@@ -60,13 +70,13 @@ class PerformanceMonitor:
         """Record an operation."""
         self.operations += 1
 
-    def finish(self) -> dict[str, Any]:
+    def finish(self) -> PerformanceMetrics:
         """Finish monitoring and return metrics."""
         end_time = time.perf_counter()
         gc.collect()  # Clean up before final measurement
         end_memory = self._get_memory_usage_mb()
 
-        return {
+        metrics: PerformanceMetrics = {
             "execution_time": end_time - self.start_time,
             "memory_increase_mb": end_memory - self.start_memory,
             "operations_count": self.operations,
@@ -76,6 +86,7 @@ class PerformanceMonitor:
             * 1024
             / max(self.operations, 1),
         }
+        return metrics
 
     @staticmethod
     def _get_memory_usage_mb() -> float:

@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable
-from typing import Any
+from collections.abc import Iterable, Mapping
+from typing import Any, cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
     CONF_DOG_NAME,
-    CONF_DOGS,
     CONF_EXTERNAL_INTEGRATIONS,
     CONF_GPS_UPDATE_INTERVAL,
+    CONF_MODULES,
     DOMAIN,
     MAX_IDLE_POLL_INTERVAL,
     MODULE_FEEDING,
@@ -23,6 +23,12 @@ from custom_components.pawcontrol.const import (
     UPDATE_INTERVALS,
 )
 from custom_components.pawcontrol.coordinator import PawControlCoordinator
+from custom_components.pawcontrol.types import (
+    ConfigEntryDataPayload,
+    DogConfigData,
+    DogModulesConfig,
+    PawControlOptionsData,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import UpdateFailed
@@ -34,15 +40,36 @@ pytestmark = pytest.mark.usefixtures("enable_custom_integrations")
 def _create_entry(
     hass: HomeAssistant,
     *,
-    dogs: Iterable[dict[str, Any]] | None = None,
-    options: dict[str, Any] | None = None,
+    dogs: Iterable[DogConfigData] | None = None,
+    options: Mapping[str, object] | None = None,
 ) -> MockConfigEntry:
     """Create a mock config entry with the provided dogs and options."""
 
+    dog_list: list[DogConfigData] = (
+        [cast(DogConfigData, dict(dog)) for dog in dogs] if dogs is not None else []
+    )
+
+    data: ConfigEntryDataPayload = ConfigEntryDataPayload(
+        name="PawControl Test",
+        dogs=dog_list,
+        entity_profile="standard",
+        setup_timestamp="2024-01-01T00:00:00+00:00",
+    )
+
+    base_options: PawControlOptionsData = PawControlOptionsData(
+        entity_profile="standard",
+        external_integrations=False,
+        api_endpoint="",
+        api_token="",
+    )
+    if options is not None:
+        for key, value in options.items():
+            base_options[key] = value  # type: ignore[index]
+
     entry = MockConfigEntry(
         domain=DOMAIN,
-        data={CONF_DOGS: list(dogs) if dogs is not None else []},
-        options=options or {},
+        data=data,
+        options=base_options,
     )
     entry.add_to_hass(hass)
     return entry
@@ -62,33 +89,42 @@ async def test_update_interval_balanced_for_medium_complexity(
 ) -> None:
     """Verify medium complexity dog setups pick the balanced refresh cadence."""
 
-    dogs = [
+    dogs: list[DogConfigData] = [
         {
             CONF_DOG_ID: "dog_1",
             CONF_DOG_NAME: "Dog 1",
-            "modules": {
-                MODULE_FEEDING: True,
-                MODULE_HEALTH: True,
-                MODULE_WALK: True,
-            },
+            CONF_MODULES: cast(
+                DogModulesConfig,
+                {
+                    MODULE_FEEDING: True,
+                    MODULE_HEALTH: True,
+                    MODULE_WALK: True,
+                },
+            ),
         },
         {
             CONF_DOG_ID: "dog_2",
             CONF_DOG_NAME: "Dog 2",
-            "modules": {
-                MODULE_FEEDING: True,
-                MODULE_HEALTH: True,
-                MODULE_NOTIFICATIONS: True,
-            },
+            CONF_MODULES: cast(
+                DogModulesConfig,
+                {
+                    MODULE_FEEDING: True,
+                    MODULE_HEALTH: True,
+                    MODULE_NOTIFICATIONS: True,
+                },
+            ),
         },
         {
             CONF_DOG_ID: "dog_3",
             CONF_DOG_NAME: "Dog 3",
-            "modules": {
-                MODULE_FEEDING: True,
-                MODULE_WALK: True,
-                MODULE_NOTIFICATIONS: True,
-            },
+            CONF_MODULES: cast(
+                DogModulesConfig,
+                {
+                    MODULE_FEEDING: True,
+                    MODULE_WALK: True,
+                    MODULE_NOTIFICATIONS: True,
+                },
+            ),
         },
     ]
 
@@ -103,16 +139,19 @@ async def test_update_interval_real_time_for_high_complexity(
 ) -> None:
     """Ensure very complex setups keep the fastest refresh interval."""
 
-    dogs = [
+    dogs: list[DogConfigData] = [
         {
             CONF_DOG_ID: f"dog_{index}",
             CONF_DOG_NAME: f"Dog {index}",
-            "modules": {
-                MODULE_FEEDING: True,
-                MODULE_WALK: True,
-                MODULE_HEALTH: True,
-                MODULE_NOTIFICATIONS: True,
-            },
+            CONF_MODULES: cast(
+                DogModulesConfig,
+                {
+                    MODULE_FEEDING: True,
+                    MODULE_WALK: True,
+                    MODULE_HEALTH: True,
+                    MODULE_NOTIFICATIONS: True,
+                },
+            ),
         }
         for index in range(1, 5)
     ]
@@ -132,7 +171,7 @@ async def test_update_interval_honors_gps_option(hass: HomeAssistant) -> None:
             {
                 CONF_DOG_ID: "gps_dog",
                 CONF_DOG_NAME: "GPS Dog",
-                "modules": {MODULE_GPS: True},
+                CONF_MODULES: cast(DogModulesConfig, {MODULE_GPS: True}),
             }
         ],
         options={CONF_GPS_UPDATE_INTERVAL: 45},
@@ -151,7 +190,7 @@ async def test_update_interval_capped_for_idle_configs(hass: HomeAssistant) -> N
             {
                 CONF_DOG_ID: "gps_dog",
                 CONF_DOG_NAME: "GPS Dog",
-                "modules": {MODULE_GPS: True},
+                CONF_MODULES: cast(DogModulesConfig, {MODULE_GPS: True}),
             }
         ],
         options={CONF_GPS_UPDATE_INTERVAL: 3600},
@@ -188,11 +227,11 @@ async def test_async_update_data_propagates_update_failed(
 ) -> None:
     """Coordinator should surface UpdateFailed errors when runtime fetches fail."""
 
-    dogs = [
+    dogs: list[DogConfigData] = [
         {
             CONF_DOG_ID: "failure_dog",
             CONF_DOG_NAME: "Failure Dog",
-            "modules": {MODULE_FEEDING: True},
+            CONF_MODULES: cast(DogModulesConfig, {MODULE_FEEDING: True}),
         }
     ]
 

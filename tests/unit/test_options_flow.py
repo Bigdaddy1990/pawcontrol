@@ -52,6 +52,7 @@ from custom_components.pawcontrol.types import (
     NOTIFICATION_QUIET_START_FIELD,
     NOTIFICATION_REMINDER_REPEAT_FIELD,
     AdvancedOptions,
+    ConfigEntryDataPayload,
     DashboardOptions,
     DogConfigData,
     DogOptionsMap,
@@ -1872,7 +1873,7 @@ async def test_remove_dog_normalises_snapshot(
     hass.config_entries.async_update_entry.assert_called_once()
 
     _, update_kwargs = hass.config_entries.async_update_entry.call_args
-    updated_data = cast(dict[str, Any], update_kwargs.get("data"))
+    updated_data = cast(ConfigEntryDataPayload, update_kwargs.get("data"))
     assert isinstance(updated_data, dict)
 
     dogs = cast(list[DogConfigData], updated_data[CONF_DOGS])

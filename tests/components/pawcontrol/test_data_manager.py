@@ -22,6 +22,8 @@ import pytest
 from custom_components.pawcontrol.data_manager import PawControlDataManager
 from custom_components.pawcontrol.types import (
     DailyStats,
+    DogConfigData,
+    DogModulesConfig,
     FeedingData,
     GPSLocation,
     HealthData,
@@ -53,38 +55,41 @@ def mock_coordinator() -> Mock:
 
 
 @pytest.fixture
-def sample_dogs_config() -> list[dict[str, Any]]:
+def sample_dogs_config() -> list[DogConfigData]:
     """Create sample dogs configuration."""
-    return [
-        {
-            "dog_id": "buddy",
-            "dog_name": "Buddy",
-            "dog_breed": "Labrador",
-            "dog_age": 5,
-            "dog_weight": 25.0,
-            "dog_size": "medium",
-            "modules": {
-                "feeding": True,
-                "walk": True,
-                "health": True,
-                "gps": False,
-            },
-        },
-        {
-            "dog_id": "max",
-            "dog_name": "Max",
-            "dog_breed": "German Shepherd",
-            "dog_age": 3,
-            "dog_weight": 30.0,
-            "dog_size": "large",
-            "modules": {
-                "feeding": True,
-                "walk": True,
-                "health": True,
-                "gps": True,
-            },
-        },
-    ]
+    buddy_modules: DogModulesConfig = {
+        "feeding": True,
+        "walk": True,
+        "health": True,
+        "gps": False,
+    }
+    buddy: DogConfigData = {
+        "dog_id": "buddy",
+        "dog_name": "Buddy",
+        "dog_breed": "Labrador",
+        "dog_age": 5,
+        "dog_weight": 25.0,
+        "dog_size": "medium",
+        "modules": buddy_modules,
+    }
+
+    max_modules: DogModulesConfig = {
+        "feeding": True,
+        "walk": True,
+        "health": True,
+        "gps": True,
+    }
+    max_dog: DogConfigData = {
+        "dog_id": "max",
+        "dog_name": "Max",
+        "dog_breed": "German Shepherd",
+        "dog_age": 3,
+        "dog_weight": 30.0,
+        "dog_size": "large",
+        "modules": max_modules,
+    }
+
+    return [buddy, max_dog]
 
 
 class TestPawControlDataManagerInitialization:
@@ -94,7 +99,7 @@ class TestPawControlDataManagerInitialization:
         self,
         mock_hass: HomeAssistant,
         mock_coordinator: Mock,
-        sample_dogs_config: list[dict[str, Any]],
+        sample_dogs_config: list[DogConfigData],
     ) -> None:
         """Test successful data manager initialization."""
         data_manager = PawControlDataManager(
@@ -121,7 +126,7 @@ class TestPawControlDataManagerInitialization:
         self,
         mock_hass: HomeAssistant,
         mock_coordinator: Mock,
-        sample_dogs_config: list[dict[str, Any]],
+        sample_dogs_config: list[DogConfigData],
     ) -> None:
         """Test initialization with existing data files."""
         data_manager = PawControlDataManager(
@@ -161,7 +166,7 @@ class TestPawControlDataManagerInitialization:
         self,
         mock_hass: HomeAssistant,
         mock_coordinator: Mock,
-        sample_dogs_config: list[dict[str, Any]],
+        sample_dogs_config: list[DogConfigData],
     ) -> None:
         """Test recovery from corrupted data files."""
         data_manager = PawControlDataManager(
@@ -187,7 +192,7 @@ class TestPawControlDataManagerInitialization:
         self,
         mock_hass: HomeAssistant,
         mock_coordinator: Mock,
-        sample_dogs_config: list[dict[str, Any]],
+        sample_dogs_config: list[DogConfigData],
     ) -> None:
         """Test handling of permission errors during initialization."""
         data_manager = PawControlDataManager(
@@ -211,7 +216,7 @@ class TestPawControlDataManagerFeedingOperations:
         self,
         mock_hass: HomeAssistant,
         mock_coordinator: Mock,
-        sample_dogs_config: list[dict[str, Any]],
+        sample_dogs_config: list[DogConfigData],
     ) -> PawControlDataManager:
         """Create and initialize data manager."""
         data_manager = PawControlDataManager(
@@ -353,7 +358,7 @@ class TestPawControlDataManagerWalkOperations:
         self,
         mock_hass: HomeAssistant,
         mock_coordinator: Mock,
-        sample_dogs_config: list[dict[str, Any]],
+        sample_dogs_config: list[DogConfigData],
     ) -> PawControlDataManager:
         """Create and initialize data manager."""
         data_manager = PawControlDataManager(
@@ -517,7 +522,7 @@ class TestPawControlDataManagerHealthOperations:
         self,
         mock_hass: HomeAssistant,
         mock_coordinator: Mock,
-        sample_dogs_config: list[dict[str, Any]],
+        sample_dogs_config: list[DogConfigData],
     ) -> PawControlDataManager:
         """Create and initialize data manager."""
         data_manager = PawControlDataManager(
@@ -663,7 +668,7 @@ class TestPawControlDataManagerPersistence:
         self,
         mock_hass: HomeAssistant,
         mock_coordinator: Mock,
-        sample_dogs_config: list[dict[str, Any]],
+        sample_dogs_config: list[DogConfigData],
     ) -> PawControlDataManager:
         """Create and initialize data manager."""
         data_manager = PawControlDataManager(
@@ -752,7 +757,7 @@ class TestPawControlDataManagerPersistence:
         self,
         mock_hass: HomeAssistant,
         mock_coordinator: Mock,
-        sample_dogs_config: list[dict[str, Any]],
+        sample_dogs_config: list[DogConfigData],
     ) -> None:
         """Test data recovery from backup files."""
         # Mock backup data
@@ -958,7 +963,7 @@ class TestPawControlDataManagerEdgeCases:
         self,
         mock_hass: HomeAssistant,
         mock_coordinator: Mock,
-        sample_dogs_config: list[dict[str, Any]],
+        sample_dogs_config: list[DogConfigData],
     ) -> PawControlDataManager:
         """Create and initialize data manager."""
         data_manager = PawControlDataManager(

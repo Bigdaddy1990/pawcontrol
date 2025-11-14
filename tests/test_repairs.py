@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import importlib.util
 import sys
+from collections.abc import Iterator, Mapping, MutableMapping
 from datetime import UTC, datetime, timezone
 from enum import StrEnum
 from pathlib import Path
@@ -19,7 +20,11 @@ from typing import Any
 from unittest.mock import AsyncMock, call
 
 import pytest
-from custom_components.pawcontrol.types import CacheRepairAggregate
+from custom_components.pawcontrol.types import (
+    CacheRepairAggregate,
+    ConfigEntryDataPayload,
+    PawControlOptionsData,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -62,8 +67,33 @@ def _install_homeassistant_stubs() -> tuple[AsyncMock, type[Any], AsyncMock]:
     )
     data_entry_flow = ModuleType("homeassistant.data_entry_flow")
 
-    class FlowResult(dict[str, Any]):  # pragma: no cover - simple mapping alias
-        pass
+    class FlowResult(MutableMapping[str, object]):  # pragma: no cover - mapping shim
+        """Lightweight mapping wrapper matching Home Assistant flow results."""
+
+        __slots__ = ("_data",)
+
+        def __init__(self, initial: Mapping[str, object] | None = None) -> None:
+            self._data: dict[str, object] = dict(initial or {})
+
+        def __getitem__(self, key: str) -> object:
+            return self._data[key]
+
+        def __setitem__(self, key: str, value: object) -> None:
+            self._data[key] = value
+
+        def __delitem__(self, key: str) -> None:
+            del self._data[key]
+
+        def __iter__(self) -> Iterator[str]:
+            return iter(self._data)
+
+        def __len__(self) -> int:
+            return len(self._data)
+
+        def to_dict(self) -> dict[str, object]:
+            """Return a shallow copy of the underlying payload."""
+
+            return dict(self._data)
 
     data_entry_flow.FlowResult = FlowResult
     sys.modules[data_entry_flow.__name__] = data_entry_flow
@@ -72,7 +102,7 @@ def _install_homeassistant_stubs() -> tuple[AsyncMock, type[Any], AsyncMock]:
 
     class HomeAssistant:  # pragma: no cover - minimal attribute container
         def __init__(self) -> None:
-            self.data: dict[str, Any] = {}
+            self.data: dict[str, object] = {}
 
     core.HomeAssistant = HomeAssistant
 
@@ -87,8 +117,8 @@ def _install_homeassistant_stubs() -> tuple[AsyncMock, type[Any], AsyncMock]:
     class ConfigEntry:  # pragma: no cover - simple stand-in for tests
         def __init__(self, entry_id: str) -> None:
             self.entry_id = entry_id
-            self.data: dict[str, Any] = {}
-            self.options: dict[str, Any] = {}
+            self.data: ConfigEntryDataPayload = {}
+            self.options: PawControlOptionsData = {}
             self.version = 1
 
     config_entries.ConfigEntry = ConfigEntry
@@ -102,16 +132,16 @@ def _install_homeassistant_stubs() -> tuple[AsyncMock, type[Any], AsyncMock]:
             *,
             step_id: str,
             data_schema: Any | None = None,
-            description_placeholders: dict[str, Any] | None = None,
-            errors: dict[str, Any] | None = None,
+            description_placeholders: Mapping[str, object] | None = None,
+            errors: Mapping[str, object] | None = None,
         ) -> FlowResult:
             return FlowResult(
                 {
                     "type": "form",
                     "step_id": step_id,
                     "data_schema": data_schema,
-                    "description_placeholders": description_placeholders or {},
-                    "errors": errors or {},
+                    "description_placeholders": dict(description_placeholders or {}),
+                    "errors": dict(errors or {}),
                 }
             )
 
@@ -121,9 +151,18 @@ def _install_homeassistant_stubs() -> tuple[AsyncMock, type[Any], AsyncMock]:
             return FlowResult({"type": "external", "step_id": step_id, "url": url})
 
         def async_create_entry(
-            self, *, title: str, data: dict[str, Any]
+            self,
+            *,
+            title: str,
+            data: Mapping[str, object],
         ) -> FlowResult:  # pragma: no cover - passthrough helper
-            return FlowResult({"type": "create_entry", "title": title, "data": data})
+            return FlowResult(
+                {
+                    "type": "create_entry",
+                    "title": title,
+                    "data": dict(data),
+                }
+            )
 
         def async_abort(
             self, *, reason: str
@@ -137,9 +176,9 @@ def _install_homeassistant_stubs() -> tuple[AsyncMock, type[Any], AsyncMock]:
     selector_module = ModuleType("homeassistant.helpers.selector")
 
     def selector(
-        schema: dict[str, Any],
-    ) -> dict[str, Any]:  # pragma: no cover - pass-through helper
-        return schema
+        schema: Mapping[str, object],
+    ) -> dict[str, object]:  # pragma: no cover - pass-through helper
+        return dict(schema)
 
     selector_module.selector = selector
     sys.modules[selector_module.__name__] = selector_module

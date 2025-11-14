@@ -24,6 +24,47 @@ jobs:
       python-version: ${{ env.PYTHON_VERSION }}
     secrets: inherit
 
+  typed-dict-audit:
+    name: TypedDict audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
+            requirements_test.txt
+
+      - name: Install repository requirements
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -r requirements_test.txt
+
+      - name: Run TypedDict guard
+        run: |
+          python -m script.check_typed_dicts \
+            --path custom_components/pawcontrol \
+            --path tests \
+            --fail-on-findings
+
+      - name: Publish TypedDict audit summary
+        if: success()
+        run: |
+          {
+            echo "### ✅ TypedDict audit"
+            echo
+            echo "- Python: ${{ env.PYTHON_VERSION }}"
+            echo "- Paths: \`custom_components/pawcontrol\`, \`tests\`"
+            echo "- Command: \`python -m script.check_typed_dicts --path custom_components/pawcontrol --path tests --fail-on-findings\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
   test-coverage:
     name: Test & Coverage
     uses: ./.github/workflows/reusable-python-tests.yml
@@ -343,12 +384,13 @@ jobs:
     name: All Checks Passed
     if: always()
     needs:
-      [lint, test-coverage, code-quality, localization-guards, mypy-config, validate-manifest, marketplace-validation]
+      [lint, typed-dict-audit, test-coverage, code-quality, localization-guards, mypy-config, validate-manifest, marketplace-validation]
     runs-on: ubuntu-latest
     steps:
       - name: Summarise upstream results
         run: |
           cat <<'SUMMARY'
+          typed-dict-audit: ${{ needs.typed-dict-audit.result }}
           lint: ${{ needs.lint.result }}
           test-coverage: ${{ needs.test-coverage.result }}
           code-quality: ${{ needs.code-quality.result }}

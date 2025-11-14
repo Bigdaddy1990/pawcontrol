@@ -24,6 +24,7 @@ from custom_components.pawcontrol.const import (
     CONF_DOG_NAME,
     CONF_DOG_OPTIONS,
     CONF_DOGS,
+    CONF_MODULES,
     DOMAIN,
     PLATFORMS,
 )
@@ -34,6 +35,10 @@ from custom_components.pawcontrol.runtime_data import (
 from custom_components.pawcontrol.types import (
     DOG_ID_FIELD,
     DOG_MODULES_FIELD,
+    ConfigEntryDataPayload,
+    DogConfigData,
+    DogModulesConfig,
+    PawControlOptionsData,
     PawControlRuntimeData,
 )
 from custom_components.pawcontrol.utils import sanitize_dog_id
@@ -51,55 +56,63 @@ pytestmark = pytest.mark.usefixtures("enable_custom_integrations")
 
 
 @pytest.fixture
-def mock_config_entry_data() -> dict[str, Any]:
+def mock_config_entry_data() -> ConfigEntryDataPayload:
     """Create mock config entry data."""
-    return {
-        "name": "PawControl Test",
-        CONF_DOGS: [
-            {
-                CONF_DOG_ID: "buddy",
-                CONF_DOG_NAME: "Buddy",
-                "dog_breed": "Labrador",
-                "dog_age": 5,
-                "dog_weight": 25.0,
-                "dog_size": "medium",
-                "modules": {
-                    "feeding": True,
-                    "walk": True,
-                    "health": True,
-                    "gps": False,
-                    "notifications": True,
-                },
-            },
-            {
-                CONF_DOG_ID: "max",
-                CONF_DOG_NAME: "Max",
-                "dog_breed": "German Shepherd",
-                "dog_age": 3,
-                "dog_weight": 30.0,
-                "dog_size": "large",
-                "modules": {
-                    "feeding": True,
-                    "walk": True,
-                    "health": True,
-                    "gps": True,
-                    "notifications": True,
-                },
-            },
-        ],
-        "entity_profile": "standard",
+
+    buddy_modules: DogModulesConfig = {
+        "feeding": True,
+        "walk": True,
+        "health": True,
+        "gps": False,
+        "notifications": True,
     }
+    buddy: DogConfigData = {
+        CONF_DOG_ID: "buddy",
+        CONF_DOG_NAME: "Buddy",
+        "dog_breed": "Labrador",
+        "dog_age": 5,
+        "dog_weight": 25.0,
+        "dog_size": "medium",
+        CONF_MODULES: buddy_modules,
+    }
+
+    max_modules: DogModulesConfig = {
+        "feeding": True,
+        "walk": True,
+        "health": True,
+        "gps": True,
+        "notifications": True,
+    }
+    max_dog: DogConfigData = {
+        CONF_DOG_ID: "max",
+        CONF_DOG_NAME: "Max",
+        "dog_breed": "German Shepherd",
+        "dog_age": 3,
+        "dog_weight": 30.0,
+        "dog_size": "large",
+        CONF_MODULES: max_modules,
+    }
+
+    return ConfigEntryDataPayload(
+        name="PawControl Test",
+        dogs=[buddy, max_dog],
+        entity_profile="standard",
+        setup_timestamp="2024-01-01T00:00:00+00:00",
+    )
 
 
 @pytest.fixture
-def mock_config_entry_options() -> dict[str, Any]:
+def mock_config_entry_options() -> PawControlOptionsData:
     """Create mock config entry options."""
-    return {
-        "entity_profile": "standard",
-        "external_integrations": False,
-        "gps_update_interval": 60,
-        "debug_logging": False,
-    }
+
+    return PawControlOptionsData(
+        entity_profile="standard",
+        external_integrations=False,
+        gps_update_interval=60,
+        debug_logging=False,
+        api_endpoint="",
+        api_token="",
+    )
 
 
 class TestPawControlIntegrationSetup:
@@ -140,7 +153,7 @@ class TestPawControlIntegrationSetup:
         assert hass.data[DOMAIN]["service_manager"] is existing_manager
 
     async def test_async_setup_entry_success(
-        self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]
+        self, hass: HomeAssistant, mock_config_entry_data: ConfigEntryDataPayload
     ) -> None:
         """Test successful integration setup."""
         entry = MockConfigEntry(
@@ -156,9 +169,9 @@ class TestPawControlIntegrationSetup:
         from custom_components.pawcontrol import async_setup_entry
 
         # Mock all the managers and coordinators
-        captured_feeding_calls: list[list[dict[str, Any]]] = []
+        captured_feeding_calls: list[list[DogConfigData]] = []
 
-        async def _capture_feeding_init(dogs: list[dict[str, Any]]) -> None:
+        async def _capture_feeding_init(dogs: list[DogConfigData]) -> None:
             captured_feeding_calls.append(dogs)
 
         with (
@@ -216,7 +229,7 @@ class TestPawControlIntegrationSetup:
     async def test_async_setup_entry_debug_logging_toggle(
         self,
         hass: HomeAssistant,
-        mock_config_entry_data: dict[str, Any],
+        mock_config_entry_data: ConfigEntryDataPayload,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Debug logging option should toggle the package logger level."""
@@ -287,7 +300,7 @@ class TestPawControlIntegrationSetup:
     async def test_async_setup_entry_debug_logging_failure_resets(
         self,
         hass: HomeAssistant,
-        mock_config_entry_data: dict[str, Any],
+        mock_config_entry_data: ConfigEntryDataPayload,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         """Setup failures should restore the previous logger level."""
@@ -324,7 +337,7 @@ class TestPawControlIntegrationSetup:
         package_logger.setLevel(original_level)
 
     async def test_async_setup_entry_coordinator_initialization_failure(
-        self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]
+        self, hass: HomeAssistant, mock_config_entry_data: ConfigEntryDataPayload
     ) -> None:
         """Test setup failure when coordinator initialization fails."""
         entry = MockConfigEntry(
@@ -350,7 +363,7 @@ class TestPawControlIntegrationSetup:
                 await async_setup_entry(hass, entry)
 
     async def test_async_setup_entry_manager_initialization_failure(
-        self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]
+        self, hass: HomeAssistant, mock_config_entry_data: ConfigEntryDataPayload
     ) -> None:
         """Test setup failure when manager initialization fails."""
         entry = MockConfigEntry(
@@ -427,7 +440,7 @@ class TestPawControlIntegrationSetup:
             assert len(runtime_data.dogs) == 0
 
     async def test_async_setup_entry_invalid_profile(
-        self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]
+        self, hass: HomeAssistant, mock_config_entry_data: ConfigEntryDataPayload
     ) -> None:
         """Test setup failure with invalid entity profile."""
         entry = MockConfigEntry(
@@ -471,7 +484,7 @@ class TestPawControlIntegrationSetup:
             await async_setup_entry(hass, entry)
 
     async def test_async_unload_entry_success(
-        self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]
+        self, hass: HomeAssistant, mock_config_entry_data: ConfigEntryDataPayload
     ) -> None:
         """Test successful integration unload."""
         entry = MockConfigEntry(
@@ -542,7 +555,7 @@ class TestPawControlIntegrationSetup:
             assert runtime_data is None
 
     async def test_async_unload_entry_platform_unload_failure(
-        self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]
+        self, hass: HomeAssistant, mock_config_entry_data: ConfigEntryDataPayload
     ) -> None:
         """Test unload when platform unloading fails."""
         entry = MockConfigEntry(
@@ -580,7 +593,7 @@ class TestPawControlIntegrationSetup:
             assert result is False
 
     async def test_async_unload_entry_no_runtime_data(
-        self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]
+        self, hass: HomeAssistant, mock_config_entry_data: ConfigEntryDataPayload
     ) -> None:
         """Test unload when no runtime data exists."""
         entry = MockConfigEntry(
@@ -602,7 +615,7 @@ class TestPawControlIntegrationSetup:
             assert result is True
 
     async def test_service_registration(
-        self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]
+        self, hass: HomeAssistant, mock_config_entry_data: ConfigEntryDataPayload
     ) -> None:
         """Test that services are properly registered during setup."""
         entry = MockConfigEntry(
@@ -649,7 +662,7 @@ class TestPawControlIntegrationSetup:
             # This is more of a smoke test to ensure no exceptions occur
 
     def test_runtime_data_structure(
-        self, mock_config_entry_data: dict[str, Any]
+        self, mock_config_entry_data: ConfigEntryDataPayload
     ) -> None:
         """Test runtime data structure creation."""
         from custom_components.pawcontrol.types import PawControlRuntimeData
@@ -701,7 +714,7 @@ class TestPawControlPlatformForwarding:
     """Test suite for platform forwarding functionality."""
 
     async def test_all_platforms_forwarded(
-        self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]
+        self, hass: HomeAssistant, mock_config_entry_data: ConfigEntryDataPayload
     ) -> None:
         """Test that all platforms are properly forwarded."""
         entry = MockConfigEntry(
@@ -765,7 +778,7 @@ class TestPawControlPlatformForwarding:
             assert expected_platforms.issubset(forwarded_platforms)
 
     async def test_platform_forwarding_failure_handling(
-        self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]
+        self, hass: HomeAssistant, mock_config_entry_data: ConfigEntryDataPayload
     ) -> None:
         """Test handling of platform forwarding failures."""
         entry = MockConfigEntry(
@@ -815,7 +828,7 @@ class TestPawControlEntityRegistry:
     """Test suite for entity registry integration."""
 
     async def test_entity_registry_cleanup_on_profile_change(
-        self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]
+        self, hass: HomeAssistant, mock_config_entry_data: ConfigEntryDataPayload
     ) -> None:
         """Test that entity registry is properly cleaned up on profile changes."""
         # This is more of a conceptual test since entity cleanup
@@ -961,7 +974,7 @@ class TestPawControlPerformanceIntegration:
             assert len(runtime_data.dogs) == 20
 
     async def test_memory_usage_monitoring(
-        self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]
+        self, hass: HomeAssistant, mock_config_entry_data: ConfigEntryDataPayload
     ) -> None:
         """Test memory usage monitoring during setup."""
         import gc
@@ -1061,7 +1074,7 @@ class TestPawControlErrorHandling:
                 await async_setup_entry(hass, entry)
 
     async def test_concurrent_setup_attempts(
-        self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]
+        self, hass: HomeAssistant, mock_config_entry_data: ConfigEntryDataPayload
     ) -> None:
         """Test behavior with concurrent setup attempts."""
         entry = MockConfigEntry(
@@ -1119,7 +1132,7 @@ class TestPawControlDeviceRemoval:
     """Tests for the config entry device removal hook."""
 
     async def test_async_remove_config_entry_device_blocks_active_dog(
-        self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]
+        self, hass: HomeAssistant, mock_config_entry_data: ConfigEntryDataPayload
     ) -> None:
         """Devices for configured dogs must not be removed."""
 
@@ -1137,7 +1150,7 @@ class TestPawControlDeviceRemoval:
         assert result is False
 
     async def test_async_remove_config_entry_device_allows_stale_dog(
-        self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]
+        self, hass: HomeAssistant, mock_config_entry_data: ConfigEntryDataPayload
     ) -> None:
         """Devices for removed dogs should be eligible for cleanup."""
 
@@ -1242,7 +1255,7 @@ class TestPawControlDeviceRemoval:
         assert result is False
 
     async def test_async_remove_config_entry_device_ignores_foreign_device(
-        self, hass: HomeAssistant, mock_config_entry_data: dict[str, Any]
+        self, hass: HomeAssistant, mock_config_entry_data: ConfigEntryDataPayload
     ) -> None:
         """Devices from other domains should be ignored for removal decisions."""
 

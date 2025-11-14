@@ -19,7 +19,6 @@ from contextlib import ExitStack, suppress
 from dataclasses import dataclass
 from importlib import import_module
 from types import ModuleType
-from typing import Any
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -40,7 +39,11 @@ from custom_components.pawcontrol.const import (
 )
 from custom_components.pawcontrol.coordinator_tasks import run_maintenance
 from custom_components.pawcontrol.runtime_data import get_runtime_data
-from custom_components.pawcontrol.types import PawControlRuntimeData
+from custom_components.pawcontrol.types import (
+    ConfigEntryDataPayload,
+    PawControlOptionsData,
+    PawControlRuntimeData,
+)
 
 ha_module = import_module("homeassistant")
 ha_version = getattr(ha_module, "__version__", "0.0.0")
@@ -96,12 +99,12 @@ class IntegrationMocks:
 
 
 @pytest.fixture
-def nightly_config_entry_data() -> dict[str, Any]:
+def nightly_config_entry_data() -> ConfigEntryDataPayload:
     """Return a compact config entry payload used for end-to-end tests."""
 
-    return {
-        "name": "Nightly QA",
-        CONF_DOGS: [
+    return ConfigEntryDataPayload(
+        name="Nightly QA",
+        dogs=[
             {
                 CONF_DOG_ID: "buddy",
                 CONF_DOG_NAME: "Buddy",
@@ -113,18 +116,21 @@ def nightly_config_entry_data() -> dict[str, Any]:
                 },
             }
         ],
-    }
+        entity_profile="standard",
+        setup_timestamp="2024-01-01T00:00:00+00:00",
+    )
 
 
 @pytest.fixture
-def nightly_config_entry_options() -> dict[str, Any]:
+def nightly_config_entry_options() -> PawControlOptionsData:
     """Return typed config entry options for the platinum flow."""
 
-    return {
-        "entity_profile": "standard",
-        "external_integrations": False,
-        CONF_TOKEN: "",
-    }
+    return PawControlOptionsData(
+        entity_profile="standard",
+        external_integrations=False,
+        api_token="",
+        api_endpoint="",
+    )
 
 
 @pytest.fixture
@@ -429,8 +435,8 @@ async def _async_unload_runtime(
 
 async def test_full_integration_nightly_build(
     hass: HomeAssistant,
-    nightly_config_entry_data: dict[str, Any],
-    nightly_config_entry_options: dict[str, Any],
+    nightly_config_entry_data: ConfigEntryDataPayload,
+    nightly_config_entry_options: PawControlOptionsData,
     integration_patches: IntegrationMocks,
 ) -> None:
     """Validate the documented nightly-build regression scenario."""
@@ -472,8 +478,8 @@ async def test_full_integration_nightly_build(
 
 async def test_supervised_smoke_analytics_snapshot(
     hass: HomeAssistant,
-    nightly_config_entry_data: dict[str, Any],
-    nightly_config_entry_options: dict[str, Any],
+    nightly_config_entry_data: ConfigEntryDataPayload,
+    nightly_config_entry_options: PawControlOptionsData,
     integration_patches: IntegrationMocks,
 ) -> None:
     """Ensure supervised smoke tests capture analytics collector telemetry."""

@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import TYPE_CHECKING, cast
 
 import pytest
 from custom_components.pawcontrol.const import (
@@ -22,6 +22,7 @@ from custom_components.pawcontrol.const import (
 )
 from custom_components.pawcontrol.coordinator_support import (
     CacheMonitorRegistrar,
+    CacheMonitorTarget,
     CoordinatorMetrics,
     bind_runtime_managers,
 )
@@ -35,9 +36,12 @@ from custom_components.pawcontrol.door_sensor_manager import (
 from custom_components.pawcontrol.helper_manager import PawControlHelperManager
 from custom_components.pawcontrol.script_manager import PawControlScriptManager
 from custom_components.pawcontrol.types import (
+    ConfigEntryDataPayload,
     CoordinatorRuntimeManagers,
     FeedingData,
     HelperEntityMetadata,
+    JSONMutableMapping,
+    PawControlOptionsData,
 )
 from homeassistant.components.script.const import CONF_FIELDS
 from homeassistant.const import (
@@ -52,14 +56,25 @@ from homeassistant.core import Event
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify as ha_slugify
 
-ha_slugify = getattr(ha_slugify, "slugify", ha_slugify)
+if TYPE_CHECKING:
+    from custom_components.pawcontrol.feeding_manager import FeedingManager
+    from custom_components.pawcontrol.garden_manager import GardenManager
+    from custom_components.pawcontrol.gps_manager import GPSGeofenceManager
+    from custom_components.pawcontrol.notifications import PawControlNotificationManager
+    from custom_components.pawcontrol.walk_manager import WalkManager
+    from custom_components.pawcontrol.weather_manager import WeatherHealthManager
+    from homeassistant.core import HomeAssistant
+
+
+if hasattr(ha_slugify, "slugify"):
+    ha_slugify = ha_slugify.slugify
 
 
 class StubDataManager(PawControlDataManager):
     """Minimal data manager that exercises visitor profiling without HA deps."""
 
     def __init__(self) -> None:
-        self._metrics = {
+        self._metrics: JSONMutableMapping = {
             "operations": 0,
             "saves": 0,
             "errors": 0,
@@ -68,15 +83,15 @@ class StubDataManager(PawControlDataManager):
         }
         self._visitor_timings: deque[float] = deque(maxlen=50)
         self._metrics_sink: CoordinatorMetrics | None = None
-        self.saved_payload: dict[str, Any] | None = None
+        self.saved_payload: JSONMutableMapping | None = None
 
-    async def _get_namespace_data(self, namespace: str) -> dict[str, Any]:
+    async def _get_namespace_data(self, namespace: str) -> JSONMutableMapping:
         """Return empty namespace data for tests."""
 
         assert namespace == "visitor_mode"
-        return {}
+        return cast(JSONMutableMapping, {})
 
-    async def _save_namespace(self, namespace: str, data: dict[str, Any]) -> None:
+    async def _save_namespace(self, namespace: str, data: JSONMutableMapping) -> None:
         """Capture writes instead of hitting Home Assistant storage."""
 
         assert namespace == "visitor_mode"
@@ -152,13 +167,16 @@ class _DummyModules:
         return total
 
 
+ManualEventCallback = Callable[[Event], None]
+
+
 class _RecordingRegistrar(CacheMonitorRegistrar):
     """Capture cache monitor registrations for assertions."""
 
     def __init__(self) -> None:
-        self.monitors: dict[str, Any] = {}
+        self.monitors: dict[str, CacheMonitorTarget] = {}
 
-    def register_cache_monitor(self, name: str, cache: Any) -> None:
+    def register_cache_monitor(self, name: str, cache: CacheMonitorTarget) -> None:
         self.monitors[name] = cache
 
 
@@ -205,8 +223,11 @@ class _DummyTracker:
     def snapshots(self) -> tuple[_DummySnapshot, ...]:
         return self._snapshots
 
-    def summary(self) -> dict[str, Any]:
-        return {"peak_utilization": 75.0, "tracked": len(self._snapshots)}
+    def summary(self) -> JSONMutableMapping:
+        return cast(
+            JSONMutableMapping,
+            {"peak_utilization": 75.0, "tracked": len(self._snapshots)},
+        )
 
     def saturation(self) -> float:
         return 0.5
@@ -215,7 +236,7 @@ class _DummyTracker:
 class _ErrorSummaryTracker(_DummyTracker):
     """Tracker that raises when building a summary to exercise fallbacks."""
 
-    def summary(self) -> dict[str, Any]:  # type: ignore[override]
+    def summary(self) -> JSONMutableMapping:  # type: ignore[override]
         raise RuntimeError("tracker summary failed")
 
 
@@ -800,9 +821,11 @@ def test_script_manager_records_manual_event_trigger() -> None:
 
     class DummyBus:
         def __init__(self) -> None:
-            self.listeners: dict[str, list[Any]] = {}
+            self.listeners: dict[str, list[ManualEventCallback]] = {}
 
-        def async_listen(self, event_type: str, callback: Any) -> Callable[[], None]:
+        def async_listen(
+            self, event_type: str, callback: ManualEventCallback
+        ) -> Callable[[], None]:
             listeners = self.listeners.setdefault(event_type, [])
             listeners.append(callback)
 
@@ -818,7 +841,7 @@ def test_script_manager_records_manual_event_trigger() -> None:
             context_id: str = "ctx",
             user_id: str | None = "user",
             origin: str = "LOCAL",
-            data: Mapping[str, Any] | None = None,
+            data: Mapping[str, object] | None = None,
         ) -> None:
             event = SimpleNamespace(
                 event_type=event_type,
@@ -897,18 +920,29 @@ def test_script_manager_records_manual_event_trigger() -> None:
 async def test_script_manager_sync_manual_events_updates_blueprint() -> None:
     """Manual event preferences should update resilience blueprint inputs."""
 
+    @dataclass(slots=True)
+    class _ConfigEntryUpdateRecord:
+        entry: object
+        data: ConfigEntryDataPayload | None
+        options: PawControlOptionsData | None
+
     blueprint_inputs = {
         "manual_check_event": "pawcontrol_resilience_check",
         "manual_guard_event": "pawcontrol_manual_guard",
         "manual_breaker_event": "",
     }
 
-    updated_payloads: list[dict[str, Any]] = []
+    updated_payloads: list[_ConfigEntryUpdateRecord] = []
 
     def _async_update_entry(
-        entry: Any, *, data: dict[str, Any] | None = None, options: Any = None
+        entry: object,
+        *,
+        data: ConfigEntryDataPayload | None = None,
+        options: PawControlOptionsData | None = None,
     ) -> None:
-        updated_payloads.append({"entry": entry, "data": data, "options": options})
+        updated_payloads.append(
+            _ConfigEntryUpdateRecord(entry=entry, data=data, options=options)
+        )
 
     hass = SimpleNamespace(
         data={},
@@ -944,8 +978,9 @@ async def test_script_manager_sync_manual_events_updates_blueprint() -> None:
 
     assert len(updated_payloads) == 1
     payload = updated_payloads[0]
-    assert payload["entry"].entry_id == "automation-id"
-    blueprint_data = payload["data"]["use_blueprint"]
+    assert payload.entry.entry_id == "automation-id"
+    assert payload.data is not None
+    blueprint_data = payload.data["use_blueprint"]
     assert blueprint_data["path"].endswith("resilience_escalation_followup.yaml")
     inputs = blueprint_data["input"]
     assert inputs["manual_check_event"] == "pawcontrol_resilience_check_custom"
@@ -1570,11 +1605,14 @@ class _StaticCache:
     def __init__(self, marker: str) -> None:
         self._marker = marker
 
-    def coordinator_snapshot(self) -> dict[str, Any]:
-        return {
-            "stats": {"marker": self._marker},
-            "diagnostics": {"marker": self._marker},
-        }
+    def coordinator_snapshot(self) -> JSONMutableMapping:
+        return cast(
+            JSONMutableMapping,
+            {
+                "stats": {"marker": self._marker},
+                "diagnostics": {"marker": self._marker},
+            },
+        )
 
 
 class _DummyNotificationManager:
@@ -1600,7 +1638,7 @@ class _DummyPersonManager:
 class _DummyCoordinator:
     """Coordinator stub implementing the binding protocol for tests."""
 
-    def __init__(self, hass: Any) -> None:
+    def __init__(self, hass: HomeAssistant) -> None:
         self.hass = hass
         self.config_entry = SimpleNamespace(entry_id="coordinator-test")
         self.data_manager = None
@@ -1626,11 +1664,11 @@ class _DummyModulesAdapter:
         self,
         *,
         data_manager: PawControlDataManager | None,
-        feeding_manager: Any | None,
-        walk_manager: Any | None,
-        gps_geofence_manager: Any | None,
-        weather_health_manager: Any | None,
-        garden_manager: Any | None,
+        feeding_manager: FeedingManager | None,
+        walk_manager: WalkManager | None,
+        gps_geofence_manager: GPSGeofenceManager | None,
+        weather_health_manager: WeatherHealthManager | None,
+        garden_manager: GardenManager | None,
     ) -> None:
         self.attached = True
 

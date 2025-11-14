@@ -21,7 +21,11 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 from aiohttp import ClientSession
-from custom_components.pawcontrol.types import FeedingManagerDogSetupPayload
+from custom_components.pawcontrol.types import (
+    CoordinatorDogData,
+    FeedingManagerDogSetupPayload,
+    JSONMutableMapping,
+)
 from homeassistant.core import HomeAssistant
 from sitecustomize import _patch_pytest_async_fixture
 
@@ -455,7 +459,7 @@ def assert_valid_dog_data():
         Validation function
     """
 
-    def _assert(data: dict[str, Any]) -> None:
+    def _assert(data: CoordinatorDogData) -> None:
         """Validate dog data structure."""
         assert "dog_info" in data
         assert "status" in data
@@ -521,18 +525,22 @@ def create_walk_event():
         duration_minutes: float = 30.0,
         distance_meters: float = 1500.0,
         walker: str | None = None,
-    ) -> dict[str, Any]:
+    ) -> JSONMutableMapping:
         """Create walk event data."""
-        return {
+        end_time = datetime.now(UTC)
+        start_time = end_time - timedelta(minutes=duration_minutes)
+
+        event: JSONMutableMapping = {
             "dog_id": dog_id,
-            "start_time": datetime.now(UTC) - timedelta(minutes=duration_minutes),
-            "end_time": datetime.now(UTC),
+            "start_time": start_time.isoformat(),
+            "end_time": end_time.isoformat(),
             "duration_minutes": duration_minutes,
             "distance_meters": distance_meters,
             "walker": walker,
             "weather": None,
             "leash_used": True,
         }
+        return event
 
     return _create
 

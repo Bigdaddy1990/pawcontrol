@@ -15,6 +15,7 @@ from unittest.mock import patch
 import pytest
 from custom_components.pawcontrol.const import DOMAIN
 from homeassistant import config_entries
+from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.data_entry_flow import FlowResultType
 from homeassistant.helpers.service_info.dhcp import DhcpServiceInfo
@@ -37,7 +38,7 @@ EXTERNAL_ENTITY_MODULE_TOGGLES = {
 }
 
 
-def _current_step(result: dict[str, Any]) -> str:
+def _current_step(result: ConfigFlowResult) -> str:
     """Return the underlying flow step identifier."""
 
     return result.get("__real_step_id", result["step_id"])
