@@ -357,7 +357,9 @@ def _install_core_module() -> None:
 
     class _ServiceRegistry:
         def __init__(self) -> None:
-            self._services: dict[str, dict[str, Callable[..., object]]] = defaultdict(dict)
+            self._services: dict[str, dict[str, Callable[..., object]]] = defaultdict(
+                dict
+            )
 
         def async_register(
             self,
@@ -1318,9 +1320,7 @@ def _install_helper_modules() -> None:
                 {
                     "type": "abort",
                     "reason": reason,
-                    "description_placeholders": dict(
-                        description_placeholders or {}
-                    ),
+                    "description_placeholders": dict(description_placeholders or {}),
                 },
             )
 
@@ -1339,9 +1339,7 @@ def _install_helper_modules() -> None:
                     "step_id": step_id,
                     "data_schema": data_schema,
                     "errors": dict(errors or {}),
-                    "description_placeholders": dict(
-                        description_placeholders or {}
-                    ),
+                    "description_placeholders": dict(description_placeholders or {}),
                 },
             )
 
@@ -1358,9 +1356,7 @@ def _install_helper_modules() -> None:
                     "type": "menu",
                     "step_id": step_id,
                     "menu_options": list(menu_options),
-                    "description_placeholders": dict(
-                        description_placeholders or {}
-                    ),
+                    "description_placeholders": dict(description_placeholders or {}),
                 },
             )
 
@@ -1430,9 +1426,7 @@ def _install_helper_modules() -> None:
                 return None
             return state.state
 
-        def render(
-            self, variables: FlowContext | None = None, **kwargs: Any
-        ) -> Any:
+        def render(self, variables: FlowContext | None = None, **kwargs: Any) -> Any:
             template = self._sync_environment.from_string(self._template)
             context: dict[str, object] = dict(variables or {})
             context.update(kwargs)
@@ -2092,9 +2086,7 @@ def _install_component_modules() -> None:
 
         async def _execute(actions: list[AutomationAction], trigger_name: str) -> None:
             state = hass.states.get(str(script_entity_id)) if script_entity_id else None
-            fields: FlowContext = (
-                state.attributes.get("fields", {}) if state else {}
-            )
+            fields: FlowContext = state.attributes.get("fields", {}) if state else {}
             skip_threshold = _coerce_threshold(fields.get("skip_threshold"), 3)
             breaker_threshold = _coerce_threshold(fields.get("breaker_threshold"), 1)
 
@@ -2641,4 +2633,3 @@ def _get_template_executor() -> ThreadPoolExecutor:
             executor.submit(lambda: None).result()
 
     return executor
-

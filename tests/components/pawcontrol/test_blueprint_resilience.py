@@ -27,13 +27,11 @@ from .blueprint_helpers import BLUEPRINT_RELATIVE_PATH, ResilienceBlueprintConte
 async def test_resilience_blueprint_manual_events_execute(hass: HomeAssistant) -> None:
     """Manual guard/breaker events should execute the blueprint automation."""
 
-    context = create_resilience_blueprint_context(
-        hass, watch_automation_events=True
-    )
+    context = create_resilience_blueprint_context(hass, watch_automation_events=True)
 
-    assert context.registered_services == (
-        RESILIENCE_BLUEPRINT_REGISTERED_SERVICES
-    ), "Context factory should register the shared resilience services"
+    assert context.registered_services == (RESILIENCE_BLUEPRINT_REGISTERED_SERVICES), (
+        "Context factory should register the shared resilience services"
+    )
 
     try:
         base_context: ResilienceBlueprintContext = context.build_context()

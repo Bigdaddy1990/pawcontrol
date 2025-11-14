@@ -46,9 +46,7 @@ def _create_entry(
     """Create a mock config entry with the provided dogs and options."""
 
     dog_list: list[DogConfigData] = (
-        [cast(DogConfigData, dict(dog)) for dog in dogs]
-        if dogs is not None
-        else []
+        [cast(DogConfigData, dict(dog)) for dog in dogs] if dogs is not None else []
     )
 
     data: ConfigEntryDataPayload = ConfigEntryDataPayload(

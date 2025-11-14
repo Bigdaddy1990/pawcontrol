@@ -133,16 +133,16 @@ def fetch_pypi_metadata() -> dict[str, Any]:
         response = requests.get(PYPI_URL, timeout=20)
         response.raise_for_status()
     except requests.RequestException as exc:
-        raise MonitoringError(
-            "Failed to fetch PyYAML metadata from PyPI"
-        ) from exc
+        raise MonitoringError("Failed to fetch PyYAML metadata from PyPI") from exc
     data = response.json()
     if "releases" not in data:
         raise MonitoringError("PyPI response is missing release metadata.")
     return data
 
 
-def select_latest_release(data: dict[str, Any]) -> tuple[Version | None, list[dict[str, Any]]]:
+def select_latest_release(
+    data: dict[str, Any],
+) -> tuple[Version | None, list[dict[str, Any]]]:
     """Return the newest stable release and its file entries."""
 
     latest_version: Version | None = None
@@ -223,11 +223,11 @@ def query_osv(vendor_version: Version) -> list[VulnerabilityRecord]:
         response = requests.post(OSV_URL, json=payload, timeout=20)
         response.raise_for_status()
     except requests.RequestException as exc:
-        raise MonitoringError(
-            "Failed to query OSV for PyYAML vulnerabilities"
-        ) from exc
+        raise MonitoringError("Failed to query OSV for PyYAML vulnerabilities") from exc
     data = response.json()
-    entries: list[dict[str, Any]] = data.get("vulns") or data.get("vulnerabilities") or []
+    entries: list[dict[str, Any]] = (
+        data.get("vulns") or data.get("vulnerabilities") or []
+    )
     results: list[VulnerabilityRecord] = []
     for entry in entries:
         affected = entry.get("affected", [])
@@ -245,7 +245,9 @@ def query_osv(vendor_version: Version) -> list[VulnerabilityRecord]:
         if not matches_version:
             continue
         severity = entry.get("database_specific", {}).get("severity")
-        references = [ref.get("url") for ref in entry.get("references", []) if ref.get("url")]
+        references = [
+            ref.get("url") for ref in entry.get("references", []) if ref.get("url")
+        ]
         results.append(
             VulnerabilityRecord(
                 identifier=entry.get("id", "unknown"),
@@ -281,7 +283,11 @@ def locate_target_wheel(
             if file_entry.get("packagetype") != "bdist_wheel":
                 continue
             filename = file_entry.get("filename", "")
-            if python_tag in filename and platform_fragment in filename and not file_entry.get("yanked", False):
+            if (
+                python_tag in filename
+                and platform_fragment in filename
+                and not file_entry.get("yanked", False)
+            ):
                 return version, filename
     return None, ""
 
@@ -326,7 +332,9 @@ def build_summary(result: MonitoringResult) -> str:
                     f"    * References: {', '.join(vuln.references[:3])}"
                 )
     else:
-        summary_lines.append("* ✅ No published OSV vulnerabilities affect the vendored release.")
+        summary_lines.append(
+            "* ✅ No published OSV vulnerabilities affect the vendored release."
+        )
     summary_lines.append("")
     return "\n".join(summary_lines)
 

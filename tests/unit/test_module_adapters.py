@@ -92,9 +92,7 @@ def module_adapters(monkeypatch: pytest.MonkeyPatch):
     device_api_stub = ModuleType("custom_components.pawcontrol.device_api")
 
     class PawControlDeviceClient:  # pragma: no cover - only used for typing
-        async def async_get_feeding_payload(
-            self, dog_id: str
-        ) -> JSONMutableMapping:
+        async def async_get_feeding_payload(self, dog_id: str) -> JSONMutableMapping:
             raise NotImplementedError
 
     device_api_stub.PawControlDeviceClient = PawControlDeviceClient

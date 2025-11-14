@@ -127,7 +127,7 @@ async def _render_template(
 
 
 def _normalise_actions(
-    actions: Iterable[Mapping[str, object]]
+    actions: Iterable[Mapping[str, object]],
 ) -> list[MutableMapping[str, object]]:
     """Return a copy of action definitions for deterministic execution."""
 
@@ -142,15 +142,9 @@ async def test_resilience_blueprint_manual_events_end_to_end(
 
     blueprint_source = get_blueprint_source(BLUEPRINT_RELATIVE_PATH)
 
-    blueprint = cast(
-        BlueprintDocument, yaml.safe_load(blueprint_source.read_text())
-    )
-    blueprint_variables = cast(
-        BlueprintVariables, blueprint.get("variables", {})
-    )
-    blueprint_actions = cast(
-        BlueprintActionSequence, blueprint.get("action", ())
-    )
+    blueprint = cast(BlueprintDocument, yaml.safe_load(blueprint_source.read_text()))
+    blueprint_variables = cast(BlueprintVariables, blueprint.get("variables", {}))
+    blueprint_actions = cast(BlueprintActionSequence, blueprint.get("action", ()))
 
     context = create_resilience_blueprint_context(hass)
 
@@ -322,17 +316,12 @@ async def test_resilience_blueprint_manual_events_end_to_end(
                 guard_choose["conditions"][0]["value_template"],
                 {**context_data, "trigger": trigger},
             )
-            if (
-                _coerce_bool(guard_condition)
-                and base_context["guard_followup_actions"]
-            ):
+            if _coerce_bool(guard_condition) and base_context["guard_followup_actions"]:
                 for action in _normalise_actions(
                     base_context["guard_followup_actions"]
                 ):
                     domain, service = action["service"].split(".")
-                    payload = cast(
-                        MutableMapping[str, object], action.get("data", {})
-                    )
+                    payload = cast(MutableMapping[str, object], action.get("data", {}))
                     await _call_service(domain, service, payload)
 
             breaker_choose = blueprint_actions[2]["choose"][0]
@@ -349,9 +338,7 @@ async def test_resilience_blueprint_manual_events_end_to_end(
                     base_context["breaker_followup_actions"]
                 ):
                     domain, service = action["service"].split(".")
-                    payload = cast(
-                        MutableMapping[str, object], action.get("data", {})
-                    )
+                    payload = cast(MutableMapping[str, object], action.get("data", {}))
                     await _call_service(domain, service, payload)
 
         script_manager._handle_manual_event(

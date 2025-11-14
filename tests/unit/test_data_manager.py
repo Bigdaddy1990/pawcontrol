@@ -91,9 +91,7 @@ class StubDataManager(PawControlDataManager):
         assert namespace == "visitor_mode"
         return cast(JSONMutableMapping, {})
 
-    async def _save_namespace(
-        self, namespace: str, data: JSONMutableMapping
-    ) -> None:
+    async def _save_namespace(self, namespace: str, data: JSONMutableMapping) -> None:
         """Capture writes instead of hitting Home Assistant storage."""
 
         assert namespace == "visitor_mode"
