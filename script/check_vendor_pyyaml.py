@@ -212,6 +212,57 @@ def _format_range(events: list[dict[str, str]]) -> str | None:
     return ", ".join(segments)
 
 
+def _normalise_severity(raw: str | None) -> str | None:
+    if raw is None:
+        return None
+    normalised = raw.strip().upper()
+    if not normalised:
+        return None
+    if normalised == "MODERATE":
+        normalised = "MEDIUM"
+    return normalised if normalised in SEVERITY_ORDER else None
+
+
+def _severity_from_cvss(score: float) -> str:
+    if score >= 9.0:
+        return "CRITICAL"
+    if score >= 7.0:
+        return "HIGH"
+    if score >= 4.0:
+        return "MEDIUM"
+    if score > 0:
+        return "LOW"
+    return "LOW"
+
+
+def _derive_severity(entry: dict[str, Any]) -> str:
+    database_specific = entry.get("database_specific", {})
+    severity = _normalise_severity(database_specific.get("severity"))
+    if severity is not None:
+        return severity
+    severity_entries = entry.get("severity") or []
+    highest_score: float | None = None
+    for record in severity_entries:
+        score = record.get("score")
+        numeric: float | None
+        if isinstance(score, (int, float)):
+            numeric = float(score)
+        elif isinstance(score, str):
+            try:
+                numeric = float(score)
+            except ValueError:
+                numeric = None
+        else:
+            numeric = None
+        if numeric is None:
+            continue
+        if highest_score is None or numeric > highest_score:
+            highest_score = numeric
+    if highest_score is not None:
+        return _severity_from_cvss(highest_score)
+    return "CRITICAL"
+
+
 def query_osv(vendor_version: Version) -> list[VulnerabilityRecord]:
     """Return vulnerabilities that still affect the vendored version."""
 
@@ -244,7 +295,7 @@ def query_osv(vendor_version: Version) -> list[VulnerabilityRecord]:
                         range_description = _format_range(events)
         if not matches_version:
             continue
-        severity = entry.get("database_specific", {}).get("severity")
+        severity = _derive_severity(entry)
         references = [
             ref.get("url") for ref in entry.get("references", []) if ref.get("url")
         ]

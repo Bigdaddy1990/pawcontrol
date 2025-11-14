@@ -5,10 +5,6 @@ on:
   schedule:
     - cron: "0 5 * * *"
 
-env:
-  PYTHON_VERSION: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.13' }}
-  HA_VERSION: ${{ vars.HA_VERSION != '' && vars.HA_VERSION || '2025.9.3' }}
-
 jobs:
   smoke:
     runs-on: ubuntu-latest
@@ -19,7 +15,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.13' }}
           cache: pip
           cache-dependency-path: |
             requirements.txt
@@ -34,7 +30,7 @@ jobs:
 
       - name: Install Home Assistant and PawControl
         env:
-          HA_SPEC: ${{ format('=={0}', env.HA_VERSION) }}
+          HA_SPEC: ${{ format('=={0}', vars.HA_VERSION != '' && vars.HA_VERSION || '2025.9.3') }}
         run: |
           python -m pip install --no-cache-dir "homeassistant${HA_SPEC}"
           python -m pip install --no-cache-dir -e .

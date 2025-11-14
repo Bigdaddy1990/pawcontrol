@@ -11,10 +11,6 @@ on:
         required: true
         type: string
 
-env:
-  PYTHON_VERSION: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.13' }}
-  HA_VERSION: ${{ vars.HA_VERSION != '' && vars.HA_VERSION || '2025.9.3' }}
-
 jobs:
   prepare-release:
     name: Prepare Release
@@ -76,8 +72,8 @@ jobs:
     needs: prepare-release
     uses: ./.github/workflows/reusable-python-tests.yml
     with:
-      python-version: ${{ env.PYTHON_VERSION }}
-      home-assistant-spec: ${{ format('=={0}', env.HA_VERSION) }}
+      python-version: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.13' }}
+      home-assistant-spec: ${{ format('=={0}', vars.HA_VERSION != '' && vars.HA_VERSION || '2025.9.3') }}
       coverage-min: ${{ vars.RELEASE_COVERAGE_MIN != '' && vars.RELEASE_COVERAGE_MIN || (vars.CI_COVERAGE_MIN != '' && vars.CI_COVERAGE_MIN || '95') }}
       run-codecov: false
       upload-coverage-artifact: false
@@ -154,6 +150,9 @@ jobs:
           "
 
       - name: Create release package
+        env:
+          HA_VERSION: ${{ vars.HA_VERSION != '' && vars.HA_VERSION || '2025.9.3' }}
+          PYTHON_VERSION: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.13' }}
         run: |
           VERSION="${{ needs.prepare-release.outputs.version }}"
 
@@ -188,8 +187,8 @@ jobs:
           ${{ needs.prepare-release.outputs.changelog }}
 
           ## Requirements
-          - Home Assistant ${{ env.HA_VERSION }}+
-          - Python ${{ env.PYTHON_VERSION }}+
+          - Home Assistant ${HA_VERSION}+
+          - Python ${PYTHON_VERSION}+
 
           ## Support
           - [Documentation](https://github.com/BigDaddy1990/pawcontrol#readme)
@@ -207,7 +206,7 @@ jobs:
 
   create-github-release:
     name: Create GitHub Release
-    needs: [prepare-release, test-and-validate, build-release]
+    needs: [prepare-release, test-suite, build-release]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -242,8 +241,8 @@ jobs:
             Download `pawcontrol_v${{ needs.prepare-release.outputs.version }}.zip` and extract to `config/custom_components/`
 
             ## Requirements
-            - Home Assistant ${{ env.HA_VERSION }} or newer
-            - Python ${{ env.PYTHON_VERSION }}+
+            - Home Assistant ${{ vars.HA_VERSION != '' && vars.HA_VERSION || '2025.9.3' }} or newer
+            - Python ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.13' }}+
 
             ## Documentation
             - [Setup Guide](https://github.com/BigDaddy1990/pawcontrol/blob/main/docs/setup_installation_guide.md)
@@ -259,7 +258,7 @@ jobs:
 
   submit-pypi:
     name: Publish to PyPI
-    needs: [prepare-release, test-and-validate]
+    needs: [prepare-release, test-suite]
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'pull_request' && github.event_name != 'pull_request_target' }}
 
@@ -270,7 +269,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.13' }}
           cache: "pip"
 
       - name: Install build tooling

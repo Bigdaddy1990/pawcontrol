@@ -15,7 +15,7 @@ now present in the repository to highlight which requirements are satisfied and 
 ## 2. Platinum readiness snapshot
 - ✅ **Config flow & options** – UI configuration, options flow parity, and translation coverage are documented and tested.【F:README.md†L292-L313】【F:docs/production_integration_documentation.md†L250-L353】
 - ✅ **Diagnostics & repairs** – Diagnostics export anonymised data and repairs flows are described for reviewer validation.【F:README.md†L722-L741】【F:docs/diagnostik.md†L24-L48】
-- ✅ **Testing discipline** – Ruff, pytest, and MyPy baselines sind dokumentiert, und der reservierte
+- ✅ **Testing discipline** – Ruff-, Pytest- und MyPy-Baselines sind dokumentiert. Der reservierte
   Vollsuite-Workflow erzwingt für manuelle Dispatches `override_ci_window=true` plus einen dokumentierten `run_reason`, sodass
   das abgestimmte Zeitfenster geschützt bleibt. Der wöchentliche Vendor-Wächter prüft zusätzlich PyYAML-Updates und OSV-Hinweise,
   und der CI-Job „TypedDict audit“ stoppt Pipelines sofort, wenn neue `dict[str, Any]`-/`Mapping[str, Any]`-Fundstellen in
