@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from types import MappingProxyType, SimpleNamespace
 from typing import Any, cast
 
@@ -22,6 +23,7 @@ from custom_components.pawcontrol.types import (
     DogModulesConfig,
     ExternalEntityConfig,
 )
+from tests.helpers.homeassistant_test_stubs import MutableFlowResultDict
 
 
 class _FakeStates(dict[str, SimpleNamespace]):
@@ -62,31 +64,41 @@ class _ExternalEntityFlow(ExternalEntityConfigurationMixin):
         self._enabled_modules = modules
         self._external_entities = external_entities or ExternalEntityConfig()
         self._dogs: list[DogConfigData] = []
-        self.shown_forms: list[dict[str, Any]] = []
+        self.shown_forms: list[MutableFlowResultDict] = []
         self.finalised: list[ExternalEntityConfig | None] = []
 
     async def async_step_final_setup(
         self, user_input: ExternalEntityConfig | None = None
-    ) -> dict[str, Any]:
+    ) -> MutableFlowResultDict:
         self.finalised.append(user_input)
-        return {"type": "create_entry", "data": user_input}
+        return cast(
+            MutableFlowResultDict,
+            {"type": "create_entry", "data": user_input},
+        )
 
     def async_show_form(
         self,
         *,
         step_id: str,
         data_schema: Any,
-        description_placeholders: dict[str, Any] | None = None,
+        description_placeholders: Mapping[str, object] | None = None,
         errors: dict[str, str] | None = None,
-    ) -> dict[str, Any]:
-        form_record = {
-            "step_id": step_id,
-            "schema": data_schema,
-            "description_placeholders": description_placeholders or {},
-            "errors": errors or {},
-        }
+    ) -> MutableFlowResultDict:
+        form_record = cast(
+            MutableFlowResultDict,
+            {
+                "step_id": step_id,
+                "schema": data_schema,
+                "description_placeholders": (
+                    description_placeholders
+                    if description_placeholders is not None
+                    else {}
+                ),
+                "errors": errors or {},
+            },
+        )
         self.shown_forms.append(form_record)
-        return {"type": "form", **form_record}
+        return cast(MutableFlowResultDict, {"type": "form", **form_record})
 
     def _get_available_device_trackers(self) -> dict[str, str]:
         return {"device_tracker.main_phone": "Main phone"}

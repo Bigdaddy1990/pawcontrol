@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Final
+from typing import Final, TypedDict
 
 from homeassistant.core import HomeAssistant
 
@@ -11,7 +11,47 @@ BLUEPRINT_RELATIVE_PATH: Final[str] = (
     "automation/pawcontrol/resilience_escalation_followup.yaml"
 )
 
-DEFAULT_RESILIENCE_BLUEPRINT_CONTEXT: Final[dict[str, object]] = {
+
+class ResilienceBlueprintActionData(TypedDict):
+    """Payload passed to blueprint follow-up automation actions."""
+
+    reason: str
+
+
+class ResilienceBlueprintAction(TypedDict):
+    """Service invocation template defined inside the blueprint."""
+
+    service: str
+    data: ResilienceBlueprintActionData
+
+
+class ResilienceBlueprintContext(TypedDict):
+    """Default input context used when loading the resilience blueprint."""
+
+    statistics_sensor: str
+    escalation_script: str
+    guard_followup_actions: list[ResilienceBlueprintAction]
+    breaker_followup_actions: list[ResilienceBlueprintAction]
+    watchdog_interval_minutes: int
+    manual_check_event: str
+    manual_guard_event: str
+    manual_breaker_event: str
+
+
+class ResilienceBlueprintOverrides(TypedDict, total=False):
+    """Optional overrides applied to the default resilience blueprint context."""
+
+    statistics_sensor: str
+    escalation_script: str
+    guard_followup_actions: list[ResilienceBlueprintAction]
+    breaker_followup_actions: list[ResilienceBlueprintAction]
+    watchdog_interval_minutes: int
+    manual_check_event: str
+    manual_guard_event: str
+    manual_breaker_event: str
+
+
+DEFAULT_RESILIENCE_BLUEPRINT_CONTEXT: Final[ResilienceBlueprintContext] = {
     "statistics_sensor": "sensor.pawcontrol_statistics",
     "escalation_script": "script.pawcontrol_test_resilience_escalation",
     "guard_followup_actions": [

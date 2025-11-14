@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+from collections.abc import Mapping
 from copy import deepcopy
 from datetime import UTC, datetime
 from types import ModuleType, SimpleNamespace
@@ -34,7 +35,11 @@ from custom_components.pawcontrol.const import (
 )
 from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
 from custom_components.pawcontrol.exceptions import PawControlSetupError
-from custom_components.pawcontrol.types import DogModuleSelectionInput
+from custom_components.pawcontrol.types import (
+    DogConfigData,
+    DogModulesConfig,
+    DogModuleSelectionInput,
+)
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -108,7 +113,7 @@ def test_config_flow_not_ready_alias_rebinds() -> None:
             assert restored is original_candidate
 
 
-def _assert_step_id(result: dict[str, Any], expected: str) -> None:
+def _assert_step_id(result: Mapping[str, object], expected: str) -> None:
     """Assert the underlying flow step matches the expectation."""
 
     actual = result.get("__real_step_id", result["step_id"])
@@ -622,23 +627,22 @@ async def test_reconfigure_merges_option_dog_payloads(
     )
     entry.add_to_hass(hass)
 
-    calls: list[tuple[str, dict[str, dict[str, bool]]]] = []
+    calls: list[tuple[str, dict[str, DogModulesConfig]]] = []
 
     async def _fake_estimate(
         self: config_flow.PawControlConfigFlow,
-        dogs: list[dict[str, Any]],
+        dogs: list[DogConfigData],
         profile: str = "standard",
     ) -> int:
-        modules_by_id: dict[str, dict[str, bool]] = {}
+        modules_by_id: dict[str, DogModulesConfig] = {}
         for dog in dogs:
             dog_id = dog[CONF_DOG_ID]
-            modules = {
-                module: bool(value)
-                for module, value in cast(
-                    dict[str, Any], dog.get(CONF_MODULES, {})
-                ).items()
-            }
-            modules_by_id[dog_id] = modules
+            source_modules = cast(DogModulesConfig, dog.get(CONF_MODULES, {}))
+            normalised: DogModulesConfig = cast(
+                DogModulesConfig,
+                {module: bool(value) for module, value in dict(source_modules).items()},
+            )
+            modules_by_id[dog_id] = normalised
         calls.append((profile, modules_by_id))
         return 5 if profile == "basic" else 4
 
@@ -744,19 +748,19 @@ async def test_reconfigure_normalises_legacy_module_lists(
     )
     entry.add_to_hass(hass)
 
-    modules_capture: list[dict[str, dict[str, bool]]] = []
+    modules_capture: list[dict[str, DogModulesConfig]] = []
 
     async def _capture_modules(
         self: config_flow.PawControlConfigFlow,
-        dogs: list[dict[str, Any]],
+        dogs: list[DogConfigData],
         profile: str = "standard",
     ) -> int:
-        modules_by_id: dict[str, dict[str, bool]] = {}
+        modules_by_id: dict[str, DogModulesConfig] = {}
         for dog in dogs:
             dog_id = dog[CONF_DOG_ID]
             modules_by_id[dog_id] = cast(
-                dict[str, bool],
-                dict(cast(dict[str, bool], dog.get(CONF_MODULES, {}))),
+                DogModulesConfig,
+                dict(cast(DogModulesConfig, dog.get(CONF_MODULES, {}))),
             )
         modules_capture.append(modules_by_id)
         return 0
@@ -1005,11 +1009,11 @@ async def test_reconfigure_accepts_legacy_identifier_aliases(
     )
     entry.add_to_hass(hass)
 
-    dogs_capture: list[list[dict[str, Any]]] = []
+    dogs_capture: list[list[DogConfigData]] = []
 
     async def _capture_dogs(
         self: config_flow.PawControlConfigFlow,
-        dogs: list[dict[str, Any]],
+        dogs: list[DogConfigData],
         profile: str = "standard",
     ) -> int:
         dogs_capture.append(deepcopy(dogs))
@@ -1035,7 +1039,7 @@ async def test_reconfigure_accepts_legacy_identifier_aliases(
     assert payload[CONF_DOG_ID] == "buddy"
     assert payload[CONF_DOG_NAME] == "Buddy Legacy"
 
-    modules = cast(dict[str, bool], payload[CONF_MODULES])
+    modules = cast(DogModulesConfig, payload[CONF_MODULES])
     assert modules[MODULE_WALK] is True
     assert modules[MODULE_NOTIFICATIONS] is False
     assert modules[MODULE_DASHBOARD] is True

@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable, Callable
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -27,6 +27,8 @@ from custom_components.pawcontrol.types import (
     DOG_ID_FIELD,
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
+    JSONLikeMapping,
+    JSONMutableMapping,
     PawControlRuntimeData,
     ensure_dog_config_data,
     ensure_dog_modules_config,
@@ -138,10 +140,14 @@ async def _register_services(
     return registered
 
 
-def _service_call(service: str, data: Mapping[str, Any]) -> ServiceCall:
+def _service_call(service: str, data: JSONLikeMapping) -> ServiceCall:
     """Create a ServiceCall instance mirroring Home Assistant behavior."""
 
-    return ServiceCall(DOMAIN, service, data)
+    return ServiceCall(
+        DOMAIN,
+        service,
+        cast(JSONMutableMapping, dict(data)),
+    )
 
 
 @pytest.mark.asyncio

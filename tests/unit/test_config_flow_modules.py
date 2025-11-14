@@ -36,6 +36,8 @@ from custom_components.pawcontrol.types import (
     ModuleConfigurationSummary,
     dog_modules_from_flow_input,
 )
+from homeassistant.config_entries import ConfigFlowResult
+from homeassistant.data_entry_flow import FlowResultType
 
 
 def test_coerce_module_global_settings_defaults() -> None:
@@ -204,20 +206,26 @@ class _ModuleFlowHarness(ModuleConfigurationMixin):
         self._enabled_modules = cast(DogModulesConfig, {})
         self._external_entities = cast(ExternalEntityConfig, {})
         self.hass = SimpleNamespace(config=SimpleNamespace(language=language))
-        self.forms: list[dict[str, Any]] = []
+        self.forms: list[ConfigFlowResult] = []
         self.transitions: list[str] = []
 
     async def async_step_configure_external_entities(
         self, user_input: dict[str, object] | None = None
-    ) -> dict[str, Any]:
+    ) -> ConfigFlowResult:
         self.transitions.append("external_entities")
-        return {"type": "form", "step_id": "configure_external_entities"}
+        return {
+            "type": FlowResultType.FORM,
+            "step_id": "configure_external_entities",
+        }
 
     async def async_step_final_setup(
         self, user_input: dict[str, object] | None = None
-    ) -> dict[str, Any]:
+    ) -> ConfigFlowResult:
         self.transitions.append("final_setup")
-        return {"type": "create_entry", "data": user_input or {}}
+        return {
+            "type": FlowResultType.CREATE_ENTRY,
+            "data": user_input or {},
+        }
 
     def async_show_form(
         self,
@@ -226,20 +234,21 @@ class _ModuleFlowHarness(ModuleConfigurationMixin):
         data_schema: Any,
         description_placeholders: MappingProxyType[str, Any] | None = None,
         errors: dict[str, str] | None = None,
-    ) -> dict[str, Any]:
+    ) -> ConfigFlowResult:
         placeholders = (
             description_placeholders
             if description_placeholders is not None
             else MappingProxyType({})
         )
-        form = {
+        form: ConfigFlowResult = {
+            "type": FlowResultType.FORM,
             "step_id": step_id,
             "schema": data_schema,
             "description_placeholders": placeholders,
             "errors": errors or {},
         }
         self.forms.append(form)
-        return {"type": "form", **form}
+        return form
 
 
 @pytest.mark.asyncio

@@ -13,6 +13,7 @@ from custom_components.pawcontrol.helpers import (
     PawControlDataStorage,
 )
 from custom_components.pawcontrol.types import (
+    StorageCacheValue,
     StorageNamespaceKey,
     StorageNamespacePayload,
     StorageNamespaceState,
@@ -25,14 +26,21 @@ class _DummyCache:
     """Simple in-memory cache stand-in for tests."""
 
     def __init__(self) -> None:
-        self.values: dict[str, Any] = {}
+        self.values: dict[str, StorageCacheValue | None] = {}
 
-    async def get(self, key: str, default: Any = None) -> Any:
+    async def get(
+        self, key: str, default: StorageCacheValue | None = None
+    ) -> StorageCacheValue | None:
         """Return a cached value if present."""
 
         return self.values.get(key, default)
 
-    async def set(self, key: str, value: Any, ttl_seconds: int = 300) -> None:
+    async def set(
+        self,
+        key: str,
+        value: StorageCacheValue | None,
+        ttl_seconds: int = 300,
+    ) -> None:
         """Store a value in the cache."""
 
         self.values[key] = value

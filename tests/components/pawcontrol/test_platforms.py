@@ -4,29 +4,33 @@ from __future__ import annotations
 
 import importlib
 from collections.abc import Iterable
-from typing import Any
+from typing import cast
 
 import custom_components.pawcontrol as pawcontrol_module
 import pytest
 from custom_components.pawcontrol.const import (
     CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_MODULES,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_NOTIFICATIONS,
     MODULE_WALK,
 )
+from custom_components.pawcontrol.types import DogConfigData, DogModulesConfig
 from homeassistant.const import Platform
 
 
 def _build_dogs_config(
     modules_per_dog: Iterable[Iterable[str]],
-) -> list[dict[str, Any]]:
+) -> list[DogConfigData]:
     """Create a dogs configuration payload from enabled module sets."""
     return [
         {
             CONF_DOG_ID: f"dog_{index}",
-            "modules": {module: True for module in modules},
+            CONF_DOG_NAME: f"Dog {index}",
+            CONF_MODULES: cast(DogModulesConfig, {module: True for module in modules}),
         }
         for index, modules in enumerate(modules_per_dog, start=1)
     ]

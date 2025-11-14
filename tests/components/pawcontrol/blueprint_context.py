@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from contextlib import AbstractAsyncContextManager, AbstractContextManager
+from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import Any, Final
+from typing import Final, cast
 
 from homeassistant.components.automation import EVENT_AUTOMATION_TRIGGERED
 from homeassistant.core import (
@@ -18,6 +20,8 @@ from homeassistant.core import (
 from .blueprint_helpers import (
     BLUEPRINT_RELATIVE_PATH,
     DEFAULT_RESILIENCE_BLUEPRINT_CONTEXT,
+    ResilienceBlueprintContext,
+    ResilienceBlueprintOverrides,
     ensure_blueprint_imported,
 )
 
@@ -35,11 +39,14 @@ RESILIENCE_BLUEPRINT_REGISTERED_SERVICES: Final[frozenset[RegisteredService]] = 
 
 
 @dataclass(slots=True)
-class ResilienceBlueprintContext:
+class ResilienceBlueprintHarness(
+    AbstractContextManager["ResilienceBlueprintHarness"],
+    AbstractAsyncContextManager["ResilienceBlueprintHarness"],
+):
     """Container describing the shared blueprint automation test context."""
 
     hass: HomeAssistant
-    base_context: dict[str, Any]
+    base_context: ResilienceBlueprintContext
     script_calls: list[ServiceCall] = field(default_factory=list)
     guard_calls: list[ServiceCall] = field(default_factory=list)
     breaker_calls: list[ServiceCall] = field(default_factory=list)
@@ -49,12 +56,55 @@ class ResilienceBlueprintContext:
     )
     _unsubscribe: CALLBACK_TYPE | None = field(default=None, repr=False)
 
+    def __enter__(self) -> ResilienceBlueprintHarness:  # pragma: no cover - shim
+        return self
+
+    def __exit__(self, *_exc: object) -> None:
+        self.cleanup()
+
+    async def __aenter__(self) -> ResilienceBlueprintHarness:  # pragma: no cover
+        return self
+
+    async def __aexit__(self, *_exc: object) -> None:
+        await self.async_cleanup()
+
     def cleanup(self) -> None:
         """Release registered callbacks for Home Assistant listeners."""
 
         if self._unsubscribe:
             self._unsubscribe()
             self._unsubscribe = None
+        self.script_calls.clear()
+        self.guard_calls.clear()
+        self.breaker_calls.clear()
+        self.automation_events.clear()
+
+    async def async_cleanup(self) -> None:
+        """Release callbacks and unregister test services asynchronously."""
+
+        self.cleanup()
+        for domain, service in self.registered_services:
+            if not self.hass.services.has_service(domain, service):
+                continue
+            async_remove = getattr(self.hass.services, "async_remove", None)
+            if callable(async_remove):
+                await async_remove(domain, service)
+                continue
+            # Fallback for the lightweight service registry shipped with tests.
+            registry = getattr(self.hass.services, "_services", {})
+            domain_services = registry.get(domain)
+            if isinstance(domain_services, dict):
+                domain_services.pop(service, None)
+
+    def build_context(
+        self, overrides: ResilienceBlueprintOverrides | None = None
+    ) -> ResilienceBlueprintContext:
+        """Return a blueprint context merged with the provided overrides."""
+
+        mutable_context = cast(dict[str, object], deepcopy(self.base_context))
+        if overrides:
+            mutable_context.update(overrides)
+        return cast(ResilienceBlueprintContext, mutable_context)
 
 
 def _register_service_recorders(
@@ -86,13 +136,14 @@ def _register_service_recorders(
 def create_resilience_blueprint_context(
     hass: HomeAssistant,
     *,
+    overrides: ResilienceBlueprintOverrides | None = None,
     watch_automation_events: bool = False,
-) -> ResilienceBlueprintContext:
+) -> ResilienceBlueprintHarness:
     """Return a configured resilience blueprint context for tests."""
 
     ensure_blueprint_imported(hass, BLUEPRINT_RELATIVE_PATH)
 
-    base_context: dict[str, Any] = dict(DEFAULT_RESILIENCE_BLUEPRINT_CONTEXT)
+    base_context = _build_base_context(overrides)
     script_calls: list[ServiceCall] = []
     guard_calls: list[ServiceCall] = []
     breaker_calls: list[ServiceCall] = []
@@ -117,7 +168,7 @@ def create_resilience_blueprint_context(
 
         unsubscribe = hass.bus.async_listen(EVENT_AUTOMATION_TRIGGERED, _record_event)
 
-    return ResilienceBlueprintContext(
+    return ResilienceBlueprintHarness(
         hass=hass,
         base_context=base_context,
         script_calls=script_calls,
@@ -127,3 +178,14 @@ def create_resilience_blueprint_context(
         registered_services=registered_services,
         _unsubscribe=unsubscribe,
     )
+
+
+def _build_base_context(
+    overrides: ResilienceBlueprintOverrides | None,
+) -> ResilienceBlueprintContext:
+    base_context = cast(
+        dict[str, object], deepcopy(DEFAULT_RESILIENCE_BLUEPRINT_CONTEXT)
+    )
+    if overrides:
+        base_context.update(overrides)
+    return cast(ResilienceBlueprintContext, base_context)

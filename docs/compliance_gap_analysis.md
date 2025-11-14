@@ -15,7 +15,11 @@ now present in the repository to highlight which requirements are satisfied and 
 ## 2. Platinum readiness snapshot
 - ✅ **Config flow & options** – UI configuration, options flow parity, and translation coverage are documented and tested.【F:README.md†L292-L313】【F:docs/production_integration_documentation.md†L250-L353】
 - ✅ **Diagnostics & repairs** – Diagnostics export anonymised data and repairs flows are described for reviewer validation.【F:README.md†L722-L741】【F:docs/diagnostik.md†L24-L48】
-- ✅ **Testing discipline** – Ruff, pytest, and MyPy baselines are defined and linked from README and `dev.md`.【F:README.md†L24-L70】【F:dev.md†L5-L20】
+- ✅ **Testing discipline** – Ruff, pytest, and MyPy baselines sind dokumentiert, und der reservierte
+  Vollsuite-Workflow erzwingt für manuelle Dispatches `override_ci_window=true` plus einen dokumentierten `run_reason`, sodass
+  das abgestimmte Zeitfenster geschützt bleibt. Der wöchentliche Vendor-Wächter prüft zusätzlich PyYAML-Updates und OSV-Hinweise,
+  und der CI-Job „TypedDict audit“ stoppt Pipelines sofort, wenn neue `dict[str, Any]`-/`Mapping[str, Any]`-Fundstellen in
+  Integration oder Tests auftauchen, sodass das gebündelte Paket aktuell und typisiert bleibt.【F:README.md†L40-L87】【F:info.md†L69-L115】【F:docs/production_integration_documentation.md†L636-L676】【F:.github/workflows/scheduled-pytest.yml†L1-L52】【F:.github/workflows/vendor-pyyaml-monitor.yml†L1-L44】【F:.github/workflows/ci.yml†L1-L120】【F:script/check_vendor_pyyaml.py†L1-L273】
 - ✅ **Device removal** – `async_remove_config_entry_device` now guards stored dog projections (including options `dog_options`) and regression tests exercise runtime, data, and options pathways to prove only stale devices are removed.【F:custom_components/pawcontrol/__init__.py†L1515-L1598】【F:tests/components/pawcontrol/test_init.py†L1081-L1148】
 - ✅ **Brand package** – Brand assets ship under `brands/pawcontrol/` and align with the README and manifest guidance.【F:brands/pawcontrol/brand.json†L1-L46】
 - ⚠️ **Coverage automation** – Coverage reports exist but the automated publication still needs wiring to CI once the HA harness stabilises.【F:README.md†L24-L70】【F:README.md†L320-L372】

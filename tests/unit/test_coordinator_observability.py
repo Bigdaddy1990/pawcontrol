@@ -338,7 +338,7 @@ def test_build_security_scorecard_handles_failures() -> None:
 def test_normalise_webhook_status_handles_exception() -> None:
     class BrokenManager:
         @staticmethod
-        def webhook_security_status() -> dict[str, Any]:
+        def webhook_security_status() -> WebhookSecurityStatus:
             raise RuntimeError("boom")
 
     status = normalise_webhook_status(BrokenManager())

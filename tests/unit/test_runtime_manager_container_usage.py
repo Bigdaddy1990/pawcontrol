@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from datetime import date as date_cls
 from types import SimpleNamespace
-from typing import Any
+from typing import TYPE_CHECKING, cast
 from unittest.mock import AsyncMock, Mock
 
 import pytest
@@ -15,7 +15,7 @@ from custom_components.pawcontrol.binary_sensor import (
     PawControlInGardenBinarySensor,
 )
 from custom_components.pawcontrol.button import PawControlConfirmGardenPoopButton
-from custom_components.pawcontrol.const import CONF_DOG_ID, DOMAIN
+from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.date import (
     PawControlBirthdateDate,
     PawControlLastVetVisitDate,
@@ -25,9 +25,17 @@ from custom_components.pawcontrol.runtime_data import store_runtime_data
 from custom_components.pawcontrol.switch import PawControlVisitorModeSwitch
 from custom_components.pawcontrol.text import PawControlCustomMessageText
 from custom_components.pawcontrol.types import (
+    CoordinatorDogData,
     CoordinatorRuntimeManagers,
+    DogConfigData,
+    GardenConfirmationSnapshot,
+    GardenModulePayload,
     PawControlRuntimeData,
 )
+
+if TYPE_CHECKING:
+    from custom_components.pawcontrol.data_manager import PawControlDataManager
+    from custom_components.pawcontrol.notifications import PawControlNotificationManager
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -40,13 +48,16 @@ class _GardenManagerStub:
         self.is_in_calls = 0
         self.pending_calls = 0
 
-    def build_garden_snapshot(self, dog_id: str) -> dict[str, Any]:
+    def build_garden_snapshot(self, dog_id: str) -> GardenModulePayload:
         self.build_calls += 1
+        confirmation: GardenConfirmationSnapshot = {
+            "session_id": "garden-session",
+            "created": None,
+            "expires": None,
+        }
         return {
             "status": "active",
-            "pending_confirmations": [
-                {"session_id": "garden-session", "created": None, "expires": None}
-            ],
+            "pending_confirmations": [confirmation],
         }
 
     def is_dog_in_garden(self, dog_id: str) -> bool:
@@ -71,18 +82,18 @@ class _CoordinatorStub:
 
     def __init__(
         self,
-        config_entry: Any,
+        config_entry: MockConfigEntry,
         runtime_managers: CoordinatorRuntimeManagers,
         *,
-        dog_data: dict[str, Any] | None = None,
+        dog_data: CoordinatorDogData | None = None,
     ) -> None:
         self.available = True
         self.config_entry = config_entry
         self.runtime_managers = runtime_managers
-        self._dog_data = dog_data or {}
+        self._dog_data: CoordinatorDogData = dog_data or cast(CoordinatorDogData, {})
         self.async_request_refresh = AsyncMock()
 
-    def get_dog_data(self, dog_id: str) -> dict[str, Any]:
+    def get_dog_data(self, dog_id: str) -> CoordinatorDogData:
         return self._dog_data
 
 
@@ -98,6 +109,7 @@ def test_garden_binary_sensors_use_runtime_manager_container(
     runtime_managers = CoordinatorRuntimeManagers(garden_manager=garden_manager)
     coordinator = _CoordinatorStub(entry, runtime_managers)
 
+    dog_config: DogConfigData = {"dog_id": "dog", "dog_name": "Garden Dog"}
     runtime_data = PawControlRuntimeData(
         coordinator=coordinator,
         data_manager=Mock(),
@@ -106,7 +118,7 @@ def test_garden_binary_sensors_use_runtime_manager_container(
         walk_manager=Mock(),
         entity_factory=Mock(),
         entity_profile="standard",
-        dogs=[{CONF_DOG_ID: "dog"}],
+        dogs=[dog_config],
     )
 
     store_runtime_data(hass, entry, runtime_data)
@@ -153,6 +165,7 @@ async def test_birthdate_date_uses_runtime_data_manager_container(
     runtime_managers = CoordinatorRuntimeManagers(data_manager=data_manager)
     coordinator = _CoordinatorStub(entry, runtime_managers)
 
+    dog_config: DogConfigData = {"dog_id": "dog", "dog_name": "Garden Dog"}
     runtime_data = PawControlRuntimeData(
         coordinator=coordinator,
         data_manager=data_manager,
@@ -161,7 +174,7 @@ async def test_birthdate_date_uses_runtime_data_manager_container(
         walk_manager=Mock(),
         entity_factory=Mock(),
         entity_profile="standard",
-        dogs=[{CONF_DOG_ID: "dog"}],
+        dogs=[dog_config],
     )
 
     store_runtime_data(hass, entry, runtime_data)
@@ -186,22 +199,28 @@ async def test_emergency_datetime_uses_runtime_notification_manager(
     entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
     entry.add_to_hass(hass)
 
-    notification_manager = SimpleNamespace(async_send_notification=AsyncMock())
+    notification_manager_stub = SimpleNamespace(async_send_notification=AsyncMock())
+    notification_manager = cast(
+        "PawControlNotificationManager", notification_manager_stub
+    )
 
     runtime_managers = CoordinatorRuntimeManagers(
         notification_manager=notification_manager
     )
     coordinator = _CoordinatorStub(entry, runtime_managers)
 
+    dog_config: DogConfigData = {"dog_id": "dog", "dog_name": "Garden Dog"}
+    data_manager_stub = SimpleNamespace(async_update_dog_data=AsyncMock())
+    data_manager = cast("PawControlDataManager", data_manager_stub)
     runtime_data = PawControlRuntimeData(
         coordinator=coordinator,
-        data_manager=Mock(),
-        notification_manager=notification_manager,  # type: ignore[arg-type]
+        data_manager=data_manager,
+        notification_manager=notification_manager,
         feeding_manager=Mock(),
         walk_manager=Mock(),
         entity_factory=Mock(),
         entity_profile="standard",
-        dogs=[{CONF_DOG_ID: "dog"}],
+        dogs=[dog_config],
     )
 
     store_runtime_data(hass, entry, runtime_data)
@@ -225,22 +244,29 @@ async def test_custom_message_text_prefers_notification_manager(
     entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
     entry.add_to_hass(hass)
 
-    notification_manager = SimpleNamespace(async_send_notification=AsyncMock())
+    notification_manager_stub = SimpleNamespace(async_send_notification=AsyncMock())
+    notification_manager = cast(
+        "PawControlNotificationManager", notification_manager_stub
+    )
+    data_manager_stub = SimpleNamespace(async_update_dog_data=AsyncMock())
+    data_manager = cast("PawControlDataManager", data_manager_stub)
 
     runtime_managers = CoordinatorRuntimeManagers(
-        notification_manager=notification_manager
+        data_manager=data_manager,
+        notification_manager=notification_manager,
     )
     coordinator = _CoordinatorStub(entry, runtime_managers)
 
+    dog_config: DogConfigData = {"dog_id": "dog", "dog_name": "Garden Dog"}
     runtime_data = PawControlRuntimeData(
         coordinator=coordinator,
-        data_manager=Mock(),
-        notification_manager=notification_manager,  # type: ignore[arg-type]
+        data_manager=data_manager,
+        notification_manager=notification_manager,
         feeding_manager=Mock(),
         walk_manager=Mock(),
         entity_factory=Mock(),
         entity_profile="standard",
-        dogs=[{CONF_DOG_ID: "dog"}],
+        dogs=[dog_config],
     )
 
     store_runtime_data(hass, entry, runtime_data)

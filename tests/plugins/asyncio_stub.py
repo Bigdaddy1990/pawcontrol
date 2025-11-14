@@ -262,7 +262,7 @@ def pytest_pyfunc_call(pyfuncitem: pytest.Function) -> bool | None:
         return None
 
     loop = asyncio.get_event_loop()
-    funcargs: Mapping[str, Any] = pyfuncitem.funcargs
+    funcargs: Mapping[str, object] = pyfuncitem.funcargs
     argnames = pyfuncitem._fixtureinfo.argnames
     call_args = {name: funcargs[name] for name in argnames}
     loop.run_until_complete(test_func(**call_args))

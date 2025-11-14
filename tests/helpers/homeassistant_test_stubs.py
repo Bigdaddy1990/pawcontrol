@@ -21,6 +21,17 @@ from uuid import uuid4
 
 from jinja2.nativetypes import NativeEnvironment
 
+type ServiceData = Mapping[str, object]
+type EventData = Mapping[str, object]
+type MutableEventData = MutableMapping[str, object]
+type StateAttributes = Mapping[str, object]
+type StateAttributeMapping = MutableMapping[str, object]
+type MutableFlowResultDict = MutableMapping[str, object]
+type MutableConfigEntryData = MutableMapping[str, object]
+type FlowContext = Mapping[str, object]
+type FlowResult = Mapping[str, object]
+type AutomationAction = Mapping[str, object]
+
 if TYPE_CHECKING:  # pragma: no cover - only used for static analysis
     from custom_components.pawcontrol.types import AddAnotherDogInput, DogModulesConfig
     from homeassistant.config_entries import OptionsFlow as _HAOptionsFlow
@@ -288,7 +299,7 @@ def _install_core_module() -> None:
             self,
             domain: str,
             service: str,
-            data: Mapping[str, Any] | None = None,
+            data: ServiceData | None = None,
             context: Context | None = None,
             return_response: bool = False,
         ) -> None:
@@ -304,7 +315,7 @@ def _install_core_module() -> None:
         def __init__(
             self,
             event_type: str,
-            data: Mapping[str, Any] | None = None,
+            data: EventData | None = None,
             time_fired: datetime | None = None,
             context: Context | None = None,
             origin: Any | None = None,
@@ -342,11 +353,11 @@ def _install_core_module() -> None:
             for key, value in extra.items():
                 setattr(self, key, value)
 
-    event_state_changed_data = MutableMapping[str, Any]
+    event_state_changed_data = MutableEventData
 
     class _ServiceRegistry:
         def __init__(self) -> None:
-            self._services: dict[str, dict[str, Callable[..., Any]]] = defaultdict(dict)
+            self._services: dict[str, dict[str, Callable[..., object]]] = defaultdict(dict)
 
         def async_register(
             self,
@@ -361,7 +372,7 @@ def _install_core_module() -> None:
             self,
             domain: str,
             service: str,
-            data: Mapping[str, Any] | None = None,
+            data: ServiceData | None = None,
             *,
             blocking: bool = False,
         ) -> None:
@@ -375,14 +386,14 @@ def _install_core_module() -> None:
         def has_service(self, domain: str, service: str) -> bool:
             return service in self._services.get(domain, {})
 
-        def async_services(self) -> dict[str, dict[str, Callable[..., Any]]]:
+        def async_services(self) -> dict[str, dict[str, Callable[..., object]]]:
             return self._services
 
     @dataclass
     class State:
         entity_id: str
         state: str
-        attributes: dict[str, Any] = field(default_factory=dict)
+        attributes: StateAttributeMapping = field(default_factory=dict)
         last_changed: datetime | None = None
         last_updated: datetime | None = None
 
@@ -397,7 +408,7 @@ def _install_core_module() -> None:
             self,
             entity_id: str,
             state: str,
-            attributes: Mapping[str, Any] | None = None,
+            attributes: StateAttributes | None = None,
         ) -> None:
             self._states[entity_id] = State(
                 entity_id,
@@ -442,7 +453,7 @@ def _install_core_module() -> None:
         async def async_fire(
             self,
             event_type: str,
-            event_data: Mapping[str, Any] | None = None,
+            event_data: EventData | None = None,
             *,
             context: Context | None = None,
             origin: Any | None = None,
@@ -498,8 +509,8 @@ def _install_core_module() -> None:
             self,
             *,
             domain: str,
-            data: MutableMapping[str, Any] | None = None,
-            options: MutableMapping[str, Any] | None = None,
+            data: MutableConfigEntryData | None = None,
+            options: MutableConfigEntryData | None = None,
             title: str | None = None,
         ) -> None:
             ConfigEntry._id_counter += 1
@@ -523,16 +534,16 @@ def _install_core_module() -> None:
         def __init__(self, hass: HomeAssistant, manager: ConfigEntriesManager) -> None:
             self.hass = hass
             self._manager = manager
-            self._flows: dict[str, dict[str, Any]] = {}
+            self._flows: dict[str, MutableFlowResultDict] = {}
             self._flow_counter = 0
 
         async def async_init(
             self,
             domain: str,
             *,
-            context: Mapping[str, Any] | None = None,
+            context: FlowContext | None = None,
             data: Any | None = None,
-        ) -> Mapping[str, Any]:
+        ) -> MutableFlowResultDict:
             """Initialise a configuration flow for the provided domain."""
 
             flow = await self._create_flow(domain, context)
@@ -551,13 +562,13 @@ def _install_core_module() -> None:
 
             result = {**result, "__real_step_id": real_step_id}
 
-            return {**result, "flow_id": flow_id}
+            return cast(MutableFlowResultDict, {**result, "flow_id": flow_id})
 
         async def async_configure(
             self,
             flow_id: str,
-            user_input: Mapping[str, Any] | None = None,
-        ) -> Mapping[str, Any]:
+            user_input: FlowContext | None = None,
+        ) -> MutableFlowResultDict:
             """Send input to an in-progress configuration flow."""
 
             flow_state = self._flows.get(flow_id)
@@ -584,7 +595,7 @@ def _install_core_module() -> None:
         async def _create_flow(
             self,
             domain: str,
-            context: Mapping[str, Any] | None,
+            context: FlowContext | None,
         ) -> Any:
             """Instantiate the ConfigFlow subclass for the domain."""
 
@@ -652,7 +663,7 @@ def _install_core_module() -> None:
             flow: Any,
             handler: Callable[[Any | None], Any],
             user_input: Any | None,
-        ) -> Mapping[str, Any]:
+        ) -> MutableFlowResultDict:
             """Invoke a step handler and normalise AbortFlow behaviour."""
 
             config_entries_module = importlib.import_module(
@@ -684,14 +695,14 @@ def _install_core_module() -> None:
                     "step_id": "user",
                 }
 
-            return result
+            return cast(MutableFlowResultDict, result)
 
         async def _auto_advance_flow(
             self,
             flow: Any,
-            result: Mapping[str, Any],
+            result: MutableFlowResultDict,
             auto_advance: bool,
-        ) -> Mapping[str, Any]:
+        ) -> MutableFlowResultDict:
             """Advance through intermediary steps using default responses."""
 
             if not auto_advance:
@@ -713,13 +724,13 @@ def _install_core_module() -> None:
                     continue
                 break
 
-            return current
+            return cast(MutableFlowResultDict, current)
 
         async def _finalize_flow(
             self,
             domain: str,
             flow: Any,
-            result: Mapping[str, Any],
+            result: MutableFlowResultDict,
         ) -> None:
             """Persist created entries and mark flows complete."""
 
@@ -743,16 +754,16 @@ def _install_core_module() -> None:
         def __init__(self, hass: HomeAssistant, manager: ConfigEntriesManager) -> None:
             self.hass = hass
             self._manager = manager
-            self._flows: dict[str, dict[str, Any]] = {}
+            self._flows: dict[str, MutableFlowResultDict] = {}
             self._flow_counter = 0
 
         async def async_init(
             self,
             entry_id: str,
             *,
-            context: Mapping[str, Any] | None = None,
-            data: Mapping[str, Any] | None = None,
-        ) -> Mapping[str, Any]:
+            context: FlowContext | None = None,
+            data: FlowContext | None = None,
+        ) -> MutableFlowResultDict:
             entry = self._manager.async_get_entry(entry_id)
             if entry is None:
                 raise ValueError(f"Unknown entry id: {entry_id}")
@@ -779,13 +790,16 @@ def _install_core_module() -> None:
             else:
                 await self._manager._finalize_options_flow(entry, flow, result)
 
-            return {**result, "flow_id": flow_id, "step_id": display_step_id}
+            return cast(
+                MutableFlowResultDict,
+                {**result, "flow_id": flow_id, "step_id": display_step_id},
+            )
 
         async def async_configure(
             self,
             flow_id: str,
-            user_input: Mapping[str, Any] | None = None,
-        ) -> Mapping[str, Any]:
+            user_input: FlowContext | None = None,
+        ) -> MutableFlowResultDict:
             flow_state = self._flows.get(flow_id)
             if flow_state is None:
                 raise ValueError(f"Unknown options flow id: {flow_id}")
@@ -796,7 +810,7 @@ def _install_core_module() -> None:
                 raise ValueError("Flow has no pending step")
 
             handler = getattr(flow, f"async_step_{step_id}")
-            extras: dict[str, Any] = {}
+            extras: dict[str, object] = {}
             if user_input is None:
                 result = await handler()
             else:
@@ -816,7 +830,7 @@ def _install_core_module() -> None:
                     entry.options.update(extras)
                 self._flows.pop(flow_id, None)
 
-            return {**result, "flow_id": flow_id}
+            return cast(MutableFlowResultDict, {**result, "flow_id": flow_id})
 
     class ConfigEntriesManager:
         def __init__(self, hass: HomeAssistant) -> None:
@@ -837,8 +851,8 @@ def _install_core_module() -> None:
             self,
             entry: ConfigEntry,
             *,
-            data: Mapping[str, Any] | None = None,
-            options: Mapping[str, Any] | None = None,
+            data: FlowContext | None = None,
+            options: FlowContext | None = None,
         ) -> None:
             if data is not None:
                 entry.data = dict(data)
@@ -945,7 +959,7 @@ def _install_core_module() -> None:
             self,
             entry: ConfigEntry,
             flow: OptionsFlow,
-            result: Mapping[str, Any],
+            result: FlowResult,
         ) -> None:
             if result.get("type") != "create_entry":
                 return
@@ -954,7 +968,7 @@ def _install_core_module() -> None:
 
     class HomeAssistant:
         def __init__(self) -> None:
-            self.data: dict[str, Any] = {}
+            self.data: dict[str, object] = {}
             self.loop = asyncio.get_event_loop()
             self.services = _ServiceRegistry()
             self.states = _StateMachine()
@@ -1156,7 +1170,7 @@ def _install_helper_modules() -> None:
         def __init__(
             self,
             reason: str,
-            description_placeholders: Mapping[str, Any] | None = None,
+            description_placeholders: FlowContext | None = None,
         ) -> None:
             super().__init__(reason)
             self.reason = reason
@@ -1184,8 +1198,8 @@ def _install_helper_modules() -> None:
             step_id: str,
             data_schema: Any | None = None,
             errors: Mapping[str, str] | None = None,
-            description_placeholders: Mapping[str, Any] | None = None,
-        ) -> Mapping[str, Any]:
+            description_placeholders: FlowContext | None = None,
+        ) -> MutableFlowResultDict:
             return {
                 "type": "form",
                 "step_id": step_id,
@@ -1198,9 +1212,9 @@ def _install_helper_modules() -> None:
             self,
             *,
             title: str,
-            data: Mapping[str, Any],
-            options: Mapping[str, Any] | None = None,
-        ) -> Mapping[str, Any]:
+            data: FlowContext,
+            options: FlowContext | None = None,
+        ) -> MutableFlowResultDict:
             return {
                 "type": "create_entry",
                 "title": title,
@@ -1212,8 +1226,8 @@ def _install_helper_modules() -> None:
             self,
             *,
             reason: str,
-            description_placeholders: Mapping[str, Any] | None = None,
-        ) -> Mapping[str, Any]:
+            description_placeholders: FlowContext | None = None,
+        ) -> MutableFlowResultDict:
             return {
                 "type": "abort",
                 "reason": reason,
@@ -1228,7 +1242,7 @@ def _install_helper_modules() -> None:
         def _abort_if_unique_id_configured(
             self,
             *,
-            updates: Mapping[str, Any] | None = None,
+            updates: FlowContext | None = None,
             reload_on_update: bool = True,
         ) -> None:
             """Abort the flow if an entry with the unique ID already exists."""
@@ -1261,10 +1275,10 @@ def _install_helper_modules() -> None:
             self,
             entry: core_module.ConfigEntry,
             *,
-            data_updates: Mapping[str, Any] | None = None,
-            options_updates: Mapping[str, Any] | None = None,
+            data_updates: FlowContext | None = None,
+            options_updates: FlowContext | None = None,
             reason: str = "reconfigure_successful",
-        ) -> Mapping[str, Any]:
+        ) -> MutableFlowResultDict:
             """Apply updates to the entry and abort the flow with the provided reason."""
 
             if data_updates:
@@ -1280,27 +1294,35 @@ def _install_helper_modules() -> None:
     config_entries_module.ConfigEntry = core_module.ConfigEntry
     config_entries_module.ConfigEntryState = core_module.ConfigEntryState
     config_entries_module.ConfigEntryChange = core_module.ConfigEntryChange
-    config_entries_module.ConfigFlowResult = Mapping[str, Any]
-    config_entries_module.OptionsFlowResult = Mapping[str, Any]
-    config_entries_module.ConfigFlowResultDict = Mapping[str, Any]
+    config_entries_module.ConfigFlowResult = FlowResult
+    config_entries_module.OptionsFlowResult = FlowResult
+    config_entries_module.ConfigFlowResultDict = FlowResult
 
     class OptionsFlow:
         def async_create_entry(
-            self, *, title: str, data: Mapping[str, Any]
-        ) -> Mapping[str, Any]:
-            return {"type": "create_entry", "title": title, "data": dict(data)}
+            self, *, title: str, data: FlowContext
+        ) -> MutableFlowResultDict:
+            return cast(
+                MutableFlowResultDict,
+                {"type": "create_entry", "title": title, "data": dict(data)},
+            )
 
         def async_abort(
             self,
             *,
             reason: str,
-            description_placeholders: Mapping[str, Any] | None = None,
-        ) -> Mapping[str, Any]:
-            return {
-                "type": "abort",
-                "reason": reason,
-                "description_placeholders": dict(description_placeholders or {}),
-            }
+            description_placeholders: FlowContext | None = None,
+        ) -> MutableFlowResultDict:
+            return cast(
+                MutableFlowResultDict,
+                {
+                    "type": "abort",
+                    "reason": reason,
+                    "description_placeholders": dict(
+                        description_placeholders or {}
+                    ),
+                },
+            )
 
         def async_show_form(
             self,
@@ -1308,34 +1330,47 @@ def _install_helper_modules() -> None:
             step_id: str,
             data_schema: Any | None = None,
             errors: Mapping[str, str] | None = None,
-            description_placeholders: Mapping[str, Any] | None = None,
-        ) -> Mapping[str, Any]:
-            return {
-                "type": "form",
-                "step_id": step_id,
-                "data_schema": data_schema,
-                "errors": dict(errors or {}),
-                "description_placeholders": dict(description_placeholders or {}),
-            }
+            description_placeholders: FlowContext | None = None,
+        ) -> MutableFlowResultDict:
+            return cast(
+                MutableFlowResultDict,
+                {
+                    "type": "form",
+                    "step_id": step_id,
+                    "data_schema": data_schema,
+                    "errors": dict(errors or {}),
+                    "description_placeholders": dict(
+                        description_placeholders or {}
+                    ),
+                },
+            )
 
         def async_show_menu(
             self,
             *,
             step_id: str,
             menu_options: Iterable[str],
-            description_placeholders: Mapping[str, Any] | None = None,
-        ) -> Mapping[str, Any]:
-            return {
-                "type": "menu",
-                "step_id": step_id,
-                "menu_options": list(menu_options),
-                "description_placeholders": dict(description_placeholders or {}),
-            }
+            description_placeholders: FlowContext | None = None,
+        ) -> MutableFlowResultDict:
+            return cast(
+                MutableFlowResultDict,
+                {
+                    "type": "menu",
+                    "step_id": step_id,
+                    "menu_options": list(menu_options),
+                    "description_placeholders": dict(
+                        description_placeholders or {}
+                    ),
+                },
+            )
 
         async def async_step_init(
-            self, user_input: Mapping[str, Any] | None = None
-        ) -> Mapping[str, Any]:
-            return {"type": "create_entry", "data": dict(user_input or {})}
+            self, user_input: FlowContext | None = None
+        ) -> MutableFlowResultDict:
+            return cast(
+                MutableFlowResultDict,
+                {"type": "create_entry", "data": dict(user_input or {})},
+            )
 
     config_entries_module.OptionsFlow = OptionsFlow
 
@@ -1396,10 +1431,10 @@ def _install_helper_modules() -> None:
             return state.state
 
         def render(
-            self, variables: Mapping[str, Any] | None = None, **kwargs: Any
+            self, variables: FlowContext | None = None, **kwargs: Any
         ) -> Any:
             template = self._sync_environment.from_string(self._template)
-            context: dict[str, Any] = dict(variables or {})
+            context: dict[str, object] = dict(variables or {})
             context.update(kwargs)
 
             def _render_sync() -> Any:
@@ -1414,10 +1449,10 @@ def _install_helper_modules() -> None:
             return future.result()
 
         async def async_render(
-            self, variables: Mapping[str, Any] | None = None, **kwargs: Any
+            self, variables: FlowContext | None = None, **kwargs: Any
         ) -> Any:
             template = self._async_environment.from_string(self._template)
-            context: dict[str, Any] = dict(variables or {})
+            context: dict[str, object] = dict(variables or {})
             context.update(kwargs)
             return await template.render_async(**context)
 
@@ -1651,7 +1686,7 @@ def _install_helper_modules() -> None:
     sys.modules["homeassistant.helpers.entity_component"] = entity_component_module
 
     typing_module = ModuleType("homeassistant.helpers.typing")
-    typing_module.ConfigType = Mapping[str, Any]
+    typing_module.ConfigType = FlowContext
     sys.modules["homeassistant.helpers.typing"] = typing_module
 
     integration_module = ModuleType("homeassistant.helpers.integration_platform")
@@ -2055,9 +2090,9 @@ def _install_component_modules() -> None:
                 return int(candidate)
             return default
 
-        async def _execute(actions: list[Mapping[str, Any]], trigger_name: str) -> None:
+        async def _execute(actions: list[AutomationAction], trigger_name: str) -> None:
             state = hass.states.get(str(script_entity_id)) if script_entity_id else None
-            fields: Mapping[str, Any] = (
+            fields: FlowContext = (
                 state.attributes.get("fields", {}) if state else {}
             )
             skip_threshold = _coerce_threshold(fields.get("skip_threshold"), 3)
@@ -2078,7 +2113,7 @@ def _install_component_modules() -> None:
                 await hass.services.async_call(
                     domain,
                     service_name,
-                    cast(Mapping[str, Any] | None, action.get("data")),
+                    cast(FlowContext | None, action.get("data")),
                 )
 
             await hass.bus.async_fire(
@@ -2144,7 +2179,7 @@ def _install_component_modules() -> None:
     slugify = slugify_module.slugify
     automation_data_key = "homeassistant.components.automation"
 
-    def _automation_store(hass: Any) -> dict[str, Any]:
+    def _automation_store(hass: Any) -> dict[str, object]:
         store = hass.data.setdefault(automation_data_key, {})
         store.setdefault("entries", {})
         return store
@@ -2167,8 +2202,8 @@ def _install_component_modules() -> None:
 
     def _normalise_actions(
         raw_actions: Iterable[Any] | None,
-    ) -> list[tuple[str, str, dict[str, Any]]]:
-        actions: list[tuple[str, str, dict[str, Any]]] = []
+    ) -> list[tuple[str, str, dict[str, object]]]:
+        actions: list[tuple[str, str, dict[str, object]]] = []
         if not raw_actions:
             return actions
         for action in raw_actions:
@@ -2183,7 +2218,7 @@ def _install_component_modules() -> None:
             actions.append((domain, service_name, data))
         return actions
 
-    async def async_setup(hass: Any, _config: Mapping[str, Any] | None = None) -> bool:
+    async def async_setup(hass: Any, _config: FlowContext | None = None) -> bool:
         _automation_store(hass)
         hass.config.components.add(automation_module.DOMAIN)
         return True
@@ -2200,7 +2235,7 @@ def _install_component_modules() -> None:
             else (f"{automation_module.DOMAIN}.{entry.entry_id}")
         )
 
-        info: dict[str, Any] = {
+        info: dict[str, object] = {
             "entry": entry,
             "entity_id": entity_id,
             "context": dict(context),
@@ -2211,7 +2246,7 @@ def _install_component_modules() -> None:
         }
         entries[entry.entry_id] = info
 
-        def _script_fields() -> Mapping[str, Any]:
+        def _script_fields() -> FlowContext:
             script_entity = context.get("escalation_script")
             if not isinstance(script_entity, str):
                 return {}
@@ -2236,7 +2271,7 @@ def _install_component_modules() -> None:
                 "breaker_threshold": breaker_threshold,
             }
 
-            history_entry: dict[str, Any] = {
+            history_entry: dict[str, object] = {
                 "trigger_id": trigger_id,
                 "event_type": event.event_type,
                 "event_data": dict(event.data or {}),
@@ -2392,7 +2427,7 @@ def _install_component_modules() -> None:
         MENU = "menu"
 
     data_entry_flow_module.FlowResultType = FlowResultType
-    data_entry_flow_module.FlowResult = Mapping[str, Any]
+    data_entry_flow_module.FlowResult = FlowResult
     data_entry_flow_module.RESULT_TYPE_FORM = FlowResultType.FORM
     data_entry_flow_module.RESULT_TYPE_CREATE_ENTRY = FlowResultType.CREATE_ENTRY
     data_entry_flow_module.RESULT_TYPE_ABORT = FlowResultType.ABORT
@@ -2403,7 +2438,7 @@ def _install_component_modules() -> None:
     class Integration:
         """Simplified Integration model mirroring Home Assistant's loader."""
 
-        def __init__(self, hass: HomeAssistant, manifest: Mapping[str, Any]):
+        def __init__(self, hass: HomeAssistant, manifest: FlowContext):
             self._hass = hass
             self._manifest = dict(manifest)
             self.domain = manifest.get("domain", "unknown")
@@ -2412,7 +2447,7 @@ def _install_component_modules() -> None:
             self.dependencies = list(manifest.get("dependencies", []))
 
         @property
-        def manifest(self) -> dict[str, Any]:
+        def manifest(self) -> dict[str, object]:
             return self._manifest
 
     loader_module.Integration = Integration
@@ -2425,7 +2460,7 @@ def _install_setup_module() -> None:
     async def async_setup_component(
         hass: Any,
         domain: str,
-        config: Mapping[str, Any] | None = None,
+        config: FlowContext | None = None,
     ) -> bool:
         hass.config.components.add(domain)
         try:
@@ -2606,3 +2641,4 @@ def _get_template_executor() -> ThreadPoolExecutor:
             executor.submit(lambda: None).result()
 
     return executor
+

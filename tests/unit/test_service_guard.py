@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 import pytest
 from custom_components.pawcontrol.service_guard import (
     ServiceGuardResult,
@@ -11,6 +9,7 @@ from custom_components.pawcontrol.service_guard import (
     normalise_guard_history,
     normalise_guard_result_payload,
 )
+from custom_components.pawcontrol.types import JSONMutableMapping
 
 
 def test_service_guard_result_to_mapping() -> None:
@@ -56,7 +55,11 @@ def test_service_guard_snapshot_summary_and_metrics() -> None:
         "turn_on",
     ]
 
-    metrics: dict[str, Any] = {"executed": 2, "skipped": 1, "reasons": {"cooldown": 1}}
+    metrics: JSONMutableMapping = {
+        "executed": 2,
+        "skipped": 1,
+        "reasons": {"cooldown": 1},
+    }
     payload = snapshot.accumulate(metrics)
 
     assert metrics["executed"] == 3
@@ -75,7 +78,7 @@ def test_service_guard_snapshot_summary_and_metrics() -> None:
     ],
 )
 def test_normalise_guard_result_payload(
-    raw_payload: dict[str, Any], expected: bool
+    raw_payload: JSONMutableMapping, expected: bool
 ) -> None:
     """Guard result payload normalisation should coerce booleans and text."""
 

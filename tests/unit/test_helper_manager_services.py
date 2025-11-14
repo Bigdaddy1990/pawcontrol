@@ -3,11 +3,32 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, NotRequired, TypedDict, cast
 
 import pytest
 from custom_components.pawcontrol.helper_manager import PawControlHelperManager
 from custom_components.pawcontrol.service_guard import ServiceGuardResult
+from custom_components.pawcontrol.types import ServiceData
+from tests.helpers.payloads import typed_deepcopy
+
+
+class ServiceCallTargetPayload(TypedDict, total=False):
+    """Subset of Home Assistant service target structure used in tests."""
+
+    entity_id: NotRequired[str | list[str]]
+    device_id: NotRequired[str | list[str]]
+    area_id: NotRequired[str | list[str]]
+
+
+class CapturedServiceCall(TypedDict):
+    """Captured service invocation emitted by the helper manager."""
+
+    domain: str
+    service: str
+    service_data: ServiceData
+    target: ServiceCallTargetPayload
+    blocking: bool
+    description: str | None
 
 
 @pytest.mark.unit
@@ -30,25 +51,26 @@ async def test_helper_manager_creates_typed_helper_services(
         lambda hass_instance: _DummyRegistry(),
     )
 
-    captured: list[dict[str, Any]] = []
+    captured: list[CapturedServiceCall] = []
 
     async def _capture_service_call(
         hass_instance: Any,
         domain: str,
         service: str,
-        service_data: dict[str, Any],
+        service_data: ServiceData,
         *,
-        target: dict[str, Any] | None,
+        target: ServiceCallTargetPayload | None,
         blocking: bool,
         description: str | None,
         logger: Any,
     ) -> ServiceGuardResult:
+        target_payload = cast(ServiceCallTargetPayload, dict(target or {}))
         captured.append(
             {
                 "domain": domain,
                 "service": service,
-                "service_data": dict(service_data),
-                "target": dict(target or {}),
+                "service_data": typed_deepcopy(service_data),
+                "target": target_payload,
                 "blocking": blocking,
                 "description": description,
             }
