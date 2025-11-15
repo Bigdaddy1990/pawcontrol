@@ -17,7 +17,7 @@ from .performance import (
     performance_tracker,
     record_maintenance_result,
 )
-from .runtime_data import get_runtime_data
+from .runtime_data import describe_runtime_store_status, get_runtime_data
 from .service_guard import normalise_guard_history
 from .telemetry import (
     get_runtime_performance_stats,
@@ -25,7 +25,8 @@ from .telemetry import (
     summarise_reconfigure_options,
     update_runtime_bool_coercion_summary,
     update_runtime_reconfigure_summary,
-    update_runtime_resilience_summary,
+    update_runtime_resilience_diagnostics,
+    update_runtime_store_health,
 )
 from .types import (
     AdaptivePollingDiagnostics,
@@ -36,9 +37,13 @@ from .types import (
     CoordinatorResilienceDiagnostics,
     CoordinatorResilienceSummary,
     CoordinatorRuntimeStatisticsPayload,
+    CoordinatorRuntimeStoreSummary,
     CoordinatorServiceExecutionSummary,
     CoordinatorStatisticsPayload,
     EntityBudgetSummary,
+    EntityFactoryGuardEvent,
+    EntityFactoryGuardMetricsSnapshot,
+    EntityFactoryGuardStabilityTrend,
     HelperManagerGuardMetrics,
     JSONMapping,
     JSONMutableMapping,
@@ -47,6 +52,7 @@ from .types import (
     ReconfigureTelemetrySummary,
     RejectionMetricsSource,
     RejectionMetricsTarget,
+    RuntimeStoreHealthAssessment,
 )
 
 if TYPE_CHECKING:  # pragma: no cover - import for typing only
@@ -102,6 +108,31 @@ def _fetch_reconfigure_summary(
 
     options = getattr(coordinator.config_entry, "options", None)
     return summarise_reconfigure_options(options)
+
+
+def _build_runtime_store_summary(
+    coordinator: PawControlCoordinator,
+    runtime_data: PawControlRuntimeData | None,
+    *,
+    record_event: bool,
+) -> CoordinatorRuntimeStoreSummary:
+    """Return a runtime store summary combining snapshot and history telemetry."""
+
+    snapshot = describe_runtime_store_status(
+        coordinator.hass, coordinator.config_entry
+    )
+    history = update_runtime_store_health(
+        runtime_data, snapshot, record_event=record_event
+    )
+    summary: CoordinatorRuntimeStoreSummary = {"snapshot": snapshot}
+    if history:
+        summary["history"] = history
+        assessment = history.get("assessment")
+        if isinstance(assessment, Mapping):
+            summary["assessment"] = cast(
+                RuntimeStoreHealthAssessment, dict(assessment)
+            )
+    return summary
 
 
 def _summarise_resilience(
@@ -635,6 +666,204 @@ def resolve_service_guard_metrics(payload: Any) -> HelperManagerGuardMetrics:
     return guard_metrics
 
 
+def resolve_entity_factory_guard_metrics(payload: Any) -> EntityFactoryGuardMetricsSnapshot:
+    """Return normalised entity factory guard metrics for diagnostics consumers."""
+
+    metrics: Mapping[str, Any] | None = None
+    if isinstance(payload, Mapping):
+        candidate = payload.get("entity_factory_guard_metrics")
+        if isinstance(candidate, Mapping):
+            metrics = candidate
+        elif "runtime_floor" in payload:
+            metrics = payload
+
+    snapshot: EntityFactoryGuardMetricsSnapshot = {}
+    if metrics is None:
+        snapshot["last_event"] = "unknown"
+        return snapshot
+
+    runtime_floor = _coerce_float(metrics.get("runtime_floor"))
+    if runtime_floor is not None:
+        snapshot["runtime_floor_ms"] = runtime_floor * 1000
+
+    baseline_floor = _coerce_float(metrics.get("baseline_floor"))
+    if baseline_floor is not None:
+        snapshot["baseline_floor_ms"] = baseline_floor * 1000
+
+    max_floor = _coerce_float(metrics.get("max_floor"))
+    if max_floor is not None:
+        snapshot["max_floor_ms"] = max_floor * 1000
+
+    actual_duration = _coerce_float(metrics.get("last_actual_duration"))
+    if actual_duration is not None:
+        snapshot["last_actual_duration_ms"] = actual_duration * 1000
+
+    peak_runtime_floor = _coerce_float(metrics.get("peak_runtime_floor"))
+    if peak_runtime_floor is not None:
+        snapshot["peak_runtime_floor_ms"] = peak_runtime_floor * 1000
+
+    lowest_runtime_floor = _coerce_float(metrics.get("lowest_runtime_floor"))
+    if lowest_runtime_floor is not None:
+        snapshot["lowest_runtime_floor_ms"] = lowest_runtime_floor * 1000
+
+    last_floor_change = _coerce_float(metrics.get("last_floor_change"))
+    if last_floor_change is not None:
+        snapshot["last_floor_change_ms"] = last_floor_change * 1000
+
+    floor_delta = _coerce_float(metrics.get("runtime_floor_delta"))
+    if floor_delta is not None:
+        snapshot["runtime_floor_delta_ms"] = floor_delta * 1000
+    elif runtime_floor is not None and baseline_floor is not None:
+        snapshot["runtime_floor_delta_ms"] = max(
+            runtime_floor - baseline_floor, 0.0
+        ) * 1000
+
+    ratio = _coerce_float(metrics.get("last_duration_ratio"))
+    if ratio is not None and isfinite(ratio):
+        snapshot["last_duration_ratio"] = ratio
+
+    last_floor_change_ratio = _coerce_float(metrics.get("last_floor_change_ratio"))
+    if last_floor_change_ratio is not None and isfinite(last_floor_change_ratio):
+        snapshot["last_floor_change_ratio"] = last_floor_change_ratio
+
+    last_event = metrics.get("last_event")
+    if isinstance(last_event, str) and last_event:
+        snapshot["last_event"] = cast("EntityFactoryGuardEvent", last_event)
+    else:
+        snapshot["last_event"] = "unknown"
+
+    last_updated = metrics.get("last_updated")
+    if isinstance(last_updated, str) and last_updated:
+        snapshot["last_updated"] = last_updated
+
+    samples = metrics.get("samples")
+    if isinstance(samples, (int, float)):
+        snapshot["samples"] = int(samples)
+
+    stable_samples = metrics.get("stable_samples")
+    if isinstance(stable_samples, (int, float)):
+        snapshot["stable_samples"] = int(stable_samples)
+
+    expansions = metrics.get("expansions")
+    if isinstance(expansions, (int, float)):
+        snapshot["expansions"] = int(expansions)
+
+    contractions = metrics.get("contractions")
+    if isinstance(contractions, (int, float)):
+        snapshot["contractions"] = int(contractions)
+
+    last_expansion = _coerce_float(metrics.get("last_expansion_duration"))
+    if last_expansion is not None:
+        snapshot["last_expansion_duration_ms"] = last_expansion * 1000
+
+    last_contraction = _coerce_float(metrics.get("last_contraction_duration"))
+    if last_contraction is not None:
+        snapshot["last_contraction_duration_ms"] = last_contraction * 1000
+
+    average_duration = _coerce_float(metrics.get("average_duration"))
+    if average_duration is not None:
+        snapshot["average_duration_ms"] = average_duration * 1000
+
+    max_duration = _coerce_float(metrics.get("max_duration"))
+    if max_duration is not None:
+        snapshot["max_duration_ms"] = max_duration * 1000
+
+    min_duration = _coerce_float(metrics.get("min_duration"))
+    if min_duration is not None:
+        snapshot["min_duration_ms"] = min_duration * 1000
+
+    duration_span = _coerce_float(metrics.get("duration_span"))
+    if duration_span is not None:
+        snapshot["duration_span_ms"] = duration_span * 1000
+
+    jitter_ratio = _coerce_float(metrics.get("jitter_ratio"))
+    if jitter_ratio is not None and isfinite(jitter_ratio):
+        snapshot["jitter_ratio"] = jitter_ratio
+
+    recent_average = _coerce_float(metrics.get("recent_average_duration"))
+    if recent_average is not None:
+        snapshot["recent_average_duration_ms"] = recent_average * 1000
+
+    recent_max = _coerce_float(metrics.get("recent_max_duration"))
+    if recent_max is not None:
+        snapshot["recent_max_duration_ms"] = recent_max * 1000
+
+    recent_min = _coerce_float(metrics.get("recent_min_duration"))
+    if recent_min is not None:
+        snapshot["recent_min_duration_ms"] = recent_min * 1000
+
+    recent_span = _coerce_float(metrics.get("recent_duration_span"))
+    if recent_span is not None:
+        snapshot["recent_duration_span_ms"] = recent_span * 1000
+
+    recent_jitter_ratio = _coerce_float(metrics.get("recent_jitter_ratio"))
+    if recent_jitter_ratio is not None and isfinite(recent_jitter_ratio):
+        snapshot["recent_jitter_ratio"] = recent_jitter_ratio
+
+    stable_ratio = _coerce_float(metrics.get("stable_ratio"))
+    if stable_ratio is not None and isfinite(stable_ratio):
+        snapshot["stable_ratio"] = stable_ratio
+
+    expansion_ratio = _coerce_float(metrics.get("expansion_ratio"))
+    if expansion_ratio is not None and isfinite(expansion_ratio):
+        snapshot["expansion_ratio"] = expansion_ratio
+
+    contraction_ratio = _coerce_float(metrics.get("contraction_ratio"))
+    if contraction_ratio is not None and isfinite(contraction_ratio):
+        snapshot["contraction_ratio"] = contraction_ratio
+
+    consecutive_stable = metrics.get("consecutive_stable_samples")
+    if isinstance(consecutive_stable, (int, float)):
+        snapshot["consecutive_stable_samples"] = int(consecutive_stable)
+
+    longest_stable = metrics.get("longest_stable_run")
+    if isinstance(longest_stable, (int, float)):
+        snapshot["longest_stable_run"] = int(longest_stable)
+
+    volatility_ratio = _coerce_float(metrics.get("volatility_ratio"))
+    if volatility_ratio is not None and isfinite(volatility_ratio):
+        snapshot["volatility_ratio"] = volatility_ratio
+
+    recent_samples = metrics.get("recent_samples")
+    if isinstance(recent_samples, (int, float)):
+        snapshot["recent_samples"] = int(recent_samples)
+
+    recent_events_raw = metrics.get("recent_events")
+    if isinstance(recent_events_raw, Sequence) and not isinstance(
+        recent_events_raw, (str, bytes, bytearray)
+    ):
+        recent_events: list[EntityFactoryGuardEvent] = [
+            cast(EntityFactoryGuardEvent, item)
+            for item in recent_events_raw
+            if isinstance(item, str) and item
+        ]
+        if recent_events:
+            snapshot["recent_events"] = recent_events
+
+    recent_stable_samples = metrics.get("recent_stable_samples")
+    if isinstance(recent_stable_samples, (int, float)):
+        snapshot["recent_stable_samples"] = int(recent_stable_samples)
+
+    recent_stable_ratio = _coerce_float(metrics.get("recent_stable_ratio"))
+    if recent_stable_ratio is not None and isfinite(recent_stable_ratio):
+        snapshot["recent_stable_ratio"] = recent_stable_ratio
+
+    stability_trend = metrics.get("stability_trend")
+    if isinstance(stability_trend, str) and stability_trend:
+        snapshot["stability_trend"] = cast(
+            "EntityFactoryGuardStabilityTrend", stability_trend
+        )
+
+    enforce_min_runtime = metrics.get("enforce_min_runtime")
+    if isinstance(enforce_min_runtime, bool) and not enforce_min_runtime:
+        snapshot.setdefault("last_event", "disabled")
+
+    if isinstance(payload, MutableMapping):
+        payload["entity_factory_guard_metrics"] = dict(snapshot)
+
+    return snapshot
+
+
 def _normalise_breaker_state(value: Any) -> str:
     """Return a canonical breaker state used for resilience aggregation."""
 
@@ -788,27 +1017,27 @@ def _coerce_float(value: Any) -> float | None:
     return number
 
 
-def _store_resilience_summary(
+def _store_resilience_diagnostics(
     coordinator: PawControlCoordinator,
-    summary: CoordinatorResilienceSummary,
+    payload: CoordinatorResilienceDiagnostics,
 ) -> None:
-    """Persist the latest resilience summary for reuse by runtime diagnostics."""
+    """Persist the latest resilience diagnostics for reuse by runtime telemetry."""
 
     runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
     if runtime_data is None:
         return
 
-    update_runtime_resilience_summary(runtime_data, summary)
+    update_runtime_resilience_diagnostics(runtime_data, payload)
 
 
-def _clear_resilience_summary(coordinator: PawControlCoordinator) -> None:
+def _clear_resilience_diagnostics(coordinator: PawControlCoordinator) -> None:
     """Remove stored resilience telemetry when no breakers are available."""
 
     runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
     if runtime_data is None:
         return
 
-    update_runtime_resilience_summary(runtime_data, None)
+    update_runtime_resilience_diagnostics(runtime_data, None)
 
 
 def collect_resilience_diagnostics(
@@ -820,19 +1049,19 @@ def collect_resilience_diagnostics(
 
     manager = getattr(coordinator, "resilience_manager", None)
     if manager is None:
-        _clear_resilience_summary(coordinator)
+        _clear_resilience_diagnostics(coordinator)
         return payload
 
     fetch = getattr(manager, "get_all_circuit_breakers", None)
     if not callable(fetch):
-        _clear_resilience_summary(coordinator)
+        _clear_resilience_diagnostics(coordinator)
         return payload
 
     try:
         raw = fetch()
     except Exception as err:  # pragma: no cover - diagnostics guard
         coordinator.logger.debug("Failed to collect circuit breaker stats: %s", err)
-        _clear_resilience_summary(coordinator)
+        _clear_resilience_diagnostics(coordinator)
         return payload
 
     if isinstance(raw, Mapping):
@@ -852,7 +1081,7 @@ def collect_resilience_diagnostics(
             "Unexpected circuit breaker diagnostics payload: %s",
             type(raw).__name__,
         )
-        _clear_resilience_summary(coordinator)
+        _clear_resilience_diagnostics(coordinator)
         return payload
 
     breakers: dict[str, CircuitBreakerStatsPayload] = {}
@@ -913,13 +1142,13 @@ def collect_resilience_diagnostics(
         breakers[mapping_key] = entry
 
     if not breakers:
-        _clear_resilience_summary(coordinator)
+        _clear_resilience_diagnostics(coordinator)
         return payload
 
     payload["breakers"] = breakers
     summary = _summarise_resilience(breakers)
     payload["summary"] = summary
-    _store_resilience_summary(coordinator, summary)
+    _store_resilience_diagnostics(coordinator, payload)
     return payload
 
 
@@ -937,6 +1166,10 @@ def build_update_statistics(
         last_update=coordinator.last_update_time,
         interval=coordinator.update_interval,
         repair_summary=repair_summary,
+    )
+    runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
+    stats["runtime_store"] = _build_runtime_store_summary(
+        coordinator, runtime_data, record_event=False
     )
     stats["entity_budget"] = _normalise_entity_budget_summary(
         coordinator._entity_budget.summary()
@@ -978,6 +1211,9 @@ def build_runtime_statistics(
         repair_summary=repair_summary,
     )
     runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
+    stats["runtime_store"] = _build_runtime_store_summary(
+        coordinator, runtime_data, record_event=True
+    )
     stats["bool_coercion"] = update_runtime_bool_coercion_summary(runtime_data)
     stats["entity_budget"] = _normalise_entity_budget_summary(
         coordinator._entity_budget.summary()
@@ -989,6 +1225,9 @@ def build_runtime_statistics(
         cast(PawControlRuntimeData | None, runtime_data)
     )
     guard_metrics = resolve_service_guard_metrics(performance_stats_payload)
+    entity_factory_guard = resolve_entity_factory_guard_metrics(
+        performance_stats_payload
+    )
     rejection_metrics = default_rejection_metrics()
 
     resilience = collect_resilience_diagnostics(coordinator)
@@ -1002,6 +1241,7 @@ def build_runtime_statistics(
 
     service_execution: CoordinatorServiceExecutionSummary = {
         "guard_metrics": guard_metrics,
+        "entity_factory_guard": entity_factory_guard,
         "rejection_metrics": rejection_metrics,
     }
     stats["service_execution"] = service_execution

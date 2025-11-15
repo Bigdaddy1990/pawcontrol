@@ -6,5 +6,11 @@ roots = [
   "custom_components/pawcontrol",
   "custom_components/pawcontrol/services",
   "custom_components/pawcontrol/services/*",
-  "custom_components/pawcontrol/services/**"
+  "custom_components/pawcontrol/services/**",
+  "custom_components/pawcontrol/companion",
+  "custom_components/pawcontrol/companion/*",
+  "custom_components/pawcontrol/companion/**",
+  "custom_components/pawcontrol/voice",
+  "custom_components/pawcontrol/voice/*",
+  "custom_components/pawcontrol/voice/**"
 ]

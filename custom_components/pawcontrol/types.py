@@ -2693,6 +2693,107 @@ class HelperManagerGuardMetrics(TypedDict):
     last_results: ServiceGuardResultHistory
 
 
+EntityFactoryGuardEvent = Literal["expand", "contract", "stable", "disabled", "unknown"]
+EntityFactoryGuardStabilityTrend = Literal[
+    "improving",
+    "steady",
+    "regressing",
+    "unknown",
+]
+"""Event labels recorded whenever the entity factory runtime guard recalibrates."""
+
+
+class EntityFactoryGuardMetrics(TypedDict, total=False):
+    """Runtime guard telemetry captured by the entity factory."""
+
+    schema_version: Literal[1]
+    runtime_floor: float
+    baseline_floor: float
+    max_floor: float
+    runtime_floor_delta: float
+    peak_runtime_floor: float
+    lowest_runtime_floor: float
+    last_floor_change: float
+    last_floor_change_ratio: float
+    last_actual_duration: float
+    last_duration_ratio: float
+    last_event: EntityFactoryGuardEvent
+    last_updated: str
+    samples: int
+    stable_samples: int
+    expansions: int
+    contractions: int
+    last_expansion_duration: float
+    last_contraction_duration: float
+    enforce_min_runtime: bool
+    average_duration: float
+    max_duration: float
+    min_duration: float
+    stable_ratio: float
+    expansion_ratio: float
+    contraction_ratio: float
+    volatility_ratio: float
+    consecutive_stable_samples: int
+    longest_stable_run: int
+    duration_span: float
+    jitter_ratio: float
+    recent_durations: list[float]
+    recent_average_duration: float
+    recent_max_duration: float
+    recent_min_duration: float
+    recent_duration_span: float
+    recent_jitter_ratio: float
+    recent_samples: int
+    recent_events: list[EntityFactoryGuardEvent]
+    recent_stable_samples: int
+    recent_stable_ratio: float
+    stability_trend: EntityFactoryGuardStabilityTrend
+
+
+class EntityFactoryGuardMetricsSnapshot(TypedDict, total=False):
+    """Normalised guard telemetry exposed via diagnostics surfaces."""
+
+    runtime_floor_ms: float
+    baseline_floor_ms: float
+    max_floor_ms: float
+    runtime_floor_delta_ms: float
+    peak_runtime_floor_ms: float
+    lowest_runtime_floor_ms: float
+    last_floor_change_ms: float
+    last_actual_duration_ms: float
+    last_duration_ratio: float
+    last_floor_change_ratio: float
+    last_event: EntityFactoryGuardEvent
+    last_updated: str
+    samples: int
+    stable_samples: int
+    expansions: int
+    contractions: int
+    last_expansion_duration_ms: float
+    last_contraction_duration_ms: float
+    average_duration_ms: float
+    max_duration_ms: float
+    min_duration_ms: float
+    duration_span_ms: float
+    jitter_ratio: float
+    recent_average_duration_ms: float
+    recent_max_duration_ms: float
+    recent_min_duration_ms: float
+    recent_duration_span_ms: float
+    recent_jitter_ratio: float
+    stable_ratio: float
+    expansion_ratio: float
+    contraction_ratio: float
+    volatility_ratio: float
+    consecutive_stable_samples: int
+    longest_stable_run: int
+    recent_samples: int
+    recent_events: list[EntityFactoryGuardEvent]
+    recent_stable_samples: int
+    recent_stable_ratio: float
+    stability_trend: EntityFactoryGuardStabilityTrend
+
+
 class PersonEntityConfigInput(TypedDict, total=False):
     """Configuration payload accepted by :class:`PersonEntityManager`."""
 
@@ -5023,6 +5124,7 @@ class CoordinatorStatisticsPayload(TypedDict):
     adaptive_polling: NotRequired[AdaptivePollingDiagnostics]
     resilience: NotRequired[CoordinatorResilienceDiagnostics]
     rejection_metrics: NotRequired[CoordinatorRejectionMetrics]
+    runtime_store: NotRequired[CoordinatorRuntimeStoreSummary]
 
 
 class CoordinatorRuntimeContext(TypedDict):
@@ -5058,6 +5160,7 @@ class CoordinatorServiceExecutionSummary(TypedDict, total=False):
     """Aggregated service execution telemetry surfaced via runtime statistics."""
 
     guard_metrics: HelperManagerGuardMetrics
+    entity_factory_guard: EntityFactoryGuardMetricsSnapshot
     rejection_metrics: CoordinatorRejectionMetrics
 
 
@@ -5085,6 +5188,7 @@ class CoordinatorRuntimeStatisticsPayload(TypedDict):
     rejection_metrics: NotRequired[CoordinatorRejectionMetrics]
     bool_coercion: NotRequired[BoolCoercionSummary]
     service_execution: NotRequired[CoordinatorServiceExecutionSummary]
+    runtime_store: NotRequired[CoordinatorRuntimeStoreSummary]
 
 
 class CoordinatorModuleErrorPayload(TypedDict, total=False):
@@ -5295,6 +5399,7 @@ class SystemHealthServiceExecutionSnapshot(TypedDict):
 
     guard_metrics: HelperManagerGuardMetrics
     guard_summary: SystemHealthGuardSummary
+    entity_factory_guard: EntityFactoryGuardMetricsSnapshot
     rejection_metrics: CoordinatorRejectionMetrics
     breaker_overview: SystemHealthBreakerOverview
     status: SystemHealthServiceStatus
@@ -5307,6 +5412,7 @@ class SystemHealthInfoPayload(TypedDict):
     can_reach_backend: bool
     remaining_quota: SystemHealthRemainingQuota
     service_execution: SystemHealthServiceExecutionSnapshot
+    runtime_store: RuntimeStoreCompatibilitySnapshot
 
 
 class DogProfileSnapshot(TypedDict, total=False):
@@ -5920,11 +6026,13 @@ class RuntimePerformanceStats(TypedDict, total=False):
     bool_coercion_summary: BoolCoercionSummary
     reconfigure_summary: ReconfigureTelemetrySummary
     resilience_summary: CoordinatorResilienceSummary
+    resilience_diagnostics: CoordinatorResilienceDiagnostics
     door_sensor_failures: list[DoorSensorPersistenceFailure]
     door_sensor_failure_count: int
     last_door_sensor_failure: DoorSensorPersistenceFailure
     door_sensor_failure_summary: dict[str, DoorSensorFailureSummary]
     service_guard_metrics: ServiceGuardMetricsSnapshot
+    entity_factory_guard_metrics: EntityFactoryGuardMetrics
     rejection_metrics: CoordinatorRejectionMetrics
     service_results: list[ServiceExecutionResult]
     last_service_result: ServiceExecutionResult
@@ -6102,8 +6210,12 @@ class PawControlRuntimeData:
         return getattr(self, key, default)
 
 
-DOMAIN_RUNTIME_STORE_VERSION: Final[int] = 1
+DOMAIN_RUNTIME_STORE_VERSION: Final[int] = 2
 """Current schema version for domain runtime store entries."""
+
+
+DOMAIN_RUNTIME_STORE_MINIMUM_COMPATIBLE_VERSION: Final[int] = 1
+"""Minimum supported schema version for runtime store entries."""
 
 
 class LegacyDomainRuntimeStoreEntry(TypedDict, total=False):
@@ -6111,6 +6223,7 @@ class LegacyDomainRuntimeStoreEntry(TypedDict, total=False):
 
     runtime_data: PawControlRuntimeData
     version: int
+    created_version: int
 
 
 @dataclass(slots=True)
@@ -6119,8 +6232,12 @@ class DomainRuntimeStoreEntry:
 
     runtime_data: PawControlRuntimeData
     version: int = DOMAIN_RUNTIME_STORE_VERSION
+    created_version: int = DOMAIN_RUNTIME_STORE_VERSION
 
     CURRENT_VERSION: ClassVar[int] = DOMAIN_RUNTIME_STORE_VERSION
+    MINIMUM_COMPATIBLE_VERSION: ClassVar[int] = (
+        DOMAIN_RUNTIME_STORE_MINIMUM_COMPATIBLE_VERSION
+    )
 
     def unwrap(self) -> PawControlRuntimeData:
         """Return the stored runtime payload."""
@@ -6135,10 +6252,186 @@ class DomainRuntimeStoreEntry:
         return DomainRuntimeStoreEntry(
             runtime_data=self.runtime_data,
             version=self.CURRENT_VERSION,
+            created_version=self.created_version,
         )
+
+    def is_future_version(self) -> bool:
+        """Return ``True`` when the entry was produced by a newer schema."""
+
+        return (
+            self.version > self.CURRENT_VERSION
+            or self.created_version > self.CURRENT_VERSION
+        )
+
+    def is_legacy_version(self) -> bool:
+        """Return ``True`` when the entry predates the compatibility window."""
+
+        return self.created_version < self.MINIMUM_COMPATIBLE_VERSION
 
 
 type DomainRuntimeStore = MutableMapping[str, DomainRuntimeStoreEntry]
+
+
+RuntimeStoreEntryStatus = Literal[
+    "missing",
+    "unstamped",
+    "current",
+    "upgrade_pending",
+    "legacy_upgrade_required",
+    "future_incompatible",
+]
+"""Status values describing compatibility of runtime store entries."""
+
+
+RuntimeStoreOverallStatus = Literal[
+    "missing",
+    "current",
+    "detached_entry",
+    "detached_store",
+    "diverged",
+    "needs_migration",
+    "future_incompatible",
+]
+"""High-level compatibility summary for runtime store state."""
+
+
+class RuntimeStoreEntrySnapshot(TypedDict, total=False):
+    """Snapshot describing a single runtime store representation."""
+
+    available: bool
+    version: int | None
+    created_version: int | None
+    status: RuntimeStoreEntryStatus
+
+
+class RuntimeStoreCompatibilitySnapshot(TypedDict):
+    """Composite compatibility summary for runtime store metadata."""
+
+    entry_id: str
+    status: RuntimeStoreOverallStatus
+    current_version: int
+    minimum_compatible_version: int
+    entry: RuntimeStoreEntrySnapshot
+    store: RuntimeStoreEntrySnapshot
+    divergence_detected: bool
+
+
+RuntimeStoreHealthLevel = Literal["ok", "watch", "action_required"]
+"""Risk level derived from runtime store compatibility checks."""
+
+
+class RuntimeStoreAssessmentEvent(TypedDict, total=False):
+    """Timeline entry capturing individual runtime store assessments."""
+
+    timestamp: str
+    level: RuntimeStoreHealthLevel
+    previous_level: RuntimeStoreHealthLevel | None
+    status: RuntimeStoreOverallStatus
+    entry_status: RuntimeStoreEntryStatus | None
+    store_status: RuntimeStoreEntryStatus | None
+    reason: str
+    recommended_action: str | None
+    divergence_detected: bool
+    divergence_rate: float | None
+    checks: int
+    divergence_events: int
+    level_streak: int
+    escalations: int
+    deescalations: int
+    level_changed: bool
+    current_level_duration_seconds: float | None
+
+
+class RuntimeStoreAssessmentTimelineSummary(TypedDict, total=False):
+    """Derived statistics for the runtime store assessment timeline."""
+
+    total_events: int
+    level_changes: int
+    level_change_rate: float | None
+    level_counts: dict[RuntimeStoreHealthLevel, int]
+    status_counts: dict[RuntimeStoreOverallStatus, int]
+    reason_counts: dict[str, int]
+    distinct_reasons: int
+    first_event_timestamp: str | None
+    last_event_timestamp: str | None
+    last_level: RuntimeStoreHealthLevel | None
+    last_status: RuntimeStoreOverallStatus | None
+    last_reason: str | None
+    last_recommended_action: str | None
+    last_divergence_detected: bool | None
+    last_divergence_rate: float | None
+    last_level_duration_seconds: float | None
+    timeline_window_seconds: float | None
+    timeline_window_days: float | None
+    events_per_day: float | None
+    most_common_reason: str | None
+    most_common_level: RuntimeStoreHealthLevel | None
+    most_common_status: RuntimeStoreOverallStatus | None
+    average_divergence_rate: float | None
+    max_divergence_rate: float | None
+    level_duration_peaks: dict[RuntimeStoreHealthLevel, float]
+    level_duration_latest: dict[RuntimeStoreHealthLevel, float | None]
+
+
+class RuntimeStoreHealthHistory(TypedDict, total=False):
+    """Rolling history of runtime store compatibility checks."""
+
+    schema_version: int
+    checks: int
+    status_counts: dict[RuntimeStoreOverallStatus, int]
+    divergence_events: int
+    last_checked: str | None
+    last_status: RuntimeStoreOverallStatus | None
+    last_entry_status: RuntimeStoreEntryStatus | None
+    last_store_status: RuntimeStoreEntryStatus | None
+    last_entry_version: int | None
+    last_store_version: int | None
+    last_entry_created_version: int | None
+    last_store_created_version: int | None
+    divergence_detected: bool
+    assessment_last_level: RuntimeStoreHealthLevel | None
+    assessment_last_level_change: str | None
+    assessment_level_streak: int
+    assessment_escalations: int
+    assessment_deescalations: int
+    assessment_level_durations: dict[RuntimeStoreHealthLevel, float]
+    assessment_current_level_duration_seconds: float | None
+    assessment_events: list[RuntimeStoreAssessmentEvent]
+    assessment: RuntimeStoreHealthAssessment
+    assessment_timeline_summary: RuntimeStoreAssessmentTimelineSummary
+
+
+class RuntimeStoreHealthAssessment(TypedDict, total=False):
+    """Risk assessment based on runtime store history and current snapshot."""
+
+    level: RuntimeStoreHealthLevel
+    previous_level: RuntimeStoreHealthLevel | None
+    reason: str
+    recommended_action: str | None
+    divergence_rate: float | None
+    checks: int
+    divergence_events: int
+    last_status: RuntimeStoreOverallStatus | None
+    last_entry_status: RuntimeStoreEntryStatus | None
+    last_store_status: RuntimeStoreEntryStatus | None
+    last_checked: str | None
+    divergence_detected: bool
+    level_streak: int
+    last_level_change: str | None
+    escalations: int
+    deescalations: int
+    level_durations: dict[RuntimeStoreHealthLevel, float]
+    current_level_duration_seconds: float | None
+    events: list[RuntimeStoreAssessmentEvent]
+    timeline_summary: RuntimeStoreAssessmentTimelineSummary
+
+
+class CoordinatorRuntimeStoreSummary(TypedDict, total=False):
+    """Runtime store snapshot surfaced through coordinator diagnostics."""
+
+    snapshot: RuntimeStoreCompatibilitySnapshot
+    history: RuntimeStoreHealthHistory
+    assessment: RuntimeStoreHealthAssessment
 
 
 # PLATINUM: Custom ConfigEntry type for PawControl integrations

@@ -635,8 +635,14 @@ core_integrations:
       manuelle Dispatches benötigen `override_ci_window=true` plus `run_reason`.
 - [ ] **Vendor-PyYAML Monitoring**: `vendor-pyyaml-monitor.yml` prüft mittwochs
       PyPI- und OSV-Daten, meldet neue PyYAML-Releases sowie Advisories und
-      weist auf `cp313`-Wheels hin, damit das Vendor-Verzeichnis rechtzeitig
-      entfernt werden kann.
+      weist auf `cp313`-`manylinux`- bzw. `cp313`-`musllinux`-Wheels (PEP 656)
+      hin, damit das Vendor-Verzeichnis rechtzeitig entfernt werden kann. Die
+      Statusdatei `generated/vendor_pyyaml_status.json` wird dabei automatisch
+      mit den jeweils passenden Download-Links befüllt.
+- [ ] **Home-Assistant-Abhängigkeiten spiegeln**: `python -m script.sync_homeassistant_dependencies`
+      zieht Requirements, Manifest-Abhängigkeiten und das vendorte PyYAML auf
+      den Stand des Core-Repos (aktuell PyYAML 6.0.3) und regeneriert die
+      Status-JSON mitsamt Wheel-Links.
 - [ ] **TypedDict Guard**: Der CI-Job „TypedDict audit“ aus `ci.yml` ruft das
       Guard-Skript mit `--fail-on-findings` für Integration und Tests auf und
       blockiert Deployments, sobald untypisierte Dictionary-Aliase erneut

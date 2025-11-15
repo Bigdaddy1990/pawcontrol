@@ -11,12 +11,17 @@ from homeassistant.core import HomeAssistant, callback
 
 from .compat import ConfigEntry
 from .const import DOMAIN
-from .coordinator_tasks import derive_rejection_metrics, resolve_service_guard_metrics
-from .runtime_data import get_runtime_data
-from .telemetry import get_runtime_performance_stats
+from .coordinator_tasks import (
+    derive_rejection_metrics,
+    resolve_entity_factory_guard_metrics,
+    resolve_service_guard_metrics,
+)
+from .runtime_data import describe_runtime_store_status, get_runtime_data
+from .telemetry import get_runtime_performance_stats, get_runtime_store_health
 from .types import (
     ConfigEntryOptionsPayload,
     CoordinatorRejectionMetrics,
+    EntityFactoryGuardMetricsSnapshot,
     HelperManagerGuardMetrics,
     JSONLikeMapping,
     ManualResilienceAutomationEntry,
@@ -30,6 +35,9 @@ from .types import (
     PawControlRuntimeData,
     ResilienceEscalationFieldEntry,
     ResilienceEscalationThresholds,
+    RuntimeStoreAssessmentTimelineSummary,
+    RuntimeStoreHealthAssessment,
+    RuntimeStoreHealthHistory,
     SystemHealthBreakerOverview,
     SystemHealthGuardReasonEntry,
     SystemHealthGuardSummary,
@@ -63,6 +71,32 @@ class BreakerIndicatorThresholds:
     critical_count: int | None = None
     source: str = "default"
     source_key: str | None = None
+
+
+def _attach_runtime_store_history(
+    info: dict[str, object],
+    history: RuntimeStoreHealthHistory | None,
+) -> None:
+    """Attach runtime store telemetry artefacts to a system health payload."""
+
+    if not history:
+        return
+
+    info["runtime_store_history"] = history
+
+    assessment = history.get("assessment")
+    if isinstance(assessment, Mapping):
+        info["runtime_store_assessment"] = cast(
+            RuntimeStoreHealthAssessment,
+            dict(assessment),
+        )
+
+    timeline_summary = history.get("assessment_timeline_summary")
+    if isinstance(timeline_summary, Mapping):
+        info["runtime_store_timeline_summary"] = cast(
+            RuntimeStoreAssessmentTimelineSummary,
+            dict(timeline_summary),
+        )
 
 
 def _coerce_int(value: Any, *, default: int = 0) -> int:
@@ -406,6 +440,7 @@ def _default_service_execution_snapshot() -> SystemHealthServiceExecutionSnapsho
     )
 
     guard_metrics = resolve_service_guard_metrics({})
+    entity_factory_guard = resolve_entity_factory_guard_metrics({})
     rejection_metrics = derive_rejection_metrics(None)
     guard_summary = _build_guard_summary(guard_metrics, guard_thresholds)
     breaker_overview = _build_breaker_overview(rejection_metrics, breaker_thresholds)
@@ -414,6 +449,7 @@ def _default_service_execution_snapshot() -> SystemHealthServiceExecutionSnapsho
     return {
         "guard_metrics": guard_metrics,
         "guard_summary": guard_summary,
+        "entity_factory_guard": entity_factory_guard,
         "rejection_metrics": rejection_metrics,
         "breaker_overview": breaker_overview,
         "status": status,
@@ -435,27 +471,38 @@ async def system_health_info(hass: HomeAssistant) -> SystemHealthInfoPayload:
 
     entry = _async_get_first_entry(hass)
     if entry is None:
-        return {
+        runtime_store_snapshot = describe_runtime_store_status(hass, "missing-entry")
+        info: SystemHealthInfoPayload = {
             "can_reach_backend": False,
             "remaining_quota": "unknown",
             "service_execution": _default_service_execution_snapshot(),
+            "runtime_store": runtime_store_snapshot,
         }
+        return info
 
     runtime = get_runtime_data(hass, entry)
+    runtime_store_snapshot = describe_runtime_store_status(hass, entry)
+    runtime_store_history = get_runtime_store_health(runtime)
     if runtime is None:
-        return {
+        info = {
             "can_reach_backend": False,
             "remaining_quota": "unknown",
             "service_execution": _default_service_execution_snapshot(),
+            "runtime_store": runtime_store_snapshot,
         }
+        _attach_runtime_store_history(info, runtime_store_history)
+        return info
 
     coordinator = getattr(runtime, "coordinator", None)
     if coordinator is None:
-        return {
+        info = {
             "can_reach_backend": False,
             "remaining_quota": "unknown",
             "service_execution": _default_service_execution_snapshot(),
+            "runtime_store": runtime_store_snapshot,
         }
+        _attach_runtime_store_history(info, runtime_store_history)
+        return info
 
     stats = coordinator.get_update_statistics()
     api_calls = _extract_api_call_count(stats)
@@ -472,7 +519,9 @@ async def system_health_info(hass: HomeAssistant) -> SystemHealthInfoPayload:
     else:
         remaining_quota = "unlimited"
 
-    guard_metrics, rejection_metrics = _extract_service_execution_metrics(runtime)
+    guard_metrics, entity_factory_guard, rejection_metrics = (
+        _extract_service_execution_metrics(runtime)
+    )
     guard_thresholds, breaker_thresholds = _resolve_indicator_thresholds(
         runtime, entry.options
     )
@@ -494,18 +543,22 @@ async def system_health_info(hass: HomeAssistant) -> SystemHealthInfoPayload:
 
     manual_events_info = _normalise_manual_events_snapshot(manual_snapshot)
 
-    return {
+    info = {
         "can_reach_backend": bool(getattr(coordinator, "last_update_success", False)),
         "remaining_quota": remaining_quota,
         "service_execution": {
             "guard_metrics": guard_metrics,
             "guard_summary": guard_summary,
+            "entity_factory_guard": entity_factory_guard,
             "rejection_metrics": rejection_metrics,
             "breaker_overview": breaker_overview,
             "status": service_status,
             "manual_events": manual_events_info,
         },
+        "runtime_store": runtime_store_snapshot,
     }
+    _attach_runtime_store_history(info, runtime_store_history)
+    return info
 
 
 def _async_get_first_entry(hass: HomeAssistant) -> ConfigEntry | None:
@@ -516,11 +569,16 @@ def _async_get_first_entry(hass: HomeAssistant) -> ConfigEntry | None:
 
 def _extract_service_execution_metrics(
     runtime: PawControlRuntimeData | None,
-) -> tuple[HelperManagerGuardMetrics, CoordinatorRejectionMetrics]:
-    """Return guard and rejection metrics derived from runtime statistics."""
+) -> tuple[
+    HelperManagerGuardMetrics,
+    EntityFactoryGuardMetricsSnapshot,
+    CoordinatorRejectionMetrics,
+]:
+    """Return guard telemetry derived from runtime statistics."""
 
     performance_stats = get_runtime_performance_stats(runtime)
     guard_metrics = resolve_service_guard_metrics(performance_stats)
+    entity_factory_guard = resolve_entity_factory_guard_metrics(performance_stats)
 
     rejection_source: CoordinatorRejectionMetrics | JSONLikeMapping | None = None
     if performance_stats is not None:
@@ -530,7 +588,7 @@ def _extract_service_execution_metrics(
 
     rejection_metrics = derive_rejection_metrics(rejection_source)
 
-    return guard_metrics, rejection_metrics
+    return guard_metrics, entity_factory_guard, rejection_metrics
 
 
 def _extract_threshold_value(

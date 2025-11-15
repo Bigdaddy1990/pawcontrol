@@ -191,6 +191,12 @@ class _MockClientSession(Mock):
         self.request = AsyncMock(name="request")
         self.get = AsyncMock(side_effect=self.request, name="get")
 
+        self.put = AsyncMock(side_effect=self.request, name="put")
+        self.patch = AsyncMock(side_effect=self.request, name="patch")
+        self.delete = AsyncMock(side_effect=self.request, name="delete")
+        self.head = AsyncMock(side_effect=self.request, name="head")
+        self.options = AsyncMock(side_effect=self.request, name="options")
+
         def _context_response(*args: Any, **kwargs: Any) -> AsyncMock:
             """Return an async context manager for ``session.post`` usage."""
 
@@ -199,6 +205,8 @@ class _MockClientSession(Mock):
             response.text = AsyncMock(return_value=kwargs.get("text", ""))
             response.json = AsyncMock(return_value=kwargs.get("json", {}))
 
+            response.read = AsyncMock(return_value=kwargs.get("body", b""))
+
             response_cm = AsyncMock()
             response_cm.__aenter__.return_value = response
             response_cm.__aexit__.return_value = False
@@ -206,6 +214,33 @@ class _MockClientSession(Mock):
             return response_cm
 
         self.post = AsyncMock(side_effect=_context_response, name="post")
+
+        async def _ws_connect(*args: Any, **kwargs: Any) -> AsyncMock:
+            """Return an async context manager for websocket usage."""
+
+            websocket = AsyncMock()
+            websocket.closed = False
+            websocket.close = AsyncMock(name="close")
+            websocket.send_json = AsyncMock(name="send_json")
+            websocket.send_str = AsyncMock(name="send_str")
+            websocket.send_bytes = AsyncMock(name="send_bytes")
+            websocket.receive_json = AsyncMock(
+                return_value=kwargs.get("receive_json", {}), name="receive_json"
+            )
+            websocket.receive_str = AsyncMock(
+                return_value=kwargs.get("receive_str", ""), name="receive_str"
+            )
+            websocket.receive_bytes = AsyncMock(
+                return_value=kwargs.get("receive_bytes", b""), name="receive_bytes"
+            )
+
+            ws_cm = AsyncMock()
+            ws_cm.__aenter__.return_value = websocket
+            ws_cm.__aexit__.return_value = False
+            ws_cm.call_args = (args, kwargs)
+            return ws_cm
+
+        self.ws_connect = AsyncMock(side_effect=_ws_connect, name="ws_connect")
 
 
 @pytest.fixture

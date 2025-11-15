@@ -33,7 +33,11 @@ from .const import (
 )
 from .coordinator_support import ensure_cache_repair_aggregate
 from .feeding_translations import build_feeding_compliance_summary
-from .runtime_data import RuntimeDataUnavailableError, require_runtime_data
+from .runtime_data import (
+    RuntimeDataUnavailableError,
+    describe_runtime_store_status,
+    require_runtime_data,
+)
 from .types import (
     ConfigFlowUserInput,
     DogConfigData,
@@ -70,6 +74,7 @@ ISSUE_RECONFIGURE_HEALTH = "reconfigure_health"
 ISSUE_FEEDING_COMPLIANCE_ALERT = "feeding_compliance_alert"
 ISSUE_FEEDING_COMPLIANCE_NO_DATA = "feeding_compliance_no_data"
 ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE = "door_sensor_persistence_failure"
+ISSUE_RUNTIME_STORE_COMPATIBILITY = "runtime_store_compatibility"
 
 # Repair flow types
 REPAIR_FLOW_DOG_CONFIG = "repair_dog_configuration"
@@ -101,6 +106,15 @@ def _normalise_issue_severity(
         type(severity).__name__,
     )
     return ir.IssueSeverity.WARNING
+
+
+_RUNTIME_STORE_STATUS_SEVERITY: dict[str, ir.IssueSeverity] = {
+    "future_incompatible": ir.IssueSeverity.ERROR,
+    "needs_migration": ir.IssueSeverity.ERROR,
+    "diverged": ir.IssueSeverity.ERROR,
+    "detached_entry": ir.IssueSeverity.WARNING,
+    "detached_store": ir.IssueSeverity.WARNING,
+}
 
 
 async def async_create_issue(
@@ -394,6 +408,9 @@ async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> Non
 
         # Check storage issues
         await _check_storage_issues(hass, entry)
+
+        # Check runtime store compatibility issues
+        await _check_runtime_store_health(hass, entry)
 
         # Publish cache health diagnostics
         await _publish_cache_health_issue(hass, entry)
@@ -766,6 +783,57 @@ async def _check_storage_issues(hass: HomeAssistant, entry: ConfigEntry) -> None
             },
             severity=ir.IssueSeverity.WARNING,
         )
+
+
+async def _check_runtime_store_health(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Surface runtime store compatibility issues through repairs."""
+
+    issue_id = f"{entry.entry_id}_runtime_store"
+    snapshot = describe_runtime_store_status(hass, entry)
+    status = snapshot.get("status", "current")
+    severity = _RUNTIME_STORE_STATUS_SEVERITY.get(status)
+
+    delete_issue = getattr(ir, "async_delete_issue", None)
+
+    if severity is None:
+        if callable(delete_issue):
+            await delete_issue(hass, DOMAIN, issue_id)
+        return
+
+    entry_snapshot = snapshot.get("entry", {})
+    store_snapshot = snapshot.get("store", {})
+
+    def _string_or_unknown(value: Any) -> str:
+        if value is None:
+            return "n/a"
+        return str(value)
+
+    issue_data: JSONMutableMapping = {
+        "status": status,
+        "current_version": snapshot.get("current_version"),
+        "minimum_compatible_version": snapshot.get("minimum_compatible_version"),
+        "entry_status": entry_snapshot.get("status"),
+        "store_status": store_snapshot.get("status"),
+        "divergence_detected": snapshot.get("divergence_detected", False),
+    }
+
+    issue_data["entry_version"] = _string_or_unknown(entry_snapshot.get("version"))
+    issue_data["entry_created_version"] = _string_or_unknown(
+        entry_snapshot.get("created_version")
+    )
+    issue_data["store_version"] = _string_or_unknown(store_snapshot.get("version"))
+    issue_data["store_created_version"] = _string_or_unknown(
+        store_snapshot.get("created_version")
+    )
+
+    await async_create_issue(
+        hass,
+        entry,
+        issue_id,
+        ISSUE_RUNTIME_STORE_COMPATIBILITY,
+        issue_data,
+        severity=severity,
+    )
 
 
 async def _publish_cache_health_issue(hass: HomeAssistant, entry: ConfigEntry) -> None:

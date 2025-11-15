@@ -19,6 +19,36 @@ from custom_components.pawcontrol.types import (
 from homeassistant.util import dt as dt_util
 
 
+def _patch_runtime_store(monkeypatch: pytest.MonkeyPatch, status: str = "current") -> dict[str, object]:
+    """Patch runtime store snapshot helpers to return a deterministic snapshot."""
+
+    snapshot = {
+        "entry_id": "entry",
+        "status": status,
+        "current_version": 2,
+        "minimum_compatible_version": 1,
+        "entry": {
+            "available": True,
+            "status": status,
+            "version": 2,
+            "created_version": 2,
+        },
+        "store": {
+            "available": True,
+            "status": status,
+            "version": 2,
+            "created_version": 2,
+        },
+        "divergence_detected": False,
+    }
+
+    def _mock_snapshot(*_args: object, **_kwargs: object) -> dict[str, object]:
+        return snapshot.copy()
+
+    monkeypatch.setattr(tasks, "describe_runtime_store_status", _mock_snapshot)
+    return snapshot
+
+
 class _DummyLogger:
     def debug(self, *args, **kwargs) -> None:  # pragma: no cover - helpers
         return None
@@ -146,6 +176,7 @@ def test_build_update_statistics_includes_repair_summary(monkeypatch) -> None:
         caches_with_override_flags=["optimized_cache"],
     )
 
+    _patch_runtime_store(monkeypatch)
     coordinator = _build_coordinator()
     reconfigure_summary = {
         "timestamp": "2024-01-02T00:00:00+00:00",
@@ -184,6 +215,14 @@ def test_build_update_statistics_includes_repair_summary(monkeypatch) -> None:
     assert stats["reconfigure"]["requested_profile"] == "advanced"
     assert stats["reconfigure"]["warning_count"] == 1
     assert stats["reconfigure"]["merge_note_count"] == 0
+    runtime_store = stats["runtime_store"]
+    assert runtime_store["snapshot"]["status"] == "current"
+    assert runtime_store["history"]["checks"] == 1
+    assert runtime_store["assessment"]["level"] in {
+        "ok",
+        "watch",
+        "action_required",
+    }
 
 
 def test_build_update_statistics_serialises_resilience_payload(monkeypatch) -> None:
@@ -209,6 +248,7 @@ def test_build_update_statistics_serialises_resilience_payload(monkeypatch) -> N
         performance_stats={},
     )
     monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
+    _patch_runtime_store(monkeypatch)
 
     stats = tasks.build_update_statistics(coordinator)
 
@@ -228,6 +268,7 @@ def test_build_update_statistics_serialises_resilience_payload(monkeypatch) -> N
     assert resilience["summary"]["rejection_breaker_ids"] == []
     assert resilience["summary"]["rejection_rate"] == 0.0
     assert resilience["summary"]["last_rejection_time"] is None
+    assert stats["runtime_store"]["snapshot"]["status"] == "current"
     assert "last_rejection_breaker_id" not in resilience["summary"]
     performance_metrics = stats["performance_metrics"]
     assert performance_metrics["rejected_call_count"] == 0
@@ -264,6 +305,7 @@ def test_build_update_statistics_defaults_rejection_metrics(monkeypatch) -> None
     )
     monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
     monkeypatch.setattr(tasks, "collect_resilience_diagnostics", lambda *_: None)
+    _patch_runtime_store(monkeypatch)
 
     stats = tasks.build_update_statistics(coordinator)
 
@@ -282,6 +324,7 @@ def test_build_update_statistics_defaults_rejection_metrics(monkeypatch) -> None
     assert metrics["open_breakers"] == []
     assert metrics["open_breaker_ids"] == []
     assert metrics["half_open_breakers"] == []
+    assert stats["runtime_store"]["snapshot"]["status"] == "current"
     assert metrics["half_open_breaker_ids"] == []
     assert metrics["unknown_breakers"] == []
     assert metrics["unknown_breaker_ids"] == []
@@ -372,6 +415,11 @@ def test_collect_resilience_diagnostics_persists_summary(monkeypatch) -> None:
     assert stored["last_rejection_time"] == 1700000350.0
     assert stored["rejection_breaker_ids"] == ["automation"]
     assert stored["rejection_rate"] == pytest.approx(0.25)
+    diagnostics_payload = runtime_data.performance_stats["resilience_diagnostics"]
+    assert diagnostics_payload["summary"]["rejection_rate"] == pytest.approx(0.25)
+    assert diagnostics_payload["summary"]["rejection_breakers"] == ["automation"]
+    breaker_snapshot = diagnostics_payload["breakers"]["automation"]
+    assert breaker_snapshot["breaker_id"] == "automation"
     assert payload["breakers"]["automation"]["breaker_id"] == "automation"
     assert payload["summary"]["open_breakers"] == ["automation"]
     assert payload["summary"]["rejection_breakers"] == ["automation"]
@@ -410,7 +458,10 @@ def test_collect_resilience_diagnostics_clears_summary_when_no_breakers(
     }
 
     runtime_data = SimpleNamespace(
-        performance_stats={"resilience_summary": dict(summary)}
+        performance_stats={
+            "resilience_summary": dict(summary),
+            "resilience_diagnostics": {"summary": dict(summary)},
+        }
     )
     monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
 
@@ -420,6 +471,7 @@ def test_collect_resilience_diagnostics_clears_summary_when_no_breakers(
 
     assert payload == {}
     assert "resilience_summary" not in runtime_data.performance_stats
+    assert "resilience_diagnostics" not in runtime_data.performance_stats
 
 
 def test_collect_resilience_diagnostics_clears_summary_without_manager(
@@ -457,7 +509,10 @@ def test_collect_resilience_diagnostics_clears_summary_without_manager(
     }
 
     runtime_data = SimpleNamespace(
-        performance_stats={"resilience_summary": dict(summary)}
+        performance_stats={
+            "resilience_summary": dict(summary),
+            "resilience_diagnostics": {"summary": dict(summary)},
+        }
     )
     monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
 
@@ -467,6 +522,7 @@ def test_collect_resilience_diagnostics_clears_summary_without_manager(
 
     assert payload == {}
     assert "resilience_summary" not in runtime_data.performance_stats
+    assert "resilience_diagnostics" not in runtime_data.performance_stats
 
 
 def test_collect_resilience_diagnostics_clears_summary_on_error(monkeypatch) -> None:
@@ -502,7 +558,10 @@ def test_collect_resilience_diagnostics_clears_summary_on_error(monkeypatch) -> 
     }
 
     runtime_data = SimpleNamespace(
-        performance_stats={"resilience_summary": dict(summary)}
+        performance_stats={
+            "resilience_summary": dict(summary),
+            "resilience_diagnostics": {"summary": dict(summary)},
+        }
     )
     monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
 
@@ -512,6 +571,7 @@ def test_collect_resilience_diagnostics_clears_summary_on_error(monkeypatch) -> 
 
     assert payload == {}
     assert "resilience_summary" not in runtime_data.performance_stats
+    assert "resilience_diagnostics" not in runtime_data.performance_stats
 
 
 def test_collect_resilience_diagnostics_clears_summary_on_invalid_payload(
@@ -549,7 +609,10 @@ def test_collect_resilience_diagnostics_clears_summary_on_invalid_payload(
     }
 
     runtime_data = SimpleNamespace(
-        performance_stats={"resilience_summary": dict(summary)}
+        performance_stats={
+            "resilience_summary": dict(summary),
+            "resilience_diagnostics": {"summary": dict(summary)},
+        }
     )
     monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
 
@@ -563,6 +626,7 @@ def test_collect_resilience_diagnostics_clears_summary_on_invalid_payload(
 
     assert payload == {}
     assert "resilience_summary" not in runtime_data.performance_stats
+    assert "resilience_diagnostics" not in runtime_data.performance_stats
 
 
 def test_collect_resilience_diagnostics_coerces_stats_values(monkeypatch) -> None:
@@ -761,6 +825,12 @@ def test_collect_resilience_diagnostics_prefers_breaker_metadata(monkeypatch) ->
     assert stored["rejection_breakers"] == ["api"]
     assert stored["rejection_breaker_ids"] == ["api-primary"]
     assert stored["rejection_rate"] == pytest.approx(1 / (2 + 1))
+    diagnostics_payload = runtime_data.performance_stats["resilience_diagnostics"]
+    assert diagnostics_payload["summary"]["rejection_breaker_ids"] == ["api-primary"]
+    assert diagnostics_payload["summary"]["rejection_rate"] == pytest.approx(
+        1 / (2 + 1)
+    )
+    assert diagnostics_payload["breakers"]["api"]["breaker_id"] == "api-primary"
 
 
 def test_collect_resilience_diagnostics_converts_temporal_values(monkeypatch) -> None:
@@ -839,6 +909,12 @@ def test_collect_resilience_diagnostics_converts_temporal_values(monkeypatch) ->
     assert stored["rejected_call_count"] == 0
     assert stored["rejection_breaker_count"] == 0
     assert stored["last_rejection_time"] is None
+    diagnostics_payload = runtime_data.performance_stats["resilience_diagnostics"]
+    assert diagnostics_payload["summary"]["recovery_breaker_id"] == "temporal"
+    assert diagnostics_payload["summary"]["recovery_latency"] == pytest.approx(
+        expected_success - expected_failure
+    )
+    assert diagnostics_payload["breakers"]["temporal"]["breaker_id"] == "temporal"
 
 
 def test_collect_resilience_diagnostics_handles_unrecovered_breaker(
@@ -884,6 +960,9 @@ def test_collect_resilience_diagnostics_handles_unrecovered_breaker(
     assert stored["rejected_call_count"] == 0
     assert stored["rejection_breaker_count"] == 0
     assert stored["last_rejection_time"] is None
+    diagnostics_payload = runtime_data.performance_stats["resilience_diagnostics"]
+    assert diagnostics_payload["summary"]["recovery_breaker_id"] is None
+    assert diagnostics_payload["summary"]["open_breaker_ids"] == ["api"]
 
 
 def test_collect_resilience_diagnostics_pairs_latest_recovery(
@@ -950,6 +1029,10 @@ def test_collect_resilience_diagnostics_pairs_latest_recovery(
     assert stored["last_rejection_breaker_id"] == "recovered"
     assert stored["rejection_breaker_count"] == 2
     assert stored["rejection_rate"] == pytest.approx(5 / (18 + 5))
+    diagnostics_payload = runtime_data.performance_stats["resilience_diagnostics"]
+    assert diagnostics_payload["summary"]["rejection_breaker_count"] == 2
+    assert diagnostics_payload["summary"]["recovery_breaker_id"] == "recovered"
+    assert diagnostics_payload["breakers"]["recovered"]["last_success_time"] == 300.0
 
 
 def test_build_runtime_statistics_omits_empty_repair_summary(monkeypatch) -> None:
@@ -960,11 +1043,13 @@ def test_build_runtime_statistics_omits_empty_repair_summary(monkeypatch) -> Non
         data_manager=SimpleNamespace(cache_repair_summary=lambda: None)
     )
     monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
+    _patch_runtime_store(monkeypatch)
 
     stats = tasks.build_runtime_statistics(coordinator)
 
     assert "repairs" not in stats
     assert "reconfigure" not in stats
+    assert stats["runtime_store"]["snapshot"]["status"] == "current"
 
 
 def test_build_runtime_statistics_omits_empty_resilience(monkeypatch) -> None:
@@ -975,10 +1060,12 @@ def test_build_runtime_statistics_omits_empty_resilience(monkeypatch) -> None:
         data_manager=SimpleNamespace(cache_repair_summary=lambda: None)
     )
     monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
+    _patch_runtime_store(monkeypatch)
 
     stats = tasks.build_runtime_statistics(coordinator)
 
     assert "resilience" not in stats
+    assert stats["runtime_store"]["snapshot"]["status"] == "current"
 
 
 def test_build_runtime_statistics_defaults_rejection_metrics(monkeypatch) -> None:
@@ -991,6 +1078,7 @@ def test_build_runtime_statistics_defaults_rejection_metrics(monkeypatch) -> Non
     )
     monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
     monkeypatch.setattr(tasks, "collect_resilience_diagnostics", lambda *_: None)
+    _patch_runtime_store(monkeypatch)
 
     stats = tasks.build_runtime_statistics(coordinator)
 
@@ -1020,6 +1108,9 @@ def test_build_runtime_statistics_defaults_rejection_metrics(monkeypatch) -> Non
     assert error_summary["unknown_breaker_count"] == 0
     assert error_summary["open_breakers"] == []
     assert error_summary["open_breaker_ids"] == []
+    runtime_store = stats["runtime_store"]
+    assert runtime_store["snapshot"]["status"] == "current"
+    assert runtime_store["history"]["checks"] == 1
     assert error_summary["half_open_breakers"] == []
     assert error_summary["half_open_breaker_ids"] == []
     assert error_summary["unknown_breakers"] == []
@@ -1065,6 +1156,7 @@ def test_build_runtime_statistics_includes_guard_metrics(monkeypatch) -> None:
     )
     monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
     monkeypatch.setattr(tasks, "collect_resilience_diagnostics", lambda *_: None)
+    _patch_runtime_store(monkeypatch)
 
     stats = tasks.build_runtime_statistics(coordinator)
 
@@ -1082,6 +1174,7 @@ def test_build_runtime_statistics_includes_guard_metrics(monkeypatch) -> None:
         }
     ]
     assert service_execution["rejection_metrics"] is stats["rejection_metrics"]
+    assert stats["runtime_store"]["snapshot"]["status"] == "current"
 
     stored_guard_metrics = runtime_data.performance_stats["service_guard_metrics"]
     assert stored_guard_metrics["executed"] == 3
@@ -1107,6 +1200,7 @@ def test_build_runtime_statistics_defaults_guard_metrics(monkeypatch) -> None:
     )
     monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
     monkeypatch.setattr(tasks, "collect_resilience_diagnostics", lambda *_: None)
+    _patch_runtime_store(monkeypatch)
 
     stats = tasks.build_runtime_statistics(coordinator)
 
@@ -1117,6 +1211,7 @@ def test_build_runtime_statistics_defaults_guard_metrics(monkeypatch) -> None:
         "reasons": {},
         "last_results": [],
     }
+    assert stats["runtime_store"]["snapshot"]["status"] == "current"
 
 
 def test_build_runtime_statistics_captures_bool_coercion_summary(
@@ -1131,6 +1226,7 @@ def test_build_runtime_statistics_captures_bool_coercion_summary(
     )
     monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
     monkeypatch.setattr(tasks, "collect_resilience_diagnostics", lambda *_: None)
+    _patch_runtime_store(monkeypatch)
 
     reset_bool_coercion_metrics()
     try:
@@ -1147,6 +1243,7 @@ def test_build_runtime_statistics_captures_bool_coercion_summary(
     assert summary["recorded"] is True
     assert summary["total"] == 1
     assert summary["reason_counts"]["truthy_string"] == 1
+    assert stats["runtime_store"]["snapshot"]["status"] == "current"
 
     stored = runtime_data.performance_stats.get("bool_coercion_summary")
     assert stored is not None
@@ -1177,6 +1274,7 @@ def test_build_runtime_statistics_threads_rejection_metrics(monkeypatch) -> None
         performance_stats={},
     )
     monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
+    _patch_runtime_store(monkeypatch)
 
     stats = tasks.build_runtime_statistics(coordinator)
 
@@ -1204,6 +1302,7 @@ def test_build_runtime_statistics_threads_rejection_metrics(monkeypatch) -> None
     assert rejection_metrics["unknown_breaker_ids"] == []
     assert rejection_metrics["rejection_breaker_ids"] == ["api"]
     assert rejection_metrics["rejection_breakers"] == ["api"]
+    assert stats["runtime_store"]["snapshot"]["status"] == "current"
     error_summary = stats["error_summary"]
     assert error_summary["open_breaker_count"] == 1
     assert error_summary["half_open_breaker_count"] == 0
@@ -1229,10 +1328,12 @@ def test_build_update_statistics_handles_missing_resilience_manager(
         performance_stats={},
     )
     monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
+    _patch_runtime_store(monkeypatch)
 
     stats = tasks.build_update_statistics(coordinator)
 
     assert "resilience" not in stats
+    assert stats["runtime_store"]["snapshot"]["status"] == "current"
 
 
 def test_build_update_statistics_logs_and_skips_on_resilience_error(
@@ -1246,10 +1347,12 @@ def test_build_update_statistics_logs_and_skips_on_resilience_error(
         performance_stats={},
     )
     monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
+    _patch_runtime_store(monkeypatch)
 
     stats = tasks.build_update_statistics(coordinator)
 
     assert "resilience" not in stats
+    assert stats["runtime_store"]["snapshot"]["status"] == "current"
 
 
 def test_build_update_statistics_summarises_options_when_uncached(monkeypatch) -> None:
@@ -1277,6 +1380,7 @@ def test_build_update_statistics_summarises_options_when_uncached(monkeypatch) -
         performance_stats={},
     )
     monkeypatch.setattr(tasks, "get_runtime_data", lambda *_: runtime_data)
+    _patch_runtime_store(monkeypatch)
 
     stats = tasks.build_update_statistics(coordinator)
 

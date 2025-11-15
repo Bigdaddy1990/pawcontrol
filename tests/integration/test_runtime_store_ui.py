@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, call
 
 import pytest
 from custom_components.pawcontrol.const import (
@@ -19,7 +19,10 @@ from custom_components.pawcontrol.const import (
     MODULE_WALK,
 )
 from custom_components.pawcontrol.options_flow import PawControlOptionsFlow
-from custom_components.pawcontrol.repairs import async_check_for_issues
+from custom_components.pawcontrol.repairs import (
+    ISSUE_RUNTIME_STORE_COMPATIBILITY,
+    async_check_for_issues,
+)
 from custom_components.pawcontrol.runtime_data import store_runtime_data
 from custom_components.pawcontrol.types import (
     CacheRepairAggregate,
@@ -278,3 +281,125 @@ async def test_repair_checks_upgrade_legacy_store_entry(
     assert entry_cache.version == DomainRuntimeStoreEntry.CURRENT_VERSION
     assert entry_cache.unwrap() is runtime
     assert entry.runtime_data is runtime
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_repair_checks_surface_runtime_store_incompatibility(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Runtime store incompatibilities should raise repair issues."""
+
+    create_issue = AsyncMock(return_value=None)
+    delete_issue = AsyncMock(return_value=None)
+    monkeypatch.setattr(ir, "async_create_issue", create_issue)
+    monkeypatch.setattr(ir, "async_delete_issue", delete_issue)
+
+    dog_payload = {
+        CONF_DOG_ID: "buddy",
+        CONF_DOG_NAME: "Buddy",
+        CONF_MODULES: {MODULE_WALK: True},
+    }
+    typed_dog = ensure_dog_config_data(dog_payload)
+    assert typed_dog is not None
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_DOGS: [typed_deepcopy(typed_dog)]},
+        unique_id="runtime-store-incompatible",
+        options={"notifications": {"mobile_notifications": False}},
+    )
+    entry.add_to_hass(hass)
+    entry.version = 1
+
+    data_manager = SimpleNamespace(
+        async_update_dog_data=AsyncMock(return_value=None),
+        cache_repair_summary=lambda: None,
+    )
+    coordinator = SimpleNamespace(last_update_success=True)
+    runtime = _build_runtime_data(
+        typed_dog, data_manager=data_manager, coordinator=coordinator
+    )
+    store_runtime_data(hass, entry, runtime)
+
+    store = hass.data[DOMAIN]
+    store_entry = store[entry.entry_id]
+    assert isinstance(store_entry, DomainRuntimeStoreEntry)
+    future_version = DomainRuntimeStoreEntry.CURRENT_VERSION + 2
+    store_entry.version = future_version
+    store_entry.created_version = future_version
+    entry._pawcontrol_runtime_store_version = future_version
+    entry._pawcontrol_runtime_store_created_version = future_version
+
+    await async_check_for_issues(hass, entry)
+    await hass.async_block_till_done()
+
+    compatibility_calls = [
+        invocation
+        for invocation in create_issue.await_args_list
+        if invocation.kwargs.get("translation_key")
+        == ISSUE_RUNTIME_STORE_COMPATIBILITY
+    ]
+    assert compatibility_calls
+    compatibility_kwargs = compatibility_calls[-1].kwargs
+    assert compatibility_kwargs["data"]["status"] == "future_incompatible"
+    assert compatibility_kwargs["severity"] == ir.IssueSeverity.ERROR
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_repair_checks_clear_runtime_store_issue_when_healthy(
+    hass: HomeAssistant,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Healthy runtime stores should clear previously raised issues."""
+
+    create_issue = AsyncMock(return_value=None)
+    delete_issue = AsyncMock(return_value=None)
+    monkeypatch.setattr(ir, "async_create_issue", create_issue)
+    monkeypatch.setattr(ir, "async_delete_issue", delete_issue)
+
+    dog_payload = {
+        CONF_DOG_ID: "buddy",
+        CONF_DOG_NAME: "Buddy",
+        CONF_MODULES: {MODULE_WALK: True},
+    }
+    typed_dog = ensure_dog_config_data(dog_payload)
+    assert typed_dog is not None
+
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={CONF_DOGS: [typed_deepcopy(typed_dog)]},
+        unique_id="runtime-store-healthy",
+        options={"notifications": {"mobile_notifications": False}},
+    )
+    entry.add_to_hass(hass)
+    entry.version = 1
+
+    data_manager = SimpleNamespace(
+        async_update_dog_data=AsyncMock(return_value=None),
+        cache_repair_summary=lambda: None,
+    )
+    coordinator = SimpleNamespace(last_update_success=True)
+    runtime = _build_runtime_data(
+        typed_dog, data_manager=data_manager, coordinator=coordinator
+    )
+    store_runtime_data(hass, entry, runtime)
+
+    await async_check_for_issues(hass, entry)
+    await hass.async_block_till_done()
+
+    runtime_issue_id = f"{entry.entry_id}_runtime_store"
+    deletion_calls = [
+        invocation
+        for invocation in delete_issue.await_args_list
+        if invocation.args[2] == runtime_issue_id
+    ]
+    assert deletion_calls
+    assert not [
+        invocation
+        for invocation in create_issue.await_args_list
+        if invocation.kwargs.get("translation_key")
+        == ISSUE_RUNTIME_STORE_COMPATIBILITY
+    ]

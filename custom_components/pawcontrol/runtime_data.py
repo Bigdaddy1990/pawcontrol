@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Mapping, MutableMapping
 from typing import cast
 
@@ -14,7 +15,16 @@ from .types import (
     DomainRuntimeStoreEntry,
     PawControlConfigEntry,
     PawControlRuntimeData,
+    RuntimeStoreCompatibilitySnapshot,
+    RuntimeStoreEntrySnapshot,
+    RuntimeStoreEntryStatus,
+    RuntimeStoreOverallStatus,
 )
+
+_LOGGER = logging.getLogger(__name__)
+
+_ENTRY_VERSION_ATTR = "_pawcontrol_runtime_store_version"
+_ENTRY_CREATED_VERSION_ATTR = "_pawcontrol_runtime_store_created_version"
 
 
 def _resolve_entry_id(entry_or_id: PawControlConfigEntry | str) -> str:
@@ -91,7 +101,7 @@ def _as_store_entry(value: object | None) -> DomainRuntimeStoreEntry | None:
     """Return a :class:`DomainRuntimeStoreEntry` if ``value`` resembles one."""
 
     if isinstance(value, DomainRuntimeStoreEntry):
-        return value.ensure_current()
+        return value
 
     if value is None:
         return None
@@ -114,9 +124,16 @@ def _as_store_entry(value: object | None) -> DomainRuntimeStoreEntry | None:
                 return None
 
             version = _coerce_version(mapping_value.get("version"))
+            created_version = _coerce_version(mapping_value.get("created_version"))
             if version is None:
                 return DomainRuntimeStoreEntry(runtime_data=runtime_data)
-            return DomainRuntimeStoreEntry(runtime_data=runtime_data, version=version)
+            if created_version is None:
+                created_version = version
+            return DomainRuntimeStoreEntry(
+                runtime_data=runtime_data,
+                version=version,
+                created_version=created_version,
+            )
 
         return None
 
@@ -129,9 +146,65 @@ def _as_store_entry(value: object | None) -> DomainRuntimeStoreEntry | None:
         return None
 
     version = _coerce_version(getattr(value, "version", None))
+    created_version = _coerce_version(getattr(value, "created_version", None))
     if version is None:
         return DomainRuntimeStoreEntry(runtime_data=runtime_data)
-    return DomainRuntimeStoreEntry(runtime_data=runtime_data, version=version)
+    if created_version is None:
+        created_version = version
+    return DomainRuntimeStoreEntry(
+        runtime_data=runtime_data,
+        version=version,
+        created_version=created_version,
+    )
+
+
+def _resolve_entry_status(
+    *,
+    available: bool,
+    version: int | None,
+    created_version: int | None,
+) -> RuntimeStoreEntryStatus:
+    """Return a :class:`RuntimeStoreEntryStatus` for runtime metadata."""
+
+    if not available:
+        return "missing"
+
+    if version is None or created_version is None:
+        return "unstamped"
+
+    if version > DomainRuntimeStoreEntry.CURRENT_VERSION or (
+        created_version is not None
+        and created_version > DomainRuntimeStoreEntry.CURRENT_VERSION
+    ):
+        return "future_incompatible"
+
+    if created_version < DomainRuntimeStoreEntry.MINIMUM_COMPATIBLE_VERSION:
+        return "legacy_upgrade_required"
+
+    if version != DomainRuntimeStoreEntry.CURRENT_VERSION:
+        return "upgrade_pending"
+
+    return "current"
+
+
+def _build_runtime_store_snapshot(
+    *,
+    available: bool,
+    version: int | None,
+    created_version: int | None,
+) -> RuntimeStoreEntrySnapshot:
+    """Create a snapshot dictionary for runtime store metadata."""
+
+    status = _resolve_entry_status(
+        available=available, version=version, created_version=created_version
+    )
+    snapshot: RuntimeStoreEntrySnapshot = {
+        "available": available,
+        "version": version,
+        "created_version": created_version,
+        "status": status,
+    }
+    return snapshot
 
 
 def _cleanup_domain_store(
@@ -143,16 +216,44 @@ def _cleanup_domain_store(
         hass.data.pop(DOMAIN, None)
 
 
-def _get_runtime_from_entry(
+def _get_store_entry_from_entry(
     entry: PawControlConfigEntry | None,
-) -> PawControlRuntimeData | None:
-    """Return runtime data stored on a config entry when available."""
+) -> DomainRuntimeStoreEntry | None:
+    """Return a runtime store entry reconstructed from the config entry."""
 
     if entry is None:
         return None
 
     runtime = getattr(entry, "runtime_data", None)
-    return _as_runtime_data(runtime)
+    runtime_data = _as_runtime_data(runtime)
+    if runtime_data is None:
+        return None
+
+    version = _coerce_version(getattr(entry, _ENTRY_VERSION_ATTR, None))
+    if version is None:
+        version = DomainRuntimeStoreEntry.CURRENT_VERSION
+
+    created_version = _coerce_version(
+        getattr(entry, _ENTRY_CREATED_VERSION_ATTR, None)
+    )
+    if created_version is None:
+        created_version = version
+
+    return DomainRuntimeStoreEntry(
+        runtime_data=runtime_data,
+        version=version,
+        created_version=created_version,
+    )
+
+
+def _apply_entry_metadata(
+    entry: PawControlConfigEntry, store_entry: DomainRuntimeStoreEntry
+) -> None:
+    """Persist runtime metadata on the config entry."""
+
+    entry.runtime_data = store_entry.unwrap()
+    setattr(entry, _ENTRY_VERSION_ATTR, store_entry.version)
+    setattr(entry, _ENTRY_CREATED_VERSION_ATTR, store_entry.created_version)
 
 
 def _detach_runtime_from_entry(entry: PawControlConfigEntry | None) -> None:
@@ -163,6 +264,45 @@ def _detach_runtime_from_entry(entry: PawControlConfigEntry | None) -> None:
 
     if hasattr(entry, "runtime_data"):
         entry.runtime_data = None
+    if hasattr(entry, _ENTRY_VERSION_ATTR):
+        setattr(entry, _ENTRY_VERSION_ATTR, None)
+    if hasattr(entry, _ENTRY_CREATED_VERSION_ATTR):
+        setattr(entry, _ENTRY_CREATED_VERSION_ATTR, None)
+
+
+def _normalise_store_entry(
+    entry_id: str, store_entry: DomainRuntimeStoreEntry
+) -> DomainRuntimeStoreEntry:
+    """Ensure ``store_entry`` aligns with the supported schema version."""
+
+    if store_entry.is_future_version():
+        raise RuntimeDataIncompatibleError(
+            "Future runtime store schema detected for "
+            f"{entry_id} (got version={store_entry.version} "
+            f"created={store_entry.created_version}, "
+            f"current={DomainRuntimeStoreEntry.CURRENT_VERSION})"
+        )
+
+    created_version = store_entry.created_version
+    if created_version < DomainRuntimeStoreEntry.MINIMUM_COMPATIBLE_VERSION:
+        _LOGGER.debug(
+            "Upgrading legacy runtime store entry for %s from schema %s",
+            entry_id,
+            created_version,
+        )
+        created_version = DomainRuntimeStoreEntry.MINIMUM_COMPATIBLE_VERSION
+
+    version = store_entry.version
+    if version < DomainRuntimeStoreEntry.MINIMUM_COMPATIBLE_VERSION:
+        version = DomainRuntimeStoreEntry.MINIMUM_COMPATIBLE_VERSION
+
+    upgraded_entry = DomainRuntimeStoreEntry(
+        runtime_data=store_entry.runtime_data,
+        version=version,
+        created_version=created_version,
+    )
+
+    return upgraded_entry.ensure_current()
 
 
 def store_runtime_data(
@@ -172,38 +312,49 @@ def store_runtime_data(
 ) -> None:
     """Attach runtime data to the config entry and update compatibility caches."""
 
-    entry.runtime_data = runtime_data
+    store_entry = DomainRuntimeStoreEntry(runtime_data=runtime_data).ensure_current()
+    _apply_entry_metadata(entry, store_entry)
 
     store = _get_domain_store(hass, create=True)
-    store[entry.entry_id] = DomainRuntimeStoreEntry(
-        runtime_data=runtime_data
-    ).ensure_current()
+    store[entry.entry_id] = store_entry
 
 
 def get_runtime_data(
-    hass: HomeAssistant, entry_or_id: PawControlConfigEntry | str
+    hass: HomeAssistant,
+    entry_or_id: PawControlConfigEntry | str,
+    *,
+    raise_on_incompatible: bool = False,
 ) -> PawControlRuntimeData | None:
     """Return the runtime data associated with a config entry."""
 
     entry = _get_entry(hass, entry_or_id)
-    runtime = _get_runtime_from_entry(entry)
-    if runtime is not None:
+    entry_id = _resolve_entry_id(entry_or_id)
+
+    entry_store_entry = _get_store_entry_from_entry(entry)
+    if entry_store_entry is not None:
+        try:
+            current_entry = _normalise_store_entry(entry_id, entry_store_entry)
+        except RuntimeDataIncompatibleError as err:
+            _LOGGER.error("Runtime data incompatible for entry %s: %s", entry_id, err)
+            _detach_runtime_from_entry(entry)
+            if raise_on_incompatible:
+                raise
+            return None
+
         if entry is not None:
+            _apply_entry_metadata(entry, current_entry)
             store = _get_domain_store(hass, create=True)
             if store is not None:
-                current_entry = DomainRuntimeStoreEntry(
-                    runtime_data=runtime
-                ).ensure_current()
-                existing_entry = _as_store_entry(store.get(entry.entry_id))
+                store_entry = _as_store_entry(store.get(entry_id))
                 if (
-                    existing_entry is None
-                    or existing_entry.unwrap() is not runtime
-                    or existing_entry.version != current_entry.version
+                    store_entry is None
+                    or store_entry.unwrap() is not current_entry.unwrap()
+                    or store_entry.version != current_entry.version
+                    or store_entry.created_version != current_entry.created_version
                 ):
-                    store[entry.entry_id] = current_entry
-        return runtime
+                    store[entry_id] = current_entry
+        return current_entry.unwrap()
 
-    entry_id = _resolve_entry_id(entry_or_id)
     store = _get_domain_store(hass, create=False)
     if store is None:
         return None
@@ -214,13 +365,126 @@ def get_runtime_data(
             _cleanup_domain_store(hass, store)
         return None
 
-    current_entry = store_entry.ensure_current()
+    try:
+        current_entry = _normalise_store_entry(entry_id, store_entry)
+    except RuntimeDataIncompatibleError as err:
+        _LOGGER.error("Runtime data incompatible for entry %s: %s", entry_id, err)
+        if store.pop(entry_id, None) is not None:
+            _cleanup_domain_store(hass, store)
+        _detach_runtime_from_entry(entry)
+        if raise_on_incompatible:
+            raise
+        return None
+
     store[entry_id] = current_entry
 
     runtime_data = current_entry.unwrap()
     if entry is not None:
-        entry.runtime_data = runtime_data
+        _apply_entry_metadata(entry, current_entry)
     return runtime_data
+
+
+def describe_runtime_store_status(
+    hass: HomeAssistant, entry_or_id: PawControlConfigEntry | str
+) -> RuntimeStoreCompatibilitySnapshot:
+    """Return a compatibility summary for runtime store metadata."""
+
+    entry = _get_entry(hass, entry_or_id)
+    entry_id = _resolve_entry_id(entry_or_id)
+
+    entry_runtime = _as_runtime_data(getattr(entry, "runtime_data", None))
+    entry_version = (
+        _coerce_version(getattr(entry, _ENTRY_VERSION_ATTR, None))
+        if entry is not None
+        else None
+    )
+    entry_created_version = (
+        _coerce_version(getattr(entry, _ENTRY_CREATED_VERSION_ATTR, None))
+        if entry is not None
+        else None
+    )
+
+    entry_snapshot = _build_runtime_store_snapshot(
+        available=entry_runtime is not None,
+        version=entry_version,
+        created_version=entry_created_version,
+    )
+
+    store_runtime: PawControlRuntimeData | None = None
+    store_version: int | None = None
+    store_created_version: int | None = None
+
+    store = _get_domain_store(hass, create=False)
+    store_value: object | None = None
+    if store is not None:
+        store_value = store.get(entry_id)
+
+    if isinstance(store_value, DomainRuntimeStoreEntry):
+        store_runtime = store_value.runtime_data
+        store_version = store_value.version
+        store_created_version = store_value.created_version
+    elif isinstance(store_value, Mapping):
+        mapping_value = cast(Mapping[str, object], store_value)
+        store_runtime = _as_runtime_data(mapping_value.get("runtime_data"))
+        store_version = _coerce_version(mapping_value.get("version"))
+        store_created_version = _coerce_version(
+            mapping_value.get("created_version")
+        )
+    else:
+        store_runtime = _as_runtime_data(store_value)
+
+    store_snapshot = _build_runtime_store_snapshot(
+        available=store_runtime is not None,
+        version=store_version,
+        created_version=store_created_version,
+    )
+
+    divergence_detected = (
+        entry_snapshot.get("available")
+        and store_snapshot.get("available")
+        and entry_runtime is not None
+        and store_runtime is not None
+        and entry_runtime is not store_runtime
+    )
+
+    entry_status = cast(RuntimeStoreEntryStatus, entry_snapshot["status"])
+    store_status = cast(RuntimeStoreEntryStatus, store_snapshot["status"])
+
+    statuses: set[RuntimeStoreEntryStatus] = {entry_status, store_status}
+    entry_available = bool(entry_snapshot.get("available"))
+    store_available = bool(store_snapshot.get("available"))
+
+    overall_status: RuntimeStoreOverallStatus
+    if "future_incompatible" in statuses:
+        overall_status = "future_incompatible"
+    elif {
+        "legacy_upgrade_required",
+        "upgrade_pending",
+        "unstamped",
+    } & statuses:
+        overall_status = "needs_migration"
+    elif divergence_detected:
+        overall_status = "diverged"
+    elif entry_available and not store_available:
+        overall_status = "detached_store"
+    elif store_available and not entry_available:
+        overall_status = "detached_entry"
+    elif not entry_available and not store_available:
+        overall_status = "missing"
+    else:
+        overall_status = "current"
+
+    return {
+        "entry_id": entry_id,
+        "status": overall_status,
+        "current_version": DomainRuntimeStoreEntry.CURRENT_VERSION,
+        "minimum_compatible_version": (
+            DomainRuntimeStoreEntry.MINIMUM_COMPATIBLE_VERSION
+        ),
+        "entry": entry_snapshot,
+        "store": store_snapshot,
+        "divergence_detected": bool(divergence_detected),
+    }
 
 
 def pop_runtime_data(
@@ -229,24 +493,38 @@ def pop_runtime_data(
     """Remove and return runtime data for a config entry if present."""
 
     entry = _get_entry(hass, entry_or_id)
-    runtime_data = _get_runtime_from_entry(entry)
-    if runtime_data is not None:
-        _detach_runtime_from_entry(entry)
-        store = _get_domain_store(hass, create=False)
-        if store is not None and entry is not None:
-            entry_id = entry.entry_id
-            if store.pop(entry_id, None) is not None:
-                _cleanup_domain_store(hass, store)
-        return runtime_data
-
     entry_id = _resolve_entry_id(entry_or_id)
+    entry_store_entry = _get_store_entry_from_entry(entry)
+    if entry_store_entry is not None:
+        try:
+            current_entry = _normalise_store_entry(entry_id, entry_store_entry)
+        except RuntimeDataIncompatibleError:
+            current_entry = None
+        else:
+            runtime_data = current_entry.unwrap()
+            _detach_runtime_from_entry(entry)
+            store = _get_domain_store(hass, create=False)
+            if (
+                store is not None
+                and entry is not None
+                and store.pop(entry.entry_id, None) is not None
+            ):
+                _cleanup_domain_store(hass, store)
+            return runtime_data
+        _detach_runtime_from_entry(entry)
+
     store = _get_domain_store(hass, create=False)
     store_runtime: PawControlRuntimeData | None = None
     if store is not None:
         value = store.pop(entry_id, None)
         store_entry = _as_store_entry(value)
         if store_entry is not None:
-            store_runtime = store_entry.ensure_current().unwrap()
+            try:
+                current_entry = _normalise_store_entry(entry_id, store_entry)
+            except RuntimeDataIncompatibleError:
+                current_entry = None
+            else:
+                store_runtime = current_entry.unwrap()
         _cleanup_domain_store(hass, store)
 
     return store_runtime
@@ -256,12 +534,16 @@ class RuntimeDataUnavailableError(HomeAssistantError):
     """Raised when PawControl runtime data cannot be resolved."""
 
 
+class RuntimeDataIncompatibleError(RuntimeDataUnavailableError):
+    """Raised when a runtime payload targets an unsupported schema version."""
+
+
 def require_runtime_data(
     hass: HomeAssistant, entry_or_id: PawControlConfigEntry | str
 ) -> PawControlRuntimeData:
     """Return runtime data or raise when unavailable."""
 
-    runtime = get_runtime_data(hass, entry_or_id)
+    runtime = get_runtime_data(hass, entry_or_id, raise_on_incompatible=True)
     if runtime is None:
         entry_id = (
             entry_or_id

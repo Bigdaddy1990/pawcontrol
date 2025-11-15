@@ -224,6 +224,45 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     )
     script_manager._handle_manual_event(manual_event)
     script_manager.sync_manual_event_history()
+    resilience_summary = {
+        "total_breakers": 1,
+        "states": {
+            "closed": 0,
+            "open": 1,
+            "half_open": 0,
+            "unknown": 0,
+            "other": 0,
+        },
+        "failure_count": 3,
+        "success_count": 5,
+        "total_calls": 8,
+        "total_failures": 3,
+        "total_successes": 5,
+        "rejected_call_count": 2,
+        "last_failure_time": 1700000100.0,
+        "last_state_change": 1700000200.0,
+        "last_success_time": 1700000300.0,
+        "last_rejection_time": 1700000400.0,
+        "recovery_latency": 200.0,
+        "recovery_breaker_id": "api",
+        "recovery_breaker_name": "api",
+        "last_rejection_breaker_id": "api",
+        "last_rejection_breaker_name": "api",
+        "rejection_rate": 0.25,
+        "open_breaker_count": 1,
+        "half_open_breaker_count": 0,
+        "unknown_breaker_count": 0,
+        "open_breakers": ["api"],
+        "open_breaker_ids": ["api"],
+        "half_open_breakers": [],
+        "half_open_breaker_ids": [],
+        "unknown_breakers": [],
+        "unknown_breaker_ids": [],
+        "rejection_breaker_count": 1,
+        "rejection_breakers": ["api"],
+        "rejection_breaker_ids": ["api"],
+    }
+
     runtime.performance_stats = {
         "api_token": "runtime-secret",
         "door_sensor_failures": [
@@ -257,6 +296,48 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
                 }
             ],
         },
+        "entity_factory_guard_metrics": {
+            "runtime_floor": 0.001,
+            "baseline_floor": 0.00045,
+            "max_floor": 0.0045,
+            "runtime_floor_delta": 0.00055,
+            "peak_runtime_floor": 0.003,
+            "lowest_runtime_floor": 0.00045,
+            "last_floor_change": 0.0002,
+            "last_floor_change_ratio": 0.25,
+            "last_actual_duration": 0.002,
+            "last_duration_ratio": 2.0,
+            "last_event": "expand",
+            "last_updated": "2024-01-01T00:00:00+00:00",
+            "samples": 3,
+            "stable_samples": 2,
+            "expansions": 1,
+            "contractions": 0,
+            "last_expansion_duration": 0.002,
+            "enforce_min_runtime": True,
+            "average_duration": 0.0016,
+            "max_duration": 0.002,
+            "min_duration": 0.001,
+            "stable_ratio": 2 / 3,
+            "expansion_ratio": 1 / 3,
+            "contraction_ratio": 0.0,
+            "volatility_ratio": 1 / 3,
+            "consecutive_stable_samples": 2,
+            "longest_stable_run": 2,
+            "duration_span": 0.001,
+            "jitter_ratio": 1.0,
+            "recent_durations": [0.001, 0.0015, 0.002],
+            "recent_average_duration": 0.0015,
+            "recent_max_duration": 0.002,
+            "recent_min_duration": 0.001,
+            "recent_duration_span": 0.001,
+            "recent_jitter_ratio": 1.0,
+            "recent_samples": 3,
+            "recent_events": ["stable", "stable", "expand"],
+            "recent_stable_samples": 2,
+            "recent_stable_ratio": 2 / 3,
+            "stability_trend": "steady",
+        },
         "service_results": [
             {
                 "service": "notify_garden_alert",
@@ -286,6 +367,26 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
                 "executed": 0,
                 "skipped": 1,
                 "reasons": {"hass_missing": 1},
+            },
+        },
+        "resilience_summary": dict(resilience_summary),
+        "resilience_diagnostics": {
+            "summary": dict(resilience_summary),
+            "breakers": {
+                "api": {
+                    "breaker_id": "api",
+                    "state": "OPEN",
+                    "failure_count": 3,
+                    "success_count": 5,
+                    "last_failure_time": 1700000100.0,
+                    "last_state_change": 1700000200.0,
+                    "last_success_time": 1700000300.0,
+                    "total_calls": 8,
+                    "total_failures": 3,
+                    "total_successes": 5,
+                    "rejected_calls": 2,
+                    "last_rejection_time": 1700000400.0,
+                }
             },
         },
         "rejection_metrics": default_rejection_metrics(),
@@ -420,6 +521,65 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
         == "component.pawcontrol.common.setup_flags_panel_description"
     )
 
+    runtime_store = diagnostics["runtime_store"]
+    assert runtime_store["status"] == "current"
+    assert runtime_store["entry"]["status"] == "current"
+    assert runtime_store["store"]["status"] == "current"
+    assert runtime_store["divergence_detected"] is False
+    history = diagnostics.get("runtime_store_history")
+    if history is not None:
+        assert history["checks"] >= 1
+        assert history["last_status"] == "current"
+        events = history.get("assessment_events")
+        if events is not None:
+            assert isinstance(events, list)
+            if events:
+                assert isinstance(events[-1]["timestamp"], str)
+        timeline_summary = history.get("assessment_timeline_summary")
+        if timeline_summary is not None:
+            assert timeline_summary["total_events"] >= 1
+            assert timeline_summary["level_counts"]["ok"] >= 0
+            assert timeline_summary["status_counts"]["current"] >= 0
+            assert "last_event_timestamp" in timeline_summary
+            assert "timeline_window_seconds" in timeline_summary
+            assert "events_per_day" in timeline_summary
+            assert "level_duration_peaks" in timeline_summary
+            assert "average_divergence_rate" in timeline_summary
+    assessment = diagnostics.get("runtime_store_assessment")
+    if assessment is not None:
+        assert assessment["level"] == "ok"
+        assert assessment["recommended_action"] is None
+        assert assessment["level_streak"] >= 1
+        assert assessment["last_level_change"]
+        assert assessment["escalations"] >= 0
+        assert assessment["deescalations"] >= 0
+        assert assessment["previous_level"] in {None, "ok", "watch", "action_required"}
+        durations = assessment["level_durations"]
+        assert durations["ok"] >= 0.0
+        assert durations["watch"] >= 0.0
+        assert durations["action_required"] >= 0.0
+        current_duration = assessment["current_level_duration_seconds"]
+        assert current_duration is None or current_duration >= 0.0
+        events = assessment.get("events")
+        if events is not None:
+            assert isinstance(events, list)
+            if events:
+                latest_event = events[-1]
+                assert latest_event["level"] in {"ok", "watch", "action_required"}
+                assert isinstance(latest_event["timestamp"], str)
+        timeline_summary = assessment.get("timeline_summary")
+        if timeline_summary is not None:
+            assert timeline_summary["total_events"] >= 1
+            assert timeline_summary["level_counts"]["ok"] >= 0
+            assert "last_level" in timeline_summary
+            assert "timeline_window_days" in timeline_summary
+            assert "most_common_reason" in timeline_summary
+            assert "level_duration_latest" in timeline_summary
+    timeline_summary_payload = diagnostics.get("runtime_store_timeline_summary")
+    if timeline_summary_payload is not None:
+        assert timeline_summary_payload["total_events"] >= 1
+        assert "level_counts" in timeline_summary_payload
+
     escalation = diagnostics["resilience_escalation"]
     assert escalation["available"] is True
     assert escalation["state_available"] is True
@@ -464,6 +624,18 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     history = manual_events["event_history"]
     assert isinstance(history, list) and history
     assert history[0]["event_type"] == "pawcontrol_manual_guard"
+
+    resilience = diagnostics["resilience"]
+    assert resilience["available"] is True
+    assert resilience["schema_version"] == 1
+    resilience_summary = resilience["summary"]
+    assert resilience_summary["recovery_breaker_id"] == "api"
+    assert resilience_summary["rejection_rate"] == pytest.approx(0.25)
+    assert resilience_summary["open_breakers"] == ["api"]
+    breakers = resilience["breakers"]
+    assert "api" in breakers
+    assert breakers["api"]["state"] == "OPEN"
+    assert breakers["api"]["rejected_calls"] == 2
 
     # Diagnostics payloads should be JSON serialisable once normalised.
     serialised = json.dumps(diagnostics)
@@ -525,6 +697,38 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     assert guard_metrics["reasons"]["hass_missing"] == 1
     last_guard = guard_metrics["last_results"][0]
     assert last_guard["service"] == "mobile_app_front_door"
+    entity_guard = service_execution["entity_factory_guard"]
+    assert entity_guard["runtime_floor_ms"] == pytest.approx(1.0)
+    assert entity_guard["baseline_floor_ms"] == pytest.approx(0.45)
+    assert entity_guard["runtime_floor_delta_ms"] == pytest.approx(0.55)
+    assert entity_guard["peak_runtime_floor_ms"] == pytest.approx(3.0)
+    assert entity_guard["lowest_runtime_floor_ms"] == pytest.approx(0.45)
+    assert entity_guard["last_floor_change_ms"] == pytest.approx(0.2)
+    assert entity_guard["last_actual_duration_ms"] == pytest.approx(2.0)
+    assert entity_guard["last_event"] == "expand"
+    assert entity_guard["samples"] == 3
+    assert entity_guard["last_floor_change_ratio"] == pytest.approx(0.25)
+    assert entity_guard["average_duration_ms"] == pytest.approx(1.6)
+    assert entity_guard["max_duration_ms"] == pytest.approx(2.0)
+    assert entity_guard["min_duration_ms"] == pytest.approx(1.0)
+    assert entity_guard["duration_span_ms"] == pytest.approx(1.0)
+    assert entity_guard["jitter_ratio"] == pytest.approx(1.0)
+    assert entity_guard["recent_average_duration_ms"] == pytest.approx(1.5)
+    assert entity_guard["recent_max_duration_ms"] == pytest.approx(2.0)
+    assert entity_guard["recent_min_duration_ms"] == pytest.approx(1.0)
+    assert entity_guard["recent_duration_span_ms"] == pytest.approx(1.0)
+    assert entity_guard["recent_jitter_ratio"] == pytest.approx(1.0)
+    assert entity_guard["stable_ratio"] == pytest.approx(2 / 3)
+    assert entity_guard["expansion_ratio"] == pytest.approx(1 / 3)
+    assert entity_guard["contraction_ratio"] == pytest.approx(0)
+    assert entity_guard["volatility_ratio"] == pytest.approx(1 / 3)
+    assert entity_guard["consecutive_stable_samples"] == 2
+    assert entity_guard["longest_stable_run"] == 2
+    assert entity_guard["recent_samples"] == 3
+    assert entity_guard["recent_events"] == ["stable", "stable", "expand"]
+    assert entity_guard["recent_stable_samples"] == 2
+    assert entity_guard["recent_stable_ratio"] == pytest.approx(2 / 3)
+    assert entity_guard["stability_trend"] == "steady"
     service_rejection = service_execution["rejection_metrics"]
     assert service_rejection["schema_version"] == 3
     assert service_rejection["rejected_call_count"] == 0

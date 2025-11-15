@@ -73,6 +73,17 @@ FORBIDDEN_FIXTURE_CALLS: Final[dict[str, str]] = {
     ),
 }
 
+FORBIDDEN_FIXTURE_PREFIXES: Final[dict[str, str]] = {
+    "hass_companion_": (
+        "Request companion fixtures via a pytest parameter instead of invoking "
+        "them manually."
+    ),
+    "hass_voice_assistant_": (
+        "Inject voice assistant fixtures via a pytest parameter rather than "
+        "calling them directly."
+    ),
+}
+
 SKIP_ARGUMENT_WRAPPERS: Final[set[str]] = {
     "partial",
     "partialmethod",
@@ -133,6 +144,20 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
         self._dynamic_function_returns: dict[
             str, tuple[tuple[DynamicPath, str], ...]
         ] = {}
+
+    def _match_fixture(self, candidate: str) -> tuple[str | None, str | None]:
+        if candidate in FORBIDDEN_FIXTURE_CALLS:
+            return candidate, FORBIDDEN_FIXTURE_CALLS[candidate]
+        for prefix, message in FORBIDDEN_FIXTURE_PREFIXES.items():
+            if candidate.startswith(prefix):
+                return candidate, message
+        return None, None
+
+    def _resolve_fixture_reference(
+        self, candidate: str
+    ) -> tuple[str | None, str | None]:
+        alias_target = self._alias_map.get(candidate, candidate)
+        return self._match_fixture(alias_target)
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         if node.module == "functools":
@@ -363,11 +388,16 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
             self.visit(statement)
 
     def visit_Call(self, node: ast.Call) -> None:
-        fixture_name = self._resolve_callable(node.func)
-        if isinstance(fixture_name, str):
-            wrapper_name = self._resolve_wrapper_name(node.func)
-            if wrapper_name is None or wrapper_name.rsplit(".", 1)[-1] in {"getattr"}:
-                self._flag(node, fixture_name)
+        fixture_candidate = self._resolve_callable(node.func)
+        if isinstance(fixture_candidate, str):
+            fixture_name, message = self._resolve_fixture_reference(fixture_candidate)
+            if fixture_name and message:
+                wrapper_name = self._resolve_wrapper_name(node.func)
+                if (
+                    wrapper_name is None
+                    or wrapper_name.rsplit(".", 1)[-1] in {"getattr"}
+                ):
+                    self._flag(node, fixture_name, message)
 
         self._record_setattr_alias(node)
         self._record_mapping_update(node)
@@ -384,9 +414,11 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
         wrapper_name = self._resolve_wrapper_name(call.func)
         if wrapper_name is not None and self._should_skip_argument_check(wrapper_name):
             return
-        fixture_name = self._resolve_name(node)
-        if isinstance(fixture_name, str):
-            self._flag(call, fixture_name)
+        fixture_candidate = self._resolve_name(node)
+        if isinstance(fixture_candidate, str):
+            fixture_name, message = self._resolve_fixture_reference(fixture_candidate)
+            if fixture_name and message:
+                self._flag(call, fixture_name, message)
 
     def _should_skip_argument_check(self, wrapper_name: str) -> bool:
         base_name = wrapper_name.rsplit(".", 1)[-1]
@@ -531,6 +563,9 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
             alias_target = self._alias_map.get(node.id)
             if alias_target is not None:
                 return self._dynamic_class_accessors.get(alias_target)
+            matched_fixture, _ = self._match_fixture(node.id)
+            if matched_fixture is not None:
+                return matched_fixture
             return None
         if isinstance(node, ast.Attribute):
             dotted = self._extract_dotted_name(node)
@@ -669,8 +704,9 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
                 alias_target = self._alias_map.get(slice_node.value)
                 if alias_target is not None:
                     return alias_target
-                if slice_node.value in FORBIDDEN_FIXTURE_CALLS:
-                    return slice_node.value
+                matched_fixture, _ = self._match_fixture(slice_node.value)
+                if matched_fixture is not None:
+                    return matched_fixture
             if isinstance(slice_node, ast.Index):  # pragma: no cover - py311 compat
                 index_value = slice_node.value
                 if isinstance(index_value, ast.Constant) and isinstance(
@@ -679,8 +715,9 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
                     alias_target = self._alias_map.get(index_value.value)
                     if alias_target is not None:
                         return alias_target
-                    if index_value.value in FORBIDDEN_FIXTURE_CALLS:
-                        return index_value.value
+                    matched_fixture, _ = self._match_fixture(index_value.value)
+                    if matched_fixture is not None:
+                        return matched_fixture
         if isinstance(node, ast.Call):
             wrapper_target = self._resolve_wrapped_fixture(node)
             if wrapper_target is not None:
@@ -929,8 +966,9 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
                     fixture_name = self._alias_map.get(keyword.value.value)
                     if fixture_name is not None:
                         return fixture_name
-                    if keyword.value.value in FORBIDDEN_FIXTURE_CALLS:
-                        return keyword.value.value
+                    matched_fixture, _ = self._match_fixture(keyword.value.value)
+                    if matched_fixture is not None:
+                        return matched_fixture
             if node.args:
                 candidate = node.args[0]
                 if isinstance(candidate, ast.Constant) and isinstance(
@@ -939,8 +977,9 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
                     fixture_name = self._alias_map.get(candidate.value)
                     if fixture_name is not None:
                         return fixture_name
-                    if candidate.value in FORBIDDEN_FIXTURE_CALLS:
-                        return candidate.value
+                    matched_fixture, _ = self._match_fixture(candidate.value)
+                    if matched_fixture is not None:
+                        return matched_fixture
             return None
 
         if callee_name.endswith("files"):
@@ -1142,8 +1181,9 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
                 alias_target = self._alias_map.get(lookup)
                 if alias_target is not None:
                     return alias_target
-                if lookup in FORBIDDEN_FIXTURE_CALLS:
-                    return lookup
+                matched_fixture, _ = self._match_fixture(lookup)
+                if matched_fixture is not None:
+                    return matched_fixture
             return None
 
         return None
@@ -2259,8 +2299,7 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
             return self._dynamic_fixture_from_block(statement.finalbody)
         return None
 
-    def _flag(self, node: ast.AST, fixture_name: str) -> None:
-        message = FORBIDDEN_FIXTURE_CALLS[fixture_name]
+    def _flag(self, node: ast.AST, fixture_name: str, message: str) -> None:
         entry = f"{self._path}:{node.lineno} - {fixture_name}: {message}"
         if entry in self.offenders:
             return
@@ -2434,6 +2473,15 @@ def test_detects_companion_websocket_fixture_invocation() -> None:
 
     assert len(offenders) == 1
     assert "hass_companion_ws_client" in offenders[0]
+
+
+def test_detects_companion_prefix_fixture_invocation() -> None:
+    """Detect new companion fixtures registered via prefix matching."""
+
+    offenders = _scan_source("hass_companion_voice_client()\n")
+
+    assert len(offenders) == 1
+    assert "hass_companion_voice_client" in offenders[0]
 
 
 def test_detects_update_wrapper_alias() -> None:
@@ -3474,6 +3522,15 @@ def test_detects_voice_assistant_websocket_fixture_invocation() -> None:
 
     assert len(offenders) == 1
     assert "hass_voice_assistant_ws_client" in offenders[0]
+
+
+def test_detects_voice_assistant_prefix_fixture_invocation() -> None:
+    """Detect new voice assistant fixtures exposed via prefix matching."""
+
+    offenders = _scan_source("hass_voice_assistant_pipeline_ws_client()\n")
+
+    assert len(offenders) == 1
+    assert "hass_voice_assistant_pipeline_ws_client" in offenders[0]
 
 
 def test_detects_function_returning_fixture_alias() -> None:

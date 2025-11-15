@@ -28,10 +28,17 @@ from homeassistant.const import Platform
 from homeassistant.helpers.entity import Entity
 
 from .coordinator_runtime import EntityBudgetSnapshot
-from .types import DOG_MODULES_FIELD, DogModulesProjection, ensure_dog_modules_mapping
+from .telemetry import update_runtime_entity_factory_guard_metrics
+from .types import (
+    DOG_MODULES_FIELD,
+    DogModulesProjection,
+    EntityFactoryGuardEvent,
+    ensure_dog_modules_mapping,
+)
 
 if TYPE_CHECKING:
     from .coordinator import PawControlCoordinator
+    from .types import PawControlRuntimeData
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -47,6 +54,11 @@ _SPIN_SHIFT_RIGHT: Final[int] = 9
 _SPIN_SHIFT_LEFT_SECONDARY: Final[int] = 8
 _SPIN_LOW_ENTROPY_MASK: Final[int] = 0x1F
 _SPIN_LOW_ENTROPY_SCRAMBLE: Final[int] = 0xC3C3C3C3
+_RUNTIME_EXPAND_THRESHOLD: Final[float] = 10.0
+_RUNTIME_TARGET_RATIO: Final[float] = 12.0
+_RUNTIME_MAX_FLOOR: Final[float] = 0.0045
+_RUNTIME_CONTRACT_THRESHOLD: Final[float] = 1.6
+_RUNTIME_CONTRACT_FACTOR: Final[float] = 0.92
 
 
 @lru_cache(maxsize=512)
@@ -673,6 +685,7 @@ class EntityFactory:
             env_value = os.getenv("PAWCONTROL_ENABLE_ENTITY_FACTORY_BENCHMARKS", "")
             enforce_min_runtime = env_value.lower() in {"1", "true", "yes", "on"}
         self._enforce_min_runtime = enforce_min_runtime
+        self._runtime_guard_floor = _MIN_OPERATION_DURATION
         self._last_synergy_score: int = 0
         self._last_triad_score: int = 0
         self._active_budgets: dict[tuple[str, str], EntityBudget] = {}
@@ -1036,11 +1049,14 @@ class EntityFactory:
         """Sleep until ``_MIN_OPERATION_DURATION`` elapses when enabled."""
 
         if not self._enforce_min_runtime:
+            self._record_runtime_guard_calibration("disabled", 0.0)
             return
 
-        deadline = started_at + _MIN_OPERATION_DURATION
+        runtime_floor = self._runtime_guard_floor
+        deadline = started_at + runtime_floor
         remaining = deadline - time.perf_counter()
         if remaining <= 0:
+            self._recalibrate_runtime_floor(time.perf_counter() - started_at)
             return
 
         # ``time.sleep`` on Linux/CI runners often overshoots sub-millisecond
@@ -1055,9 +1071,11 @@ class EntityFactory:
             time.sleep(coarse_sleep)
             remaining = deadline - time.perf_counter()
             if remaining <= 0:
+                self._recalibrate_runtime_floor(time.perf_counter() - started_at)
                 return
 
         if remaining <= 0:
+            self._recalibrate_runtime_floor(time.perf_counter() - started_at)
             return
 
         spin_deadline = deadline
@@ -1069,6 +1087,69 @@ class EntityFactory:
             if current - spin_checkpoint > _SPIN_YIELD_THRESHOLD:
                 time.sleep(0)
                 spin_checkpoint = time.perf_counter()
+
+        self._recalibrate_runtime_floor(time.perf_counter() - started_at)
+
+    def _record_runtime_guard_calibration(
+        self, event: EntityFactoryGuardEvent, actual_duration: float
+    ) -> None:
+        """Persist runtime guard telemetry into the config entry runtime store."""
+
+        coordinator = self.coordinator
+        if coordinator is None:
+            return
+
+        config_entry = getattr(coordinator, "config_entry", None)
+        runtime_data = None
+        if config_entry is not None:
+            runtime_data = cast(
+                "PawControlRuntimeData | None",
+                getattr(config_entry, "runtime_data", None),
+            )
+
+        update_runtime_entity_factory_guard_metrics(
+            runtime_data,
+            runtime_floor=self._runtime_guard_floor,
+            actual_duration=actual_duration,
+            event=event,
+            baseline_floor=_MIN_OPERATION_DURATION,
+            max_floor=_RUNTIME_MAX_FLOOR,
+            enforce_min_runtime=self._enforce_min_runtime,
+        )
+
+    def _recalibrate_runtime_floor(self, actual_duration: float) -> None:
+        """Adapt the runtime guard to smooth jitter in busy environments."""
+
+        if not self._enforce_min_runtime:
+            self._record_runtime_guard_calibration("disabled", actual_duration)
+            return
+
+        runtime_floor = self._runtime_guard_floor
+        event: EntityFactoryGuardEvent = "stable"
+
+        if actual_duration >= runtime_floor * _RUNTIME_EXPAND_THRESHOLD:
+            boosted = min(
+                _RUNTIME_MAX_FLOOR, actual_duration / _RUNTIME_TARGET_RATIO
+            )
+            if boosted > runtime_floor:
+                self._runtime_guard_floor = boosted
+                event = "expand"
+            self._record_runtime_guard_calibration(event, actual_duration)
+            return
+
+        if runtime_floor <= _MIN_OPERATION_DURATION:
+            self._record_runtime_guard_calibration(event, actual_duration)
+            return
+
+        if actual_duration <= runtime_floor * _RUNTIME_CONTRACT_THRESHOLD:
+            contracted = runtime_floor * _RUNTIME_CONTRACT_FACTOR
+            if contracted <= _MIN_OPERATION_DURATION:
+                self._runtime_guard_floor = _MIN_OPERATION_DURATION
+            else:
+                self._runtime_guard_floor = contracted
+                event = "contract"
+
+        self._record_runtime_guard_calibration(event, actual_duration)
 
     @staticmethod
     def _stabilize_priority_workload(priority: int, module: str) -> None:
