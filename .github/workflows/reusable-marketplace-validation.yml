@@ -31,8 +31,7 @@ jobs:
           ref: ${{ inputs.checkout-ref != '' && inputs.checkout-ref || github.ref }}
 
       - name: Run Hassfest
-        run: >-
-          python -m script.hassfest --integration-path custom_components/pawcontrol --skip-logo-check
+        uses: home-assistant/actions/hassfest@master
 
       - name: Run HACS validation
         uses: hacs/action@main
