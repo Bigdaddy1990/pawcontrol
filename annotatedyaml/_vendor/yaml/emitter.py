@@ -243,14 +243,22 @@ class Emitter:
             if isinstance(self.event, ScalarEvent):
                 self.expect_scalar()
             elif isinstance(self.event, SequenceStartEvent):
-                if self.flow_level or self.canonical or self.event.flow_style   \
-                        or self.check_empty_sequence():
+                if (
+                    self.flow_level
+                    or self.canonical
+                    or self.event.flow_style
+                    or self.check_empty_sequence()
+                ):
                     self.expect_flow_sequence()
                 else:
                     self.expect_block_sequence()
             elif isinstance(self.event, MappingStartEvent):
-                if self.flow_level or self.canonical or self.event.flow_style   \
-                        or self.check_empty_mapping():
+                if (
+                    self.flow_level
+                    or self.canonical
+                    or self.event.flow_style
+                    or self.check_empty_mapping()
+                ):
                     self.expect_flow_mapping()
                 else:
                     self.expect_block_mapping()
@@ -440,8 +448,10 @@ class Emitter:
             if self.prepared_anchor is None:
                 self.prepared_anchor = self.prepare_anchor(self.event.anchor)
             length += len(self.prepared_anchor)
-        if isinstance(self.event, (ScalarEvent, CollectionStartEvent))  \
-                and self.event.tag is not None:
+        if (
+            isinstance(self.event, (ScalarEvent, CollectionStartEvent))
+            and self.event.tag is not None
+        ):
             if self.prepared_tag is None:
                 self.prepared_tag = self.prepare_tag(self.event.tag)
             length += len(self.prepared_tag)
@@ -449,10 +459,19 @@ class Emitter:
             if self.analysis is None:
                 self.analysis = self.analyze_scalar(self.event.value)
             length += len(self.analysis.scalar)
-        return (length < 128 and (isinstance(self.event, AliasEvent)
-            or (isinstance(self.event, ScalarEvent)
-                    and not self.analysis.empty and not self.analysis.multiline)
-            or self.check_empty_sequence() or self.check_empty_mapping()))
+        return (
+            length < 128
+            and (
+                isinstance(self.event, AliasEvent)
+                or (
+                    isinstance(self.event, ScalarEvent)
+                    and not self.analysis.empty
+                    and not self.analysis.multiline
+                )
+                or self.check_empty_sequence()
+                or self.check_empty_mapping()
+            )
+        )
 
     # Anchor, Tag, and Scalar processors.
 
@@ -518,9 +537,10 @@ class Emitter:
         if self.style is None:
             self.style = self.choose_scalar_style()
         split = (not self.simple_key_context)
-        #if self.analysis.multiline and split    \
-        #        and (not self.style or self.style in '\'\"'):
-        #    self.write_indent()
+        # if self.analysis.multiline and split and (
+        #     not self.style or self.style in "'\""
+        # ):
+        #     self.write_indent()
         if self.style == '"':
             self.write_double_quoted(self.analysis.scalar, split)
         elif self.style == '\'':
@@ -762,8 +782,7 @@ class Emitter:
         allow_block = True
 
         # Leading and trailing whitespaces are bad for plain scalars.
-        if (leading_space or leading_break
-                or trailing_space or trailing_break):
+        if leading_space or leading_break or trailing_space or trailing_break:
             allow_flow_plain = allow_block_plain = False
 
         # We do not permit trailing spaces for block scalars.
@@ -778,8 +797,10 @@ class Emitter:
         # Spaces followed by breaks, as well as special character are only
         # allowed for double quoted scalars.
         if space_break or special_characters:
-            allow_flow_plain = allow_block_plain =  \
-            allow_single_quoted = allow_block = False
+            allow_flow_plain = False
+            allow_block_plain = False
+            allow_single_quoted = False
+            allow_block = False
 
         # Although the plain scalar writer supports breaks, we never emit
         # multiline plain scalars.
@@ -832,8 +853,11 @@ class Emitter:
 
     def write_indent(self):
         indent = self.indent or 0
-        if not self.indention or self.column > indent   \
-                or (self.column == indent and not self.whitespace):
+        if (
+            not self.indention
+            or self.column > indent
+            or (self.column == indent and not self.whitespace)
+        ):
             self.write_line_break()
         if self.column < indent:
             self.whitespace = True
@@ -881,8 +905,13 @@ class Emitter:
                 ch = text[end]
             if spaces:
                 if ch is None or ch != ' ':
-                    if start+1 == end and self.column > self.best_width and split   \
-                            and start != 0 and end != len(text):
+                    if (
+                        start + 1 == end
+                        and self.column > self.best_width
+                        and split
+                        and start != 0
+                        and end != len(text)
+                    ):
                         self.write_indent()
                     else:
                         data = text[start:end]
@@ -903,7 +932,11 @@ class Emitter:
                     self.write_indent()
                     start = end
             else:
-                if ch is None or ch in ' \n\x85\u2028\u2029' or ch == '\'':
+                if (
+                    ch is None
+                    or ch in ' \n\x85\u2028\u2029'
+                    or ch == '\''
+                ):
                     if start < end:
                         data = text[start:end]
                         self.column += len(data)
@@ -949,11 +982,20 @@ class Emitter:
             ch = None
             if end < len(text):
                 ch = text[end]
-            if ch is None or ch in '"\\\x85\u2028\u2029\uFEFF' \
-                    or not ('\x20' <= ch <= '\x7E'
-                        or (self.allow_unicode
-                            and ('\xA0' <= ch <= '\uD7FF'
-                                or '\uE000' <= ch <= '\uFFFD'))):
+            if (
+                ch is None
+                or ch in '"\\\x85\u2028\u2029\uFEFF'
+                or not (
+                    '\x20' <= ch <= '\x7E'
+                    or (
+                        self.allow_unicode
+                        and (
+                            '\xA0' <= ch <= '\uD7FF'
+                            or '\uE000' <= ch <= '\uFFFD'
+                        )
+                    )
+                )
+            ):
                 if start < end:
                     data = text[start:end]
                     self.column += len(data)
@@ -975,8 +1017,12 @@ class Emitter:
                         data = data.encode(self.encoding)
                     self.stream.write(data)
                     start = end+1
-            if 0 < end < len(text)-1 and (ch == ' ' or start >= end)    \
-                    and self.column+(end-start) > self.best_width and split:
+            if (
+                0 < end < len(text) - 1
+                and (ch == ' ' or start >= end)
+                and self.column + (end - start) > self.best_width
+                and split
+            ):
                 data = text[start:end]+'\\'
                 if start < end:
                     start = end
@@ -1023,8 +1069,12 @@ class Emitter:
                 ch = text[end]
             if breaks:
                 if ch is None or ch not in '\n\x85\u2028\u2029':
-                    if not leading_space and ch is not None and ch != ' '   \
-                            and text[start] == '\n':
+                    if (
+                        not leading_space
+                        and ch is not None
+                        and ch != ' '
+                        and text[start] == '\n'
+                    ):
                         self.write_line_break()
                     leading_space = (ch == ' ')
                     for br in text[start:end]:

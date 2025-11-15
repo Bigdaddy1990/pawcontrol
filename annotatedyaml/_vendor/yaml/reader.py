@@ -32,15 +32,28 @@ class ReaderError(YAMLError):
 
     def __str__(self):
         if isinstance(self.character, bytes):
-            return "'%s' codec can't decode byte #x%02x: %s\n"  \
-                    "  in \"%s\", position %d"    \
-                    % (self.encoding, ord(self.character), self.reason,
-                            self.name, self.position)
+            return (
+                "'%s' codec can't decode byte #x%02x: %s\n"
+                "  in \"%s\", position %d"
+                % (
+                    self.encoding,
+                    ord(self.character),
+                    self.reason,
+                    self.name,
+                    self.position,
+                )
+            )
         else:
-            return "unacceptable character #x%04x: %s\n"    \
-                    "  in \"%s\", position %d"    \
-                    % (self.character, self.reason,
-                            self.name, self.position)
+            return (
+                "unacceptable character #x%04x: %s\n"
+                "  in \"%s\", position %d"
+                % (
+                    self.character,
+                    self.reason,
+                    self.name,
+                    self.position,
+                )
+            )
 
 class Reader(object):
     # Reader:
@@ -103,8 +116,9 @@ class Reader(object):
             ch = self.buffer[self.pointer]
             self.pointer += 1
             self.index += 1
-            if ch in '\n\x85\u2028\u2029'  \
-                    or (ch == '\r' and self.buffer[self.pointer] != '\n'):
+            if ch in '\n\x85\u2028\u2029' or (
+                ch == '\r' and self.buffer[self.pointer] != '\n'
+            ):
                 self.line += 1
                 self.column = 0
             elif ch != '\uFEFF':
