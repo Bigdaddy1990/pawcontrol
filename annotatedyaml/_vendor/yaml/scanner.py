@@ -24,10 +24,32 @@
 # Read comments in the Scanner code for more details.
 #
 
-__all__ = ['Scanner', 'ScannerError']
+__all__ = ["Scanner", "ScannerError"]
 
 from .error import MarkedYAMLError
-from .tokens import *
+from .tokens import (
+    AliasToken,
+    AnchorToken,
+    BOMToken,
+    BlockEndToken,
+    BlockEntryToken,
+    BlockMappingStartToken,
+    BlockSequenceStartToken,
+    DirectiveToken,
+    DocumentEndToken,
+    DocumentStartToken,
+    FlowEntryToken,
+    FlowMappingEndToken,
+    FlowMappingStartToken,
+    FlowSequenceEndToken,
+    FlowSequenceStartToken,
+    KeyToken,
+    ScalarToken,
+    StreamEndToken,
+    StreamStartToken,
+    TagToken,
+    ValueToken,
+)
 
 class ScannerError(MarkedYAMLError):
     pass
@@ -405,7 +427,7 @@ class Scanner:
     def fetch_document_end(self):
         self.fetch_document_indicator(DocumentEndToken)
 
-    def fetch_document_indicator(self, TokenClass):
+    def fetch_document_indicator(self, token_class):
 
         # Set the current indentation to -1.
         self.unwind_indent(-1)
@@ -419,7 +441,7 @@ class Scanner:
         start_mark = self.get_mark()
         self.forward(3)
         end_mark = self.get_mark()
-        self.tokens.append(TokenClass(start_mark, end_mark))
+        self.tokens.append(token_class(start_mark, end_mark))
 
     def fetch_flow_sequence_start(self):
         self.fetch_flow_collection_start(FlowSequenceStartToken)
@@ -427,7 +449,7 @@ class Scanner:
     def fetch_flow_mapping_start(self):
         self.fetch_flow_collection_start(FlowMappingStartToken)
 
-    def fetch_flow_collection_start(self, TokenClass):
+    def fetch_flow_collection_start(self, token_class):
 
         # '[' and '{' may start a simple key.
         self.save_possible_simple_key()
@@ -442,7 +464,7 @@ class Scanner:
         start_mark = self.get_mark()
         self.forward()
         end_mark = self.get_mark()
-        self.tokens.append(TokenClass(start_mark, end_mark))
+        self.tokens.append(token_class(start_mark, end_mark))
 
     def fetch_flow_sequence_end(self):
         self.fetch_flow_collection_end(FlowSequenceEndToken)
@@ -450,7 +472,7 @@ class Scanner:
     def fetch_flow_mapping_end(self):
         self.fetch_flow_collection_end(FlowMappingEndToken)
 
-    def fetch_flow_collection_end(self, TokenClass):
+    def fetch_flow_collection_end(self, token_class):
 
         # Reset possible simple key on the current level.
         self.remove_possible_simple_key()
@@ -465,7 +487,7 @@ class Scanner:
         start_mark = self.get_mark()
         self.forward()
         end_mark = self.get_mark()
-        self.tokens.append(TokenClass(start_mark, end_mark))
+        self.tokens.append(token_class(start_mark, end_mark))
 
     def fetch_flow_entry(self):
 
@@ -555,10 +577,11 @@ class Scanner:
 
             # If this key starts a new block mapping, we need to add
             # BLOCK-MAPPING-START.
-            if not self.flow_level:
-                if self.add_indent(key.column):
-                    self.tokens.insert(key.token_number-self.tokens_taken,
-                            BlockMappingStartToken(key.mark, key.mark))
+            if not self.flow_level and self.add_indent(key.column):
+                self.tokens.insert(
+                    key.token_number - self.tokens_taken,
+                    BlockMappingStartToken(key.mark, key.mark),
+                )
 
             # There cannot be two simple keys one after another.
             self.allow_simple_key = False
@@ -569,22 +592,23 @@ class Scanner:
             # Block context needs additional checks.
             # (Do we really need them? They will be caught by the parser
             # anyway.)
-            if not self.flow_level:
+            if not self.flow_level and not self.allow_simple_key:
 
                 # We are allowed to start a complex value if and only if
                 # we can start a simple key.
-                if not self.allow_simple_key:
-                    raise ScannerError(None, None,
-                            "mapping values are not allowed here",
-                            self.get_mark())
+                raise ScannerError(
+                    None,
+                    None,
+                    "mapping values are not allowed here",
+                    self.get_mark(),
+                )
 
             # If this value starts a new block mapping, we need to add
             # BLOCK-MAPPING-START.  It will be detected as an error later by
             # the parser.
-            if not self.flow_level:
-                if self.add_indent(self.column):
-                    mark = self.get_mark()
-                    self.tokens.append(BlockMappingStartToken(mark, mark))
+            if not self.flow_level and self.add_indent(self.column):
+                mark = self.get_mark()
+                self.tokens.append(BlockMappingStartToken(mark, mark))
 
             # Simple keys are allowed after ':' in the block context.
             self.allow_simple_key = not self.flow_level
@@ -682,45 +706,43 @@ class Scanner:
 
     def check_directive(self):
 
-        # DIRECTIVE:        ^ '%' ...
+        # DIRECTIVE: ^ '%' ...
         # The '%' indicator is already checked.
         if self.column == 0:
             return True
 
     def check_document_start(self):
 
-        # DOCUMENT-START:   ^ '---' (' '|'\n')
-        if self.column == 0:
-            if self.prefix(3) == '---'  \
-                    and self.peek(3) in '\0 \t\r\n\x85\u2028\u2029':
-                return True
+        # DOCUMENT-START: ^ '---' (' '|'\n')
+        if self.column == 0 and self.prefix(3) == '---' \
+                and self.peek(3) in '\0 \t\r\n\x85\u2028\u2029':
+            return True
 
     def check_document_end(self):
 
-        # DOCUMENT-END:     ^ '...' (' '|'\n')
-        if self.column == 0:
-            if self.prefix(3) == '...'  \
-                    and self.peek(3) in '\0 \t\r\n\x85\u2028\u2029':
-                return True
+        # DOCUMENT-END: ^ '...' (' '|'\n')
+        if self.column == 0 and self.prefix(3) == '...' \
+                and self.peek(3) in '\0 \t\r\n\x85\u2028\u2029':
+            return True
 
     def check_block_entry(self):
 
-        # BLOCK-ENTRY:      '-' (' '|'\n')
+        # BLOCK-ENTRY: '-' (' '|'\n')
         return self.peek(1) in '\0 \t\r\n\x85\u2028\u2029'
 
     def check_key(self):
 
-        # KEY(flow context):    '?'
+        # KEY(flow context): '?'
         if self.flow_level:
             return True
 
-        # KEY(block context):   '?' (' '|'\n')
+        # KEY(block context): '?' (' '|'\n')
         else:
             return self.peek(1) in '\0 \t\r\n\x85\u2028\u2029'
 
     def check_value(self):
 
-        # VALUE(flow context):  ':'
+        # VALUE(flow context): ':'
         if self.flow_level:
             return True
 
@@ -896,7 +918,7 @@ class Scanner:
                         % ch, self.get_mark())
         self.scan_line_break()
 
-    def scan_anchor(self, TokenClass):
+    def scan_anchor(self, token_class):
         # The specification does not restrict characters for anchors and
         # aliases. This may lead to problems, for instance, the document:
         #   [ *alias, value ]
@@ -930,7 +952,7 @@ class Scanner:
                     "expected alphabetic or numeric character, but found %r"
                     % ch, self.get_mark())
         end_mark = self.get_mark()
-        return TokenClass(value, start_mark, end_mark)
+        return token_class(value, start_mark, end_mark)
 
     def scan_tag(self):
         # See the specification for details.
@@ -1156,30 +1178,30 @@ class Scanner:
                 style)
 
     ESCAPE_REPLACEMENTS = {
-        '0':    '\0',
-        'a':    '\x07',
-        'b':    '\x08',
-        't':    '\x09',
-        '\t':   '\x09',
-        'n':    '\x0A',
-        'v':    '\x0B',
-        'f':    '\x0C',
-        'r':    '\x0D',
-        'e':    '\x1B',
-        ' ':    '\x20',
-        '\"':   '\"',
-        '\\':   '\\',
-        '/':    '/',
-        'N':    '\x85',
-        '_':    '\xA0',
-        'L':    '\u2028',
-        'P':    '\u2029',
+        '0': '\0',
+        'a': '\x07',
+        'b': '\x08',
+        't': '\x09',
+        '\t': '\x09',
+        'n': '\x0A',
+        'v': '\x0B',
+        'f': '\x0C',
+        'r': '\x0D',
+        'e': '\x1B',
+        ' ': '\x20',
+        '\"': '\"',
+        '\\': '\\',
+        '/': '/',
+        'N': '\x85',
+        '_': '\xA0',
+        'L': '\u2028',
+        'P': '\u2029',
     }
 
     ESCAPE_CODES = {
-        'x':    2,
-        'u':    4,
-        'U':    8,
+        'x': 2,
+        'u': 4,
+        'U': 8,
     }
 
     def scan_flow_scalar_non_spaces(self, double, start_mark):
@@ -1288,11 +1310,16 @@ class Scanner:
                 break
             while True:
                 ch = self.peek(length)
-                if ch in '\0 \t\r\n\x85\u2028\u2029'    \
-                        or (ch == ':' and
-                                self.peek(length+1) in '\0 \t\r\n\x85\u2028\u2029'
-                                      + (u',[]{}' if self.flow_level else u''))\
-                        or (self.flow_level and ch in ',?[]{}'):
+                if (
+                    ch in '\0 \t\r\n\x85\u2028\u2029'
+                    or (
+                        ch == ':'
+                        and self.peek(length+1)
+                        in '\0 \t\r\n\x85\u2028\u2029'
+                        + (u',[]{}' if self.flow_level else u'')
+                    )
+                    or (self.flow_level and ch in ',?[]{}')
+                ):
                     break
                 length += 1
             if length == 0:
@@ -1415,13 +1442,13 @@ class Scanner:
 
     def scan_line_break(self):
         # Transforms:
-        #   '\r\n'      :   '\n'
-        #   '\r'        :   '\n'
-        #   '\n'        :   '\n'
-        #   '\x85'      :   '\n'
-        #   '\u2028'    :   '\u2028'
-        #   '\u2029     :   '\u2029'
-        #   default     :   ''
+        #   '\r\n': '\n'
+        #   '\r': '\n'
+        #   '\n': '\n'
+        #   '\x85': '\n'
+        #   '\u2028': '\u2028'
+        #   '\u2029': '\u2029'
+        #   default: ''
         ch = self.peek()
         if ch in '\r\n\x85':
             if self.prefix(2) == '\r\n':

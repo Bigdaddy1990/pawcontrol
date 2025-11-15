@@ -222,12 +222,12 @@ class SafeConstructor(BaseConstructor):
         return None
 
     bool_values = {
-        'yes':      True,
-        'no':       False,
-        'true':     True,
-        'false':    False,
-        'on':       True,
-        'off':      False,
+        'yes': True,
+        'no': False,
+        'true': True,
+        'false': False,
+        'on': True,
+        'off': False,
     }
 
     def construct_yaml_bool(self, node):
