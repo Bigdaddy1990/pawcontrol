@@ -57,6 +57,7 @@ from .coordinator_tasks import (
     collect_resilience_diagnostics,
     default_rejection_metrics,
     ensure_background_task,
+    resolve_entity_factory_guard_metrics,
     resolve_service_guard_metrics,
     run_maintenance,
 )
@@ -541,8 +542,12 @@ class PawControlCoordinator(
             cast(PawControlRuntimeData | None, runtime_data)
         )
         guard_metrics = resolve_service_guard_metrics(performance_stats_payload)
+        entity_factory_guard = resolve_entity_factory_guard_metrics(
+            performance_stats_payload
+        )
         snapshot["service_execution"] = {
             "guard_metrics": guard_metrics,
+            "entity_factory_guard": entity_factory_guard,
             "rejection_metrics": rejection_metrics,
         }
 

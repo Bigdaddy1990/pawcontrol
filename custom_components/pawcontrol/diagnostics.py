@@ -40,9 +40,10 @@ from .coordinator_tasks import (
     default_rejection_metrics,
     derive_rejection_metrics,
     merge_rejection_metric_values,
+    resolve_entity_factory_guard_metrics,
 )
 from .diagnostics_redaction import compile_redaction_patterns, redact_sensitive_data
-from .runtime_data import get_runtime_data
+from .runtime_data import describe_runtime_store_status, get_runtime_data
 from .service_guard import (
     ServiceGuardMetricsSnapshot,
     ServiceGuardResultHistory,
@@ -51,6 +52,8 @@ from .service_guard import (
 from .telemetry import (
     get_bool_coercion_metrics,
     get_runtime_performance_stats,
+    get_runtime_resilience_diagnostics,
+    get_runtime_store_health,
     update_runtime_bool_coercion_summary,
 )
 from .types import (
@@ -62,11 +65,13 @@ from .types import (
     CoordinatorHealthIndicators,
     CoordinatorPerformanceMetrics,
     CoordinatorRejectionMetrics,
+    CoordinatorResilienceDiagnostics,
     CoordinatorStatisticsPayload,
     CoordinatorUpdateCounts,
     DataStatisticsPayload,
     DebugInformationPayload,
     DogConfigData,
+    EntityFactoryGuardMetricsSnapshot,
     JSONLikeMapping,
     JSONMapping,
     JSONMutableMapping,
@@ -76,6 +81,8 @@ from .types import (
     PawControlRuntimeData,
     RecentErrorEntry,
     ResilienceEscalationSnapshot,
+    RuntimeStoreAssessmentTimelineSummary,
+    RuntimeStoreHealthAssessment,
     SetupFlagPanelEntry,
     SetupFlagSourceBreakdown,
     SetupFlagSourceLabels,
@@ -613,8 +620,26 @@ async def async_get_config_entry_diagnostics(
         "bool_coercion": _get_bool_coercion_diagnostics(runtime_data),
         "setup_flags": _summarise_setup_flags(entry),
         "setup_flags_panel": await _async_build_setup_flags_panel(hass, entry),
+        "resilience": _get_resilience_diagnostics(runtime_data, coordinator),
         "resilience_escalation": _get_resilience_escalation_snapshot(runtime_data),
+        "runtime_store": describe_runtime_store_status(hass, entry),
     }
+
+    runtime_store_history = get_runtime_store_health(runtime_data)
+    if runtime_store_history:
+        diagnostics["runtime_store_history"] = runtime_store_history
+        assessment = runtime_store_history.get("assessment")
+        if isinstance(assessment, Mapping):
+            diagnostics["runtime_store_assessment"] = cast(
+                RuntimeStoreHealthAssessment,
+                dict(assessment),
+            )
+        timeline_summary = runtime_store_history.get("assessment_timeline_summary")
+        if isinstance(timeline_summary, Mapping):
+            diagnostics["runtime_store_timeline_summary"] = cast(
+                RuntimeStoreAssessmentTimelineSummary,
+                dict(timeline_summary),
+            )
 
     if cache_snapshots is not None:
         diagnostics["cache_diagnostics"] = _serialise_cache_diagnostics_payload(
@@ -648,6 +673,54 @@ def _get_resilience_escalation_snapshot(
         return {"available": False}
 
     return snapshot
+
+
+def _get_resilience_diagnostics(
+    runtime_data: PawControlRuntimeData | None,
+    coordinator: PawControlCoordinator | None,
+) -> JSONMutableMapping:
+    """Build a resilience diagnostics payload using stored runtime telemetry."""
+
+    diagnostics: CoordinatorResilienceDiagnostics | None = None
+
+    if runtime_data is not None:
+        diagnostics = get_runtime_resilience_diagnostics(runtime_data)
+
+    if diagnostics is None and coordinator is not None:
+        fetch_stats = getattr(coordinator, "get_update_statistics", None)
+        if callable(fetch_stats):
+            try:
+                raw_stats = fetch_stats()
+            except Exception:  # pragma: no cover - diagnostics guard
+                raw_stats = None
+            if isinstance(raw_stats, Mapping):
+                resilience_payload = raw_stats.get("resilience")
+                if isinstance(resilience_payload, Mapping):
+                    diagnostics = cast(
+                        CoordinatorResilienceDiagnostics,
+                        dict(resilience_payload),
+                    )
+
+    if diagnostics is None:
+        return cast(JSONMutableMapping, {"available": False})
+
+    payload: JSONMutableMapping = {"available": True, "schema_version": 1}
+
+    summary = diagnostics.get("summary")
+    if isinstance(summary, Mapping):
+        payload["summary"] = cast(JSONMutableMapping, dict(summary))
+    else:
+        payload["summary"] = None
+
+    breakers = diagnostics.get("breakers")
+    if isinstance(breakers, Mapping):
+        payload["breakers"] = {
+            str(name): cast(JSONMutableMapping, dict(values))
+            for name, values in breakers.items()
+            if isinstance(values, Mapping)
+        }
+
+    return payload
 
 
 async def _get_config_entry_diagnostics(entry: ConfigEntry) -> JSONMutableMapping:
@@ -1349,6 +1422,16 @@ async def _get_service_execution_diagnostics(
     guard_payload = _normalise_service_guard_metrics(guard_metrics)
     if guard_payload is not None:
         diagnostics["guard_metrics"] = guard_payload
+
+    entity_guard_payload: EntityFactoryGuardMetricsSnapshot | None = (
+        resolve_entity_factory_guard_metrics(performance_stats)
+        if isinstance(performance_stats, Mapping)
+        else None
+    )
+    if entity_guard_payload:
+        diagnostics["entity_factory_guard"] = cast(
+            JSONMutableMapping, dict(entity_guard_payload)
+        )
 
     rejection_metrics = performance_stats.get("rejection_metrics")
     if isinstance(rejection_metrics, Mapping):

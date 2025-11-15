@@ -61,12 +61,20 @@ def main(argv: list[str] | None = None) -> int:
         default=Path.cwd(),
         help="Repository root for resolving relative integration paths",
     )
+    parser.add_argument(
+        "--skip-logo-check",
+        action="store_true",
+        help="Ignore Home Assistant brand asset validation when running Hassfest.",
+    )
     args = parser.parse_args(argv)
 
     config = Config(root=args.root)
 
     if not args.integration_paths:
         parser.error("At least one --integration-path must be provided")
+
+    if args.skip_logo_check:
+        print("Skipping Hassfest logo validation as requested.")
 
     integration_dirs = [
         (args.root / Path(path)).resolve()

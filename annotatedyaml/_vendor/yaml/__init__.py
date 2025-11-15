@@ -1,236 +1,100 @@
-from __future__ import annotations
 
-import io
-from typing import Any, ClassVar
-
-from . import dumper as _dumper_module
-from . import loader as _loader_module
-from .dumper import *
 from .error import *
-from .events import *
-from .loader import *
-from .nodes import *
-from .tokens import *
 
-__version__ = "6.0"
+from .tokens import *
+from .events import *
+from .nodes import *
+
+from .loader import *
+from .dumper import *
+
+__version__ = '6.0.3'
 try:
     from .cyaml import *
-
     __with_libyaml__ = True
 except ImportError:
     __with_libyaml__ = False
 
+import io
 
-def _normalize_class_argument(
-    *,
-    argument: type[Any] | None,
-    kwargs: dict[str, Any],
-    default: type[Any] | None,
-    func_name: str,
-    legacy_name: str,
-    require: bool,
-) -> type[Any] | None:
-    if legacy_name in kwargs:
-        legacy_value = kwargs.pop(legacy_name)
-        if argument is not None:
-            raise TypeError(
-                f"{func_name}() received both '{legacy_name}' and its replacement "
-                f"parameter; pass only one of them",
-            )
-        argument = legacy_value
-    if argument is None:
-        if require:
-            raise TypeError(
-                f"{func_name}() missing required argument '{legacy_name.lower()}'",
-            )
-        if default is not None:
-            argument = default
-    return argument
-
-
-def _normalize_loader_argument(
-    loader: type[_loader_module.BaseLoader] | None,
-    kwargs: dict[str, Any],
-    *,
-    default: type[_loader_module.BaseLoader] | None,
-    func_name: str,
-    require: bool,
-) -> type[_loader_module.BaseLoader] | None:
-    return _normalize_class_argument(
-        argument=loader,
-        kwargs=kwargs,
-        default=default,
-        func_name=func_name,
-        legacy_name="Loader",
-        require=require,
-    )
-
-
-def _normalize_dumper_argument(
-    dumper: type[_dumper_module.BaseDumper] | None,
-    kwargs: dict[str, Any],
-    *,
-    default: type[_dumper_module.BaseDumper] | None,
-    func_name: str,
-    require: bool,
-) -> type[_dumper_module.BaseDumper] | None:
-    return _normalize_class_argument(
-        argument=dumper,
-        kwargs=kwargs,
-        default=default,
-        func_name=func_name,
-        legacy_name="Dumper",
-        require=require,
-    )
-
-
-def _reject_unexpected_kwargs(func_name: str, kwargs: dict[str, Any]) -> None:
-    if kwargs:
-        unexpected = ", ".join(sorted(kwargs))
-        raise TypeError(f"{func_name}() got unexpected keyword arguments: {unexpected}")
-
-
-# ------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # XXX "Warnings control" is now deprecated. Leaving in the API function to not
 # break code that uses it.
-# ------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 def warnings(settings=None):
     if settings is None:
         return {}
 
-
-# ------------------------------------------------------------------------------
-def scan(stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs):
+#------------------------------------------------------------------------------
+def scan(stream, Loader=Loader):
     """
     Scan a YAML stream and produce scanning tokens.
     """
-    loader_cls = _normalize_loader_argument(
-        loader,
-        kwargs,
-        default=_loader_module.Loader,
-        func_name="scan",
-        require=False,
-    )
-    _reject_unexpected_kwargs("scan", kwargs)
-    loader_instance = loader_cls(stream)
+    loader = Loader(stream)
     try:
-        while loader_instance.check_token():
-            yield loader_instance.get_token()
+        while loader.check_token():
+            yield loader.get_token()
     finally:
-        loader_instance.dispose()
+        loader.dispose()
 
-
-def parse(stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs):
+def parse(stream, Loader=Loader):
     """
     Parse a YAML stream and produce parsing events.
     """
-    loader_cls = _normalize_loader_argument(
-        loader,
-        kwargs,
-        default=_loader_module.Loader,
-        func_name="parse",
-        require=False,
-    )
-    _reject_unexpected_kwargs("parse", kwargs)
-    loader_instance = loader_cls(stream)
+    loader = Loader(stream)
     try:
-        while loader_instance.check_event():
-            yield loader_instance.get_event()
+        while loader.check_event():
+            yield loader.get_event()
     finally:
-        loader_instance.dispose()
+        loader.dispose()
 
-
-def compose(stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs):
+def compose(stream, Loader=Loader):
     """
     Parse the first YAML document in a stream
     and produce the corresponding representation tree.
     """
-    loader_cls = _normalize_loader_argument(
-        loader,
-        kwargs,
-        default=_loader_module.Loader,
-        func_name="compose",
-        require=False,
-    )
-    _reject_unexpected_kwargs("compose", kwargs)
-    loader_instance = loader_cls(stream)
+    loader = Loader(stream)
     try:
-        return loader_instance.get_single_node()
+        return loader.get_single_node()
     finally:
-        loader_instance.dispose()
+        loader.dispose()
 
-
-def compose_all(
-    stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs
-):
+def compose_all(stream, Loader=Loader):
     """
     Parse all YAML documents in a stream
     and produce corresponding representation trees.
     """
-    loader_cls = _normalize_loader_argument(
-        loader,
-        kwargs,
-        default=_loader_module.Loader,
-        func_name="compose_all",
-        require=False,
-    )
-    _reject_unexpected_kwargs("compose_all", kwargs)
-    loader_instance = loader_cls(stream)
+    loader = Loader(stream)
     try:
-        while loader_instance.check_node():
-            yield loader_instance.get_node()
+        while loader.check_node():
+            yield loader.get_node()
     finally:
-        loader_instance.dispose()
+        loader.dispose()
 
-
-def load(stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs):
+def load(stream, Loader):
     """
     Parse the first YAML document in a stream
     and produce the corresponding Python object.
     """
-    loader_cls = _normalize_loader_argument(
-        loader,
-        kwargs,
-        default=_loader_module.Loader,
-        func_name="load",
-        require=False,
-    )
-    _reject_unexpected_kwargs("load", kwargs)
-    assert loader_cls is not None
-    loader_instance = loader_cls(stream)
+    loader = Loader(stream)
     try:
-        return loader_instance.get_single_data()
+        return loader.get_single_data()
     finally:
-        loader_instance.dispose()
+        loader.dispose()
 
-
-def load_all(
-    stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs
-):
+def load_all(stream, Loader):
     """
     Parse all YAML documents in a stream
     and produce corresponding Python objects.
     """
-    loader_cls = _normalize_loader_argument(
-        loader,
-        kwargs,
-        default=_loader_module.Loader,
-        func_name="load_all",
-        require=False,
-    )
-    _reject_unexpected_kwargs("load_all", kwargs)
-    assert loader_cls is not None
-    loader_instance = loader_cls(stream)
+    loader = Loader(stream)
     try:
-        while loader_instance.check_data():
-            yield loader_instance.get_data()
+        while loader.check_data():
+            yield loader.get_data()
     finally:
-        loader_instance.dispose()
+        loader.dispose()
 
-
-def full_load(
-    stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs
-):
+def full_load(stream):
     """
     Parse the first YAML document in a stream
     and produce the corresponding Python object.
@@ -238,21 +102,9 @@ def full_load(
     Resolve all tags except those known to be
     unsafe on untrusted input.
     """
-    loader_cls = _normalize_loader_argument(
-        loader,
-        kwargs,
-        default=_loader_module.FullLoader,
-        func_name="full_load",
-        require=False,
-    )
-    _reject_unexpected_kwargs("full_load", kwargs)
-    assert loader_cls is not None
-    return load(stream, loader_cls)
+    return load(stream, FullLoader)
 
-
-def full_load_all(
-    stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs
-):
+def full_load_all(stream):
     """
     Parse all YAML documents in a stream
     and produce corresponding Python objects.
@@ -260,21 +112,9 @@ def full_load_all(
     Resolve all tags except those known to be
     unsafe on untrusted input.
     """
-    loader_cls = _normalize_loader_argument(
-        loader,
-        kwargs,
-        default=_loader_module.FullLoader,
-        func_name="full_load_all",
-        require=False,
-    )
-    _reject_unexpected_kwargs("full_load_all", kwargs)
-    assert loader_cls is not None
-    return load_all(stream, loader_cls)
+    return load_all(stream, FullLoader)
 
-
-def safe_load(
-    stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs
-):
+def safe_load(stream):
     """
     Parse the first YAML document in a stream
     and produce the corresponding Python object.
@@ -282,21 +122,9 @@ def safe_load(
     Resolve only basic YAML tags. This is known
     to be safe for untrusted input.
     """
-    loader_cls = _normalize_loader_argument(
-        loader,
-        kwargs,
-        default=_loader_module.SafeLoader,
-        func_name="safe_load",
-        require=False,
-    )
-    _reject_unexpected_kwargs("safe_load", kwargs)
-    assert loader_cls is not None
-    return load(stream, loader_cls)
+    return load(stream, SafeLoader)
 
-
-def safe_load_all(
-    stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs
-):
+def safe_load_all(stream):
     """
     Parse all YAML documents in a stream
     and produce corresponding Python objects.
@@ -304,21 +132,9 @@ def safe_load_all(
     Resolve only basic YAML tags. This is known
     to be safe for untrusted input.
     """
-    loader_cls = _normalize_loader_argument(
-        loader,
-        kwargs,
-        default=_loader_module.SafeLoader,
-        func_name="safe_load_all",
-        require=False,
-    )
-    _reject_unexpected_kwargs("safe_load_all", kwargs)
-    assert loader_cls is not None
-    return load_all(stream, loader_cls)
+    return load_all(stream, SafeLoader)
 
-
-def unsafe_load(
-    stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs
-):
+def unsafe_load(stream):
     """
     Parse the first YAML document in a stream
     and produce the corresponding Python object.
@@ -326,21 +142,9 @@ def unsafe_load(
     Resolve all tags, even those known to be
     unsafe on untrusted input.
     """
-    loader_cls = _normalize_loader_argument(
-        loader,
-        kwargs,
-        default=_loader_module.UnsafeLoader,
-        func_name="unsafe_load",
-        require=False,
-    )
-    _reject_unexpected_kwargs("unsafe_load", kwargs)
-    assert loader_cls is not None
-    return load(stream, loader_cls)
+    return load(stream, UnsafeLoader)
 
-
-def unsafe_load_all(
-    stream, loader: type[_loader_module.BaseLoader] | None = None, /, **kwargs
-):
+def unsafe_load_all(stream):
     """
     Parse all YAML documents in a stream
     and produce corresponding Python objects.
@@ -348,29 +152,11 @@ def unsafe_load_all(
     Resolve all tags, even those known to be
     unsafe on untrusted input.
     """
-    loader_cls = _normalize_loader_argument(
-        loader,
-        kwargs,
-        default=_loader_module.UnsafeLoader,
-        func_name="unsafe_load_all",
-        require=False,
-    )
-    _reject_unexpected_kwargs("unsafe_load_all", kwargs)
-    assert loader_cls is not None
-    return load_all(stream, loader_cls)
+    return load_all(stream, UnsafeLoader)
 
-
-def emit(
-    events,
-    stream=None,
-    dumper: type[_dumper_module.BaseDumper] | None = None,
-    canonical=None,
-    indent=None,
-    width=None,
-    allow_unicode=None,
-    line_break=None,
-    **kwargs,
-):
+def emit(events, stream=None, Dumper=Dumper,
+        canonical=None, indent=None, width=None,
+        allow_unicode=None, line_break=None):
     """
     Emit YAML parsing events into a stream.
     If stream is None, return the produced string instead.
@@ -379,174 +165,92 @@ def emit(
     if stream is None:
         stream = io.StringIO()
         getvalue = stream.getvalue
-    dumper_cls = _normalize_dumper_argument(
-        dumper,
-        kwargs,
-        default=_dumper_module.Dumper,
-        func_name="emit",
-        require=False,
-    )
-    _reject_unexpected_kwargs("emit", kwargs)
-    dumper_instance = dumper_cls(
-        stream,
-        canonical=canonical,
-        indent=indent,
-        width=width,
-        allow_unicode=allow_unicode,
-        line_break=line_break,
-    )
+    dumper = Dumper(stream, canonical=canonical, indent=indent, width=width,
+            allow_unicode=allow_unicode, line_break=line_break)
     try:
         for event in events:
-            dumper_instance.emit(event)
+            dumper.emit(event)
     finally:
-        dumper_instance.dispose()
+        dumper.dispose()
     if getvalue:
         return getvalue()
 
-
-def serialize_all(
-    nodes,
-    stream=None,
-    dumper: type[_dumper_module.BaseDumper] | None = None,
-    canonical=None,
-    indent=None,
-    width=None,
-    allow_unicode=None,
-    line_break=None,
-    encoding=None,
-    explicit_start=None,
-    explicit_end=None,
-    version=None,
-    tags=None,
-    **kwargs,
-):
+def serialize_all(nodes, stream=None, Dumper=Dumper,
+        canonical=None, indent=None, width=None,
+        allow_unicode=None, line_break=None,
+        encoding=None, explicit_start=None, explicit_end=None,
+        version=None, tags=None):
     """
     Serialize a sequence of representation trees into a YAML stream.
     If stream is None, return the produced string instead.
     """
     getvalue = None
     if stream is None:
-        stream = io.StringIO() if encoding is None else io.BytesIO()
+        if encoding is None:
+            stream = io.StringIO()
+        else:
+            stream = io.BytesIO()
         getvalue = stream.getvalue
-    dumper_cls = _normalize_dumper_argument(
-        dumper,
-        kwargs,
-        default=_dumper_module.Dumper,
-        func_name="serialize_all",
-        require=False,
-    )
-    _reject_unexpected_kwargs("serialize_all", kwargs)
-    dumper_instance = dumper_cls(
-        stream,
-        canonical=canonical,
-        indent=indent,
-        width=width,
-        allow_unicode=allow_unicode,
-        line_break=line_break,
-        encoding=encoding,
-        version=version,
-        tags=tags,
-        explicit_start=explicit_start,
-        explicit_end=explicit_end,
-    )
+    dumper = Dumper(stream, canonical=canonical, indent=indent, width=width,
+            allow_unicode=allow_unicode, line_break=line_break,
+            encoding=encoding, version=version, tags=tags,
+            explicit_start=explicit_start, explicit_end=explicit_end)
     try:
-        dumper_instance.open()
+        dumper.open()
         for node in nodes:
-            dumper_instance.serialize(node)
-        dumper_instance.close()
+            dumper.serialize(node)
+        dumper.close()
     finally:
-        dumper_instance.dispose()
+        dumper.dispose()
     if getvalue:
         return getvalue()
 
-
-def serialize(
-    node,
-    stream=None,
-    dumper: type[_dumper_module.BaseDumper] | None = None,
-    **kwds,
-):
+def serialize(node, stream=None, Dumper=Dumper, **kwds):
     """
     Serialize a representation tree into a YAML stream.
     If stream is None, return the produced string instead.
     """
-    return serialize_all([node], stream, dumper=dumper, **kwds)
+    return serialize_all([node], stream, Dumper=Dumper, **kwds)
 
-
-def dump_all(
-    documents,
-    stream=None,
-    dumper: type[_dumper_module.BaseDumper] | None = None,
-    default_style=None,
-    default_flow_style=False,
-    canonical=None,
-    indent=None,
-    width=None,
-    allow_unicode=None,
-    line_break=None,
-    encoding=None,
-    explicit_start=None,
-    explicit_end=None,
-    version=None,
-    tags=None,
-    sort_keys=True,
-    **kwargs,
-):
+def dump_all(documents, stream=None, Dumper=Dumper,
+        default_style=None, default_flow_style=False,
+        canonical=None, indent=None, width=None,
+        allow_unicode=None, line_break=None,
+        encoding=None, explicit_start=None, explicit_end=None,
+        version=None, tags=None, sort_keys=True):
     """
     Serialize a sequence of Python objects into a YAML stream.
     If stream is None, return the produced string instead.
     """
     getvalue = None
     if stream is None:
-        stream = io.StringIO() if encoding is None else io.BytesIO()
+        if encoding is None:
+            stream = io.StringIO()
+        else:
+            stream = io.BytesIO()
         getvalue = stream.getvalue
-    dumper_cls = _normalize_dumper_argument(
-        dumper,
-        kwargs,
-        default=_dumper_module.Dumper,
-        func_name="dump_all",
-        require=False,
-    )
-    _reject_unexpected_kwargs("dump_all", kwargs)
-    dumper_instance = dumper_cls(
-        stream,
-        default_style=default_style,
-        default_flow_style=default_flow_style,
-        canonical=canonical,
-        indent=indent,
-        width=width,
-        allow_unicode=allow_unicode,
-        line_break=line_break,
-        encoding=encoding,
-        version=version,
-        tags=tags,
-        explicit_start=explicit_start,
-        explicit_end=explicit_end,
-        sort_keys=sort_keys,
-    )
+    dumper = Dumper(stream, default_style=default_style,
+            default_flow_style=default_flow_style,
+            canonical=canonical, indent=indent, width=width,
+            allow_unicode=allow_unicode, line_break=line_break,
+            encoding=encoding, version=version, tags=tags,
+            explicit_start=explicit_start, explicit_end=explicit_end, sort_keys=sort_keys)
     try:
-        dumper_instance.open()
+        dumper.open()
         for data in documents:
-            dumper_instance.represent(data)
-        dumper_instance.close()
+            dumper.represent(data)
+        dumper.close()
     finally:
-        dumper_instance.dispose()
+        dumper.dispose()
     if getvalue:
         return getvalue()
 
-
-def dump(
-    data,
-    stream=None,
-    dumper: type[_dumper_module.BaseDumper] | None = None,
-    **kwds,
-):
+def dump(data, stream=None, Dumper=Dumper, **kwds):
     """
     Serialize a Python object into a YAML stream.
     If stream is None, return the produced string instead.
     """
-    return dump_all([data], stream, dumper=dumper, **kwds)
-
+    return dump_all([data], stream, Dumper=Dumper, **kwds)
 
 def safe_dump_all(documents, stream=None, **kwds):
     """
@@ -554,8 +258,7 @@ def safe_dump_all(documents, stream=None, **kwds):
     Produce only basic YAML tags.
     If stream is None, return the produced string instead.
     """
-    return dump_all(documents, stream, dumper=_dumper_module.SafeDumper, **kwds)
-
+    return dump_all(documents, stream, Dumper=SafeDumper, **kwds)
 
 def safe_dump(data, stream=None, **kwds):
     """
@@ -563,191 +266,91 @@ def safe_dump(data, stream=None, **kwds):
     Produce only basic YAML tags.
     If stream is None, return the produced string instead.
     """
-    return dump_all([data], stream, dumper=_dumper_module.SafeDumper, **kwds)
+    return dump_all([data], stream, Dumper=SafeDumper, **kwds)
 
-
-def add_implicit_resolver(
-    tag,
-    regexp,
-    first=None,
-    loader: type[_loader_module.BaseLoader] | None = None,
-    dumper: type[_dumper_module.BaseDumper] | None = None,
-    **kwargs,
-):
+def add_implicit_resolver(tag, regexp, first=None,
+        Loader=None, Dumper=Dumper):
     """
     Add an implicit scalar detector.
     If an implicit scalar value matches the given regexp,
     the corresponding tag is assigned to the scalar.
     first is a sequence of possible initial characters or None.
     """
-    loader_cls = _normalize_loader_argument(
-        loader,
-        kwargs,
-        default=None,
-        func_name="add_implicit_resolver",
-        require=False,
-    )
-    dumper_cls = _normalize_dumper_argument(
-        dumper,
-        kwargs,
-        default=_dumper_module.Dumper,
-        func_name="add_implicit_resolver",
-        require=False,
-    )
-    _reject_unexpected_kwargs("add_implicit_resolver", kwargs)
-    if loader_cls is None:
-        _loader_module.Loader.add_implicit_resolver(tag, regexp, first)
-        _loader_module.FullLoader.add_implicit_resolver(tag, regexp, first)
-        _loader_module.UnsafeLoader.add_implicit_resolver(tag, regexp, first)
+    if Loader is None:
+        loader.Loader.add_implicit_resolver(tag, regexp, first)
+        loader.FullLoader.add_implicit_resolver(tag, regexp, first)
+        loader.UnsafeLoader.add_implicit_resolver(tag, regexp, first)
     else:
-        loader_cls.add_implicit_resolver(tag, regexp, first)
-    dumper_cls.add_implicit_resolver(tag, regexp, first)
+        Loader.add_implicit_resolver(tag, regexp, first)
+    Dumper.add_implicit_resolver(tag, regexp, first)
 
-
-def add_path_resolver(
-    tag,
-    path,
-    kind=None,
-    loader: type[_loader_module.BaseLoader] | None = None,
-    dumper: type[_dumper_module.BaseDumper] | None = None,
-    **kwargs,
-):
+def add_path_resolver(tag, path, kind=None, Loader=None, Dumper=Dumper):
     """
     Add a path based resolver for the given tag.
     A path is a list of keys that forms a path
     to a node in the representation tree.
     Keys can be string values, integers, or None.
     """
-    loader_cls = _normalize_loader_argument(
-        loader,
-        kwargs,
-        default=None,
-        func_name="add_path_resolver",
-        require=False,
-    )
-    dumper_cls = _normalize_dumper_argument(
-        dumper,
-        kwargs,
-        default=_dumper_module.Dumper,
-        func_name="add_path_resolver",
-        require=False,
-    )
-    _reject_unexpected_kwargs("add_path_resolver", kwargs)
-    if loader_cls is None:
-        _loader_module.Loader.add_path_resolver(tag, path, kind)
-        _loader_module.FullLoader.add_path_resolver(tag, path, kind)
-        _loader_module.UnsafeLoader.add_path_resolver(tag, path, kind)
+    if Loader is None:
+        loader.Loader.add_path_resolver(tag, path, kind)
+        loader.FullLoader.add_path_resolver(tag, path, kind)
+        loader.UnsafeLoader.add_path_resolver(tag, path, kind)
     else:
-        loader_cls.add_path_resolver(tag, path, kind)
-    dumper_cls.add_path_resolver(tag, path, kind)
+        Loader.add_path_resolver(tag, path, kind)
+    Dumper.add_path_resolver(tag, path, kind)
 
-
-def add_constructor(
-    tag, constructor, loader: type[_loader_module.BaseLoader] | None = None, **kwargs
-):
+def add_constructor(tag, constructor, Loader=None):
     """
     Add a constructor for the given tag.
     Constructor is a function that accepts a Loader instance
     and a node object and produces the corresponding Python object.
     """
-    loader_cls = _normalize_loader_argument(
-        loader,
-        kwargs,
-        default=None,
-        func_name="add_constructor",
-        require=False,
-    )
-    _reject_unexpected_kwargs("add_constructor", kwargs)
-    if loader_cls is None:
-        _loader_module.Loader.add_constructor(tag, constructor)
-        _loader_module.FullLoader.add_constructor(tag, constructor)
-        _loader_module.UnsafeLoader.add_constructor(tag, constructor)
+    if Loader is None:
+        loader.Loader.add_constructor(tag, constructor)
+        loader.FullLoader.add_constructor(tag, constructor)
+        loader.UnsafeLoader.add_constructor(tag, constructor)
     else:
-        loader_cls.add_constructor(tag, constructor)
+        Loader.add_constructor(tag, constructor)
 
-
-def add_multi_constructor(
-    tag_prefix,
-    multi_constructor,
-    loader: type[_loader_module.BaseLoader] | None = None,
-    **kwargs,
-):
+def add_multi_constructor(tag_prefix, multi_constructor, Loader=None):
     """
     Add a multi-constructor for the given tag prefix.
     Multi-constructor is called for a node if its tag starts with tag_prefix.
     Multi-constructor accepts a Loader instance, a tag suffix,
     and a node object and produces the corresponding Python object.
     """
-    loader_cls = _normalize_loader_argument(
-        loader,
-        kwargs,
-        default=None,
-        func_name="add_multi_constructor",
-        require=False,
-    )
-    _reject_unexpected_kwargs("add_multi_constructor", kwargs)
-    if loader_cls is None:
-        _loader_module.Loader.add_multi_constructor(tag_prefix, multi_constructor)
-        _loader_module.FullLoader.add_multi_constructor(tag_prefix, multi_constructor)
-        _loader_module.UnsafeLoader.add_multi_constructor(tag_prefix, multi_constructor)
+    if Loader is None:
+        loader.Loader.add_multi_constructor(tag_prefix, multi_constructor)
+        loader.FullLoader.add_multi_constructor(tag_prefix, multi_constructor)
+        loader.UnsafeLoader.add_multi_constructor(tag_prefix, multi_constructor)
     else:
-        loader_cls.add_multi_constructor(tag_prefix, multi_constructor)
+        Loader.add_multi_constructor(tag_prefix, multi_constructor)
 
-
-def add_representer(
-    data_type,
-    representer,
-    dumper: type[_dumper_module.BaseDumper] | None = None,
-    **kwargs,
-):
+def add_representer(data_type, representer, Dumper=Dumper):
     """
     Add a representer for the given type.
     Representer is a function accepting a Dumper instance
     and an instance of the given data type
     and producing the corresponding representation node.
     """
-    dumper_cls = _normalize_dumper_argument(
-        dumper,
-        kwargs,
-        default=_dumper_module.Dumper,
-        func_name="add_representer",
-        require=False,
-    )
-    _reject_unexpected_kwargs("add_representer", kwargs)
-    dumper_cls.add_representer(data_type, representer)
+    Dumper.add_representer(data_type, representer)
 
-
-def add_multi_representer(
-    data_type,
-    multi_representer,
-    dumper: type[_dumper_module.BaseDumper] | None = None,
-    **kwargs,
-):
+def add_multi_representer(data_type, multi_representer, Dumper=Dumper):
     """
     Add a representer for the given type.
     Multi-representer is a function accepting a Dumper instance
     and an instance of the given data type or subtype
     and producing the corresponding representation node.
     """
-    dumper_cls = _normalize_dumper_argument(
-        dumper,
-        kwargs,
-        default=_dumper_module.Dumper,
-        func_name="add_multi_representer",
-        require=False,
-    )
-    _reject_unexpected_kwargs("add_multi_representer", kwargs)
-    dumper_cls.add_multi_representer(data_type, multi_representer)
-
+    Dumper.add_multi_representer(data_type, multi_representer)
 
 class YAMLObjectMetaclass(type):
     """
     The metaclass for YAMLObject.
     """
-
     def __init__(cls, name, bases, kwds):
-        super().__init__(name, bases, kwds)
-        if "yaml_tag" in kwds and kwds["yaml_tag"] is not None:
+        super(YAMLObjectMetaclass, cls).__init__(name, bases, kwds)
+        if 'yaml_tag' in kwds and kwds['yaml_tag'] is not None:
             if isinstance(cls.yaml_loader, list):
                 for loader in cls.yaml_loader:
                     loader.add_constructor(cls.yaml_tag, cls.from_yaml)
@@ -755,7 +358,6 @@ class YAMLObjectMetaclass(type):
                 cls.yaml_loader.add_constructor(cls.yaml_tag, cls.from_yaml)
 
             cls.yaml_dumper.add_representer(cls, cls.to_yaml)
-
 
 class YAMLObject(metaclass=YAMLObjectMetaclass):
     """
@@ -765,12 +367,8 @@ class YAMLObject(metaclass=YAMLObjectMetaclass):
 
     __slots__ = ()  # no direct instantiation, so allow immutable subclasses
 
-    yaml_loader: ClassVar[list[type[_loader_module.BaseLoader]]] = [
-        _loader_module.Loader,
-        _loader_module.FullLoader,
-        _loader_module.UnsafeLoader,
-    ]
-    yaml_dumper: ClassVar[type[_dumper_module.BaseDumper]] = _dumper_module.Dumper
+    yaml_loader = [Loader, FullLoader, UnsafeLoader]
+    yaml_dumper = Dumper
 
     yaml_tag = None
     yaml_flow_style = None
@@ -787,6 +385,5 @@ class YAMLObject(metaclass=YAMLObjectMetaclass):
         """
         Convert a Python object to a representation node.
         """
-        return dumper.represent_yaml_object(
-            cls.yaml_tag, data, cls, flow_style=cls.yaml_flow_style
-        )
+        return dumper.represent_yaml_object(cls.yaml_tag, data, cls,
+                flow_style=cls.yaml_flow_style)

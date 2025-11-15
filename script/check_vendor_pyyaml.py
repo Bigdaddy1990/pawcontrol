@@ -10,6 +10,7 @@ schedule without additional dependencies.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import sys
@@ -49,6 +50,24 @@ class VulnerabilityRecord:
 
 
 @dataclass
+class WheelProfile:
+    """Wheel combination that should be tracked for availability."""
+
+    python_tag: str
+    platform_fragment: str
+
+
+@dataclass
+class WheelMatch:
+    """Details about an available wheel for a tracked profile."""
+
+    profile: WheelProfile
+    release: Version | None
+    filename: str
+    url: str
+
+
+@dataclass
 class MonitoringResult:
     """Aggregated outcome of the monitoring run."""
 
@@ -56,8 +75,56 @@ class MonitoringResult:
     latest_release: Version | None
     latest_release_files: list[dict[str, Any]]
     vulnerabilities: list[VulnerabilityRecord]
-    target_wheel_release: Version | None
-    target_wheel_platform: str
+    wheel_matches: list[WheelMatch]
+
+
+def _parse_wheel_profile(value: str) -> WheelProfile:
+    """Return a wheel profile parsed from the CLI representation."""
+
+    if ":" not in value:
+        raise argparse.ArgumentTypeError(
+            "Wheel profile must follow <python_tag>:<platform_fragment> format."
+        )
+    python_tag, platform_fragment = value.split(":", 1)
+    python_tag = python_tag.strip()
+    platform_fragment = platform_fragment.strip()
+    if not python_tag or not platform_fragment:
+        raise argparse.ArgumentTypeError(
+            "Wheel profile requires both a python tag and platform fragment."
+        )
+    return WheelProfile(python_tag=python_tag, platform_fragment=platform_fragment)
+
+
+DEFAULT_WHEEL_PROFILES = (
+    WheelProfile(python_tag="cp313", platform_fragment="manylinux"),
+    WheelProfile(python_tag="cp313", platform_fragment="musllinux"),
+)
+
+
+def _normalise_wheel_profiles(args: argparse.Namespace) -> list[WheelProfile]:
+    """Derive the list of wheel profiles that should be monitored."""
+
+    if args.wheel_profile:
+        return [
+            WheelProfile(
+                python_tag=profile.python_tag,
+                platform_fragment=profile.platform_fragment,
+            )
+            for profile in args.wheel_profile
+        ]
+    if args.target_python_tag is not None or args.target_platform_fragment is not None:
+        python_tag = args.target_python_tag or "cp313"
+        platform_fragment = args.target_platform_fragment or "manylinux"
+        return [
+            WheelProfile(python_tag=python_tag, platform_fragment=platform_fragment)
+        ]
+    return [
+        WheelProfile(
+            python_tag=profile.python_tag,
+            platform_fragment=profile.platform_fragment,
+        )
+        for profile in DEFAULT_WHEEL_PROFILES
+    ]
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -87,18 +154,36 @@ def parse_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         "--target-python-tag",
-        default="cp313",
+        default=None,
         help=(
-            "Wheel tag that signals Home Assistant can consume the upstream "
-            "binary without a source build (default: cp313)."
+            "Deprecated: prefer --wheel-profile. When provided, combines with "
+            "--target-platform-fragment to build a single tracked profile."
         ),
     )
     parser.add_argument(
         "--target-platform-fragment",
-        default="manylinux",
+        default=None,
         help=(
-            "Substring that must be present in the wheel filename to consider "
-            "it suitable for Home Assistant runners (default: manylinux)."
+            "Deprecated: prefer --wheel-profile. When provided, combines with "
+            "--target-python-tag to build a single tracked profile."
+        ),
+    )
+    parser.add_argument(
+        "--wheel-profile",
+        action="append",
+        default=[],
+        type=_parse_wheel_profile,
+        metavar="<python_tag>:<platform>",
+        help=(
+            "Wheel profile to track (repeatable). Defaults to cp313:manylinux "
+            "and cp313:musllinux to cover PEP 600 and PEP 656 wheels."
+        ),
+    )
+    parser.add_argument(
+        "--metadata-path",
+        help=(
+            "Optional path where the monitoring summary should be written as "
+            "JSON for downstream automation."
         ),
     )
     return parser.parse_args()
@@ -113,7 +198,7 @@ def load_vendor_version() -> Version:
             "cannot be inspected."
         )
     content = ANNOTATEDYAML_INIT.read_text(encoding="utf-8")
-    match = re.search(r"__version__\s*=\s*\"([^\"]+)\"", content)
+    match = re.search(r"__version__\s*=\s*[\"']([^\"']+)[\"']", content)
     if match is None:
         raise MonitoringError(
             "Could not locate __version__ assignment in vendored PyYAML module."
@@ -316,7 +401,7 @@ def locate_target_wheel(
     *,
     python_tag: str,
     platform_fragment: str,
-) -> tuple[Version | None, str]:
+) -> tuple[Version | None, str, str]:
     """Find the newest release that ships a compatible wheel."""
 
     sorted_releases: list[tuple[Version, list[dict[str, Any]]]] = []
@@ -339,8 +424,8 @@ def locate_target_wheel(
                 and platform_fragment in filename
                 and not file_entry.get("yanked", False)
             ):
-                return version, filename
-    return None, ""
+                return version, filename, file_entry.get("url", "")
+    return None, "", ""
 
 
 def build_summary(result: MonitoringResult) -> str:
@@ -355,16 +440,21 @@ def build_summary(result: MonitoringResult) -> str:
         f"* Vendored release: `{result.vendor_version}`",
         f"* Latest stable release on PyPI: {latest_release_text}",
     ]
-    if result.target_wheel_release is not None:
-        summary_lines.append(
-            f"* ✅ Wheel for `{result.target_wheel_platform}` discovered in PyYAML "
-            f"`{result.target_wheel_release}` - plan removal of the vendor copy."
+    for match in result.wheel_matches:
+        profile_label = (
+            f"{match.profile.python_tag} ({match.profile.platform_fragment})"
         )
-    else:
-        summary_lines.append(
-            "* ⚠️ No PyPI wheel matches the configured Home Assistant runner profile yet; "
-            "keep the vendor directory in place."
-        )
+        if match.release is not None:
+            summary_lines.append(
+                "* ✅ Wheel for "
+                f"`{profile_label}` discovered in PyYAML `{match.release}` - "
+                "plan removal of the vendor copy."
+            )
+        else:
+            summary_lines.append(
+                "* ⚠️ No PyPI wheel matches the configured runner profile "
+                f"`{profile_label}` yet; keep the vendor directory in place."
+            )
     if result.vulnerabilities:
         summary_lines.append("*")
         summary_lines.append("* ⚠️ Vulnerabilities affecting the vendored release:")
@@ -390,12 +480,42 @@ def build_summary(result: MonitoringResult) -> str:
     return "\n".join(summary_lines)
 
 
+def build_metadata_document(result: MonitoringResult) -> dict[str, Any]:
+    """Serialise the monitoring result into a JSON-serialisable mapping."""
+
+    return {
+        "vendor_version": str(result.vendor_version),
+        "latest_release": str(result.latest_release)
+        if result.latest_release is not None
+        else None,
+        "wheel_matches": [
+            {
+                "python_tag": match.profile.python_tag,
+                "platform_fragment": match.profile.platform_fragment,
+                "release": str(match.release) if match.release is not None else None,
+                "filename": match.filename or None,
+                "url": match.url or None,
+            }
+            for match in result.wheel_matches
+        ],
+        "vulnerabilities": [
+            {
+                "identifier": vuln.identifier,
+                "summary": vuln.summary,
+                "severity": vuln.severity,
+                "affected_version_range": vuln.affected_version_range,
+                "references": vuln.references,
+            }
+            for vuln in result.vulnerabilities
+        ],
+    }
+
+
 def evaluate(
     *,
     fail_on_outdated: bool,
     fail_severity: str,
-    python_tag: str,
-    platform_fragment: str,
+    wheel_profiles: list[WheelProfile],
 ) -> tuple[MonitoringResult, int]:
     """Run the monitoring routine and return the result plus exit code."""
 
@@ -403,18 +523,22 @@ def evaluate(
     pypi_metadata = fetch_pypi_metadata()
     latest_release, latest_files = select_latest_release(pypi_metadata)
     vulnerabilities = query_osv(vendor_version)
-    target_release, wheel_filename = locate_target_wheel(
-        pypi_metadata,
-        python_tag=python_tag,
-        platform_fragment=platform_fragment,
-    )
+    wheel_matches: list[WheelMatch] = []
+    for profile in wheel_profiles:
+        release, filename, url = locate_target_wheel(
+            pypi_metadata,
+            python_tag=profile.python_tag,
+            platform_fragment=profile.platform_fragment,
+        )
+        wheel_matches.append(
+            WheelMatch(profile=profile, release=release, filename=filename, url=url)
+        )
     result = MonitoringResult(
         vendor_version=vendor_version,
         latest_release=latest_release,
         latest_release_files=latest_files,
         vulnerabilities=vulnerabilities,
-        target_wheel_release=target_release,
-        target_wheel_platform=f"{python_tag} ({platform_fragment})",
+        wheel_matches=wheel_matches,
     )
 
     exit_code = 0
@@ -450,18 +574,26 @@ def evaluate(
     else:
         print("::notice ::Vendored PyYAML matches the latest available release.")
 
-    if target_release is not None:
-        release_url = f"https://pypi.org/project/PyYAML/{target_release}/"
-        print(
-            "::notice ::Compatible PyYAML wheel discovered in release "
-            f"{target_release}: {wheel_filename} - prepare vendor removal."
+    for match in wheel_matches:
+        profile_label = (
+            f"{match.profile.python_tag} ({match.profile.platform_fragment})"
         )
-        print(f"::notice ::Release notes: {release_url}")
-    else:
-        print(
-            "::notice ::No matching PyYAML wheel for the configured Home Assistant "
-            "runtime profile has been published yet."
-        )
+        if match.release is not None:
+            release_url = f"https://pypi.org/project/PyYAML/{match.release}/"
+            filename_hint = match.filename or "<unknown wheel>"
+            print(
+                "::notice ::Compatible PyYAML wheel discovered for "
+                f"{profile_label} in release {match.release}: {filename_hint} - "
+                "prepare vendor removal."
+            )
+            print(f"::notice ::Release notes: {release_url}")
+            if match.url:
+                print(f"::notice ::Download URL: {match.url}")
+        else:
+            print(
+                "::notice ::No matching PyYAML wheel for the configured Home "
+                f"Assistant runtime profile {profile_label} has been published yet."
+            )
     return result, exit_code
 
 
@@ -469,12 +601,12 @@ def main() -> int:
     """Entry point for the monitoring script."""
 
     args = parse_arguments()
+    wheel_profiles = _normalise_wheel_profiles(args)
     try:
         result, exit_code = evaluate(
             fail_on_outdated=args.fail_on_outdated,
             fail_severity=args.fail_severity,
-            python_tag=args.target_python_tag,
-            platform_fragment=args.target_platform_fragment,
+            wheel_profiles=wheel_profiles,
         )
     except MonitoringError as exc:
         print(f"::error ::{exc}")
@@ -489,6 +621,14 @@ def main() -> int:
                 handle.write("\n")
     else:
         print(summary)
+    if args.metadata_path:
+        metadata = build_metadata_document(result)
+        metadata_path = Path(args.metadata_path)
+        metadata_path.parent.mkdir(parents=True, exist_ok=True)
+        metadata_path.write_text(
+            json.dumps(metadata, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
     return exit_code
 
 

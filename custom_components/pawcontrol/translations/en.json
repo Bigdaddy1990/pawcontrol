@@ -1236,6 +1236,10 @@
     "feeding_compliance_no_data": {
       "title": "Feeding telemetry missing for {dog_name}",
       "description": "The latest feeding compliance check covering {days_to_check} days could not generate a report: {message}."
+    },
+    "runtime_store_compatibility": {
+      "title": "Runtime cache requires attention",
+      "description": "Paw Control detected {status} runtime store metadata for {config_entry_id}. Entry snapshot: status {entry_status}, version {entry_version}, created {entry_created_version}. Domain store snapshot: status {store_status}, version {store_version}, created {store_created_version}. Current schema {current_version}, minimum compatible {minimum_compatible_version}. Divergence detected: {divergence_detected}."
     }
   },
   "common": {

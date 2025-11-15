@@ -29,6 +29,7 @@ HTTP calls reuse Home Assistant’s managed aiohttp session.
 - Laufzeitmetriken für Statistik- und Besuchsflows werden per `perf_counter`
   erfasst; die aktuellen Benchmarks sind im Performance-Anhang dokumentiert.
   So lässt sich der aktuelle Platinum-Status der Async-Disziplin transparent nachvollziehen.
+- Das Laufzeit-Cache (`custom_components/pawcontrol/runtime_data.py`) protokolliert jetzt die erzeugende Schema-Version, hebt Altversionen automatisch auf das kompatible Minimum an und entfernt Future-Snapshots sofort aus `hass.data`, damit Reloads lieber sauber neu initialisieren als inkompatible Payloads weiterzureichen.【F:custom_components/pawcontrol/runtime_data.py†L1-L312】【F:tests/test_runtime_data.py†L1-L640】
 
 ### Benachrichtigungen & Webhooks
 - Der `PawControlNotificationManager` bündelt Push-Nachrichten, Personenerkennung,
@@ -106,14 +107,21 @@ HTTP calls reuse Home Assistant’s managed aiohttp session.
   damit abgestimmte Wartungsfenster priorisiert bleiben.
 - Der Vendor-Wächter [`vendor-pyyaml-monitor.yml`](.github/workflows/vendor-pyyaml-monitor.yml)
   prüft mittwochs die PyPI- und OSV-Daten für PyYAML, meldet veröffentlichte
-  Sicherheitsmeldungen und signalisiert, sobald ein `cp313`-Wheel das Entfernen
-  des Vendor-Verzeichnisses ermöglicht.
+  Sicherheitsmeldungen und signalisiert, sobald `cp313`-`manylinux`- oder
+  `cp313`-`musllinux`-Wheels (PEP 656) das Entfernen des Vendor-Verzeichnisses
+  ermöglichen. Der Lauf aktualisiert zusätzlich `generated/vendor_pyyaml_status.json`
+  mit den zugehörigen Download-Links.
+- `python -m script.sync_homeassistant_dependencies --home-assistant-root /pfad/zum/core`
+  synchronisiert `requirements*.txt`, Manifest-Anforderungen und das vendorte
+  PyYAML automatisiert mit den Home-Assistant-Constraints (derzeit PyYAML 6.0.3)
+  und regeneriert `generated/vendor_pyyaml_status.json` mitsamt Wheel-Links.
 - Der CI-Job „TypedDict audit“ aus [`ci.yml`](.github/workflows/ci.yml) führt bei
   jedem Push sowie in Pull Requests `python -m script.check_typed_dicts --path
   custom_components/pawcontrol --path tests --fail-on-findings` aus und blockiert
   Releases sofort, falls neue untypisierte Dictionaries auftauchen.
 - Der Async-Dependency-Audit dokumentiert alle synchronen Bibliotheken, die
   `_offload_blocking`-Messwerte und die gewählten Mitigationsstrategien.
+- Koordinator-Statistiken protokollieren jede Laufzeit-Store-Kompatibilitätsprüfung samt Statuszählern, Divergenzmarkern, Zeitstempeln und jetzt auch Laufzeit-Bilanzen pro Schweregrad. Diagnostics und System Health zeigen neben dem aktuellen Snapshot die kumulierten Sekunden je Level sowie die aktuelle Verweildauer an, damit Platinum-Audits die Stabilität ohne Log-Replay nachvollziehen können. Zusätzlich hält eine begrenzte Assessment-Timeline die jüngsten Levelwechsel inklusive Divergenzrate und empfohlenen Aktionen fest und fasst das Fenster, die Event-Dichte, die häufigsten Gründe/Status sowie Spitzen- und Letztwerte der Level-Dauern zusammen, sodass Support-Teams Verlauf und Eskalationen ohne manuelles Historien-Scraping prüfen können.【F:custom_components/pawcontrol/telemetry.py†L320-L460】【F:custom_components/pawcontrol/coordinator_tasks.py†L1080-L1230】【F:custom_components/pawcontrol/diagnostics.py†L600-L690】【F:custom_components/pawcontrol/system_health.py†L420-L520】【F:tests/unit/test_runtime_store_telemetry.py†L1-L360】【F:tests/unit/test_coordinator_tasks.py†L160-L1340】【F:tests/components/pawcontrol/test_diagnostics.py†L500-L560】【F:tests/components/pawcontrol/test_system_health.py†L1-L200】
 - Unit-Tests decken die Session-Garantie und Kernadapter ab, benötigen jedoch
   weiterhin ein Home-Assistant-Test-Environment für vollständige Abdeckung.
 
@@ -212,6 +220,52 @@ dieselben Label- und Quellen-Texte unter `common.setup_flags_panel_*`, sodass
   Skript-Schwellen bei Bestandsinstallationen automatisch in den Optionen-
   Payload. Dadurch bleiben System-Health, Blueprint und Dokumentation
   synchronisiert.【F:custom_components/pawcontrol/script_manager.py†L238-L412】【F:custom_components/pawcontrol/options_flow.py†L700-L820】【F:tests/components/pawcontrol/test_diagnostics.py†L120-L208】
+- `service_execution.entity_factory_guard` exportiert die adaptive Laufzeit-
+  schutzschwelle der Entity Factory inklusive aktueller Bodenzeit, Delta zum
+  Baseline-Floor, gemessenem Peak- und Minimal-Floor, jüngster Bodenzeit-
+  Änderung (absolut und relativ), Durchschnitts-/Minimal-/Maximallaufzeit der
+  Samples, Stabilitäts- und Volatilitätsquoten sowie Laufzeit-Jitter über
+  gesamte Historie und die letzten fünf Kalibrierungen. Die Entity Factory
+  protokolliert zusätzlich die letzten Guard-Events, berechnet daraus
+  Recency-Samples, Kurzfrist-Stabilität und einen qualitativen Trend, der die
+  jüngste Stabilität gegen den Lifetime-Durchschnitt stellt, damit Support sofort
+  erkennt, ob sich Scheduler-Jitter erholt oder verschlechtert.
+  Jede Rekalibrierung landet im Runtime-Store, Telemetrie normalisiert die Werte
+  (einschließlich Streak-Zählern und Event-Historie) und Diagnostics sowie
+  System-Health stellen die JSON-Schnappschüsse zusammen mit den Guard- und
+  Breaker-Indikatoren bereit.【F:custom_components/pawcontrol/entity_factory.py†L1017-L1136】【F:custom_components/pawcontrol/telemetry.py†L101-L244】【F:custom_components/pawcontrol/diagnostics.py†L1387-L1477】【F:custom_components/pawcontrol/system_health.py†L394-L612】【F:tests/components/pawcontrol/test_diagnostics.py†L540-L612】【F:tests/components/pawcontrol/test_system_health.py†L18-L663】
+- Die Config-Entry-Diagnostics enthalten zusätzlich einen Resilience-Block, der
+  die zuletzt berechneten Breaker-Snapshots inklusive Recovery-Latenzen,
+  Ablehnungsquoten und Identifikatoren aus dem Runtime-Store zieht, sodass
+  Support-Teams selbst bei pausiertem Koordinator auf vollständige Resilience-
+  Daten zugreifen können.【F:custom_components/pawcontrol/diagnostics.py†L600-L676】【F:custom_components/pawcontrol/telemetry.py†L400-L470】【F:tests/components/pawcontrol/test_diagnostics.py†L430-L520】
+- Diagnostics und System-Health ergänzen einen `runtime_store`-Block, der für
+  jede Config-Entry das gestempelte Schema, den Mindest-Support-Stand, offene
+  Migrationen, Divergenzen zwischen Entry-Attribut und Domain-Cache sowie
+  zukünftige Schema-Versionen markiert. Damit lassen sich Kompatibilitäts-
+  probleme ohne Debug-Konsole erkennen und sofort belegen.【F:custom_components/pawcontrol/runtime_data.py†L1-L390】【F:custom_components/pawcontrol/diagnostics.py†L610-L684】【F:custom_components/pawcontrol/system_health.py†L420-L520】【F:tests/test_runtime_data.py†L520-L640】【F:tests/components/pawcontrol/test_diagnostics.py†L430-L520】【F:tests/components/pawcontrol/test_system_health.py†L20-L940】
+- Die Telemetrie ergänzt eine `runtime_store_assessment`, die Divergenzraten,
+  Migrationserfordernisse und Entry-/Store-Status in die Stufen `ok`, `watch`
+  oder `action_required` verdichtet. Diagnostics, System-Health und
+  Koordinatorstatistiken zeigen dadurch sofort an, wann der
+  `runtime_store_compatibility`-Repair oder ein Reload nötig ist. Zusätzlich
+  protokollieren wir das vorherige Level, die Level-Streak, den Zeitpunkt der
+  letzten Änderung sowie Eskalations- und Deeskalationszähler, damit Audits
+  erkennen, ob sich die Cache-Gesundheit stabilisiert oder erneut verschlechtert
+  und Rotationen bei Bedarf sofort eingreifen können.【F:custom_components/pawcontrol/telemetry.py†L155-L360】【F:custom_components/pawcontrol/coordinator_tasks.py†L108-L143】【F:custom_components/pawcontrol/diagnostics.py†L608-L690】【F:custom_components/pawcontrol/system_health.py†L432-L540】【F:tests/unit/test_runtime_store_telemetry.py†L17-L190】【F:tests/components/pawcontrol/test_diagnostics.py†L480-L556】【F:tests/components/pawcontrol/test_system_health.py†L1-L160】【F:tests/unit/test_coordinator_tasks.py†L200-L226】
+- Zusätzlich fasst eine `runtime_store_timeline_summary` die wichtigsten
+  Kennzahlen der Kompatibilitäts-Timeline zusammen: Gesamtanzahl und Anteil der
+  Level-Wechsel, Level-/Status-Histogramme, eindeutige Gründe sowie das zuletzt
+  beobachtete Level mitsamt Divergenzindikatoren. Telemetrie normalisiert diese
+  Zusammenfassung, Diagnostics und System-Health liefern sie neben der
+  vollständigen Ereignisliste und die Tests sichern das Rollup ab, sodass
+  Platin-Audits die Cache-Stabilität ohne manuelles Parsen der Timeline bewerten
+  können.【F:custom_components/pawcontrol/telemetry.py†L240-L368】【F:custom_components/pawcontrol/diagnostics.py†L618-L635】【F:custom_components/pawcontrol/system_health.py†L70-L118】【F:tests/unit/test_runtime_store_telemetry.py†L33-L210】【F:tests/components/pawcontrol/test_diagnostics.py†L520-L560】【F:tests/components/pawcontrol/test_system_health.py†L18-L120】
+- Die Reparaturprüfungen spiegeln den gleichen Snapshot wider, erzeugen das Issue
+  `runtime_store_compatibility` mit abgestuften Schweregraden bei Divergenzen,
+  Migrationsbedarf oder zukünftigen Schemata und räumen den Eintrag, sobald die
+  Metadaten wieder `current` melden. Damit bleibt das Reparatur-Dashboard eng an
+  den Diagnostics-Nachweisen gekoppelt.【F:custom_components/pawcontrol/repairs.py†L64-L190】【F:custom_components/pawcontrol/repairs.py†L360-L520】【F:custom_components/pawcontrol/repairs.py†L732-L815】【F:tests/integration/test_runtime_store_ui.py†L180-L310】
 
 Paw Control konzentriert sich auf eine verlässliche Home-Assistant-Integration
 statt auf proprietäre Cloud-Dienste. Funktionen, die noch in Arbeit sind (z. B.

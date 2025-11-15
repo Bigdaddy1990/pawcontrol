@@ -43,9 +43,17 @@
   mypy
   pytest -q
   ```
-- 🛡️ Über `python -m script.check_vendor_pyyaml --fail-on-outdated` lässt sich
-  lokal prüfen, ob die gebündelte PyYAML-Version noch den aktuellen PyPI- und
-  OSV-Daten entspricht; der Check läuft zusätzlich automatisiert in CI.
+- 🔄 `python -m script.sync_homeassistant_dependencies --home-assistant-root /pfad/zum/home-assistant-core`
+  synchronisiert `requirements*.txt`, Manifest-Anforderungen und das vendorte
+  PyYAML mit den `package_constraints` des Core-Repos, aktualisiert bei Bedarf
+  automatisch auf PyYAML 6.0.3 und schreibt `generated/vendor_pyyaml_status.json`
+  inklusive Download-Links neu.
+- 🛡️ Über `python -m script.check_vendor_pyyaml --fail-on-outdated --metadata-path
+  generated/vendor_pyyaml_status.json` lässt sich lokal prüfen, ob die gebündelte
+  PyYAML-Version den aktuellen PyPI- und OSV-Daten entspricht. Der Monitor
+  trackt automatisch sowohl `cp313`-`manylinux`- als auch `cp313`-`musllinux`
+  (PEP 656) Wheels und aktualisiert die Statusdatei inklusive Download-Links;
+  der Check läuft zusätzlich automatisiert in CI.
 - 🧮 Der CI-Job **TypedDict audit** ruft `python -m script.check_typed_dicts` für
   `custom_components/pawcontrol` und `tests` mit `--fail-on-findings` auf, damit
   keine neuen `dict[str, Any]`-/`Mapping[str, Any]`-Stellen in Fixtures oder
@@ -59,9 +67,9 @@
 - 💻 Lokale Komplettläufe planen wir weiterhin außerhalb der Kernarbeitszeit (z. B. täglich nach 18:00 lokaler Zeit) und nutzen `PYTEST_ADDOPTS="-n auto"` nur auf Workstations mit ≥8 vCPUs, um Engpässe mit parallelen CI-Läufen zu vermeiden.
 - 🛡️ Der Workflow [`vendor-pyyaml-monitor.yml`](.github/workflows/vendor-pyyaml-monitor.yml)
   überprüft mittwochs um 02:30 UTC die PyYAML-Releases samt OSV-Meldungen und
-  meldet, sobald ein `cp313`-Wheel das Entfernen des Vendor-Verzeichnisses
-  erlaubt; manuelle Dispatches können den Lauf optional auf neue Releases
-  abklemmen.
+  meldet, sobald passende `cp313`-`manylinux`- oder `cp313`-`musllinux`-Wheels
+  (PEP 656) das Entfernen des Vendor-Verzeichnisses erlauben; manuelle
+  Dispatches können den Lauf optional auf neue Releases abklemmen.
 - 🧮 Der Workflow [`ci.yml`](.github/workflows/ci.yml) enthält den Job „TypedDict
   audit“, der jede Pull-Request- und Push-Pipeline stoppt, sobald das
   Guard-Skript neue `dict[str, Any]`-/`Mapping[str, Any]`-Vorkommen meldet. Für
@@ -808,6 +816,8 @@ Storage & Diagnostics:
 PawControl records a `ServiceGuardResult` for every guarded Home Assistant service invocation and aggregates them into a `ServiceGuardSummary`, ensuring diagnostics and resilience dashboards highlight both successful executions and guard-triggered skips.【F:custom_components/pawcontrol/service_guard.py†L1-L46】【F:custom_components/pawcontrol/utils.py†L187-L264】【F:custom_components/pawcontrol/services.py†L384-L473】
 Diagnostics export the aggregated counters under `service_execution.guard_metrics` alongside the most recent guard payload in `service_execution.last_service_result`, giving support teams instant visibility into why a service call executed or skipped without enabling debug logging.【F:custom_components/pawcontrol/diagnostics.py†L780-L867】【F:tests/components/pawcontrol/test_diagnostics.py†L129-L229】
 
+The `service_execution.entity_factory_guard` block mirrors the adaptive runtime guard from the entity factory so support tooling sees the current runtime floor, its delta above the baseline, the observed peak/lowest floors, the most recent floor delta (absolute and ratio), average/min/max calibration samples, rolling stability ratios, expansion/contraction counters, volatility, and both lifetime and recent jitter spans without enabling verbose logging. The entity factory also tracks the last five guard events to compute recency samples, stability ratios, and a qualitative stability trend that compares recency stability against the lifetime ratio so diagnostics immediately highlight improving versus regressing behaviour. Every recalibration is persisted into the config-entry runtime store, telemetry normalises the payload (including consecutive stable runs, event history, and five-sample recency windows), and diagnostics/system health surface the JSON-safe snapshot alongside guard summaries.【F:custom_components/pawcontrol/entity_factory.py†L1017-L1136】【F:custom_components/pawcontrol/telemetry.py†L101-L244】【F:custom_components/pawcontrol/diagnostics.py†L1387-L1477】【F:custom_components/pawcontrol/system_health.py†L394-L612】【F:tests/components/pawcontrol/test_system_health.py†L18-L663】【F:tests/components/pawcontrol/test_diagnostics.py†L540-L612】
+
 Support tooling also receives a dedicated `setup_flags_panel` snapshot that surfaces analytics, cloud-backup, and debug-logging toggles with translation keys, source metadata, and enabled/disabled counts so dashboards can render the onboarding state without custom parsing.【F:custom_components/pawcontrol/diagnostics.py†L120-L210】【F:custom_components/pawcontrol/strings.json†L1396-L1405】【F:tests/components/pawcontrol/test_diagnostics.py†L288-L405】
 
 Diagnostics mirror the resilience escalation helper under a `resilience_escalation` panel that reports the generated script entity, active skip/breaker thresholds, follow-up automation target, last triggered timestamp, and a rolling history of the five most recent manual escalation triggers—including the originating event source, Home Assistant context, firing user, payload, and preferred configuration—so on-call staff can confirm escalation posture directly from support dumps.【F:custom_components/pawcontrol/script_manager.py†L503-L704】【F:custom_components/pawcontrol/script_manager.py†L1235-L1363】【F:custom_components/pawcontrol/diagnostics.py†L180-L214】【F:tests/components/pawcontrol/test_diagnostics.py†L214-L243】【F:tests/unit/test_data_manager.py†L595-L676】
@@ -881,6 +891,11 @@ service: pawcontrol.get_statistics
   guard skip thresholds and breaker counts, raising persistent notifications and
   optional follow-up scripts whenever service execution health deteriorates so
   on-call runbooks trigger automatically.【F:custom_components/pawcontrol/script_manager.py†L360-L760】【F:tests/unit/test_data_manager.py†L470-L580】
+- Diagnostics now surface a dedicated **Resilience** block that persists the
+  latest breaker telemetry and recovery summary from runtime storage—even when
+  the coordinator is unavailable—so support teams can inspect rejection rates,
+  recovery latencies, and per-breaker counters directly from the export without
+  rerunning updates.【F:custom_components/pawcontrol/diagnostics.py†L600-L676】【F:custom_components/pawcontrol/telemetry.py†L400-L470】【F:custom_components/pawcontrol/coordinator_tasks.py†L780-L916】
 
 **Performance Impact**:
 - Overhead: < 2ms per operation
@@ -1242,6 +1257,12 @@ class NewGPSDevicePlugin(PawControlPlugin):
 - **HACS Readiness**: Repository layout, translations, documentation, and brand assets satisfy HACS expectations.
 - **Production Hardening**: Installation, removal, diagnostics, repairs, and maintenance runbooks are documented in README, `docs/MAINTENANCE.md`, and the documentation portal.
 - **Runtime Architecture**: Coordinators, runtime data containers, and managers back every platform with regression coverage verifying reload safety and service orchestration.
+- **Runtime Cache Compatibility**: The config-entry runtime store now records creation versions, upgrades legacy payloads to the supported schema, and blocks future-version caches so reloads fall back to a clean setup instead of deserialising incompatible telemetry.【F:custom_components/pawcontrol/runtime_data.py†L1-L312】【F:tests/test_runtime_data.py†L1-L640】
+- **Runtime Store Compatibility Snapshot**: Diagnostics and system health expose a shared runtime store summary showing entry/store metadata, migration requirements, divergence detection, and future-version rejections so support teams can confirm cache health without manual attribute inspection.【F:custom_components/pawcontrol/runtime_data.py†L1-L390】【F:custom_components/pawcontrol/diagnostics.py†L610-L684】【F:custom_components/pawcontrol/system_health.py†L420-L520】【F:tests/test_runtime_data.py†L520-L640】【F:tests/components/pawcontrol/test_diagnostics.py†L430-L520】【F:tests/components/pawcontrol/test_system_health.py†L20-L940】
+- **Runtime Store Health Assessment**: Telemetry classifies compatibility history into `ok`, `watch`, or `action_required` levels using divergence rates, migration flags, and entry/store metadata so diagnostics, system health, and coordinator stats highlight when to run the runtime store compatibility repair or reload the config entry. The assessment now tracks the previous level, level-streak counters, last level change timestamp, escalation/de-escalation totals, and time spent per level—including the live duration for the current severity—so rotations can prove whether cache health is stabilising or regressing without replaying logs. A rolling assessment timeline preserves the most recent compatibility checks (status, levels, divergence metrics, and actions) up to the configured window so Platinum reviews can audit transitions without scraping historic diagnostics dumps.【F:custom_components/pawcontrol/telemetry.py†L347-L575】【F:custom_components/pawcontrol/coordinator_tasks.py†L108-L143】【F:custom_components/pawcontrol/diagnostics.py†L606-L690】【F:custom_components/pawcontrol/system_health.py†L430-L540】【F:tests/unit/test_runtime_store_telemetry.py†L17-L360】【F:tests/components/pawcontrol/test_diagnostics.py†L500-L560】【F:tests/components/pawcontrol/test_system_health.py†L1-L40】【F:tests/unit/test_coordinator_tasks.py†L200-L226】
+- **Runtime Store Timeline Summary**: Every diagnostics dump now includes a derived summary of the runtime store timeline—covering total events, level change rates, distinct reasons, last-seen status/level, divergence indicators, and now the observation window, event density, most common reason/status, and per-level duration peaks/latest samples—so rotations can assess cache stability at a glance without parsing the raw event list. The summary is normalised in telemetry, exposed alongside the raw history in diagnostics and system health, and asserted by the regression suite to guarantee Platinum reviewers always receive a compact rollup next to the detailed timeline.【F:custom_components/pawcontrol/telemetry.py†L300-L440】【F:custom_components/pawcontrol/diagnostics.py†L618-L635】【F:custom_components/pawcontrol/system_health.py†L70-L118】【F:tests/unit/test_runtime_store_telemetry.py†L33-L360】【F:tests/components/pawcontrol/test_diagnostics.py†L520-L560】【F:tests/components/pawcontrol/test_system_health.py†L18-L120】
+- **Runtime Store Health History**: Coordinator statistics persist compatibility checks, status counters, divergence tallies, and timestamps so diagnostics and system health include both the current snapshot and the recorded history for Platinum evidence tracking.【F:custom_components/pawcontrol/telemetry.py†L120-L220】【F:custom_components/pawcontrol/coordinator_tasks.py†L1080-L1230】【F:custom_components/pawcontrol/diagnostics.py†L600-L690】【F:custom_components/pawcontrol/system_health.py†L420-L520】【F:tests/unit/test_runtime_store_telemetry.py†L1-L120】【F:tests/unit/test_coordinator_tasks.py†L160-L1340】【F:tests/components/pawcontrol/test_diagnostics.py†L520-L540】【F:tests/components/pawcontrol/test_system_health.py†L1-L960】
+- **Runtime Store Repair Guard**: Automated repair checks audit the same compatibility snapshot, raise `runtime_store_compatibility` issues with severity tiers when metadata diverges, needs migration, or jumps to future schemas, and clear the issue once the store returns to `current`, keeping repairs aligned with diagnostics evidence.【F:custom_components/pawcontrol/repairs.py†L64-L190】【F:custom_components/pawcontrol/repairs.py†L360-L520】【F:custom_components/pawcontrol/repairs.py†L732-L815】【F:tests/integration/test_runtime_store_ui.py†L180-L310】
 
 **📊 Performance Metrics**:
 - **Entity Setup Time**: <5 seconds for 10 dogs

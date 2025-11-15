@@ -17,6 +17,64 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 pytestmark = pytest.mark.usefixtures("enable_custom_integrations")
 
 
+def _assert_runtime_store(info: dict[str, object], expected_status: str) -> None:
+    """Assert the runtime store snapshot reported by system health."""
+
+    runtime_store = info["runtime_store"]
+    assert isinstance(runtime_store, dict)
+    assert runtime_store["status"] == expected_status
+    history = info.get("runtime_store_history")
+    if history is not None:
+        assert history["last_status"] == expected_status
+        events = history.get("assessment_events")
+        if events is not None:
+            assert isinstance(events, list)
+            if events:
+                assert isinstance(events[-1]["timestamp"], str)
+        timeline_summary = history.get("assessment_timeline_summary")
+        if timeline_summary is not None:
+            assert timeline_summary["total_events"] >= 0
+            assert "level_counts" in timeline_summary
+            assert "timeline_window_seconds" in timeline_summary
+            assert "events_per_day" in timeline_summary
+            assert "level_duration_peaks" in timeline_summary
+    assessment = info.get("runtime_store_assessment")
+    if assessment is not None:
+        assert assessment["level"] in {"ok", "watch", "action_required"}
+        assert assessment["level_streak"] >= 1
+        assert assessment["escalations"] >= 0
+        assert assessment["deescalations"] >= 0
+        assert assessment["previous_level"] in {None, "ok", "watch", "action_required"}
+        assert "level_durations" in assessment
+        assert "current_level_duration_seconds" in assessment
+        durations = assessment["level_durations"]
+        assert isinstance(durations, dict)
+        for level_key in ("ok", "watch", "action_required"):
+            assert level_key in durations
+            assert durations[level_key] >= 0.0
+        current_duration = assessment["current_level_duration_seconds"]
+        assert current_duration is None or current_duration >= 0.0
+        events = assessment.get("events")
+        if events is not None:
+            assert isinstance(events, list)
+            if events:
+                latest_event = events[-1]
+                assert latest_event["level"] in {"ok", "watch", "action_required"}
+                assert isinstance(latest_event["timestamp"], str)
+        timeline_summary = assessment.get("timeline_summary")
+        if timeline_summary is not None:
+            assert timeline_summary["total_events"] >= 0
+            assert "last_level" in timeline_summary
+            assert "timeline_window_days" in timeline_summary
+            assert "average_divergence_rate" in timeline_summary
+            assert "level_duration_latest" in timeline_summary
+    timeline_summary_payload = info.get("runtime_store_timeline_summary")
+    if timeline_summary_payload is not None:
+        assert timeline_summary_payload["total_events"] >= 0
+        assert "status_counts" in timeline_summary_payload
+        assert "most_common_reason" in timeline_summary_payload
+
+
 async def test_system_health_no_api(hass: HomeAssistant) -> None:
     """Return defaults when API is unavailable."""
     entry = MockConfigEntry(
@@ -36,11 +94,15 @@ async def test_system_health_no_api(hass: HomeAssistant) -> None:
     service_execution = info["service_execution"]
     assert service_execution["guard_summary"]["total_calls"] == 0
     assert service_execution["breaker_overview"]["status"] == "healthy"
+    assert service_execution["entity_factory_guard"]["last_event"] == "unknown"
     manual_events = service_execution["manual_events"]
     assert manual_events["available"] is False
     assert manual_events["event_history"] == []
+
     assert manual_events["event_counters"]["total"] == 0
     mock_check.assert_not_called()
+
+    _assert_runtime_store(info, "missing")
 
 
 async def test_system_health_reports_coordinator_status(
@@ -82,6 +144,7 @@ async def test_system_health_reports_coordinator_status(
     assert service_execution["guard_summary"]["total_calls"] == 0
     assert service_execution["guard_summary"]["skip_ratio"] == 0.0
     assert service_execution["breaker_overview"]["status"] == "healthy"
+    assert service_execution["entity_factory_guard"]["last_event"] == "unknown"
     assert service_execution["status"]["guard"]["level"] == "normal"
     assert service_execution["status"]["breaker"]["color"] == "green"
     assert service_execution["status"]["overall"]["level"] == "normal"
@@ -125,6 +188,8 @@ async def test_system_health_reports_external_quota(
     assert info["can_reach_backend"] is True
     assert info["remaining_quota"] == 3
     assert info["service_execution"]["manual_events"]["available"] is False
+
+    _assert_runtime_store(info, "current")
 
 
 async def test_system_health_guard_and_breaker_summary(hass: HomeAssistant) -> None:
@@ -201,6 +266,58 @@ async def test_system_health_guard_and_breaker_summary(hass: HomeAssistant) -> N
                 "skipped": 3,
                 "reasons": {"breaker": 2, "maintenance": 1},
             },
+            "entity_factory_guard_metrics": {
+                "runtime_floor": 0.0011,
+                "baseline_floor": 0.00045,
+                "max_floor": 0.0045,
+                "runtime_floor_delta": 0.00065,
+                "peak_runtime_floor": 0.002,
+                "lowest_runtime_floor": 0.00045,
+                "last_floor_change": 0.0003,
+                "last_floor_change_ratio": 0.35,
+                "last_actual_duration": 0.0016,
+                "last_duration_ratio": 1.45,
+                "last_event": "expand",
+                "samples": 8,
+                "stable_samples": 4,
+                "expansions": 2,
+                "contractions": 1,
+                "enforce_min_runtime": True,
+                "average_duration": 0.0012,
+                "max_duration": 0.0016,
+                "min_duration": 0.0009,
+                "stable_ratio": 0.5,
+                "expansion_ratio": 0.25,
+                "contraction_ratio": 0.125,
+                "volatility_ratio": 0.375,
+                "consecutive_stable_samples": 3,
+                "longest_stable_run": 5,
+                "duration_span": 0.0007,
+                "jitter_ratio": 0.0007 / 0.0011,
+                "recent_durations": [
+                    0.0011,
+                    0.0012,
+                    0.0014,
+                    0.0016,
+                    0.0013,
+                ],
+                "recent_average_duration": 0.00132,
+                "recent_max_duration": 0.0016,
+                "recent_min_duration": 0.0011,
+                "recent_duration_span": 0.0005,
+                "recent_jitter_ratio": 0.0005 / 0.0011,
+                "recent_samples": 5,
+                "recent_events": [
+                    "stable",
+                    "expand",
+                    "stable",
+                    "contract",
+                    "stable",
+                ],
+                "recent_stable_samples": 3,
+                "recent_stable_ratio": 3 / 5,
+                "stability_trend": "steady",
+            },
             "rejection_metrics": {
                 "schema_version": 3,
                 "rejected_call_count": 6,
@@ -230,11 +347,48 @@ async def test_system_health_guard_and_breaker_summary(hass: HomeAssistant) -> N
     assert guard_summary["skip_ratio"] == pytest.approx(3 / 8)
     assert guard_summary["top_reasons"][0] == {"reason": "breaker", "count": 2}
     assert guard_summary["thresholds"]["source"] == "resilience_script"
+    entity_guard = service_execution["entity_factory_guard"]
+    assert entity_guard["last_event"] == "expand"
+    assert entity_guard["runtime_floor_ms"] == pytest.approx(1.1)
+    assert entity_guard["runtime_floor_delta_ms"] == pytest.approx(0.65)
+    assert entity_guard["peak_runtime_floor_ms"] == pytest.approx(2.0)
+    assert entity_guard["lowest_runtime_floor_ms"] == pytest.approx(0.45)
+    assert entity_guard["last_floor_change_ms"] == pytest.approx(0.3)
+    assert entity_guard["average_duration_ms"] == pytest.approx(1.2)
+    assert entity_guard["max_duration_ms"] == pytest.approx(1.6)
+    assert entity_guard["min_duration_ms"] == pytest.approx(0.9)
+    assert entity_guard["duration_span_ms"] == pytest.approx(0.7)
+    assert entity_guard["jitter_ratio"] == pytest.approx(0.0007 / 0.0011)
+    assert entity_guard["recent_average_duration_ms"] == pytest.approx(1.32)
+    assert entity_guard["recent_max_duration_ms"] == pytest.approx(1.6)
+    assert entity_guard["recent_min_duration_ms"] == pytest.approx(1.1)
+    assert entity_guard["recent_duration_span_ms"] == pytest.approx(0.5)
+    assert entity_guard["recent_jitter_ratio"] == pytest.approx(0.0005 / 0.0011)
+    assert entity_guard["stable_ratio"] == pytest.approx(0.5)
+    assert entity_guard["expansion_ratio"] == pytest.approx(0.25)
+    assert entity_guard["contraction_ratio"] == pytest.approx(0.125)
+    assert entity_guard["volatility_ratio"] == pytest.approx(0.375)
+    assert entity_guard["consecutive_stable_samples"] == 3
+    assert entity_guard["longest_stable_run"] == 5
+    assert entity_guard["last_floor_change_ratio"] == pytest.approx(0.35)
+    assert entity_guard["recent_samples"] == 5
+    assert entity_guard["recent_events"] == [
+        "stable",
+        "expand",
+        "stable",
+        "contract",
+        "stable",
+    ]
+    assert entity_guard["recent_stable_samples"] == 3
+    assert entity_guard["recent_stable_ratio"] == pytest.approx(3 / 5)
+    assert entity_guard["stability_trend"] == "steady"
     manual_events = service_execution["manual_events"]
     assert manual_events["available"] is True
     assert manual_events["last_event"]["event_type"] == "pawcontrol_manual_guard"
     assert manual_events["last_event"]["user_id"] == "support"
     assert manual_events["event_history"][0]["sources"] == ["blueprint"]
+
+    _assert_runtime_store(info, "current")
     assert guard_summary["thresholds"]["source_key"] == "active"
     assert guard_summary["thresholds"]["warning"]["count"] == 4
     assert guard_summary["thresholds"]["critical"]["count"] == 5
@@ -322,6 +476,58 @@ async def test_system_health_indicator_critical_paths(hass: HomeAssistant) -> No
                 "skipped": 5,
                 "reasons": {"breaker": 3, "maintenance": 2},
             },
+            "entity_factory_guard_metrics": {
+                "runtime_floor": 0.0012,
+                "baseline_floor": 0.00045,
+                "max_floor": 0.0045,
+                "runtime_floor_delta": 0.00075,
+                "peak_runtime_floor": 0.0021,
+                "lowest_runtime_floor": 0.00045,
+                "last_floor_change": -0.0002,
+                "last_floor_change_ratio": -0.15,
+                "last_actual_duration": 0.0018,
+                "last_duration_ratio": 1.5,
+                "last_event": "contract",
+                "samples": 9,
+                "stable_samples": 4,
+                "expansions": 2,
+                "contractions": 1,
+                "enforce_min_runtime": True,
+                "average_duration": 0.0014,
+                "max_duration": 0.0019,
+                "min_duration": 0.001,
+                "stable_ratio": 4 / 9,
+                "expansion_ratio": 2 / 9,
+                "contraction_ratio": 1 / 9,
+                "volatility_ratio": 3 / 9,
+                "consecutive_stable_samples": 2,
+                "longest_stable_run": 4,
+                "duration_span": 0.0009,
+                "jitter_ratio": 0.0009 / 0.0012,
+                "recent_durations": [
+                    0.0012,
+                    0.0013,
+                    0.0018,
+                    0.0019,
+                    0.0011,
+                ],
+                "recent_average_duration": 0.00146,
+                "recent_max_duration": 0.0019,
+                "recent_min_duration": 0.0011,
+                "recent_duration_span": 0.0008,
+                "recent_jitter_ratio": 0.0008 / 0.0012,
+                "recent_samples": 5,
+                "recent_events": [
+                    "expand",
+                    "stable",
+                    "contract",
+                    "stable",
+                    "stable",
+                ],
+                "recent_stable_samples": 3,
+                "recent_stable_ratio": 3 / 5,
+                "stability_trend": "steady",
+            },
             "rejection_metrics": {
                 "schema_version": 3,
                 "rejected_call_count": 10,
@@ -345,6 +551,41 @@ async def test_system_health_indicator_critical_paths(hass: HomeAssistant) -> No
     assert guard_indicator["color"] == "red"
     assert guard_indicator["threshold_source"] == "active"
     assert "configured resilience script threshold" in guard_indicator["message"]
+    entity_guard = service_execution["entity_factory_guard"]
+    assert entity_guard["last_event"] == "contract"
+    assert entity_guard["contractions"] == 1
+    assert entity_guard["runtime_floor_delta_ms"] == pytest.approx(0.75)
+    assert entity_guard["peak_runtime_floor_ms"] == pytest.approx(2.1)
+    assert entity_guard["lowest_runtime_floor_ms"] == pytest.approx(0.45)
+    assert entity_guard["last_floor_change_ms"] == pytest.approx(-0.2)
+    assert entity_guard["average_duration_ms"] == pytest.approx(1.4)
+    assert entity_guard["duration_span_ms"] == pytest.approx(0.9)
+    assert entity_guard["jitter_ratio"] == pytest.approx(0.0009 / 0.0012)
+    assert entity_guard["recent_average_duration_ms"] == pytest.approx(1.46)
+    assert entity_guard["recent_max_duration_ms"] == pytest.approx(1.9)
+    assert entity_guard["recent_min_duration_ms"] == pytest.approx(1.1)
+    assert entity_guard["recent_duration_span_ms"] == pytest.approx(0.8)
+    assert entity_guard["recent_jitter_ratio"] == pytest.approx(0.0008 / 0.0012)
+    assert entity_guard["stable_ratio"] == pytest.approx(4 / 9)
+
+    _assert_runtime_store(info, "current")
+    assert entity_guard["expansion_ratio"] == pytest.approx(2 / 9)
+    assert entity_guard["contraction_ratio"] == pytest.approx(1 / 9)
+    assert entity_guard["volatility_ratio"] == pytest.approx(3 / 9)
+    assert entity_guard["consecutive_stable_samples"] == 2
+    assert entity_guard["longest_stable_run"] == 4
+    assert entity_guard["last_floor_change_ratio"] == pytest.approx(-0.15)
+    assert entity_guard["recent_samples"] == 5
+    assert entity_guard["recent_events"] == [
+        "expand",
+        "stable",
+        "contract",
+        "stable",
+        "stable",
+    ]
+    assert entity_guard["recent_stable_samples"] == 3
+    assert entity_guard["recent_stable_ratio"] == pytest.approx(3 / 5)
+    assert entity_guard["stability_trend"] == "steady"
 
     breaker_indicator = service_execution["breaker_overview"]["indicator"]
     assert breaker_indicator["level"] == "critical"
@@ -414,6 +655,46 @@ async def test_system_health_threshold_disabled_fallbacks(
                 "skipped": 1,
                 "reasons": {"breaker": 1},
             },
+            "entity_factory_guard_metrics": {
+                "runtime_floor": 0.0008,
+                "baseline_floor": 0.00045,
+                "max_floor": 0.0045,
+                "runtime_floor_delta": 0.00035,
+                "peak_runtime_floor": 0.001,
+                "lowest_runtime_floor": 0.00045,
+                "last_floor_change": 0.0,
+                "last_floor_change_ratio": 0.0,
+                "last_actual_duration": 0.0009,
+                "last_duration_ratio": 1.1,
+                "last_event": "stable",
+                "samples": 4,
+                "stable_samples": 3,
+                "expansions": 0,
+                "contractions": 0,
+                "enforce_min_runtime": True,
+                "average_duration": 0.00085,
+                "max_duration": 0.00095,
+                "min_duration": 0.0007,
+                "stable_ratio": 0.75,
+                "expansion_ratio": 0.0,
+                "contraction_ratio": 0.0,
+                "volatility_ratio": 0.0,
+                "consecutive_stable_samples": 3,
+                "longest_stable_run": 3,
+                "duration_span": 0.00025,
+                "jitter_ratio": 0.00025 / 0.0008,
+                "recent_durations": [0.0008, 0.00082, 0.0009, 0.00095],
+                "recent_average_duration": 0.0008675,
+                "recent_max_duration": 0.00095,
+                "recent_min_duration": 0.0008,
+                "recent_duration_span": 0.00015,
+                "recent_jitter_ratio": 0.00015 / 0.0008,
+                "recent_samples": 4,
+                "recent_events": ["stable", "stable", "stable", "stable"],
+                "recent_stable_samples": 4,
+                "recent_stable_ratio": 1.0,
+                "stability_trend": "steady",
+            },
             "rejection_metrics": {
                 "schema_version": 3,
                 "rejected_call_count": 0,
@@ -437,6 +718,39 @@ async def test_system_health_threshold_disabled_fallbacks(
     assert guard_indicator["level"] == "critical"
     assert guard_indicator["threshold_source"] == "default_ratio"
     assert "system default threshold" in guard_indicator["message"]
+    entity_guard = info["service_execution"]["entity_factory_guard"]
+    assert entity_guard["last_event"] == "stable"
+    assert entity_guard["runtime_floor_delta_ms"] == pytest.approx(0.35)
+    assert entity_guard["peak_runtime_floor_ms"] == pytest.approx(1.0)
+    assert entity_guard["lowest_runtime_floor_ms"] == pytest.approx(0.45)
+    assert entity_guard["last_floor_change_ms"] == pytest.approx(0.0)
+    assert entity_guard["average_duration_ms"] == pytest.approx(0.85)
+    assert entity_guard["duration_span_ms"] == pytest.approx(0.25)
+    assert entity_guard["jitter_ratio"] == pytest.approx(0.00025 / 0.0008)
+    assert entity_guard["recent_average_duration_ms"] == pytest.approx(0.8675)
+    assert entity_guard["recent_max_duration_ms"] == pytest.approx(0.95)
+    assert entity_guard["recent_min_duration_ms"] == pytest.approx(0.8)
+    assert entity_guard["recent_duration_span_ms"] == pytest.approx(0.15)
+    assert entity_guard["recent_jitter_ratio"] == pytest.approx(0.00015 / 0.0008)
+    assert entity_guard["stable_ratio"] == pytest.approx(0.75)
+    assert entity_guard["expansion_ratio"] == pytest.approx(0.0)
+    assert entity_guard["contraction_ratio"] == pytest.approx(0.0)
+    assert entity_guard["volatility_ratio"] == pytest.approx(0.0)
+    assert entity_guard["consecutive_stable_samples"] == 3
+    assert entity_guard["longest_stable_run"] == 3
+    assert entity_guard["last_floor_change_ratio"] == pytest.approx(0.0)
+    assert entity_guard["recent_samples"] == 4
+    assert entity_guard["recent_events"] == [
+        "stable",
+        "stable",
+        "stable",
+        "stable",
+    ]
+    assert entity_guard["recent_stable_samples"] == 4
+
+    _assert_runtime_store(info, "current")
+    assert entity_guard["recent_stable_ratio"] == pytest.approx(1.0)
+    assert entity_guard["stability_trend"] == "steady"
 
     breaker_overview = info["service_execution"]["breaker_overview"]
     assert breaker_overview["thresholds"]["source"] == "default_counts"
@@ -609,6 +923,46 @@ async def test_system_health_uses_option_thresholds(
                 "skipped": 3,
                 "reasons": {"breaker": 3},
             },
+            "entity_factory_guard_metrics": {
+                "runtime_floor": 0.001,
+                "baseline_floor": 0.00045,
+                "max_floor": 0.0045,
+                "runtime_floor_delta": 0.00055,
+                "peak_runtime_floor": 0.0014,
+                "lowest_runtime_floor": 0.00045,
+                "last_floor_change": 0.0001,
+                "last_floor_change_ratio": 0.1,
+                "last_actual_duration": 0.0012,
+                "last_duration_ratio": 1.2,
+                "last_event": "expand",
+                "samples": 5,
+                "stable_samples": 3,
+                "expansions": 1,
+                "contractions": 0,
+                "enforce_min_runtime": True,
+                "average_duration": 0.00105,
+                "max_duration": 0.0013,
+                "min_duration": 0.0009,
+                "stable_ratio": 3 / 5,
+                "expansion_ratio": 1 / 5,
+                "contraction_ratio": 0.0,
+                "volatility_ratio": 1 / 5,
+                "consecutive_stable_samples": 2,
+                "longest_stable_run": 3,
+                "duration_span": 0.0004,
+                "jitter_ratio": 0.0004 / 0.001,
+                "recent_durations": [0.001, 0.0012, 0.0011],
+                "recent_average_duration": 0.0011,
+                "recent_max_duration": 0.0012,
+                "recent_min_duration": 0.001,
+                "recent_duration_span": 0.0002,
+                "recent_jitter_ratio": 0.0002 / 0.001,
+                "recent_samples": 3,
+                "recent_events": ["stable", "expand", "stable"],
+                "recent_stable_samples": 2,
+                "recent_stable_ratio": 2 / 3,
+                "stability_trend": "improving",
+            },
             "rejection_metrics": {
                 "schema_version": 3,
                 "rejected_call_count": 0,
@@ -632,6 +986,37 @@ async def test_system_health_uses_option_thresholds(
     assert guard_indicator["level"] == "warning"
     assert guard_indicator["threshold_source"] == "system_settings"
     assert "options flow system settings threshold" in guard_indicator["message"]
+    entity_guard = info["service_execution"]["entity_factory_guard"]
+    assert entity_guard["expansions"] == 1
+    assert entity_guard["runtime_floor_ms"] == pytest.approx(1.0)
+    assert entity_guard["runtime_floor_delta_ms"] == pytest.approx(0.55)
+    assert entity_guard["peak_runtime_floor_ms"] == pytest.approx(1.4)
+    assert entity_guard["lowest_runtime_floor_ms"] == pytest.approx(0.45)
+    assert entity_guard["last_floor_change_ms"] == pytest.approx(0.1)
+    assert entity_guard["last_floor_change_ratio"] == pytest.approx(0.1)
+    assert entity_guard["average_duration_ms"] == pytest.approx(1.05)
+    assert entity_guard["max_duration_ms"] == pytest.approx(1.3)
+    assert entity_guard["min_duration_ms"] == pytest.approx(0.9)
+    assert entity_guard["duration_span_ms"] == pytest.approx(0.4)
+    assert entity_guard["jitter_ratio"] == pytest.approx(0.0004 / 0.001)
+    assert entity_guard["stable_ratio"] == pytest.approx(3 / 5)
+    assert entity_guard["expansion_ratio"] == pytest.approx(1 / 5)
+    assert entity_guard["contraction_ratio"] == pytest.approx(0.0)
+    assert entity_guard["volatility_ratio"] == pytest.approx(1 / 5)
+    assert entity_guard["consecutive_stable_samples"] == 2
+    assert entity_guard["longest_stable_run"] == 3
+    assert entity_guard["recent_average_duration_ms"] == pytest.approx(1.1)
+    assert entity_guard["recent_max_duration_ms"] == pytest.approx(1.2)
+
+    _assert_runtime_store(info, "current")
+    assert entity_guard["recent_min_duration_ms"] == pytest.approx(1.0)
+    assert entity_guard["recent_duration_span_ms"] == pytest.approx(0.2)
+    assert entity_guard["recent_jitter_ratio"] == pytest.approx(0.0002 / 0.001)
+    assert entity_guard["recent_samples"] == 3
+    assert entity_guard["recent_events"] == ["stable", "expand", "stable"]
+    assert entity_guard["recent_stable_samples"] == 2
+    assert entity_guard["recent_stable_ratio"] == pytest.approx(2 / 3)
+    assert entity_guard["stability_trend"] == "improving"
 
     breaker_overview = info["service_execution"]["breaker_overview"]
     assert breaker_overview["thresholds"]["source"] == "config_entry"

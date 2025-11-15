@@ -1236,6 +1236,10 @@
     "feeding_compliance_no_data": {
       "title": "Feeding telemetry missing for {dog_name}",
       "description": "The latest feeding compliance check covering {days_to_check} days could not generate a report: {message}."
+    },
+    "runtime_store_compatibility": {
+      "title": "Le cache d'exécution requiert une attention",
+      "description": "Paw Control a détecté des métadonnées du magasin d'exécution avec l'état {status} pour {config_entry_id}. Instantané de l'entrée : statut {entry_status}, version {entry_version}, créé {entry_created_version}. Instantané du magasin de domaine : statut {store_status}, version {store_version}, créé {store_created_version}. Schéma actuel {current_version}, compatibilité minimale {minimum_compatible_version}. Divergence détectée : {divergence_detected}."
     }
   },
   "common": {

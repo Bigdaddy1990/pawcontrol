@@ -1236,6 +1236,10 @@
     "feeding_compliance_no_data": {
       "title": "Fütterungstelemetrie fehlt für {dog_name}",
       "description": "Die letzte Fütterungs-Compliance-Prüfung über {days_to_check} Tage konnte keinen Bericht erstellen: {message}."
+    },
+    "runtime_store_compatibility": {
+      "title": "Runtime-Cache benötigt Aufmerksamkeit",
+      "description": "Paw Control hat {status}-Metadaten im Runtime-Store für {config_entry_id} erkannt. Eintrags-Snapshot: Status {entry_status}, Version {entry_version}, erstellt {entry_created_version}. Domain-Store-Snapshot: Status {store_status}, Version {store_version}, erstellt {store_created_version}. Aktuelles Schema {current_version}, minimale Kompatibilität {minimum_compatible_version}. Divergenz erkannt: {divergence_detected}."
     }
   },
   "common": {
