@@ -10,7 +10,7 @@ import tempfile
 import tomllib
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from packaging.requirements import Requirement
 from packaging.specifiers import Specifier
@@ -355,12 +355,30 @@ def download_pyyaml_source(version: Version) -> Path:
     raise RuntimeError(f"Unable to locate PyYAML {version} source distribution")
 
 
+def _safe_tar_members(handle: tarfile.TarFile) -> Iterable[tarfile.TarInfo]:
+    """Yield safe tar members, rejecting traversal and special file entries."""
+
+    for member in handle.getmembers():
+        member_path = PurePosixPath(member.name)
+        if member_path.is_absolute() or any(part == ".." for part in member_path.parts):
+            raise RuntimeError(
+                f"Refusing to extract unsafe archive member: {member.name}",
+            )
+        if not (member.isfile() or member.isdir()):
+            continue
+        yield member
+
+
 def extract_pyyaml_archive(archive: Path, version: Version) -> None:
     """Extract a PyYAML archive into the vendored directory."""
 
     with tempfile.TemporaryDirectory() as temp_dir:
         with tarfile.open(archive, "r:gz") as handle:
-            handle.extractall(path=temp_dir)
+            handle.extractall(
+                path=temp_dir,
+                members=_safe_tar_members(handle),
+                filter="data",
+            )
         candidates = list(Path(temp_dir).glob("PyYAML-*")) + list(
             Path(temp_dir).glob("pyyaml-*")
         )
