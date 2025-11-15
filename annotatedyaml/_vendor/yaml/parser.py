@@ -74,8 +74,8 @@ class Parser:
     # do not give many comments here.
 
     DEFAULT_TAGS = {
-        '!':   '!',
-        '!!':  'tag:yaml.org,2002:',
+        '!': '!',
+        '!!': 'tag:yaml.org,2002:',
     }
 
     def __init__(self):

@@ -69,12 +69,13 @@ class BaseResolver:
                 node_check = SequenceNode
             elif node_check is dict:
                 node_check = MappingNode
-            elif node_check not in [ScalarNode, SequenceNode, MappingNode]  \
-                    and not isinstance(node_check, str) \
-                    and node_check is not None:
+            elif (
+                node_check not in [ScalarNode, SequenceNode, MappingNode]
+                and not isinstance(node_check, str)
+                and node_check is not None
+            ):
                 raise ResolverError("Invalid node checker: %s" % node_check)
-            if not isinstance(index_check, (str, int))  \
-                    and index_check is not None:
+            if not isinstance(index_check, (str, int)) and index_check is not None:
                 raise ResolverError("Invalid index checker: %s" % index_check)
             new_path.append((node_check, index_check))
         if kind is str:
@@ -83,8 +84,7 @@ class BaseResolver:
             kind = SequenceNode
         elif kind is dict:
             kind = MappingNode
-        elif kind not in [ScalarNode, SequenceNode, MappingNode]    \
-                and kind is not None:
+        elif kind not in [ScalarNode, SequenceNode, MappingNode] and kind is not None:
             raise ResolverError("Invalid node kind: %s" % kind)
         cls.yaml_path_resolvers[tuple(new_path), kind] = tag
 

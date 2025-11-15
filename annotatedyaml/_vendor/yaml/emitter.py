@@ -548,10 +548,15 @@ class Emitter:
         if handle[0] != '!' or handle[-1] != '!':
             raise EmitterError("tag handle must start and end with '!': %r" % handle)
         for ch in handle[1:-1]:
-            if not ('0' <= ch <= '9' or 'A' <= ch <= 'Z' or 'a' <= ch <= 'z'    \
-                    or ch in '-_'):
-                raise EmitterError("invalid character %r in the tag handle: %r"
-                        % (ch, handle))
+            if not (
+                '0' <= ch <= '9'
+                or 'A' <= ch <= 'Z'
+                or 'a' <= ch <= 'z'
+                or ch in '-_'
+            ):
+                raise EmitterError(
+                    "invalid character %r in the tag handle: %r" % (ch, handle)
+                )
         return handle
 
     def prepare_tag_prefix(self, prefix):
@@ -563,8 +568,12 @@ class Emitter:
             end = 1
         while end < len(prefix):
             ch = prefix[end]
-            if '0' <= ch <= '9' or 'A' <= ch <= 'Z' or 'a' <= ch <= 'z' \
-                    or ch in '-;/?!:@&=+$,_.~*\'()[]':
+            if (
+                '0' <= ch <= '9'
+                or 'A' <= ch <= 'Z'
+                or 'a' <= ch <= 'z'
+                or ch in "-;/?!:@&=+$,_.~*'()[]"
+            ):
                 end += 1
             else:
                 if start < end:
@@ -586,17 +595,22 @@ class Emitter:
         suffix = tag
         prefixes = sorted(self.tag_prefixes.keys())
         for prefix in prefixes:
-            if tag.startswith(prefix)   \
-                    and (prefix == '!' or len(prefix) < len(tag)):
+            if tag.startswith(prefix) and (
+                prefix == '!' or len(prefix) < len(tag)
+            ):
                 handle = self.tag_prefixes[prefix]
                 suffix = tag[len(prefix):]
         chunks = []
         start = end = 0
         while end < len(suffix):
             ch = suffix[end]
-            if '0' <= ch <= '9' or 'A' <= ch <= 'Z' or 'a' <= ch <= 'z' \
-                    or ch in '-;/?:@&=+$,_.~*\'()[]'   \
-                    or (ch == '!' and handle != '!'):
+            if (
+                '0' <= ch <= '9'
+                or 'A' <= ch <= 'Z'
+                or 'a' <= ch <= 'z'
+                or ch in "-;/?:@&=+$,_.~*'()[]"
+                or (ch == '!' and handle != '!')
+            ):
                 end += 1
             else:
                 if start < end:
@@ -617,10 +631,15 @@ class Emitter:
         if not anchor:
             raise EmitterError("anchor must not be empty")
         for ch in anchor:
-            if not ('0' <= ch <= '9' or 'A' <= ch <= 'Z' or 'a' <= ch <= 'z'    \
-                    or ch in '-_'):
-                raise EmitterError("invalid character %r in the anchor: %r"
-                        % (ch, anchor))
+            if not (
+                '0' <= ch <= '9'
+                or 'A' <= ch <= 'Z'
+                or 'a' <= ch <= 'z'
+                or ch in '-_'
+            ):
+                raise EmitterError(
+                    "invalid character %r in the anchor: %r" % (ch, anchor)
+                )
         return anchor
 
     def analyze_scalar(self, scalar):
@@ -906,21 +925,21 @@ class Emitter:
         self.write_indicator('\'', False)
 
     ESCAPE_REPLACEMENTS = {
-        '\0':       '0',
-        '\x07':     'a',
-        '\x08':     'b',
-        '\x09':     't',
-        '\x0A':     'n',
-        '\x0B':     'v',
-        '\x0C':     'f',
-        '\x0D':     'r',
-        '\x1B':     'e',
-        '\"':       '\"',
-        '\\':       '\\',
-        '\x85':     'N',
-        '\xA0':     '_',
-        '\u2028':   'L',
-        '\u2029':   'P',
+        '\0': '0',
+        '\x07': 'a',
+        '\x08': 'b',
+        '\x09': 't',
+        '\x0A': 'n',
+        '\x0B': 'v',
+        '\x0C': 'f',
+        '\x0D': 'r',
+        '\x1B': 'e',
+        '\"': '\"',
+        '\\': '\\',
+        '\x85': 'N',
+        '\xA0': '_',
+        '\u2028': 'L',
+        '\u2029': 'P',
     }
 
     def write_double_quoted(self, text, split=True):
