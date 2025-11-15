@@ -108,3 +108,4 @@ class Serializer:
                     self.serialize_node(value, node, key)
                 self.emit(MappingEndEvent())
             self.ascend_resolver()
+

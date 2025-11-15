@@ -525,7 +525,17 @@ def _record_runtime_store_assessment_event(
 
     should_record = recorded or level_changed
     if not should_record:
-        return events
+        history_events = list(events)
+        timeline_summary_raw = history.get("assessment_timeline_summary")
+        if isinstance(timeline_summary_raw, Mapping):
+            timeline_summary = cast(
+                RuntimeStoreAssessmentTimelineSummary, dict(timeline_summary_raw)
+            )
+        else:
+            timeline_summary = _summarise_runtime_store_assessment_events(
+                history_events
+            )
+        return history_events, timeline_summary
 
     timestamp = cast(str | None, history.get("last_checked"))
     if timestamp is None:
