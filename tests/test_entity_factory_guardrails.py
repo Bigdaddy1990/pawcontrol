@@ -557,15 +557,11 @@ def test_runtime_guard_expands_when_scheduler_starves() -> None:
     factory = EntityFactory(coordinator=None, enforce_min_runtime=True)
     baseline = factory._runtime_guard_floor
 
-    factory._recalibrate_runtime_floor(
-        baseline * (_RUNTIME_EXPAND_THRESHOLD + 2.5)
-    )
+    factory._recalibrate_runtime_floor(baseline * (_RUNTIME_EXPAND_THRESHOLD + 2.5))
 
     boosted = factory._runtime_guard_floor
     assert boosted > baseline
-    observed_ratio = (
-        baseline * (_RUNTIME_EXPAND_THRESHOLD + 2.5)
-    ) / boosted
+    observed_ratio = (baseline * (_RUNTIME_EXPAND_THRESHOLD + 2.5)) / boosted
     assert observed_ratio <= _RUNTIME_TARGET_RATIO
     assert boosted <= _RUNTIME_MAX_FLOOR
 
@@ -600,7 +596,9 @@ def test_runtime_guard_records_telemetry() -> None:
     """Runtime guard recalibrations should persist telemetry snapshots."""
 
     runtime_store = types.SimpleNamespace(performance_stats={})
-    coordinator = types.SimpleNamespace(config_entry=types.SimpleNamespace(runtime_data=runtime_store))
+    coordinator = types.SimpleNamespace(
+        config_entry=types.SimpleNamespace(runtime_data=runtime_store)
+    )
 
     factory = EntityFactory(coordinator=coordinator, enforce_min_runtime=True)
     baseline = factory._runtime_guard_floor
@@ -640,15 +638,12 @@ def test_runtime_guard_records_telemetry() -> None:
         metrics["runtime_floor"] - baseline
     )
     assert metrics["last_floor_change_ratio"] == pytest.approx(
-        (
-            metrics["runtime_floor"] - baseline
-        )
-        / baseline
+        (metrics["runtime_floor"] - baseline) / baseline
     )
     first_sample = metrics["last_actual_duration"]
-    updated_average = (
-        (initial_average * initial_samples) + first_sample
-    ) / (initial_samples + 1)
+    updated_average = ((initial_average * initial_samples) + first_sample) / (
+        initial_samples + 1
+    )
     assert metrics["average_duration"] == pytest.approx(updated_average)
     max_candidates = [first_sample]
     if isinstance(initial_max, (int, float)):
@@ -731,8 +726,8 @@ def test_runtime_guard_records_telemetry() -> None:
     )
     if metrics["runtime_floor"] > 0:
         assert metrics["jitter_ratio"] == pytest.approx(
-        metrics["duration_span"] / metrics["runtime_floor"]
-    )
+            metrics["duration_span"] / metrics["runtime_floor"]
+        )
         assert metrics["recent_jitter_ratio"] == pytest.approx(
             metrics["recent_duration_span"] / metrics["runtime_floor"]
         )

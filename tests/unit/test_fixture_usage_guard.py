@@ -393,10 +393,9 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
             fixture_name, message = self._resolve_fixture_reference(fixture_candidate)
             if fixture_name and message:
                 wrapper_name = self._resolve_wrapper_name(node.func)
-                if (
-                    wrapper_name is None
-                    or wrapper_name.rsplit(".", 1)[-1] in {"getattr"}
-                ):
+                if wrapper_name is None or wrapper_name.rsplit(".", 1)[-1] in {
+                    "getattr"
+                }:
                     self._flag(node, fixture_name, message)
 
         self._record_setattr_alias(node)

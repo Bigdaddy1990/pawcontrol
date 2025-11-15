@@ -118,9 +118,7 @@ def _build_runtime_store_summary(
 ) -> CoordinatorRuntimeStoreSummary:
     """Return a runtime store summary combining snapshot and history telemetry."""
 
-    snapshot = describe_runtime_store_status(
-        coordinator.hass, coordinator.config_entry
-    )
+    snapshot = describe_runtime_store_status(coordinator.hass, coordinator.config_entry)
     history = update_runtime_store_health(
         runtime_data, snapshot, record_event=record_event
     )
@@ -129,9 +127,7 @@ def _build_runtime_store_summary(
         summary["history"] = history
         assessment = history.get("assessment")
         if isinstance(assessment, Mapping):
-            summary["assessment"] = cast(
-                RuntimeStoreHealthAssessment, dict(assessment)
-            )
+            summary["assessment"] = cast(RuntimeStoreHealthAssessment, dict(assessment))
     return summary
 
 
@@ -666,7 +662,9 @@ def resolve_service_guard_metrics(payload: Any) -> HelperManagerGuardMetrics:
     return guard_metrics
 
 
-def resolve_entity_factory_guard_metrics(payload: Any) -> EntityFactoryGuardMetricsSnapshot:
+def resolve_entity_factory_guard_metrics(
+    payload: Any,
+) -> EntityFactoryGuardMetricsSnapshot:
     """Return normalised entity factory guard metrics for diagnostics consumers."""
 
     metrics: Mapping[str, Any] | None = None
@@ -714,9 +712,9 @@ def resolve_entity_factory_guard_metrics(payload: Any) -> EntityFactoryGuardMetr
     if floor_delta is not None:
         snapshot["runtime_floor_delta_ms"] = floor_delta * 1000
     elif runtime_floor is not None and baseline_floor is not None:
-        snapshot["runtime_floor_delta_ms"] = max(
-            runtime_floor - baseline_floor, 0.0
-        ) * 1000
+        snapshot["runtime_floor_delta_ms"] = (
+            max(runtime_floor - baseline_floor, 0.0) * 1000
+        )
 
     ratio = _coerce_float(metrics.get("last_duration_ratio"))
     if ratio is not None and isfinite(ratio):

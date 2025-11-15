@@ -338,8 +338,7 @@ async def test_repair_checks_surface_runtime_store_incompatibility(
     compatibility_calls = [
         invocation
         for invocation in create_issue.await_args_list
-        if invocation.kwargs.get("translation_key")
-        == ISSUE_RUNTIME_STORE_COMPATIBILITY
+        if invocation.kwargs.get("translation_key") == ISSUE_RUNTIME_STORE_COMPATIBILITY
     ]
     assert compatibility_calls
     compatibility_kwargs = compatibility_calls[-1].kwargs
@@ -400,6 +399,5 @@ async def test_repair_checks_clear_runtime_store_issue_when_healthy(
     assert not [
         invocation
         for invocation in create_issue.await_args_list
-        if invocation.kwargs.get("translation_key")
-        == ISSUE_RUNTIME_STORE_COMPATIBILITY
+        if invocation.kwargs.get("translation_key") == ISSUE_RUNTIME_STORE_COMPATIBILITY
     ]

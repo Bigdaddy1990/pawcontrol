@@ -233,9 +233,7 @@ def _get_store_entry_from_entry(
     if version is None:
         version = DomainRuntimeStoreEntry.CURRENT_VERSION
 
-    created_version = _coerce_version(
-        getattr(entry, _ENTRY_CREATED_VERSION_ATTR, None)
-    )
+    created_version = _coerce_version(getattr(entry, _ENTRY_CREATED_VERSION_ATTR, None))
     if created_version is None:
         created_version = version
 
@@ -427,9 +425,7 @@ def describe_runtime_store_status(
         mapping_value = cast(Mapping[str, object], store_value)
         store_runtime = _as_runtime_data(mapping_value.get("runtime_data"))
         store_version = _coerce_version(mapping_value.get("version"))
-        store_created_version = _coerce_version(
-            mapping_value.get("created_version")
-        )
+        store_created_version = _coerce_version(mapping_value.get("created_version"))
     else:
         store_runtime = _as_runtime_data(store_value)
 

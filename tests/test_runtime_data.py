@@ -250,10 +250,7 @@ def test_get_runtime_data_resolves_store_entry(
     persisted = store[entry.entry_id]
     assert isinstance(persisted, DomainRuntimeStoreEntryType)
     assert persisted.version == DomainRuntimeStoreEntryType.CURRENT_VERSION
-    assert (
-        persisted.created_version
-        == DomainRuntimeStoreEntryType.CURRENT_VERSION
-    )
+    assert persisted.created_version == DomainRuntimeStoreEntryType.CURRENT_VERSION
     assert persisted.runtime_data is runtime_data
 
 
@@ -272,10 +269,7 @@ def test_get_runtime_data_repopulates_store_from_entry(
     persisted = store[entry.entry_id]
     assert isinstance(persisted, DomainRuntimeStoreEntryType)
     assert persisted.version == DomainRuntimeStoreEntryType.CURRENT_VERSION
-    assert (
-        persisted.created_version
-        == DomainRuntimeStoreEntryType.CURRENT_VERSION
-    )
+    assert persisted.created_version == DomainRuntimeStoreEntryType.CURRENT_VERSION
     assert persisted.runtime_data is runtime_data
 
 
@@ -294,10 +288,7 @@ def test_get_runtime_data_replaces_invalid_store_when_entry_present(
     persisted = store[entry.entry_id]
     assert isinstance(persisted, DomainRuntimeStoreEntryType)
     assert persisted.version == DomainRuntimeStoreEntryType.CURRENT_VERSION
-    assert (
-        persisted.created_version
-        == DomainRuntimeStoreEntryType.CURRENT_VERSION
-    )
+    assert persisted.created_version == DomainRuntimeStoreEntryType.CURRENT_VERSION
     assert persisted.runtime_data is runtime_data
 
 
@@ -320,10 +311,7 @@ def test_get_runtime_data_handles_plain_runtime_payload(
     persisted = store[entry.entry_id]
     assert isinstance(persisted, DomainRuntimeStoreEntryType)
     assert persisted.version == DomainRuntimeStoreEntryType.CURRENT_VERSION
-    assert (
-        persisted.created_version
-        == DomainRuntimeStoreEntryType.CURRENT_VERSION
-    )
+    assert persisted.created_version == DomainRuntimeStoreEntryType.CURRENT_VERSION
     assert persisted.runtime_data is runtime_data
 
 
@@ -567,10 +555,7 @@ def test_store_runtime_data_records_current_version(
     store = cast(dict[str, DomainRuntimeStoreEntryType], hass.data[DOMAIN])
     persisted = store[entry.entry_id]
     assert persisted.version == DomainRuntimeStoreEntryType.CURRENT_VERSION
-    assert (
-        persisted.created_version
-        == DomainRuntimeStoreEntryType.CURRENT_VERSION
-    )
+    assert persisted.created_version == DomainRuntimeStoreEntryType.CURRENT_VERSION
 
 
 def test_runtime_data_roundtrip_survives_module_reload(
@@ -646,10 +631,7 @@ def test_store_entry_handles_reloaded_dataclass(
     persisted = store[entry.entry_id]
     assert isinstance(persisted, DomainRuntimeStoreEntryType)
     assert persisted.version == DomainRuntimeStoreEntryType.CURRENT_VERSION
-    assert (
-        persisted.created_version
-        == DomainRuntimeStoreEntryType.CURRENT_VERSION
-    )
+    assert persisted.created_version == DomainRuntimeStoreEntryType.CURRENT_VERSION
     assert persisted.runtime_data is reloaded_instance
 
 
@@ -678,10 +660,7 @@ def test_get_runtime_data_upgrades_outdated_version(
     store = cast(dict[str, DomainRuntimeStoreEntryType], hass.data[DOMAIN])
     persisted = store[entry.entry_id]
     assert persisted.version == DomainRuntimeStoreEntryType.CURRENT_VERSION
-    assert (
-        persisted.created_version
-        == DomainRuntimeStoreEntryType.CURRENT_VERSION
-    )
+    assert persisted.created_version == DomainRuntimeStoreEntryType.CURRENT_VERSION
     assert persisted.runtime_data is runtime_data
 
 

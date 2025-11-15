@@ -1128,9 +1128,7 @@ class EntityFactory:
         event: EntityFactoryGuardEvent = "stable"
 
         if actual_duration >= runtime_floor * _RUNTIME_EXPAND_THRESHOLD:
-            boosted = min(
-                _RUNTIME_MAX_FLOOR, actual_duration / _RUNTIME_TARGET_RATIO
-            )
+            boosted = min(_RUNTIME_MAX_FLOOR, actual_duration / _RUNTIME_TARGET_RATIO)
             if boosted > runtime_floor:
                 self._runtime_guard_floor = boosted
                 event = "expand"

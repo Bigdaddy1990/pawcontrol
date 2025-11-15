@@ -10,11 +10,11 @@ schedule without additional dependencies.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import sys
 from dataclasses import dataclass
-import json
 from pathlib import Path
 from typing import Any
 
@@ -115,7 +115,9 @@ def _normalise_wheel_profiles(args: argparse.Namespace) -> list[WheelProfile]:
     if args.target_python_tag is not None or args.target_platform_fragment is not None:
         python_tag = args.target_python_tag or "cp313"
         platform_fragment = args.target_platform_fragment or "manylinux"
-        return [WheelProfile(python_tag=python_tag, platform_fragment=platform_fragment)]
+        return [
+            WheelProfile(python_tag=python_tag, platform_fragment=platform_fragment)
+        ]
     return [
         WheelProfile(
             python_tag=profile.python_tag,
@@ -439,7 +441,9 @@ def build_summary(result: MonitoringResult) -> str:
         f"* Latest stable release on PyPI: {latest_release_text}",
     ]
     for match in result.wheel_matches:
-        profile_label = f"{match.profile.python_tag} ({match.profile.platform_fragment})"
+        profile_label = (
+            f"{match.profile.python_tag} ({match.profile.platform_fragment})"
+        )
         if match.release is not None:
             summary_lines.append(
                 "* ✅ Wheel for "
@@ -571,7 +575,9 @@ def evaluate(
         print("::notice ::Vendored PyYAML matches the latest available release.")
 
     for match in wheel_matches:
-        profile_label = f"{match.profile.python_tag} ({match.profile.platform_fragment})"
+        profile_label = (
+            f"{match.profile.python_tag} ({match.profile.platform_fragment})"
+        )
         if match.release is not None:
             release_url = f"https://pypi.org/project/PyYAML/{match.release}/"
             filename_hint = match.filename or "<unknown wheel>"

@@ -140,7 +140,10 @@ def _coerce_runtime_store_assessment_event(
     level = cast(RuntimeStoreHealthLevel, level_raw)
 
     status_raw = candidate.get("status")
-    if not isinstance(status_raw, str) or status_raw not in _RUNTIME_STORE_STATUS_LEVELS:
+    if (
+        not isinstance(status_raw, str)
+        or status_raw not in _RUNTIME_STORE_STATUS_LEVELS
+    ):
         return None
     status = cast(RuntimeStoreOverallStatus, status_raw)
 
@@ -212,32 +215,25 @@ def _coerce_runtime_store_assessment_event(
 
     level_streak_raw = candidate.get("level_streak")
     level_streak = (
-        int(level_streak_raw)
-        if isinstance(level_streak_raw, (int, float))
-        else 0
+        int(level_streak_raw) if isinstance(level_streak_raw, (int, float)) else 0
     )
 
     escalations_raw = candidate.get("escalations")
     escalations = (
-        int(escalations_raw)
-        if isinstance(escalations_raw, (int, float))
-        else 0
+        int(escalations_raw) if isinstance(escalations_raw, (int, float)) else 0
     )
 
     deescalations_raw = candidate.get("deescalations")
     deescalations = (
-        int(deescalations_raw)
-        if isinstance(deescalations_raw, (int, float))
-        else 0
+        int(deescalations_raw) if isinstance(deescalations_raw, (int, float)) else 0
     )
 
     level_changed = bool(candidate.get("level_changed"))
 
     current_duration_raw = candidate.get("current_level_duration_seconds")
     current_duration: float | None
-    if (
-        isinstance(current_duration_raw, (int, float))
-        and isfinite(current_duration_raw)
+    if isinstance(current_duration_raw, (int, float)) and isfinite(
+        current_duration_raw
     ):
         current_duration = max(float(current_duration_raw), 0.0)
     else:
@@ -381,7 +377,9 @@ def _summarise_runtime_store_assessment_events(
     timeline_window_days: float | None = None
     events_per_day: float | None = None
     if timeline_window_seconds is not None:
-        timeline_window_days = timeline_window_seconds / 86400 if timeline_window_seconds else 0.0
+        timeline_window_days = (
+            timeline_window_seconds / 86400 if timeline_window_seconds else 0.0
+        )
         if timeline_window_seconds > 0:
             events_per_day = total_events / (timeline_window_seconds / 86400)
         elif total_events:
@@ -499,34 +497,27 @@ def _record_runtime_store_assessment_event(
         "level_streak", history.get("assessment_level_streak", 0)
     )
     level_streak = (
-        int(level_streak_raw)
-        if isinstance(level_streak_raw, (int, float))
-        else 0
+        int(level_streak_raw) if isinstance(level_streak_raw, (int, float)) else 0
     )
 
     escalations_raw = assessment.get(
         "escalations", history.get("assessment_escalations", 0)
     )
     escalations = (
-        int(escalations_raw)
-        if isinstance(escalations_raw, (int, float))
-        else 0
+        int(escalations_raw) if isinstance(escalations_raw, (int, float)) else 0
     )
 
     deescalations_raw = assessment.get(
         "deescalations", history.get("assessment_deescalations", 0)
     )
     deescalations = (
-        int(deescalations_raw)
-        if isinstance(deescalations_raw, (int, float))
-        else 0
+        int(deescalations_raw) if isinstance(deescalations_raw, (int, float)) else 0
     )
 
     current_duration_raw = assessment.get("current_level_duration_seconds")
     current_duration: float | None
-    if (
-        isinstance(current_duration_raw, (int, float))
-        and isfinite(current_duration_raw)
+    if isinstance(current_duration_raw, (int, float)) and isfinite(
+        current_duration_raw
     ):
         current_duration = max(float(current_duration_raw), 0.0)
     else:
@@ -716,20 +707,12 @@ def update_runtime_store_health(
     status = snapshot["status"]
     entry_snapshot = snapshot.get("entry", {})
     store_snapshot = snapshot.get("store", {})
-    entry_status = cast(
-        RuntimeStoreEntryStatus | None, entry_snapshot.get("status")
-    )
-    store_status = cast(
-        RuntimeStoreEntryStatus | None, store_snapshot.get("status")
-    )
+    entry_status = cast(RuntimeStoreEntryStatus | None, entry_snapshot.get("status"))
+    store_status = cast(RuntimeStoreEntryStatus | None, store_snapshot.get("status"))
     entry_version = cast(int | None, entry_snapshot.get("version"))
     store_version = cast(int | None, store_snapshot.get("version"))
-    entry_created_version = cast(
-        int | None, entry_snapshot.get("created_version")
-    )
-    store_created_version = cast(
-        int | None, store_snapshot.get("created_version")
-    )
+    entry_created_version = cast(int | None, entry_snapshot.get("created_version"))
+    store_created_version = cast(int | None, store_snapshot.get("created_version"))
     divergence_detected = bool(snapshot.get("divergence_detected"))
 
     status_counts = history.get("status_counts")
@@ -809,12 +792,8 @@ def _build_runtime_store_assessment(
 
     checks = int(history.get("checks", 0) or 0)
     divergence_events = int(history.get("divergence_events", 0) or 0)
-    divergence_rate = (
-        float(divergence_events) / checks if checks > 0 else None
-    )
-    last_status = cast(
-        RuntimeStoreOverallStatus | None, history.get("last_status")
-    )
+    divergence_rate = float(divergence_events) / checks if checks > 0 else None
+    last_status = cast(RuntimeStoreOverallStatus | None, history.get("last_status"))
     entry_status = cast(
         RuntimeStoreEntryStatus | None, history.get("last_entry_status")
     )
@@ -837,9 +816,7 @@ def _build_runtime_store_assessment(
             store_status in _RUNTIME_STORE_ENTRY_ACTION_STATUSES
         ):
             level = "action_required"
-            reason = (
-                "Runtime store entry metadata falls outside the supported schema."
-            )
+            reason = "Runtime store entry metadata falls outside the supported schema."
         elif (
             entry_status in _RUNTIME_STORE_ENTRY_WATCH_STATUSES
             or store_status in _RUNTIME_STORE_ENTRY_WATCH_STATUSES
@@ -860,9 +837,7 @@ def _build_runtime_store_assessment(
             and divergence_rate >= _DIVERGENCE_WATCH_THRESHOLD
         ):
             level = "watch"
-            reason = (
-                "Recent compatibility checks reported divergence events."
-            )
+            reason = "Recent compatibility checks reported divergence events."
 
     if (
         level == "watch"
@@ -870,9 +845,7 @@ def _build_runtime_store_assessment(
         and divergence_rate >= _DIVERGENCE_ACTION_THRESHOLD
     ):
         level = "action_required"
-        reason = (
-            "Runtime store divergence persists across recent compatibility checks."
-        )
+        reason = "Runtime store divergence persists across recent compatibility checks."
 
     if level == "action_required" and status_for_level == "future_incompatible":
         reason = (
@@ -891,9 +864,7 @@ def _build_runtime_store_assessment(
             previous_assessment.get("level"),
         )
 
-    last_level_change = cast(
-        str | None, history.get("assessment_last_level_change")
-    )
+    last_level_change = cast(str | None, history.get("assessment_last_level_change"))
     previous_last_level_change = last_level_change
     level_streak = int(history.get("assessment_level_streak", 0) or 0)
     escalations = int(history.get("assessment_escalations", 0) or 0)
@@ -929,9 +900,7 @@ def _build_runtime_store_assessment(
 
     level_changed = previous_level != level
 
-    parsed_last_checked = (
-        dt_util.parse_datetime(last_checked) if last_checked else None
-    )
+    parsed_last_checked = dt_util.parse_datetime(last_checked) if last_checked else None
     parsed_last_change = (
         dt_util.parse_datetime(previous_last_level_change)
         if previous_last_level_change
@@ -959,9 +928,7 @@ def _build_runtime_store_assessment(
             if elapsed_since_change is not None:
                 resolved_previous_duration = elapsed_since_change
             previous_total = max(level_durations.get(previous_level, 0.0), 0.0)
-            base_previous_total = max(
-                previous_total - previous_current_duration, 0.0
-            )
+            base_previous_total = max(previous_total - previous_current_duration, 0.0)
             level_durations[previous_level] = (
                 base_previous_total + resolved_previous_duration
             )
@@ -1000,9 +967,7 @@ def _build_runtime_store_assessment(
         level_durations.setdefault(level_key, 0.0)
 
     history["assessment_level_durations"] = level_durations
-    history["assessment_current_level_duration_seconds"] = (
-        resolved_current_duration
-    )
+    history["assessment_current_level_duration_seconds"] = resolved_current_duration
 
     assessment: RuntimeStoreHealthAssessment = {
         "level": level,
@@ -1049,13 +1014,16 @@ def update_runtime_entity_factory_guard_metrics(
     if isinstance(stored_metrics, MutableMapping):
         metrics = cast(EntityFactoryGuardMetrics, stored_metrics)
     else:
-        metrics = cast(EntityFactoryGuardMetrics, {
-            "schema_version": 1,
-            "samples": 0,
-            "stable_samples": 0,
-            "expansions": 0,
-            "contractions": 0,
-        })
+        metrics = cast(
+            EntityFactoryGuardMetrics,
+            {
+                "schema_version": 1,
+                "samples": 0,
+                "stable_samples": 0,
+                "expansions": 0,
+                "contractions": 0,
+            },
+        )
         performance_stats["entity_factory_guard_metrics"] = metrics
 
     metrics["schema_version"] = 1
@@ -1198,9 +1166,7 @@ def update_runtime_entity_factory_guard_metrics(
     metrics["recent_max_duration"] = recent_max
     metrics["recent_min_duration"] = recent_min
     metrics["recent_duration_span"] = recent_span
-    metrics["recent_jitter_ratio"] = (
-        recent_span / floor if floor > 0 else recent_span
-    )
+    metrics["recent_jitter_ratio"] = recent_span / floor if floor > 0 else recent_span
     metrics["recent_samples"] = len(recent)
 
     existing_events = metrics.get("recent_events")
@@ -1643,9 +1609,7 @@ def update_runtime_resilience_summary(
     diagnostics = performance_stats.get("resilience_diagnostics")
     diagnostics_payload: CoordinatorResilienceDiagnostics
     if isinstance(diagnostics, Mapping):
-        diagnostics_payload = cast(
-            CoordinatorResilienceDiagnostics, dict(diagnostics)
-        )
+        diagnostics_payload = cast(CoordinatorResilienceDiagnostics, dict(diagnostics))
     else:
         diagnostics_payload = {}
 

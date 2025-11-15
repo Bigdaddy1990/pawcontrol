@@ -78,14 +78,8 @@ def test_update_runtime_store_health_records_counts(monkeypatch) -> None:
     assert timeline_summary["level_counts"]["ok"] == 1
     assert timeline_summary["status_counts"]["current"] == 1
     assert timeline_summary["distinct_reasons"] == 1
-    assert (
-        timeline_summary["first_event_timestamp"]
-        == "2024-01-01T00:00:00+00:00"
-    )
-    assert (
-        timeline_summary["last_event_timestamp"]
-        == "2024-01-01T00:00:00+00:00"
-    )
+    assert timeline_summary["first_event_timestamp"] == "2024-01-01T00:00:00+00:00"
+    assert timeline_summary["last_event_timestamp"] == "2024-01-01T00:00:00+00:00"
     assert timeline_summary["last_level"] == "ok"
     assert timeline_summary["last_status"] == "current"
     assert timeline_summary["level_change_rate"] == pytest.approx(1.0)
@@ -103,7 +97,9 @@ def test_update_runtime_store_health_records_counts(monkeypatch) -> None:
     assert timeline_summary["last_level_duration_seconds"] == pytest.approx(0.0)
     assert timeline_summary["level_duration_peaks"]["ok"] == pytest.approx(0.0)
     assert timeline_summary["level_duration_peaks"]["watch"] == pytest.approx(0.0)
-    assert timeline_summary["level_duration_peaks"]["action_required"] == pytest.approx(0.0)
+    assert timeline_summary["level_duration_peaks"]["action_required"] == pytest.approx(
+        0.0
+    )
     assert timeline_summary["level_duration_latest"]["ok"] == pytest.approx(0.0)
     assert timeline_summary["level_duration_latest"]["watch"] is None
     assert timeline_summary["level_duration_latest"]["action_required"] is None
@@ -178,10 +174,7 @@ def test_update_runtime_store_health_does_not_increment_when_suppressed(
     assert timeline_summary["level_counts"]["ok"] == 1
     assert timeline_summary["level_counts"]["watch"] == 1
     assert timeline_summary["status_counts"]["diverged"] == 1
-    assert (
-        timeline_summary["last_event_timestamp"]
-        == "2024-01-02T00:00:00+00:00"
-    )
+    assert timeline_summary["last_event_timestamp"] == "2024-01-02T00:00:00+00:00"
     assert timeline_summary["last_level"] == "watch"
     assert timeline_summary["last_status"] == "diverged"
     assert timeline_summary["timeline_window_seconds"] == pytest.approx(86400.0)
@@ -223,10 +216,7 @@ def test_update_runtime_store_health_does_not_increment_when_suppressed(
     assert last_event["level_changed"] is True
     assert history["assessment_events"] == events
     assert assessment["timeline_summary"]["total_events"] == 2
-    assert (
-        assessment["timeline_summary"]["last_level"]
-        == assessment["level"]
-    )
+    assert assessment["timeline_summary"]["last_level"] == assessment["level"]
 
 
 def test_update_runtime_store_health_records_first_event_when_suppressed(
@@ -241,9 +231,7 @@ def test_update_runtime_store_health_records_first_event_when_suppressed(
         lambda: datetime(2024, 2, 1, tzinfo=UTC),
     )
 
-    history = update_runtime_store_health(
-        runtime_data, snapshot, record_event=False
-    )
+    history = update_runtime_store_health(runtime_data, snapshot, record_event=False)
 
     assert history is not None
     assert history["checks"] == 1

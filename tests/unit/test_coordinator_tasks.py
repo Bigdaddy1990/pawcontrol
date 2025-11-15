@@ -19,7 +19,9 @@ from custom_components.pawcontrol.types import (
 from homeassistant.util import dt as dt_util
 
 
-def _patch_runtime_store(monkeypatch: pytest.MonkeyPatch, status: str = "current") -> dict[str, object]:
+def _patch_runtime_store(
+    monkeypatch: pytest.MonkeyPatch, status: str = "current"
+) -> dict[str, object]:
     """Patch runtime store snapshot helpers to return a deterministic snapshot."""
 
     snapshot = {

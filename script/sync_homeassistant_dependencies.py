@@ -7,17 +7,16 @@ import json
 import shutil
 import tarfile
 import tempfile
+import tomllib
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
-import tomllib
 from packaging.requirements import Requirement
 from packaging.specifiers import Specifier
 from packaging.utils import canonicalize_name
 from packaging.version import InvalidVersion, Version
 from pip._vendor import requests
-
 from script import check_vendor_pyyaml as vendor_monitor
 
 # Paths relative to the Home Assistant core repository root.
@@ -32,9 +31,7 @@ VENDOR_PACKAGE = VENDOR_ROOT / "yaml"
 DEFAULT_METADATA_PATH = Path("generated/vendor_pyyaml_status.json")
 
 # Default branch used when downloading reference files from GitHub.
-DEFAULT_REFERENCE_URL = (
-    "https://raw.githubusercontent.com/home-assistant/core/dev"
-)
+DEFAULT_REFERENCE_URL = "https://raw.githubusercontent.com/home-assistant/core/dev"
 
 
 @dataclass(frozen=True)
@@ -457,7 +454,9 @@ def main() -> int:
     )
     reference_map = synchroniser.load_reference_requirements()
 
-    manifest_changed = synchroniser.update_manifest_requirements(reference=reference_map)
+    manifest_changed = synchroniser.update_manifest_requirements(
+        reference=reference_map
+    )
     requirements_changed = synchroniser.update_requirement_files(
         reference=reference_map
     )

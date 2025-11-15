@@ -20,7 +20,7 @@ def _create_pyyaml_archive(root: Path, version: str) -> Path:
     yaml_dir = source_root / "yaml"
     yaml_dir.mkdir(parents=True)
     (yaml_dir / "__init__.py").write_text(
-        f"__version__ = \"{version}\"\n", encoding="utf-8"
+        f'__version__ = "{version}"\n', encoding="utf-8"
     )
     (source_root / "LICENSE").write_text("demo license", encoding="utf-8")
     archive_path = root / f"PyYAML-{version}.tar.gz"
@@ -72,7 +72,7 @@ def test_sync_updates_dependency_files(tmp_path, monkeypatch):
     vendor_package = workdir / "annotatedyaml/_vendor/yaml"
     vendor_package.mkdir(parents=True)
     (vendor_package / "__init__.py").write_text(
-        "__version__ = \"5.4\"\n", encoding="utf-8"
+        '__version__ = "5.4"\n', encoding="utf-8"
     )
     (workdir / "annotatedyaml/_vendor/PyYAML_LICENSE").write_text(
         "old license", encoding="utf-8"
@@ -159,22 +159,23 @@ dependencies = [
         "jinja2==3.1.4",
     ]
 
-    assert requirements_path.read_text(encoding="utf-8") == "aiohttp==3.13.2\nvoluptuous==0.15.2\n"
+    assert (
+        requirements_path.read_text(encoding="utf-8")
+        == "aiohttp==3.13.2\nvoluptuous==0.15.2\n"
+    )
     assert (
         test_requirements_path.read_text(encoding="utf-8")
         == "aiofiles>=24.1.0\npytest-homeassistant-custom-component  # follows daily HA version\n"
     )
 
     vendor_version = (
-        vendor_package / "__init__.py"
-    ).read_text(encoding="utf-8").strip()
-    assert vendor_version == "__version__ = \"6.0.1\""
-    assert (
-        workdir / "annotatedyaml/_vendor/PyYAML_LICENSE"
-    ).read_text(encoding="utf-8") == "demo license"
+        (vendor_package / "__init__.py").read_text(encoding="utf-8").strip()
+    )
+    assert vendor_version == '__version__ = "6.0.1"'
+    assert (workdir / "annotatedyaml/_vendor/PyYAML_LICENSE").read_text(
+        encoding="utf-8"
+    ) == "demo license"
     assert json.loads(metadata_path.read_text(encoding="utf-8")) == {
         "vendor_version": "6.0.1"
     }
     assert captured_metadata["payload"] == {"vendor_version": "6.0.1"}
-
-
