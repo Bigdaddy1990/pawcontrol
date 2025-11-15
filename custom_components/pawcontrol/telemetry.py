@@ -435,6 +435,22 @@ def _summarise_runtime_store_assessment_events(
     return summary
 
 
+def _resolve_runtime_store_assessment_timeline_summary(
+    history: Mapping[str, object],
+    events: Sequence[RuntimeStoreAssessmentEvent],
+) -> RuntimeStoreAssessmentTimelineSummary:
+    """Return the timeline summary stored in ``history`` or recompute it."""
+
+    timeline_summary_raw = history.get("assessment_timeline_summary")
+    if isinstance(timeline_summary_raw, Mapping):
+        return cast(
+            RuntimeStoreAssessmentTimelineSummary,
+            dict(timeline_summary_raw),
+        )
+
+    return _summarise_runtime_store_assessment_events(events)
+
+
 def _record_runtime_store_assessment_event(
     history: RuntimeStoreHealthHistory,
     assessment: RuntimeStoreHealthAssessment,
@@ -526,15 +542,10 @@ def _record_runtime_store_assessment_event(
     should_record = recorded or level_changed
     if not should_record:
         history_events = list(events)
-        timeline_summary_raw = history.get("assessment_timeline_summary")
-        if isinstance(timeline_summary_raw, Mapping):
-            timeline_summary = cast(
-                RuntimeStoreAssessmentTimelineSummary, dict(timeline_summary_raw)
-            )
-        else:
-            timeline_summary = _summarise_runtime_store_assessment_events(
-                history_events
-            )
+        timeline_summary = _resolve_runtime_store_assessment_timeline_summary(
+            history,
+            history_events,
+        )
         return history_events, timeline_summary
 
     timestamp = cast(str | None, history.get("last_checked"))
