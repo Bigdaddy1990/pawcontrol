@@ -16,7 +16,7 @@ except ImportError:
     __with_libyaml__ = False
 
 import io
-from typing import Any
+from typing import Any, Iterator
 
 #------------------------------------------------------------------------------
 # XXX "Warnings control" is now deprecated. Leaving in the API function to not
@@ -55,7 +55,7 @@ def _select_loader(
     return loader_cls
 
 
-def _load_single(stream, loader_cls):
+def _load_single(stream: Any, loader_cls: Any) -> Any:
     loader = loader_cls(stream)
     try:
         return loader.get_single_data()
@@ -63,7 +63,7 @@ def _load_single(stream, loader_cls):
         loader.dispose()
 
 
-def _load_all(stream, loader_cls):
+def _load_all(stream: Any, loader_cls: Any) -> Iterator[Any]:
     loader = loader_cls(stream)
     try:
         while loader.check_data():
