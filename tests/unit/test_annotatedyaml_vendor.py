@@ -43,13 +43,22 @@ def test_load_accepts_positional_loader_argument() -> None:
 
 
 def test_safe_load_accepts_legacy_loader_keyword() -> None:
-    data = vendored_yaml.safe_load("answer: 42", Loader=vendored_yaml.FullLoader)
+    data = vendored_yaml.safe_load("answer: 42", Loader=vendored_yaml.SafeLoader)
     assert data == {"answer": 42}
 
 
-def test_safe_load_accepts_positional_loader_argument() -> None:
-    data = vendored_yaml.safe_load("answer: 42", vendored_yaml.FullLoader)
-    assert data == {"answer": 42}
+def test_safe_load_rejects_unsafe_loader() -> None:
+    message = r"safe_load\(\) custom Loader must be a subclass"
+    with pytest.raises(ValueError, match=message):
+        vendored_yaml.safe_load("answer: 42", Loader=vendored_yaml.UnsafeLoader)
+
+
+def test_safe_load_all_rejects_unsafe_loader() -> None:
+    message = r"safe_load_all\(\) custom Loader must be a subclass"
+    with pytest.raises(ValueError, match=message):
+        list(
+            vendored_yaml.safe_load_all("answer: 42", Loader=vendored_yaml.UnsafeLoader)
+        )
 
 
 def test_dump_accepts_legacy_dumper_keyword() -> None:
@@ -57,6 +66,12 @@ def test_dump_accepts_legacy_dumper_keyword() -> None:
     rendered = vendored_yaml.dump(payload, Dumper=vendored_yaml.Dumper)
     assert "answer" in rendered
     assert "42" in rendered
+
+
+def test_load_without_loader_argument_raises() -> None:
+    message = r"load\(\) missing 1 required positional argument: 'Loader'"
+    with pytest.raises(TypeError, match=re.escape(message)):
+        vendored_yaml.load("answer: 42")
 
 
 def test_conflicting_loader_alias_raises() -> None:

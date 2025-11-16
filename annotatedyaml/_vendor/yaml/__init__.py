@@ -18,39 +18,7 @@ except ImportError:
 import io
 from typing import Any, BinaryIO, Iterator, TextIO, Type
 
-_DEFAULT_SAFE_LOADER = SafeLoader
-
-
-def _resolve_loader_arguments(
-    func_name: str,
-    loader_args: tuple[Any, ...],
-    loader_cls: Any | None,
-    kwargs: dict[str, Any],
-    *,
-    default_loader: Any | None,
-    required: bool,
-) -> Any:
-    if len(loader_args) > 1:
-        raise TypeError(
-            f"{func_name}() takes from 1 to 2 positional arguments but"
-            f" {len(loader_args) + 1} were given"
-        )
-    positional_loader = loader_args[0] if loader_args else None
-    if positional_loader is not None and loader_cls is not None:
-        raise TypeError(
-            f"{func_name}() received both 'Loader' and its replacement"
-        )
-    legacy_loader = _extract_legacy_loader(func_name, kwargs)
-    effective_loader = loader_cls
-    if positional_loader is not None:
-        effective_loader = positional_loader
-    return _select_loader(
-        func_name,
-        effective_loader,
-        legacy_loader,
-        default_loader=default_loader,
-        required=required,
-    )
+_MISSING_LOADER = object()
 
 #------------------------------------------------------------------------------
 # XXX "Warnings control" is now deprecated. Leaving in the API function to not
@@ -64,6 +32,20 @@ def _extract_legacy_loader(func_name: str, kwargs: dict[str, Any]) -> Any | None
             f"{func_name}() got unexpected keyword argument(s): {unexpected}"
         )
     return legacy_loader
+
+
+def _ensure_safe_loader(func_name: str, loader_cls: Type[Any]) -> Type[Any]:
+    try:
+        is_safe = issubclass(loader_cls, SafeLoader)
+    except TypeError as exc:  # pragma: no cover - defensive guard
+        raise TypeError(
+            f"{func_name}() expected a Loader class, got {loader_cls!r}"
+        ) from exc
+    if not is_safe:
+        raise ValueError(
+            f"{func_name}() custom Loader must be a subclass of yaml.SafeLoader"
+        )
+    return loader_cls
 
 
 def _select_loader(
@@ -158,34 +140,28 @@ def compose_all(stream, Loader=Loader):
     finally:
         loader.dispose()
 
-def load(stream, /, *loader_args, loader_cls=None, **kwargs):
+def load(stream, loader_cls=_MISSING_LOADER, **kwargs):
     """
     Parse the first YAML document in a stream
     and produce the corresponding Python object.
     """
-    resolved_loader = _resolve_loader_arguments(
-        "load",
-        loader_args,
-        loader_cls,
-        kwargs,
-        default_loader=None,
-        required=True,
+    legacy_loader = _extract_legacy_loader("load", kwargs)
+    effective_loader = None if loader_cls is _MISSING_LOADER else loader_cls
+    resolved_loader = _select_loader(
+        "load", effective_loader, legacy_loader, required=True
     )
     return _load_single(stream, resolved_loader)
 
 
-def load_all(stream, /, *loader_args, loader_cls=None, **kwargs):
+def load_all(stream, loader_cls=_MISSING_LOADER, **kwargs):
     """
     Parse all YAML documents in a stream
     and produce corresponding Python objects.
     """
-    resolved_loader = _resolve_loader_arguments(
-        "load_all",
-        loader_args,
-        loader_cls,
-        kwargs,
-        default_loader=None,
-        required=True,
+    legacy_loader = _extract_legacy_loader("load_all", kwargs)
+    effective_loader = None if loader_cls is _MISSING_LOADER else loader_cls
+    resolved_loader = _select_loader(
+        "load_all", effective_loader, legacy_loader, required=True
     )
     yield from _load_all(stream, resolved_loader)
 
@@ -225,7 +201,8 @@ def safe_load(stream, /, *loader_args, loader_cls=None, **kwargs):
         default_loader=_DEFAULT_SAFE_LOADER,
         required=False,
     )
-    return _load_single(stream, resolved_loader)
+    safe_loader = _ensure_safe_loader("safe_load", resolved_loader)
+    return _load_single(stream, safe_loader)
 
 
 def safe_load_all(stream, /, *loader_args, loader_cls=None, **kwargs):
@@ -244,7 +221,8 @@ def safe_load_all(stream, /, *loader_args, loader_cls=None, **kwargs):
         default_loader=_DEFAULT_SAFE_LOADER,
         required=False,
     )
-    yield from _load_all(stream, resolved_loader)
+    safe_loader = _ensure_safe_loader("safe_load_all", resolved_loader)
+    yield from _load_all(stream, safe_loader)
 
 def unsafe_load(stream):
     """
