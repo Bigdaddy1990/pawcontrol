@@ -114,14 +114,8 @@ classifiers = [
     "Topic :: Home Automation",
     "Typing :: Typed",
 ]
-dynamic = ["version"]
+dynamic = ["version", "dependencies"]
 requires-python = ">=3.13"
-dependencies = [
-    "aiofiles>=24.1.0",
-    "aiohttp==3.13.2",
-    "jinja2==3.1.6",
-    "voluptuous==0.15.2",
-]
 
 [project.optional-dependencies]
 tests = [
@@ -143,3 +137,6 @@ tests = [
 Homepage = "https://github.com/pawcontrol/pawcontrol"
 Documentation = "https://github.com/pawcontrol/pawcontrol/blob/main/README.md"
 Issues = "https://github.com/pawcontrol/pawcontrol/issues"
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }

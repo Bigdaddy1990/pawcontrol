@@ -11,18 +11,21 @@ from annotatedyaml._vendor import yaml as vendored_yaml
 class _DummyLoader:
     """Simple loader that records lifecycle interactions for tests."""
 
-    def __init__(self, stream: str) -> None:
+    def __init__(self, stream: str, has_data: bool = False) -> None:
         self.stream = stream
         self.disposed = False
+        self._has_data = has_data
 
     def get_single_data(self) -> str:
         return self.stream
 
     def check_data(self) -> bool:
-        return False
+        return self._has_data
 
     def get_data(self) -> str:
-        raise AssertionError("check_data() never returns True")
+        if not self._has_data:
+            raise RuntimeError("No data available - check_data() returned False")
+        return self.stream
 
     def dispose(self) -> None:
         self.disposed = True
@@ -119,3 +122,15 @@ def test_select_loader_uses_default_loader_when_available() -> None:
         default_loader=_DummyLoader,
     )
     assert selected is _DummyLoader
+
+
+def test_load_all_accepts_positional_loader_argument() -> None:
+    payload = "---\nanswer: 42\n---\nanswer: 43"
+    data = list(vendored_yaml.load_all(payload, vendored_yaml.FullLoader))
+    assert data == [{"answer": 42}, {"answer": 43}]
+
+
+def test_safe_load_all_accepts_positional_loader_argument() -> None:
+    payload = "---\nanswer: 42\n---\nanswer: 43"
+    data = list(vendored_yaml.safe_load_all(payload, vendored_yaml.SafeLoader))
+    assert data == [{"answer": 42}, {"answer": 43}]
