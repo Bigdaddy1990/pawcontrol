@@ -159,7 +159,7 @@ def load(
 
 def load_all(
     stream: str | bytes | TextIO | BinaryIO,
-    loader_cls: Any = _MISSING_LOADER,
+    loader_cls: Type[Any] | Literal[_MISSING_LOADER] = _MISSING_LOADER,
     **kwargs: Any,
 ) -> Iterator[Any]:
     """
