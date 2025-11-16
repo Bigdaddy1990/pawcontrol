@@ -98,5 +98,53 @@ output = "coverage.xml"
 
 [project]
 name = "pawcontrol"
+description = "Home Assistant integration that orchestrates PawControl feeders, walks, and telemetry."
+readme = "README.md"
+license = { file = "LICENSE" }
+authors = [
+    { name = "PawControl maintainers" },
+]
+keywords = [
+    "home-assistant",
+    "pawcontrol",
+    "smart-home",
+    "automation",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Topic :: Home Automation",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "aiofiles>=24.1.0",
+    "aiohttp==3.13.2",
+    "jinja2==3.1.6",
+    "voluptuous==0.15.2",
+]
 dynamic = ["version"]
 requires-python = ">=3.13"
+
+[project.optional-dependencies]
+tests = [
+    "coverage[toml]==7.10.6",
+    "homeassistant>=2025.10.1",
+    "jinja2==3.1.6",
+    "packaging==24.2",
+    "pip==25.3",
+    "pytest==9.0.0",
+    "pytest-asyncio==1.3.0",
+    "pytest-cov==7.0.0",
+    "pytest-homeassistant-custom-component",
+    "pyyaml==6.0.3",
+    "types-aiofiles==24.1.0.20250822",
+    "voluptuous==0.15.2",
+]
+
+[project.urls]
+Homepage = "https://github.com/Bigdaddy1990/pawcontrol"
+Documentation = "https://github.com/Bigdaddy1990/pawcontrol#readme"
+Issues = "https://github.com/Bigdaddy1990/pawcontrol/issues"
+Source = "https://github.com/Bigdaddy1990/pawcontrol"
