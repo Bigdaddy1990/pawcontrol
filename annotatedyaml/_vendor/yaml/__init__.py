@@ -19,6 +19,7 @@ import io
 from typing import Any, BinaryIO, Iterator, TextIO, Type
 
 _MISSING_LOADER = object()
+_DEFAULT_SAFE_LOADER: Type[Any] = SafeLoader
 
 #------------------------------------------------------------------------------
 # XXX "Warnings control" is now deprecated. Leaving in the API function to not
@@ -71,6 +72,41 @@ def _select_loader(
     return loader_cls
 
 
+def _resolve_loader_arguments(
+    func_name: str,
+    loader_args: tuple[Any, ...],
+    loader_cls: Any | None,
+    kwargs: dict[str, Any],
+    *,
+    default_loader: Any | None = None,
+    required: bool,
+) -> Any:
+    positional_loader: Any | None = None
+    if loader_args:
+        if len(loader_args) > 1:
+            raise TypeError(
+                f"{func_name}() takes at most 1 positional loader argument"
+            )
+        positional_loader = loader_args[0]
+        if loader_cls is not None:
+            raise TypeError(
+                f"{func_name}() received multiple loader arguments"
+            )
+
+    legacy_loader = _extract_legacy_loader(func_name, kwargs)
+    effective_loader = loader_cls
+    if positional_loader is not None:
+        effective_loader = positional_loader
+
+    return _select_loader(
+        func_name,
+        effective_loader,
+        legacy_loader,
+        default_loader=default_loader,
+        required=required,
+    )
+
+
 def _load_single(stream: str | bytes | TextIO | BinaryIO, loader_cls: Type[Any]) -> Any:
     loader = loader_cls(stream)
     try:
@@ -80,7 +116,8 @@ def _load_single(stream: str | bytes | TextIO | BinaryIO, loader_cls: Type[Any])
 
 
 def _load_all(
-    stream: str | bytes | TextIO | BinaryIO, loader_cls: Type[Any]
+    stream: str | bytes | TextIO | BinaryIO,
+    loader_cls: Type[Any],
 ) -> Iterator[Any]:
     loader = loader_cls(stream)
     try:
