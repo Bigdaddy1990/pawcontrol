@@ -2,12 +2,13 @@
 
 ## Aktueller Baustellenüberblick
 
+
+
+## Offene Fehler und Verbesserungen
+
+
+
 ### Priorisierte Maßnahmen 
-
-
-
-
-### Fehler-Backlog
 
 
 
@@ -16,7 +17,4 @@
 #### Funktionale Abdeckung
 
 
-
-
-## Offene Fehler und Verbesserungen
 
