@@ -119,3 +119,17 @@ def test_select_loader_uses_default_loader_when_available() -> None:
         default_loader=_DummyLoader,
     )
     assert selected is _DummyLoader
+
+
+def test_load_all_accepts_positional_loader_argument() -> None:
+    docs = list(
+        vendored_yaml.load_all("---\na: 1\n---\na: 2\n", vendored_yaml.SafeLoader)
+    )
+    assert docs == [{"a": 1}, {"a": 2}]
+
+
+def test_safe_load_all_accepts_positional_loader_argument() -> None:
+    docs = list(
+        vendored_yaml.safe_load_all("---\na: 1\n---\na: 2\n", vendored_yaml.SafeLoader)
+    )
+    assert docs == [{"a": 1}, {"a": 2}]
