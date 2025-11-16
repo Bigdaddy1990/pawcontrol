@@ -30,7 +30,6 @@ from .error import MarkedYAMLError
 from .tokens import (
     AliasToken,
     AnchorToken,
-    BOMToken,
     BlockEndToken,
     BlockEntryToken,
     BlockMappingStartToken,
