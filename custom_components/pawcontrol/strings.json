@@ -1381,6 +1381,10 @@
       "title": "Coordinator is unavailable",
       "description": "Paw Control could not access its coordinator ({error}). Follow the suggested action or reload the integration."
     },
+    "runtime_store_duration_alert": {
+      "title": "Runtime store guard thresholds exceeded",
+      "description": "Recent runtime diagnostics observed prolonged {triggered_levels} levels (alerts: {alert_summaries}). Review runtime store diagnostics, run the compatibility repair, and reload the integration if the timeline does not recover. Window: {timeline_window_days}. Last change: {last_event_timestamp}. Recommendations: {recommended_actions}."
+    },
     "reconfigure_warnings": {
       "title": "Profile change produced warnings",
       "description": "The last reconfigure at {timestamp} switched from {previous_profile} to {requested_profile}, but compatibility checks reported: {warnings}."

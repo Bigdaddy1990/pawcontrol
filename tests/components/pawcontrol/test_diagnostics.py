@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -23,8 +25,25 @@ from custom_components.pawcontrol.telemetry import (
     reset_bool_coercion_metrics,
 )
 from custom_components.pawcontrol.types import (
+    CacheDiagnosticsMap,
+    CacheDiagnosticsSnapshot,
     CacheRepairAggregate,
+    CoordinatorDogData,
+    CoordinatorHealthIndicators,
+    CoordinatorPerformanceMetrics,
+    CoordinatorRuntimeStoreSummary,
+    CoordinatorStatisticsPayload,
+    CoordinatorUpdateCounts,
+    DataManagerMetricsSnapshot,
+    JSONMutableMapping,
     PawControlRuntimeData,
+    RuntimeStoreAssessmentEvent,
+    RuntimeStoreAssessmentTimelineSegment,
+    RuntimeStoreAssessmentTimelineSummary,
+    RuntimeStoreCompatibilitySnapshot,
+    RuntimeStoreEntrySnapshot,
+    RuntimeStoreHealthAssessment,
+    RuntimeStoreHealthHistory,
 )
 from homeassistant.components.script import DOMAIN as SCRIPT_DOMAIN
 from homeassistant.core import Context, Event, HomeAssistant
@@ -139,15 +158,276 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
             self.config_entry = entry
             self.dogs = [SimpleNamespace(dog_id="doggo")]
 
-        def get_update_statistics(self) -> dict[str, object]:
-            return {
-                "total_updates": 10,
+        def get_update_statistics(self) -> CoordinatorStatisticsPayload:
+            update_counts: CoordinatorUpdateCounts = {
+                "total": 10,
+                "successful": 10,
                 "failed": 0,
-                "update_interval": 30,
+            }
+            performance_metrics: CoordinatorPerformanceMetrics = {
+                "success_rate": 1.0,
+                "cache_entries": 1,
+                "cache_hit_rate": 1.0,
+                "consecutive_errors": 0,
+                "last_update": datetime.now(UTC).isoformat(),
+                "update_interval": 30.0,
+                "api_calls": 5,
+            }
+            health_indicators: CoordinatorHealthIndicators = {
+                "consecutive_errors": 0,
+                "stability_window_ok": True,
+            }
+            runtime_store_snapshot: RuntimeStoreCompatibilitySnapshot = {
+                "entry_id": entry.entry_id,
+                "status": "current",
+                "current_version": 3,
+                "minimum_compatible_version": 2,
+                "entry": cast(
+                    RuntimeStoreEntrySnapshot,
+                    {
+                        "status": "current",
+                        "version": 3,
+                        "created_version": 3,
+                    },
+                ),
+                "store": cast(
+                    RuntimeStoreEntrySnapshot,
+                    {
+                        "status": "current",
+                        "version": 3,
+                        "created_version": 3,
+                    },
+                ),
+                "divergence_detected": False,
+            }
+            runtime_store_history: RuntimeStoreHealthHistory = {
+                "checks": 1,
+                "status_counts": {"current": 1},
+                "last_status": "current",
+                "assessment_events": cast(
+                    list[RuntimeStoreAssessmentEvent],
+                    [
+                        {
+                            "timestamp": datetime.now(UTC).isoformat(),
+                            "level": "ok",
+                            "previous_level": None,
+                            "status": "current",
+                            "reason": "initialisation",
+                            "recommended_action": None,
+                            "divergence_detected": False,
+                            "checks": 1,
+                            "divergence_events": 0,
+                            "level_streak": 1,
+                            "escalations": 0,
+                            "deescalations": 0,
+                            "level_changed": True,
+                            "current_level_duration_seconds": None,
+                        }
+                    ],
+                ),
+                "assessment_timeline_segments": cast(
+                    list[RuntimeStoreAssessmentTimelineSegment],
+                    [
+                        {
+                            "start": datetime.now(UTC).isoformat(),
+                            "end": None,
+                            "level": "ok",
+                            "status": "current",
+                            "duration_seconds": None,
+                        }
+                    ],
+                ),
+                "assessment_timeline_summary": cast(
+                    RuntimeStoreAssessmentTimelineSummary,
+                    {
+                        "total_events": 1,
+                        "level_counts": {"ok": 1, "watch": 0, "action_required": 0},
+                        "status_counts": {"current": 1},
+                        "reason_counts": {"initialisation": 1},
+                        "distinct_reasons": 1,
+                        "last_event_timestamp": datetime.now(UTC).isoformat(),
+                        "timeline_window_seconds": 0.0,
+                        "timeline_window_days": 0.0,
+                        "events_per_day": None,
+                        "most_common_reason": "initialisation",
+                        "most_common_level": "ok",
+                        "most_common_status": "current",
+                        "average_divergence_rate": None,
+                        "max_divergence_rate": None,
+                        "level_duration_peaks": {
+                            "ok": 0.0,
+                            "watch": 0.0,
+                            "action_required": 0.0,
+                        },
+                        "level_duration_latest": {
+                            "ok": None,
+                            "watch": None,
+                            "action_required": None,
+                        },
+                        "level_duration_totals": {
+                            "ok": 0.0,
+                            "watch": 0.0,
+                            "action_required": 0.0,
+                        },
+                        "level_duration_samples": {
+                            "ok": 0,
+                            "watch": 0,
+                            "action_required": 0,
+                        },
+                        "level_duration_averages": {
+                            "ok": None,
+                            "watch": None,
+                            "action_required": None,
+                        },
+                        "level_duration_minimums": {
+                            "ok": None,
+                            "watch": None,
+                            "action_required": None,
+                        },
+                        "level_duration_medians": {
+                            "ok": None,
+                            "watch": None,
+                            "action_required": None,
+                        },
+                        "level_duration_standard_deviations": {
+                            "ok": None,
+                            "watch": None,
+                            "action_required": None,
+                        },
+                        "level_duration_percentiles": {
+                            "ok": {},
+                            "watch": {},
+                            "action_required": {},
+                        },
+                        "level_duration_alert_thresholds": {
+                            "ok": None,
+                            "watch": None,
+                            "action_required": None,
+                        },
+                    },
+                ),
+                "assessment": cast(
+                    RuntimeStoreHealthAssessment,
+                    {
+                        "level": "ok",
+                        "previous_level": None,
+                        "reason": "initialisation",
+                        "recommended_action": None,
+                        "divergence_rate": None,
+                        "checks": 1,
+                        "divergence_events": 0,
+                        "last_status": "current",
+                        "divergence_detected": False,
+                        "level_streak": 1,
+                        "last_level_change": datetime.now(UTC).isoformat(),
+                        "escalations": 0,
+                        "deescalations": 0,
+                        "level_durations": {
+                            "ok": 0.0,
+                            "watch": 0.0,
+                            "action_required": 0.0,
+                        },
+                        "current_level_duration_seconds": None,
+                        "events": cast(
+                            list[RuntimeStoreAssessmentEvent],
+                            [
+                                {
+                                    "timestamp": datetime.now(UTC).isoformat(),
+                                    "level": "ok",
+                                    "previous_level": None,
+                                    "status": "current",
+                                    "reason": "initialisation",
+                                    "recommended_action": None,
+                                    "divergence_detected": False,
+                                    "checks": 1,
+                                    "divergence_events": 0,
+                                    "level_streak": 1,
+                                    "escalations": 0,
+                                    "deescalations": 0,
+                                    "level_changed": True,
+                                    "current_level_duration_seconds": None,
+                                }
+                            ],
+                        ),
+                        "timeline_segments": cast(
+                            list[RuntimeStoreAssessmentTimelineSegment],
+                            [
+                                {
+                                    "start": datetime.now(UTC).isoformat(),
+                                    "end": None,
+                                    "level": "ok",
+                                    "status": "current",
+                                    "duration_seconds": None,
+                                }
+                            ],
+                        ),
+                        "timeline_summary": cast(
+                            RuntimeStoreAssessmentTimelineSummary,
+                            {
+                                "total_events": 1,
+                                "level_counts": {
+                                    "ok": 1,
+                                    "watch": 0,
+                                    "action_required": 0,
+                                },
+                                "last_level": "ok",
+                                "timeline_window_days": 0.0,
+                                "average_divergence_rate": None,
+                                "level_duration_latest": {
+                                    "ok": None,
+                                    "watch": None,
+                                    "action_required": None,
+                                },
+                                "level_duration_totals": {
+                                    "ok": 0.0,
+                                    "watch": 0.0,
+                                    "action_required": 0.0,
+                                },
+                                "level_duration_samples": {
+                                    "ok": 0,
+                                    "watch": 0,
+                                    "action_required": 0,
+                                },
+                                "level_duration_averages": {
+                                    "ok": None,
+                                    "watch": None,
+                                    "action_required": None,
+                                },
+                                "level_duration_minimums": {
+                                    "ok": None,
+                                    "watch": None,
+                                    "action_required": None,
+                                },
+                                "level_duration_medians": {
+                                    "ok": None,
+                                    "watch": None,
+                                    "action_required": None,
+                                },
+                                "level_duration_standard_deviations": {
+                                    "ok": None,
+                                    "watch": None,
+                                    "action_required": None,
+                                },
+                            },
+                        ),
+                    },
+                ),
+            }
+            runtime_store: CoordinatorRuntimeStoreSummary = {
+                "snapshot": runtime_store_snapshot,
+                "history": runtime_store_history,
+                "assessment": runtime_store_history["assessment"],
+            }
+            stats_payload: dict[str, object] = {
+                "update_counts": update_counts,
+                "performance_metrics": performance_metrics,
+                "health_indicators": health_indicators,
+                "runtime_store": runtime_store,
                 "api_token": "another-secret",
             }
+            return cast(CoordinatorStatisticsPayload, stats_payload)
 
-        def get_dog_data(self, dog_id: str) -> dict[str, object]:
+        def get_dog_data(self, dog_id: str) -> CoordinatorDogData:
             return {
                 "last_update": "2025-02-01T12:00:00+00:00",
                 "status": "active",
@@ -156,37 +436,40 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
     class DummyDataManager:
         def __init__(self) -> None:
             timestamp = datetime.now(UTC)
-            self._snapshots = {
-                "notification_cache": {
-                    "stats": {
-                        "entries": 2,
-                        "hits": 5,
-                        "api_token": "cache-secret",
-                    },
-                    "diagnostics": {
-                        "cleanup_invocations": 3,
-                        "last_cleanup": timestamp,
-                    },
-                }
+            stats_payload: JSONMutableMapping = {
+                "entries": 2,
+                "hits": 5,
+                "api_token": "cache-secret",
             }
-            summary_payload = {
+            diagnostics_payload: JSONMutableMapping = {
+                "cleanup_invocations": 3,
+                "last_cleanup": timestamp,
+            }
+            snapshot = CacheDiagnosticsSnapshot(
+                stats=stats_payload,
+                diagnostics=cast(JSONMutableMapping, diagnostics_payload),
+            )
+            summary_payload: JSONMutableMapping = {
                 "total_caches": 1,
                 "anomaly_count": 0,
                 "severity": "info",
                 "generated_at": timestamp.isoformat(),
             }
             self._summary = CacheRepairAggregate.from_mapping(summary_payload)
-            self._snapshots["notification_cache"]["repair_summary"] = self._summary
+            snapshot.repair_summary = self._summary
+            self._snapshots: CacheDiagnosticsMap = {
+                "notification_cache": snapshot,
+            }
 
-        def cache_snapshots(self) -> dict[str, dict[str, object]]:
+        def cache_snapshots(self) -> CacheDiagnosticsMap:
             return self._snapshots
 
         def cache_repair_summary(
-            self, snapshots: dict[str, object] | None = None
+            self, snapshots: Mapping[str, object] | None = None
         ) -> CacheRepairAggregate:
             return self._summary
 
-        def get_metrics(self) -> dict[str, object]:
+        def get_metrics(self) -> DataManagerMetricsSnapshot:
             return {
                 "dogs": 1,
                 "storage_path": "/tmp/pawcontrol",  # simulate real path data
@@ -535,6 +818,13 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
             assert isinstance(events, list)
             if events:
                 assert isinstance(events[-1]["timestamp"], str)
+        timeline_segments = history.get("assessment_timeline_segments")
+        if timeline_segments is not None:
+            assert isinstance(timeline_segments, list)
+            if timeline_segments:
+                last_segment = timeline_segments[-1]
+                assert last_segment["level"] in {"ok", "watch", "action_required"}
+                assert "duration_seconds" in last_segment
         timeline_summary = history.get("assessment_timeline_summary")
         if timeline_summary is not None:
             assert timeline_summary["total_events"] >= 1
@@ -544,6 +834,17 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
             assert "timeline_window_seconds" in timeline_summary
             assert "events_per_day" in timeline_summary
             assert "level_duration_peaks" in timeline_summary
+            assert "level_duration_totals" in timeline_summary
+            assert "level_duration_samples" in timeline_summary
+            assert "level_duration_minimums" in timeline_summary
+            assert "level_duration_medians" in timeline_summary
+            assert "level_duration_standard_deviations" in timeline_summary
+            assert "level_duration_percentiles" in timeline_summary
+            assert "level_duration_alert_thresholds" in timeline_summary
+            assert "level_duration_guard_alerts" in timeline_summary
+            assert "level_duration_averages" in timeline_summary
+            assert "level_duration_minimums" in timeline_summary
+            assert "level_duration_medians" in timeline_summary
             assert "average_divergence_rate" in timeline_summary
     assessment = diagnostics.get("runtime_store_assessment")
     if assessment is not None:
@@ -567,6 +868,16 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
                 latest_event = events[-1]
                 assert latest_event["level"] in {"ok", "watch", "action_required"}
                 assert isinstance(latest_event["timestamp"], str)
+        timeline_segments = assessment.get("timeline_segments")
+        if timeline_segments is not None:
+            assert isinstance(timeline_segments, list)
+            if timeline_segments:
+                assert timeline_segments[-1]["level"] in {
+                    "ok",
+                    "watch",
+                    "action_required",
+                }
+                assert "duration_seconds" in timeline_segments[-1]
         timeline_summary = assessment.get("timeline_summary")
         if timeline_summary is not None:
             assert timeline_summary["total_events"] >= 1
@@ -575,10 +886,33 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
             assert "timeline_window_days" in timeline_summary
             assert "most_common_reason" in timeline_summary
             assert "level_duration_latest" in timeline_summary
+            assert "level_duration_totals" in timeline_summary
+            assert "level_duration_samples" in timeline_summary
+            assert "level_duration_minimums" in timeline_summary
+            assert "level_duration_percentiles" in timeline_summary
+            assert "level_duration_alert_thresholds" in timeline_summary
+            assert "level_duration_guard_alerts" in timeline_summary
+            assert "level_duration_medians" in timeline_summary
+            assert "level_duration_standard_deviations" in timeline_summary
+            assert "level_duration_averages" in timeline_summary
+            assert "level_duration_minimums" in timeline_summary
+            assert "level_duration_medians" in timeline_summary
     timeline_summary_payload = diagnostics.get("runtime_store_timeline_summary")
     if timeline_summary_payload is not None:
         assert timeline_summary_payload["total_events"] >= 1
         assert "level_counts" in timeline_summary_payload
+        assert "level_duration_samples" in timeline_summary_payload
+        assert "level_duration_minimums" in timeline_summary_payload
+        assert "level_duration_medians" in timeline_summary_payload
+        assert "level_duration_standard_deviations" in timeline_summary_payload
+        assert "level_duration_percentiles" in timeline_summary_payload
+        assert "level_duration_alert_thresholds" in timeline_summary_payload
+        assert "level_duration_guard_alerts" in timeline_summary_payload
+    timeline_segments_payload = diagnostics.get("runtime_store_timeline_segments")
+    if timeline_segments_payload is not None:
+        assert isinstance(timeline_segments_payload, list)
+        if timeline_segments_payload:
+            assert "duration_seconds" in timeline_segments_payload[0]
 
     escalation = diagnostics["resilience_escalation"]
     assert escalation["available"] is True

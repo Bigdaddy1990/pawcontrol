@@ -97,6 +97,55 @@ def _coerce_version(candidate: object | None) -> int | None:
     return None
 
 
+def _stamp_runtime_schema(
+    entry_id: str, runtime_data: PawControlRuntimeData
+) -> tuple[int, int]:
+    """Ensure runtime payloads carry compatible schema metadata."""
+
+    schema_version = _coerce_version(getattr(runtime_data, "schema_version", None))
+    created_schema_version = _coerce_version(
+        getattr(runtime_data, "schema_created_version", None)
+    )
+
+    if schema_version is None:
+        schema_version = DomainRuntimeStoreEntry.CURRENT_VERSION
+    if created_schema_version is None:
+        created_schema_version = schema_version
+
+    if schema_version > DomainRuntimeStoreEntry.CURRENT_VERSION or (
+        created_schema_version > DomainRuntimeStoreEntry.CURRENT_VERSION
+    ):
+        raise RuntimeDataIncompatibleError(
+            "Future runtime schema detected for "
+            f"{entry_id} (got schema={schema_version} "
+            f"created={created_schema_version}, "
+            f"current={DomainRuntimeStoreEntry.CURRENT_VERSION})"
+        )
+
+    if created_schema_version < DomainRuntimeStoreEntry.MINIMUM_COMPATIBLE_VERSION:
+        _LOGGER.debug(
+            "Upgrading runtime schema origin for %s from %s to %s",
+            entry_id,
+            created_schema_version,
+            DomainRuntimeStoreEntry.MINIMUM_COMPATIBLE_VERSION,
+        )
+        created_schema_version = DomainRuntimeStoreEntry.MINIMUM_COMPATIBLE_VERSION
+
+    if schema_version < DomainRuntimeStoreEntry.CURRENT_VERSION:
+        _LOGGER.debug(
+            "Upgrading runtime schema version for %s from %s to %s",
+            entry_id,
+            schema_version,
+            DomainRuntimeStoreEntry.CURRENT_VERSION,
+        )
+        schema_version = DomainRuntimeStoreEntry.CURRENT_VERSION
+
+    runtime_data.schema_created_version = created_schema_version
+    runtime_data.schema_version = schema_version
+
+    return schema_version, created_schema_version
+
+
 def _as_store_entry(value: object | None) -> DomainRuntimeStoreEntry | None:
     """Return a :class:`DomainRuntimeStoreEntry` if ``value`` resembles one."""
 
@@ -229,13 +278,16 @@ def _get_store_entry_from_entry(
     if runtime_data is None:
         return None
 
+    schema_version, schema_created_version = _stamp_runtime_schema(
+        entry.entry_id, runtime_data
+    )
     version = _coerce_version(getattr(entry, _ENTRY_VERSION_ATTR, None))
     if version is None:
-        version = DomainRuntimeStoreEntry.CURRENT_VERSION
+        version = schema_version
 
     created_version = _coerce_version(getattr(entry, _ENTRY_CREATED_VERSION_ATTR, None))
     if created_version is None:
-        created_version = version
+        created_version = schema_created_version
 
     return DomainRuntimeStoreEntry(
         runtime_data=runtime_data,
@@ -281,7 +333,11 @@ def _normalise_store_entry(
             f"current={DomainRuntimeStoreEntry.CURRENT_VERSION})"
         )
 
-    created_version = store_entry.created_version
+    schema_version, schema_created_version = _stamp_runtime_schema(
+        entry_id, store_entry.runtime_data
+    )
+
+    created_version = max(store_entry.created_version, schema_created_version)
     if created_version < DomainRuntimeStoreEntry.MINIMUM_COMPATIBLE_VERSION:
         _LOGGER.debug(
             "Upgrading legacy runtime store entry for %s from schema %s",
@@ -290,7 +346,7 @@ def _normalise_store_entry(
         )
         created_version = DomainRuntimeStoreEntry.MINIMUM_COMPATIBLE_VERSION
 
-    version = store_entry.version
+    version = max(store_entry.version, schema_version)
     if version < DomainRuntimeStoreEntry.MINIMUM_COMPATIBLE_VERSION:
         version = DomainRuntimeStoreEntry.MINIMUM_COMPATIBLE_VERSION
 
@@ -310,6 +366,7 @@ def store_runtime_data(
 ) -> None:
     """Attach runtime data to the config entry and update compatibility caches."""
 
+    _stamp_runtime_schema(entry.entry_id, runtime_data)
     store_entry = DomainRuntimeStoreEntry(runtime_data=runtime_data).ensure_current()
     _apply_entry_metadata(entry, store_entry)
 
@@ -328,7 +385,15 @@ def get_runtime_data(
     entry = _get_entry(hass, entry_or_id)
     entry_id = _resolve_entry_id(entry_or_id)
 
-    entry_store_entry = _get_store_entry_from_entry(entry)
+    try:
+        entry_store_entry = _get_store_entry_from_entry(entry)
+    except RuntimeDataIncompatibleError as err:
+        _LOGGER.error("Runtime data incompatible for entry %s: %s", entry_id, err)
+        _detach_runtime_from_entry(entry)
+        if raise_on_incompatible:
+            raise
+        return None
+
     if entry_store_entry is not None:
         try:
             current_entry = _normalise_store_entry(entry_id, entry_store_entry)
@@ -490,7 +555,10 @@ def pop_runtime_data(
 
     entry = _get_entry(hass, entry_or_id)
     entry_id = _resolve_entry_id(entry_or_id)
-    entry_store_entry = _get_store_entry_from_entry(entry)
+    try:
+        entry_store_entry = _get_store_entry_from_entry(entry)
+    except RuntimeDataIncompatibleError:
+        entry_store_entry = None
     if entry_store_entry is not None:
         try:
             current_entry = _normalise_store_entry(entry_id, entry_store_entry)

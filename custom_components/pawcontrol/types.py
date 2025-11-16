@@ -396,16 +396,16 @@ type StorageNamespaceState = dict[StorageNamespaceKey, StorageNamespacePayload]
 type StorageCacheValue = StorageNamespaceState | StorageNamespacePayload | None
 """Union of cache payloads tracked by :class:`PawControlDataStorage`."""
 
-type HealthHistoryEntry = HealthEvent | JSONMutableMapping
+type HealthHistoryEntry = JSONMutableMapping
 """Health history entry stored in runtime storage queues."""
 
 type HealthNamespaceMutable = dict[str, list[HealthHistoryEntry] | JSONValue]
 """Mutable mapping of per-dog health history payloads."""
 
-type WalkHistoryEntry = WalkEvent | JSONMutableMapping
+type WalkHistoryEntry = JSONMutableMapping
 """Walk history entry captured during runtime processing."""
 
-type WalkNamespaceValue = JSONValue | WalkEvent | list[WalkHistoryEntry] | None
+type WalkNamespaceValue = JSONValue | list[WalkHistoryEntry] | None
 """Allowed value types persisted inside a walk namespace entry."""
 
 type WalkNamespaceMutableEntry = dict[str, WalkNamespaceValue]
@@ -6049,6 +6049,13 @@ def empty_runtime_performance_stats() -> RuntimePerformanceStats:
     return cast(RuntimePerformanceStats, {})
 
 
+DOMAIN_RUNTIME_STORE_VERSION: Final[int] = 2
+"""Current schema version for domain runtime store entries."""
+
+DOMAIN_RUNTIME_STORE_MINIMUM_COMPATIBLE_VERSION: Final[int] = 1
+"""Lowest supported schema version for domain runtime store entries."""
+
+
 @dataclass
 class PawControlRuntimeData:
     """Comprehensive runtime data container for the PawControl integration.
@@ -6111,6 +6118,8 @@ class PawControlRuntimeData:
     # PLATINUM: Optional unsubscribe callbacks for scheduler and reload listener
     daily_reset_unsub: Any = field(default=None)
     reload_unsub: Callable[[], Any] | None = None
+    schema_created_version: int = DOMAIN_RUNTIME_STORE_VERSION
+    schema_version: int = DOMAIN_RUNTIME_STORE_VERSION
     _runtime_managers_cache: CoordinatorRuntimeManagers | None = field(
         default=None, init=False, repr=False
     )
@@ -6173,6 +6182,8 @@ class PawControlRuntimeData:
             "manual_event_history": list(self.manual_event_history),
             "background_monitor_task": self.background_monitor_task,
             "daily_reset_unsub": self.daily_reset_unsub,
+            "schema_created_version": self.schema_created_version,
+            "schema_version": self.schema_version,
         }
 
     def __getitem__(self, key: str) -> Any:
@@ -6208,14 +6219,6 @@ class PawControlRuntimeData:
             The requested attribute value or default
         """
         return getattr(self, key, default)
-
-
-DOMAIN_RUNTIME_STORE_VERSION: Final[int] = 2
-"""Current schema version for domain runtime store entries."""
-
-
-DOMAIN_RUNTIME_STORE_MINIMUM_COMPATIBLE_VERSION: Final[int] = 1
-"""Minimum supported schema version for runtime store entries."""
 
 
 class LegacyDomainRuntimeStoreEntry(TypedDict, total=False):
@@ -6342,6 +6345,44 @@ class RuntimeStoreAssessmentEvent(TypedDict, total=False):
     current_level_duration_seconds: float | None
 
 
+class RuntimeStoreAssessmentTimelineSegment(TypedDict, total=False):
+    """Contiguous period derived from runtime store assessment events."""
+
+    start: str
+    end: str | None
+    level: RuntimeStoreHealthLevel
+    status: RuntimeStoreOverallStatus | None
+    entry_status: RuntimeStoreEntryStatus | None
+    store_status: RuntimeStoreEntryStatus | None
+    reason: str | None
+    recommended_action: str | None
+    divergence_detected: bool | None
+    divergence_rate: float | None
+    checks: int | None
+    divergence_events: int | None
+    duration_seconds: float | None
+
+
+class RuntimeStoreLevelDurationPercentiles(TypedDict, total=False):
+    """Percentile distribution for runtime store level durations."""
+
+    p75: float
+    p90: float
+    p95: float
+
+
+class RuntimeStoreLevelDurationAlert(TypedDict, total=False):
+    """Alert produced when duration percentiles exceed guard limits."""
+
+    level: RuntimeStoreHealthLevel
+    percentile_label: str
+    percentile_rank: float
+    percentile_seconds: float
+    guard_limit_seconds: float
+    severity: str
+    recommended_action: str | None
+
+
 class RuntimeStoreAssessmentTimelineSummary(TypedDict, total=False):
     """Derived statistics for the runtime store assessment timeline."""
 
@@ -6371,6 +6412,17 @@ class RuntimeStoreAssessmentTimelineSummary(TypedDict, total=False):
     max_divergence_rate: float | None
     level_duration_peaks: dict[RuntimeStoreHealthLevel, float]
     level_duration_latest: dict[RuntimeStoreHealthLevel, float | None]
+    level_duration_totals: dict[RuntimeStoreHealthLevel, float]
+    level_duration_samples: dict[RuntimeStoreHealthLevel, int]
+    level_duration_averages: dict[RuntimeStoreHealthLevel, float | None]
+    level_duration_minimums: dict[RuntimeStoreHealthLevel, float | None]
+    level_duration_medians: dict[RuntimeStoreHealthLevel, float | None]
+    level_duration_standard_deviations: dict[RuntimeStoreHealthLevel, float | None]
+    level_duration_percentiles: dict[
+        RuntimeStoreHealthLevel, RuntimeStoreLevelDurationPercentiles
+    ]
+    level_duration_alert_thresholds: dict[RuntimeStoreHealthLevel, float | None]
+    level_duration_guard_alerts: list[RuntimeStoreLevelDurationAlert]
 
 
 class RuntimeStoreHealthHistory(TypedDict, total=False):
@@ -6398,6 +6450,7 @@ class RuntimeStoreHealthHistory(TypedDict, total=False):
     assessment_current_level_duration_seconds: float | None
     assessment_events: list[RuntimeStoreAssessmentEvent]
     assessment: RuntimeStoreHealthAssessment
+    assessment_timeline_segments: list[RuntimeStoreAssessmentTimelineSegment]
     assessment_timeline_summary: RuntimeStoreAssessmentTimelineSummary
 
 
@@ -6424,6 +6477,7 @@ class RuntimeStoreHealthAssessment(TypedDict, total=False):
     current_level_duration_seconds: float | None
     events: list[RuntimeStoreAssessmentEvent]
     timeline_summary: RuntimeStoreAssessmentTimelineSummary
+    timeline_segments: list[RuntimeStoreAssessmentTimelineSegment]
 
 
 class CoordinatorRuntimeStoreSummary(TypedDict, total=False):
@@ -6487,6 +6541,8 @@ class PawControlRuntimeDataExport(TypedDict):
     manual_event_history: list[ManualResilienceEventRecord]
     background_monitor_task: Task[None] | None
     daily_reset_unsub: Any
+    schema_created_version: int
+    schema_version: int
 
 
 @dataclass

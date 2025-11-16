@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping, Sequence
-from math import isfinite
-from typing import Any, cast
+from datetime import datetime
+from math import ceil, floor, isfinite
+from statistics import median, pstdev
+from typing import Any, Final, cast
 
 from homeassistant.util import dt as dt_util
 
@@ -30,12 +32,15 @@ from .types import (
     RuntimeErrorHistoryEntry,
     RuntimePerformanceStats,
     RuntimeStoreAssessmentEvent,
+    RuntimeStoreAssessmentTimelineSegment,
     RuntimeStoreAssessmentTimelineSummary,
     RuntimeStoreCompatibilitySnapshot,
     RuntimeStoreEntryStatus,
     RuntimeStoreHealthAssessment,
     RuntimeStoreHealthHistory,
     RuntimeStoreHealthLevel,
+    RuntimeStoreLevelDurationAlert,
+    RuntimeStoreLevelDurationPercentiles,
     RuntimeStoreOverallStatus,
 )
 
@@ -115,6 +120,37 @@ _RUNTIME_STORE_RECOMMENDATIONS: dict[RuntimeStoreHealthLevel, str | None] = {
 
 _DIVERGENCE_WATCH_THRESHOLD = 0.1
 _DIVERGENCE_ACTION_THRESHOLD = 0.5
+_LEVEL_DURATION_PERCENTILE_TARGETS: dict[str, float] = {
+    "p75": 0.75,
+    "p90": 0.9,
+    "p95": 0.95,
+}
+
+_LEVEL_DURATION_GUARD_LIMITS: Final[dict[RuntimeStoreHealthLevel, float | None]] = {
+    "ok": None,
+    "watch": 6 * 3600.0,
+    "action_required": 2 * 3600.0,
+}
+
+_LEVEL_DURATION_GUARD_SEVERITY: Final[dict[RuntimeStoreHealthLevel, str]] = {
+    "ok": "info",
+    "watch": "warning",
+    "action_required": "critical",
+}
+
+_LEVEL_DURATION_GUARD_RECOMMENDATIONS: Final[
+    dict[RuntimeStoreHealthLevel, str | None]
+] = {
+    "ok": None,
+    "watch": (
+        "Review runtime store diagnostics; run the compatibility repair if the "
+        "warning persists beyond the guard window."
+    ),
+    "action_required": (
+        "Reset the runtime store via the compatibility repair and reload PawControl "
+        "to clear stale action-required segments."
+    ),
+}
 
 _RUNTIME_STORE_LEVEL_ORDER: dict[RuntimeStoreHealthLevel, int] = {
     "ok": 0,
@@ -281,6 +317,46 @@ def _normalise_runtime_store_assessment_events(
     return events
 
 
+def _calculate_percentile_value(
+    sorted_values: Sequence[float], percentile: float
+) -> float | None:
+    """Return the percentile value for ``sorted_values``."""
+
+    if not sorted_values:
+        return None
+    if len(sorted_values) == 1:
+        return sorted_values[0]
+
+    position = percentile * (len(sorted_values) - 1)
+    lower_index = floor(position)
+    upper_index = ceil(position)
+    if lower_index == upper_index:
+        return sorted_values[int(position)]
+
+    lower_value = sorted_values[lower_index]
+    upper_value = sorted_values[upper_index]
+    weight = position - lower_index
+    return lower_value + (upper_value - lower_value) * weight
+
+
+def _calculate_duration_percentiles(
+    durations: Sequence[float],
+) -> RuntimeStoreLevelDurationPercentiles:
+    """Return percentile markers for ``durations``."""
+
+    percentiles: RuntimeStoreLevelDurationPercentiles = {}
+    if not durations:
+        return percentiles
+
+    sorted_values = sorted(durations)
+    for label, percentile in _LEVEL_DURATION_PERCENTILE_TARGETS.items():
+        percentile_value = _calculate_percentile_value(sorted_values, percentile)
+        if percentile_value is not None:
+            percentiles[label] = percentile_value
+
+    return percentiles
+
+
 def _summarise_runtime_store_assessment_events(
     events: Sequence[RuntimeStoreAssessmentEvent],
 ) -> RuntimeStoreAssessmentTimelineSummary:
@@ -304,6 +380,44 @@ def _summarise_runtime_store_assessment_events(
         "watch": None,
         "action_required": None,
     }
+    level_duration_totals: dict[RuntimeStoreHealthLevel, float] = {
+        "ok": 0.0,
+        "watch": 0.0,
+        "action_required": 0.0,
+    }
+    level_duration_samples: dict[RuntimeStoreHealthLevel, int] = {
+        "ok": 0,
+        "watch": 0,
+        "action_required": 0,
+    }
+    level_duration_minimums: dict[RuntimeStoreHealthLevel, float | None] = {
+        "ok": None,
+        "watch": None,
+        "action_required": None,
+    }
+    level_duration_standard_deviations: dict[RuntimeStoreHealthLevel, float | None] = {
+        "ok": None,
+        "watch": None,
+        "action_required": None,
+    }
+    level_duration_distributions: dict[RuntimeStoreHealthLevel, list[float]] = {
+        "ok": [],
+        "watch": [],
+        "action_required": [],
+    }
+    level_duration_percentiles: dict[
+        RuntimeStoreHealthLevel, RuntimeStoreLevelDurationPercentiles
+    ] = {
+        "ok": {},
+        "watch": {},
+        "action_required": {},
+    }
+    level_duration_alert_thresholds: dict[RuntimeStoreHealthLevel, float | None] = {
+        "ok": None,
+        "watch": None,
+        "action_required": None,
+    }
+    level_duration_guard_alerts: list[RuntimeStoreLevelDurationAlert] = []
     reason_counts: dict[str, int] = {}
     level_changes = 0
 
@@ -318,7 +432,19 @@ def _summarise_runtime_store_assessment_events(
     last_level_duration_seconds: float | None = None
     divergence_rates: list[float] = []
 
-    for index, event in enumerate(events):
+    parsed_events: list[tuple[RuntimeStoreAssessmentEvent, datetime | None]] = []
+    for event in events:
+        timestamp = event.get("timestamp")
+        parsed_events.append(
+            (
+                event,
+                dt_util.parse_datetime(timestamp)
+                if isinstance(timestamp, str)
+                else None,
+            )
+        )
+
+    for index, (event, start_dt) in enumerate(parsed_events):
         level = event.get("level")
         if level in level_counts:
             level_counts[level] += 1
@@ -358,12 +484,27 @@ def _summarise_runtime_store_assessment_events(
             divergence_rates.append(last_divergence_rate)
 
         if level in level_counts:
+            duration: float | None = None
             duration_raw = event.get("current_level_duration_seconds")
             if isinstance(duration_raw, (int, float)) and isfinite(duration_raw):
                 duration = max(float(duration_raw), 0.0)
+            elif start_dt is not None:
+                for _candidate_event, candidate_dt in parsed_events[index + 1 :]:
+                    if candidate_dt is None or candidate_dt < start_dt:
+                        continue
+                    duration = max((candidate_dt - start_dt).total_seconds(), 0.0)
+                    break
+
+            if duration is not None:
                 level_duration_latest[level] = duration
                 if duration > level_duration_peaks[level]:
                     level_duration_peaks[level] = duration
+                level_duration_totals[level] += duration
+                level_duration_samples[level] += 1
+                minimum = level_duration_minimums[level]
+                if minimum is None or duration < minimum:
+                    level_duration_minimums[level] = duration
+                level_duration_distributions[level].append(duration)
                 last_level_duration_seconds = duration
 
     total_events = len(events)
@@ -387,21 +528,70 @@ def _summarise_runtime_store_assessment_events(
 
     most_common_reason: str | None = None
     if reason_counts:
-        most_common_reason = max(reason_counts, key=reason_counts.get)
+        most_common_reason = max(reason_counts, key=lambda item: reason_counts[item])
 
     most_common_level: RuntimeStoreHealthLevel | None = None
     if level_counts and max(level_counts.values()) > 0:
-        most_common_level = max(level_counts, key=level_counts.get)
+        most_common_level = max(
+            level_counts, key=lambda level_key: level_counts[level_key]
+        )
 
     most_common_status: RuntimeStoreOverallStatus | None = None
     if status_counts and max(status_counts.values()) > 0:
-        most_common_status = max(status_counts, key=status_counts.get)
+        most_common_status = max(
+            status_counts, key=lambda status_key: status_counts[status_key]
+        )
 
     average_divergence_rate: float | None = None
     max_divergence_rate: float | None = None
     if divergence_rates:
         average_divergence_rate = sum(divergence_rates) / len(divergence_rates)
         max_divergence_rate = max(divergence_rates)
+
+    level_duration_averages: dict[RuntimeStoreHealthLevel, float | None] = {}
+    for level, total_duration in level_duration_totals.items():
+        samples = level_duration_samples.get(level, 0)
+        if samples > 0:
+            level_duration_averages[level] = total_duration / samples
+        else:
+            level_duration_averages[level] = None
+
+    level_duration_medians: dict[RuntimeStoreHealthLevel, float | None] = {}
+    for level, durations in level_duration_distributions.items():
+        if durations:
+            level_duration_medians[level] = median(durations)
+            if len(durations) > 1:
+                level_duration_standard_deviations[level] = pstdev(durations)
+            else:
+                level_duration_standard_deviations[level] = 0.0
+            percentiles = _calculate_duration_percentiles(durations)
+            level_duration_percentiles[level] = percentiles
+            alert_threshold = cast(dict[str, float], percentiles).get("p95")
+            level_duration_alert_thresholds[level] = alert_threshold
+            guard_limit = _LEVEL_DURATION_GUARD_LIMITS.get(level)
+            if (
+                guard_limit is not None
+                and alert_threshold is not None
+                and alert_threshold > guard_limit
+            ):
+                severity = _LEVEL_DURATION_GUARD_SEVERITY.get(level, "warning")
+                recommendation = _LEVEL_DURATION_GUARD_RECOMMENDATIONS.get(level)
+                level_duration_guard_alerts.append(
+                    {
+                        "level": level,
+                        "percentile_label": "p95",
+                        "percentile_rank": _LEVEL_DURATION_PERCENTILE_TARGETS["p95"],
+                        "percentile_seconds": alert_threshold,
+                        "guard_limit_seconds": guard_limit,
+                        "severity": severity,
+                        "recommended_action": recommendation,
+                    }
+                )
+        else:
+            level_duration_medians[level] = None
+            level_duration_standard_deviations[level] = None
+            level_duration_percentiles[level] = {}
+            level_duration_alert_thresholds[level] = None
 
     summary: RuntimeStoreAssessmentTimelineSummary = {
         "total_events": total_events,
@@ -430,9 +620,114 @@ def _summarise_runtime_store_assessment_events(
         "max_divergence_rate": max_divergence_rate,
         "level_duration_peaks": level_duration_peaks,
         "level_duration_latest": level_duration_latest,
+        "level_duration_totals": level_duration_totals,
+        "level_duration_samples": level_duration_samples,
+        "level_duration_averages": level_duration_averages,
+        "level_duration_minimums": level_duration_minimums,
+        "level_duration_medians": level_duration_medians,
+        "level_duration_standard_deviations": level_duration_standard_deviations,
+        "level_duration_percentiles": level_duration_percentiles,
+        "level_duration_alert_thresholds": level_duration_alert_thresholds,
+        "level_duration_guard_alerts": level_duration_guard_alerts,
     }
 
     return summary
+
+
+def _build_runtime_store_assessment_segments(
+    events: Sequence[RuntimeStoreAssessmentEvent],
+) -> list[RuntimeStoreAssessmentTimelineSegment]:
+    """Return contiguous timeline segments derived from assessment events."""
+
+    segments: list[RuntimeStoreAssessmentTimelineSegment] = []
+    if not events:
+        return segments
+
+    parsed: list[tuple[RuntimeStoreAssessmentEvent, datetime | None]] = []
+    for event in events:
+        timestamp = event.get("timestamp")
+        parsed.append(
+            (
+                event,
+                dt_util.parse_datetime(timestamp)
+                if isinstance(timestamp, str)
+                else None,
+            )
+        )
+
+    for index, (event, start_dt) in enumerate(parsed):
+        timestamp = event.get("timestamp")
+        if not isinstance(timestamp, str) or start_dt is None:
+            continue
+
+        segment: RuntimeStoreAssessmentTimelineSegment = {
+            "start": timestamp,
+            "level": cast(RuntimeStoreHealthLevel, event.get("level", "ok")),
+        }
+
+        status = event.get("status")
+        if isinstance(status, str) and status in _RUNTIME_STORE_STATUS_LEVELS:
+            segment["status"] = cast(RuntimeStoreOverallStatus, status)
+
+        entry_status = event.get("entry_status")
+        if isinstance(entry_status, str):
+            segment["entry_status"] = cast(RuntimeStoreEntryStatus, entry_status)
+
+        store_status = event.get("store_status")
+        if isinstance(store_status, str):
+            segment["store_status"] = cast(RuntimeStoreEntryStatus, store_status)
+
+        reason = event.get("reason")
+        if isinstance(reason, str):
+            segment["reason"] = reason
+
+        recommended_action = event.get("recommended_action")
+        if isinstance(recommended_action, str):
+            segment["recommended_action"] = recommended_action
+
+        divergence_detected = event.get("divergence_detected")
+        if isinstance(divergence_detected, bool):
+            segment["divergence_detected"] = divergence_detected
+
+        divergence_rate = event.get("divergence_rate")
+        if isinstance(divergence_rate, (int, float)) and isfinite(divergence_rate):
+            segment["divergence_rate"] = float(divergence_rate)
+
+        checks = event.get("checks")
+        if isinstance(checks, (int, float)):
+            segment["checks"] = int(checks)
+
+        divergence_events = event.get("divergence_events")
+        if isinstance(divergence_events, (int, float)):
+            segment["divergence_events"] = int(divergence_events)
+
+        end_timestamp: str | None = None
+        duration_seconds: float | None = None
+        for candidate_event, candidate_dt in parsed[index + 1 :]:
+            candidate_timestamp = candidate_event.get("timestamp")
+            if not isinstance(candidate_timestamp, str) or candidate_dt is None:
+                continue
+            if candidate_dt < start_dt:
+                continue
+            end_timestamp = candidate_timestamp
+            duration_seconds = max((candidate_dt - start_dt).total_seconds(), 0.0)
+            break
+
+        if end_timestamp is not None:
+            segment["end"] = end_timestamp
+        else:
+            current_duration = event.get("current_level_duration_seconds")
+            if isinstance(current_duration, (int, float)) and isfinite(
+                current_duration
+            ):
+                duration_seconds = max(float(current_duration), 0.0)
+
+        if duration_seconds is not None:
+            segment["duration_seconds"] = duration_seconds
+
+        segments.append(segment)
+
+    return segments
 
 
 def _resolve_runtime_store_assessment_timeline_summary(
@@ -792,10 +1087,19 @@ def update_runtime_store_health(
         entry_status=entry_status,
         store_status=store_status,
     )
+    segments = _build_runtime_store_assessment_segments(events)
+    history["assessment_timeline_segments"] = cast(
+        list[RuntimeStoreAssessmentTimelineSegment],
+        list(segments),
+    )
     assessment["events"] = list(events)
     assessment["timeline_summary"] = cast(
         RuntimeStoreAssessmentTimelineSummary,
         dict(timeline_summary),
+    )
+    assessment["timeline_segments"] = cast(
+        list[RuntimeStoreAssessmentTimelineSegment],
+        list(segments),
     )
     history["assessment"] = assessment
 
@@ -1048,12 +1352,12 @@ def update_runtime_entity_factory_guard_metrics(
         performance_stats["entity_factory_guard_metrics"] = metrics
 
     metrics["schema_version"] = 1
-    previous_floor = (
-        float(stored_metrics.get("runtime_floor"))
-        if isinstance(stored_metrics, MutableMapping)
-        and isinstance(stored_metrics.get("runtime_floor"), (int, float))
-        else None
-    )
+    previous_floor_raw: object | None = None
+    if isinstance(stored_metrics, MutableMapping):
+        previous_floor_raw = stored_metrics.get("runtime_floor")
+    previous_floor: float | None = None
+    if isinstance(previous_floor_raw, (int, float)) and isfinite(previous_floor_raw):
+        previous_floor = float(previous_floor_raw)
     previous_samples = int(metrics.get("samples", 0) or 0)
     metrics.setdefault("stable_samples", 0)
     metrics.setdefault("expansions", 0)

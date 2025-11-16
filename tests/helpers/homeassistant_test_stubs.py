@@ -1653,18 +1653,34 @@ def _install_helper_modules() -> None:
     sys.modules["homeassistant.helpers.restore_state"] = restore_module
 
     storage_module = ModuleType("homeassistant.helpers.storage")
+    storage_state: dict[str, Any] = {}
 
     class Store:
-        def __init__(self, hass: Any, version: int, key: str) -> None:
+        def __init__(
+            self,
+            hass: Any,
+            version: int,
+            key: str,
+            *,
+            encoder: Callable[[Any], Any] | None = None,
+            minor_version: int | None = None,
+            atomic_writes: bool = False,
+        ) -> None:
             self.data: Any | None = None
+            self.key = key
+            self.version = version
+            self.encoder = encoder
+            self.minor_version = minor_version
+            self.atomic_writes = atomic_writes
 
         async def async_load(self) -> Any | None:
-            return self.data
+            return storage_state.get(self.key)
 
         async def async_save(self, data: Any) -> None:
-            self.data = data
+            storage_state[self.key] = data
 
     storage_module.Store = Store
+    storage_module._STORAGE_STATE = storage_state  # pragma: no cover - test aid
     sys.modules["homeassistant.helpers.storage"] = storage_module
 
     entity_component_module = ModuleType("homeassistant.helpers.entity_component")
@@ -1824,7 +1840,10 @@ def _install_helper_modules() -> None:
         entity_id: str
         unique_id: str
         platform: str
+        domain: str
         device_id: str | None = None
+        name: str | None = None
+        disabled_by: str | None = None
 
     @dataclass
     class EntityRegistryEvent:
@@ -1851,7 +1870,9 @@ def _install_helper_modules() -> None:
                 entity_id=entity_id,
                 unique_id=unique_id,
                 platform=platform,
+                domain=domain,
                 device_id=device_id,
+                name=suggested_object_id,
             )
             self._entities[entity_id] = entry
             return entry
@@ -1860,6 +1881,12 @@ def _install_helper_modules() -> None:
             """Return an entity registry entry if it exists."""
 
             return self._entities.get(entity_id)
+
+        @property
+        def entities(self) -> dict[str, EntityRegistryEntry]:
+            """Expose the entity mapping for discovery helpers."""
+
+            return self._entities
 
         def async_listen(
             self, callback: Callable[[EntityRegistryEvent], None]

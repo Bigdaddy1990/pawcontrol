@@ -35,6 +35,7 @@ from .types import (
     PawControlRuntimeData,
     ResilienceEscalationFieldEntry,
     ResilienceEscalationThresholds,
+    RuntimeStoreAssessmentTimelineSegment,
     RuntimeStoreAssessmentTimelineSummary,
     RuntimeStoreHealthAssessment,
     RuntimeStoreHealthHistory,
@@ -90,6 +91,14 @@ def _attach_runtime_store_history(
             RuntimeStoreHealthAssessment,
             dict(assessment),
         )
+
+    timeline_segments = history.get("assessment_timeline_segments")
+    if isinstance(timeline_segments, Sequence):
+        info["runtime_store_timeline_segments"] = [
+            cast(RuntimeStoreAssessmentTimelineSegment, dict(segment))
+            for segment in timeline_segments
+            if isinstance(segment, Mapping)
+        ]
 
     timeline_summary = history.get("assessment_timeline_summary")
     if isinstance(timeline_summary, Mapping):

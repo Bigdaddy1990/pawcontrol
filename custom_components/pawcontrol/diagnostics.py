@@ -81,6 +81,7 @@ from .types import (
     PawControlRuntimeData,
     RecentErrorEntry,
     ResilienceEscalationSnapshot,
+    RuntimeStoreAssessmentTimelineSegment,
     RuntimeStoreAssessmentTimelineSummary,
     RuntimeStoreHealthAssessment,
     SetupFlagPanelEntry,
@@ -634,6 +635,13 @@ async def async_get_config_entry_diagnostics(
                 RuntimeStoreHealthAssessment,
                 dict(assessment),
             )
+        timeline_segments = runtime_store_history.get("assessment_timeline_segments")
+        if isinstance(timeline_segments, Sequence):
+            diagnostics["runtime_store_timeline_segments"] = [
+                cast(RuntimeStoreAssessmentTimelineSegment, dict(segment))
+                for segment in timeline_segments
+                if isinstance(segment, Mapping)
+            ]
         timeline_summary = runtime_store_history.get("assessment_timeline_summary")
         if isinstance(timeline_summary, Mapping):
             diagnostics["runtime_store_timeline_summary"] = cast(

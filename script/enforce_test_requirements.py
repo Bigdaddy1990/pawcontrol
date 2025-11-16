@@ -74,6 +74,10 @@ class DependencyRule:
 
 
 THIRD_PARTY_OVERRIDES: dict[str, DependencyRule] = {
+    "_pytest": DependencyRule(
+        "pytest",
+        "Internal helper module bundled with ``pytest``.",
+    ),
     # The stub exposes ``yaml`` but the distribution ships as ``pyyaml``.
     "yaml": DependencyRule("pyyaml", "The PyYAML distribution provides ``yaml``."),
     # ``homeassistant`` vendors ``aiohttp``; the requirement ensures the resolver stays explicit.

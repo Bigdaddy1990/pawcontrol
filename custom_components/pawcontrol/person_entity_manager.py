@@ -320,31 +320,39 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             config: Optional configuration override
         """
         async with self._lock:
-            # Update configuration
-            if config:
-                self._config = self._build_config_from_input(config)
-
-            if not self._config.enabled:
-                _LOGGER.debug("Person entity integration disabled")
-                return
-
-            # Initial discovery
-            await self._discover_person_entities()
-
-            # Set up state tracking
-            await self._setup_state_tracking()
-
-            # Start discovery task if auto-discovery enabled
-            if self._config.auto_discovery:
-                await self._start_discovery_task()
-
-            _LOGGER.info(
-                "Person entity manager initialized: %d persons discovered",
-                len(self._persons),
-            )
+            await self._async_initialize_locked(config)
 
         if self._cache_registrar is not None:
             self.register_cache_monitors(self._cache_registrar)
+
+    async def _async_initialize_locked(
+        self, config: PersonEntityConfigInput | None
+    ) -> None:
+        """Initialise manager internals while ``_lock`` is held."""
+
+        if config:
+            self._config = self._build_config_from_input(config)
+
+        await self._cancel_discovery_task_locked()
+        self._clear_state_listeners_locked()
+        self._targets_cache.clear()
+
+        if not self._config.enabled:
+            self._persons.clear()
+            _LOGGER.debug("Person entity integration disabled")
+            return
+
+        await self._discover_person_entities()
+
+        await self._setup_state_tracking()
+
+        if self._config.auto_discovery:
+            await self._start_discovery_task()
+
+        _LOGGER.info(
+            "Person entity manager initialized: %d persons discovered",
+            len(self._persons),
+        )
 
     async def _discover_person_entities(self) -> None:
         """Discover all person entities in Home Assistant."""
@@ -704,25 +712,24 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             True if configuration was updated
         """
         async with self._lock:
-            try:
-                old_enabled = self._config.enabled
+            old_enabled = self._config.enabled
 
-                # Update configuration
-                await self.async_initialize(new_config)
+        try:
+            await self.async_initialize(new_config)
+        except Exception as err:
+            _LOGGER.error("Failed to update person entity config: %s", err)
+            return False
 
-                # Handle enable/disable state changes
-                if old_enabled != self._config.enabled:
-                    if self._config.enabled:
-                        _LOGGER.info("Person entity integration enabled")
-                    else:
-                        _LOGGER.info("Person entity integration disabled")
-                        await self.async_shutdown()
+        async with self._lock:
+            new_enabled = self._config.enabled
 
-                return True
+        if old_enabled != new_enabled:
+            if new_enabled:
+                _LOGGER.info("Person entity integration enabled")
+            else:
+                _LOGGER.info("Person entity integration disabled")
 
-            except Exception as err:
-                _LOGGER.error("Failed to update person entity config: %s", err)
-                return False
+        return True
 
     def get_statistics(self) -> PersonEntityStats:
         """Get comprehensive statistics.
@@ -812,19 +819,16 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
     async def async_shutdown(self) -> None:
         """Shutdown person entity manager."""
-        # Cancel discovery task
-        if self._discovery_task and not self._discovery_task.done():
-            self._discovery_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await self._discovery_task
 
-        # Remove state listeners
-        for listener in self._state_listeners:
-            if callable(listener):
-                listener()
-        self._state_listeners.clear()
+        async with self._lock:
+            await self._async_shutdown_locked()
 
-        # Clear data
+    async def _async_shutdown_locked(self) -> None:
+        """Shutdown internals while ``_lock`` is held."""
+
+        await self._cancel_discovery_task_locked()
+        self._clear_state_listeners_locked()
+
         self._persons.clear()
         self._targets_cache.clear()
 
@@ -904,3 +908,28 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
         self._cache_registrar = registrar
         registrar.register_cache_monitor(f"{prefix}_targets", self)
+
+    async def _cancel_discovery_task_locked(self) -> None:
+        """Cancel the periodic discovery task when held under lock."""
+
+        if self._discovery_task is None:
+            return
+
+        if not self._discovery_task.done():
+            self._discovery_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self._discovery_task
+
+        self._discovery_task = None
+
+    def _clear_state_listeners_locked(self) -> None:
+        """Detach any registered state listeners while holding the lock."""
+
+        if not self._state_listeners:
+            return
+
+        for listener in self._state_listeners:
+            if callable(listener):
+                listener()
+
+        self._state_listeners.clear()

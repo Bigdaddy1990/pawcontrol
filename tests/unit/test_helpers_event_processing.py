@@ -10,6 +10,8 @@ from custom_components.pawcontrol.const import (
     CONF_DOGS,
     EVENT_FEEDING_LOGGED,
     EVENT_HEALTH_LOGGED,
+    EVENT_WALK_ENDED,
+    EVENT_WALK_STARTED,
 )
 from custom_components.pawcontrol.helpers import (
     PawControlData,
@@ -23,6 +25,8 @@ from custom_components.pawcontrol.types import (
     JSONValue,
     NotificationPriority,
     QueuedNotificationPayload,
+    WalkEvent,
+    WalkNamespaceMutableEntry,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -122,7 +126,7 @@ async def test_process_health_batch_serializes_structured_events(
         "custom_components.pawcontrol.helpers.PawControlDataStorage",
         lambda *_: storage,
     )
-    monkeypatch.setattr("custom_components.pawcontrol.helpers.MAX_HISTORY_ITEMS", 2)
+    monkeypatch.setattr("custom_components.pawcontrol.helpers.MAX_HISTORY_ITEMS", 3)
 
     data_manager = PawControlData(hass, config_entry)
     health_namespace = data_manager._ensure_namespace("health")
@@ -130,7 +134,17 @@ async def test_process_health_batch_serializes_structured_events(
         HealthHistoryEntry,
         {"timestamp": "2024-04-30T00:00:00+00:00", "weight": 12.1},
     )
-    existing_health_history: list[HealthHistoryEntry] = [existing_health_entry]
+    legacy_event = HealthEvent.from_raw(
+        "dog-1",
+        cast(
+            JSONMutableMapping,
+            {"timestamp": "2024-04-25T00:00:00+00:00", "weight": 12.0},
+        ),
+    )
+    existing_health_history: list[HealthHistoryEntry | HealthEvent] = [
+        existing_health_entry,
+        legacy_event,
+    ]
     health_namespace["dog-1"] = cast(JSONValue, existing_health_history)
 
     events: list[QueuedEvent] = [
@@ -150,15 +164,18 @@ async def test_process_health_batch_serializes_structured_events(
         await data_manager._process_health_batch(events)
 
     dog_history = cast(list[HealthHistoryEntry], health_namespace["dog-1"])
-    assert len(dog_history) == 2
-    assert all(isinstance(entry, HealthEvent) for entry in dog_history)
+    assert len(dog_history) == 3
+    assert all(isinstance(entry, dict) for entry in dog_history)
+    assert {entry["weight"] for entry in dog_history} == {12.0, 12.1, 12.3}
+    assert all(isinstance(entry.get("timestamp"), str) for entry in dog_history)
 
     storage.async_save_data.assert_awaited_once()
     save_args = storage.async_save_data.await_args
     assert save_args.args[0] == "health"
     serialized = save_args.args[1]
     assert serialized["dog-1"][0]["timestamp"] == "2024-04-30T00:00:00+00:00"
-    assert serialized["dog-1"][1]["heart_rate"] == 75
+    assert serialized["dog-1"][1]["timestamp"] == "2024-04-25T00:00:00+00:00"
+    assert serialized["dog-1"][2]["heart_rate"] == 75
 
     async_fire_event.assert_awaited_once()
     event_args = async_fire_event.await_args_list[0]
@@ -166,6 +183,239 @@ async def test_process_health_batch_serializes_structured_events(
     payload = event_args.args[2]
     assert payload["dog_id"] == "dog-1"
     assert payload["heart_rate"] == 75
+
+
+@pytest.mark.asyncio
+async def test_process_walk_batch_normalizes_storage(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """`_process_walk_batch` should persist JSON payloads and merge sessions."""
+
+    hass = MagicMock(spec=HomeAssistant)
+    hass.async_create_task = MagicMock(side_effect=asyncio.create_task)
+
+    config_entry = MagicMock(spec=ConfigEntry)
+    config_entry.data = {CONF_DOGS: [{"dog_id": "dog-1"}]}
+    config_entry.options = {}
+    config_entry.entry_id = "entry-id"
+
+    storage = MagicMock()
+    storage.async_save_data = AsyncMock()
+    storage.async_shutdown = AsyncMock()
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.helpers.PawControlDataStorage",
+        lambda *_: storage,
+    )
+    monkeypatch.setattr("custom_components.pawcontrol.helpers.MAX_HISTORY_ITEMS", 3)
+
+    data_manager = PawControlData(hass, config_entry)
+    walk_namespace = data_manager._ensure_namespace("walks")
+    legacy_active = WalkEvent.from_raw(
+        "dog-1",
+        cast(
+            JSONMutableMapping,
+            {
+                "timestamp": "2024-04-30T09:00:00+00:00",
+                "action": "start",
+                "session_id": "session-0",
+                "route": "evening",
+            },
+        ),
+    )
+    walk_namespace["dog-1"] = cast(
+        JSONValue,
+        {
+            "active": cast(JSONValue, legacy_active),
+            "history": cast(
+                JSONValue,
+                [
+                    legacy_active.as_dict(),
+                    None,
+                ],
+            ),
+            "metadata": cast(JSONValue, {"surface": "trail"}),
+        },
+    )
+
+    events: list[QueuedEvent] = [
+        {
+            "type": "walk",
+            "dog_id": "dog-1",
+            "timestamp": "2024-05-01T08:00:00+00:00",
+            "data": cast(
+                JSONMutableMapping,
+                {"action": "start", "session_id": "session-1", "route": "morning"},
+            ),
+        },
+        {
+            "type": "walk",
+            "dog_id": "dog-1",
+            "timestamp": "2024-05-01T08:20:00+00:00",
+            "data": cast(
+                JSONMutableMapping,
+                {"session_id": "session-1", "distance": 1.5},
+            ),
+        },
+        {
+            "type": "walk",
+            "dog_id": "dog-1",
+            "timestamp": "2024-05-01T08:40:00+00:00",
+            "data": cast(
+                JSONMutableMapping,
+                {"action": "end", "session_id": "session-1", "duration": 40},
+            ),
+        },
+    ]
+
+    async_fire_event = AsyncMock()
+    with patch(
+        "custom_components.pawcontrol.helpers.async_fire_event",
+        async_fire_event,
+    ):
+        await data_manager._process_walk_batch(events)
+
+    walk_entry = cast(WalkNamespaceMutableEntry, walk_namespace["dog-1"])
+    history = cast(list[JSONMutableMapping], walk_entry["history"])
+    assert len(history) == 2
+    assert all(isinstance(entry, dict) for entry in history)
+    final_entry = history[0]
+    assert final_entry["session_id"] == "session-1"
+    assert final_entry["duration"] == 40
+    assert final_entry["route"] == "morning"
+    assert final_entry["distance"] == 1.5
+    assert walk_entry["active"] is None
+    assert walk_entry["metadata"] == {"surface": "trail"}
+
+    storage.async_save_data.assert_awaited_once()
+    save_args = storage.async_save_data.await_args
+    assert save_args.args[0] == "walks"
+    serialized = save_args.args[1]
+    serialized_entry = cast(dict[str, object], serialized["dog-1"])
+    assert serialized_entry["active"] is None
+    serialized_history = cast(list[object], serialized_entry["history"])
+    assert all(isinstance(entry, dict) for entry in serialized_history)
+
+    assert async_fire_event.await_count == 2
+    event_types = [call.args[1] for call in async_fire_event.await_args_list]
+    assert event_types == [EVENT_WALK_STARTED, EVENT_WALK_ENDED]
+
+
+@pytest.mark.asyncio
+async def test_process_walk_batch_sorts_history_descending(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Walk history should be sorted newest first and trimmed to the limit."""
+
+    hass = MagicMock(spec=HomeAssistant)
+    hass.async_create_task = MagicMock(side_effect=asyncio.create_task)
+
+    config_entry = MagicMock(spec=ConfigEntry)
+    config_entry.data = {CONF_DOGS: [{"dog_id": "dog-1"}]}
+    config_entry.options = {}
+    config_entry.entry_id = "entry-id"
+
+    storage = MagicMock()
+    storage.async_save_data = AsyncMock()
+    storage.async_shutdown = AsyncMock()
+
+    monkeypatch.setattr(
+        "custom_components.pawcontrol.helpers.PawControlDataStorage",
+        lambda *_: storage,
+    )
+    monkeypatch.setattr("custom_components.pawcontrol.helpers.MAX_HISTORY_ITEMS", 2)
+
+    data_manager = PawControlData(hass, config_entry)
+    walk_namespace = data_manager._ensure_namespace("walks")
+    walk_namespace["dog-1"] = cast(
+        JSONValue,
+        {
+            "active": None,
+            "history": cast(
+                JSONValue,
+                [
+                    {
+                        "session_id": "legacy-old",
+                        "timestamp": "2024-04-01T10:00:00+00:00",
+                    },
+                    {"session_id": "legacy-missing"},
+                    {
+                        "session_id": "legacy-new",
+                        "timestamp": "2024-05-01T12:00:00+00:00",
+                    },
+                ],
+            ),
+        },
+    )
+
+    events: list[QueuedEvent] = [
+        {
+            "type": "walk",
+            "dog_id": "dog-1",
+            "timestamp": "2024-05-02T07:00:00+00:00",
+            "data": cast(
+                JSONMutableMapping,
+                {
+                    "action": "start",
+                    "session_id": "session-new",
+                    "route": "sunrise",
+                },
+            ),
+        },
+        {
+            "type": "walk",
+            "dog_id": "dog-1",
+            "timestamp": "2024-05-02T07:25:00+00:00",
+            "data": cast(
+                JSONMutableMapping,
+                {
+                    "session_id": "session-new",
+                    "distance": 2.4,
+                },
+            ),
+        },
+        {
+            "type": "walk",
+            "dog_id": "dog-1",
+            "timestamp": "2024-05-02T07:45:00+00:00",
+            "data": cast(
+                JSONMutableMapping,
+                {
+                    "action": "end",
+                    "session_id": "session-new",
+                    "duration": 45,
+                },
+            ),
+        },
+    ]
+
+    async_fire_event = AsyncMock()
+    with patch(
+        "custom_components.pawcontrol.helpers.async_fire_event",
+        async_fire_event,
+    ):
+        await data_manager._process_walk_batch(events)
+
+    walk_entry = cast(WalkNamespaceMutableEntry, walk_namespace["dog-1"])
+    history = cast(list[JSONMutableMapping], walk_entry["history"])
+    assert len(history) == 2
+    assert [entry["session_id"] for entry in history] == [
+        "session-new",
+        "legacy-new",
+    ]
+    assert history[0]["timestamp"] == "2024-05-02T07:45:00+00:00"
+    assert history[1]["timestamp"] == "2024-05-01T12:00:00+00:00"
+
+    storage.async_save_data.assert_awaited_once()
+    serialized = storage.async_save_data.await_args.args[1]
+    serialized_entry = cast(dict[str, object], serialized["dog-1"])
+    serialized_history = cast(list[JSONMutableMapping], serialized_entry["history"])
+    assert [entry["session_id"] for entry in serialized_history] == [
+        "session-new",
+        "legacy-new",
+    ]
+
+    assert async_fire_event.await_count == 2
 
 
 @pytest.mark.asyncio

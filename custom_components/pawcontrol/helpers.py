@@ -46,6 +46,7 @@ from .types import (
     HealthEvent,
     HealthHistoryEntry,
     HealthNamespaceMutable,
+    JSONDateMapping,
     JSONLikeMapping,
     JSONMutableMapping,
     JSONValue,
@@ -61,6 +62,7 @@ from .types import (
     WalkHistoryEntry,
     WalkNamespaceMutable,
     WalkNamespaceMutableEntry,
+    WalkNamespaceValue,
     WalkStartPayload,
 )
 from .utils import (
@@ -1010,32 +1012,16 @@ class PawControlData:
         health_namespace = cast(HealthNamespaceMutable, health_namespace_payload)
         for dog_id, history in list(health_namespace.items()):
             if not isinstance(history, list):
-                health_namespace[dog_id] = cast(list[HealthHistoryEntry], [])
+                health_namespace[dog_id] = cast(JSONValue, [])
                 continue
 
-            normalized_health_history: list[HealthEvent] = []
+            normalized_health_history: list[HealthHistoryEntry] = []
             for entry in history:
-                if isinstance(entry, HealthEvent):
-                    normalized_health_history.append(entry)
-                elif isinstance(entry, dict):
-                    try:
-                        normalized_health_history.append(
-                            HealthEvent.from_storage(dog_id, entry)
-                        )
-                    except Exception as err:
-                        _LOGGER.debug(
-                            "Unable to hydrate health history for %s: %s",
-                            dog_id,
-                            err,
-                        )
-                else:
-                    _LOGGER.debug(
-                        "Skipping unsupported health history entry type: %s",
-                        type(entry).__name__,
-                    )
-            health_namespace[dog_id] = cast(
-                list[HealthHistoryEntry], normalized_health_history
-            )
+                normalized_entry = self._normalize_health_history_entry(dog_id, entry)
+                if normalized_entry is not None:
+                    normalized_health_history.append(normalized_entry)
+
+            health_namespace[dog_id] = cast(JSONValue, normalized_health_history)
 
         walk_namespace_payload = self._ensure_namespace("walks")
         walk_namespace = cast(WalkNamespaceMutable, walk_namespace_payload)
@@ -1051,51 +1037,26 @@ class PawControlData:
                 continue
 
             walk_data = cast(WalkNamespaceMutableEntry, walk_data_any)
+
             history_value = walk_data.get("history")
+            normalized_history: list[WalkHistoryEntry] = []
             if isinstance(history_value, list):
-                history_list = cast(list[WalkHistoryEntry], history_value)
-            else:
-                history_list = cast(list[WalkHistoryEntry], [])
-                walk_data["history"] = history_list
-
-            normalized_walk_history: list[WalkEvent] = []
-            for entry in history_list:
-                if isinstance(entry, WalkEvent):
-                    normalized_walk_history.append(entry)
-                elif isinstance(entry, Mapping):
-                    try:
-                        normalized_walk_history.append(
-                            WalkEvent.from_storage(dog_id, entry)
+                for entry in history_value:
+                    normalized_entry = self._normalize_walk_event_entry(dog_id, entry)
+                    if normalized_entry is not None:
+                        normalized_history.append(
+                            cast(WalkHistoryEntry, normalized_entry)
                         )
-                    except Exception as err:
-                        _LOGGER.debug(
-                            "Unable to hydrate walk history for %s: %s",
-                            dog_id,
-                            err,
-                        )
-                else:
-                    _LOGGER.debug(
-                        "Skipping unsupported walk history entry type: %s",
-                        type(entry).__name__,
-                    )
-            walk_data["history"] = cast(list[WalkHistoryEntry], normalized_walk_history)
 
-            active_entry = walk_data.get("active")
-            if isinstance(active_entry, WalkEvent):
-                continue
+            walk_data["history"] = cast(
+                list[WalkHistoryEntry],
+                self._sort_walk_history_payloads(normalized_history),
+            )
 
-            if isinstance(active_entry, dict):
-                try:
-                    walk_data["active"] = WalkEvent.from_storage(dog_id, active_entry)
-                except Exception as err:
-                    _LOGGER.debug(
-                        "Unable to hydrate active walk session for %s: %s",
-                        dog_id,
-                        err,
-                    )
-                    walk_data["active"] = None
-            else:
-                walk_data["active"] = None
+            normalized_active = self._normalize_walk_event_entry(
+                dog_id, walk_data.get("active")
+            )
+            walk_data["active"] = cast(WalkNamespaceValue, normalized_active)
 
     @staticmethod
     def _serialize_health_namespace(
@@ -1105,16 +1066,26 @@ class PawControlData:
 
         serialized: StorageNamespacePayload = cast(StorageNamespacePayload, {})
         for dog_id, history in namespace.items():
-            if isinstance(history, list):
-                serialized[dog_id] = cast(
-                    JSONValue,
-                    [
-                        entry.as_dict() if isinstance(entry, HealthEvent) else entry
-                        for entry in history
-                    ],
+            if not isinstance(history, list):
+                normalized_entry = PawControlData._normalize_health_history_entry(
+                    dog_id, history
                 )
-            else:
-                serialized[dog_id] = cast(JSONValue, history)
+                if normalized_entry is None:
+                    serialized[dog_id] = cast(JSONValue, history)
+                    continue
+
+                serialized[dog_id] = cast(JSONValue, [normalized_entry])
+                continue
+
+            serialized_history: list[JSONValue] = []
+            for entry in history:
+                normalized_entry = PawControlData._normalize_health_history_entry(
+                    dog_id, entry
+                )
+                if normalized_entry is not None:
+                    serialized_history.append(cast(JSONValue, normalized_entry))
+
+            serialized[dog_id] = cast(JSONValue, serialized_history)
         return serialized
 
     @staticmethod
@@ -1125,35 +1096,37 @@ class PawControlData:
 
         serialized: StorageNamespacePayload = cast(StorageNamespacePayload, {})
         for dog_id, walk_data in namespace.items():
-            if not isinstance(walk_data, dict):
+            if not isinstance(walk_data, Mapping):
                 serialized[dog_id] = cast(JSONValue, walk_data)
                 continue
 
-            active_entry = walk_data.get("active")
-            if isinstance(active_entry, WalkEvent):
-                active_value: JSONValue = cast(JSONValue, active_entry.as_dict())
-            else:
-                active_value = cast(JSONValue, active_entry)
-
-            history = walk_data.get("history", [])
-            if isinstance(history, list):
-                history_value: JSONValue = cast(
-                    JSONValue,
-                    [
-                        entry.as_dict() if isinstance(entry, WalkEvent) else entry
-                        for entry in history
-                    ],
-                )
-            else:
-                history_value = cast(JSONValue, history)
+            walk_mapping = cast(Mapping[str, object], walk_data)
 
             serialized_walk: dict[str, JSONValue] = {
                 key: cast(JSONValue, value)
-                for key, value in walk_data.items()
+                for key, value in walk_mapping.items()
                 if key not in {"active", "history"}
             }
-            serialized_walk["active"] = active_value
-            serialized_walk["history"] = history_value
+
+            normalized_active = PawControlData._normalize_walk_event_entry(
+                dog_id, walk_mapping.get("active")
+            )
+            serialized_walk["active"] = cast(JSONValue, normalized_active)
+
+            history_payload: list[WalkHistoryEntry] = []
+            history_value = walk_mapping.get("history")
+            if isinstance(history_value, list):
+                for entry in history_value:
+                    normalized_entry = PawControlData._normalize_walk_event_entry(
+                        dog_id, entry
+                    )
+                    if normalized_entry is not None:
+                        history_payload.append(cast(WalkHistoryEntry, normalized_entry))
+
+            serialized_walk["history"] = cast(
+                JSONValue,
+                PawControlData._sort_walk_history_payloads(history_payload),
+            )
             serialized[dog_id] = cast(JSONValue, serialized_walk)
 
         return serialized
@@ -1166,6 +1139,104 @@ class PawControlData:
             JSONMutableMapping,
             {str(key): cast(JSONValue, value) for key, value in payload.items()},
         )
+
+    @staticmethod
+    def _normalize_health_history_entry(
+        dog_id: str,
+        entry: object,
+    ) -> JSONMutableMapping | None:
+        """Return a storage-safe health history entry or ``None`` if invalid."""
+
+        if isinstance(entry, HealthEvent):
+            return cast(JSONMutableMapping, entry.as_dict())
+
+        if isinstance(entry, Mapping):
+            try:
+                normalized = HealthEvent.from_raw(dog_id, cast(JSONDateMapping, entry))
+            except Exception as err:
+                _LOGGER.debug(
+                    "Unable to normalize health history for %s: %s",
+                    dog_id,
+                    err,
+                )
+                sanitized = PawControlData._coerce_event_payload(entry)
+                timestamp = sanitized.get("timestamp")
+                if isinstance(timestamp, datetime):
+                    sanitized["timestamp"] = timestamp.isoformat()
+                return sanitized
+
+            return cast(JSONMutableMapping, normalized.as_dict())
+
+        _LOGGER.debug(
+            "Skipping unsupported health history entry type: %s",
+            type(entry).__name__,
+        )
+        return None
+
+    @staticmethod
+    def _normalize_walk_event_entry(
+        dog_id: str,
+        entry: object,
+    ) -> JSONMutableMapping | None:
+        """Return a storage-safe walk event entry or ``None`` if invalid."""
+
+        if isinstance(entry, WalkEvent):
+            return cast(JSONMutableMapping, entry.as_dict())
+
+        if isinstance(entry, Mapping):
+            try:
+                normalized = WalkEvent.from_raw(
+                    dog_id,
+                    cast(JSONDateMapping, entry),
+                )
+            except Exception as err:
+                _LOGGER.debug(
+                    "Unable to normalize walk history for %s: %s",
+                    dog_id,
+                    err,
+                )
+                sanitized = PawControlData._coerce_event_payload(entry)
+                timestamp = sanitized.get("timestamp")
+                if isinstance(timestamp, datetime):
+                    sanitized["timestamp"] = timestamp.isoformat()
+                return sanitized
+
+            return cast(JSONMutableMapping, normalized.as_dict())
+
+        if entry is not None:
+            _LOGGER.debug(
+                "Skipping unsupported walk history entry type: %s",
+                type(entry).__name__,
+            )
+
+        return None
+
+    @staticmethod
+    def _walk_history_sort_key(entry: Mapping[str, object]) -> tuple[int, str]:
+        """Return sort key ensuring entries with timestamps come first."""
+
+        timestamp = entry.get("timestamp")
+        if isinstance(timestamp, str):
+            return (1, timestamp)
+        return (0, "")
+
+    @staticmethod
+    def _sort_walk_history_payloads(
+        entries: list[WalkHistoryEntry],
+    ) -> list[WalkHistoryEntry]:
+        """Sort walk history newest first and enforce the history limit."""
+
+        if not entries:
+            return []
+
+        sorted_entries = sorted(
+            entries,
+            key=PawControlData._walk_history_sort_key,
+            reverse=True,
+        )
+        if len(sorted_entries) > MAX_HISTORY_ITEMS:
+            return sorted_entries[:MAX_HISTORY_ITEMS]
+        return sorted_entries
 
     async def async_log_feeding(
         self, dog_id: str, feeding_data: Mapping[str, object]
@@ -1298,31 +1369,25 @@ class PawControlData:
         try:
             health_namespace_payload = self._ensure_namespace("health")
             health_namespace = cast(HealthNamespaceMutable, health_namespace_payload)
-            history_value = health_namespace.setdefault(
-                dog_id, cast(list[HealthHistoryEntry], [])
-            )
-            dog_history = cast(list[HealthHistoryEntry], history_value)
+            history_value = health_namespace.get(dog_id)
+            if isinstance(history_value, list):
+                dog_history = cast(list[HealthHistoryEntry], history_value)
+            else:
+                dog_history = []
 
             if dog_history:
-                normalized_history: list[HealthEvent] = []
+                normalized_history: list[HealthHistoryEntry] = []
                 for entry in dog_history:
-                    if isinstance(entry, HealthEvent):
-                        normalized_history.append(entry)
-                    elif isinstance(entry, Mapping):
-                        normalized_history.append(
-                            HealthEvent.from_storage(dog_id, entry)
-                        )
-                    else:
-                        _LOGGER.debug(
-                            "Skipping unsupported health history entry type: %s",
-                            type(entry).__name__,
-                        )
-                health_namespace[dog_id] = cast(
-                    list[HealthHistoryEntry], normalized_history
-                )
-                dog_history = cast(list[HealthHistoryEntry], normalized_history)
+                    normalized_entry = self._normalize_health_history_entry(
+                        dog_id, entry
+                    )
+                    if normalized_entry is not None:
+                        normalized_history.append(normalized_entry)
+                dog_history = normalized_history
 
-            new_events: list[HealthEvent] = []
+            health_namespace[dog_id] = cast(JSONValue, dog_history)
+
+            new_events: list[JSONMutableMapping] = []
 
             for event in events:
                 event_data: JSONMutableMapping = cast(
@@ -1330,21 +1395,24 @@ class PawControlData:
                 )
                 timestamp = event.get("timestamp")
                 health_event = HealthEvent.from_raw(dog_id, event_data, timestamp)
-                dog_history.append(health_event)
-                new_events.append(health_event)
+                event_payload = cast(JSONMutableMapping, health_event.as_dict())
+                dog_history.append(event_payload)
+                new_events.append(event_payload)
 
             if len(dog_history) > MAX_HISTORY_ITEMS:
-                dog_history[:] = dog_history[-MAX_HISTORY_ITEMS:]
+                dog_history = dog_history[-MAX_HISTORY_ITEMS:]
+
+            health_namespace[dog_id] = cast(JSONValue, dog_history)
 
             await self.storage.async_save_data(
                 "health", self._serialize_health_namespace(health_namespace)
             )
 
-            for health_event in new_events:
+            for payload in new_events:
                 await async_fire_event(
                     self.hass,
                     EVENT_HEALTH_LOGGED,
-                    {"dog_id": dog_id, **health_event.as_dict()},
+                    {"dog_id": dog_id, **payload},
                 )
         except asyncio.CancelledError:
             raise
@@ -1376,45 +1444,41 @@ class PawControlData:
                 ),
             )
             dog_walks = cast(WalkNamespaceMutableEntry, walk_entry)
+
+            history_models: list[WalkEvent] = []
             history_value = dog_walks.get("history")
             if isinstance(history_value, list):
-                history_list = cast(list[WalkHistoryEntry], history_value)
-            else:
-                history_list = cast(list[WalkHistoryEntry], [])
-                dog_walks["history"] = history_list
-
-            if history_list:
-                normalized_history: list[WalkEvent] = []
-                for entry in history_list:
-                    if isinstance(entry, WalkEvent):
-                        normalized_history.append(entry)
-                    elif isinstance(entry, Mapping):
-                        normalized_history.append(WalkEvent.from_storage(dog_id, entry))
-                    else:
-                        _LOGGER.debug(
-                            "Skipping unsupported walk history entry type: %s",
-                            type(entry).__name__,
+                for entry in history_value:
+                    normalized_entry = self._normalize_walk_event_entry(dog_id, entry)
+                    if normalized_entry is None:
+                        continue
+                    try:
+                        history_models.append(
+                            WalkEvent.from_raw(dog_id, normalized_entry)
                         )
-                history_list = cast(list[WalkHistoryEntry], normalized_history)
-                dog_walks["history"] = history_list
-            else:
-                history_list = cast(list[WalkHistoryEntry], dog_walks["history"])
+                    except Exception as err:
+                        _LOGGER.debug(
+                            "Unable to hydrate walk history for %s: %s",
+                            dog_id,
+                            err,
+                        )
 
-            history = [entry for entry in history_list if isinstance(entry, WalkEvent)]
-            if len(history) != len(history_list):
-                history_list = cast(list[WalkHistoryEntry], history)
-                dog_walks["history"] = history_list
-
-            active_session = dog_walks.get("active")
-            if isinstance(active_session, dict):
+            active_session: WalkEvent | None = None
+            normalized_active = self._normalize_walk_event_entry(
+                dog_id, dog_walks.get("active")
+            )
+            if normalized_active is not None:
                 try:
-                    active_session = WalkEvent.from_storage(dog_id, active_session)
-                except Exception:
-                    active_session = None
-                dog_walks["active"] = active_session
-            elif not isinstance(active_session, WalkEvent):
-                active_session = None
-                dog_walks["active"] = None
+                    active_session = WalkEvent.from_raw(dog_id, normalized_active)
+                except Exception as err:
+                    _LOGGER.debug(
+                        "Unable to hydrate active walk session for %s: %s",
+                        dog_id,
+                        err,
+                    )
+                    normalized_active = None
+
+            dog_walks["active"] = cast(WalkNamespaceValue, normalized_active)
             updated = False
 
             for event in events:
@@ -1423,20 +1487,21 @@ class PawControlData:
                 )
                 timestamp = event.get("timestamp")
                 walk_event = WalkEvent.from_raw(dog_id, event_data, timestamp)
+                walk_payload = cast(JSONMutableMapping, walk_event.as_dict())
 
                 if walk_event.action == "start":
-                    dog_walks["active"] = walk_event
                     active_session = walk_event
+                    dog_walks["active"] = cast(WalkNamespaceValue, walk_payload)
                     updated = True
                     await async_fire_event(
                         self.hass,
                         EVENT_WALK_STARTED,
-                        {"dog_id": dog_id, **walk_event.as_dict()},
+                        {"dog_id": dog_id, **walk_payload},
                     )
                     continue
 
                 if walk_event.action == "end":
-                    if isinstance(active_session, WalkEvent) and (
+                    if active_session is not None and (
                         walk_event.session_id is None
                         or walk_event.session_id == active_session.session_id
                     ):
@@ -1444,34 +1509,54 @@ class PawControlData:
                             **active_session.as_dict(),
                             **walk_event.as_dict(),
                         }
-                        completed_walk = WalkEvent.from_raw(dog_id, merged_payload)
-                        history.append(completed_walk)
-                        dog_walks["active"] = None
+                        completed_walk = WalkEvent.from_raw(
+                            dog_id,
+                            cast(JSONMutableMapping, merged_payload),
+                        )
+                        history_models.append(completed_walk)
                         active_session = None
+                        dog_walks["active"] = cast(WalkNamespaceValue, None)
                     else:
-                        history.append(walk_event)
+                        history_models.append(walk_event)
 
                     updated = True
                     await async_fire_event(
                         self.hass,
                         EVENT_WALK_ENDED,
-                        {"dog_id": dog_id, **walk_event.as_dict()},
+                        {"dog_id": dog_id, **walk_payload},
                     )
                     continue
 
                 if (
-                    isinstance(active_session, WalkEvent)
+                    active_session is not None
                     and walk_event.session_id
                     and walk_event.session_id == active_session.session_id
                 ):
                     active_session.merge(walk_event.as_dict(), walk_event.timestamp)
+                    dog_walks["active"] = cast(
+                        WalkNamespaceValue,
+                        cast(JSONMutableMapping, active_session.as_dict()),
+                    )
                     updated = True
-                else:
-                    history.append(walk_event)
-                    updated = True
+                    continue
 
-            if len(history) > MAX_HISTORY_ITEMS:
-                history[:] = history[-MAX_HISTORY_ITEMS:]
+                history_models.append(walk_event)
+                updated = True
+
+            history_payloads: list[WalkHistoryEntry] = [
+                cast(WalkHistoryEntry, model.as_dict()) for model in history_models
+            ]
+            dog_walks["history"] = cast(
+                list[WalkHistoryEntry],
+                self._sort_walk_history_payloads(history_payloads),
+            )
+
+            active_payload = (
+                cast(JSONMutableMapping, active_session.as_dict())
+                if active_session is not None
+                else None
+            )
+            dog_walks["active"] = cast(WalkNamespaceValue, active_payload)
 
             if updated:
                 await self.storage.async_save_data(
@@ -1509,15 +1594,20 @@ class PawControlData:
                 dog_walks["history"] = cast(list[WalkHistoryEntry], [])
 
             # Check if a walk is already active
-            active_entry = dog_walks.get("active")
-            if isinstance(active_entry, dict):
+            active_payload = self._normalize_walk_event_entry(
+                dog_id, dog_walks.get("active")
+            )
+            active_entry: WalkEvent | None = None
+            if active_payload is not None:
                 try:
-                    active_entry = WalkEvent.from_storage(dog_id, active_entry)
+                    active_entry = WalkEvent.from_raw(dog_id, active_payload)
                 except Exception:
+                    active_payload = None
                     active_entry = None
-                dog_walks["active"] = active_entry
 
-            if active_entry:
+            dog_walks["active"] = cast(WalkNamespaceValue, active_payload)
+
+            if active_entry is not None:
                 raise HomeAssistantError(f"Walk already active for {dog_id}")
 
             walk_payload: JSONMutableMapping
@@ -1537,7 +1627,9 @@ class PawControlData:
                 walk_payload,
                 timestamp_override,
             )
-            dog_walks["active"] = active_walk
+            dog_walks["active"] = cast(
+                WalkNamespaceValue, cast(JSONMutableMapping, active_walk.as_dict())
+            )
 
             # Save immediately for real-time operations
             await self.storage.async_save_data(
