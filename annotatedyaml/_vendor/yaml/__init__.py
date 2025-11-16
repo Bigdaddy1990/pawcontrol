@@ -18,6 +18,8 @@ except ImportError:
 import io
 from typing import Any, BinaryIO, Iterator, TextIO, Type
 
+_MISSING_LOADER = object()
+
 #------------------------------------------------------------------------------
 # XXX "Warnings control" is now deprecated. Leaving in the API function to not
 # break code that uses it.
@@ -30,6 +32,20 @@ def _extract_legacy_loader(func_name: str, kwargs: dict[str, Any]) -> Any | None
             f"{func_name}() got unexpected keyword argument(s): {unexpected}"
         )
     return legacy_loader
+
+
+def _ensure_safe_loader(func_name: str, loader_cls: Type[Any]) -> Type[Any]:
+    try:
+        is_safe = issubclass(loader_cls, SafeLoader)
+    except TypeError as exc:  # pragma: no cover - defensive guard
+        raise TypeError(
+            f"{func_name}() expected a Loader class, got {loader_cls!r}"
+        ) from exc
+    if not is_safe:
+        raise ValueError(
+            f"{func_name}() custom Loader must be a subclass of yaml.SafeLoader"
+        )
+    return loader_cls
 
 
 def _select_loader(
@@ -124,26 +140,28 @@ def compose_all(stream, Loader=Loader):
     finally:
         loader.dispose()
 
-def load(stream, loader_cls=None, **kwargs):
+def load(stream, loader_cls=_MISSING_LOADER, **kwargs):
     """
     Parse the first YAML document in a stream
     and produce the corresponding Python object.
     """
     legacy_loader = _extract_legacy_loader("load", kwargs)
+    effective_loader = None if loader_cls is _MISSING_LOADER else loader_cls
     resolved_loader = _select_loader(
-        "load", loader_cls, legacy_loader, required=True
+        "load", effective_loader, legacy_loader, required=True
     )
     return _load_single(stream, resolved_loader)
 
 
-def load_all(stream, loader_cls=None, **kwargs):
+def load_all(stream, loader_cls=_MISSING_LOADER, **kwargs):
     """
     Parse all YAML documents in a stream
     and produce corresponding Python objects.
     """
     legacy_loader = _extract_legacy_loader("load_all", kwargs)
+    effective_loader = None if loader_cls is _MISSING_LOADER else loader_cls
     resolved_loader = _select_loader(
-        "load_all", loader_cls, legacy_loader, required=True
+        "load_all", effective_loader, legacy_loader, required=True
     )
     yield from _load_all(stream, resolved_loader)
 
@@ -179,7 +197,8 @@ def safe_load(stream, loader_cls=None, **kwargs):
     resolved_loader = _select_loader(
         "safe_load", loader_cls, legacy_loader, default_loader=SafeLoader
     )
-    return _load_single(stream, resolved_loader)
+    safe_loader = _ensure_safe_loader("safe_load", resolved_loader)
+    return _load_single(stream, safe_loader)
 
 
 def safe_load_all(stream, loader_cls=None, **kwargs):
@@ -194,7 +213,8 @@ def safe_load_all(stream, loader_cls=None, **kwargs):
     resolved_loader = _select_loader(
         "safe_load_all", loader_cls, legacy_loader, default_loader=SafeLoader
     )
-    yield from _load_all(stream, resolved_loader)
+    safe_loader = _ensure_safe_loader("safe_load_all", resolved_loader)
+    yield from _load_all(stream, safe_loader)
 
 def unsafe_load(stream):
     """
