@@ -68,8 +68,8 @@ def test_dump_accepts_legacy_dumper_keyword() -> None:
 
 
 def test_load_without_loader_argument_raises() -> None:
-    message = "load() missing 1 required positional argument: 'Loader'"
-    with pytest.raises(TypeError, match=re.escape(message)):
+    message = r"load\(\) missing 1 required positional argument: 'Loader'"
+    with pytest.raises(TypeError, match=message):
         vendored_yaml.load("answer: 42")
 
 
