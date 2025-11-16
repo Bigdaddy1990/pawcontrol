@@ -183,7 +183,7 @@ def compose_all(stream, Loader=Loader):
 
 def load(
     stream: str | bytes | TextIO | BinaryIO,
-    loader_cls: LoaderClsArg = _MISSING_LOADER,
+    loader_cls: Type[Any] | Literal[_MISSING_LOADER] = _MISSING_LOADER,
     **kwargs: Any,
 ) -> Any:
     """
@@ -200,7 +200,7 @@ def load(
 
 def load_all(
     stream: str | bytes | TextIO | BinaryIO,
-    loader_cls: LoaderClsArg = _MISSING_LOADER,
+    loader_cls: Type[Any] | Literal[_MISSING_LOADER] = _MISSING_LOADER,
     **kwargs: Any,
 ) -> Iterator[Any]:
     """
