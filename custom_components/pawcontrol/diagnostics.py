@@ -1690,7 +1690,6 @@ async def _get_loaded_platforms(hass: HomeAssistant, entry: ConfigEntry) -> list
     return list(set(entity.platform for entity in entities))
 
 
-
 async def _get_registered_services(hass: HomeAssistant) -> list[str]:
     """Get list of registered services for this domain.
 
