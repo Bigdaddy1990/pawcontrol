@@ -116,7 +116,8 @@ def _load_single(stream: str | bytes | TextIO | BinaryIO, loader_cls: Type[Any])
 
 
 def _load_all(
-    stream: str | bytes | TextIO | BinaryIO, loader_cls: Type[Any]
+    stream: str | bytes | TextIO | BinaryIO,
+    loader_cls: Type[Any],
 ) -> Iterator[Any]:
     loader = loader_cls(stream)
     try:
