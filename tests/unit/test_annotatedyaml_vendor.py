@@ -36,8 +36,18 @@ def test_load_accepts_legacy_loader_keyword() -> None:
     assert data == {"answer": 42}
 
 
+def test_load_accepts_positional_loader_argument() -> None:
+    data = vendored_yaml.load("answer: 42", vendored_yaml.FullLoader)
+    assert data == {"answer": 42}
+
+
 def test_safe_load_accepts_legacy_loader_keyword() -> None:
     data = vendored_yaml.safe_load("answer: 42", Loader=vendored_yaml.FullLoader)
+    assert data == {"answer": 42}
+
+
+def test_safe_load_accepts_positional_loader_argument() -> None:
+    data = vendored_yaml.safe_load("answer: 42", vendored_yaml.SafeLoader)
     assert data == {"answer": 42}
 
 
@@ -112,3 +122,15 @@ def test_select_loader_uses_default_loader_when_available() -> None:
         default_loader=_DummyLoader,
     )
     assert selected is _DummyLoader
+
+
+def test_load_all_accepts_positional_loader_argument() -> None:
+    payload = "---\nanswer: 42\n---\nanswer: 43"
+    data = list(vendored_yaml.load_all(payload, vendored_yaml.FullLoader))
+    assert data == [{"answer": 42}, {"answer": 43}]
+
+
+def test_safe_load_all_accepts_positional_loader_argument() -> None:
+    payload = "---\nanswer: 42\n---\nanswer: 43"
+    data = list(vendored_yaml.safe_load_all(payload, vendored_yaml.SafeLoader))
+    assert data == [{"answer": 42}, {"answer": 43}]
