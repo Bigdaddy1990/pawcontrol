@@ -142,7 +142,7 @@ def compose_all(stream, Loader=Loader):
 
 def load(
     stream: str | bytes | TextIO | BinaryIO,
-    loader_cls: Any = _MISSING_LOADER,
+    loader_cls: Type[Any] | object = _MISSING_LOADER,
     **kwargs: Any,
 ) -> Any:
     """
