@@ -33,8 +33,18 @@ def test_load_accepts_legacy_loader_keyword() -> None:
     assert data == {"answer": 42}
 
 
+def test_load_accepts_positional_loader_argument() -> None:
+    data = vendored_yaml.load("answer: 42", vendored_yaml.FullLoader)
+    assert data == {"answer": 42}
+
+
 def test_safe_load_accepts_legacy_loader_keyword() -> None:
     data = vendored_yaml.safe_load("answer: 42", Loader=vendored_yaml.FullLoader)
+    assert data == {"answer": 42}
+
+
+def test_safe_load_accepts_positional_loader_argument() -> None:
+    data = vendored_yaml.safe_load("answer: 42", vendored_yaml.FullLoader)
     assert data == {"answer": 42}
 
 
