@@ -47,6 +47,7 @@ quickly.
 - [Diet Validation Guide](diet_validation_guide.md)
 - [Weather Integration Examples](weather_integration_examples.md)
 - [File Analysis Report](file_analysis_report.md)
+- [`pyproject.toml` Reference](pyproject_reference.md)
 
 Each linked document retains its original detail. Use this landing page as the
 canonical directory and add future guides under the relevant section to keep the
