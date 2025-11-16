@@ -223,7 +223,7 @@ def safe_load_all(
     stream: str | bytes | TextIO | BinaryIO,
     /,
     *loader_args: Any,
-    loader_cls: Type[Any] | None = None,
+    loader_cls: Type[SafeLoader] | None = None,
     **kwargs: Any,
 ) -> Iterator[Any]:
     """
