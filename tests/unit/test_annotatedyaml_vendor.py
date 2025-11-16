@@ -44,7 +44,7 @@ def test_safe_load_accepts_legacy_loader_keyword() -> None:
 
 
 def test_safe_load_accepts_positional_loader_argument() -> None:
-    data = vendored_yaml.safe_load("answer: 42", vendored_yaml.FullLoader)
+    data = vendored_yaml.safe_load("answer: 42", vendored_yaml.SafeLoader)
     assert data == {"answer": 42}
 
 
