@@ -88,7 +88,9 @@ async def test_person_entity_manager_discovers_and_validates_targets(
     assert discovery["away_persons"] == 1
     assert isinstance(discovery["discovery_time"], str)
 
-    validation: PersonEntityValidationResult = await manager.async_validate_configuration()
+    validation: PersonEntityValidationResult = (
+        await manager.async_validate_configuration()
+    )
     assert validation["valid"] is True
     assert validation["persons_configured"] == 2
     assert validation["notification_targets_available"] >= 1

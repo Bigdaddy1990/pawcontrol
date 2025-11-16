@@ -1855,9 +1855,7 @@ async def test_gps_export_route_service_records_success(
     handler = hass.services.handlers[services.SERVICE_GPS_EXPORT_ROUTE]
 
     await handler(
-        SimpleNamespace(
-            data={"dog_id": "fido", "format": "json", "last_n_walks": 3}
-        )
+        SimpleNamespace(data={"dog_id": "fido", "format": "json", "last_n_walks": 3})
     )
 
     assert gps_manager.export_calls == [
@@ -1872,8 +1870,7 @@ async def test_gps_export_route_service_records_success(
     assert notification_payload["title"] == "Route Export Complete"
     assert notification_payload["dog_id"] == "fido"
     assert (
-        notification_payload["message"]
-        == "Exported 2 route(s) for fido in json format"
+        notification_payload["message"] == "Exported 2 route(s) for fido in json format"
     )
 
     result = runtime_data.performance_stats["last_service_result"]

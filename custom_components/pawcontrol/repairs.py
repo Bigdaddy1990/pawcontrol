@@ -875,9 +875,7 @@ def _normalise_duration_alerts(
             "percentile_seconds": float(percentile_seconds),
             "guard_limit_seconds": float(guard_limit_seconds),
             "severity": cast(str, candidate.get("severity", "warning")),
-            "recommended_action": cast(
-                str | None, candidate.get("recommended_action")
-            ),
+            "recommended_action": cast(str | None, candidate.get("recommended_action")),
         }
         alerts.append(alert)
     return alerts
@@ -988,7 +986,9 @@ async def _check_runtime_store_duration_alerts(
         "alert_count": len(alerts),
         "triggered_levels": triggered_levels,
         "alert_summaries": alert_summaries,
-        "timeline_window_days": timeline_window if timeline_window is not None else "n/a",
+        "timeline_window_days": timeline_window
+        if timeline_window is not None
+        else "n/a",
         "last_event_timestamp": last_event_timestamp
         if last_event_timestamp is not None
         else "n/a",

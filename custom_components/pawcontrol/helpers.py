@@ -1121,9 +1121,7 @@ class PawControlData:
                         dog_id, entry
                     )
                     if normalized_entry is not None:
-                        history_payload.append(
-                            cast(WalkHistoryEntry, normalized_entry)
-                        )
+                        history_payload.append(cast(WalkHistoryEntry, normalized_entry))
 
             serialized_walk["history"] = cast(
                 JSONValue,
@@ -1499,12 +1497,9 @@ class PawControlData:
                     continue
 
                 if walk_event.action == "end":
-                    if (
-                        active_session is not None
-                        and (
-                            walk_event.session_id is None
-                            or walk_event.session_id == active_session.session_id
-                        )
+                    if active_session is not None and (
+                        walk_event.session_id is None
+                        or walk_event.session_id == active_session.session_id
                     ):
                         merged_payload = {
                             **active_session.as_dict(),
@@ -1545,8 +1540,7 @@ class PawControlData:
                 updated = True
 
             history_payloads: list[WalkHistoryEntry] = [
-                cast(WalkHistoryEntry, model.as_dict())
-                for model in history_models
+                cast(WalkHistoryEntry, model.as_dict()) for model in history_models
             ]
             dog_walks["history"] = cast(
                 list[WalkHistoryEntry],

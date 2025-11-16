@@ -186,7 +186,9 @@ async def test_process_health_batch_serializes_structured_events(
 
 
 @pytest.mark.asyncio
-async def test_process_walk_batch_normalizes_storage(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_process_walk_batch_normalizes_storage(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """`_process_walk_batch` should persist JSON payloads and merge sessions."""
 
     hass = MagicMock(spec=HomeAssistant)
@@ -332,9 +334,15 @@ async def test_process_walk_batch_sorts_history_descending(
             "history": cast(
                 JSONValue,
                 [
-                    {"session_id": "legacy-old", "timestamp": "2024-04-01T10:00:00+00:00"},
+                    {
+                        "session_id": "legacy-old",
+                        "timestamp": "2024-04-01T10:00:00+00:00",
+                    },
                     {"session_id": "legacy-missing"},
-                    {"session_id": "legacy-new", "timestamp": "2024-05-01T12:00:00+00:00"},
+                    {
+                        "session_id": "legacy-new",
+                        "timestamp": "2024-05-01T12:00:00+00:00",
+                    },
                 ],
             ),
         },

@@ -395,9 +395,7 @@ def _summarise_runtime_store_assessment_events(
         "watch": None,
         "action_required": None,
     }
-    level_duration_standard_deviations: dict[
-        RuntimeStoreHealthLevel, float | None
-    ] = {
+    level_duration_standard_deviations: dict[RuntimeStoreHealthLevel, float | None] = {
         "ok": None,
         "watch": None,
         "action_required": None,
@@ -530,9 +528,7 @@ def _summarise_runtime_store_assessment_events(
 
     most_common_reason: str | None = None
     if reason_counts:
-        most_common_reason = max(
-            reason_counts, key=lambda item: reason_counts[item]
-        )
+        most_common_reason = max(reason_counts, key=lambda item: reason_counts[item])
 
     most_common_level: RuntimeStoreHealthLevel | None = None
     if level_counts and max(level_counts.values()) > 0:
@@ -650,7 +646,14 @@ def _build_runtime_store_assessment_segments(
     parsed: list[tuple[RuntimeStoreAssessmentEvent, datetime | None]] = []
     for event in events:
         timestamp = event.get("timestamp")
-        parsed.append((event, dt_util.parse_datetime(timestamp) if isinstance(timestamp, str) else None))
+        parsed.append(
+            (
+                event,
+                dt_util.parse_datetime(timestamp)
+                if isinstance(timestamp, str)
+                else None,
+            )
+        )
 
     for index, (event, start_dt) in enumerate(parsed):
         timestamp = event.get("timestamp")
@@ -714,7 +717,9 @@ def _build_runtime_store_assessment_segments(
             segment["end"] = end_timestamp
         else:
             current_duration = event.get("current_level_duration_seconds")
-            if isinstance(current_duration, (int, float)) and isfinite(current_duration):
+            if isinstance(current_duration, (int, float)) and isfinite(
+                current_duration
+            ):
                 duration_seconds = max(float(current_duration), 0.0)
 
         if duration_seconds is not None:

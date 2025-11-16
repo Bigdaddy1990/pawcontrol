@@ -624,7 +624,9 @@ async def test_feeding_settings_coercion(
 
 
 @pytest.mark.asyncio
-async def test_health_settings_coercion(hass: HomeAssistant, mock_config_entry: ConfigEntry) -> None:
+async def test_health_settings_coercion(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
     """Health options should coerce truthy strings to booleans."""
 
     flow = PawControlOptionsFlow()
@@ -1295,7 +1297,9 @@ async def test_advanced_settings_normalises_existing_payloads(
 
 
 @pytest.mark.asyncio
-async def test_gps_settings_structured(hass: HomeAssistant, mock_config_entry: ConfigEntry) -> None:
+async def test_gps_settings_structured(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
     """GPS settings should be stored as typed payloads with validation."""
 
     flow = PawControlOptionsFlow()
@@ -1791,7 +1795,9 @@ async def test_add_new_dog_normalises_config(
 
 
 @pytest.mark.asyncio
-async def test_edit_dog_updates_config(hass: HomeAssistant, mock_config_entry: ConfigEntry) -> None:
+async def test_edit_dog_updates_config(
+    hass: HomeAssistant, mock_config_entry: ConfigEntry
+) -> None:
     """Editing a dog should write back typed configuration changes."""
 
     flow = PawControlOptionsFlow()

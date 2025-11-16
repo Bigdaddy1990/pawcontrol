@@ -77,9 +77,7 @@ def _assert_runtime_store(info: Mapping[str, object], expected_status: str) -> N
     runtime_store = cast(RuntimeStoreCompatibilitySnapshot, info["runtime_store"])
     assert isinstance(runtime_store, dict)
     assert runtime_store["status"] == expected_status
-    history = cast(
-        RuntimeStoreHealthHistory | None, info.get("runtime_store_history")
-    )
+    history = cast(RuntimeStoreHealthHistory | None, info.get("runtime_store_history"))
     if history is not None:
         assert history["last_status"] == expected_status
         events = cast(
@@ -149,7 +147,11 @@ def _assert_runtime_store(info: Mapping[str, object], expected_status: str) -> N
         if timeline_segments is not None:
             assert isinstance(timeline_segments, list)
             if timeline_segments:
-                assert timeline_segments[-1]["level"] in {"ok", "watch", "action_required"}
+                assert timeline_segments[-1]["level"] in {
+                    "ok",
+                    "watch",
+                    "action_required",
+                }
                 assert "duration_seconds" in timeline_segments[-1]
         timeline_summary = assessment.get("timeline_summary")
         if timeline_summary is not None:

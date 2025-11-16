@@ -254,7 +254,11 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
                         "most_common_status": "current",
                         "average_divergence_rate": None,
                         "max_divergence_rate": None,
-                        "level_duration_peaks": {"ok": 0.0, "watch": 0.0, "action_required": 0.0},
+                        "level_duration_peaks": {
+                            "ok": 0.0,
+                            "watch": 0.0,
+                            "action_required": 0.0,
+                        },
                         "level_duration_latest": {
                             "ok": None,
                             "watch": None,
@@ -868,7 +872,11 @@ async def test_diagnostics_redact_sensitive_fields(hass: HomeAssistant) -> None:
         if timeline_segments is not None:
             assert isinstance(timeline_segments, list)
             if timeline_segments:
-                assert timeline_segments[-1]["level"] in {"ok", "watch", "action_required"}
+                assert timeline_segments[-1]["level"] in {
+                    "ok",
+                    "watch",
+                    "action_required",
+                }
                 assert "duration_seconds" in timeline_segments[-1]
         timeline_summary = assessment.get("timeline_summary")
         if timeline_summary is not None:

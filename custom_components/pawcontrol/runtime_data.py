@@ -388,9 +388,7 @@ def get_runtime_data(
     try:
         entry_store_entry = _get_store_entry_from_entry(entry)
     except RuntimeDataIncompatibleError as err:
-        _LOGGER.error(
-            "Runtime data incompatible for entry %s: %s", entry_id, err
-        )
+        _LOGGER.error("Runtime data incompatible for entry %s: %s", entry_id, err)
         _detach_runtime_from_entry(entry)
         if raise_on_incompatible:
             raise

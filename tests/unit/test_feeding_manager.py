@@ -38,9 +38,9 @@ def _mutable_feeding_config(
     """Return the mutable feeding config mapping for ``config``."""
 
     feeding_config = config.get("feeding_config")
-    assert isinstance(
-        feeding_config, dict
-    ), "Feeding fixture must supply a mutable feeding_config mapping"
+    assert isinstance(feeding_config, dict), (
+        "Feeding fixture must supply a mutable feeding_config mapping"
+    )
     return cast(JSONMutableMapping, feeding_config)
 
 

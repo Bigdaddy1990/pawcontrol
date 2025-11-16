@@ -6220,6 +6220,7 @@ class PawControlRuntimeData:
         """
         return getattr(self, key, default)
 
+
 class LegacyDomainRuntimeStoreEntry(TypedDict, total=False):
     """Serialized representation of legacy runtime store entries."""
 

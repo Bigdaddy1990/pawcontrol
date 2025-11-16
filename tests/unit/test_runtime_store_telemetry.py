@@ -113,14 +113,12 @@ def test_update_runtime_store_health_records_counts(monkeypatch: MonkeyPatch) ->
     assert timeline_summary["level_duration_latest"]["action_required"] is None
     assert timeline_summary["level_duration_totals"]["ok"] == pytest.approx(0.0)
     assert timeline_summary["level_duration_totals"]["watch"] == pytest.approx(0.0)
-    assert timeline_summary["level_duration_totals"]["action_required"] == pytest.approx(
-        0.0
-    )
+    assert timeline_summary["level_duration_totals"][
+        "action_required"
+    ] == pytest.approx(0.0)
     assert timeline_summary["level_duration_minimums"]["ok"] == pytest.approx(0.0)
     assert timeline_summary["level_duration_minimums"]["watch"] is None
-    assert (
-        timeline_summary["level_duration_minimums"]["action_required"] is None
-    )
+    assert timeline_summary["level_duration_minimums"]["action_required"] is None
     assert timeline_summary["level_duration_samples"]["ok"] == 1
     assert timeline_summary["level_duration_samples"]["watch"] == 0
     assert timeline_summary["level_duration_samples"]["action_required"] == 0
@@ -130,13 +128,10 @@ def test_update_runtime_store_health_records_counts(monkeypatch: MonkeyPatch) ->
     assert timeline_summary["level_duration_medians"]["ok"] == pytest.approx(0.0)
     assert timeline_summary["level_duration_medians"]["watch"] is None
     assert timeline_summary["level_duration_medians"]["action_required"] is None
-    assert (
-        timeline_summary["level_duration_standard_deviations"]["ok"]
-        == pytest.approx(0.0)
-    )
-    assert (
-        timeline_summary["level_duration_standard_deviations"]["watch"] is None
-    )
+    assert timeline_summary["level_duration_standard_deviations"][
+        "ok"
+    ] == pytest.approx(0.0)
+    assert timeline_summary["level_duration_standard_deviations"]["watch"] is None
     assert (
         timeline_summary["level_duration_standard_deviations"]["action_required"]
         is None
@@ -147,12 +142,13 @@ def test_update_runtime_store_health_records_counts(monkeypatch: MonkeyPatch) ->
     assert ok_percentiles["p95"] == pytest.approx(0.0)
     assert timeline_summary["level_duration_percentiles"]["watch"] == {}
     assert timeline_summary["level_duration_percentiles"]["action_required"] == {}
-    assert (
-        timeline_summary["level_duration_alert_thresholds"]["ok"]
-        == pytest.approx(0.0)
+    assert timeline_summary["level_duration_alert_thresholds"]["ok"] == pytest.approx(
+        0.0
     )
     assert timeline_summary["level_duration_alert_thresholds"]["watch"] is None
-    assert timeline_summary["level_duration_alert_thresholds"]["action_required"] is None
+    assert (
+        timeline_summary["level_duration_alert_thresholds"]["action_required"] is None
+    )
     assert timeline_summary["level_duration_guard_alerts"] == []
     assessment = history.get("assessment")
     assert isinstance(assessment, dict)
@@ -358,44 +354,39 @@ def test_update_runtime_store_health_records_first_event_when_suppressed(
     assert timeline_summary["total_events"] == 1
     assert timeline_summary["level_counts"]["action_required"] == 1
     assert timeline_summary["last_level"] == "action_required"
-    assert timeline_summary["level_duration_totals"]["action_required"] == pytest.approx(0.0)
-    assert timeline_summary["level_duration_minimums"]["action_required"] == pytest.approx(
-        0.0
-    )
+    assert timeline_summary["level_duration_totals"][
+        "action_required"
+    ] == pytest.approx(0.0)
+    assert timeline_summary["level_duration_minimums"][
+        "action_required"
+    ] == pytest.approx(0.0)
     assert timeline_summary["level_duration_minimums"]["ok"] is None
     assert timeline_summary["level_duration_minimums"]["watch"] is None
     assert timeline_summary["level_duration_samples"]["action_required"] == 1
     assert timeline_summary["level_duration_samples"]["ok"] == 0
     assert timeline_summary["level_duration_samples"]["watch"] == 0
-    assert (
-        timeline_summary["level_duration_averages"]["action_required"]
-        == pytest.approx(0.0)
-    )
-    assert timeline_summary["level_duration_medians"]["action_required"] == pytest.approx(
-        0.0
-    )
+    assert timeline_summary["level_duration_averages"][
+        "action_required"
+    ] == pytest.approx(0.0)
+    assert timeline_summary["level_duration_medians"][
+        "action_required"
+    ] == pytest.approx(0.0)
     assert timeline_summary["level_duration_medians"]["ok"] is None
     assert timeline_summary["level_duration_medians"]["watch"] is None
-    assert (
-        timeline_summary["level_duration_standard_deviations"]["action_required"]
-        == pytest.approx(0.0)
-    )
-    assert (
-        timeline_summary["level_duration_standard_deviations"]["ok"] is None
-    )
-    assert (
-        timeline_summary["level_duration_standard_deviations"]["watch"] is None
-    )
+    assert timeline_summary["level_duration_standard_deviations"][
+        "action_required"
+    ] == pytest.approx(0.0)
+    assert timeline_summary["level_duration_standard_deviations"]["ok"] is None
+    assert timeline_summary["level_duration_standard_deviations"]["watch"] is None
     percentiles = timeline_summary["level_duration_percentiles"]["action_required"]
     assert percentiles["p75"] == pytest.approx(0.0)
     assert percentiles["p90"] == pytest.approx(0.0)
     assert percentiles["p95"] == pytest.approx(0.0)
     assert timeline_summary["level_duration_percentiles"]["ok"] == {}
     assert timeline_summary["level_duration_percentiles"]["watch"] == {}
-    assert (
-        timeline_summary["level_duration_alert_thresholds"]["action_required"]
-        == pytest.approx(0.0)
-    )
+    assert timeline_summary["level_duration_alert_thresholds"][
+        "action_required"
+    ] == pytest.approx(0.0)
     assert timeline_summary["level_duration_alert_thresholds"]["ok"] is None
     assert timeline_summary["level_duration_alert_thresholds"]["watch"] is None
     assessment = history.get("assessment")
@@ -538,9 +529,7 @@ def test_runtime_store_assessment_tracks_trends(monkeypatch: MonkeyPatch) -> Non
     first = update_runtime_store_health(runtime_data, _snapshot())
     assert first is not None
     first_history = cast(RuntimeStoreHealthHistory, first)
-    first_assessment = cast(
-        RuntimeStoreHealthAssessment, first_history["assessment"]
-    )
+    first_assessment = cast(RuntimeStoreHealthAssessment, first_history["assessment"])
     assert first_assessment["level"] == "ok"
     assert first_assessment["level_streak"] == 1
     assert first_assessment["escalations"] == 0
@@ -560,9 +549,7 @@ def test_runtime_store_assessment_tracks_trends(monkeypatch: MonkeyPatch) -> Non
     )
     assert second is not None
     second_history = cast(RuntimeStoreHealthHistory, second)
-    second_assessment = cast(
-        RuntimeStoreHealthAssessment, second_history["assessment"]
-    )
+    second_assessment = cast(RuntimeStoreHealthAssessment, second_history["assessment"])
     assert second_assessment["level"] == "watch"
     assert second_assessment["previous_level"] == "ok"
     assert second_assessment["level_streak"] == 1
@@ -581,9 +568,7 @@ def test_runtime_store_assessment_tracks_trends(monkeypatch: MonkeyPatch) -> Non
     )
     assert third is not None
     third_history = cast(RuntimeStoreHealthHistory, third)
-    third_assessment = cast(
-        RuntimeStoreHealthAssessment, third_history["assessment"]
-    )
+    third_assessment = cast(RuntimeStoreHealthAssessment, third_history["assessment"])
     assert third_assessment["level"] == "action_required"
     assert third_assessment["previous_level"] == "watch"
     assert third_assessment["level_streak"] == 1
@@ -600,9 +585,7 @@ def test_runtime_store_assessment_tracks_trends(monkeypatch: MonkeyPatch) -> Non
     fourth = update_runtime_store_health(runtime_data, _snapshot())
     assert fourth is not None
     fourth_history = cast(RuntimeStoreHealthHistory, fourth)
-    fourth_assessment = cast(
-        RuntimeStoreHealthAssessment, fourth_history["assessment"]
-    )
+    fourth_assessment = cast(RuntimeStoreHealthAssessment, fourth_history["assessment"])
     assert fourth_assessment["level"] in {"ok", "watch"}
     assert fourth_assessment["previous_level"] == "action_required"
     assert fourth_assessment["level_streak"] == 1
@@ -690,9 +673,7 @@ def test_summarise_runtime_store_events_backfills_legacy_durations() -> None:
     assert summary["level_duration_minimums"]["watch"] is None
     assert summary["level_duration_medians"]["ok"] == pytest.approx(21600.0)
     assert summary["level_duration_medians"]["watch"] is None
-    assert (
-        summary["level_duration_standard_deviations"]["ok"] == pytest.approx(0.0)
-    )
+    assert summary["level_duration_standard_deviations"]["ok"] == pytest.approx(0.0)
     assert summary["level_duration_standard_deviations"]["watch"] is None
     assert summary["level_duration_samples"]["ok"] == 1
     assert summary["level_duration_samples"]["watch"] == 0
@@ -700,9 +681,7 @@ def test_summarise_runtime_store_events_backfills_legacy_durations() -> None:
     assert summary["level_duration_percentiles"]["ok"]["p90"] == pytest.approx(21600.0)
     assert summary["level_duration_percentiles"]["ok"]["p95"] == pytest.approx(21600.0)
     assert summary["level_duration_percentiles"]["watch"] == {}
-    assert (
-        summary["level_duration_alert_thresholds"]["ok"] == pytest.approx(21600.0)
-    )
+    assert summary["level_duration_alert_thresholds"]["ok"] == pytest.approx(21600.0)
     assert summary["level_duration_alert_thresholds"]["watch"] is None
     assert summary["level_duration_guard_alerts"] == []
 

@@ -117,7 +117,6 @@ def _install_homeassistant_stubs() -> tuple[AsyncMock, type[StrEnum], AsyncMock]
     return async_create_issue, IssueSeverity, async_delete_issue
 
 
-
 @pytest.fixture
 def repairs_module() -> tuple[Any, AsyncMock, type[StrEnum], AsyncMock]:
     """Return the loaded repairs module alongside the issue registry mock."""
@@ -137,7 +136,8 @@ def repairs_module() -> tuple[Any, AsyncMock, type[StrEnum], AsyncMock]:
     module = cast(
         Any,
         _load_module(
-            module_name, PROJECT_ROOT / "custom_components" / "pawcontrol" / "repairs.py"
+            module_name,
+            PROJECT_ROOT / "custom_components" / "pawcontrol" / "repairs.py",
         ),
     )
 
@@ -173,10 +173,7 @@ def test_async_create_issue_normalises_unknown_severity(
     kwargs = await_args.kwargs
     severity_enum = cast(Any, issue_severity_cls)
     assert kwargs["severity"] == severity_enum.WARNING
-    assert (
-        kwargs["translation_placeholders"]["severity"]
-        == severity_enum.WARNING.value
-    )
+    assert kwargs["translation_placeholders"]["severity"] == severity_enum.WARNING.value
     assert "Unsupported issue severity 'info'" in caplog.text
 
 

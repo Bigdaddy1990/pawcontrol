@@ -3207,9 +3207,7 @@ def test_detects_importlib_resources_parents_with_segments_loader() -> None:
         "files('tests.helpers').joinpath('helpers').parents[1].with_segments('client', 'payload.json').open_text().client()\n"
     )
 
-    assert any(
-        "hass_supervisor_admin_ws_client" in offender for offender in offenders
-    )
+    assert any("hass_supervisor_admin_ws_client" in offender for offender in offenders)
 
 
 def test_detects_importlib_resources_parents_resolve_joinpath_loader() -> None:
@@ -3235,9 +3233,7 @@ def test_detects_importlib_resources_parents_resolve_joinpath_loader() -> None:
         "files('tests.helpers').joinpath('helpers').parents[0].resolve().joinpath('client').open_text().client()\n"
     )
 
-    assert any(
-        "hass_voice_assistant_ws_client" in offender for offender in offenders
-    )
+    assert any("hass_voice_assistant_ws_client" in offender for offender in offenders)
 
 
 def test_detects_importlib_resources_relative_to_open_text_loader() -> None:
