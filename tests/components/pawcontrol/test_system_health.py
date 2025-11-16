@@ -1,15 +1,31 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+from datetime import UTC, datetime
 from types import SimpleNamespace
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
 from custom_components.pawcontrol import system_health as system_health_module
 from custom_components.pawcontrol.const import DOMAIN
 from custom_components.pawcontrol.types import (
+    CoordinatorHealthIndicators,
+    CoordinatorPerformanceMetrics,
     CoordinatorRejectionMetrics,
+    CoordinatorRuntimeStoreSummary,
+    CoordinatorStatisticsPayload,
+    CoordinatorUpdateCounts,
     ManualResilienceOptionsSnapshot,
     PawControlRuntimeData,
+    RuntimeStoreAssessmentEvent,
+    RuntimeStoreAssessmentTimelineSegment,
+    RuntimeStoreAssessmentTimelineSummary,
+    RuntimeStoreCompatibilitySnapshot,
+    RuntimeStoreHealthAssessment,
+    RuntimeStoreHealthHistory,
+    RuntimeStoreHealthLevel,
+    RuntimeStoreOverallStatus,
 )
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
@@ -17,28 +33,94 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 pytestmark = pytest.mark.usefixtures("enable_custom_integrations")
 
 
-def _assert_runtime_store(info: dict[str, object], expected_status: str) -> None:
+def _build_statistics_payload(
+    *,
+    api_calls: int,
+    runtime_store: CoordinatorRuntimeStoreSummary | None = None,
+) -> CoordinatorStatisticsPayload:
+    """Return a fully typed coordinator statistics payload for tests."""
+
+    update_counts: CoordinatorUpdateCounts = {
+        "total": api_calls,
+        "successful": api_calls,
+        "failed": 0,
+    }
+    performance_metrics: CoordinatorPerformanceMetrics = {
+        "success_rate": 1.0,
+        "cache_entries": 0,
+        "cache_hit_rate": 1.0,
+        "consecutive_errors": 0,
+        "last_update": datetime.now(UTC).isoformat(),
+        "update_interval": 30.0,
+        "api_calls": api_calls,
+    }
+    health_indicators: CoordinatorHealthIndicators = {
+        "consecutive_errors": 0,
+        "stability_window_ok": True,
+    }
+
+    payload: CoordinatorStatisticsPayload = {
+        "update_counts": update_counts,
+        "performance_metrics": performance_metrics,
+        "health_indicators": health_indicators,
+    }
+
+    if runtime_store is not None:
+        payload["runtime_store"] = runtime_store
+
+    return payload
+
+
+def _assert_runtime_store(info: Mapping[str, object], expected_status: str) -> None:
     """Assert the runtime store snapshot reported by system health."""
 
-    runtime_store = info["runtime_store"]
+    runtime_store = cast(RuntimeStoreCompatibilitySnapshot, info["runtime_store"])
     assert isinstance(runtime_store, dict)
     assert runtime_store["status"] == expected_status
-    history = info.get("runtime_store_history")
+    history = cast(
+        RuntimeStoreHealthHistory | None, info.get("runtime_store_history")
+    )
     if history is not None:
         assert history["last_status"] == expected_status
-        events = history.get("assessment_events")
+        events = cast(
+            Sequence[RuntimeStoreAssessmentEvent] | None,
+            history.get("assessment_events"),
+        )
         if events is not None:
             assert isinstance(events, list)
             if events:
                 assert isinstance(events[-1]["timestamp"], str)
-        timeline_summary = history.get("assessment_timeline_summary")
+        timeline_segments = cast(
+            Sequence[RuntimeStoreAssessmentTimelineSegment] | None,
+            history.get("assessment_timeline_segments"),
+        )
+        if timeline_segments is not None:
+            assert isinstance(timeline_segments, list)
+            if timeline_segments:
+                assert "duration_seconds" in timeline_segments[-1]
+        timeline_summary = cast(
+            RuntimeStoreAssessmentTimelineSummary | None,
+            history.get("assessment_timeline_summary"),
+        )
         if timeline_summary is not None:
             assert timeline_summary["total_events"] >= 0
             assert "level_counts" in timeline_summary
             assert "timeline_window_seconds" in timeline_summary
             assert "events_per_day" in timeline_summary
             assert "level_duration_peaks" in timeline_summary
-    assessment = info.get("runtime_store_assessment")
+            assert "level_duration_totals" in timeline_summary
+            assert "level_duration_samples" in timeline_summary
+            assert "level_duration_averages" in timeline_summary
+            assert "level_duration_minimums" in timeline_summary
+            assert "level_duration_medians" in timeline_summary
+            assert "level_duration_standard_deviations" in timeline_summary
+            assert "level_duration_percentiles" in timeline_summary
+            assert "level_duration_alert_thresholds" in timeline_summary
+            assert "level_duration_guard_alerts" in timeline_summary
+    assessment = cast(
+        RuntimeStoreHealthAssessment | None,
+        info.get("runtime_store_assessment"),
+    )
     if assessment is not None:
         assert assessment["level"] in {"ok", "watch", "action_required"}
         assert assessment["level_streak"] >= 1
@@ -49,7 +131,9 @@ def _assert_runtime_store(info: dict[str, object], expected_status: str) -> None
         assert "current_level_duration_seconds" in assessment
         durations = assessment["level_durations"]
         assert isinstance(durations, dict)
-        for level_key in ("ok", "watch", "action_required"):
+        for level_key in cast(
+            Sequence[RuntimeStoreHealthLevel], ("ok", "watch", "action_required")
+        ):
             assert level_key in durations
             assert durations[level_key] >= 0.0
         current_duration = assessment["current_level_duration_seconds"]
@@ -61,6 +145,12 @@ def _assert_runtime_store(info: dict[str, object], expected_status: str) -> None
                 latest_event = events[-1]
                 assert latest_event["level"] in {"ok", "watch", "action_required"}
                 assert isinstance(latest_event["timestamp"], str)
+        timeline_segments = assessment.get("timeline_segments")
+        if timeline_segments is not None:
+            assert isinstance(timeline_segments, list)
+            if timeline_segments:
+                assert timeline_segments[-1]["level"] in {"ok", "watch", "action_required"}
+                assert "duration_seconds" in timeline_segments[-1]
         timeline_summary = assessment.get("timeline_summary")
         if timeline_summary is not None:
             assert timeline_summary["total_events"] >= 0
@@ -68,11 +158,36 @@ def _assert_runtime_store(info: dict[str, object], expected_status: str) -> None
             assert "timeline_window_days" in timeline_summary
             assert "average_divergence_rate" in timeline_summary
             assert "level_duration_latest" in timeline_summary
-    timeline_summary_payload = info.get("runtime_store_timeline_summary")
+            assert "level_duration_totals" in timeline_summary
+            assert "level_duration_samples" in timeline_summary
+            assert "level_duration_averages" in timeline_summary
+            assert "level_duration_minimums" in timeline_summary
+            assert "level_duration_medians" in timeline_summary
+            assert "level_duration_standard_deviations" in timeline_summary
+            assert "level_duration_percentiles" in timeline_summary
+            assert "level_duration_alert_thresholds" in timeline_summary
+            assert "level_duration_guard_alerts" in timeline_summary
+    timeline_summary_payload = cast(
+        RuntimeStoreAssessmentTimelineSummary | None,
+        info.get("runtime_store_timeline_summary"),
+    )
     if timeline_summary_payload is not None:
         assert timeline_summary_payload["total_events"] >= 0
         assert "status_counts" in timeline_summary_payload
         assert "most_common_reason" in timeline_summary_payload
+        assert "level_duration_samples" in timeline_summary_payload
+        assert "level_duration_standard_deviations" in timeline_summary_payload
+        assert "level_duration_percentiles" in timeline_summary_payload
+        assert "level_duration_alert_thresholds" in timeline_summary_payload
+        assert "level_duration_guard_alerts" in timeline_summary_payload
+    timeline_segments_payload = cast(
+        Sequence[RuntimeStoreAssessmentTimelineSegment] | None,
+        info.get("runtime_store_timeline_segments"),
+    )
+    if timeline_segments_payload is not None:
+        assert isinstance(timeline_segments_payload, list)
+        if timeline_segments_payload:
+            assert "duration_seconds" in timeline_segments_payload[0]
 
 
 async def test_system_health_no_api(hass: HomeAssistant) -> None:
@@ -113,9 +228,9 @@ async def test_system_health_reports_coordinator_status(
     coordinator = MagicMock()
     coordinator.last_update_success = True
     coordinator.use_external_api = False
-    coordinator.get_update_statistics.return_value = {
-        "performance_metrics": {"api_calls": 3}
-    }
+    coordinator.get_update_statistics.return_value = _build_statistics_payload(
+        api_calls=3
+    )
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -161,9 +276,9 @@ async def test_system_health_reports_external_quota(
     coordinator = MagicMock()
     coordinator.last_update_success = True
     coordinator.use_external_api = True
-    coordinator.get_update_statistics.return_value = {
-        "performance_metrics": {"api_calls": 7}
-    }
+    coordinator.get_update_statistics.return_value = _build_statistics_payload(
+        api_calls=7
+    )
 
     entry = MockConfigEntry(
         domain=DOMAIN,
@@ -198,9 +313,9 @@ async def test_system_health_guard_and_breaker_summary(hass: HomeAssistant) -> N
     coordinator = MagicMock()
     coordinator.last_update_success = False
     coordinator.use_external_api = True
-    coordinator.get_update_statistics.return_value = {
-        "performance_metrics": {"api_calls": 4}
-    }
+    coordinator.get_update_statistics.return_value = _build_statistics_payload(
+        api_calls=4
+    )
 
     script_manager = MagicMock()
     script_manager.get_resilience_escalation_snapshot.return_value = {
@@ -426,9 +541,9 @@ async def test_system_health_indicator_critical_paths(hass: HomeAssistant) -> No
     coordinator = MagicMock()
     coordinator.last_update_success = True
     coordinator.use_external_api = False
-    coordinator.get_update_statistics.return_value = {
-        "performance_metrics": {"api_calls": 2}
-    }
+    coordinator.get_update_statistics.return_value = _build_statistics_payload(
+        api_calls=2
+    )
 
     script_manager = MagicMock()
     script_manager.get_resilience_escalation_snapshot.return_value = {
@@ -605,9 +720,9 @@ async def test_system_health_threshold_disabled_fallbacks(
     coordinator = MagicMock()
     coordinator.last_update_success = True
     coordinator.use_external_api = False
-    coordinator.get_update_statistics.return_value = {
-        "performance_metrics": {"api_calls": 5}
-    }
+    coordinator.get_update_statistics.return_value = _build_statistics_payload(
+        api_calls=5
+    )
 
     script_manager = MagicMock()
     script_manager.get_resilience_escalation_snapshot.return_value = {
@@ -892,9 +1007,9 @@ async def test_system_health_uses_option_thresholds(
     coordinator = MagicMock()
     coordinator.last_update_success = True
     coordinator.use_external_api = False
-    coordinator.get_update_statistics.return_value = {
-        "performance_metrics": {"api_calls": 1}
-    }
+    coordinator.get_update_statistics.return_value = _build_statistics_payload(
+        api_calls=1
+    )
 
     entry = MockConfigEntry(
         domain=DOMAIN,

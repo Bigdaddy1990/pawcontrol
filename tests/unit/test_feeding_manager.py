@@ -27,8 +27,21 @@ from custom_components.pawcontrol.types import (
     FeedingEventRecord,
     FeedingManagerDogSetupPayload,
     FeedingSnapshot,
+    JSONMutableMapping,
 )
 from tests.helpers import typed_deepcopy
+
+
+def _mutable_feeding_config(
+    config: FeedingManagerDogSetupPayload,
+) -> JSONMutableMapping:
+    """Return the mutable feeding config mapping for ``config``."""
+
+    feeding_config = config.get("feeding_config")
+    assert isinstance(
+        feeding_config, dict
+    ), "Feeding fixture must supply a mutable feeding_config mapping"
+    return cast(JSONMutableMapping, feeding_config)
 
 
 @pytest.mark.unit
@@ -198,7 +211,8 @@ class TestPortionCalculations:
         manager = FeedingManager()
 
         config = typed_deepcopy(mock_dog_config)
-        config["feeding_config"]["calories_per_100g"] = 400  # Higher calorie food
+        feeding_config = _mutable_feeding_config(config)
+        feeding_config["calories_per_100g"] = 400  # Higher calorie food
 
         await manager.async_initialize([config])
 
@@ -214,7 +228,8 @@ class TestPortionCalculations:
         manager = FeedingManager()
 
         config = typed_deepcopy(mock_dog_config)
-        config["feeding_config"]["meals_per_day"] = 3
+        feeding_config = _mutable_feeding_config(config)
+        feeding_config["meals_per_day"] = 3
 
         await manager.async_initialize([config])
 

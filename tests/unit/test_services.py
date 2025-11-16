@@ -33,6 +33,8 @@ from custom_components.pawcontrol.types import (
     CacheRepairAggregate,
     CoordinatorRuntimeManagers,
     FeedingComplianceEventPayload,
+    GPSRouteExportJSONPayload,
+    GPSRouteExportPayload,
     GPSTrackingConfigInput,
 )
 from custom_components.pawcontrol.utils import async_call_hass_service_if_available
@@ -709,6 +711,9 @@ class _GPSManagerStub:
         self.fail_safe_zone = False
         self.last_config: dict[str, object] | None = None
         self.safe_zone: dict[str, object] | None = None
+        self.fail_export: Exception | None = None
+        self.export_result: GPSRouteExportPayload | None = None
+        self.export_calls: list[dict[str, object]] = []
 
     async def async_configure_dog_gps(
         self, *, dog_id: str, config: GPSTrackingConfigInput
@@ -735,6 +740,23 @@ class _GPSManagerStub:
             "radius": radius_meters,
             "notifications": notifications_enabled,
         }
+
+    async def async_export_routes(
+        self,
+        *,
+        dog_id: str,
+        export_format: str,
+        last_n_routes: int,
+    ) -> GPSRouteExportPayload | None:
+        if self.fail_export:
+            raise self.fail_export
+        call: dict[str, object] = {
+            "dog_id": dog_id,
+            "export_format": export_format,
+            "last_n_routes": last_n_routes,
+        }
+        self.export_calls.append(call)
+        return self.export_result
 
 
 class _CoordinatorStub:
@@ -1754,6 +1776,154 @@ async def test_setup_automatic_gps_service_records_failure(
     assert result["service"] == services.SERVICE_SETUP_AUTOMATIC_GPS
     assert result["status"] == "error"
     assert result.get("message") == "configure failed"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_gps_export_route_service_records_success(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GPS export service should notify and log telemetry for multi-route payloads."""
+
+    notification_manager = _NotificationManagerStub()
+    gps_manager = _GPSManagerStub()
+    export_payload: GPSRouteExportJSONPayload = {
+        "format": "json",
+        "filename": "fido_routes.json",
+        "routes_count": 2,
+        "content": {
+            "dog_id": "fido",
+            "export_timestamp": "2024-05-01T12:00:00+00:00",
+            "routes": [
+                {
+                    "start_time": "2024-05-01T11:30:00+00:00",
+                    "end_time": "2024-05-01T12:00:00+00:00",
+                    "duration_minutes": 30.0,
+                    "distance_km": 2.5,
+                    "avg_speed_kmh": 5.0,
+                    "route_quality": "excellent",
+                    "gps_points": [
+                        {
+                            "latitude": 40.0,
+                            "longitude": -73.0,
+                            "timestamp": "2024-05-01T11:30:00+00:00",
+                        }
+                    ],
+                    "geofence_events": [
+                        {
+                            "event_type": "enter",
+                            "zone_name": "Home",
+                            "timestamp": "2024-05-01T11:30:00+00:00",
+                        }
+                    ],
+                },
+                {
+                    "start_time": "2024-05-02T08:15:00+00:00",
+                    "end_time": "2024-05-02T08:45:00+00:00",
+                    "duration_minutes": 30.0,
+                    "distance_km": 2.0,
+                    "avg_speed_kmh": 4.0,
+                    "route_quality": "good",
+                    "gps_points": [
+                        {
+                            "latitude": 41.0,
+                            "longitude": -74.0,
+                            "timestamp": "2024-05-02T08:15:00+00:00",
+                        }
+                    ],
+                    "geofence_events": [
+                        {
+                            "event_type": "exit",
+                            "zone_name": "Park",
+                            "timestamp": "2024-05-02T08:45:00+00:00",
+                        }
+                    ],
+                },
+            ],
+        },
+    }
+    gps_manager.export_result = export_payload
+    coordinator = _CoordinatorStub(
+        SimpleNamespace(),
+        notification_manager=notification_manager,
+        gps_manager=gps_manager,
+    )
+    coordinator.register_dog("fido", name="Fido")
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+    handler = hass.services.handlers[services.SERVICE_GPS_EXPORT_ROUTE]
+
+    await handler(
+        SimpleNamespace(
+            data={"dog_id": "fido", "format": "json", "last_n_walks": 3}
+        )
+    )
+
+    assert gps_manager.export_calls == [
+        {
+            "dog_id": "fido",
+            "export_format": "json",
+            "last_n_routes": 3,
+        }
+    ]
+    assert len(notification_manager.sent) == 1
+    notification_payload = notification_manager.sent[0]
+    assert notification_payload["title"] == "Route Export Complete"
+    assert notification_payload["dog_id"] == "fido"
+    assert (
+        notification_payload["message"]
+        == "Exported 2 route(s) for fido in json format"
+    )
+
+    result = runtime_data.performance_stats["last_service_result"]
+    assert result["service"] == services.SERVICE_GPS_EXPORT_ROUTE
+    assert result["status"] == "success"
+    details = result.get("details")
+    assert details is not None
+    assert details["routes_count"] == 2
+    assert details["result"] == "exported"
+
+
+@pytest.mark.unit
+@pytest.mark.asyncio
+async def test_gps_export_route_service_records_no_routes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """GPS export service should log telemetry when no history is present."""
+
+    notification_manager = _NotificationManagerStub()
+    gps_manager = _GPSManagerStub()
+    gps_manager.export_result = None
+    coordinator = _CoordinatorStub(
+        SimpleNamespace(),
+        notification_manager=notification_manager,
+        gps_manager=gps_manager,
+    )
+    coordinator.register_dog("luna")
+    runtime_data = SimpleNamespace(performance_stats={})
+
+    hass = await _setup_service_environment(monkeypatch, coordinator, runtime_data)
+    handler = hass.services.handlers[services.SERVICE_GPS_EXPORT_ROUTE]
+
+    await handler(SimpleNamespace(data={"dog_id": "luna"}))
+
+    assert gps_manager.export_calls == [
+        {
+            "dog_id": "luna",
+            "export_format": "gpx",
+            "last_n_routes": 1,
+        }
+    ]
+    assert notification_manager.sent == []
+
+    result = runtime_data.performance_stats["last_service_result"]
+    assert result["service"] == services.SERVICE_GPS_EXPORT_ROUTE
+    assert result["status"] == "success"
+    details = result.get("details")
+    assert details is not None
+    assert details["routes_count"] == 0
+    assert details["result"] == "no_routes"
 
 
 @pytest.mark.unit

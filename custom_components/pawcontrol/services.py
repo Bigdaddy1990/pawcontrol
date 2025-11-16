@@ -2180,6 +2180,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
             routes_count = export_data["routes_count"] if export_data else 0
 
+            guard_snapshot: tuple[ServiceGuardResult, ...] = ()
+
             if export_data:
                 _LOGGER.info(
                     "Exported %d route(s) for %s in %s format",
@@ -2192,7 +2194,6 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                 notification_manager = _get_runtime_manager(
                     coordinator, "notification_manager"
                 )
-                guard_snapshot: tuple[ServiceGuardResult, ...] = ()
                 if notification_manager:
                     async with async_capture_service_guard_results() as captured_guards:
                         await notification_manager.async_send_notification(

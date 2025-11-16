@@ -637,7 +637,9 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
                 if index is not None and index >= 0:
                     parent_fixture = self._resolve_parent_chain(node.value.value, 1)
                     if parent_fixture is not None:
-                        if isinstance(parent_fixture, str):
+                        if isinstance(parent_fixture, tuple):
+                            self._record_dynamic_alias(node, parent_fixture)
+                        elif isinstance(parent_fixture, str):
                             self._record_alias(node, parent_fixture)
                         return parent_fixture
                 return None
@@ -2225,6 +2227,11 @@ class _FixtureUsageVisitor(ast.NodeVisitor):
     def _resolve_constructor_name(self, node: ast.AST) -> str | None:
         if isinstance(node, ast.Call):
             return self._resolve_constructor_name(node.func)
+        if isinstance(node, ast.Subscript):
+            base_constructor = self._resolve_constructor_name(node.value)
+            if base_constructor is not None:
+                return f"{base_constructor}.__getitem__"
+            return None
         if isinstance(node, ast.Name):
             alias_target = self._wrapper_aliases.get(node.id)
             if alias_target is not None:
@@ -3177,6 +3184,60 @@ def test_detects_importlib_resources_parents_nested_joinpath_loader() -> None:
     )
 
     assert any("hass_owner_ws_client" in offender for offender in offenders)
+
+
+def test_detects_importlib_resources_parents_with_segments_loader() -> None:
+    """Detect fixtures returned via parents[index].with_segments().open_text."""
+
+    offenders = _scan_source(
+        "from importlib.resources import files\n"
+        "from types import SimpleNamespace\n"
+        "def _open_text() -> SimpleNamespace:\n"
+        "    return SimpleNamespace(client=hass_supervisor_admin_ws_client)\n"
+        "def _inner_with_segments(*segments: str) -> SimpleNamespace:\n"
+        "    return SimpleNamespace(open_text=_open_text)\n"
+        "def _get_parent(index: int) -> SimpleNamespace:\n"
+        "    return SimpleNamespace(with_segments=_inner_with_segments)\n"
+        "def _joinpath(name: str) -> SimpleNamespace:\n"
+        "    parent_seq = SimpleNamespace(__getitem__=_get_parent)\n"
+        "    return SimpleNamespace(parents=parent_seq)\n"
+        "def get_files(package: str):\n"
+        "    return SimpleNamespace(joinpath=_joinpath)\n"
+        "files = get_files\n"
+        "files('tests.helpers').joinpath('helpers').parents[1].with_segments('client', 'payload.json').open_text().client()\n"
+    )
+
+    assert any(
+        "hass_supervisor_admin_ws_client" in offender for offender in offenders
+    )
+
+
+def test_detects_importlib_resources_parents_resolve_joinpath_loader() -> None:
+    """Detect fixtures returned via parents[index].resolve().joinpath().open_text."""
+
+    offenders = _scan_source(
+        "from importlib.resources import files\n"
+        "from types import SimpleNamespace\n"
+        "def _open_text() -> SimpleNamespace:\n"
+        "    return SimpleNamespace(client=hass_voice_assistant_ws_client)\n"
+        "def _inner_joinpath(name: str) -> SimpleNamespace:\n"
+        "    return SimpleNamespace(open_text=_open_text)\n"
+        "def _resolve(strict: bool = False) -> SimpleNamespace:\n"
+        "    return SimpleNamespace(joinpath=_inner_joinpath)\n"
+        "def _get_parent(index: int) -> SimpleNamespace:\n"
+        "    return SimpleNamespace(resolve=_resolve)\n"
+        "def _joinpath(name: str) -> SimpleNamespace:\n"
+        "    parent_seq = SimpleNamespace(__getitem__=_get_parent)\n"
+        "    return SimpleNamespace(parents=parent_seq)\n"
+        "def get_files(package: str):\n"
+        "    return SimpleNamespace(joinpath=_joinpath)\n"
+        "files = get_files\n"
+        "files('tests.helpers').joinpath('helpers').parents[0].resolve().joinpath('client').open_text().client()\n"
+    )
+
+    assert any(
+        "hass_voice_assistant_ws_client" in offender for offender in offenders
+    )
 
 
 def test_detects_importlib_resources_relative_to_open_text_loader() -> None:

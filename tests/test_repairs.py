@@ -11,12 +11,12 @@ from __future__ import annotations
 import asyncio
 import importlib.util
 import sys
-from collections.abc import Iterator, Mapping, MutableMapping
+from collections.abc import Mapping
 from datetime import UTC, datetime, timezone
 from enum import StrEnum
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest.mock import AsyncMock, call
 
 import pytest
@@ -52,201 +52,74 @@ def _load_module(name: str, path: Path) -> ModuleType:
     return module
 
 
-def _install_homeassistant_stubs() -> tuple[AsyncMock, type[Any], AsyncMock]:
-    """Register minimal Home Assistant stubs required by repairs.py."""
+from tests.helpers import homeassistant_test_stubs
 
-    sys.modules.setdefault("homeassistant", ModuleType("homeassistant"))
-    helpers = sys.modules.setdefault(
-        "homeassistant.helpers", ModuleType("homeassistant.helpers")
-    )
-    components = sys.modules.setdefault(
-        "homeassistant.components", ModuleType("homeassistant.components")
-    )
-    util = sys.modules.setdefault(
-        "homeassistant.util", ModuleType("homeassistant.util")
-    )
-    data_entry_flow = ModuleType("homeassistant.data_entry_flow")
 
-    class FlowResult(MutableMapping[str, object]):  # pragma: no cover - mapping shim
-        """Lightweight mapping wrapper matching Home Assistant flow results."""
+def _install_homeassistant_stubs() -> tuple[AsyncMock, type[StrEnum], AsyncMock]:
+    """Register Home Assistant stubs required by repairs.py."""
 
-        __slots__ = ("_data",)
+    homeassistant_test_stubs.install_homeassistant_stubs()
 
-        def __init__(self, initial: Mapping[str, object] | None = None) -> None:
-            self._data: dict[str, object] = dict(initial or {})
+    from homeassistant.components import repairs as repairs_component
+    from homeassistant.helpers import issue_registry
+    from homeassistant.util import dt as dt_util
 
-        def __getitem__(self, key: str) -> object:
-            return self._data[key]
+    async_create_issue = AsyncMock()
+    async_delete_issue = AsyncMock()
 
-        def __setitem__(self, key: str, value: object) -> None:
-            self._data[key] = value
+    class _RepairsFlowStub:
+        """Minimal replacement for Home Assistant's repairs flow base class."""
 
-        def __delitem__(self, key: str) -> None:
-            del self._data[key]
-
-        def __iter__(self) -> Iterator[str]:
-            return iter(self._data)
-
-        def __len__(self) -> int:
-            return len(self._data)
-
-        def to_dict(self) -> dict[str, object]:
-            """Return a shallow copy of the underlying payload."""
-
-            return dict(self._data)
-
-    data_entry_flow.FlowResult = FlowResult
-    sys.modules[data_entry_flow.__name__] = data_entry_flow
-
-    core = ModuleType("homeassistant.core")
-
-    class HomeAssistant:  # pragma: no cover - minimal attribute container
-        def __init__(self) -> None:
-            self.data: dict[str, object] = {}
-
-    core.HomeAssistant = HomeAssistant
-
-    def callback(func):  # pragma: no cover - synchronous passthrough decorator
-        return func
-
-    core.callback = callback
-    sys.modules[core.__name__] = core
-
-    config_entries = ModuleType("homeassistant.config_entries")
-
-    class ConfigEntry:  # pragma: no cover - simple stand-in for tests
-        def __init__(self, entry_id: str) -> None:
-            self.entry_id = entry_id
-            self.data: ConfigEntryDataPayload = {}
-            self.options: PawControlOptionsData = {}
-            self.version = 1
-
-    config_entries.ConfigEntry = ConfigEntry
-    sys.modules[config_entries.__name__] = config_entries
-
-    repairs_component = ModuleType("homeassistant.components.repairs")
-
-    class RepairsFlow:  # pragma: no cover - minimal flow helpers
         def async_show_form(
             self,
             *,
             step_id: str,
-            data_schema: Any | None = None,
+            data_schema: Mapping[str, object] | None = None,
             description_placeholders: Mapping[str, object] | None = None,
             errors: Mapping[str, object] | None = None,
-        ) -> FlowResult:
-            return FlowResult(
-                {
-                    "type": "form",
-                    "step_id": step_id,
-                    "data_schema": data_schema,
-                    "description_placeholders": dict(description_placeholders or {}),
-                    "errors": dict(errors or {}),
-                }
-            )
+        ) -> dict[str, object]:
+            return {
+                "type": "form",
+                "step_id": step_id,
+                "data_schema": data_schema,
+                "description_placeholders": dict(description_placeholders or {}),
+                "errors": dict(errors or {}),
+            }
 
-        def async_external_step(
-            self, *, step_id: str, url: str
-        ) -> FlowResult:  # pragma: no cover - passthrough helper
-            return FlowResult({"type": "external", "step_id": step_id, "url": url})
+        def async_external_step(self, *, step_id: str, url: str) -> dict[str, object]:
+            return {"type": "external", "step_id": step_id, "url": url}
 
         def async_create_entry(
             self,
             *,
             title: str,
             data: Mapping[str, object],
-        ) -> FlowResult:  # pragma: no cover - passthrough helper
-            return FlowResult(
-                {
-                    "type": "create_entry",
-                    "title": title,
-                    "data": dict(data),
-                }
-            )
+        ) -> dict[str, object]:
+            return {"type": "create_entry", "title": title, "data": dict(data)}
 
-        def async_abort(
-            self, *, reason: str
-        ) -> FlowResult:  # pragma: no cover - passthrough helper
-            return FlowResult({"type": "abort", "reason": reason})
+        def async_abort(self, *, reason: str) -> dict[str, object]:
+            return {"type": "abort", "reason": reason}
 
-    repairs_component.RepairsFlow = RepairsFlow
-    sys.modules[repairs_component.__name__] = repairs_component
-    components.repairs = repairs_component
+    repairs_component.RepairsFlow = _RepairsFlowStub
 
-    selector_module = ModuleType("homeassistant.helpers.selector")
-
-    def selector(
-        schema: Mapping[str, object],
-    ) -> dict[str, object]:  # pragma: no cover - pass-through helper
-        return dict(schema)
-
-    selector_module.selector = selector
-    sys.modules[selector_module.__name__] = selector_module
-    helpers.selector = selector_module
-
-    device_registry = ModuleType("homeassistant.helpers.device_registry")
-
-    class DeviceInfo:  # pragma: no cover - placeholder structure
-        def __init__(self, **_: Any) -> None:
-            pass
-
-    class DeviceEntry:  # pragma: no cover - placeholder structure
-        pass
-
-    class _DummyDeviceRegistry:  # pragma: no cover - minimal helper implementation
-        def async_get_or_create(self, **_: Any) -> DeviceEntry:
-            return DeviceEntry()
-
-        def async_update_device(self, *args: Any, **kwargs: Any) -> DeviceEntry | None:
-            return DeviceEntry() if kwargs else None
-
-    device_registry.DeviceInfo = DeviceInfo
-    device_registry.DeviceEntry = DeviceEntry
-    device_registry.async_get = lambda hass: _DummyDeviceRegistry()
-    sys.modules[device_registry.__name__] = device_registry
-    helpers.device_registry = device_registry
-
-    entity_registry = ModuleType("homeassistant.helpers.entity_registry")
-
-    class _DummyEntityRegistry:  # pragma: no cover - minimal helper implementation
-        def async_get(self, _entity_id: str) -> None:
-            return None
-
-        def async_update_entity(self, *args: Any, **kwargs: Any) -> None:
-            return None
-
-    entity_registry.async_get = lambda hass: _DummyEntityRegistry()
-    sys.modules[entity_registry.__name__] = entity_registry
-    helpers.entity_registry = entity_registry
-
-    issue_registry = ModuleType("homeassistant.helpers.issue_registry")
-
-    class IssueSeverity(
-        StrEnum
-    ):  # pragma: no cover - mirrors Home Assistant enum semantics
-        CRITICAL = "critical"
-        ERROR = "error"
+    class IssueSeverity(StrEnum):
         WARNING = "warning"
+        ERROR = "error"
+        CRITICAL = "critical"
 
-    async_create_issue = AsyncMock()
-    async_delete_issue = AsyncMock()
     issue_registry.IssueSeverity = IssueSeverity
-    issue_registry.DOMAIN = "issues"
     issue_registry.async_create_issue = async_create_issue
     issue_registry.async_delete_issue = async_delete_issue
-    sys.modules[issue_registry.__name__] = issue_registry
-    helpers.issue_registry = issue_registry
 
-    dt_module = ModuleType("homeassistant.util.dt")
-    dt_module.utcnow = lambda: datetime.now(UTC)
-    sys.modules[dt_module.__name__] = dt_module
-    util.dt = dt_module
+    # Ensure datetime helpers return timezone-aware values during tests.
+    dt_util.utcnow = lambda: datetime.now(UTC)
 
     return async_create_issue, IssueSeverity, async_delete_issue
 
 
+
 @pytest.fixture
-def repairs_module() -> tuple[ModuleType, AsyncMock, type[Any], AsyncMock]:
+def repairs_module() -> tuple[Any, AsyncMock, type[StrEnum], AsyncMock]:
     """Return the loaded repairs module alongside the issue registry mock."""
 
     async_create_issue, issue_severity_cls, async_delete_issue = (
@@ -261,15 +134,18 @@ def repairs_module() -> tuple[ModuleType, AsyncMock, type[Any], AsyncMock]:
 
     module_name = "custom_components.pawcontrol.repairs"
     sys.modules.pop(module_name, None)
-    module = _load_module(
-        module_name, PROJECT_ROOT / "custom_components" / "pawcontrol" / "repairs.py"
+    module = cast(
+        Any,
+        _load_module(
+            module_name, PROJECT_ROOT / "custom_components" / "pawcontrol" / "repairs.py"
+        ),
     )
 
     return module, async_create_issue, issue_severity_cls, async_delete_issue
 
 
 def test_async_create_issue_normalises_unknown_severity(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+    repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Severity values outside the registry should fall back to warnings."""
@@ -292,17 +168,20 @@ def test_async_create_issue_normalises_unknown_severity(
     )
 
     assert create_issue_mock.await_count == 1
-    kwargs = create_issue_mock.await_args.kwargs
-    assert kwargs["severity"] == issue_severity_cls.WARNING
+    await_args = create_issue_mock.await_args
+    assert await_args is not None
+    kwargs = await_args.kwargs
+    severity_enum = cast(Any, issue_severity_cls)
+    assert kwargs["severity"] == severity_enum.WARNING
     assert (
         kwargs["translation_placeholders"]["severity"]
-        == issue_severity_cls.WARNING.value
+        == severity_enum.WARNING.value
     )
     assert "Unsupported issue severity 'info'" in caplog.text
 
 
 def test_async_create_issue_accepts_issue_severity_instances(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+    repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Passing an IssueSeverity instance should be preserved."""
 
@@ -316,16 +195,17 @@ def test_async_create_issue_accepts_issue_severity_instances(
             entry,
             "entry_error",
             "test_issue",
-            severity=issue_severity_cls.ERROR,
+            severity=cast(Any, issue_severity_cls).ERROR,
         )
     )
 
     assert create_issue_mock.await_count == 1
-    kwargs = create_issue_mock.await_args.kwargs
-    assert kwargs["severity"] == issue_severity_cls.ERROR
-    assert (
-        kwargs["translation_placeholders"]["severity"] == issue_severity_cls.ERROR.value
-    )
+    await_args = create_issue_mock.await_args
+    assert await_args is not None
+    kwargs = await_args.kwargs
+    severity_enum = cast(Any, issue_severity_cls)
+    assert kwargs["severity"] == severity_enum.ERROR
+    assert kwargs["translation_placeholders"]["severity"] == severity_enum.ERROR.value
 
 
 def _build_config_entries(
@@ -367,7 +247,7 @@ def _create_flow(module: ModuleType, hass: Any, issue_id: str) -> Any:
 
 
 def test_storage_warning_flow_reduces_retention(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+    repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Storage warning repair should lower retention and resolve the issue."""
 
@@ -402,12 +282,14 @@ def test_storage_warning_flow_reduces_retention(
     asyncio.run(flow.async_step_storage_warning({"action": "reduce_retention"}))
 
     assert entry.options["data_retention_days"] == 365
-    assert updates[-1][1]["data_retention_days"] == 365
+    _, options_payload = updates[-1]
+    assert options_payload is not None
+    assert options_payload["data_retention_days"] == 365
     assert delete_issue_mock.await_count == 1
 
 
 def test_module_conflict_flow_disables_extra_gps_modules(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+    repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Module conflict repair should disable GPS for dogs beyond the limit."""
 
@@ -456,7 +338,7 @@ def test_module_conflict_flow_disables_extra_gps_modules(
 
 
 def test_invalid_dog_data_flow_removes_entries(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+    repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Invalid dog data repair should remove malformed entries."""
 
@@ -499,7 +381,7 @@ def test_invalid_dog_data_flow_removes_entries(
 
 
 def test_coordinator_error_flow_triggers_reload(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+    repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Coordinator repair should reload the config entry and resolve the issue."""
 
@@ -535,7 +417,7 @@ def test_coordinator_error_flow_triggers_reload(
 
 
 def test_coordinator_error_flow_handles_failed_reload(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+    repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Coordinator repair should keep the issue when reload fails."""
 
@@ -579,13 +461,14 @@ def test_coordinator_error_flow_handles_failed_reload(
 
 
 def test_async_check_for_issues_checks_coordinator_health(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any]],
+    repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Coordinator health should be validated when scanning for issues."""
 
     module, create_issue_mock, _, delete_issue_mock = repairs_module
 
     hass = SimpleNamespace()
+    hass.data = {module.DOMAIN: {}}
     hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
 
     entry = SimpleNamespace(
@@ -616,7 +499,9 @@ def test_async_check_for_issues_checks_coordinator_health(
         module.require_runtime_data = original_require_runtime_data
 
     assert create_issue_mock.await_count == 1
-    kwargs = create_issue_mock.await_args.kwargs
+    await_args = create_issue_mock.await_args
+    assert await_args is not None
+    kwargs = await_args.kwargs
     assert kwargs["translation_key"] == module.ISSUE_COORDINATOR_ERROR
     assert kwargs["data"]["error"] == "coordinator_not_initialized"
 
@@ -629,7 +514,7 @@ def test_async_check_for_issues_checks_coordinator_health(
 
 
 def test_async_check_for_issues_publishes_cache_health_issue(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+    repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Aggregated cache anomalies should surface as repairs issues."""
 
@@ -638,6 +523,7 @@ def test_async_check_for_issues_publishes_cache_health_issue(
     delete_issue_mock.reset_mock()
 
     hass = SimpleNamespace()
+    hass.data = {module.DOMAIN: {}}
     hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
 
     summary = CacheRepairAggregate(
@@ -691,7 +577,9 @@ def test_async_check_for_issues_publishes_cache_health_issue(
         module.require_runtime_data = original_require_runtime_data
 
     assert create_issue_mock.await_count == 1
-    kwargs = create_issue_mock.await_args.kwargs
+    await_args = create_issue_mock.await_args
+    assert await_args is not None
+    kwargs = await_args.kwargs
     assert kwargs["translation_key"] == module.ISSUE_CACHE_HEALTH_SUMMARY
     assert kwargs["data"]["summary"] == summary.to_mapping()
     cache_delete_calls = [
@@ -703,7 +591,7 @@ def test_async_check_for_issues_publishes_cache_health_issue(
 
 
 def test_async_check_for_issues_clears_cache_issue_without_anomalies(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+    repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Repairs should clear cache issues when anomalies disappear."""
 
@@ -712,6 +600,7 @@ def test_async_check_for_issues_clears_cache_issue_without_anomalies(
     delete_issue_mock.reset_mock()
 
     hass = SimpleNamespace()
+    hass.data = {module.DOMAIN: {}}
     hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
 
     summary = CacheRepairAggregate(
@@ -763,7 +652,7 @@ def test_async_check_for_issues_clears_cache_issue_without_anomalies(
 
 
 def test_async_check_for_issues_surfaces_reconfigure_warnings(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+    repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Reconfigure telemetry warnings should surface as repair issues."""
 
@@ -822,7 +711,7 @@ def test_async_check_for_issues_surfaces_reconfigure_warnings(
 
 
 def test_async_check_for_issues_surfaces_reconfigure_health_issue(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+    repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Health summaries from reconfigure telemetry should raise issues."""
 
@@ -882,8 +771,88 @@ def test_async_check_for_issues_surfaces_reconfigure_health_issue(
     )
 
 
+def test_check_runtime_store_duration_alerts_creates_issue(
+    repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
+) -> None:
+    """Guard alerts should create a runtime store repair issue."""
+
+    module, create_issue_mock, issue_severity_cls, delete_issue_mock = repairs_module
+    create_issue_mock.reset_mock()
+    delete_issue_mock.reset_mock()
+
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+    runtime_data = SimpleNamespace()
+
+    original_require_runtime_data = module.require_runtime_data
+    original_get_runtime_store_health = module.get_runtime_store_health
+    module.require_runtime_data = lambda _hass, _entry: runtime_data
+    module.get_runtime_store_health = lambda _runtime: {
+        "assessment_timeline_summary": {
+            "level_duration_guard_alerts": [
+                {
+                    "level": "watch",
+                    "percentile_label": "p95",
+                    "percentile_rank": 0.95,
+                    "percentile_seconds": 28800.0,
+                    "guard_limit_seconds": 21600.0,
+                    "severity": "warning",
+                    "recommended_action": "Repair",
+                }
+            ],
+            "timeline_window_days": 1.0,
+            "last_event_timestamp": "2024-01-02T00:00:00+00:00",
+        }
+    }
+
+    try:
+        asyncio.run(module._check_runtime_store_duration_alerts(hass, entry))
+    finally:
+        module.require_runtime_data = original_require_runtime_data
+        module.get_runtime_store_health = original_get_runtime_store_health
+
+    assert create_issue_mock.await_count == 1
+    kwargs = create_issue_mock.await_args.kwargs
+    assert kwargs["translation_key"] == module.ISSUE_RUNTIME_STORE_DURATION_ALERT
+    assert kwargs["severity"] == issue_severity_cls.WARNING
+    data = kwargs["data"]
+    assert data["alert_count"] == 1
+    assert data["triggered_levels"] == "watch"
+    assert "alert_summaries" in data
+
+
+def test_check_runtime_store_duration_alerts_clears_issue_without_alerts(
+    repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
+) -> None:
+    """Existing issues should be cleared when no guard alerts remain."""
+
+    module, create_issue_mock, _, delete_issue_mock = repairs_module
+    create_issue_mock.reset_mock()
+    delete_issue_mock.reset_mock()
+
+    hass = SimpleNamespace()
+    entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+    runtime_data = SimpleNamespace()
+
+    original_require_runtime_data = module.require_runtime_data
+    original_get_runtime_store_health = module.get_runtime_store_health
+    module.require_runtime_data = lambda _hass, _entry: runtime_data
+    module.get_runtime_store_health = lambda _runtime: {
+        "assessment_timeline_summary": {"level_duration_guard_alerts": []}
+    }
+
+    try:
+        asyncio.run(module._check_runtime_store_duration_alerts(hass, entry))
+    finally:
+        module.require_runtime_data = original_require_runtime_data
+        module.get_runtime_store_health = original_get_runtime_store_health
+
+    assert create_issue_mock.await_count == 0
+    assert delete_issue_mock.await_count == 1
+
+
 def test_async_check_for_issues_clears_reconfigure_issues_when_clean(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+    repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Reconfigure telemetry without warnings should clear existing issues."""
 
@@ -949,7 +918,7 @@ def test_async_check_for_issues_clears_reconfigure_issues_when_clean(
 
 
 def test_notification_check_accepts_mobile_app_service_prefix(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any]],
+    repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Notification checks should detect mobile_app_* notify services."""
 
@@ -983,7 +952,7 @@ def test_notification_check_accepts_mobile_app_service_prefix(
 
 
 def test_async_publish_feeding_compliance_issue_creates_alert(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+    repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Feeding compliance issues should create repair alerts with metadata."""
 
@@ -994,31 +963,34 @@ def test_async_publish_feeding_compliance_issue_creates_alert(
     hass = SimpleNamespace()
     entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
 
-    payload = {
-        "dog_id": "buddy",
-        "dog_name": "Buddy",
-        "days_to_check": 5,
-        "notify_on_issues": True,
-        "notification_sent": True,
-        "notification_id": "notif-1",
-        "result": {
-            "status": "completed",
-            "compliance_score": 65,
-            "compliance_rate": 65.0,
-            "days_analyzed": 5,
-            "days_with_issues": 2,
-            "checked_at": "2024-05-05T10:00:00+00:00",
-            "compliance_issues": [
-                {
-                    "date": "2024-05-04",
-                    "issues": ["Missed breakfast"],
-                    "severity": "high",
-                }
-            ],
-            "missed_meals": [{"date": "2024-05-03", "actual": 1, "expected": 2}],
-            "recommendations": ["Schedule a vet visit"],
+    payload = cast(
+        dict[str, object],
+        {
+            "dog_id": "buddy",
+            "dog_name": "Buddy",
+            "days_to_check": 5,
+            "notify_on_issues": True,
+            "notification_sent": True,
+            "notification_id": "notif-1",
+            "result": {
+                "status": "completed",
+                "compliance_score": 65,
+                "compliance_rate": 65.0,
+                "days_analyzed": 5,
+                "days_with_issues": 2,
+                "checked_at": "2024-05-05T10:00:00+00:00",
+                "compliance_issues": [
+                    {
+                        "date": "2024-05-04",
+                        "issues": ["Missed breakfast"],
+                        "severity": "high",
+                    }
+                ],
+                "missed_meals": [{"date": "2024-05-03", "actual": 1, "expected": 2}],
+                "recommendations": ["Schedule a vet visit"],
+            },
         },
-    }
+    )
 
     asyncio.run(
         module.async_publish_feeding_compliance_issue(
@@ -1030,9 +1002,12 @@ def test_async_publish_feeding_compliance_issue_creates_alert(
     )
 
     assert create_issue_mock.await_count == 1
-    kwargs = create_issue_mock.await_args.kwargs
+    await_args = create_issue_mock.await_args
+    assert await_args is not None
+    kwargs = await_args.kwargs
     assert kwargs["translation_key"] == module.ISSUE_FEEDING_COMPLIANCE_ALERT
-    assert kwargs["severity"] == issue_severity_cls.CRITICAL
+    severity_enum = cast(Any, issue_severity_cls)
+    assert kwargs["severity"] == severity_enum.CRITICAL
     data = kwargs["data"]
     assert data["dog_id"] == "buddy"
     assert data["issue_count"] == 1
@@ -1050,7 +1025,7 @@ def test_async_publish_feeding_compliance_issue_creates_alert(
 
 
 def test_async_publish_feeding_compliance_issue_falls_back_without_critical(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+    repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Severity should fall back when CRITICAL is unavailable."""
@@ -1071,31 +1046,34 @@ def test_async_publish_feeding_compliance_issue_falls_back_without_critical(
     hass = SimpleNamespace()
     entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
 
-    payload = {
-        "dog_id": "buddy",
-        "dog_name": "Buddy",
-        "days_to_check": 5,
-        "notify_on_issues": True,
-        "notification_sent": False,
-        "result": {
-            "status": "completed",
-            "compliance_score": 65,
-            "compliance_rate": 65.0,
-            "days_analyzed": 5,
-            "days_with_issues": 2,
-            "compliance_issues": [
-                {
-                    "date": "2024-05-04",
-                    "issues": ["Missed breakfast"],
-                    "severity": "high",
-                }
-            ],
-            "missed_meals": [
-                {"date": "2024-05-03", "actual": 1, "expected": 2},
-            ],
-            "recommendations": ["Schedule a vet visit"],
+    payload = cast(
+        dict[str, object],
+        {
+            "dog_id": "buddy",
+            "dog_name": "Buddy",
+            "days_to_check": 5,
+            "notify_on_issues": True,
+            "notification_sent": False,
+            "result": {
+                "status": "completed",
+                "compliance_score": 65,
+                "compliance_rate": 65.0,
+                "days_analyzed": 5,
+                "days_with_issues": 2,
+                "compliance_issues": [
+                    {
+                        "date": "2024-05-04",
+                        "issues": ["Missed breakfast"],
+                        "severity": "high",
+                    }
+                ],
+                "missed_meals": [
+                    {"date": "2024-05-03", "actual": 1, "expected": 2},
+                ],
+                "recommendations": ["Schedule a vet visit"],
+            },
         },
-    }
+    )
 
     asyncio.run(
         module.async_publish_feeding_compliance_issue(
@@ -1107,12 +1085,14 @@ def test_async_publish_feeding_compliance_issue_falls_back_without_critical(
     )
 
     assert create_issue_mock.await_count == 1
-    kwargs = create_issue_mock.await_args.kwargs
+    await_args = create_issue_mock.await_args
+    assert await_args is not None
+    kwargs = await_args.kwargs
     assert kwargs["severity"] == LimitedSeverity.ERROR
 
 
 def test_async_publish_feeding_compliance_issue_clears_resolved_alert(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+    repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Resolved compliance checks should clear existing repair issues."""
 
@@ -1123,23 +1103,26 @@ def test_async_publish_feeding_compliance_issue_clears_resolved_alert(
     hass = SimpleNamespace()
     entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
 
-    payload = {
-        "dog_id": "buddy",
-        "dog_name": "Buddy",
-        "days_to_check": 5,
-        "notify_on_issues": True,
-        "notification_sent": False,
-        "result": {
-            "status": "completed",
-            "compliance_score": 100,
-            "compliance_rate": 100.0,
-            "days_analyzed": 5,
-            "days_with_issues": 0,
-            "compliance_issues": [],
-            "missed_meals": [],
-            "recommendations": [],
+    payload = cast(
+        dict[str, object],
+        {
+            "dog_id": "buddy",
+            "dog_name": "Buddy",
+            "days_to_check": 5,
+            "notify_on_issues": True,
+            "notification_sent": False,
+            "result": {
+                "status": "completed",
+                "compliance_score": 100,
+                "compliance_rate": 100.0,
+                "days_analyzed": 5,
+                "days_with_issues": 0,
+                "compliance_issues": [],
+                "missed_meals": [],
+                "recommendations": [],
+            },
         },
-    }
+    )
 
     asyncio.run(
         module.async_publish_feeding_compliance_issue(
@@ -1152,13 +1135,16 @@ def test_async_publish_feeding_compliance_issue_clears_resolved_alert(
 
     assert create_issue_mock.await_count == 0
     assert delete_issue_mock.await_count == 1
-    args = delete_issue_mock.await_args.args
+    delete_args = delete_issue_mock.await_args
+    assert delete_args is not None
+    args = delete_args.args
+    assert len(args) >= 2
     assert args[0] == hass
     assert args[1] == module.DOMAIN
 
 
 def test_async_publish_feeding_compliance_issue_handles_no_data(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+    repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """No-data results should raise a warning issue."""
 
@@ -1169,17 +1155,20 @@ def test_async_publish_feeding_compliance_issue_handles_no_data(
     hass = SimpleNamespace()
     entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
 
-    payload = {
-        "dog_id": "buddy",
-        "dog_name": None,
-        "days_to_check": 3,
-        "notify_on_issues": False,
-        "notification_sent": False,
-        "result": {
-            "status": "no_data",
-            "message": "Telemetry unavailable",
+    payload = cast(
+        dict[str, object],
+        {
+            "dog_id": "buddy",
+            "dog_name": None,
+            "days_to_check": 3,
+            "notify_on_issues": False,
+            "notification_sent": False,
+            "result": {
+                "status": "no_data",
+                "message": "Telemetry unavailable",
+            },
         },
-    }
+    )
 
     asyncio.run(
         module.async_publish_feeding_compliance_issue(
@@ -1191,9 +1180,12 @@ def test_async_publish_feeding_compliance_issue_handles_no_data(
     )
 
     assert create_issue_mock.await_count == 1
-    kwargs = create_issue_mock.await_args.kwargs
+    await_args = create_issue_mock.await_args
+    assert await_args is not None
+    kwargs = await_args.kwargs
     assert kwargs["translation_key"] == module.ISSUE_FEEDING_COMPLIANCE_NO_DATA
-    assert kwargs["severity"] == issue_severity_cls.WARNING
+    severity_enum = cast(Any, issue_severity_cls)
+    assert kwargs["severity"] == severity_enum.WARNING
     data = kwargs["data"]
     assert data["dog_name"] == "buddy"
     assert data["message"] == "Telemetry unavailable"
@@ -1205,7 +1197,7 @@ def test_async_publish_feeding_compliance_issue_handles_no_data(
 
 
 def test_async_publish_feeding_compliance_issue_sanitises_mapping_message(
-    repairs_module: tuple[ModuleType, AsyncMock, type[Any], AsyncMock],
+    repairs_module: tuple[Any, AsyncMock, type[StrEnum], AsyncMock],
 ) -> None:
     """Structured messages should fall back to the localised summary text."""
 
@@ -1216,25 +1208,28 @@ def test_async_publish_feeding_compliance_issue_sanitises_mapping_message(
     hass = SimpleNamespace()
     entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
 
-    payload = {
-        "dog_id": "buddy",
-        "dog_name": None,
-        "days_to_check": 2,
-        "notify_on_issues": False,
-        "notification_sent": False,
-        "result": {
-            "status": "no_data",
-            "message": {"description": "Telemetry offline"},
+    payload = cast(
+        dict[str, object],
+        {
+            "dog_id": "buddy",
+            "dog_name": None,
+            "days_to_check": 2,
+            "notify_on_issues": False,
+            "notification_sent": False,
+            "result": {
+                "status": "no_data",
+                "message": {"description": "Telemetry offline"},
+            },
+            "localized_summary": {
+                "title": "🍽️ Feeding telemetry missing for Buddy",
+                "message": "Telemetry offline",
+                "score_line": None,
+                "missed_meals": [],
+                "issues": [],
+                "recommendations": [],
+            },
         },
-        "localized_summary": {
-            "title": "🍽️ Feeding telemetry missing for Buddy",
-            "message": "Telemetry offline",
-            "score_line": None,
-            "missed_meals": [],
-            "issues": [],
-            "recommendations": [],
-        },
-    }
+    )
 
     asyncio.run(
         module.async_publish_feeding_compliance_issue(
@@ -1245,6 +1240,8 @@ def test_async_publish_feeding_compliance_issue_sanitises_mapping_message(
         )
     )
 
-    data = create_issue_mock.await_args.kwargs["data"]
+    await_args = create_issue_mock.await_args
+    assert await_args is not None
+    data = await_args.kwargs["data"]
     assert data["message"] == "Telemetry offline"
     assert data["localized_summary"]["message"] == "Telemetry offline"

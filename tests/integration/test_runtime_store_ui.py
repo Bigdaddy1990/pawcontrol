@@ -132,6 +132,10 @@ async def test_options_flow_recovers_runtime_cache_after_manual_deletion(
     assert entry_cache.unwrap() is runtime
     assert entry_cache.version == DomainRuntimeStoreEntry.CURRENT_VERSION
     assert entry.runtime_data is runtime
+    assert runtime.schema_version == DomainRuntimeStoreEntry.CURRENT_VERSION
+    assert runtime.schema_created_version == DomainRuntimeStoreEntry.CURRENT_VERSION
+    assert runtime.schema_version == DomainRuntimeStoreEntry.CURRENT_VERSION
+    assert runtime.schema_created_version == DomainRuntimeStoreEntry.CURRENT_VERSION
 
     dog_snapshot = entry.data[CONF_DOGS][0]
     assert dog_snapshot[CONF_DOOR_SENSOR] == "binary_sensor.back_door"
@@ -281,6 +285,8 @@ async def test_repair_checks_upgrade_legacy_store_entry(
     assert entry_cache.version == DomainRuntimeStoreEntry.CURRENT_VERSION
     assert entry_cache.unwrap() is runtime
     assert entry.runtime_data is runtime
+    assert runtime.schema_version == DomainRuntimeStoreEntry.CURRENT_VERSION
+    assert runtime.schema_created_version == DomainRuntimeStoreEntry.CURRENT_VERSION
 
 
 @pytest.mark.integration

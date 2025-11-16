@@ -38,6 +38,7 @@ from .runtime_data import (
     describe_runtime_store_status,
     require_runtime_data,
 )
+from .telemetry import get_runtime_store_health
 from .types import (
     ConfigFlowUserInput,
     DogConfigData,
@@ -47,6 +48,8 @@ from .types import (
     JSONLikeMapping,
     JSONMutableMapping,
     ReconfigureTelemetry,
+    RuntimeStoreHealthLevel,
+    RuntimeStoreLevelDurationAlert,
     ServiceContextMetadata,
 )
 
@@ -75,6 +78,7 @@ ISSUE_FEEDING_COMPLIANCE_ALERT = "feeding_compliance_alert"
 ISSUE_FEEDING_COMPLIANCE_NO_DATA = "feeding_compliance_no_data"
 ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE = "door_sensor_persistence_failure"
 ISSUE_RUNTIME_STORE_COMPATIBILITY = "runtime_store_compatibility"
+ISSUE_RUNTIME_STORE_DURATION_ALERT = "runtime_store_duration_alert"
 
 # Repair flow types
 REPAIR_FLOW_DOG_CONFIG = "repair_dog_configuration"
@@ -411,6 +415,9 @@ async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> Non
 
         # Check runtime store compatibility issues
         await _check_runtime_store_health(hass, entry)
+
+        # Surface runtime store duration guard alerts
+        await _check_runtime_store_duration_alerts(hass, entry)
 
         # Publish cache health diagnostics
         await _publish_cache_health_issue(hass, entry)
@@ -831,6 +838,168 @@ async def _check_runtime_store_health(hass: HomeAssistant, entry: ConfigEntry) -
         entry,
         issue_id,
         ISSUE_RUNTIME_STORE_COMPATIBILITY,
+        issue_data,
+        severity=severity,
+    )
+
+
+def _normalise_duration_alerts(
+    summary: Mapping[str, Any] | None,
+) -> list[RuntimeStoreLevelDurationAlert]:
+    """Return guard alerts derived from ``summary`` when present."""
+
+    if not isinstance(summary, Mapping):
+        return []
+
+    alerts_raw = summary.get("level_duration_guard_alerts")
+    if not isinstance(alerts_raw, Sequence):
+        return []
+
+    alerts: list[RuntimeStoreLevelDurationAlert] = []
+    for candidate in alerts_raw:
+        if not isinstance(candidate, Mapping):
+            continue
+        level = candidate.get("level")
+        percentile_seconds = candidate.get("percentile_seconds")
+        guard_limit_seconds = candidate.get("guard_limit_seconds")
+        if (
+            not isinstance(level, str)
+            or not isinstance(percentile_seconds, (int, float))
+            or not isinstance(guard_limit_seconds, (int, float))
+        ):
+            continue
+        alert: RuntimeStoreLevelDurationAlert = {
+            "level": cast(RuntimeStoreHealthLevel, level),
+            "percentile_label": cast(str, candidate.get("percentile_label", "p95")),
+            "percentile_rank": float(candidate.get("percentile_rank", 0.95) or 0.95),
+            "percentile_seconds": float(percentile_seconds),
+            "guard_limit_seconds": float(guard_limit_seconds),
+            "severity": cast(str, candidate.get("severity", "warning")),
+            "recommended_action": cast(
+                str | None, candidate.get("recommended_action")
+            ),
+        }
+        alerts.append(alert)
+    return alerts
+
+
+def _resolve_duration_alert_severity(
+    alerts: Sequence[RuntimeStoreLevelDurationAlert],
+) -> str | ir.IssueSeverity:
+    """Return the issue severity matching ``alerts``."""
+
+    severity_enum = getattr(ir, "IssueSeverity", None)
+    highest = "warning"
+    for alert in alerts:
+        severity = str(alert.get("severity", "warning")).lower()
+        if severity in {"critical", "error"}:
+            highest = "critical"
+            break
+        if severity == "warning" and highest != "critical":
+            highest = "warning"
+
+    if severity_enum is None:
+        return "error" if highest == "critical" else "warning"
+
+    if highest == "critical":
+        critical_value = getattr(severity_enum, "CRITICAL", None)
+        if critical_value is not None:
+            return critical_value
+        return getattr(severity_enum, "ERROR", severity_enum.WARNING)
+
+    warning_value = getattr(severity_enum, "WARNING", None)
+    if warning_value is not None:
+        return warning_value
+    return getattr(severity_enum, "ERROR", severity_enum.WARNING)
+
+
+def _format_duration_summary(seconds: float) -> str:
+    """Return a compact human-readable representation for ``seconds``."""
+
+    hours = seconds / 3600.0
+    if hours >= 1:
+        return f"{hours:.1f}h"
+    minutes = seconds / 60.0
+    if minutes >= 1:
+        return f"{minutes:.0f}m"
+    return f"{seconds:.0f}s"
+
+
+async def _check_runtime_store_duration_alerts(
+    hass: HomeAssistant, entry: ConfigEntry
+) -> None:
+    """Raise a repair issue when timeline durations exceed guard limits."""
+
+    issue_id = f"{entry.entry_id}_runtime_store_duration_alerts"
+    try:
+        runtime_data = require_runtime_data(hass, entry)
+    except RuntimeDataUnavailableError:
+        delete_issue = getattr(ir, "async_delete_issue", None)
+        if callable(delete_issue):
+            await delete_issue(hass, DOMAIN, issue_id)
+        return
+
+    history = get_runtime_store_health(runtime_data)
+    if not isinstance(history, Mapping):
+        delete_issue = getattr(ir, "async_delete_issue", None)
+        if callable(delete_issue):
+            await delete_issue(hass, DOMAIN, issue_id)
+        return
+
+    timeline_summary = None
+    summary_candidate = history.get("assessment_timeline_summary")
+    if isinstance(summary_candidate, Mapping):
+        timeline_summary = summary_candidate
+    else:
+        assessment = history.get("assessment")
+        if isinstance(assessment, Mapping):
+            nested_summary = assessment.get("timeline_summary")
+            if isinstance(nested_summary, Mapping):
+                timeline_summary = nested_summary
+
+    alerts = _normalise_duration_alerts(timeline_summary)
+    if not alerts:
+        delete_issue = getattr(ir, "async_delete_issue", None)
+        if callable(delete_issue):
+            await delete_issue(hass, DOMAIN, issue_id)
+        return
+
+    severity = _resolve_duration_alert_severity(alerts)
+    triggered_levels = ", ".join(sorted({alert["level"] for alert in alerts}))
+    alert_summaries = "; ".join(
+        f"{alert['level']}: {alert['percentile_label']} "
+        f"{_format_duration_summary(alert['percentile_seconds'])} "
+        f"(guard {_format_duration_summary(alert['guard_limit_seconds'])})"
+        for alert in alerts
+    )
+    recommendations = "; ".join(
+        alert["recommended_action"]
+        for alert in alerts
+        if alert.get("recommended_action")
+    )
+
+    timeline_window = None
+    last_event_timestamp = None
+    if isinstance(timeline_summary, Mapping):
+        timeline_window = timeline_summary.get("timeline_window_days")
+        last_event_timestamp = timeline_summary.get("last_event_timestamp")
+
+    issue_data: JSONMutableMapping = {
+        "alert_count": len(alerts),
+        "triggered_levels": triggered_levels,
+        "alert_summaries": alert_summaries,
+        "timeline_window_days": timeline_window if timeline_window is not None else "n/a",
+        "last_event_timestamp": last_event_timestamp
+        if last_event_timestamp is not None
+        else "n/a",
+    }
+    issue_data["recommended_actions"] = recommendations or "n/a"
+
+    await async_create_issue(
+        hass,
+        entry,
+        issue_id,
+        ISSUE_RUNTIME_STORE_DURATION_ALERT,
         issue_data,
         severity=severity,
     )
