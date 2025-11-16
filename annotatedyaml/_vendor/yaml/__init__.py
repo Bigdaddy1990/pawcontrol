@@ -19,6 +19,7 @@ import io
 from typing import Any, BinaryIO, Iterator, TextIO, Type
 
 _MISSING_LOADER = object()
+LoaderClsArg = Type[Any] | object
 _DEFAULT_SAFE_LOADER: Type[Any] = SafeLoader
 
 #------------------------------------------------------------------------------
@@ -179,7 +180,7 @@ def compose_all(stream, Loader=Loader):
 
 def load(
     stream: str | bytes | TextIO | BinaryIO,
-    loader_cls: Type[Any] | object = _MISSING_LOADER,
+    loader_cls: LoaderClsArg = _MISSING_LOADER,
     **kwargs: Any,
 ) -> Any:
     """
@@ -196,7 +197,7 @@ def load(
 
 def load_all(
     stream: str | bytes | TextIO | BinaryIO,
-    loader_cls: Type[Any] | object = _MISSING_LOADER,
+    loader_cls: LoaderClsArg = _MISSING_LOADER,
     **kwargs: Any,
 ) -> Iterator[Any]:
     """
