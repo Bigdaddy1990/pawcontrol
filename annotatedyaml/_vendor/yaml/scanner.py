@@ -206,6 +206,8 @@ class Scanner:
             return self.fetch_document_end()
 
         # TODO: support for BOM within a stream.
+        # NOTE: Reader strips any BOM marker before the scanner runs, so
+        # ``fetch_bom`` never executes and ``BOMToken`` stays unused.
         #if ch == '\uFEFF':
         #    return self.fetch_bom()    <-- issue BOMToken
 
