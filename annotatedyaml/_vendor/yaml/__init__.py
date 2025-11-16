@@ -19,6 +19,7 @@ import io
 from typing import Any, BinaryIO, Iterator, TextIO, Type
 
 _MISSING_LOADER = object()
+LoaderClsArg = Type[Any] | object
 _DEFAULT_SAFE_LOADER: Type[Any] = SafeLoader
 
 #------------------------------------------------------------------------------
@@ -180,7 +181,11 @@ def compose_all(stream, Loader=Loader):
     finally:
         loader.dispose()
 
-def load(stream, loader_cls=_MISSING_LOADER, **kwargs):
+def load(
+    stream: str | bytes | TextIO | BinaryIO,
+    loader_cls: LoaderClsArg = _MISSING_LOADER,
+    **kwargs: Any,
+) -> Any:
     """
     Parse the first YAML document in a stream
     and produce the corresponding Python object.
@@ -193,7 +198,11 @@ def load(stream, loader_cls=_MISSING_LOADER, **kwargs):
     return _load_single(stream, resolved_loader)
 
 
-def load_all(stream, loader_cls=_MISSING_LOADER, **kwargs):
+def load_all(
+    stream: str | bytes | TextIO | BinaryIO,
+    loader_cls: LoaderClsArg = _MISSING_LOADER,
+    **kwargs: Any,
+) -> Iterator[Any]:
     """
     Parse all YAML documents in a stream
     and produce corresponding Python objects.
@@ -225,7 +234,13 @@ def full_load_all(stream):
     """
     return load_all(stream, FullLoader)
 
-def safe_load(stream, *loader_args, loader_cls=None, **kwargs):
+def safe_load(
+    stream: str | bytes | TextIO | BinaryIO,
+    /,
+    *loader_args: Any,
+    loader_cls: Type[Any] | None = None,
+    **kwargs: Any,
+) -> Any:
     """
     Parse the first YAML document in a stream
     and produce the corresponding Python object.
@@ -245,7 +260,13 @@ def safe_load(stream, *loader_args, loader_cls=None, **kwargs):
     return _load_single(stream, safe_loader)
 
 
-def safe_load_all(stream, *loader_args, loader_cls=None, **kwargs):
+def safe_load_all(
+    stream: str | bytes | TextIO | BinaryIO,
+    /,
+    *loader_args: Any,
+    loader_cls: Type[Any] | None = None,
+    **kwargs: Any,
+) -> Iterator[Any]:
     """
     Parse all YAML documents in a stream
     and produce corresponding Python objects.
