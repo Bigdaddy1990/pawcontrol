@@ -25,6 +25,7 @@ class _DummyLoader:
     def get_data(self) -> str:
         if not self._has_data:
             raise RuntimeError("No data available - check_data() returned False")
+        self._has_data = False
         return self.stream
 
     def dispose(self) -> None:
