@@ -585,8 +585,7 @@ class ResilienceManager:
             return await retry_with_backoff(
                 execution_func, *args, config=retry_config, **kwargs
             )
-        else:
-            return await execution_func(*args, **kwargs)
+        return await execution_func(*args, **kwargs)
 
     def get_all_circuit_breakers(self) -> dict[str, CircuitBreakerStats]:
         """Get statistics for all circuit breakers.

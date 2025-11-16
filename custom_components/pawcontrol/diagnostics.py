@@ -1687,9 +1687,8 @@ async def _get_loaded_platforms(hass: HomeAssistant, entry: ConfigEntry) -> list
     )
 
     # Get unique platforms
-    loaded_platforms = list(set(entity.platform for entity in entities))
+    return list(set(entity.platform for entity in entities))
 
-    return loaded_platforms
 
 
 async def _get_registered_services(hass: HomeAssistant) -> list[str]:

@@ -663,11 +663,10 @@ class ModuleConfigurationMixin:
         if gps_dogs >= 3 or total_modules >= 15:
             return "full"
         # Medium complexity
-        elif gps_dogs > 0 or total_dogs > 2 or total_modules >= 8:
+        if gps_dogs > 0 or total_dogs > 2 or total_modules >= 8:
             return "balanced"
         # Low complexity
-        else:
-            return "minimal"
+        return "minimal"
 
     def _has_gps_dogs(self) -> bool:
         """Check if any dog has GPS enabled."""

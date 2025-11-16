@@ -1307,7 +1307,7 @@ class EntityFactory:
                 and priority >= 5
             )
 
-        elif profile == "gps_focus":
+        if profile == "gps_focus":
             # GPS-related entities prioritized
             preferred_modules = profile_config.preferred_modules
             gps_types = {
@@ -1320,7 +1320,7 @@ class EntityFactory:
                 module in preferred_modules or priority >= 7
             )
 
-        elif profile == "health_focus":
+        if profile == "health_focus":
             # Health-related entities prioritized
             preferred_modules = profile_config.preferred_modules
             health_types = {
@@ -1334,13 +1334,13 @@ class EntityFactory:
                 module in preferred_modules or priority >= 7
             )
 
-        elif profile == "advanced":
+        if profile == "advanced":
             # Almost all entities created, minimal filtering
             return priority >= 3
 
-        else:  # standard profile
-            # Balanced approach with moderate filtering
-            return priority >= 4
+        # standard profile
+        # Balanced approach with moderate filtering
+        return priority >= 4
 
     def get_platform_priority(self, platform: Platform, profile: str) -> int:
         """Get platform loading priority based on profile.

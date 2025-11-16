@@ -1349,8 +1349,7 @@ class PawControlNotificationManager:
             if "\n" in formatted:
                 parts = formatted.split("\n", 1)
                 return parts[0], parts[1]
-            else:
-                return formatted, message
+            return formatted, message
 
         except (KeyError, ValueError) as err:
             _LOGGER.warning("Template formatting failed for %s: %s", template_name, err)

@@ -843,7 +843,7 @@ def validate_time_string(time_str: str | None) -> time | None:
         if re.match(r"^\d{1,2}:\d{2}$", time_str):
             hour, minute = map(int, time_str.split(":"))
             return time(hour, minute)
-        elif re.match(r"^\d{1,2}:\d{2}:\d{2}$", time_str):
+        if re.match(r"^\d{1,2}:\d{2}:\d{2}$", time_str):
             hour, minute, second = map(int, time_str.split(":"))
             return time(hour, minute, second)
     except (ValueError, AttributeError):
@@ -909,18 +909,17 @@ def format_duration(seconds: int | float) -> str:
     """
     if seconds < 60:
         return f"{int(seconds)}s"
-    elif seconds < 3600:
+    if seconds < 3600:
         minutes = int(seconds // 60)
         remaining_seconds = int(seconds % 60)
         if remaining_seconds > 0:
             return f"{minutes}m {remaining_seconds}s"
         return f"{minutes}m"
-    else:
-        hours = int(seconds // 3600)
-        remaining_minutes = int((seconds % 3600) // 60)
-        if remaining_minutes > 0:
-            return f"{hours}h {remaining_minutes}m"
-        return f"{hours}h"
+    hours = int(seconds // 3600)
+    remaining_minutes = int((seconds % 3600) // 60)
+    if remaining_minutes > 0:
+        return f"{hours}h {remaining_minutes}m"
+    return f"{hours}h"
 
 
 def format_distance(meters: float, unit: str = "metric") -> str:
@@ -937,15 +936,12 @@ def format_distance(meters: float, unit: str = "metric") -> str:
         feet = meters * 3.28084
         if feet < 5280:
             return f"{int(feet)} ft"
-        else:
-            miles = feet / 5280
-            return f"{miles:.1f} mi"
-    else:
-        if meters < 1000:
-            return f"{int(meters)} m"
-        else:
-            kilometers = meters / 1000
-            return f"{kilometers:.1f} km"
+        miles = feet / 5280
+        return f"{miles:.1f} mi"
+    if meters < 1000:
+        return f"{int(meters)} m"
+    kilometers = meters / 1000
+    return f"{kilometers:.1f} km"
 
 
 def calculate_age_from_months(age_months: int) -> dict[str, int]:
@@ -1063,12 +1059,11 @@ def calculate_bmi_equivalent(weight_kg: float, breed_size: str) -> float | None:
     # Calculate relative position within breed size range
     if weight_kg <= min_weight:
         return 15.0  # Underweight
-    elif weight_kg >= max_weight:
+    if weight_kg >= max_weight:
         return 30.0  # Overweight
-    else:
-        # Linear interpolation between 18.5 (normal low) and 25 (normal high)
-        ratio = (weight_kg - min_weight) / (max_weight - min_weight)
-        return 18.5 + (ratio * 6.5)  # 18.5 to 25
+    # Linear interpolation between 18.5 (normal low) and 25 (normal high)
+    ratio = (weight_kg - min_weight) / (max_weight - min_weight)
+    return 18.5 + (ratio * 6.5)  # 18.5 to 25
 
 
 def validate_portion_size(
@@ -1410,12 +1405,11 @@ def calculate_time_until(target_time: time) -> timedelta:
 
     if target_datetime > now:
         return target_datetime - now
-    else:
-        # Must be tomorrow
-        tomorrow = today + timedelta(days=1)
-        target_datetime = datetime.combine(tomorrow, target_time)
-        target_datetime = dt_util.as_local(target_datetime)
-        return target_datetime - now
+    # Must be tomorrow
+    tomorrow = today + timedelta(days=1)
+    target_datetime = datetime.combine(tomorrow, target_time)
+    target_datetime = dt_util.as_local(target_datetime)
+    return target_datetime - now
 
 
 def format_relative_time(dt: datetime) -> str:
@@ -1439,22 +1433,21 @@ def format_relative_time(dt: datetime) -> str:
 
     if delta.total_seconds() < 60:
         return "just now"
-    elif delta.total_seconds() < 3600:
+    if delta.total_seconds() < 3600:
         minutes = int(delta.total_seconds() / 60)
         return f"{minutes}m ago"
-    elif delta.total_seconds() < 86400:
+    if delta.total_seconds() < 86400:
         hours = int(delta.total_seconds() / 3600)
         return f"{hours}h ago"
-    elif delta.days == 1:
+    if delta.days == 1:
         return "yesterday"
-    elif delta.days < 7:
+    if delta.days < 7:
         return f"{delta.days} days ago"
-    elif delta.days < 30:
+    if delta.days < 30:
         weeks = delta.days // 7
         return f"{weeks} week{'s' if weeks > 1 else ''} ago"
-    else:
-        months = delta.days // 30
-        return f"{months} month{'s' if months > 1 else ''} ago"
+    months = delta.days // 30
+    return f"{months} month{'s' if months > 1 else ''} ago"
 
 
 @overload

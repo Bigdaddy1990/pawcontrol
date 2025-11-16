@@ -111,14 +111,13 @@ class GPSPoint:
         """Get accuracy level based on accuracy value."""
         if self.accuracy is None:
             return GPSAccuracy.FAIR
-        elif self.accuracy < 5:
+        if self.accuracy < 5:
             return GPSAccuracy.EXCELLENT
-        elif self.accuracy < 15:
+        if self.accuracy < 15:
             return GPSAccuracy.GOOD
-        elif self.accuracy < 50:
+        if self.accuracy < 50:
             return GPSAccuracy.FAIR
-        else:
-            return GPSAccuracy.POOR
+        return GPSAccuracy.POOR
 
     @property
     def is_accurate(self) -> bool:
@@ -176,7 +175,7 @@ class GeofenceEvent:
             ):  # 30 min
                 return "high"
             return "medium"
-        elif (
+        if (
             self.event_type == GeofenceEventType.EXITED
             and self.zone.zone_type == "safe_zone"
         ):
@@ -827,8 +826,7 @@ class GPSGeofenceManager:
                 return await self._export_routes_json(dog_id, routes)
             if export_format.lower() == "csv":
                 return await self._export_routes_csv(dog_id, routes)
-            else:
-                raise ValueError(f"Unsupported export format: {export_format}")
+            raise ValueError(f"Unsupported export format: {export_format}")
 
         except Exception as err:
             _LOGGER.error("Failed to export routes for %s: %s", dog_id, err)

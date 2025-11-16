@@ -673,9 +673,8 @@ class InputValidator:
             )
 
         # Remove control characters (except newlines)
-        text = "".join(char for char in text if ord(char) >= 32 or char == "\n")
+        return "".join(char for char in text if ord(char) >= 32 or char == "\n")
 
-        return text
 
     @staticmethod
     def validate_duration(

@@ -1378,7 +1378,7 @@ class DashboardTemplates:
         """Return card style based on theme."""
         if theme == "modern":
             return self._gradient_style("#667eea", "#764ba2")
-        elif theme == "playful":
+        if theme == "playful":
             return {
                 "card_mod": {
                     "style": """
@@ -2579,22 +2579,21 @@ class DashboardTemplates:
                 "type": "horizontal-stack",
                 "cards": buttons,
             }
-        else:
-            # Grid arrangement
-            grouped_buttons: CardCollection = []
-            for i in range(0, len(buttons), 2):
-                button_pair = buttons[i : i + 2]
-                grouped_buttons.append(
-                    {
-                        "type": "horizontal-stack",
-                        "cards": button_pair,
-                    }
-                )
+        # Grid arrangement
+        grouped_buttons: CardCollection = []
+        for i in range(0, len(buttons), 2):
+            button_pair = buttons[i : i + 2]
+            grouped_buttons.append(
+                {
+                    "type": "horizontal-stack",
+                    "cards": button_pair,
+                }
+            )
 
-            return {
-                "type": "vertical-stack",
-                "cards": grouped_buttons,
-            }
+        return {
+            "type": "vertical-stack",
+            "cards": grouped_buttons,
+        }
 
     async def get_health_charts_template(
         self, dog_id: str, theme: str = "modern"
@@ -3435,17 +3434,17 @@ class DashboardTemplates:
                 "type": "vertical-stack",
                 "cards": buttons,
             }
-        elif layout == "grid":
+        if layout == "grid":
             return {
                 "type": "grid",
                 "columns": 3,
                 "cards": buttons,
             }
-        else:  # horizontal (default)
-            return {
-                "type": "horizontal-stack",
-                "cards": buttons,
-            }
+        # horizontal (default)
+        return {
+            "type": "horizontal-stack",
+            "cards": buttons,
+        }
 
     def _get_weather_icon(self, theme: str) -> str:
         """Get theme-appropriate weather icon.
@@ -3610,7 +3609,7 @@ class DashboardTemplates:
                 "cards": compact_cards,
             }
 
-        elif layout == "mobile":
+        if layout == "mobile":
             # Mobile-optimized layout
             mobile_cards: CardCollection = [
                 await self.get_weather_status_card_template(
@@ -3629,55 +3628,55 @@ class DashboardTemplates:
                 "cards": mobile_cards,
             }
 
-        else:  # full layout
-            # Full desktop layout with all weather components
-            full_cards: CardCollection = [
-                # Top row: Status and alerts
-                {
-                    "type": "horizontal-stack",
-                    "cards": [
-                        await self.get_weather_status_card_template(
-                            dog_id, dog_name, theme
-                        ),
-                        await self.get_weather_alerts_card_template(
-                            dog_id, dog_name, theme
-                        ),
-                    ],
-                },
-                # Second row: Charts
-                {
-                    "type": "horizontal-stack",
-                    "cards": [
-                        await self.get_weather_chart_template(
-                            dog_id, "health_score", theme, "24h"
-                        ),
-                        await self.get_weather_chart_template(
-                            dog_id, "temperature", theme, "24h"
-                        ),
-                    ],
-                },
-                # Third row: Recommendations and breed advice
-                {
-                    "type": "horizontal-stack",
-                    "cards": [
-                        await self.get_weather_recommendations_card_template(
-                            dog_id, dog_name, theme
-                        ),
-                        await self.get_weather_breed_advisory_template(
-                            dog_id, dog_name, breed, theme
-                        ),
-                    ],
-                },
-                # Bottom row: Action buttons
-                await self.get_weather_action_buttons_template(
-                    dog_id, theme, layout="horizontal"
-                ),
-            ]
+        # full layout
+        # Full desktop layout with all weather components
+        full_cards: CardCollection = [
+            # Top row: Status and alerts
+            {
+                "type": "horizontal-stack",
+                "cards": [
+                    await self.get_weather_status_card_template(
+                        dog_id, dog_name, theme
+                    ),
+                    await self.get_weather_alerts_card_template(
+                        dog_id, dog_name, theme
+                    ),
+                ],
+            },
+            # Second row: Charts
+            {
+                "type": "horizontal-stack",
+                "cards": [
+                    await self.get_weather_chart_template(
+                        dog_id, "health_score", theme, "24h"
+                    ),
+                    await self.get_weather_chart_template(
+                        dog_id, "temperature", theme, "24h"
+                    ),
+                ],
+            },
+            # Third row: Recommendations and breed advice
+            {
+                "type": "horizontal-stack",
+                "cards": [
+                    await self.get_weather_recommendations_card_template(
+                        dog_id, dog_name, theme
+                    ),
+                    await self.get_weather_breed_advisory_template(
+                        dog_id, dog_name, breed, theme
+                    ),
+                ],
+            },
+            # Bottom row: Action buttons
+            await self.get_weather_action_buttons_template(
+                dog_id, theme, layout="horizontal"
+            ),
+        ]
 
-            return {
-                "type": "vertical-stack",
-                "cards": full_cards,
-            }
+        return {
+            "type": "vertical-stack",
+            "cards": full_cards,
+        }
 
     @callback
     def get_cache_stats(self) -> TemplateCacheStats:

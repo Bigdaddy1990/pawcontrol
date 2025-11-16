@@ -223,10 +223,9 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
         zone = gps_data.get("zone")
         if zone == "home":
             return STATE_HOME
-        elif zone and zone != "unknown":
+        if zone and zone != "unknown":
             return zone
-        else:
-            return STATE_NOT_HOME
+        return STATE_NOT_HOME
 
     @property
     def latitude(self) -> float | None:
@@ -709,9 +708,8 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
                     len(points_snapshot),
                 )
                 return route_data
-            else:
-                _LOGGER.info("Discarded route recording for %s", self._dog_name)
-                return None
+            _LOGGER.info("Discarded route recording for %s", self._dog_name)
+            return None
 
         except Exception as err:
             _LOGGER.error(
@@ -782,13 +780,12 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
 
             if format_type == "gpx":
                 return await self._export_route_gpx()
-            elif format_type == "json":
+            if format_type == "json":
                 return await self._export_route_json()
-            elif format_type == "csv":
+            if format_type == "csv":
                 return await self._export_route_csv()
-            else:
-                _LOGGER.error("Unsupported export format: %s", format_type)
-                return None
+            _LOGGER.error("Unsupported export format: %s", format_type)
+            return None
 
         except Exception as err:
             _LOGGER.error(
