@@ -94,9 +94,12 @@ def _resolve_loader_arguments(
             )
 
     legacy_loader = _extract_legacy_loader(func_name, kwargs)
-    effective_loader = loader_cls
-    if positional_loader is not None:
-        effective_loader = positional_loader
+    if positional_loader is not None and legacy_loader is not None:
+        raise TypeError(
+            f"{func_name}() received multiple loader arguments"
+        )
+
+    effective_loader = positional_loader or loader_cls
 
     return _select_loader(
         func_name,
