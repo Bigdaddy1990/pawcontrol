@@ -71,7 +71,7 @@ def compose_all(stream, Loader=Loader):
     finally:
         loader.dispose()
 
-def load(stream, Loader):
+def load(stream, Loader=Loader):
     """
     Parse the first YAML document in a stream
     and produce the corresponding Python object.
@@ -82,7 +82,7 @@ def load(stream, Loader):
     finally:
         loader.dispose()
 
-def load_all(stream, Loader):
+def load_all(stream, Loader=Loader):
     """
     Parse all YAML documents in a stream
     and produce corresponding Python objects.
@@ -114,7 +114,7 @@ def full_load_all(stream):
     """
     return load_all(stream, FullLoader)
 
-def safe_load(stream):
+def safe_load(stream, Loader=SafeLoader):
     """
     Parse the first YAML document in a stream
     and produce the corresponding Python object.
@@ -122,9 +122,9 @@ def safe_load(stream):
     Resolve only basic YAML tags. This is known
     to be safe for untrusted input.
     """
-    return load(stream, SafeLoader)
+    return load(stream, Loader=Loader)
 
-def safe_load_all(stream):
+def safe_load_all(stream, Loader=SafeLoader):
     """
     Parse all YAML documents in a stream
     and produce corresponding Python objects.
@@ -132,7 +132,7 @@ def safe_load_all(stream):
     Resolve only basic YAML tags. This is known
     to be safe for untrusted input.
     """
-    return load_all(stream, SafeLoader)
+    return load_all(stream, Loader=Loader)
 
 def unsafe_load(stream):
     """
