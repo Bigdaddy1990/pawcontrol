@@ -16,62 +16,11 @@ except ImportError:
     __with_libyaml__ = False
 
 import io
-from typing import Any
 
 #------------------------------------------------------------------------------
 # XXX "Warnings control" is now deprecated. Leaving in the API function to not
 # break code that uses it.
 #------------------------------------------------------------------------------
-def _extract_legacy_loader(func_name: str, kwargs: dict[str, Any]) -> Any | None:
-    legacy_loader = kwargs.pop("Loader", None)
-    if kwargs:
-        unexpected = ", ".join(sorted(kwargs))
-        raise TypeError(
-            f"{func_name}() got unexpected keyword argument(s): {unexpected}"
-        )
-    return legacy_loader
-
-
-def _select_loader(
-    func_name: str,
-    loader_cls: Any | None,
-    legacy_loader: Any | None,
-    *,
-    default_loader: Any | None = None,
-    required: bool = False,
-) -> Any:
-    if legacy_loader is not None:
-        if loader_cls is not None:
-            raise TypeError(
-                f"{func_name}() received both 'Loader' and its replacement"
-            )
-        loader_cls = legacy_loader
-    if loader_cls is None:
-        loader_cls = default_loader
-    if loader_cls is None and required:
-        raise TypeError(
-            f"{func_name}() missing 1 required positional argument: 'Loader'"
-        )
-    return loader_cls
-
-
-def _load_single(stream, loader_cls):
-    loader = loader_cls(stream)
-    try:
-        return loader.get_single_data()
-    finally:
-        loader.dispose()
-
-
-def _load_all(stream, loader_cls):
-    loader = loader_cls(stream)
-    try:
-        while loader.check_data():
-            yield loader.get_data()
-    finally:
-        loader.dispose()
-
-
 def warnings(settings=None):
     if settings is None:
         return {}
@@ -122,28 +71,28 @@ def compose_all(stream, Loader=Loader):
     finally:
         loader.dispose()
 
-def load(stream, loader_cls=None, **kwargs):
+def load(stream, Loader):
     """
     Parse the first YAML document in a stream
     and produce the corresponding Python object.
     """
-    legacy_loader = _extract_legacy_loader("load", kwargs)
-    resolved_loader = _select_loader(
-        "load", loader_cls, legacy_loader, required=True
-    )
-    return _load_single(stream, resolved_loader)
+    loader = Loader(stream)
+    try:
+        return loader.get_single_data()
+    finally:
+        loader.dispose()
 
-
-def load_all(stream, loader_cls=None, **kwargs):
+def load_all(stream, Loader):
     """
     Parse all YAML documents in a stream
     and produce corresponding Python objects.
     """
-    legacy_loader = _extract_legacy_loader("load_all", kwargs)
-    resolved_loader = _select_loader(
-        "load_all", loader_cls, legacy_loader, required=True
-    )
-    yield from _load_all(stream, resolved_loader)
+    loader = Loader(stream)
+    try:
+        while loader.check_data():
+            yield loader.get_data()
+    finally:
+        loader.dispose()
 
 def full_load(stream):
     """
@@ -165,7 +114,7 @@ def full_load_all(stream):
     """
     return load_all(stream, FullLoader)
 
-def safe_load(stream, loader_cls=None, **kwargs):
+def safe_load(stream):
     """
     Parse the first YAML document in a stream
     and produce the corresponding Python object.
@@ -173,14 +122,9 @@ def safe_load(stream, loader_cls=None, **kwargs):
     Resolve only basic YAML tags. This is known
     to be safe for untrusted input.
     """
-    legacy_loader = _extract_legacy_loader("safe_load", kwargs)
-    resolved_loader = _select_loader(
-        "safe_load", loader_cls, legacy_loader, default_loader=SafeLoader
-    )
-    return _load_single(stream, resolved_loader)
+    return load(stream, SafeLoader)
 
-
-def safe_load_all(stream, loader_cls=None, **kwargs):
+def safe_load_all(stream):
     """
     Parse all YAML documents in a stream
     and produce corresponding Python objects.
@@ -188,11 +132,7 @@ def safe_load_all(stream, loader_cls=None, **kwargs):
     Resolve only basic YAML tags. This is known
     to be safe for untrusted input.
     """
-    legacy_loader = _extract_legacy_loader("safe_load_all", kwargs)
-    resolved_loader = _select_loader(
-        "safe_load_all", loader_cls, legacy_loader, default_loader=SafeLoader
-    )
-    yield from _load_all(stream, resolved_loader)
+    return load_all(stream, SafeLoader)
 
 def unsafe_load(stream):
     """
