@@ -1195,7 +1195,11 @@ class PawControlData:
                     dog_id,
                     err,
                 )
-                return None
+                sanitized = PawControlData._coerce_event_payload(entry)
+                timestamp = sanitized.get("timestamp")
+                if isinstance(timestamp, datetime):
+                    sanitized["timestamp"] = timestamp.isoformat()
+                return sanitized
 
             return cast(JSONMutableMapping, normalized.as_dict())
 
