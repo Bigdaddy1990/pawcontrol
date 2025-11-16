@@ -122,14 +122,12 @@ def test_select_loader_uses_default_loader_when_available() -> None:
 
 
 def test_load_all_accepts_positional_loader_argument() -> None:
-    docs = list(
-        vendored_yaml.load_all("---\na: 1\n---\na: 2\n", vendored_yaml.SafeLoader)
-    )
-    assert docs == [{"a": 1}, {"a": 2}]
+    payload = "---\nanswer: 42\n---\nanswer: 43"
+    data = list(vendored_yaml.load_all(payload, vendored_yaml.FullLoader))
+    assert data == [{"answer": 42}, {"answer": 43}]
 
 
 def test_safe_load_all_accepts_positional_loader_argument() -> None:
-    docs = list(
-        vendored_yaml.safe_load_all("---\na: 1\n---\na: 2\n", vendored_yaml.SafeLoader)
-    )
-    assert docs == [{"a": 1}, {"a": 2}]
+    payload = "---\nanswer: 42\n---\nanswer: 43"
+    data = list(vendored_yaml.safe_load_all(payload, vendored_yaml.SafeLoader))
+    assert data == [{"answer": 42}, {"answer": 43}]
