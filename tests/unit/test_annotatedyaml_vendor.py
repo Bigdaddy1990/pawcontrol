@@ -11,18 +11,21 @@ from annotatedyaml._vendor import yaml as vendored_yaml
 class _DummyLoader:
     """Simple loader that records lifecycle interactions for tests."""
 
-    def __init__(self, stream: str) -> None:
+    def __init__(self, stream: str, has_data: bool = False) -> None:
         self.stream = stream
         self.disposed = False
+        self._has_data = has_data
 
     def get_single_data(self) -> str:
         return self.stream
 
     def check_data(self) -> bool:
-        return False
+        return self._has_data
 
     def get_data(self) -> str:
-        raise AssertionError("check_data() never returns True")
+        if not self._has_data:
+            raise RuntimeError("No data available - check_data() returned False")
+        return self.stream
 
     def dispose(self) -> None:
         self.disposed = True
@@ -44,7 +47,7 @@ def test_safe_load_accepts_legacy_loader_keyword() -> None:
 
 
 def test_safe_load_accepts_positional_loader_argument() -> None:
-    data = vendored_yaml.safe_load("answer: 42", vendored_yaml.SafeLoader)
+    data = vendored_yaml.safe_load("answer: 42", vendored_yaml.FullLoader)
     assert data == {"answer": 42}
 
 
