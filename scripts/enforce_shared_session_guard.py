@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import ast
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 INTEGRATION_ROOT = REPO_ROOT / "custom_components" / "pawcontrol"

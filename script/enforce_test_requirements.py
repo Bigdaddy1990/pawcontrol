@@ -5,8 +5,8 @@ from __future__ import annotations
 import argparse
 import ast
 import sys
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 from packaging.requirements import Requirement
 
@@ -64,9 +64,7 @@ def _is_third_party(module: str) -> bool:
         return False
     if module_lower in INTERNAL_MODULES:
         return False
-    if any(module_lower.startswith(prefix) for prefix in INTERNAL_PREFIXES):
-        return False
-    return True
+    return not any(module_lower.startswith(prefix) for prefix in INTERNAL_PREFIXES)
 
 
 def main() -> int:
