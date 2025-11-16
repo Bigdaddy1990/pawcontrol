@@ -80,7 +80,7 @@ def _load_single(stream: str | bytes | TextIO | BinaryIO, loader_cls: Type[Any])
 
 
 def _load_all(
-    stream: str|bytes|TextIO|BinaryIO, loader_cls: Type[Any]
+    stream: str | bytes | TextIO | BinaryIO, loader_cls: Type[Any]
 ) -> Iterator[Any]:
     loader = loader_cls(stream)
     try:
@@ -185,7 +185,7 @@ def full_load_all(stream):
     """
     return load_all(stream, FullLoader)
 
-def safe_load(stream, loader_cls=None, **kwargs):
+def safe_load(stream, /, *loader_args, loader_cls=None, **kwargs):
     """
     Parse the first YAML document in a stream
     and produce the corresponding Python object.
@@ -193,15 +193,19 @@ def safe_load(stream, loader_cls=None, **kwargs):
     Resolve only basic YAML tags. This is known
     to be safe for untrusted input.
     """
-    legacy_loader = _extract_legacy_loader("safe_load", kwargs)
-    resolved_loader = _select_loader(
-        "safe_load", loader_cls, legacy_loader, default_loader=SafeLoader
+    resolved_loader = _resolve_loader_arguments(
+        "safe_load",
+        loader_args,
+        loader_cls,
+        kwargs,
+        default_loader=_DEFAULT_SAFE_LOADER,
+        required=False,
     )
     safe_loader = _ensure_safe_loader("safe_load", resolved_loader)
     return _load_single(stream, safe_loader)
 
 
-def safe_load_all(stream, loader_cls=None, **kwargs):
+def safe_load_all(stream, /, *loader_args, loader_cls=None, **kwargs):
     """
     Parse all YAML documents in a stream
     and produce corresponding Python objects.
@@ -209,9 +213,13 @@ def safe_load_all(stream, loader_cls=None, **kwargs):
     Resolve only basic YAML tags. This is known
     to be safe for untrusted input.
     """
-    legacy_loader = _extract_legacy_loader("safe_load_all", kwargs)
-    resolved_loader = _select_loader(
-        "safe_load_all", loader_cls, legacy_loader, default_loader=SafeLoader
+    resolved_loader = _resolve_loader_arguments(
+        "safe_load_all",
+        loader_args,
+        loader_cls,
+        kwargs,
+        default_loader=_DEFAULT_SAFE_LOADER,
+        required=False,
     )
     safe_loader = _ensure_safe_loader("safe_load_all", resolved_loader)
     yield from _load_all(stream, safe_loader)
