@@ -26,17 +26,13 @@ def _extract_requirement_name(line: str) -> str | None:
     if not stripped or stripped.startswith("-"):
         return None
 
-    cutoff = len(stripped)
-    for delimiter in ("[", " ", "<", ">", "=", "!", "~", "(", ";"):
-        index = stripped.find(delimiter)
-        if index != -1 and index < cutoff:
-            cutoff = index
+    delimiters = frozenset("[] <>!=~();")
+    for i, char in enumerate(stripped):
+        if char in delimiters:
+            name = stripped[:i].strip()
+            return name or None
 
-    name = stripped[:cutoff].strip()
-    if not name:
-        return None
-
-    return name
+    return stripped or None
 
 
 def _parse_requirements() -> set[str]:
