@@ -486,7 +486,7 @@ def install_homeassistant_stubs() -> None:
         _config_entry_only_config_schema
     )
     aiohttp_client_module.async_get_clientsession = _async_get_clientsession
-    aiohttp_client_module._async_make_resolver = _async_make_resolver  # type: ignore[attr-defined]
+    setattr(aiohttp_client_module, "_async_make_resolver", _async_make_resolver)
     event_module.async_track_time_interval = _async_track_time_interval
     event_module.async_track_time_change = _async_track_time_change
     event_module.async_call_later = _async_call_later
