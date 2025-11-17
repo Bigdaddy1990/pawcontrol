@@ -15,13 +15,14 @@ ALLOWED_FILES = {
 
 def _iter_python_sources() -> Iterable[Path]:
     for path in INTEGRATION_ROOT.rglob("*.py"):
-        if path.name == "__init__.py" or path in ALLOWED_FILES:
+        if path.name == "__init__.py":
+            continue
+        if path in ALLOWED_FILES:
             # ``http_client.py`` provides helpers that validate the shared
             # session and therefore needs to reference ``ClientSession``
             # directly. All other modules should rely on Home Assistant's
             # managed session.
-            if path in ALLOWED_FILES:
-                continue
+            continue
         yield path
 
 

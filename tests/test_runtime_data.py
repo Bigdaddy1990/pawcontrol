@@ -12,6 +12,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from tests.helpers import install_homeassistant_stubs
+
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -36,25 +38,6 @@ def _load_module(name: str, path: Path) -> ModuleType:
     sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
-
-
-def _install_homeassistant_stub() -> None:
-    """Register lightweight stubs for the Home Assistant modules we use."""
-
-    if "homeassistant.core" in sys.modules:
-        return
-
-    homeassistant = ModuleType("homeassistant")
-    sys.modules.setdefault("homeassistant", homeassistant)
-
-    core = ModuleType("homeassistant.core")
-
-    class HomeAssistant:  # pragma: no cover - simple attribute container
-        def __init__(self) -> None:
-            self.data: dict[str, object] = {}
-
-    core.HomeAssistant = HomeAssistant  # type: ignore[attr-defined]
-    sys.modules["homeassistant.core"] = core
 
 
 _ensure_package("custom_components", PROJECT_ROOT / "custom_components")
@@ -86,7 +69,7 @@ else:  # pragma: no cover - runtime aliases for type checkers
     DomainRuntimeStoreEntryType = types_module.DomainRuntimeStoreEntry
     PawControlConfigEntryType = types_module.PawControlConfigEntry
     PawControlRuntimeDataType = types_module.PawControlRuntimeData
-_install_homeassistant_stub()
+install_homeassistant_stubs()
 runtime_module = _load_module(
     "custom_components.pawcontrol.runtime_data",
     PROJECT_ROOT / "custom_components" / "pawcontrol" / "runtime_data.py",

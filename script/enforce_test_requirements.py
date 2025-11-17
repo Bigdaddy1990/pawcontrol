@@ -21,12 +21,34 @@ INTERNAL_PREFIXES = ("tests", "custom_components", "script")
 INTERNAL_MODULES = {"sitecustomize"}
 
 
+def _extract_requirement_name(line: str) -> str | None:
+    """Return the normalized package name from a requirement line."""
+
+    stripped = line.split("#", 1)[0].strip()
+    if not stripped or stripped.startswith("-"):
+        return None
+
+    delimiters = frozenset("[] <>!=~();")
+    for i, char in enumerate(stripped):
+        if char in delimiters:
+            name = stripped[:i].strip()
+            return name or None
+
+    return stripped or None
+
+
 def _parse_requirements() -> set[str]:
     modules: set[str] = set()
 
     for requirement_file in REQUIREMENT_FILES:
         content = requirement_file.read_text(encoding="utf-8")
         for raw_line in content.splitlines():
+            name = _extract_requirement_name(raw_line)
+            if not name:
+                continue
+            normalized = name.lower()
+            modules.add(normalized)
+            modules.add(normalized.replace("-", "_"))
             line = raw_line.split("#", 1)[0].strip()
             if not line:
                 continue
