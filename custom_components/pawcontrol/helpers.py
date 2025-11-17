@@ -395,9 +395,9 @@ class OptimizedDataCache[ValueT]:
             # Fallback estimate
             if isinstance(value, str):
                 return len(value) * 2  # Unicode chars
-            elif isinstance(value, list | tuple):
+            if isinstance(value, list | tuple):
                 return len(value) * 100  # Rough estimate
-            elif isinstance(value, dict):
+            if isinstance(value, dict):
                 return len(value) * 200  # Rough estimate
             return 1024  # Default 1KB
 
@@ -1895,9 +1895,8 @@ class PawControlNotificationManager:
         if quiet_start_time > quiet_end_time:
             # Quiet hours span midnight (e.g., 22:00 to 07:00)
             return not (now >= quiet_start_time or now <= quiet_end_time)
-        else:
-            # Quiet hours within same day
-            return not (quiet_start_time <= now <= quiet_end_time)
+        # Quiet hours within same day
+        return not (quiet_start_time <= now <= quiet_end_time)
 
     def get_queue_stats(self) -> NotificationQueueStats:
         """Get notification queue statistics."""
@@ -1933,12 +1932,11 @@ def _data_encoder(obj: Any) -> Any:
     """OPTIMIZED: Custom JSON encoder with better performance."""
     if isinstance(obj, datetime):
         return obj.isoformat()
-    elif hasattr(obj, "__dict__"):
+    if hasattr(obj, "__dict__"):
         return obj.__dict__
-    elif hasattr(obj, "isoformat"):  # Handle date objects
+    if hasattr(obj, "isoformat"):  # Handle date objects
         return obj.isoformat()
-    else:
-        return str(obj)
+    return str(obj)
 
 
 # OPTIMIZATION: Add performance monitoring utilities

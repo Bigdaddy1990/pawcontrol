@@ -191,8 +191,7 @@ def _install_homeassistant_stubs() -> None:
             return entry
 
         def async_update_device(self, device_id: str, **kwargs: object) -> DeviceEntry:
-            entry = self.devices.setdefault(device_id, DeviceEntry(id=device_id))
-            return entry
+            return self.devices.setdefault(device_id, DeviceEntry(id=device_id))
 
         def async_listen(self, callback):  # type: ignore[no-untyped-def]
             return None
@@ -235,8 +234,7 @@ def _install_homeassistant_stubs() -> None:
         def async_update_entity(
             self, entity_id: str, **kwargs: object
         ) -> RegistryEntry:
-            entry = self.entities.setdefault(entity_id, RegistryEntry(entity_id))
-            return entry
+            return self.entities.setdefault(entity_id, RegistryEntry(entity_id))
 
         def async_entries_for_config_entry(self, entry_id: str) -> list[RegistryEntry]:
             return list(self.entities.values())

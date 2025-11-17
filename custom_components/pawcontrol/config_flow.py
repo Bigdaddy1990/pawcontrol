@@ -597,8 +597,7 @@ class PawControlConfigFlow(
             if user_input.get("confirm", False):
                 # Pre-populate with discovered device info
                 return await self.async_step_add_dog()
-            else:
-                return self.async_abort(reason="discovery_rejected")
+            return self.async_abort(reason="discovery_rejected")
 
         discovery_source = self._discovery_info.get("source", "unknown")
         device_info = self._format_discovery_info()
@@ -1090,7 +1089,7 @@ class PawControlConfigFlow(
         info = self._discovery_info
         if info.get("source") == "zeroconf":
             return f"Device: {info.get('hostname', 'Unknown')}\nHost: {info.get('host', 'Unknown')}"
-        elif info.get("source") == "dhcp":
+        if info.get("source") == "dhcp":
             return f"Device: {info.get('hostname', 'Unknown')}\nIP: {info.get('ip', 'Unknown')}"
         return "Unknown device"
 
@@ -1571,8 +1570,7 @@ class PawControlConfigFlow(
 
             if add_another and not at_limit:
                 return await self.async_step_add_dog()
-            else:
-                return await self.async_step_entity_profile()
+            return await self.async_step_entity_profile()
 
         # Enhanced logic for smart recommendations
         can_add_more = len(self._dogs) < MAX_DOGS_PER_INTEGRATION
@@ -1608,7 +1606,7 @@ class PawControlConfigFlow(
         dog_count = len(self._dogs)
         if dog_count >= 5:
             return "Consider 'basic' profile for better performance with many dogs"
-        elif dog_count >= 3:
+        if dog_count >= 3:
             return "Multiple dogs configured - 'standard' profile recommended"
         return "Single/few dogs - 'advanced' profile available for full features"
 
@@ -1672,10 +1670,9 @@ class PawControlConfigFlow(
 
         if dog_count >= 5 or total_modules >= 20:
             return "Recommended: 'basic' profile for optimal performance"
-        elif dog_count >= 3 or total_modules >= 12:
+        if dog_count >= 3 or total_modules >= 12:
             return "Recommended: 'standard' profile for balanced functionality"
-        else:
-            return "Recommended: 'standard' or 'advanced' profile for full features"
+        return "Recommended: 'standard' or 'advanced' profile for full features"
 
     async def async_step_final_setup(
         self, user_input: ConfigFlowUserInput | None = None

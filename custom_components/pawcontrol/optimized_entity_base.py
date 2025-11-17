@@ -1067,8 +1067,7 @@ class OptimizedEntityBase(
         Returns:
             The scheduled asyncio task handling cache invalidation.
         """
-        cache_invalidation_task = asyncio.create_task(self._async_invalidate_caches())
-        return cache_invalidation_task
+        return asyncio.create_task(self._async_invalidate_caches())
 
 
 class OptimizedSensorBase(OptimizedEntityBase):
@@ -1191,7 +1190,7 @@ class OptimizedBinarySensorBase(OptimizedEntityBase):
         """Return dynamic icon based on state."""
         if self.is_on and self._icon_on:
             return self._icon_on
-        elif not self.is_on and self._icon_off:
+        if not self.is_on and self._icon_off:
             return self._icon_off
         return super().icon
 

@@ -2743,16 +2743,15 @@ class PawControlOptionsFlow(OptionsFlow):
             action = user_input.get("action")
             if action == "add_dog":
                 return await self.async_step_add_new_dog()
-            elif action == "edit_dog":
+            if action == "edit_dog":
                 return await self.async_step_select_dog_to_edit()
-            elif action == "remove_dog":
+            if action == "remove_dog":
                 return await self.async_step_select_dog_to_remove()
-            elif action == "configure_modules":  # NEW: Module configuration
+            if action == "configure_modules":  # NEW: Module configuration
                 return await self.async_step_select_dog_for_modules()
-            elif action == "configure_door_sensor":
+            if action == "configure_door_sensor":
                 return await self.async_step_select_dog_for_door_sensor()
-            else:
-                return await self.async_step_init()
+            return await self.async_step_init()
 
         # Show dog management menu
         current_dogs = self._entry.data.get(CONF_DOGS, [])
@@ -2818,8 +2817,7 @@ class PawControlOptionsFlow(OptionsFlow):
             )
             if self._current_dog:
                 return await self.async_step_configure_dog_modules()
-            else:
-                return await self.async_step_manage_dogs()
+            return await self.async_step_manage_dogs()
 
         # Create selection options
         dog_options = [
@@ -3649,8 +3647,7 @@ class PawControlOptionsFlow(OptionsFlow):
             )
             if self._current_dog:
                 return await self.async_step_edit_dog()
-            else:
-                return await self.async_step_init()
+            return await self.async_step_init()
 
         # Create selection options
         dog_options = [

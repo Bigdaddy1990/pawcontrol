@@ -171,14 +171,13 @@ class BinarySensorLogicMixin:
             num_value = float(value)
             if comparison == "greater":
                 return num_value > threshold
-            elif comparison == "less":
+            if comparison == "less":
                 return num_value < threshold
-            elif comparison == "greater_equal":
+            if comparison == "greater_equal":
                 return num_value >= threshold
-            elif comparison == "less_equal":
+            if comparison == "less_equal":
                 return num_value <= threshold
-            else:
-                raise ValueError(f"Unknown comparison: {comparison}")
+            raise ValueError(f"Unknown comparison: {comparison}")
 
         except (TypeError, ValueError):
             return default_if_none
@@ -476,10 +475,9 @@ class PawControlBinarySensorBase(
         """Return the icon to use in the frontend."""
         if self.is_on and self._icon_on:
             return self._icon_on
-        elif not self.is_on and self._icon_off:
+        if not self.is_on and self._icon_off:
             return self._icon_off
-        else:
-            return "mdi:information-outline"
+        return "mdi:information-outline"
 
     @property
     def device_class(self) -> BinarySensorDeviceClass | None:
@@ -783,12 +781,11 @@ class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
 
         if any(reason in urgent_conditions for reason in self._attention_reasons):
             return "high"
-        elif len(self._attention_reasons) > 2:
+        if len(self._attention_reasons) > 2:
             return "medium"
-        elif len(self._attention_reasons) > 0:
+        if len(self._attention_reasons) > 0:
             return "low"
-        else:
-            return "none"
+        return "none"
 
     def _get_recommended_actions(self) -> list[str]:
         """Get recommended actions based on attention reasons."""
@@ -931,12 +928,11 @@ class PawControlIsHungryBinarySensor(PawControlBinarySensorBase):
 
         if hours_since_feeding > 12:
             return "very_hungry"
-        elif hours_since_feeding >= 8:
+        if hours_since_feeding >= 8:
             return "hungry"
-        elif hours_since_feeding >= 6:
+        if hours_since_feeding >= 6:
             return "somewhat_hungry"
-        else:
-            return "satisfied"
+        return "satisfied"
 
 
 class PawControlFeedingDueBinarySensor(PawControlBinarySensorBase):
@@ -1147,12 +1143,11 @@ class PawControlNeedsWalkBinarySensor(PawControlBinarySensorBase):
 
         if last_walk_hours > 12:
             return "urgent"
-        elif last_walk_hours > 8:
+        if last_walk_hours > 8:
             return "high"
-        elif last_walk_hours > 6:
+        if last_walk_hours > 6:
             return "medium"
-        else:
-            return "low"
+        return "low"
 
 
 class PawControlWalkGoalMetBinarySensor(PawControlBinarySensorBase):
@@ -1659,19 +1654,17 @@ class PawControlActivityLevelConcernBinarySensor(PawControlBinarySensorBase):
         """Get reason for activity level concern."""
         if activity_level == "very_low":
             return "Activity level is unusually low"
-        elif activity_level == "very_high":
+        if activity_level == "very_high":
             return "Activity level is unusually high"
-        else:
-            return "No concern"
+        return "No concern"
 
     def _get_recommended_action(self, activity_level: str) -> str:
         """Get recommended action for activity level concern."""
         if activity_level == "very_low":
             return "Consider vet consultation or encouraging more activity"
-        elif activity_level == "very_high":
+        if activity_level == "very_high":
             return "Monitor for signs of distress or illness"
-        else:
-            return "Continue normal monitoring"
+        return "Continue normal monitoring"
 
 
 class PawControlHealthAwareFeedingBinarySensor(PawControlBinarySensorBase):

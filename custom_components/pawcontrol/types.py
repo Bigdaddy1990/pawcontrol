@@ -1675,8 +1675,7 @@ def ensure_notification_options(
                 return None
         if isinstance(working, int | float):
             interval = int(working)
-            interval = max(5, min(180, interval))
-            return interval
+            return max(5, min(180, interval))
         return None
 
     def _apply(

@@ -190,12 +190,11 @@ class ForecastPoint:
         hour = self.timestamp.hour
         if 6 <= hour < 12:
             return "morning"
-        elif 12 <= hour < 17:
+        if 12 <= hour < 17:
             return "afternoon"
-        elif 17 <= hour < 21:
+        if 17 <= hour < 21:
             return "evening"
-        else:
-            return "night"
+        return "night"
 
 
 @dataclass
@@ -237,14 +236,13 @@ class WeatherForecast:
         score = self.avg_health_score
         if score >= 80:
             return f"Excellent conditions ahead (avg score: {score}/100)"
-        elif score >= 60:
+        if score >= 60:
             return f"Good conditions with some caution needed (avg score: {score}/100)"
-        elif score >= 40:
+        if score >= 40:
             return (
                 f"Challenging conditions requiring precautions (avg score: {score}/100)"
             )
-        else:
-            return f"Dangerous conditions - outdoor activities not recommended (avg score: {score}/100)"
+        return f"Dangerous conditions - outdoor activities not recommended (avg score: {score}/100)"
 
     def get_next_optimal_window(
         self, activity_type: ActivityType = "walk"
@@ -728,9 +726,8 @@ class WeatherHealthManager:
                     _fetch_weather_data,
                     retry_config=self._retry_config,
                 )
-            else:
-                # Fallback if no resilience manager
-                return await _fetch_weather_data()
+            # Fallback if no resilience manager
+            return await _fetch_weather_data()
         except Exception as err:
             _LOGGER.error("Failed to update weather data after retries: %s", err)
             return None
@@ -847,9 +844,8 @@ class WeatherHealthManager:
                     _fetch_forecast_data,
                     retry_config=self._retry_config,
                 )
-            else:
-                # Fallback if no resilience manager
-                return await _fetch_forecast_data()
+            # Fallback if no resilience manager
+            return await _fetch_forecast_data()
         except Exception as err:
             _LOGGER.error(
                 "Failed to update weather forecast data after retries: %s", err
@@ -986,12 +982,11 @@ class WeatherHealthManager:
         # Assess quality based on completeness and data points
         if completeness_ratio >= 0.8 and total_points >= 24:  # Hourly data for 24h
             return ForecastQuality.EXCELLENT
-        elif completeness_ratio >= 0.6 and total_points >= 8:  # 3-hourly data
+        if completeness_ratio >= 0.6 and total_points >= 8:  # 3-hourly data
             return ForecastQuality.GOOD
-        elif completeness_ratio >= 0.4 and total_points >= 4:  # 6-hourly data
+        if completeness_ratio >= 0.4 and total_points >= 4:  # 6-hourly data
             return ForecastQuality.FAIR
-        else:
-            return ForecastQuality.POOR
+        return ForecastQuality.POOR
 
     def _calculate_forecast_point_derived_values(
         self, forecast_point: ForecastPoint

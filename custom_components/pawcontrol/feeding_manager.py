@@ -1336,7 +1336,7 @@ class FeedingManager:
             parts = time_str.split(":")
             if len(parts) == 2:
                 return time(int(parts[0]), int(parts[1]))
-            elif len(parts) == 3:
+            if len(parts) == 3:
                 return time(int(parts[0]), int(parts[1]), int(parts[2]))
         except (ValueError, AttributeError):
             _LOGGER.warning("Failed to parse time: %s", time_str)

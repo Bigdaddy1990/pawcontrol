@@ -75,6 +75,8 @@ repos:
         name: Ensure test imports declare requirements
         entry: python -m script.enforce_test_requirements
         language: python
+        additional_dependencies:
+          - packaging==24.2
         pass_filenames: false
       - id: docstring-baseline
         name: Ensure docstring baseline has no regressions

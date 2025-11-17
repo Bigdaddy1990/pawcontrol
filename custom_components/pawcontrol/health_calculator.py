@@ -209,8 +209,7 @@ class HealthMetrics:
             )
 
         # Collapse repeated internal whitespace to a single space for consistency.
-        normalized = re.sub(r"\s+", " ", normalized)
-        return normalized
+        return re.sub(r"\s+", " ", normalized)
 
 
 class HealthCalculator:
@@ -297,14 +296,13 @@ class HealthCalculator:
 
         if age_months < thresholds["adult"]:
             return LifeStage.PUPPY
-        elif age_months < 24:
+        if age_months < 24:
             return LifeStage.YOUNG_ADULT
-        elif age_months < thresholds["senior"]:
+        if age_months < thresholds["senior"]:
             return LifeStage.ADULT
-        elif age_months < 120:  # 10 years
+        if age_months < 120:  # 10 years
             return LifeStage.SENIOR
-        else:
-            return LifeStage.GERIATRIC
+        return LifeStage.GERIATRIC
 
     @staticmethod
     def calculate_bmi(weight: float, height_cm: float) -> float:
@@ -350,22 +348,21 @@ class HealthCalculator:
 
         if weight_ratio < 0.7:
             return BodyConditionScore.EMACIATED
-        elif weight_ratio < 0.8:
+        if weight_ratio < 0.8:
             return BodyConditionScore.VERY_THIN
-        elif weight_ratio < 0.9:
+        if weight_ratio < 0.9:
             return BodyConditionScore.THIN
-        elif weight_ratio < 0.95:
+        if weight_ratio < 0.95:
             return BodyConditionScore.UNDERWEIGHT
-        elif weight_ratio <= 1.05:
+        if weight_ratio <= 1.05:
             return BodyConditionScore.IDEAL
-        elif weight_ratio <= 1.15:
+        if weight_ratio <= 1.15:
             return BodyConditionScore.OVERWEIGHT
-        elif weight_ratio <= 1.25:
+        if weight_ratio <= 1.25:
             return BodyConditionScore.HEAVY
-        elif weight_ratio <= 1.4:
+        if weight_ratio <= 1.4:
             return BodyConditionScore.OBESE
-        else:
-            return BodyConditionScore.SEVERELY_OBESE
+        return BodyConditionScore.SEVERELY_OBESE
 
     @staticmethod
     def calculate_daily_calories(

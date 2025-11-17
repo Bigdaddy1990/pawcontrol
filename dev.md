@@ -8,13 +8,10 @@
 
 
 
-### Priorisierte Maßnahmen 
+### Priorisierte Maßnahmen
 
 
 
 
 
 #### Funktionale Abdeckung
-
-
-

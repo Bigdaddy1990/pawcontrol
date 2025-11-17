@@ -450,8 +450,7 @@ class DogManagementMixin(DogManagementMixinBase):
 
                     # Continue to module selection for this specific dog
                     return await self.async_step_dog_modules()
-                else:
-                    errors = validation_result["errors"]
+                errors = validation_result["errors"]
 
             except TimeoutError:
                 _LOGGER.error("Dog validation timed out")
@@ -1612,9 +1611,8 @@ class DogManagementMixin(DogManagementMixinBase):
                 self._errors.clear()
                 self._current_dog_config = None
                 return await self.async_step_add_dog()
-            else:
-                # All dogs configured, continue to global settings if needed
-                return await self.async_step_configure_modules()
+            # All dogs configured, continue to global settings if needed
+            return await self.async_step_configure_modules()
 
         # Check if we've reached the limit
         at_limit = len(self._dogs) >= MAX_DOGS_PER_ENTRY
@@ -1897,9 +1895,9 @@ class DogManagementMixin(DogManagementMixinBase):
         # Age-based activity suggestions
         if dog_age < 1:
             return "moderate"  # Puppies have bursts of energy but need rest
-        elif dog_age >= 10:
+        if dog_age >= 10:
             return "low"  # Senior dogs generally less active
-        elif dog_age >= 7:
+        if dog_age >= 7:
             return "moderate"  # Older adults
 
         # Size-based activity suggestions for adult dogs
@@ -2093,7 +2091,6 @@ class DogManagementMixin(DogManagementMixinBase):
 
         if total_dogs == 1 and total_modules <= 5:
             return "Simple setup - minimal resources needed"
-        elif total_dogs <= 2 and total_modules <= 10:
+        if total_dogs <= 2 and total_modules <= 10:
             return "Standard setup - balanced performance recommended"
-        else:
-            return "Complex setup - full performance mode recommended"
+        return "Complex setup - full performance mode recommended"

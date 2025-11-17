@@ -120,8 +120,7 @@ def get_activity_score_cache_ttl(coordinator: PawControlCoordinator) -> int:
         return 300
 
     # Cache for 2.5x the update interval, minimum 60s, maximum 600s
-    cache_ttl = max(60, min(600, int(interval_seconds * 2.5)))
-    return cache_ttl
+    return max(60, min(600, int(interval_seconds * 2.5)))
 
 
 # Sensor mapping for profile-based creation
@@ -1164,14 +1163,12 @@ class PawControlDogStatusSensor(PawControlSensorBase):
             if current_zone == "home":
                 if feeding_data.get("is_hungry", False):
                     return "hungry"
-                elif walk_data.get("needs_walk", False):
+                if walk_data.get("needs_walk", False):
                     return "needs_walk"
-                else:
-                    return "home"
-            elif current_zone and current_zone != STATE_UNKNOWN:
+                return "home"
+            if current_zone and current_zone != STATE_UNKNOWN:
                 return f"at_{current_zone}"
-            else:
-                return "away"
+            return "away"
 
         except Exception as err:
             _LOGGER.warning(
@@ -1418,10 +1415,9 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
                 current_speed = float(gps_data.get("current_speed", 0))
                 if current_speed > 8:  # km/h - running
                     return "high"
-                elif current_speed > 3:  # km/h - fast walk
+                if current_speed > 3:  # km/h - fast walk
                     return "medium"
-                else:
-                    return "low"
+                return "low"
 
             # Calculate based on recent activity (today)
             walks_today = int(walk_data.get("walks_today", 0))
@@ -1441,12 +1437,11 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
 
             if activity_score >= 3:
                 return "high"
-            elif activity_score >= 1.5:
+            if activity_score >= 1.5:
                 return "medium"
-            elif activity_score > 0:
+            if activity_score > 0:
                 return "low"
-            else:
-                return "inactive"
+            return "inactive"
 
         except (TypeError, ValueError) as err:
             _LOGGER.debug(
@@ -1496,12 +1491,11 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
 
             if walks_today == 0:
                 return "schedule_first_walk"
-            elif walks_today < 2:
+            if walks_today < 2:
                 return "needs_more_walks"
-            elif total_duration < 30:
+            if total_duration < 30:
                 return "extend_walk_duration"
-            else:
-                return "activity_goals_met"
+            return "activity_goals_met"
 
         except (TypeError, ValueError):
             return "unable_to_assess"
@@ -1992,12 +1986,11 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
 
         if hours_since < 2:
             return "recently_fed"
-        elif hours_since < 6:
+        if hours_since < 6:
             return "normal_interval"
-        elif hours_since < 12:
+        if hours_since < 12:
             return "getting_hungry"
-        else:
-            return "overdue"
+        return "overdue"
 
     def _calculate_next_feeding_due(
         self, feeding_data: FeedingModulePayload, last_feeding: datetime
@@ -2190,10 +2183,9 @@ class PawControlFeedingRecommendationSensor(PawControlSensorBase):
             adherence = float(feeding_data.get("schedule_adherence", 100))
             if adherence >= 90:
                 return "Feeding schedule is well maintained"
-            elif adherence >= 70:
+            if adherence >= 70:
                 return "Consider improving meal timing consistency"
-            else:
-                return "Feeding schedule needs attention"
+            return "Feeding schedule needs attention"
 
         except (TypeError, ValueError):
             return "Unable to generate recommendation"

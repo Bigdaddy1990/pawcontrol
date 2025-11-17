@@ -1,0 +1,107 @@
+"""Ensure test imports declare the third-party packages they rely on."""
+
+from __future__ import annotations
+
+import argparse
+import ast
+import sys
+from collections.abc import Iterable
+from pathlib import Path
+
+from packaging.requirements import Requirement
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+TESTS_ROOT = REPO_ROOT / "tests"
+REQUIREMENT_FILES = [
+    REPO_ROOT / "requirements_test.txt",
+    REPO_ROOT / "requirements.txt",
+]
+STANDARD_LIB = {name.replace(".", "_") for name in sys.stdlib_module_names}
+INTERNAL_PREFIXES = ("tests", "custom_components", "script")
+INTERNAL_MODULES = {"sitecustomize"}
+
+
+def _parse_requirements() -> set[str]:
+    modules: set[str] = set()
+
+    for requirement_file in REQUIREMENT_FILES:
+        content = requirement_file.read_text(encoding="utf-8")
+        for raw_line in content.splitlines():
+            line = raw_line.split("#", 1)[0].strip()
+            if not line:
+                continue
+            requirement = Requirement(line)
+            name = requirement.name.lower()
+            modules.add(name.replace("-", "_"))
+            modules.add(name)
+
+    return modules
+
+
+def _iter_test_files() -> Iterable[Path]:
+    return TESTS_ROOT.rglob("*.py")
+
+
+def _collect_imports(path: Path) -> set[str]:
+    imports: set[str] = set()
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                imports.add(alias.name.split(".")[0])
+        elif isinstance(node, ast.ImportFrom):
+            if node.module is None or node.level:
+                continue
+            imports.add(node.module.split(".")[0])
+
+    return imports
+
+
+def _is_third_party(module: str) -> bool:
+    module_lower = module.lower()
+    if module_lower in STANDARD_LIB:
+        return False
+    if module_lower in INTERNAL_MODULES:
+        return False
+    return not any(module_lower.startswith(prefix) for prefix in INTERNAL_PREFIXES)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="print all discovered imports for debugging",
+    )
+    args = parser.parse_args()
+
+    requirements = _parse_requirements()
+    missing: dict[str, set[str]] = {}
+
+    for file in _iter_test_files():
+        imports = _collect_imports(file)
+        if args.verbose:
+            print(f"{file}: {sorted(imports)}")
+        for module in imports:
+            if not _is_third_party(module):
+                continue
+            normalized = module.lower().replace("-", "_")
+            if normalized in requirements:
+                continue
+            missing.setdefault(file.as_posix(), set()).add(module)
+
+    if missing:
+        print("Missing test requirement declarations detected:")
+        for file, modules in sorted(missing.items()):
+            formatted = ", ".join(sorted(modules))
+            print(f"  - {file}: {formatted}")
+        print("Add the packages to requirements_test.txt to fix the violation.")
+        return 1
+
+    print("All third-party test imports map to requirements_test.txt entries.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

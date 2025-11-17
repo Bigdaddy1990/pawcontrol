@@ -1138,29 +1138,28 @@ class PawControlRepairsFlow(RepairsFlow):
         # Route to appropriate repair flow based on issue type
         if self._repair_type == ISSUE_MISSING_DOG_CONFIG:
             return await self.async_step_missing_dog_config()
-        elif self._repair_type == ISSUE_DUPLICATE_DOG_IDS:
+        if self._repair_type == ISSUE_DUPLICATE_DOG_IDS:
             return await self.async_step_duplicate_dog_ids()
-        elif self._repair_type == ISSUE_INVALID_GPS_CONFIG:
+        if self._repair_type == ISSUE_INVALID_GPS_CONFIG:
             return await self.async_step_invalid_gps_config()
-        elif self._repair_type == ISSUE_MISSING_NOTIFICATIONS:
+        if self._repair_type == ISSUE_MISSING_NOTIFICATIONS:
             return await self.async_step_missing_notifications()
-        elif self._repair_type == ISSUE_OUTDATED_CONFIG:
+        if self._repair_type == ISSUE_OUTDATED_CONFIG:
             return await self.async_step_outdated_config()
-        elif self._repair_type in {
+        if self._repair_type in {
             ISSUE_PERFORMANCE_WARNING,
             ISSUE_GPS_UPDATE_INTERVAL,
         }:
             return await self.async_step_performance_warning()
-        elif self._repair_type == ISSUE_STORAGE_WARNING:
+        if self._repair_type == ISSUE_STORAGE_WARNING:
             return await self.async_step_storage_warning()
-        elif self._repair_type == ISSUE_MODULE_CONFLICT:
+        if self._repair_type == ISSUE_MODULE_CONFLICT:
             return await self.async_step_module_conflict()
-        elif self._repair_type == ISSUE_INVALID_DOG_DATA:
+        if self._repair_type == ISSUE_INVALID_DOG_DATA:
             return await self.async_step_invalid_dog_data()
-        elif self._repair_type == ISSUE_COORDINATOR_ERROR:
+        if self._repair_type == ISSUE_COORDINATOR_ERROR:
             return await self.async_step_coordinator_error()
-        else:
-            return await self.async_step_unknown_issue()
+        return await self.async_step_unknown_issue()
 
     async def async_step_missing_dog_config(
         self, user_input: ConfigFlowUserInput | None = None
@@ -1178,13 +1177,12 @@ class PawControlRepairsFlow(RepairsFlow):
 
             if action == "add_dog":
                 return await self.async_step_add_first_dog()
-            elif action == "reconfigure":
+            if action == "reconfigure":
                 # Redirect to reconfigure flow
                 return self.async_external_step(
                     step_id="reconfigure", url="/config/integrations"
                 )
-            else:
-                return await self.async_step_complete_repair()
+            return await self.async_step_complete_repair()
 
         return self.async_show_form(
             step_id="missing_dog_config",
@@ -1264,8 +1262,7 @@ class PawControlRepairsFlow(RepairsFlow):
                         )
 
                         return await self.async_step_complete_repair()
-                    else:
-                        errors["base"] = "config_entry_not_found"
+                    errors["base"] = "config_entry_not_found"
 
             except Exception as err:
                 _LOGGER.error("Error adding first dog: %s", err)
@@ -1310,12 +1307,11 @@ class PawControlRepairsFlow(RepairsFlow):
                 # Automatically fix duplicate IDs
                 await self._fix_duplicate_dog_ids()
                 return await self.async_step_complete_repair()
-            elif action == "manual_fix":
+            if action == "manual_fix":
                 return self.async_external_step(
                     step_id="reconfigure", url="/config/integrations"
                 )
-            else:
-                return await self.async_step_complete_repair()
+            return await self.async_step_complete_repair()
 
         return self.async_show_form(
             step_id="duplicate_dog_ids",
@@ -1362,11 +1358,10 @@ class PawControlRepairsFlow(RepairsFlow):
 
             if action == "configure_gps":
                 return await self.async_step_configure_gps()
-            elif action == "disable_gps":
+            if action == "disable_gps":
                 await self._disable_gps_for_all_dogs()
                 return await self.async_step_complete_repair()
-            else:
-                return await self.async_step_complete_repair()
+            return await self.async_step_complete_repair()
 
         return self.async_show_form(
             step_id="invalid_gps_config",
@@ -1429,8 +1424,7 @@ class PawControlRepairsFlow(RepairsFlow):
                     )
 
                     return await self.async_step_complete_repair()
-                else:
-                    return self.async_abort(reason="config_entry_not_found")
+                return self.async_abort(reason="config_entry_not_found")
 
             except Exception as err:
                 _LOGGER.error("Error configuring GPS: %s", err)
@@ -1480,11 +1474,10 @@ class PawControlRepairsFlow(RepairsFlow):
                 return self.async_external_step(
                     step_id="setup_mobile", url="/config/mobile_app"
                 )
-            elif action == "disable_mobile":
+            if action == "disable_mobile":
                 await self._disable_mobile_notifications()
                 return await self.async_step_complete_repair()
-            else:
-                return await self.async_step_complete_repair()
+            return await self.async_step_complete_repair()
 
         return self.async_show_form(
             step_id="missing_notifications",
@@ -1534,12 +1527,11 @@ class PawControlRepairsFlow(RepairsFlow):
             if action == "optimize":
                 await self._apply_performance_optimizations()
                 return await self.async_step_complete_repair()
-            elif action == "configure":
+            if action == "configure":
                 return self.async_external_step(
                     step_id="configure", url="/config/integrations"
                 )
-            else:
-                return await self.async_step_complete_repair()
+            return await self.async_step_complete_repair()
 
         return self.async_show_form(
             step_id="performance_warning",
