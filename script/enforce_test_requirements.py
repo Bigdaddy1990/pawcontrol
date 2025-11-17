@@ -8,6 +8,8 @@ import sys
 from collections.abc import Iterable
 from pathlib import Path
 
+from packaging.requirements import Requirement
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TESTS_ROOT = REPO_ROOT / "tests"
 REQUIREMENT_FILES = [
@@ -47,6 +49,13 @@ def _parse_requirements() -> set[str]:
             normalized = name.lower()
             modules.add(normalized)
             modules.add(normalized.replace("-", "_"))
+            line = raw_line.split("#", 1)[0].strip()
+            if not line:
+                continue
+            requirement = Requirement(line)
+            name = requirement.name.lower()
+            modules.add(name.replace("-", "_"))
+            modules.add(name)
 
     return modules
 
@@ -77,9 +86,7 @@ def _is_third_party(module: str) -> bool:
         return False
     if module_lower in INTERNAL_MODULES:
         return False
-    return not any(
-        module_lower.startswith(prefix) for prefix in INTERNAL_PREFIXES
-    )
+    return not any(module_lower.startswith(prefix) for prefix in INTERNAL_PREFIXES)
 
 
 def main() -> int:
