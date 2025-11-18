@@ -91,7 +91,7 @@ tests = [
     "homeassistant>=2025.10.1",
     "packaging==24.2",
     "pip==25.3",
-    "pytest==9.0.0",
+    "pytest==9.0.1",
     "pytest-homeassistant-custom-component",
     "pyyaml==6.0.3",
     "types-aiofiles==24.1.0.20250822",
