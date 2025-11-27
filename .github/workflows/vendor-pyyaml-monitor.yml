@@ -27,7 +27,7 @@ jobs:
       FAIL_ON_OUTDATED: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.fail_on_outdated || 'false' }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
         uses: actions/setup-python@v6

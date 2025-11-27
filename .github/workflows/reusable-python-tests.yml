@@ -124,7 +124,7 @@ jobs:
       PAGES_ARTIFACT_DIR: ${{ inputs.pages-artifact-directory }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
