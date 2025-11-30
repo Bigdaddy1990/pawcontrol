@@ -1297,7 +1297,9 @@ class FeedingManager:
 
         meals_per_day_raw = config_data.get("meals_per_day", 2)
         meals_per_day = (
-            int(meals_per_day_raw) if isinstance(meals_per_day_raw, (int, float, str)) else 2
+            int(meals_per_day_raw)
+            if isinstance(meals_per_day_raw, (int, float, str))
+            else 2
         )
 
         daily_food_amount_raw = config_data.get("daily_food_amount", 500.0)
@@ -1313,10 +1315,14 @@ class FeedingManager:
         schedule_value = str(config_data.get("feeding_schedule", "flexible"))
 
         treats_enabled_raw = config_data.get("treats_enabled", True)
-        treats_enabled = treats_enabled_raw if isinstance(treats_enabled_raw, bool) else True
+        treats_enabled = (
+            treats_enabled_raw if isinstance(treats_enabled_raw, bool) else True
+        )
 
         water_tracking_raw = config_data.get("water_tracking", False)
-        water_tracking = water_tracking_raw if isinstance(water_tracking_raw, bool) else False
+        water_tracking = (
+            water_tracking_raw if isinstance(water_tracking_raw, bool) else False
+        )
 
         calorie_tracking_raw = config_data.get("calorie_tracking", False)
         calorie_tracking = (
@@ -1389,7 +1395,11 @@ class FeedingManager:
 
         health_conditions_raw = config_data.get("health_conditions", [])
         health_conditions = (
-            [condition for condition in health_conditions_raw if isinstance(condition, str)]
+            [
+                condition
+                for condition in health_conditions_raw
+                if isinstance(condition, str)
+            ]
             if isinstance(health_conditions_raw, Sequence)
             and not isinstance(health_conditions_raw, (str, bytes))
             else []
@@ -1460,7 +1470,9 @@ class FeedingManager:
                 )
                 reminder_enabled_raw = config_data.get("enable_reminders", True)
                 reminder_enabled = (
-                    reminder_enabled_raw if isinstance(reminder_enabled_raw, bool) else True
+                    reminder_enabled_raw
+                    if isinstance(reminder_enabled_raw, bool)
+                    else True
                 )
                 reminder_minutes_raw = config_data.get("reminder_minutes_before", 15)
                 reminder_minutes_before = (

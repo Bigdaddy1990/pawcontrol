@@ -285,7 +285,9 @@ async def async_publish_feeding_compliance_issue(
     }
 
     if context_metadata:
-        issue_data["context_metadata"] = cast(JSONMutableMapping, dict(context_metadata))
+        issue_data["context_metadata"] = cast(
+            JSONMutableMapping, dict(context_metadata)
+        )
 
     summary_message = summary_copy.get("message")
 
@@ -489,7 +491,8 @@ async def _check_dog_configuration_issues(
     raw_dogs_obj = entry.data.get(CONF_DOGS, [])
     raw_dogs = (
         raw_dogs_obj
-        if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, (str, bytes))
+        if isinstance(raw_dogs_obj, Sequence)
+        and not isinstance(raw_dogs_obj, (str, bytes))
         else []
     )
     dogs: list[Mapping[str, JSONValue]] = [
@@ -516,22 +519,20 @@ async def _check_dog_configuration_issues(
         for dog_id in (dog.get(CONF_DOG_ID) for dog in dogs)
         if isinstance(dog_id, str)
     ]
-    duplicate_ids = [
-        dog_id for dog_id in set(dog_ids) if dog_ids.count(dog_id) > 1
-    ]
+    duplicate_ids = [dog_id for dog_id in set(dog_ids) if dog_ids.count(dog_id) > 1]
 
     if duplicate_ids:
         await async_create_issue(
             hass,
             entry,
             f"{entry.entry_id}_duplicate_dogs",
-                ISSUE_DUPLICATE_DOG_IDS,
-                {
-                    "duplicate_ids": duplicate_ids,
-                    "total_dogs": len(dogs),
-                },
-                severity="error",
-            )
+            ISSUE_DUPLICATE_DOG_IDS,
+            {
+                "duplicate_ids": duplicate_ids,
+                "total_dogs": len(dogs),
+            },
+            severity="error",
+        )
 
     # Check for invalid dog data
     invalid_dogs = []
@@ -539,7 +540,9 @@ async def _check_dog_configuration_issues(
         dog_id = dog.get(CONF_DOG_ID)
         dog_name = dog.get(CONF_DOG_NAME)
         if not isinstance(dog_id, str) or not dog_id or not isinstance(dog_name, str):
-            invalid_dogs.append(cast(str, dog_id) if isinstance(dog_id, str) else "unknown")
+            invalid_dogs.append(
+                cast(str, dog_id) if isinstance(dog_id, str) else "unknown"
+            )
 
     if invalid_dogs:
         await async_create_issue(
@@ -567,7 +570,8 @@ async def _check_gps_configuration_issues(
     raw_dogs_obj = entry.data.get(CONF_DOGS, [])
     raw_dogs = (
         raw_dogs_obj
-        if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, (str, bytes))
+        if isinstance(raw_dogs_obj, Sequence)
+        and not isinstance(raw_dogs_obj, (str, bytes))
         else []
     )
     dogs: list[Mapping[str, JSONValue]] = [
@@ -636,7 +640,8 @@ async def _check_notification_configuration_issues(
     raw_dogs_obj = entry.data.get(CONF_DOGS, [])
     raw_dogs = (
         raw_dogs_obj
-        if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, (str, bytes))
+        if isinstance(raw_dogs_obj, Sequence)
+        and not isinstance(raw_dogs_obj, (str, bytes))
         else []
     )
     dogs: list[Mapping[str, JSONValue]] = [
@@ -812,7 +817,8 @@ async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> 
     raw_dogs_obj = entry.data.get(CONF_DOGS, [])
     raw_dogs = (
         raw_dogs_obj
-        if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, (str, bytes))
+        if isinstance(raw_dogs_obj, Sequence)
+        and not isinstance(raw_dogs_obj, (str, bytes))
         else []
     )
     dogs: list[Mapping[str, JSONValue]] = [
@@ -1068,9 +1074,7 @@ async def _check_runtime_store_duration_alerts(
     )
     recommendations = "; ".join(
         cast(str, action)
-        for action in (
-            alert.get("recommended_action") for alert in alerts
-        )
+        for action in (alert.get("recommended_action") for alert in alerts)
         if isinstance(action, str)
     )
 
@@ -1338,7 +1342,9 @@ class PawControlRepairsFlow(RepairsFlow):
                     else:
                         # Get the config entry and update it
                         config_entry_id = self._issue_data["config_entry_id"]
-                        entry = self.hass.config_entries.async_get_entry(config_entry_id)
+                        entry = self.hass.config_entries.async_get_entry(
+                            config_entry_id
+                        )
 
                         if entry:
                             # Create new dog configuration
@@ -1349,26 +1355,26 @@ class PawControlRepairsFlow(RepairsFlow):
                             new_dog = {
                                 CONF_DOG_ID: dog_id,
                                 CONF_DOG_NAME: dog_name,
-                                "dog_breed":
-                                    dog_breed_raw if isinstance(dog_breed_raw, str) else "",
-                                "dog_age":
-                                    int(dog_age_raw)
-                                    if isinstance(dog_age_raw, (int, float, str))
-                                    else 3,
-                                "dog_weight":
-                                    float(dog_weight_raw)
-                                    if isinstance(dog_weight_raw, (int, float, str))
-                                    else 20.0,
-                                "dog_size":
-                                    dog_size_raw if isinstance(dog_size_raw, str) else "medium",
-                            "modules": {
-                                "feeding": True,
-                                "walk": True,
-                                "gps": False,
-                                "health": True,
-                                "notifications": True,
-                            },
-                        }
+                                "dog_breed": dog_breed_raw
+                                if isinstance(dog_breed_raw, str)
+                                else "",
+                                "dog_age": int(dog_age_raw)
+                                if isinstance(dog_age_raw, (int, float, str))
+                                else 3,
+                                "dog_weight": float(dog_weight_raw)
+                                if isinstance(dog_weight_raw, (int, float, str))
+                                else 20.0,
+                                "dog_size": dog_size_raw
+                                if isinstance(dog_size_raw, str)
+                                else "medium",
+                                "modules": {
+                                    "feeding": True,
+                                    "walk": True,
+                                    "gps": False,
+                                    "health": True,
+                                    "notifications": True,
+                                },
+                            }
 
                         # Update the config entry
                         new_data = entry.data.copy()
@@ -1439,9 +1445,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
         total_dogs_raw = self._issue_data.get("total_dogs", 0)
         total_dogs = (
-            int(total_dogs_raw)
-            if isinstance(total_dogs_raw, (int, float, str))
-            else 0
+            int(total_dogs_raw) if isinstance(total_dogs_raw, (int, float, str)) else 0
         )
 
         return self.async_show_form(
@@ -1817,9 +1821,7 @@ class PawControlRepairsFlow(RepairsFlow):
         )
         total_dogs_raw = self._issue_data.get("total_dogs")
         total_dogs = (
-            int(total_dogs_raw)
-            if isinstance(total_dogs_raw, (int, float, str))
-            else 0
+            int(total_dogs_raw) if isinstance(total_dogs_raw, (int, float, str)) else 0
         )
 
         return self.async_show_form(
@@ -2080,34 +2082,38 @@ class PawControlRepairsFlow(RepairsFlow):
                 DogModulesConfig,
                 {
                     MODULE_FEEDING: bool(
-                        cast(Mapping[str, object], modules_raw).get(MODULE_FEEDING, True)
+                        cast(Mapping[str, object], modules_raw).get(
+                            MODULE_FEEDING, True
+                        )
                     )
                     if isinstance(modules_raw, Mapping)
                     else True,
-                MODULE_WALK: bool(
-                    cast(Mapping[str, object], modules_raw).get(MODULE_WALK, True)
-                )
-                if isinstance(modules_raw, Mapping)
-                else True,
-                MODULE_GPS: bool(
-                    cast(Mapping[str, object], modules_raw).get(MODULE_GPS, False)
-                )
-                if isinstance(modules_raw, Mapping)
-                else False,
-                MODULE_HEALTH: bool(
-                    cast(Mapping[str, object], modules_raw).get(MODULE_HEALTH, True)
-                )
-                if isinstance(modules_raw, Mapping)
-                else True,
-                MODULE_NOTIFICATIONS: bool(
-                    cast(Mapping[str, object], modules_raw).get(
-                        MODULE_NOTIFICATIONS, True
+                    MODULE_WALK: bool(
+                        cast(Mapping[str, object], modules_raw).get(MODULE_WALK, True)
                     )
-                )
-                if isinstance(modules_raw, Mapping)
-                else True,
+                    if isinstance(modules_raw, Mapping)
+                    else True,
+                    MODULE_GPS: bool(
+                        cast(Mapping[str, object], modules_raw).get(MODULE_GPS, False)
+                    )
+                    if isinstance(modules_raw, Mapping)
+                    else False,
+                    MODULE_HEALTH: bool(
+                        cast(Mapping[str, object], modules_raw).get(MODULE_HEALTH, True)
+                    )
+                    if isinstance(modules_raw, Mapping)
+                    else True,
+                    MODULE_NOTIFICATIONS: bool(
+                        cast(Mapping[str, object], modules_raw).get(
+                            MODULE_NOTIFICATIONS, True
+                        )
+                    )
+                    if isinstance(modules_raw, Mapping)
+                    else True,
                     MODULE_GARDEN: bool(
-                        cast(Mapping[str, object], modules_raw).get(MODULE_GARDEN, False)
+                        cast(Mapping[str, object], modules_raw).get(
+                            MODULE_GARDEN, False
+                        )
                     )
                     if isinstance(modules_raw, Mapping)
                     else False,

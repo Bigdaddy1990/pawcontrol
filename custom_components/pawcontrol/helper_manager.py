@@ -1043,7 +1043,9 @@ class PawControlHelperManager:
         if not isinstance(dog_name_value, str) or not dog_name_value:
             dog_data_payload[DOG_NAME_FIELD] = dog_id
 
-        dog_data = ensure_dog_config_data(cast(Mapping[str, JSONValue], dog_data_payload))
+        dog_data = ensure_dog_config_data(
+            cast(Mapping[str, JSONValue], dog_data_payload)
+        )
         if dog_data is None:
             _LOGGER.debug("Skipping helper creation for invalid dog config: %s", dog_id)
             return

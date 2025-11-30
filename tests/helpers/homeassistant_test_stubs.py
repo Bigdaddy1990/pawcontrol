@@ -729,7 +729,9 @@ def _async_delete_issue(hass: object, domain: str, issue_id: str) -> bool:
     return registry.async_delete_issue(domain, issue_id)
 
 
-def _async_get_issue(hass: object, domain: str, issue_id: str) -> dict[str, object] | None:
+def _async_get_issue(
+    hass: object, domain: str, issue_id: str
+) -> dict[str, object] | None:
     registry = _async_get_issue_registry(hass)
     return registry.async_get_issue(domain, issue_id)
 
@@ -764,22 +766,19 @@ class IssueRegistry:
         learn_more_url: str | None = None,
         data: dict[str, object] | None = None,
         dismissed_version: str | None = None,
-        ) -> dict[str, object]:
+    ) -> dict[str, object]:
         key = (domain, issue_id)
         existing = self.issues.get(key, {})
         severity_value = IssueSeverity.from_value(
             severity if severity is not None else existing.get("severity")
         )
         is_fixable_value = (
-            is_fixable
-            if is_fixable is not None
-            else existing.get("is_fixable", False)
+            is_fixable if is_fixable is not None else existing.get("is_fixable", False)
         )
         translation_key_value = (
             translation_key
             if translation_key is not None
-            else existing.get("translation_key")
-            or issue_id
+            else existing.get("translation_key") or issue_id
         )
         data_value: dict[str, object] | None
         if data is not None:
@@ -796,12 +795,10 @@ class IssueRegistry:
         else:
             translation_placeholders_value = (
                 dict(existing_placeholders)
-                if (
-                    existing_placeholders := existing.get("translation_placeholders")
-                )
+                if (existing_placeholders := existing.get("translation_placeholders"))
                 is not None
                 else None
-        )
+            )
         dismissed_version_value = (
             dismissed_version
             if dismissed_version is not None
@@ -819,8 +816,7 @@ class IssueRegistry:
             "domain": domain,
             "issue_domain": issue_domain
             if issue_domain is not None
-            else existing.get("issue_domain")
-            or domain,
+            else existing.get("issue_domain") or domain,
             "issue_id": issue_id,
             "translation_domain": translation_domain
             if translation_domain is not None
@@ -852,7 +848,9 @@ class IssueRegistry:
         self.issues[key] = details
         return details
 
-    def async_ignore_issue(self, domain: str, issue_id: str, ignore: bool) -> dict[str, object]:
+    def async_ignore_issue(
+        self, domain: str, issue_id: str, ignore: bool
+    ) -> dict[str, object]:
         key = (domain, issue_id)
         if key not in self.issues:
             msg = f"Issue {domain}/{issue_id} not found"
@@ -877,9 +875,7 @@ class IssueRegistry:
     def async_delete_issue(self, domain: str, issue_id: str) -> bool:
         return self.issues.pop((domain, issue_id), None) is not None
 
-    def async_get_issue(
-        self, domain: str, issue_id: str
-    ) -> dict[str, object] | None:
+    def async_get_issue(self, domain: str, issue_id: str) -> dict[str, object] | None:
         return self.issues.get((domain, issue_id))
 
 
@@ -917,9 +913,7 @@ class RegistryEntry:
         self.capabilities = dict(kwargs.get("capabilities", {}))
         self.supported_features = kwargs.get("supported_features")
         self.unit_of_measurement = kwargs.get("unit_of_measurement")
-        self.original_unit_of_measurement = kwargs.get(
-            "original_unit_of_measurement"
-        )
+        self.original_unit_of_measurement = kwargs.get("original_unit_of_measurement")
         self.created_at: datetime = kwargs.get("created_at") or _utcnow()
         self.modified_at: datetime = kwargs.get("modified_at") or self.created_at
         for key, value in kwargs.items():
@@ -973,9 +967,7 @@ class EntityRegistry:
 
     def async_entries_for_device(self, device_id: str) -> list[RegistryEntry]:
         return [
-            entity
-            for entity in self.entities.values()
-            if entity.device_id == device_id
+            entity for entity in self.entities.values() if entity.device_id == device_id
         ]
 
     def async_remove(self, entity_id: str) -> bool:
@@ -1038,9 +1030,7 @@ class EntityRegistry:
         if "unit_of_measurement" in kwargs:
             entry.unit_of_measurement = kwargs["unit_of_measurement"]
         if "original_unit_of_measurement" in kwargs:
-            entry.original_unit_of_measurement = kwargs[
-                "original_unit_of_measurement"
-            ]
+            entry.original_unit_of_measurement = kwargs["original_unit_of_measurement"]
         if "created_at" in kwargs:
             entry.created_at = kwargs["created_at"]
         if "modified_at" in kwargs:

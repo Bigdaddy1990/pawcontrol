@@ -55,7 +55,9 @@ def _validate_manifest(manifest_path: Path) -> list[str]:
 
     missing_keys = sorted(REQUIRED_KEYS - manifest.keys())
     if missing_keys:
-        errors.append(f"manifest.json is missing required keys: {', '.join(missing_keys)}")
+        errors.append(
+            f"manifest.json is missing required keys: {', '.join(missing_keys)}"
+        )
 
     for key in REQUIRED_LIST_KEYS:
         value = manifest.get(key)
@@ -75,7 +77,8 @@ def _validate_manifest(manifest_path: Path) -> list[str]:
     quality_scale = manifest.get("quality_scale")
     if quality_scale not in QUALITY_SCALE_LEVELS:
         errors.append(
-            "manifest.quality_scale must be one of: " + ", ".join(sorted(QUALITY_SCALE_LEVELS))
+            "manifest.quality_scale must be one of: "
+            + ", ".join(sorted(QUALITY_SCALE_LEVELS))
         )
 
     loggers = manifest.get("loggers")

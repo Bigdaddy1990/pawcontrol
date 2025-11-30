@@ -10,10 +10,14 @@ def _build_stub_integration(tmp_path: Path, *, domain: str = "demo") -> Path:
     integration_path = tmp_path / "custom_components" / domain
     integration_path.mkdir(parents=True)
 
-    manifest = json.loads(Path("custom_components/pawcontrol/manifest.json").read_text())
+    manifest = json.loads(
+        Path("custom_components/pawcontrol/manifest.json").read_text()
+    )
     manifest["domain"] = domain
     manifest["loggers"] = [f"custom_components.{domain}"]
-    (integration_path / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    (integration_path / "manifest.json").write_text(
+        json.dumps(manifest), encoding="utf-8"
+    )
 
     (integration_path / "strings.json").write_text("{}", encoding="utf-8")
     translations = integration_path / "translations"

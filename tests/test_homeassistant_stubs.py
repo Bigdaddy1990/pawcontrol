@@ -514,9 +514,7 @@ def test_support_helpers_follow_handler_hooks() -> None:
     HANDLERS["with_support"] = FlowHandler()
 
     assert asyncio.run(support_entry_unload(object(), "with_support")) is True
-    assert (
-        asyncio.run(support_remove_from_device(object(), "with_support")) is True
-    )
+    assert asyncio.run(support_remove_from_device(object(), "with_support")) is True
     assert asyncio.run(support_entry_unload(object(), "missing")) is False
     assert asyncio.run(support_remove_from_device(object(), "missing")) is False
 
@@ -681,9 +679,7 @@ def test_compat_support_helpers_follow_handler_hooks() -> None:
     HANDLERS["with_support"] = FlowHandler()
 
     assert asyncio.run(support_entry_unload(object(), "with_support")) is True
-    assert (
-        asyncio.run(support_remove_from_device(object(), "with_support")) is True
-    )
+    assert asyncio.run(support_remove_from_device(object(), "with_support")) is True
     assert asyncio.run(support_entry_unload(object(), "missing")) is False
     assert asyncio.run(support_remove_from_device(object(), "missing")) is False
 
@@ -927,10 +923,7 @@ def test_device_registry_lookup_matches_identifiers_and_connections() -> None:
         connections={("mac", "aa:bb:cc:dd:ee:ff")},
     )
 
-    assert (
-        registry.async_get_device(identifiers={("domain", "one")})
-        is matched
-    )
+    assert registry.async_get_device(identifiers={("domain", "one")}) is matched
     assert (
         device_registry.async_get_device(
             registry, connections={("mac", "00:11:22:33:44:55")}
@@ -1028,9 +1021,7 @@ def test_device_registry_fetches_devices_by_id() -> None:
 
     stored = registry.async_get_or_create(id="device-one")
     matched = registry.async_get("device-one")
-    helper_matched = device_registry.async_get_device(
-        registry, device_id="device-one"
-    )
+    helper_matched = device_registry.async_get_device(registry, device_id="device-one")
 
     assert matched is stored
     assert helper_matched is stored
@@ -1067,12 +1058,14 @@ def test_device_registry_accumulates_identifiers_and_connections() -> None:
         ("mdns", "paw.local"),
     }
     assert device.config_entries == {"entry-one", "entry-two"}
-    assert device_registry.async_get_device(
-        registry, identifiers={("domain", "two")}
-    ) is device
-    assert device_registry.async_get_device(
-        registry, connections={("mdns", "paw.local")}
-    ) is device
+    assert (
+        device_registry.async_get_device(registry, identifiers={("domain", "two")})
+        is device
+    )
+    assert (
+        device_registry.async_get_device(registry, connections={("mdns", "paw.local")})
+        is device
+    )
 
 
 def test_entity_registry_entries_filter_by_device_id() -> None:
@@ -1091,9 +1084,7 @@ def test_entity_registry_entries_filter_by_device_id() -> None:
     )
 
     assert registry.async_entries_for_device("device-one") == [first]
-    assert entity_registry.async_entries_for_device(registry, "device-two") == [
-        second
-    ]
+    assert entity_registry.async_entries_for_device(registry, "device-two") == [second]
     assert entity_registry.async_entries_for_device(registry, "missing") == []
 
 
@@ -1181,7 +1172,10 @@ def test_issue_registry_helpers_store_and_remove_issues() -> None:
     registry = issue_registry.async_get(object())
     issue_severity_cls = issue_registry.IssueSeverity
     assert issue_registry.async_get(object()) is registry
-    assert issue_registry.async_get_issue(object(), "test_domain", "missing_config") is None
+    assert (
+        issue_registry.async_get_issue(object(), "test_domain", "missing_config")
+        is None
+    )
 
     created = issue_registry.async_create_issue(
         object(),
@@ -1303,9 +1297,15 @@ def test_issue_registry_helpers_store_and_remove_issues() -> None:
 
     assert issue_registry.async_delete_issue(object(), "test_domain", "missing_config")
     assert ("test_domain", "missing_config") not in registry.issues
-    assert issue_registry.async_delete_issue(object(), "test_domain", "missing_config") is False
+    assert (
+        issue_registry.async_delete_issue(object(), "test_domain", "missing_config")
+        is False
+    )
     assert issue_registry.async_delete_issue(object(), "test_domain", "absent") is False
-    assert issue_registry.async_get_issue(object(), "test_domain", "missing_config") is None
+    assert (
+        issue_registry.async_get_issue(object(), "test_domain", "missing_config")
+        is None
+    )
 
 
 def test_issue_registry_preserves_optional_metadata() -> None:

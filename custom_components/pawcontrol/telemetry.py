@@ -545,15 +545,11 @@ def _summarise_runtime_store_assessment_events(
 
     most_common_level: RuntimeStoreHealthLevel | None = None
     if level_counts and max(level_counts.values()) > 0:
-        most_common_level = max(
-            level_counts.items(), key=lambda item: item[1]
-        )[0]
+        most_common_level = max(level_counts.items(), key=lambda item: item[1])[0]
 
     most_common_status: RuntimeStoreOverallStatus | None = None
     if status_counts and max(status_counts.values()) > 0:
-        most_common_status = max(
-            status_counts.items(), key=lambda item: item[1]
-        )[0]
+        most_common_status = max(status_counts.items(), key=lambda item: item[1])[0]
 
     average_divergence_rate: float | None = None
     max_divergence_rate: float | None = None

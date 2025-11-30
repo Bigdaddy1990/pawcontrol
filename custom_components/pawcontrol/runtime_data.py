@@ -50,15 +50,13 @@ def _get_entry(
 @overload
 def _get_domain_store(
     hass: HomeAssistant, *, create: Literal[True]
-) -> DomainRuntimeStore:
-    ...
+) -> DomainRuntimeStore: ...
 
 
 @overload
 def _get_domain_store(
     hass: HomeAssistant, *, create: Literal[False]
-) -> DomainRuntimeStore | None:
-    ...
+) -> DomainRuntimeStore | None: ...
 
 
 def _get_domain_store(
