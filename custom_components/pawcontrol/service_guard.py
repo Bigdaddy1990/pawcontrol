@@ -143,13 +143,11 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
         """Accumulate snapshot counts into ``metrics`` and return the payload."""
 
         executed_value = metrics.get("executed", 0)
-        executed = (
-            int(executed_value) if isinstance(executed_value, (int, float)) else 0
-        )
+        executed = _coerce_int(executed_value)
         metrics["executed"] = executed + self.executed
 
         skipped_value = metrics.get("skipped", 0)
-        skipped = int(skipped_value) if isinstance(skipped_value, (int, float)) else 0
+        skipped = _coerce_int(skipped_value)
         metrics["skipped"] = skipped + self.skipped
 
         reasons_payload_raw = metrics.get("reasons")
@@ -166,7 +164,7 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
             )
             reasons_payload[reason_key] = existing + count
 
-        metrics["last_results"] = self.history()
+        metrics["last_results"] = cast(JSONValue, list(self.history()))
 
         reasons_snapshot = metrics.get("reasons")
         reasons_dict: dict[str, int]
@@ -186,8 +184,8 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
         )
 
         return {
-            "executed": int(metrics.get("executed", 0) or 0),
-            "skipped": int(metrics.get("skipped", 0) or 0),
+            "executed": _coerce_int(metrics.get("executed", 0)),
+            "skipped": _coerce_int(metrics.get("skipped", 0)),
             "reasons": reasons_dict,
             "last_results": cast(ServiceGuardResultHistory, last_results),
         }
@@ -217,6 +215,24 @@ def normalise_guard_result_payload(
         result["description"] = description
 
     return result
+
+
+def _coerce_int(value: object) -> int:
+    """Return ``value`` coerced to an ``int`` when safe."""
+
+    if isinstance(value, bool):
+        return int(value)
+
+    if isinstance(value, (int, float)):
+        return int(value)
+
+    if isinstance(value, str):
+        try:
+            return int(value)
+        except ValueError:
+            return 0
+
+    return 0
 
 
 def normalise_guard_history(payload: Any) -> ServiceGuardResultHistory:

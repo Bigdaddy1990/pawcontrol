@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import inspect
 import sys
-from collections.abc import Awaitable, Callable, Coroutine, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Coroutine, Iterable, Mapping, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from enum import Enum
 from itertools import count
 from types import ModuleType
@@ -67,6 +68,23 @@ _ha_core = _import_optional("homeassistant.core")
 type _ExceptionRebindCallback = Callable[[dict[str, type[Exception]]], None]
 
 _EXCEPTION_REBIND_CALLBACKS: list[_ExceptionRebindCallback] = []
+
+# Minimal registry mirroring Home Assistant's config flow handler mapping.
+HANDLERS: dict[str, object] = {}
+
+
+async def support_entry_unload(hass: Any, domain: str) -> bool:
+    """Return ``True`` if the registered handler exposes an unload hook."""
+
+    handler = HANDLERS.get(domain)
+    return bool(handler and hasattr(handler, "async_unload_entry"))
+
+
+async def support_remove_from_device(hass: Any, domain: str) -> bool:
+    """Return ``True`` if the handler exposes a remove-device hook."""
+
+    handler = HANDLERS.get(domain)
+    return bool(handler and hasattr(handler, "async_remove_config_entry_device"))
 
 
 @dataclass(slots=True)
@@ -383,6 +401,12 @@ ServiceValidationError = _service_validation_error_factory()
 _refresh_exception_symbols(_ha_exceptions)
 
 
+def _utcnow() -> datetime:
+    """Return the current UTC time."""
+
+    return datetime.now(tz=UTC)
+
+
 class ConfigEntryState(Enum):
     """Minimal stand-in mirroring Home Assistant config entry states."""
 
@@ -393,6 +417,7 @@ class ConfigEntryState(Enum):
     SETUP_ERROR = ("setup_error", True)
     MIGRATION_ERROR = ("migration_error", False)
     FAILED_UNLOAD = ("failed_unload", False)
+    UNLOAD_IN_PROGRESS = ("unload_in_progress", False)
 
     def __new__(cls, value: str, recoverable: bool) -> ConfigEntryState:
         """Create enum members that store the recoverability flag."""
@@ -433,6 +458,51 @@ class ConfigEntryChange(Enum):
     UPDATED = "updated"
 
 
+class ConfigSubentry:
+    """Minimal compatibility stand-in for Home Assistant subentries."""
+
+    def __init__(
+        self,
+        *,
+        subentry_id: str,
+        data: ConfigEntryDataMapping | None = None,
+        subentry_type: str,
+        title: str,
+        unique_id: str | None = None,
+    ) -> None:
+        self.subentry_id = subentry_id
+        self.data = dict(data or {})
+        self.subentry_type = subentry_type
+        self.title = title
+        self.unique_id = unique_id
+
+
+def _build_subentries(
+    subentries_data: Iterable[ConfigEntryDataMapping] | None,
+) -> dict[str, ConfigSubentry]:
+    """Construct deterministic subentry placeholders."""
+
+    subentries: dict[str, ConfigSubentry] = {}
+    for index, subentry_data in enumerate(subentries_data or (), start=1):
+        subentry_id = (
+            str(subentry_data.get("subentry_id"))
+            if "subentry_id" in subentry_data
+            else f"subentry_{index}"
+        )
+        raw_data = subentry_data.get("data", {})
+        data_mapping = dict(raw_data) if isinstance(raw_data, Mapping) else {}
+        raw_unique_id = subentry_data.get("unique_id")
+        subentries[subentry_id] = ConfigSubentry(
+            subentry_id=subentry_id,
+            data=data_mapping,
+            subentry_type=str(subentry_data.get("subentry_type", "subentry")),
+            title=str(subentry_data.get("title", subentry_id)),
+            unique_id=str(raw_unique_id) if raw_unique_id is not None else None,
+        )
+
+    return subentries
+
+
 class ConfigEntry[RuntimeT]:  # type: ignore[override]
     """Lightweight ConfigEntry implementation for test environments."""
 
@@ -442,9 +512,12 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
         self,
         entry_id: str | None = None,
         *,
+        created_at: datetime | None = None,
         domain: str | None = None,
         data: ConfigEntryDataMapping | None = None,
         options: ConfigEntryDataMapping | None = None,
+        discovery_keys: dict[str, tuple[object, ...]] | None = None,
+        subentries_data: Iterable[ConfigEntryDataMapping] | None = None,
         title: str | None = None,
         source: str = "user",
         version: int = 1,
@@ -452,8 +525,18 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
         unique_id: str | None = None,
         pref_disable_new_entities: bool = False,
         pref_disable_polling: bool = False,
+        pref_disable_discovery: bool = False,
         disabled_by: str | None = None,
         state: ConfigEntryState | str = ConfigEntryState.NOT_LOADED,
+        supports_unload: bool | None = None,
+        supports_remove_device: bool | None = None,
+        supports_options: bool | None = None,
+        supports_reconfigure: bool | None = None,
+        supported_subentry_types: dict[str, dict[str, bool]] | None = None,
+        reason: str | None = None,
+        error_reason_translation_key: str | None = None,
+        error_reason_translation_placeholders: TranslationPlaceholders | None = None,
+        modified_at: datetime | None = None,
     ) -> None:
         """Initialize a shim config entry compatible with Home Assistant tests."""
 
@@ -465,9 +548,10 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
         self.source = source
         self.version = version
         self.minor_version = minor_version
-        self.unique_id = unique_id or self.entry_id
+        self.unique_id = unique_id
         self.pref_disable_new_entities = pref_disable_new_entities
         self.pref_disable_polling = pref_disable_polling
+        self.pref_disable_discovery = pref_disable_discovery
         self.disabled_by = disabled_by
         if isinstance(state, str):
             try:
@@ -476,14 +560,19 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
                 self.state = ConfigEntryState[state.upper()]
         else:
             self.state = state
-        self.supports_unload: bool | None = None
-        self.supports_remove_device: bool | None = None
-        self._supports_options: bool | None = None
-        self._supports_reconfigure: bool | None = None
-        self.reason: str | None = None
-        self.error_reason_translation_key: str | None = None
-        self.error_reason_translation_placeholders: TranslationPlaceholders | None = (
-            None
+        self.discovery_keys = dict(discovery_keys or {})
+        self.subentries = _build_subentries(subentries_data)
+        self._supports_unload = supports_unload
+        self._supports_remove_device = supports_remove_device
+        self._supports_options = supports_options
+        self._supports_reconfigure = supports_reconfigure
+        self._supported_subentry_types = (
+            dict(supported_subentry_types) if supported_subentry_types else None
+        )
+        self.reason = reason
+        self.error_reason_translation_key = error_reason_translation_key
+        self.error_reason_translation_placeholders: TranslationPlaceholders = dict(
+            error_reason_translation_placeholders or {}
         )
         self.runtime_data: RuntimeT | None = None
         self.update_listeners: list[
@@ -492,6 +581,73 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
         self._on_unload: list[Callable[[], Coroutine[Any, Any, None] | None]] = []
         self._async_cancel_retry_setup: Callable[[], Any] | None = None
         self._hass: Any | None = None
+        self.created_at: datetime = created_at or _utcnow()
+        self.modified_at: datetime = modified_at or self.created_at
+
+    @property
+    def supports_options(self) -> bool:
+        """Return whether the entry exposes an options flow."""
+
+        if self._supports_options is None:
+            handler = HANDLERS.get(self.domain)
+            if handler and hasattr(handler, "async_supports_options_flow"):
+                self._supports_options = bool(handler.async_supports_options_flow(self))
+
+        return bool(self._supports_options)
+
+    @property
+    def supports_unload(self) -> bool:
+        """Return whether the entry exposes an unload hook."""
+
+        if self._supports_unload is None:
+            handler = HANDLERS.get(self.domain)
+            if handler and hasattr(handler, "async_unload_entry"):
+                self._supports_unload = True
+
+        return bool(self._supports_unload)
+
+    @property
+    def supports_remove_device(self) -> bool:
+        """Return whether the entry exposes a remove-device hook."""
+
+        if self._supports_remove_device is None:
+            handler = HANDLERS.get(self.domain)
+            if handler and hasattr(handler, "async_remove_config_entry_device"):
+                self._supports_remove_device = True
+
+        return bool(self._supports_remove_device)
+
+    @property
+    def supports_reconfigure(self) -> bool:
+        """Return whether the entry exposes a reconfigure flow."""
+
+        if self._supports_reconfigure is None:
+            handler = HANDLERS.get(self.domain)
+            if handler and hasattr(handler, "async_supports_reconfigure_flow"):
+                self._supports_reconfigure = bool(
+                    handler.async_supports_reconfigure_flow(self)
+                )
+
+        return bool(self._supports_reconfigure)
+
+    @property
+    def supported_subentry_types(self) -> dict[str, dict[str, bool]]:
+        """Return the supported subentry types mapping."""
+
+        if self._supported_subentry_types is None:
+            handler = HANDLERS.get(self.domain)
+            if handler and hasattr(handler, "async_get_supported_subentry_types"):
+                supported_flows = handler.async_get_supported_subentry_types(self)
+                self._supported_subentry_types = {
+                    subentry_type: {
+                        "supports_reconfigure": hasattr(
+                            subentry_handler, "async_step_reconfigure"
+                        )
+                    }
+                    for subentry_type, subentry_handler in supported_flows.items()
+                }
+
+        return self._supported_subentry_types or {}
 
     def add_to_hass(self, hass: Any) -> None:
         """Associate the entry with a Home Assistant instance."""
@@ -690,12 +846,14 @@ ServiceRegistry = _fallback_service_registry()
 
 
 __all__ = [
+    "HANDLERS",
     "ConfigEntry",
     "ConfigEntryAuthFailed",
     "ConfigEntryChange",
     "ConfigEntryError",
     "ConfigEntryNotReady",
     "ConfigEntryState",
+    "ConfigSubentry",
     "HomeAssistantError",
     "ServiceRegistry",
     "ServiceValidationError",
@@ -703,4 +861,6 @@ __all__ = [
     "ensure_homeassistant_config_entry_symbols",
     "ensure_homeassistant_exception_symbols",
     "register_exception_rebind_callback",
+    "support_entry_unload",
+    "support_remove_from_device",
 ]

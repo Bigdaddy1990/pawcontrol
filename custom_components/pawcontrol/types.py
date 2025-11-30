@@ -6030,6 +6030,7 @@ class RuntimePerformanceStats(TypedDict, total=False):
     door_sensor_failure_count: int
     last_door_sensor_failure: DoorSensorPersistenceFailure
     door_sensor_failure_summary: dict[str, DoorSensorFailureSummary]
+    runtime_store_health: RuntimeStoreHealthHistory
     service_guard_metrics: ServiceGuardMetricsSnapshot
     entity_factory_guard_metrics: EntityFactoryGuardMetrics
     rejection_metrics: CoordinatorRejectionMetrics

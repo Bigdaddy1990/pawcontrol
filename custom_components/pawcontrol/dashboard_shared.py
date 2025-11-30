@@ -5,9 +5,11 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Mapping, Sequence
+from typing import cast
 
 from .types import (
     DogConfigData,
+    JSONValue,
     LovelaceCardConfig,
     RawDogConfig,
     ensure_dog_config_data,
@@ -35,7 +37,7 @@ def coerce_dog_config(dog_config: RawDogConfig) -> DogConfigData | None:
     """
 
     if isinstance(dog_config, Mapping):
-        return ensure_dog_config_data(dog_config)
+        return ensure_dog_config_data(cast(Mapping[str, JSONValue], dog_config))
 
     return None
 

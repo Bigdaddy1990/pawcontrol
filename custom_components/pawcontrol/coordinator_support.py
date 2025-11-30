@@ -40,6 +40,7 @@ from .types import (
     CoordinatorStatisticsPayload,
     DogConfigData,
     DogModulesMapping,
+    JSONValue,
     ModuleCacheMetrics,
     PawControlConfigEntry,
     coerce_dog_modules_config,
@@ -243,7 +244,9 @@ class DogConfigRegistry:
             if not isinstance(raw_config, Mapping):
                 continue
 
-            candidate = ensure_dog_config_data(raw_config)
+            candidate = ensure_dog_config_data(
+                cast(Mapping[str, JSONValue], raw_config)
+            )
             if candidate is None:
                 continue
 

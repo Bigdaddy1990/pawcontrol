@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, MutableMapping
-from typing import cast
+from typing import Literal, cast, overload
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -45,6 +45,18 @@ def _get_entry(
         return cast(PawControlConfigEntry, entry)
 
     return entry_or_id
+
+
+@overload
+def _get_domain_store(
+    hass: HomeAssistant, *, create: Literal[True]
+) -> DomainRuntimeStore: ...
+
+
+@overload
+def _get_domain_store(
+    hass: HomeAssistant, *, create: Literal[False]
+) -> DomainRuntimeStore | None: ...
 
 
 def _get_domain_store(
@@ -418,28 +430,28 @@ def get_runtime_data(
                     store[entry_id] = current_entry
         return current_entry.unwrap()
 
-    store = _get_domain_store(hass, create=False)
-    if store is None:
+    existing_store = _get_domain_store(hass, create=False)
+    if existing_store is None:
         return None
 
-    store_entry = _as_store_entry(store.get(entry_id))
+    store_entry = _as_store_entry(existing_store.get(entry_id))
     if store_entry is None:
-        if store.pop(entry_id, None) is not None:
-            _cleanup_domain_store(hass, store)
+        if existing_store.pop(entry_id, None) is not None:
+            _cleanup_domain_store(hass, existing_store)
         return None
 
     try:
         current_entry = _normalise_store_entry(entry_id, store_entry)
     except RuntimeDataIncompatibleError as err:
         _LOGGER.error("Runtime data incompatible for entry %s: %s", entry_id, err)
-        if store.pop(entry_id, None) is not None:
-            _cleanup_domain_store(hass, store)
+        if existing_store.pop(entry_id, None) is not None:
+            _cleanup_domain_store(hass, existing_store)
         _detach_runtime_from_entry(entry)
         if raise_on_incompatible:
             raise
         return None
 
-    store[entry_id] = current_entry
+    existing_store[entry_id] = current_entry
 
     runtime_data = current_entry.unwrap()
     if entry is not None:
@@ -565,6 +577,7 @@ def pop_runtime_data(
         except RuntimeDataIncompatibleError:
             current_entry = None
         else:
+            assert current_entry is not None
             runtime_data = current_entry.unwrap()
             _detach_runtime_from_entry(entry)
             store = _get_domain_store(hass, create=False)

@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 
 import pytest
 
-_ORIGINAL_GET_EVENT_LOOP = asyncio.get_event_loop
+_ORIGINAL_GET_EVENT_LOOP: Callable[[], asyncio.AbstractEventLoop] = (
+    asyncio.get_event_loop
+)
 
 
 def _patched_get_event_loop() -> asyncio.AbstractEventLoop:
@@ -56,6 +58,8 @@ def pytest_unconfigure(config: pytest.Config) -> None:
     loop = getattr(config, "_pawcontrol_asyncio_loop", None)
     if isinstance(loop, asyncio.AbstractEventLoop):
         loop.close()
+
+    asyncio.get_event_loop = _ORIGINAL_GET_EVENT_LOOP  # type: ignore[assignment]
 
 
 @pytest.fixture(scope="session")
