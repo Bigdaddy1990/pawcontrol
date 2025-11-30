@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from enum import Enum
@@ -438,14 +438,23 @@ def _normalise_health_override(
 
     override: HealthMetricsOverride = {}
 
-    if (weight := data.get("weight")) is not None:
+    if (weight := data.get("weight")) is not None and isinstance(
+        weight, (int, float, str)
+    ):
         override["weight"] = float(weight)
-    if (ideal_weight := data.get("ideal_weight")) is not None:
+
+    if (ideal_weight := data.get("ideal_weight")) is not None and isinstance(
+        ideal_weight, (int, float, str)
+    ):
         override["ideal_weight"] = float(ideal_weight)
-    if (age_months := data.get("age_months")) is not None:
+
+    if (age_months := data.get("age_months")) is not None and isinstance(
+        age_months, (int, float, str)
+    ):
         override["age_months"] = int(age_months)
 
-    if conditions := data.get("health_conditions"):
+    conditions = data.get("health_conditions")
+    if isinstance(conditions, Sequence) and not isinstance(conditions, (str, bytes)):
         override["health_conditions"] = [
             condition for condition in conditions if isinstance(condition, str)
         ]
@@ -1182,12 +1191,26 @@ class FeedingManager:
             batch_dogs: dict[str, FeedingDogMetadata] = {}
 
             for dog in dogs:
-                dog_id = dog.get("dog_id")
-                if not dog_id:
+                dog_id_raw = dog.get("dog_id")
+                if not isinstance(dog_id_raw, str) or not dog_id_raw:
                     continue
 
+                dog_id = dog_id_raw
+
                 weight = dog.get("weight")
-                if weight is None or float(weight) <= 0:
+                if not isinstance(weight, (int, float, str)):
+                    raise ValueError(
+                        f"Invalid feeding configuration for {dog_id}: weight is required"
+                    )
+
+                try:
+                    parsed_weight = float(weight)
+                except (TypeError, ValueError):
+                    raise ValueError(
+                        f"Invalid feeding configuration for {dog_id}: weight is required"
+                    ) from None
+
+                if parsed_weight <= 0:
                     raise ValueError(
                         f"Invalid feeding configuration for {dog_id}: weight is required"
                     )
@@ -1203,8 +1226,10 @@ class FeedingManager:
                 )
                 config = await self._create_feeding_config(dog_id, feeding_config)
 
-                config.dog_weight = float(weight)
-                if (ideal_weight := dog.get("ideal_weight")) is not None:
+                config.dog_weight = parsed_weight
+                if (ideal_weight := dog.get("ideal_weight")) is not None and isinstance(
+                    ideal_weight, (int, float, str)
+                ):
                     try:
                         config.ideal_weight = float(ideal_weight)
                     except (TypeError, ValueError):  # pragma: no cover - defensive
@@ -1213,13 +1238,24 @@ class FeedingManager:
                             ideal_weight,
                             dog_id,
                         )
-                if (age_months := dog.get("age_months")) is not None:
+                if (age_months := dog.get("age_months")) is not None and isinstance(
+                    age_months, (int, float, str)
+                ):
                     config.age_months = int(age_months)
-                if activity := dog.get("activity_level"):
+                if (activity := dog.get("activity_level")) and isinstance(
+                    activity, str
+                ):
                     config.activity_level = activity
-                if (health_conditions := dog.get("health_conditions")) is not None:
-                    config.health_conditions = list(health_conditions)
-                if (weight_goal := dog.get("weight_goal")) is not None:
+                health_conditions = dog.get("health_conditions")
+                if isinstance(health_conditions, Sequence) and not isinstance(
+                    health_conditions, (str, bytes)
+                ):
+                    config.health_conditions = [
+                        condition
+                        for condition in health_conditions
+                        if isinstance(condition, str)
+                    ]
+                if isinstance(weight_goal := dog.get("weight_goal"), str):
                     config.weight_goal = weight_goal
                 if (special_diet := dog.get("special_diet")) is not None:
                     config.special_diet = self._normalize_special_diet(special_diet)
@@ -1230,7 +1266,7 @@ class FeedingManager:
                 batch_dogs[dog_id] = FeedingDogMetadata(
                     dog_id=dog_id,
                     dog_name=cast(str | None, dog.get("dog_name")),
-                    weight=float(weight),
+                    weight=parsed_weight,
                     ideal_weight=config.ideal_weight,
                     activity_level=config.activity_level or "moderate",
                     age_months=config.age_months,
@@ -1259,34 +1295,148 @@ class FeedingManager:
         """Create enhanced feeding configuration with health integration."""
         special_diet = self._normalize_special_diet(config_data.get("special_diet", []))
 
+        meals_per_day_raw = config_data.get("meals_per_day", 2)
+        meals_per_day = (
+            int(meals_per_day_raw) if isinstance(meals_per_day_raw, (int, float, str)) else 2
+        )
+
+        daily_food_amount_raw = config_data.get("daily_food_amount", 500.0)
+        daily_food_amount = (
+            float(daily_food_amount_raw)
+            if isinstance(daily_food_amount_raw, (int, float, str))
+            else 500.0
+        )
+
+        food_type_raw = config_data.get("food_type", "dry_food")
+        food_type = food_type_raw if isinstance(food_type_raw, str) else "dry_food"
+
+        schedule_value = str(config_data.get("feeding_schedule", "flexible"))
+
+        treats_enabled_raw = config_data.get("treats_enabled", True)
+        treats_enabled = treats_enabled_raw if isinstance(treats_enabled_raw, bool) else True
+
+        water_tracking_raw = config_data.get("water_tracking", False)
+        water_tracking = water_tracking_raw if isinstance(water_tracking_raw, bool) else False
+
+        calorie_tracking_raw = config_data.get("calorie_tracking", False)
+        calorie_tracking = (
+            calorie_tracking_raw if isinstance(calorie_tracking_raw, bool) else False
+        )
+
+        portion_calculation_raw = config_data.get("portion_calculation", True)
+        portion_calculation_enabled = (
+            portion_calculation_raw
+            if isinstance(portion_calculation_raw, bool)
+            else True
+        )
+
+        medication_with_meals_raw = config_data.get("medication_with_meals", False)
+        medication_with_meals = (
+            medication_with_meals_raw
+            if isinstance(medication_with_meals_raw, bool)
+            else False
+        )
+
+        portion_tolerance_raw = config_data.get("portion_tolerance", 10)
+        portion_tolerance = (
+            int(portion_tolerance_raw)
+            if isinstance(portion_tolerance_raw, (int, float, str))
+            else 10
+        )
+
+        health_aware_portions_raw = config_data.get("health_aware_portions", True)
+        health_aware_portions = (
+            health_aware_portions_raw
+            if isinstance(health_aware_portions_raw, bool)
+            else True
+        )
+
+        dog_weight_value = config_data.get("dog_weight")
+        dog_weight = (
+            float(dog_weight_value)
+            if isinstance(dog_weight_value, (int, float, str))
+            else None
+        )
+
+        ideal_weight_value = config_data.get("ideal_weight")
+        ideal_weight = (
+            float(ideal_weight_value)
+            if isinstance(ideal_weight_value, (int, float, str))
+            else None
+        )
+
+        age_months_value = config_data.get("age_months")
+        age_months = (
+            int(age_months_value)
+            if isinstance(age_months_value, (int, float, str))
+            else None
+        )
+
+        breed_size_raw = config_data.get("breed_size", "medium")
+        breed_size = breed_size_raw if isinstance(breed_size_raw, str) else "medium"
+
+        activity_level_raw = config_data.get("activity_level")
+        activity_level = (
+            activity_level_raw if isinstance(activity_level_raw, str) else None
+        )
+
+        body_condition_raw = config_data.get("body_condition_score")
+        body_condition_score = (
+            int(body_condition_raw)
+            if isinstance(body_condition_raw, (int, float, str))
+            else None
+        )
+
+        health_conditions_raw = config_data.get("health_conditions", [])
+        health_conditions = (
+            [condition for condition in health_conditions_raw if isinstance(condition, str)]
+            if isinstance(health_conditions_raw, Sequence)
+            and not isinstance(health_conditions_raw, (str, bytes))
+            else []
+        )
+
+        weight_goal_raw = config_data.get("weight_goal")
+        weight_goal = weight_goal_raw if isinstance(weight_goal_raw, str) else None
+
+        spayed_neutered_raw = config_data.get("spayed_neutered", True)
+        spayed_neutered = (
+            spayed_neutered_raw if isinstance(spayed_neutered_raw, bool) else True
+        )
+
+        diet_validation_raw = config_data.get("diet_validation")
+        diet_validation: DietValidationResult | None = None
+        if isinstance(diet_validation_raw, Mapping):
+            diet_validation = cast(
+                DietValidationResult,
+                {k: v for k, v in diet_validation_raw.items() if isinstance(k, str)},
+            )
+
         config = FeedingConfig(
             dog_id=dog_id,
-            meals_per_day=config_data.get("meals_per_day", 2),
-            daily_food_amount=config_data.get("daily_food_amount", 500.0),
-            food_type=config_data.get("food_type", "dry_food"),
+            meals_per_day=meals_per_day,
+            daily_food_amount=daily_food_amount,
+            food_type=food_type,
             special_diet=special_diet,
-            schedule_type=FeedingScheduleType(
-                config_data.get("feeding_schedule", "flexible")
-            ),
-            treats_enabled=config_data.get("treats_enabled", True),
-            water_tracking=config_data.get("water_tracking", False),
-            calorie_tracking=config_data.get("calorie_tracking", False),
-            portion_calculation_enabled=config_data.get("portion_calculation", True),
-            medication_with_meals=config_data.get("medication_with_meals", False),
-            portion_tolerance=config_data.get("portion_tolerance", 10),
+            schedule_type=FeedingScheduleType(schedule_value),
+            treats_enabled=treats_enabled,
+            water_tracking=water_tracking,
+            calorie_tracking=calorie_tracking,
+            portion_calculation_enabled=portion_calculation_enabled,
+            medication_with_meals=medication_with_meals,
+            portion_tolerance=portion_tolerance,
             # Health integration fields
-            health_aware_portions=config_data.get("health_aware_portions", True),
-            dog_weight=config_data.get("dog_weight"),
-            ideal_weight=config_data.get("ideal_weight"),
-            age_months=config_data.get("age_months"),
-            breed_size=config_data.get("breed_size", "medium"),
-            activity_level=config_data.get("activity_level"),
-            body_condition_score=config_data.get("body_condition_score"),
-            health_conditions=config_data.get("health_conditions", []),
-            weight_goal=config_data.get("weight_goal"),
-            spayed_neutered=config_data.get("spayed_neutered", True),
+            health_aware_portions=health_aware_portions,
+            dog_weight=dog_weight,
+            ideal_weight=ideal_weight,
+            age_months=age_months,
+            breed_size=breed_size,
+            activity_level=activity_level,
+            body_condition_score=body_condition_score,
+            health_conditions=health_conditions,
+            weight_goal=weight_goal,
+            spayed_neutered=spayed_neutered,
             # Diet validation integration
-            diet_validation=config_data.get("diet_validation"),
+            diet_validation=diet_validation,
         )
 
         meal_schedules = []
@@ -1298,31 +1448,54 @@ class FeedingManager:
             ("lunch_time", MealType.LUNCH),
             ("dinner_time", MealType.DINNER),
         ]:
-            if meal_time_str := config_data.get(meal_name):  # noqa: SIM102
-                if parsed_time := self._parse_time(meal_time_str):
-                    meal_schedules.append(
-                        MealSchedule(
-                            meal_type=meal_enum,
-                            scheduled_time=parsed_time,
-                            portion_size=config_data.get("portion_size", portion_size),
-                            reminder_enabled=config_data.get("enable_reminders", True),
-                            reminder_minutes_before=config_data.get(
-                                "reminder_minutes_before", 15
-                            ),
-                        )
-                    )
+            meal_time_raw = config_data.get(meal_name)
+            if isinstance(meal_time_raw, (str, time)) and (
+                parsed_time := self._parse_time(meal_time_raw)
+            ):
+                portion_size_raw = config_data.get("portion_size", portion_size)
+                portion_size_value = (
+                    float(portion_size_raw)
+                    if isinstance(portion_size_raw, (int, float, str))
+                    else portion_size
+                )
+                reminder_enabled_raw = config_data.get("enable_reminders", True)
+                reminder_enabled = (
+                    reminder_enabled_raw if isinstance(reminder_enabled_raw, bool) else True
+                )
+                reminder_minutes_raw = config_data.get("reminder_minutes_before", 15)
+                reminder_minutes_before = (
+                    int(reminder_minutes_raw)
+                    if isinstance(reminder_minutes_raw, (int, float, str))
+                    else 15
+                )
 
-        # Parse snack times
-        for snack_time_str in config_data.get("snack_times", []):
-            if parsed_time := self._parse_time(snack_time_str):
-                meal_schedules.append(  # noqa: PERF401
+                meal_schedules.append(
                     MealSchedule(
-                        meal_type=MealType.SNACK,
+                        meal_type=meal_enum,
                         scheduled_time=parsed_time,
-                        portion_size=50.0,
-                        reminder_enabled=False,
+                        portion_size=portion_size_value,
+                        reminder_enabled=reminder_enabled,
+                        reminder_minutes_before=reminder_minutes_before,
                     )
                 )
+
+        # Parse snack times
+        snack_times_raw = config_data.get("snack_times", [])
+        if isinstance(snack_times_raw, Sequence) and not isinstance(
+            snack_times_raw, (str, bytes)
+        ):
+            for snack_time_str in snack_times_raw:
+                if not isinstance(snack_time_str, (str, time)):
+                    continue
+                if parsed_time := self._parse_time(snack_time_str):
+                    meal_schedules.append(
+                        MealSchedule(
+                            meal_type=MealType.SNACK,
+                            scheduled_time=parsed_time,
+                            portion_size=50.0,
+                            reminder_enabled=False,
+                        )
+                    )
 
         config.meal_schedules = meal_schedules
         return config
@@ -1918,10 +2091,31 @@ class FeedingManager:
                 "remaining_calories": None,
             },
         )
+        total_fed_raw = stats.get("total_fed_today", 0.0)
+        total_fed_today = (
+            float(total_fed_raw)
+            if isinstance(total_fed_raw, (int, float, str))
+            else 0.0
+        )
+
+        meals_today_raw = stats.get("meals_today", 0)
+        meals_today = (
+            int(meals_today_raw)
+            if isinstance(meals_today_raw, (int, float, str))
+            else 0
+        )
+
+        remaining_calories_raw = stats.get("remaining_calories")
+        remaining_calories = (
+            float(remaining_calories_raw)
+            if isinstance(remaining_calories_raw, (int, float, str))
+            else None
+        )
+
         return FeedingDailyStats(
-            total_fed_today=float(stats.get("total_fed_today", 0.0)),
-            meals_today=int(stats.get("meals_today", 0)),
-            remaining_calories=cast(float | None, stats.get("remaining_calories")),
+            total_fed_today=total_fed_today,
+            meals_today=meals_today,
+            remaining_calories=remaining_calories,
         )
 
     def get_feeding_config(self, dog_id: str) -> FeedingConfig | None:

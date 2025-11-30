@@ -67,6 +67,7 @@ from .types import (
     InputNumberCreateServiceData,
     InputSelectCreateServiceData,
     JSONMutableMapping,
+    JSONValue,
     ModuleToggleKey,
     ensure_dog_config_data,
     ensure_dog_modules_config,
@@ -340,7 +341,7 @@ class PawControlHelperManager:
         normalized: list[DogConfigData] = []
 
         def _append(candidate: Mapping[str, object]) -> None:
-            typed = ensure_dog_config_data(candidate)
+            typed = ensure_dog_config_data(cast(Mapping[str, JSONValue], candidate))
             if typed is not None:
                 normalized.append(typed)
 
@@ -693,7 +694,7 @@ class PawControlHelperManager:
                 self._hass,
                 input_boolean.DOMAIN,
                 "create",
-                service_data,
+                cast(JSONMutableMapping, dict(service_data)),
                 target={"entity_id": entity_id},
                 blocking=True,
                 description=f"creating helper {entity_id}",
@@ -757,7 +758,7 @@ class PawControlHelperManager:
                 self._hass,
                 input_datetime.DOMAIN,
                 "create",
-                service_data,
+                cast(JSONMutableMapping, dict(service_data)),
                 target={"entity_id": entity_id},
                 blocking=True,
                 description=f"creating helper {entity_id}",
@@ -837,7 +838,7 @@ class PawControlHelperManager:
                 self._hass,
                 input_number.DOMAIN,
                 "create",
-                service_data,
+                cast(JSONMutableMapping, dict(service_data)),
                 target={"entity_id": entity_id},
                 blocking=True,
                 description=f"creating helper {entity_id}",
@@ -910,7 +911,7 @@ class PawControlHelperManager:
                 self._hass,
                 input_select.DOMAIN,
                 "create",
-                service_data,
+                cast(JSONMutableMapping, dict(service_data)),
                 target={"entity_id": entity_id},
                 blocking=True,
                 description=f"creating helper {entity_id}",
@@ -1042,7 +1043,7 @@ class PawControlHelperManager:
         if not isinstance(dog_name_value, str) or not dog_name_value:
             dog_data_payload[DOG_NAME_FIELD] = dog_id
 
-        dog_data = ensure_dog_config_data(dog_data_payload)
+        dog_data = ensure_dog_config_data(cast(Mapping[str, JSONValue], dog_data_payload))
         if dog_data is None:
             _LOGGER.debug("Skipping helper creation for invalid dog config: %s", dog_id)
             return

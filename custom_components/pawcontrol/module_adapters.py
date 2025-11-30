@@ -639,8 +639,10 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
             else:
                 if entries:
                     latest = entries[0]
-                    health_data.update(cast(JSONLikeMapping, latest))
-                    health_data.setdefault("status", "healthy")
+                    if isinstance(latest, Mapping):
+                        latest_payload = cast(HealthModulePayload, dict(latest))
+                        health_data.update(latest_payload)
+                        health_data.setdefault("status", "healthy")
 
                     stored_medications = latest.get("medications")
                     if isinstance(stored_medications, list):
@@ -822,7 +824,7 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
             return payload
 
         weather_entity = self._config_entry.options.get(CONF_WEATHER_ENTITY)
-        if weather_entity:
+        if isinstance(weather_entity, str) and weather_entity:
             try:
                 await self._manager.async_update_weather_data(weather_entity)
             except Exception as err:  # pragma: no cover - defensive logging

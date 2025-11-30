@@ -15,7 +15,7 @@ import inspect
 import json
 import logging
 from collections import deque
-from collections.abc import Awaitable, Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
@@ -31,7 +31,7 @@ from .coordinator_support import CacheMonitorRegistrar
 from .dashboard_shared import unwrap_async_result
 from .feeding_translations import build_feeding_compliance_notification
 from .http_client import ensure_shared_client_session
-from .person_entity_manager import PersonEntityManager
+from .person_entity_manager import PersonEntityConfigInput, PersonEntityManager
 from .resilience import CircuitBreakerConfig, ResilienceManager
 from .types import JSONMutableMapping, PersonEntityStats, PersonNotificationContext
 from .utils import async_call_hass_service_if_available
@@ -945,7 +945,7 @@ class PawControlNotificationManager:
             self._person_manager = PersonEntityManager(self._hass, self._entry_id)
 
             # Use provided config or defaults
-            person_config: dict[str, object]
+            person_config: PersonEntityConfigInput
             if config is None:
                 person_config = {
                     "enabled": True,
@@ -955,7 +955,7 @@ class PawControlNotificationManager:
                     "fallback_to_static": True,
                 }
             else:
-                person_config = dict(config)
+                person_config = cast(PersonEntityConfigInput, dict(config))
 
             await self._person_manager.async_initialize(person_config)
             self._register_person_cache_monitor()
@@ -1138,11 +1138,17 @@ class PawControlNotificationManager:
             )
             if targeted_persons and self._person_manager:
                 person_context = self._person_manager.get_notification_context()
-                template_data.update(person_context)
-                if person_context.get("home_person_names"):
-                    template_data["person_names"] = ", ".join(
-                        person_context["home_person_names"]
+                if isinstance(person_context, Mapping):
+                    template_data.update(
+                        cast(NotificationTemplateData, dict(person_context))
                     )
+                    home_names = person_context.get("home_person_names")
+                    if isinstance(home_names, Sequence) and not isinstance(
+                        home_names, (str, bytes)
+                    ):
+                        template_data["person_names"] = ", ".join(
+                            name for name in home_names if isinstance(name, str)
+                        )
 
             formatted_title, formatted_message = self._apply_template(
                 notification_type, title, message, config, template_data
@@ -1790,7 +1796,15 @@ class PawControlNotificationManager:
                         NotificationType.WALK_REMINDER,
                         NotificationType.MEDICATION_REMINDER,
                     ]:
-                        service_data["data"]["actions"] = [
+                        data_payload = service_data.get("data")
+                        actions_target: JSONMutableMapping
+                        if isinstance(data_payload, MutableMapping):
+                            actions_target = cast(JSONMutableMapping, data_payload)
+                        else:
+                            actions_target = cast(JSONMutableMapping, {})
+                            service_data["data"] = actions_target
+
+                        actions_target["actions"] = [
                             {
                                 "action": f"acknowledge_{notification.id}",
                                 "title": "Mark as Done",
@@ -1844,7 +1858,15 @@ class PawControlNotificationManager:
                 NotificationType.WALK_REMINDER,
                 NotificationType.MEDICATION_REMINDER,
             ]:
-                fallback_service_data["data"]["actions"] = [
+                fallback_data = fallback_service_data.get("data")
+                fallback_target: JSONMutableMapping
+                if isinstance(fallback_data, MutableMapping):
+                    fallback_target = cast(JSONMutableMapping, fallback_data)
+                else:
+                    fallback_target = cast(JSONMutableMapping, {})
+                    fallback_service_data["data"] = fallback_target
+
+                fallback_target["actions"] = [
                     {
                         "action": f"acknowledge_{notification.id}",
                         "title": "Mark as Done",
@@ -2287,10 +2309,11 @@ class PawControlNotificationManager:
 
         if compliance["status"] != "completed":
             no_data = cast("FeedingComplianceNoData", compliance)
+            no_data_payload = cast(JSONMutableMapping, dict(no_data))
             title, message = build_feeding_compliance_notification(
                 language,
                 display_name=display_name,
-                compliance=dict(no_data),
+                compliance=no_data_payload,
             )
 
             return await self.async_send_notification(
@@ -2302,7 +2325,7 @@ class PawControlNotificationManager:
                 data={
                     "dog_id": dog_id,
                     "dog_name": dog_name,
-                    "compliance": dict(no_data),
+                    "compliance": no_data_payload,
                 },
                 allow_batching=False,
             )
@@ -2324,11 +2347,20 @@ class PawControlNotificationManager:
         elif completed["compliance_score"] >= 90:
             priority = NotificationPriority.NORMAL
 
+        completed_payload = cast(JSONMutableMapping, dict(completed))
+        issues = completed.get("compliance_issues") or []
+        missed_meals = completed.get("missed_meals") or []
+
         title, message = build_feeding_compliance_notification(
             language,
             display_name=display_name,
-            compliance=dict(completed),
+            compliance=completed_payload,
         )
+
+        issues_payload = [cast(JSONMutableMapping, dict(issue)) for issue in issues]
+        missed_meals_payload = [
+            cast(JSONMutableMapping, dict(entry)) for entry in missed_meals
+        ]
 
         return await self.async_send_notification(
             notification_type=NotificationType.FEEDING_COMPLIANCE,
@@ -2339,9 +2371,9 @@ class PawControlNotificationManager:
             data={
                 "dog_id": dog_id,
                 "dog_name": dog_name,
-                "compliance": dict(completed),
-                "issues": [dict(issue) for issue in completed["compliance_issues"]],
-                "missed_meals": [dict(entry) for entry in completed["missed_meals"]],
+                "compliance": completed_payload,
+                "issues": issues_payload,
+                "missed_meals": missed_meals_payload,
             },
             allow_batching=False,
         )
@@ -2428,7 +2460,8 @@ class PawControlNotificationManager:
             True if update was successful
         """
         if self._person_manager:
-            return await self._person_manager.async_update_config(dict(config))
+            person_config = cast(PersonEntityConfigInput, dict(config))
+            return await self._person_manager.async_update_config(person_config)
         return False
 
     async def async_force_person_discovery(

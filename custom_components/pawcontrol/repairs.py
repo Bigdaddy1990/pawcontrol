@@ -27,9 +27,12 @@ from .const import (
     CONF_DOG_NAME,
     CONF_DOGS,
     DOMAIN,
+    MODULE_FEEDING,
+    MODULE_GARDEN,
     MODULE_GPS,
     MODULE_HEALTH,
     MODULE_NOTIFICATIONS,
+    MODULE_WALK,
 )
 from .coordinator_support import ensure_cache_repair_aggregate
 from .feeding_translations import build_feeding_compliance_summary
@@ -42,11 +45,13 @@ from .telemetry import get_runtime_store_health
 from .types import (
     ConfigFlowUserInput,
     DogConfigData,
+    DogModulesConfig,
     FeedingComplianceDisplayMapping,
     FeedingComplianceEventPayload,
     FeedingComplianceLocalizedSummary,
     JSONLikeMapping,
     JSONMutableMapping,
+    JSONValue,
     ReconfigureTelemetry,
     RuntimeStoreHealthLevel,
     RuntimeStoreLevelDurationAlert,
@@ -236,6 +241,8 @@ async def async_publish_feeding_compliance_issue(
     dog_name = payload.get("dog_name") or dog_id
     issue_id = f"{entry.entry_id}_feeding_compliance_{dog_id}"
     result = payload["result"]
+    if not isinstance(result, Mapping):
+        return
 
     language = getattr(getattr(hass, "config", None), "language", None)
     localized_summary = payload.get("localized_summary")
@@ -255,6 +262,9 @@ async def async_publish_feeding_compliance_issue(
         "recommendations": list(localized_summary.get("recommendations", [])),
     }
 
+    result_copy = cast(JSONMutableMapping, dict(result))
+    summary_json = cast(JSONMutableMapping, dict(summary_copy))
+
     issue_data: JSONMutableMapping = {
         "dog_id": dog_id,
         "dog_name": dog_name,
@@ -262,18 +272,20 @@ async def async_publish_feeding_compliance_issue(
         "notify_on_issues": payload.get("notify_on_issues"),
         "notification_sent": payload.get("notification_sent"),
         "notification_id": payload.get("notification_id"),
-        "result": result,
-        "localized_summary": summary_copy,
-        "notification_title": summary_copy["title"],
-        "notification_message": summary_copy["message"],
-        "score_line": summary_copy["score_line"],
-        "issue_summary": summary_copy["issues"],
-        "missed_meal_summary": summary_copy["missed_meals"],
-        "recommendations_summary": summary_copy["recommendations"],
+        "result": result_copy,
+        "localized_summary": summary_json,
+        "notification_title": cast(str, summary_json.get("title")),
+        "notification_message": cast(str | None, summary_json.get("message")),
+        "score_line": cast(str | None, summary_json.get("score_line")),
+        "issue_summary": cast(list[str], summary_json.get("issues", [])),
+        "missed_meal_summary": cast(list[str], summary_json.get("missed_meals", [])),
+        "recommendations_summary": cast(
+            list[str], summary_json.get("recommendations", [])
+        ),
     }
 
     if context_metadata:
-        issue_data["context_metadata"] = dict(context_metadata)
+        issue_data["context_metadata"] = cast(JSONMutableMapping, dict(context_metadata))
 
     summary_message = summary_copy.get("message")
 
@@ -283,9 +295,9 @@ async def async_publish_feeding_compliance_issue(
             message_value = summary_message
         issue_data.update(
             {
-                "status": result.get("status"),
+                "status": cast(str | None, result.get("status")),
                 "message": message_value,
-                "checked_at": result.get("checked_at"),
+                "checked_at": cast(str | None, result.get("checked_at")),
             }
         )
 
@@ -299,12 +311,29 @@ async def async_publish_feeding_compliance_issue(
         )
         return
 
-    completed = cast(JSONMutableMapping, result)
-    missed_meals = [dict(entry) for entry in completed.get("missed_meals", [])]
-    issues = [dict(issue) for issue in completed.get("compliance_issues", [])]
-    recommendations = list(completed.get("recommendations", []))
+    completed = cast(JSONMutableMapping, dict(result))
+    missed_meals_raw = completed.get("missed_meals", [])
+    missed_meals = (
+        [dict(entry) for entry in missed_meals_raw if isinstance(entry, Mapping)]
+        if isinstance(missed_meals_raw, Sequence)
+        else []
+    )
+    issues_raw = completed.get("compliance_issues", [])
+    issues = (
+        [dict(issue) for issue in issues_raw if isinstance(issue, Mapping)]
+        if isinstance(issues_raw, Sequence)
+        else []
+    )
+    recommendations_raw = completed.get("recommendations", [])
+    recommendations = (
+        [str(rec) for rec in recommendations_raw if isinstance(rec, str)]
+        if isinstance(recommendations_raw, Sequence)
+        and not isinstance(recommendations_raw, (str, bytes))
+        else []
+    )
 
-    score = float(completed.get("compliance_score", 0))
+    score_raw = completed.get("compliance_score", 0)
+    score = float(score_raw) if isinstance(score_raw, (int, float, str)) else 0.0
     has_issues = bool(
         completed.get("days_with_issues") or issues or missed_meals or score < 100
     )
@@ -457,7 +486,17 @@ async def _check_dog_configuration_issues(
         hass: Home Assistant instance
         entry: Configuration entry
     """
-    dogs = entry.data.get(CONF_DOGS, [])
+    raw_dogs_obj = entry.data.get(CONF_DOGS, [])
+    raw_dogs = (
+        raw_dogs_obj
+        if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, (str, bytes))
+        else []
+    )
+    dogs: list[Mapping[str, JSONValue]] = [
+        cast(Mapping[str, JSONValue], dog)
+        for dog in raw_dogs
+        if isinstance(dog, Mapping)
+    ]
 
     # Check for empty dog configuration
     if not dogs:
@@ -472,27 +511,35 @@ async def _check_dog_configuration_issues(
         return
 
     # Check for duplicate dog IDs
-    dog_ids = [dog.get(CONF_DOG_ID) for dog in dogs]
-    duplicate_ids = [dog_id for dog_id in set(dog_ids) if dog_ids.count(dog_id) > 1]
+    dog_ids = [
+        cast(str, dog_id)
+        for dog_id in (dog.get(CONF_DOG_ID) for dog in dogs)
+        if isinstance(dog_id, str)
+    ]
+    duplicate_ids = [
+        dog_id for dog_id in set(dog_ids) if dog_ids.count(dog_id) > 1
+    ]
 
     if duplicate_ids:
         await async_create_issue(
             hass,
             entry,
             f"{entry.entry_id}_duplicate_dogs",
-            ISSUE_DUPLICATE_DOG_IDS,
-            {
-                "duplicate_ids": duplicate_ids,
-                "total_dogs": len(dogs),
-            },
-            severity="error",
-        )
+                ISSUE_DUPLICATE_DOG_IDS,
+                {
+                    "duplicate_ids": duplicate_ids,
+                    "total_dogs": len(dogs),
+                },
+                severity="error",
+            )
 
     # Check for invalid dog data
     invalid_dogs = []
     for dog in dogs:
-        if not dog.get(CONF_DOG_ID) or not dog.get(CONF_DOG_NAME):
-            invalid_dogs.append(dog.get(CONF_DOG_ID, "unknown"))  # noqa: PERF401
+        dog_id = dog.get(CONF_DOG_ID)
+        dog_name = dog.get(CONF_DOG_NAME)
+        if not isinstance(dog_id, str) or not dog_id or not isinstance(dog_name, str):
+            invalid_dogs.append(cast(str, dog_id) if isinstance(dog_id, str) else "unknown")
 
     if invalid_dogs:
         await async_create_issue(
@@ -517,16 +564,30 @@ async def _check_gps_configuration_issues(
         hass: Home Assistant instance
         entry: Configuration entry
     """
-    dogs = entry.data.get(CONF_DOGS, [])
-    gps_enabled_dogs = [
-        dog for dog in dogs if dog.get("modules", {}).get(MODULE_GPS, False)
+    raw_dogs_obj = entry.data.get(CONF_DOGS, [])
+    raw_dogs = (
+        raw_dogs_obj
+        if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, (str, bytes))
+        else []
+    )
+    dogs: list[Mapping[str, JSONValue]] = [
+        cast(Mapping[str, JSONValue], dog)
+        for dog in raw_dogs
+        if isinstance(dog, Mapping)
     ]
+    gps_enabled_dogs = []
+    for dog in dogs:
+        modules_raw = dog.get("modules", {})
+        modules = modules_raw if isinstance(modules_raw, Mapping) else {}
+        if modules.get(MODULE_GPS, False):
+            gps_enabled_dogs.append(dog)
 
     if not gps_enabled_dogs:
         return  # No GPS configuration to check
 
     # Check if GPS sources are properly configured
-    gps_config = entry.options.get("gps", {})
+    gps_config_raw = entry.options.get("gps", {})
+    gps_config = gps_config_raw if isinstance(gps_config_raw, Mapping) else {}
 
     # Check for missing GPS source configuration
     if not gps_config.get("gps_source"):
@@ -543,7 +604,12 @@ async def _check_gps_configuration_issues(
         )
 
     # Check for unrealistic GPS update intervals
-    update_interval = gps_config.get("gps_update_interval", 60)
+    update_interval_raw = gps_config.get("gps_update_interval", 60)
+    update_interval = (
+        int(update_interval_raw)
+        if isinstance(update_interval_raw, (int, float, str))
+        else 60
+    )
     if update_interval < 10:  # Less than 10 seconds
         await async_create_issue(
             hass,
@@ -567,19 +633,38 @@ async def _check_notification_configuration_issues(
         hass: Home Assistant instance
         entry: Configuration entry
     """
-    dogs = entry.data.get(CONF_DOGS, [])
-    notification_enabled_dogs = [
-        dog for dog in dogs if dog.get("modules", {}).get(MODULE_NOTIFICATIONS, False)
+    raw_dogs_obj = entry.data.get(CONF_DOGS, [])
+    raw_dogs = (
+        raw_dogs_obj
+        if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, (str, bytes))
+        else []
+    )
+    dogs: list[Mapping[str, JSONValue]] = [
+        cast(Mapping[str, JSONValue], dog)
+        for dog in raw_dogs
+        if isinstance(dog, Mapping)
     ]
+    notification_enabled_dogs = []
+    for dog in dogs:
+        modules_raw = dog.get("modules", {})
+        modules = modules_raw if isinstance(modules_raw, Mapping) else {}
+        if modules.get(MODULE_NOTIFICATIONS, False):
+            notification_enabled_dogs.append(dog)
 
     if not notification_enabled_dogs:
         return  # No notification configuration to check
 
     # Check if notification services are available
-    notification_config = entry.options.get("notifications", {})
+    notification_config_raw = entry.options.get("notifications", {})
+    notification_config = (
+        notification_config_raw if isinstance(notification_config_raw, Mapping) else {}
+    )
 
     # Check for mobile app availability
-    mobile_enabled = notification_config.get("mobile_notifications", True)
+    mobile_enabled_raw = notification_config.get("mobile_notifications", True)
+    mobile_enabled = (
+        mobile_enabled_raw if isinstance(mobile_enabled_raw, bool) else True
+    )
     if mobile_enabled:
         has_mobile_app_service = hass.services.has_service("notify", "mobile_app")
 
@@ -724,7 +809,17 @@ async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> 
         hass: Home Assistant instance
         entry: Configuration entry
     """
-    dogs = entry.data.get(CONF_DOGS, [])
+    raw_dogs_obj = entry.data.get(CONF_DOGS, [])
+    raw_dogs = (
+        raw_dogs_obj
+        if isinstance(raw_dogs_obj, Sequence) and not isinstance(raw_dogs_obj, (str, bytes))
+        else []
+    )
+    dogs: list[Mapping[str, JSONValue]] = [
+        cast(Mapping[str, JSONValue], dog)
+        for dog in raw_dogs
+        if isinstance(dog, Mapping)
+    ]
 
     # Check for too many dogs (performance warning)
     if len(dogs) > 10:
@@ -743,14 +838,12 @@ async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> 
 
     # Check for conflicting module configurations
     high_resource_modules = [MODULE_GPS, MODULE_HEALTH]
-    dogs_with_all_modules = [
-        dog
-        for dog in dogs
-        if all(
-            dog.get("modules", {}).get(module, False)
-            for module in high_resource_modules
-        )
-    ]
+    dogs_with_all_modules = []
+    for dog in dogs:
+        modules_raw = dog.get("modules", {})
+        modules = modules_raw if isinstance(modules_raw, Mapping) else {}
+        if all(modules.get(module, False) for module in high_resource_modules):
+            dogs_with_all_modules.append(dog)
 
     if len(dogs_with_all_modules) > 5:
         await async_create_issue(
@@ -775,7 +868,10 @@ async def _check_storage_issues(hass: HomeAssistant, entry: ConfigEntry) -> None
         entry: Configuration entry
     """
     # Check data retention settings
-    retention_days = entry.options.get("data_retention_days", 90)
+    retention_raw = entry.options.get("data_retention_days", 90)
+    retention_days = (
+        int(retention_raw) if isinstance(retention_raw, (int, float, str)) else 90
+    )
 
     if retention_days > 365:  # More than 1 year
         await async_create_issue(
@@ -971,9 +1067,11 @@ async def _check_runtime_store_duration_alerts(
         for alert in alerts
     )
     recommendations = "; ".join(
-        alert["recommended_action"]
-        for alert in alerts
-        if alert.get("recommended_action")
+        cast(str, action)
+        for action in (
+            alert.get("recommended_action") for alert in alerts
+        )
+        if isinstance(action, str)
     )
 
     timeline_window = None
@@ -1133,7 +1231,8 @@ class PawControlRepairsFlow(RepairsFlow):
         self._issue_data = cast(
             JSONMutableMapping, self.hass.data[ir.DOMAIN][self.issue_id].data
         )
-        self._repair_type = self._issue_data.get("issue_type", "")
+        issue_type_raw = self._issue_data.get("issue_type", "")
+        self._repair_type = issue_type_raw if isinstance(issue_type_raw, str) else ""
 
         # Route to appropriate repair flow based on issue type
         if self._repair_type == ISSUE_MISSING_DOG_CONFIG:
@@ -1225,25 +1324,43 @@ class PawControlRepairsFlow(RepairsFlow):
         if user_input is not None:
             try:
                 # Validate dog data
-                dog_id = user_input["dog_id"].lower().strip()
-                dog_name = user_input["dog_name"].strip()
+                dog_id_raw = user_input.get("dog_id")
+                dog_name_raw = user_input.get("dog_name")
 
-                if not dog_id or not dog_name:
+                if not isinstance(dog_id_raw, str) or not isinstance(dog_name_raw, str):
                     errors["base"] = "incomplete_data"
                 else:
-                    # Get the config entry and update it
-                    config_entry_id = self._issue_data["config_entry_id"]
-                    entry = self.hass.config_entries.async_get_entry(config_entry_id)
+                    dog_id = dog_id_raw.lower().strip()
+                    dog_name = dog_name_raw.strip()
 
-                    if entry:
-                        # Create new dog configuration
-                        new_dog = {
-                            CONF_DOG_ID: dog_id,
-                            CONF_DOG_NAME: dog_name,
-                            "dog_breed": user_input.get("dog_breed", ""),
-                            "dog_age": user_input.get("dog_age", 3),
-                            "dog_weight": user_input.get("dog_weight", 20.0),
-                            "dog_size": user_input.get("dog_size", "medium"),
+                    if not dog_id or not dog_name:
+                        errors["base"] = "incomplete_data"
+                    else:
+                        # Get the config entry and update it
+                        config_entry_id = self._issue_data["config_entry_id"]
+                        entry = self.hass.config_entries.async_get_entry(config_entry_id)
+
+                        if entry:
+                            # Create new dog configuration
+                            dog_breed_raw = user_input.get("dog_breed", "")
+                            dog_age_raw = user_input.get("dog_age", 3)
+                            dog_weight_raw = user_input.get("dog_weight", 20.0)
+                            dog_size_raw = user_input.get("dog_size", "medium")
+                            new_dog = {
+                                CONF_DOG_ID: dog_id,
+                                CONF_DOG_NAME: dog_name,
+                                "dog_breed":
+                                    dog_breed_raw if isinstance(dog_breed_raw, str) else "",
+                                "dog_age":
+                                    int(dog_age_raw)
+                                    if isinstance(dog_age_raw, (int, float, str))
+                                    else 3,
+                                "dog_weight":
+                                    float(dog_weight_raw)
+                                    if isinstance(dog_weight_raw, (int, float, str))
+                                    else 20.0,
+                                "dog_size":
+                                    dog_size_raw if isinstance(dog_size_raw, str) else "medium",
                             "modules": {
                                 "feeding": True,
                                 "walk": True,
@@ -1313,6 +1430,20 @@ class PawControlRepairsFlow(RepairsFlow):
                 )
             return await self.async_step_complete_repair()
 
+        duplicate_ids_raw = self._issue_data.get("duplicate_ids", [])
+        duplicate_ids = (
+            [str(item) for item in duplicate_ids_raw]
+            if isinstance(duplicate_ids_raw, Sequence)
+            and not isinstance(duplicate_ids_raw, (str, bytes))
+            else []
+        )
+        total_dogs_raw = self._issue_data.get("total_dogs", 0)
+        total_dogs = (
+            int(total_dogs_raw)
+            if isinstance(total_dogs_raw, (int, float, str))
+            else 0
+        )
+
         return self.async_show_form(
             step_id="duplicate_dog_ids",
             data_schema=vol.Schema(
@@ -1337,8 +1468,8 @@ class PawControlRepairsFlow(RepairsFlow):
                 }
             ),
             description_placeholders={
-                "duplicate_ids": ", ".join(self._issue_data.get("duplicate_ids", [])),
-                "total_dogs": self._issue_data.get("total_dogs", 0),
+                "duplicate_ids": ", ".join(duplicate_ids),
+                "total_dogs": total_dogs,
             },
         )
 
@@ -1677,6 +1808,20 @@ class PawControlRepairsFlow(RepairsFlow):
                 )
             return await self.async_step_complete_repair()
 
+        invalid_dogs_raw = self._issue_data.get("invalid_dogs", [])
+        invalid_dogs = (
+            [str(dog) for dog in invalid_dogs_raw]
+            if isinstance(invalid_dogs_raw, Sequence)
+            and not isinstance(invalid_dogs_raw, (str, bytes))
+            else []
+        )
+        total_dogs_raw = self._issue_data.get("total_dogs")
+        total_dogs = (
+            int(total_dogs_raw)
+            if isinstance(total_dogs_raw, (int, float, str))
+            else 0
+        )
+
         return self.async_show_form(
             step_id="invalid_dog_data",
             data_schema=vol.Schema(
@@ -1701,8 +1846,8 @@ class PawControlRepairsFlow(RepairsFlow):
                 }
             ),
             description_placeholders={
-                "invalid_dogs": ", ".join(self._issue_data.get("invalid_dogs", [])),
-                "total_dogs": self._issue_data.get("total_dogs"),
+                "invalid_dogs": ", ".join(invalid_dogs),
+                "total_dogs": total_dogs,
             },
         )
 
@@ -1930,12 +2075,49 @@ class PawControlRepairsFlow(RepairsFlow):
 
         for dog in dogs:
             updated_dog = cast(DogConfigData, dict(dog))
-            modules = dict(updated_dog.get("modules", {}))
+            modules_raw = updated_dog.get("modules", {})
+            modules = cast(
+                DogModulesConfig,
+                {
+                    MODULE_FEEDING: bool(
+                        cast(Mapping[str, object], modules_raw).get(MODULE_FEEDING, True)
+                    )
+                    if isinstance(modules_raw, Mapping)
+                    else True,
+                MODULE_WALK: bool(
+                    cast(Mapping[str, object], modules_raw).get(MODULE_WALK, True)
+                )
+                if isinstance(modules_raw, Mapping)
+                else True,
+                MODULE_GPS: bool(
+                    cast(Mapping[str, object], modules_raw).get(MODULE_GPS, False)
+                )
+                if isinstance(modules_raw, Mapping)
+                else False,
+                MODULE_HEALTH: bool(
+                    cast(Mapping[str, object], modules_raw).get(MODULE_HEALTH, True)
+                )
+                if isinstance(modules_raw, Mapping)
+                else True,
+                MODULE_NOTIFICATIONS: bool(
+                    cast(Mapping[str, object], modules_raw).get(
+                        MODULE_NOTIFICATIONS, True
+                    )
+                )
+                if isinstance(modules_raw, Mapping)
+                else True,
+                    MODULE_GARDEN: bool(
+                        cast(Mapping[str, object], modules_raw).get(MODULE_GARDEN, False)
+                    )
+                    if isinstance(modules_raw, Mapping)
+                    else False,
+                },
+            )
 
             if modules.get(MODULE_GPS) and modules.get(MODULE_HEALTH):
                 high_resource_count += 1
                 if high_resource_count > high_resource_limit:
-                    modules[MODULE_GPS] = False
+                    modules["gps"] = False
 
             updated_dog["modules"] = modules
             updated_dogs.append(updated_dog)

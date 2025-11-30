@@ -349,10 +349,23 @@ def _calculate_duration_percentiles(
         return percentiles
 
     sorted_values = sorted(durations)
-    for label, percentile in _LEVEL_DURATION_PERCENTILE_TARGETS.items():
-        percentile_value = _calculate_percentile_value(sorted_values, percentile)
-        if percentile_value is not None:
-            percentiles[label] = percentile_value
+    percentile_p75 = _calculate_percentile_value(
+        sorted_values, _LEVEL_DURATION_PERCENTILE_TARGETS["p75"]
+    )
+    if percentile_p75 is not None:
+        percentiles["p75"] = percentile_p75
+
+    percentile_p90 = _calculate_percentile_value(
+        sorted_values, _LEVEL_DURATION_PERCENTILE_TARGETS["p90"]
+    )
+    if percentile_p90 is not None:
+        percentiles["p90"] = percentile_p90
+
+    percentile_p95 = _calculate_percentile_value(
+        sorted_values, _LEVEL_DURATION_PERCENTILE_TARGETS["p95"]
+    )
+    if percentile_p95 is not None:
+        percentiles["p95"] = percentile_p95
 
     return percentiles
 
@@ -533,14 +546,14 @@ def _summarise_runtime_store_assessment_events(
     most_common_level: RuntimeStoreHealthLevel | None = None
     if level_counts and max(level_counts.values()) > 0:
         most_common_level = max(
-            level_counts, key=lambda level_key: level_counts[level_key]
-        )
+            level_counts.items(), key=lambda item: item[1]
+        )[0]
 
     most_common_status: RuntimeStoreOverallStatus | None = None
     if status_counts and max(status_counts.values()) > 0:
         most_common_status = max(
-            status_counts, key=lambda status_key: status_counts[status_key]
-        )
+            status_counts.items(), key=lambda item: item[1]
+        )[0]
 
     average_divergence_rate: float | None = None
     max_divergence_rate: float | None = None
@@ -2045,12 +2058,16 @@ def record_door_sensor_persistence_failure(
     else:
         summaries = {}
 
-    summary = summaries.get(dog_id)
-    if summary is None:
+    existing_summary = summaries.get(dog_id)
+    summary: DoorSensorFailureSummary
+    if existing_summary is None:
         summary = {
             "dog_id": dog_id,
             "failure_count": 0,
+            "last_failure": failure,
         }
+    else:
+        summary = cast(DoorSensorFailureSummary, dict(existing_summary))
 
     summary["failure_count"] = int(summary.get("failure_count", 0)) + 1
     if "dog_name" in failure:
