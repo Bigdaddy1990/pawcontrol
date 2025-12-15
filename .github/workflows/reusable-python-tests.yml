@@ -228,7 +228,7 @@ jobs:
 
       - name: Upload coverage artifact
         if: inputs.upload-coverage-artifact == true
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ inputs.coverage-artifact-name }}
           path: |
@@ -238,7 +238,7 @@ jobs:
 
       - name: Upload junit artifact
         if: inputs.upload-junit-artifact == true
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ inputs.junit-artifact-name }}
           path: ${{ env.JUNIT_PATH }}
@@ -264,7 +264,7 @@ jobs:
 
       - name: Upload GitHub Pages bundle
         if: inputs.publish-pages == true && steps.pytest.outcome == 'success'
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: ${{ inputs.pages-artifact-name }}
           path: ${{ env.PAGES_ARTIFACT_DIR }}
