@@ -1,4 +1,5 @@
 coverage[toml]==7.13.0
+homeassistant==2025.12.3
 jinja2==3.1.6
 packaging==25.0
 pip==25.3
@@ -9,4 +10,3 @@ pytest-homeassistant-custom-component  # follows daily HA version
 pyyaml==6.0.3
 types-aiofiles==25.1.0.20251011
 voluptuous==0.15.2
-homeassistant==2025.12.01
