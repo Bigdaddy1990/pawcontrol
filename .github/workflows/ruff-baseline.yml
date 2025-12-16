@@ -25,6 +25,7 @@ jobs:
           ruff check . --fix --unsafe-fixes || true
           ruff check . --add-noqa || true
           ruff check . --extend-select RUF100 --fix || true
+          python scripts/enforce_docstring_baseline.py --update
       - uses: peter-evans/create-pull-request@v8
         with:
           branch: chore/ruff-baseline
