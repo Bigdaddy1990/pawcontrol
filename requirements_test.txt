@@ -9,4 +9,4 @@ pytest-cov==7.0.0
 pytest-homeassistant-custom-component  # follows daily HA version
 pyyaml==6.0.3
 types-aiofiles==25.1.0.20251011
-voluptuous==0.15.2
+voluptuous==0.16.0
