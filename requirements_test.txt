@@ -1,5 +1,5 @@
 coverage[toml]==7.13.0
-homeassistant==2025.12.3
+homeassistant==2025.12.4
 jinja2==3.1.6
 packaging==25.0
 pip==25.3
