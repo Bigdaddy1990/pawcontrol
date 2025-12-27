@@ -1202,11 +1202,11 @@ async def _get_dogs_summary(
         and not isinstance(dogs_payload, (str, bytes, bytearray))
         else None
     )
-    dogs: list[DogConfigData] = [
-        cast(DogConfigData, dog)
-        for dog in dogs_source
-        if isinstance(dog, Mapping)
-    ] if dogs_source else []
+    dogs: list[DogConfigData] = (
+        [cast(DogConfigData, dog) for dog in dogs_source if isinstance(dog, Mapping)]
+        if dogs_source
+        else []
+    )
 
     dogs_summary: list[JSONMutableMapping] = []
     for dog in dogs:
@@ -1320,9 +1320,7 @@ async def _get_performance_metrics(
 
     performance_metrics = statistics["performance_metrics"]
     _apply_rejection_metrics_to_performance(performance_metrics, rejection_metrics)
-    stats_payload["performance_metrics"] = cast(
-        JSONMapping, dict(performance_metrics)
-    )
+    stats_payload["performance_metrics"] = cast(JSONMapping, dict(performance_metrics))
 
     repairs = statistics.get("repairs")
     if repairs is not None:
@@ -1753,15 +1751,12 @@ def _calculate_module_usage(dogs: Sequence[DogConfigData]) -> ModuleUsageBreakdo
 
     dogs_sequence: Sequence[DogConfigData] = (
         dogs
-        if isinstance(dogs, Sequence)
-        and not isinstance(dogs, (str, bytes, bytearray))
+        if isinstance(dogs, Sequence) and not isinstance(dogs, (str, bytes, bytearray))
         else ()
     )
 
     valid_dogs: list[DogConfigData] = [
-        cast(DogConfigData, dog)
-        for dog in dogs_sequence
-        if isinstance(dog, Mapping)
+        cast(DogConfigData, dog) for dog in dogs_sequence if isinstance(dog, Mapping)
     ]
 
     total_dogs = len(valid_dogs)
