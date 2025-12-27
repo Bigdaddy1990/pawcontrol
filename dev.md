@@ -181,6 +181,9 @@
   (alle grün). `mypy custom_components/pawcontrol` schlägt weiterhin mit
   zahlreichen Typfehlern fehl und muss bereinigt werden, bevor eine Platinum-
   Freigabe möglich ist.
+- Laufzeitdaten erzwingen jetzt String-basierte Entity-Profile und die
+  Unload-Plattform-Auswahl normalisiert Optionen, damit Nicht-String-Werte keine
+  Plattformberechnung oder Laufzeitdaten-Bereinigung mehr behindern.
 
 ## Offene Fehler und Verbesserungen
 
@@ -199,6 +202,9 @@
   `config_flow_profile.py`). Die JSONValue-Coercions, TypedDict-Literale und
   Collection-Guards müssen vereinheitlicht werden, damit der MyPy-Guard wieder
   grün wird und die Home-Assistant-Platinum-Anforderungen erfüllt.
+- Die Options-Validierung sollte `entity_profile` strikt auf String-Werte und
+  bekannte Profile einschränken; ergänzende Tests für Setup/Unload-Normalisierung
+  würden sicherstellen, dass Nicht-String-Inputs künftig früh abgefangen werden.
 - Menü-, Progress- und External-Done-Ergebnisse der Flow-Stubs müssen bei
   Änderungen in den HA-Release-Notes (z. B. neue Felder in `FlowResult`)
   abgeglichen und in den Regressionstests ergänzt werden.
