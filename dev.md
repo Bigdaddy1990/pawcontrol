@@ -174,6 +174,9 @@
   `pref_disable_new_entities` und `pref_disable_polling` für HA- und Compat-
   Stubs, damit beide Varianten die HA-Präferenzfelder und Overrides
   widerspruchsfrei abdecken.
+- Dashboard-Statistikpfade casten Ablehnungsmetriken jetzt explizit auf
+  JSON-Mappings bzw. `CoordinatorResilienceSummary`, damit Guard- und
+  MyPy-Kontrollen eindeutige Typen behalten.
 - Die Benachrichtigungs-Quiet-Hours validieren Options-Payloads jetzt defensiv
   (Mapping-Guards, Timestamp-Normalisierung via `_deserialize_datetime` und
   String-Fallbacks), damit ungültige Optionen keine Laufzeitfehler mehr
@@ -243,6 +246,9 @@
 - Runtime-Store-Dauer-Percentiles werden jetzt explizit pro Schlüssel
   (`p75`/`p90`/`p95`) berechnet, damit die TypedDict-Anforderungen von
   Home Assistant eingehalten und strengere MyPy-Checks bestanden werden.
+- Dashboard-Templates sollten Resilience- und Statistikpfade weiterhin auf
+  konsistente Mapping-Casts prüfen, damit MyPy- und Platinum-Checks nicht durch
+  untypisierte Payloads blockiert werden.
 - Registry-Stubs sollen mehrere Config-Entries und zusätzliche Metadaten pro
   Entity/Device speichern (z. B. Identifiers, Connections, Translation Keys,
   Aliases) und erweitern dies um Area/Disabled/Primary/Icons/Units, damit
