@@ -43,9 +43,9 @@ from .types import (
     DogTextSnapshot,
     JSONMapping,
     JSONMutableMapping,
+    JSONValue,
     ModuleToggleKey,
     PawControlConfigEntry,
-    TextEntityExtraAttributes,
     _normalise_text_metadata_entry,
     coerce_dog_modules_config,
     ensure_dog_config_data,
@@ -305,15 +305,13 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
         return self._current_value
 
     @property
-    def extra_state_attributes(self) -> TextEntityExtraAttributes:
+    def extra_state_attributes(self) -> dict[str, JSONValue]:
         """Return extra state attributes."""
 
         base_attributes = super().extra_state_attributes
-        merged: TextEntityExtraAttributes
-        if isinstance(base_attributes, Mapping):
-            merged = cast(TextEntityExtraAttributes, dict(base_attributes))
-        else:
-            merged = cast(TextEntityExtraAttributes, {})
+        merged: dict[str, JSONValue] = (
+            dict(base_attributes) if isinstance(base_attributes, Mapping) else {}
+        )
 
         merged.update(
             {
@@ -328,7 +326,7 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
             }
         )
 
-        return cast(TextEntityExtraAttributes, merged)
+        return merged
 
     def _clamp_value(self, value: str) -> str:
         """Clamp ``value`` to the configured maximum length when necessary."""
