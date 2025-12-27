@@ -174,6 +174,10 @@
   `pref_disable_new_entities` und `pref_disable_polling` für HA- und Compat-
   Stubs, damit beide Varianten die HA-Präferenzfelder und Overrides
   widerspruchsfrei abdecken.
+- Die Diagnostics härten Performance-/Rejection-Metriken sowie Modul-
+  Zählungen jetzt durch Mapping-/Sequence-Guards ab und serialisieren die
+  Ergebnisse JSON-sicher, damit `get_dog_data` und Laufzeit-Payloads auch unter
+  Python 3.13 nicht mehr zu Typfehlern oder Len-Abstürzen führen.
 - Zuletzt ausgeführte Checks (nach dem hassfest-Shim-Update): `ruff check`,
   `PYTHONPATH=$(pwd) pytest -q`, `python -m script.enforce_test_requirements`,
   `python -m scripts.enforce_shared_session_guard`,
@@ -222,6 +226,10 @@
 - Service-Guard-Metriken normalisieren jetzt Zähler und Historie über einen
   gemeinsamen Integer-Coercer, sodass Guard-Zusammenfassungen keine
   Nicht-Zahlen mehr akkumulieren.
+- Diagnostics-Guards (Mapping-/Sequence-Prüfungen, JSON-Serialisierung der
+  Rejection-/Performance-Metriken und `get_dog_data`-Fallbacks) müssen durch
+  Regressionstests abgesichert werden, damit atypische Laufzeit-Payloads und
+  künftige HA-API-Änderungen nicht zu neuen Typfehlern führen.
 - Runtime-Store-Dauer-Percentiles werden jetzt explizit pro Schlüssel
   (`p75`/`p90`/`p95`) berechnet, damit die TypedDict-Anforderungen von
   Home Assistant eingehalten und strengere MyPy-Checks bestanden werden.

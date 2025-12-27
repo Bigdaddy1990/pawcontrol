@@ -535,8 +535,10 @@ def _build_statistics_payload(
         stats["resilience"] = cast(Any, resilience)
 
     rejection_metrics = payload.get("rejection_metrics")
-    if rejection_metrics is not None:
-        stats["rejection_metrics"] = cast(Any, rejection_metrics)
+    if isinstance(rejection_metrics, Mapping):
+        stats["rejection_metrics"] = derive_rejection_metrics(
+            cast(JSONMapping, rejection_metrics)
+        )
 
     return stats
 
@@ -1193,29 +1195,47 @@ async def _get_dogs_summary(
     Returns:
         Dogs summary diagnostics
     """
-    dogs = entry.data.get(CONF_DOGS, [])
+    dogs_payload = entry.data.get(CONF_DOGS)
+    dogs_source: Sequence[Any] | None = (
+        dogs_payload
+        if isinstance(dogs_payload, Sequence)
+        and not isinstance(dogs_payload, (str, bytes, bytearray))
+        else None
+    )
+    dogs: list[DogConfigData] = [
+        cast(DogConfigData, dog)
+        for dog in dogs_source
+        if isinstance(dog, Mapping)
+    ] if dogs_source else []
 
     dogs_summary: list[JSONMutableMapping] = []
     for dog in dogs:
-        dog_id = dog[CONF_DOG_ID]
+        dog_id = dog.get(CONF_DOG_ID)
+        if not isinstance(dog_id, str):
+            continue
+        modules_payload = dog.get("modules", {})
+        modules = modules_payload if isinstance(modules_payload, Mapping) else {}
         dog_summary: JSONMutableMapping = {
             "dog_id": dog_id,
-            "dog_name": dog[CONF_DOG_NAME],
+            "dog_name": dog.get(CONF_DOG_NAME),
             "dog_breed": dog.get("dog_breed", ""),
             "dog_age": dog.get("dog_age"),
             "dog_weight": dog.get("dog_weight"),
             "dog_size": dog.get("dog_size"),
-            "enabled_modules": dog.get("modules", {}),
-            "module_count": len(
-                [m for m, enabled in dog.get("modules", {}).items() if enabled]
-            ),
+            "enabled_modules": dict(modules),
+            "module_count": len([m for m, enabled in modules.items() if enabled]),
         }
 
         # Add coordinator data if available
         if coordinator:
             try:
-                dog_data = coordinator.get_dog_data(dog_id)
-                if dog_data:
+                get_dog_data_method = getattr(coordinator, "get_dog_data", None)
+                dog_data = (
+                    get_dog_data_method(dog_id)
+                    if callable(get_dog_data_method)
+                    else None
+                )
+                if isinstance(dog_data, Mapping):
                     dog_summary.update(
                         {
                             "coordinator_data_available": True,
@@ -1270,11 +1290,14 @@ async def _get_performance_metrics(
     stats_payload: JSONMutableMapping = (
         cast(JSONMutableMapping, dict(stats_mapping))
         if isinstance(stats_mapping, Mapping)
-        else {}
+        else cast(JSONMutableMapping, {})
     )
-    stats_payload["update_counts"] = statistics["update_counts"]
-    stats_payload["performance_metrics"] = statistics["performance_metrics"]
-    stats_payload["health_indicators"] = statistics["health_indicators"]
+    stats_payload["update_counts"] = cast(
+        JSONMapping, dict(statistics["update_counts"])
+    )
+    stats_payload["health_indicators"] = cast(
+        JSONMapping, dict(statistics["health_indicators"])
+    )
 
     update_counts = statistics["update_counts"]
     total_updates = update_counts["total"]
@@ -1292,11 +1315,14 @@ async def _get_performance_metrics(
         rejection_metrics = default_rejection_metrics()
 
     statistics["rejection_metrics"] = rejection_metrics
-    stats_payload["rejection_metrics"] = rejection_metrics
+    rejection_metrics_payload = cast(JSONMapping, dict(rejection_metrics))
+    stats_payload["rejection_metrics"] = rejection_metrics_payload
 
     performance_metrics = statistics["performance_metrics"]
     _apply_rejection_metrics_to_performance(performance_metrics, rejection_metrics)
-    stats_payload["performance_metrics"] = performance_metrics
+    stats_payload["performance_metrics"] = cast(
+        JSONMapping, dict(performance_metrics)
+    )
 
     repairs = statistics.get("repairs")
     if repairs is not None:
@@ -1326,7 +1352,7 @@ async def _get_performance_metrics(
         "network_efficient": True,
         "error_rate": error_rate,
         "response_time": "fast",
-        "rejection_metrics": rejection_metrics,
+        "rejection_metrics": rejection_metrics_payload,
         "statistics": stats_payload,
     }
 
@@ -1334,10 +1360,10 @@ async def _get_performance_metrics(
         merge_rejection_metric_values(
             metrics_output,
             performance_metrics,
-            rejection_metrics,
+            rejection_metrics_payload,
         )
     else:
-        merge_rejection_metric_values(metrics_output, rejection_metrics)
+        merge_rejection_metric_values(metrics_output, rejection_metrics_payload)
 
     return metrics_output
 
@@ -1358,7 +1384,7 @@ async def _get_door_sensor_diagnostics(
 
     telemetry: JSONMutableMapping = {}
     performance_stats = get_runtime_performance_stats(runtime_data)
-    if performance_stats is not None:
+    if isinstance(performance_stats, Mapping):
         failure_count = performance_stats.get("door_sensor_failure_count")
         if isinstance(failure_count, int | float):
             telemetry["failure_count"] = int(failure_count)
@@ -1421,7 +1447,7 @@ async def _get_service_execution_diagnostics(
         return cast(JSONMutableMapping, {"available": False})
 
     performance_stats = get_runtime_performance_stats(runtime_data)
-    if performance_stats is None:
+    if not isinstance(performance_stats, Mapping):
         return cast(JSONMutableMapping, {"available": False})
 
     diagnostics: JSONMutableMapping = {"available": True}
@@ -1603,7 +1629,11 @@ async def _get_data_statistics(
             cache_payload
         )
 
-    metrics.setdefault("dogs", len(getattr(runtime_data, "dogs", [])))
+    dogs_payload = getattr(runtime_data, "dogs", None)
+    if isinstance(dogs_payload, Sequence) and not isinstance(
+        dogs_payload, (str, bytes, bytearray)
+    ):
+        metrics.setdefault("dogs", len(dogs_payload))
 
     return {
         "data_manager_available": True,
@@ -1721,10 +1751,24 @@ def _calculate_module_usage(dogs: Sequence[DogConfigData]) -> ModuleUsageBreakdo
         MODULE_NOTIFICATIONS: 0,
     }
 
-    total_dogs = len(dogs)
+    dogs_sequence: Sequence[DogConfigData] = (
+        dogs
+        if isinstance(dogs, Sequence)
+        and not isinstance(dogs, (str, bytes, bytearray))
+        else ()
+    )
 
-    for dog in dogs:
-        modules = dog.get("modules", {})
+    valid_dogs: list[DogConfigData] = [
+        cast(DogConfigData, dog)
+        for dog in dogs_sequence
+        if isinstance(dog, Mapping)
+    ]
+
+    total_dogs = len(valid_dogs)
+
+    for dog in valid_dogs:
+        modules_payload = dog.get("modules")
+        modules = modules_payload if isinstance(modules_payload, Mapping) else {}
         for module in module_counts:
             if modules.get(module, False):
                 module_counts[module] += 1
