@@ -610,7 +610,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         enabled_modules = _extract_enabled_modules(dogs_config)
 
         # Validate profile with fallback
-        profile = entry.options.get("entity_profile", "standard")
+        profile_raw = entry.options.get("entity_profile", "standard")
+        if profile_raw is None:
+            profile_raw = "standard"
+        profile = profile_raw if isinstance(profile_raw, str) else str(profile_raw)
         if profile not in ENTITY_PROFILES:
             _LOGGER.warning("Unknown profile '%s', using 'standard'", profile)
             profile = "standard"
@@ -1488,12 +1491,20 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     manual_history: list[ManualResilienceEventRecord] | None = None
 
     # Get platforms for unloading
+    profile_raw: Any = "standard"
     if runtime_data:
         dogs = runtime_data.dogs
-        profile = runtime_data.entity_profile
+        profile_raw = runtime_data.entity_profile
     else:
         dogs = entry.data.get(CONF_DOGS, [])
-        profile = entry.options.get("entity_profile", "standard")
+        profile_raw = entry.options.get("entity_profile", "standard")
+
+    if profile_raw is None:
+        profile = "standard"
+    elif isinstance(profile_raw, str):
+        profile = profile_raw
+    else:
+        profile = str(profile_raw)
 
     platforms = get_platforms_for_profile_and_modules(dogs, profile)
 
