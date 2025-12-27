@@ -178,6 +178,13 @@
   `pref_disable_new_entities` und `pref_disable_polling` für HA- und Compat-
   Stubs, damit beide Varianten die HA-Präferenzfelder und Overrides
   widerspruchsfrei abdecken.
+- Dashboard-Statistikpfade casten Ablehnungsmetriken jetzt explizit auf
+  JSON-Mappings bzw. `CoordinatorResilienceSummary`, damit Guard- und
+  MyPy-Kontrollen eindeutige Typen behalten.
+- Die Benachrichtigungs-Quiet-Hours validieren Options-Payloads jetzt defensiv
+  (Mapping-Guards, Timestamp-Normalisierung via `_deserialize_datetime` und
+  String-Fallbacks), damit ungültige Optionen keine Laufzeitfehler mehr
+  auslösen.
 - Zuletzt ausgeführte Checks (nach dem hassfest-Shim-Update): `ruff check`,
   `PYTHONPATH=$(pwd) pytest -q`, `python -m script.enforce_test_requirements`,
   `python -m scripts.enforce_shared_session_guard`,
@@ -185,6 +192,9 @@
   (alle grün). `mypy custom_components/pawcontrol` schlägt weiterhin mit
   zahlreichen Typfehlern fehl und muss bereinigt werden, bevor eine Platinum-
   Freigabe möglich ist.
+- Laufzeitdaten erzwingen jetzt String-basierte Entity-Profile und die
+  Unload-Plattform-Auswahl normalisiert Optionen, damit Nicht-String-Werte keine
+  Plattformberechnung oder Laufzeitdaten-Bereinigung mehr behindern.
 
 ## Offene Fehler und Verbesserungen
 
@@ -198,15 +208,26 @@
   geprüft werden; falls Upstream neue Typen liefert, müssen Guards und
   Regressionstests ergänzt werden, damit Config-/Options-Flows keine
   Typfehler produzieren.
+- JSON-Mapping-Coercions in `optimized_entity_base.py` müssen konsequent über
+  `cast(JSONMappingLike | JSONMutableMapping, ...)` sowie vorab materialisierte
+  `dict[str, JSONValue]`-Kopien laufen, damit MyPy/3.13 die Module-Caches nicht
+  mehr als Union-Dicts interpretiert; weitere Aufrufer im Modul und in
+  verwandten Helpern auf dieselbe Strategie prüfen.
 - Das lokale `hassfest`-Shim muss mit neuen Upstream-Regeln (z. B. zusätzliche
   Manifest- oder Übersetzungsfelder) abgeglichen und die Regressionstests
   entsprechend erweitert werden, damit der Guard-Lauf valide bleibt.
+- Tests für die Quiet-Hours-Parser sollten fehlerhafte Optionen (Nicht-
+  Mappings, Datetime-/String-Mischformen) abdecken, damit Regressionen in der
+  Benachrichtigungslogik frühzeitig auffallen.
 - `mypy custom_components/pawcontrol` meldet weiterhin zahlreiche Typfehler
   (u. a. in `notifications.py`, `data_manager.py`, `options_flow.py`,
   `sensor.py`, `text.py`, `config_flow_external.py` und
   `config_flow_profile.py`). Die JSONValue-Coercions, TypedDict-Literale und
   Collection-Guards müssen vereinheitlicht werden, damit der MyPy-Guard wieder
   grün wird und die Home-Assistant-Platinum-Anforderungen erfüllt.
+- Die Options-Validierung sollte `entity_profile` strikt auf String-Werte und
+  bekannte Profile einschränken; ergänzende Tests für Setup/Unload-Normalisierung
+  würden sicherstellen, dass Nicht-String-Inputs künftig früh abgefangen werden.
 - Menü-, Progress- und External-Done-Ergebnisse der Flow-Stubs müssen bei
   Änderungen in den HA-Release-Notes (z. B. neue Felder in `FlowResult`)
   abgeglichen und in den Regressionstests ergänzt werden.
@@ -233,6 +254,9 @@
 - Runtime-Store-Dauer-Percentiles werden jetzt explizit pro Schlüssel
   (`p75`/`p90`/`p95`) berechnet, damit die TypedDict-Anforderungen von
   Home Assistant eingehalten und strengere MyPy-Checks bestanden werden.
+- Dashboard-Templates sollten Resilience- und Statistikpfade weiterhin auf
+  konsistente Mapping-Casts prüfen, damit MyPy- und Platinum-Checks nicht durch
+  untypisierte Payloads blockiert werden.
 - Registry-Stubs sollen mehrere Config-Entries und zusätzliche Metadaten pro
   Entity/Device speichern (z. B. Identifiers, Connections, Translation Keys,
   Aliases) und erweitern dies um Area/Disabled/Primary/Icons/Units, damit
