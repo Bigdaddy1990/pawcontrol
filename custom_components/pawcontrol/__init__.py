@@ -946,10 +946,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                     if isinstance(geofence_options_raw, Mapping)
                     else {}
                 )
-                geofencing_enabled = bool(geofence_options.get("geofencing_enabled", False))
-                use_home_location = bool(geofence_options.get("use_home_location", True))
+                geofencing_enabled = bool(
+                    geofence_options.get("geofencing_enabled", False)
+                )
+                use_home_location = bool(
+                    geofence_options.get("use_home_location", True)
+                )
                 radius = geofence_options.get("geofence_radius_m", 50)
-                home_zone_radius = int(radius) if isinstance(radius, (int, float)) else 50
+                home_zone_radius = (
+                    int(radius) if isinstance(radius, (int, float)) else 50
+                )
 
                 initialization_tasks.append(
                     _async_initialize_manager_with_timeout(
