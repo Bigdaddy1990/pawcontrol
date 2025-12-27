@@ -81,6 +81,7 @@ from .types import (
     CoordinatorSecurityScorecard,
     CoordinatorStatisticsPayload,
     DogConfigData,
+    JSONMapping,
     PawControlConfigEntry,
     PawControlRuntimeData,
     WebhookSecurityStatus,
@@ -128,9 +129,11 @@ class PawControlCoordinator(
         self._use_external_api = bool(
             entry.options.get(CONF_EXTERNAL_INTEGRATIONS, False)
         )
+        endpoint = entry.options.get(CONF_API_ENDPOINT)
+        token = entry.options.get(CONF_API_TOKEN)
         self._api_client = self._build_api_client(
-            endpoint=entry.options.get(CONF_API_ENDPOINT, ""),
-            token=entry.options.get(CONF_API_TOKEN, ""),
+            endpoint=endpoint if isinstance(endpoint, str) else "",
+            token=token if isinstance(token, str) else "",
         )
 
         base_interval = self._initial_update_interval(entry)
@@ -563,8 +566,8 @@ class PawControlCoordinator(
         entity_summary = self._entity_budget.summary()
         webhook_status = self._webhook_security_status()
         return build_observability_scorecard(
-            adaptive=adaptive,
-            entity_summary=entity_summary,
+            adaptive=cast(JSONMapping, adaptive),
+            entity_summary=cast(JSONMapping, entity_summary),
             webhook_status=webhook_status,
         )
 

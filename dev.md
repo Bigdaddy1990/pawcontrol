@@ -182,6 +182,14 @@
   `pref_disable_new_entities` und `pref_disable_polling` für HA- und Compat-
   Stubs, damit beide Varianten die HA-Präferenzfelder und Overrides
   widerspruchsfrei abdecken.
+- Event-Payloads für Geofencing, Türsensor-Aktualisierungen und
+  Feeding-Compliance werden vor Persistenz und Event-Fire jetzt explizit als
+  JSON-Payloads gecastet; History-Normalisierungen und Metrics-Inkremente sind
+  stärker geguarded, damit die Typ-Gates und Persistenzpfade stabil bleiben.
+- Geofence-Events nutzen jetzt ein streng typisiertes Payload und die Report-
+  sowie Analyse-Helfer validieren numerische Aggregationen (Portionen,
+  Distanzen, Gewichte) explizit, damit die JSON-Casts keine Nicht-Zahlen mehr
+  an MyPy vorbeilassen.
 - Die Entity-Attribute-Payloads der Text-, Switch-, Tracker-, Date- und
   Datetime-Entitäten liefern jetzt explizit `dict[str, JSONValue]` und
   normalisieren Route-/Timestamp-Snapshots auf ISO-Strings, damit die HA-State-
@@ -312,6 +320,27 @@
 - Für Python 3.13+ sollte weiterhin geprüft werden, ob neue
   Event-Loop-Anpassungen im Upstream-Home-Assistant zusätzliche
   Kompatibilitätsschichten erfordern.
+- Der aktuelle MyPy-Lauf stößt vor allem in `data_manager.py` auf
+  JSONValue-/Mapping-Widersprüche (Analyse-Report-Keys, Timestamp-
+  Serialisierung via `setdefault`, Weight-Trend-Berechnungen und Mood-Mapping)
+  sowie auf fehlende String-Guards in `__init__.py`/`coordinator.py` und
+  nicht-JSON-castete Payloads in `system_health.py`/`services.py`. Die
+  betroffenen Stellen müssen auf strikte Typ-Casts und Clamp-Helfer umgestellt
+  werden, bevor `mypy custom_components/pawcontrol` grün läuft.
+- Weitere MyPy-Fehler betreffen aktuell `gps_manager.py` (Geofence-Events:
+  Typisierung von `distance_meters`/`duration_seconds`), `data_manager.py`
+  (numerische Aggregationen, Window-Reports, History-Serialisierung),
+  `__init__.py` (String-Guards für Options/Entity-Profile), `system_health.py`
+  (History-Attachments) sowie die Text-/Switch-Entities. Diese Stellen müssen
+  auf JSONValue-kompatible Zahlen- und String-Casts umgestellt werden, damit
+  die Platinum-Typ-Checks bestehen.
+- Der aktuelle Lauf markiert zusätzlich `optimized_entity_base.py`,
+  `helpers.py`, `dashboard_templates.py`, `config_flow_profile.py` und
+  `config_flow_external.py` mit JSONValue-/TypedDict-Inkompatibilitäten (z. B.
+  `MappingProxyType`-Payloads, Dict-Konstruktoren ohne string-literal Keys).
+  Text- und Switch-Entities verletzen weiterhin die `extra_state_attributes`-
+  Signaturen. Diese Module müssen auf strikte TypedDict-Schlüssel, String-
+  Guards und JSONMapping-Casts umgestellt werden.
 
 ### Priorisierte Maßnahmen
 

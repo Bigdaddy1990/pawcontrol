@@ -69,6 +69,8 @@ from .types import (
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
     DogConfigData,
+    JSONMapping,
+    JSONMutableMapping,
     ManualResilienceEventRecord,
     PawControlConfigEntry,
     PawControlRuntimeData,
@@ -868,7 +870,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 initialization_tasks.append(
                     _async_initialize_manager_with_timeout(
                         "feeding_manager",
-                        feeding_manager.async_initialize(dogs_config_payload),
+                        feeding_manager.async_initialize(
+                            cast(
+                                Sequence[JSONMapping | JSONMutableMapping],
+                                dogs_config_payload,
+                            )
+                        ),
                     )
                 )
 
@@ -933,10 +940,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             if geofencing_manager and not _simulate_async_call(
                 getattr(geofencing_manager, "async_initialize", None)
             ):
-                geofence_options = entry.options.get("geofence_settings", {})
-                geofencing_enabled = geofence_options.get("geofencing_enabled", False)
-                use_home_location = geofence_options.get("use_home_location", True)
-                home_zone_radius = geofence_options.get("geofence_radius_m", 50)
+                geofence_options_raw = entry.options.get("geofence_settings", {})
+                geofence_options = (
+                    geofence_options_raw
+                    if isinstance(geofence_options_raw, Mapping)
+                    else {}
+                )
+                geofencing_enabled = bool(
+                    geofence_options.get("geofencing_enabled", False)
+                )
+                use_home_location = bool(
+                    geofence_options.get("use_home_location", True)
+                )
+                radius = geofence_options.get("geofence_radius_m", 50)
+                home_zone_radius = (
+                    int(radius) if isinstance(radius, (int, float)) else 50
+                )
 
                 initialization_tasks.append(
                     _async_initialize_manager_with_timeout(
@@ -1003,7 +1022,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             feeding_manager=feeding_manager,
             walk_manager=walk_manager,
             entity_factory=entity_factory,
-            entity_profile=profile,
+            entity_profile=str(profile),
             dogs=dogs_config,
         )
 
@@ -1506,7 +1525,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     else:
         profile = str(profile_raw)
 
-    platforms = get_platforms_for_profile_and_modules(dogs, profile)
+    profile_value: str = profile
+
+    platforms = get_platforms_for_profile_and_modules(
+        cast(Sequence[DogConfigData], dogs), profile_value
+    )
 
     # Unload platforms with error tolerance and timeout
     platform_unload_start = time.time()

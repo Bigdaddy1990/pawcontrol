@@ -21,9 +21,11 @@ from .telemetry import get_runtime_performance_stats, get_runtime_store_health
 from .types import (
     ConfigEntryOptionsPayload,
     CoordinatorRejectionMetrics,
+    CoordinatorResilienceSummary,
     EntityFactoryGuardMetricsSnapshot,
     HelperManagerGuardMetrics,
     JSONLikeMapping,
+    JSONMapping,
     ManualResilienceAutomationEntry,
     ManualResilienceEventCounters,
     ManualResilienceEventSnapshot,
@@ -493,25 +495,25 @@ async def system_health_info(hass: HomeAssistant) -> SystemHealthInfoPayload:
     runtime_store_snapshot = describe_runtime_store_status(hass, entry)
     runtime_store_history = get_runtime_store_health(runtime)
     if runtime is None:
-        info = {
+        info_payload: dict[str, object] = {
             "can_reach_backend": False,
             "remaining_quota": "unknown",
             "service_execution": _default_service_execution_snapshot(),
             "runtime_store": runtime_store_snapshot,
         }
-        _attach_runtime_store_history(info, runtime_store_history)
-        return info
+        _attach_runtime_store_history(info_payload, runtime_store_history)
+        return cast(SystemHealthInfoPayload, info_payload)
 
     coordinator = getattr(runtime, "coordinator", None)
     if coordinator is None:
-        info = {
+        coordinator_info_payload: dict[str, object] = {
             "can_reach_backend": False,
             "remaining_quota": "unknown",
             "service_execution": _default_service_execution_snapshot(),
             "runtime_store": runtime_store_snapshot,
         }
-        _attach_runtime_store_history(info, runtime_store_history)
-        return info
+        _attach_runtime_store_history(coordinator_info_payload, runtime_store_history)
+        return cast(SystemHealthInfoPayload, coordinator_info_payload)
 
     stats = coordinator.get_update_statistics()
     api_calls = _extract_api_call_count(stats)
@@ -552,7 +554,7 @@ async def system_health_info(hass: HomeAssistant) -> SystemHealthInfoPayload:
 
     manual_events_info = _normalise_manual_events_snapshot(manual_snapshot)
 
-    info = {
+    service_payload: dict[str, object] = {
         "can_reach_backend": bool(getattr(coordinator, "last_update_success", False)),
         "remaining_quota": remaining_quota,
         "service_execution": {
@@ -566,8 +568,8 @@ async def system_health_info(hass: HomeAssistant) -> SystemHealthInfoPayload:
         },
         "runtime_store": runtime_store_snapshot,
     }
-    _attach_runtime_store_history(info, runtime_store_history)
-    return info
+    _attach_runtime_store_history(service_payload, runtime_store_history)
+    return cast(SystemHealthInfoPayload, service_payload)
 
 
 def _async_get_first_entry(hass: HomeAssistant) -> ConfigEntry | None:
@@ -595,7 +597,9 @@ def _extract_service_execution_metrics(
         if isinstance(raw_rejection, Mapping):
             rejection_source = raw_rejection
 
-    rejection_metrics = derive_rejection_metrics(rejection_source)
+    rejection_metrics = derive_rejection_metrics(
+        cast(JSONMapping | CoordinatorResilienceSummary | None, rejection_source)
+    )
 
     return guard_metrics, entity_factory_guard, rejection_metrics
 

@@ -66,6 +66,7 @@ from .types import (
     DoorSensorSettingsPayload,
     DoorSensorStateHistoryEntry,
     DoorSensorStateSnapshot,
+    JSONLikeMapping,
     JSONMutableMapping,
 )
 from .utils import async_fire_event
@@ -705,8 +706,10 @@ class DoorSensorManager:
         if not updates:
             return
 
+        update_payload = cast(JSONLikeMapping, updates)
+
         try:
-            await data_manager.async_update_dog_data(dog_id, updates)
+            await data_manager.async_update_dog_data(dog_id, update_payload)
         except Exception as err:  # pragma: no cover - defensive guard
             _LOGGER.error(
                 "Failed to persist door sensor overrides for %s: %s", dog_id, err

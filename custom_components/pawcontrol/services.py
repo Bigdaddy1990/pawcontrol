@@ -109,6 +109,7 @@ from .types import (
     FeedingComplianceLocalizedSummary,
     GPSTrackingConfigInput,
     JSONLikeMapping,
+    JSONMutableMapping,
     JSONValue,
     ServiceContextMetadata,
     ServiceData,
@@ -1326,6 +1327,8 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         payload = dict(data)
 
         raw_dog_id = payload["dog_id"]
+        if not isinstance(raw_dog_id, str):
+            raise ServiceValidationError("dog_id must be a string")
         dog_id, _ = _resolve_dog(coordinator, raw_dog_id)
         amount = payload["amount"]
         meal_type = payload.get("meal_type")
@@ -3371,7 +3374,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             await async_fire_event(
                 hass,
                 EVENT_FEEDING_COMPLIANCE_CHECKED,
-                event_payload,
+                cast(JSONMutableMapping, event_payload),
                 context=context,
                 time_fired=dt_util.utcnow(),
             )
