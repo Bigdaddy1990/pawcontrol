@@ -1525,10 +1525,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     else:
         profile = str(profile_raw)
 
-    profile: str = profile_value
+    profile_value: str = profile
 
     platforms = get_platforms_for_profile_and_modules(
-        cast(Sequence[DogConfigData], dogs), profile
+        cast(Sequence[DogConfigData], dogs), profile_value
     )
 
     # Unload platforms with error tolerance and timeout
