@@ -65,6 +65,9 @@ from .types import (
     OptimizedEntityStateCachePayload,
 )
 from .utils import (
+    JSONMappingLike,
+    JSONMutableMapping,
+    JSONValue,
     PawControlDeviceLinkMixin,
     _coerce_json_mutable,
     async_call_add_entities,
@@ -882,12 +885,20 @@ class OptimizedEntityBase(
                 not coordinator_available or cached_available is not False
             ):
                 self._performance_tracker.record_cache_hit()
-                payload = dict(entry.payload)
+                payload_mapping = cast(
+                    JSONMappingLike | JSONMutableMapping, entry.payload
+                )
+                payload: dict[str, JSONValue] = {
+                    key: cast(JSONValue, value)
+                    for key, value in payload_mapping.items()
+                }
                 if typed_module:
                     return cast(CoordinatorModuleState, payload)
                 return cast(
                     CoordinatorUntypedModuleState,
-                    _coerce_json_mutable(payload),
+                    _coerce_json_mutable(
+                        cast(JSONMappingLike | JSONMutableMapping, payload)
+                    ),
                 )
 
         # Fetch from coordinator
@@ -902,13 +913,17 @@ class OptimizedEntityBase(
                     self.coordinator, "get_module_data", self._dog_id, module
                 )
             if isinstance(result, Mapping):
-                mapped_result = dict(result)
+                mapped_result: dict[str, JSONValue] = {
+                    key: cast(JSONValue, value) for key, value in result.items()
+                }
                 module_payload = (
                     cast(CoordinatorModuleState, mapped_result)
                     if typed_module
                     else cast(
                         CoordinatorUntypedModuleState,
-                        _coerce_json_mutable(mapped_result),
+                        _coerce_json_mutable(
+                            cast(JSONMappingLike | JSONMutableMapping, mapped_result)
+                        ),
                     )
                 )
             elif typed_module:
@@ -917,15 +932,23 @@ class OptimizedEntityBase(
             module_payload = cast(CoordinatorModuleState, {"status": "unknown"})
 
         # Cache result
+        module_payload_mapping = cast(
+            JSONMappingLike | JSONMutableMapping, module_payload
+        )
+        module_payload_dict: dict[str, JSONValue] = {
+            key: cast(JSONValue, value) for key, value in module_payload_mapping.items()
+        }
         cached_payload: OptimizedEntityStateCachePayload
         if typed_module:
             cached_payload = cast(
-                OptimizedEntityStateCachePayload, dict(module_payload)
+                OptimizedEntityStateCachePayload, module_payload_dict
             )
         else:
             cached_payload = cast(
                 OptimizedEntityStateCachePayload,
-                _coerce_json_mutable(dict(module_payload)),
+                _coerce_json_mutable(
+                    cast(JSONMappingLike | JSONMutableMapping, module_payload_dict)
+                ),
             )
 
         _STATE_CACHE[cache_key] = _StateCacheEntry(
@@ -936,11 +959,13 @@ class OptimizedEntityBase(
         self._performance_tracker.record_cache_miss()
 
         if typed_module:
-            return cast(CoordinatorModuleState, dict(module_payload))
+            return cast(CoordinatorModuleState, module_payload_dict)
 
         return cast(
             CoordinatorUntypedModuleState,
-            _coerce_json_mutable(dict(module_payload)),
+            _coerce_json_mutable(
+                cast(JSONMappingLike | JSONMutableMapping, module_payload_dict)
+            ),
         )
 
     async def async_update(self) -> None:
