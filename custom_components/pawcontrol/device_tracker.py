@@ -625,9 +625,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
                 route_snapshot: JSONMutableMapping = {
                     "active": True,
                     "id": str(current_route.get("id") or ""),
-                    "name": str(
-                        current_route.get("name") or f"{self._dog_name} Route"
-                    ),
+                    "name": str(current_route.get("name") or f"{self._dog_name} Route"),
                     "points": route_points,
                     "last_point_time": timestamp_iso,
                     "point_count": len(route_points),
