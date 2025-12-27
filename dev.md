@@ -193,6 +193,11 @@
   die neuen Regressionstests für die RepairsFlow-Ergebnisse, die FlowResult-
   Aliase in `config_entries`/`data_entry_flow` und die OptionsFlow-Helfer
   dienen als Frühwarnung und müssen bei API-Änderungen mitgezogen werden.
+- JSON-Mapping-Coercions in `optimized_entity_base.py` müssen konsequent über
+  `cast(JSONMappingLike | JSONMutableMapping, ...)` sowie vorab materialisierte
+  `dict[str, JSONValue]`-Kopien laufen, damit MyPy/3.13 die Module-Caches nicht
+  mehr als Union-Dicts interpretiert; weitere Aufrufer im Modul und in
+  verwandten Helpern auf dieselbe Strategie prüfen.
 - Das lokale `hassfest`-Shim muss mit neuen Upstream-Regeln (z. B. zusätzliche
   Manifest- oder Übersetzungsfelder) abgeglichen und die Regressionstests
   entsprechend erweitert werden, damit der Guard-Lauf valide bleibt.
