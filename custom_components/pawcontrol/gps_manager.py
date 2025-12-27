@@ -59,6 +59,7 @@ from .types import (
     GPSRouteExportJSONRoute,
     GPSRouteExportPayload,
     GPSTrackingConfigInput,
+    JSONMapping,
 )
 from .utils import async_fire_event
 
@@ -1161,7 +1162,7 @@ class GPSGeofenceManager:
                 "zone": event.zone.name,
                 "zone_type": event.zone.zone_type,
                 "event": event.event_type.value,
-                "distance_meters": round(event.distance_from_center, 2),
+                "distance_meters": float(round(event.distance_from_center, 2)),
                 "timestamp": event.timestamp.isoformat(),
                 "latitude": event.location.latitude,
                 "longitude": event.location.longitude,
@@ -1177,11 +1178,13 @@ class GPSGeofenceManager:
                 GeofenceEventType.BREACH: EVENT_GEOFENCE_BREACH,
                 GeofenceEventType.RETURN: EVENT_GEOFENCE_RETURN,
             }[event.event_type]
-            await async_fire_event(self.hass, hass_event, event_payload)
+            await async_fire_event(
+                self.hass, hass_event, cast(JSONMapping, event_payload)
+            )
 
             title = f"Geofence alert • {event.dog_id}"
             zone_name = event.zone.name
-            distance = event_payload["distance_meters"]
+            distance: float = event_payload["distance_meters"]
 
             if event.event_type == GeofenceEventType.ENTERED:
                 message = f"{event.dog_id} entered {zone_name}."
@@ -1199,8 +1202,8 @@ class GPSGeofenceManager:
                     else NotificationPriority.NORMAL
                 )
             else:
-                duration = event_payload.get("duration_seconds", 0)
-                minutes = duration / 60 if duration else 0
+                duration = event_payload.get("duration_seconds")
+                minutes = duration / 60 if isinstance(duration, int) else 0.0
                 message = f"{event.dog_id} has been outside {zone_name} for {minutes:.1f} minutes"
                 priority = NotificationPriority.URGENT
 

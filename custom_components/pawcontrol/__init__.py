@@ -69,6 +69,8 @@ from .types import (
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
     DogConfigData,
+    JSONMapping,
+    JSONMutableMapping,
     ManualResilienceEventRecord,
     PawControlConfigEntry,
     PawControlRuntimeData,
@@ -610,7 +612,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         enabled_modules = _extract_enabled_modules(dogs_config)
 
         # Validate profile with fallback
-        profile = entry.options.get("entity_profile", "standard")
+        profile_option = entry.options.get("entity_profile", "standard")
+        profile: str = profile_option if isinstance(profile_option, str) else "standard"
         if profile not in ENTITY_PROFILES:
             _LOGGER.warning("Unknown profile '%s', using 'standard'", profile)
             profile = "standard"
@@ -865,7 +868,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 initialization_tasks.append(
                     _async_initialize_manager_with_timeout(
                         "feeding_manager",
-                        feeding_manager.async_initialize(dogs_config_payload),
+                        feeding_manager.async_initialize(
+                            cast(
+                                Sequence[JSONMapping | JSONMutableMapping],
+                                dogs_config_payload,
+                            )
+                        ),
                     )
                 )
 
@@ -930,10 +938,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             if geofencing_manager and not _simulate_async_call(
                 getattr(geofencing_manager, "async_initialize", None)
             ):
-                geofence_options = entry.options.get("geofence_settings", {})
-                geofencing_enabled = geofence_options.get("geofencing_enabled", False)
-                use_home_location = geofence_options.get("use_home_location", True)
-                home_zone_radius = geofence_options.get("geofence_radius_m", 50)
+                geofence_options_raw = entry.options.get("geofence_settings", {})
+                geofence_options = (
+                    geofence_options_raw
+                    if isinstance(geofence_options_raw, Mapping)
+                    else {}
+                )
+                geofencing_enabled = bool(geofence_options.get("geofencing_enabled", False))
+                use_home_location = bool(geofence_options.get("use_home_location", True))
+                radius = geofence_options.get("geofence_radius_m", 50)
+                home_zone_radius = int(radius) if isinstance(radius, (int, float)) else 50
 
                 initialization_tasks.append(
                     _async_initialize_manager_with_timeout(
@@ -1000,7 +1014,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             feeding_manager=feeding_manager,
             walk_manager=walk_manager,
             entity_factory=entity_factory,
-            entity_profile=profile,
+            entity_profile=str(profile),
             dogs=dogs_config,
         )
 
@@ -1490,12 +1504,20 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     # Get platforms for unloading
     if runtime_data:
         dogs = runtime_data.dogs
-        profile = runtime_data.entity_profile
+        profile_value = (
+            runtime_data.entity_profile if isinstance(runtime_data.entity_profile, str) else "standard"
+        )
     else:
-        dogs = entry.data.get(CONF_DOGS, [])
-        profile = entry.options.get("entity_profile", "standard")
+        raw_dogs = entry.data.get(CONF_DOGS, [])
+        dogs = raw_dogs if isinstance(raw_dogs, list) else []
+        option_profile = entry.options.get("entity_profile", "standard")
+        profile_value = option_profile if isinstance(option_profile, str) else "standard"
 
-    platforms = get_platforms_for_profile_and_modules(dogs, profile)
+    profile: str = profile_value
+
+    platforms = get_platforms_for_profile_and_modules(
+        cast(Sequence[DogConfigData], dogs), profile
+    )
 
     # Unload platforms with error tolerance and timeout
     platform_unload_start = time.time()
