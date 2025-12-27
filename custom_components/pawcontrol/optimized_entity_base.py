@@ -940,9 +940,7 @@ class OptimizedEntityBase(
         }
         cached_payload: OptimizedEntityStateCachePayload
         if typed_module:
-            cached_payload = cast(
-                OptimizedEntityStateCachePayload, module_payload_dict
-            )
+            cached_payload = cast(OptimizedEntityStateCachePayload, module_payload_dict)
         else:
             cached_payload = cast(
                 OptimizedEntityStateCachePayload,
