@@ -9,6 +9,7 @@ utilities that standardize how entity profiles are presented and validated.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Final, cast
 
 import voluptuous as vol
@@ -19,9 +20,23 @@ from .types import ProfileSelectionInput, ProfileSelectorOption
 #: Default profile used when the user has not made a choice yet.
 DEFAULT_PROFILE: Final[str] = "standard"
 
+
+def _coerce_str(value: object, *, fallback: str = "") -> str:
+    """Return the string value or a fallback when not a string."""
+
+    return value if isinstance(value, str) else fallback
+
+
+def _get_profile_title(profile: str, config: Mapping[str, object] | None) -> str:
+    """Return a safe profile title string for voluptuous selectors."""
+
+    name = config.get("name") if config else None
+    return _coerce_str(name, fallback=profile.title())
+
+
 # Mapping used by voluptuous to offer friendly names in the dropdown.
 PROFILE_TITLES: Final[dict[str, str]] = {
-    profile: config.get("name", profile.title())
+    profile: _get_profile_title(profile, config)
     for profile, config in ENTITY_PROFILES.items()
 }
 
@@ -66,8 +81,8 @@ def get_profile_selector_options() -> list[ProfileSelectorOption]:
 
     options: list[ProfileSelectorOption] = []
     for profile, config in ENTITY_PROFILES.items():
-        name = config.get("name", profile.title())
-        description = config.get("description", "")
+        name = _get_profile_title(profile, config)
+        description = _coerce_str(config.get("description"))
         max_entities = config.get("max_entities")
 
         label_parts = [name]
@@ -79,7 +94,7 @@ def get_profile_selector_options() -> list[ProfileSelectorOption]:
 
         option: ProfileSelectorOption = {
             "value": profile,
-            "label": " - ".join(label_parts),
+            "label": " - ".join(str(part) for part in label_parts),
         }
         options.append(option)
 
@@ -91,16 +106,16 @@ def build_profile_summary_text() -> str:
 
     summaries: list[str] = []
     for profile, config in ENTITY_PROFILES.items():
-        name = config.get("name", profile.title())
-        description = config.get("description", "")
-        recommended_for = config.get("recommended_for")
+        name = _get_profile_title(profile, config)
+        description = _coerce_str(config.get("description"))
+        recommended_for = _coerce_str(config.get("recommended_for"))
 
         summary_parts = [f"{name}: {description}".rstrip()]
-        if isinstance(recommended_for, str) and recommended_for:
+        if recommended_for:
             summary_parts.append(
                 f"You should pick this when you want {recommended_for.lower()}."
             )
 
-        summaries.append(" ".join(summary_parts).strip())
+        summaries.append(" ".join(str(part) for part in summary_parts).strip())
 
     return "\n".join(summaries)
