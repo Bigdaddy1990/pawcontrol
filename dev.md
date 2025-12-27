@@ -5,6 +5,10 @@
 - Die notwendigen Shims für `pytest_asyncio`, `pytest_cov.plugin` und
   `pytest_homeassistant_custom_component` liegen jetzt lokal vor, damit Pytest
   ohne externe Abhängigkeiten startet.
+- Die Profil-Auswahl filtert jetzt Nicht-String-Metadaten und wandelt alle
+  Label-Bestandteile vor dem Join in Strings um, damit Config-/Options-Flows
+  keine Python-3.13-Typfehler mehr riskieren und die Platinum-Validierung
+  stabil bleibt.
 - Regressionstests stellen sicher, dass diese Pytest-Shims auch künftig ohne
   externe Abhängigkeiten importierbar bleiben.
 - Ein lokales `hassfest`-Skript validiert Manifest- und Übersetzungsfelder
@@ -178,6 +182,21 @@
   `pref_disable_new_entities` und `pref_disable_polling` für HA- und Compat-
   Stubs, damit beide Varianten die HA-Präferenzfelder und Overrides
   widerspruchsfrei abdecken.
+- Die Entity-Attribute-Payloads der Text-, Switch-, Tracker-, Date- und
+  Datetime-Entitäten liefern jetzt explizit `dict[str, JSONValue]` und
+  normalisieren Route-/Timestamp-Snapshots auf ISO-Strings, damit die HA-State-
+  Serialisierung ab 2025.x JSON-sicher bleibt.
+- Die Diagnostics härten Performance-/Rejection-Metriken sowie Modul-
+  Zählungen jetzt durch Mapping-/Sequence-Guards ab und serialisieren die
+  Ergebnisse JSON-sicher, damit `get_dog_data` und Laufzeit-Payloads auch unter
+  Python 3.13 nicht mehr zu Typfehlern oder Len-Abstürzen führen.
+- Dashboard-Statistikpfade casten Ablehnungsmetriken jetzt explizit auf
+  JSON-Mappings bzw. `CoordinatorResilienceSummary`, damit Guard- und
+  MyPy-Kontrollen eindeutige Typen behalten.
+- Die Benachrichtigungs-Quiet-Hours validieren Options-Payloads jetzt defensiv
+  (Mapping-Guards, Timestamp-Normalisierung via `_deserialize_datetime` und
+  String-Fallbacks), damit ungültige Optionen keine Laufzeitfehler mehr
+  auslösen.
 - Zuletzt ausgeführte Checks (nach dem hassfest-Shim-Update): `ruff check`,
   `PYTHONPATH=$(pwd) pytest -q`, `python -m script.enforce_test_requirements`,
   `python -m scripts.enforce_shared_session_guard`,
@@ -185,6 +204,9 @@
   (alle grün). `mypy custom_components/pawcontrol` schlägt weiterhin mit
   zahlreichen Typfehlern fehl und muss bereinigt werden, bevor eine Platinum-
   Freigabe möglich ist.
+- Laufzeitdaten erzwingen jetzt String-basierte Entity-Profile und die
+  Unload-Plattform-Auswahl normalisiert Optionen, damit Nicht-String-Werte keine
+  Plattformberechnung oder Laufzeitdaten-Bereinigung mehr behindern.
 
 ## Offene Fehler und Verbesserungen
 
@@ -194,15 +216,30 @@
   die neuen Regressionstests für die RepairsFlow-Ergebnisse, die FlowResult-
   Aliase in `config_entries`/`data_entry_flow` und die OptionsFlow-Helfer
   dienen als Frühwarnung und müssen bei API-Änderungen mitgezogen werden.
+- Profil-Metadaten der Entity-Profile sollten weiterhin auf reine Strings
+  geprüft werden; falls Upstream neue Typen liefert, müssen Guards und
+  Regressionstests ergänzt werden, damit Config-/Options-Flows keine
+  Typfehler produzieren.
+- JSON-Mapping-Coercions in `optimized_entity_base.py` müssen konsequent über
+  `cast(JSONMappingLike | JSONMutableMapping, ...)` sowie vorab materialisierte
+  `dict[str, JSONValue]`-Kopien laufen, damit MyPy/3.13 die Module-Caches nicht
+  mehr als Union-Dicts interpretiert; weitere Aufrufer im Modul und in
+  verwandten Helpern auf dieselbe Strategie prüfen.
 - Das lokale `hassfest`-Shim muss mit neuen Upstream-Regeln (z. B. zusätzliche
   Manifest- oder Übersetzungsfelder) abgeglichen und die Regressionstests
   entsprechend erweitert werden, damit der Guard-Lauf valide bleibt.
+- Tests für die Quiet-Hours-Parser sollten fehlerhafte Optionen (Nicht-
+  Mappings, Datetime-/String-Mischformen) abdecken, damit Regressionen in der
+  Benachrichtigungslogik frühzeitig auffallen.
 - `mypy custom_components/pawcontrol` meldet weiterhin zahlreiche Typfehler
   (u. a. in `notifications.py`, `data_manager.py`, `options_flow.py`,
   `sensor.py`, `text.py`, `config_flow_external.py` und
   `config_flow_profile.py`). Die JSONValue-Coercions, TypedDict-Literale und
   Collection-Guards müssen vereinheitlicht werden, damit der MyPy-Guard wieder
   grün wird und die Home-Assistant-Platinum-Anforderungen erfüllt.
+- Die Options-Validierung sollte `entity_profile` strikt auf String-Werte und
+  bekannte Profile einschränken; ergänzende Tests für Setup/Unload-Normalisierung
+  würden sicherstellen, dass Nicht-String-Inputs künftig früh abgefangen werden.
 - Menü-, Progress- und External-Done-Ergebnisse der Flow-Stubs müssen bei
   Änderungen in den HA-Release-Notes (z. B. neue Felder in `FlowResult`)
   abgeglichen und in den Regressionstests ergänzt werden.
@@ -223,12 +260,23 @@
 - Merge-Heuristiken der Registry-Stubs (Identifiers/Connections bzw. Unique-ID
   + Plattform) regelmäßig gegen HA-Release-Notes prüfen und Regressionstests
   erweitern, falls Upstream neue Abgleichsregeln einführt.
+- Für die JSON-Safe-Serialisierung der Entitäten fehlen noch Regressionstests,
+  die Route-/Metadata-Snapshots auf ISO-Strings und JSONValue-Payloads prüfen,
+  damit keine `datetime`-Objekte mehr in States landen, wenn HA die
+  Serialisierung weiter verschärft.
 - Service-Guard-Metriken normalisieren jetzt Zähler und Historie über einen
   gemeinsamen Integer-Coercer, sodass Guard-Zusammenfassungen keine
   Nicht-Zahlen mehr akkumulieren.
+- Diagnostics-Guards (Mapping-/Sequence-Prüfungen, JSON-Serialisierung der
+  Rejection-/Performance-Metriken und `get_dog_data`-Fallbacks) müssen durch
+  Regressionstests abgesichert werden, damit atypische Laufzeit-Payloads und
+  künftige HA-API-Änderungen nicht zu neuen Typfehlern führen.
 - Runtime-Store-Dauer-Percentiles werden jetzt explizit pro Schlüssel
   (`p75`/`p90`/`p95`) berechnet, damit die TypedDict-Anforderungen von
   Home Assistant eingehalten und strengere MyPy-Checks bestanden werden.
+- Dashboard-Templates sollten Resilience- und Statistikpfade weiterhin auf
+  konsistente Mapping-Casts prüfen, damit MyPy- und Platinum-Checks nicht durch
+  untypisierte Payloads blockiert werden.
 - Registry-Stubs sollen mehrere Config-Entries und zusätzliche Metadaten pro
   Entity/Device speichern (z. B. Identifiers, Connections, Translation Keys,
   Aliases) und erweitern dies um Area/Disabled/Primary/Icons/Units, damit

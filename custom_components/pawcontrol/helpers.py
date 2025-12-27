@@ -12,7 +12,7 @@ from collections import deque
 from collections.abc import Awaitable, Callable, Mapping, Sized
 from contextlib import suppress
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, time, timedelta
 from functools import wraps
 from time import perf_counter
 from typing import Any, Final, ParamSpec, TypedDict, TypeVar, cast
@@ -39,6 +39,7 @@ from .const import (
     EVENT_WALK_ENDED,
     EVENT_WALK_STARTED,
 )
+from .data_manager import _deserialize_datetime
 from .types import (
     VALID_NOTIFICATION_PRIORITIES,
     CacheDiagnosticsMetadata,
@@ -1868,27 +1869,54 @@ class PawControlNotificationManager:
 
         return result
 
+    @staticmethod
+    def _coerce_quiet_hours_time(candidate: object, fallback: str) -> time | None:
+        """Return a parsed quiet-hours time or ``None`` if invalid."""
+
+        if (parsed_datetime := _deserialize_datetime(candidate)) is not None:
+            return dt_util.as_local(parsed_datetime).time().replace(tzinfo=None)
+
+        if isinstance(candidate, datetime):
+            return dt_util.as_local(candidate).time().replace(tzinfo=None)
+
+        try:
+            time_input = fallback if candidate is None else str(candidate)
+        except Exception:
+            return None
+
+        parsed_time = dt_util.parse_time(time_input)
+        if parsed_time is not None:
+            return parsed_time.replace(tzinfo=None)
+
+        try:
+            return datetime.strptime(time_input, "%H:%M:%S").time()
+        except ValueError:
+            return None
+
     def _calculate_notification_allowed(self, priority: NotificationPriority) -> bool:
         """Calculate if notification should be sent."""
-        notification_config = self.config_entry.options.get(CONF_NOTIFICATIONS, {})
+        notification_config = self.config_entry.options.get(CONF_NOTIFICATIONS)
 
         # Always send urgent notifications
         if priority == "urgent":
+            return True
+
+        if not isinstance(notification_config, Mapping):
             return True
 
         # Check quiet hours
         if not notification_config.get(CONF_QUIET_HOURS, False):
             return True
 
-        now = dt_util.now().time()
-        quiet_start = notification_config.get(CONF_QUIET_START, "22:00:00")
-        quiet_end = notification_config.get(CONF_QUIET_END, "07:00:00")
+        now = dt_util.now().time().replace(tzinfo=None)
+        quiet_start_time = self._coerce_quiet_hours_time(
+            notification_config.get(CONF_QUIET_START), "22:00:00"
+        )
+        quiet_end_time = self._coerce_quiet_hours_time(
+            notification_config.get(CONF_QUIET_END), "07:00:00"
+        )
 
-        try:
-            quiet_start_time = datetime.strptime(quiet_start, "%H:%M:%S").time()
-            quiet_end_time = datetime.strptime(quiet_end, "%H:%M:%S").time()
-        except ValueError:
-            # Invalid time format, allow notification
+        if quiet_start_time is None or quiet_end_time is None:
             return True
 
         # Handle quiet hours that span midnight

@@ -43,11 +43,11 @@ from .types import (
     DOG_ID_FIELD,
     DOG_NAME_FIELD,
     CoordinatorDogData,
-    DateExtraAttributes,
     DogConfigData,
     DogModulesMapping,
     DogProfileSnapshot,
     HealthModulePayload,
+    JSONValue,
     ensure_dog_modules_mapping,
 )
 from .utils import async_call_add_entities
@@ -288,10 +288,10 @@ class PawControlDateBase(PawControlEntity, DateEntity, RestoreEntity):
         return self._current_value
 
     @property
-    def extra_state_attributes(self) -> DateExtraAttributes:
+    def extra_state_attributes(self) -> dict[str, JSONValue]:
         """Return extra state attributes for enhanced functionality."""
 
-        attributes: DateExtraAttributes = {
+        attributes: dict[str, JSONValue] = {
             "dog_id": self._dog_id,
             "dog_name": self._dog_name,
             "date_type": self._date_type,
