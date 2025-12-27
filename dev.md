@@ -174,6 +174,10 @@
   `pref_disable_new_entities` und `pref_disable_polling` für HA- und Compat-
   Stubs, damit beide Varianten die HA-Präferenzfelder und Overrides
   widerspruchsfrei abdecken.
+- Die Entity-Attribute-Payloads der Text-, Switch-, Tracker-, Date- und
+  Datetime-Entitäten liefern jetzt explizit `dict[str, JSONValue]` und
+  normalisieren Route-/Timestamp-Snapshots auf ISO-Strings, damit die HA-State-
+  Serialisierung ab 2025.x JSON-sicher bleibt.
 - Zuletzt ausgeführte Checks (nach dem hassfest-Shim-Update): `ruff check`,
   `PYTHONPATH=$(pwd) pytest -q`, `python -m script.enforce_test_requirements`,
   `python -m scripts.enforce_shared_session_guard`,
@@ -219,6 +223,10 @@
 - Merge-Heuristiken der Registry-Stubs (Identifiers/Connections bzw. Unique-ID
   + Plattform) regelmäßig gegen HA-Release-Notes prüfen und Regressionstests
   erweitern, falls Upstream neue Abgleichsregeln einführt.
+- Für die JSON-Safe-Serialisierung der Entitäten fehlen noch Regressionstests,
+  die Route-/Metadata-Snapshots auf ISO-Strings und JSONValue-Payloads prüfen,
+  damit keine `datetime`-Objekte mehr in States landen, wenn HA die
+  Serialisierung weiter verschärft.
 - Service-Guard-Metriken normalisieren jetzt Zähler und Historie über einen
   gemeinsamen Integer-Coercer, sodass Guard-Zusammenfassungen keine
   Nicht-Zahlen mehr akkumulieren.
