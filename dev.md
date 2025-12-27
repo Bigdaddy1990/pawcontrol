@@ -5,6 +5,10 @@
 - Die notwendigen Shims für `pytest_asyncio`, `pytest_cov.plugin` und
   `pytest_homeassistant_custom_component` liegen jetzt lokal vor, damit Pytest
   ohne externe Abhängigkeiten startet.
+- Die Profil-Auswahl filtert jetzt Nicht-String-Metadaten und wandelt alle
+  Label-Bestandteile vor dem Join in Strings um, damit Config-/Options-Flows
+  keine Python-3.13-Typfehler mehr riskieren und die Platinum-Validierung
+  stabil bleibt.
 - Regressionstests stellen sicher, dass diese Pytest-Shims auch künftig ohne
   externe Abhängigkeiten importierbar bleiben.
 - Ein lokales `hassfest`-Skript validiert Manifest- und Übersetzungsfelder
@@ -200,6 +204,10 @@
   die neuen Regressionstests für die RepairsFlow-Ergebnisse, die FlowResult-
   Aliase in `config_entries`/`data_entry_flow` und die OptionsFlow-Helfer
   dienen als Frühwarnung und müssen bei API-Änderungen mitgezogen werden.
+- Profil-Metadaten der Entity-Profile sollten weiterhin auf reine Strings
+  geprüft werden; falls Upstream neue Typen liefert, müssen Guards und
+  Regressionstests ergänzt werden, damit Config-/Options-Flows keine
+  Typfehler produzieren.
 - JSON-Mapping-Coercions in `optimized_entity_base.py` müssen konsequent über
   `cast(JSONMappingLike | JSONMutableMapping, ...)` sowie vorab materialisierte
   `dict[str, JSONValue]`-Kopien laufen, damit MyPy/3.13 die Module-Caches nicht
