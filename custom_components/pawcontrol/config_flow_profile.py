@@ -116,6 +116,6 @@ def build_profile_summary_text() -> str:
                 f"You should pick this when you want {recommended_for.lower()}."
             )
 
-        summaries.append(" ".join(str(part) for part in summary_parts).strip())
+        summaries.append(" ".join(summary_parts).strip())
 
     return "\n".join(summaries)
