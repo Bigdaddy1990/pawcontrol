@@ -125,6 +125,10 @@
 - Die Device-Registry-Stubs mergen jetzt nachgelieferte Identifiers und
   Connections in bestehende Einträge, sodass Merge-Aufrufe keine Metadaten mehr
   verlieren, wenn sie nur neue Hints liefern.
+- Die External-Flow-Platzhalter werden jetzt zu `dict[str, int | float | str]`
+  normalisiert, bevor sie in einen `MappingProxyType` überführt werden, damit
+  TypedDict-Literale für Config-Flow-Platzhalter HA- und MyPy-Anforderungen
+  entsprechen.
 - Die Device-Registry-Stubs vergeben jetzt eindeutige IDs, wenn weder
   Identifiers/Connections noch eine explizite ID übergeben werden, damit
   Registry-Tests keine Gerätekollisionen verdecken und HA-ähnliche IDs prüfen
