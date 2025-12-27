@@ -38,7 +38,6 @@ from .types import (
     CoordinatorDogData,
     CoordinatorModuleState,
     DogConfigData,
-    GPSCompletedRouteSnapshot,
     GPSLocationSample,
     GPSModulePayload,
     GPSRouteBuffer,
@@ -50,14 +49,14 @@ from .types import (
     GPSRouteExportJSONRoute,
     GPSRouteExportPayload,
     GPSRoutePoint,
-    GPSRouteSnapshot,
-    GPSTrackerExtraAttributes,
     JSONMapping,
+    JSONMutableMapping,
+    JSONValue,
     PawControlConfigEntry,
     ensure_dog_config_data,
     ensure_dog_modules_projection,
 )
-from .utils import async_call_add_entities
+from .utils import async_call_add_entities, ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -203,6 +202,44 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
         self._route_points = GPSRouteBuffer[GPSRoutePoint]()
         self._current_zone: str | None = None
 
+    @staticmethod
+    def _serialize_timestamp(value: datetime | str | None) -> str | None:
+        """Return an ISO-formatted timestamp for ``value`` when possible."""
+
+        if isinstance(value, datetime):
+            return dt_util.as_utc(value).isoformat()
+        if isinstance(value, str):
+            return value
+        return None
+
+    def _serialize_route_point(self, point: GPSRoutePoint) -> dict[str, JSONValue]:
+        """Convert a route point to a JSON-safe mapping."""
+
+        timestamp_iso = self._serialize_timestamp(point.get("timestamp"))
+        payload: dict[str, JSONValue] = {
+            "latitude": float(point["latitude"]),
+            "longitude": float(point["longitude"]),
+            "timestamp": timestamp_iso or dt_util.utcnow().isoformat(),
+        }
+
+        accuracy = point.get("accuracy")
+        if isinstance(accuracy, int | float):
+            payload["accuracy"] = float(accuracy)
+
+        altitude = point.get("altitude")
+        if isinstance(altitude, int | float):
+            payload["altitude"] = float(altitude)
+
+        speed = point.get("speed")
+        if isinstance(speed, int | float):
+            payload["speed"] = float(speed)
+
+        heading = point.get("heading")
+        if isinstance(heading, int | float):
+            payload["heading"] = float(heading)
+
+        return payload
+
     @property
     def available(self) -> bool:
         """Return True if GPS data is available."""
@@ -290,9 +327,9 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
         return zone if zone and zone != "unknown" else None
 
     @property
-    def extra_state_attributes(self) -> GPSTrackerExtraAttributes:
+    def extra_state_attributes(self) -> dict[str, JSONValue]:
         """Return additional GPS tracker attributes."""
-        attrs: GPSTrackerExtraAttributes = {
+        attrs: dict[str, JSONValue] = {
             "dog_id": self._dog_id,
             "dog_name": self._dog_name,
             "tracker_type": MODULE_GPS,
@@ -559,6 +596,10 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
                 runtime_payload = cast(CoordinatorDogData, dog_data)
                 runtime_payload["gps"] = cast(CoordinatorModuleState, mutable_gps_state)
 
+            timestamp_iso = (
+                self._serialize_timestamp(location_data["timestamp"])
+                or dt_util.utcnow().isoformat()
+            )
             mutable_gps_state.update(
                 {
                     "latitude": location_data["latitude"],
@@ -567,7 +608,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
                     "altitude": location_data.get("altitude"),
                     "speed": location_data.get("speed"),
                     "heading": location_data.get("heading"),
-                    "last_seen": location_data["timestamp"],
+                    "last_seen": timestamp_iso,
                     "source": location_data["source"],
                 }
             )
@@ -577,10 +618,39 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
             if isinstance(current_route, Mapping) and current_route.get(
                 "active", False
             ):
-                route_snapshot = cast(GPSRouteSnapshot, dict(current_route))
-                route_snapshot["points"] = self._route_points.snapshot(limit=100)
-                route_snapshot["last_point_time"] = location_data["timestamp"]
-                route_snapshot["point_count"] = len(self._route_points)
+                route_points = [
+                    self._serialize_route_point(point)
+                    for point in self._route_points.snapshot(limit=100)
+                ]
+                route_snapshot: JSONMutableMapping = {
+                    "active": True,
+                    "id": str(current_route.get("id") or ""),
+                    "name": str(current_route.get("name") or f"{self._dog_name} Route"),
+                    "points": route_points,
+                    "last_point_time": timestamp_iso,
+                    "point_count": len(route_points),
+                }
+
+                start_time_iso = self._serialize_timestamp(
+                    cast(datetime | str | None, current_route.get("start_time"))
+                )
+                end_time_iso = self._serialize_timestamp(
+                    cast(datetime | str | None, current_route.get("end_time"))
+                )
+
+                if start_time_iso is not None:
+                    route_snapshot["start_time"] = start_time_iso
+                if end_time_iso is not None:
+                    route_snapshot["end_time"] = end_time_iso
+
+                route_distance = current_route.get("distance")
+                if isinstance(route_distance, int | float):
+                    route_snapshot["distance"] = float(route_distance)
+
+                route_duration = current_route.get("duration")
+                if isinstance(route_duration, int | float):
+                    route_snapshot["duration"] = route_duration
+
                 mutable_gps_state["current_route"] = route_snapshot
 
             # This would normally update the coordinator data
@@ -610,6 +680,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
         try:
             route_id = f"route_{self._dog_id}_{int(dt_util.utcnow().timestamp())}"
             start_time = dt_util.utcnow()
+            start_time_iso = dt_util.as_utc(start_time).isoformat()
 
             # Clear previous route points
             self._route_points.clear()
@@ -620,7 +691,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
                 "id": route_id,
                 "name": route_name or f"{self._dog_name} Route",
                 "active": True,
-                "start_time": start_time,
+                "start_time": start_time_iso,
                 "points": [],
                 "distance": 0,
                 "duration": 0,
@@ -644,7 +715,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
 
     async def async_stop_route_recording(
         self, save_route: bool = True
-    ) -> GPSCompletedRouteSnapshot | None:
+    ) -> dict[str, JSONValue] | None:
         """Stop recording the current GPS route.
 
         Args:
@@ -665,11 +736,8 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
 
             end_time = dt_util.utcnow()
             start_time_raw = current_route.get("start_time")
-            if isinstance(start_time_raw, datetime):
-                start_time = start_time_raw
-            else:
-                start_time = dt_util.utcnow()
-                current_route["start_time"] = start_time
+            start_time = ensure_utc_datetime(start_time_raw) or dt_util.utcnow()
+            current_route["start_time"] = dt_util.as_utc(start_time).isoformat()
 
             duration = (end_time - start_time).total_seconds()
 
@@ -677,26 +745,31 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
             distance = self._calculate_route_distance(self._route_points.view())
 
             points_snapshot = self._route_points.snapshot()
-            route_data: GPSCompletedRouteSnapshot = {
-                "id": current_route["id"],
-                "name": current_route["name"],
+            serialized_points = [
+                self._serialize_route_point(point) for point in points_snapshot
+            ]
+            start_time_iso = dt_util.as_utc(start_time).isoformat()
+            end_time_iso = dt_util.as_utc(end_time).isoformat()
+            route_data: dict[str, JSONValue] = {
+                "id": str(current_route.get("id") or ""),
+                "name": str(current_route.get("name") or f"{self._dog_name} Route"),
                 "active": False,
                 "dog_id": self._dog_id,
                 "dog_name": self._dog_name,
-                "start_time": start_time,
-                "end_time": end_time,
+                "start_time": start_time_iso,
+                "end_time": end_time_iso,
                 "duration": duration,
-                "distance": distance,
-                "points": points_snapshot,
-                "point_count": len(points_snapshot),
+                "distance": float(distance),
+                "points": serialized_points,
+                "point_count": len(serialized_points),
             }
 
             # Mark route as inactive
             current_route["active"] = False
-            current_route["end_time"] = end_time
+            current_route["end_time"] = end_time_iso
             current_route["duration"] = duration
-            current_route["distance"] = distance
-            current_route["point_count"] = len(points_snapshot)
+            current_route["distance"] = float(distance)
+            current_route["point_count"] = len(serialized_points)
 
             if save_route:
                 # Save route (would normally store in database/coordinator)

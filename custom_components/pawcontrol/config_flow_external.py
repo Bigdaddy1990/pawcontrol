@@ -63,7 +63,12 @@ def _build_external_entities_placeholders(
         "visitor_enabled": visitor_enabled,
         "dog_count": dog_count,
     }
-    return MappingProxyType(placeholders)
+
+    placeholder_payload: dict[str, int | float | str] = {
+        key: int(value) if isinstance(value, bool) else value
+        for key, value in placeholders.items()
+    }
+    return MappingProxyType(placeholder_payload)
 
 
 if TYPE_CHECKING:
