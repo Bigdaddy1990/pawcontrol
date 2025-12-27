@@ -174,6 +174,10 @@
   `pref_disable_new_entities` und `pref_disable_polling` für HA- und Compat-
   Stubs, damit beide Varianten die HA-Präferenzfelder und Overrides
   widerspruchsfrei abdecken.
+- Die Benachrichtigungs-Quiet-Hours validieren Options-Payloads jetzt defensiv
+  (Mapping-Guards, Timestamp-Normalisierung via `_deserialize_datetime` und
+  String-Fallbacks), damit ungültige Optionen keine Laufzeitfehler mehr
+  auslösen.
 - Zuletzt ausgeführte Checks (nach dem hassfest-Shim-Update): `ruff check`,
   `PYTHONPATH=$(pwd) pytest -q`, `python -m script.enforce_test_requirements`,
   `python -m scripts.enforce_shared_session_guard`,
@@ -193,6 +197,9 @@
 - Das lokale `hassfest`-Shim muss mit neuen Upstream-Regeln (z. B. zusätzliche
   Manifest- oder Übersetzungsfelder) abgeglichen und die Regressionstests
   entsprechend erweitert werden, damit der Guard-Lauf valide bleibt.
+- Tests für die Quiet-Hours-Parser sollten fehlerhafte Optionen (Nicht-
+  Mappings, Datetime-/String-Mischformen) abdecken, damit Regressionen in der
+  Benachrichtigungslogik frühzeitig auffallen.
 - `mypy custom_components/pawcontrol` meldet weiterhin zahlreiche Typfehler
   (u. a. in `notifications.py`, `data_manager.py`, `options_flow.py`,
   `sensor.py`, `text.py`, `config_flow_external.py` und
