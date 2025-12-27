@@ -46,6 +46,7 @@ from .service_guard import (
 from .types import (
     CardModConfig,
     CoordinatorRejectionMetrics,
+    CoordinatorResilienceSummary,
     CoordinatorStatisticsPayload,
     DogModulesConfig,
     HelperManagerGuardMetrics,
@@ -1989,7 +1990,10 @@ class DashboardTemplates:
         if isinstance(coordinator_statistics, Mapping):
             raw_metrics = coordinator_statistics.get("rejection_metrics")
             if isinstance(raw_metrics, Mapping):
-                coordinator_metrics = derive_rejection_metrics(raw_metrics)
+                metrics_payload = cast(
+                    JSONMapping | CoordinatorResilienceSummary | None, raw_metrics
+                )
+                coordinator_metrics = derive_rejection_metrics(metrics_payload)
 
         service_metrics = _coerce_rejection_metrics(service_execution_metrics)
         guard_metrics = _coerce_guard_metrics(service_guard_metrics)
