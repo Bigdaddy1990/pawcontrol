@@ -94,7 +94,7 @@ def get_profile_selector_options() -> list[ProfileSelectorOption]:
 
         option: ProfileSelectorOption = {
             "value": profile,
-            "label": " - ".join(str(part) for part in label_parts),
+            "label": " - ".join(label_parts),
         }
         options.append(option)
 
