@@ -63,11 +63,11 @@ from .types import (
     OptimizedEntityPerformanceMetrics,
     OptimizedEntityPerformanceSummary,
     OptimizedEntityStateCachePayload,
+    ensure_json_mapping,
 )
 from .utils import (
     JSONMappingLike,
     JSONMutableMapping,
-    JSONValue,
     PawControlDeviceLinkMixin,
     _coerce_json_mutable,
     async_call_add_entities,
@@ -885,20 +885,14 @@ class OptimizedEntityBase(
                 not coordinator_available or cached_available is not False
             ):
                 self._performance_tracker.record_cache_hit()
-                payload_mapping = cast(
-                    JSONMappingLike | JSONMutableMapping, entry.payload
+                payload = ensure_json_mapping(
+                    cast(JSONMappingLike | JSONMutableMapping, entry.payload)
                 )
-                payload: dict[str, JSONValue] = {
-                    key: cast(JSONValue, value)
-                    for key, value in payload_mapping.items()
-                }
                 if typed_module:
                     return cast(CoordinatorModuleState, payload)
                 return cast(
                     CoordinatorUntypedModuleState,
-                    _coerce_json_mutable(
-                        cast(JSONMappingLike | JSONMutableMapping, payload)
-                    ),
+                    _coerce_json_mutable(payload),
                 )
 
         # Fetch from coordinator
@@ -913,17 +907,15 @@ class OptimizedEntityBase(
                     self.coordinator, "get_module_data", self._dog_id, module
                 )
             if isinstance(result, Mapping):
-                mapped_result: dict[str, JSONValue] = {
-                    key: cast(JSONValue, value) for key, value in result.items()
-                }
+                mapped_result = ensure_json_mapping(
+                    cast(JSONMappingLike | JSONMutableMapping, result)
+                )
                 module_payload = (
                     cast(CoordinatorModuleState, mapped_result)
                     if typed_module
                     else cast(
                         CoordinatorUntypedModuleState,
-                        _coerce_json_mutable(
-                            cast(JSONMappingLike | JSONMutableMapping, mapped_result)
-                        ),
+                        _coerce_json_mutable(mapped_result),
                     )
                 )
             elif typed_module:
@@ -932,21 +924,18 @@ class OptimizedEntityBase(
             module_payload = cast(CoordinatorModuleState, {"status": "unknown"})
 
         # Cache result
-        module_payload_mapping = cast(
-            JSONMappingLike | JSONMutableMapping, module_payload
+        module_payload_mapping = ensure_json_mapping(
+            cast(JSONMappingLike | JSONMutableMapping, module_payload)
         )
-        module_payload_dict: dict[str, JSONValue] = {
-            key: cast(JSONValue, value) for key, value in module_payload_mapping.items()
-        }
         cached_payload: OptimizedEntityStateCachePayload
         if typed_module:
-            cached_payload = cast(OptimizedEntityStateCachePayload, module_payload_dict)
+            cached_payload = cast(
+                OptimizedEntityStateCachePayload, module_payload_mapping
+            )
         else:
             cached_payload = cast(
                 OptimizedEntityStateCachePayload,
-                _coerce_json_mutable(
-                    cast(JSONMappingLike | JSONMutableMapping, module_payload_dict)
-                ),
+                _coerce_json_mutable(module_payload_mapping),
             )
 
         _STATE_CACHE[cache_key] = _StateCacheEntry(
@@ -957,13 +946,11 @@ class OptimizedEntityBase(
         self._performance_tracker.record_cache_miss()
 
         if typed_module:
-            return cast(CoordinatorModuleState, module_payload_dict)
+            return cast(CoordinatorModuleState, module_payload_mapping)
 
         return cast(
             CoordinatorUntypedModuleState,
-            _coerce_json_mutable(
-                cast(JSONMappingLike | JSONMutableMapping, module_payload_dict)
-            ),
+            _coerce_json_mutable(module_payload_mapping),
         )
 
     async def async_update(self) -> None:

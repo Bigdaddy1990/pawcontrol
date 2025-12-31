@@ -14,8 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Mapping, MutableMapping
-from types import MappingProxyType
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any, cast
 
 import voluptuous as vol
@@ -56,38 +55,39 @@ from custom_components.pawcontrol.const import (
     SPECIAL_DIET_OPTIONS,
 )
 from custom_components.pawcontrol.types import (
+    ADD_ANOTHER_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE,
+    ADD_DOG_CAPACITY_PLACEHOLDERS_TEMPLATE,
     DOG_AGE_FIELD,
     DOG_BREED_FIELD,
     DOG_FEEDING_CONFIG_FIELD,
+    DOG_FEEDING_PLACEHOLDERS_TEMPLATE,
     DOG_GPS_CONFIG_FIELD,
+    DOG_GPS_PLACEHOLDERS_TEMPLATE,
     DOG_HEALTH_CONFIG_FIELD,
+    DOG_HEALTH_PLACEHOLDERS_TEMPLATE,
     DOG_ID_FIELD,
     DOG_MODULES_FIELD,
+    DOG_MODULES_SUGGESTION_PLACEHOLDERS_TEMPLATE,
     DOG_NAME_FIELD,
     DOG_SIZE_FIELD,
     DOG_WEIGHT_FIELD,
+    MODULE_SETUP_SUMMARY_PLACEHOLDERS_TEMPLATE,
     MODULE_TOGGLE_FLAG_BY_KEY,
     MODULE_TOGGLE_KEYS,
     AddAnotherDogInput,
-    AddAnotherDogSummaryPlaceholders,
-    AddDogCapacityPlaceholders,
     ConfigFlowPlaceholders,
     DietCompatibilityIssue,
     DietValidationResult,
     DogConfigData,
     DogFeedingConfig,
-    DogFeedingPlaceholders,
     DogFeedingStepInput,
     DogGPSConfig,
-    DogGPSPlaceholders,
     DogGPSStepInput,
     DogHealthConfig,
-    DogHealthPlaceholders,
     DogHealthStepInput,
     DogMedicationEntry,
     DogModulesConfig,
     DogModuleSelectionInput,
-    DogModulesSuggestionPlaceholders,
     DogSetupStepInput,
     DogVaccinationRecord,
     DogValidationCacheEntry,
@@ -95,12 +95,12 @@ from custom_components.pawcontrol.types import (
     JSONMapping,
     ModuleConfigurationSnapshot,
     ModuleConfigurationStepInput,
-    ModuleSetupSummaryPlaceholders,
     ModuleToggleKey,
-    MutableConfigFlowPlaceholders,
+    clone_placeholders,
     dog_feeding_config_from_flow,
     dog_modules_from_flow_input,
     ensure_dog_modules_config,
+    freeze_placeholders,
     normalize_performance_mode,
 )
 from homeassistant.config_entries import ConfigFlowResult
@@ -151,17 +151,6 @@ def _coerce_bool(value: Any, *, default: bool = False) -> bool:
     return default
 
 
-def _freeze_placeholders(
-    placeholders: Mapping[str, object] | MutableMapping[str, object],
-) -> ConfigFlowPlaceholders:
-    """Return an immutable mapping proxy for ``placeholders``."""
-
-    frozen_placeholders: MutableConfigFlowPlaceholders = cast(
-        MutableConfigFlowPlaceholders, dict(placeholders)
-    )
-    return cast(ConfigFlowPlaceholders, MappingProxyType(frozen_placeholders))
-
-
 def _build_add_dog_placeholders(
     *,
     dog_count: int,
@@ -171,13 +160,12 @@ def _build_add_dog_placeholders(
 ) -> ConfigFlowPlaceholders:
     """Return immutable placeholders for the add-dog form."""
 
-    placeholders: AddDogCapacityPlaceholders = {
-        "dog_count": dog_count,
-        "max_dogs": max_dogs,
-        "current_dogs": current_dogs,
-        "remaining_spots": remaining_spots,
-    }
-    return _freeze_placeholders(placeholders)
+    placeholders = clone_placeholders(ADD_DOG_CAPACITY_PLACEHOLDERS_TEMPLATE)
+    placeholders["dog_count"] = dog_count
+    placeholders["max_dogs"] = max_dogs
+    placeholders["current_dogs"] = current_dogs
+    placeholders["remaining_spots"] = remaining_spots
+    return freeze_placeholders(placeholders)
 
 
 def _build_dog_modules_placeholders(
@@ -185,21 +173,19 @@ def _build_dog_modules_placeholders(
 ) -> ConfigFlowPlaceholders:
     """Return immutable placeholders for the module selection step."""
 
-    placeholders: DogModulesSuggestionPlaceholders = {
-        "dog_name": dog_name,
-        "dog_size": dog_size,
-        "dog_age": dog_age,
-    }
-    return _freeze_placeholders(placeholders)
+    placeholders = clone_placeholders(DOG_MODULES_SUGGESTION_PLACEHOLDERS_TEMPLATE)
+    placeholders["dog_name"] = dog_name
+    placeholders["dog_size"] = dog_size
+    placeholders["dog_age"] = dog_age
+    return freeze_placeholders(placeholders)
 
 
 def _build_dog_gps_placeholders(*, dog_name: str) -> ConfigFlowPlaceholders:
     """Return immutable placeholders for the GPS configuration step."""
 
-    placeholders: DogGPSPlaceholders = {
-        "dog_name": dog_name,
-    }
-    return _freeze_placeholders(placeholders)
+    placeholders = clone_placeholders(DOG_GPS_PLACEHOLDERS_TEMPLATE)
+    placeholders["dog_name"] = dog_name
+    return freeze_placeholders(placeholders)
 
 
 def _build_dog_feeding_placeholders(
@@ -211,13 +197,12 @@ def _build_dog_feeding_placeholders(
 ) -> ConfigFlowPlaceholders:
     """Return immutable placeholders for the feeding configuration step."""
 
-    placeholders: DogFeedingPlaceholders = {
-        "dog_name": dog_name,
-        "dog_weight": dog_weight,
-        "suggested_amount": suggested_amount,
-        "portion_info": portion_info,
-    }
-    return _freeze_placeholders(placeholders)
+    placeholders = clone_placeholders(DOG_FEEDING_PLACEHOLDERS_TEMPLATE)
+    placeholders["dog_name"] = dog_name
+    placeholders["dog_weight"] = dog_weight
+    placeholders["suggested_amount"] = suggested_amount
+    placeholders["portion_info"] = portion_info
+    return freeze_placeholders(placeholders)
 
 
 def _build_dog_health_placeholders(
@@ -234,18 +219,17 @@ def _build_dog_health_placeholders(
 ) -> ConfigFlowPlaceholders:
     """Return immutable placeholders for the health configuration step."""
 
-    placeholders: DogHealthPlaceholders = {
-        "dog_name": dog_name,
-        "dog_age": dog_age,
-        "dog_weight": dog_weight,
-        "suggested_ideal_weight": suggested_ideal_weight,
-        "suggested_activity": suggested_activity,
-        "medication_enabled": medication_enabled,
-        "bcs_info": bcs_info,
-        "special_diet_count": special_diet_count,
-        "health_diet_info": health_diet_info,
-    }
-    return _freeze_placeholders(placeholders)
+    placeholders = clone_placeholders(DOG_HEALTH_PLACEHOLDERS_TEMPLATE)
+    placeholders["dog_name"] = dog_name
+    placeholders["dog_age"] = dog_age
+    placeholders["dog_weight"] = dog_weight
+    placeholders["suggested_ideal_weight"] = suggested_ideal_weight
+    placeholders["suggested_activity"] = suggested_activity
+    placeholders["medication_enabled"] = medication_enabled
+    placeholders["bcs_info"] = bcs_info
+    placeholders["special_diet_count"] = special_diet_count
+    placeholders["health_diet_info"] = health_diet_info
+    return freeze_placeholders(placeholders)
 
 
 def _build_add_another_summary_placeholders(
@@ -258,14 +242,13 @@ def _build_add_another_summary_placeholders(
 ) -> ConfigFlowPlaceholders:
     """Return immutable placeholders when asking to add another dog."""
 
-    placeholders: AddAnotherDogSummaryPlaceholders = {
-        "dogs_list": dogs_list,
-        "dog_count": dog_count,
-        "max_dogs": max_dogs,
-        "remaining_spots": remaining_spots,
-        "at_limit": at_limit,
-    }
-    return _freeze_placeholders(placeholders)
+    placeholders = clone_placeholders(ADD_ANOTHER_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE)
+    placeholders["dogs_list"] = dogs_list
+    placeholders["dog_count"] = dog_count
+    placeholders["max_dogs"] = max_dogs
+    placeholders["remaining_spots"] = remaining_spots
+    placeholders["at_limit"] = at_limit
+    return freeze_placeholders(placeholders)
 
 
 def _build_module_setup_placeholders(
@@ -279,15 +262,14 @@ def _build_module_setup_placeholders(
 ) -> ConfigFlowPlaceholders:
     """Return immutable placeholders for the module configuration overview."""
 
-    placeholders: ModuleSetupSummaryPlaceholders = {
-        "total_dogs": total_dogs,
-        "gps_dogs": gps_dogs,
-        "health_dogs": health_dogs,
-        "suggested_performance": suggested_performance,
-        "complexity_info": complexity_info,
-        "next_step_info": next_step_info,
-    }
-    return _freeze_placeholders(placeholders)
+    placeholders = clone_placeholders(MODULE_SETUP_SUMMARY_PLACEHOLDERS_TEMPLATE)
+    placeholders["total_dogs"] = total_dogs
+    placeholders["gps_dogs"] = gps_dogs
+    placeholders["health_dogs"] = health_dogs
+    placeholders["suggested_performance"] = suggested_performance
+    placeholders["complexity_info"] = complexity_info
+    placeholders["next_step_info"] = next_step_info
+    return freeze_placeholders(placeholders)
 
 
 def _coerce_int(value: Any, *, default: int) -> int:
@@ -1519,7 +1501,7 @@ class DogManagementMixin(DogManagementMixinBase):
         if isinstance(user_input, Mapping):
             current_values = cast(JSONMapping, user_input)
         else:
-            current_values = cast(JSONMapping, MappingProxyType({}))
+            current_values = cast(JSONMapping, {})
 
         return vol.Schema(
             {

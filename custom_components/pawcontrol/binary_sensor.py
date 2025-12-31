@@ -60,6 +60,7 @@ from .types import (
     WalkModulePayload,
     ensure_dog_config_data,
     ensure_dog_modules_mapping,
+    ensure_json_mapping,
 )
 from .utils import async_call_add_entities, ensure_utc_datetime
 
@@ -471,6 +472,11 @@ class PawControlBinarySensorBase(
         """Return the actual state of the sensor. Subclasses should override."""
         return False
 
+    def _inherit_extra_attributes(self) -> JSONMutableMapping:
+        """Return a mutable copy of inherited attributes."""
+
+        return ensure_json_mapping(super().extra_state_attributes)
+
     @property
     def icon(self) -> str | None:
         """Return the icon to use in the frontend."""
@@ -508,7 +514,7 @@ class PawControlBinarySensorBase(
     def _build_base_attributes(self) -> JSONMutableMapping:
         """Return a JSON-mutable mapping seeded with common attributes."""
 
-        attrs = cast(JSONMutableMapping, dict(super().extra_state_attributes))
+        attrs = self._inherit_extra_attributes()
         attrs.setdefault(ATTR_DOG_ID, self._dog_id)
         attrs.setdefault(ATTR_DOG_NAME, self._dog_name)
 
@@ -640,7 +646,7 @@ class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Expose the latest garden telemetry for diagnostics dashboards."""
-        attrs: JSONMutableMapping = super().extra_state_attributes
+        attrs: JSONMutableMapping = self._inherit_extra_attributes()
         data = self._get_garden_data()
         garden_status = data.get("status")
         if garden_status is not None:
@@ -686,7 +692,7 @@ class PawControlOnlineBinarySensor(PawControlBinarySensorBase):
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional attributes for the online sensor."""
-        attrs: JSONMutableMapping = super().extra_state_attributes
+        attrs: JSONMutableMapping = self._inherit_extra_attributes()
         dog_data = self._get_dog_data_cached()
 
         if dog_data:
@@ -765,7 +771,7 @@ class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional attributes explaining why attention is needed."""
-        attrs: JSONMutableMapping = super().extra_state_attributes
+        attrs: JSONMutableMapping = self._inherit_extra_attributes()
 
         if hasattr(self, "_attention_reasons"):
             attrs["attention_reasons"] = self._attention_reasons
@@ -840,7 +846,7 @@ class PawControlVisitorModeBinarySensor(PawControlBinarySensorBase):
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional attributes for visitor mode."""
-        attrs: JSONMutableMapping = super().extra_state_attributes
+        attrs: JSONMutableMapping = self._inherit_extra_attributes()
         dog_data = self._get_dog_data_cached()
 
         if dog_data:
@@ -889,7 +895,7 @@ class PawControlIsHungryBinarySensor(PawControlBinarySensorBase):
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional feeding status attributes."""
-        attrs: JSONMutableMapping = super().extra_state_attributes
+        attrs: JSONMutableMapping = self._inherit_extra_attributes()
         feeding_data = self._get_feeding_payload()
 
         if not feeding_data:
@@ -1046,7 +1052,7 @@ class PawControlWalkInProgressBinarySensor(PawControlBinarySensorBase):
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional walk progress attributes."""
-        attrs: JSONMutableMapping = super().extra_state_attributes
+        attrs: JSONMutableMapping = self._inherit_extra_attributes()
         walk_data = self._get_walk_payload()
 
         if walk_data and walk_data.get(WALK_IN_PROGRESS_FIELD):
@@ -1110,7 +1116,7 @@ class PawControlNeedsWalkBinarySensor(PawControlBinarySensorBase):
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional walk need attributes."""
-        attrs: JSONMutableMapping = super().extra_state_attributes
+        attrs: JSONMutableMapping = self._inherit_extra_attributes()
         walk_data = self._get_walk_payload()
 
         if walk_data:
@@ -1233,7 +1239,7 @@ class PawControlIsHomeBinarySensor(PawControlBinarySensorBase):
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional location attributes."""
-        attrs: JSONMutableMapping = super().extra_state_attributes
+        attrs: JSONMutableMapping = self._inherit_extra_attributes()
         gps_data = self._get_gps_payload()
 
         if gps_data:
@@ -1458,7 +1464,7 @@ class PawControlHealthAlertBinarySensor(PawControlBinarySensorBase):
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return health alert details."""
-        attrs: JSONMutableMapping = super().extra_state_attributes
+        attrs: JSONMutableMapping = self._inherit_extra_attributes()
         health_data = self._get_health_payload()
 
         if not health_data:
@@ -1626,7 +1632,7 @@ class PawControlActivityLevelConcernBinarySensor(PawControlBinarySensorBase):
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return activity level concern details."""
-        attrs: JSONMutableMapping = super().extra_state_attributes
+        attrs: JSONMutableMapping = self._inherit_extra_attributes()
         health_data = self._get_health_payload()
 
         if health_data:
@@ -1685,7 +1691,7 @@ class PawControlHealthAwareFeedingBinarySensor(PawControlBinarySensorBase):
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return health-aware feeding metadata for the caregiver UI."""
-        attrs: JSONMutableMapping = super().extra_state_attributes
+        attrs: JSONMutableMapping = self._inherit_extra_attributes()
         feeding_data = self._get_feeding_payload()
 
         if feeding_data is None:
@@ -1734,7 +1740,7 @@ class PawControlMedicationWithMealsBinarySensor(PawControlBinarySensorBase):
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Report which health conditions require medication with meals."""
-        attrs: JSONMutableMapping = super().extra_state_attributes
+        attrs: JSONMutableMapping = self._inherit_extra_attributes()
         feeding_data = self._get_feeding_payload()
         if feeding_data:
             raw_conditions = feeding_data.get("health_conditions")
@@ -1779,7 +1785,7 @@ class PawControlHealthEmergencyBinarySensor(PawControlBinarySensorBase):
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Expose emergency context such as type, timing, and status."""
-        attrs: JSONMutableMapping = super().extra_state_attributes
+        attrs: JSONMutableMapping = self._inherit_extra_attributes()
         feeding_data = self._get_feeding_payload()
         emergency_payload = (
             feeding_data.get("emergency_mode") if feeding_data is not None else None
@@ -1893,7 +1899,7 @@ class PawControlGardenPoopPendingBinarySensor(PawControlGardenBinarySensorBase):
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Expose how many confirmation prompts are outstanding."""
-        attrs: JSONMutableMapping = super().extra_state_attributes
+        attrs: JSONMutableMapping = self._inherit_extra_attributes()
         pending = self._get_garden_data().get("pending_confirmations")
         if isinstance(pending, list):
             attrs["pending_confirmations"] = cast(JSONValue, pending)

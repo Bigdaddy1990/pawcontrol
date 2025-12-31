@@ -29,8 +29,17 @@ REQUIRED_KEYS = {
     "integration_type",
     "quality_scale",
     "loggers",
+    "supported_by",
+    "iot_class",
 }
 REQUIRED_LIST_KEYS = {"requirements", "codeowners", "loggers"}
+IOT_CLASS_VALUES = {
+    "assumed_state",
+    "cloud_polling",
+    "cloud_push",
+    "local_polling",
+    "local_push",
+}
 
 
 def _load_manifest(manifest_path: Path) -> dict[str, Any]:
@@ -89,6 +98,18 @@ def _validate_manifest(manifest_path: Path) -> list[str]:
                 f"manifest.loggers must include 'custom_components.{expected_domain}'"
             )
 
+    supported_by = manifest.get("supported_by")
+    if supported_by is not None and (
+        not isinstance(supported_by, str) or not supported_by
+    ):
+        errors.append("manifest.supported_by must be null or a non-empty string")
+
+    iot_class = manifest.get("iot_class")
+    if iot_class not in IOT_CLASS_VALUES:
+        errors.append(
+            "manifest.iot_class must be one of: " + ", ".join(sorted(IOT_CLASS_VALUES))
+        )
+
     return errors
 
 
@@ -102,10 +123,26 @@ def _validate_translations(integration_path: Path) -> list[str]:
     if not strings_path.is_file():
         errors.append("strings.json is missing")
 
+    def _load_object(path: Path) -> dict[str, Any] | None:
+        try:
+            loaded = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            errors.append(f"{path.name} is not valid JSON")
+            return None
+        if not isinstance(loaded, dict):
+            errors.append(f"{path.name} must contain a JSON object")
+            return None
+        return loaded
+
+    if strings_path.is_file():
+        _load_object(strings_path)
+
     if translations_dir.is_dir():
         english_translation = translations_dir / "en.json"
         if not english_translation.is_file():
             errors.append("translations/en.json is missing")
+        else:
+            _load_object(english_translation)
 
     return errors
 
