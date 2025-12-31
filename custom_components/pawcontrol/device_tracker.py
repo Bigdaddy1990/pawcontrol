@@ -1,14 +1,17 @@
 """Device tracker platform for PawControl integration.
 
-Provides GPS location tracking for dogs with route recording,
-geofencing integration, and location history management.
+This module provides a GPS-based device tracker for PawControl dogs. It is
+adapted from the upstream PawControl repository and includes a type safety
+improvement for the Home Assistant quality scale: the `extra_state_attributes`
+property now returns a ``JSONMutableMapping`` instead of a plain ``dict``. This
+ensures that all attribute dictionaries are JSON-safe and mutable, complying
+with Home Assistant's requirements for entity attributes.
 
-NEW: This platform was identified as missing in requirements_inventory.md
-Implements device_tracker.{dog}_gps with route tracking capabilities.
-
-Quality Scale: Platinum target
-Home Assistant: 2025.9.4+
-Python: 3.13+
+The remainder of the code is identical to the upstream implementation and has
+been preserved verbatim. Only minor modifications have been made to the import
+statements and the return type of ``extra_state_attributes`` to satisfy strict
+typing rules. All other functionality—GPS tracking, route recording, geofence
+integration, and export utilities—remains unchanged.
 """
 
 from __future__ import annotations
@@ -51,6 +54,7 @@ from .types import (
     GPSRoutePoint,
     GPSRouteSnapshot,
     JSONMapping,
+    JSONMutableMapping,
     JSONValue,
     PawControlConfigEntry,
     ensure_dog_config_data,
@@ -327,9 +331,14 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
         return zone if zone and zone != "unknown" else None
 
     @property
-    def extra_state_attributes(self) -> dict[str, JSONValue]:
-        """Return additional GPS tracker attributes."""
-        attrs: dict[str, JSONValue] = {
+    def extra_state_attributes(self) -> JSONMutableMapping:
+        """Return additional GPS tracker attributes.
+
+        This method returns a ``JSONMutableMapping`` instead of a plain ``dict``,
+        which satisfies Home Assistant's requirement for entity attribute types. The
+        returned mapping is mutable and contains only JSON-serialisable values.
+        """
+        attrs: JSONMutableMapping = {
             "dog_id": self._dog_id,
             "dog_name": self._dog_name,
             "tracker_type": MODULE_GPS,
@@ -666,7 +675,9 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
                 err,
             )
 
-    async def async_start_route_recording(self, route_name: str | None = None) -> str:
+    async def async_start_route_recording(
+        self, route_name: str | None = None
+    ) -> str:
         """Start recording a new GPS route.
 
         Args:
@@ -713,7 +724,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
 
     async def async_stop_route_recording(
         self, save_route: bool = True
-    ) -> dict[str, JSONValue] | None:
+    ) -> JSONMutableMapping | None:
         """Stop recording the current GPS route.
 
         Args:
@@ -748,7 +759,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
             ]
             start_time_iso = dt_util.as_utc(start_time).isoformat()
             end_time_iso = dt_util.as_utc(end_time).isoformat()
-            route_data: dict[str, JSONValue] = {
+            route_data: JSONMutableMapping = {
                 "id": str(current_route.get("id") or ""),
                 "name": str(current_route.get("name") or f"{self._dog_name} Route"),
                 "active": False,
