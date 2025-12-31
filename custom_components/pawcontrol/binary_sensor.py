@@ -55,6 +55,7 @@ from .types import (
     GPSModulePayload,
     HealthModulePayload,
     JSONMapping,
+    JSONValue,
     PawControlConfigEntry,
     WalkModulePayload,
     ensure_dog_config_data,
@@ -488,29 +489,22 @@ class PawControlBinarySensorBase(
     @property
     def extra_state_attributes(self) -> BinarySensorAttributes:
         """Return additional state attributes for the binary sensor."""
-        attrs = cast(
-            BinarySensorAttributes,
-            {
-                ATTR_DOG_ID: self._dog_id,
-                ATTR_DOG_NAME: self._dog_name,
-                "last_update": dt_util.utcnow().isoformat(),
-                "sensor_type": self._sensor_type,
-            },
-        )
+        attrs: BinarySensorAttributes = {
+            ATTR_DOG_ID: self._dog_id,
+            ATTR_DOG_NAME: self._dog_name,
+            "last_update": dt_util.utcnow().isoformat(),
+            "sensor_type": self._sensor_type,
+        }
 
         # Add dog-specific information with error handling
         try:
             dog_data = self._get_dog_data_cached()
             if dog_data and "dog_info" in dog_data:
                 dog_info = cast(DogConfigData, dog_data["dog_info"])
-                attrs.update(
-                    {
-                        "dog_breed": dog_info.get("dog_breed"),
-                        "dog_age": dog_info.get("dog_age"),
-                        "dog_size": dog_info.get("dog_size"),
-                        "dog_weight": dog_info.get("dog_weight"),
-                    }
-                )
+                attrs["dog_breed"] = cast(str | None, dog_info.get("dog_breed"))
+                attrs["dog_age"] = cast(int | float | None, dog_info.get("dog_age"))
+                attrs["dog_size"] = cast(str | None, dog_info.get("dog_size"))
+                attrs["dog_weight"] = cast(float | None, dog_info.get("dog_weight"))
         except Exception as err:
             _LOGGER.debug("Could not fetch dog info for attributes: %s", err)
 
@@ -644,7 +638,7 @@ class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
             attrs["sessions_today"] = sessions_today
         pending_confirmations = data.get("pending_confirmations")
         if pending_confirmations is not None:
-            attrs["pending_confirmations"] = pending_confirmations
+            attrs["pending_confirmations"] = cast(JSONValue, pending_confirmations)
         return attrs
 
 
@@ -762,13 +756,9 @@ class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
         attrs = super().extra_state_attributes
 
         if hasattr(self, "_attention_reasons"):
-            attrs.update(
-                {
-                    "attention_reasons": self._attention_reasons,
-                    "urgency_level": self._calculate_urgency_level(),
-                    "recommended_actions": self._get_recommended_actions(),
-                }
-            )
+            attrs["attention_reasons"] = self._attention_reasons
+            attrs["urgency_level"] = self._calculate_urgency_level()
+            attrs["recommended_actions"] = self._get_recommended_actions()
 
         return attrs
 
@@ -849,18 +839,12 @@ class PawControlVisitorModeBinarySensor(PawControlBinarySensorBase):
                 str | None, dog_data.get("visitor_mode_started")
             )
             visitor_name = cast(str | None, dog_data.get("visitor_name"))
-            attrs.update(
-                {
-                    "visitor_mode_started": visitor_mode_started,
-                    "visitor_name": visitor_name,
-                    "modified_notifications": bool(
-                        visitor_settings.get("modified_notifications", True)
-                    ),
-                    "reduced_alerts": bool(
-                        visitor_settings.get("reduced_alerts", True)
-                    ),
-                }
+            attrs["visitor_mode_started"] = visitor_mode_started
+            attrs["visitor_name"] = visitor_name
+            attrs["modified_notifications"] = bool(
+                visitor_settings.get("modified_notifications", True)
             )
+            attrs["reduced_alerts"] = bool(visitor_settings.get("reduced_alerts", True))
 
         return attrs
 
@@ -1470,7 +1454,7 @@ class PawControlHealthAlertBinarySensor(PawControlBinarySensorBase):
 
         health_alerts = health_data.get("health_alerts")
         if isinstance(health_alerts, list):
-            attrs["health_alerts"] = health_alerts
+            attrs["health_alerts"] = cast(JSONValue, health_alerts)
             attrs["alert_count"] = len(health_alerts)
 
         health_status = health_data.get("health_status")
@@ -1640,13 +1624,9 @@ class PawControlActivityLevelConcernBinarySensor(PawControlBinarySensorBase):
                 if isinstance(activity_level_value, str)
                 else "normal"
             )
-            attrs.update(
-                {
-                    "current_activity_level": activity_level,
-                    "concern_reason": self._get_concern_reason(activity_level),
-                    "recommended_action": self._get_recommended_action(activity_level),
-                }
-            )
+            attrs["current_activity_level"] = activity_level
+            attrs["concern_reason"] = self._get_concern_reason(activity_level)
+            attrs["recommended_action"] = self._get_recommended_action(activity_level)
 
         return attrs
 
@@ -1904,7 +1884,7 @@ class PawControlGardenPoopPendingBinarySensor(PawControlGardenBinarySensorBase):
         attrs = super().extra_state_attributes
         pending = self._get_garden_data().get("pending_confirmations")
         if isinstance(pending, list):
-            attrs["pending_confirmations"] = pending
+            attrs["pending_confirmations"] = cast(JSONValue, pending)
             attrs["pending_confirmation_count"] = len(pending)
         else:
             attrs["pending_confirmation_count"] = 0

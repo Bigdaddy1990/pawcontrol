@@ -801,15 +801,12 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
         """Return attributes with optimized caching."""
 
         last_pressed = cast(str | None, getattr(self, "_last_pressed", None))
-        attrs = cast(
-            ButtonExtraAttributes,
-            {
-                ATTR_DOG_ID: self._dog_id,
-                ATTR_DOG_NAME: self._dog_name,
-                "button_type": self._button_type,
-                "last_pressed": last_pressed,
-            },
-        )
+        attrs: ButtonExtraAttributes = {
+            ATTR_DOG_ID: self._dog_id,
+            ATTR_DOG_NAME: self._dog_name,
+            "button_type": self._button_type,
+            "last_pressed": last_pressed,
+        }
 
         if self._action_description:
             attrs["action_description"] = self._action_description

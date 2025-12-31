@@ -3179,7 +3179,7 @@ class GPSRoutePoint(TypedDict, total=False):
 
     latitude: Required[float]
     longitude: Required[float]
-    timestamp: Required[datetime]
+    timestamp: Required[datetime | str]
     accuracy: Required[float | int]
     altitude: float | None
     speed: float | None
@@ -3206,13 +3206,13 @@ class GPSRouteSnapshot(TypedDict, total=False):
     id: Required[str]
     name: Required[str]
     active: Required[bool]
-    start_time: Required[datetime]
-    end_time: datetime | None
+    start_time: Required[datetime | str]
+    end_time: datetime | str | None
     duration: float | int | None
     distance: float | None
     points: list[GPSRoutePoint]
     point_count: int
-    last_point_time: datetime | None
+    last_point_time: datetime | str | None
 
 
 class GPSCompletedRouteSnapshot(GPSRouteSnapshot, total=False):
@@ -3358,7 +3358,7 @@ class GPSTelemetryPayload(TypedDict, total=False):
     speed: float | None
     heading: float | None
     source: str | None
-    last_seen: datetime | None
+    last_seen: datetime | str | None
     last_update: str | None
     battery: float | int | None
     zone: str | None
@@ -3529,7 +3529,13 @@ class GPSRouteBuffer[TPoint: "GPSRoutePoint"]:
     def prune(self, *, cutoff: datetime, max_points: int) -> None:
         """Drop samples older than ``cutoff`` while enforcing ``max_points``."""
 
-        self._points = [point for point in self._points if point["timestamp"] > cutoff]
+        filtered_points: list[TPoint] = []
+        for point in self._points:
+            timestamp = point.get("timestamp")
+            if isinstance(timestamp, datetime) and timestamp > cutoff:
+                filtered_points.append(point)
+
+        self._points = filtered_points
         if len(self._points) > max_points:
             self._points = self._points[-max_points:]
 

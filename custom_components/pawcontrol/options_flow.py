@@ -371,14 +371,20 @@ class PawControlOptionsFlow(OptionsFlow):
     def _clone_options(self) -> ConfigEntryOptionsPayload:
         """Return a shallow copy of the current options for mutation."""
 
-        return cast(ConfigEntryOptionsPayload, dict(self._entry.options))
+        return cast(
+            ConfigEntryOptionsPayload,
+            dict(cast(Mapping[str, JSONValue], self._entry.options)),
+        )
 
     def _normalise_options_snapshot(
         self, options: Mapping[str, object]
     ) -> PawControlOptionsData:
         """Return a typed options mapping with notifications and dog entries coerced."""
 
-        mutable = cast(ConfigEntryOptionsPayload, dict(options))
+        mutable = cast(
+            JSONMutableMapping,
+            dict(cast(Mapping[str, JSONValue], options)),
+        )
 
         if CONF_NOTIFICATIONS in mutable:
             raw_notifications = mutable.get(CONF_NOTIFICATIONS)
@@ -387,9 +393,14 @@ class PawControlOptionsFlow(OptionsFlow):
                 if isinstance(raw_notifications, Mapping)
                 else {}
             )
-            mutable[CONF_NOTIFICATIONS] = ensure_notification_options(
-                notifications_source,
-                defaults=cast(NotificationOptionsInput, dict(_NOTIFICATION_DEFAULTS)),
+            mutable[CONF_NOTIFICATIONS] = cast(
+                JSONValue,
+                ensure_notification_options(
+                    notifications_source,
+                    defaults=cast(
+                        NotificationOptionsInput, dict(_NOTIFICATION_DEFAULTS)
+                    ),
+                ),
             )
 
         if DOG_OPTIONS_FIELD in mutable:
@@ -409,7 +420,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     if dog_id and entry.get(DOG_ID_FIELD) != dog_id:
                         entry[DOG_ID_FIELD] = dog_id
                     typed_dog_options[dog_id] = entry
-            mutable[DOG_OPTIONS_FIELD] = typed_dog_options
+            mutable[DOG_OPTIONS_FIELD] = cast(JSONValue, typed_dog_options)
 
         if ADVANCED_SETTINGS_FIELD in mutable:
             raw_advanced = mutable.get(ADVANCED_SETTINGS_FIELD)
@@ -418,9 +429,12 @@ class PawControlOptionsFlow(OptionsFlow):
                 if isinstance(raw_advanced, Mapping)
                 else {}
             )
-            mutable[ADVANCED_SETTINGS_FIELD] = ensure_advanced_options(
-                cast(JSONLikeMapping, dict(advanced_source)),
-                defaults=cast(JSONLikeMapping, dict(mutable)),
+            mutable[ADVANCED_SETTINGS_FIELD] = cast(
+                JSONValue,
+                ensure_advanced_options(
+                    cast(JSONLikeMapping, dict(advanced_source)),
+                    defaults=cast(JSONLikeMapping, dict(mutable)),
+                ),
             )
 
         return cast(PawControlOptionsData, mutable)
@@ -1106,12 +1120,12 @@ class PawControlOptionsFlow(OptionsFlow):
         """Fetch the stored notification configuration as a typed mapping."""
 
         raw = self._current_options().get(CONF_NOTIFICATIONS, {})
-        payload: Mapping[str, object] = (
-            cast(Mapping[str, object], raw) if isinstance(raw, Mapping) else {}
+        payload: Mapping[str, JSONValue] = (
+            cast(Mapping[str, JSONValue], raw) if isinstance(raw, Mapping) else {}
         )
         return ensure_notification_options(
-            dict(payload),
-            defaults=dict(_NOTIFICATION_DEFAULTS),
+            cast(JSONLikeMapping, dict(payload)),
+            defaults=cast(NotificationOptionsInput, dict(_NOTIFICATION_DEFAULTS)),
         )
 
     def _current_weather_options(self) -> WeatherOptions:
@@ -1957,15 +1971,34 @@ class PawControlOptionsFlow(OptionsFlow):
         endpoint = (
             endpoint_raw.strip()
             if isinstance(endpoint_raw, str)
-            else current.get(CONF_API_ENDPOINT, "")
+            else str(current.get(CONF_API_ENDPOINT, ""))
         )
         token_raw = user_input.get(CONF_API_TOKEN, current.get(CONF_API_TOKEN, ""))
         token = (
             token_raw.strip()
             if isinstance(token_raw, str)
-            else current.get(CONF_API_TOKEN, "")
+            else str(current.get(CONF_API_TOKEN, ""))
         )
-        sanitized_input = cast(JSONMutableMapping, dict(user_input))
+        sanitized_input: JSONMutableMapping = {}
+        for key, value in user_input.items():
+            if isinstance(value, (bool, int, float, str)) or value is None:
+                sanitized_input[str(key)] = value
+            elif isinstance(value, Mapping):
+                sanitized_input[str(key)] = cast(JSONValue, dict(value))
+            elif isinstance(value, Sequence) and not isinstance(
+                value, (str, bytes, bytearray)
+            ):
+                sanitized_input[str(key)] = cast(
+                    JSONValue, [cast(JSONValue, item) for item in value]
+                )
+            else:
+                _LOGGER.warning(
+                    "Advanced options received non-JSON-serializable value for %s; "
+                    "storing repr (%s)",
+                    key,
+                    type(value).__name__,
+                )
+                sanitized_input[str(key)] = repr(value)
         if CONF_API_ENDPOINT in user_input:
             sanitized_input[CONF_API_ENDPOINT] = endpoint
         if CONF_API_TOKEN in user_input:
@@ -2316,6 +2349,9 @@ class PawControlOptionsFlow(OptionsFlow):
                     current_dogs.append(normalised)
         current_dogs = cast(list[DogConfigData], current_dogs)
         current_dogs = cast(list[DogConfigData], current_dogs)
+        dog_entries: list[Mapping[str, JSONValue]] = cast(
+            list[Mapping[str, JSONValue]], current_dogs
+        )
 
         current_profile_raw = self._entry.options.get("entity_profile", DEFAULT_PROFILE)
         current_profile = (
@@ -2332,9 +2368,12 @@ class PawControlOptionsFlow(OptionsFlow):
                 )
             except (TypeError, ValueError):
                 telemetry_digest = repr(sorted(telemetry.items()))
+        serializable_dogs = [
+            cast(JSONMutableMapping, dict(dog)) for dog in current_dogs
+        ]
         cache_key = (
             f"{current_profile}_{len(current_dogs)}_"
-            f"{hash(json.dumps(current_dogs, sort_keys=True))}_"
+            f"{hash(json.dumps(serializable_dogs, sort_keys=True))}_"
             f"{self._last_reconfigure_timestamp() or ''}_"
             f"{hash(telemetry_digest)}"
         )
@@ -2358,12 +2397,15 @@ class PawControlOptionsFlow(OptionsFlow):
         profile_description = str(profile_info.get("description", ""))
         str(profile_info.get("performance_impact", ""))
 
-        for dog in current_dogs:
-            dog_config = cast(DogConfigData, dog)
-            modules_config = ensure_dog_modules_config(
-                cast(Mapping[str, object], dog_config)
-            )
-            modules_dict = dict(modules_config)
+        dog_entries_local = dog_entries
+
+        for dog_config in dog_entries_local:
+            modules_config = ensure_dog_modules_config(dog_config)
+            modules_dict: dict[str, bool] = {
+                str(name): bool(enabled)
+                for name, enabled in modules_config.items()
+                if isinstance(enabled, bool)
+            }
             estimate = self._entity_factory.estimate_entity_count(
                 current_profile, modules_dict
             )
@@ -2377,7 +2419,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     f"{dog_name} modules may not be optimal for {current_profile}"
                 )
 
-        total_capacity = max_entities * len(current_dogs)
+        total_capacity = max_entities * len(dog_entries_local)
         utilization = (
             f"{(total_estimate / total_capacity * 100):.1f}"
             if total_capacity > 0
@@ -2387,7 +2429,7 @@ class PawControlOptionsFlow(OptionsFlow):
         placeholders: MutableConfigFlowPlaceholders = {
             "current_profile": current_profile,
             "current_description": profile_description,
-            "dogs_count": str(len(current_dogs)),
+            "dogs_count": str(len(dog_entries_local)),
             "estimated_entities": str(total_estimate),
             "max_entities_per_dog": str(max_entities),
             "performance_impact": self._get_performance_impact_description(
@@ -2442,6 +2484,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 normalised = ensure_dog_config_data(cast(Mapping[str, JSONValue], dog))
                 if normalised is not None:
                     current_dogs.append(normalised)
+        dog_entries = cast(list[Mapping[str, JSONValue]], current_dogs)
 
         cache_key = (
             f"{profile}_{len(current_dogs)}_"
@@ -2464,14 +2507,15 @@ class PawControlOptionsFlow(OptionsFlow):
             else 0
         )
 
-        for dog in current_dogs:
-            dog_config = cast(DogConfigData, dog)
+        for dog_config in dog_entries:
             dog_name = dog_config.get(CONF_DOG_NAME, "Unknown")
             dog_id = dog_config.get(CONF_DOG_ID, "unknown")
-            modules_config = ensure_dog_modules_config(
-                cast(Mapping[str, object], dog_config)
-            )
-            modules_dict = dict(modules_config)
+            modules_config = ensure_dog_modules_config(dog_config)
+            modules_dict: dict[str, bool] = {
+                str(name): bool(enabled)
+                for name, enabled in modules_config.items()
+                if isinstance(enabled, bool)
+            }
 
             estimate = self._entity_factory.estimate_entity_count(profile, modules_dict)
             total_entities += estimate
@@ -2482,13 +2526,16 @@ class PawControlOptionsFlow(OptionsFlow):
             utilization = (estimate / max_entities) * 100 if max_entities > 0 else 0
 
             entity_breakdown.append(
-                {
-                    "dog_name": dog_name,
-                    "dog_id": dog_id,
-                    "entities": estimate,
-                    "modules": enabled_modules,
-                    "utilization": utilization,
-                }
+                cast(
+                    JSONMutableMapping,
+                    {
+                        "dog_name": dog_name,
+                        "dog_id": dog_id,
+                        "entities": estimate,
+                        "modules": enabled_modules,
+                        "utilization": utilization,
+                    },
+                )
             )
 
             if utilization > 80:
@@ -2502,12 +2549,13 @@ class PawControlOptionsFlow(OptionsFlow):
             current_total = total_entities
         else:
             current_total = 0
-            for dog in current_dogs:
-                dog_config = cast(DogConfigData, dog)
-                modules_mapping = ensure_dog_modules_config(
-                    cast(Mapping[str, object], dog_config)
-                )
-                modules = dict(modules_mapping)
+            for dog_config in dog_entries:
+                modules_mapping = ensure_dog_modules_config(dog_config)
+                modules: dict[str, bool] = {
+                    str(name): bool(enabled)
+                    for name, enabled in modules_mapping.items()
+                    if isinstance(enabled, bool)
+                }
                 current_total += self._entity_factory.estimate_entity_count(
                     current_profile, modules
                 )
@@ -2552,20 +2600,27 @@ class PawControlOptionsFlow(OptionsFlow):
 
         for dog in dogs:
             dog_config = cast(DogConfigData, dog)
-            modules = ensure_dog_modules_config(cast(Mapping[str, object], dog_config))
+            modules = ensure_dog_modules_config(
+                cast(Mapping[str, JSONValue], dog_config)
+            )
+            module_flags: dict[str, bool] = {
+                str(name): bool(enabled)
+                for name, enabled in modules.items()
+                if isinstance(enabled, bool)
+            }
             dog_name = dog_config.get(CONF_DOG_NAME, "Unknown")
 
-            if profile == "gps_focus" and not modules.get(MODULE_GPS, False):
+            if profile == "gps_focus" and not module_flags.get(MODULE_GPS, False):
                 warnings.append(
                     f"🛰️ {dog_name}: GPS focus profile but GPS module disabled"
                 )
 
-            if profile == "health_focus" and not modules.get(MODULE_HEALTH, False):
+            if profile == "health_focus" and not module_flags.get(MODULE_HEALTH, False):
                 warnings.append(
                     f"🏥 {dog_name}: Health focus profile but health module disabled"
                 )
 
-            if profile == "basic" and sum(modules.values()) > 3:
+            if profile == "basic" and sum(module_flags.values()) > 3:
                 warnings.append(
                     f"⚡ {dog_name}: Many modules enabled for basic profile"
                 )
@@ -2595,6 +2650,12 @@ class PawControlOptionsFlow(OptionsFlow):
         preview_data = await self._calculate_profile_preview_optimized(profile)
         breakdown_lines = []
 
+        def as_float(value):
+            return float(value) if isinstance(value, (int, float)) else 0.0
+
+        def as_int(value):
+            return int(value) if isinstance(value, (int, float)) else 0
+
         entity_breakdown = cast(
             list[JSONMutableMapping],
             preview_data.get("entity_breakdown", []),
@@ -2611,15 +2672,15 @@ class PawControlOptionsFlow(OptionsFlow):
             breakdown_lines.append(
                 f"• {item.get('dog_name', 'Unknown')}: {item.get('entities', 0)} "
                 f"entities (modules: {modules_display}, "
-                f"utilization: {float(item.get('utilization', 0.0)):.1f}%)"
+                f"utilization: {as_float(item.get('utilization', 0.0)):.1f}%)"
             )
 
         performance_change = (
             "same"
-            if int(preview_data.get("entity_difference", 0)) == 0
+            if as_int(preview_data.get("entity_difference", 0)) == 0
             else (
                 "better"
-                if int(preview_data.get("entity_difference", 0)) < 0
+                if as_int(preview_data.get("entity_difference", 0)) < 0
                 else "higher resource usage"
             )
         )
@@ -2678,14 +2739,16 @@ class PawControlOptionsFlow(OptionsFlow):
                 current_options = self._current_options()
                 new_options = self._clone_options()
 
-                profile = validate_profile_selection(
-                    {
-                        "entity_profile": user_input.get(
-                            "entity_profile",
-                            current_options.get("entity_profile", DEFAULT_PROFILE),
-                        )
-                    }
+                profile_candidate = user_input.get(
+                    "entity_profile",
+                    current_options.get("entity_profile", DEFAULT_PROFILE),
                 )
+                profile_input = (
+                    profile_candidate
+                    if isinstance(profile_candidate, str)
+                    else str(profile_candidate)
+                )
+                profile = validate_profile_selection({"entity_profile": profile_input})
 
                 raw_batch = current_options.get("batch_size")
                 if isinstance(raw_batch, int):
@@ -2702,8 +2765,14 @@ class PawControlOptionsFlow(OptionsFlow):
 
                 new_options["entity_profile"] = profile
                 new_options["performance_mode"] = normalize_performance_mode(
-                    user_input.get("performance_mode"),
-                    current=current_options.get("performance_mode"),
+                    user_input.get("performance_mode")
+                    if isinstance(user_input.get("performance_mode"), str)
+                    else None,
+                    current=(
+                        current_options.get("performance_mode")
+                        if isinstance(current_options.get("performance_mode"), str)
+                        else None
+                    ),
                 )
                 new_options["batch_size"] = self._coerce_int(
                     user_input.get("batch_size"), batch_default
@@ -2751,9 +2820,13 @@ class PawControlOptionsFlow(OptionsFlow):
                 }
             )
 
+        stored_mode_value = current_options.get("performance_mode")
+        stored_mode_current = self._entry.options.get("performance_mode")
         stored_mode = normalize_performance_mode(
-            current_options.get("performance_mode"),
-            current=self._entry.options.get("performance_mode"),
+            stored_mode_value if isinstance(stored_mode_value, str) else None,
+            current=(
+                stored_mode_current if isinstance(stored_mode_current, str) else None
+            ),
         )
         stored_batch = (
             current_options.get("batch_size")
@@ -3009,11 +3082,13 @@ class PawControlOptionsFlow(OptionsFlow):
         available_sensors = self._get_available_door_sensors()
         existing_sensor = cast(str | None, self._current_dog.get(CONF_DOOR_SENSOR))
         existing_payload = self._current_dog.get(CONF_DOOR_SENSOR_SETTINGS)
-        existing_settings = (
-            dict(cast(Mapping[str, object], existing_payload))
-            if isinstance(existing_payload, Mapping)
-            else None
-        )
+        existing_settings: Mapping[str, bool | int | float | str | None] | None = None
+        if isinstance(existing_payload, Mapping):
+            filtered_settings: dict[str, bool | int | float | str | None] = {}
+            for key, value in existing_payload.items():
+                if isinstance(value, (bool, int, float, str)) or value is None:
+                    filtered_settings[str(key)] = value
+            existing_settings = filtered_settings
         base_settings = (
             ensure_door_sensor_settings_config(existing_settings)
             if isinstance(existing_settings, Mapping)
@@ -3039,19 +3114,26 @@ class PawControlOptionsFlow(OptionsFlow):
                 if device_class not in DOOR_SENSOR_DEVICE_CLASSES:
                     errors[CONF_DOOR_SENSOR] = "door_sensor_not_found"
 
-            settings_overrides = {
-                "walk_detection_timeout": user_input.get("walk_detection_timeout"),
-                "minimum_walk_duration": user_input.get("minimum_walk_duration"),
-                "maximum_walk_duration": user_input.get("maximum_walk_duration"),
-                "door_closed_delay": user_input.get("door_closed_delay"),
-                "require_confirmation": user_input.get("require_confirmation"),
-                "auto_end_walks": user_input.get("auto_end_walks"),
-                "confidence_threshold": user_input.get("confidence_threshold"),
-            }
+            settings_overrides: dict[str, bool | int | float | str | None] = {}
+            for key in (
+                "walk_detection_timeout",
+                "minimum_walk_duration",
+                "maximum_walk_duration",
+                "door_closed_delay",
+                "require_confirmation",
+                "auto_end_walks",
+                "confidence_threshold",
+            ):
+                value = user_input.get(key)
+                if isinstance(value, (bool, int, float, str)) or value is None:
+                    settings_overrides[key] = value
 
             if not errors:
                 normalised_settings = ensure_door_sensor_settings_config(
-                    settings_overrides,
+                    cast(
+                        Mapping[str, bool | int | float | str | None],
+                        settings_overrides,
+                    ),
                     base=base_settings,
                 )
                 settings_payload = asdict(normalised_settings)
@@ -3080,7 +3162,9 @@ class PawControlOptionsFlow(OptionsFlow):
                     if settings_store is None:
                         updated_dog.pop(CONF_DOOR_SENSOR_SETTINGS, None)
                     else:
-                        updated_dog[CONF_DOOR_SENSOR_SETTINGS] = settings_store
+                        updated_dog[CONF_DOOR_SENSOR_SETTINGS] = cast(
+                            JSONValue, settings_store
+                        )
 
                 try:
                     normalised_dog = ensure_dog_config_data(updated_dog)
@@ -3101,7 +3185,9 @@ class PawControlOptionsFlow(OptionsFlow):
                         existing_settings_payload is not None
                         or settings_store is not None
                     ) and existing_settings_payload != settings_store:
-                        persist_updates[CONF_DOOR_SENSOR_SETTINGS] = settings_store
+                        persist_updates[CONF_DOOR_SENSOR_SETTINGS] = cast(
+                            JSONValue, settings_store
+                        )
 
                     data_manager = None
                     if persist_updates:
@@ -3147,13 +3233,13 @@ class PawControlOptionsFlow(OptionsFlow):
                                 if failure and "recorded_at" in failure
                                 else dt_util.utcnow().isoformat()
                             )
-                            issue_payload = {
+                            issue_payload: JSONMutableMapping = {
                                 "dog_id": dog_id,
                                 "dog_name": dog_name,
                                 "door_sensor": sensor_store
                                 or existing_sensor_trimmed
                                 or "",
-                                "settings": settings_store,
+                                "settings": cast(JSONValue, settings_store),
                                 "error": str(err),
                                 "timestamp": issue_timestamp,
                             }
@@ -3163,7 +3249,7 @@ class PawControlOptionsFlow(OptionsFlow):
                                     self._entry,
                                     f"{self._entry.entry_id}_door_sensor_{dog_id}",
                                     ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE,
-                                    issue_payload,
+                                    cast(JSONLikeMapping, issue_payload),
                                     severity="error",
                                 )
                             except Exception as issue_err:  # pragma: no cover
@@ -3270,7 +3356,9 @@ class PawControlOptionsFlow(OptionsFlow):
                             DOG_MODULES_FIELD: modules_payload,
                         },
                     )
-                    normalised = ensure_dog_config_data(candidate)
+                    normalised = ensure_dog_config_data(
+                        cast(Mapping[str, JSONValue], candidate)
+                    )
                     if normalised is None:
                         raise ValueError("invalid_dog_config")
 
@@ -3294,7 +3382,9 @@ class PawControlOptionsFlow(OptionsFlow):
 
             dog_options = self._current_dog_options()
             existing = dog_options.get(dog_id, {})
-            entry = ensure_dog_options_entry(existing, dog_id=dog_id)
+            entry = ensure_dog_options_entry(
+                cast(JSONLikeMapping, dict(existing)), dog_id=dog_id
+            )
             entry[DOG_ID_FIELD] = dog_id
             entry[DOG_MODULES_FIELD] = modules_payload
             dog_options[dog_id] = entry
@@ -3520,9 +3610,14 @@ class PawControlOptionsFlow(OptionsFlow):
         if not self._current_dog:
             return {}
 
-        current_profile = self._entry.options.get("entity_profile", "standard")
+        profile_value = self._entry.options.get("entity_profile", "standard")
+        current_profile = (
+            profile_value if isinstance(profile_value, str) else str(profile_value)
+        )
         current_modules = ensure_dog_modules_mapping(self._current_dog)
-        current_modules_dict = dict(current_modules)
+        current_modules_dict: dict[str, bool] = {
+            str(name): bool(enabled) for name, enabled in current_modules.items()
+        }
 
         hass_language: str | None = None
         if self.hass is not None:
@@ -3566,7 +3661,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
         return {
             "dog_name": dog_name,
-            "current_profile": current_profile,
+            "current_profile": str(current_profile),
             "current_entities": str(current_estimate),
             "enabled_modules": enabled_summary,
         }
@@ -3605,17 +3700,23 @@ class PawControlOptionsFlow(OptionsFlow):
                 candidate: JSONMutableMapping = {
                     DOG_ID_FIELD: dog_id,
                     DOG_NAME_FIELD: dog_name,
-                    DOG_MODULES_FIELD: modules_config,
+                    DOG_MODULES_FIELD: cast(JSONValue, modules_config),
                 }
 
                 breed = str(user_input.get(CONF_DOG_BREED, "")).strip()
                 candidate[DOG_BREED_FIELD] = breed or "Mixed Breed"
 
                 age = user_input.get(CONF_DOG_AGE, 3)
-                candidate[DOG_AGE_FIELD] = int(age)
+                if isinstance(age, (int, float, str)):
+                    candidate[DOG_AGE_FIELD] = int(age)
+                else:
+                    candidate[DOG_AGE_FIELD] = 3
 
                 weight = user_input.get(CONF_DOG_WEIGHT, 20.0)
-                candidate[DOG_WEIGHT_FIELD] = float(weight)
+                if isinstance(weight, (int, float, str)):
+                    candidate[DOG_WEIGHT_FIELD] = float(weight)
+                else:
+                    candidate[DOG_WEIGHT_FIELD] = 20.0
 
                 size = user_input.get(CONF_DOG_SIZE, "medium")
                 if isinstance(size, str) and size:
@@ -3731,7 +3832,18 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: ConfigFlowUserInput | None = None
     ) -> ConfigFlowResult:
         """Select which dog to edit."""
-        current_dogs = self._entry.data.get(CONF_DOGS, [])
+        current_dogs_raw = self._entry.data.get(CONF_DOGS, [])
+        current_dogs: list[DogConfigData] = []
+        if isinstance(current_dogs_raw, Sequence):
+            for dog in current_dogs_raw:
+                if isinstance(dog, Mapping):
+                    normalised = ensure_dog_config_data(
+                        cast(Mapping[str, JSONValue], dog)
+                    )
+                    if normalised is not None:
+                        current_dogs.append(normalised)
+        current_dogs = cast(list[DogConfigData], current_dogs)
+        current_dogs = cast(list[DogConfigData], current_dogs)
 
         if not current_dogs:
             return await self.async_step_init()
@@ -3813,13 +3925,21 @@ class PawControlOptionsFlow(OptionsFlow):
                     if age is None:
                         candidate.pop(DOG_AGE_FIELD, None)
                     else:
-                        candidate[DOG_AGE_FIELD] = int(age)
+                        if isinstance(age, (int, float, str)):
+                            candidate[DOG_AGE_FIELD] = int(age)
+                        else:
+                            candidate[DOG_AGE_FIELD] = candidate.get(DOG_AGE_FIELD, 0)
 
                     weight = user_input.get(CONF_DOG_WEIGHT)
                     if weight is None:
                         candidate.pop(DOG_WEIGHT_FIELD, None)
                     else:
-                        candidate[DOG_WEIGHT_FIELD] = float(weight)
+                        if isinstance(weight, (int, float, str)):
+                            candidate[DOG_WEIGHT_FIELD] = float(weight)
+                        else:
+                            candidate[DOG_WEIGHT_FIELD] = candidate.get(
+                                DOG_WEIGHT_FIELD, 0.0
+                            )
 
                     size = user_input.get(CONF_DOG_SIZE, candidate.get(DOG_SIZE_FIELD))
                     if isinstance(size, str):
@@ -4004,7 +4124,10 @@ class PawControlOptionsFlow(OptionsFlow):
             )
 
             try:
-                validated_accuracy = float(accuracy_candidate)
+                if isinstance(accuracy_candidate, (int, float, str)):
+                    validated_accuracy = float(accuracy_candidate)
+                else:
+                    raise TypeError
                 if validated_accuracy <= 0:
                     raise ValueError
             except (TypeError, ValueError):
@@ -4015,7 +4138,10 @@ class PawControlOptionsFlow(OptionsFlow):
                 )
 
             try:
-                validated_distance = float(distance_candidate)
+                if isinstance(distance_candidate, (int, float, str)):
+                    validated_distance = float(distance_candidate)
+                else:
+                    raise TypeError
                 if validated_distance <= 0:
                     raise ValueError
             except (TypeError, ValueError):
@@ -4030,7 +4156,10 @@ class PawControlOptionsFlow(OptionsFlow):
                 current.get(ROUTE_HISTORY_DAYS_FIELD, 30),
             )
             try:
-                route_history_days = int(history_candidate)
+                if isinstance(history_candidate, (int, float, str)):
+                    route_history_days = int(history_candidate)
+                else:
+                    raise TypeError
             except (TypeError, ValueError):
                 route_history_days = 30
             route_history_days = max(1, min(route_history_days, 365))
@@ -4197,11 +4326,13 @@ class PawControlOptionsFlow(OptionsFlow):
                 weather_settings = self._build_weather_settings(
                     user_input, current_weather
                 )
-                new_options["weather_settings"] = weather_settings
-                new_options[CONF_WEATHER_ENTITY] = weather_settings.get(
-                    CONF_WEATHER_ENTITY
+                mutable_options = cast(JSONMutableMapping, dict(new_options))
+                mutable_options["weather_settings"] = cast(JSONValue, weather_settings)
+                mutable_options[CONF_WEATHER_ENTITY] = cast(
+                    JSONValue, weather_settings.get(CONF_WEATHER_ENTITY)
                 )
-                return self.async_create_entry(title="", data=new_options)
+                typed_options = self._normalise_options_snapshot(mutable_options)
+                return self.async_create_entry(title="", data=typed_options)
 
             except Exception as err:
                 _LOGGER.error("Error updating weather settings: %s", err)
@@ -4375,7 +4506,16 @@ class PawControlOptionsFlow(OptionsFlow):
     def _get_weather_description_placeholders(self) -> dict[str, str]:
         """Get description placeholders for weather configuration."""
         current_weather = self._current_weather_options()
-        current_dogs = self._entry.data.get(CONF_DOGS, [])
+        current_dogs_raw = self._entry.data.get(CONF_DOGS, [])
+        current_dogs: list[DogConfigData] = []
+        if isinstance(current_dogs_raw, Sequence):
+            for dog in current_dogs_raw:
+                if isinstance(dog, Mapping):
+                    normalised = ensure_dog_config_data(
+                        cast(Mapping[str, JSONValue], dog)
+                    )
+                    if normalised is not None:
+                        current_dogs.append(normalised)
 
         # Current weather entity status
         weather_entity = current_weather.get(CONF_WEATHER_ENTITY)
@@ -4396,10 +4536,11 @@ class PawControlOptionsFlow(OptionsFlow):
         # Count dogs with health conditions
         dogs_with_health_conditions = 0
         dogs_with_breeds = 0
-        for dog in current_dogs:
-            if dog.get("health_conditions"):
+        for dog_config in current_dogs:
+            if dog_config.get("health_conditions"):
                 dogs_with_health_conditions += 1
-            if dog.get(CONF_DOG_BREED) and dog.get(CONF_DOG_BREED) != "Mixed Breed":
+            dog_breed = dog_config.get(CONF_DOG_BREED)
+            if dog_breed and dog_breed != "Mixed Breed":
                 dogs_with_breeds += 1
 
         # Alert configuration summary
@@ -4461,11 +4602,17 @@ class PawControlOptionsFlow(OptionsFlow):
                 notification_settings = self._build_notification_settings(
                     user_input, current_notifications
                 )
-                new_options[CONF_NOTIFICATIONS] = ensure_notification_options(
-                    notification_settings, defaults=_NOTIFICATION_DEFAULTS
+                mutable_options = cast(JSONMutableMapping, dict(new_options))
+                mutable_options[CONF_NOTIFICATIONS] = cast(
+                    JSONValue,
+                    ensure_notification_options(
+                        cast(NotificationOptionsInput, notification_settings),
+                        defaults=cast(NotificationOptionsInput, _NOTIFICATION_DEFAULTS),
+                    ),
                 )
 
-                return self.async_create_entry(title="", data=new_options)
+                typed_options = self._normalise_options_snapshot(mutable_options)
+                return self.async_create_entry(title="", data=typed_options)
             except Exception:
                 return self.async_show_form(
                     step_id="notifications",
@@ -4693,27 +4840,28 @@ class PawControlOptionsFlow(OptionsFlow):
                     self._current_options().get(CONF_RESET_TIME), DEFAULT_RESET_TIME
                 )
                 new_options = self._clone_options()
+                mutable_options = cast(JSONMutableMapping, dict(new_options))
                 system_settings, reset_time = self._build_system_settings(
                     user_input, current_system, reset_default=reset_default
                 )
-                new_options["system_settings"] = system_settings
-                new_options[CONF_RESET_TIME] = reset_time
-                new_options[SYSTEM_ENABLE_ANALYTICS_FIELD] = system_settings[
+                mutable_options["system_settings"] = cast(JSONValue, system_settings)
+                mutable_options[CONF_RESET_TIME] = reset_time
+                mutable_options[SYSTEM_ENABLE_ANALYTICS_FIELD] = system_settings[
                     SYSTEM_ENABLE_ANALYTICS_FIELD
                 ]
-                new_options[SYSTEM_ENABLE_CLOUD_BACKUP_FIELD] = system_settings[
+                mutable_options[SYSTEM_ENABLE_CLOUD_BACKUP_FIELD] = system_settings[
                     SYSTEM_ENABLE_CLOUD_BACKUP_FIELD
                 ]
                 guard_option = system_settings.get("manual_guard_event")
                 if guard_option is None:
-                    new_options.pop("manual_guard_event", None)
+                    mutable_options.pop("manual_guard_event", None)
                 else:
-                    new_options["manual_guard_event"] = guard_option
+                    mutable_options["manual_guard_event"] = guard_option
                 breaker_option = system_settings.get("manual_breaker_event")
                 if breaker_option is None:
-                    new_options.pop("manual_breaker_event", None)
+                    mutable_options.pop("manual_breaker_event", None)
                 else:
-                    new_options["manual_breaker_event"] = breaker_option
+                    mutable_options["manual_breaker_event"] = breaker_option
                 runtime = get_runtime_data(self.hass, self._entry)
                 script_manager = getattr(runtime, "script_manager", None)
                 if script_manager is not None:
@@ -4730,7 +4878,7 @@ class PawControlOptionsFlow(OptionsFlow):
                             ),
                         }
                     )
-                typed_options = self._normalise_options_snapshot(new_options)
+                typed_options = self._normalise_options_snapshot(mutable_options)
                 return self.async_create_entry(title="", data=typed_options)
             except Exception:
                 return self.async_show_form(
@@ -4962,9 +5110,12 @@ class PawControlOptionsFlow(OptionsFlow):
                 dashboard_settings, dashboard_mode = self._build_dashboard_settings(
                     user_input, current_dashboard, default_mode=default_mode
                 )
-                new_options["dashboard_settings"] = dashboard_settings
-                new_options[CONF_DASHBOARD_MODE] = dashboard_mode
-                typed_options = self._normalise_options_snapshot(new_options)
+                mutable_options = cast(JSONMutableMapping, dict(new_options))
+                mutable_options["dashboard_settings"] = cast(
+                    JSONValue, dashboard_settings
+                )
+                mutable_options[CONF_DASHBOARD_MODE] = dashboard_mode
+                typed_options = self._normalise_options_snapshot(mutable_options)
                 return self.async_create_entry(title="", data=typed_options)
             except Exception:
                 return self.async_show_form(
@@ -5041,7 +5192,10 @@ class PawControlOptionsFlow(OptionsFlow):
         """Handle advanced settings configuration."""
         if user_input is not None:
             errors: dict[str, str] = {}
-            endpoint_value = user_input.get(CONF_API_ENDPOINT, "").strip()
+            raw_endpoint = user_input.get(CONF_API_ENDPOINT, "")
+            endpoint_value = (
+                raw_endpoint.strip() if isinstance(raw_endpoint, str) else ""
+            )
             if endpoint_value:
                 try:
                     validate_device_endpoint(endpoint_value)
@@ -5061,12 +5215,20 @@ class PawControlOptionsFlow(OptionsFlow):
                 advanced_settings = self._build_advanced_settings(
                     user_input, current_advanced
                 )
-                new_options[ADVANCED_SETTINGS_FIELD] = advanced_settings
+                mutable_options = cast(JSONMutableMapping, dict(new_options))
+                mutable_options[ADVANCED_SETTINGS_FIELD] = cast(
+                    JSONValue, advanced_settings
+                )
                 for key, value in advanced_settings.items():
-                    new_options[key] = value
+                    if isinstance(value, (bool, int, float, str)) or value is None:
+                        mutable_options[str(key)] = value
+                    elif isinstance(value, Mapping):
+                        mutable_options[str(key)] = cast(JSONValue, dict(value))
+                    else:
+                        mutable_options[str(key)] = repr(value)
                 return self.async_create_entry(
                     title="",
-                    data=self._normalise_options_snapshot(new_options),
+                    data=self._normalise_options_snapshot(mutable_options),
                 )
             except Exception as err:
                 _LOGGER.error("Error saving advanced settings: %s", err)
@@ -5287,7 +5449,9 @@ class PawControlOptionsFlow(OptionsFlow):
                         for dog in validated.get("dogs", []):
                             if not isinstance(dog, Mapping):
                                 continue
-                            normalised = ensure_dog_config_data(dog)
+                            normalised = ensure_dog_config_data(
+                                cast(Mapping[str, JSONValue], dog)
+                            )
                             if normalised is not None:
                                 new_dogs.append(normalised)
 
