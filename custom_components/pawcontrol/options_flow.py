@@ -1965,7 +1965,7 @@ class PawControlOptionsFlow(OptionsFlow):
             if isinstance(token_raw, str)
             else str(current.get(CONF_API_TOKEN, ""))
         )
-
+            else current.get(CONF_API_TOKEN, "")
         sanitized_input = cast(JSONMutableMapping, dict(user_input))
         if CONF_API_ENDPOINT in user_input:
             sanitized_input[CONF_API_ENDPOINT] = endpoint
