@@ -1225,7 +1225,9 @@ async def _get_dogs_summary(
         modules_payload = dog.get("modules", {})
         modules = modules_payload if isinstance(modules_payload, Mapping) else {}
         enabled_modules = {
-            str(name): bool(enabled) for name, enabled in modules.items() if isinstance(enabled, bool)
+            str(name): bool(enabled)
+            for name, enabled in modules.items()
+            if isinstance(enabled, bool)
         }
         dog_summary: JSONMutableMapping = cast(
             JSONMutableMapping,
@@ -1333,7 +1335,9 @@ async def _get_performance_metrics(
         rejection_metrics = default_rejection_metrics()
 
     statistics["rejection_metrics"] = rejection_metrics
-    rejection_metrics_payload = cast(JSONMapping, _normalise_json(dict(rejection_metrics)))
+    rejection_metrics_payload = cast(
+        JSONMapping, _normalise_json(dict(rejection_metrics))
+    )
     stats_payload["rejection_metrics"] = rejection_metrics_payload
 
     performance_metrics = statistics["performance_metrics"]

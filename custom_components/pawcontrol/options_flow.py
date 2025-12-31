@@ -397,7 +397,9 @@ class PawControlOptionsFlow(OptionsFlow):
                 JSONValue,
                 ensure_notification_options(
                     notifications_source,
-                    defaults=cast(NotificationOptionsInput, dict(_NOTIFICATION_DEFAULTS)),
+                    defaults=cast(
+                        NotificationOptionsInput, dict(_NOTIFICATION_DEFAULTS)
+                    ),
                 ),
             )
 
@@ -2592,7 +2594,9 @@ class PawControlOptionsFlow(OptionsFlow):
 
         for dog in dogs:
             dog_config = cast(DogConfigData, dog)
-            modules = ensure_dog_modules_config(cast(Mapping[str, JSONValue], dog_config))
+            modules = ensure_dog_modules_config(
+                cast(Mapping[str, JSONValue], dog_config)
+            )
             module_flags: dict[str, bool] = {
                 str(name): bool(enabled)
                 for name, enabled in modules.items()
@@ -2639,8 +2643,12 @@ class PawControlOptionsFlow(OptionsFlow):
 
         preview_data = await self._calculate_profile_preview_optimized(profile)
         breakdown_lines = []
-        as_float = lambda value: float(value) if isinstance(value, (int, float)) else 0.0
-        as_int = lambda value: int(value) if isinstance(value, (int, float)) else 0
+
+        def as_float(value):
+            return float(value) if isinstance(value, (int, float)) else 0.0
+
+        def as_int(value):
+            return int(value) if isinstance(value, (int, float)) else 0
 
         entity_breakdown = cast(
             list[JSONMutableMapping],
@@ -3117,7 +3125,8 @@ class PawControlOptionsFlow(OptionsFlow):
             if not errors:
                 normalised_settings = ensure_door_sensor_settings_config(
                     cast(
-                        Mapping[str, bool | int | float | str | None], settings_overrides
+                        Mapping[str, bool | int | float | str | None],
+                        settings_overrides,
                     ),
                     base=base_settings,
                 )
@@ -3837,7 +3846,9 @@ class PawControlOptionsFlow(OptionsFlow):
             selected_dog_id = user_input.get("dog_id")
             self._current_dog = next(
                 (
-                    dog for dog in current_dogs if dog.get(CONF_DOG_ID) == selected_dog_id
+                    dog
+                    for dog in current_dogs
+                    if dog.get(CONF_DOG_ID) == selected_dog_id
                 ),
                 None,
             )
@@ -5176,7 +5187,9 @@ class PawControlOptionsFlow(OptionsFlow):
         if user_input is not None:
             errors: dict[str, str] = {}
             raw_endpoint = user_input.get(CONF_API_ENDPOINT, "")
-            endpoint_value = raw_endpoint.strip() if isinstance(raw_endpoint, str) else ""
+            endpoint_value = (
+                raw_endpoint.strip() if isinstance(raw_endpoint, str) else ""
+            )
             if endpoint_value:
                 try:
                     validate_device_endpoint(endpoint_value)
