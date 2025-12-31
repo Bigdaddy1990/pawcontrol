@@ -961,14 +961,14 @@ def _normalise_json(value: Any) -> Any:
     if is_dataclass(value):
         return _normalise_json(asdict(value))
 
-    if hasattr(value, "to_mapping") and callable(getattr(value, "to_mapping")):
+    if hasattr(value, "to_mapping") and callable(value.to_mapping):
         try:
             mapping_value = cast(Mapping[str, Any], value.to_mapping())
             return _normalise_json(mapping_value)
         except Exception:  # pragma: no cover - defensive guard
             _LOGGER.debug("Failed to normalise to_mapping payload for %s", value)
 
-    if hasattr(value, "to_dict") and callable(getattr(value, "to_dict")):
+    if hasattr(value, "to_dict") and callable(value.to_dict):
         try:
             dict_value = cast(Mapping[str, Any], value.to_dict())
             return _normalise_json(dict_value)

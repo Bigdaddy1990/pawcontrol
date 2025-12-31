@@ -21,9 +21,9 @@ from .types import (
     HealthModulePayload,
     JSONValue,
     LastFeedingHoursAttributes,
+    TotalWalkDistanceAttributes,
     WalkModuleTelemetry,
     WalkSessionSnapshot,
-    TotalWalkDistanceAttributes,
     WalksThisWeekAttributes,
     ensure_json_mapping,
 )
