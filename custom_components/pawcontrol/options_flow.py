@@ -141,9 +141,9 @@ from .types import (
     GeofenceOptions,
     GPSOptions,
     HealthOptions,
-    JSONValue,
     JSONLikeMapping,
     JSONMutableMapping,
+    JSONValue,
     MutableConfigFlowPlaceholders,
     NotificationOptions,
     NotificationOptionsInput,
@@ -353,9 +353,7 @@ class PawControlOptionsFlow(OptionsFlow):
         for dog in dogs_iterable:
             if not isinstance(dog, Mapping):
                 continue
-            normalised = ensure_dog_config_data(
-                cast(Mapping[str, JSONValue], dog)
-            )
+            normalised = ensure_dog_config_data(cast(Mapping[str, JSONValue], dog))
             if normalised is not None:
                 self._dogs.append(normalised)
 
@@ -2317,9 +2315,7 @@ class PawControlOptionsFlow(OptionsFlow):
         current_dogs = cast(list[DogConfigData], current_dogs)
         current_dogs = cast(list[DogConfigData], current_dogs)
 
-        current_profile_raw = self._entry.options.get(
-            "entity_profile", DEFAULT_PROFILE
-        )
+        current_profile_raw = self._entry.options.get("entity_profile", DEFAULT_PROFILE)
         current_profile = (
             current_profile_raw
             if isinstance(current_profile_raw, str)
@@ -2358,7 +2354,7 @@ class PawControlOptionsFlow(OptionsFlow):
             else 0
         )
         profile_description = str(profile_info.get("description", ""))
-        performance_impact = str(profile_info.get("performance_impact", ""))
+        str(profile_info.get("performance_impact", ""))
 
         for dog in current_dogs:
             dog_config = cast(DogConfigData, dog)
@@ -2558,9 +2554,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
         for dog in dogs:
             dog_config = cast(DogConfigData, dog)
-            modules = ensure_dog_modules_config(
-                cast(Mapping[str, object], dog_config)
-            )
+            modules = ensure_dog_modules_config(cast(Mapping[str, object], dog_config))
             dog_name = dog_config.get(CONF_DOG_NAME, "Unknown")
 
             if profile == "gps_focus" and not modules.get(MODULE_GPS, False):
@@ -2611,7 +2605,8 @@ class PawControlOptionsFlow(OptionsFlow):
             modules_raw = item.get("modules", ())
             modules_sequence = (
                 modules_raw
-                if isinstance(modules_raw, Sequence) and not isinstance(modules_raw, str)
+                if isinstance(modules_raw, Sequence)
+                and not isinstance(modules_raw, str)
                 else ()
             )
             modules_display = ", ".join(cast(Sequence[str], modules_sequence)) or "none"
