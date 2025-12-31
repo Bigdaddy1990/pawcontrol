@@ -150,6 +150,14 @@ def _coerce_bool(value: Any, *, default: bool = False) -> bool:
     return default
 
 
+def _freeze_placeholders(
+    placeholders: ConfigFlowPlaceholders,
+) -> ConfigFlowPlaceholders:
+    """Return an immutable mapping proxy for ``placeholders``."""
+
+    return cast(ConfigFlowPlaceholders, MappingProxyType(dict(placeholders)))
+
+
 def _build_add_dog_placeholders(
     *,
     dog_count: int,
@@ -165,7 +173,7 @@ def _build_add_dog_placeholders(
         "current_dogs": current_dogs,
         "remaining_spots": remaining_spots,
     }
-    return MappingProxyType(placeholders)
+    return _freeze_placeholders(placeholders)
 
 
 def _build_dog_modules_placeholders(
@@ -178,7 +186,7 @@ def _build_dog_modules_placeholders(
         "dog_size": dog_size,
         "dog_age": dog_age,
     }
-    return MappingProxyType(placeholders)
+    return _freeze_placeholders(placeholders)
 
 
 def _build_dog_gps_placeholders(*, dog_name: str) -> ConfigFlowPlaceholders:
@@ -187,7 +195,7 @@ def _build_dog_gps_placeholders(*, dog_name: str) -> ConfigFlowPlaceholders:
     placeholders: DogGPSPlaceholders = {
         "dog_name": dog_name,
     }
-    return MappingProxyType(placeholders)
+    return _freeze_placeholders(placeholders)
 
 
 def _build_dog_feeding_placeholders(
@@ -205,7 +213,7 @@ def _build_dog_feeding_placeholders(
         "suggested_amount": suggested_amount,
         "portion_info": portion_info,
     }
-    return MappingProxyType(placeholders)
+    return _freeze_placeholders(placeholders)
 
 
 def _build_dog_health_placeholders(
@@ -233,7 +241,7 @@ def _build_dog_health_placeholders(
         "special_diet_count": special_diet_count,
         "health_diet_info": health_diet_info,
     }
-    return MappingProxyType(placeholders)
+    return _freeze_placeholders(placeholders)
 
 
 def _build_add_another_summary_placeholders(
@@ -253,7 +261,7 @@ def _build_add_another_summary_placeholders(
         "remaining_spots": remaining_spots,
         "at_limit": at_limit,
     }
-    return MappingProxyType(placeholders)
+    return _freeze_placeholders(placeholders)
 
 
 def _build_module_setup_placeholders(
@@ -275,7 +283,7 @@ def _build_module_setup_placeholders(
         "complexity_info": complexity_info,
         "next_step_info": next_step_info,
     }
-    return MappingProxyType(placeholders)
+    return _freeze_placeholders(placeholders)
 
 
 def _coerce_int(value: Any, *, default: int) -> int:

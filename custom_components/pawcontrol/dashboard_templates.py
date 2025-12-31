@@ -1990,10 +1990,10 @@ class DashboardTemplates:
         if isinstance(coordinator_statistics, Mapping):
             raw_metrics = coordinator_statistics.get("rejection_metrics")
             if isinstance(raw_metrics, Mapping):
-                metrics_payload = cast(
+                metrics_source = cast(
                     JSONMapping | CoordinatorResilienceSummary | None, raw_metrics
                 )
-                coordinator_metrics = derive_rejection_metrics(metrics_payload)
+                coordinator_metrics = derive_rejection_metrics(metrics_source)
 
         service_metrics = _coerce_rejection_metrics(service_execution_metrics)
         guard_metrics = _coerce_guard_metrics(service_guard_metrics)

@@ -65,8 +65,9 @@ def _build_external_entities_placeholders(
     }
 
     placeholder_payload: dict[str, int | float | str] = {
-        key: int(value) if isinstance(value, bool) else value
-        for key, value in placeholders.items()
+        "gps_enabled": int(placeholders["gps_enabled"]),
+        "visitor_enabled": int(placeholders["visitor_enabled"]),
+        "dog_count": placeholders["dog_count"],
     }
     return MappingProxyType(placeholder_payload)
 

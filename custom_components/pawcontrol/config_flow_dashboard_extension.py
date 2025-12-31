@@ -73,6 +73,14 @@ _DASHBOARD_INFO_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
 }
 
 
+def _freeze_placeholders(
+    placeholders: DashboardConfigurationPlaceholders,
+) -> ConfigFlowPlaceholders:
+    """Return an immutable mapping proxy for dashboard placeholders."""
+
+    return cast(ConfigFlowPlaceholders, MappingProxyType(dict(placeholders)))
+
+
 def _build_dashboard_configure_placeholders(
     *, dog_count: int, dashboard_info: str, features: str
 ) -> ConfigFlowPlaceholders:
@@ -83,7 +91,7 @@ def _build_dashboard_configure_placeholders(
         "dashboard_info": dashboard_info,
         "features": features,
     }
-    return MappingProxyType(placeholders)
+    return _freeze_placeholders(placeholders)
 
 
 def _translated_dashboard_info_line(
