@@ -97,8 +97,11 @@ type JSONMutableMapping = dict[str, JSONValue]
 type JSONLikeMapping = JSONMapping | JSONMutableMapping
 """Union covering immutable and mutable JSON-compatible mappings."""
 
-type ConfigFlowUserInput = Mapping[str, object] | JSONMutableMapping
+type ConfigFlowUserInput = Mapping[str, JSONValue] | JSONMutableMapping
 """Config flow user input payload accepted by setup and options steps."""
+
+type FlowInputMapping = Mapping[str, JSONValue]
+"""Typed mapping used for config and options flow payloads."""
 
 type JSONMutableSequence = list[JSONValue]
 """Mutable sequence containing JSON-compatible payload entries."""
@@ -116,6 +119,17 @@ from .utils import is_number  # noqa: E402
 
 type ErrorContext = JSONMutableMapping
 """Structured context payload attached to :class:`PawControlError` instances."""
+
+
+def ensure_json_mapping(
+    data: Mapping[str, object] | JSONMutableMapping | None,
+) -> JSONMutableMapping:
+    """Return a JSON-compatible mutable mapping cloned from ``data``."""
+
+    if not data:
+        return {}
+
+    return {str(key): cast(JSONValue, value) for key, value in data.items()}
 
 
 class ErrorPayload(TypedDict):
@@ -1188,6 +1202,22 @@ type ConfigFlowPlaceholderValue = bool | int | float | str
 type ConfigFlowPlaceholders = Mapping[str, ConfigFlowPlaceholderValue]
 type MutableConfigFlowPlaceholders = dict[str, ConfigFlowPlaceholderValue]
 """Accepted performance mode values for coordinator tuning."""
+
+
+def clone_placeholders(
+    template: ConfigFlowPlaceholders,
+) -> MutableConfigFlowPlaceholders:
+    """Return a mutable copy of an immutable placeholder template."""
+
+    return dict(template)
+
+
+def freeze_placeholders(
+    placeholders: MutableConfigFlowPlaceholders,
+) -> ConfigFlowPlaceholders:
+    """Return an immutable placeholder mapping."""
+
+    return cast(ConfigFlowPlaceholders, MappingProxyType(dict(placeholders)))
 
 
 PERFORMANCE_MODE_VALUES: Final[frozenset[PerformanceMode]] = frozenset(
@@ -2601,6 +2631,172 @@ class DogSetupStepInput(TypedDict, total=False):
     dog_size: str | None
     weight: float | int | str | None
 
+
+MODULE_CONFIGURATION_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
+    ConfigFlowPlaceholders,
+    MappingProxyType(
+        {
+            "dog_count": 0,
+            "module_summary": "",
+            "total_modules": 0,
+            "gps_dogs": 0,
+            "health_dogs": 0,
+        }
+    ),
+)
+ADD_DOG_CAPACITY_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
+    ConfigFlowPlaceholders,
+    MappingProxyType(
+        {
+            "dog_count": 0,
+            "max_dogs": 0,
+            "current_dogs": "",
+            "remaining_spots": 0,
+        }
+    ),
+)
+DOG_MODULES_SUGGESTION_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
+    ConfigFlowPlaceholders,
+    MappingProxyType(
+        {"dog_name": "", "dog_size": "", "dog_age": 0},
+    ),
+)
+ADD_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
+    ConfigFlowPlaceholders,
+    MappingProxyType(
+        {
+            "dogs_configured": "",
+            "max_dogs": "",
+            "discovery_hint": "",
+        }
+    ),
+)
+DOG_MODULES_SMART_DEFAULTS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
+    ConfigFlowPlaceholders,
+    MappingProxyType(
+        {
+            "dog_name": "",
+            "dogs_configured": "",
+            "smart_defaults": "",
+        }
+    ),
+)
+ADD_ANOTHER_DOG_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
+    ConfigFlowPlaceholders,
+    MappingProxyType(
+        {
+            "dogs_configured": "",
+            "dogs_list": "",
+            "can_add_more": "",
+            "max_dogs": "",
+            "performance_note": "",
+        }
+    ),
+)
+ADD_ANOTHER_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
+    ConfigFlowPlaceholders,
+    MappingProxyType(
+        {
+            "dogs_list": "",
+            "dog_count": "",
+            "max_dogs": 0,
+            "remaining_spots": 0,
+            "at_limit": "",
+        }
+    ),
+)
+DASHBOARD_CONFIGURATION_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
+    ConfigFlowPlaceholders,
+    MappingProxyType(
+        {"dog_count": 0, "dashboard_info": "", "features": ""},
+    ),
+)
+FEEDING_CONFIGURATION_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
+    ConfigFlowPlaceholders,
+    MappingProxyType({"dog_count": 0, "feeding_summary": ""}),
+)
+DOG_GPS_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
+    ConfigFlowPlaceholders,
+    MappingProxyType({"dog_name": ""}),
+)
+DOG_FEEDING_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
+    ConfigFlowPlaceholders,
+    MappingProxyType(
+        {
+            "dog_name": "",
+            "dog_weight": "",
+            "suggested_amount": "",
+            "portion_info": "",
+        }
+    ),
+)
+DOG_HEALTH_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
+    ConfigFlowPlaceholders,
+    MappingProxyType(
+        {
+            "dog_name": "",
+            "dog_age": "",
+            "dog_weight": "",
+            "suggested_ideal_weight": "",
+            "suggested_activity": "",
+            "medication_enabled": "",
+            "bcs_info": "",
+            "special_diet_count": "",
+            "health_diet_info": "",
+        }
+    ),
+)
+MODULE_SETUP_SUMMARY_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
+    ConfigFlowPlaceholders,
+    MappingProxyType(
+        {
+            "total_dogs": "",
+            "gps_dogs": "",
+            "health_dogs": "",
+            "suggested_performance": "",
+            "complexity_info": "",
+            "next_step_info": "",
+        }
+    ),
+)
+EXTERNAL_ENTITIES_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
+    ConfigFlowPlaceholders,
+    MappingProxyType({"gps_enabled": False, "visitor_enabled": False, "dog_count": 0}),
+)
+REAUTH_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
+    ConfigFlowPlaceholders,
+    MappingProxyType(
+        {
+            "integration_name": "",
+            "dogs_count": "",
+            "current_profile": "",
+            "health_status": "",
+        }
+    ),
+)
+RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
+    ConfigFlowPlaceholders,
+    MappingProxyType(
+        {
+            "current_profile": "",
+            "profiles_info": "",
+            "dogs_count": "",
+            "compatibility_info": "",
+            "estimated_entities": "",
+            "error_details": "",
+            "last_reconfigure": "",
+            "reconfigure_requested_profile": "",
+            "reconfigure_previous_profile": "",
+            "reconfigure_dogs": "",
+            "reconfigure_entities": "",
+            "reconfigure_health": "",
+            "reconfigure_warnings": "",
+            "reconfigure_valid_dogs": "",
+            "reconfigure_invalid_dogs": "",
+            "reconfigure_merge_notes": "",
+        }
+    ),
+)
 
 class InputBooleanCreateServiceData(TypedDict, total=False):
     """Service payload accepted by ``input_boolean.create``."""

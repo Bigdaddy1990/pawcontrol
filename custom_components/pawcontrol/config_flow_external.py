@@ -12,7 +12,6 @@ Python: 3.13+
 from __future__ import annotations
 
 import logging
-from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Final, Literal, Protocol, cast
 
 import voluptuous as vol
@@ -32,11 +31,14 @@ from .types import (
     DOOR_SENSOR_FIELD,
     GPS_SOURCE_FIELD,
     NOTIFY_FALLBACK_FIELD,
+    EXTERNAL_ENTITIES_PLACEHOLDERS_TEMPLATE,
     ConfigFlowPlaceholders,
     DogConfigData,
     DogModulesConfig,
     ExternalEntityConfig,
     ExternalEntitySelectorOption,
+    clone_placeholders,
+    freeze_placeholders,
 )
 
 GPS_SOURCE_KEY: Final[Literal["gps_source"]] = cast(
@@ -57,13 +59,12 @@ def _build_external_entities_placeholders(
 ) -> ConfigFlowPlaceholders:
     """Return immutable placeholders for the external entities step."""
 
-    placeholder_payload: dict[str, int | float | str] = {
-        "gps_enabled": int(gps_enabled),
-        "visitor_enabled": int(visitor_enabled),
-        "dog_count": dog_count,
-    }
+    placeholder_payload = clone_placeholders(EXTERNAL_ENTITIES_PLACEHOLDERS_TEMPLATE)
+    placeholder_payload["gps_enabled"] = gps_enabled
+    placeholder_payload["visitor_enabled"] = visitor_enabled
+    placeholder_payload["dog_count"] = dog_count
 
-    return cast(ConfigFlowPlaceholders, MappingProxyType(placeholder_payload))
+    return freeze_placeholders(placeholder_payload)
 
 
 if TYPE_CHECKING:

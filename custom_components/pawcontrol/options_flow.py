@@ -130,6 +130,7 @@ from .types import (
     ConfigEntryOptionsPayload,
     ConfigFlowPlaceholders,
     ConfigFlowUserInput,
+    FlowInputMapping,
     DashboardOptions,
     DogConfigData,
     DogModulesConfig,
@@ -154,14 +155,18 @@ from .types import (
     ReconfigureTelemetry,
     SystemOptions,
     WeatherOptions,
+    clone_placeholders,
     ensure_advanced_options,
     ensure_dog_config_data,
     ensure_dog_modules_config,
     ensure_dog_modules_mapping,
     ensure_dog_options_entry,
     ensure_notification_options,
+    ensure_json_mapping,
+    freeze_placeholders,
     is_dog_config_valid,
     normalize_performance_mode,
+    RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -197,7 +202,7 @@ SYSTEM_ENABLE_ANALYTICS_FIELD: Final[Literal["enable_analytics"]] = cast(
 SYSTEM_ENABLE_CLOUD_BACKUP_FIELD: Final[Literal["enable_cloud_backup"]] = cast(
     Literal["enable_cloud_backup"], "enable_cloud_backup"
 )
-_NOTIFICATION_DEFAULTS: Final[Mapping[str, object]] = MappingProxyType(
+_NOTIFICATION_DEFAULTS: Final[Mapping[str, JSONValue]] = MappingProxyType(
     {
         CONF_QUIET_HOURS: True,
         CONF_QUIET_START: "22:00:00",
@@ -346,8 +351,11 @@ class PawControlOptionsFlow(OptionsFlow):
 
         self._config_entry = config_entry
         dogs_data_raw = config_entry.data.get(CONF_DOGS, [])
-        dogs_iterable: Sequence[object] = (
-            dogs_data_raw if isinstance(dogs_data_raw, Sequence) else ()
+        dogs_iterable: Sequence[JSONLikeMapping] = (
+            cast(Sequence[JSONLikeMapping], dogs_data_raw)
+            if isinstance(dogs_data_raw, Sequence)
+            and not isinstance(dogs_data_raw, (bytes, str))
+            else ()
         )
         self._dogs = []
         for dog in dogs_iterable:
@@ -377,14 +385,11 @@ class PawControlOptionsFlow(OptionsFlow):
         )
 
     def _normalise_options_snapshot(
-        self, options: Mapping[str, object]
+        self, options: Mapping[str, JSONValue] | JSONMutableMapping
     ) -> PawControlOptionsData:
         """Return a typed options mapping with notifications and dog entries coerced."""
 
-        mutable = cast(
-            JSONMutableMapping,
-            dict(cast(Mapping[str, JSONValue], options)),
-        )
+        mutable = ensure_json_mapping(options)
 
         if CONF_NOTIFICATIONS in mutable:
             raw_notifications = mutable.get(CONF_NOTIFICATIONS)
@@ -440,7 +445,7 @@ class PawControlOptionsFlow(OptionsFlow):
         return cast(PawControlOptionsData, mutable)
 
     def _normalise_entry_dogs(
-        self, dogs: Sequence[Mapping[str, object]]
+        self, dogs: Sequence[Mapping[str, JSONValue]]
     ) -> list[DogConfigData]:
         """Return typed dog configurations for entry persistence."""
 
@@ -514,7 +519,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
     @classmethod
     def _load_setup_flag_translations_from_mapping(
-        cls, mapping: Mapping[str, object]
+        cls, mapping: Mapping[str, JSONValue]
     ) -> dict[str, str]:
         """Extract setup flag translations from a loaded JSON mapping."""
 
@@ -624,7 +629,7 @@ class PawControlOptionsFlow(OptionsFlow):
         defaults = self._manual_event_defaults(current)
         return {key: value or "" for key, value in defaults.items()}
 
-    def _manual_events_snapshot(self) -> Mapping[str, object] | None:
+    def _manual_events_snapshot(self) -> Mapping[str, JSONValue] | None:
         """Return the current manual events snapshot from the script manager."""
 
         hass = getattr(self, "hass", None)
@@ -647,7 +652,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
         manual_section = snapshot.get("manual_events")
         if isinstance(manual_section, Mapping):
-            return manual_section
+            return cast(Mapping[str, JSONValue], manual_section)
         return None
 
     def _collect_manual_event_sources(
@@ -655,7 +660,7 @@ class PawControlOptionsFlow(OptionsFlow):
         field: ManualEventField,
         current: SystemOptions,
         *,
-        manual_snapshot: Mapping[str, object] | None = None,
+        manual_snapshot: Mapping[str, JSONValue] | None = None,
     ) -> dict[str, set[str]]:
         """Return known manual events mapped to their source categories."""
 
@@ -764,7 +769,7 @@ class PawControlOptionsFlow(OptionsFlow):
         field: ManualEventField,
         current: SystemOptions,
         *,
-        manual_snapshot: Mapping[str, object] | None = None,
+        manual_snapshot: Mapping[str, JSONValue] | None = None,
     ) -> list[JSONMutableMapping]:
         """Return select options for manual event configuration."""
 
@@ -929,20 +934,17 @@ class PawControlOptionsFlow(OptionsFlow):
         timestamp = self._format_local_timestamp(
             (telemetry or {}).get("timestamp") if telemetry else None
         )
+        placeholders = clone_placeholders(RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE)
+        placeholders["last_reconfigure"] = timestamp
         if not telemetry:
-            empty_placeholders: ReconfigureFormPlaceholders = {
-                "last_reconfigure": timestamp,
-                "reconfigure_requested_profile": "Not recorded",
-                "reconfigure_previous_profile": "Not recorded",
-                "reconfigure_entities": "0",
-                "reconfigure_dogs": "0",
-                "reconfigure_health": "No recent health summary",
-                "reconfigure_warnings": "None",
-                "reconfigure_merge_notes": "No merge adjustments recorded",
-            }
-            return cast(
-                ConfigFlowPlaceholders, MappingProxyType(dict(empty_placeholders))
-            )
+            placeholders["reconfigure_requested_profile"] = "Not recorded"
+            placeholders["reconfigure_previous_profile"] = "Not recorded"
+            placeholders["reconfigure_entities"] = "0"
+            placeholders["reconfigure_dogs"] = "0"
+            placeholders["reconfigure_health"] = "No recent health summary"
+            placeholders["reconfigure_warnings"] = "None"
+            placeholders["reconfigure_merge_notes"] = "No merge adjustments recorded"
+            return freeze_placeholders(placeholders)
 
         requested_profile = str(telemetry.get("requested_profile", "")) or "Unknown"
         previous_profile = str(telemetry.get("previous_profile", "")) or "Unknown"
@@ -954,31 +956,29 @@ class PawControlOptionsFlow(OptionsFlow):
 
         last_recorded = telemetry.get("timestamp") or self._last_reconfigure_timestamp()
 
-        telemetry_placeholders: ReconfigureFormPlaceholders = {
-            "last_reconfigure": self._format_local_timestamp(
-                str(last_recorded) if last_recorded else None
-            ),
-            "reconfigure_requested_profile": requested_profile,
-            "reconfigure_previous_profile": previous_profile,
-            "reconfigure_entities": (
-                str(int(estimated_entities))
-                if isinstance(estimated_entities, int | float)
-                else "0"
-            ),
-            "reconfigure_dogs": (
-                str(int(dogs_count)) if isinstance(dogs_count, int | float) else "0"
-            ),
-            "reconfigure_health": self._summarise_health_summary(health_summary),
-            "reconfigure_warnings": ", ".join(warnings) if warnings else "None",
-            "reconfigure_merge_notes": (
-                "\n".join(merge_notes)
-                if merge_notes
-                else "No merge adjustments recorded"
-            ),
-        }
-        return cast(
-            ConfigFlowPlaceholders, MappingProxyType(dict(telemetry_placeholders))
+        placeholders["last_reconfigure"] = self._format_local_timestamp(
+            str(last_recorded) if last_recorded else None
         )
+        placeholders["reconfigure_requested_profile"] = requested_profile
+        placeholders["reconfigure_previous_profile"] = previous_profile
+        placeholders["reconfigure_entities"] = (
+            str(int(estimated_entities))
+            if isinstance(estimated_entities, int | float)
+            else "0"
+        )
+        placeholders["reconfigure_dogs"] = (
+            str(int(dogs_count)) if isinstance(dogs_count, int | float) else "0"
+        )
+        placeholders["reconfigure_health"] = self._summarise_health_summary(
+            health_summary
+        )
+        placeholders["reconfigure_warnings"] = (
+            ", ".join(warnings) if warnings else "None"
+        )
+        placeholders["reconfigure_merge_notes"] = (
+            "\n".join(merge_notes) if merge_notes else "No merge adjustments recorded"
+        )
+        return freeze_placeholders(placeholders)
 
     def _normalise_export_value(self, value: Any) -> Any:
         """Convert complex values into JSON-serialisable primitives."""
@@ -994,7 +994,7 @@ class PawControlOptionsFlow(OptionsFlow):
             return value
         return str(value)
 
-    def _sanitise_imported_dog(self, raw: Mapping[str, object]) -> DogConfigData:
+    def _sanitise_imported_dog(self, raw: Mapping[str, JSONValue]) -> DogConfigData:
         """Normalise and validate a dog payload from an import file."""
 
         normalised = cast(
@@ -1025,8 +1025,10 @@ class PawControlOptionsFlow(OptionsFlow):
 
         dogs_payload: list[DogConfigData] = []
         dogs_raw = self._entry.data.get(CONF_DOGS, [])
-        dogs_iterable: Sequence[object] = (
-            dogs_raw if isinstance(dogs_raw, Sequence) else ()
+        dogs_iterable: Sequence[JSONLikeMapping] = (
+            cast(Sequence[JSONLikeMapping], dogs_raw)
+            if isinstance(dogs_raw, Sequence) and not isinstance(dogs_raw, (bytes, str))
+            else ()
         )
         for raw in dogs_iterable:
             if not isinstance(raw, Mapping):
@@ -1300,7 +1302,7 @@ class PawControlOptionsFlow(OptionsFlow):
         self,
         current_system: SystemOptions,
         *,
-        manual_snapshot: Mapping[str, object] | None = None,
+        manual_snapshot: Mapping[str, JSONValue] | None = None,
     ) -> JSONMutableMapping:
         """Return manual event suggestions sourced from runtime and defaults."""
 
@@ -1393,7 +1395,7 @@ class PawControlOptionsFlow(OptionsFlow):
     @staticmethod
     def _resolve_resilience_threshold_default(
         system: SystemOptions,
-        options: Mapping[str, object],
+        options: Mapping[str, JSONValue],
         *,
         field: str,
         fallback: int,
@@ -1566,7 +1568,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
     def _build_geofence_settings(
         self,
-        user_input: Mapping[str, object],
+        user_input: FlowInputMapping,
         current: GeofenceOptions,
         *,
         radius: int,
@@ -1620,35 +1622,34 @@ class PawControlOptionsFlow(OptionsFlow):
 
         return geofence
 
-    def _build_notification_settings(
-        self,
-        user_input: Mapping[str, object],
-        current: NotificationOptions,
+    @classmethod
+    def _build_notification_settings_payload(
+        cls, user_input: FlowInputMapping, current: NotificationOptions
     ) -> NotificationOptions:
         """Create a typed notification payload from submitted form data."""
 
         notifications: NotificationOptions = {
-            QUIET_HOURS_FIELD: self._coerce_bool(
+            QUIET_HOURS_FIELD: cls._coerce_bool(
                 user_input.get("quiet_hours"),
                 current.get(QUIET_HOURS_FIELD, True),
             ),
-            QUIET_START_FIELD: self._coerce_time_string(
+            QUIET_START_FIELD: cls._coerce_time_string(
                 user_input.get("quiet_start"),
                 current.get(QUIET_START_FIELD, "22:00:00"),
             ),
-            QUIET_END_FIELD: self._coerce_time_string(
+            QUIET_END_FIELD: cls._coerce_time_string(
                 user_input.get("quiet_end"),
                 current.get(QUIET_END_FIELD, "07:00:00"),
             ),
-            REMINDER_REPEAT_MIN_FIELD: self._coerce_int(
+            REMINDER_REPEAT_MIN_FIELD: cls._coerce_int(
                 user_input.get("reminder_repeat_min"),
                 current.get(REMINDER_REPEAT_MIN_FIELD, DEFAULT_REMINDER_REPEAT_MIN),
             ),
-            "priority_notifications": self._coerce_bool(
+            "priority_notifications": cls._coerce_bool(
                 user_input.get("priority_notifications"),
                 current.get("priority_notifications", True),
             ),
-            "mobile_notifications": self._coerce_bool(
+            "mobile_notifications": cls._coerce_bool(
                 user_input.get("mobile_notifications"),
                 current.get("mobile_notifications", True),
             ),
@@ -1656,9 +1657,18 @@ class PawControlOptionsFlow(OptionsFlow):
 
         return notifications
 
+    def _build_notification_settings(
+        self,
+        user_input: FlowInputMapping,
+        current: NotificationOptions,
+    ) -> NotificationOptions:
+        """Create a typed notification payload from submitted form data."""
+
+        return self._build_notification_settings_payload(user_input, current)
+
     def _build_weather_settings(
         self,
-        user_input: Mapping[str, object],
+        user_input: FlowInputMapping,
         current: WeatherOptions,
     ) -> WeatherOptions:
         """Create a typed weather configuration payload from submitted data."""
@@ -1740,7 +1750,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
     def _build_feeding_settings(
         self,
-        user_input: Mapping[str, object],
+        user_input: FlowInputMapping,
         current: FeedingOptions,
     ) -> FeedingOptions:
         """Create a typed feeding configuration payload from submitted data."""
@@ -1776,7 +1786,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
     def _build_health_settings(
         self,
-        user_input: Mapping[str, object],
+        user_input: FlowInputMapping,
         current: HealthOptions,
     ) -> HealthOptions:
         """Create a typed health configuration payload from submitted data."""
@@ -1808,7 +1818,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
     def _build_system_settings(
         self,
-        user_input: Mapping[str, object],
+        user_input: FlowInputMapping,
         current: SystemOptions,
         *,
         reset_default: str,
@@ -1923,7 +1933,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
     def _build_dashboard_settings(
         self,
-        user_input: Mapping[str, object],
+        user_input: FlowInputMapping,
         current: DashboardOptions,
         *,
         default_mode: str,
@@ -1960,7 +1970,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
     def _build_advanced_settings(
         self,
-        user_input: Mapping[str, object],
+        user_input: FlowInputMapping,
         current: AdvancedOptions,
     ) -> AdvancedOptions:
         """Create typed advanced configuration metadata."""
@@ -2426,31 +2436,31 @@ class PawControlOptionsFlow(OptionsFlow):
             else "0"
         )
 
-        placeholders: MutableConfigFlowPlaceholders = {
-            "current_profile": current_profile,
-            "current_description": profile_description,
-            "dogs_count": str(len(dog_entries_local)),
-            "estimated_entities": str(total_estimate),
-            "max_entities_per_dog": str(max_entities),
-            "performance_impact": self._get_performance_impact_description(
-                current_profile or DEFAULT_PROFILE
-            ),
-            "compatibility_warnings": "; ".join(profile_compatibility_issues)
-            if profile_compatibility_issues
-            else "No compatibility issues",
-            "utilization_percentage": utilization,
-        }
+        placeholders: MutableConfigFlowPlaceholders = clone_placeholders(
+            RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE
+        )
+        placeholders.update(
+            {
+                "current_profile": current_profile,
+                "current_description": profile_description,
+                "dogs_count": str(len(dog_entries_local)),
+                "estimated_entities": str(total_estimate),
+                "max_entities_per_dog": str(max_entities),
+                "performance_impact": self._get_performance_impact_description(
+                    current_profile or DEFAULT_PROFILE
+                ),
+                "compatibility_warnings": "; ".join(profile_compatibility_issues)
+                if profile_compatibility_issues
+                else "No compatibility issues",
+                "utilization_percentage": utilization,
+            }
+        )
 
         placeholders.update(
-            cast(
-                MutableConfigFlowPlaceholders,
-                dict(self._get_reconfigure_description_placeholders()),
-            )
+            clone_placeholders(self._get_reconfigure_description_placeholders())
         )
 
-        frozen_placeholders = cast(
-            ConfigFlowPlaceholders, MappingProxyType(placeholders)
-        )
+        frozen_placeholders = freeze_placeholders(placeholders)
         self._profile_cache[cache_key] = frozen_placeholders
         return frozen_placeholders
 
@@ -3407,7 +3417,7 @@ class PawControlOptionsFlow(OptionsFlow):
         *,
         current_sensor: str | None,
         defaults: DoorSensorSettingsConfig,
-        user_input: Mapping[str, object] | None = None,
+        user_input: FlowInputMapping | None = None,
     ) -> vol.Schema:
         """Build schema for configuring per-dog door sensor overrides."""
 
@@ -3795,7 +3805,7 @@ class PawControlOptionsFlow(OptionsFlow):
         )
 
     def _get_remove_dog_schema(
-        self, dogs: Sequence[Mapping[str, object]]
+        self, dogs: Sequence[Mapping[str, JSONValue]]
     ) -> vol.Schema:
         """Build the removal confirmation schema for the provided dog list."""
 

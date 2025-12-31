@@ -12,7 +12,6 @@ Python: 3.13+
 from __future__ import annotations
 
 from collections.abc import Mapping
-from types import MappingProxyType
 from typing import TYPE_CHECKING, Final, cast
 
 import voluptuous as vol
@@ -39,6 +38,7 @@ from .types import (
     DASHBOARD_THEME_FIELD,
     SHOW_MAPS_FIELD,
     SHOW_STATISTICS_FIELD,
+    DASHBOARD_CONFIGURATION_PLACEHOLDERS_TEMPLATE,
     ConfigFlowInputMapping,
     ConfigFlowPlaceholders,
     DashboardConfigurationPlaceholders,
@@ -47,6 +47,8 @@ from .types import (
     DogConfigData,
     DogModulesConfig,
     ExternalEntityConfig,
+    clone_placeholders,
+    freeze_placeholders,
 )
 
 _DASHBOARD_INFO_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
@@ -73,26 +75,16 @@ _DASHBOARD_INFO_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
 }
 
 
-def _freeze_placeholders(
-    placeholders: DashboardConfigurationPlaceholders,
-) -> ConfigFlowPlaceholders:
-    """Return an immutable mapping proxy for dashboard placeholders."""
-
-    frozen_placeholders = MappingProxyType(dict(placeholders))
-    return cast(ConfigFlowPlaceholders, frozen_placeholders)
-
-
 def _build_dashboard_configure_placeholders(
     *, dog_count: int, dashboard_info: str, features: str
 ) -> ConfigFlowPlaceholders:
     """Return immutable placeholders for the dashboard configuration form."""
 
-    placeholders: DashboardConfigurationPlaceholders = {
-        "dog_count": dog_count,
-        "dashboard_info": dashboard_info,
-        "features": features,
-    }
-    return _freeze_placeholders(placeholders)
+    placeholders = clone_placeholders(DASHBOARD_CONFIGURATION_PLACEHOLDERS_TEMPLATE)
+    placeholders["dog_count"] = dog_count
+    placeholders["dashboard_info"] = dashboard_info
+    placeholders["features"] = features
+    return freeze_placeholders(placeholders)
 
 
 def _translated_dashboard_info_line(

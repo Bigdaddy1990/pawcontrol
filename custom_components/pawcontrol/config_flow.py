@@ -12,7 +12,6 @@ import time
 from collections.abc import AsyncIterator, Awaitable, Mapping, Sequence
 from contextlib import asynccontextmanager, suppress
 from datetime import datetime
-from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, Final, cast
 
 import voluptuous as vol
@@ -75,13 +74,16 @@ from .entity_factory import ENTITY_PROFILES, EntityFactory, EntityProfileDefinit
 from .exceptions import ConfigurationError, PawControlSetupError, ValidationError
 from .options_flow import PawControlOptionsFlow
 from .types import (
+    ADD_ANOTHER_DOG_PLACEHOLDERS_TEMPLATE,
+    ADD_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE,
+    DOG_MODULES_SMART_DEFAULTS_TEMPLATE,
     DOG_ID_FIELD,
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
+    REAUTH_PLACEHOLDERS_TEMPLATE,
+    RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE,
     MODULE_TOGGLE_FLAG_BY_KEY,
     MODULE_TOGGLE_KEYS,
-    AddAnotherDogPlaceholders,
-    AddDogSummaryPlaceholders,
     ConfigEntryDataPayload,
     ConfigEntryOptionsPayload,
     ConfigFlowDiscoveryData,
@@ -97,7 +99,6 @@ from .types import (
     DiscoveryUpdatePayload,
     DogConfigData,
     DogModulesConfig,
-    DogModulesSmartDefaultsPlaceholders,
     DogSetupStepInput,
     DogValidationCacheEntry,
     ExternalEntityConfig,
@@ -116,9 +117,11 @@ from .types import (
     ReconfigureOptionsUpdates,
     ReconfigureProfileInput,
     ReconfigureTelemetry,
+    clone_placeholders,
     coerce_dog_modules_config,
     dog_modules_from_flow_input,
     ensure_dog_modules_mapping,
+    freeze_placeholders,
     is_dog_config_valid,
     normalize_performance_mode,
 )
@@ -164,12 +167,11 @@ def _build_add_dog_summary_placeholders(
 ) -> ConfigFlowPlaceholders:
     """Return placeholders for the main add-dog form."""
 
-    placeholders: AddDogSummaryPlaceholders = {
-        "dogs_configured": str(dogs_configured),
-        "max_dogs": str(max_dogs),
-        "discovery_hint": discovery_hint,
-    }
-    return MappingProxyType(placeholders)
+    placeholders = clone_placeholders(ADD_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE)
+    placeholders["dogs_configured"] = str(dogs_configured)
+    placeholders["max_dogs"] = str(max_dogs)
+    placeholders["discovery_hint"] = discovery_hint
+    return freeze_placeholders(placeholders)
 
 
 def _build_dog_modules_form_placeholders(
@@ -177,12 +179,11 @@ def _build_dog_modules_form_placeholders(
 ) -> ConfigFlowPlaceholders:
     """Return placeholders for the module selection form."""
 
-    placeholders: DogModulesSmartDefaultsPlaceholders = {
-        "dog_name": dog_name,
-        "dogs_configured": str(dogs_configured),
-        "smart_defaults": smart_defaults,
-    }
-    return MappingProxyType(placeholders)
+    placeholders = clone_placeholders(DOG_MODULES_SMART_DEFAULTS_TEMPLATE)
+    placeholders["dog_name"] = dog_name
+    placeholders["dogs_configured"] = str(dogs_configured)
+    placeholders["smart_defaults"] = smart_defaults
+    return freeze_placeholders(placeholders)
 
 
 def _build_add_another_placeholders(
@@ -195,14 +196,13 @@ def _build_add_another_placeholders(
 ) -> ConfigFlowPlaceholders:
     """Return placeholders used when prompting to add another dog."""
 
-    placeholders: AddAnotherDogPlaceholders = {
-        "dogs_configured": str(dogs_configured),
-        "dogs_list": dogs_list,
-        "can_add_more": "yes" if can_add_more else "no",
-        "max_dogs": str(max_dogs),
-        "performance_note": performance_note,
-    }
-    return MappingProxyType(placeholders)
+    placeholders = clone_placeholders(ADD_ANOTHER_DOG_PLACEHOLDERS_TEMPLATE)
+    placeholders["dogs_configured"] = str(dogs_configured)
+    placeholders["dogs_list"] = dogs_list
+    placeholders["can_add_more"] = "yes" if can_add_more else "no"
+    placeholders["max_dogs"] = str(max_dogs)
+    placeholders["performance_note"] = performance_note
+    return freeze_placeholders(placeholders)
 
 
 # Optimized schema definitions using constants from const.py
@@ -1991,13 +1991,12 @@ class PawControlConfigFlow(
         profile_raw = self.reauth_entry.options.get("entity_profile", "unknown")
         profile = profile_raw if isinstance(profile_raw, str) else str(profile_raw)
 
-        placeholders: ReauthPlaceholders = {
-            "integration_name": self.reauth_entry.title,
-            "dogs_count": str(total_dogs),
-            "current_profile": profile,
-            "health_status": self._render_reauth_health_status(summary),
-        }
-        return cast(ReauthPlaceholders, MappingProxyType(placeholders))
+        placeholders = clone_placeholders(REAUTH_PLACEHOLDERS_TEMPLATE)
+        placeholders["integration_name"] = self.reauth_entry.title
+        placeholders["dogs_count"] = str(total_dogs)
+        placeholders["current_profile"] = profile
+        placeholders["health_status"] = self._render_reauth_health_status(summary)
+        return cast(ReauthPlaceholders, freeze_placeholders(placeholders))
 
     async def async_step_reauth(
         self, entry_data: ConfigEntryDataPayload
@@ -2581,25 +2580,35 @@ class PawControlConfigFlow(
         valid_dogs = sum(1 for dog in dogs if is_dog_config_valid(dog))
         invalid_dogs = max(len(dogs) - valid_dogs, 0)
         merge_lines = self._normalise_string_list(list(merge_notes))
-        placeholders: ReconfigureFormPlaceholders = {
-            "current_profile": profile,
-            "profiles_info": self._get_profiles_info_enhanced(),
-            "dogs_count": str(len(dogs)),
-            "compatibility_info": self._get_compatibility_info(profile, dogs),
-            "estimated_entities": str(estimated_entities),
-            "reconfigure_valid_dogs": str(valid_dogs),
-            "reconfigure_invalid_dogs": str(invalid_dogs),
-            "reconfigure_merge_notes": (
-                "\n".join(merge_lines)
-                if merge_lines
-                else "No merge adjustments detected"
-            ),
-        }
-        placeholders.update(self._reconfigure_history_placeholders(entry.options))
+        placeholders: ReconfigureFormPlaceholders = cast(
+            ReconfigureFormPlaceholders,
+            clone_placeholders(RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE),
+        )
+        placeholders.update(
+            {
+                "current_profile": profile,
+                "profiles_info": self._get_profiles_info_enhanced(),
+                "dogs_count": str(len(dogs)),
+                "compatibility_info": self._get_compatibility_info(profile, dogs),
+                "estimated_entities": str(estimated_entities),
+                "reconfigure_valid_dogs": str(valid_dogs),
+                "reconfigure_invalid_dogs": str(invalid_dogs),
+                "reconfigure_merge_notes": (
+                    "\n".join(merge_lines)
+                    if merge_lines
+                    else "No merge adjustments detected"
+                ),
+            }
+        )
+        placeholders.update(
+            self._reconfigure_history_placeholders(
+                cast(Mapping[str, JSONValue], entry.options)
+            )
+        )
         return placeholders
 
     def _reconfigure_history_placeholders(
-        self, options: Mapping[str, object]
+        self, options: Mapping[str, JSONValue]
     ) -> ReconfigureFormPlaceholders:
         """Return placeholders describing the latest reconfigure telemetry."""
 
@@ -2607,16 +2616,20 @@ class PawControlConfigFlow(
         telemetry = telemetry_raw if isinstance(telemetry_raw, Mapping) else None
         timestamp_raw = options.get("last_reconfigure")
 
+        history: ReconfigureFormPlaceholders = cast(
+            ReconfigureFormPlaceholders,
+            clone_placeholders(RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE),
+        )
+
         if telemetry is None:
-            return {
-                "last_reconfigure": self._format_local_timestamp(timestamp_raw),
-                "reconfigure_requested_profile": "Not recorded",
-                "reconfigure_previous_profile": "Not recorded",
-                "reconfigure_dogs": "0",
-                "reconfigure_entities": "0",
-                "reconfigure_health": "No recent health summary",
-                "reconfigure_warnings": "None",
-            }
+            history["last_reconfigure"] = self._format_local_timestamp(timestamp_raw)
+            history["reconfigure_requested_profile"] = "Not recorded"
+            history["reconfigure_previous_profile"] = "Not recorded"
+            history["reconfigure_dogs"] = "0"
+            history["reconfigure_entities"] = "0"
+            history["reconfigure_health"] = "No recent health summary"
+            history["reconfigure_warnings"] = "None"
+            return history
 
         requested_profile = str(telemetry.get("requested_profile", "")) or "Unknown"
         previous_profile = str(telemetry.get("previous_profile", "")) or "Unknown"
@@ -2633,21 +2646,19 @@ class PawControlConfigFlow(
         merge_notes = self._normalise_string_list(telemetry.get("merge_notes"))
         last_recorded = telemetry.get("timestamp") or timestamp_raw
 
-        history: ReconfigureFormPlaceholders = {
-            "last_reconfigure": self._format_local_timestamp(last_recorded),
-            "reconfigure_requested_profile": requested_profile,
-            "reconfigure_previous_profile": previous_profile,
-            "reconfigure_dogs": (
-                str(int(dogs_count)) if isinstance(dogs_count, int | float) else "0"
-            ),
-            "reconfigure_entities": (
-                str(int(estimated_entities))
-                if isinstance(estimated_entities, int | float)
-                else "0"
-            ),
-            "reconfigure_health": self._summarise_health_summary(health_summary),
-            "reconfigure_warnings": ", ".join(warnings) if warnings else "None",
-        }
+        history["last_reconfigure"] = self._format_local_timestamp(last_recorded)
+        history["reconfigure_requested_profile"] = requested_profile
+        history["reconfigure_previous_profile"] = previous_profile
+        history["reconfigure_dogs"] = (
+            str(int(dogs_count)) if isinstance(dogs_count, int | float) else "0"
+        )
+        history["reconfigure_entities"] = (
+            str(int(estimated_entities))
+            if isinstance(estimated_entities, int | float)
+            else "0"
+        )
+        history["reconfigure_health"] = self._summarise_health_summary(health_summary)
+        history["reconfigure_warnings"] = ", ".join(warnings) if warnings else "None"
         if merge_notes:
             history["reconfigure_merge_notes"] = "\n".join(merge_notes)
         return history
