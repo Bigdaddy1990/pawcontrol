@@ -14,12 +14,17 @@ from homeassistant.util import dt as dt_util
 from .coordinator import PawControlCoordinator
 from .sensor import AttributeDict, PawControlSensorBase, register_sensor
 from .types import (
+    ActivityLevelSensorAttributes,
+    CaloriesBurnedSensorAttributes,
     DogConfigData,
     FeedingModuleTelemetry,
     HealthModulePayload,
     JSONValue,
+    LastFeedingHoursAttributes,
     WalkModuleTelemetry,
     WalkSessionSnapshot,
+    TotalWalkDistanceAttributes,
+    WalksThisWeekAttributes,
     ensure_json_mapping,
 )
 from .utils import DateTimeConvertible, ensure_utc_datetime
@@ -239,7 +244,10 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return supplemental activity telemetry for diagnostics."""
-        attrs: AttributeDict = ensure_json_mapping(super().extra_state_attributes)
+        attrs = cast(
+            ActivityLevelSensorAttributes,
+            ensure_json_mapping(super().extra_state_attributes),
+        )
         walk_data = _walk_payload(self)
         health_data = _health_payload(self)
 
@@ -312,7 +320,10 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Provide supporting data for the calories burned calculation."""
-        attrs: AttributeDict = ensure_json_mapping(super().extra_state_attributes)
+        attrs = cast(
+            CaloriesBurnedSensorAttributes,
+            ensure_json_mapping(super().extra_state_attributes),
+        )
         walk_data = _walk_payload(self)
         health_data = _health_payload(self)
         dog_weight = self._resolve_dog_weight(health_data)
@@ -378,7 +389,10 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return contextual feeding metadata for diagnostics."""
-        attrs: AttributeDict = ensure_json_mapping(super().extra_state_attributes)
+        attrs = cast(
+            LastFeedingHoursAttributes,
+            ensure_json_mapping(super().extra_state_attributes),
+        )
         feeding_data = _feeding_payload(self)
         if feeding_data is None:
             return attrs
@@ -470,7 +484,10 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return aggregated walk distance metrics for the dog."""
-        attrs: AttributeDict = ensure_json_mapping(super().extra_state_attributes)
+        attrs = cast(
+            TotalWalkDistanceAttributes,
+            ensure_json_mapping(super().extra_state_attributes),
+        )
         walk_data = _walk_payload(self)
         if walk_data is None:
             return attrs
@@ -565,7 +582,10 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Expose weekly walk statistics derived from coordinator payloads."""
-        attrs: AttributeDict = ensure_json_mapping(super().extra_state_attributes)
+        attrs = cast(
+            WalksThisWeekAttributes,
+            ensure_json_mapping(super().extra_state_attributes),
+        )
         walk_data = _walk_payload(self)
         if walk_data is None:
             return attrs

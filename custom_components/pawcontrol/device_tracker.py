@@ -53,12 +53,12 @@ from .types import (
     GPSRouteExportPayload,
     GPSRoutePoint,
     GPSRouteSnapshot,
-    JSONMapping,
     JSONMutableMapping,
     JSONValue,
     PawControlConfigEntry,
     ensure_dog_config_data,
     ensure_dog_modules_projection,
+    ensure_gps_payload,
 )
 from .utils import async_call_add_entities, ensure_utc_datetime
 
@@ -439,9 +439,14 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
 
         gps_state = dog_data.get(MODULE_GPS)
         if isinstance(gps_state, dict):
-            return cast(GPSModulePayload, gps_state)
+            return ensure_gps_payload(gps_state)
         if isinstance(gps_state, Mapping):
-            return cast(GPSModulePayload, dict(gps_state))
+            gps_payload = ensure_gps_payload(cast(Mapping[str, object], gps_state))
+            if gps_payload is not None:
+                cast(CoordinatorDogData, dog_data)[MODULE_GPS] = cast(
+                    CoordinatorModuleState, gps_payload
+                )
+            return gps_payload
 
         return None
 
@@ -675,9 +680,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
                 err,
             )
 
-    async def async_start_route_recording(
-        self, route_name: str | None = None
-    ) -> str:
+    async def async_start_route_recording(self, route_name: str | None = None) -> str:
         """Start recording a new GPS route.
 
         Args:
