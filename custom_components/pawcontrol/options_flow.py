@@ -1992,6 +1992,12 @@ class PawControlOptionsFlow(OptionsFlow):
                     JSONValue, [cast(JSONValue, item) for item in value]
                 )
             else:
+                _LOGGER.warning(
+                    "Advanced options received non-JSON-serializable value for %s; "
+                    "storing repr (%s)",
+                    key,
+                    type(value).__name__,
+                )
                 sanitized_input[str(key)] = repr(value)
         if CONF_API_ENDPOINT in user_input:
             sanitized_input[CONF_API_ENDPOINT] = endpoint
