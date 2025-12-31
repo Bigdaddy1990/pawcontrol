@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Any, cast
 
@@ -97,6 +97,7 @@ from custom_components.pawcontrol.types import (
     ModuleConfigurationStepInput,
     ModuleSetupSummaryPlaceholders,
     ModuleToggleKey,
+    MutableConfigFlowPlaceholders,
     dog_feeding_config_from_flow,
     dog_modules_from_flow_input,
     ensure_dog_modules_config,
@@ -151,11 +152,14 @@ def _coerce_bool(value: Any, *, default: bool = False) -> bool:
 
 
 def _freeze_placeholders(
-    placeholders: ConfigFlowPlaceholders,
+    placeholders: Mapping[str, object] | MutableMapping[str, object],
 ) -> ConfigFlowPlaceholders:
     """Return an immutable mapping proxy for ``placeholders``."""
 
-    return cast(ConfigFlowPlaceholders, MappingProxyType(dict(placeholders)))
+    frozen_placeholders: MutableConfigFlowPlaceholders = cast(
+        MutableConfigFlowPlaceholders, dict(placeholders)
+    )
+    return cast(ConfigFlowPlaceholders, MappingProxyType(frozen_placeholders))
 
 
 def _build_add_dog_placeholders(

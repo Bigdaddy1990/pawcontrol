@@ -1997,7 +1997,7 @@ class PawControlConfigFlow(
             "current_profile": profile,
             "health_status": self._render_reauth_health_status(summary),
         }
-        return placeholders
+        return cast(ReauthPlaceholders, MappingProxyType(placeholders))
 
     async def async_step_reauth(
         self, entry_data: ConfigEntryDataPayload

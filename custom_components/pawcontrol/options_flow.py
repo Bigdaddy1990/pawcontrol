@@ -128,6 +128,7 @@ from .types import (
     DOG_WEIGHT_FIELD,
     AdvancedOptions,
     ConfigEntryOptionsPayload,
+    ConfigFlowPlaceholders,
     ConfigFlowUserInput,
     DashboardOptions,
     DogConfigData,
@@ -142,10 +143,14 @@ from .types import (
     HealthOptions,
     JSONLikeMapping,
     JSONMutableMapping,
+    JSONValue,
+    MutableConfigFlowPlaceholders,
     NotificationOptions,
+    NotificationOptionsInput,
     NotificationThreshold,
     OptionsExportPayload,
     PawControlOptionsData,
+    ReconfigureFormPlaceholders,
     ReconfigureTelemetry,
     SystemOptions,
     WeatherOptions,
@@ -323,7 +328,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
         # Initialize entity factory and caches for profile calculations
         self._entity_factory = EntityFactory(None)
-        self._profile_cache: dict[str, dict[str, str]] = {}
+        self._profile_cache: dict[str, ConfigFlowPlaceholders] = {}
         self._entity_estimates_cache: dict[str, JSONMutableMapping] = {}
 
     @property
@@ -340,12 +345,15 @@ class PawControlOptionsFlow(OptionsFlow):
         """Attach the originating config entry to this options flow."""
 
         self._config_entry = config_entry
-        dogs_data = config_entry.data.get(CONF_DOGS, [])
+        dogs_data_raw = config_entry.data.get(CONF_DOGS, [])
+        dogs_iterable: Sequence[object] = (
+            dogs_data_raw if isinstance(dogs_data_raw, Sequence) else ()
+        )
         self._dogs = []
-        for dog in dogs_data:
+        for dog in dogs_iterable:
             if not isinstance(dog, Mapping):
                 continue
-            normalised = ensure_dog_config_data(dog)
+            normalised = ensure_dog_config_data(cast(Mapping[str, JSONValue], dog))
             if normalised is not None:
                 self._dogs.append(normalised)
 
@@ -375,13 +383,13 @@ class PawControlOptionsFlow(OptionsFlow):
         if CONF_NOTIFICATIONS in mutable:
             raw_notifications = mutable.get(CONF_NOTIFICATIONS)
             notifications_source = (
-                cast(Mapping[str, object], raw_notifications)
+                cast(Mapping[str, JSONValue], raw_notifications)
                 if isinstance(raw_notifications, Mapping)
                 else {}
             )
             mutable[CONF_NOTIFICATIONS] = ensure_notification_options(
                 notifications_source,
-                defaults=_NOTIFICATION_DEFAULTS,
+                defaults=cast(NotificationOptionsInput, dict(_NOTIFICATION_DEFAULTS)),
             )
 
         if DOG_OPTIONS_FIELD in mutable:
@@ -391,11 +399,13 @@ class PawControlOptionsFlow(OptionsFlow):
                 for raw_id, raw_entry in raw_dog_options.items():
                     dog_id = str(raw_id)
                     entry_source = (
-                        cast(Mapping[str, object], raw_entry)
+                        cast(Mapping[str, JSONValue], raw_entry)
                         if isinstance(raw_entry, Mapping)
                         else {}
                     )
-                    entry = ensure_dog_options_entry(entry_source, dog_id=dog_id)
+                    entry = ensure_dog_options_entry(
+                        cast(JSONLikeMapping, dict(entry_source)), dog_id=dog_id
+                    )
                     if dog_id and entry.get(DOG_ID_FIELD) != dog_id:
                         entry[DOG_ID_FIELD] = dog_id
                     typed_dog_options[dog_id] = entry
@@ -404,13 +414,13 @@ class PawControlOptionsFlow(OptionsFlow):
         if ADVANCED_SETTINGS_FIELD in mutable:
             raw_advanced = mutable.get(ADVANCED_SETTINGS_FIELD)
             advanced_source = (
-                cast(Mapping[str, object], raw_advanced)
+                cast(Mapping[str, JSONValue], raw_advanced)
                 if isinstance(raw_advanced, Mapping)
                 else {}
             )
             mutable[ADVANCED_SETTINGS_FIELD] = ensure_advanced_options(
-                advanced_source,
-                defaults=mutable,
+                cast(JSONLikeMapping, dict(advanced_source)),
+                defaults=cast(JSONLikeMapping, dict(mutable)),
             )
 
         return cast(PawControlOptionsData, mutable)
@@ -422,7 +432,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
         typed_dogs: list[DogConfigData] = []
         for dog in dogs:
-            normalised = ensure_dog_config_data(dog)
+            normalised = ensure_dog_config_data(cast(Mapping[str, JSONValue], dog))
             if normalised is None:
                 raise ValueError("invalid_dog_config")
             typed_dogs.append(normalised)
@@ -898,7 +908,7 @@ class PawControlOptionsFlow(OptionsFlow):
             return candidate or None
         return default
 
-    def _get_reconfigure_description_placeholders(self) -> dict[str, str]:
+    def _get_reconfigure_description_placeholders(self) -> ConfigFlowPlaceholders:
         """Return placeholders describing the latest reconfigure telemetry."""
 
         telemetry = self._reconfigure_telemetry()
@@ -906,7 +916,7 @@ class PawControlOptionsFlow(OptionsFlow):
             (telemetry or {}).get("timestamp") if telemetry else None
         )
         if not telemetry:
-            return {
+            empty_placeholders: ReconfigureFormPlaceholders = {
                 "last_reconfigure": timestamp,
                 "reconfigure_requested_profile": "Not recorded",
                 "reconfigure_previous_profile": "Not recorded",
@@ -916,6 +926,9 @@ class PawControlOptionsFlow(OptionsFlow):
                 "reconfigure_warnings": "None",
                 "reconfigure_merge_notes": "No merge adjustments recorded",
             }
+            return cast(
+                ConfigFlowPlaceholders, MappingProxyType(dict(empty_placeholders))
+            )
 
         requested_profile = str(telemetry.get("requested_profile", "")) or "Unknown"
         previous_profile = str(telemetry.get("previous_profile", "")) or "Unknown"
@@ -927,7 +940,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
         last_recorded = telemetry.get("timestamp") or self._last_reconfigure_timestamp()
 
-        return {
+        telemetry_placeholders: ReconfigureFormPlaceholders = {
             "last_reconfigure": self._format_local_timestamp(
                 str(last_recorded) if last_recorded else None
             ),
@@ -949,6 +962,9 @@ class PawControlOptionsFlow(OptionsFlow):
                 else "No merge adjustments recorded"
             ),
         }
+        return cast(
+            ConfigFlowPlaceholders, MappingProxyType(dict(telemetry_placeholders))
+        )
 
     def _normalise_export_value(self, value: Any) -> Any:
         """Convert complex values into JSON-serialisable primitives."""
@@ -994,7 +1010,11 @@ class PawControlOptionsFlow(OptionsFlow):
         )
 
         dogs_payload: list[DogConfigData] = []
-        for raw in self._entry.data.get(CONF_DOGS, []):
+        dogs_raw = self._entry.data.get(CONF_DOGS, [])
+        dogs_iterable: Sequence[object] = (
+            dogs_raw if isinstance(dogs_raw, Sequence) else ()
+        )
+        for raw in dogs_iterable:
             if not isinstance(raw, Mapping):
                 continue
             normalised = cast(
@@ -1089,7 +1109,10 @@ class PawControlOptionsFlow(OptionsFlow):
         payload: Mapping[str, object] = (
             cast(Mapping[str, object], raw) if isinstance(raw, Mapping) else {}
         )
-        return ensure_notification_options(payload, defaults=_NOTIFICATION_DEFAULTS)
+        return ensure_notification_options(
+            dict(payload),
+            defaults=dict(_NOTIFICATION_DEFAULTS),
+        )
 
     def _current_weather_options(self) -> WeatherOptions:
         """Return the stored weather configuration with root fallbacks."""
@@ -1180,7 +1203,9 @@ class PawControlOptionsFlow(OptionsFlow):
         for dog_id, value in raw.items():
             if not isinstance(value, Mapping):
                 continue
-            entry = ensure_dog_options_entry(value, dog_id=str(dog_id))
+            entry = ensure_dog_options_entry(
+                cast(JSONLikeMapping, dict(value)), dog_id=str(dog_id)
+            )
             if entry:
                 dog_options[str(dog_id)] = entry
 
@@ -1940,16 +1965,18 @@ class PawControlOptionsFlow(OptionsFlow):
             if isinstance(token_raw, str)
             else current.get(CONF_API_TOKEN, "")
         )
-
         sanitized_input = cast(JSONMutableMapping, dict(user_input))
         if CONF_API_ENDPOINT in user_input:
             sanitized_input[CONF_API_ENDPOINT] = endpoint
         if CONF_API_TOKEN in user_input:
             sanitized_input[CONF_API_TOKEN] = token
 
-        defaults = cast(JSONMutableMapping, dict(self._current_options()))
-        defaults.update(current)
-        return ensure_advanced_options(sanitized_input, defaults=defaults)
+        current_advanced = self._current_options().get(ADVANCED_SETTINGS_FIELD, {})
+        advanced_defaults = cast(
+            JSONMutableMapping,
+            dict(current_advanced) if isinstance(current_advanced, Mapping) else {},
+        )
+        return ensure_advanced_options(sanitized_input, defaults=advanced_defaults)
 
     async def async_step_init(
         self, user_input: ConfigFlowUserInput | None = None
@@ -2275,11 +2302,27 @@ class PawControlOptionsFlow(OptionsFlow):
             }
         )
 
-    def _get_profile_description_placeholders_cached(self) -> dict[str, str]:
+    def _get_profile_description_placeholders_cached(self) -> ConfigFlowPlaceholders:
         """Get description placeholders with caching for better performance."""
 
-        current_dogs = self._entry.data.get(CONF_DOGS, [])
-        current_profile = self._entry.options.get("entity_profile", DEFAULT_PROFILE)
+        dogs_raw = self._entry.data.get(CONF_DOGS, [])
+        current_dogs: list[DogConfigData] = []
+        if isinstance(dogs_raw, Sequence):
+            for dog in dogs_raw:
+                if not isinstance(dog, Mapping):
+                    continue
+                normalised = ensure_dog_config_data(cast(Mapping[str, JSONValue], dog))
+                if normalised is not None:
+                    current_dogs.append(normalised)
+        current_dogs = cast(list[DogConfigData], current_dogs)
+        current_dogs = cast(list[DogConfigData], current_dogs)
+
+        current_profile_raw = self._entry.options.get("entity_profile", DEFAULT_PROFILE)
+        current_profile = (
+            current_profile_raw
+            if isinstance(current_profile_raw, str)
+            else str(current_profile_raw)
+        )
         telemetry = self._reconfigure_telemetry()
         telemetry_digest = ""
         if telemetry:
@@ -2306,11 +2349,21 @@ class PawControlOptionsFlow(OptionsFlow):
         profile_info = ENTITY_PROFILES.get(
             current_profile, ENTITY_PROFILES[DEFAULT_PROFILE]
         )
-        max_entities = profile_info["max_entities"]
+        max_entities_value = profile_info.get("max_entities", 0)
+        max_entities = (
+            int(max_entities_value)
+            if isinstance(max_entities_value, (int, float, str))
+            else 0
+        )
+        profile_description = str(profile_info.get("description", ""))
+        str(profile_info.get("performance_impact", ""))
 
         for dog in current_dogs:
-            modules = ensure_dog_modules_mapping(dog)
-            modules_dict = dict(modules)
+            dog_config = cast(DogConfigData, dog)
+            modules_config = ensure_dog_modules_config(
+                cast(Mapping[str, object], dog_config)
+            )
+            modules_dict = dict(modules_config)
             estimate = self._entity_factory.estimate_entity_count(
                 current_profile, modules_dict
             )
@@ -2319,7 +2372,7 @@ class PawControlOptionsFlow(OptionsFlow):
             if not self._entity_factory.validate_profile_for_modules(
                 current_profile, modules_dict
             ):
-                dog_name = dog.get(CONF_DOG_NAME, "Unknown")
+                dog_name = dog_config.get(CONF_DOG_NAME, "Unknown")
                 profile_compatibility_issues.append(
                     f"{dog_name} modules may not be optimal for {current_profile}"
                 )
@@ -2331,14 +2384,14 @@ class PawControlOptionsFlow(OptionsFlow):
             else "0"
         )
 
-        placeholders = {
+        placeholders: MutableConfigFlowPlaceholders = {
             "current_profile": current_profile,
-            "current_description": profile_info["description"],
+            "current_description": profile_description,
             "dogs_count": str(len(current_dogs)),
             "estimated_entities": str(total_estimate),
             "max_entities_per_dog": str(max_entities),
             "performance_impact": self._get_performance_impact_description(
-                current_profile
+                current_profile or DEFAULT_PROFILE
             ),
             "compatibility_warnings": "; ".join(profile_compatibility_issues)
             if profile_compatibility_issues
@@ -2346,12 +2399,20 @@ class PawControlOptionsFlow(OptionsFlow):
             "utilization_percentage": utilization,
         }
 
-        placeholders.update(self._get_reconfigure_description_placeholders())
+        placeholders.update(
+            cast(
+                MutableConfigFlowPlaceholders,
+                dict(self._get_reconfigure_description_placeholders()),
+            )
+        )
 
-        self._profile_cache[cache_key] = placeholders
-        return placeholders
+        frozen_placeholders = cast(
+            ConfigFlowPlaceholders, MappingProxyType(placeholders)
+        )
+        self._profile_cache[cache_key] = frozen_placeholders
+        return frozen_placeholders
 
-    def _get_profile_description_placeholders(self) -> dict[str, str]:
+    def _get_profile_description_placeholders(self) -> ConfigFlowPlaceholders:
         """Get description placeholders for profile selection."""
 
         return self._get_profile_description_placeholders_cached()
@@ -2372,7 +2433,16 @@ class PawControlOptionsFlow(OptionsFlow):
     ) -> JSONMutableMapping:
         """Calculate profile preview with optimized performance."""
 
-        current_dogs = self._entry.data.get(CONF_DOGS, [])
+        dogs_raw = self._entry.data.get(CONF_DOGS, [])
+        current_dogs: list[DogConfigData] = []
+        if isinstance(dogs_raw, Sequence):
+            for dog in dogs_raw:
+                if not isinstance(dog, Mapping):
+                    continue
+                normalised = ensure_dog_config_data(cast(Mapping[str, JSONValue], dog))
+                if normalised is not None:
+                    current_dogs.append(normalised)
+
         cache_key = (
             f"{profile}_{len(current_dogs)}_"
             f"{hash(json.dumps(current_dogs, sort_keys=True))}"
@@ -2387,13 +2457,21 @@ class PawControlOptionsFlow(OptionsFlow):
         performance_score = 100.0
 
         profile_info = ENTITY_PROFILES.get(profile, ENTITY_PROFILES["standard"])
-        max_entities = profile_info["max_entities"]
+        max_entities_value = profile_info.get("max_entities", 0)
+        max_entities = (
+            int(max_entities_value)
+            if isinstance(max_entities_value, (int, float, str))
+            else 0
+        )
 
         for dog in current_dogs:
-            dog_name = dog.get(CONF_DOG_NAME, "Unknown")
-            dog_id = dog.get(CONF_DOG_ID, "unknown")
-            modules = ensure_dog_modules_mapping(dog)
-            modules_dict = dict(modules)
+            dog_config = cast(DogConfigData, dog)
+            dog_name = dog_config.get(CONF_DOG_NAME, "Unknown")
+            dog_id = dog_config.get(CONF_DOG_ID, "unknown")
+            modules_config = ensure_dog_modules_config(
+                cast(Mapping[str, object], dog_config)
+            )
+            modules_dict = dict(modules_config)
 
             estimate = self._entity_factory.estimate_entity_count(profile, modules_dict)
             total_entities += estimate
@@ -2425,10 +2503,13 @@ class PawControlOptionsFlow(OptionsFlow):
         else:
             current_total = 0
             for dog in current_dogs:
-                modules_mapping = ensure_dog_modules_mapping(dog)
+                dog_config = cast(DogConfigData, dog)
+                modules_mapping = ensure_dog_modules_config(
+                    cast(Mapping[str, object], dog_config)
+                )
                 modules = dict(modules_mapping)
                 current_total += self._entity_factory.estimate_entity_count(
-                    current_profile, dict(modules)
+                    current_profile, modules
                 )
 
         entity_difference = total_entities - current_total
@@ -2470,8 +2551,9 @@ class PawControlOptionsFlow(OptionsFlow):
         warnings: list[str] = []
 
         for dog in dogs:
-            modules = ensure_dog_modules_mapping(dog)
-            dog_name = dog.get(CONF_DOG_NAME, "Unknown")
+            dog_config = cast(DogConfigData, dog)
+            modules = ensure_dog_modules_config(cast(Mapping[str, object], dog_config))
+            dog_name = dog_config.get(CONF_DOG_NAME, "Unknown")
 
             if profile == "gps_focus" and not modules.get(MODULE_GPS, False):
                 warnings.append(
@@ -2497,7 +2579,8 @@ class PawControlOptionsFlow(OptionsFlow):
 
         NEW: Provides detailed breakdown of entity counts per dog
         """
-        profile = user_input.get("profile", "standard") if user_input else "standard"
+        raw_profile = user_input.get("profile") if user_input else None
+        profile = raw_profile if isinstance(raw_profile, str) else "standard"
 
         if user_input is not None:
             if user_input.get("apply_profile"):
@@ -2512,26 +2595,44 @@ class PawControlOptionsFlow(OptionsFlow):
         preview_data = await self._calculate_profile_preview_optimized(profile)
         breakdown_lines = []
 
-        for item in preview_data["entity_breakdown"]:
-            modules_display = ", ".join(item["modules"]) or "none"
+        entity_breakdown = cast(
+            list[JSONMutableMapping],
+            preview_data.get("entity_breakdown", []),
+        )
+        for item in entity_breakdown:
+            modules_raw = item.get("modules", ())
+            modules_sequence = (
+                modules_raw
+                if isinstance(modules_raw, Sequence)
+                and not isinstance(modules_raw, str)
+                else ()
+            )
+            modules_display = ", ".join(cast(Sequence[str], modules_sequence)) or "none"
             breakdown_lines.append(
-                f"• {item['dog_name']}: {item['entities']} entities "
-                f"(modules: {modules_display}, utilization: {item['utilization']:.1f}%)"
+                f"• {item.get('dog_name', 'Unknown')}: {item.get('entities', 0)} "
+                f"entities (modules: {modules_display}, "
+                f"utilization: {float(item.get('utilization', 0.0)):.1f}%)"
             )
 
         performance_change = (
             "same"
-            if preview_data["entity_difference"] == 0
+            if int(preview_data.get("entity_difference", 0)) == 0
             else (
                 "better"
-                if preview_data["entity_difference"] < 0
+                if int(preview_data.get("entity_difference", 0)) < 0
                 else "higher resource usage"
             )
         )
 
+        warnings_raw = preview_data.get("warnings", [])
+        warnings_sequence = (
+            warnings_raw
+            if isinstance(warnings_raw, Sequence) and not isinstance(warnings_raw, str)
+            else ()
+        )
         warnings_text = (
-            "\n".join(preview_data["warnings"])
-            if preview_data["warnings"]
+            "\n".join(cast(Sequence[str], warnings_sequence))
+            if warnings_sequence
             else "No warnings"
         )
 

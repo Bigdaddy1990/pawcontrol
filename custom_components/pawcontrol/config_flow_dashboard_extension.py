@@ -78,7 +78,8 @@ def _freeze_placeholders(
 ) -> ConfigFlowPlaceholders:
     """Return an immutable mapping proxy for dashboard placeholders."""
 
-    return cast(ConfigFlowPlaceholders, MappingProxyType(dict(placeholders)))
+    frozen_placeholders = MappingProxyType(dict(placeholders))
+    return cast(ConfigFlowPlaceholders, frozen_placeholders)
 
 
 def _build_dashboard_configure_placeholders(
