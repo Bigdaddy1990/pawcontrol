@@ -7571,11 +7571,13 @@ def is_notification_data_valid(data: Any) -> bool:
         "channel" in data and data["channel"] not in VALID_NOTIFICATION_CHANNELS
     )
 
-#geminivorschlag:
+
+# geminivorschlag:
 class DogModule(TypedDict):
     id: str
     name: str
     enabled: bool
+
 
 class DogConfig(TypedDict):
     dog_id: str
@@ -7583,10 +7585,13 @@ class DogConfig(TypedDict):
     modules: DogModulesConfig
     # Add other fields as needed
 
+
 # Immutable constant for Reauth placeholders
-REAUTH_PLACEHOLDERS: Final = MappingProxyType({
-    "integration_name": "PawControl",
-    "dogs_count": "0",
-    "current_profile": "standard",
-    "health_status": "Unknown",
-})
+REAUTH_PLACEHOLDERS: Final = MappingProxyType(
+    {
+        "integration_name": "PawControl",
+        "dogs_count": "0",
+        "current_profile": "standard",
+        "health_status": "Unknown",
+    }
+)
