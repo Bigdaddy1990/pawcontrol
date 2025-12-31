@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from types import ModuleType
 
 from tests.helpers import install_homeassistant_stubs
@@ -61,7 +61,7 @@ def test_notification_settings_payload_coercion() -> None:
     }
     user_input = {
         "quiet_hours": "false",
-        "quiet_start": datetime(2024, 7, 1, 8, 30, tzinfo=timezone.utc),
+        "quiet_start": datetime(2024, 7, 1, 8, 30, tzinfo=UTC),
         "quiet_end": 0,  # falls back to current default
         "reminder_repeat_min": "15",
         "priority_notifications": None,

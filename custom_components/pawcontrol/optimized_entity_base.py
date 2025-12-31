@@ -68,7 +68,6 @@ from .types import (
 from .utils import (
     JSONMappingLike,
     JSONMutableMapping,
-    JSONValue,
     PawControlDeviceLinkMixin,
     _coerce_json_mutable,
     async_call_add_entities,
@@ -930,7 +929,9 @@ class OptimizedEntityBase(
         )
         cached_payload: OptimizedEntityStateCachePayload
         if typed_module:
-            cached_payload = cast(OptimizedEntityStateCachePayload, module_payload_mapping)
+            cached_payload = cast(
+                OptimizedEntityStateCachePayload, module_payload_mapping
+            )
         else:
             cached_payload = cast(
                 OptimizedEntityStateCachePayload,

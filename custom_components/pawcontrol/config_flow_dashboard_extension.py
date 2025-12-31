@@ -32,16 +32,15 @@ from .const import (
 from .selector_shim import selector
 from .types import (
     DASHBOARD_AUTO_CREATE_FIELD,
+    DASHBOARD_CONFIGURATION_PLACEHOLDERS_TEMPLATE,
     DASHBOARD_ENABLED_FIELD,
     DASHBOARD_MODE_FIELD,
     DASHBOARD_PER_DOG_FIELD,
     DASHBOARD_THEME_FIELD,
     SHOW_MAPS_FIELD,
     SHOW_STATISTICS_FIELD,
-    DASHBOARD_CONFIGURATION_PLACEHOLDERS_TEMPLATE,
     ConfigFlowInputMapping,
     ConfigFlowPlaceholders,
-    DashboardConfigurationPlaceholders,
     DashboardConfigurationStepInput,
     DashboardSetupConfig,
     DogConfigData,

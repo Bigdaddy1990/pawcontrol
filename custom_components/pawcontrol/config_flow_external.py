@@ -29,9 +29,9 @@ from .const import (
 from .selector_shim import selector
 from .types import (
     DOOR_SENSOR_FIELD,
+    EXTERNAL_ENTITIES_PLACEHOLDERS_TEMPLATE,
     GPS_SOURCE_FIELD,
     NOTIFY_FALLBACK_FIELD,
-    EXTERNAL_ENTITIES_PLACEHOLDERS_TEMPLATE,
     ConfigFlowPlaceholders,
     DogConfigData,
     DogModulesConfig,

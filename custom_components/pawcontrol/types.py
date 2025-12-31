@@ -2798,6 +2798,7 @@ RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
     ),
 )
 
+
 class InputBooleanCreateServiceData(TypedDict, total=False):
     """Service payload accepted by ``input_boolean.create``."""
 
