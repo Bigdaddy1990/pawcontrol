@@ -48,6 +48,7 @@ from .types import (
     GPSRouteExportJSONPoint,
     GPSRouteExportJSONRoute,
     GPSRouteExportPayload,
+    GPSRouteSnapshot,
     GPSRoutePoint,
     JSONMapping,
     JSONMutableMapping,
@@ -212,7 +213,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
             return value
         return None
 
-    def _serialize_route_point(self, point: GPSRoutePoint) -> dict[str, JSONValue]:
+    def _serialize_route_point(self, point: GPSRoutePoint) -> GPSRoutePoint:
         """Convert a route point to a JSON-safe mapping."""
 
         timestamp_iso = self._serialize_timestamp(point.get("timestamp"))
@@ -238,7 +239,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
         if isinstance(heading, int | float):
             payload["heading"] = float(heading)
 
-        return payload
+        return cast(GPSRoutePoint, payload)
 
     @property
     def available(self) -> bool:
@@ -618,28 +619,26 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
             if isinstance(current_route, Mapping) and current_route.get(
                 "active", False
             ):
-                route_points = [
-                    self._serialize_route_point(point)
-                    for point in self._route_points.snapshot(limit=100)
-                ]
-                route_snapshot: JSONMutableMapping = {
-                    "active": True,
-                    "id": str(current_route.get("id") or ""),
-                    "name": str(current_route.get("name") or f"{self._dog_name} Route"),
-                    "points": route_points,
-                    "last_point_time": timestamp_iso,
-                    "point_count": len(route_points),
-                }
-
                 start_time_iso = self._serialize_timestamp(
                     cast(datetime | str | None, current_route.get("start_time"))
                 )
                 end_time_iso = self._serialize_timestamp(
                     cast(datetime | str | None, current_route.get("end_time"))
                 )
+                route_points: list[GPSRoutePoint] = [
+                    cast(GPSRoutePoint, self._serialize_route_point(point))
+                    for point in self._route_points.snapshot(limit=100)
+                ]
+                route_snapshot: GPSRouteSnapshot = {
+                    "active": True,
+                    "id": str(current_route.get("id") or ""),
+                    "name": str(current_route.get("name") or f"{self._dog_name} Route"),
+                    "start_time": start_time_iso or timestamp_iso,
+                    "points": route_points,
+                    "last_point_time": timestamp_iso,
+                    "point_count": len(route_points),
+                }
 
-                if start_time_iso is not None:
-                    route_snapshot["start_time"] = start_time_iso
                 if end_time_iso is not None:
                     route_snapshot["end_time"] = end_time_iso
 
@@ -760,7 +759,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
                 "end_time": end_time_iso,
                 "duration": duration,
                 "distance": float(distance),
-                "points": serialized_points,
+                "points": cast(JSONValue, serialized_points),
                 "point_count": len(serialized_points),
             }
 

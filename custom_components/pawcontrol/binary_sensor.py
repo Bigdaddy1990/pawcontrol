@@ -44,7 +44,7 @@ from .types import (
     DOG_NAME_FIELD,
     VISITOR_MODE_ACTIVE_FIELD,
     WALK_IN_PROGRESS_FIELD,
-    BinarySensorAttributes,
+    JSONMutableMapping,
     CoordinatorDogData,
     CoordinatorModuleState,
     CoordinatorTypedModuleName,
@@ -55,6 +55,7 @@ from .types import (
     GPSModulePayload,
     HealthModulePayload,
     JSONMapping,
+    JSONValue,
     PawControlConfigEntry,
     WalkModulePayload,
     ensure_dog_config_data,
@@ -486,10 +487,10 @@ class PawControlBinarySensorBase(
         return getattr(self, "_attr_device_class", None)
 
     @property
-    def extra_state_attributes(self) -> BinarySensorAttributes:
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional state attributes for the binary sensor."""
         attrs = cast(
-            BinarySensorAttributes,
+            JSONMutableMapping,
             {
                 ATTR_DOG_ID: self._dog_id,
                 ATTR_DOG_NAME: self._dog_name,
@@ -632,7 +633,7 @@ class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
         return cast(GardenModulePayload, {})
 
     @property
-    def extra_state_attributes(self) -> BinarySensorAttributes:
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Expose the latest garden telemetry for diagnostics dashboards."""
         attrs = super().extra_state_attributes
         data = self._get_garden_data()
@@ -644,7 +645,7 @@ class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
             attrs["sessions_today"] = sessions_today
         pending_confirmations = data.get("pending_confirmations")
         if pending_confirmations is not None:
-            attrs["pending_confirmations"] = pending_confirmations
+            attrs["pending_confirmations"] = cast(JSONValue, pending_confirmations)
         return attrs
 
 
@@ -678,7 +679,7 @@ class PawControlOnlineBinarySensor(PawControlBinarySensorBase):
         )  # 10 minutes
 
     @property
-    def extra_state_attributes(self) -> BinarySensorAttributes:
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional attributes for the online sensor."""
         attrs = super().extra_state_attributes
         dog_data = self._get_dog_data_cached()
@@ -757,7 +758,7 @@ class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
         return bool(attention_reasons)
 
     @property
-    def extra_state_attributes(self) -> BinarySensorAttributes:
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional attributes explaining why attention is needed."""
         attrs = super().extra_state_attributes
 
@@ -836,7 +837,7 @@ class PawControlVisitorModeBinarySensor(PawControlBinarySensorBase):
         return bool(dog_data.get(VISITOR_MODE_ACTIVE_FIELD, False))
 
     @property
-    def extra_state_attributes(self) -> BinarySensorAttributes:
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional attributes for visitor mode."""
         attrs = super().extra_state_attributes
         dog_data = self._get_dog_data_cached()
@@ -891,7 +892,7 @@ class PawControlIsHungryBinarySensor(PawControlBinarySensorBase):
         return bool(feeding_data.get("is_hungry", False))
 
     @property
-    def extra_state_attributes(self) -> BinarySensorAttributes:
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional feeding status attributes."""
         attrs = super().extra_state_attributes
         feeding_data = self._get_feeding_payload()
@@ -1048,7 +1049,7 @@ class PawControlWalkInProgressBinarySensor(PawControlBinarySensorBase):
         return bool(walk_data.get(WALK_IN_PROGRESS_FIELD, False))
 
     @property
-    def extra_state_attributes(self) -> BinarySensorAttributes:
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional walk progress attributes."""
         attrs = super().extra_state_attributes
         walk_data = self._get_walk_payload()
@@ -1112,7 +1113,7 @@ class PawControlNeedsWalkBinarySensor(PawControlBinarySensorBase):
         return bool(walk_data.get("needs_walk", False))
 
     @property
-    def extra_state_attributes(self) -> BinarySensorAttributes:
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional walk need attributes."""
         attrs = super().extra_state_attributes
         walk_data = self._get_walk_payload()
@@ -1235,7 +1236,7 @@ class PawControlIsHomeBinarySensor(PawControlBinarySensorBase):
         return isinstance(current_zone, str) and current_zone == "home"
 
     @property
-    def extra_state_attributes(self) -> BinarySensorAttributes:
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional location attributes."""
         attrs = super().extra_state_attributes
         gps_data = self._get_gps_payload()
@@ -1460,7 +1461,7 @@ class PawControlHealthAlertBinarySensor(PawControlBinarySensorBase):
         return False
 
     @property
-    def extra_state_attributes(self) -> BinarySensorAttributes:
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return health alert details."""
         attrs = super().extra_state_attributes
         health_data = self._get_health_payload()
@@ -1470,7 +1471,7 @@ class PawControlHealthAlertBinarySensor(PawControlBinarySensorBase):
 
         health_alerts = health_data.get("health_alerts")
         if isinstance(health_alerts, list):
-            attrs["health_alerts"] = health_alerts
+            attrs["health_alerts"] = cast(JSONValue, health_alerts)
             attrs["alert_count"] = len(health_alerts)
 
         health_status = health_data.get("health_status")
@@ -1628,7 +1629,7 @@ class PawControlActivityLevelConcernBinarySensor(PawControlBinarySensorBase):
         return activity_level in concerning_levels
 
     @property
-    def extra_state_attributes(self) -> BinarySensorAttributes:
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return activity level concern details."""
         attrs = super().extra_state_attributes
         health_data = self._get_health_payload()
@@ -1691,7 +1692,7 @@ class PawControlHealthAwareFeedingBinarySensor(PawControlBinarySensorBase):
         return bool(feeding_data.get("health_aware_feeding", False))
 
     @property
-    def extra_state_attributes(self) -> BinarySensorAttributes:
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return health-aware feeding metadata for the caregiver UI."""
         attrs = super().extra_state_attributes
         feeding_data = self._get_feeding_payload()
@@ -1740,7 +1741,7 @@ class PawControlMedicationWithMealsBinarySensor(PawControlBinarySensorBase):
         return bool(feeding_data.get("medication_with_meals", False))
 
     @property
-    def extra_state_attributes(self) -> BinarySensorAttributes:
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Report which health conditions require medication with meals."""
         attrs = super().extra_state_attributes
         feeding_data = self._get_feeding_payload()
@@ -1785,7 +1786,7 @@ class PawControlHealthEmergencyBinarySensor(PawControlBinarySensorBase):
         return False
 
     @property
-    def extra_state_attributes(self) -> BinarySensorAttributes:
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Expose emergency context such as type, timing, and status."""
         attrs = super().extra_state_attributes
         feeding_data = self._get_feeding_payload()
@@ -1899,12 +1900,12 @@ class PawControlGardenPoopPendingBinarySensor(PawControlGardenBinarySensorBase):
         return isinstance(pending, Sequence) and len(pending) > 0
 
     @property
-    def extra_state_attributes(self) -> BinarySensorAttributes:
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Expose how many confirmation prompts are outstanding."""
         attrs = super().extra_state_attributes
         pending = self._get_garden_data().get("pending_confirmations")
         if isinstance(pending, list):
-            attrs["pending_confirmations"] = pending
+            attrs["pending_confirmations"] = cast(JSONValue, pending)
             attrs["pending_confirmation_count"] = len(pending)
         else:
             attrs["pending_confirmation_count"] = 0

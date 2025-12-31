@@ -58,7 +58,6 @@ from .types import (
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
     WALK_IN_PROGRESS_FIELD,
-    ButtonExtraAttributes,
     CoordinatorDogData,
     CoordinatorModuleState,
     CoordinatorTypedModuleName,
@@ -797,12 +796,12 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
         super().__setattr__(name, value)
 
     @property
-    def extra_state_attributes(self) -> ButtonExtraAttributes:
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return attributes with optimized caching."""
 
         last_pressed = cast(str | None, getattr(self, "_last_pressed", None))
         attrs = cast(
-            ButtonExtraAttributes,
+            JSONMutableMapping,
             {
                 ATTR_DOG_ID: self._dog_id,
                 ATTR_DOG_NAME: self._dog_name,

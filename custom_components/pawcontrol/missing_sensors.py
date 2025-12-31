@@ -386,9 +386,18 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
                 DateTimeConvertible | None, feeding_data.get("last_feeding")
             )
             feedings_today = cast(int, feeding_data.get("total_feedings_today", 0))
+            serialized_last_feeding: str | float | int | None
+            if isinstance(last_feeding, datetime):
+                serialized_last_feeding = dt_util.as_utc(last_feeding).isoformat()
+            elif isinstance(last_feeding, (float, int)):
+                serialized_last_feeding = float(last_feeding)
+            elif isinstance(last_feeding, str):
+                serialized_last_feeding = last_feeding
+            else:
+                serialized_last_feeding = None
             attrs.update(
                 {
-                    "last_feeding_time": last_feeding,
+                    "last_feeding_time": serialized_last_feeding,
                     "feedings_today": int(feedings_today),
                     "is_overdue": self._is_feeding_overdue(feeding_data),
                     "next_feeding_due": derive_next_feeding_time(feeding_data),
