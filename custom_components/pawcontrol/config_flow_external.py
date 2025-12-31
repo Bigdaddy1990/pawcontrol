@@ -64,12 +64,7 @@ def _build_external_entities_placeholders(
         "dog_count": dog_count,
     }
 
-    placeholder_payload: dict[str, int | float | str] = {
-        "gps_enabled": int(placeholders["gps_enabled"]),
-        "visitor_enabled": int(placeholders["visitor_enabled"]),
-        "dog_count": placeholders["dog_count"],
-    }
-    return MappingProxyType(placeholder_payload)
+    return cast(ConfigFlowPlaceholders, MappingProxyType(dict(placeholders)))
 
 
 if TYPE_CHECKING:
