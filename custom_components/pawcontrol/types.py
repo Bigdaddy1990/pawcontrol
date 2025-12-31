@@ -1619,14 +1619,6 @@ class DogFeedingStepInput(TypedDict, total=False):
     reminder_minutes_before: int | float | str | None
 
 
-class DogModuleSelectionInput(TypedDict, total=False):
-    """Module selection payload captured during config and options flows."""
-
-    modules: DogModulesConfig
-    dog_id: str
-    dog_name: str
-
-
 class DogHealthStepInput(TypedDict, total=False):
     """Health configuration form payload recorded for a single dog."""
 
