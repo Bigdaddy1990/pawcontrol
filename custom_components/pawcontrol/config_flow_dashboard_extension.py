@@ -72,6 +72,7 @@ _DASHBOARD_INFO_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
     },
 }
 
+
 def _freeze_placeholders(
     placeholders: DashboardConfigurationPlaceholders,
 ) -> ConfigFlowPlaceholders:

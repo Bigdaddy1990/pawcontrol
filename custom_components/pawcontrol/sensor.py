@@ -57,6 +57,7 @@ from .types import (
 from .utils import async_call_add_entities, ensure_utc_datetime, is_number
 
 if TYPE_CHECKING:
+
     class SensorEntityProtocol(Protocol):
         """Typed protocol for Home Assistant sensor entities."""
 
@@ -2822,8 +2823,12 @@ class PawControlHealthFeedingStatusSensor(PawControlSensorBase):
         )
         attrs.update(
             {
-                "daily_calorie_target": cast(JSONValue, feeding_data.get("daily_calorie_target")),
-                "total_calories_today": cast(JSONValue, feeding_data.get("total_calories_today")),
+                "daily_calorie_target": cast(
+                    JSONValue, feeding_data.get("daily_calorie_target")
+                ),
+                "total_calories_today": cast(
+                    JSONValue, feeding_data.get("total_calories_today")
+                ),
                 "portion_adjustment_factor": cast(
                     JSONValue, feeding_data.get("portion_adjustment_factor")
                 ),
@@ -3075,9 +3080,7 @@ class PawControlFoodConsumptionSensor(PawControlSensorBase):
                 {
                     "target_daily_grams": target_daily,
                     "remaining_grams": remaining,
-                    "consumption_percentage": round(
-                        (consumed / target_daily) * 100, 1
-                    )
+                    "consumption_percentage": round((consumed / target_daily) * 100, 1)
                     if target_daily > 0
                     else 0.0,
                     "food_types_today": sorted(list(food_types)),
@@ -3367,10 +3370,14 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
             duration_value = walk_data.get("total_duration_today")
             distance_value = walk_data.get("total_distance_today")
             total_duration_minutes = (
-                self._coerce_float(duration_value) if duration_value is not None else 0.0
+                self._coerce_float(duration_value)
+                if duration_value is not None
+                else 0.0
             )
             total_distance_meters = (
-                self._coerce_float(distance_value) if distance_value is not None else 0.0
+                self._coerce_float(distance_value)
+                if distance_value is not None
+                else 0.0
             )
 
             if total_duration_minutes == 0:
@@ -3414,9 +3421,13 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
         if walk_data:
             with contextlib.suppress(TypeError, ValueError):
                 dog_data = self._get_dog_data()
-                dog_weight = self._coerce_float(
-                    dog_data.get("dog_info", {}).get("dog_weight", 25)
-                ) if dog_data else 25.0
+                dog_weight = (
+                    self._coerce_float(
+                        dog_data.get("dog_info", {}).get("dog_weight", 25)
+                    )
+                    if dog_data
+                    else 25.0
+                )
 
                 total_duration = self._coerce_float(
                     walk_data.get("total_duration_today", 0)
@@ -3483,11 +3494,15 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
             # Check for direct total distance value
             total_distance = walk_data.get("total_distance_all_time")
             if total_distance is not None:
-                return round(self._coerce_float(total_distance) / 1000, 2)  # Convert to km
+                return round(
+                    self._coerce_float(total_distance) / 1000, 2
+                )  # Convert to km
 
             # Fallback: use cumulative calculation
             cumulative_distance = walk_data.get("cumulative_distance_meters", 0)
-            return round(self._coerce_float(cumulative_distance) / 1000, 2)  # Convert to km
+            return round(
+                self._coerce_float(cumulative_distance) / 1000, 2
+            )  # Convert to km
 
         except (TypeError, ValueError) as err:
             _LOGGER.debug(
@@ -3518,12 +3533,16 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
                         if total_walks > 0
                         else 0,
                         "distance_this_week_km": round(
-                            self._coerce_float(walk_data.get("total_distance_this_week", 0))
+                            self._coerce_float(
+                                walk_data.get("total_distance_this_week", 0)
+                            )
                             / 1000,
                             2,
                         ),
                         "distance_this_month_km": round(
-                            self._coerce_float(walk_data.get("total_distance_this_month", 0))
+                            self._coerce_float(
+                                walk_data.get("total_distance_this_month", 0)
+                            )
                             / 1000,
                             2,
                         ),
@@ -3629,7 +3648,12 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
                         ),  # 2 per day default
                         "weekly_goal_progress": round(
                             (self.native_value or 0)
-                            / max(1, self._coerce_int(walk_data.get("weekly_walk_target", 14)))
+                            / max(
+                                1,
+                                self._coerce_int(
+                                    walk_data.get("weekly_walk_target", 14)
+                                ),
+                            )
                             * 100,
                             1,
                         ),
@@ -3828,7 +3852,9 @@ class PawControlCurrentLocationSensor(PawControlSensorBase):
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
         attrs: AttributeDict = self._base_attributes()
-        gps_data: GPSModulePayload = cast(GPSModulePayload, self._get_gps_module() or {})
+        gps_data: GPSModulePayload = cast(
+            GPSModulePayload, self._get_gps_module() or {}
+        )
         last_seen_raw = gps_data.get("last_seen")
         last_seen = self._coerce_utc_datetime(last_seen_raw)
         attrs["last_seen"] = last_seen.isoformat() if last_seen else None
@@ -4181,7 +4207,11 @@ class PawControlHealthConditionsSensor(PawControlSensorBase):
         if not condition_list:
             return "none"
         if isinstance(condition_list, list):
-            normalized = [str(cond) for cond in condition_list if isinstance(cond, (str, int, float))]
+            normalized = [
+                str(cond)
+                for cond in condition_list
+                if isinstance(cond, (str, int, float))
+            ]
             return ", ".join(normalized) if normalized else "none"
         return str(condition_list)
 
@@ -4195,7 +4225,11 @@ class PawControlHealthConditionsSensor(PawControlSensorBase):
         condition_list = conditions.get("health_conditions")
         normalized_list: list[str] = []
         if isinstance(condition_list, list):
-            normalized_list = [str(cond) for cond in condition_list if isinstance(cond, (str, int, float))]
+            normalized_list = [
+                str(cond)
+                for cond in condition_list
+                if isinstance(cond, (str, int, float))
+            ]
         attrs["conditions"] = normalized_list
         return attrs
 
@@ -4290,8 +4324,12 @@ class PawControlDailyActivityLevelSensor(PawControlSensorBase):
         )
         attrs.update(
             {
-                "calorie_target": cast(JSONValue, health_data.get("daily_calorie_target")),
-                "calories_consumed": cast(JSONValue, health_data.get("total_calories_today")),
+                "calorie_target": cast(
+                    JSONValue, health_data.get("daily_calorie_target")
+                ),
+                "calories_consumed": cast(
+                    JSONValue, health_data.get("total_calories_today")
+                ),
             }
         )
         return attrs

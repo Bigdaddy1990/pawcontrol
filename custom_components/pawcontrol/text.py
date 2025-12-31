@@ -524,9 +524,7 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
 
                 if metadata_update is not None:
                     for key, entry in metadata_update.items():
-                        merged_metadata[str(key)] = cast(
-                            DogTextMetadataEntry, entry
-                        )
+                        merged_metadata[str(key)] = cast(DogTextMetadataEntry, entry)
                 elif remove_metadata:
                     merged_metadata.pop(self._text_type, None)
 
