@@ -46,9 +46,12 @@ from .types import (
     JSONValue,
     ModuleToggleKey,
     PawControlConfigEntry,
+    TextSnapshotKey,
     _normalise_text_metadata_entry,
     coerce_dog_modules_config,
     ensure_dog_config_data,
+    ensure_dog_text_metadata_snapshot,
+    ensure_dog_text_snapshot,
 )
 from .utils import async_call_add_entities
 
@@ -274,13 +277,13 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
         coordinator: PawControlCoordinator,
         dog_id: str,
         dog_name: str,
-        text_type: str,
+        text_type: TextSnapshotKey,
         max_length: int = 255,
         mode: TextMode = TextMode.TEXT,
     ) -> None:
         """Initialize the text entity."""
         super().__init__(coordinator, dog_id, dog_name)
-        self._text_type = text_type
+        self._text_type: TextSnapshotKey = text_type
         self._current_value: str = ""
         self._last_updated: str | None = None
         self._last_updated_context_id: str | None = None
@@ -405,14 +408,15 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
         )
         snapshot_update: DogTextSnapshot | None = None
         if not should_remove:
-            snapshot_update = {self._text_type: value}
+            snapshot_update = cast(DogTextSnapshot, {self._text_type: value})
 
         metadata_update: DogTextMetadataSnapshot | None = None
         remove_metadata = metadata is None and should_remove
         if metadata is not None:
-            metadata_update = {
-                self._text_type: cast(DogTextMetadataEntry, dict(metadata))
-            }
+            metadata_update = cast(
+                DogTextMetadataSnapshot,
+                {self._text_type: cast(DogTextMetadataEntry, dict(metadata))},
+            )
 
         runtime_data = self._get_runtime_data()
         data_manager: Any = self._get_data_manager()
@@ -427,17 +431,11 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
                     if dog.get(DOG_ID_FIELD) != self._dog_id:
                         continue
                     existing = dog.get(DOG_TEXT_VALUES_FIELD)
-                    if isinstance(existing, Mapping):
-                        merged = cast(
-                            DogTextSnapshot,
-                            {
-                                key: stored
-                                for key, stored in existing.items()
-                                if isinstance(key, str) and isinstance(stored, str)
-                            },
-                        )
-                    else:
-                        merged = cast(DogTextSnapshot, {})
+                    merged = (
+                        ensure_dog_text_snapshot(cast(JSONMapping, existing))
+                        if isinstance(existing, Mapping)
+                        else None
+                    ) or cast(DogTextSnapshot, {})
 
                     if should_remove:
                         merged.pop(self._text_type, None)
@@ -450,28 +448,31 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
                         dog.pop(DOG_TEXT_VALUES_FIELD, None)
 
                     metadata_existing = dog.get(DOG_TEXT_METADATA_FIELD)
-                    metadata_merged: DogTextMetadataSnapshot = cast(
-                        DogTextMetadataSnapshot, {}
+                    metadata_merged_snapshot = (
+                        ensure_dog_text_metadata_snapshot(
+                            cast(JSONMapping, metadata_existing)
+                        )
+                        if isinstance(metadata_existing, Mapping)
+                        else None
                     )
-                    if isinstance(metadata_existing, Mapping):
-                        for key, stored in metadata_existing.items():
-                            if not isinstance(key, str):
-                                continue
-                            entry = _normalise_text_metadata_entry(stored)
-                            if entry is not None:
-                                metadata_merged[key] = entry
+                    metadata_merged: dict[str, DogTextMetadataEntry] = dict(
+                        cast(
+                            Mapping[str, DogTextMetadataEntry],
+                            metadata_merged_snapshot or {},
+                        )
+                    )
 
                     if metadata_update is not None:
                         for key, entry in metadata_update.items():
-                            metadata_merged[key] = cast(
-                                DogTextMetadataEntry, dict(entry)
+                            metadata_merged[str(key)] = cast(
+                                DogTextMetadataEntry, entry
                             )
                     elif remove_metadata:
                         metadata_merged.pop(self._text_type, None)
 
                     if metadata_merged:
                         dog[DOG_TEXT_METADATA_FIELD] = cast(
-                            DogTextMetadataSnapshot, metadata_merged
+                            DogTextMetadataSnapshot, dict(metadata_merged)
                         )
                     else:
                         dog.pop(DOG_TEXT_METADATA_FIELD, None)
@@ -489,17 +490,10 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
 
                 existing_snapshot = mutable_payload.get(DOG_TEXT_VALUES_FIELD)
                 merged_snapshot = (
-                    cast(
-                        DogTextSnapshot,
-                        {
-                            key: stored
-                            for key, stored in existing_snapshot.items()
-                            if isinstance(key, str) and isinstance(stored, str)
-                        },
-                    )
+                    ensure_dog_text_snapshot(cast(JSONMapping, existing_snapshot))
                     if isinstance(existing_snapshot, Mapping)
-                    else cast(DogTextSnapshot, {})
-                )
+                    else None
+                ) or cast(DogTextSnapshot, {})
 
                 if should_remove:
                     merged_snapshot.pop(self._text_type, None)
@@ -508,32 +502,37 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
 
                 if merged_snapshot:
                     mutable_payload[DOG_TEXT_VALUES_FIELD] = cast(
-                        DogTextSnapshot, merged_snapshot
+                        JSONValue, merged_snapshot
                     )
                 else:
                     mutable_payload.pop(DOG_TEXT_VALUES_FIELD, None)
 
                 existing_metadata = mutable_payload.get(DOG_TEXT_METADATA_FIELD)
-                merged_metadata: DogTextMetadataSnapshot = cast(
-                    DogTextMetadataSnapshot, {}
+                merged_metadata_snapshot = (
+                    ensure_dog_text_metadata_snapshot(
+                        cast(JSONMapping, existing_metadata)
+                    )
+                    if isinstance(existing_metadata, Mapping)
+                    else None
                 )
-                if isinstance(existing_metadata, Mapping):
-                    for key, stored in existing_metadata.items():
-                        if not isinstance(key, str):
-                            continue
-                        entry = _normalise_text_metadata_entry(stored)
-                        if entry is not None:
-                            merged_metadata[key] = entry
+                merged_metadata: dict[str, DogTextMetadataEntry] = dict(
+                    cast(
+                        Mapping[str, DogTextMetadataEntry],
+                        merged_metadata_snapshot or {},
+                    )
+                )
 
                 if metadata_update is not None:
                     for key, entry in metadata_update.items():
-                        merged_metadata[key] = cast(DogTextMetadataEntry, dict(entry))
+                        merged_metadata[str(key)] = cast(
+                            DogTextMetadataEntry, entry
+                        )
                 elif remove_metadata:
                     merged_metadata.pop(self._text_type, None)
 
                 if merged_metadata:
                     mutable_payload[DOG_TEXT_METADATA_FIELD] = cast(
-                        DogTextMetadataSnapshot, merged_metadata
+                        JSONValue, dict(merged_metadata)
                     )
                 else:
                     mutable_payload.pop(DOG_TEXT_METADATA_FIELD, None)
@@ -547,9 +546,14 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
                 JSONMutableMapping, {DOG_TEXT_VALUES_FIELD: update_payload}
             )
             if metadata_update is not None:
-                update_sections[DOG_TEXT_METADATA_FIELD] = metadata_update
+                update_sections[DOG_TEXT_METADATA_FIELD] = cast(
+                    JSONMutableMapping, metadata_update
+                )
             elif remove_metadata:
-                update_sections[DOG_TEXT_METADATA_FIELD] = {self._text_type: None}
+                update_sections[DOG_TEXT_METADATA_FIELD] = cast(
+                    JSONMutableMapping,
+                    cast(DogTextMetadataSnapshot, {self._text_type: None}),
+                )
             try:
                 await data_manager.async_update_dog_data(
                     self._dog_id,

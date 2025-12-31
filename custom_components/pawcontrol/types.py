@@ -231,6 +231,7 @@ class ButtonExtraAttributes(TypedDict, total=False):
     button_type: Required[str]
     last_pressed: str | None
     action_description: NotRequired[str]
+    last_updated: NotRequired[str | None]
 
 
 class BinarySensorAttributes(TypedDict, total=False):
@@ -240,6 +241,7 @@ class BinarySensorAttributes(TypedDict, total=False):
     dog_name: Required[str]
     sensor_type: Required[str]
     last_update: Required[str]
+    last_updated: NotRequired[str | None]
     dog_breed: NotRequired[str | None]
     dog_age: NotRequired[int | float | None]
     dog_size: NotRequired[str | None]
@@ -2137,23 +2139,19 @@ class ConfigEntryDataPayload(TypedDict, total=False):
     discovery_info: NotRequired[ConfigFlowDiscoveryData]
 
 
-class ConfigEntryOptionsPayload(TypedDict, total=False):
+class ConfigEntryOptionsPayload(PawControlOptionsData, total=False):
     """Options mapping persisted alongside PawControl config entries."""
 
-    entity_profile: Required[str]
     dashboard_enabled: bool
     dashboard_auto_create: bool
     performance_monitoring: bool
-    enable_analytics: bool
-    enable_cloud_backup: bool
-    debug_logging: bool
-    data_retention_days: int
-    performance_mode: PerformanceMode
-    api_endpoint: str
-    api_token: str
     last_reconfigure: NotRequired[str]
     previous_profile: NotRequired[str]
     reconfigure_telemetry: NotRequired[ReconfigureTelemetry]
+    dashboard_mode: str
+    manual_guard_event: str | None
+    manual_breaker_event: str | None
+    manual_check_event: str | None
 
 
 class ModuleConfigurationStepInput(TypedDict, total=False):
