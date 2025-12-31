@@ -387,7 +387,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 if isinstance(raw_notifications, Mapping)
                 else {}
             )
-            mutable["notifications"] = ensure_notification_options(
+            mutable[CONF_NOTIFICATIONS] = ensure_notification_options(
                 notifications_source,
                 defaults=cast(NotificationOptionsInput, dict(_NOTIFICATION_DEFAULTS)),
             )
@@ -1110,8 +1110,8 @@ class PawControlOptionsFlow(OptionsFlow):
             cast(Mapping[str, object], raw) if isinstance(raw, Mapping) else {}
         )
         return ensure_notification_options(
-            cast(NotificationOptionsInput, dict(payload)),
-            defaults=cast(NotificationOptionsInput, dict(_NOTIFICATION_DEFAULTS)),
+            dict(payload),
+            defaults=dict(_NOTIFICATION_DEFAULTS),
         )
 
     def _current_weather_options(self) -> WeatherOptions:
@@ -1971,9 +1971,12 @@ class PawControlOptionsFlow(OptionsFlow):
         if CONF_API_TOKEN in user_input:
             sanitized_input[CONF_API_TOKEN] = token
 
-        defaults = cast(JSONMutableMapping, dict(self._current_options()))
-        defaults.update(cast(JSONMutableMapping, dict(current)))
-        return ensure_advanced_options(sanitized_input, defaults=defaults)
+        current_advanced = self._current_options().get(ADVANCED_SETTINGS_FIELD, {})
+        advanced_defaults = cast(
+            JSONMutableMapping,
+            dict(current_advanced) if isinstance(current_advanced, Mapping) else {},
+        )
+        return ensure_advanced_options(sanitized_input, defaults=advanced_defaults)
 
     async def async_step_init(
         self, user_input: ConfigFlowUserInput | None = None
@@ -2360,9 +2363,7 @@ class PawControlOptionsFlow(OptionsFlow):
             modules_config = ensure_dog_modules_config(
                 cast(Mapping[str, object], dog_config)
             )
-            modules_dict: dict[str, bool] = {
-                key: bool(value) for key, value in modules_config.items()
-            }
+            modules_dict = dict(modules_config)
             estimate = self._entity_factory.estimate_entity_count(
                 current_profile, modules_dict
             )
@@ -2470,9 +2471,7 @@ class PawControlOptionsFlow(OptionsFlow):
             modules_config = ensure_dog_modules_config(
                 cast(Mapping[str, object], dog_config)
             )
-            modules_dict: dict[str, bool] = {
-                key: bool(value) for key, value in modules_config.items()
-            }
+            modules_dict = dict(modules_config)
 
             estimate = self._entity_factory.estimate_entity_count(profile, modules_dict)
             total_entities += estimate
@@ -2508,7 +2507,7 @@ class PawControlOptionsFlow(OptionsFlow):
                 modules_mapping = ensure_dog_modules_config(
                     cast(Mapping[str, object], dog_config)
                 )
-                modules = {key: bool(value) for key, value in modules_mapping.items()}
+                modules = dict(modules_mapping)
                 current_total += self._entity_factory.estimate_entity_count(
                     current_profile, modules
                 )

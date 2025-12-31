@@ -35,7 +35,6 @@ from .types import (
     ConfigFlowPlaceholders,
     DogConfigData,
     DogModulesConfig,
-    ExternalEntitiesPlaceholders,
     ExternalEntityConfig,
     ExternalEntitySelectorOption,
 )
@@ -58,13 +57,13 @@ def _build_external_entities_placeholders(
 ) -> ConfigFlowPlaceholders:
     """Return immutable placeholders for the external entities step."""
 
-    placeholders: ExternalEntitiesPlaceholders = {
-        "gps_enabled": gps_enabled,
-        "visitor_enabled": visitor_enabled,
+    placeholder_payload: dict[str, int | float | str] = {
+        "gps_enabled": int(gps_enabled),
+        "visitor_enabled": int(visitor_enabled),
         "dog_count": dog_count,
     }
 
-    return cast(ConfigFlowPlaceholders, MappingProxyType(dict(placeholders)))
+    return cast(ConfigFlowPlaceholders, MappingProxyType(placeholder_payload))
 
 
 if TYPE_CHECKING:
