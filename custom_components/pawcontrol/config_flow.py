@@ -104,6 +104,7 @@ from .types import (
     ExternalEntityConfig,
     FinalSetupValidationResult,
     JSONMutableMapping,
+    JSONValue,
     ModuleConfigurationStepInput,
     ModuleToggleKey,
     PerformanceMode,

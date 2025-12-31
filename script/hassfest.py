@@ -99,7 +99,9 @@ def _validate_manifest(manifest_path: Path) -> list[str]:
             )
 
     supported_by = manifest.get("supported_by")
-    if supported_by is not None and not isinstance(supported_by, str):
+    if supported_by is not None and (
+        not isinstance(supported_by, str) or not supported_by
+    ):
         errors.append("manifest.supported_by must be null or a non-empty string")
 
     iot_class = manifest.get("iot_class")
