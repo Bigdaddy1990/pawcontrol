@@ -141,6 +141,7 @@ from .types import (
     FeedingOptions,
     FlowInputMapping,
     GeofenceOptions,
+    GeofenceSettingsInput,
     GPSOptions,
     HealthOptions,
     JSONLikeMapping,
@@ -149,6 +150,7 @@ from .types import (
     MutableConfigFlowPlaceholders,
     NotificationOptions,
     NotificationOptionsInput,
+    NotificationSettingsInput,
     NotificationThreshold,
     OptionsExportPayload,
     PawControlOptionsData,
@@ -1567,7 +1569,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
     def _build_geofence_settings(
         self,
-        user_input: FlowInputMapping,
+        user_input: GeofenceSettingsInput,
         current: GeofenceOptions,
         *,
         radius: int,
@@ -1623,7 +1625,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
     @classmethod
     def _build_notification_settings_payload(
-        cls, user_input: FlowInputMapping, current: NotificationOptions
+        cls, user_input: NotificationSettingsInput, current: NotificationOptions
     ) -> NotificationOptions:
         """Create a typed notification payload from submitted form data."""
 
@@ -1658,7 +1660,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
     def _build_notification_settings(
         self,
-        user_input: FlowInputMapping,
+        user_input: NotificationSettingsInput,
         current: NotificationOptions,
     ) -> NotificationOptions:
         """Create a typed notification payload from submitted form data."""
@@ -2064,8 +2066,9 @@ class PawControlOptionsFlow(OptionsFlow):
         """
         if user_input is not None:
             try:
+                typed_input = cast(GeofenceSettingsInput, dict(user_input))
                 # Validate geofence radius
-                radius = self._coerce_int(user_input.get("geofence_radius_m"), 50)
+                radius = self._coerce_int(typed_input.get("geofence_radius_m"), 50)
                 if radius < MIN_GEOFENCE_RADIUS or radius > MAX_GEOFENCE_RADIUS:
                     return self.async_show_form(
                         step_id="geofence_settings",
@@ -2086,7 +2089,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     else None
                 )
                 new_options["geofence_settings"] = self._build_geofence_settings(
-                    user_input,
+                    typed_input,
                     current_geofence,
                     radius=radius,
                     default_lat=default_lat,
@@ -4609,7 +4612,8 @@ class PawControlOptionsFlow(OptionsFlow):
                 current_notifications = self._current_notification_options()
                 new_options = self._clone_options()
                 notification_settings = self._build_notification_settings(
-                    user_input, current_notifications
+                    cast(NotificationSettingsInput, dict(user_input)),
+                    current_notifications,
                 )
                 mutable_options = cast(JSONMutableMapping, dict(new_options))
                 mutable_options[CONF_NOTIFICATIONS] = cast(

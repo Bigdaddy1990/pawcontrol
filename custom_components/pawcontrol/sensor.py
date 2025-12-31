@@ -53,6 +53,7 @@ from .types import (
     PawControlConfigEntry,
     WalkModuleTelemetry,
     ensure_dog_modules_mapping,
+    ensure_gps_payload,
 )
 from .utils import async_call_add_entities, ensure_utc_datetime, is_number
 
@@ -924,9 +925,7 @@ class PawControlSensorBase(PawControlEntity, SensorEntityProtocol):
     ) -> GPSModulePayload | None:
         """Return a GPS payload when the mapping is compatible."""
 
-        if isinstance(payload, Mapping):
-            return cast(GPSModulePayload, payload)
-        return None
+        return ensure_gps_payload(payload) if isinstance(payload, Mapping) else None
 
     @staticmethod
     def _coerce_health_payload(
