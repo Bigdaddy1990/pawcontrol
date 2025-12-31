@@ -53,6 +53,7 @@ from .types import (
     GPSRouteExportPayload,
     GPSRoutePoint,
     GPSRouteSnapshot,
+    JSONMapping,
     JSONMutableMapping,
     JSONValue,
     PawControlConfigEntry,
