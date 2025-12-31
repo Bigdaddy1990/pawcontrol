@@ -46,7 +46,6 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
           python -m pip install -r requirements_test.txt
-          python scripts/enforce_docstring_baseline.py --update
 
       - name: Run TypedDict guard
         run: |
