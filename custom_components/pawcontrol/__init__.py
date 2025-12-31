@@ -71,6 +71,7 @@ from .types import (
     DogConfigData,
     JSONMapping,
     JSONMutableMapping,
+    JSONValue,
     ManualResilienceEventRecord,
     PawControlConfigEntry,
     PawControlRuntimeData,
@@ -1507,6 +1508,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     """
     unload_start_time = time.time()
     runtime_data = get_runtime_data(hass, entry)
+    dogs: Sequence[DogConfigData] = ()
     manual_history: list[ManualResilienceEventRecord] | None = None
 
     # Get platforms for unloading
@@ -1515,7 +1517,17 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
         dogs = runtime_data.dogs
         profile_raw = runtime_data.entity_profile
     else:
-        dogs = entry.data.get(CONF_DOGS, [])
+        dogs_payload = entry.data.get(CONF_DOGS, [])
+        if isinstance(dogs_payload, Sequence):
+            normalised_dogs: list[DogConfigData] = []
+            for dog in dogs_payload:
+                if isinstance(dog, Mapping):
+                    normalised = ensure_dog_config_data(
+                        cast(Mapping[str, JSONValue], dog)
+                    )
+                    if normalised is not None:
+                        normalised_dogs.append(normalised)
+            dogs = normalised_dogs
         profile_raw = entry.options.get("entity_profile", "standard")
 
     if profile_raw is None:

@@ -6,14 +6,11 @@ import asyncio
 import contextlib
 import logging
 from collections.abc import Callable, Mapping
-from datetime import datetime, timedelta
-from typing import Any, Final, TypeGuard, cast
+from datetime import date, datetime, timedelta
+from numbers import Real
+from typing import TYPE_CHECKING, Any, Final, Protocol, TypeGuard, cast
 
-from homeassistant.components.sensor import (
-    SensorDeviceClass,
-    SensorEntity,
-    SensorStateClass,
-)
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.const import (
     PERCENTAGE,
     STATE_UNKNOWN,
@@ -52,17 +49,30 @@ from .types import (
     GPSModulePayload,
     HealthModulePayload,
     JSONMutableMapping,
+    JSONValue,
     PawControlConfigEntry,
     WalkModuleTelemetry,
     ensure_dog_modules_mapping,
 )
 from .utils import async_call_add_entities, ensure_utc_datetime, is_number
 
+if TYPE_CHECKING:
+
+    class SensorEntityProtocol(Protocol):
+        """Typed protocol for Home Assistant sensor entities."""
+
+        _attr_has_entity_name: bool
+        _attr_should_poll: bool
+
+else:
+    from homeassistant.components.sensor import SensorEntity as SensorEntityProtocol
+
 _LOGGER = logging.getLogger(__name__)
 
 # Type aliases for better readability
 SensorValue = str | int | float | datetime | None
 type AttributeDict = JSONMutableMapping
+_STATE_UNKNOWN: Final[str] = cast(str, STATE_UNKNOWN)
 
 # Home Assistant platform configuration
 PARALLEL_UPDATES = 0
@@ -769,7 +779,7 @@ def _log_setup_metrics(
     )
 
 
-class PawControlSensorBase(PawControlEntity, SensorEntity):
+class PawControlSensorBase(PawControlEntity, SensorEntityProtocol):
     """Base sensor class with optimized data access and thread-safe caching."""
 
     _attr_should_poll = False
@@ -829,12 +839,14 @@ class PawControlSensorBase(PawControlEntity, SensorEntity):
             return None
 
         dog_data = self.coordinator.get_dog_data(self._dog_id)
+        if not isinstance(dog_data, Mapping):
+            dog_data = cast(CoordinatorDogData | None, dog_data)
 
         # Update cache
-        self._data_cache[cache_key] = dog_data
+        self._data_cache[cache_key] = cast(CoordinatorDogData | None, dog_data)
         self._cache_timestamp = now
 
-        return dog_data
+        return cast(CoordinatorDogData | None, dog_data)
 
     @staticmethod
     def _coerce_module_payload(
@@ -845,6 +857,106 @@ class PawControlSensorBase(PawControlEntity, SensorEntity):
         if isinstance(module_data, Mapping):
             return cast(CoordinatorModuleLookupResult, module_data)
         return cast(CoordinatorUntypedModuleState, {})
+
+    @staticmethod
+    def _coerce_float(value: object, default: float = 0.0) -> float:
+        """Return a float converted from ``value`` when possible."""
+
+        if isinstance(value, bool):
+            return float(value)
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, str):
+            try:
+                return float(value)
+            except ValueError:
+                return default
+        return default
+
+    @staticmethod
+    def _coerce_int(value: object, default: int = 0) -> int:
+        """Return an int converted from ``value`` when possible."""
+
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, int):
+            return value
+        if isinstance(value, float):
+            return int(value)
+        if isinstance(value, str):
+            try:
+                return int(float(value))
+            except ValueError:
+                return default
+        return default
+
+    @staticmethod
+    def _coerce_utc_datetime(value: object | None) -> datetime | None:
+        """Return an aware UTC datetime when ``value`` is convertible."""
+
+        if isinstance(value, (datetime, date, str, int, float, Real)) or value is None:
+            return ensure_utc_datetime(value)
+        return None
+
+    @staticmethod
+    def _coerce_feeding_payload(
+        payload: CoordinatorModuleLookupResult,
+    ) -> FeedingModulePayload | None:
+        """Return a feeding payload when the mapping is compatible."""
+
+        if isinstance(payload, Mapping):
+            return cast(FeedingModulePayload, payload)
+        return None
+
+    @staticmethod
+    def _coerce_walk_payload(
+        payload: CoordinatorModuleLookupResult,
+    ) -> WalkModuleTelemetry | None:
+        """Return a walk payload when the mapping is compatible."""
+
+        if isinstance(payload, Mapping):
+            return cast(WalkModuleTelemetry, payload)
+        return None
+
+    @staticmethod
+    def _coerce_gps_payload(
+        payload: CoordinatorModuleLookupResult,
+    ) -> GPSModulePayload | None:
+        """Return a GPS payload when the mapping is compatible."""
+
+        if isinstance(payload, Mapping):
+            return cast(GPSModulePayload, payload)
+        return None
+
+    @staticmethod
+    def _coerce_health_payload(
+        payload: CoordinatorModuleLookupResult,
+    ) -> HealthModulePayload | None:
+        """Return a health payload when the mapping is compatible."""
+
+        if isinstance(payload, Mapping):
+            return cast(HealthModulePayload, payload)
+        return None
+
+    def _get_feeding_module(self) -> FeedingModulePayload | None:
+        """Return the feeding module payload when available."""
+
+        return self._coerce_feeding_payload(self._get_module_data("feeding"))
+
+    def _get_walk_module(self) -> WalkModuleTelemetry | None:
+        """Return the walk module payload when available."""
+
+        return self._coerce_walk_payload(self._get_module_data("walk"))
+
+    def _get_gps_module(self) -> GPSModulePayload | None:
+        """Return the GPS module payload when available."""
+
+        return self._coerce_gps_payload(self._get_module_data("gps"))
+
+    def _get_health_module(self) -> HealthModulePayload | None:
+        """Return the health module payload when available."""
+
+        return self._coerce_health_payload(self._get_module_data("health"))
 
     async def async_added_to_hass(self) -> None:
         """Populate translation data after the entity is registered."""
@@ -1007,16 +1119,18 @@ class PawControlGardenSensorBase(PawControlSensorBase):
         stats = data.get("stats") or {}
         if stats:
             attrs["last_garden_visit"] = stats.get("last_garden_visit")
-            attrs["favorite_garden_activities"] = stats.get("favorite_activities")
-            attrs["weekly_summary"] = stats.get("weekly_summary")
+            attrs["favorite_garden_activities"] = cast(
+                JSONValue, stats.get("favorite_activities")
+            )
+            attrs["weekly_summary"] = cast(JSONValue, stats.get("weekly_summary"))
 
         weather_summary = data.get("weather_summary")
         if weather_summary:
-            attrs["weather_summary"] = weather_summary
+            attrs["weather_summary"] = cast(JSONValue, weather_summary)
 
         pending = data.get("pending_confirmations")
         if pending is not None:
-            attrs["pending_confirmations"] = pending
+            attrs["pending_confirmations"] = cast(JSONValue, pending)
 
         attrs["hours_since_last_session"] = data.get("hours_since_last_session")
 
@@ -1121,7 +1235,7 @@ class PawControlLastActionSensor(PawControlSensorBase):
             timestamp_value = module_data.get(timestamp_key)
 
             if timestamp_value:
-                timestamp = ensure_utc_datetime(timestamp_value)
+                timestamp = self._coerce_utc_datetime(timestamp_value)
                 if timestamp is not None:
                     timestamps.append(timestamp)
                 else:
@@ -1147,12 +1261,18 @@ class PawControlDogStatusSensor(PawControlSensorBase):
         """Return the current status of the dog."""
         dog_data = self._get_dog_data()
         if not dog_data:
-            return STATE_UNKNOWN
+            return _STATE_UNKNOWN
 
         try:
-            walk_data = dog_data.get("walk", {})
-            feeding_data = dog_data.get("feeding", {})
-            gps_data = dog_data.get("gps", {})
+            walk_data: WalkModuleTelemetry = cast(
+                WalkModuleTelemetry, self._get_walk_module() or {}
+            )
+            feeding_data: FeedingModulePayload = cast(
+                FeedingModulePayload, self._get_feeding_module() or {}
+            )
+            gps_data: GPSModulePayload = cast(
+                GPSModulePayload, self._get_gps_module() or {}
+            )
 
             # Priority-based status determination
             if walk_data.get("walk_in_progress", False):
@@ -1166,7 +1286,11 @@ class PawControlDogStatusSensor(PawControlSensorBase):
                 if walk_data.get("needs_walk", False):
                     return "needs_walk"
                 return "home"
-            if current_zone and current_zone != STATE_UNKNOWN:
+            if (
+                isinstance(current_zone, str)
+                and current_zone
+                and current_zone != _STATE_UNKNOWN
+            ):
                 return f"at_{current_zone}"
             return "away"
 
@@ -1174,7 +1298,7 @@ class PawControlDogStatusSensor(PawControlSensorBase):
             _LOGGER.warning(
                 "Error determining dog status for %s: %s", self._dog_id, err
             )
-            return STATE_UNKNOWN
+            return _STATE_UNKNOWN
 
 
 @register_sensor("activity_score")
@@ -1331,7 +1455,9 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
     ) -> float | None:
         """Calculate feeding regularity score."""
         try:
-            adherence = float(feeding_data.get("feeding_schedule_adherence", 0))
+            adherence = self._coerce_float(
+                feeding_data.get("feeding_schedule_adherence", 0), default=0.0
+            )
             target_met = bool(feeding_data.get("daily_target_met", False))
 
             score = adherence
@@ -1357,6 +1483,8 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
         """Calculate health maintenance score."""
         try:
             status = health_data.get("health_status", "good")
+            if not isinstance(status, str):
+                status = "good"
             # OPTIMIZED: Pre-calculated score mapping
             score_map = {
                 "excellent": 100,
@@ -1398,21 +1526,29 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
         """Return current activity level classification."""
         dog_data = self._get_dog_data()
         if not dog_data:
-            return STATE_UNKNOWN
+            return _STATE_UNKNOWN
 
         try:
-            health_data = dog_data.get("health", {})
+            health_data: HealthModulePayload = cast(
+                HealthModulePayload, self._get_health_module() or {}
+            )
             activity_state = health_data.get("activity_level")
             if isinstance(activity_state, str) and activity_state:
                 return activity_state
 
             # Get current activity metrics
-            walk_data = dog_data.get("walk", {})
-            gps_data = dog_data.get("gps", {})
+            walk_data: WalkModuleTelemetry = cast(
+                WalkModuleTelemetry, self._get_walk_module() or {}
+            )
+            gps_data: GPSModulePayload = cast(
+                GPSModulePayload, self._get_gps_module() or {}
+            )
 
             # Check if currently walking
             if walk_data.get("walk_in_progress", False):
-                current_speed = float(gps_data.get("current_speed", 0))
+                current_speed = self._coerce_float(
+                    gps_data.get("current_speed", 0), default=0.0
+                )
                 if current_speed > 8:  # km/h - running
                     return "high"
                 if current_speed > 3:  # km/h - fast walk
@@ -1420,13 +1556,17 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
                 return "low"
 
             # Calculate based on recent activity (today)
-            walks_today = int(walk_data.get("walks_today", 0))
-            total_duration = float(walk_data.get("total_duration_today", 0))
-            total_distance = float(walk_data.get("total_distance_today", 0))
+            walks_today = self._coerce_int(walk_data.get("walks_today", 0))
+            total_duration = self._coerce_float(
+                walk_data.get("total_duration_today", 0)
+            )
+            total_distance = self._coerce_float(
+                walk_data.get("total_distance_today", 0)
+            )
 
             # Calculate activity intensity score
             if walks_today == 0:
-                return activity_state or "inactive"
+                return activity_state if isinstance(activity_state, str) else "inactive"
 
             # Weighted scoring: walks * duration * distance
             activity_score = (
@@ -1449,7 +1589,7 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
             )
             if isinstance(activity_state, str) and activity_state:
                 return activity_state
-            return STATE_UNKNOWN
+            return _STATE_UNKNOWN
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
@@ -1458,25 +1598,26 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
 
         dog_data = self._get_dog_data()
         if dog_data:
-            walk_data = dog_data.get("walk", {})
-            gps_data = dog_data.get("gps", {})
+            walk_data = self._coerce_module_payload(dog_data.get("walk"))
+            gps_data = self._coerce_module_payload(dog_data.get("gps"))
 
             with contextlib.suppress(TypeError, ValueError):
+                speed_value = gps_data.get("current_speed", 0)
+                duration_value = walk_data.get("total_duration_today", 0)
+                distance_value = walk_data.get("total_distance_today", 0)
+                walks_today = walk_data.get("walks_today", 0)
+                walk_payload = cast(WalkModuleTelemetry, walk_data)
                 attrs.update(
                     {
                         "walk_in_progress": bool(
                             walk_data.get("walk_in_progress", False)
                         ),
-                        "current_speed_kmh": float(gps_data.get("current_speed", 0)),
-                        "walks_today": int(walk_data.get("walks_today", 0)),
-                        "total_duration_minutes": float(
-                            walk_data.get("total_duration_today", 0)
-                        ),
-                        "total_distance_meters": float(
-                            walk_data.get("total_distance_today", 0)
-                        ),
+                        "current_speed_kmh": self._coerce_float(speed_value),
+                        "walks_today": self._coerce_int(walks_today),
+                        "total_duration_minutes": self._coerce_float(duration_value),
+                        "total_distance_meters": self._coerce_float(distance_value),
                         "activity_recommendation": self._get_activity_recommendation(
-                            walk_data
+                            walk_payload
                         ),
                     }
                 )
@@ -1878,7 +2019,7 @@ class PawControlLastFeedingSensor(PawControlSensorBase):
     @property
     def native_value(self) -> datetime | None:
         """Return the last feeding timestamp."""
-        feeding_data = self._get_module_data("feeding")
+        feeding_data = self._get_feeding_module()
         if not feeding_data:
             return None
 
@@ -1886,7 +2027,7 @@ class PawControlLastFeedingSensor(PawControlSensorBase):
         if not last_feeding:
             return None
 
-        timestamp = ensure_utc_datetime(last_feeding)
+        timestamp = self._coerce_utc_datetime(last_feeding)
         if timestamp is not None:
             return timestamp
 
@@ -1923,21 +2064,21 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
     @property
     def native_value(self) -> float | None:
         """Return hours since last feeding."""
-        feeding_data = self._get_module_data("feeding")
-        if not feeding_data:
+        feeding_payload = self._get_feeding_module()
+        if not feeding_payload:
             return None
 
-        last_feeding = feeding_data.get("last_feeding")
+        last_feeding = feeding_payload.get("last_feeding")
         if not last_feeding:
             return None
 
         try:
-            last_feeding_dt = ensure_utc_datetime(last_feeding)
+            last_feeding_dt = self._coerce_utc_datetime(last_feeding)
             if last_feeding_dt is None:
                 return None
 
-            now = dt_util.utcnow()
-            time_delta = now - last_feeding_dt
+            now: datetime = dt_util.utcnow()
+            time_delta: timedelta = now - last_feeding_dt
             hours_since = time_delta.total_seconds() / 3600
 
             return round(hours_since, 1)
@@ -1955,12 +2096,12 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
         """Return additional state attributes for hours since feeding sensor."""
         attrs: AttributeDict = self._base_attributes()
 
-        feeding_data = self._get_module_data("feeding")
-        if feeding_data:
+        feeding_payload = self._get_feeding_module()
+        if feeding_payload:
             with contextlib.suppress(TypeError, ValueError):
-                last_feeding = feeding_data.get("last_feeding")
+                last_feeding = feeding_payload.get("last_feeding")
                 if last_feeding:
-                    last_feeding_dt = ensure_utc_datetime(last_feeding)
+                    last_feeding_dt = self._coerce_utc_datetime(last_feeding)
                     if last_feeding_dt:
                         now = dt_util.utcnow()
                         time_delta = now - last_feeding_dt
@@ -1973,7 +2114,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
                                 ),
                                 "feeding_status": self._get_feeding_status(time_delta),
                                 "next_feeding_due": self._calculate_next_feeding_due(
-                                    feeding_data, last_feeding_dt
+                                    feeding_payload, last_feeding_dt
                                 ),
                             }
                         )
@@ -1997,7 +2138,11 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
     ) -> str | None:
         """Calculate when next feeding is due."""
         try:
-            meals_per_day = int(feeding_data.get("config", {}).get("meals_per_day", 2))
+            config = feeding_data.get("config")
+            if isinstance(config, Mapping):
+                meals_per_day = self._coerce_int(config.get("meals_per_day", 2), 2)
+            else:
+                meals_per_day = 2
             if meals_per_day <= 0:
                 return None
 
@@ -2032,12 +2177,12 @@ class PawControlDailyCaloriesSensor(PawControlSensorBase):
     @property
     def native_value(self) -> float:
         """Return daily calorie intake."""
-        feeding_data = self._get_module_data("feeding")
+        feeding_data = self._get_feeding_module()
         if not feeding_data:
             return 0.0
 
         try:
-            return float(feeding_data.get("total_calories_today", 0.0))
+            return self._coerce_float(feeding_data.get("total_calories_today", 0.0))
         except (TypeError, ValueError):
             return 0.0
 
@@ -2063,12 +2208,14 @@ class PawControlFeedingScheduleAdherenceSensor(PawControlSensorBase):
     @property
     def native_value(self) -> float:
         """Return feeding schedule adherence percentage."""
-        feeding_data = self._get_module_data("feeding")
+        feeding_data = self._get_feeding_module()
         if not feeding_data:
             return 100.0
 
         try:
-            return float(feeding_data.get("feeding_schedule_adherence", 100.0))
+            return self._coerce_float(
+                feeding_data.get("feeding_schedule_adherence", 100.0), default=100.0
+            )
         except (TypeError, ValueError):
             return 100.0
 
@@ -2093,12 +2240,12 @@ class PawControlTotalFeedingsTodaySensor(PawControlSensorBase):
     @property
     def native_value(self) -> int:
         """Return total feedings today."""
-        feeding_data = self._get_module_data("feeding")
+        feeding_data = self._get_feeding_module()
         if not feeding_data:
             return 0
 
         try:
-            return int(feeding_data.get("total_feedings_today", 0))
+            return self._coerce_int(feeding_data.get("total_feedings_today", 0))
         except (TypeError, ValueError):
             return 0
 
@@ -2125,7 +2272,7 @@ class PawControlHealthAwarePortionSensor(PawControlSensorBase):
     @property
     def native_value(self) -> float | None:
         """Return health-aware calculated portion size."""
-        feeding_data = self._get_module_data("feeding")
+        feeding_data = self._get_feeding_module()
         if not feeding_data:
             return None
 
@@ -2133,11 +2280,18 @@ class PawControlHealthAwarePortionSensor(PawControlSensorBase):
             # Try health-aware portion first
             health_portion = feeding_data.get("health_aware_portion")
             if health_portion is not None:
-                return round(float(health_portion), 1)
+                return round(self._coerce_float(health_portion), 1)
 
             # Fallback to basic calculation
-            daily_amount = float(feeding_data.get("daily_amount_target", 500))
-            meals_per_day = int(feeding_data.get("config", {}).get("meals_per_day", 2))
+            daily_amount = self._coerce_float(
+                feeding_data.get("daily_amount_target", 500), default=500.0
+            )
+            config = feeding_data.get("config")
+            meals_per_day = (
+                self._coerce_int(config.get("meals_per_day", 2))
+                if isinstance(config, Mapping)
+                else 2
+            )
 
             if meals_per_day > 0:
                 return round(daily_amount / meals_per_day, 1)
@@ -2167,20 +2321,23 @@ class PawControlFeedingRecommendationSensor(PawControlSensorBase):
     @property
     def native_value(self) -> str:
         """Return primary feeding recommendation."""
-        feeding_data = self._get_module_data("feeding")
+        feeding_data = self._get_feeding_module()
         if not feeding_data:
             return "No data available"
 
         try:
             # Get feeding analysis
-            analysis = feeding_data.get("feeding_analysis", {})
-            recommendations = analysis.get("recommendations", [])
+            analysis = feeding_data.get("feeding_analysis")
+            analysis_mapping = analysis if isinstance(analysis, Mapping) else {}
+            recommendations = analysis_mapping.get("recommendations", [])
 
             if recommendations and isinstance(recommendations, list):
                 return str(recommendations[0])  # Primary recommendation
 
             # Default based on adherence
-            adherence = float(feeding_data.get("schedule_adherence", 100))
+            adherence = self._coerce_float(
+                feeding_data.get("schedule_adherence", 100), default=100.0
+            )
             if adherence >= 90:
                 return "Feeding schedule is well maintained"
             if adherence >= 70:
@@ -2459,7 +2616,7 @@ class PawControlDailyPortionsSensor(PawControlSensorBase):
     @property
     def native_value(self) -> int:
         """Return number of portions given today."""
-        feeding_data = self._get_module_data("feeding")
+        feeding_data = self._get_feeding_module()
         if not feeding_data:
             return 0
 
@@ -2468,7 +2625,7 @@ class PawControlDailyPortionsSensor(PawControlSensorBase):
             portions = feeding_data.get(
                 "total_portions_today", feeding_data.get("total_feedings_today", 0)
             )
-            return int(portions)
+            return self._coerce_int(portions)
         except (TypeError, ValueError):
             return 0
 
@@ -2495,12 +2652,12 @@ class PawControlPortionsTodaySensor(PawControlSensorBase):
     def native_value(self) -> int:
         """Return number of configured feeding portions completed today."""
 
-        feeding_data = self._get_module_data("feeding")
+        feeding_data = self._get_feeding_module()
         if not feeding_data:
             return 0
 
         try:
-            return int(feeding_data.get("portions_today", 0))
+            return self._coerce_int(feeding_data.get("portions_today", 0))
         except (TypeError, ValueError):
             return 0
 
@@ -2509,22 +2666,27 @@ class PawControlPortionsTodaySensor(PawControlSensorBase):
         """Return additional state attributes for portions sensor."""
         attrs: AttributeDict = self._base_attributes()
 
-        feeding_data = self._get_module_data("feeding")
+        feeding_data = self._get_feeding_module()
         if feeding_data:
             with contextlib.suppress(TypeError, ValueError):
                 attrs.update(
                     {
-                        "target_portions": int(
+                        "target_portions": self._coerce_int(
                             feeding_data.get("target_portions_per_day", 2)
                         ),
                         "remaining_portions": max(
                             0,
-                            int(feeding_data.get("target_portions_per_day", 2))
-                            - int(feeding_data.get("total_portions_today", 0)),
+                            self._coerce_int(
+                                feeding_data.get("target_portions_per_day", 2)
+                            )
+                            - self._coerce_int(
+                                feeding_data.get("total_portions_today", 0)
+                            ),
                         ),
                         "last_portion_time": feeding_data.get("last_feeding"),
-                        "portion_schedule_adherence": float(
-                            feeding_data.get("feeding_schedule_adherence", 100.0)
+                        "portion_schedule_adherence": self._coerce_float(
+                            feeding_data.get("feeding_schedule_adherence", 100.0),
+                            default=100.0,
                         ),
                     }
                 )
@@ -2554,17 +2716,20 @@ class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
     @property
     def native_value(self) -> float:
         """Return percentage progress towards daily calorie goal."""
-        feeding_data = self._get_module_data("feeding")
+        feeding_data = self._get_feeding_module()
         if not feeding_data:
             return 0.0
 
         try:
-            calories_consumed = float(feeding_data.get("total_calories_today", 0.0))
-            calorie_target = float(
+            calories_consumed = self._coerce_float(
+                feeding_data.get("total_calories_today", 0.0)
+            )
+            calorie_target = self._coerce_float(
                 feeding_data.get(
                     "daily_calorie_target",
                     feeding_data.get("target_calories_per_day", 1000.0),
-                )
+                ),
+                default=0.0,
             )
 
             if calorie_target <= 0:
@@ -2581,17 +2746,18 @@ class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
         """Return additional state attributes for calorie progress sensor."""
         attrs: AttributeDict = self._base_attributes()
 
-        feeding_snapshot = self._get_module_data("feeding")
+        feeding_snapshot = self._get_feeding_module()
         if feeding_snapshot:
             with contextlib.suppress(TypeError, ValueError, ZeroDivisionError):
-                calories_consumed = float(
+                calories_consumed = self._coerce_float(
                     feeding_snapshot.get("total_calories_today", 0.0)
                 )
-                calorie_target = float(
+                calorie_target = self._coerce_float(
                     feeding_snapshot.get(
                         "daily_calorie_target",
                         feeding_snapshot.get("target_calories_per_day", 1000.0),
-                    )
+                    ),
+                    default=0.0,
                 )
 
                 attrs.update(
@@ -2651,20 +2817,28 @@ class PawControlHealthFeedingStatusSensor(PawControlSensorBase):
         """Return diagnostic attributes for the health feeding status."""
 
         attrs: AttributeDict = self._base_attributes()
-        feeding_data = self._get_module_data("feeding") or {}
+        feeding_payload = self._get_feeding_module()
+        feeding_data: FeedingModulePayload = feeding_payload or cast(
+            FeedingModulePayload, {}
+        )
         attrs.update(
             {
-                "daily_calorie_target": feeding_data.get("daily_calorie_target"),
-                "total_calories_today": feeding_data.get("total_calories_today"),
-                "portion_adjustment_factor": feeding_data.get(
-                    "portion_adjustment_factor"
+                "daily_calorie_target": cast(
+                    JSONValue, feeding_data.get("daily_calorie_target")
                 ),
-                "weight_goal": feeding_data.get("weight_goal"),
-                "emergency_active": feeding_data.get("health_emergency", False),
+                "total_calories_today": cast(
+                    JSONValue, feeding_data.get("total_calories_today")
+                ),
+                "portion_adjustment_factor": cast(
+                    JSONValue, feeding_data.get("portion_adjustment_factor")
+                ),
+                "weight_goal": cast(JSONValue, feeding_data.get("weight_goal")),
+                "emergency_active": bool(feeding_data.get("health_emergency", False)),
             }
         )
-        if feeding_data.get("emergency_mode"):
-            attrs["emergency_details"] = feeding_data["emergency_mode"]
+        emergency_details = feeding_data.get("health_emergency_details")
+        if emergency_details is not None:
+            attrs["emergency_details"] = cast(JSONValue, emergency_details)
         return attrs
 
 
@@ -2691,7 +2865,7 @@ class PawControlDailyCalorieTargetSensor(PawControlSensorBase):
     def native_value(self) -> float | None:
         """Return the current calorie target in kcal."""
 
-        feeding_data = self._get_module_data("feeding")
+        feeding_data = self._get_feeding_module()
         if not feeding_data:
             return None
 
@@ -2699,20 +2873,22 @@ class PawControlDailyCalorieTargetSensor(PawControlSensorBase):
         if value is None:
             return None
         with contextlib.suppress(TypeError, ValueError):
-            return round(float(value), 1)
+            return round(self._coerce_float(value), 1)
         return None
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
         attrs: AttributeDict = self._base_attributes()
-        feeding_data = self._get_module_data("feeding") or {}
+        feeding_payload = self._get_feeding_module() or cast(FeedingModulePayload, {})
+        health_summary = feeding_payload.get("health_summary")
+        health_mapping = health_summary if isinstance(health_summary, Mapping) else {}
         attrs.update(
             {
-                "calories_per_gram": feeding_data.get("calories_per_gram"),
-                "health_source": feeding_data.get("health_summary", {}).get(
-                    "life_stage"
+                "calories_per_gram": cast(
+                    JSONValue, feeding_payload.get("calories_per_gram")
                 ),
+                "health_source": cast(JSONValue, health_mapping.get("life_stage")),
             }
         )
         return attrs
@@ -2740,7 +2916,7 @@ class PawControlCaloriesConsumedTodaySensor(PawControlSensorBase):
     @property
     def native_value(self) -> float | None:
         """Return the native value reported by this sensor."""
-        feeding_data = self._get_module_data("feeding")
+        feeding_data = self._get_feeding_module()
         if not feeding_data:
             return None
 
@@ -2748,18 +2924,22 @@ class PawControlCaloriesConsumedTodaySensor(PawControlSensorBase):
         if value is None:
             return None
         with contextlib.suppress(TypeError, ValueError):
-            return round(float(value), 1)
+            return round(self._coerce_float(value), 1)
         return None
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
         attrs: AttributeDict = self._base_attributes()
-        feeding_data = self._get_module_data("feeding") or {}
+        feeding_payload = self._get_feeding_module() or cast(FeedingModulePayload, {})
         attrs.update(
             {
-                "daily_calorie_target": feeding_data.get("daily_calorie_target"),
-                "calorie_goal_progress": feeding_data.get("calorie_goal_progress"),
+                "daily_calorie_target": cast(
+                    JSONValue, feeding_payload.get("daily_calorie_target")
+                ),
+                "calorie_goal_progress": cast(
+                    JSONValue, feeding_payload.get("calorie_goal_progress")
+                ),
             }
         )
         return attrs
@@ -2786,7 +2966,7 @@ class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
     @property
     def native_value(self) -> float | None:
         """Return the native value reported by this sensor."""
-        feeding_data = self._get_module_data("feeding")
+        feeding_data = self._get_feeding_module()
         if not feeding_data:
             return None
 
@@ -2794,73 +2974,26 @@ class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
         if factor is None:
             return None
         with contextlib.suppress(TypeError, ValueError):
-            return round(float(factor), 2)
+            return round(self._coerce_float(factor), 2)
         return None
-        try:
-            calories_consumed = float(feeding_data.get("total_calories_today", 0.0))
-            calorie_target = float(
-                feeding_data.get(
-                    "daily_calorie_target",
-                    feeding_data.get("target_calories_per_day", 1000.0),
-                )
-            )
-
-            if calorie_target <= 0:
-                return 0.0
-
-            progress = (calories_consumed / calorie_target) * 100
-            return round(min(progress, 150.0), 1)  # Cap at 150% to show overfeeding
-
-        except (TypeError, ValueError, ZeroDivisionError):
-            return 0.0
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
         attrs: AttributeDict = self._base_attributes()
-        feeding_data = self._get_module_data("feeding")
-        feeding_defaults = feeding_data or {}
-        attrs.update(
-            {
-                "weight_goal": feeding_defaults.get("weight_goal"),
-                "health_conditions": feeding_defaults.get("health_conditions", []),
-            }
-        )
-
-        if feeding_data:
-            feeding_snapshot = cast(FeedingModulePayload, feeding_data)
-            with contextlib.suppress(TypeError, ValueError, ZeroDivisionError):
-                calories_consumed = float(
-                    feeding_snapshot.get("total_calories_today", 0.0)
-                )
-                calorie_target = float(
-                    feeding_snapshot.get(
-                        "daily_calorie_target",
-                        feeding_snapshot.get("target_calories_per_day", 1000.0),
-                    )
-                )
-
-                attrs.update(
-                    {
-                        "calories_consumed": calories_consumed,
-                        "calorie_target": calorie_target,
-                        "calories_remaining": max(
-                            0, calorie_target - calories_consumed
-                        ),
-                        "over_target": calories_consumed > calorie_target,
-                        "over_target_amount": max(
-                            0, calories_consumed - calorie_target
-                        ),
-                        "target_met": calories_consumed >= calorie_target,
-                        "progress_status": (
-                            "over_target"
-                            if calories_consumed > calorie_target * 1.1
-                            else "on_target"
-                            if calories_consumed >= calorie_target * 0.9
-                            else "under_target"
-                        ),
-                    }
-                )
+        feeding_payload = self._get_feeding_module()
+        if feeding_payload:
+            attrs.update(
+                {
+                    "weight_goal": cast(JSONValue, feeding_payload.get("weight_goal")),
+                    "health_conditions": cast(
+                        JSONValue, feeding_payload.get("health_conditions", [])
+                    ),
+                    "calories_per_gram": cast(
+                        JSONValue, feeding_payload.get("calories_per_gram")
+                    ),
+                }
+            )
 
         return attrs
 
@@ -2887,73 +3020,75 @@ class PawControlFoodConsumptionSensor(PawControlSensorBase):
     @property
     def native_value(self) -> float:
         """Return total food consumption today in grams."""
-        feeding_data = self._get_module_data("feeding")
-        if not feeding_data:
+        feeding_payload = self._get_feeding_module()
+        if not feeding_payload:
             return 0.0
 
-        try:
-            # Sum up actual food amounts consumed
-            total_consumption = float(
-                feeding_data.get("total_food_consumed_today", 0.0)
-            )
+        total_consumption = self._coerce_float(
+            feeding_payload.get("total_food_consumed_today", 0.0)
+        )
 
-            # Fallback calculation from feedings if total not available
-            if total_consumption == 0.0:
-                feedings_today = feeding_data.get("feedings_today", [])
-                if isinstance(feedings_today, list):
-                    for feeding in feedings_today:
-                        if isinstance(feeding, dict):
-                            amount = float(feeding.get("amount", 0.0))
-                            total_consumption += amount
+        # Fallback calculation from feedings if total not available
+        if total_consumption == 0.0:
+            feedings_today = feeding_payload.get("feedings_today")
+            if isinstance(feedings_today, list):
+                for feeding in feedings_today:
+                    if isinstance(feeding, Mapping):
+                        amount = self._coerce_float(feeding.get("amount", 0.0))
+                        total_consumption += amount
 
-            return round(total_consumption, 1)
-
-        except (TypeError, ValueError):
-            return 0.0
+        return round(total_consumption, 1)
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return additional state attributes for food consumption sensor."""
         attrs: AttributeDict = self._base_attributes()
 
-        feeding_data = self._get_module_data("feeding")
-        if feeding_data:
-            with contextlib.suppress(TypeError, ValueError):
-                feedings = feeding_data.get("feedings_today", [])
-                food_types = set()
-                meal_types = set()
+        feeding_payload = self._get_feeding_module()
+        if feeding_payload:
+            feedings = feeding_payload.get("feedings_today")
+            feedings_list: list[Mapping[str, object]] = (
+                [feeding for feeding in feedings if isinstance(feeding, Mapping)]
+                if isinstance(feedings, list)
+                else []
+            )
+            food_types: set[str] = set()
+            meal_types: set[str] = set()
 
-                for feeding in feedings if isinstance(feedings, list) else []:
-                    if isinstance(feeding, dict):
-                        if feeding.get("food_type"):
-                            food_types.add(feeding["food_type"])
-                        if feeding.get("meal_type"):
-                            meal_types.add(feeding["meal_type"])
+            for feeding in feedings_list:
+                food_type = feeding.get("food_type")
+                meal_type = feeding.get("meal_type")
+                if isinstance(food_type, str) and food_type:
+                    food_types.add(food_type)
+                if isinstance(meal_type, str) and meal_type:
+                    meal_types.add(meal_type)
 
-                target_daily = float(feeding_data.get("daily_amount_target", 500.0))
-                consumed = float(feeding_data.get("total_food_consumed_today", 0.0))
+            target_daily = self._coerce_float(
+                feeding_payload.get("daily_amount_target", 500.0), default=500.0
+            )
+            consumed = self._coerce_float(
+                feeding_payload.get("total_food_consumed_today", 0.0)
+            )
 
-                attrs.update(
-                    {
-                        "target_daily_grams": target_daily,
-                        "remaining_grams": max(0, target_daily - consumed),
-                        "consumption_percentage": round(
-                            (consumed / target_daily) * 100, 1
-                        )
-                        if target_daily > 0
-                        else 0,
-                        "food_types_today": sorted(list(food_types)),
-                        "meal_types_today": sorted(list(meal_types)),
-                        "feedings_count": len(feedings)
-                        if isinstance(feedings, list)
-                        else 0,
-                        "average_portion_size": round(
-                            consumed / max(1, len(feedings)), 1
-                        )
-                        if isinstance(feedings, list) and feedings
-                        else 0,
-                    }
-                )
+            remaining = max(0.0, target_daily - consumed)
+            feedings_count = len(feedings_list)
+            average_portion = (
+                round(consumed / feedings_count, 1) if feedings_count else 0.0
+            )
+
+            attrs.update(
+                {
+                    "target_daily_grams": target_daily,
+                    "remaining_grams": remaining,
+                    "consumption_percentage": round((consumed / target_daily) * 100, 1)
+                    if target_daily > 0
+                    else 0.0,
+                    "food_types_today": sorted(list(food_types)),
+                    "meal_types_today": sorted(list(meal_types)),
+                    "feedings_count": feedings_count,
+                    "average_portion_size": average_portion,
+                }
+            )
 
         return attrs
 
@@ -2989,7 +3124,7 @@ class PawControlLastWalkSensor(PawControlSensorBase):
         if not last_walk:
             return None
 
-        timestamp = ensure_utc_datetime(last_walk)
+        timestamp = self._coerce_utc_datetime(last_walk)
         if timestamp is not None:
             return timestamp
 
@@ -3022,14 +3157,12 @@ class PawControlLastWalkHoursSensor(PawControlSensorBase):
     def native_value(self) -> float:
         """Return hours elapsed since the most recent walk."""
 
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_module()
         if not walk_data:
             return 0.0
 
-        try:
-            return float(walk_data.get("last_walk_hours", 0.0))
-        except (TypeError, ValueError):
-            return 0.0
+        last_walk_hours = walk_data.get("last_walk_hours", 0.0)
+        return self._coerce_float(last_walk_hours, default=0.0)
 
 
 @register_sensor("walks_today")
@@ -3054,14 +3187,11 @@ class PawControlWalksTodaySensor(PawControlSensorBase):
     def native_value(self) -> int:
         """Return the number of walks recorded for today."""
 
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_module()
         if not walk_data:
             return 0
 
-        try:
-            return int(walk_data.get("walks_today", 0))
-        except (TypeError, ValueError):
-            return 0
+        return self._coerce_int(walk_data.get("walks_today", 0))
 
 
 @register_sensor("current_walk_duration")
@@ -3087,14 +3217,11 @@ class PawControlCurrentWalkDurationSensor(PawControlSensorBase):
     def native_value(self) -> int:
         """Return the active walk duration if a walk is in progress."""
 
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_module()
         if not walk_data or not walk_data.get("walk_in_progress"):
             return 0
 
-        try:
-            return int(walk_data.get("current_walk_duration", 0))
-        except (TypeError, ValueError):
-            return 0
+        return self._coerce_int(walk_data.get("current_walk_duration", 0))
 
 
 @register_sensor("walk_count_today")
@@ -3117,14 +3244,11 @@ class PawControlWalkCountTodaySensor(PawControlSensorBase):
     @property
     def native_value(self) -> int:
         """Return number of walks recorded today."""
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_module()
         if not walk_data:
             return 0
 
-        try:
-            return int(walk_data.get("walks_today", 0))
-        except (TypeError, ValueError):
-            return 0
+        return self._coerce_int(walk_data.get("walks_today", 0))
 
 
 @register_sensor("walk_distance_today")
@@ -3149,33 +3273,31 @@ class PawControlWalkDistanceTodaySensor(PawControlSensorBase):
     @property
     def native_value(self) -> float:
         """Return total walk distance for today in meters."""
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_module()
         if not walk_data:
             return 0.0
 
-        try:
-            distance_today = walk_data.get("total_distance_today", 0)
-            return round(float(distance_today), 1)
-        except (TypeError, ValueError):
-            return 0.0
+        distance_today = walk_data.get("total_distance_today", 0)
+        return round(self._coerce_float(distance_today), 1)
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return additional state attributes for walk distance sensor."""
         attrs: AttributeDict = self._base_attributes()
 
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_module()
         if walk_data:
             with contextlib.suppress(TypeError, ValueError, ZeroDivisionError):
+                total_distance_today = self._coerce_float(
+                    walk_data.get("total_distance_today", 0)
+                )
+                walks_today = self._coerce_int(walk_data.get("walks_today", 0))
                 attrs.update(
                     {
-                        "distance_km": round(
-                            float(walk_data.get("total_distance_today", 0)) / 1000, 2
-                        ),
-                        "walks_today": int(walk_data.get("walks_today", 0)),
+                        "distance_km": round(total_distance_today / 1000, 2),
+                        "walks_today": walks_today,
                         "average_distance_per_walk": round(
-                            float(walk_data.get("total_distance_today", 0))
-                            / max(1, int(walk_data.get("walks_today", 1))),
+                            total_distance_today / max(1, walks_today),
                             1,
                         ),
                     }
@@ -3211,7 +3333,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
     @property
     def native_value(self) -> float:
         """Return total calories burned today through activity."""
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_module()
         if not walk_data:
             return 0.0
 
@@ -3219,7 +3341,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
             # Direct value if available
             calories_burned = walk_data.get("calories_burned_today")
             if calories_burned is not None:
-                return round(float(calories_burned), 1)
+                return round(self._coerce_float(calories_burned), 1)
 
             # Calculate based on walk activity
             return self._calculate_calories_from_activity(walk_data)
@@ -3240,18 +3362,22 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
             if not dog_data:
                 return 0.0
 
-            dog_weight = float(
-                dog_data.get("dog_info", {}).get("dog_weight", 25)
+            dog_weight = self._coerce_float(
+                dog_data.get("dog_info", {}).get("dog_weight", 25), default=25.0
             )  # Default 25kg
 
             # Get walk metrics
             duration_value = walk_data.get("total_duration_today")
             distance_value = walk_data.get("total_distance_today")
             total_duration_minutes = (
-                float(duration_value) if duration_value is not None else 0.0
+                self._coerce_float(duration_value)
+                if duration_value is not None
+                else 0.0
             )
             total_distance_meters = (
-                float(distance_value) if distance_value is not None else 0.0
+                self._coerce_float(distance_value)
+                if distance_value is not None
+                else 0.0
             )
 
             if total_duration_minutes == 0:
@@ -3291,18 +3417,24 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
         """Return additional state attributes for calories burned sensor."""
         attrs: AttributeDict = self._base_attributes()
 
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_module()
         if walk_data:
             with contextlib.suppress(TypeError, ValueError):
                 dog_data = self._get_dog_data()
                 dog_weight = (
-                    float(dog_data.get("dog_info", {}).get("dog_weight", 25))
+                    self._coerce_float(
+                        dog_data.get("dog_info", {}).get("dog_weight", 25)
+                    )
                     if dog_data
-                    else 25
+                    else 25.0
                 )
 
-                total_duration = float(walk_data.get("total_duration_today", 0))
-                total_distance = float(walk_data.get("total_distance_today", 0))
+                total_duration = self._coerce_float(
+                    walk_data.get("total_duration_today", 0)
+                )
+                total_distance = self._coerce_float(
+                    walk_data.get("total_distance_today", 0)
+                )
 
                 attrs.update(
                     {
@@ -3362,11 +3494,15 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
             # Check for direct total distance value
             total_distance = walk_data.get("total_distance_all_time")
             if total_distance is not None:
-                return round(float(total_distance) / 1000, 2)  # Convert to km
+                return round(
+                    self._coerce_float(total_distance) / 1000, 2
+                )  # Convert to km
 
             # Fallback: use cumulative calculation
             cumulative_distance = walk_data.get("cumulative_distance_meters", 0)
-            return round(float(cumulative_distance) / 1000, 2)  # Convert to km
+            return round(
+                self._coerce_float(cumulative_distance) / 1000, 2
+            )  # Convert to km
 
         except (TypeError, ValueError) as err:
             _LOGGER.debug(
@@ -3379,11 +3515,13 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
         """Return additional state attributes for total walk distance sensor."""
         attrs: AttributeDict = self._base_attributes()
 
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_module()
         if walk_data:
             with contextlib.suppress(TypeError, ValueError):
-                total_distance_m = float(walk_data.get("cumulative_distance_meters", 0))
-                total_walks = int(walk_data.get("total_walks_recorded", 0))
+                total_distance_m = self._coerce_float(
+                    walk_data.get("cumulative_distance_meters", 0)
+                )
+                total_walks = self._coerce_int(walk_data.get("total_walks_recorded", 0))
 
                 attrs.update(
                     {
@@ -3395,11 +3533,17 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
                         if total_walks > 0
                         else 0,
                         "distance_this_week_km": round(
-                            float(walk_data.get("total_distance_this_week", 0)) / 1000,
+                            self._coerce_float(
+                                walk_data.get("total_distance_this_week", 0)
+                            )
+                            / 1000,
                             2,
                         ),
                         "distance_this_month_km": round(
-                            float(walk_data.get("total_distance_this_month", 0)) / 1000,
+                            self._coerce_float(
+                                walk_data.get("total_distance_this_month", 0)
+                            )
+                            / 1000,
                             2,
                         ),
                     }
@@ -3434,14 +3578,14 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
     @property
     def native_value(self) -> int:
         """Return number of walks recorded this week."""
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_module()
         if not walk_data:
             return 0
 
         try:
             walks_this_week = walk_data.get("walks_this_week")
             if walks_this_week is not None:
-                return int(walks_this_week)
+                return self._coerce_int(walks_this_week)
 
             # Fallback: calculate from daily data if available
             return self._calculate_walks_this_week(walk_data)
@@ -3456,7 +3600,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
         """Calculate walks this week from available data."""
         try:
             # Get current walks today and try to estimate week total
-            walks_today = int(walk_data.get("walks_today", 0))
+            walks_today = self._coerce_int(walk_data.get("walks_today", 0))
 
             # If we have daily walk history, sum it up
             daily_walks = walk_data.get("daily_walk_counts", {})
@@ -3468,7 +3612,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
                 for i in range(7):  # 7 days in a week
                     day = week_start + timedelta(days=i)
                     day_key = day.strftime("%Y-%m-%d")
-                    total_walks += int(daily_walks.get(day_key, 0))
+                    total_walks += self._coerce_int(daily_walks.get(day_key, 0))
 
                 return total_walks
 
@@ -3483,7 +3627,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
         """Return additional state attributes for walks this week sensor."""
         attrs: AttributeDict = self._base_attributes()
 
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_module()
         if walk_data:
             with contextlib.suppress(TypeError, ValueError):
                 now = dt_util.utcnow()
@@ -3492,19 +3636,28 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
                 attrs.update(
                     {
                         "week_start_date": week_start.strftime("%Y-%m-%d"),
-                        "walks_today": int(walk_data.get("walks_today", 0)),
-                        "walks_yesterday": int(walk_data.get("walks_yesterday", 0)),
+                        "walks_today": self._coerce_int(
+                            walk_data.get("walks_today", 0)
+                        ),
+                        "walks_yesterday": self._coerce_int(
+                            walk_data.get("walks_yesterday", 0)
+                        ),
                         "average_walks_per_day": round((self.native_value or 0) / 7, 1),
-                        "weekly_walk_goal": int(
+                        "weekly_walk_goal": self._coerce_int(
                             walk_data.get("weekly_walk_target", 14)
                         ),  # 2 per day default
                         "weekly_goal_progress": round(
                             (self.native_value or 0)
-                            / max(1, int(walk_data.get("weekly_walk_target", 14)))
+                            / max(
+                                1,
+                                self._coerce_int(
+                                    walk_data.get("weekly_walk_target", 14)
+                                ),
+                            )
                             * 100,
                             1,
                         ),
-                        "total_walk_time_this_week_minutes": float(
+                        "total_walk_time_this_week_minutes": self._coerce_float(
                             walk_data.get("total_duration_this_week", 0)
                         ),
                     }
@@ -3535,15 +3688,14 @@ class PawControlLastWalkDurationSensor(PawControlSensorBase):
     @property
     def native_value(self) -> int | None:
         """Return duration of the last walk in minutes."""
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_module()
         if not walk_data:
             return None
 
-        try:
-            duration = walk_data.get("last_walk_duration")
-            return int(duration) if duration is not None else None
-        except (TypeError, ValueError):
+        duration = walk_data.get("last_walk_duration")
+        if duration is None:
             return None
+        return self._coerce_int(duration)
 
 
 @register_sensor("last_walk_distance")
@@ -3568,15 +3720,14 @@ class PawControlLastWalkDistanceSensor(PawControlSensorBase):
     @property
     def native_value(self) -> float | None:
         """Return the distance of the last walk."""
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_module()
         if not walk_data:
             return None
 
-        try:
-            distance = walk_data.get("last_walk_distance")
-            return round(float(distance), 1) if distance is not None else None
-        except (TypeError, ValueError):
+        distance = walk_data.get("last_walk_distance")
+        if distance is None:
             return None
+        return round(self._coerce_float(distance), 1)
 
 
 @register_sensor("total_walk_time_today")
@@ -3602,14 +3753,11 @@ class PawControlTotalWalkTimeTodaySensor(PawControlSensorBase):
     @property
     def native_value(self) -> int:
         """Return total walking time today in minutes."""
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_module()
         if not walk_data:
             return 0
 
-        try:
-            return int(walk_data.get("total_duration_today", 0))
-        except (TypeError, ValueError):
-            return 0
+        return self._coerce_int(walk_data.get("total_duration_today", 0))
 
 
 @register_sensor("average_walk_duration")
@@ -3635,15 +3783,14 @@ class PawControlAverageWalkDurationSensor(PawControlSensorBase):
     @property
     def native_value(self) -> float | None:
         """Return average walk duration in minutes."""
-        walk_data = self._get_module_data("walk")
+        walk_data = self._get_walk_module()
         if not walk_data:
             return None
 
-        try:
-            avg_duration = walk_data.get("average_duration")
-            return float(avg_duration) if avg_duration is not None else None
-        except (TypeError, ValueError):
+        avg_duration = walk_data.get("average_duration")
+        if avg_duration is None:
             return None
+        return self._coerce_float(avg_duration)
 
 
 # GPS Sensors
@@ -3662,11 +3809,12 @@ class PawControlCurrentZoneSensor(PawControlSensorBase):
     @property
     def native_value(self) -> str:
         """Return current GPS zone for the dog."""
-        gps_data = self._get_module_data("gps")
+        gps_data = self._get_gps_module()
         if not gps_data:
-            return STATE_UNKNOWN
+            return _STATE_UNKNOWN
 
-        return str(gps_data.get("zone", STATE_UNKNOWN))
+        zone = gps_data.get("zone", _STATE_UNKNOWN)
+        return zone if isinstance(zone, str) else _STATE_UNKNOWN
 
 
 @register_sensor("current_location")
@@ -3690,23 +3838,27 @@ class PawControlCurrentLocationSensor(PawControlSensorBase):
     def native_value(self) -> str:
         """Return the friendly current location for the dog."""
 
-        gps_data = self._get_module_data("gps")
+        gps_data = self._get_gps_module()
         if not gps_data:
-            return STATE_UNKNOWN
+            return _STATE_UNKNOWN
 
         location = gps_data.get("current_location") or gps_data.get("zone")
-        if not location:
-            return STATE_UNKNOWN
+        if not isinstance(location, str) or not location:
+            return _STATE_UNKNOWN
 
-        return str(location)
+        return location
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
         attrs: AttributeDict = self._base_attributes()
-        gps_data = self._get_module_data("gps") or {}
-        attrs["last_seen"] = gps_data.get("last_seen")
-        attrs["in_safe_zone"] = gps_data.get("in_safe_zone")
+        gps_data: GPSModulePayload = cast(
+            GPSModulePayload, self._get_gps_module() or {}
+        )
+        last_seen_raw = gps_data.get("last_seen")
+        last_seen = self._coerce_utc_datetime(last_seen_raw)
+        attrs["last_seen"] = last_seen.isoformat() if last_seen else None
+        attrs["in_safe_zone"] = bool(gps_data.get("in_safe_zone"))
         return attrs
 
 
@@ -3732,15 +3884,14 @@ class PawControlDistanceFromHomeSensor(PawControlSensorBase):
     @property
     def native_value(self) -> float | None:
         """Return distance from home in meters."""
-        gps_data = self._get_module_data("gps")
+        gps_data = self._get_gps_module()
         if not gps_data:
             return None
 
-        try:
-            distance = gps_data.get("distance_from_home")
-            return float(distance) if distance is not None else None
-        except (TypeError, ValueError):
+        distance = gps_data.get("distance_from_home")
+        if distance is None:
             return None
+        return self._coerce_float(distance)
 
 
 @register_sensor("current_speed")
@@ -3765,15 +3916,14 @@ class PawControlCurrentSpeedSensor(PawControlSensorBase):
     @property
     def native_value(self) -> float | None:
         """Return current speed in km/h."""
-        gps_data = self._get_module_data("gps")
+        gps_data = self._get_gps_module()
         if not gps_data:
             return None
 
-        try:
-            speed = gps_data.get("current_speed")
-            return float(speed) if speed is not None else None
-        except (TypeError, ValueError):
+        speed = gps_data.get("current_speed")
+        if speed is None:
             return None
+        return self._coerce_float(speed)
 
 
 @register_sensor("speed")
@@ -3799,15 +3949,12 @@ class PawControlSpeedSensor(PawControlSensorBase):
     def native_value(self) -> float:
         """Return the current GPS speed reading."""
 
-        gps_data = self._get_module_data("gps")
+        gps_data = self._get_gps_module()
         if not gps_data:
             return 0.0
 
-        try:
-            value = gps_data.get("speed", gps_data.get("current_speed", 0.0))
-            return float(value)
-        except (TypeError, ValueError):
-            return 0.0
+        value = gps_data.get("speed", gps_data.get("current_speed", 0.0))
+        return self._coerce_float(value)
 
 
 @register_sensor("gps_accuracy")
@@ -3832,15 +3979,14 @@ class PawControlGPSAccuracySensor(PawControlSensorBase):
     @property
     def native_value(self) -> float | None:
         """Return GPS accuracy in meters."""
-        gps_data = self._get_module_data("gps")
+        gps_data = self._get_gps_module()
         if not gps_data:
             return None
 
-        try:
-            accuracy = gps_data.get("accuracy")
-            return float(accuracy) if accuracy is not None else None
-        except (TypeError, ValueError):
+        accuracy = gps_data.get("accuracy")
+        if accuracy is None:
             return None
+        return self._coerce_float(accuracy)
 
 
 @register_sensor("gps_battery_level")
@@ -3865,15 +4011,14 @@ class PawControlGPSBatteryLevelSensor(PawControlSensorBase):
     @property
     def native_value(self) -> int | None:
         """Return GPS tracker battery level in percent."""
-        gps_data = self._get_module_data("gps")
+        gps_data = self._get_gps_module()
         if not gps_data:
             return None
 
-        try:
-            battery = gps_data.get("battery")
-            return int(battery) if battery is not None else None
-        except (TypeError, ValueError):
+        battery = gps_data.get("battery")
+        if battery is None:
             return None
+        return self._coerce_int(battery)
 
 
 # Health Sensors
@@ -3898,11 +4043,12 @@ class PawControlHealthStatusSensor(PawControlSensorBase):
     @property
     def native_value(self) -> str:
         """Return overall health status."""
-        health_data = self._get_module_data("health")
+        health_data = self._get_health_module()
         if not health_data:
-            return STATE_UNKNOWN
+            return _STATE_UNKNOWN
 
-        return str(health_data.get("health_status", "good"))
+        status = health_data.get("health_status", "good")
+        return status if isinstance(status, str) else "good"
 
 
 @register_sensor("weight")
@@ -3928,15 +4074,14 @@ class PawControlWeightSensor(PawControlSensorBase):
     @property
     def native_value(self) -> float | None:
         """Return current weight in kilograms."""
-        health_data = self._get_module_data("health")
+        health_data = self._get_health_module()
         if not health_data:
             return None
 
-        try:
-            weight = health_data.get("weight")
-            return float(weight) if weight is not None else None
-        except (TypeError, ValueError):
+        weight = health_data.get("weight")
+        if weight is None:
             return None
+        return self._coerce_float(weight)
 
 
 @register_sensor("weight_trend")
@@ -3958,11 +4103,12 @@ class PawControlWeightTrendSensor(PawControlSensorBase):
     @property
     def native_value(self) -> str:
         """Return current weight trend."""
-        health_data = self._get_module_data("health")
+        health_data = self._get_health_module()
         if not health_data:
-            return STATE_UNKNOWN
+            return _STATE_UNKNOWN
 
-        return str(health_data.get("weight_trend", "stable"))
+        trend = health_data.get("weight_trend", "stable")
+        return trend if isinstance(trend, str) else "stable"
 
 
 @register_sensor("body_condition_score")
@@ -3985,15 +4131,14 @@ class PawControlBodyConditionScoreSensor(PawControlSensorBase):
     @property
     def native_value(self) -> int | None:
         """Return body condition score."""
-        health_data = self._get_module_data("health")
+        health_data = self._get_health_module()
         if not health_data:
             return None
 
-        try:
-            score = health_data.get("body_condition_score")
-            return int(score) if score is not None else None
-        except (TypeError, ValueError):
+        score = health_data.get("body_condition_score")
+        if score is None:
             return None
+        return self._coerce_int(score)
 
 
 @register_sensor("last_vet_visit")
@@ -4016,7 +4161,7 @@ class PawControlLastVetVisitSensor(PawControlSensorBase):
     @property
     def native_value(self) -> datetime | None:
         """Return timestamp of the last veterinary visit."""
-        health_data = self._get_module_data("health")
+        health_data = self._get_health_module()
         if not health_data:
             return None
 
@@ -4024,7 +4169,7 @@ class PawControlLastVetVisitSensor(PawControlSensorBase):
         if not last_visit:
             return None
 
-        timestamp = ensure_utc_datetime(last_visit)
+        timestamp = self._coerce_utc_datetime(last_visit)
         if timestamp is not None:
             return timestamp
 
@@ -4055,20 +4200,37 @@ class PawControlHealthConditionsSensor(PawControlSensorBase):
     def native_value(self) -> str:
         """Return comma separated list of health conditions."""
 
-        conditions = self._get_module_data("health") or {}
+        conditions: HealthModulePayload = cast(
+            HealthModulePayload, self._get_health_module() or {}
+        )
         condition_list = conditions.get("health_conditions")
         if not condition_list:
             return "none"
         if isinstance(condition_list, list):
-            return ", ".join(str(cond) for cond in condition_list)
+            normalized = [
+                str(cond)
+                for cond in condition_list
+                if isinstance(cond, (str, int, float))
+            ]
+            return ", ".join(normalized) if normalized else "none"
         return str(condition_list)
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
         attrs: AttributeDict = self._base_attributes()
-        conditions = self._get_module_data("health") or {}
-        attrs["conditions"] = conditions.get("health_conditions", [])
+        conditions: HealthModulePayload = cast(
+            HealthModulePayload, self._get_health_module() or {}
+        )
+        condition_list = conditions.get("health_conditions")
+        normalized_list: list[str] = []
+        if isinstance(condition_list, list):
+            normalized_list = [
+                str(cond)
+                for cond in condition_list
+                if isinstance(cond, (str, int, float))
+            ]
+        attrs["conditions"] = normalized_list
         return attrs
 
 
@@ -4095,26 +4257,27 @@ class PawControlWeightGoalProgressSensor(PawControlSensorBase):
     def native_value(self) -> float | None:
         """Return percentage progress toward weight goal."""
 
-        health_data = self._get_module_data("health")
+        health_data = self._get_health_module()
         if not health_data:
             return None
 
-        try:
-            progress = health_data.get("weight_goal_progress")
-            return float(progress) if progress is not None else None
-        except (TypeError, ValueError):
+        progress = health_data.get("weight_goal_progress")
+        if progress is None:
             return None
+        return self._coerce_float(progress)
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
         attrs: AttributeDict = self._base_attributes()
-        health_data = self._get_module_data("health") or {}
+        health_data: HealthModulePayload = cast(
+            HealthModulePayload, self._get_health_module() or {}
+        )
         attrs.update(
             {
-                "weight_goal": health_data.get("weight_goal"),
-                "current_weight": health_data.get("weight"),
-                "ideal_weight": health_data.get("ideal_weight"),
+                "weight_goal": cast(JSONValue, health_data.get("weight_goal")),
+                "current_weight": cast(JSONValue, health_data.get("weight")),
+                "ideal_weight": cast(JSONValue, health_data.get("ideal_weight")),
             }
         )
         return attrs
@@ -4156,11 +4319,17 @@ class PawControlDailyActivityLevelSensor(PawControlSensorBase):
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
         attrs: AttributeDict = self._base_attributes()
-        health_data = self._get_module_data("health") or {}
+        health_data: HealthModulePayload = cast(
+            HealthModulePayload, self._get_health_module() or {}
+        )
         attrs.update(
             {
-                "calorie_target": health_data.get("daily_calorie_target"),
-                "calories_consumed": health_data.get("total_calories_today"),
+                "calorie_target": cast(
+                    JSONValue, health_data.get("daily_calorie_target")
+                ),
+                "calories_consumed": cast(
+                    JSONValue, health_data.get("total_calories_today")
+                ),
             }
         )
         return attrs
