@@ -1959,7 +1959,7 @@ class PawControlOptionsFlow(OptionsFlow):
             if isinstance(endpoint_raw, str)
             else str(current.get(CONF_API_ENDPOINT, ""))
         )
-        token_raw = user_input.get(CONF_API_TOKEN, current.get(CONF_API_TOKEN, ""))
+            else current.get(CONF_API_ENDPOINT, "")
         token = (
             token_raw.strip()
             if isinstance(token_raw, str)
