@@ -675,9 +675,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
                 err,
             )
 
-    async def async_start_route_recording(
-        self, route_name: str | None = None
-    ) -> str:
+    async def async_start_route_recording(self, route_name: str | None = None) -> str:
         """Start recording a new GPS route.
 
         Args:
