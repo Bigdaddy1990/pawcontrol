@@ -997,11 +997,13 @@ def _normalise_json(value: Any, _seen: set[int] | None = None) -> Any:
             return _normalise_json(vars(value), _seen)
 
         if isinstance(value, Mapping):
-            return {str(key): _normalise_json(item, _seen) for key, item in value.items()}
+            return {
+                str(key): _normalise_json(item, _seen) for key, item in value.items()
+            }
 
-        if isinstance(value, list | tuple | set | frozenset | Sequence) and not isinstance(
-            value, str | bytes | bytearray
-        ):
+        if isinstance(
+            value, list | tuple | set | frozenset | Sequence
+        ) and not isinstance(value, str | bytes | bytearray):
             return [_normalise_json(item, _seen) for item in value]
 
         return repr(value)
