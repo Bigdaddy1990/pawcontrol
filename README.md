@@ -2,7 +2,7 @@
 
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.9.3%2B-blue.svg)](https://www.home-assistant.io/)
 [![HACS](https://img.shields.io/badge/HACS-Ready-41BDF5.svg)](https://hacs.xyz/)
-[![Quality Scale](https://img.shields.io/badge/Quality%20Scale-Platinum-e5e4e2.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
+[![Quality Scale](https://img.shields.io/badge/Quality%20Scale-Platinum%20aligned-e5e4e2.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![CodeFactor](https://www.codefactor.io/repository/github/bigdaddy1990/pawcontrol/badge)](https://www.codefactor.io/repository/github/bigdaddy1990/pawcontrol)
 [![GitHub Release](https://img.shields.io/github/v/release/BigDaddy1990/pawcontrol.svg)](https://github.com/bigdaddy1990/pawcontrol/releases)
@@ -11,7 +11,7 @@
 [![Coverage](https://img.shields.io/endpoint?url=https://bigdaddy1990.github.io/pawcontrol/coverage/latest/shields.json)](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/index.html)
 [![Tests](https://github.com/BigDaddy1990/pawcontrol/actions/workflows/ci.yml/badge.svg)](https://github.com/BigDaddy1990/pawcontrol/actions/workflows/ci.yml)
 
-**PawControl** is a comprehensive Home Assistant integration for smart dog management, featuring advanced GPS tracking, automated feeding reminders, health monitoring, and intelligent automation workflows. The integration meets the **Platinum quality scale** and keeps runtime data, options flow, diagnostics, and testing evidence synchronised with the Home Assistant guidance captured in this repository’s compliance reports.
+**PawControl** is a comprehensive Home Assistant integration for smart dog management, featuring advanced GPS tracking, automated feeding reminders, health monitoring, and intelligent automation workflows. The integration **aims to comply with the Platinum quality scale** and keeps runtime data, options flow, diagnostics, and testing evidence synchronised with the Home Assistant guidance captured in this repository’s compliance reports. As a custom integration, this is an alignment target rather than an official Home Assistant score.
 
 ## ✨ Key Features
 
@@ -29,7 +29,7 @@
 ## 🧪 Quality & Testing
 
 - 📐 Run `ruff format`, `ruff check`, `python -m script.enforce_test_requirements`,
-  `mypy`, and `pytest -q` before every pull request to preserve Platinum-level
+  `mypy`, and `pytest -q` before every pull request to preserve Platinum-aligned
   baselines.
 - 📊 Coverage and async performance metrics are tracked in `docs/testing/coverage_reporting.md` and `generated/perf_samples/latest.json`.
 - 🌐 CI publishes the lightweight coverage report to GitHub Pages via `python -m script.publish_coverage`, and the latest HTML is always available at [`coverage/latest/index.html`](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/index.html) with a Shields badge feed at [`coverage/latest/shields.json`](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/shields.json).
@@ -880,7 +880,7 @@ service: pawcontrol.get_statistics
   markdown summary that merges coordinator and service-execution rejection
   telemetry *and* the latest guard outcomes—covering rejected call counts,
   breaker totals, guard execution/skip counters, skip reasons, and the last
-  rejecting breaker—so Platinum dashboard packs expose both perspectives without
+  rejecting breaker—so quality-scale dashboard packs expose both perspectives without
   bespoke templates.【F:custom_components/pawcontrol/dashboard_templates.py†L1723-L1966】【F:tests/components/pawcontrol/test_dashboard_renderer.py†L92-L176】
 - Automations can consume the same guard counters directly from
   `sensor.pawcontrol_statistics.attributes.service_execution.guard_metrics`,
@@ -1252,16 +1252,16 @@ class NewGPSDevicePlugin(PawControlPlugin):
 - Production deployment documentation
 
 - **🏆 Quality Status**:
-- **Quality Scale Status**: Platinum declaration with manifest, README, diagnostics, and quality reports tied together via `docs/compliance_gap_analysis.md` and `custom_components/pawcontrol/quality_scale.yaml`.
+- **Quality Scale Status**: Platinum alignment target with manifest, README, diagnostics, and quality reports tied together via `docs/compliance_gap_analysis.md` and `custom_components/pawcontrol/quality_scale.yaml`.
 - **Automated Test Suite**: Unit, integration, and end-to-end suites enforce 100% coverage and nightly telemetry checks across coordinators, entities, services, and blueprints.
 - **HACS Readiness**: Repository layout, translations, documentation, and brand assets satisfy HACS expectations.
 - **Production Hardening**: Installation, removal, diagnostics, repairs, and maintenance runbooks are documented in README, `docs/MAINTENANCE.md`, and the documentation portal.
 - **Runtime Architecture**: Coordinators, runtime data containers, and managers back every platform with regression coverage verifying reload safety and service orchestration.
 - **Runtime Cache Compatibility**: The config-entry runtime store now records creation versions, upgrades legacy payloads to the supported schema, and blocks future-version caches so reloads fall back to a clean setup instead of deserialising incompatible telemetry.【F:custom_components/pawcontrol/runtime_data.py†L1-L312】【F:tests/test_runtime_data.py†L1-L640】
 - **Runtime Store Compatibility Snapshot**: Diagnostics and system health expose a shared runtime store summary showing entry/store metadata, migration requirements, divergence detection, and future-version rejections so support teams can confirm cache health without manual attribute inspection.【F:custom_components/pawcontrol/runtime_data.py†L1-L390】【F:custom_components/pawcontrol/diagnostics.py†L610-L684】【F:custom_components/pawcontrol/system_health.py†L420-L520】【F:tests/test_runtime_data.py†L520-L640】【F:tests/components/pawcontrol/test_diagnostics.py†L430-L520】【F:tests/components/pawcontrol/test_system_health.py†L20-L940】
-- **Runtime Store Health Assessment**: Telemetry classifies compatibility history into `ok`, `watch`, or `action_required` levels using divergence rates, migration flags, and entry/store metadata so diagnostics, system health, and coordinator stats highlight when to run the runtime store compatibility repair or reload the config entry. The assessment now tracks the previous level, level-streak counters, last level change timestamp, escalation/de-escalation totals, and time spent per level—including the live duration for the current severity—so rotations can prove whether cache health is stabilising or regressing without replaying logs. A rolling assessment timeline preserves the most recent compatibility checks (status, levels, divergence metrics, and actions) up to the configured window so Platinum reviews can audit transitions without scraping historic diagnostics dumps.【F:custom_components/pawcontrol/telemetry.py†L347-L575】【F:custom_components/pawcontrol/coordinator_tasks.py†L108-L143】【F:custom_components/pawcontrol/diagnostics.py†L606-L690】【F:custom_components/pawcontrol/system_health.py†L430-L540】【F:tests/unit/test_runtime_store_telemetry.py†L17-L360】【F:tests/components/pawcontrol/test_diagnostics.py†L500-L560】【F:tests/components/pawcontrol/test_system_health.py†L1-L40】【F:tests/unit/test_coordinator_tasks.py†L200-L226】
-- **Runtime Store Timeline Summary**: Every diagnostics dump now includes a derived summary of the runtime store timeline—covering total events, level change rates, distinct reasons, last-seen status/level, divergence indicators, and now the observation window, event density, most common reason/status, and per-level duration peaks/latest samples—so rotations can assess cache stability at a glance without parsing the raw event list. The summary is normalised in telemetry, exposed alongside the raw history in diagnostics and system health, and asserted by the regression suite to guarantee Platinum reviewers always receive a compact rollup next to the detailed timeline.【F:custom_components/pawcontrol/telemetry.py†L300-L440】【F:custom_components/pawcontrol/diagnostics.py†L618-L635】【F:custom_components/pawcontrol/system_health.py†L70-L118】【F:tests/unit/test_runtime_store_telemetry.py†L33-L360】【F:tests/components/pawcontrol/test_diagnostics.py†L520-L560】【F:tests/components/pawcontrol/test_system_health.py†L18-L120】
-- **Runtime Store Health History**: Coordinator statistics persist compatibility checks, status counters, divergence tallies, and timestamps so diagnostics and system health include both the current snapshot and the recorded history for Platinum evidence tracking.【F:custom_components/pawcontrol/telemetry.py†L120-L220】【F:custom_components/pawcontrol/coordinator_tasks.py†L1080-L1230】【F:custom_components/pawcontrol/diagnostics.py†L600-L690】【F:custom_components/pawcontrol/system_health.py†L420-L520】【F:tests/unit/test_runtime_store_telemetry.py†L1-L120】【F:tests/unit/test_coordinator_tasks.py†L160-L1340】【F:tests/components/pawcontrol/test_diagnostics.py†L520-L540】【F:tests/components/pawcontrol/test_system_health.py†L1-L960】
+- **Runtime Store Health Assessment**: Telemetry classifies compatibility history into `ok`, `watch`, or `action_required` levels using divergence rates, migration flags, and entry/store metadata so diagnostics, system health, and coordinator stats highlight when to run the runtime store compatibility repair or reload the config entry. The assessment now tracks the previous level, level-streak counters, last level change timestamp, escalation/de-escalation totals, and time spent per level—including the live duration for the current severity—so rotations can prove whether cache health is stabilising or regressing without replaying logs. A rolling assessment timeline preserves the most recent compatibility checks (status, levels, divergence metrics, and actions) up to the configured window so Platinum-alignment reviews can audit transitions without scraping historic diagnostics dumps.【F:custom_components/pawcontrol/telemetry.py†L347-L575】【F:custom_components/pawcontrol/coordinator_tasks.py†L108-L143】【F:custom_components/pawcontrol/diagnostics.py†L606-L690】【F:custom_components/pawcontrol/system_health.py†L430-L540】【F:tests/unit/test_runtime_store_telemetry.py†L17-L360】【F:tests/components/pawcontrol/test_diagnostics.py†L500-L560】【F:tests/components/pawcontrol/test_system_health.py†L1-L40】【F:tests/unit/test_coordinator_tasks.py†L200-L226】
+- **Runtime Store Timeline Summary**: Every diagnostics dump now includes a derived summary of the runtime store timeline—covering total events, level change rates, distinct reasons, last-seen status/level, divergence indicators, and now the observation window, event density, most common reason/status, and per-level duration peaks/latest samples—so rotations can assess cache stability at a glance without parsing the raw event list. The summary is normalised in telemetry, exposed alongside the raw history in diagnostics and system health, and asserted by the regression suite to guarantee quality-scale reviewers always receive a compact rollup next to the detailed timeline.【F:custom_components/pawcontrol/telemetry.py†L300-L440】【F:custom_components/pawcontrol/diagnostics.py†L618-L635】【F:custom_components/pawcontrol/system_health.py†L70-L118】【F:tests/unit/test_runtime_store_telemetry.py†L33-L360】【F:tests/components/pawcontrol/test_diagnostics.py†L520-L560】【F:tests/components/pawcontrol/test_system_health.py†L18-L120】
+- **Runtime Store Health History**: Coordinator statistics persist compatibility checks, status counters, divergence tallies, and timestamps so diagnostics and system health include both the current snapshot and the recorded history for Platinum-alignment evidence tracking.【F:custom_components/pawcontrol/telemetry.py†L120-L220】【F:custom_components/pawcontrol/coordinator_tasks.py†L1080-L1230】【F:custom_components/pawcontrol/diagnostics.py†L600-L690】【F:custom_components/pawcontrol/system_health.py†L420-L520】【F:tests/unit/test_runtime_store_telemetry.py†L1-L120】【F:tests/unit/test_coordinator_tasks.py†L160-L1340】【F:tests/components/pawcontrol/test_diagnostics.py†L520-L540】【F:tests/components/pawcontrol/test_system_health.py†L1-L960】
 - **Runtime Store Repair Guard**: Automated repair checks audit the same compatibility snapshot, raise `runtime_store_compatibility` issues with severity tiers when metadata diverges, needs migration, or jumps to future schemas, and clear the issue once the store returns to `current`, keeping repairs aligned with diagnostics evidence.【F:custom_components/pawcontrol/repairs.py†L64-L190】【F:custom_components/pawcontrol/repairs.py†L360-L520】【F:custom_components/pawcontrol/repairs.py†L732-L815】【F:tests/integration/test_runtime_store_ui.py†L180-L310】
 
 **📊 Performance Metrics**:
@@ -1294,17 +1294,17 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) for 
 
 ### Recognition & Achievements
 
-**🏆 Home Assistant Quality Scale**: **Platinum sustained**
-- `custom_components/pawcontrol/quality_scale.yaml` and `docs/compliance_gap_analysis.md` map every Platinum rule to its supporting code, tests, and sustainment owners so reviewers can verify compliance quickly.
-- ✅ Platinum blockers cleared – Device removal coverage, brand asset publication, strict typing remediation, diagnostics resilience validation, and release artefact updates now ship with matching regression suites and documentation evidence.
+**🏆 Home Assistant Quality Scale**: **Platinum alignment sustained**
+- `custom_components/pawcontrol/quality_scale.yaml` and `docs/compliance_gap_analysis.md` map every Platinum rule to its supporting code, tests, and sustainment owners so reviewers can verify alignment quickly.
+- ✅ Platinum alignment blockers cleared – Device removal coverage, brand asset publication, strict typing remediation, diagnostics resilience validation, and release artefact updates now ship with matching regression suites and documentation evidence.
 - ♻️ Sustainment tasks such as automated coverage publication and documentation sync cadences remain tracked in `dev.md` and the compliance report to keep future audits transparent.【F:dev.md†L5-L75】【F:docs/compliance_gap_analysis.md†L1-L58】
 - Runtime data, repairs, diagnostics, and config-entry reload safety are actively validated by the coordinator and entity suites under `tests/`.
-- `docs/markdown_compliance_review.md` details documentation obligations (installation, configuration, troubleshooting, removal) and maps them to the maintained Markdown files for ongoing Platinum sustainment checks.
+- `docs/markdown_compliance_review.md` details documentation obligations (installation, configuration, troubleshooting, removal) and maps them to the maintained Markdown files for ongoing Platinum-alignment sustainment checks.
 
 **⭐ HACS Integration**: **Submission-readiness**
 - Repository layout, `info.md`, and brand placeholders follow the HACS integration checklist while upstream assets are finalised.
 - Release automation is ready; compliance artefacts are updated alongside code changes to keep the submission package accurate.
-- Community review will open once the remaining Platinum blockers are closed and reflected in `docs/QUALITY_CHECKLIST.md`.
+- Community review will open once the remaining Platinum alignment blockers are closed and reflected in `docs/QUALITY_CHECKLIST.md`.
 
 **🧪 Testing**: **Continuous verification**
 - Unit and integration tests exercise config flow, coordinator updates, diagnostics, and repairs using modern Home Assistant fixtures.
@@ -1352,4 +1352,4 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) for 
 
 ---
 
-**Active Development** ✅ | **HACS Submission** ✅ | **Quality Scale: Platinum sustained** ✅ | **Automated Tests** ✅
+**Active Development** ✅ | **HACS Submission** ✅ | **Quality Scale: Platinum alignment sustained** ✅ | **Automated Tests** ✅

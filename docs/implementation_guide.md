@@ -210,4 +210,4 @@ async def _migrate_options_to_extended_format(self) -> dict[str, Any]:
 - ✅ **Bestehende Konfigurationen**: Migration automatisch
 - ✅ **HACS**: Installation über HACS möglich
 
-Diese Erweiterung bringt Paw Control auf das nächste Level der Benutzerfreundlichkeit und Funktionalität, während die Platinum-Qualitätsstandards beibehalten werden.
+Diese Erweiterung bringt Paw Control auf das nächste Level der Benutzerfreundlichkeit und Funktionalität, während die Platinum-Ausrichtung beibehalten wird.
