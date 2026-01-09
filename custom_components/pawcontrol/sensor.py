@@ -56,7 +56,12 @@ from .types import (
     ensure_gps_payload,
     ensure_json_mapping,
 )
-from .utils import async_call_add_entities, ensure_utc_datetime, is_number, normalise_json
+from .utils import (
+    async_call_add_entities,
+    ensure_utc_datetime,
+    is_number,
+    normalise_json,
+)
 
 if TYPE_CHECKING:
 

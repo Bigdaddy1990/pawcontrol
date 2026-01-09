@@ -867,9 +867,9 @@ class PawControlVisitorModeBinarySensor(PawControlBinarySensorBase):
             visitor_mode_started = dog_data.get("visitor_mode_started")
             visitor_name = cast(str | None, dog_data.get("visitor_name"))
             if isinstance(visitor_mode_started, datetime):
-                attrs["visitor_mode_started"] = (
-                    _as_local(visitor_mode_started).isoformat()
-                )
+                attrs["visitor_mode_started"] = _as_local(
+                    visitor_mode_started
+                ).isoformat()
             elif isinstance(visitor_mode_started, str) or visitor_mode_started is None:
                 attrs["visitor_mode_started"] = visitor_mode_started
             attrs["visitor_name"] = visitor_name
