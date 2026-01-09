@@ -1411,7 +1411,7 @@ def _project_modules_mapping(
 
 
 def dog_modules_projection_from_flow_input(
-    user_input: ConfigFlowUserInput,
+    user_input: Mapping[str, object],
     *,
     existing: DogModulesConfig | None = None,
 ) -> DogModulesProjection:
@@ -1439,7 +1439,7 @@ def dog_modules_projection_from_flow_input(
 
 
 def dog_modules_from_flow_input(
-    user_input: ConfigFlowUserInput,
+    user_input: Mapping[str, object],
     *,
     existing: DogModulesConfig | None = None,
 ) -> DogModulesConfig:
@@ -3831,6 +3831,8 @@ def ensure_gps_payload(
         return None
 
     gps_payload: GPSModulePayload = ensure_json_mapping(payload)
+    if not gps_payload:
+        return None
     last_seen = _coerce_iso_timestamp(gps_payload.get("last_seen"))
     if last_seen is not None:
         gps_payload["last_seen"] = last_seen

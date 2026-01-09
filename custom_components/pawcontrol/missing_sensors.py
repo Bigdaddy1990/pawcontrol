@@ -12,7 +12,7 @@ from homeassistant.const import UnitOfEnergy, UnitOfLength, UnitOfTime
 from homeassistant.util import dt as dt_util
 
 from .coordinator import PawControlCoordinator
-from .sensor import AttributeDict, PawControlSensorBase, register_sensor
+from .sensor import PawControlSensorBase, register_sensor
 from .types import (
     ActivityLevelSensorAttributes,
     CaloriesBurnedSensorAttributes,
@@ -242,7 +242,7 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
         return calculate_activity_level(walk_data, health_data)
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> ActivityLevelSensorAttributes:
         """Return supplemental activity telemetry for diagnostics."""
         attrs = cast(
             ActivityLevelSensorAttributes,
@@ -318,7 +318,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
         return calculate_calories_burned_today(walk_data, dog_weight, health_data)
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> CaloriesBurnedSensorAttributes:
         """Provide supporting data for the calories burned calculation."""
         attrs = cast(
             CaloriesBurnedSensorAttributes,
@@ -387,7 +387,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
         return round(hours_since, 1) if hours_since is not None else None
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> LastFeedingHoursAttributes:
         """Return contextual feeding metadata for diagnostics."""
         attrs = cast(
             LastFeedingHoursAttributes,
@@ -482,7 +482,7 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
             return 0.0
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> TotalWalkDistanceAttributes:
         """Return aggregated walk distance metrics for the dog."""
         attrs = cast(
             TotalWalkDistanceAttributes,
@@ -580,7 +580,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
             return 0
 
     @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def extra_state_attributes(self) -> WalksThisWeekAttributes:
         """Expose weekly walk statistics derived from coordinator payloads."""
         attrs = cast(
             WalksThisWeekAttributes,

@@ -1437,7 +1437,7 @@ class PawControlConfigFlow(
                 flag in raw_mapping for flag in MODULE_TOGGLE_FLAG_BY_KEY.values()
             ):
                 mapping_candidate = dog_modules_from_flow_input(
-                    cast(ConfigFlowUserInput, raw_mapping),
+                    raw_mapping,
                     existing=existing_modules,
                 )
             elif raw_mapping:

@@ -439,15 +439,8 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
             return None
 
         gps_state = dog_data.get(MODULE_GPS)
-        if isinstance(gps_state, dict):
-            return ensure_gps_payload(gps_state)
         if isinstance(gps_state, Mapping):
-            gps_payload = ensure_gps_payload(cast(Mapping[str, object], gps_state))
-            if gps_payload is not None:
-                cast(CoordinatorDogData, dog_data)[MODULE_GPS] = cast(
-                    CoordinatorModuleState, gps_payload
-                )
-            return gps_payload
+            return ensure_gps_payload(cast(Mapping[str, object], gps_state))
 
         return None
 
