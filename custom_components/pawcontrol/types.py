@@ -1718,6 +1718,30 @@ class GeofenceOptions(TypedDict, total=False):
     zone_exit_notifications: bool
 
 
+GeofenceOptionsField = Literal[
+    "geofencing_enabled",
+    "use_home_location",
+    "geofence_lat",
+    "geofence_lon",
+    "geofence_radius_m",
+    "geofence_alerts_enabled",
+    "safe_zone_alerts",
+    "restricted_zone_alerts",
+    "zone_entry_notifications",
+    "zone_exit_notifications",
+]
+GEOFENCE_ENABLED_FIELD: Final[GeofenceOptionsField] = "geofencing_enabled"
+GEOFENCE_USE_HOME_FIELD: Final[GeofenceOptionsField] = "use_home_location"
+GEOFENCE_LAT_FIELD: Final[GeofenceOptionsField] = "geofence_lat"
+GEOFENCE_LON_FIELD: Final[GeofenceOptionsField] = "geofence_lon"
+GEOFENCE_RADIUS_FIELD: Final[GeofenceOptionsField] = "geofence_radius_m"
+GEOFENCE_ALERTS_FIELD: Final[GeofenceOptionsField] = "geofence_alerts_enabled"
+GEOFENCE_SAFE_ZONE_FIELD: Final[GeofenceOptionsField] = "safe_zone_alerts"
+GEOFENCE_RESTRICTED_ZONE_FIELD: Final[GeofenceOptionsField] = "restricted_zone_alerts"
+GEOFENCE_ZONE_ENTRY_FIELD: Final[GeofenceOptionsField] = "zone_entry_notifications"
+GEOFENCE_ZONE_EXIT_FIELD: Final[GeofenceOptionsField] = "zone_exit_notifications"
+
+
 class NotificationOptions(TypedDict, total=False):
     """Structured notification preferences stored in config entry options."""
 

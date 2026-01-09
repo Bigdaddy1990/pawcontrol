@@ -340,7 +340,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
         which satisfies Home Assistant's requirement for entity attribute types. The
         returned mapping is mutable and contains only JSON-serialisable values.
         """
-        attrs = ensure_json_mapping(super().extra_state_attributes)
+        attrs: JSONMutableMapping = ensure_json_mapping(super().extra_state_attributes)
         attrs.update(
             {
                 "dog_id": self._dog_id,
