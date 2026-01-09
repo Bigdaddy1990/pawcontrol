@@ -2318,9 +2318,7 @@ class PawControlOptionsFlow(OptionsFlow):
         return self.async_show_form(
             step_id="entity_profiles",
             data_schema=self._get_entity_profiles_schema(),
-            description_placeholders=dict(
-                self._get_profile_description_placeholders()
-            ),
+            description_placeholders=dict(self._get_profile_description_placeholders()),
         )
 
     def _get_entity_profiles_schema(
@@ -3428,9 +3426,7 @@ class PawControlOptionsFlow(OptionsFlow):
         return self.async_show_form(
             step_id="configure_dog_modules",
             data_schema=self._get_dog_modules_schema(),
-            description_placeholders=dict(
-                self._get_module_description_placeholders()
-            ),
+            description_placeholders=dict(self._get_module_description_placeholders()),
         )
 
     def _get_door_sensor_settings_schema(
@@ -4386,9 +4382,7 @@ class PawControlOptionsFlow(OptionsFlow):
         return self.async_show_form(
             step_id="weather_settings",
             data_schema=self._get_weather_settings_schema(),
-            description_placeholders=dict(
-                self._get_weather_description_placeholders()
-            ),
+            description_placeholders=dict(self._get_weather_description_placeholders()),
         )
 
     def _get_weather_settings_schema(
