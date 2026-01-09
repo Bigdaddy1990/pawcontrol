@@ -16,6 +16,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Final
 from urllib.error import URLError
+from urllib.parse import urlparse
 from urllib.request import urlopen
 
 DEFAULT_OUTPUT: Final[Path] = Path("tests/helpers/homeassistant_stub_metadata.json")
@@ -30,6 +31,10 @@ DEFAULT_TARGETS: Final[tuple[str, ...]] = (
 
 def _read_notes_from_url(url: str) -> str:
     """Return the contents of ``url`` as text, tolerating network failures."""
+
+    parsed = urlparse(url)
+    if parsed.scheme not in {"http", "https"}:
+        return ""
 
     try:
         with urlopen(url, timeout=10) as response:
