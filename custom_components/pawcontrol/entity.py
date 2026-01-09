@@ -14,11 +14,12 @@ from .const import ATTR_DOG_ID, ATTR_DOG_NAME
 from .coordinator import PawControlCoordinator
 from .runtime_data import get_runtime_data
 from .service_guard import ServiceGuardResult
-from .types import CoordinatorRuntimeManagers, JSONMutableMapping
+from .types import CoordinatorRuntimeManagers, JSONMutableMapping, ensure_json_mapping
 from .utils import (
     JSONMappingLike,
     PawControlDeviceLinkMixin,
     async_call_hass_service_if_available,
+    normalise_json,
 )
 
 __all__ = ["PawControlEntity"]
@@ -120,12 +121,7 @@ class PawControlEntity(
         """Expose the entity's extra state attributes payload."""
 
         attrs = getattr(self, "_attr_extra_state_attributes", None)
-        if attrs is None:
-            attributes: JSONMutableMapping = cast(JSONMutableMapping, {})
-        elif isinstance(attrs, dict):
-            attributes = cast(JSONMutableMapping, attrs)
-        else:
-            attributes = cast(JSONMutableMapping, dict(attrs))
+        attributes = ensure_json_mapping(attrs)
 
         last_update = getattr(self.coordinator, "last_update_success_time", None)
         if isinstance(last_update, datetime):
@@ -133,7 +129,7 @@ class PawControlEntity(
         else:
             attributes["last_updated"] = None
 
-        return attributes
+        return cast(JSONMutableMapping, normalise_json(attributes))
 
     @callback
     def update_device_metadata(self, **details: Any) -> None:

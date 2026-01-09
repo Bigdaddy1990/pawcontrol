@@ -66,8 +66,9 @@ from .types import (
     TrackingModePreset,
     WalkModeInfo,
     coerce_dog_modules_config,
+    ensure_json_mapping,
 )
-from .utils import async_call_add_entities, deep_merge_dicts
+from .utils import async_call_add_entities, deep_merge_dicts, normalise_json
 
 if TYPE_CHECKING:
     from .data_manager import PawControlDataManager
@@ -78,6 +79,13 @@ _LOGGER = logging.getLogger(__name__)
 # responsible for serialising writes, so we allow unlimited parallel updates at
 # the entity layer.
 PARALLEL_UPDATES = 0
+
+
+def _normalise_attributes(attrs: Mapping[str, object]) -> SelectExtraAttributes:
+    """Return JSON-serialisable attributes for select entities."""
+
+    payload = ensure_json_mapping(attrs)
+    return cast(SelectExtraAttributes, normalise_json(payload))
 
 
 # Additional option lists for selects
@@ -844,7 +852,7 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
                 if isinstance(size, str):
                     attrs["dog_size"] = size
 
-        return attrs
+        return _normalise_attributes(attrs)
 
     async def async_select_option(self, option: str) -> None:
         """Select an option.
@@ -968,7 +976,7 @@ class PawControlDogSizeSelect(PawControlSelectBase):
         size_info = self._get_size_info(self.current_option)
         attrs.update(cast(JSONMapping, size_info))
 
-        return attrs
+        return _normalise_attributes(attrs)
 
     def _get_size_info(self, size: str | None) -> DogSizeInfo:
         """Get information about the selected size.
@@ -1020,7 +1028,7 @@ class PawControlPerformanceModeSelect(PawControlSelectBase):
         mode_info = self._get_performance_mode_info(self.current_option)
         attrs.update(cast(JSONMapping, mode_info))
 
-        return attrs
+        return _normalise_attributes(attrs)
 
     def _get_performance_mode_info(self, mode: str | None) -> PerformanceModeInfo:
         """Get information about the selected performance mode.
@@ -1133,7 +1141,7 @@ class PawControlFoodTypeSelect(PawControlSelectBase):
         food_info = self._get_food_type_info(self.current_option)
         attrs.update(cast(JSONMapping, food_info))
 
-        return attrs
+        return _normalise_attributes(attrs)
 
     def _get_food_type_info(self, food_type: str | None) -> FoodTypeInfo:
         """Get information about the selected food type.
@@ -1254,7 +1262,7 @@ class PawControlWalkModeSelect(PawControlSelectBase):
         mode_info = self._get_walk_mode_info(self.current_option)
         attrs.update(cast(JSONMapping, mode_info))
 
-        return attrs
+        return _normalise_attributes(attrs)
 
     def _get_walk_mode_info(self, mode: str | None) -> WalkModeInfo:
         """Get information about the selected walk mode.
@@ -1359,7 +1367,7 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
         source_info = self._get_gps_source_info(self.current_option)
         attrs.update(cast(JSONMapping, source_info))
 
-        return attrs
+        return _normalise_attributes(attrs)
 
     def _get_gps_source_info(self, source: str | None) -> GPSSourceInfo:
         """Get information about the selected GPS source.
@@ -1573,7 +1581,7 @@ class PawControlGroomingTypeSelect(PawControlSelectBase):
         grooming_info = self._get_grooming_type_info(self.current_option)
         attrs.update(cast(JSONMapping, grooming_info))
 
-        return attrs
+        return _normalise_attributes(attrs)
 
     def _get_grooming_type_info(self, grooming_type: str | None) -> GroomingTypeInfo:
         """Get information about the selected grooming type.

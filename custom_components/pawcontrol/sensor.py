@@ -54,8 +54,9 @@ from .types import (
     WalkModuleTelemetry,
     ensure_dog_modules_mapping,
     ensure_gps_payload,
+    ensure_json_mapping,
 )
-from .utils import async_call_add_entities, ensure_utc_datetime, is_number
+from .utils import async_call_add_entities, ensure_utc_datetime, is_number, normalise_json
 
 if TYPE_CHECKING:
 
@@ -104,6 +105,13 @@ try:  # pragma: no cover - executed indirectly during import
     _CALORIE_UNIT = UnitOfEnergy.KILO_CALORIE
 except AttributeError:  # pragma: no cover - fallback for older constant sets
     _CALORIE_UNIT = "kcal"
+
+
+def _normalise_attributes(attrs: Mapping[str, object]) -> AttributeDict:
+    """Return JSON-serialisable attributes for sensor entities."""
+
+    payload = ensure_json_mapping(attrs)
+    return cast(AttributeDict, normalise_json(payload))
 
 
 # PLATINUM: Dynamic cache TTL based on coordinator update interval
@@ -1061,7 +1069,7 @@ class PawControlSensorBase(PawControlEntity, SensorEntityProtocol):
         else:
             attrs["last_updated"] = None
 
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 class PawControlGardenSensorBase(PawControlSensorBase):
@@ -1133,14 +1141,14 @@ class PawControlGardenSensorBase(PawControlSensorBase):
 
         attrs["hours_since_last_session"] = data.get("hours_since_last_session")
 
-        return attrs
+        return _normalise_attributes(attrs)
 
     @property
     def extra_state_attributes(self) -> AttributeDict:
         """Return extra state attributes provided by this sensor."""
         attrs: AttributeDict = self._base_attributes()
         attrs.update(self._garden_attributes())
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 class PawControlDietValidationSensorBase(PawControlSensorBase):
@@ -1190,7 +1198,7 @@ class PawControlDietValidationSensorBase(PawControlSensorBase):
         else:
             attrs["diet_validation_available"] = False
 
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 # Core Sensor Implementations
@@ -1621,7 +1629,7 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
                     }
                 )
 
-        return attrs
+        return _normalise_attributes(attrs)
 
     def _get_activity_recommendation(self, walk_data: WalkModuleTelemetry) -> str:
         """Get activity recommendation based on current level."""
@@ -2118,7 +2126,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
                             }
                         )
 
-        return attrs
+        return _normalise_attributes(attrs)
 
     def _get_feeding_status(self, time_delta: timedelta) -> str:
         """Get feeding status based on time since last feeding."""
@@ -2421,7 +2429,7 @@ class PawControlDietConflictCountSensor(PawControlDietValidationSensorBase):
         summary = self._get_validation_summary()
         if summary and summary.get("conflicts"):
             attrs["conflicts"] = summary.get("conflicts")
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 @register_sensor("diet_warning_count")
@@ -2460,7 +2468,7 @@ class PawControlDietWarningCountSensor(PawControlDietValidationSensorBase):
         summary = self._get_validation_summary()
         if summary and summary.get("warnings"):
             attrs["warnings"] = summary.get("warnings")
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 @register_sensor("diet_vet_consultation")
@@ -2504,7 +2512,7 @@ class PawControlDietVetConsultationSensor(PawControlDietValidationSensorBase):
                     "has_conflicts": summary.get("conflict_count", 0) > 0,
                 }
             )
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 @register_sensor("diet_validation_adjustment")
@@ -2550,7 +2558,7 @@ class PawControlDietValidationAdjustmentSensor(PawControlDietValidationSensorBas
                     "has_adjustments": summary.get("has_adjustments", False),
                 }
             )
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 @register_sensor("diet_compatibility_score")
@@ -2591,7 +2599,7 @@ class PawControlDietCompatibilityScoreSensor(PawControlDietValidationSensorBase)
         summary = self._get_validation_summary()
         if summary:
             attrs["compatibility_level"] = summary.get("compatibility_level")
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 @register_sensor("daily_portions")
@@ -2690,7 +2698,7 @@ class PawControlPortionsTodaySensor(PawControlSensorBase):
                     }
                 )
 
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 @register_sensor("calorie_goal_progress")
@@ -2781,7 +2789,7 @@ class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
                     }
                 )
 
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 @register_sensor("health_feeding_status")
@@ -2838,7 +2846,7 @@ class PawControlHealthFeedingStatusSensor(PawControlSensorBase):
         emergency_details = feeding_data.get("health_emergency_details")
         if emergency_details is not None:
             attrs["emergency_details"] = cast(JSONValue, emergency_details)
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 @register_sensor("daily_calorie_target")
@@ -2890,7 +2898,7 @@ class PawControlDailyCalorieTargetSensor(PawControlSensorBase):
                 "health_source": cast(JSONValue, health_mapping.get("life_stage")),
             }
         )
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 @register_sensor("calories_consumed_today")
@@ -2941,7 +2949,7 @@ class PawControlCaloriesConsumedTodaySensor(PawControlSensorBase):
                 ),
             }
         )
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 @register_sensor("portion_adjustment_factor")
@@ -2994,7 +3002,7 @@ class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
                 }
             )
 
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 @register_sensor("food_consumption")
@@ -3089,7 +3097,7 @@ class PawControlFoodConsumptionSensor(PawControlSensorBase):
                 }
             )
 
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 # Walk Sensors
@@ -3302,7 +3310,7 @@ class PawControlWalkDistanceTodaySensor(PawControlSensorBase):
                     }
                 )
 
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 # NEW: Critical missing sensor per requirements inventory
@@ -3455,7 +3463,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
                     }
                 )
 
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 # NEW: Critical missing sensor per requirements inventory
@@ -3548,7 +3556,7 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
                     }
                 )
 
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 # NEW: Critical missing sensor per requirements inventory
@@ -3662,7 +3670,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
                     }
                 )
 
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 @register_sensor("last_walk_duration")
@@ -3858,7 +3866,7 @@ class PawControlCurrentLocationSensor(PawControlSensorBase):
         last_seen = self._coerce_utc_datetime(last_seen_raw)
         attrs["last_seen"] = last_seen.isoformat() if last_seen else None
         attrs["in_safe_zone"] = bool(gps_data.get("in_safe_zone"))
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 @register_sensor("distance_from_home")
@@ -4230,7 +4238,7 @@ class PawControlHealthConditionsSensor(PawControlSensorBase):
                 if isinstance(cond, (str, int, float))
             ]
         attrs["conditions"] = normalized_list
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 @register_sensor("weight_goal_progress")
@@ -4279,7 +4287,7 @@ class PawControlWeightGoalProgressSensor(PawControlSensorBase):
                 "ideal_weight": cast(JSONValue, health_data.get("ideal_weight")),
             }
         )
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 @register_sensor("daily_activity_level")
@@ -4331,7 +4339,7 @@ class PawControlDailyActivityLevelSensor(PawControlSensorBase):
                 ),
             }
         )
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 # Ensure every override inherits a meaningful docstring from its base implementation.

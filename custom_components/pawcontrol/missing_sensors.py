@@ -23,7 +23,7 @@ from .types import (
     WalkSessionSnapshot,
     ensure_json_mapping,
 )
-from .utils import DateTimeConvertible, ensure_utc_datetime
+from .utils import DateTimeConvertible, ensure_utc_datetime, normalise_json
 
 __all__ = [
     "PawControlActivityLevelSensor",
@@ -74,6 +74,12 @@ def _feeding_payload(
     if module_data is None or not isinstance(module_data, Mapping):
         return None
     return cast(FeedingModuleTelemetry, module_data)
+
+
+def _normalise_attributes(attrs: JSONMutableMapping) -> JSONMutableMapping:
+    """Return JSON-serialisable attributes for missing sensors."""
+
+    return cast(JSONMutableMapping, normalise_json(attrs))
 
 
 def calculate_activity_level(
@@ -262,7 +268,7 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
             attrs["health_activity_level"] = activity_level
             attrs["activity_source"] = "health_data" if activity_level else "calculated"
 
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 @register_sensor("calories_burned_today")
@@ -341,7 +347,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
                 }
             )
 
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 @register_sensor("last_feeding_hours")
@@ -407,7 +413,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
                 }
             )
 
-        return attrs
+        return _normalise_attributes(attrs)
 
     def _is_feeding_overdue(
         self, feeding_data: ModuleSnapshot[FeedingModuleTelemetry]
@@ -508,7 +514,7 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
                 }
             )
 
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 @register_sensor("walks_this_week")
@@ -593,4 +599,4 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
                 }
             )
 
-        return attrs
+        return _normalise_attributes(attrs)

@@ -73,7 +73,7 @@ from .types import (
     ensure_dog_modules_projection,
     ensure_json_mapping,
 )
-from .utils import async_call_add_entities
+from .utils import async_call_add_entities, normalise_json
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -809,7 +809,7 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
         if self._action_description:
             attrs["action_description"] = self._action_description
 
-        return attrs
+        return cast(JSONMutableMapping, normalise_json(attrs))
 
     def _get_dog_data_cached(self) -> CoordinatorDogData | None:
         """Get dog data with thread-safe instance-level caching."""
