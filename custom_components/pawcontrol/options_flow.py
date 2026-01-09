@@ -907,7 +907,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
         return choices
 
-    def _manual_event_description_placeholders(self) -> dict[str, str]:
+    def _manual_event_description_placeholders(self) -> ConfigFlowPlaceholders:
         """Return description placeholders enumerating known manual events."""
 
         choices = self._resolve_manual_event_choices()
@@ -915,7 +915,7 @@ class PawControlOptionsFlow(OptionsFlow):
         for field, values in choices.items():
             placeholder_key = f"{field}_options"
             placeholders[placeholder_key] = ", ".join(values) if values else "—"
-        return placeholders
+        return freeze_placeholders(placeholders)
 
     @staticmethod
     def _coerce_manual_event_with_default(
@@ -2223,7 +2223,7 @@ class PawControlOptionsFlow(OptionsFlow):
             }
         )
 
-    def _get_geofence_description_placeholders(self) -> dict[str, str]:
+    def _get_geofence_description_placeholders(self) -> ConfigFlowPlaceholders:
         """Get description placeholders for geofencing configuration."""
         current_geofence = self._current_geofence_options()
 
@@ -2248,20 +2248,22 @@ class PawControlOptionsFlow(OptionsFlow):
         status = "Enabled" if geofencing_enabled else "Disabled"
         location_desc = f"Lat: {current_lat:.6f}, Lon: {current_lon:.6f}"
 
-        return {
-            "current_status": status,
-            "current_location": location_desc,
-            "current_radius": str(current_radius),
-            "home_location": f"Lat: {home_lat:.6f}, Lon: {home_lon:.6f}",
-            "radius_range": f"{MIN_GEOFENCE_RADIUS}-{MAX_GEOFENCE_RADIUS}",
-            "dogs_with_gps": str(
-                sum(
-                    1
-                    for dog in self._dogs
-                    if ensure_dog_modules_mapping(dog).get(MODULE_GPS, False)
-                )
-            ),
-        }
+        return freeze_placeholders(
+            {
+                "current_status": status,
+                "current_location": location_desc,
+                "current_radius": str(current_radius),
+                "home_location": f"Lat: {home_lat:.6f}, Lon: {home_lon:.6f}",
+                "radius_range": f"{MIN_GEOFENCE_RADIUS}-{MAX_GEOFENCE_RADIUS}",
+                "dogs_with_gps": str(
+                    sum(
+                        1
+                        for dog in self._dogs
+                        if ensure_dog_modules_mapping(dog).get(MODULE_GPS, False)
+                    )
+                ),
+            }
+        )
 
     async def async_step_entity_profiles(
         self, user_input: EntityProfileOptionsInput | None = None
@@ -2721,22 +2723,24 @@ class PawControlOptionsFlow(OptionsFlow):
                     ): selector.BooleanSelector(),
                 }
             ),
-            description_placeholders={
-                "profile_name": preview_data["profile"],
-                "total_entities": str(preview_data["total_entities"]),
-                "entity_breakdown": "\n".join(breakdown_lines),
-                "current_total": str(preview_data["current_total"]),
-                "entity_difference": (
-                    f"{preview_data['entity_difference']:+d}"
-                    if preview_data["entity_difference"]
-                    else "0"
-                ),
-                "performance_change": performance_change,
-                "profile_description": profile_info["description"],
-                "performance_score": f"{preview_data['performance_score']:.1f}",
-                "recommendation": preview_data["recommendation"],
-                "warnings": warnings_text,
-            },
+            description_placeholders=freeze_placeholders(
+                {
+                    "profile_name": preview_data["profile"],
+                    "total_entities": str(preview_data["total_entities"]),
+                    "entity_breakdown": "\n".join(breakdown_lines),
+                    "current_total": str(preview_data["current_total"]),
+                    "entity_difference": (
+                        f"{preview_data['entity_difference']:+d}"
+                        if preview_data["entity_difference"]
+                        else "0"
+                    ),
+                    "performance_change": performance_change,
+                    "profile_description": profile_info["description"],
+                    "performance_score": f"{preview_data['performance_score']:.1f}",
+                    "recommendation": preview_data["recommendation"],
+                    "warnings": warnings_text,
+                }
+            ),
         )
 
     async def async_step_performance_settings(
@@ -2966,17 +2970,19 @@ class PawControlOptionsFlow(OptionsFlow):
                     )
                 }
             ),
-            description_placeholders={
-                "current_dogs_count": str(len(current_dogs)),
-                "dogs_list": "\n".join(
-                    [
-                        f"• {dog.get(CONF_DOG_NAME, 'Unknown')} ({dog.get(CONF_DOG_ID, 'unknown')})"
-                        for dog in current_dogs
-                    ]
-                )
-                if current_dogs
-                else "No dogs configured",
-            },
+            description_placeholders=freeze_placeholders(
+                {
+                    "current_dogs_count": str(len(current_dogs)),
+                    "dogs_list": "\n".join(
+                        [
+                            f"• {dog.get(CONF_DOG_NAME, 'Unknown')} ({dog.get(CONF_DOG_ID, 'unknown')})"
+                            for dog in current_dogs
+                        ]
+                    )
+                    if current_dogs
+                    else "No dogs configured",
+                }
+            ),
         )
 
     async def async_step_select_dog_for_modules(
@@ -3617,10 +3623,10 @@ class PawControlOptionsFlow(OptionsFlow):
             sensors[entity_id] = str(friendly_name)
         return sensors
 
-    def _get_module_description_placeholders(self) -> dict[str, str]:
+    def _get_module_description_placeholders(self) -> ConfigFlowPlaceholders:
         """Get description placeholders for module configuration."""
         if not self._current_dog:
-            return {}
+            return freeze_placeholders({})
 
         profile_value = self._entry.options.get("entity_profile", "standard")
         current_profile = (
@@ -3671,12 +3677,14 @@ class PawControlOptionsFlow(OptionsFlow):
 
         dog_name = str(self._current_dog.get(CONF_DOG_NAME, "Unknown"))
 
-        return {
-            "dog_name": dog_name,
-            "current_profile": str(current_profile),
-            "current_entities": str(current_estimate),
-            "enabled_modules": enabled_summary,
-        }
+        return freeze_placeholders(
+            {
+                "dog_name": dog_name,
+                "current_profile": str(current_profile),
+                "current_entities": str(current_estimate),
+                "enabled_modules": enabled_summary,
+            }
+        )
 
     # Rest of the existing methods (add_new_dog, edit_dog, etc.) remain the same...
 
@@ -4097,9 +4105,14 @@ class PawControlOptionsFlow(OptionsFlow):
         return self.async_show_form(
             step_id="select_dog_to_remove",
             data_schema=self._get_remove_dog_schema(current_dogs),
-            description_placeholders={
-                "warning": "This will permanently remove the selected dog and all associated data!"
-            },
+            description_placeholders=freeze_placeholders(
+                {
+                    "warning": (
+                        "This will permanently remove the selected dog and all "
+                        "associated data!"
+                    )
+                }
+            ),
         )
 
     # GPS Settings (existing method, enhanced with route recording)
@@ -4515,7 +4528,7 @@ class PawControlOptionsFlow(OptionsFlow):
             }
         )
 
-    def _get_weather_description_placeholders(self) -> dict[str, str]:
+    def _get_weather_description_placeholders(self) -> ConfigFlowPlaceholders:
         """Get description placeholders for weather configuration."""
         current_weather = self._current_weather_options()
         current_dogs_raw = self._entry.data.get(CONF_DOGS, [])
@@ -4579,28 +4592,32 @@ class PawControlOptionsFlow(OptionsFlow):
         )
         health_adjustments = current_weather.get("health_condition_adjustments", True)
 
-        return {
-            "weather_entity_status": weather_status,
-            "current_weather_info": weather_info,
-            "total_dogs": str(len(current_dogs)),
-            "dogs_with_health_conditions": str(dogs_with_health_conditions),
-            "dogs_with_breeds": str(dogs_with_breeds),
-            "monitoring_status": "Enabled" if weather_monitoring else "Disabled",
-            "alerts_enabled": alerts_summary,
-            "breed_recommendations_status": "Enabled"
-            if breed_recommendations
-            else "Disabled",
-            "health_adjustments_status": "Enabled"
-            if health_adjustments
-            else "Disabled",
-            "update_interval": str(current_weather.get("weather_update_interval", 60)),
-            "notification_threshold": current_weather.get(
-                "notification_threshold", "moderate"
-            ).title(),
-            "available_weather_entities": str(
-                len([e for e in self.hass.states.async_entity_ids("weather")])
-            ),
-        }
+        return freeze_placeholders(
+            {
+                "weather_entity_status": weather_status,
+                "current_weather_info": weather_info,
+                "total_dogs": str(len(current_dogs)),
+                "dogs_with_health_conditions": str(dogs_with_health_conditions),
+                "dogs_with_breeds": str(dogs_with_breeds),
+                "monitoring_status": "Enabled" if weather_monitoring else "Disabled",
+                "alerts_enabled": alerts_summary,
+                "breed_recommendations_status": "Enabled"
+                if breed_recommendations
+                else "Disabled",
+                "health_adjustments_status": "Enabled"
+                if health_adjustments
+                else "Disabled",
+                "update_interval": str(
+                    current_weather.get("weather_update_interval", 60)
+                ),
+                "notification_threshold": current_weather.get(
+                    "notification_threshold", "moderate"
+                ).title(),
+                "available_weather_entities": str(
+                    len([e for e in self.hass.states.async_entity_ids("weather")])
+                ),
+            }
+        )
 
     async def async_step_notifications(
         self, user_input: ConfigFlowUserInput | None = None
@@ -5376,12 +5393,14 @@ class PawControlOptionsFlow(OptionsFlow):
             return self.async_show_form(
                 step_id="import_export",
                 data_schema=self._get_import_export_menu_schema(),
-                description_placeholders={
-                    "instructions": (
-                        "Create a JSON backup of the current PawControl options "
-                        "or restore a backup previously exported from this menu."
-                    )
-                },
+                description_placeholders=freeze_placeholders(
+                    {
+                        "instructions": (
+                            "Create a JSON backup of the current PawControl options "
+                            "or restore a backup previously exported from this menu."
+                        )
+                    }
+                ),
             )
 
         action = user_input.get("action")
@@ -5422,10 +5441,12 @@ class PawControlOptionsFlow(OptionsFlow):
                     )
                 }
             ),
-            description_placeholders={
-                "export_blob": export_blob,
-                "generated_at": payload["created_at"],
-            },
+            description_placeholders=freeze_placeholders(
+                {
+                    "export_blob": export_blob,
+                    "generated_at": payload["created_at"],
+                }
+            ),
         )
 
     async def async_step_import_export_import(

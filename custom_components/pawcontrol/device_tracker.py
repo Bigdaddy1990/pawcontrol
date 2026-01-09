@@ -60,6 +60,7 @@ from .types import (
     ensure_dog_config_data,
     ensure_dog_modules_projection,
     ensure_gps_payload,
+    ensure_json_mapping,
 )
 from .utils import async_call_add_entities, ensure_utc_datetime
 
@@ -339,13 +340,16 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
         which satisfies Home Assistant's requirement for entity attribute types. The
         returned mapping is mutable and contains only JSON-serialisable values.
         """
-        attrs: JSONMutableMapping = {
-            "dog_id": self._dog_id,
-            "dog_name": self._dog_name,
-            "tracker_type": MODULE_GPS,
-            "route_active": False,
-            "route_points": len(self._route_points),
-        }
+        attrs = ensure_json_mapping(super().extra_state_attributes)
+        attrs.update(
+            {
+                "dog_id": self._dog_id,
+                "dog_name": self._dog_name,
+                "tracker_type": MODULE_GPS,
+                "route_active": False,
+                "route_points": len(self._route_points),
+            }
+        )
 
         gps_data = self._get_gps_data()
         if gps_data:

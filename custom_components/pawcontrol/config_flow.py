@@ -611,10 +611,12 @@ class PawControlConfigFlow(
                     vol.Required("confirm", default=True): cv.boolean,
                 }
             ),
-            description_placeholders={
-                "discovery_source": discovery_source,
-                "device_info": device_info,
-            },
+            description_placeholders=freeze_placeholders(
+                {
+                    "discovery_source": discovery_source,
+                    "device_info": device_info,
+                }
+            ),
         )
 
     async def async_step_import(
@@ -1638,24 +1640,28 @@ class PawControlConfigFlow(
                     step_id="entity_profile",
                     data_schema=PROFILE_SCHEMA,
                     errors={"base": "invalid_profile"},
-                    description_placeholders={
-                        "dogs_count": str(len(self._dogs)),
-                        "profiles_info": self._get_profiles_info_enhanced(),
-                        "profiles_summary": build_profile_summary_text(),
-                        "recommendation": self._get_profile_recommendation(),
-                    },
+                    description_placeholders=freeze_placeholders(
+                        {
+                            "dogs_count": str(len(self._dogs)),
+                            "profiles_info": self._get_profiles_info_enhanced(),
+                            "profiles_summary": build_profile_summary_text(),
+                            "recommendation": self._get_profile_recommendation(),
+                        }
+                    ),
                 )
 
         return self.async_show_form(
             step_id="entity_profile",
             data_schema=PROFILE_SCHEMA,
-            description_placeholders={
-                "dogs_count": str(len(self._dogs)),
-                "profiles_info": self._get_profiles_info_enhanced(),
-                "estimated_entities": str(self._estimate_total_entities()),
-                "profiles_summary": build_profile_summary_text(),
-                "recommendation": self._get_profile_recommendation(),
-            },
+            description_placeholders=freeze_placeholders(
+                {
+                    "dogs_count": str(len(self._dogs)),
+                    "profiles_info": self._get_profiles_info_enhanced(),
+                    "estimated_entities": str(self._estimate_total_entities()),
+                    "profiles_summary": build_profile_summary_text(),
+                    "recommendation": self._get_profile_recommendation(),
+                }
+            ),
         )
 
     def _get_profile_recommendation(self) -> str:
@@ -2417,23 +2423,25 @@ class PawControlConfigFlow(
                 )
                 new_profile = profile_data["entity_profile"]
             except vol.Invalid as err:
-                error_placeholders = dict(base_placeholders)
-                error_placeholders["error_details"] = str(err)
+                frozen_placeholders = freeze_placeholders(
+                    {**base_placeholders, "error_details": str(err)}
+                )
                 return self.async_show_form(
                     step_id="reconfigure",
                     data_schema=form_schema,
                     errors={"base": "invalid_profile"},
-                    description_placeholders=error_placeholders,
+                    description_placeholders=frozen_placeholders,
                 )
 
             if new_profile == current_profile:
-                error_placeholders = dict(base_placeholders)
-                error_placeholders["requested_profile"] = new_profile
+                frozen_placeholders = freeze_placeholders(
+                    {**base_placeholders, "requested_profile": new_profile}
+                )
                 return self.async_show_form(
                     step_id="reconfigure",
                     data_schema=form_schema,
                     errors={"base": "profile_unchanged"},
-                    description_placeholders=error_placeholders,
+                    description_placeholders=frozen_placeholders,
                 )
 
             unique_id = entry.unique_id
@@ -2573,7 +2581,7 @@ class PawControlConfigFlow(
         dogs: list[DogConfigData],
         profile: str,
         merge_notes: Sequence[str],
-    ) -> ReconfigureFormPlaceholders:
+    ) -> ConfigFlowPlaceholders:
         """Build description placeholders for the reconfigure form."""
 
         estimated_entities = await self._estimate_entities_for_reconfigure(
@@ -2607,7 +2615,7 @@ class PawControlConfigFlow(
                 cast(Mapping[str, JSONValue], entry.options)
             )
         )
-        return placeholders
+        return freeze_placeholders(placeholders)
 
     def _reconfigure_history_placeholders(
         self, options: Mapping[str, JSONValue]

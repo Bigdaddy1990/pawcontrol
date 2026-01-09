@@ -71,6 +71,7 @@ from .types import (
     WalkModulePayload,
     ensure_dog_config_data,
     ensure_dog_modules_projection,
+    ensure_json_mapping,
 )
 from .utils import async_call_add_entities
 
@@ -799,7 +800,7 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return attributes with optimized caching."""
 
-        attrs = cast(JSONMutableMapping, dict(super().extra_state_attributes))
+        attrs = ensure_json_mapping(super().extra_state_attributes)
         attrs.setdefault(ATTR_DOG_ID, self._dog_id)
         attrs.setdefault(ATTR_DOG_NAME, self._dog_name)
         attrs["button_type"] = self._button_type

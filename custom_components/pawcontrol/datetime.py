@@ -32,8 +32,9 @@ from .types import (
     DOG_NAME_FIELD,
     DogConfigData,
     DogModulesMapping,
-    JSONValue,
+    JSONMutableMapping,
     ensure_dog_modules_mapping,
+    ensure_json_mapping,
 )
 from .utils import async_call_add_entities, ensure_utc_datetime
 
@@ -198,13 +199,17 @@ class PawControlDateTimeBase(PawControlEntity, DateTimeEntity, RestoreEntity):
         return self._current_value
 
     @property
-    def extra_state_attributes(self) -> dict[str, JSONValue]:
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return extra state attributes."""
-        return {
-            ATTR_DOG_ID: self._dog_id,
-            ATTR_DOG_NAME: self._dog_name,
-            "datetime_type": self._datetime_type,
-        }
+        attributes = ensure_json_mapping(super().extra_state_attributes)
+        attributes.update(
+            {
+                ATTR_DOG_ID: self._dog_id,
+                ATTR_DOG_NAME: self._dog_name,
+                "datetime_type": self._datetime_type,
+            }
+        )
+        return attributes
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
