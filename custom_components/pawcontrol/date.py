@@ -47,8 +47,9 @@ from .types import (
     DogModulesMapping,
     DogProfileSnapshot,
     HealthModulePayload,
-    JSONValue,
+    JSONMutableMapping,
     ensure_dog_modules_mapping,
+    ensure_json_mapping,
 )
 from .utils import async_call_add_entities
 
@@ -288,14 +289,16 @@ class PawControlDateBase(PawControlEntity, DateEntity, RestoreEntity):
         return self._current_value
 
     @property
-    def extra_state_attributes(self) -> dict[str, JSONValue]:
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return extra state attributes for enhanced functionality."""
-
-        attributes: dict[str, JSONValue] = {
-            "dog_id": self._dog_id,
-            "dog_name": self._dog_name,
-            "date_type": self._date_type,
-        }
+        attributes = ensure_json_mapping(super().extra_state_attributes)
+        attributes.update(
+            {
+                "dog_id": self._dog_id,
+                "dog_name": self._dog_name,
+                "date_type": self._date_type,
+            }
+        )
 
         # Add calculated attributes for useful automations
         if self._current_value is not None:

@@ -52,6 +52,7 @@ from .types import (
     ensure_dog_config_data,
     ensure_dog_text_metadata_snapshot,
     ensure_dog_text_snapshot,
+    ensure_json_mapping,
 )
 from .utils import async_call_add_entities
 
@@ -308,14 +309,9 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
         return self._current_value
 
     @property
-    def extra_state_attributes(self) -> dict[str, JSONValue]:
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return extra state attributes."""
-
-        base_attributes = super().extra_state_attributes
-        merged: dict[str, JSONValue] = (
-            dict(base_attributes) if isinstance(base_attributes, Mapping) else {}
-        )
-
+        merged = ensure_json_mapping(super().extra_state_attributes)
         merged.update(
             {
                 "dog_id": self._dog_id,

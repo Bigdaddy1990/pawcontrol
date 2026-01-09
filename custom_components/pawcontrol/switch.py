@@ -47,9 +47,10 @@ from .types import (
     CoordinatorDogData,
     DogConfigData,
     DogModulesConfig,
-    JSONValue,
+    JSONMutableMapping,
     PawControlConfigEntry,
     coerce_dog_modules_config,
+    ensure_json_mapping,
 )
 from .utils import async_call_add_entities
 
@@ -398,15 +399,18 @@ class OptimizedSwitchBase(PawControlEntity, SwitchEntity, RestoreEntity):
         return self._is_on
 
     @property
-    def extra_state_attributes(self) -> dict[str, JSONValue]:
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return enhanced attributes with profile information."""
-        attrs: dict[str, JSONValue] = {
-            "dog_id": self._dog_id,
-            "dog_name": self._dog_name,
-            "switch_type": self._switch_type,
-            "last_changed": self._last_changed.isoformat(),
-            "profile_optimized": True,
-        }
+        attrs = ensure_json_mapping(super().extra_state_attributes)
+        attrs.update(
+            {
+                "dog_id": self._dog_id,
+                "dog_name": self._dog_name,
+                "switch_type": self._switch_type,
+                "last_changed": self._last_changed.isoformat(),
+                "profile_optimized": True,
+            }
+        )
 
         if dog_config := self._get_dog_config():
             modules = coerce_dog_modules_config(dog_config.get(DOG_MODULES_FIELD))
@@ -752,10 +756,9 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
         self._attr_name = f"{dog_name} {display_name}"
 
     @property
-    def extra_state_attributes(self) -> dict[str, JSONValue]:
+    def extra_state_attributes(self) -> JSONMutableMapping:
         """Return feature-specific attributes."""
-        base_attrs = super().extra_state_attributes
-        feature_attrs: dict[str, JSONValue] = dict(base_attrs)
+        feature_attrs = ensure_json_mapping(super().extra_state_attributes)
         feature_attrs.update(
             {
                 "feature_id": self._feature_id,
