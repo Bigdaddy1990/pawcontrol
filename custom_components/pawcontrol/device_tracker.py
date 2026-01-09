@@ -59,6 +59,7 @@ from .types import (
     PawControlConfigEntry,
     ensure_dog_config_data,
     ensure_dog_modules_projection,
+    ensure_gps_payload,
 )
 from .utils import async_call_add_entities, ensure_utc_datetime
 
@@ -438,10 +439,8 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
             return None
 
         gps_state = dog_data.get(MODULE_GPS)
-        if isinstance(gps_state, dict):
-            return cast(GPSModulePayload, gps_state)
         if isinstance(gps_state, Mapping):
-            return cast(GPSModulePayload, dict(gps_state))
+            return ensure_gps_payload(cast(Mapping[str, object], gps_state))
 
         return None
 

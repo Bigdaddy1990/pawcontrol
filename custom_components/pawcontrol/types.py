@@ -132,6 +132,32 @@ def ensure_json_mapping(
     return {str(key): cast(JSONValue, value) for key, value in data.items()}
 
 
+def _coerce_iso_timestamp(value: Any) -> str | None:
+    """Return an ISO-formatted timestamp string when possible."""
+
+    if isinstance(value, datetime):
+        return dt_util.as_utc(value).isoformat()
+    if isinstance(value, str):
+        text = value.strip()
+        return text or None
+    return None
+
+
+def _coerce_float_value(value: Any) -> float | None:
+    """Return a float when ``value`` is numeric."""
+
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, float | int):
+        return float(value)
+    if isinstance(value, str):
+        try:
+            return float(value.strip())
+        except ValueError:
+            return None
+    return None
+
+
 class ErrorPayload(TypedDict):
     """Serialized representation of :class:`PawControlError` instances."""
 
@@ -301,6 +327,57 @@ class BinarySensorAttributes(TypedDict, total=False):
     portion_adjustment: NotRequired[int | float | str | None]
     activated_at: NotRequired[str | None]
     expires_at: NotRequired[str | None]
+
+
+class ActivityLevelSensorAttributes(TypedDict, total=False):
+    """Extra attributes reported by the activity level sensor."""
+
+    walks_today: int
+    total_walk_minutes_today: float
+    last_walk_hours_ago: float | None
+    health_activity_level: str | None
+    activity_source: str
+
+
+class CaloriesBurnedSensorAttributes(TypedDict, total=False):
+    """Extra attributes reported by the calories burned sensor."""
+
+    dog_weight_kg: float
+    walk_minutes_today: float
+    walk_distance_meters_today: float
+    activity_level: str
+    calories_per_minute: float
+    calories_per_100m: float
+
+
+class LastFeedingHoursAttributes(TypedDict, total=False):
+    """Extra attributes reported by the last feeding hours sensor."""
+
+    last_feeding_time: str | float | int | None
+    feedings_today: int
+    is_overdue: bool
+    next_feeding_due: str | None
+
+
+class TotalWalkDistanceAttributes(TypedDict, total=False):
+    """Extra attributes reported by the total walk distance sensor."""
+
+    total_walks: int
+    total_distance_meters: float
+    average_distance_per_walk_km: float
+    distance_this_week_km: float
+    distance_this_month_km: float
+
+
+class WalksThisWeekAttributes(TypedDict, total=False):
+    """Extra attributes reported by the walks this week sensor."""
+
+    walks_today: int
+    total_duration_this_week_minutes: float
+    total_distance_this_week_meters: float
+    average_walks_per_day: float
+    days_this_week: int
+    distance_this_week_km: float
 
 
 class DateExtraAttributes(TypedDict, total=False):
@@ -1334,7 +1411,7 @@ def _project_modules_mapping(
 
 
 def dog_modules_projection_from_flow_input(
-    user_input: ConfigFlowUserInput,
+    user_input: Mapping[str, object],
     *,
     existing: DogModulesConfig | None = None,
 ) -> DogModulesProjection:
@@ -1362,7 +1439,7 @@ def dog_modules_projection_from_flow_input(
 
 
 def dog_modules_from_flow_input(
-    user_input: ConfigFlowUserInput,
+    user_input: Mapping[str, object],
     *,
     existing: DogModulesConfig | None = None,
 ) -> DogModulesConfig:
@@ -1507,6 +1584,21 @@ class DogGPSStepInput(TypedDict, total=False):
     gps_accuracy_filter: float | int
     enable_geofencing: bool
     home_zone_radius: float | int
+
+
+class GeofenceSettingsInput(TypedDict, total=False):
+    """Options flow payload captured while editing geofencing settings."""
+
+    geofencing_enabled: bool
+    use_home_location: bool
+    geofence_lat: float | int | str | None
+    geofence_lon: float | int | str | None
+    geofence_radius_m: float | int | str | None
+    geofence_alerts_enabled: bool
+    safe_zone_alerts: bool
+    restricted_zone_alerts: bool
+    zone_entry_notifications: bool
+    zone_exit_notifications: bool
 
 
 class DogFeedingStepInput(TypedDict, total=False):
@@ -1655,8 +1747,19 @@ NOTIFICATION_PRIORITY_FIELD: Final[NotificationOptionsField] = "priority_notific
 NOTIFICATION_MOBILE_FIELD: Final[NotificationOptionsField] = "mobile_notifications"
 
 
-type NotificationOptionsInput = JSONMapping
+type NotificationOptionsInput = NotificationSettingsInput | JSONMapping
 """Mapping accepted by :func:`ensure_notification_options`."""
+
+
+class NotificationSettingsInput(TypedDict, total=False):
+    """UI payload captured when editing notification options."""
+
+    quiet_hours: bool
+    quiet_start: str | None
+    quiet_end: str | None
+    reminder_repeat_min: int | float | str | None
+    priority_notifications: bool
+    mobile_notifications: bool
 
 
 def ensure_notification_options(
@@ -3635,6 +3738,128 @@ class GPSTrackerExtraAttributes(
     location_source: str
     last_seen: str | None
     distance_from_home: float | None
+
+
+def _normalise_route_point(point: Mapping[str, object]) -> GPSRoutePoint | None:
+    """Return a JSON-safe GPS route point."""
+
+    latitude = _coerce_float_value(point.get("latitude"))
+    longitude = _coerce_float_value(point.get("longitude"))
+    if latitude is None or longitude is None:
+        return None
+
+    payload: GPSRoutePoint = {
+        "latitude": latitude,
+        "longitude": longitude,
+    }
+
+    timestamp = _coerce_iso_timestamp(point.get("timestamp"))
+    payload["timestamp"] = timestamp or dt_util.utcnow().isoformat()
+
+    altitude = _coerce_float_value(point.get("altitude"))
+    if altitude is not None:
+        payload["altitude"] = altitude
+
+    accuracy = _coerce_float_value(point.get("accuracy"))
+    if accuracy is not None:
+        payload["accuracy"] = accuracy
+
+    speed = _coerce_float_value(point.get("speed"))
+    if speed is not None:
+        payload["speed"] = speed
+
+    heading = _coerce_float_value(point.get("heading"))
+    if heading is not None:
+        payload["heading"] = heading
+
+    return payload
+
+
+def ensure_gps_route_snapshot(
+    payload: Mapping[str, JSONValue] | JSONMutableMapping | None,
+) -> GPSRouteSnapshot | None:
+    """Normalise a route snapshot mapping into a JSON-safe structure."""
+
+    if payload is None or not isinstance(payload, Mapping):
+        return None
+
+    base = ensure_json_mapping(payload)
+    points_raw = base.get("points")
+    points: list[GPSRoutePoint] = []
+    if isinstance(points_raw, Sequence) and not isinstance(points_raw, (str, bytes)):
+        for point in points_raw:
+            if isinstance(point, Mapping):
+                normalised = _normalise_route_point(point)
+                if normalised is not None:
+                    points.append(normalised)
+
+    start_time = _coerce_iso_timestamp(base.get("start_time"))
+    end_time = _coerce_iso_timestamp(base.get("end_time"))
+    last_point_time = _coerce_iso_timestamp(base.get("last_point_time"))
+
+    snapshot: GPSRouteSnapshot = {
+        "active": bool(base.get("active", False)),
+        "id": str(base.get("id") or ""),
+        "name": str(base.get("name") or base.get("id") or "GPS Route"),
+        "start_time": start_time or None,
+        "points": points,
+        "point_count": len(points),
+    }
+
+    if end_time is not None:
+        snapshot["end_time"] = end_time
+    if last_point_time is not None:
+        snapshot["last_point_time"] = last_point_time
+
+    distance = _coerce_float_value(base.get("distance"))
+    if distance is not None:
+        snapshot["distance"] = distance
+
+    duration = _coerce_float_value(base.get("duration"))
+    if duration is not None:
+        snapshot["duration"] = duration
+
+    return snapshot
+
+
+def ensure_gps_payload(
+    payload: Mapping[str, object] | JSONMutableMapping | None,
+) -> GPSModulePayload | None:
+    """Return a normalised :class:`GPSModulePayload`."""
+
+    if payload is None or not isinstance(payload, Mapping):
+        return None
+
+    gps_payload: GPSModulePayload = ensure_json_mapping(payload)
+    if not gps_payload:
+        return None
+    last_seen = _coerce_iso_timestamp(gps_payload.get("last_seen"))
+    if last_seen is not None:
+        gps_payload["last_seen"] = last_seen
+
+    current_route_snapshot = ensure_gps_route_snapshot(
+        cast(
+            Mapping[str, JSONValue] | JSONMutableMapping | None,
+            payload.get("current_route"),
+        )
+    )
+    if current_route_snapshot is not None:
+        gps_payload["current_route"] = current_route_snapshot
+    elif "current_route" in gps_payload:
+        gps_payload.pop("current_route", None)
+
+    route_active_payload = payload.get("active_route")
+    if isinstance(route_active_payload, Mapping):
+        active_route = ensure_gps_route_snapshot(
+            cast(Mapping[str, JSONValue], route_active_payload)
+        )
+        if active_route is not None:
+            gps_payload["active_route"] = active_route
+
+    status = payload.get("status")
+    gps_payload["status"] = str(status) if status is not None else "unknown"
+
+    return gps_payload
 
 
 class GPSRouteExportJSONPoint(TypedDict, total=False):

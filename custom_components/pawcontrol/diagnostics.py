@@ -12,6 +12,7 @@ from __future__ import annotations
 import importlib
 import logging
 from collections.abc import Awaitable, Callable, Mapping, Sequence
+from dataclasses import asdict, is_dataclass
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
@@ -656,12 +657,12 @@ async def async_get_config_entry_diagnostics(
             cache_snapshots
         )
 
+    normalised_payload = cast(JSONMutableMapping, _normalise_json(diagnostics_payload))
+
     # Redact sensitive information
     redacted_diagnostics = cast(
         JSONMutableMapping,
-        _redact_sensitive_data(
-            cast(JSONValue, _normalise_json(diagnostics_payload)),
-        ),
+        _redact_sensitive_data(cast(JSONValue, normalised_payload)),
     )
 
     _LOGGER.info("Diagnostics generated successfully for entry %s", entry.entry_id)
@@ -732,7 +733,7 @@ def _get_resilience_diagnostics(
             if isinstance(values, Mapping)
         }
 
-    return payload
+    return cast(JSONMutableMapping, _normalise_json(payload))
 
 
 async def _get_config_entry_diagnostics(entry: ConfigEntry) -> JSONMutableMapping:
@@ -954,27 +955,60 @@ def _serialise_cache_snapshot(snapshot: Any) -> JSONMutableMapping:
     return cast(JSONMutableMapping, _normalise_json(snapshot_payload))
 
 
-def _normalise_json(value: Any) -> Any:
+def _normalise_json(value: Any, _seen: set[int] | None = None) -> Any:
     """Normalise diagnostics payloads into JSON-serialisable data."""
-
-    if isinstance(value, Mapping):
-        return {str(key): _normalise_json(item) for key, item in value.items()}
-
-    if isinstance(value, list | tuple | set | frozenset | Sequence) and not isinstance(
-        value, str | bytes | bytearray
-    ):
-        return [_normalise_json(item) for item in value]
-
-    if isinstance(value, datetime):
-        return value.isoformat()
 
     if isinstance(value, int | float | str | bool) or value is None:
         return value
 
+    if isinstance(value, datetime):
+        return value.isoformat()
+
     if isinstance(value, timedelta):
         return value.total_seconds()
 
-    return repr(value)
+    if _seen is None:
+        _seen = set()
+
+    obj_id = id(value)
+    if obj_id in _seen:
+        return None
+
+    _seen.add(obj_id)
+    try:
+        if is_dataclass(value):
+            return _normalise_json(asdict(value), _seen)
+
+        if hasattr(value, "to_mapping") and callable(value.to_mapping):
+            try:
+                mapping_value = cast(Mapping[str, Any], value.to_mapping())
+                return _normalise_json(mapping_value, _seen)
+            except Exception:  # pragma: no cover - defensive guard
+                _LOGGER.debug("Failed to normalise to_mapping payload for %s", value)
+
+        if hasattr(value, "to_dict") and callable(value.to_dict):
+            try:
+                dict_value = cast(Mapping[str, Any], value.to_dict())
+                return _normalise_json(dict_value, _seen)
+            except Exception:  # pragma: no cover - defensive guard
+                _LOGGER.debug("Failed to normalise to_dict payload for %s", value)
+
+        if hasattr(value, "__dict__") and not isinstance(value, type):
+            return _normalise_json(vars(value), _seen)
+
+        if isinstance(value, Mapping):
+            return {
+                str(key): _normalise_json(item, _seen) for key, item in value.items()
+            }
+
+        if isinstance(
+            value, list | tuple | set | frozenset | Sequence
+        ) and not isinstance(value, str | bytes | bytearray):
+            return [_normalise_json(item, _seen) for item in value]
+
+        return repr(value)
+    finally:
+        _seen.discard(obj_id)
 
 
 async def _get_integration_status(

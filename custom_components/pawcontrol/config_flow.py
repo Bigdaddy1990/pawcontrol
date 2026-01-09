@@ -99,6 +99,7 @@ from .types import (
     DiscoveryUpdatePayload,
     DogConfigData,
     DogModulesConfig,
+    DogModuleSelectionInput,
     DogSetupStepInput,
     DogValidationCacheEntry,
     ExternalEntityConfig,
@@ -1427,10 +1428,10 @@ class PawControlConfigFlow(
                 DogModulesConfig | None, current_dog.get(DOG_MODULES_FIELD)
             )
             mapping_candidate: DogModulesConfig
-            raw_mapping: ConfigFlowUserInput = {}
+            raw_mapping: DogModuleSelectionInput = {}
 
             if isinstance(user_input, Mapping):
-                raw_mapping = cast(ConfigFlowUserInput, dict(user_input))
+                raw_mapping = cast(DogModuleSelectionInput, dict(user_input))
 
             if raw_mapping and any(
                 flag in raw_mapping for flag in MODULE_TOGGLE_FLAG_BY_KEY.values()
@@ -1444,7 +1445,7 @@ class PawControlConfigFlow(
             else:
                 mapping_candidate = coerce_dog_modules_config(user_input)
 
-            filtered_candidate = {
+            filtered_candidate: DogModulesConfig = {
                 key: mapping_candidate.get(key)
                 for key in MODULE_SELECTION_KEYS
                 if key in mapping_candidate
