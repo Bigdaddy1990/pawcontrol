@@ -1292,9 +1292,9 @@ def clone_placeholders(
 def freeze_placeholders(
     placeholders: MutableConfigFlowPlaceholders,
 ) -> ConfigFlowPlaceholders:
-    """Return a JSON-serializable copy of placeholder mappings."""
+    """Return an immutable placeholder mapping."""
 
-    return dict(placeholders)
+    return cast(ConfigFlowPlaceholders, MappingProxyType(dict(placeholders)))
 
 
 PERFORMANCE_MODE_VALUES: Final[frozenset[PerformanceMode]] = frozenset(

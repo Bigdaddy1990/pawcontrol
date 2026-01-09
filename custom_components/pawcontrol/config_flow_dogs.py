@@ -466,11 +466,13 @@ class DogManagementMixin(DogManagementMixinBase):
             step_id="add_dog",
             data_schema=schema,
             errors=errors,
-            description_placeholders=_build_add_dog_placeholders(
-                dog_count=len(self._dogs),
-                max_dogs=MAX_DOGS_PER_ENTRY,
-                current_dogs=self._format_dogs_list(),
-                remaining_spots=MAX_DOGS_PER_ENTRY - len(self._dogs),
+            description_placeholders=dict(
+                _build_add_dog_placeholders(
+                    dog_count=len(self._dogs),
+                    max_dogs=MAX_DOGS_PER_ENTRY,
+                    current_dogs=self._format_dogs_list(),
+                    remaining_spots=MAX_DOGS_PER_ENTRY - len(self._dogs),
+                )
             ),
         )
 
@@ -586,10 +588,12 @@ class DogManagementMixin(DogManagementMixinBase):
         return self.async_show_form(
             step_id="dog_modules",
             data_schema=schema,
-            description_placeholders=_build_dog_modules_placeholders(
-                dog_name=current_dog[DOG_NAME_FIELD],
-                dog_size=dog_size,
-                dog_age=dog_age,
+            description_placeholders=dict(
+                _build_dog_modules_placeholders(
+                    dog_name=current_dog[DOG_NAME_FIELD],
+                    dog_size=dog_size,
+                    dog_age=dog_age,
+                )
             ),
         )
 
@@ -715,8 +719,8 @@ class DogManagementMixin(DogManagementMixinBase):
         return self.async_show_form(
             step_id="dog_gps",
             data_schema=schema,
-            description_placeholders=_build_dog_gps_placeholders(
-                dog_name=current_dog[DOG_NAME_FIELD]
+            description_placeholders=dict(
+                _build_dog_gps_placeholders(dog_name=current_dog[DOG_NAME_FIELD])
             ),
         )
 
@@ -859,11 +863,13 @@ class DogManagementMixin(DogManagementMixinBase):
         return self.async_show_form(
             step_id="dog_feeding",
             data_schema=schema,
-            description_placeholders=_build_dog_feeding_placeholders(
-                dog_name=current_dog[DOG_NAME_FIELD],
-                dog_weight=str(dog_weight_value),
-                suggested_amount=str(suggested_amount),
-                portion_info=portion_info,
+            description_placeholders=dict(
+                _build_dog_feeding_placeholders(
+                    dog_name=current_dog[DOG_NAME_FIELD],
+                    dog_weight=str(dog_weight_value),
+                    suggested_amount=str(suggested_amount),
+                    portion_info=portion_info,
+                )
             ),
         )
 
@@ -1234,16 +1240,18 @@ class DogManagementMixin(DogManagementMixinBase):
         return self.async_show_form(
             step_id="dog_health",
             data_schema=schema,
-            description_placeholders=_build_dog_health_placeholders(
-                dog_name=current_dog[DOG_NAME_FIELD],
-                dog_age=str(dog_age),
-                dog_weight=str(dog_weight),
-                suggested_ideal_weight=str(suggested_ideal_weight),
-                suggested_activity=suggested_activity,
-                medication_enabled=medication_enabled,
-                bcs_info="Body Condition Score: 1=Emaciated, 5=Ideal, 9=Obese",
-                special_diet_count=str(len(SPECIAL_DIET_OPTIONS)),
-                health_diet_info=health_diet_info,
+            description_placeholders=dict(
+                _build_dog_health_placeholders(
+                    dog_name=current_dog[DOG_NAME_FIELD],
+                    dog_age=str(dog_age),
+                    dog_weight=str(dog_weight),
+                    suggested_ideal_weight=str(suggested_ideal_weight),
+                    suggested_activity=suggested_activity,
+                    medication_enabled=medication_enabled,
+                    bcs_info="Body Condition Score: 1=Emaciated, 5=Ideal, 9=Obese",
+                    special_diet_count=str(len(SPECIAL_DIET_OPTIONS)),
+                    health_diet_info=health_diet_info,
+                )
             ),
         )
 
@@ -1620,12 +1628,14 @@ class DogManagementMixin(DogManagementMixinBase):
         return self.async_show_form(
             step_id="add_another_dog",
             data_schema=schema,
-            description_placeholders=_build_add_another_summary_placeholders(
-                dogs_list=self._format_dogs_list(),
-                dog_count=str(len(self._dogs)),
-                max_dogs=MAX_DOGS_PER_ENTRY,
-                remaining_spots=MAX_DOGS_PER_ENTRY - len(self._dogs),
-                at_limit="true" if at_limit else "false",
+            description_placeholders=dict(
+                _build_add_another_summary_placeholders(
+                    dogs_list=self._format_dogs_list(),
+                    dog_count=str(len(self._dogs)),
+                    max_dogs=MAX_DOGS_PER_ENTRY,
+                    remaining_spots=MAX_DOGS_PER_ENTRY - len(self._dogs),
+                    at_limit="true" if at_limit else "false",
+                )
             ),
         )
 
@@ -2060,15 +2070,17 @@ class DogManagementMixin(DogManagementMixinBase):
         return self.async_show_form(
             step_id="configure_modules",
             data_schema=schema,
-            description_placeholders=_build_module_setup_placeholders(
-                total_dogs=str(total_dogs),
-                gps_dogs=str(has_gps_dogs),
-                health_dogs=str(has_health_tracking),
-                suggested_performance=suggested_performance,
-                complexity_info=self._get_setup_complexity_info(),
-                next_step_info=(
-                    "Next: Entity profile selection for performance optimization"
-                ),
+            description_placeholders=dict(
+                _build_module_setup_placeholders(
+                    total_dogs=str(total_dogs),
+                    gps_dogs=str(has_gps_dogs),
+                    health_dogs=str(has_health_tracking),
+                    suggested_performance=suggested_performance,
+                    complexity_info=self._get_setup_complexity_info(),
+                    next_step_info=(
+                        "Next: Entity profile selection for performance optimization"
+                    ),
+                )
             ),
         )
 

@@ -173,10 +173,14 @@ class ExternalEntityConfigurationMixin:
         return flow.async_show_form(
             step_id="configure_external_entities",
             data_schema=self._get_external_entities_schema(),
-            description_placeholders=_build_external_entities_placeholders(
-                gps_enabled=bool(flow._enabled_modules.get(MODULE_GPS, False)),
-                visitor_enabled=bool(flow._enabled_modules.get(MODULE_VISITOR, False)),
-                dog_count=len(flow._dogs),
+            description_placeholders=dict(
+                _build_external_entities_placeholders(
+                    gps_enabled=bool(flow._enabled_modules.get(MODULE_GPS, False)),
+                    visitor_enabled=bool(
+                        flow._enabled_modules.get(MODULE_VISITOR, False)
+                    ),
+                    dog_count=len(flow._dogs),
+                )
             ),
         )
 

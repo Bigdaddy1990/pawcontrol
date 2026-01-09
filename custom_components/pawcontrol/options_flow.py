@@ -2113,7 +2113,9 @@ class PawControlOptionsFlow(OptionsFlow):
         return self.async_show_form(
             step_id="geofence_settings",
             data_schema=self._get_geofence_settings_schema(),
-            description_placeholders=self._get_geofence_description_placeholders(),
+            description_placeholders=dict(
+                self._get_geofence_description_placeholders()
+            ),
         )
 
     def _get_geofence_settings_schema(
@@ -2316,7 +2318,9 @@ class PawControlOptionsFlow(OptionsFlow):
         return self.async_show_form(
             step_id="entity_profiles",
             data_schema=self._get_entity_profiles_schema(),
-            description_placeholders=self._get_profile_description_placeholders(),
+            description_placeholders=dict(
+                self._get_profile_description_placeholders()
+            ),
         )
 
     def _get_entity_profiles_schema(
@@ -2727,23 +2731,25 @@ class PawControlOptionsFlow(OptionsFlow):
                     ): selector.BooleanSelector(),
                 }
             ),
-            description_placeholders=freeze_placeholders(
-                {
-                    "profile_name": preview_data["profile"],
-                    "total_entities": str(preview_data["total_entities"]),
-                    "entity_breakdown": "\n".join(breakdown_lines),
-                    "current_total": str(preview_data["current_total"]),
-                    "entity_difference": (
-                        f"{preview_data['entity_difference']:+d}"
-                        if preview_data["entity_difference"]
-                        else "0"
-                    ),
-                    "performance_change": performance_change,
-                    "profile_description": profile_info["description"],
-                    "performance_score": f"{preview_data['performance_score']:.1f}",
-                    "recommendation": preview_data["recommendation"],
-                    "warnings": warnings_text,
-                }
+            description_placeholders=dict(
+                freeze_placeholders(
+                    {
+                        "profile_name": preview_data["profile"],
+                        "total_entities": str(preview_data["total_entities"]),
+                        "entity_breakdown": "\n".join(breakdown_lines),
+                        "current_total": str(preview_data["current_total"]),
+                        "entity_difference": (
+                            f"{preview_data['entity_difference']:+d}"
+                            if preview_data["entity_difference"]
+                            else "0"
+                        ),
+                        "performance_change": performance_change,
+                        "profile_description": profile_info["description"],
+                        "performance_score": f"{preview_data['performance_score']:.1f}",
+                        "recommendation": preview_data["recommendation"],
+                        "warnings": warnings_text,
+                    }
+                )
             ),
         )
 
@@ -2974,18 +2980,20 @@ class PawControlOptionsFlow(OptionsFlow):
                     )
                 }
             ),
-            description_placeholders=freeze_placeholders(
-                {
-                    "current_dogs_count": str(len(current_dogs)),
-                    "dogs_list": "\n".join(
-                        [
-                            f"• {dog.get(CONF_DOG_NAME, 'Unknown')} ({dog.get(CONF_DOG_ID, 'unknown')})"
-                            for dog in current_dogs
-                        ]
-                    )
-                    if current_dogs
-                    else "No dogs configured",
-                }
+            description_placeholders=dict(
+                freeze_placeholders(
+                    {
+                        "current_dogs_count": str(len(current_dogs)),
+                        "dogs_list": "\n".join(
+                            [
+                                f"• {dog.get(CONF_DOG_NAME, 'Unknown')} ({dog.get(CONF_DOG_ID, 'unknown')})"
+                                for dog in current_dogs
+                            ]
+                        )
+                        if current_dogs
+                        else "No dogs configured",
+                    }
+                )
             ),
         )
 
@@ -3420,7 +3428,9 @@ class PawControlOptionsFlow(OptionsFlow):
         return self.async_show_form(
             step_id="configure_dog_modules",
             data_schema=self._get_dog_modules_schema(),
-            description_placeholders=self._get_module_description_placeholders(),
+            description_placeholders=dict(
+                self._get_module_description_placeholders()
+            ),
         )
 
     def _get_door_sensor_settings_schema(
@@ -4109,13 +4119,15 @@ class PawControlOptionsFlow(OptionsFlow):
         return self.async_show_form(
             step_id="select_dog_to_remove",
             data_schema=self._get_remove_dog_schema(current_dogs),
-            description_placeholders=freeze_placeholders(
-                {
-                    "warning": (
-                        "This will permanently remove the selected dog and all "
-                        "associated data!"
-                    )
-                }
+            description_placeholders=dict(
+                freeze_placeholders(
+                    {
+                        "warning": (
+                            "This will permanently remove the selected dog and all "
+                            "associated data!"
+                        )
+                    }
+                )
             ),
         )
 
@@ -4374,7 +4386,9 @@ class PawControlOptionsFlow(OptionsFlow):
         return self.async_show_form(
             step_id="weather_settings",
             data_schema=self._get_weather_settings_schema(),
-            description_placeholders=self._get_weather_description_placeholders(),
+            description_placeholders=dict(
+                self._get_weather_description_placeholders()
+            ),
         )
 
     def _get_weather_settings_schema(
@@ -4924,14 +4938,14 @@ class PawControlOptionsFlow(OptionsFlow):
                 return self.async_show_form(
                     step_id="system_settings",
                     data_schema=self._get_system_settings_schema(user_input),
-                    description_placeholders=placeholders,
+                    description_placeholders=dict(placeholders),
                     errors={"base": "update_failed"},
                 )
 
         return self.async_show_form(
             step_id="system_settings",
             data_schema=self._get_system_settings_schema(),
-            description_placeholders=placeholders,
+            description_placeholders=dict(placeholders),
         )
 
     def _get_system_settings_schema(
@@ -5403,13 +5417,16 @@ class PawControlOptionsFlow(OptionsFlow):
             return self.async_show_form(
                 step_id="import_export",
                 data_schema=self._get_import_export_menu_schema(),
-                description_placeholders=freeze_placeholders(
-                    {
-                        "instructions": (
-                            "Create a JSON backup of the current PawControl options "
-                            "or restore a backup previously exported from this menu."
-                        )
-                    }
+                description_placeholders=dict(
+                    freeze_placeholders(
+                        {
+                            "instructions": (
+                                "Create a JSON backup of the current PawControl "
+                                "options or restore a backup previously exported "
+                                "from this menu."
+                            )
+                        }
+                    )
                 ),
             )
 
@@ -5451,11 +5468,13 @@ class PawControlOptionsFlow(OptionsFlow):
                     )
                 }
             ),
-            description_placeholders=freeze_placeholders(
-                {
-                    "export_blob": export_blob,
-                    "generated_at": payload["created_at"],
-                }
+            description_placeholders=dict(
+                freeze_placeholders(
+                    {
+                        "export_blob": export_blob,
+                        "generated_at": payload["created_at"],
+                    }
+                )
             ),
         )
 
