@@ -6,6 +6,7 @@ import asyncio
 import logging
 from collections.abc import Sequence
 from datetime import datetime
+from typing import cast
 
 from homeassistant.components.datetime import DateTimeEntity
 from homeassistant.core import HomeAssistant
