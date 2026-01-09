@@ -2423,9 +2423,9 @@ class PawControlConfigFlow(
                 )
                 new_profile = profile_data["entity_profile"]
             except vol.Invalid as err:
-                error_placeholders = dict(base_placeholders)
-                error_placeholders["error_details"] = str(err)
-                frozen_placeholders = freeze_placeholders(error_placeholders)
+                frozen_placeholders = freeze_placeholders(
+                    {**base_placeholders, "error_details": str(err)}
+                )
                 return self.async_show_form(
                     step_id="reconfigure",
                     data_schema=form_schema,
@@ -2434,9 +2434,9 @@ class PawControlConfigFlow(
                 )
 
             if new_profile == current_profile:
-                error_placeholders = dict(base_placeholders)
-                error_placeholders["requested_profile"] = new_profile
-                frozen_placeholders = freeze_placeholders(error_placeholders)
+                frozen_placeholders = freeze_placeholders(
+                    {**base_placeholders, "requested_profile": new_profile}
+                )
                 return self.async_show_form(
                     step_id="reconfigure",
                     data_schema=form_schema,
