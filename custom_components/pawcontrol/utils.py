@@ -26,7 +26,7 @@ from collections.abc import (
 )
 from contextlib import asynccontextmanager, suppress
 from contextvars import ContextVar
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass, is_dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from functools import wraps
 from numbers import Real
@@ -235,6 +235,67 @@ def _coerce_json_mutable(
 
     return {key: cast(JSONValue, value) for key, value in mapping.items()}
 
+
+def normalise_json(value: Any, _seen: set[int] | None = None) -> JSONValue:
+    """Normalise values into JSON-serialisable payloads."""
+
+    if isinstance(value, int | float | str | bool) or value is None:
+        return value
+
+    if isinstance(value, datetime):
+        return value.isoformat()
+
+    if isinstance(value, date):
+        return value.isoformat()
+
+    if isinstance(value, time):
+        return value.isoformat()
+
+    if isinstance(value, timedelta):
+        return value.total_seconds()
+
+    if _seen is None:
+        _seen = set()
+
+    obj_id = id(value)
+    if obj_id in _seen:
+        return None
+
+    _seen.add(obj_id)
+    try:
+        if is_dataclass(value):
+            return normalise_json(asdict(value), _seen)
+
+        if hasattr(value, "to_mapping") and callable(value.to_mapping):
+            try:
+                mapping_value = cast(Mapping[str, Any], value.to_mapping())
+                return normalise_json(mapping_value, _seen)
+            except Exception:  # pragma: no cover - defensive guard
+                _LOGGER.debug("Failed to normalise to_mapping payload for %s", value)
+
+        if hasattr(value, "to_dict") and callable(value.to_dict):
+            try:
+                dict_value = cast(Mapping[str, Any], value.to_dict())
+                return normalise_json(dict_value, _seen)
+            except Exception:  # pragma: no cover - defensive guard
+                _LOGGER.debug("Failed to normalise to_dict payload for %s", value)
+
+        if hasattr(value, "__dict__") and not isinstance(value, type):
+            return normalise_json(vars(value), _seen)
+
+        if isinstance(value, Mapping):
+            return {
+                str(key): normalise_json(item, _seen) for key, item in value.items()
+            }
+
+        if isinstance(
+            value, list | tuple | set | frozenset | Sequence
+        ) and not isinstance(value, str | bytes | bytearray):
+            return [normalise_json(item, _seen) for item in value]
+
+        return repr(value)
+    finally:
+        _seen.discard(obj_id)
 
 async def async_call_hass_service_if_available(
     hass: HomeAssistant | None,

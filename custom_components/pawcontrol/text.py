@@ -54,7 +54,7 @@ from .types import (
     ensure_dog_text_snapshot,
     ensure_json_mapping,
 )
-from .utils import async_call_add_entities
+from .utils import async_call_add_entities, normalise_json
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -325,7 +325,7 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
             }
         )
 
-        return merged
+        return cast(JSONMutableMapping, normalise_json(merged))
 
     def _clamp_value(self, value: str) -> str:
         """Clamp ``value`` to the configured maximum length when necessary."""

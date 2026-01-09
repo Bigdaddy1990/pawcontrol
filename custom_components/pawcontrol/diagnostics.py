@@ -13,7 +13,7 @@ import importlib
 import logging
 from collections.abc import Awaitable, Callable, Mapping, Sequence
 from dataclasses import asdict, is_dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import TYPE_CHECKING, Any, TypedDict, cast
 
 from homeassistant.core import HomeAssistant
@@ -970,6 +970,12 @@ def _normalise_json(value: Any, _seen: set[int] | None = None) -> Any:
     if isinstance(value, datetime):
         return value.isoformat()
 
+    if isinstance(value, date):
+        return value.isoformat()
+
+    if isinstance(value, time):
+        return value.isoformat()
+
     if isinstance(value, timedelta):
         return value.total_seconds()
 
@@ -1169,7 +1175,9 @@ async def _get_entities_diagnostics(
                 }
             )
 
-        entities_by_platform[platform].append(entity_info)
+        entities_by_platform[platform].append(
+            cast(JSONMutableMapping, _normalise_json(entity_info))
+        )
 
     return cast(
         JSONMutableMapping,

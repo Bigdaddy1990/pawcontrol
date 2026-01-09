@@ -62,7 +62,7 @@ from .types import (
     ensure_dog_modules_mapping,
     ensure_json_mapping,
 )
-from .utils import async_call_add_entities, ensure_utc_datetime
+from .utils import async_call_add_entities, ensure_utc_datetime, normalise_json
 
 if TYPE_CHECKING:
     from .garden_manager import GardenManager
@@ -101,6 +101,15 @@ def _as_local(dt_value: datetime) -> datetime:
         return target.astimezone(local_tz)
     except Exception:  # pragma: no cover - defensive fallback
         return target
+
+
+def _normalise_attributes(
+    attrs: JSONMapping | JSONMutableMapping,
+) -> JSONMutableMapping:
+    """Return JSON-serialisable attributes for entity state."""
+
+    payload = ensure_json_mapping(attrs)
+    return cast(JSONMutableMapping, normalise_json(payload))
 
 
 # Home Assistant platform configuration
@@ -509,7 +518,7 @@ class PawControlBinarySensorBase(
         except Exception as err:
             _LOGGER.debug("Could not fetch dog info for attributes: %s", err)
 
-        return attrs
+        return _normalise_attributes(attrs)
 
     def _build_base_attributes(self) -> JSONMutableMapping:
         """Return a JSON-mutable mapping seeded with common attributes."""
@@ -526,7 +535,7 @@ class PawControlBinarySensorBase(
 
         attrs["last_update"] = _as_local(dt_util.utcnow()).isoformat()
         attrs["sensor_type"] = self._sensor_type
-        return attrs
+        return _normalise_attributes(attrs)
 
     def _get_dog_data_cached(self) -> CoordinatorDogData | None:
         """Get dog data from coordinator with thread-safe caching."""
@@ -657,7 +666,7 @@ class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
         pending_confirmations = data.get("pending_confirmations")
         if pending_confirmations is not None:
             attrs["pending_confirmations"] = cast(JSONValue, pending_confirmations)
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 # Base binary sensors
@@ -697,7 +706,9 @@ class PawControlOnlineBinarySensor(PawControlBinarySensorBase):
 
         if dog_data:
             last_update = dog_data.get("last_update")
-            if last_update:
+            if isinstance(last_update, datetime):
+                attrs["last_update"] = _as_local(last_update).isoformat()
+            elif isinstance(last_update, str):
                 attrs["last_update"] = last_update
 
             attrs["status"] = dog_data.get("status", STATE_UNKNOWN)
@@ -706,7 +717,7 @@ class PawControlOnlineBinarySensor(PawControlBinarySensorBase):
                 attrs["enabled_modules"] = list(enabled_modules)
             attrs["system_health"] = "healthy" if self.is_on else "disconnected"
 
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
@@ -778,7 +789,7 @@ class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
             attrs["urgency_level"] = self._calculate_urgency_level()
             attrs["recommended_actions"] = self._get_recommended_actions()
 
-        return attrs
+        return _normalise_attributes(attrs)
 
     def _calculate_urgency_level(self) -> str:
         """Calculate the urgency level based on attention reasons."""
@@ -853,18 +864,21 @@ class PawControlVisitorModeBinarySensor(PawControlBinarySensorBase):
             visitor_settings = cast(
                 JSONMapping, dog_data.get("visitor_mode_settings", {})
             )
-            visitor_mode_started = cast(
-                str | None, dog_data.get("visitor_mode_started")
-            )
+            visitor_mode_started = dog_data.get("visitor_mode_started")
             visitor_name = cast(str | None, dog_data.get("visitor_name"))
-            attrs["visitor_mode_started"] = visitor_mode_started
+            if isinstance(visitor_mode_started, datetime):
+                attrs["visitor_mode_started"] = (
+                    _as_local(visitor_mode_started).isoformat()
+                )
+            elif isinstance(visitor_mode_started, str) or visitor_mode_started is None:
+                attrs["visitor_mode_started"] = visitor_mode_started
             attrs["visitor_name"] = visitor_name
             attrs["modified_notifications"] = bool(
                 visitor_settings.get("modified_notifications", True)
             )
             attrs["reduced_alerts"] = bool(visitor_settings.get("reduced_alerts", True))
 
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 # Feeding binary sensors
@@ -899,10 +913,12 @@ class PawControlIsHungryBinarySensor(PawControlBinarySensorBase):
         feeding_data = self._get_feeding_payload()
 
         if not feeding_data:
-            return attrs
+            return _normalise_attributes(attrs)
 
         last_feeding = feeding_data.get("last_feeding")
-        if isinstance(last_feeding, str) or last_feeding is None:
+        if isinstance(last_feeding, datetime):
+            attrs["last_feeding"] = _as_local(last_feeding).isoformat()
+        elif isinstance(last_feeding, str) or last_feeding is None:
             attrs["last_feeding"] = last_feeding
 
         last_feeding_hours = feeding_data.get("last_feeding_hours")
@@ -912,12 +928,14 @@ class PawControlIsHungryBinarySensor(PawControlBinarySensorBase):
             attrs["last_feeding_hours"] = None
 
         next_feeding_due = feeding_data.get("next_feeding_due")
-        if isinstance(next_feeding_due, str) or next_feeding_due is None:
+        if isinstance(next_feeding_due, datetime):
+            attrs["next_feeding_due"] = _as_local(next_feeding_due).isoformat()
+        elif isinstance(next_feeding_due, str) or next_feeding_due is None:
             attrs["next_feeding_due"] = next_feeding_due
 
         attrs["hunger_level"] = self._calculate_hunger_level(feeding_data)
 
-        return attrs
+        return _normalise_attributes(attrs)
 
     def _calculate_hunger_level(self, feeding_data: FeedingModulePayload) -> str:
         """Calculate hunger level based on time since last feeding."""
@@ -1057,7 +1075,9 @@ class PawControlWalkInProgressBinarySensor(PawControlBinarySensorBase):
 
         if walk_data and walk_data.get(WALK_IN_PROGRESS_FIELD):
             walk_start = walk_data.get("current_walk_start")
-            if isinstance(walk_start, str):
+            if isinstance(walk_start, datetime):
+                attrs["walk_start_time"] = _as_local(walk_start).isoformat()
+            elif isinstance(walk_start, str):
                 attrs["walk_start_time"] = walk_start
 
             current_duration = walk_data.get("current_walk_duration")
@@ -1072,7 +1092,7 @@ class PawControlWalkInProgressBinarySensor(PawControlBinarySensorBase):
             if estimated_remaining is not None:
                 attrs["estimated_remaining"] = estimated_remaining
 
-        return attrs
+        return _normalise_attributes(attrs)
 
     def _estimate_remaining_time(self, walk_data: WalkModulePayload) -> int | None:
         """Estimate remaining walk time based on typical patterns."""
@@ -1121,7 +1141,9 @@ class PawControlNeedsWalkBinarySensor(PawControlBinarySensorBase):
 
         if walk_data:
             last_walk = walk_data.get("last_walk")
-            if isinstance(last_walk, str):
+            if isinstance(last_walk, datetime):
+                attrs["last_walk"] = _as_local(last_walk).isoformat()
+            elif isinstance(last_walk, str):
                 attrs["last_walk"] = last_walk
 
             last_walk_hours = walk_data.get("last_walk_hours")
@@ -1134,7 +1156,7 @@ class PawControlNeedsWalkBinarySensor(PawControlBinarySensorBase):
 
             attrs["urgency_level"] = self._calculate_walk_urgency(walk_data)
 
-        return attrs
+        return _normalise_attributes(attrs)
 
     def _calculate_walk_urgency(self, walk_data: WalkModulePayload) -> str:
         """Calculate walk urgency level."""
@@ -1262,7 +1284,7 @@ class PawControlIsHomeBinarySensor(PawControlBinarySensorBase):
             if isinstance(accuracy, int | float):
                 attrs["accuracy"] = float(accuracy)
 
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 class PawControlInSafeZoneBinarySensor(PawControlBinarySensorBase):
@@ -1468,7 +1490,7 @@ class PawControlHealthAlertBinarySensor(PawControlBinarySensorBase):
         health_data = self._get_health_payload()
 
         if not health_data:
-            return attrs
+            return _normalise_attributes(attrs)
 
         health_alerts = health_data.get("health_alerts")
         if isinstance(health_alerts, list):
@@ -1482,7 +1504,7 @@ class PawControlHealthAlertBinarySensor(PawControlBinarySensorBase):
         if "alert_count" not in attrs:
             attrs["alert_count"] = 0
 
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 class PawControlWeightAlertBinarySensor(PawControlBinarySensorBase):
@@ -1646,7 +1668,7 @@ class PawControlActivityLevelConcernBinarySensor(PawControlBinarySensorBase):
             attrs["concern_reason"] = self._get_concern_reason(activity_level)
             attrs["recommended_action"] = self._get_recommended_action(activity_level)
 
-        return attrs
+        return _normalise_attributes(attrs)
 
     def _get_concern_reason(self, activity_level: str) -> str:
         """Get reason for activity level concern."""
@@ -1696,7 +1718,7 @@ class PawControlHealthAwareFeedingBinarySensor(PawControlBinarySensorBase):
 
         if feeding_data is None:
             attrs["health_conditions"] = []
-            return attrs
+            return _normalise_attributes(attrs)
 
         portion_adjustment_factor = feeding_data.get("portion_adjustment_factor")
         if isinstance(portion_adjustment_factor, int | float):
@@ -1711,7 +1733,7 @@ class PawControlHealthAwareFeedingBinarySensor(PawControlBinarySensorBase):
             ]
         else:
             attrs["health_conditions"] = []
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 class PawControlMedicationWithMealsBinarySensor(PawControlBinarySensorBase):
@@ -1748,10 +1770,10 @@ class PawControlMedicationWithMealsBinarySensor(PawControlBinarySensorBase):
                 attrs["health_conditions"] = [
                     str(condition) for condition in raw_conditions
                 ]
-                return attrs
+                return _normalise_attributes(attrs)
 
         attrs["health_conditions"] = []
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 class PawControlHealthEmergencyBinarySensor(PawControlBinarySensorBase):
@@ -1803,17 +1825,21 @@ class PawControlHealthEmergencyBinarySensor(PawControlBinarySensorBase):
                 attrs["portion_adjustment"] = float(portion_adjustment)
 
             activated_at = emergency.get("activated_at")
-            if isinstance(activated_at, str):
+            if isinstance(activated_at, datetime):
+                attrs["activated_at"] = _as_local(activated_at).isoformat()
+            elif isinstance(activated_at, str):
                 attrs["activated_at"] = activated_at
 
             expires_at = emergency.get("expires_at")
-            if isinstance(expires_at, str) or expires_at is None:
+            if isinstance(expires_at, datetime):
+                attrs["expires_at"] = _as_local(expires_at).isoformat()
+            elif isinstance(expires_at, str) or expires_at is None:
                 attrs["expires_at"] = expires_at
 
             status = emergency.get("status")
             if isinstance(status, str):
                 attrs["status"] = status
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 class PawControlGardenSessionActiveBinarySensor(PawControlGardenBinarySensorBase):
@@ -1906,4 +1932,4 @@ class PawControlGardenPoopPendingBinarySensor(PawControlGardenBinarySensorBase):
             attrs["pending_confirmation_count"] = len(pending)
         else:
             attrs["pending_confirmation_count"] = 0
-        return attrs
+        return _normalise_attributes(attrs)
