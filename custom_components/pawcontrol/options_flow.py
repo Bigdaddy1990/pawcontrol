@@ -126,6 +126,18 @@ from .types import (
     DOG_NAME_FIELD,
     DOG_SIZE_FIELD,
     DOG_WEIGHT_FIELD,
+    GEOFENCE_ALERTS_FIELD,
+    GEOFENCE_ENABLED_FIELD,
+    GEOFENCE_LAT_FIELD,
+    GEOFENCE_LON_FIELD,
+    GEOFENCE_RADIUS_FIELD,
+    GEOFENCE_RESTRICTED_ZONE_FIELD,
+    GEOFENCE_SAFE_ZONE_FIELD,
+    GEOFENCE_USE_HOME_FIELD,
+    GEOFENCE_ZONE_ENTRY_FIELD,
+    GEOFENCE_ZONE_EXIT_FIELD,
+    NOTIFICATION_MOBILE_FIELD,
+    NOTIFICATION_PRIORITY_FIELD,
     RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE,
     AdvancedOptions,
     ConfigEntryOptionsPayload,
@@ -142,16 +154,6 @@ from .types import (
     FlowInputMapping,
     GeofenceOptions,
     GeofenceSettingsInput,
-    GEOFENCE_ALERTS_FIELD,
-    GEOFENCE_ENABLED_FIELD,
-    GEOFENCE_LAT_FIELD,
-    GEOFENCE_LON_FIELD,
-    GEOFENCE_RADIUS_FIELD,
-    GEOFENCE_RESTRICTED_ZONE_FIELD,
-    GEOFENCE_SAFE_ZONE_FIELD,
-    GEOFENCE_USE_HOME_FIELD,
-    GEOFENCE_ZONE_ENTRY_FIELD,
-    GEOFENCE_ZONE_EXIT_FIELD,
     GPSOptions,
     HealthOptions,
     JSONLikeMapping,
@@ -162,8 +164,6 @@ from .types import (
     NotificationOptionsInput,
     NotificationSettingsInput,
     NotificationThreshold,
-    NOTIFICATION_MOBILE_FIELD,
-    NOTIFICATION_PRIORITY_FIELD,
     OptionsExportPayload,
     PawControlOptionsData,
     ReconfigureTelemetry,
@@ -2080,9 +2080,7 @@ class PawControlOptionsFlow(OptionsFlow):
             try:
                 typed_input = cast(GeofenceSettingsInput, dict(user_input))
                 # Validate geofence radius
-                radius = self._coerce_int(
-                    typed_input.get(GEOFENCE_RADIUS_FIELD), 50
-                )
+                radius = self._coerce_int(typed_input.get(GEOFENCE_RADIUS_FIELD), 50)
                 if radius < MIN_GEOFENCE_RADIUS or radius > MAX_GEOFENCE_RADIUS:
                     return self.async_show_form(
                         step_id="geofence_settings",
