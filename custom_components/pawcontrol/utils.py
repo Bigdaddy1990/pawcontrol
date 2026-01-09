@@ -297,6 +297,7 @@ def normalise_json(value: Any, _seen: set[int] | None = None) -> JSONValue:
     finally:
         _seen.discard(obj_id)
 
+
 async def async_call_hass_service_if_available(
     hass: HomeAssistant | None,
     domain: str,
