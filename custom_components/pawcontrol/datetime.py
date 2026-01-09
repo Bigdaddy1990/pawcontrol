@@ -6,6 +6,7 @@ import asyncio
 import logging
 from collections.abc import Sequence
 from datetime import datetime
+from typing import cast
 
 from homeassistant.components.datetime import DateTimeEntity
 from homeassistant.core import HomeAssistant
@@ -36,7 +37,7 @@ from .types import (
     ensure_dog_modules_mapping,
     ensure_json_mapping,
 )
-from .utils import async_call_add_entities, ensure_utc_datetime
+from .utils import async_call_add_entities, ensure_utc_datetime, normalise_json
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -209,7 +210,7 @@ class PawControlDateTimeBase(PawControlEntity, DateTimeEntity, RestoreEntity):
                 "datetime_type": self._datetime_type,
             }
         )
-        return attributes
+        return cast(JSONMutableMapping, normalise_json(attributes))
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""

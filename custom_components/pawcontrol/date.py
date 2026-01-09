@@ -51,7 +51,7 @@ from .types import (
     ensure_dog_modules_mapping,
     ensure_json_mapping,
 )
-from .utils import async_call_add_entities
+from .utils import async_call_add_entities, normalise_json
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -318,7 +318,7 @@ class PawControlDateBase(PawControlEntity, DateEntity, RestoreEntity):
                 attributes["age_years"] = round(age_days / 365.25, 2)
                 attributes["age_months"] = round((age_days % 365.25) / 30.44, 1)
 
-        return attributes
+        return cast(JSONMutableMapping, normalise_json(attributes))
 
     async def async_added_to_hass(self) -> None:
         """Called when entity is added to Home Assistant.

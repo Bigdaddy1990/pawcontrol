@@ -56,8 +56,9 @@ from .types import (
     DogProfileSnapshot,
     NumberExtraAttributes,
     ensure_dog_modules_mapping,
+    ensure_json_mapping,
 )
-from .utils import async_call_add_entities
+from .utils import async_call_add_entities, normalise_json
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -71,6 +72,13 @@ DEFAULT_WALK_DURATION_TARGET = 60  # minutes
 DEFAULT_FEEDING_REMINDER_HOURS = 8  # hours
 DEFAULT_GPS_ACCURACY_THRESHOLD = 50  # meters
 DEFAULT_ACTIVITY_GOAL = 100  # percentage
+
+
+def _normalise_attributes(attrs: Mapping[str, object]) -> NumberExtraAttributes:
+    """Return JSON-serialisable attributes for number entities."""
+
+    payload = ensure_json_mapping(attrs)
+    return cast(NumberExtraAttributes, normalise_json(payload))
 
 
 async def _async_add_entities_in_batches(
@@ -430,7 +438,7 @@ class PawControlNumberBase(PawControlEntity, NumberEntity, RestoreEntity):
                 }
             )
 
-        return attrs
+        return _normalise_attributes(attrs)
 
     async def async_set_native_value(self, value: float) -> None:
         """Set the number value.
@@ -577,7 +585,7 @@ class PawControlDogWeightNumber(PawControlNumberBase):
             if isinstance(target_weight, int | float):
                 attrs["target_weight"] = float(target_weight)
 
-        return attrs
+        return _normalise_attributes(attrs)
 
 
 class PawControlDogAgeNumber(PawControlNumberBase):
@@ -718,7 +726,7 @@ class PawControlDailyFoodAmountNumber(PawControlNumberBase):
                     f"{(current_value / recommended * 100):.0f}%"
                 )
 
-        return attrs
+        return _normalise_attributes(attrs)
 
     def _calculate_recommended_amount(self, weight: float) -> float:
         """Calculate recommended daily food amount based on weight.
