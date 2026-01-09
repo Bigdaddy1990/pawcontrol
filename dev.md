@@ -1,24 +1,99 @@
-# Development plan
+# Developer Guide (pawcontrol)
 
-## Aktueller Baustellenüberblick
+## Goals
+- Maintain Home Assistant-aligned quality (async-first, typed, tested, documented).
+- Keep user-facing docs separate from developer docs.
+- Provide reproducible quality gates locally and in CI.
 
-- MyPy ist weiterhin rot (7 Dateien, 280+ Befunde): Schwerpunkte in `options_flow.py`/`config_flow.py` (JSONValue-Clamps, TypedDict-Literal-Keys, EntityFactory-Inputs) sowie JSONPayload-Kanten in `diagnostics.py`. Die Literal-Key-Aufräumarbeiten für Geofence/Notification-Optionen sind abgeschlossen.
-- Entity-Attribute-Overrides verletzen die Basissignatur (`extra_state_attributes` erwartet `dict[str, JSONValue]`), aktuell offen in den Binary-Sensoren und Buttons. Device-Tracker ist bereits auf JSONMutableMapping angeglichen.
-- Runtime-/Telemetry-Snapshots landen noch als komplexe Objekte in den Diagnostics-Exports (`DataStatisticsPayload`, `RuntimeStore*`, Rejection-Metrics-Merges) und blockieren JSONValue/Hassfest-Konformität. Redaction-Keys für Koordinaten sind erweitert, Serialisierung bleibt offen.
-- Device-Tracker- und Missing-Sensor-Payloads übergeben noch `object`-/`date`-Mischformen statt JSONValue-konformer Daten; damit schlagen die Offline-Stubs und Typenchecks fehl.
+## Prerequisites
+- Python (match `.python-version`)
+- Recommended: uv or pipx + virtualenv
+- Optional: Home Assistant Core checkout for integration-style testing
 
-## Plan zur Fertigstellung
+## Setup (local)
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements_test.txt
+pip install -r requirements.txt
+pre-commit install
+```
 
-1. Entity-Attribute-Signaturen glätten: `binary_sensor.py` und `button.py` auf die `PawControlEntity.extra_state_attributes`-Rückgabe (JSONMutableMapping) ziehen und gemeinsame Attribute-Helper nutzen, damit HA und Tests die gleichen Keys sehen.
-2. Flows/Optionen typfest machen: In `config_flow.py`/`options_flow.py` Placeholder- und TypedDict-Keys auf String-Literals klemmen, JSONValue- und Mapping-Casts herstellen (Dog-Configs, Door-Sensor-Overrides, EntityFactory-Aufrufe) und `dict(...)`-Kopien durch definierte Mapper ersetzen. Geofence- und Notification-Schlüssel sind bereits auf Literal-Konstanten umgestellt, übrige Optionen folgen.
-3. Diagnostics-Export härten: Telemetrie-, Rejection- und Setup-Flag-Payloads in `diagnostics.py` auf JSONMapping serialisieren (`DataStatisticsPayload`, `RuntimeStore*`, `CoordinatorResilienceDiagnostics`, Service-Guard-Metriken) und `merge_rejection_metric_values` an die `RejectionMetricsSource`-Schnittstelle anschließen.
-4. Tracker-/Missing-Sensor-Payloads korrigieren: `device_tracker.py` auf `GPSRouteSnapshot`/`datetime`-konforme Payloads biegen und `missing_sensors.py` auf ISO-Strings bzw. JSONValue normalisieren.
-5. Abschlussprüfungen: `ruff format`, `ruff check`, `python -m mypy custom_components/pawcontrol`, `PYTHONPATH=$(pwd) pytest -q`, `python -m script.hassfest --integration-path custom_components/pawcontrol`, `python -m script.enforce_test_requirements`.
+Tooling notes:
+- The repository includes lightweight shims in `pytest_cov/` and
+  `pytest_homeassistant_custom_component/` to avoid plugin conflicts during
+  local and CI test runs; keep them versioned and avoid installing the PyPI
+  variants alongside this repo.
+- Do not commit generated coverage output (`htmlcov/`, `.coverage*`);
+  publish HTML coverage via CI artifacts or GitHub Pages instead.
 
-## Offene Fehler und Verbesserungen
+## Quality gate (must pass before PR)
+```bash
+ruff format
+ruff check
+python -m script.enforce_test_requirements
+mypy custom_components/pawcontrol
+pytest -q
+python -m script.hassfest \
+  --integration-path custom_components/pawcontrol
+python -m script.sync_contributor_guides
+```
 
-- 280+ MyPy-Befunde konzentriert auf `options_flow.py` (83), `config_flow.py` (86), `binary_sensor.py` (75), `diagnostics.py` (28), `device_tracker.py` (2), `button.py` (5), `missing_sensors.py` (1); Hauptursachen: JSONValue/TypedDict-Mismatches, falsche Placeholder-Literal-Keys, EntityFactory-Argumente. Geofence/Notification-Literals sind bereits abgeschlossen, weitere Optionsbereiche offen.
-- `extra_state_attributes` in den Binary-Sensoren und Buttons ignorieren die Basissignatur (`dict[str, JSONValue]`) und müssen auf JSONMutableMapping/Helper zurückgeführt werden.
-- Diagnostics-Payloads enthalten noch komplexe Snapshots (RuntimeStore/Resilience/Service-Guards), die nicht als JSONValue serialisiert werden.
-- Device-Tracker-Route/last_seen und Missing-Sensor-Diagnosen liegen nicht im JSONValue-Schema und verletzen die Stubs.
-- Nach Typbereinigung Hassfest-/Guard-Skripte und ggf. Doc-Updates für Diagnostics/Setup-Flags einplanen.
+## Test strategy
+Minimum required suites:
+
+- Config entry setup/unload/reload
+- Config flow + options flow (happy path + error paths)
+- Reauth flow
+- Coordinator update failures + recovery
+- Services (validation + side effects)
+- Diagnostics (ensures redaction of secrets)
+
+### Coverage rules
+Treat coverage as a signal, not a trophy.
+
+- No “fake coverage” via trivial asserts; cover failure paths and migrations.
+- Publish HTML coverage via CI artifacts or gh-pages instead of committing it.
+
+## Diagnostics
+Diagnostics must redact sensitive fields (tokens, GPS home coordinates, user identifiers).
+Provide a short doc snippet describing what is included/excluded.
+
+## Documentation rules
+User docs (README / INSTALLATION / docs/):
+
+- What it is + what it supports
+- Setup steps (UI-driven)
+- Entities/services/events overview
+- Examples: automations + dashboards
+- Troubleshooting (common errors, logs, diagnostics download)
+
+Developer docs (this file):
+
+- Dev environment
+- Test/lint/typecheck
+- Release process
+- Architecture notes
+
+## Dependency policy
+Keep runtime deps minimal.
+
+If vendoring a dependency:
+
+- Explain WHY it is vendored
+- Prove isolation (no module shadowing)
+- Define update & security monitoring procedure
+
+Vendored PyYAML guidance:
+- Only vendor PyYAML if Home Assistant’s constraints or wheel availability
+  require it; prefer upstream wheels where possible.
+- Document the import path used for the vendored copy (so it cannot shadow
+  `yaml` from site-packages) and keep the isolation strategy in sync with the
+  loader code.
+- Track updates via the existing OSV/PyPI monitor workflow and refresh the
+  status report that backs the README evidence before each release.
+
+## Releases
+- Versioning scheme
+- Changelog policy
+- CI checks required for release

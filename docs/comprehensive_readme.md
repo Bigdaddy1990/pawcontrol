@@ -2,12 +2,12 @@
 
 [![Home Assistant](https://img.shields.io/badge/Home%20Assistant-2025.8%2B-blue.svg)](https://www.home-assistant.io/)
 [![HACS](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
-[![Quality Scale](https://img.shields.io/badge/Quality%20Scale-Platinum-gold.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
+[![Quality Scale](https://img.shields.io/badge/Quality%20Scale-Platinum%20aligned-gold.svg)](https://developers.home-assistant.io/docs/core/integration-quality-scale/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![GitHub Release](https://img.shields.io/github/v/release/BigDaddy1990/pawcontrol.svg)](https://github.com/BigDaddy1990/pawcontrol/releases)
 [![Downloads](https://img.shields.io/github/downloads/BigDaddy1990/pawcontrol/total.svg)](https://github.com/BigDaddy1990/pawcontrol/releases)
 
-**Paw Control** ist eine umfassende Home Assistant Integration für intelligentes Hundemanagement. Mit erweiterten GPS-Tracking, automatisierten Erinnerungen und umfassenden Gesundheitsüberwachung bringt sie das Smart Home auf die nächste Ebene der Haustierpflege.
+**Paw Control** ist eine umfassende Home Assistant Integration für intelligentes Hundemanagement. Mit erweiterten GPS-Tracking, automatisierten Erinnerungen und umfassenden Gesundheitsüberwachung bringt sie das Smart Home auf die nächste Ebene der Haustierpflege. Als Custom Integration orientiert sich Paw Control an den Platinum-Regeln der Home Assistant Quality Scale, ohne einen offiziellen Core-Status zu beanspruchen.
 
 ## ✨ Hauptfeatures
 
@@ -953,7 +953,7 @@ Dieses Projekt steht unter der MIT Lizenz - siehe [LICENSE](LICENSE) für Detail
 
 ## 🏆 Auszeichnungen
 
-- 🥇 **Home Assistant Quality Scale**: Platinum Tier
+- 🥇 **Home Assistant Quality Scale**: Platinum-Ausrichtung
 - 🌟 **HACS Featured Integration**: Top-Bewertung
 - 👥 **Community Choice**: Beliebteste Pet-Integration 2025
 

@@ -9,7 +9,7 @@ Der erweiterte Options Flow für die Paw Control Integration bietet eine umfasse
 ### Hauptmerkmale
 
 - **Menü-basierte Navigation**: Hierarchische Struktur für bessere Benutzerfreundlichkeit
-- **Vollständige Typisierung**: Entspricht Home Assistant Platinum-Standards
+- **Vollständige Typisierung**: Ausgerichtet an den Home Assistant Platinum-Regeln
 - **Rückwärtskompatibilität**: Unterstützt bestehende Konfigurationen
 - **Mehrsprachige Unterstützung**: Deutsche und englische Übersetzungen
 - **Umfassende Validierung**: Robuste Fehlerbehandlung und Eingabevalidierung
