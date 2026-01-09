@@ -611,11 +611,13 @@ class PawControlConfigFlow(
                     vol.Required("confirm", default=True): cv.boolean,
                 }
             ),
-            description_placeholders=freeze_placeholders(
-                {
-                    "discovery_source": discovery_source,
-                    "device_info": device_info,
-                }
+            description_placeholders=dict(
+                freeze_placeholders(
+                    {
+                        "discovery_source": discovery_source,
+                        "device_info": device_info,
+                    }
+                )
             ),
         )
 
@@ -1138,10 +1140,12 @@ class PawControlConfigFlow(
                 step_id="add_dog",
                 data_schema=DOG_SCHEMA,
                 errors=errors,
-                description_placeholders=_build_add_dog_summary_placeholders(
-                    dogs_configured=len(self._dogs),
-                    max_dogs=MAX_DOGS_PER_INTEGRATION,
-                    discovery_hint=self._get_discovery_hint(),
+                description_placeholders=dict(
+                    _build_add_dog_summary_placeholders(
+                        dogs_configured=len(self._dogs),
+                        max_dogs=MAX_DOGS_PER_INTEGRATION,
+                        discovery_hint=self._get_discovery_hint(),
+                    )
                 ),
             )
 
@@ -1467,10 +1471,12 @@ class PawControlConfigFlow(
                     step_id="dog_modules",
                     data_schema=MODULES_SCHEMA,
                     errors={"base": "invalid_modules"},
-                    description_placeholders=_build_dog_modules_form_placeholders(
-                        dog_name=current_dog[DOG_NAME_FIELD],
-                        dogs_configured=len(self._dogs),
-                        smart_defaults=self._get_smart_module_defaults(current_dog),
+                    description_placeholders=dict(
+                        _build_dog_modules_form_placeholders(
+                            dog_name=current_dog[DOG_NAME_FIELD],
+                            dogs_configured=len(self._dogs),
+                            smart_defaults=self._get_smart_module_defaults(current_dog),
+                        )
                     ),
                 )
 
@@ -1480,10 +1486,12 @@ class PawControlConfigFlow(
         return self.async_show_form(
             step_id="dog_modules",
             data_schema=enhanced_schema,
-            description_placeholders=_build_dog_modules_form_placeholders(
-                dog_name=current_dog[DOG_NAME_FIELD],
-                dogs_configured=len(self._dogs),
-                smart_defaults=self._get_smart_module_defaults(current_dog),
+            description_placeholders=dict(
+                _build_dog_modules_form_placeholders(
+                    dog_name=current_dog[DOG_NAME_FIELD],
+                    dogs_configured=len(self._dogs),
+                    smart_defaults=self._get_smart_module_defaults(current_dog),
+                )
             ),
         )
 
@@ -1592,12 +1600,14 @@ class PawControlConfigFlow(
         return self.async_show_form(
             step_id="add_another",
             data_schema=schema,
-            description_placeholders=_build_add_another_placeholders(
-                dogs_configured=len(self._dogs),
-                dogs_list=self._format_dogs_list_enhanced(),
-                can_add_more=can_add_more,
-                max_dogs=MAX_DOGS_PER_INTEGRATION,
-                performance_note=self._get_performance_note(),
+            description_placeholders=dict(
+                _build_add_another_placeholders(
+                    dogs_configured=len(self._dogs),
+                    dogs_list=self._format_dogs_list_enhanced(),
+                    can_add_more=can_add_more,
+                    max_dogs=MAX_DOGS_PER_INTEGRATION,
+                    performance_note=self._get_performance_note(),
+                )
             ),
         )
 
@@ -1640,27 +1650,31 @@ class PawControlConfigFlow(
                     step_id="entity_profile",
                     data_schema=PROFILE_SCHEMA,
                     errors={"base": "invalid_profile"},
-                    description_placeholders=freeze_placeholders(
-                        {
-                            "dogs_count": str(len(self._dogs)),
-                            "profiles_info": self._get_profiles_info_enhanced(),
-                            "profiles_summary": build_profile_summary_text(),
-                            "recommendation": self._get_profile_recommendation(),
-                        }
+                    description_placeholders=dict(
+                        freeze_placeholders(
+                            {
+                                "dogs_count": str(len(self._dogs)),
+                                "profiles_info": self._get_profiles_info_enhanced(),
+                                "profiles_summary": build_profile_summary_text(),
+                                "recommendation": self._get_profile_recommendation(),
+                            }
+                        )
                     ),
                 )
 
         return self.async_show_form(
             step_id="entity_profile",
             data_schema=PROFILE_SCHEMA,
-            description_placeholders=freeze_placeholders(
-                {
-                    "dogs_count": str(len(self._dogs)),
-                    "profiles_info": self._get_profiles_info_enhanced(),
-                    "estimated_entities": str(self._estimate_total_entities()),
-                    "profiles_summary": build_profile_summary_text(),
-                    "recommendation": self._get_profile_recommendation(),
-                }
+            description_placeholders=dict(
+                freeze_placeholders(
+                    {
+                        "dogs_count": str(len(self._dogs)),
+                        "profiles_info": self._get_profiles_info_enhanced(),
+                        "estimated_entities": str(self._estimate_total_entities()),
+                        "profiles_summary": build_profile_summary_text(),
+                        "recommendation": self._get_profile_recommendation(),
+                    }
+                )
             ),
         )
 
@@ -2423,25 +2437,27 @@ class PawControlConfigFlow(
                 )
                 new_profile = profile_data["entity_profile"]
             except vol.Invalid as err:
-                frozen_placeholders = freeze_placeholders(
-                    {**base_placeholders, "error_details": str(err)}
-                )
                 return self.async_show_form(
                     step_id="reconfigure",
                     data_schema=form_schema,
                     errors={"base": "invalid_profile"},
-                    description_placeholders=frozen_placeholders,
+                    description_placeholders=dict(
+                        freeze_placeholders(
+                            {**base_placeholders, "error_details": str(err)}
+                        )
+                    ),
                 )
 
             if new_profile == current_profile:
-                frozen_placeholders = freeze_placeholders(
-                    {**base_placeholders, "requested_profile": new_profile}
-                )
                 return self.async_show_form(
                     step_id="reconfigure",
                     data_schema=form_schema,
                     errors={"base": "profile_unchanged"},
-                    description_placeholders=frozen_placeholders,
+                    description_placeholders=dict(
+                        freeze_placeholders(
+                            {**base_placeholders, "requested_profile": new_profile}
+                        )
+                    ),
                 )
 
             unique_id = entry.unique_id

@@ -259,7 +259,7 @@ class DashboardFlowMixin:
         return self.async_show_form(
             step_id="configure_dashboard",
             data_schema=schema,
-            description_placeholders=placeholders,
+            description_placeholders=dict(placeholders),
         )
 
     def _get_dashboard_info(self, language: str | None) -> str:
