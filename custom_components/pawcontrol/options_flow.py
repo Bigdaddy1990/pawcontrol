@@ -60,11 +60,7 @@ from .const import (
     CONF_LAST_RECONFIGURE,
     CONF_MODULES,
     CONF_NOTIFICATIONS,
-    CONF_QUIET_END,
-    CONF_QUIET_HOURS,
-    CONF_QUIET_START,
     CONF_RECONFIGURE_TELEMETRY,
-    CONF_REMINDER_REPEAT_MIN,
     CONF_RESET_TIME,
     CONF_ROUTE_HISTORY_DAYS,
     CONF_ROUTE_RECORDING,
@@ -126,6 +122,22 @@ from .types import (
     DOG_NAME_FIELD,
     DOG_SIZE_FIELD,
     DOG_WEIGHT_FIELD,
+    GEOFENCE_ALERTS_FIELD,
+    GEOFENCE_ENABLED_FIELD,
+    GEOFENCE_LAT_FIELD,
+    GEOFENCE_LON_FIELD,
+    GEOFENCE_RADIUS_FIELD,
+    GEOFENCE_RESTRICTED_ZONE_FIELD,
+    GEOFENCE_SAFE_ZONE_FIELD,
+    GEOFENCE_USE_HOME_FIELD,
+    GEOFENCE_ZONE_ENTRY_FIELD,
+    GEOFENCE_ZONE_EXIT_FIELD,
+    NOTIFICATION_MOBILE_FIELD,
+    NOTIFICATION_PRIORITY_FIELD,
+    NOTIFICATION_QUIET_END_FIELD,
+    NOTIFICATION_QUIET_HOURS_FIELD,
+    NOTIFICATION_QUIET_START_FIELD,
+    NOTIFICATION_REMINDER_REPEAT_FIELD,
     RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE,
     AdvancedOptions,
     ConfigEntryOptionsPayload,
@@ -185,18 +197,6 @@ ManualEventField = Literal[
     "manual_breaker_event",
 ]
 
-QUIET_HOURS_FIELD: Final[Literal["quiet_hours"]] = cast(
-    Literal["quiet_hours"], CONF_QUIET_HOURS
-)
-QUIET_START_FIELD: Final[Literal["quiet_start"]] = cast(
-    Literal["quiet_start"], CONF_QUIET_START
-)
-QUIET_END_FIELD: Final[Literal["quiet_end"]] = cast(
-    Literal["quiet_end"], CONF_QUIET_END
-)
-REMINDER_REPEAT_MIN_FIELD: Final[Literal["reminder_repeat_min"]] = cast(
-    Literal["reminder_repeat_min"], CONF_REMINDER_REPEAT_MIN
-)
 SYSTEM_ENABLE_ANALYTICS_FIELD: Final[Literal["enable_analytics"]] = cast(
     Literal["enable_analytics"], "enable_analytics"
 )
@@ -205,12 +205,12 @@ SYSTEM_ENABLE_CLOUD_BACKUP_FIELD: Final[Literal["enable_cloud_backup"]] = cast(
 )
 _NOTIFICATION_DEFAULTS: Final[Mapping[str, JSONValue]] = MappingProxyType(
     {
-        CONF_QUIET_HOURS: True,
-        CONF_QUIET_START: "22:00:00",
-        CONF_QUIET_END: "07:00:00",
-        CONF_REMINDER_REPEAT_MIN: DEFAULT_REMINDER_REPEAT_MIN,
-        "priority_notifications": True,
-        "mobile_notifications": True,
+        NOTIFICATION_QUIET_HOURS_FIELD: True,
+        NOTIFICATION_QUIET_START_FIELD: "22:00:00",
+        NOTIFICATION_QUIET_END_FIELD: "07:00:00",
+        NOTIFICATION_REMINDER_REPEAT_FIELD: DEFAULT_REMINDER_REPEAT_MIN,
+        NOTIFICATION_PRIORITY_FIELD: True,
+        NOTIFICATION_MOBILE_FIELD: True,
     }
 )
 EXTERNAL_INTEGRATIONS_FIELD: Final[Literal["external_integrations"]] = cast(
@@ -1578,46 +1578,46 @@ class PawControlOptionsFlow(OptionsFlow):
     ) -> GeofenceOptions:
         """Create a typed geofence payload from the submitted form data."""
 
-        lat_source = user_input.get("geofence_lat")
-        lon_source = user_input.get("geofence_lon")
+        lat_source = user_input.get(GEOFENCE_LAT_FIELD)
+        lon_source = user_input.get(GEOFENCE_LON_FIELD)
         lat = self._coerce_optional_float(
-            lat_source, current.get("geofence_lat", default_lat)
+            lat_source, current.get(GEOFENCE_LAT_FIELD, default_lat)
         )
         lon = self._coerce_optional_float(
-            lon_source, current.get("geofence_lon", default_lon)
+            lon_source, current.get(GEOFENCE_LON_FIELD, default_lon)
         )
 
         geofence: GeofenceOptions = {
-            "geofencing_enabled": self._coerce_bool(
-                user_input.get("geofencing_enabled"),
-                current.get("geofencing_enabled", False),
+            GEOFENCE_ENABLED_FIELD: self._coerce_bool(
+                user_input.get(GEOFENCE_ENABLED_FIELD),
+                current.get(GEOFENCE_ENABLED_FIELD, False),
             ),
-            "use_home_location": self._coerce_bool(
-                user_input.get("use_home_location"),
-                current.get("use_home_location", True),
+            GEOFENCE_USE_HOME_FIELD: self._coerce_bool(
+                user_input.get(GEOFENCE_USE_HOME_FIELD),
+                current.get(GEOFENCE_USE_HOME_FIELD, True),
             ),
-            "geofence_lat": lat,
-            "geofence_lon": lon,
-            "geofence_radius_m": radius,
-            "geofence_alerts_enabled": self._coerce_bool(
-                user_input.get("geofence_alerts_enabled"),
-                current.get("geofence_alerts_enabled", True),
+            GEOFENCE_LAT_FIELD: lat,
+            GEOFENCE_LON_FIELD: lon,
+            GEOFENCE_RADIUS_FIELD: radius,
+            GEOFENCE_ALERTS_FIELD: self._coerce_bool(
+                user_input.get(GEOFENCE_ALERTS_FIELD),
+                current.get(GEOFENCE_ALERTS_FIELD, True),
             ),
-            "safe_zone_alerts": self._coerce_bool(
-                user_input.get("safe_zone_alerts"),
-                current.get("safe_zone_alerts", True),
+            GEOFENCE_SAFE_ZONE_FIELD: self._coerce_bool(
+                user_input.get(GEOFENCE_SAFE_ZONE_FIELD),
+                current.get(GEOFENCE_SAFE_ZONE_FIELD, True),
             ),
-            "restricted_zone_alerts": self._coerce_bool(
-                user_input.get("restricted_zone_alerts"),
-                current.get("restricted_zone_alerts", True),
+            GEOFENCE_RESTRICTED_ZONE_FIELD: self._coerce_bool(
+                user_input.get(GEOFENCE_RESTRICTED_ZONE_FIELD),
+                current.get(GEOFENCE_RESTRICTED_ZONE_FIELD, True),
             ),
-            "zone_entry_notifications": self._coerce_bool(
-                user_input.get("zone_entry_notifications"),
-                current.get("zone_entry_notifications", True),
+            GEOFENCE_ZONE_ENTRY_FIELD: self._coerce_bool(
+                user_input.get(GEOFENCE_ZONE_ENTRY_FIELD),
+                current.get(GEOFENCE_ZONE_ENTRY_FIELD, True),
             ),
-            "zone_exit_notifications": self._coerce_bool(
-                user_input.get("zone_exit_notifications"),
-                current.get("zone_exit_notifications", True),
+            GEOFENCE_ZONE_EXIT_FIELD: self._coerce_bool(
+                user_input.get(GEOFENCE_ZONE_EXIT_FIELD),
+                current.get(GEOFENCE_ZONE_EXIT_FIELD, True),
             ),
         }
 
@@ -1630,29 +1630,31 @@ class PawControlOptionsFlow(OptionsFlow):
         """Create a typed notification payload from submitted form data."""
 
         notifications: NotificationOptions = {
-            QUIET_HOURS_FIELD: cls._coerce_bool(
-                user_input.get("quiet_hours"),
-                current.get(QUIET_HOURS_FIELD, True),
+            NOTIFICATION_QUIET_HOURS_FIELD: cls._coerce_bool(
+                user_input.get(NOTIFICATION_QUIET_HOURS_FIELD),
+                current.get(NOTIFICATION_QUIET_HOURS_FIELD, True),
             ),
-            QUIET_START_FIELD: cls._coerce_time_string(
-                user_input.get("quiet_start"),
-                current.get(QUIET_START_FIELD, "22:00:00"),
+            NOTIFICATION_QUIET_START_FIELD: cls._coerce_time_string(
+                user_input.get(NOTIFICATION_QUIET_START_FIELD),
+                current.get(NOTIFICATION_QUIET_START_FIELD, "22:00:00"),
             ),
-            QUIET_END_FIELD: cls._coerce_time_string(
-                user_input.get("quiet_end"),
-                current.get(QUIET_END_FIELD, "07:00:00"),
+            NOTIFICATION_QUIET_END_FIELD: cls._coerce_time_string(
+                user_input.get(NOTIFICATION_QUIET_END_FIELD),
+                current.get(NOTIFICATION_QUIET_END_FIELD, "07:00:00"),
             ),
-            REMINDER_REPEAT_MIN_FIELD: cls._coerce_int(
-                user_input.get("reminder_repeat_min"),
-                current.get(REMINDER_REPEAT_MIN_FIELD, DEFAULT_REMINDER_REPEAT_MIN),
+            NOTIFICATION_REMINDER_REPEAT_FIELD: cls._coerce_int(
+                user_input.get(NOTIFICATION_REMINDER_REPEAT_FIELD),
+                current.get(
+                    NOTIFICATION_REMINDER_REPEAT_FIELD, DEFAULT_REMINDER_REPEAT_MIN
+                ),
             ),
-            "priority_notifications": cls._coerce_bool(
-                user_input.get("priority_notifications"),
-                current.get("priority_notifications", True),
+            NOTIFICATION_PRIORITY_FIELD: cls._coerce_bool(
+                user_input.get(NOTIFICATION_PRIORITY_FIELD),
+                current.get(NOTIFICATION_PRIORITY_FIELD, True),
             ),
-            "mobile_notifications": cls._coerce_bool(
-                user_input.get("mobile_notifications"),
-                current.get("mobile_notifications", True),
+            NOTIFICATION_MOBILE_FIELD: cls._coerce_bool(
+                user_input.get(NOTIFICATION_MOBILE_FIELD),
+                current.get(NOTIFICATION_MOBILE_FIELD, True),
             ),
         }
 
@@ -2068,12 +2070,12 @@ class PawControlOptionsFlow(OptionsFlow):
             try:
                 typed_input = cast(GeofenceSettingsInput, dict(user_input))
                 # Validate geofence radius
-                radius = self._coerce_int(typed_input.get("geofence_radius_m"), 50)
+                radius = self._coerce_int(typed_input.get(GEOFENCE_RADIUS_FIELD), 50)
                 if radius < MIN_GEOFENCE_RADIUS or radius > MAX_GEOFENCE_RADIUS:
                     return self.async_show_form(
                         step_id="geofence_settings",
                         data_schema=self._get_geofence_settings_schema(user_input),
-                        errors={"geofence_radius_m": "radius_out_of_range"},
+                        errors={GEOFENCE_RADIUS_FIELD: "radius_out_of_range"},
                     )
 
                 new_options = self._clone_options()
@@ -2125,32 +2127,32 @@ class PawControlOptionsFlow(OptionsFlow):
         home_lon_raw = self.hass.config.longitude
         home_lat = float(home_lat_raw) if home_lat_raw is not None else 0.0
         home_lon = float(home_lon_raw) if home_lon_raw is not None else 0.0
-        default_lat = current_geofence.get("geofence_lat")
+        default_lat = current_geofence.get(GEOFENCE_LAT_FIELD)
         if default_lat is None:
             default_lat = home_lat
-        default_lon = current_geofence.get("geofence_lon")
+        default_lon = current_geofence.get(GEOFENCE_LON_FIELD)
         if default_lon is None:
             default_lon = home_lon
 
         return vol.Schema(
             {
                 vol.Optional(
-                    "geofencing_enabled",
+                    GEOFENCE_ENABLED_FIELD,
                     default=current_values.get(
-                        "geofencing_enabled",
-                        current_geofence.get("geofencing_enabled", False),
+                        GEOFENCE_ENABLED_FIELD,
+                        current_geofence.get(GEOFENCE_ENABLED_FIELD, False),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "use_home_location",
+                    GEOFENCE_USE_HOME_FIELD,
                     default=current_values.get(
-                        "use_home_location",
-                        current_geofence.get("use_home_location", True),
+                        GEOFENCE_USE_HOME_FIELD,
+                        current_geofence.get(GEOFENCE_USE_HOME_FIELD, True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "geofence_lat",
-                    default=current_values.get("geofence_lat", default_lat),
+                    GEOFENCE_LAT_FIELD,
+                    default=current_values.get(GEOFENCE_LAT_FIELD, default_lat),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=-90.0,
@@ -2160,8 +2162,8 @@ class PawControlOptionsFlow(OptionsFlow):
                     )
                 ),
                 vol.Optional(
-                    "geofence_lon",
-                    default=current_values.get("geofence_lon", default_lon),
+                    GEOFENCE_LON_FIELD,
+                    default=current_values.get(GEOFENCE_LON_FIELD, default_lon),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=-180.0,
@@ -2171,10 +2173,10 @@ class PawControlOptionsFlow(OptionsFlow):
                     )
                 ),
                 vol.Optional(
-                    "geofence_radius_m",
+                    GEOFENCE_RADIUS_FIELD,
                     default=current_values.get(
-                        "geofence_radius_m",
-                        current_geofence.get("geofence_radius_m", 50),
+                        GEOFENCE_RADIUS_FIELD,
+                        current_geofence.get(GEOFENCE_RADIUS_FIELD, 50),
                     ),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
@@ -2186,38 +2188,38 @@ class PawControlOptionsFlow(OptionsFlow):
                     )
                 ),
                 vol.Optional(
-                    "geofence_alerts_enabled",
+                    GEOFENCE_ALERTS_FIELD,
                     default=current_values.get(
-                        "geofence_alerts_enabled",
-                        current_geofence.get("geofence_alerts_enabled", True),
+                        GEOFENCE_ALERTS_FIELD,
+                        current_geofence.get(GEOFENCE_ALERTS_FIELD, True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "safe_zone_alerts",
+                    GEOFENCE_SAFE_ZONE_FIELD,
                     default=current_values.get(
-                        "safe_zone_alerts",
-                        current_geofence.get("safe_zone_alerts", True),
+                        GEOFENCE_SAFE_ZONE_FIELD,
+                        current_geofence.get(GEOFENCE_SAFE_ZONE_FIELD, True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "restricted_zone_alerts",
+                    GEOFENCE_RESTRICTED_ZONE_FIELD,
                     default=current_values.get(
-                        "restricted_zone_alerts",
-                        current_geofence.get("restricted_zone_alerts", True),
+                        GEOFENCE_RESTRICTED_ZONE_FIELD,
+                        current_geofence.get(GEOFENCE_RESTRICTED_ZONE_FIELD, True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "zone_entry_notifications",
+                    GEOFENCE_ZONE_ENTRY_FIELD,
                     default=current_values.get(
-                        "zone_entry_notifications",
-                        current_geofence.get("zone_entry_notifications", True),
+                        GEOFENCE_ZONE_ENTRY_FIELD,
+                        current_geofence.get(GEOFENCE_ZONE_ENTRY_FIELD, True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "zone_exit_notifications",
+                    GEOFENCE_ZONE_EXIT_FIELD,
                     default=current_values.get(
-                        "zone_exit_notifications",
-                        current_geofence.get("zone_exit_notifications", True),
+                        GEOFENCE_ZONE_EXIT_FIELD,
+                        current_geofence.get(GEOFENCE_ZONE_EXIT_FIELD, True),
                     ),
                 ): selector.BooleanSelector(),
             }
@@ -2232,18 +2234,20 @@ class PawControlOptionsFlow(OptionsFlow):
         home_lat = float(home_lat_raw) if home_lat_raw is not None else 0.0
         home_lon = float(home_lon_raw) if home_lon_raw is not None else 0.0
 
-        geofencing_enabled = current_geofence.get("geofencing_enabled", False)
+        geofencing_enabled = current_geofence.get(GEOFENCE_ENABLED_FIELD, False)
         current_lat = self._coerce_optional_float(
-            current_geofence.get("geofence_lat"), home_lat
+            current_geofence.get(GEOFENCE_LAT_FIELD), home_lat
         )
         if current_lat is None:
             current_lat = home_lat
         current_lon = self._coerce_optional_float(
-            current_geofence.get("geofence_lon"), home_lon
+            current_geofence.get(GEOFENCE_LON_FIELD), home_lon
         )
         if current_lon is None:
             current_lon = home_lon
-        current_radius = self._coerce_int(current_geofence.get("geofence_radius_m"), 50)
+        current_radius = self._coerce_int(
+            current_geofence.get(GEOFENCE_RADIUS_FIELD), 50
+        )
 
         status = "Enabled" if geofencing_enabled else "Disabled"
         location_desc = f"Lat: {current_lat:.6f}, Lon: {current_lon:.6f}"
@@ -4664,31 +4668,37 @@ class PawControlOptionsFlow(OptionsFlow):
         return vol.Schema(
             {
                 vol.Optional(
-                    "quiet_hours",
+                    NOTIFICATION_QUIET_HOURS_FIELD,
                     default=current_values.get(
-                        "quiet_hours", current_notifications.get(CONF_QUIET_HOURS, True)
+                        NOTIFICATION_QUIET_HOURS_FIELD,
+                        current_notifications.get(NOTIFICATION_QUIET_HOURS_FIELD, True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "quiet_start",
+                    NOTIFICATION_QUIET_START_FIELD,
                     default=current_values.get(
-                        "quiet_start",
-                        current_notifications.get(CONF_QUIET_START, "22:00:00"),
-                    ),
-                ): selector.TimeSelector(),
-                vol.Optional(
-                    "quiet_end",
-                    default=current_values.get(
-                        "quiet_end",
-                        current_notifications.get(CONF_QUIET_END, "07:00:00"),
-                    ),
-                ): selector.TimeSelector(),
-                vol.Optional(
-                    "reminder_repeat_min",
-                    default=current_values.get(
-                        "reminder_repeat_min",
+                        NOTIFICATION_QUIET_START_FIELD,
                         current_notifications.get(
-                            CONF_REMINDER_REPEAT_MIN, DEFAULT_REMINDER_REPEAT_MIN
+                            NOTIFICATION_QUIET_START_FIELD, "22:00:00"
+                        ),
+                    ),
+                ): selector.TimeSelector(),
+                vol.Optional(
+                    NOTIFICATION_QUIET_END_FIELD,
+                    default=current_values.get(
+                        NOTIFICATION_QUIET_END_FIELD,
+                        current_notifications.get(
+                            NOTIFICATION_QUIET_END_FIELD, "07:00:00"
+                        ),
+                    ),
+                ): selector.TimeSelector(),
+                vol.Optional(
+                    NOTIFICATION_REMINDER_REPEAT_FIELD,
+                    default=current_values.get(
+                        NOTIFICATION_REMINDER_REPEAT_FIELD,
+                        current_notifications.get(
+                            NOTIFICATION_REMINDER_REPEAT_FIELD,
+                            DEFAULT_REMINDER_REPEAT_MIN,
                         ),
                     ),
                 ): selector.NumberSelector(
@@ -4701,17 +4711,17 @@ class PawControlOptionsFlow(OptionsFlow):
                     )
                 ),
                 vol.Optional(
-                    "priority_notifications",
+                    NOTIFICATION_PRIORITY_FIELD,
                     default=current_values.get(
-                        "priority_notifications",
-                        current_notifications.get("priority_notifications", True),
+                        NOTIFICATION_PRIORITY_FIELD,
+                        current_notifications.get(NOTIFICATION_PRIORITY_FIELD, True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "mobile_notifications",
+                    NOTIFICATION_MOBILE_FIELD,
                     default=current_values.get(
-                        "mobile_notifications",
-                        current_notifications.get("mobile_notifications", True),
+                        NOTIFICATION_MOBILE_FIELD,
+                        current_notifications.get(NOTIFICATION_MOBILE_FIELD, True),
                     ),
                 ): selector.BooleanSelector(),
             }
