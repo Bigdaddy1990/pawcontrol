@@ -1278,9 +1278,9 @@ class PawControlConfigFlow(
             DogValidationError: If validation fails
         """
         # Sanitize inputs with optimized string operations
-        raw_dog_id = str(user_input[DOG_ID_FIELD])
+        raw_dog_id = user_input[DOG_ID_FIELD]
         dog_id = raw_dog_id.lower().strip()
-        dog_name = str(user_input[DOG_NAME_FIELD]).strip()
+        dog_name = user_input[DOG_NAME_FIELD].strip()
 
         # Batch validation for better performance
         field_errors: dict[str, str] = {}
