@@ -15,11 +15,11 @@ from .coordinator import PawControlCoordinator
 from .runtime_data import get_runtime_data
 from .service_guard import ServiceGuardResult
 from .types import CoordinatorRuntimeManagers, JSONMutableMapping, ensure_json_mapping
+from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .utils import (
     JSONMappingLike,
     PawControlDeviceLinkMixin,
     async_call_hass_service_if_available,
-    normalise_json,
 )
 
 __all__ = ["PawControlEntity"]
@@ -129,7 +129,7 @@ class PawControlEntity(
         else:
             attributes["last_updated"] = None
 
-        return cast(JSONMutableMapping, normalise_json(attributes))
+        return cast(JSONMutableMapping, _normalise_diagnostics_json(attributes))
 
     @callback
     def update_device_metadata(self, **details: Any) -> None:

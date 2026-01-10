@@ -32,6 +32,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import MODULE_GPS
 from .coordinator import PawControlCoordinator
+from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .entity import PawControlEntity
 from .runtime_data import get_runtime_data
 from .types import (
@@ -65,6 +66,12 @@ from .types import (
 from .utils import async_call_add_entities, ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _normalise_attributes(attrs: JSONMutableMapping) -> JSONMutableMapping:
+    """Return JSON-serialisable attributes for device tracker entities."""
+
+    return cast(JSONMutableMapping, _normalise_diagnostics_json(attrs))
 
 # Coordinator drives refreshes, so we can safely allow unlimited parallel
 # updates for this read-only platform while still complying with the
@@ -431,7 +438,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
                 elif isinstance(walk_start, str):
                     attrs["walk_start_time"] = walk_start
 
-        return attrs
+        return _normalise_attributes(attrs)
 
     def _get_gps_data(self) -> GPSModulePayload | None:
         """Get GPS data from coordinator."""

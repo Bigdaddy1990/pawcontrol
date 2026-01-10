@@ -31,6 +31,7 @@ from .const import (
     MODULE_GARDEN,
 )
 from .coordinator import PawControlCoordinator
+from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .entity import PawControlEntity
 from .entity_factory import EntityFactory, EntityProfileDefinition
 from .runtime_data import get_runtime_data
@@ -60,7 +61,6 @@ from .utils import (
     async_call_add_entities,
     ensure_utc_datetime,
     is_number,
-    normalise_json,
 )
 
 if TYPE_CHECKING:
@@ -116,7 +116,7 @@ def _normalise_attributes(attrs: Mapping[str, object]) -> AttributeDict:
     """Return JSON-serialisable attributes for sensor entities."""
 
     payload = ensure_json_mapping(attrs)
-    return cast(AttributeDict, normalise_json(payload))
+    return cast(AttributeDict, _normalise_diagnostics_json(payload))
 
 
 # PLATINUM: Dynamic cache TTL based on coordinator update interval

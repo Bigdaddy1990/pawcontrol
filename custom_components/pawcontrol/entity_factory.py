@@ -944,7 +944,7 @@ class EntityFactory:
             module_signature=module_signature,
         )
 
-    def estimate_entity_count(self, profile: str, modules: dict[str, bool]) -> int:
+    def estimate_entity_count(self, profile: str, modules: Mapping[str, bool]) -> int:
         """Estimate entity count for a profile and module configuration.
 
         Args:

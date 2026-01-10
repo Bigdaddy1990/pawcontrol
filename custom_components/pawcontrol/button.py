@@ -67,15 +67,26 @@ from .types import (
     HealthModulePayload,
     JSONMapping,
     JSONMutableMapping,
+    JSONValue,
     PawControlConfigEntry,
     WalkModulePayload,
     ensure_dog_config_data,
     ensure_dog_modules_projection,
     ensure_json_mapping,
 )
-from .utils import async_call_add_entities, normalise_json
+from .diagnostics import _normalise_json as _normalise_diagnostics_json
+from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _normalise_attributes(
+    attrs: Mapping[str, JSONValue] | JSONMutableMapping,
+) -> JSONMutableMapping:
+    """Return JSON-serialisable attributes for button entities."""
+
+    payload = ensure_json_mapping(attrs)
+    return cast(JSONMutableMapping, _normalise_diagnostics_json(payload))
 
 ensure_homeassistant_exception_symbols()
 HomeAssistantError: type[Exception] = cast(type[Exception], compat.HomeAssistantError)
@@ -809,7 +820,7 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
         if self._action_description:
             attrs["action_description"] = self._action_description
 
-        return cast(JSONMutableMapping, normalise_json(attrs))
+        return _normalise_attributes(attrs)
 
     def _get_dog_data_cached(self) -> CoordinatorDogData | None:
         """Get dog data with thread-safe instance-level caching."""
@@ -949,7 +960,7 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
         self,
         domain: str,
         service: str,
-        data: JSONMutableMapping,
+        data: Mapping[str, JSONValue] | JSONMutableMapping,
         **kwargs: Any,
     ) -> None:
         """Call a Home Assistant service via a patch-friendly proxy."""
@@ -964,7 +975,8 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
             )
             return
 
-        await registry.async_call(domain, service, data, **kwargs)
+        payload = _normalise_attributes(data)
+        await registry.async_call(domain, service, payload, **kwargs)
 
     async def async_press(self) -> None:
         """Handle button press with timestamp tracking."""

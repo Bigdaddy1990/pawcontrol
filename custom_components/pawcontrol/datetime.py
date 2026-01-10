@@ -24,6 +24,7 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .entity import PawControlEntity
 from .grooming_translations import translated_grooming_template
 from .notifications import NotificationPriority, NotificationType
@@ -37,7 +38,7 @@ from .types import (
     ensure_dog_modules_mapping,
     ensure_json_mapping,
 )
-from .utils import async_call_add_entities, ensure_utc_datetime, normalise_json
+from .utils import async_call_add_entities, ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -210,7 +211,7 @@ class PawControlDateTimeBase(PawControlEntity, DateTimeEntity, RestoreEntity):
                 "datetime_type": self._datetime_type,
             }
         )
-        return cast(JSONMutableMapping, normalise_json(attributes))
+        return cast(JSONMutableMapping, _normalise_diagnostics_json(attributes))
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""

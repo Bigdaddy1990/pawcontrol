@@ -95,7 +95,9 @@ from .types import (
     ConfigFlowPerformanceStats,
     ConfigFlowPlaceholders,
     ConfigFlowUserInput,
+    AddAnotherDogInput,
     DashboardConfigurationStepInput,
+    DiscoveryConfirmInput,
     DiscoveryUpdatePayload,
     DogConfigData,
     DogModulesConfig,
@@ -106,9 +108,11 @@ from .types import (
     FinalSetupValidationResult,
     JSONMutableMapping,
     JSONValue,
+    ProfileSelectionInput,
     ModuleConfigurationStepInput,
     ModuleToggleKey,
     PerformanceMode,
+    ReauthConfirmInput,
     ReauthDataUpdates,
     ReauthHealthSummary,
     ReauthOptionsUpdates,
@@ -121,6 +125,7 @@ from .types import (
     ReconfigureTelemetry,
     clone_placeholders,
     coerce_dog_modules_config,
+    ensure_dog_modules_config,
     dog_modules_from_flow_input,
     ensure_dog_modules_mapping,
     freeze_placeholders,
@@ -585,7 +590,7 @@ class PawControlConfigFlow(
         return await self.async_step_discovery_confirm()
 
     async def async_step_discovery_confirm(
-        self, user_input: ConfigFlowUserInput | None = None
+        self, user_input: DiscoveryConfirmInput | None = None
     ) -> ConfigFlowResult:
         """Confirm discovered device setup.
 
@@ -1100,7 +1105,7 @@ class PawControlConfigFlow(
         return "Unknown device"
 
     async def async_step_add_dog(
-        self, user_input: ConfigFlowUserInput | None = None
+        self, user_input: DogSetupStepInput | None = None
     ) -> ConfigFlowResult:
         """Add a dog configuration with optimized validation.
 
@@ -1114,7 +1119,7 @@ class PawControlConfigFlow(
             errors: dict[str, str] = {}
 
             if user_input is not None:
-                user_input_dict = dict(user_input)
+                user_input_dict = cast(DogSetupStepInput, dict(user_input))
                 try:
                     validated_input = await self._validate_dog_input_cached(
                         user_input_dict
@@ -1156,7 +1161,7 @@ class PawControlConfigFlow(
         return f"{len(self._dogs)}::{existing_ids}"
 
     async def _validate_dog_input_cached(
-        self, user_input: ConfigFlowUserInput
+        self, user_input: DogSetupStepInput
     ) -> DogSetupStepInput | None:
         """Validate dog input with caching for repeated validations."""
 
@@ -1257,7 +1262,7 @@ class PawControlConfigFlow(
         return ""
 
     async def _validate_dog_input_optimized(
-        self, user_input: ConfigFlowUserInput
+        self, user_input: DogSetupStepInput
     ) -> DogSetupStepInput | None:
         """Validate dog input data with optimized performance.
 
@@ -1273,9 +1278,9 @@ class PawControlConfigFlow(
             DogValidationError: If validation fails
         """
         # Sanitize inputs with optimized string operations
-        raw_dog_id = str(user_input[CONF_DOG_ID])
+        raw_dog_id = str(user_input[DOG_ID_FIELD])
         dog_id = raw_dog_id.lower().strip()
-        dog_name = str(user_input[CONF_DOG_NAME]).strip()
+        dog_name = str(user_input[DOG_NAME_FIELD]).strip()
 
         # Batch validation for better performance
         field_errors: dict[str, str] = {}
@@ -1414,7 +1419,7 @@ class PawControlConfigFlow(
         return config
 
     async def async_step_dog_modules(
-        self, user_input: ConfigFlowUserInput | None = None
+        self, user_input: DogModuleSelectionInput | None = None
     ) -> ConfigFlowResult:
         """Configure optional modules for the newly added dog.
 
@@ -1566,7 +1571,7 @@ class PawControlConfigFlow(
         return "; ".join(reasons) if reasons else "Standard defaults applied"
 
     async def async_step_add_another(
-        self, user_input: ConfigFlowUserInput | None = None
+        self, user_input: AddAnotherDogInput | None = None
     ) -> ConfigFlowResult:
         """Ask if user wants to add another dog with enhanced logic.
 
@@ -1625,7 +1630,7 @@ class PawControlConfigFlow(
         return "Single/few dogs - 'advanced' profile available for full features"
 
     async def async_step_entity_profile(
-        self, user_input: ConfigFlowUserInput | None = None
+        self, user_input: ProfileSelectionInput | None = None
     ) -> ConfigFlowResult:
         """Select entity profile with performance guidance.
 
@@ -2158,7 +2163,7 @@ class PawControlConfigFlow(
         return await DashboardFlowMixin.async_step_configure_dashboard(self, user_input)
 
     async def async_step_reauth_confirm(
-        self, user_input: ConfigFlowUserInput | None = None
+        self, user_input: ReauthConfirmInput | None = None
     ) -> ConfigFlowResult:
         """PLATINUM: Confirm reauthentication with enhanced validation and error handling.
 
@@ -2404,7 +2409,7 @@ class PawControlConfigFlow(
             return f"Health check failed: {err}"
 
     async def async_step_reconfigure(
-        self, user_input: ConfigFlowUserInput | None = None
+        self, user_input: ReconfigureProfileInput | None = None
     ) -> ConfigFlowResult:
         """Handle reconfiguration with typed telemetry and validation."""
 
@@ -3036,12 +3041,12 @@ class PawControlConfigFlow(
         elif isinstance(modules, Sequence) and not isinstance(
             modules, str | bytes | bytearray
         ):
-            toggles: dict[str, bool] = {}
+            toggles: DogModulesConfig = {}
             for module in modules:
                 if isinstance(module, str):
                     key = module.strip()
                     if key in MODULE_TOGGLE_KEYS:
-                        toggles[key] = True
+                        toggles[cast(ModuleToggleKey, key)] = True
                     continue
 
                 if not isinstance(module, Mapping):
@@ -3060,7 +3065,9 @@ class PawControlConfigFlow(
                 enabled_value = module.get("enabled")
                 if "value" in module:
                     enabled_value = module["value"]
-                toggles[legacy_key] = self._coerce_legacy_toggle(enabled_value)
+                toggles[cast(ModuleToggleKey, legacy_key)] = self._coerce_legacy_toggle(
+                    enabled_value
+                )
 
             if toggles:
                 candidate[DOG_MODULES_FIELD] = toggles
@@ -3118,17 +3125,13 @@ class PawControlConfigFlow(
             return text in {"1", "true", "yes", "y", "on", "enabled"}
         return bool(value)
 
-    def _normalise_dog_modules(self, dog: DogConfigData) -> dict[str, bool]:
+    def _normalise_dog_modules(self, dog: DogConfigData) -> DogModulesConfig:
         """Return a normalised modules mapping for a dog configuration."""
 
         modules_raw = dog.get(CONF_MODULES)
         if isinstance(modules_raw, Mapping):
-            return {
-                module: enabled
-                for module, enabled in modules_raw.items()
-                if isinstance(module, str) and isinstance(enabled, bool)
-            }
-        return {}
+            return ensure_dog_modules_config(cast(Mapping[str, object], modules_raw))
+        return cast(DogModulesConfig, {})
 
     async def _estimate_entities_for_reconfigure(
         self, dogs: list[DogConfigData], profile: str

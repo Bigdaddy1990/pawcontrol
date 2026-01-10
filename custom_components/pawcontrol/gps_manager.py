@@ -28,6 +28,7 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
+from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .const import (
     EVENT_GEOFENCE_BREACH,
     EVENT_GEOFENCE_ENTERED,
@@ -1414,9 +1415,13 @@ class GPSGeofenceManager:
 
             export_data["routes"].append(route_data)
 
+        normalised_content = cast(
+            GPSRouteExportJSONContent,
+            _normalise_diagnostics_json(export_data),
+        )
         payload: GPSRouteExportJSONPayload = {
             "format": "json",
-            "content": export_data,
+            "content": normalised_content,
             "filename": f"{dog_id}_routes_{dt_util.utcnow().strftime('%Y%m%d')}.json",
             "routes_count": len(routes),
         }

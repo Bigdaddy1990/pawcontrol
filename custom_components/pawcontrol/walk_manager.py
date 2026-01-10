@@ -25,6 +25,7 @@ from typing import Any, Final, cast
 
 from homeassistant.util import dt as dt_util
 
+from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .types import (
     GPSCacheDiagnosticsMetadata,
     GPSCacheSnapshot,
@@ -869,7 +870,9 @@ class WalkManager:
         await self._update_daily_walk_stats_optimized(dog_id, walk_data)
 
         # OPTIMIZE: Store in history with size limit
-        self._walk_history[dog_id].append(cast(WalkSessionSnapshot, dict(walk_data)))
+        self._walk_history[dog_id].append(
+            cast(WalkSessionSnapshot, _normalise_diagnostics_json(dict(walk_data)))
+        )
 
         # Keep only last 100 walks to prevent memory leaks
         if len(self._walk_history[dog_id]) > 100:
@@ -1277,9 +1280,13 @@ class WalkManager:
                 data["walk_in_progress"] = False
                 data["current_walk"] = None
 
+            normalised = cast(
+                WalkStatisticsSnapshot, _normalise_diagnostics_json(data)
+            )
+
             # Cache result
-            self._statistics_cache[cache_key] = (data, dt_util.now())
-            return data
+            self._statistics_cache[cache_key] = (normalised, dt_util.now())
+            return normalised
 
     def _invalidate_statistics_cache(self, dog_id: str) -> None:
         """Invalidate statistics cache for a dog.
@@ -1390,7 +1397,8 @@ class WalkManager:
                 except (ValueError, TypeError):
                     continue
 
-            return sorted(recent_walks, key=lambda w: w["start_time"], reverse=True)
+            ordered = sorted(recent_walks, key=lambda w: w["start_time"], reverse=True)
+            return cast(list[WalkSessionSnapshot], _normalise_diagnostics_json(ordered))
 
     def get_walk_history(
         self, dog_id: str, limit: int | None = None
@@ -1403,9 +1411,12 @@ class WalkManager:
 
         history_slice = history[-limit:] if limit is not None else history[:]
 
-        return [
+        history_payload = [
             cast(WalkSessionSnapshot, dict(walk)) for walk in reversed(history_slice)
         ]
+        return cast(
+            list[WalkSessionSnapshot], _normalise_diagnostics_json(history_payload)
+        )
 
     def get_last_walk_info(self, dog_id: str) -> WalkSessionSnapshot | None:
         """Return the most recent walk if available."""
@@ -1436,7 +1447,7 @@ class WalkManager:
             if elapsed >= 0:
                 info["elapsed_duration"] = elapsed
 
-        return info
+        return cast(WalkSessionSnapshot, _normalise_diagnostics_json(info))
 
     def get_walk_data(self, dog_id: str) -> WalkOverviewSnapshot | None:
         """Return a snapshot of walk data for a dog."""
@@ -1472,7 +1483,7 @@ class WalkManager:
             "statistics": cast(WalkStatisticsSnapshot, dict(stats_snapshot)),
             "gps": gps_snapshot,
         }
-        return overview
+        return cast(WalkOverviewSnapshot, _normalise_diagnostics_json(overview))
 
     def get_daily_walk_stats(self, dog_id: str) -> WalkDailyStatistics | None:
         """Return aggregated statistics for the current day."""
@@ -1711,6 +1722,11 @@ class WalkManager:
                         total_duration += float(duration_value)
                 total_points = sum(len(walk["path"]) for walk in recent_walks)
 
+                serialised_walks = cast(
+                    list[JSONMutableMapping],
+                    _normalise_diagnostics_json(recent_walks),
+                )
+
                 export_data: WalkRouteExportPayload = {
                     "dog_id": dog_id,
                     "export_timestamp": dt_util.now().isoformat(),
@@ -1719,7 +1735,7 @@ class WalkManager:
                     "total_distance_meters": round(total_distance, 2),
                     "total_duration_seconds": round(total_duration, 2),
                     "total_gps_points": total_points,
-                    "walks": recent_walks,
+                    "walks": serialised_walks,
                     "export_metadata": {
                         "creator": GPX_CREATOR,
                         "version": GPX_VERSION,
@@ -1745,7 +1761,9 @@ class WalkManager:
                 elif format == "json":
                     try:
                         export_data["json_data"] = json.dumps(
-                            recent_walks, indent=2, ensure_ascii=False
+                            serialised_walks,
+                            indent=2,
+                            ensure_ascii=False,
                         )
                         export_data["file_extension"] = ".json"
                         export_data["mime_type"] = "application/json"
