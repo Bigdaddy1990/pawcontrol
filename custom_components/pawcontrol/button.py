@@ -989,11 +989,17 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
                     self._dog_id,
                 )
             else:
+                changed_keys = sorted(
+                    key
+                    for key in raw_payload
+                    if raw_payload.get(key) != payload.get(key)
+                )
                 _LOGGER.warning(
-                    "Service payload normalization altered values for %s.%s on %s",
+                    "Service payload normalization altered values for %s.%s on %s: %s",
                     domain,
                     service,
                     self._dog_id,
+                    ", ".join(changed_keys) if changed_keys else "unknown keys",
                 )
         await registry.async_call(domain, service, payload, **kwargs)
 
