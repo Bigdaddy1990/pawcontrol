@@ -976,7 +976,25 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
             )
             return
 
-        payload = _normalise_attributes(data)
+        raw_payload = ensure_json_mapping(data)
+        payload = cast(JSONMutableMapping, _normalise_diagnostics_json(raw_payload))
+        if payload != raw_payload:
+            raw_keys = set(raw_payload)
+            normalized_keys = set(payload)
+            if raw_keys != normalized_keys:
+                _LOGGER.warning(
+                    "Service payload normalization altered keys for %s.%s on %s",
+                    domain,
+                    service,
+                    self._dog_id,
+                )
+            else:
+                _LOGGER.warning(
+                    "Service payload normalization altered values for %s.%s on %s",
+                    domain,
+                    service,
+                    self._dog_id,
+                )
         await registry.async_call(domain, service, payload, **kwargs)
 
     async def async_press(self) -> None:
