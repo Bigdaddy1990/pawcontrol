@@ -28,13 +28,13 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .const import (
     EVENT_GEOFENCE_BREACH,
     EVENT_GEOFENCE_ENTERED,
     EVENT_GEOFENCE_LEFT,
     EVENT_GEOFENCE_RETURN,
 )
+from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .notifications import (
     NotificationPriority,
     NotificationTemplateData,

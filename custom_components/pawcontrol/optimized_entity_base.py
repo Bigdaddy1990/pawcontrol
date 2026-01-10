@@ -88,6 +88,7 @@ def _normalise_attributes(
         _normalise_diagnostics_json(attributes),
     )
 
+
 # Performance optimization constants
 CACHE_TTL_SECONDS: Final[dict[str, int]] = {
     "state": 30,  # Entity state cache TTL

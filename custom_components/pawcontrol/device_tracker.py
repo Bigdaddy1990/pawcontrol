@@ -73,6 +73,7 @@ def _normalise_attributes(attrs: JSONMutableMapping) -> JSONMutableMapping:
 
     return cast(JSONMutableMapping, _normalise_diagnostics_json(attrs))
 
+
 # Coordinator drives refreshes, so we can safely allow unlimited parallel
 # updates for this read-only platform while still complying with the
 # ``parallel-updates`` quality scale rule.

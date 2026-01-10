@@ -46,6 +46,7 @@ from .const import (
     SERVICE_START_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .entity import PawControlEntity
 from .exceptions import WalkAlreadyInProgressError, WalkNotInProgressError
 from .grooming_translations import (
@@ -74,7 +75,6 @@ from .types import (
     ensure_dog_modules_projection,
     ensure_json_mapping,
 )
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
@@ -87,6 +87,7 @@ def _normalise_attributes(
 
     payload = ensure_json_mapping(attrs)
     return cast(JSONMutableMapping, _normalise_diagnostics_json(payload))
+
 
 ensure_homeassistant_exception_symbols()
 HomeAssistantError: type[Exception] = cast(type[Exception], compat.HomeAssistantError)

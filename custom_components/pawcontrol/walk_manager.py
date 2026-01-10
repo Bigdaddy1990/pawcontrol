@@ -1280,9 +1280,7 @@ class WalkManager:
                 data["walk_in_progress"] = False
                 data["current_walk"] = None
 
-            normalised = cast(
-                WalkStatisticsSnapshot, _normalise_diagnostics_json(data)
-            )
+            normalised = cast(WalkStatisticsSnapshot, _normalise_diagnostics_json(data))
 
             # Cache result
             self._statistics_cache[cache_key] = (normalised, dt_util.now())

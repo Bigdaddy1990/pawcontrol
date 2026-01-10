@@ -40,12 +40,12 @@ from .const import (
     MODULE_MEDICATION,
     MODULE_WALK,
 )
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .coordinator_support import (
     CacheMonitorTarget,
     CoordinatorMetrics,
     CoordinatorModuleAdapter,
 )
+from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .module_adapters import (
     ModuleAdapterCacheError,
     ModuleAdapterCacheSnapshot,

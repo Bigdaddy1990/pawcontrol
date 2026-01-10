@@ -12,10 +12,10 @@ from homeassistant.util import dt as dt_util
 
 from .const import ATTR_DOG_ID, ATTR_DOG_NAME
 from .coordinator import PawControlCoordinator
+from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .runtime_data import get_runtime_data
 from .service_guard import ServiceGuardResult
 from .types import CoordinatorRuntimeManagers, JSONMutableMapping, ensure_json_mapping
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .utils import (
     JSONMappingLike,
     PawControlDeviceLinkMixin,
