@@ -46,6 +46,7 @@ from .const import (
     SERVICE_START_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .entity import PawControlEntity
 from .exceptions import WalkAlreadyInProgressError, WalkNotInProgressError
 from .grooming_translations import (
@@ -67,15 +68,26 @@ from .types import (
     HealthModulePayload,
     JSONMapping,
     JSONMutableMapping,
+    JSONValue,
     PawControlConfigEntry,
     WalkModulePayload,
     ensure_dog_config_data,
     ensure_dog_modules_projection,
     ensure_json_mapping,
 )
-from .utils import async_call_add_entities, normalise_json
+from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _normalise_attributes(
+    attrs: Mapping[str, JSONValue] | JSONMutableMapping,
+) -> JSONMutableMapping:
+    """Return JSON-serialisable attributes for button entities."""
+
+    payload = ensure_json_mapping(attrs)
+    return cast(JSONMutableMapping, _normalise_diagnostics_json(payload))
+
 
 ensure_homeassistant_exception_symbols()
 HomeAssistantError: type[Exception] = cast(type[Exception], compat.HomeAssistantError)
@@ -809,7 +821,7 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
         if self._action_description:
             attrs["action_description"] = self._action_description
 
-        return cast(JSONMutableMapping, normalise_json(attrs))
+        return _normalise_attributes(attrs)
 
     def _get_dog_data_cached(self) -> CoordinatorDogData | None:
         """Get dog data with thread-safe instance-level caching."""
@@ -949,7 +961,7 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
         self,
         domain: str,
         service: str,
-        data: JSONMutableMapping,
+        data: Mapping[str, JSONValue] | JSONMutableMapping,
         **kwargs: Any,
     ) -> None:
         """Call a Home Assistant service via a patch-friendly proxy."""
@@ -964,7 +976,32 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
             )
             return
 
-        await registry.async_call(domain, service, data, **kwargs)
+        raw_payload = ensure_json_mapping(data)
+        payload = cast(JSONMutableMapping, _normalise_diagnostics_json(raw_payload))
+        if payload != raw_payload:
+            raw_keys = set(raw_payload)
+            normalized_keys = set(payload)
+            if raw_keys != normalized_keys:
+                _LOGGER.warning(
+                    "Service payload normalization altered keys for %s.%s on %s",
+                    domain,
+                    service,
+                    self._dog_id,
+                )
+            else:
+                changed_keys = sorted(
+                    key
+                    for key in raw_payload
+                    if raw_payload.get(key) != payload.get(key)
+                )
+                _LOGGER.warning(
+                    "Service payload normalization altered values for %s.%s on %s: %s",
+                    domain,
+                    service,
+                    self._dog_id,
+                    ", ".join(changed_keys) if changed_keys else "unknown keys",
+                )
+        await registry.async_call(domain, service, payload, **kwargs)
 
     async def async_press(self) -> None:
         """Handle button press with timestamp tracking."""

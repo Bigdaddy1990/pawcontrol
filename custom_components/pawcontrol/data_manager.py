@@ -45,6 +45,7 @@ from .coordinator_support import (
     CoordinatorMetrics,
     CoordinatorModuleAdapter,
 )
+from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .module_adapters import (
     ModuleAdapterCacheError,
     ModuleAdapterCacheSnapshot,
@@ -900,7 +901,12 @@ def _normalise_history_entries(entries: object) -> list[JSONMutableMapping]:
         return []
 
     return [
-        _coerce_json_mutable(cast(JSONMappingLike | JSONMutableMapping, entry))
+        cast(
+            JSONMutableMapping,
+            _normalise_diagnostics_json(
+                _coerce_json_mutable(cast(JSONMappingLike | JSONMutableMapping, entry))
+            ),
+        )
         for entry in entries
         if isinstance(entry, Mapping)
     ]
@@ -1933,6 +1939,10 @@ class PawControlDataManager:
                 cast(JSONMappingLike | JSONMutableMapping, entry)
             )
             timestamp = _deserialize_datetime(payload.get(timestamp_key))
+            normalised_payload = cast(
+                JSONMutableMapping,
+                _normalise_diagnostics_json(payload),
+            )
 
             if since_bound is not None and (
                 timestamp is None or timestamp < since_bound
@@ -1943,7 +1953,7 @@ class PawControlDataManager:
             ):
                 continue
 
-            prepared.append((timestamp, payload))
+            prepared.append((timestamp, normalised_payload))
 
         def _sort_key(
             item: tuple[datetime | None, JSONMutableMapping],
@@ -2416,7 +2426,14 @@ class PawControlDataManager:
             return (0, str(raw_value))
 
         entries: list[JSONMutableMapping] = [
-            _coerce_json_mutable(cast(JSONMappingLike | JSONMutableMapping, item))
+            cast(
+                JSONMutableMapping,
+                _normalise_diagnostics_json(
+                    _coerce_json_mutable(
+                        cast(JSONMappingLike | JSONMutableMapping, item)
+                    )
+                ),
+            )
             for item in sorted(history, key=_sort_key)
         ]
 
@@ -2464,12 +2481,17 @@ class PawControlDataManager:
         else:
 
             def _write_json() -> None:
-                payload = {
-                    "dog_id": dog_id,
-                    "data_type": data_type,
-                    "generated_at": _utcnow().isoformat(),
-                    "entries": entries,
-                }
+                payload = cast(
+                    JSONMutableMapping,
+                    _normalise_diagnostics_json(
+                        {
+                            "dog_id": dog_id,
+                            "data_type": data_type,
+                            "generated_at": _utcnow().isoformat(),
+                            "entries": entries,
+                        }
+                    ),
+                )
                 export_path.write_text(
                     json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
                 )

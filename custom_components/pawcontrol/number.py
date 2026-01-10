@@ -42,6 +42,7 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .entity import PawControlEntity
 from .runtime_data import get_runtime_data
 from .types import (
@@ -58,7 +59,7 @@ from .types import (
     ensure_dog_modules_mapping,
     ensure_json_mapping,
 )
-from .utils import async_call_add_entities, normalise_json
+from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -78,7 +79,7 @@ def _normalise_attributes(attrs: Mapping[str, object]) -> NumberExtraAttributes:
     """Return JSON-serialisable attributes for number entities."""
 
     payload = ensure_json_mapping(attrs)
-    return cast(NumberExtraAttributes, normalise_json(payload))
+    return cast(NumberExtraAttributes, _normalise_diagnostics_json(payload))
 
 
 async def _async_add_entities_in_batches(

@@ -37,6 +37,7 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
+from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .entity import PawControlEntity
 from .runtime_data import get_runtime_data
 from .types import (
@@ -62,7 +63,7 @@ from .types import (
     ensure_dog_modules_mapping,
     ensure_json_mapping,
 )
-from .utils import async_call_add_entities, ensure_utc_datetime, normalise_json
+from .utils import async_call_add_entities, ensure_utc_datetime
 
 if TYPE_CHECKING:
     from .garden_manager import GardenManager
@@ -109,7 +110,7 @@ def _normalise_attributes(
     """Return JSON-serialisable attributes for entity state."""
 
     payload = ensure_json_mapping(attrs)
-    return cast(JSONMutableMapping, normalise_json(payload))
+    return cast(JSONMutableMapping, _normalise_diagnostics_json(payload))
 
 
 # Home Assistant platform configuration

@@ -34,6 +34,7 @@ from .const import (
     EVENT_GEOFENCE_LEFT,
     EVENT_GEOFENCE_RETURN,
 )
+from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .notifications import (
     NotificationPriority,
     NotificationTemplateData,
@@ -1414,9 +1415,13 @@ class GPSGeofenceManager:
 
             export_data["routes"].append(route_data)
 
+        normalised_content = cast(
+            GPSRouteExportJSONContent,
+            _normalise_diagnostics_json(export_data),
+        )
         payload: GPSRouteExportJSONPayload = {
             "format": "json",
-            "content": export_data,
+            "content": normalised_content,
             "filename": f"{dog_id}_routes_{dt_util.utcnow().strftime('%Y%m%d')}.json",
             "routes_count": len(routes),
         }

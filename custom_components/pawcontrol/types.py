@@ -1274,6 +1274,7 @@ def _coerce_str(value: Any, *, default: str) -> str:
 
 
 PerformanceMode = Literal["minimal", "balanced", "full"]
+DashboardMode = Literal["full", "cards", "minimal"]
 
 type ConfigFlowPlaceholderValue = bool | int | float | str
 type ConfigFlowPlaceholders = Mapping[str, ConfigFlowPlaceholderValue]
@@ -2305,7 +2306,7 @@ class ConfigEntryOptionsPayload(PawControlOptionsData, total=False):
     last_reconfigure: NotRequired[str]
     previous_profile: NotRequired[str]
     reconfigure_telemetry: NotRequired[ReconfigureTelemetry]
-    dashboard_mode: str
+    dashboard_mode: DashboardMode
     manual_guard_event: str | None
     manual_breaker_event: str | None
     manual_check_event: str | None
@@ -2314,7 +2315,7 @@ class ConfigEntryOptionsPayload(PawControlOptionsData, total=False):
 class ModuleConfigurationStepInput(TypedDict, total=False):
     """User-provided values collected during the module setup step."""
 
-    performance_mode: str
+    performance_mode: PerformanceMode
     enable_analytics: bool
     enable_cloud_backup: bool
     data_retention_days: int
@@ -2342,7 +2343,7 @@ class DashboardSetupConfig(TypedDict, total=False):
     dashboard_auto_create: bool
     dashboard_per_dog: bool
     dashboard_theme: str
-    dashboard_mode: str
+    dashboard_mode: DashboardMode
     dashboard_template: str
     show_statistics: bool
     show_maps: bool
@@ -2361,7 +2362,7 @@ class DashboardConfigurationStepInput(TypedDict, total=False):
     create_per_dog_dashboards: bool
     dashboard_theme: str
     dashboard_template: str
-    dashboard_mode: str
+    dashboard_mode: DashboardMode
     show_statistics: bool
     show_maps: bool
     show_health_charts: bool
@@ -2376,6 +2377,237 @@ class AddAnotherDogInput(TypedDict, total=False):
     """Payload for yes/no "add another dog" prompts in flows."""
 
     add_another: bool
+
+
+type OptionsMainMenuAction = Literal[
+    "entity_profiles",
+    "manage_dogs",
+    "performance_settings",
+    "gps_settings",
+    "geofence_settings",
+    "weather_settings",
+    "notifications",
+    "feeding_settings",
+    "health_settings",
+    "system_settings",
+    "dashboard_settings",
+    "advanced_settings",
+    "import_export",
+]
+"""Supported menu actions for the options flow root menu."""
+
+
+class OptionsMainMenuInput(TypedDict, total=False):
+    """Menu selection payload for the options flow root."""
+
+    action: OptionsMainMenuAction
+
+
+type OptionsMenuAction = Literal[
+    "add_dog",
+    "edit_dog",
+    "remove_dog",
+    "configure_modules",
+    "configure_door_sensor",
+    "back",
+]
+"""Supported menu actions for the options flow dog management step."""
+
+
+class OptionsMenuInput(TypedDict, total=False):
+    """Menu selection payload for the dog management options menu."""
+
+    action: OptionsMenuAction
+
+
+class OptionsDogSelectionInput(TypedDict, total=False):
+    """Payload used when selecting a dog in the options flow."""
+
+    dog_id: str
+
+
+class OptionsDogRemovalInput(OptionsDogSelectionInput, total=False):
+    """Payload used when confirming dog removal in the options flow."""
+
+    confirm_remove: bool
+
+
+class OptionsDogEditInput(TypedDict, total=False):
+    """Payload for editing dog metadata in the options flow."""
+
+    dog_name: str
+    dog_breed: str
+    dog_age: int | float | str | None
+    dog_weight: int | float | str | None
+    dog_size: str | None
+
+
+class OptionsProfilePreviewInput(TypedDict, total=False):
+    """Payload used for profile preview interactions in the options flow."""
+
+    profile: str
+    apply_profile: bool
+
+
+class OptionsPerformanceSettingsInput(TypedDict, total=False):
+    """Payload for performance settings in the options flow."""
+
+    entity_profile: str
+    performance_mode: PerformanceMode
+    batch_size: int | float | str | None
+    cache_ttl: int | float | str | None
+    selective_refresh: bool
+
+
+class OptionsDogModulesInput(TypedDict, total=False):
+    """Payload for per-dog module configuration in the options flow."""
+
+    module_feeding: bool
+    module_walk: bool
+    module_gps: bool
+    module_garden: bool
+    module_health: bool
+    module_notifications: bool
+    module_dashboard: bool
+    module_visitor: bool
+    module_grooming: bool
+    module_medication: bool
+    module_training: bool
+
+
+class OptionsDoorSensorInput(TypedDict, total=False):
+    """Payload for configuring door sensor overrides in the options flow."""
+
+    door_sensor: str | None
+    walk_detection_timeout: int | float | str | None
+    minimum_walk_duration: int | float | str | None
+    maximum_walk_duration: int | float | str | None
+    door_closed_delay: int | float | str | None
+    require_confirmation: bool | int | float | str | None
+    auto_end_walks: bool | int | float | str | None
+    confidence_threshold: int | float | str | None
+
+
+class OptionsGeofenceInput(TypedDict, total=False):
+    """Payload for geofencing configuration in the options flow."""
+
+    geofence_enabled: bool
+    geofence_use_home: bool
+    geofence_lat: float | int | str | None
+    geofence_lon: float | int | str | None
+    geofence_radius: int | float | str | None
+    geofence_alerts: bool
+    geofence_safe_zone: bool
+    geofence_restricted_zone: bool
+    geofence_zone_entry: bool
+    geofence_zone_exit: bool
+
+
+class OptionsGPSSettingsInput(TypedDict, total=False):
+    """Payload for GPS settings in the options flow."""
+
+    gps_enabled: bool
+    gps_update_interval: int | float | str | None
+    gps_accuracy_filter: int | float | str | None
+    gps_distance_filter: int | float | str | None
+    route_recording: bool
+    route_history_days: int | float | str | None
+    auto_track_walks: bool
+
+
+class OptionsWeatherSettingsInput(TypedDict, total=False):
+    """Payload for weather settings in the options flow."""
+
+    weather_entity: str | None
+    weather_health_monitoring: bool
+    weather_alerts: bool
+    weather_update_interval: int | float | str | None
+    temperature_alerts: bool
+    uv_alerts: bool
+    humidity_alerts: bool
+    wind_alerts: bool
+    storm_alerts: bool
+    breed_specific_recommendations: bool
+    health_condition_adjustments: bool
+    auto_activity_adjustments: bool
+    notification_threshold: str | None
+
+
+class OptionsFeedingSettingsInput(TypedDict, total=False):
+    """Payload for feeding settings in the options flow."""
+
+    meals_per_day: int | float | str | None
+    feeding_reminders: bool
+    portion_tracking: bool
+    calorie_tracking: bool
+    auto_schedule: bool
+
+
+class OptionsHealthSettingsInput(TypedDict, total=False):
+    """Payload for health settings in the options flow."""
+
+    weight_tracking: bool
+    medication_reminders: bool
+    vet_reminders: bool
+    grooming_reminders: bool
+    health_alerts: bool
+
+
+class OptionsSystemSettingsInput(TypedDict, total=False):
+    """Payload for system settings in the options flow."""
+
+    data_retention_days: int | float | str | None
+    auto_backup: bool
+    performance_mode: PerformanceMode
+    enable_analytics: bool
+    enable_cloud_backup: bool
+    resilience_skip_threshold: int | float | str | None
+    resilience_breaker_threshold: int | float | str | None
+    manual_check_event: str | None
+    manual_guard_event: str | None
+    manual_breaker_event: str | None
+    reset_time: str | None
+
+
+class OptionsDashboardSettingsInput(TypedDict, total=False):
+    """Payload for dashboard settings in the options flow."""
+
+    dashboard_mode: DashboardMode
+    show_statistics: bool
+    show_alerts: bool
+    compact_mode: bool
+    show_maps: bool
+
+
+class OptionsAdvancedSettingsInput(TypedDict, total=False):
+    """Payload for advanced settings in the options flow."""
+
+    performance_mode: PerformanceMode
+    debug_logging: bool
+    data_retention_days: int | float | str | None
+    auto_backup: bool
+    experimental_features: bool
+    external_integrations: bool
+    api_endpoint: str
+    api_token: str
+
+
+class OptionsImportExportInput(TypedDict, total=False):
+    """Payload for import/export selection in the options flow."""
+
+    action: Literal["export", "import"]
+
+
+class OptionsExportDisplayInput(TypedDict, total=False):
+    """Payload for export display steps in the options flow."""
+
+    export_blob: str
+
+
+class OptionsImportPayloadInput(TypedDict, total=False):
+    """Payload for importing exported options data."""
+
+    payload: str
 
 
 class ConfigFlowOperationMetrics(TypedDict):
@@ -2750,8 +2982,8 @@ class DogValidationCacheEntry(TypedDict):
 class DogSetupStepInput(TypedDict, total=False):
     """Minimal dog setup fields collected during the primary form."""
 
-    dog_id: str
-    dog_name: str
+    dog_id: Required[str]
+    dog_name: Required[str]
     dog_breed: str | None
     dog_age: int | float | None
     dog_weight: float | int | None

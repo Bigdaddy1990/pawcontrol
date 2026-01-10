@@ -48,6 +48,7 @@ from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
 from .const import ATTR_DOG_ID, ATTR_DOG_NAME, MANUFACTURER
 from .coordinator import PawControlCoordinator
 from .coordinator_accessors import CoordinatorDataAccessMixin
+from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .types import (
     CoordinatorDataPayload,
     CoordinatorDogData,
@@ -75,6 +76,18 @@ from .utils import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _normalise_attributes(
+    attributes: OptimizedEntityAttributesPayload,
+) -> OptimizedEntityAttributesPayload:
+    """Return a JSON-serialisable copy of entity attributes."""
+
+    return cast(
+        OptimizedEntityAttributesPayload,
+        _normalise_diagnostics_json(attributes),
+    )
+
 
 # Performance optimization constants
 CACHE_TTL_SECONDS: Final[dict[str, int]] = {
@@ -683,7 +696,7 @@ class OptimizedEntityBase(
         start_time = dt_util.utcnow()
 
         try:
-            attributes = self._generate_state_attributes()
+            attributes = _normalise_attributes(self._generate_state_attributes())
 
             # Record performance
             operation_time = (dt_util.utcnow() - start_time).total_seconds()
@@ -703,7 +716,7 @@ class OptimizedEntityBase(
             _LOGGER.error(
                 "Error generating attributes for %s: %s", self._attr_unique_id, err
             )
-            return self._get_fallback_attributes()
+            return _normalise_attributes(self._get_fallback_attributes())
 
     def _generate_state_attributes(self) -> OptimizedEntityAttributesPayload:
         """Generate state attributes - can be overridden in subclasses.
