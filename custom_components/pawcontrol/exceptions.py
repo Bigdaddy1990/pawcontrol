@@ -636,6 +636,59 @@ class ValidationError(PawControlError):
         self.valid_values = valid_values
 
 
+class FlowValidationError(PawControlError):
+    """Exception raised when configuration or options flow validation fails."""
+
+    def __init__(
+        self,
+        *,
+        field_errors: Mapping[str, str] | None = None,
+        base_errors: Sequence[str] | None = None,
+    ) -> None:
+        """Initialize flow validation error.
+
+        Args:
+            field_errors: Field-specific errors keyed by schema field name
+            base_errors: Base-level errors for form-level issues
+        """
+        field_errors = dict(field_errors or {})
+        base_errors = list(base_errors or [])
+
+        message_parts: list[str] = []
+        message_parts.extend(field_errors.values())
+        message_parts.extend(base_errors)
+        message = "; ".join(message_parts) or "Flow validation failed"
+
+        super().__init__(
+            message,
+            error_code="flow_validation_error",
+            severity=ErrorSeverity.MEDIUM,
+            category=ErrorCategory.VALIDATION,
+            context={
+                "field_errors": field_errors,
+                "base_errors": base_errors,
+            },
+            recovery_suggestions=[
+                "Review the highlighted fields and correct any invalid values",
+            ],
+            user_message="Please review the form and correct the highlighted fields.",
+        )
+
+        self.field_errors = field_errors
+        self.base_errors = base_errors
+
+    def as_form_errors(self) -> dict[str, str]:
+        """Return errors in the format expected by Home Assistant forms."""
+
+        if self.field_errors:
+            return dict(self.field_errors)
+
+        if self.base_errors:
+            return {"base": self.base_errors[0]}
+
+        return {"base": "validation_error"}
+
+
 class InvalidMealTypeError(ValidationError):
     """Exception raised when an invalid meal type is specified."""
 
