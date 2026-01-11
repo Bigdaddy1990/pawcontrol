@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
+import ast
 import json
-import re
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -15,13 +15,91 @@ def _load_strings(path: Path) -> dict[str, object]:
 
 
 def _extract_decorator_keys(path: Path, decorator: str) -> set[str]:
-    pattern = rf"@{decorator}\\(\\\"([^\\\"]+)\\\"\\)"
-    return set(re.findall(pattern, path.read_text(encoding="utf-8")))
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    keys: set[str] = set()
+
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for item in node.decorator_list:
+            if not isinstance(item, ast.Call):
+                continue
+            func = item.func
+            if isinstance(func, ast.Attribute):
+                name = func.attr
+            elif isinstance(func, ast.Name):
+                name = func.id
+            else:
+                continue
+            if name != decorator:
+                continue
+            translation_key = _extract_call_arg(item, "translation_key", 0)
+            if translation_key is not None:
+                keys.add(translation_key)
+
+    return keys
 
 
-def _extract_init_keys(path: Path) -> set[str]:
-    pattern = r"dog_name,\\s*\\\"([a-z0-9_]+)\\\""
-    return set(re.findall(pattern, path.read_text(encoding="utf-8")))
+def _extract_call_arg(
+    call: ast.Call, keyword_name: str, position: int
+) -> str | None:
+    for keyword in call.keywords:
+        if keyword.arg == keyword_name and isinstance(keyword.value, ast.Constant):
+            if isinstance(keyword.value.value, str):
+                return keyword.value.value
+
+    if len(call.args) > position and isinstance(call.args[position], ast.Constant):
+        value = call.args[position].value
+        if isinstance(value, str):
+            return value
+
+    return None
+
+
+def _extract_init_keys(
+    path: Path, *, base_class: str, keyword_name: str
+) -> set[str]:
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+    keys: set[str] = set()
+
+    for node in tree.body:
+        if not isinstance(node, ast.ClassDef):
+            continue
+        base_names = {
+            base.id
+            for base in node.bases
+            if isinstance(base, ast.Name)
+        } | {
+            base.attr
+            for base in node.bases
+            if isinstance(base, ast.Attribute)
+        }
+        if base_class not in base_names:
+            continue
+
+        for child in node.body:
+            if not isinstance(child, ast.FunctionDef):
+                continue
+            if child.name != "__init__":
+                continue
+            for call in ast.walk(child):
+                if not isinstance(call, ast.Call):
+                    continue
+                if not isinstance(call.func, ast.Attribute):
+                    continue
+                if call.func.attr != "__init__":
+                    continue
+                if not isinstance(call.func.value, ast.Call):
+                    continue
+                if not isinstance(call.func.value.func, ast.Name):
+                    continue
+                if call.func.value.func.id != "super":
+                    continue
+                translation_key = _extract_call_arg(call, keyword_name, 3)
+                if translation_key is not None:
+                    keys.add(translation_key)
+
+    return keys
 
 
 def test_entity_translation_keys_are_defined() -> None:
@@ -44,9 +122,21 @@ def test_entity_translation_keys_are_defined() -> None:
         COMPONENT_ROOT / "select.py", "register_select"
     )
 
-    text_keys = _extract_init_keys(COMPONENT_ROOT / "text.py")
-    date_keys = _extract_init_keys(COMPONENT_ROOT / "date.py")
-    datetime_keys = _extract_init_keys(COMPONENT_ROOT / "datetime.py")
+    text_keys = _extract_init_keys(
+        COMPONENT_ROOT / "text.py",
+        base_class="PawControlTextBase",
+        keyword_name="text_type",
+    )
+    date_keys = _extract_init_keys(
+        COMPONENT_ROOT / "date.py",
+        base_class="PawControlDateBase",
+        keyword_name="date_type",
+    )
+    datetime_keys = _extract_init_keys(
+        COMPONENT_ROOT / "datetime.py",
+        base_class="PawControlDateTimeBase",
+        keyword_name="datetime_type",
+    )
 
     assert sensor_keys.issubset(set(entity["sensor"].keys()))
     assert binary_keys.issubset(set(entity["binary_sensor"].keys()))

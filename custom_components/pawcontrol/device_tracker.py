@@ -201,6 +201,7 @@ class PawControlGPSTracker(PawControlEntity, TrackerEntity):
         """Initialize GPS device tracker."""
         super().__init__(coordinator, dog_id, dog_name)
         self._attr_unique_id = f"pawcontrol_{dog_id}_gps_tracker"
+        self._attr_name = f"{dog_name} GPS"
         self._attr_translation_key = "gps"
         self._attr_icon = "mdi:map-marker"
 

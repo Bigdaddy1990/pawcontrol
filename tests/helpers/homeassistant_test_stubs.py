@@ -1157,12 +1157,14 @@ class CoordinatorUpdateFailed(Exception):  # noqa: N818
 class CoordinatorEntity(Entity):
     """Minimal CoordinatorEntity shim used by PawControl entities."""
 
-    def __init__(self, coordinator: object, *args: object, **kwargs: object) -> None:
+    def __init__(self, coordinator: DataUpdateCoordinator) -> None:
         super().__init__()
         self.coordinator = coordinator
 
     @property
     def available(self) -> bool:
+        if hasattr(self.coordinator, "last_update_success"):
+            return bool(self.coordinator.last_update_success)
         return bool(getattr(self.coordinator, "available", True))
 
 
