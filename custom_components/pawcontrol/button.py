@@ -68,7 +68,6 @@ from .types import (
     HealthModulePayload,
     JSONMapping,
     JSONMutableMapping,
-    JSONValue,
     PawControlConfigEntry,
     WalkModulePayload,
     ensure_dog_config_data,
