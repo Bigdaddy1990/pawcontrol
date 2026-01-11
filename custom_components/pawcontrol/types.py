@@ -4109,9 +4109,7 @@ def ensure_gps_payload(
     ):
         if payload_field not in gps_payload:
             continue
-        gps_payload[payload_field] = _coerce_float_value(
-            gps_payload.get(payload_field)
-        )
+        gps_payload[payload_field] = _coerce_float_value(gps_payload.get(payload_field))
 
     satellites = gps_payload.get("satellites")
     if isinstance(satellites, int):
