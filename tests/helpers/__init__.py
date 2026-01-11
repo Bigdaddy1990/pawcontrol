@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from copy import deepcopy
 import importlib.util
-from pathlib import Path
 import sys
+from copy import deepcopy
+from pathlib import Path
 from types import ModuleType
 from typing import TypeVar
 

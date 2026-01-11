@@ -40,9 +40,7 @@ def _extract_decorator_keys(path: Path, decorator: str) -> set[str]:
     return keys
 
 
-def _extract_call_arg(
-    call: ast.Call, keyword_name: str, position: int
-) -> str | None:
+def _extract_call_arg(call: ast.Call, keyword_name: str, position: int) -> str | None:
     for keyword in call.keywords:
         if keyword.arg == keyword_name and isinstance(keyword.value, ast.Constant):
             if isinstance(keyword.value.value, str):
@@ -56,23 +54,15 @@ def _extract_call_arg(
     return None
 
 
-def _extract_init_keys(
-    path: Path, *, base_class: str, keyword_name: str
-) -> set[str]:
+def _extract_init_keys(path: Path, *, base_class: str, keyword_name: str) -> set[str]:
     tree = ast.parse(path.read_text(encoding="utf-8"))
     keys: set[str] = set()
 
     for node in tree.body:
         if not isinstance(node, ast.ClassDef):
             continue
-        base_names = {
-            base.id
-            for base in node.bases
-            if isinstance(base, ast.Name)
-        } | {
-            base.attr
-            for base in node.bases
-            if isinstance(base, ast.Attribute)
+        base_names = {base.id for base in node.bases if isinstance(base, ast.Name)} | {
+            base.attr for base in node.bases if isinstance(base, ast.Attribute)
         }
         if base_class not in base_names:
             continue
