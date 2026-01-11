@@ -363,6 +363,8 @@
       "dog_id_too_short": "Hunde-ID muss mindestens 2 Zeichen lang sein",
       "dog_id_too_long": "Hunde-ID darf nicht länger als 30 Zeichen sein",
       "invalid_dog_id_format": "Hunde-ID muss mit einem Buchstaben beginnen und darf nur Kleinbuchstaben, Zahlen und Unterstriche enthalten",
+      "invalid_dog_size": "Die Hundegröße muss einer der unterstützten Größenkategorien entsprechen",
+      "invalid_dog_breed": "Die Rasse darf nur Buchstaben, Leerzeichen, Bindestriche oder Apostrophe enthalten",
       "dog_name_required": "Hundename ist erforderlich",
       "dog_name_too_short": "Hundename ist zu kurz",
       "dog_name_too_long": "Hundename ist zu lang",
