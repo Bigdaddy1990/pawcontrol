@@ -11,11 +11,14 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
+import csv
+import json
 import logging
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from datetime import date, datetime, time, timedelta
 from enum import Enum
+from pathlib import Path
 from typing import Any, Literal, TypedDict, cast
 
 from homeassistant.core import HomeAssistant
@@ -28,6 +31,7 @@ from .const import (
     EVENT_GARDEN_LEFT,
     STORAGE_VERSION,
 )
+from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .notifications import NotificationPriority, NotificationType
 from .types import (
     GardenActiveSessionSnapshot,
@@ -38,6 +42,7 @@ from .types import (
     GardenStatsSnapshot,
     GardenWeatherSummary,
     GardenWeeklySummary,
+    JSONMutableMapping,
 )
 from .utils import async_fire_event
 
@@ -600,6 +605,8 @@ class GardenManager:
         dog_id: str,
         notes: str | None = None,
         activities: Sequence[GardenActivityInputPayload] | None = None,
+        *,
+        suppress_notifications: bool = False,
     ) -> GardenSession | None:
         """End the active garden session for a dog.
 
@@ -666,7 +673,7 @@ class GardenManager:
         )
 
         # Send completion notification
-        if self._notification_manager:
+        if self._notification_manager and not suppress_notifications:
             await self._notification_manager.async_send_notification(
                 notification_type=NotificationType.SYSTEM_INFO,
                 title=f"🏠 {session.dog_name} finished garden time",
@@ -688,6 +695,120 @@ class GardenManager:
         )
 
         return session
+
+    async def async_export_sessions(
+        self,
+        dog_id: str,
+        *,
+        format: str = "json",
+        days: int | None = None,
+        date_from: datetime | date | str | None = None,
+        date_to: datetime | date | str | None = None,
+    ) -> Path:
+        """Export garden sessions to a local file."""
+
+        def _coerce_datetime(value: datetime | date | str | None) -> datetime | None:
+            if value is None:
+                return None
+            if isinstance(value, datetime):
+                return dt_util.as_utc(value)
+            if isinstance(value, date):
+                return dt_util.as_utc(
+                    datetime.combine(value, time.min, tzinfo=dt_util.UTC)
+                )
+            parsed = dt_util.parse_datetime(str(value))
+            if parsed is None:
+                return None
+            return dt_util.as_utc(parsed)
+
+        start = _coerce_datetime(date_from)
+        end = _coerce_datetime(date_to)
+        if start is None and days is not None:
+            start = dt_util.utcnow() - timedelta(days=max(days, 0))
+        if end is None:
+            end = dt_util.utcnow()
+
+        sessions = [
+            session for session in self._session_history if session.dog_id == dog_id
+        ]
+        active_session = self._active_sessions.get(dog_id)
+        if active_session is not None:
+            sessions.append(active_session)
+
+        def _session_timestamp(session: GardenSession) -> datetime:
+            return session.end_time or session.start_time
+
+        entries = [
+            session.to_dict()
+            for session in sorted(sessions, key=_session_timestamp)
+            if (
+                (start is None or _session_timestamp(session) >= start)
+                and (end is None or _session_timestamp(session) <= end)
+            )
+        ]
+
+        export_dir = Path(getattr(self.hass.config, "config_dir", ".")) / DOMAIN
+        export_dir = export_dir / "exports"
+        export_dir.mkdir(parents=True, exist_ok=True)
+
+        timestamp = dt_util.utcnow().strftime("%Y%m%d%H%M%S")
+        normalized_format = format.lower()
+        if normalized_format not in {"json", "csv", "markdown", "md", "txt"}:
+            normalized_format = "json"
+        extension = "md" if normalized_format == "markdown" else normalized_format
+        filename = f"{self.entry_id}_{dog_id}_garden_{timestamp}.{extension}".replace(
+            " ", "_"
+        )
+        export_path = export_dir / filename
+
+        payload_entries = cast(
+            list[JSONMutableMapping],
+            _normalise_diagnostics_json(entries),
+        )
+
+        if normalized_format == "csv":
+            fieldnames = sorted({key for entry in payload_entries for key in entry})
+
+            def _write_csv() -> None:
+                with open(export_path, "w", newline="", encoding="utf-8") as handle:
+                    writer = csv.DictWriter(handle, fieldnames=fieldnames)
+                    if fieldnames:
+                        writer.writeheader()
+                    writer.writerows(payload_entries)
+
+            await asyncio.to_thread(_write_csv)
+        elif normalized_format in {"markdown", "md", "txt"}:
+
+            def _write_markdown() -> None:
+                lines = [f"# Garden export for {dog_id}", ""]
+                lines.extend(
+                    "- " + ", ".join(f"{k}: {v}" for k, v in entry.items())
+                    for entry in payload_entries
+                )
+                export_path.write_text("\n".join(lines), encoding="utf-8")
+
+            await asyncio.to_thread(_write_markdown)
+        else:
+
+            def _write_json() -> None:
+                payload = cast(
+                    JSONMutableMapping,
+                    _normalise_diagnostics_json(
+                        {
+                            "dog_id": dog_id,
+                            "data_type": "garden",
+                            "generated_at": dt_util.utcnow().isoformat(),
+                            "entries": payload_entries,
+                        }
+                    ),
+                )
+                export_path.write_text(
+                    json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+                )
+
+            await asyncio.to_thread(_write_json)
+
+        return export_path
 
     async def async_add_activity(
         self,

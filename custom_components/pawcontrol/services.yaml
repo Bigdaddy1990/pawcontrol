@@ -967,15 +967,16 @@ export_data:
             - "feeding"
             - "walks"
             - "health"
-            - "gps"
-            - "grooming"
-    start_date:
+            - "medication"
+            - "routes"
+            - "garden"
+    date_from:
       name: Start Date
       description: Start date for data export
       required: false
       selector:
         date:
-    end_date:
+    date_to:
       name: End Date
       description: End date for data export
       required: false
