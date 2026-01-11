@@ -1230,7 +1230,7 @@ class PawControlConfigFlow(
 
     async def _validate_dog_input_optimized(
         self, user_input: DogSetupStepInput
-    ) -> DogSetupStepInput | None:
+    ) -> DogSetupStepInput:
         """Validate dog input data with optimized performance.
 
         Args:
