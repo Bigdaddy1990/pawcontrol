@@ -81,7 +81,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def _normalise_attributes(
-    attrs: Mapping[str, JSONValue] | JSONMutableMapping,
+    attrs: JSONMapping | JSONMutableMapping,
 ) -> JSONMutableMapping:
     """Return JSON-serialisable attributes for button entities."""
 
@@ -961,7 +961,7 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
         self,
         domain: str,
         service: str,
-        data: Mapping[str, JSONValue] | JSONMutableMapping,
+        data: JSONMapping | JSONMutableMapping,
         **kwargs: Any,
     ) -> None:
         """Call a Home Assistant service via a patch-friendly proxy."""
