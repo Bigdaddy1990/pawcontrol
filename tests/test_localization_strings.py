@@ -113,6 +113,8 @@ def test_entity_translation_keys_are_defined() -> None:
         keyword_name="button_type",
     )
     number_keys = _extract_init_keys(
+        # For numbers, prefer explicit `translation_key` but fall back to the
+        # `number_type` positional argument to match the entity logic.
         COMPONENT_ROOT / "number.py",
         base_class="PawControlNumberBase",
         keyword_name="translation_key",
