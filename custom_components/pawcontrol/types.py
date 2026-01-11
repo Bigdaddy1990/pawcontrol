@@ -4097,7 +4097,7 @@ def ensure_gps_payload(
     if last_update is not None or "last_update" in gps_payload:
         gps_payload["last_update"] = last_update
 
-    for field in (
+    for payload_field in (
         "latitude",
         "longitude",
         "accuracy",
@@ -4107,9 +4107,11 @@ def ensure_gps_payload(
         "battery",
         "distance_from_home",
     ):
-        if field not in gps_payload:
+        if payload_field not in gps_payload:
             continue
-        gps_payload[field] = _coerce_float_value(gps_payload.get(field))
+        gps_payload[payload_field] = _coerce_float_value(
+            gps_payload.get(payload_field)
+        )
 
     satellites = gps_payload.get("satellites")
     if isinstance(satellites, int):
