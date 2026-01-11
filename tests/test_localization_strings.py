@@ -42,9 +42,12 @@ def _extract_decorator_keys(path: Path, decorator: str) -> set[str]:
 
 def _extract_call_arg(call: ast.Call, keyword_name: str, position: int) -> str | None:
     for keyword in call.keywords:
-        if keyword.arg == keyword_name and isinstance(keyword.value, ast.Constant):
-            if isinstance(keyword.value.value, str):
-                return keyword.value.value
+        if (
+            keyword.arg == keyword_name
+            and isinstance(keyword.value, ast.Constant)
+            and isinstance(keyword.value.value, str)
+        ):
+            return keyword.value.value
 
     if len(call.args) > position and isinstance(call.args[position], ast.Constant):
         value = call.args[position].value
