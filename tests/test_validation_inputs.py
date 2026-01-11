@@ -33,24 +33,37 @@ def test_validate_gps_coordinates_success() -> None:
     assert longitude == pytest.approx(13.405)
 
 
-def test_validate_gps_coordinates_missing_latitude() -> None:
+@pytest.mark.parametrize(
+    ("latitude", "longitude", "field"),
+    [
+        (None, 13.4, "latitude"),
+        (91, 13.4, "latitude"),
+        (52.52, None, "longitude"),
+        (52.52, 181, "longitude"),
+    ],
+)
+def test_validate_gps_coordinates_invalid(
+    latitude: float | None,
+    longitude: float | None,
+    field: str,
+) -> None:
     with pytest.raises(ValidationError) as err:
-        InputValidator.validate_gps_coordinates(None, 13.4)
+        InputValidator.validate_gps_coordinates(latitude, longitude)
 
-    assert err.value.field == "latitude"
-
-
-def test_validate_gps_coordinates_invalid_longitude() -> None:
-    with pytest.raises(ValidationError) as err:
-        InputValidator.validate_gps_coordinates(52.52, 181)
-
-    assert err.value.field == "longitude"
+    assert err.value.field == field
 
 
-def test_validate_geofence_radius_bounds() -> None:
+@pytest.mark.parametrize(
+    ("radius", "field"),
+    [
+        (0, "radius"),
+        (5001, "radius"),
+    ],
+)
+def test_validate_geofence_radius_bounds(radius: float, field: str) -> None:
     assert InputValidator.validate_geofence_radius(50) == pytest.approx(50)
 
     with pytest.raises(ValidationError) as err:
-        InputValidator.validate_geofence_radius(0)
+        InputValidator.validate_geofence_radius(radius)
 
-    assert err.value.field == "radius"
+    assert err.value.field == field
