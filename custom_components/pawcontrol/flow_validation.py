@@ -119,7 +119,7 @@ def validate_dog_setup_input(
         field_errors[CONF_DOG_NAME] = "dog_name_too_long"
 
     if current_dog_count >= max_dogs:
-        base_errors.append(f"Maximum {max_dogs} dogs allowed per integration")
+        base_errors.append("max_dogs_reached")
 
     raw_size = user_input.get(CONF_DOG_SIZE, "medium")
     dog_size = str(raw_size).strip() if raw_size is not None else "medium"
