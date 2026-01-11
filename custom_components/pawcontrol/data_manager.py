@@ -2391,7 +2391,7 @@ class PawControlDataManager:
 
         normalized_type = data_type.lower()
 
-        if normalized_type == "garden":
+        async def _export_garden_sessions() -> Path:
             runtime_data = self._get_runtime_data()
             garden_manager = getattr(runtime_data, "garden_manager", None)
             if garden_manager is None:
@@ -2405,7 +2405,7 @@ class PawControlDataManager:
                 date_to=date_to,
             )
 
-        if normalized_type == "routes":
+        async def _export_routes() -> Path:
             runtime_data = self._get_runtime_data()
             gps_manager = getattr(runtime_data, "gps_geofence_manager", None)
             if gps_manager is None:
@@ -2445,14 +2445,24 @@ class PawControlDataManager:
                 )
             export_path = export_dir / filename
 
+            def _route_payload_from_content(content: object) -> JSONValue:
+                if isinstance(content, Mapping):
+                    return content
+                if isinstance(content, Sequence) and not isinstance(
+                    content, (str, bytes, bytearray)
+                ):
+                    return list(content)
+                if content is None:
+                    return {"raw_content": None}
+                try:
+                    return cast(JSONValue, json.loads(str(content)))
+                except json.JSONDecodeError:
+                    return {"raw_content": str(content)}
+
             def _write_route_export() -> None:
                 content = export_payload.get("content")
                 if export_format == "json":
-                    payload = (
-                        content
-                        if isinstance(content, Mapping)
-                        else {"content": content}
-                    )
+                    payload = _route_payload_from_content(content)
                     export_path.write_text(
                         json.dumps(payload, ensure_ascii=False, indent=2),
                         encoding="utf-8",
@@ -2463,115 +2473,165 @@ class PawControlDataManager:
             await asyncio.to_thread(_write_route_export)
             return export_path
 
-        module_map: dict[str, tuple[str, str]] = {
-            "feeding": (MODULE_FEEDING, "timestamp"),
-            "walks": (MODULE_WALK, "end_time"),
-            "walking": (MODULE_WALK, "end_time"),
-            "health": (MODULE_HEALTH, "timestamp"),
-            "medication": (MODULE_MEDICATION, "administration_time"),
-        }
+        async def _export_single(export_type: str) -> Path:
+            if export_type == "garden":
+                return await _export_garden_sessions()
+            if export_type == "routes":
+                return await _export_routes()
 
-        module_info = module_map.get(normalized_type)
-        if module_info is None:
-            error_cls = _resolve_homeassistant_error()
-            raise error_cls(f"Unsupported export data type: {data_type}")
+            module_map: dict[str, tuple[str, str]] = {
+                "feeding": (MODULE_FEEDING, "timestamp"),
+                "walks": (MODULE_WALK, "end_time"),
+                "walking": (MODULE_WALK, "end_time"),
+                "health": (MODULE_HEALTH, "timestamp"),
+                "medication": (MODULE_MEDICATION, "administration_time"),
+            }
 
-        module_name, timestamp_key = module_info
+            module_info = module_map.get(export_type)
+            if module_info is None:
+                error_cls = _resolve_homeassistant_error()
+                raise error_cls(f"Unsupported export data type: {data_type}")
 
-        start = _deserialize_datetime(date_from) if date_from else None
-        end = _deserialize_datetime(date_to) if date_to else None
-        if start is None and days is not None:
-            start = _utcnow() - timedelta(days=max(days, 0))
-        if end is None:
-            end = _utcnow()
+            module_name, timestamp_key = module_info
 
-        history = await self.async_get_module_history(
-            module_name, dog_id, since=start, until=end
-        )
+            start = _deserialize_datetime(date_from) if date_from else None
+            end = _deserialize_datetime(date_to) if date_to else None
+            if start is None and days is not None:
+                start = _utcnow() - timedelta(days=max(days, 0))
+            if end is None:
+                end = _utcnow()
 
-        def _sort_key(payload: JSONLikeMapping) -> tuple[int, str]:
-            timestamp = _deserialize_datetime(payload.get(timestamp_key))
-            if timestamp is not None:
-                return (1, timestamp.isoformat())
-            raw_value = payload.get(timestamp_key)
-            if isinstance(raw_value, datetime):
-                return (1, raw_value.isoformat())
-            return (0, str(raw_value))
-
-        entries: list[JSONMutableMapping] = [
-            cast(
-                JSONMutableMapping,
-                _normalise_diagnostics_json(
-                    _coerce_json_mutable(
-                        cast(JSONMappingLike | JSONMutableMapping, item)
-                    )
-                ),
+            history = await self.async_get_module_history(
+                module_name, dog_id, since=start, until=end
             )
-            for item in sorted(history, key=_sort_key)
-        ]
 
-        export_dir = self._storage_dir / "exports"
-        export_dir.mkdir(parents=True, exist_ok=True)
+            def _sort_key(payload: JSONLikeMapping) -> tuple[int, str]:
+                timestamp = _deserialize_datetime(payload.get(timestamp_key))
+                if timestamp is not None:
+                    return (1, timestamp.isoformat())
+                raw_value = payload.get(timestamp_key)
+                if isinstance(raw_value, datetime):
+                    return (1, raw_value.isoformat())
+                return (0, str(raw_value))
 
-        timestamp = _utcnow().strftime("%Y%m%d%H%M%S")
-        normalized_format = format.lower()
-        if normalized_format not in {"json", "csv", "markdown", "md", "txt"}:
-            normalized_format = "json"
-
-        extension = "md" if normalized_format == "markdown" else normalized_format
-        filename = (
-            f"{self.entry_id}_{dog_id}_{data_type}_{timestamp}.{extension}".replace(
-                " ", "_"
-            )
-        )
-        export_path = export_dir / filename
-
-        if normalized_format == "csv":
-            if entries:
-                fieldnames = sorted({key for entry in entries for key in entry})
-            else:
-                fieldnames = []
-
-            def _write_csv() -> None:
-                with open(export_path, "w", newline="", encoding="utf-8") as handle:
-                    writer = csv.DictWriter(handle, fieldnames=fieldnames)
-                    if fieldnames:
-                        writer.writeheader()
-                    writer.writerows(entries)
-
-            await asyncio.to_thread(_write_csv)
-        elif normalized_format in {"markdown", "md", "txt"}:
-
-            def _write_markdown() -> None:
-                lines = [f"# {data_type.title()} export for {dog_id}", ""]
-                lines.extend(
-                    "- " + ", ".join(f"{k}: {v}" for k, v in entry.items())
-                    for entry in entries
-                )
-                export_path.write_text("\n".join(lines), encoding="utf-8")
-
-            await asyncio.to_thread(_write_markdown)
-        else:
-
-            def _write_json() -> None:
-                payload = cast(
+            entries: list[JSONMutableMapping] = [
+                cast(
                     JSONMutableMapping,
                     _normalise_diagnostics_json(
-                        {
-                            "dog_id": dog_id,
-                            "data_type": data_type,
-                            "generated_at": _utcnow().isoformat(),
-                            "entries": entries,
-                        }
+                        _coerce_json_mutable(
+                            cast(JSONMappingLike | JSONMutableMapping, item)
+                        )
                     ),
                 )
-                export_path.write_text(
-                    json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+                for item in sorted(history, key=_sort_key)
+            ]
+
+            export_dir = self._storage_dir / "exports"
+            export_dir.mkdir(parents=True, exist_ok=True)
+
+            timestamp = _utcnow().strftime("%Y%m%d%H%M%S")
+            normalized_format = format.lower()
+            if normalized_format not in {"json", "csv", "markdown", "md", "txt"}:
+                normalized_format = "json"
+
+            extension = "md" if normalized_format == "markdown" else normalized_format
+            filename = (
+                f"{self.entry_id}_{dog_id}_{export_type}_{timestamp}.{extension}".replace(
+                    " ", "_"
+                )
+            )
+            export_path = export_dir / filename
+
+            if normalized_format == "csv":
+                if entries:
+                    fieldnames = sorted({key for entry in entries for key in entry})
+                else:
+                    fieldnames = []
+
+                def _write_csv() -> None:
+                    with open(export_path, "w", newline="", encoding="utf-8") as handle:
+                        writer = csv.DictWriter(handle, fieldnames=fieldnames)
+                        if fieldnames:
+                            writer.writeheader()
+                        writer.writerows(entries)
+
+                await asyncio.to_thread(_write_csv)
+            elif normalized_format in {"markdown", "md", "txt"}:
+
+                def _write_markdown() -> None:
+                    lines = [f"# {export_type.title()} export for {dog_id}", ""]
+                    lines.extend(
+                        "- " + ", ".join(f"{k}: {v}" for k, v in entry.items())
+                        for entry in entries
+                    )
+                    export_path.write_text("\n".join(lines), encoding="utf-8")
+
+                await asyncio.to_thread(_write_markdown)
+            else:
+
+                def _write_json() -> None:
+                    payload = cast(
+                        JSONMutableMapping,
+                        _normalise_diagnostics_json(
+                            {
+                                "dog_id": dog_id,
+                                "data_type": export_type,
+                                "generated_at": _utcnow().isoformat(),
+                                "entries": entries,
+                            }
+                        ),
+                    )
+                    export_path.write_text(
+                        json.dumps(payload, ensure_ascii=False, indent=2),
+                        encoding="utf-8",
+                    )
+
+                await asyncio.to_thread(_write_json)
+
+            return export_path
+
+        if normalized_type == "garden":
+            return await _export_garden_sessions()
+
+        if normalized_type == "routes":
+            return await _export_routes()
+
+        if normalized_type == "all":
+            export_dir = self._storage_dir / "exports"
+            export_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = _utcnow().strftime("%Y%m%d%H%M%S")
+            export_path = export_dir / (
+                f"{self.entry_id}_{dog_id}_all_{timestamp}.json"
+            )
+
+            export_types = [
+                "feeding",
+                "walks",
+                "health",
+                "medication",
+                "garden",
+                "routes",
+            ]
+            export_manifest = {
+                "dog_id": dog_id,
+                "data_type": "all",
+                "generated_at": _utcnow().isoformat(),
+                "exports": {},
+            }
+
+            for export_type in export_types:
+                export_manifest["exports"][export_type] = str(
+                    await _export_single(export_type)
                 )
 
-            await asyncio.to_thread(_write_json)
+            await asyncio.to_thread(
+                export_path.write_text,
+                json.dumps(export_manifest, ensure_ascii=False, indent=2),
+                "utf-8",
+            )
+            return export_path
 
-        return export_path
+        return await _export_single(normalized_type)
 
     async def async_start_walk(
         self,

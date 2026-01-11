@@ -1757,20 +1757,19 @@ class PawControlLogWeightButton(PawControlButtonBase):
         await super().async_press()
 
         try:
-            health_data_raw = self._get_module_data(
+            health_data = self._get_module_data(
                 cast(CoordinatorTypedModuleName, MODULE_HEALTH)
             )
-            health_data = (
-                cast(HealthModulePayload, health_data_raw)
-                if health_data_raw is not None
-                else None
-            )
-            weight_value = None
-            if health_data is not None:
-                weight_value = health_data.get("weight")
             weight_payload = None
-            if isinstance(weight_value, int | float):
-                weight_payload = float(weight_value)
+            if isinstance(health_data, Mapping):
+                weight_value = health_data.get("weight")
+                if isinstance(weight_value, int | float):
+                    weight_payload = float(weight_value)
+
+            if weight_payload is None:
+                raise HomeAssistantError(
+                    "No valid weight found in health data. Update the health profile."
+                )
 
             payload = {
                 ATTR_DOG_ID: self._dog_id,
@@ -1810,23 +1809,22 @@ class PawControlLogMedicationButton(PawControlButtonBase):
         """Log medication administration."""
         await super().async_press()
 
-        health_data_raw = self._get_module_data(
+        health_data = self._get_module_data(
             cast(CoordinatorTypedModuleName, MODULE_HEALTH)
-        )
-        health_data = (
-            cast(HealthModulePayload, health_data_raw)
-            if health_data_raw is not None
-            else None
         )
         medication_name: str | None = None
         dose: str | None = None
-        if health_data:
+        if isinstance(health_data, Mapping):
             medications = health_data.get("medications", [])
             if isinstance(medications, Sequence) and medications:
                 medication = medications[0]
                 if isinstance(medication, Mapping):
-                    medication_name = cast(str | None, medication.get("name"))
-                    dose = cast(str | None, medication.get("dosage"))
+                    name_value = medication.get("name")
+                    if isinstance(name_value, str):
+                        medication_name = name_value
+                    dose_value = medication.get("dosage")
+                    if isinstance(dose_value, str):
+                        dose = dose_value
 
         if not medication_name:
             raise HomeAssistantError(
