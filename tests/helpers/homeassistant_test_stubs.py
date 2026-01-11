@@ -1163,8 +1163,12 @@ class CoordinatorEntity(Entity):
 
     @property
     def available(self) -> bool:
-        if hasattr(self.coordinator, "last_update_success"):
-            return bool(self.coordinator.last_update_success)
+        if (
+            last_update_success := getattr(
+                self.coordinator, "last_update_success", None
+            )
+        ) is not None:
+            return bool(last_update_success)
         return bool(getattr(self.coordinator, "available", True))
 
 
