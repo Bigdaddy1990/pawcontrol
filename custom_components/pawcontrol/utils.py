@@ -166,7 +166,13 @@ from .const import DEFAULT_MODEL, DOMAIN, MANUFACTURER
 from .service_guard import ServiceGuardResult
 
 if TYPE_CHECKING:
-    from .types import DeviceLinkDetails, JSONMapping, JSONMutableMapping, JSONValue
+    from .types import (
+        DeviceLinkDetails,
+        JSONLikeMapping,
+        JSONMapping,
+        JSONMutableMapping,
+        JSONValue,
+    )
 else:
     JSONValue = object
     JSONMapping = Mapping[str, object]
@@ -396,7 +402,7 @@ class PortionValidationResult(TypedDict):
 async def async_fire_event(
     hass: HomeAssistant,
     event_type: str,
-    event_data: JSONMapping | JSONMutableMapping | None = None,
+    event_data: JSONLikeMapping | None = None,
     *,
     context: Context | None = None,
     origin: EventOrigin | None = None,

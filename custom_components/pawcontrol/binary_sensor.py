@@ -54,6 +54,7 @@ from .types import (
     GardenModulePayload,
     GPSModulePayload,
     HealthModulePayload,
+    JSONLikeMapping,
     JSONMapping,
     JSONMutableMapping,
     JSONValue,
@@ -105,7 +106,7 @@ def _as_local(dt_value: datetime) -> datetime:
 
 
 def _normalise_attributes(
-    attrs: JSONMapping | JSONMutableMapping,
+    attrs: JSONLikeMapping,
 ) -> JSONMutableMapping:
     """Return JSON-serialisable attributes for entity state."""
 

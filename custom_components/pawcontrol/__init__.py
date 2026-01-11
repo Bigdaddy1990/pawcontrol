@@ -69,8 +69,7 @@ from .types import (
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
     DogConfigData,
-    JSONMapping,
-    JSONMutableMapping,
+    JSONLikeMapping,
     JSONValue,
     ManualResilienceEventRecord,
     PawControlConfigEntry,
@@ -873,7 +872,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                         "feeding_manager",
                         feeding_manager.async_initialize(
                             cast(
-                                Sequence[JSONMapping | JSONMutableMapping],
+                                Sequence[JSONLikeMapping],
                                 dogs_config_payload,
                             )
                         ),

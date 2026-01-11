@@ -66,6 +66,7 @@ from .types import (
     GardenModulePayload,
     GPSModulePayload,
     HealthModulePayload,
+    JSONLikeMapping,
     JSONMapping,
     JSONMutableMapping,
     PawControlConfigEntry,
@@ -80,7 +81,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 def _normalise_attributes(
-    attrs: JSONMapping | JSONMutableMapping,
+    attrs: JSONLikeMapping,
 ) -> JSONMutableMapping:
     """Return JSON-serialisable attributes for button entities."""
 
@@ -108,7 +109,7 @@ class ServiceRegistryLike(Protocol):
         self,
         domain: str,
         service: str,
-        service_data: JSONMapping | JSONMutableMapping | None = None,
+        service_data: JSONLikeMapping | None = None,
         blocking: bool = False,
         context: Context | None = None,
     ) -> None:
@@ -146,7 +147,7 @@ class _ServiceRegistryProxy(ServiceRegistryLike):
         self,
         domain: str,
         service: str,
-        service_data: JSONMapping | JSONMutableMapping | None = None,
+        service_data: JSONLikeMapping | None = None,
         blocking: bool = False,
         context: Context | None = None,
     ) -> None:
@@ -960,7 +961,7 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
         self,
         domain: str,
         service: str,
-        data: JSONMapping | JSONMutableMapping,
+        data: JSONLikeMapping,
         **kwargs: Any,
     ) -> None:
         """Call a Home Assistant service via a patch-friendly proxy."""
