@@ -52,7 +52,9 @@ def _build_runtime(
     return runtime, registry
 
 
-def _baseline_data(registry: DogConfigRegistry, dog_id: str, status: str) -> CoordinatorDogData:
+def _baseline_data(
+    registry: DogConfigRegistry, dog_id: str, status: str
+) -> CoordinatorDogData:
     dog_info = registry.get(dog_id)
     return {
         "dog_info": dog_info if dog_info is not None else {"dog_id": dog_id},

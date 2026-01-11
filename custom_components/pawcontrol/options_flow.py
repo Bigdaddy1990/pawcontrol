@@ -3386,9 +3386,7 @@ class PawControlOptionsFlow(OptionsFlow):
                         cast(Mapping[str, JSONValue], candidate)
                     )
                     if normalised is None:
-                        raise FlowValidationError(
-                            base_errors=["invalid_dog_config"]
-                        )
+                        raise FlowValidationError(base_errors=["invalid_dog_config"])
 
                     self._dogs[dog_index] = normalised
                     self._current_dog = normalised
@@ -3743,9 +3741,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     DOG_WEIGHT_FIELD: validated["dog_weight"],
                     DOG_SIZE_FIELD: validated["dog_size"],
                 }
-                candidate[DOG_BREED_FIELD] = validated.get(
-                    "dog_breed", "Mixed Breed"
-                )
+                candidate[DOG_BREED_FIELD] = validated.get("dog_breed", "Mixed Breed")
 
                 new_dogs_raw = [
                     *self._dogs,
@@ -3936,9 +3932,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     )
                     normalised = ensure_dog_config_data(candidate)
                     if normalised is None:
-                        raise FlowValidationError(
-                            base_errors=["invalid_dog_config"]
-                        )
+                        raise FlowValidationError(base_errors=["invalid_dog_config"])
 
                     self._dogs[dog_index] = normalised
                     typed_dogs = self._normalise_entry_dogs(self._dogs)
