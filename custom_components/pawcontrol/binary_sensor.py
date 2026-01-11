@@ -536,7 +536,7 @@ class PawControlBinarySensorBase(
 
         attrs["last_update"] = _as_local(dt_util.utcnow()).isoformat()
         attrs["sensor_type"] = self._sensor_type
-        return _normalise_attributes(attrs)
+        return attrs
 
     def _get_dog_data_cached(self) -> CoordinatorDogData | None:
         """Get dog data from coordinator with thread-safe caching."""
