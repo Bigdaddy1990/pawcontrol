@@ -56,14 +56,7 @@ from .const import (
     CONF_MODULES,
     DEFAULT_DATA_RETENTION_DAYS,
     DEFAULT_PERFORMANCE_MODE,
-    DOG_SIZES,
     DOMAIN,
-    MAX_DOG_AGE,
-    MAX_DOG_NAME_LENGTH,
-    MAX_DOG_WEIGHT,
-    MIN_DOG_AGE,
-    MIN_DOG_NAME_LENGTH,
-    MIN_DOG_WEIGHT,
     MODULE_FEEDING,
     MODULE_GPS,
     MODULE_HEALTH,
@@ -71,7 +64,13 @@ from .const import (
     MODULE_WALK,
 )
 from .entity_factory import ENTITY_PROFILES, EntityFactory, EntityProfileDefinition
-from .exceptions import ConfigurationError, PawControlSetupError, ValidationError
+from .exceptions import (
+    ConfigurationError,
+    FlowValidationError,
+    PawControlSetupError,
+    ValidationError,
+)
+from .flow_validation import validate_dog_setup_input
 from .options_flow import PawControlOptionsFlow
 from .types import (
     ADD_ANOTHER_DOG_PLACEHOLDERS_TEMPLATE,
@@ -149,7 +148,6 @@ else:  # pragma: no cover - only used for typing
 _LOGGER = logging.getLogger(__name__)
 
 # Validation constants with performance optimization
-DOG_ID_PATTERN = re.compile(r"^[a-z][a-z0-9_]*$")
 MAX_DOGS_PER_INTEGRATION = 10
 
 # Pre-compiled validation sets for O(1) lookups
@@ -312,37 +310,6 @@ MODULES_SCHEMA = vol.Schema(
         vol.Optional(MODULE_NOTIFICATIONS, default=True): cv.boolean,
     }
 )
-
-
-class DogValidationError(Exception):
-    """Raised when validating a dog configuration fails."""
-
-    def __init__(
-        self,
-        *,
-        field_errors: dict[str, str] | None = None,
-        base_errors: list[str] | None = None,
-    ) -> None:
-        """Store validation errors for later conversion to form errors."""
-
-        self.field_errors = field_errors or {}
-        self.base_errors = base_errors or []
-
-        message_parts: list[str] = []
-        message_parts.extend(self.field_errors.values())
-        message_parts.extend(self.base_errors)
-        super().__init__("; ".join(message_parts) or "Invalid dog configuration")
-
-    def as_form_errors(self) -> dict[str, str]:
-        """Return errors in the format expected by Home Assistant forms."""
-
-        if self.field_errors:
-            return dict(self.field_errors)
-
-        if self.base_errors:
-            return {"base": self.base_errors[0]}
-
-        return {"base": "invalid_dog_data"}
 
 
 class PawControlConfigFlow(
@@ -1131,7 +1098,7 @@ class PawControlConfigFlow(
                         self._invalidate_profile_caches()
                         return await self.async_step_dog_modules()
 
-                except DogValidationError as err:
+                except FlowValidationError as err:
                     errors.update(err.as_form_errors())
                     if "base" not in errors:
                         _LOGGER.warning("Dog validation failed: %s", err)
@@ -1192,7 +1159,7 @@ class PawControlConfigFlow(
 
         try:
             result = await self._validate_dog_input_optimized(user_input)
-        except DogValidationError:
+        except FlowValidationError:
             config_flow_monitor.record_validation("dog_input_error")
             raise
 
@@ -1266,106 +1233,21 @@ class PawControlConfigFlow(
     ) -> DogSetupStepInput | None:
         """Validate dog input data with optimized performance.
 
-        Uses set operations and pre-compiled regex for better performance.
-
         Args:
             user_input: Raw user input
 
         Returns:
-            Validated input or None if validation fails
+            Validated input
 
         Raises:
-            DogValidationError: If validation fails
+            FlowValidationError: If validation fails
         """
-        # Sanitize inputs with optimized string operations
-        raw_dog_id = user_input[DOG_ID_FIELD]
-        dog_id = raw_dog_id.lower().strip()
-        dog_name = user_input[DOG_NAME_FIELD].strip()
-
-        # Batch validation for better performance
-        field_errors: dict[str, str] = {}
-        base_errors: list[str] = []
-
-        # Validate dog ID format (pre-compiled regex)
-        if not DOG_ID_PATTERN.match(dog_id):
-            field_errors[CONF_DOG_ID] = "Invalid ID format"
-
-        # Check for duplicate dog ID (O(1) set lookup)
-        if dog_id in self._existing_dog_ids:
-            field_errors.setdefault(CONF_DOG_ID, "ID already exists")
-
-        # Validate dog name length
-        name_len = len(dog_name)
-        if name_len < MIN_DOG_NAME_LENGTH:
-            field_errors[CONF_DOG_NAME] = (
-                f"Dog name must be at least {MIN_DOG_NAME_LENGTH} characters"
-            )
-        elif name_len > MAX_DOG_NAME_LENGTH:
-            field_errors[CONF_DOG_NAME] = (
-                f"Dog name cannot exceed {MAX_DOG_NAME_LENGTH} characters"
-            )
-
-        # Check maximum dogs limit
-        if len(self._dogs) >= MAX_DOGS_PER_INTEGRATION:
-            base_errors.append(
-                f"Maximum {MAX_DOGS_PER_INTEGRATION} dogs allowed per integration"
-            )
-
-        # Validate dog size (O(1) frozenset lookup)
-        dog_size = str(user_input.get(CONF_DOG_SIZE, "medium"))
-        if dog_size not in VALID_DOG_SIZES:
-            field_errors[CONF_DOG_SIZE] = f"Invalid dog size: {dog_size}"
-
-        # Normalise and validate weight using schema bounds
-        raw_weight = (
-            user_input.get(CONF_DOG_WEIGHT)
-            if CONF_DOG_WEIGHT in user_input
-            else user_input.get("weight")
+        return validate_dog_setup_input(
+            user_input,
+            existing_ids=self._existing_dog_ids,
+            current_dog_count=len(self._dogs),
+            max_dogs=MAX_DOGS_PER_INTEGRATION,
         )
-        dog_weight: float
-        if raw_weight is None:
-            dog_weight = 20.0
-        else:
-            try:
-                dog_weight = float(raw_weight)
-            except (TypeError, ValueError):
-                field_errors[CONF_DOG_WEIGHT] = "Invalid weight"
-            else:
-                if not (MIN_DOG_WEIGHT <= dog_weight <= MAX_DOG_WEIGHT):
-                    field_errors[CONF_DOG_WEIGHT] = (
-                        f"Weight must be between {MIN_DOG_WEIGHT} and {MAX_DOG_WEIGHT}"
-                    )
-
-        # Raise single error with all issues
-        if field_errors or base_errors:
-            raise DogValidationError(
-                field_errors=field_errors,
-                base_errors=base_errors,
-            )
-
-        # Return validated data
-        raw_breed = user_input.get(CONF_DOG_BREED, "")
-        dog_breed = raw_breed.strip() if isinstance(raw_breed, str) else ""
-        breed_value: str | None = dog_breed or None
-
-        age_value = user_input.get(CONF_DOG_AGE, 3)
-        if isinstance(age_value, int | float):
-            dog_age: int | None = int(age_value)
-        else:
-            dog_age = None
-
-        validated: DogSetupStepInput = {
-            "dog_id": dog_id,
-            "dog_name": dog_name,
-        }
-        if breed_value is not None:
-            validated["dog_breed"] = breed_value
-        if dog_age is not None:
-            validated["dog_age"] = dog_age
-        validated["dog_weight"] = dog_weight
-        validated["dog_size"] = dog_size
-
-        return validated
 
     async def _create_dog_config(
         self, validated_input: DogSetupStepInput

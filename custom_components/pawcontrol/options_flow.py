@@ -30,6 +30,7 @@ from homeassistant.config_entries import ConfigFlowResult, OptionsFlow
 from homeassistant.util import dt as dt_util
 
 from .compat import ConfigEntry
+from .config_flow_base import MAX_DOGS_PER_ENTRY
 from .config_flow_profile import (
     DEFAULT_PROFILE,
     get_profile_selector_options,
@@ -98,7 +99,8 @@ from .device_api import validate_device_endpoint
 from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .door_sensor_manager import ensure_door_sensor_settings_config
 from .entity_factory import ENTITY_PROFILES, EntityFactory
-from .exceptions import ValidationError
+from .exceptions import FlowValidationError, ValidationError
+from .flow_validation import validate_dog_setup_input, validate_dog_update_input
 from .grooming_translations import translated_grooming_label
 from .language import normalize_language
 from .repairs import (
@@ -473,7 +475,7 @@ class PawControlOptionsFlow(OptionsFlow):
         for dog in dogs:
             normalised = ensure_dog_config_data(cast(Mapping[str, JSONValue], dog))
             if normalised is None:
-                raise ValueError("invalid_dog_config")
+                raise FlowValidationError(base_errors=["invalid_dog_config"])
             typed_dogs.append(normalised)
         return typed_dogs
 
@@ -1019,13 +1021,13 @@ class PawControlOptionsFlow(OptionsFlow):
 
         modules_raw = normalised.get(CONF_MODULES)
         if modules_raw is not None and not isinstance(modules_raw, Mapping):
-            raise ValueError("dog_invalid_modules")
+            raise FlowValidationError(field_errors={"payload": "dog_invalid_modules"})
 
         modules = ensure_dog_modules_config(normalised)
         normalised[DOG_MODULES_FIELD] = modules
 
         if not is_dog_config_valid(normalised):
-            raise ValueError("dog_invalid_config")
+            raise FlowValidationError(field_errors={"payload": "dog_invalid_config"})
 
         return normalised
 
@@ -1076,15 +1078,15 @@ class PawControlOptionsFlow(OptionsFlow):
         """Validate and normalise an imported payload."""
 
         if not isinstance(payload, Mapping):
-            raise ValueError("payload_not_mapping")
+            raise FlowValidationError(field_errors={"payload": "payload_not_mapping"})
 
         version = payload.get("version")
         if version != self._EXPORT_VERSION:
-            raise ValueError("unsupported_version")
+            raise FlowValidationError(field_errors={"payload": "unsupported_version"})
 
         options_raw = payload.get("options")
         if not isinstance(options_raw, Mapping):
-            raise ValueError("options_missing")
+            raise FlowValidationError(field_errors={"payload": "options_missing"})
 
         sanitised_options = cast(
             PawControlOptionsData,
@@ -1097,19 +1099,19 @@ class PawControlOptionsFlow(OptionsFlow):
 
         dogs_raw = payload.get("dogs", [])
         if not isinstance(dogs_raw, list):
-            raise ValueError("dogs_invalid")
+            raise FlowValidationError(field_errors={"payload": "dogs_invalid"})
 
         dogs_payload: list[DogConfigData] = []
         seen_ids: set[str] = set()
         for raw in dogs_raw:
             if not isinstance(raw, Mapping):
-                raise ValueError("dog_invalid")
+                raise FlowValidationError(field_errors={"payload": "dog_invalid"})
             normalised = self._sanitise_imported_dog(raw)
             dog_id = normalised.get(CONF_DOG_ID)
             if not isinstance(dog_id, str) or not dog_id.strip():
-                raise ValueError("dog_missing_id")
+                raise FlowValidationError(field_errors={"payload": "dog_missing_id"})
             if dog_id in seen_ids:
-                raise ValueError("dog_duplicate")
+                raise FlowValidationError(field_errors={"payload": "dog_duplicate"})
             seen_ids.add(dog_id)
             dogs_payload.append(normalised)
 
@@ -3384,7 +3386,9 @@ class PawControlOptionsFlow(OptionsFlow):
                         cast(Mapping[str, JSONValue], candidate)
                     )
                     if normalised is None:
-                        raise ValueError("invalid_dog_config")
+                        raise FlowValidationError(
+                            base_errors=["invalid_dog_config"]
+                        )
 
                     self._dogs[dog_index] = normalised
                     self._current_dog = normalised
@@ -3396,6 +3400,12 @@ class PawControlOptionsFlow(OptionsFlow):
                         self._entry, data=new_data
                     )
                     self._dogs = typed_dogs
+            except FlowValidationError as err:
+                return self.async_show_form(
+                    step_id="configure_dog_modules",
+                    data_schema=self._get_dog_modules_schema(),
+                    errors=err.as_form_errors(),
+                )
             except Exception as err:
                 _LOGGER.error("Error configuring dog modules: %s", err)
                 return self.async_show_form(
@@ -3695,14 +3705,19 @@ class PawControlOptionsFlow(OptionsFlow):
         self, user_input: DogSetupStepInput | None = None
     ) -> ConfigFlowResult:
         """Add a new dog to the configuration."""
+        errors: dict[str, str] = {}
         if user_input is not None:
             try:
-                dog_id_input = str(user_input[CONF_DOG_ID])
-                dog_id = dog_id_input.strip().lower().replace(" ", "_")
-                dog_name = str(user_input[CONF_DOG_NAME]).strip()
-
-                if not dog_id or not dog_name:
-                    raise ValueError("invalid_dog_identifiers")
+                validated = validate_dog_setup_input(
+                    user_input,
+                    existing_ids={
+                        str(dog.get(DOG_ID_FIELD)).strip()
+                        for dog in self._dogs
+                        if isinstance(dog.get(DOG_ID_FIELD), str)
+                    },
+                    current_dog_count=len(self._dogs),
+                    max_dogs=MAX_DOGS_PER_ENTRY,
+                )
 
                 modules_config = ensure_dog_modules_config(
                     {
@@ -3721,29 +3736,16 @@ class PawControlOptionsFlow(OptionsFlow):
                 )
 
                 candidate: JSONMutableMapping = {
-                    DOG_ID_FIELD: dog_id,
-                    DOG_NAME_FIELD: dog_name,
+                    DOG_ID_FIELD: validated["dog_id"],
+                    DOG_NAME_FIELD: validated["dog_name"],
                     DOG_MODULES_FIELD: cast(JSONValue, modules_config),
+                    DOG_AGE_FIELD: validated.get("dog_age", 3),
+                    DOG_WEIGHT_FIELD: validated["dog_weight"],
+                    DOG_SIZE_FIELD: validated["dog_size"],
                 }
-
-                breed = str(user_input.get(CONF_DOG_BREED, "")).strip()
-                candidate[DOG_BREED_FIELD] = breed or "Mixed Breed"
-
-                age = user_input.get(CONF_DOG_AGE, 3)
-                if isinstance(age, (int, float, str)):
-                    candidate[DOG_AGE_FIELD] = int(age)
-                else:
-                    candidate[DOG_AGE_FIELD] = 3
-
-                weight = user_input.get(CONF_DOG_WEIGHT, 20.0)
-                if isinstance(weight, (int, float, str)):
-                    candidate[DOG_WEIGHT_FIELD] = float(weight)
-                else:
-                    candidate[DOG_WEIGHT_FIELD] = 20.0
-
-                size = user_input.get(CONF_DOG_SIZE, "medium")
-                if isinstance(size, str) and size:
-                    candidate[DOG_SIZE_FIELD] = size
+                candidate[DOG_BREED_FIELD] = validated.get(
+                    "dog_breed", "Mixed Breed"
+                )
 
                 new_dogs_raw = [
                     *self._dogs,
@@ -3759,16 +3761,16 @@ class PawControlOptionsFlow(OptionsFlow):
                 self._invalidate_profile_caches()
 
                 return await self.async_step_init()
+            except FlowValidationError as err:
+                errors.update(err.as_form_errors())
             except Exception as err:
                 _LOGGER.error("Error adding new dog: %s", err)
-                return self.async_show_form(
-                    step_id="add_new_dog",
-                    data_schema=self._get_add_dog_schema(),
-                    errors={"base": "add_dog_failed"},
-                )
+                errors["base"] = "add_dog_failed"
 
         return self.async_show_form(
-            step_id="add_new_dog", data_schema=self._get_add_dog_schema()
+            step_id="add_new_dog",
+            data_schema=self._get_add_dog_schema(),
+            errors=errors,
         )
 
     def _get_add_dog_schema(self) -> vol.Schema:
@@ -3928,53 +3930,15 @@ class PawControlOptionsFlow(OptionsFlow):
                 )
 
                 if dog_index >= 0:
-                    candidate: JSONMutableMapping = cast(
-                        JSONMutableMapping, dict(self._dogs[dog_index])
+                    candidate = validate_dog_update_input(
+                        cast(DogConfigData, dict(self._dogs[dog_index])),
+                        user_input,
                     )
-
-                    name = user_input.get(
-                        CONF_DOG_NAME, candidate.get(DOG_NAME_FIELD, "")
-                    )
-                    if isinstance(name, str) and name.strip():
-                        candidate[DOG_NAME_FIELD] = name.strip()
-
-                    breed = user_input.get(
-                        CONF_DOG_BREED, candidate.get(DOG_BREED_FIELD, "")
-                    )
-                    if isinstance(breed, str):
-                        candidate[DOG_BREED_FIELD] = breed.strip()
-
-                    age = user_input.get(CONF_DOG_AGE)
-                    if age is None:
-                        candidate.pop(DOG_AGE_FIELD, None)
-                    else:
-                        if isinstance(age, (int, float, str)):
-                            candidate[DOG_AGE_FIELD] = int(age)
-                        else:
-                            candidate[DOG_AGE_FIELD] = candidate.get(DOG_AGE_FIELD, 0)
-
-                    weight = user_input.get(CONF_DOG_WEIGHT)
-                    if weight is None:
-                        candidate.pop(DOG_WEIGHT_FIELD, None)
-                    else:
-                        if isinstance(weight, (int, float, str)):
-                            candidate[DOG_WEIGHT_FIELD] = float(weight)
-                        else:
-                            candidate[DOG_WEIGHT_FIELD] = candidate.get(
-                                DOG_WEIGHT_FIELD, 0.0
-                            )
-
-                    size = user_input.get(CONF_DOG_SIZE, candidate.get(DOG_SIZE_FIELD))
-                    if isinstance(size, str):
-                        cleaned_size = size.strip()
-                        if cleaned_size:
-                            candidate[DOG_SIZE_FIELD] = cleaned_size
-                        else:
-                            candidate.pop(DOG_SIZE_FIELD, None)
-
                     normalised = ensure_dog_config_data(candidate)
                     if normalised is None:
-                        raise ValueError("invalid_dog_config")
+                        raise FlowValidationError(
+                            base_errors=["invalid_dog_config"]
+                        )
 
                     self._dogs[dog_index] = normalised
                     typed_dogs = self._normalise_entry_dogs(self._dogs)
@@ -3989,6 +3953,12 @@ class PawControlOptionsFlow(OptionsFlow):
                     self._invalidate_profile_caches()
 
                 return await self.async_step_init()
+            except FlowValidationError as err:
+                return self.async_show_form(
+                    step_id="edit_dog",
+                    data_schema=self._get_edit_dog_schema(),
+                    errors=err.as_form_errors(),
+                )
             except Exception as err:
                 _LOGGER.error("Error editing dog: %s", err)
                 return self.async_show_form(
@@ -4072,7 +4042,7 @@ class PawControlOptionsFlow(OptionsFlow):
 
                 try:
                     typed_dogs = self._normalise_entry_dogs(updated_dogs)
-                except ValueError as err:  # pragma: no cover - defensive guard
+                except FlowValidationError as err:  # pragma: no cover - defensive guard
                     _LOGGER.error("Invalid dog configuration during removal: %s", err)
                     return self.async_show_form(
                         step_id="select_dog_to_remove",
@@ -5485,12 +5455,9 @@ class PawControlOptionsFlow(OptionsFlow):
                 else:
                     try:
                         validated = self._validate_import_payload(parsed)
-                    except ValueError as err:
+                    except FlowValidationError as err:
                         _LOGGER.debug("Import payload validation failed: %s", err)
-                        error_code = str(err).strip() or "invalid_payload"
-                        if " " in error_code:
-                            error_code = "invalid_payload"
-                        errors["payload"] = error_code
+                        errors.update(err.as_form_errors())
                     else:
                         new_options = self._normalise_options_snapshot(
                             validated["options"]
