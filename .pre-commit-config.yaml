@@ -34,6 +34,9 @@ repos:
         args: [--fix=lf]
       - id: debug-statements
       - id: requirements-txt-fixer
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-merge-conflict
 
 #  - repo: https://github.com/asottile/reorder-python-imports
 #    rev: v3.15.0
