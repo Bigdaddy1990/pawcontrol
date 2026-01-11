@@ -88,7 +88,6 @@ class PawControlEntity(
 
         if not self.translation_key or not self.has_entity_name:
             return self._dog_name
-            return self._dog_name
 
         return None
 
