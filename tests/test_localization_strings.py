@@ -102,17 +102,27 @@ def test_entity_translation_keys_are_defined() -> None:
     sensor_keys = _extract_decorator_keys(
         COMPONENT_ROOT / "sensor.py", "register_sensor"
     )
-    binary_keys = _extract_decorator_keys(
-        COMPONENT_ROOT / "binary_sensor.py", "register_binary_sensor"
+    binary_keys = _extract_init_keys(
+        COMPONENT_ROOT / "binary_sensor.py",
+        base_class="PawControlBinarySensorBase",
+        keyword_name="sensor_type",
     )
-    button_keys = _extract_decorator_keys(
-        COMPONENT_ROOT / "button.py", "register_button"
+    button_keys = _extract_init_keys(
+        COMPONENT_ROOT / "button.py",
+        base_class="PawControlButtonBase",
+        keyword_name="button_type",
     )
-    number_keys = _extract_decorator_keys(
-        COMPONENT_ROOT / "number.py", "register_number"
+    number_keys = _extract_init_keys(
+        # For numbers, prefer explicit `translation_key` but fall back to the
+        # `number_type` positional argument to match the entity logic.
+        COMPONENT_ROOT / "number.py",
+        base_class="PawControlNumberBase",
+        keyword_name="translation_key",
     )
-    select_keys = _extract_decorator_keys(
-        COMPONENT_ROOT / "select.py", "register_select"
+    select_keys = _extract_init_keys(
+        COMPONENT_ROOT / "select.py",
+        base_class="PawControlSelectBase",
+        keyword_name="select_type",
     )
 
     text_keys = _extract_init_keys(
