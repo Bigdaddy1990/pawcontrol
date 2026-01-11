@@ -86,8 +86,7 @@ class PawControlEntity(
         if name is not None:
             return name
 
-        translation_key = getattr(self, "_attr_translation_key", None)
-        if not translation_key or not self.has_entity_name:
+        if not self.translation_key or not self.has_entity_name:
             return self._dog_name
 
         return None
