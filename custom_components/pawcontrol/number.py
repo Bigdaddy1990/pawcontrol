@@ -352,8 +352,7 @@ class PawControlNumberBase(PawControlEntity, NumberEntity, RestoreEntity):
 
         # Entity configuration
         self._attr_unique_id = f"pawcontrol_{dog_id}_{number_type}"
-        self._apply_name_suffix(number_type.replace("_", " ").title())
-        self._attr_translation_key = translation_key
+        self._attr_translation_key = translation_key or number_type
         self._attr_device_class = device_class
         self._attr_mode = mode
         self._attr_native_unit_of_measurement = native_unit_of_measurement

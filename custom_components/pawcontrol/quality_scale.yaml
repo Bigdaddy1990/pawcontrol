@@ -9,68 +9,68 @@ quality_scale: platinum
 rules:
   has-owner:
     status: done
-    comment: "`manifest.json` and `CODEOWNERS` list @BigDaddy1990 as the maintainer of record."
+    comment: "Evidence: `CODEOWNERS`, `custom_components/pawcontrol/manifest.json`."
 
   config-flow:
     status: done
-    comment: "User, discovery, reconfigure, options, and reauth steps live in `config_flow.py` with regression coverage in `tests/components/pawcontrol/test_config_flow.py`."
+    comment: "Evidence: `custom_components/pawcontrol/config_flow.py`; UI walkthrough in `docs/user_guide.md` and `docs/setup_installation_guide.md`; flow strings in `custom_components/pawcontrol/strings.json`."
 
   docs-actions:
     status: done
-    comment: "All services are documented in `services.yaml`, README, and automation guides, matching the handlers in `services.py` and `script_manager.py`."
+    comment: "Evidence: `custom_components/pawcontrol/services.yaml`; user docs in `README.md` and `docs/automation_examples.md`; handlers in `custom_components/pawcontrol/services.py`/`script_manager.py`."
 
   docs-removal:
     status: done
-    comment: "Removal, device cleanup, and cloud disconnect workflows are covered in README, `docs/MAINTENANCE.md`, and the portal guides."
+    comment: "Evidence: removal and cleanup steps in `docs/setup_installation_guide.md` and troubleshooting in `docs/troubleshooting.md`."
 
   runtime-data:
     status: done
-    comment: "Platforms resolve managers through runtime data containers as implemented in `__init__.py`, `coordinator_runtime.py`, and verified by `tests/unit/test_runtime_manager_container_usage.py`."
+    comment: "Evidence: runtime containers in `custom_components/pawcontrol/runtime_data.py` and `coordinator_runtime.py`; tests in `tests/test_runtime_data.py`."
 
   stale-devices:
     status: done
-    comment: "`async_remove_config_entry_device` protects active hardware with tests in `tests/components/pawcontrol/test_init.py`."
+    comment: "Evidence: device removal guard in `custom_components/pawcontrol/__init__.py`; device registry stubs in `tests/helpers/homeassistant_test_stubs.py`."
 
   dynamic-devices:
     status: done
-    comment: "Entity reload and recreation paths are covered by init and platform tests ensuring dynamic devices survive config entry reloads."
+    comment: "Evidence: platform setup logic in `custom_components/pawcontrol/*` and entity registry stubs in `tests/helpers/homeassistant_test_stubs.py`."
 
   test-before-setup:
     status: done
-    comment: "Config flow and setup tests assert that invalid credentials, malformed imports, and network errors abort cleanly."
+    comment: "Evidence: validation guards in `custom_components/pawcontrol/validation.py`; tests in `tests/test_validation_inputs.py`."
 
   test-before-update:
     status: done
-    comment: "Coordinator suites raise `UpdateFailed` and validate retry handling for runtime fetch errors."
+    comment: "Evidence: coordinator error handling in `custom_components/pawcontrol/coordinator.py`; diagnostics tests in `tests/test_diagnostics.py`."
 
   test-before-unload:
     status: done
-    comment: "`async_unload_entry` paths are exercised across success, failure, and no-runtime-data scenarios in the init tests."
+    comment: "Evidence: unload handling in `custom_components/pawcontrol/__init__.py`; runtime data teardown in `custom_components/pawcontrol/runtime_data.py`."
 
   test-coverage:
     status: done
-    comment: "`pytest -q` executes unit, component, and end-to-end suites with the 100% coverage floor enforced by `pyproject.toml`."
+    comment: "Evidence: coverage config in `pyproject.toml`; unit suites in `tests/` (e.g., `tests/test_geofence_zone.py`, `tests/test_validation_inputs.py`)."
 
   brands:
     status: done
-    comment: "Brand assets ship in `brands/pawcontrol/` and align with the integration documentation."
+    comment: "Evidence: brand assets in `brands/pawcontrol/`."
 
   documentation:
     status: done
-    comment: "README, `info.md`, and the documentation portal provide setup, maintenance, diagnostics, and troubleshooting coverage with citations."
+    comment: "Evidence: user docs in `README.md`, `docs/user_guide.md`, `docs/automation_examples.md`, `docs/troubleshooting.md`, and `docs/setup_installation_guide.md`."
 
   diagnostics:
     status: done
-    comment: "`diagnostics.py` exports anonymised telemetry (including rejection metrics) with validation in diagnostics tests."
+    comment: "Evidence: diagnostics export in `custom_components/pawcontrol/diagnostics.py`; tests in `tests/test_diagnostics.py`."
 
   repairs:
     status: done
-    comment: "Actionable repair issues are registered in `repairs.py` and covered by the associated regression tests."
+    comment: "Evidence: `custom_components/pawcontrol/repairs.py`; tests in `tests/test_repairs.py`."
 
   maintenance-playbook:
     status: done
-    comment: "Sustainment cadence and evidence curation live in `docs/MAINTENANCE.md` and `dev.md`."
+    comment: "Evidence: developer guidance in `dev.md`."
 
   localization:
     status: done
-    comment: "`strings.json` and `translations/` deliver full localisation for the config flow, options, and diagnostics surfaces."
+    comment: "Evidence: `custom_components/pawcontrol/strings.json` and `custom_components/pawcontrol/translations/` (validated by `tests/test_localization_strings.py`)."

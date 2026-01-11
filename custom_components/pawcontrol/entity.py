@@ -80,10 +80,9 @@ class PawControlEntity(
 
     @property
     def name(self) -> str | None:
-        """Return the entity name, defaulting to the dog name when unset."""
+        """Return the explicit entity name when one is set."""
 
-        name = getattr(self, "_attr_name", None)
-        return name if name is not None else self._dog_name
+        return getattr(self, "_attr_name", None)
 
     @property
     def unique_id(self) -> str | None:

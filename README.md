@@ -11,7 +11,7 @@
 [![Coverage](https://img.shields.io/endpoint?url=https://bigdaddy1990.github.io/pawcontrol/coverage/latest/shields.json)](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/index.html)
 [![Tests](https://github.com/BigDaddy1990/pawcontrol/actions/workflows/ci.yml/badge.svg)](https://github.com/BigDaddy1990/pawcontrol/actions/workflows/ci.yml)
 
-**PawControl** is a comprehensive Home Assistant integration for smart dog management, featuring advanced GPS tracking, automated feeding reminders, health monitoring, and intelligent automation workflows. The integration **aims to comply with the Platinum quality scale** and keeps runtime data, options flow, diagnostics, and testing evidence synchronised with the Home Assistant guidance captured in this repository’s compliance reports. As a custom integration, this is an alignment target rather than an official Home Assistant score.
+**PawControl** is a comprehensive Home Assistant integration for smart dog management, featuring advanced GPS tracking, automated feeding reminders, health monitoring, and intelligent automation workflows. The integration **aims to comply with the Platinum quality scale** and keeps runtime data, options flow, diagnostics, and testing evidence synchronised with the Home Assistant guidance captured in this repository’s compliance reports. As a custom integration, this is an alignment target rather than an official Home Assistant badge.
 
 ## ✨ Key Features
 
@@ -26,54 +26,59 @@
 🤖 **Advanced Automations** - Learning algorithms, predictive alerts, and emergency detection
 ⚡ **Enterprise Performance** - Multi-tier caching, batch processing, and real-time monitoring
 
-## 🧪 Quality & Testing
+## 🧪 Quality & Evidence
 
-- 📐 Run `ruff format`, `ruff check`, `python -m script.enforce_test_requirements`,
-  `mypy`, and `pytest -q` before every pull request to preserve Platinum-aligned
-  baselines.
-- 📊 Coverage and async performance metrics are tracked in `docs/testing/coverage_reporting.md` and `generated/perf_samples/latest.json`.
-- 🌐 CI publishes the lightweight coverage report to GitHub Pages via `python -m script.publish_coverage`, and the latest HTML is always available at [`coverage/latest/index.html`](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/index.html) with a Shields badge feed at [`coverage/latest/shields.json`](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/shields.json).
-- ♻️ Supply `--prune-expired-runs` when invoking `python -m script.publish_coverage` to remove `coverage/<run_id>` folders older than 30 days; the GitHub token used for publication needs `contents:write` (or `pages:write`) permissions to prune the Pages branch.
-- 🧾 Coordinator, config-flow, diagnostics, and service suites use Home Assistant test fixtures to validate setup/unload, runtime data, and repair flows.
-- ▶️ Run the full quality gate locally:
-  ```bash
-  ruff format
-  ruff check
-  python -m script.enforce_test_requirements
-  mypy
-  pytest -q
-  ```
-- 🔄 `python -m script.sync_homeassistant_dependencies --home-assistant-root /pfad/zum/home-assistant-core`
-  synchronisiert `requirements*.txt`, Manifest-Anforderungen und das vendorte
-  PyYAML mit den `package_constraints` des Core-Repos, aktualisiert bei Bedarf
-  automatisch auf PyYAML 6.0.3 und schreibt `generated/vendor_pyyaml_status.json`
-  inklusive Download-Links neu.
-- 🛡️ Über `python -m script.check_vendor_pyyaml --fail-on-outdated --metadata-path
-  generated/vendor_pyyaml_status.json` lässt sich lokal prüfen, ob die gebündelte
-  PyYAML-Version den aktuellen PyPI- und OSV-Daten entspricht. Der Monitor
-  trackt automatisch sowohl `cp313`-`manylinux`- als auch `cp313`-`musllinux`
-  (PEP 656) Wheels und aktualisiert die Statusdatei inklusive Download-Links;
-  der Check läuft zusätzlich automatisiert in CI.
-- 🧮 Der CI-Job **TypedDict audit** ruft `python -m script.check_typed_dicts` für
-  `custom_components/pawcontrol` und `tests` mit `--fail-on-findings` auf, damit
-  keine neuen `dict[str, Any]`-/`Mapping[str, Any]`-Stellen in Fixtures oder
-  Integrationscode landen. Lokal denselben Befehl ausführen, sobald Payloads
-  oder Stubs angepasst werden.
+- 📊 Coverage, diagnostics, and quality-scale evidence are tracked in
+  `custom_components/pawcontrol/quality_scale.yaml` and referenced throughout
+  the docs.
+- 🌐 CI publishes coverage reports to GitHub Pages at
+  [`coverage/latest/index.html`](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/index.html).
+- 🧾 The diagnostics, config flow, and service suites use Home Assistant test
+  fixtures to validate setup/unload, runtime data, and repair flows.
+- 👩‍💻 Developer workflows, linting, and release procedures live in `dev.md`.
 
-### 🗓️ Testkapazitätsplanung
+## 📚 User Documentation
 
-- ⏱️ Der Workflow [`scheduled-pytest.yml`](.github/workflows/scheduled-pytest.yml) blockt dienstags und freitags um 03:00 UTC einen dedizierten GitHub-Actions-Slot für den vollständigen `pytest -q`-Durchlauf inklusive Coverage-Artefakten.
-- 🧪 Manuelle `workflow_dispatch`-Runs verlangen `override_ci_window=true` plus einen dokumentierten `run_reason`, damit nur abgestimmte Sonderläufe das reservierte Zeitfenster nutzen; außerhalb abgestimmter Wartungen sollte der Slot frei bleiben.
-- 💻 Lokale Komplettläufe planen wir weiterhin außerhalb der Kernarbeitszeit (z. B. täglich nach 18:00 lokaler Zeit) und nutzen `PYTEST_ADDOPTS="-n auto"` nur auf Workstations mit ≥8 vCPUs, um Engpässe mit parallelen CI-Läufen zu vermeiden.
-- 🛡️ Der Workflow [`vendor-pyyaml-monitor.yml`](.github/workflows/vendor-pyyaml-monitor.yml)
-  überprüft mittwochs um 02:30 UTC die PyYAML-Releases samt OSV-Meldungen und
-  meldet, sobald passende `cp313`-`manylinux`- oder `cp313`-`musllinux`-Wheels
-  (PEP 656) das Entfernen des Vendor-Verzeichnisses erlauben; manuelle
-  Dispatches können den Lauf optional auf neue Releases abklemmen.
-- 🧮 Der Workflow [`ci.yml`](.github/workflows/ci.yml) enthält den Job „TypedDict
-  audit“, der jede Pull-Request- und Push-Pipeline stoppt, sobald das
-  Guard-Skript neue `dict[str, Any]`-/`Mapping[str, Any]`-Vorkommen meldet. Für
-  lokale Kontrollen denselben Befehl wie im Joblog verwenden.
+- **Setup & configuration (DE)**: [`docs/setup_installation_guide.md`](docs/setup_installation_guide.md)
+- **User guide (EN)**: [`docs/user_guide.md`](docs/user_guide.md)
+- **Automation examples (EN)**: [`docs/automation_examples.md`](docs/automation_examples.md)
+- **Troubleshooting (EN)**: [`docs/troubleshooting.md`](docs/troubleshooting.md)
+
+## ✅ Quick Start (UI-based)
+
+1. Install via HACS or manual copy.
+2. Restart Home Assistant.
+3. Add **Paw Control** in **Settings → Devices & Services**.
+4. Follow the guided setup to add your first dog and enable modules.
+5. Review the generated entities, services, and dashboard cards.
+
+## 🤖 Automation Examples
+
+```yaml
+alias: PawControl - feeding reminder when overdue
+trigger:
+  - platform: state
+    entity_id: binary_sensor.pawcontrol_is_hungry
+    to: "on"
+action:
+  - service: notify.mobile_app
+    data:
+      title: "Feeding reminder"
+      message: "Meal is overdue for {{ state_attr('binary_sensor.pawcontrol_is_hungry', 'dog_name') }}"
+```
+
+More samples live in [`docs/automation_examples.md`](docs/automation_examples.md).
+
+## 🛠️ Troubleshooting (Quick hits)
+
+- **Integration shows “Setup failed”** → verify missing API tokens or invalid
+  endpoint settings and restart after saving.
+- **Geofence updates fail** → confirm coordinates are valid and within allowed
+  range.
+- **Entities missing translations** → ensure `strings.json` and `translations/`
+  contain the new keys.
+
+See [`docs/troubleshooting.md`](docs/troubleshooting.md) for full guidance.
 
 ## 🚀 Installation & Setup
 

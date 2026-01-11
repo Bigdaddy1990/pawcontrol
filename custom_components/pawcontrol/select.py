@@ -640,7 +640,7 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
 
         # Entity configuration
         self._attr_unique_id = f"pawcontrol_{dog_id}_{select_type}"
-        self._apply_name_suffix(select_type.replace("_", " ").title())
+        self._attr_translation_key = select_type
         self._attr_options = options
         self._attr_icon = icon
         self._attr_entity_category = entity_category

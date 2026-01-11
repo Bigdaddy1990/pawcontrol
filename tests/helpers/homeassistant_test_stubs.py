@@ -1154,6 +1154,18 @@ class CoordinatorUpdateFailed(Exception):  # noqa: N818
     """Error raised when DataUpdateCoordinator refreshes fail."""
 
 
+class CoordinatorEntity(Entity):
+    """Minimal CoordinatorEntity shim used by PawControl entities."""
+
+    def __init__(self, coordinator: object, *args: object, **kwargs: object) -> None:
+        super().__init__()
+        self.coordinator = coordinator
+
+    @property
+    def available(self) -> bool:
+        return bool(getattr(self.coordinator, "available", True))
+
+
 class _SelectorBase:
     def __init__(self, config: object | None = None) -> None:
         self.config = config
@@ -1366,6 +1378,7 @@ def install_homeassistant_stubs() -> None:
     event_module.async_track_state_change_event = _async_track_state_change_event
 
     update_coordinator_module.DataUpdateCoordinator = DataUpdateCoordinator
+    update_coordinator_module.CoordinatorEntity = CoordinatorEntity
     update_coordinator_module.CoordinatorUpdateFailed = CoordinatorUpdateFailed
 
     dt_util_module.utcnow = _utcnow

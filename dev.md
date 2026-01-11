@@ -1,99 +1,86 @@
-# Developer Guide (pawcontrol)
+# Developer Guide (PawControl)
 
-## Goals
-- Maintain Home Assistant-aligned quality (async-first, typed, tested, documented).
-- Keep user-facing docs separate from developer docs.
-- Provide reproducible quality gates locally and in CI.
+This guide covers **local development**, **testing**, and **troubleshooting** for
+the PawControl Home Assistant integration. User-facing documentation lives in
+`README.md` and the `docs/` folder.
 
-## Prerequisites
-- Python (match `.python-version`)
-- Recommended: uv or pipx + virtualenv
-- Optional: Home Assistant Core checkout for integration-style testing
+## Local development setup
 
-## Setup (local)
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements_test.txt
-pip install -r requirements.txt
-pre-commit install
-```
+1. Create and activate a virtual environment:
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   ```
+2. Install dependencies:
+   ```bash
+   pip install -r requirements_test.txt
+   pip install -r requirements.txt
+   ```
+3. Optional: install the project in editable mode for packaging hooks:
+   ```bash
+   pip install -e .
+   ```
 
-Tooling notes:
-- The repository includes lightweight shims in `pytest_cov/` and
-  `pytest_homeassistant_custom_component/` to avoid plugin conflicts during
-  local and CI test runs; keep them versioned and avoid installing the PyPI
-  variants alongside this repo.
-- Do not commit generated coverage output (`htmlcov/`, `.coverage*`);
-  publish HTML coverage via CI artifacts or GitHub Pages instead.
+> **Note:** The repository ships local shims in `pytest_cov/` and
+> `pytest_homeassistant_custom_component/`. Avoid installing the PyPI variants
+> alongside this repo to prevent plugin conflicts.
 
-## Quality gate (must pass before PR)
+## Running locally with Home Assistant
+
+1. Copy the integration to your HA config:
+   ```bash
+   cp -r custom_components/pawcontrol /config/custom_components/
+   ```
+2. Restart Home Assistant.
+3. Add the integration from **Settings → Devices & Services**.
+
+## Quality gate (run before PR)
+
 ```bash
 ruff format
 ruff check
 python -m script.enforce_test_requirements
 mypy custom_components/pawcontrol
 pytest -q
-python -m script.hassfest \
-  --integration-path custom_components/pawcontrol
+python -m script.hassfest --integration-path custom_components/pawcontrol
 python -m script.sync_contributor_guides
 ```
 
-## Test strategy
-Minimum required suites:
+## Testing strategy
 
-- Config entry setup/unload/reload
-- Config flow + options flow (happy path + error paths)
-- Reauth flow
-- Coordinator update failures + recovery
-- Services (validation + side effects)
-- Diagnostics (ensures redaction of secrets)
+Target **unit coverage for every entity type and flow**, including error paths:
 
-### Coverage rules
-Treat coverage as a signal, not a trophy.
+- Config flow, options flow, and reauth scenarios
+- Coordinator update failures and retry handling
+- Service validation and side effects
+- Diagnostics redaction
+- Entity behavior for typical + failure paths (e.g., missing API token,
+  invalid geofence coordinates)
 
-- No “fake coverage” via trivial asserts; cover failure paths and migrations.
-- Publish HTML coverage via CI artifacts or gh-pages instead of committing it.
+Use `pytest` fixtures and the Home Assistant stubs in
+`tests/helpers/homeassistant_test_stubs.py` to simulate core behavior without a
+full HA runtime.
 
-## Diagnostics
-Diagnostics must redact sensitive fields (tokens, GPS home coordinates, user identifiers).
-Provide a short doc snippet describing what is included/excluded.
+### Measuring coverage (without committing artifacts)
 
-## Documentation rules
-User docs (README / INSTALLATION / docs/):
+```bash
+pytest -q --cov custom_components/pawcontrol --cov-report=term-missing
+```
 
-- What it is + what it supports
-- Setup steps (UI-driven)
-- Entities/services/events overview
-- Examples: automations + dashboards
-- Troubleshooting (common errors, logs, diagnostics download)
+- Do **not** commit generated artifacts such as `.coverage*` or `htmlcov/`.
+- Publish HTML coverage via CI artifacts or GitHub Pages instead.
 
-Developer docs (this file):
+## Troubleshooting
 
-- Dev environment
-- Test/lint/typecheck
-- Release process
-- Architecture notes
+| Symptom | Likely cause | Fix |
+| --- | --- | --- |
+| `ImportError` for HA modules | Stubs not loaded or missing dependencies | Ensure tests call `install_homeassistant_stubs()` and requirements are installed. |
+| `hassfest` failures | Missing keys in `strings.json` | Add new strings and sync `translations/*.json`. |
+| `mypy` errors | Untyped returns/optionals | Update annotations; avoid implicit optionals. |
+| `pytest` failures on coverage | Missing tests or uncovered error paths | Add unit tests for invalid inputs (e.g., geofence radius, missing API token). |
 
-## Dependency policy
-Keep runtime deps minimal.
+## Release checklist (dev-side)
 
-If vendoring a dependency:
-
-- Explain WHY it is vendored
-- Prove isolation (no module shadowing)
-- Define update & security monitoring procedure
-
-Vendored PyYAML guidance:
-- Only vendor PyYAML if Home Assistant’s constraints or wheel availability
-  require it; prefer upstream wheels where possible.
-- Document the import path used for the vendored copy (so it cannot shadow
-  `yaml` from site-packages) and keep the isolation strategy in sync with the
-  loader code.
-- Track updates via the existing OSV/PyPI monitor workflow and refresh the
-  status report that backs the README evidence before each release.
-
-## Releases
-- Versioning scheme
-- Changelog policy
-- CI checks required for release
+- Update `CHANGELOG.md` with user-visible changes.
+- Ensure new docs link to evidence (tests, diagnostics, workflows).
+- Re-run the quality gate commands before tagging a release.

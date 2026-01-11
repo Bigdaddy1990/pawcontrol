@@ -765,6 +765,72 @@
       },
       "daily_activity_level": {
         "name": "Tägliches Aktivitätsniveau"
+      },
+      "activity_score": {
+        "name": "Aktivitätspunktzahl"
+      },
+      "body_condition_score": {
+        "name": "Körperkonditions-Score"
+      },
+      "calorie_goal_progress": {
+        "name": "Kalorienziel-Fortschritt"
+      },
+      "calories_burned_today": {
+        "name": "Heute verbrannte Kalorien"
+      },
+      "current_walk_duration": {
+        "name": "Aktuelle Spaziergangsdauer"
+      },
+      "current_zone": {
+        "name": "Aktuelle Zone"
+      },
+      "daily_portions": {
+        "name": "Tägliche Portionen"
+      },
+      "feeding_recommendation": {
+        "name": "Fütterungsempfehlung"
+      },
+      "food_consumption": {
+        "name": "Futterverbrauch"
+      },
+      "gps_battery_level": {
+        "name": "GPS-Batteriestand"
+      },
+      "health_status": {
+        "name": "Gesundheitsstatus"
+      },
+      "last_action": {
+        "name": "Letzte Aktion"
+      },
+      "last_vet_visit": {
+        "name": "Letzter Tierarztbesuch"
+      },
+      "portions_today": {
+        "name": "Portionen heute"
+      },
+      "speed": {
+        "name": "Geschwindigkeit"
+      },
+      "status": {
+        "name": "Status"
+      },
+      "total_feedings_today": {
+        "name": "Fütterungen heute gesamt"
+      },
+      "total_walk_distance": {
+        "name": "Gesamte Spaziergangdistanz"
+      },
+      "walk_count_today": {
+        "name": "Spaziergänge heute"
+      },
+      "walks_this_week": {
+        "name": "Spaziergänge diese Woche"
+      },
+      "walks_today": {
+        "name": "Spaziergänge heute"
+      },
+      "weight_trend": {
+        "name": "Gewichtstrend"
       }
     },
     "binary_sensor": {
@@ -1063,6 +1129,167 @@
           "high": "Hoch",
           "extreme": "Extrem"
         }
+      }
+    },
+    "text": {
+      "notes": {
+        "name": "Allgemeine Notizen"
+      },
+      "custom_label": {
+        "name": "Benutzerdefiniertes Label"
+      },
+      "walk_notes": {
+        "name": "Spaziergang-Notizen"
+      },
+      "current_walk_label": {
+        "name": "Aktuelles Spaziergang-Label"
+      },
+      "health_notes": {
+        "name": "Gesundheitsnotizen"
+      },
+      "medication_notes": {
+        "name": "Medikationsnotizen"
+      },
+      "vet_notes": {
+        "name": "Tierarzt-Notizen"
+      },
+      "grooming_notes": {
+        "name": "Pflege-Notizen"
+      },
+      "custom_message": {
+        "name": "Benutzerdefinierte Benachrichtigungsnachricht"
+      },
+      "emergency_contact": {
+        "name": "Notfallkontakt"
+      },
+      "microchip": {
+        "name": "Mikrochip-ID"
+      },
+      "breeder_info": {
+        "name": "Züchterinformationen"
+      },
+      "registration": {
+        "name": "Registrierungsdetails"
+      },
+      "insurance_info": {
+        "name": "Versicherungsinformationen"
+      },
+      "allergies": {
+        "name": "Allergien & Einschränkungen"
+      },
+      "training_notes": {
+        "name": "Trainingsnotizen"
+      },
+      "behavior_notes": {
+        "name": "Verhaltensnotizen"
+      },
+      "location_description": {
+        "name": "Ortsbeschreibung"
+      }
+    },
+    "date": {
+      "birthdate": {
+        "name": "Geburtsdatum"
+      },
+      "adoption_date": {
+        "name": "Adoptionsdatum"
+      },
+      "last_vet_visit": {
+        "name": "Letzter Tierarztbesuch"
+      },
+      "next_vet_appointment": {
+        "name": "Nächster Tierarzttermin"
+      },
+      "last_grooming": {
+        "name": "Letzte Pflege"
+      },
+      "next_grooming": {
+        "name": "Nächste Pflege"
+      },
+      "vaccination_date": {
+        "name": "Impfdatum"
+      },
+      "next_vaccination": {
+        "name": "Nächste Impfung"
+      },
+      "deworming_date": {
+        "name": "Entwurmungsdatum"
+      },
+      "next_deworming": {
+        "name": "Nächste Entwurmung"
+      },
+      "diet_start_date": {
+        "name": "Diät-Startdatum"
+      },
+      "diet_end_date": {
+        "name": "Diät-Enddatum"
+      },
+      "training_start_date": {
+        "name": "Trainingsstartdatum"
+      },
+      "next_training_date": {
+        "name": "Nächster Trainingstermin"
+      }
+    },
+    "datetime": {
+      "birthdate": {
+        "name": "Geburtsdatum (Datum & Uhrzeit)"
+      },
+      "adoption_date": {
+        "name": "Adoptionsdatum (Datum & Uhrzeit)"
+      },
+      "breakfast_time": {
+        "name": "Frühstückszeit"
+      },
+      "lunch_time": {
+        "name": "Mittagszeit"
+      },
+      "dinner_time": {
+        "name": "Abendessenszeit"
+      },
+      "last_feeding": {
+        "name": "Letzte Fütterung"
+      },
+      "next_feeding": {
+        "name": "Nächste Fütterung"
+      },
+      "last_vet_visit": {
+        "name": "Letzter Tierarztbesuch (Datum & Uhrzeit)"
+      },
+      "next_vet_appointment": {
+        "name": "Nächster Tierarzttermin (Datum & Uhrzeit)"
+      },
+      "last_grooming": {
+        "name": "Letzte Pflege (Datum & Uhrzeit)"
+      },
+      "next_grooming": {
+        "name": "Nächste Pflege (Datum & Uhrzeit)"
+      },
+      "last_medication": {
+        "name": "Letzte Medikation"
+      },
+      "next_medication": {
+        "name": "Nächste Medikation"
+      },
+      "last_walk": {
+        "name": "Letzter Spaziergang"
+      },
+      "next_walk_reminder": {
+        "name": "Nächste Spaziergang-Erinnerung"
+      },
+      "vaccination_date": {
+        "name": "Impfung (Datum & Uhrzeit)"
+      },
+      "training_session": {
+        "name": "Trainingseinheit"
+      },
+      "emergency_date": {
+        "name": "Notfallzeitstempel"
+      }
+    },
+    "device_tracker": {
+      "gps": {
+        "name": "GPS"
       }
     }
   },

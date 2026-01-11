@@ -270,7 +270,7 @@ class PawControlDateBase(PawControlEntity, DateEntity, RestoreEntity):
 
         # Entity configuration with modern HA standards
         self._attr_unique_id = f"pawcontrol_{dog_id}_{date_type}"
-        self._apply_name_suffix(date_type.replace("_", " ").title())
+        self._attr_translation_key = date_type
         self._attr_icon = icon
 
         self.update_device_metadata(

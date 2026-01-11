@@ -787,7 +787,7 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
 
         # Entity configuration
         self._attr_unique_id = f"pawcontrol_{dog_id}_{button_type}"
-        self._apply_name_suffix(button_type.replace("_", " ").title())
+        self._attr_translation_key = button_type
         self._attr_device_class = device_class
         self._attr_icon = icon
         self._attr_entity_category = entity_category
