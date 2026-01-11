@@ -798,26 +798,14 @@
       "gps_battery_level": {
         "name": "GPS-Batteriestand"
       },
-      "last_action": {
-        "name": "Letzte Aktion"
-      },
       "portions_today": {
         "name": "Portionen heute"
       },
       "speed": {
         "name": "Geschwindigkeit"
       },
-      "status": {
-        "name": "Status"
-      },
-      "total_feedings_today": {
-        "name": "Fütterungen heute gesamt"
-      },
       "total_walk_distance": {
         "name": "Gesamte Spaziergangdistanz"
-      },
-      "walk_count_today": {
-        "name": "Spaziergänge heute"
       },
       "walks_this_week": {
         "name": "Spaziergänge diese Woche"
