@@ -20,7 +20,7 @@ def _extract_decorator_keys(path: Path, decorator: str) -> set[str]:
 
 
 def _extract_init_keys(path: Path) -> set[str]:
-    pattern = r'dog_name,\\s*\\\"([a-z0-9_]+)\\\"'
+    pattern = r"dog_name,\\s*\\\"([a-z0-9_]+)\\\""
     return set(re.findall(pattern, path.read_text(encoding="utf-8")))
 
 
@@ -28,13 +28,21 @@ def test_entity_translation_keys_are_defined() -> None:
     strings = _load_strings(COMPONENT_ROOT / "strings.json")
     entity = strings["entity"]
 
-    sensor_keys = _extract_decorator_keys(COMPONENT_ROOT / "sensor.py", "register_sensor")
+    sensor_keys = _extract_decorator_keys(
+        COMPONENT_ROOT / "sensor.py", "register_sensor"
+    )
     binary_keys = _extract_decorator_keys(
         COMPONENT_ROOT / "binary_sensor.py", "register_binary_sensor"
     )
-    button_keys = _extract_decorator_keys(COMPONENT_ROOT / "button.py", "register_button")
-    number_keys = _extract_decorator_keys(COMPONENT_ROOT / "number.py", "register_number")
-    select_keys = _extract_decorator_keys(COMPONENT_ROOT / "select.py", "register_select")
+    button_keys = _extract_decorator_keys(
+        COMPONENT_ROOT / "button.py", "register_button"
+    )
+    number_keys = _extract_decorator_keys(
+        COMPONENT_ROOT / "number.py", "register_number"
+    )
+    select_keys = _extract_decorator_keys(
+        COMPONENT_ROOT / "select.py", "register_select"
+    )
 
     text_keys = _extract_init_keys(COMPONENT_ROOT / "text.py")
     date_keys = _extract_init_keys(COMPONENT_ROOT / "date.py")
