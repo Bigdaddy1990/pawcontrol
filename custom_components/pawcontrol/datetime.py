@@ -186,7 +186,7 @@ class PawControlDateTimeBase(PawControlEntity, DateTimeEntity, RestoreEntity):
         self._current_value: datetime | None = None
 
         self._attr_unique_id = f"pawcontrol_{dog_id}_{datetime_type}"
-        self._apply_name_suffix(datetime_type.replace("_", " ").title())
+        self._attr_translation_key = datetime_type
 
         # Link entity to PawControl device entry for the dog
         self.update_device_metadata(

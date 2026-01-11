@@ -80,10 +80,16 @@ class PawControlEntity(
 
     @property
     def name(self) -> str | None:
-        """Return the entity name, defaulting to the dog name when unset."""
+        """Return the entity name, defaulting to dog name when appropriate."""
 
         name = getattr(self, "_attr_name", None)
-        return name if name is not None else self._dog_name
+        if name is not None:
+            return name
+
+        if not self.translation_key or not self.has_entity_name:
+            return self._dog_name
+
+        return None
 
     @property
     def unique_id(self) -> str | None:
@@ -136,14 +142,6 @@ class PawControlEntity(
         """Update device metadata shared with the device registry."""
 
         self._set_device_link_info(**details)
-
-    def _apply_name_suffix(self, suffix: str | None) -> None:
-        """Helper to update the entity name with a consistent suffix."""
-
-        if not suffix:
-            self._attr_name = self._dog_name
-            return
-        self._attr_name = f"{self._dog_name} {suffix}".strip()
 
     def _get_runtime_data(self) -> PawControlRuntimeData | None:
         """Return runtime data attached to this entity's config entry."""

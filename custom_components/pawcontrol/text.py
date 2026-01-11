@@ -293,7 +293,7 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
         self._last_updated_user_id: str | None = None
 
         self._attr_unique_id = f"pawcontrol_{dog_id}_{text_type}"
-        self._apply_name_suffix(text_type.replace("_", " ").title())
+        self._attr_translation_key = text_type
         self._attr_native_max = max_length
         self._attr_mode = mode
 

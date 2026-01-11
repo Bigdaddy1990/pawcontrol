@@ -767,6 +767,54 @@
       },
       "daily_activity_level": {
         "name": "Daily Activity Level"
+      },
+      "activity_score": {
+        "name": "Activity Score"
+      },
+      "body_condition_score": {
+        "name": "Body Condition Score"
+      },
+      "calorie_goal_progress": {
+        "name": "Calorie Goal Progress"
+      },
+      "calories_burned_today": {
+        "name": "Calories Burned Today"
+      },
+      "current_walk_duration": {
+        "name": "Current Walk Duration"
+      },
+      "current_zone": {
+        "name": "Current Zone"
+      },
+      "daily_portions": {
+        "name": "Daily Portions"
+      },
+      "feeding_recommendation": {
+        "name": "Feeding Recommendation"
+      },
+      "food_consumption": {
+        "name": "Food Consumption"
+      },
+      "gps_battery_level": {
+        "name": "GPS Battery Level"
+      },
+      "portions_today": {
+        "name": "Portions Today"
+      },
+      "speed": {
+        "name": "Speed"
+      },
+      "total_walk_distance": {
+        "name": "Total Walk Distance"
+      },
+      "walks_this_week": {
+        "name": "Walks This Week"
+      },
+      "walks_today": {
+        "name": "Walks Today"
+      },
+      "weight_trend": {
+        "name": "Weight Trend"
       }
     },
     "binary_sensor": {
@@ -1065,6 +1113,167 @@
           "high": "High",
           "extreme": "Extreme"
         }
+      }
+    },
+    "text": {
+      "notes": {
+        "name": "General Notes"
+      },
+      "custom_label": {
+        "name": "Custom Label"
+      },
+      "walk_notes": {
+        "name": "Walk Notes"
+      },
+      "current_walk_label": {
+        "name": "Current Walk Label"
+      },
+      "health_notes": {
+        "name": "Health Notes"
+      },
+      "medication_notes": {
+        "name": "Medication Notes"
+      },
+      "vet_notes": {
+        "name": "Vet Notes"
+      },
+      "grooming_notes": {
+        "name": "Grooming Notes"
+      },
+      "custom_message": {
+        "name": "Custom Notification Message"
+      },
+      "emergency_contact": {
+        "name": "Emergency Contact"
+      },
+      "microchip": {
+        "name": "Microchip ID"
+      },
+      "breeder_info": {
+        "name": "Breeder Information"
+      },
+      "registration": {
+        "name": "Registration Details"
+      },
+      "insurance_info": {
+        "name": "Insurance Information"
+      },
+      "allergies": {
+        "name": "Allergies & Restrictions"
+      },
+      "training_notes": {
+        "name": "Training Notes"
+      },
+      "behavior_notes": {
+        "name": "Behavior Notes"
+      },
+      "location_description": {
+        "name": "Location Description"
+      }
+    },
+    "date": {
+      "birthdate": {
+        "name": "Birthdate"
+      },
+      "adoption_date": {
+        "name": "Adoption Date"
+      },
+      "last_vet_visit": {
+        "name": "Last Vet Visit"
+      },
+      "next_vet_appointment": {
+        "name": "Next Vet Appointment"
+      },
+      "last_grooming": {
+        "name": "Last Grooming"
+      },
+      "next_grooming": {
+        "name": "Next Grooming"
+      },
+      "vaccination_date": {
+        "name": "Vaccination Date"
+      },
+      "next_vaccination": {
+        "name": "Next Vaccination"
+      },
+      "deworming_date": {
+        "name": "Deworming Date"
+      },
+      "next_deworming": {
+        "name": "Next Deworming"
+      },
+      "diet_start_date": {
+        "name": "Diet Start Date"
+      },
+      "diet_end_date": {
+        "name": "Diet End Date"
+      },
+      "training_start_date": {
+        "name": "Training Start Date"
+      },
+      "next_training_date": {
+        "name": "Next Training Date"
+      }
+    },
+    "datetime": {
+      "birthdate": {
+        "name": "Birthdate (Date & Time)"
+      },
+      "adoption_date": {
+        "name": "Adoption Date (Date & Time)"
+      },
+      "breakfast_time": {
+        "name": "Breakfast Time"
+      },
+      "lunch_time": {
+        "name": "Lunch Time"
+      },
+      "dinner_time": {
+        "name": "Dinner Time"
+      },
+      "last_feeding": {
+        "name": "Last Feeding"
+      },
+      "next_feeding": {
+        "name": "Next Feeding"
+      },
+      "last_vet_visit": {
+        "name": "Last Vet Visit (Date & Time)"
+      },
+      "next_vet_appointment": {
+        "name": "Next Vet Appointment (Date & Time)"
+      },
+      "last_grooming": {
+        "name": "Last Grooming (Date & Time)"
+      },
+      "next_grooming": {
+        "name": "Next Grooming (Date & Time)"
+      },
+      "last_medication": {
+        "name": "Last Medication"
+      },
+      "next_medication": {
+        "name": "Next Medication"
+      },
+      "last_walk": {
+        "name": "Last Walk"
+      },
+      "next_walk_reminder": {
+        "name": "Next Walk Reminder"
+      },
+      "vaccination_date": {
+        "name": "Vaccination (Date & Time)"
+      },
+      "training_session": {
+        "name": "Training Session"
+      },
+      "emergency_date": {
+        "name": "Emergency Timestamp"
+      }
+    },
+    "device_tracker": {
+      "gps": {
+        "name": "GPS"
       }
     }
   },

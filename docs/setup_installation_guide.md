@@ -1,6 +1,6 @@
 # 🐕 Paw Control - Setup & Installation Guide für erweiterte Features
 
-Dieser umfassende Guide führt Sie durch die Installation und Konfiguration der erweiterten Paw Control Features, einschließlich GPS-Tracking, Garden Tracking, Automatisierungen und Dashboard-Konfiguration.
+Dieser umfassende Guide führt Sie durch die Installation und Konfiguration der erweiterten Paw Control Features, einschließlich GPS-Tracking, Garden Tracking, Automatisierungen und Dashboard-Konfiguration. Paw Control ist eine **Custom-Integration** und richtet sich am Platinum-Qualitätsstandard aus, erhält jedoch kein offizielles Platinum-Badge von Home Assistant.
 
 ## 📋 Inhaltsverzeichnis
 

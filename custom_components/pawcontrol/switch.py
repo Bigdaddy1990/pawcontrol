@@ -356,7 +356,7 @@ class OptimizedSwitchBase(PawControlEntity, SwitchEntity, RestoreEntity):
 
         # Entity configuration
         self._attr_unique_id = f"pawcontrol_{dog_id}_{switch_type}"
-        self._apply_name_suffix(switch_type.replace("_", " ").title())
+        self._attr_translation_key = switch_type
         self._attr_device_class = device_class
         self._attr_icon = icon
         self._attr_entity_category = entity_category

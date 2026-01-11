@@ -817,8 +817,7 @@ class PawControlSensorBase(PawControlEntity, SensorEntityProtocol):
         super().__init__(coordinator, dog_id, dog_name)
         self._sensor_type = sensor_type
         self._attr_unique_id = f"pawcontrol_{dog_id}_{sensor_type}"
-        self._apply_name_suffix(sensor_type.replace("_", " ").title())
-        self._pending_translation_key = translation_key
+        self._pending_translation_key = translation_key or sensor_type
         self._attr_translation_key: str | None = None
         self._attr_device_class = device_class
         self._attr_state_class = state_class
