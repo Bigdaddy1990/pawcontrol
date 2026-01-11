@@ -35,6 +35,7 @@ from .types import (
     HealthFeedingInsights,
     HealthMetricsOverride,
     HealthReport,
+    JSONLikeMapping,
     JSONMapping,
     JSONMutableMapping,
 )
@@ -429,7 +430,7 @@ class MealSchedule:
 
 
 def _normalise_health_override(
-    data: JSONMapping | JSONMutableMapping | None,
+    data: JSONLikeMapping | None,
 ) -> HealthMetricsOverride | None:
     """Coerce arbitrary mappings into ``HealthMetricsOverride`` payloads."""
 
@@ -1161,9 +1162,7 @@ class FeedingManager:
 
     async def async_initialize(
         self,
-        dogs: Sequence[
-            FeedingManagerDogSetupPayload | JSONMapping | JSONMutableMapping
-        ],
+        dogs: Sequence[FeedingManagerDogSetupPayload | JSONLikeMapping],
     ) -> None:
         """Initialize feeding configurations for dogs.
 
@@ -1219,7 +1218,7 @@ class FeedingManager:
                     JSONMutableMapping,
                     dict(
                         cast(
-                            JSONMapping | JSONMutableMapping,
+                            JSONLikeMapping,
                             dog.get("feeding_config", {}),
                         )
                     ),
@@ -1290,7 +1289,7 @@ class FeedingManager:
                     await self._setup_reminder(dog_id)
 
     async def _create_feeding_config(
-        self, dog_id: str, config_data: JSONMapping | JSONMutableMapping
+        self, dog_id: str, config_data: JSONLikeMapping
     ) -> FeedingConfig:
         """Create enhanced feeding configuration with health integration."""
         special_diet = self._normalize_special_diet(config_data.get("special_diet", []))
@@ -2509,7 +2508,7 @@ class FeedingManager:
             self._stats_cache_time.pop(key, None)
 
     async def async_update_config(
-        self, dog_id: str, config_data: JSONMapping | JSONMutableMapping
+        self, dog_id: str, config_data: JSONLikeMapping
     ) -> None:
         """Update feeding configuration for a dog.
 
@@ -2699,7 +2698,7 @@ class FeedingManager:
         self,
         dog_id: str,
         meal_type: str,
-        health_data: JSONMapping | JSONMutableMapping | None = None,
+        health_data: JSONLikeMapping | None = None,
     ) -> float | None:
         """Calculate health-aware portion for a specific meal.
 
@@ -3050,7 +3049,7 @@ class FeedingManager:
         self,
         dog_id: str,
         meal_type: str,
-        override_health_data: JSONMapping | JSONMutableMapping | None = None,
+        override_health_data: JSONLikeMapping | None = None,
     ) -> FeedingPortionValidationResult:
         """Calculate portion with diet validation and safety checks.
 

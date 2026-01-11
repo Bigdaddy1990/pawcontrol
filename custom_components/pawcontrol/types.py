@@ -4808,9 +4808,9 @@ class CacheDiagnosticsPayload(TypedDict, total=False):
 class CacheDiagnosticsSnapshot(Mapping[str, JSONValue]):
     """Structured diagnostics snapshot returned by cache monitors."""
 
-    stats: JSONMapping | JSONMutableMapping | None = None
+    stats: JSONLikeMapping | None = None
     diagnostics: CacheDiagnosticsMetadata | None = None
-    snapshot: JSONMapping | JSONMutableMapping | None = None
+    snapshot: JSONLikeMapping | None = None
     error: str | None = None
     repair_summary: CacheRepairAggregate | None = None
 
