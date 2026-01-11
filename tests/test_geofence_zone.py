@@ -25,6 +25,8 @@ geofencing = load_module(
 
 GeofenceZone = geofencing.GeofenceZone
 GeofenceType = geofencing.GeofenceType
+MIN_GEOFENCE_RADIUS = geofencing.MIN_GEOFENCE_RADIUS
+MAX_GEOFENCE_RADIUS = geofencing.MAX_GEOFENCE_RADIUS
 
 
 def test_geofence_zone_accepts_valid_coordinates() -> None:
@@ -66,5 +68,31 @@ def test_geofence_zone_rejects_invalid_radius() -> None:
             type=GeofenceType.SAFE_ZONE,
             latitude=52.52,
             longitude=13.405,
-            radius=1,
+            radius=MIN_GEOFENCE_RADIUS - 1,
+        )
+
+
+@pytest.mark.parametrize("radius", [MIN_GEOFENCE_RADIUS, MAX_GEOFENCE_RADIUS])
+def test_geofence_zone_accepts_radius_bounds(radius: float) -> None:
+    zone = GeofenceZone(
+        id=f"radius-{radius}",
+        name="Radius bound",
+        type=GeofenceType.SAFE_ZONE,
+        latitude=52.52,
+        longitude=13.405,
+        radius=radius,
+    )
+
+    assert zone.radius == radius
+
+
+def test_geofence_zone_rejects_radius_above_maximum() -> None:
+    with pytest.raises(ValueError):
+        GeofenceZone(
+            id="too-large",
+            name="Too large",
+            type=GeofenceType.SAFE_ZONE,
+            latitude=52.52,
+            longitude=13.405,
+            radius=MAX_GEOFENCE_RADIUS + 1,
         )
