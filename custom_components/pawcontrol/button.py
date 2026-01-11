@@ -15,7 +15,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Any, Protocol, TypedDict, cast, runtime_checkable
 
 from homeassistant.components.button import ButtonDeviceClass, ButtonEntity
@@ -39,8 +39,11 @@ from .const import (
     SERVICE_END_GARDEN_SESSION,
     SERVICE_END_WALK,
     SERVICE_FEED_DOG,
+    SERVICE_GPS_EXPORT_ROUTE,
     SERVICE_LOG_HEALTH,
+    SERVICE_LOG_MEDICATION,
     SERVICE_NOTIFY_TEST,
+    SERVICE_SEND_NOTIFICATION,
     SERVICE_START_GARDEN_SESSION,
     SERVICE_START_GROOMING,
     SERVICE_START_WALK,
@@ -1405,7 +1408,8 @@ class PawControlStartWalkButton(PawControlButtonBase):
                 SERVICE_START_WALK,
                 {
                     ATTR_DOG_ID: self._dog_id,
-                    "label": "Manual walk",
+                    "walker": "Manual walk",
+                    "leash_used": True,
                 },
                 blocking=False,
             )
@@ -1523,7 +1527,8 @@ class PawControlQuickWalkButton(PawControlButtonBase):
                 SERVICE_START_WALK,
                 data={
                     ATTR_DOG_ID: self._dog_id,
-                    "label": "Quick walk",
+                    "walker": "Quick walk",
+                    "leash_used": True,
                 },
                 blocking=True,
             )
@@ -1533,8 +1538,6 @@ class PawControlQuickWalkButton(PawControlButtonBase):
                 SERVICE_END_WALK,
                 data={
                     ATTR_DOG_ID: self._dog_id,
-                    "duration": 10,
-                    "distance": 800,
                     "notes": "Quick walk",
                 },
                 blocking=True,
@@ -1572,7 +1575,8 @@ class PawControlLogWalkManuallyButton(PawControlButtonBase):
                 SERVICE_START_WALK,
                 {
                     ATTR_DOG_ID: self._dog_id,
-                    "label": "Manual entry",
+                    "walker": "Manual entry",
+                    "leash_used": True,
                 },
                 blocking=True,
             )
@@ -1582,8 +1586,6 @@ class PawControlLogWalkManuallyButton(PawControlButtonBase):
                 SERVICE_END_WALK,
                 {
                     ATTR_DOG_ID: self._dog_id,
-                    "duration": 30,
-                    "distance": 1500,
                     "notes": "Manually logged walk",
                 },
                 blocking=True,
@@ -1660,14 +1662,10 @@ class PawControlExportRouteButton(PawControlButtonBase):
         try:
             await self._async_service_call(
                 "pawcontrol",
-                "export_data",
+                SERVICE_GPS_EXPORT_ROUTE,
                 {
                     ATTR_DOG_ID: self._dog_id,
-                    "data_type": "gps",
                     "format": "gpx",
-                    "start_date": (dt_util.now() - timedelta(days=1))
-                    .date()
-                    .isoformat(),
                 },
                 blocking=False,
             )
@@ -1759,13 +1757,32 @@ class PawControlLogWeightButton(PawControlButtonBase):
         await super().async_press()
 
         try:
+            health_data_raw = self._get_module_data(
+                cast(CoordinatorTypedModuleName, MODULE_HEALTH)
+            )
+            health_data = (
+                cast(HealthModulePayload, health_data_raw)
+                if health_data_raw is not None
+                else None
+            )
+            weight_value = None
+            if health_data is not None:
+                weight_value = health_data.get("weight")
+            weight_payload = None
+            if isinstance(weight_value, int | float):
+                weight_payload = float(weight_value)
+
+            payload = {
+                ATTR_DOG_ID: self._dog_id,
+                "notes": "Weight logged via button",
+            }
+            if weight_payload is not None:
+                payload["weight"] = weight_payload
+
             await self._async_service_call(
                 "pawcontrol",
                 SERVICE_LOG_HEALTH,
-                {
-                    ATTR_DOG_ID: self._dog_id,
-                    "note": "Weight logged via button",
-                },
+                payload,
                 blocking=False,
             )
         except Exception as err:
@@ -1792,7 +1809,48 @@ class PawControlLogMedicationButton(PawControlButtonBase):
     async def async_press(self) -> None:
         """Log medication administration."""
         await super().async_press()
-        _LOGGER.info("Medication logging initiated for %s", self._dog_name)
+
+        health_data_raw = self._get_module_data(
+            cast(CoordinatorTypedModuleName, MODULE_HEALTH)
+        )
+        health_data = (
+            cast(HealthModulePayload, health_data_raw)
+            if health_data_raw is not None
+            else None
+        )
+        medication_name: str | None = None
+        dose: str | None = None
+        if health_data:
+            medications = health_data.get("medications", [])
+            if isinstance(medications, Sequence) and medications:
+                medication = medications[0]
+                if isinstance(medication, Mapping):
+                    medication_name = cast(str | None, medication.get("name"))
+                    dose = cast(str | None, medication.get("dosage"))
+
+        if not medication_name:
+            raise HomeAssistantError(
+                "No medication schedule available to log. Update the health profile."
+            )
+
+        if not dose:
+            dose = "1 dose"
+
+        try:
+            await self._async_service_call(
+                "pawcontrol",
+                SERVICE_LOG_MEDICATION,
+                {
+                    ATTR_DOG_ID: self._dog_id,
+                    "medication_name": medication_name,
+                    "dose": dose,
+                    "notes": "Logged via medication button",
+                },
+                blocking=False,
+            )
+        except Exception as err:
+            _LOGGER.error("Failed to log medication: %s", err)
+            raise HomeAssistantError(f"Failed to log medication: {err}") from err
 
 
 class PawControlStartGroomingButton(PawControlButtonBase):
@@ -1865,7 +1923,25 @@ class PawControlScheduleVetButton(PawControlButtonBase):
     async def async_press(self) -> None:
         """Schedule veterinary appointment."""
         await super().async_press()
-        _LOGGER.info("Vet scheduling initiated for %s", self._dog_name)
+        try:
+            await self._async_service_call(
+                "pawcontrol",
+                SERVICE_SEND_NOTIFICATION,
+                {
+                    "title": f"Vet appointment for {self._dog_name}",
+                    "message": (
+                        f"Schedule the next veterinary appointment for {self._dog_name}."
+                    ),
+                    "dog_id": self._dog_id,
+                    "notification_type": "veterinary_appointment",
+                },
+                blocking=False,
+            )
+        except Exception as err:
+            _LOGGER.error("Failed to schedule vet visit: %s", err)
+            raise HomeAssistantError(
+                f"Failed to schedule vet appointment: {err}"
+            ) from err
 
 
 class PawControlHealthCheckButton(PawControlButtonBase):

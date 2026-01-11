@@ -2389,6 +2389,80 @@ class PawControlDataManager:
 
         _ = self._ensure_profile(dog_id)
 
+        normalized_type = data_type.lower()
+
+        if normalized_type == "garden":
+            runtime_data = self._get_runtime_data()
+            garden_manager = getattr(runtime_data, "garden_manager", None)
+            if garden_manager is None:
+                error_cls = _resolve_homeassistant_error()
+                raise error_cls("Garden manager not available for export")
+            return await garden_manager.async_export_sessions(
+                dog_id,
+                format=format,
+                days=days,
+                date_from=date_from,
+                date_to=date_to,
+            )
+
+        if normalized_type == "routes":
+            runtime_data = self._get_runtime_data()
+            gps_manager = getattr(runtime_data, "gps_geofence_manager", None)
+            if gps_manager is None:
+                error_cls = _resolve_homeassistant_error()
+                raise error_cls("GPS manager not available for route export")
+
+            start = _deserialize_datetime(date_from) if date_from else None
+            end = _deserialize_datetime(date_to) if date_to else None
+            if start is None and days is not None:
+                start = _utcnow() - timedelta(days=max(days, 0))
+            if end is None:
+                end = _utcnow()
+
+            export_format = format.lower()
+            if export_format not in {"gpx", "json", "csv"}:
+                export_format = "gpx"
+
+            export_payload = await gps_manager.async_export_routes(
+                dog_id=dog_id,
+                export_format=export_format,
+                last_n_routes=0,
+                date_from=start,
+                date_to=end,
+            )
+
+            if export_payload is None:
+                error_cls = _resolve_homeassistant_error()
+                raise error_cls("No GPS routes available for export")
+
+            export_dir = self._storage_dir / "exports"
+            export_dir.mkdir(parents=True, exist_ok=True)
+            filename = export_payload.get("filename")
+            if not filename:
+                timestamp = _utcnow().strftime("%Y%m%d%H%M%S")
+                filename = (
+                    f"{self.entry_id}_{dog_id}_routes_{timestamp}.{export_format}"
+                )
+            export_path = export_dir / filename
+
+            def _write_route_export() -> None:
+                content = export_payload.get("content")
+                if export_format == "json":
+                    payload = (
+                        content
+                        if isinstance(content, Mapping)
+                        else {"content": content}
+                    )
+                    export_path.write_text(
+                        json.dumps(payload, ensure_ascii=False, indent=2),
+                        encoding="utf-8",
+                    )
+                else:
+                    export_path.write_text(str(content or ""), encoding="utf-8")
+
+            await asyncio.to_thread(_write_route_export)
+            return export_path
+
         module_map: dict[str, tuple[str, str]] = {
             "feeding": (MODULE_FEEDING, "timestamp"),
             "walks": (MODULE_WALK, "end_time"),
@@ -2397,7 +2471,6 @@ class PawControlDataManager:
             "medication": (MODULE_MEDICATION, "administration_time"),
         }
 
-        normalized_type = data_type.lower()
         module_info = module_map.get(normalized_type)
         if module_info is None:
             error_cls = _resolve_homeassistant_error()

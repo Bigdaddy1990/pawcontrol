@@ -4090,8 +4090,32 @@ def ensure_gps_payload(
     if not gps_payload:
         return None
     last_seen = _coerce_iso_timestamp(gps_payload.get("last_seen"))
-    if last_seen is not None:
+    if last_seen is not None or "last_seen" in gps_payload:
         gps_payload["last_seen"] = last_seen
+
+    last_update = _coerce_iso_timestamp(gps_payload.get("last_update"))
+    if last_update is not None or "last_update" in gps_payload:
+        gps_payload["last_update"] = last_update
+
+    for field in (
+        "latitude",
+        "longitude",
+        "accuracy",
+        "altitude",
+        "speed",
+        "heading",
+        "battery",
+        "distance_from_home",
+    ):
+        if field not in gps_payload:
+            continue
+        gps_payload[field] = _coerce_float_value(gps_payload.get(field))
+
+    satellites = gps_payload.get("satellites")
+    if isinstance(satellites, int):
+        gps_payload["satellites"] = satellites
+    elif "satellites" in gps_payload:
+        gps_payload["satellites"] = None
 
     current_route_snapshot = ensure_gps_route_snapshot(
         cast(

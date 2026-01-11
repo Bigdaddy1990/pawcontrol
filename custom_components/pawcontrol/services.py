@@ -957,7 +957,7 @@ SERVICE_EXPORT_DATA_SCHEMA = vol.Schema(
     {
         vol.Required("dog_id"): cv.string,
         vol.Required("data_type"): vol.In(
-            ["feeding", "walks", "health", "medication", "routes", "all"]
+            ["feeding", "walks", "health", "medication", "routes", "garden", "all"]
         ),
         vol.Optional("format", default="json"): vol.In(["json", "csv", "gpx", "pdf"]),
         vol.Optional("days"): vol.Coerce(int),

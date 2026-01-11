@@ -24,6 +24,8 @@ from .const import (
     CONF_API_ENDPOINT,
     CONF_API_TOKEN,
     CONF_EXTERNAL_INTEGRATIONS,
+    MODULE_GARDEN,
+    MODULE_WALK,
     UPDATE_INTERVALS,
 )
 from .coordinator_accessors import CoordinatorDataAccessMixin
@@ -335,6 +337,7 @@ class PawControlCoordinator(
             raise CoordinatorUpdateFailed("No valid dogs configured")
 
         data, _cycle = await self._execute_cycle(dog_ids)
+        await self._synchronize_module_states(data)
 
         self._data = data
         # Keep the DataUpdateCoordinator state in sync when callers invoke the
@@ -392,6 +395,7 @@ class PawControlCoordinator(
             return
 
         data, _cycle = await self._execute_cycle(dog_ids)
+        await self._synchronize_module_states(data)
         for dog_id in dog_ids:
             if dog_id in data:
                 self._data[dog_id] = data[dog_id]
@@ -445,6 +449,41 @@ class PawControlCoordinator(
         """Return the coordinator data payload for the dog."""
 
         return CoordinatorDataAccessMixin.get_dog_data(self, dog_id)
+
+    async def _synchronize_module_states(
+        self, data: CoordinatorDataPayload
+    ) -> None:
+        """Synchronize conflicting module states across managers."""
+
+        garden_manager = self.garden_manager
+        if garden_manager is None:
+            return
+
+        for dog_id, dog_payload in data.items():
+            if not isinstance(dog_payload, Mapping):
+                continue
+
+            walk_state = dog_payload.get(MODULE_WALK)
+            walk_active = False
+            if isinstance(walk_state, Mapping):
+                walk_active = bool(walk_state.get("walk_in_progress"))
+
+            if not walk_active:
+                continue
+
+            active_session = garden_manager.get_active_session(dog_id)
+            if active_session is None:
+                continue
+
+            await garden_manager.async_end_garden_session(
+                dog_id,
+                notes="Paused due to active walk",
+                suppress_notifications=True,
+            )
+            dog_payload[MODULE_GARDEN] = cast(
+                CoordinatorModuleState,
+                garden_manager.build_garden_snapshot(dog_id),
+            )
 
     @overload
     def get_module_data(
