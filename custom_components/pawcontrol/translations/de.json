@@ -796,14 +796,8 @@
       "gps_battery_level": {
         "name": "GPS-Batteriestand"
       },
-      "health_status": {
-        "name": "Gesundheitsstatus"
-      },
       "last_action": {
         "name": "Letzte Aktion"
-      },
-      "last_vet_visit": {
-        "name": "Letzter Tierarztbesuch"
       },
       "portions_today": {
         "name": "Portionen heute"
