@@ -38,11 +38,11 @@ from .types import (
     GardenConfirmationSnapshot,
     GardenFavoriteActivity,
     GardenModulePayload,
-    JSONMutableMapping,
     GardenSessionSnapshot,
     GardenStatsSnapshot,
     GardenWeatherSummary,
     GardenWeeklySummary,
+    JSONMutableMapping,
 )
 from .utils import async_fire_event
 
@@ -729,9 +729,7 @@ class GardenManager:
             end = dt_util.utcnow()
 
         sessions = [
-            session
-            for session in self._session_history
-            if session.dog_id == dog_id
+            session for session in self._session_history if session.dog_id == dog_id
         ]
         active_session = self._active_sessions.get(dog_id)
         if active_session is not None:
@@ -758,10 +756,8 @@ class GardenManager:
         if normalized_format not in {"json", "csv", "markdown", "md", "txt"}:
             normalized_format = "json"
         extension = "md" if normalized_format == "markdown" else normalized_format
-        filename = (
-            f"{self.entry_id}_{dog_id}_garden_{timestamp}.{extension}".replace(
-                " ", "_"
-            )
+        filename = f"{self.entry_id}_{dog_id}_garden_{timestamp}.{extension}".replace(
+            " ", "_"
         )
         export_path = export_dir / filename
 
@@ -771,9 +767,7 @@ class GardenManager:
         )
 
         if normalized_format == "csv":
-            fieldnames = sorted(
-                {key for entry in payload_entries for key in entry}
-            )
+            fieldnames = sorted({key for entry in payload_entries for key in entry})
 
             def _write_csv() -> None:
                 with open(export_path, "w", newline="", encoding="utf-8") as handle:

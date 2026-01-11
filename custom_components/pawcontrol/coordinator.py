@@ -450,9 +450,7 @@ class PawControlCoordinator(
 
         return CoordinatorDataAccessMixin.get_dog_data(self, dog_id)
 
-    async def _synchronize_module_states(
-        self, data: CoordinatorDataPayload
-    ) -> None:
+    async def _synchronize_module_states(self, data: CoordinatorDataPayload) -> None:
         """Synchronize conflicting module states across managers."""
 
         garden_manager = self.garden_manager
