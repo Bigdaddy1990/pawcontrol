@@ -1162,9 +1162,7 @@ class FeedingManager:
 
     async def async_initialize(
         self,
-        dogs: Sequence[
-            FeedingManagerDogSetupPayload | JSONLikeMapping
-        ],
+        dogs: Sequence[FeedingManagerDogSetupPayload | JSONLikeMapping],
     ) -> None:
         """Initialize feeding configurations for dogs.
 
