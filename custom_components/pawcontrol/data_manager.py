@@ -2535,10 +2535,8 @@ class PawControlDataManager:
                 normalized_format = "json"
 
             extension = "md" if normalized_format == "markdown" else normalized_format
-            filename = (
-                f"{self.entry_id}_{dog_id}_{export_type}_{timestamp}.{extension}".replace(
-                    " ", "_"
-                )
+            filename = f"{self.entry_id}_{dog_id}_{export_type}_{timestamp}.{extension}".replace(
+                " ", "_"
             )
             export_path = export_dir / filename
 
