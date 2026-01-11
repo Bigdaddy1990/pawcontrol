@@ -363,6 +363,8 @@
       "dog_id_too_short": "Dog ID must be at least 2 characters long",
       "dog_id_too_long": "Dog ID cannot be longer than 30 characters",
       "invalid_dog_id_format": "Dog ID must start with a letter and contain only lowercase letters, numbers, and underscores",
+      "invalid_dog_size": "Dog size must be one of the supported size categories",
+      "invalid_dog_breed": "Breed must contain only letters, spaces, hyphens, or apostrophes",
       "dog_name_required": "Dog name is required",
       "dog_name_too_short": "Dog name is too short",
       "dog_name_too_long": "Dog name is too long",
