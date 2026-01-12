@@ -1250,6 +1250,12 @@ class PawControlConfigFlow(
         return validate_dog_setup_input(
             user_input,
             existing_ids=self._existing_dog_ids,
+            existing_names={
+                str(dog.get(DOG_NAME_FIELD)).strip().lower()
+                for dog in self._dogs
+                if isinstance(dog.get(DOG_NAME_FIELD), str)
+                and str(dog.get(DOG_NAME_FIELD)).strip()
+            },
             current_dog_count=len(self._dogs),
             max_dogs=MAX_DOGS_PER_INTEGRATION,
         )

@@ -2972,6 +2972,7 @@ class DogValidationResult(TypedDict):
 
     valid: bool
     errors: dict[str, str]
+    validated_input: NotRequired["DogSetupStepInput"]
 
 
 class DogValidationCacheEntry(TypedDict):

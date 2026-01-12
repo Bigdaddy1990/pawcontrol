@@ -160,3 +160,37 @@ def test_execute_cycle_handles_network_errors(mock_hass: object) -> None:
     assert data["buddy"]["status"] == "online"
     assert cycle.errors == 1
     assert cycle.success
+
+
+def test_execute_cycle_backs_off_on_errors(mock_hass: object) -> None:
+    runtime, registry = _build_runtime(mock_hass, ["buddy", "flaky"])
+
+    current_data: dict[str, CoordinatorDogData] = {
+        "buddy": _baseline_data(registry, "buddy", "online"),
+        "flaky": _baseline_data(registry, "flaky", "online"),
+    }
+
+    async def fake_execute(_func: object, dog_id: str, **_kwargs: object) -> object:
+        if dog_id == "flaky":
+            raise NetworkError("Intermittent connectivity")
+        return {
+            "dog_info": registry.get(dog_id),
+            "status": "online",
+            "last_update": "now",
+        }
+
+    runtime._resilience.execute_with_resilience = AsyncMock(side_effect=fake_execute)
+
+    initial_interval = runtime._adaptive_polling.current_interval
+    data, cycle = asyncio.run(
+        runtime.execute_cycle(
+            ["buddy", "flaky"],
+            current_data,
+            empty_payload_factory=registry.empty_payload,
+        )
+    )
+
+    assert data["flaky"] == current_data["flaky"]
+    assert cycle.errors == 1
+    assert cycle.success
+    assert cycle.new_interval > initial_interval

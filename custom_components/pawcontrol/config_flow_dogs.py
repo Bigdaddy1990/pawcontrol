@@ -19,7 +19,6 @@ from typing import TYPE_CHECKING, Any, cast
 
 import voluptuous as vol
 from custom_components.pawcontrol.config_flow_base import (
-    DOG_ID_PATTERN,
     ENTITY_CREATION_DELAY,
     MAX_DOGS_PER_ENTRY,
     VALIDATION_SEMAPHORE,
@@ -43,10 +42,8 @@ from custom_components.pawcontrol.const import (
     GPS_ACCURACY_FILTER_SELECTOR,
     GPS_UPDATE_INTERVAL_SELECTOR,
     MAX_DOG_AGE,
-    MAX_DOG_NAME_LENGTH,
     MAX_DOG_WEIGHT,
     MIN_DOG_AGE,
-    MIN_DOG_NAME_LENGTH,
     MIN_DOG_WEIGHT,
     MODULE_FEEDING,
     MODULE_GPS,
@@ -54,6 +51,8 @@ from custom_components.pawcontrol.const import (
     MODULE_MEDICATION,
     SPECIAL_DIET_OPTIONS,
 )
+from custom_components.pawcontrol.exceptions import FlowValidationError
+from custom_components.pawcontrol.flow_validation import validate_dog_setup_input
 from custom_components.pawcontrol.types import (
     ADD_ANOTHER_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE,
     ADD_DOG_CAPACITY_PLACEHOLDERS_TEMPLATE,
@@ -385,7 +384,6 @@ class DogManagementMixin(DogManagementMixinBase):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize dog management mixin."""
         super().__init__(*args, **kwargs)
-        self._lower_dog_names: set[str] = set()
         self._global_modules: ModuleConfigurationSnapshot = {
             "enable_notifications": True,
             "enable_dashboard": True,
@@ -428,7 +426,11 @@ class DogManagementMixin(DogManagementMixinBase):
 
                 if validation_result["valid"]:
                     # Create dog configuration with enhanced defaults
-                    dog_config = await self._create_dog_config(user_input)
+                    validated_input = cast(
+                        DogSetupStepInput,
+                        validation_result.get("validated_input", user_input),
+                    )
+                    dog_config = await self._create_dog_config(validated_input)
 
                     # Store temporarily for module configuration
                     self._current_dog_config = dog_config
@@ -1266,8 +1268,6 @@ class DogManagementMixin(DogManagementMixinBase):
         Returns:
             Dictionary with validation results and any errors
         """
-        errors: dict[str, str] = {}
-
         try:
             dog_id_raw = user_input.get(CONF_DOG_ID)
             dog_name_raw = user_input.get(CONF_DOG_NAME)
@@ -1275,7 +1275,7 @@ class DogManagementMixin(DogManagementMixinBase):
             if not isinstance(dog_id_raw, str) or not isinstance(dog_name_raw, str):
                 return {"valid": False, "errors": {"base": "invalid_dog_data"}}
 
-            dog_id = dog_id_raw.lower().strip().replace(" ", "_")
+            dog_id = dog_id_raw.lower().strip()
             dog_name = dog_name_raw.strip()
 
             # Add small delay between validations to prevent flooding
@@ -1287,36 +1287,41 @@ class DogManagementMixin(DogManagementMixinBase):
             if (cached := self._get_cached_validation(cache_key)) is not None:
                 return cached
 
-            # Enhanced dog ID validation
-            if error := self._validate_dog_id(dog_id):
-                errors[CONF_DOG_ID] = error
-
-            # Enhanced dog name validation
-            if error := self._validate_dog_name(dog_name):
-                errors[CONF_DOG_NAME] = error
-
-            # Enhanced weight validation with size correlation
-            if error := self._validate_weight(user_input):
-                errors[CONF_DOG_WEIGHT] = error
-
-            # Enhanced age validation
-            if error := self._validate_age(user_input):
-                errors[CONF_DOG_AGE] = error
-
-            # Breed validation (optional but helpful)
-            if error := self._validate_breed(user_input):
-                errors[CONF_DOG_BREED] = error
-
-            # Cache the result for performance
-            result: DogValidationResult = {
-                "valid": len(errors) == 0,
-                "errors": errors,
+            existing_ids = {
+                str(dog.get(DOG_ID_FIELD)).strip().lower()
+                for dog in self._dogs
+                if isinstance(dog.get(DOG_ID_FIELD), str)
+            }
+            existing_names = {
+                str(dog.get(DOG_NAME_FIELD)).strip().lower()
+                for dog in self._dogs
+                if isinstance(dog.get(DOG_NAME_FIELD), str)
+                and str(dog.get(DOG_NAME_FIELD)).strip()
             }
 
-            self._update_validation_cache(cache_key, result)
+            validated = validate_dog_setup_input(
+                user_input,
+                existing_ids=existing_ids,
+                existing_names=existing_names,
+                current_dog_count=len(self._dogs),
+                max_dogs=MAX_DOGS_PER_ENTRY,
+            )
 
+            result: DogValidationResult = {
+                "valid": True,
+                "errors": {},
+                "validated_input": validated,
+            }
+            self._update_validation_cache(cache_key, result)
             return result
 
+        except FlowValidationError as err:
+            result: DogValidationResult = {
+                "valid": False,
+                "errors": err.as_form_errors(),
+            }
+            self._update_validation_cache(cache_key, result)
+            return result
         except Exception as err:
             _LOGGER.error("Error validating dog configuration: %s", err)
             return {
@@ -1360,60 +1365,6 @@ class DogManagementMixin(DogManagementMixinBase):
         }
         self._validation_cache[cache_key] = cache_entry
 
-    def _validate_dog_id(self, dog_id: str) -> str | None:
-        if not DOG_ID_PATTERN.match(dog_id):
-            return "invalid_dog_id_format"
-        if any(dog[DOG_ID_FIELD] == dog_id for dog in self._dogs):
-            return "dog_id_already_exists"
-        if len(dog_id) < 2:
-            return "dog_id_too_short"
-        if len(dog_id) > 30:
-            return "dog_id_too_long"
-        return None
-
-    def _validate_dog_name(self, dog_name: str) -> str | None:
-        if not dog_name:
-            return "dog_name_required"
-        if len(dog_name) < MIN_DOG_NAME_LENGTH:
-            return "dog_name_too_short"
-        if len(dog_name) > MAX_DOG_NAME_LENGTH:
-            return "dog_name_too_long"
-        if len(self._lower_dog_names) != len(self._dogs):
-            self._lower_dog_names = {dog[DOG_NAME_FIELD].lower() for dog in self._dogs}
-        if dog_name.lower() in self._lower_dog_names:
-            return "dog_name_already_exists"
-        return None
-
-    def _validate_weight(self, user_input: DogSetupStepInput) -> str | None:
-        weight_value = _coerce_optional_float(user_input.get(CONF_DOG_WEIGHT))
-        size_raw = user_input.get(CONF_DOG_SIZE)
-        size = size_raw if isinstance(size_raw, str) and size_raw else "medium"
-
-        if weight_value is None:
-            return None
-
-        if weight_value < MIN_DOG_WEIGHT or weight_value > MAX_DOG_WEIGHT:
-            return "weight_out_of_range"
-        if not self._is_weight_size_compatible(weight_value, size):
-            return "weight_size_mismatch"
-        return None
-
-    def _validate_age(self, user_input: DogSetupStepInput) -> str | None:
-        age_value = _coerce_optional_int(user_input.get(CONF_DOG_AGE))
-        if age_value is None:
-            return None
-
-        if age_value < MIN_DOG_AGE or age_value > MAX_DOG_AGE:
-            return "age_out_of_range"
-        return None
-
-    def _validate_breed(self, user_input: DogSetupStepInput) -> str | None:
-        breed_raw = user_input.get(CONF_DOG_BREED)
-        breed = breed_raw.strip() if isinstance(breed_raw, str) else ""
-        if breed and len(breed) > 100:
-            return "breed_name_too_long"
-        return None
-
     async def _create_dog_config(self, user_input: DogSetupStepInput) -> DogConfigData:
         """Create a complete dog configuration with intelligent defaults.
 
@@ -1426,11 +1377,8 @@ class DogManagementMixin(DogManagementMixinBase):
         Returns:
             Complete dog configuration dictionary
         """
-        dog_id_raw = user_input[DOG_ID_FIELD]
-        dog_id = dog_id_raw.lower().strip().replace(" ", "_")
-
-        dog_name_raw = user_input[DOG_NAME_FIELD]
-        dog_name = dog_name_raw.strip()
+        dog_id = cast(str, user_input[DOG_ID_FIELD]).strip()
+        dog_name = cast(str, user_input[DOG_NAME_FIELD]).strip()
 
         config: DogConfigData = {
             DOG_ID_FIELD: dog_id,
