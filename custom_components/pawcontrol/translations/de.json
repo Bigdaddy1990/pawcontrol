@@ -83,7 +83,7 @@
       },
       "dog_feeding": {
         "title": "Fütterungskonfiguration für {dog_name}",
-        "description": "Richte den Fütterungsplan für {dog_name} ({dog_weight}kg) ein.\n\nVorgeschlagene Tagesmenge: {suggested_amount}g\n{portion_info}",
+        "description": "Fütterungsplan für {dog_name} ({dog_weight} kg) einrichten.\n\nVorgeschlagene Tagesmenge: {suggested_amount} g\nAutomatische Portionsberechnung: {suggested_amount} g pro Tag",
         "data": {
           "meals_per_day": "Mahlzeiten pro Tag",
           "daily_food_amount": "Tägliche Futtermenge (Gramm)",
@@ -117,7 +117,18 @@
       },
       "dog_health": {
         "title": "Gesundheits- & Diätkonfiguration für {dog_name}",
-        "description": "Konfiguriere umfassende Gesundheitseinstellungen für {dog_name} ({dog_age} Jahre, {dog_weight}kg).\n\nIdealgewicht-Vorschlag: {suggested_ideal_weight}kg\nAktivitätslevel-Vorschlag: {suggested_activity}\n\n{bcs_info}\n\nSpezialdiät-Optionen ({special_diet_count} verfügbar):\n{health_diet_info}",
+        "description": "Umfassende Gesundheitsdaten für {dog_name} ({dog_age} Jahre, {dog_weight} kg) konfigurieren.\n\nEmpfohlenes Idealgewicht: {suggested_ideal_weight} kg\nEmpfohlene Aktivitätsstufe: {suggested_activity}\n\n{bcs_info}\n\nSpezielle Diätoptionen ({special_diet_count} verfügbar):\nWähle alle speziellen Ernährungsanforderungen aus, um die Fütterungsberechnung zu optimieren.\n\n⚠️ Kompatibilitätsinfo:\n{diet_compatibility_info}",
+        "bcs_info": "Body-Condition-Score: 1=Ausgemergelt, 5=Ideal, 9=Adipös",
+        "guidance": {
+          "puppies": "🐶 Welpen: puppy_formula in Betracht ziehen, weight_control vermeiden",
+          "seniors": "👴 Senioren: senior_formula in Betracht ziehen, joint_support kann hilfreich sein",
+          "large_breed": "🦴 Große Rassen: joint_support empfohlen, auf Futtermittelallergien achten",
+          "toy_breed": "🐭 Toy-Rassen: oft vorteilhaft sensitive_stomach, kleine Krokettengröße",
+          "multiple_prescription": "⚠️ Mehrere Diäten auf Rezept brauchen tierärztliche Abstimmung",
+          "raw_diets": "🥩 Rohfütterung erfordert bei Erkrankungen sorgfältigen Umgang",
+          "prescription_overrides": "🏥 Diäten auf Rezept haben Vorrang vor Lifestyle-Präferenzen",
+          "none": "Keine spezifischen Kompatibilitätsprobleme festgestellt"
+        },
         "data": {
           "vet_name": "Name des Tierarztes",
           "vet_phone": "Telefon des Tierarztes",
@@ -1451,6 +1462,92 @@
     "runtime_store_compatibility": {
       "title": "Runtime-Cache benötigt Aufmerksamkeit",
       "description": "Paw Control hat {status}-Metadaten im Runtime-Store für {config_entry_id} erkannt. Eintrags-Snapshot: Status {entry_status}, Version {entry_version}, erstellt {entry_created_version}. Domain-Store-Snapshot: Status {store_status}, Version {store_version}, erstellt {store_created_version}. Aktuelles Schema {current_version}, minimale Kompatibilität {minimum_compatible_version}. Divergenz erkannt: {divergence_detected}."
+    }
+  },
+  "selector": {
+    "select": {
+      "activity_level": {
+        "options": {
+          "very_low": "🛌 Sehr niedrig - Inaktiv, älter oder krank",
+          "low": "🚶 Niedrig - Leichte Bewegung, meist drinnen",
+          "moderate": "🏃 Mittel - Regelmäßige Spaziergänge und Spiel",
+          "high": "🏋️ Hoch - Sehr aktiv, lange Spaziergänge/Läufe",
+          "very_high": "🏆 Sehr hoch - Arbeits- oder Sporthunde"
+        }
+      },
+      "dog_size": {
+        "options": {
+          "toy": "🐭 Toy (1-6 kg)",
+          "small": "🐕 Klein (6-12 kg)",
+          "medium": "🐶 Mittel (12-27 kg)",
+          "large": "🐕‍🦺 Groß (27-45 kg)",
+          "giant": "🐺 Riese (45-90 kg)"
+        }
+      },
+      "feeding_schedule": {
+        "options": {
+          "flexible": "⏰ Flexible Zeiten",
+          "strict": "🎯 Fester Zeitplan",
+          "custom": "⚙️ Individueller Zeitplan"
+        }
+      },
+      "food_type": {
+        "options": {
+          "dry_food": "🥜 Trockenfutter",
+          "wet_food": "🥫 Nassfutter",
+          "barf": "🥩 BARF",
+          "home_cooked": "🍲 Hausgemacht",
+          "mixed": "🔄 Gemischt"
+        }
+      },
+      "gps_source": {
+        "options": {
+          "manual": "📝 Manuelles GPS (später konfigurieren)",
+          "webhook": "🌐 Webhook (REST-API)",
+          "mqtt": "📡 MQTT-Topic",
+          "tractive": "🐕 Tractive-GPS-Halsband"
+        }
+      },
+      "import_export_action": {
+        "options": {
+          "export": "Aktuelle Einstellungen exportieren",
+          "import": "Einstellungen aus Backup importieren"
+        }
+      },
+      "medication_frequency": {
+        "options": {
+          "daily": "Täglich",
+          "twice_daily": "Zweimal täglich",
+          "weekly": "Wöchentlich",
+          "as_needed": "Bei Bedarf"
+        }
+      },
+      "performance_mode": {
+        "options": {
+          "minimal": "⚡ Minimal - Geringe Ressourcennutzung",
+          "balanced": "⚖️ Ausgewogen - Gute Leistung und Effizienz",
+          "full": "🚀 Vollständig - Maximale Funktionen und Reaktionsfähigkeit"
+        }
+      },
+      "weather_entity": {
+        "options": {
+          "none": "Keine Wetter-Entität (Wetterfunktionen deaktivieren)"
+        }
+      },
+      "weather_notification_threshold": {
+        "options": {
+          "low": "Niedrig - Nur extreme Wetterwarnungen",
+          "moderate": "Mittel - Wichtige Wetterwarnungen",
+          "high": "Hoch - Alle Wetterempfehlungen"
+        }
+      },
+      "weight_goal": {
+        "options": {
+          "lose": "📉 Gewichtsabnahme",
+          "maintain": "⚖️ Gewicht halten",
+          "gain": "📈 Gewichtszunahme"
+        }
+      }
     }
   },
   "common": {

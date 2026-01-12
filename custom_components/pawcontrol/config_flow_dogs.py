@@ -13,13 +13,13 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
+import importlib
 import logging
-from collections.abc import Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from typing import TYPE_CHECKING, Any, cast
 
 import voluptuous as vol
 from custom_components.pawcontrol.config_flow_base import (
-    DOG_ID_PATTERN,
     ENTITY_CREATION_DELAY,
     MAX_DOGS_PER_ENTRY,
     VALIDATION_SEMAPHORE,
@@ -42,11 +42,10 @@ from custom_components.pawcontrol.const import (
     DEFAULT_GPS_UPDATE_INTERVAL,
     GPS_ACCURACY_FILTER_SELECTOR,
     GPS_UPDATE_INTERVAL_SELECTOR,
+    DOMAIN,
     MAX_DOG_AGE,
-    MAX_DOG_NAME_LENGTH,
     MAX_DOG_WEIGHT,
     MIN_DOG_AGE,
-    MIN_DOG_NAME_LENGTH,
     MIN_DOG_WEIGHT,
     MODULE_FEEDING,
     MODULE_GPS,
@@ -54,6 +53,8 @@ from custom_components.pawcontrol.const import (
     MODULE_MEDICATION,
     SPECIAL_DIET_OPTIONS,
 )
+from custom_components.pawcontrol.exceptions import FlowValidationError
+from custom_components.pawcontrol.flow_validation import validate_dog_setup_input
 from custom_components.pawcontrol.types import (
     ADD_ANOTHER_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE,
     ADD_DOG_CAPACITY_PLACEHOLDERS_TEMPLATE,
@@ -108,6 +109,16 @@ from homeassistant.config_entries import ConfigFlowResult
 from .selector_shim import selector
 
 _LOGGER = logging.getLogger(__name__)
+
+_TRANSLATIONS_IMPORT_PATH = "homeassistant.helpers.translation"
+_ASYNC_GET_TRANSLATIONS: Callable[..., Awaitable[dict[str, str]]] | None
+try:
+    _translations_module = importlib.import_module(_TRANSLATIONS_IMPORT_PATH)
+    _ASYNC_GET_TRANSLATIONS = getattr(
+        _translations_module, "async_get_translations", None
+    )
+except (ModuleNotFoundError, AttributeError):
+    _ASYNC_GET_TRANSLATIONS = None
 
 # Diet compatibility matrix for validation
 DIET_COMPATIBILITY_RULES = {
@@ -193,7 +204,6 @@ def _build_dog_feeding_placeholders(
     dog_name: str,
     dog_weight: str,
     suggested_amount: str,
-    portion_info: str,
 ) -> ConfigFlowPlaceholders:
     """Return immutable placeholders for the feeding configuration step."""
 
@@ -201,7 +211,6 @@ def _build_dog_feeding_placeholders(
     placeholders["dog_name"] = dog_name
     placeholders["dog_weight"] = dog_weight
     placeholders["suggested_amount"] = suggested_amount
-    placeholders["portion_info"] = portion_info
     return freeze_placeholders(placeholders)
 
 
@@ -212,10 +221,9 @@ def _build_dog_health_placeholders(
     dog_weight: str,
     suggested_ideal_weight: str,
     suggested_activity: str,
-    medication_enabled: str,
     bcs_info: str,
     special_diet_count: str,
-    health_diet_info: str,
+    diet_compatibility_info: str,
 ) -> ConfigFlowPlaceholders:
     """Return immutable placeholders for the health configuration step."""
 
@@ -225,10 +233,9 @@ def _build_dog_health_placeholders(
     placeholders["dog_weight"] = dog_weight
     placeholders["suggested_ideal_weight"] = suggested_ideal_weight
     placeholders["suggested_activity"] = suggested_activity
-    placeholders["medication_enabled"] = medication_enabled
     placeholders["bcs_info"] = bcs_info
     placeholders["special_diet_count"] = special_diet_count
-    placeholders["health_diet_info"] = health_diet_info
+    placeholders["diet_compatibility_info"] = diet_compatibility_info
     return freeze_placeholders(placeholders)
 
 
@@ -385,7 +392,6 @@ class DogManagementMixin(DogManagementMixinBase):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize dog management mixin."""
         super().__init__(*args, **kwargs)
-        self._lower_dog_names: set[str] = set()
         self._global_modules: ModuleConfigurationSnapshot = {
             "enable_notifications": True,
             "enable_dashboard": True,
@@ -394,6 +400,35 @@ class DogManagementMixin(DogManagementMixinBase):
             "auto_backup": False,
             "debug_logging": False,
         }
+
+    async def _async_get_flow_translations(self, language: str) -> dict[str, str]:
+        """Return config-flow translations for the requested language."""
+
+        if _ASYNC_GET_TRANSLATIONS is None:
+            return {}
+        try:
+            return await _ASYNC_GET_TRANSLATIONS(
+                self.hass, language, "config", {DOMAIN}
+            )
+        except Exception:  # pragma: no cover - defensive guard for HA API
+            _LOGGER.debug("Failed to load %s translations for config flow", language)
+            return {}
+
+    async def _async_get_translation_lookup(
+        self,
+    ) -> tuple[dict[str, str], dict[str, str]]:
+        """Return translations with an English fallback mapping."""
+
+        target_language = cast(
+            str | None, getattr(self.hass.config, "language", None)
+        ) or "en"
+        translations = await self._async_get_flow_translations(target_language)
+        fallback = (
+            translations
+            if target_language == "en"
+            else await self._async_get_flow_translations("en")
+        )
+        return translations, fallback
 
     async def async_step_add_dog(
         self, user_input: DogSetupStepInput | None = None
@@ -428,7 +463,11 @@ class DogManagementMixin(DogManagementMixinBase):
 
                 if validation_result["valid"]:
                     # Create dog configuration with enhanced defaults
-                    dog_config = await self._create_dog_config(user_input)
+                    validated_input = cast(
+                        DogSetupStepInput,
+                        validation_result.get("validated_input", user_input),
+                    )
+                    dog_config = await self._create_dog_config(validated_input)
 
                     # Store temporarily for module configuration
                     self._current_dog_config = dog_config
@@ -656,32 +695,16 @@ class DogManagementMixin(DogManagementMixinBase):
         device_trackers = self._get_available_device_trackers()
         person_entities = self._get_available_person_entities()
 
-        gps_options = [{"value": "manual", "label": "📝 Manual GPS (configure later)"}]
+        gps_options: list[str | dict[str, str]] = ["manual"]
 
         if device_trackers:
-            gps_options.extend(
-                [
-                    {"value": entity_id, "label": f"📍 {name} (Device Tracker)"}
-                    for entity_id, name in device_trackers.items()
-                ]
-            )
+            gps_options.extend(device_trackers.keys())
 
         if person_entities:
-            gps_options.extend(
-                [
-                    {"value": entity_id, "label": f"👤 {name} (Person)"}
-                    for entity_id, name in person_entities.items()
-                ]
-            )
+            gps_options.extend(person_entities.keys())
 
         # Add per-dog GPS device options
-        gps_options.extend(
-            [
-                {"value": "webhook", "label": "🌐 Webhook (REST API)"},
-                {"value": "mqtt", "label": "📡 MQTT Topic"},
-                {"value": "tractive", "label": "🐕 Tractive GPS Collar"},
-            ]
-        )
+        gps_options.extend(["webhook", "mqtt", "tractive"])
 
         schema = vol.Schema(
             {
@@ -691,6 +714,7 @@ class DogManagementMixin(DogManagementMixinBase):
                     selector.SelectSelectorConfig(
                         options=gps_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
+                        translation_key="gps_source",
                     )
                 ),
                 vol.Optional(
@@ -799,25 +823,23 @@ class DogManagementMixin(DogManagementMixinBase):
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
-                            {"value": "dry_food", "label": "🥜 Dry Food"},
-                            {"value": "wet_food", "label": "🥫 Wet Food"},
-                            {"value": "barf", "label": "🥩 BARF"},
-                            {"value": "home_cooked", "label": "🍲 Home Cooked"},
-                            {"value": "mixed", "label": "🔄 Mixed"},
+                            "dry_food",
+                            "wet_food",
+                            "barf",
+                            "home_cooked",
+                            "mixed",
                         ],
                         mode=selector.SelectSelectorMode.DROPDOWN,
+                        translation_key="food_type",
                     )
                 ),
                 vol.Optional(
                     "feeding_schedule", default="flexible"
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=[
-                            {"value": "flexible", "label": "⏰ Flexible Times"},
-                            {"value": "strict", "label": "🎯 Strict Schedule"},
-                            {"value": "custom", "label": "⚙️ Custom Schedule"},
-                        ],
+                        options=["flexible", "strict", "custom"],
                         mode=selector.SelectSelectorMode.DROPDOWN,
+                        translation_key="feeding_schedule",
                     )
                 ),
                 vol.Optional(
@@ -858,8 +880,6 @@ class DogManagementMixin(DogManagementMixinBase):
             }
         )
 
-        portion_info = f"Automatic portion calculation: {suggested_amount}g per day"
-
         return self.async_show_form(
             step_id="dog_feeding",
             data_schema=schema,
@@ -868,7 +888,6 @@ class DogManagementMixin(DogManagementMixinBase):
                     dog_name=current_dog[DOG_NAME_FIELD],
                     dog_weight=str(dog_weight_value),
                     suggested_amount=str(suggested_amount),
-                    portion_info=portion_info,
                 )
             ),
         )
@@ -1056,38 +1075,21 @@ class DogManagementMixin(DogManagementMixinBase):
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=[
-                        {
-                            "value": "very_low",
-                            "label": "🛌 Very Low - Inactive, elderly, or sick",
-                        },
-                        {
-                            "value": "low",
-                            "label": "🚶 Low - Light exercise, mostly indoor",
-                        },
-                        {
-                            "value": "moderate",
-                            "label": "🏃 Moderate - Regular walks and play",
-                        },
-                        {
-                            "value": "high",
-                            "label": "🏋️ High - Very active, long walks/runs",
-                        },
-                        {
-                            "value": "very_high",
-                            "label": "🏆 Very High - Working or athletic dogs",
-                        },
+                        "very_low",
+                        "low",
+                        "moderate",
+                        "high",
+                        "very_high",
                     ],
                     mode=selector.SelectSelectorMode.DROPDOWN,
+                    translation_key="activity_level",
                 )
             ),
             vol.Optional("weight_goal", default="maintain"): selector.SelectSelector(
                 selector.SelectSelectorConfig(
-                    options=[
-                        {"value": "lose", "label": "📉 Weight Loss"},
-                        {"value": "maintain", "label": "⚖️ Maintain Current Weight"},
-                        {"value": "gain", "label": "📈 Weight Gain"},
-                    ],
+                    options=["lose", "maintain", "gain"],
                     mode=selector.SelectSelectorMode.DROPDOWN,
+                    translation_key="weight_goal",
                 )
             ),
             vol.Optional("spayed_neutered", default=True): selector.BooleanSelector(),
@@ -1182,13 +1184,9 @@ class DogManagementMixin(DogManagementMixinBase):
                         "medication_1_frequency", default="daily"
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
-                            options=[
-                                {"value": "daily", "label": "Daily"},
-                                {"value": "twice_daily", "label": "Twice Daily"},
-                                {"value": "weekly", "label": "Weekly"},
-                                {"value": "as_needed", "label": "As Needed"},
-                            ],
+                            options=["daily", "twice_daily", "weekly", "as_needed"],
                             mode=selector.SelectSelectorMode.DROPDOWN,
+                            translation_key="medication_frequency",
                         )
                     ),
                     vol.Optional(
@@ -1204,13 +1202,9 @@ class DogManagementMixin(DogManagementMixinBase):
                         "medication_2_frequency", default="daily"
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
-                            options=[
-                                {"value": "daily", "label": "Daily"},
-                                {"value": "twice_daily", "label": "Twice Daily"},
-                                {"value": "weekly", "label": "Weekly"},
-                                {"value": "as_needed", "label": "As Needed"},
-                            ],
+                            options=["daily", "twice_daily", "weekly", "as_needed"],
                             mode=selector.SelectSelectorMode.DROPDOWN,
+                            translation_key="medication_frequency",
                         )
                     ),
                     vol.Optional(
@@ -1225,16 +1219,12 @@ class DogManagementMixin(DogManagementMixinBase):
 
         schema = vol.Schema(schema_dict)
 
-        # Generate diet compatibility info
-        diet_compatibility_info = self._get_diet_compatibility_guidance(
-            dog_age, dog_size
-        )
+        translations, fallback = await self._async_get_translation_lookup()
+        bcs_key = "config.step.dog_health.bcs_info"
+        bcs_info = translations.get(bcs_key) or fallback.get(bcs_key) or ""
 
-        medication_enabled = "yes" if modules.get(MODULE_MEDICATION, False) else "no"
-        health_diet_info = (
-            "Select all special diet requirements that apply to optimize "
-            "feeding calculations\n\n⚠️ Compatibility Info:\n"
-            f"{diet_compatibility_info}"
+        diet_compatibility_info = await self._get_diet_compatibility_guidance(
+            dog_age, dog_size
         )
 
         return self.async_show_form(
@@ -1247,10 +1237,9 @@ class DogManagementMixin(DogManagementMixinBase):
                     dog_weight=str(dog_weight),
                     suggested_ideal_weight=str(suggested_ideal_weight),
                     suggested_activity=suggested_activity,
-                    medication_enabled=medication_enabled,
-                    bcs_info="Body Condition Score: 1=Emaciated, 5=Ideal, 9=Obese",
+                    bcs_info=bcs_info,
                     special_diet_count=str(len(SPECIAL_DIET_OPTIONS)),
-                    health_diet_info=health_diet_info,
+                    diet_compatibility_info=diet_compatibility_info,
                 )
             ),
         )
@@ -1266,8 +1255,6 @@ class DogManagementMixin(DogManagementMixinBase):
         Returns:
             Dictionary with validation results and any errors
         """
-        errors: dict[str, str] = {}
-
         try:
             dog_id_raw = user_input.get(CONF_DOG_ID)
             dog_name_raw = user_input.get(CONF_DOG_NAME)
@@ -1275,7 +1262,7 @@ class DogManagementMixin(DogManagementMixinBase):
             if not isinstance(dog_id_raw, str) or not isinstance(dog_name_raw, str):
                 return {"valid": False, "errors": {"base": "invalid_dog_data"}}
 
-            dog_id = dog_id_raw.lower().strip().replace(" ", "_")
+            dog_id = dog_id_raw.lower().strip()
             dog_name = dog_name_raw.strip()
 
             # Add small delay between validations to prevent flooding
@@ -1287,36 +1274,41 @@ class DogManagementMixin(DogManagementMixinBase):
             if (cached := self._get_cached_validation(cache_key)) is not None:
                 return cached
 
-            # Enhanced dog ID validation
-            if error := self._validate_dog_id(dog_id):
-                errors[CONF_DOG_ID] = error
-
-            # Enhanced dog name validation
-            if error := self._validate_dog_name(dog_name):
-                errors[CONF_DOG_NAME] = error
-
-            # Enhanced weight validation with size correlation
-            if error := self._validate_weight(user_input):
-                errors[CONF_DOG_WEIGHT] = error
-
-            # Enhanced age validation
-            if error := self._validate_age(user_input):
-                errors[CONF_DOG_AGE] = error
-
-            # Breed validation (optional but helpful)
-            if error := self._validate_breed(user_input):
-                errors[CONF_DOG_BREED] = error
-
-            # Cache the result for performance
-            result: DogValidationResult = {
-                "valid": len(errors) == 0,
-                "errors": errors,
+            existing_ids = {
+                str(dog.get(DOG_ID_FIELD)).strip().lower()
+                for dog in self._dogs
+                if isinstance(dog.get(DOG_ID_FIELD), str)
+            }
+            existing_names = {
+                str(dog.get(DOG_NAME_FIELD)).strip().lower()
+                for dog in self._dogs
+                if isinstance(dog.get(DOG_NAME_FIELD), str)
+                and str(dog.get(DOG_NAME_FIELD)).strip()
             }
 
-            self._update_validation_cache(cache_key, result)
+            validated = validate_dog_setup_input(
+                user_input,
+                existing_ids=existing_ids,
+                existing_names=existing_names,
+                current_dog_count=len(self._dogs),
+                max_dogs=MAX_DOGS_PER_ENTRY,
+            )
 
+            result: DogValidationResult = {
+                "valid": True,
+                "errors": {},
+                "validated_input": validated,
+            }
+            self._update_validation_cache(cache_key, result)
             return result
 
+        except FlowValidationError as err:
+            result: DogValidationResult = {
+                "valid": False,
+                "errors": err.as_form_errors(),
+            }
+            self._update_validation_cache(cache_key, result)
+            return result
         except Exception as err:
             _LOGGER.error("Error validating dog configuration: %s", err)
             return {
@@ -1360,60 +1352,6 @@ class DogManagementMixin(DogManagementMixinBase):
         }
         self._validation_cache[cache_key] = cache_entry
 
-    def _validate_dog_id(self, dog_id: str) -> str | None:
-        if not DOG_ID_PATTERN.match(dog_id):
-            return "invalid_dog_id_format"
-        if any(dog[DOG_ID_FIELD] == dog_id for dog in self._dogs):
-            return "dog_id_already_exists"
-        if len(dog_id) < 2:
-            return "dog_id_too_short"
-        if len(dog_id) > 30:
-            return "dog_id_too_long"
-        return None
-
-    def _validate_dog_name(self, dog_name: str) -> str | None:
-        if not dog_name:
-            return "dog_name_required"
-        if len(dog_name) < MIN_DOG_NAME_LENGTH:
-            return "dog_name_too_short"
-        if len(dog_name) > MAX_DOG_NAME_LENGTH:
-            return "dog_name_too_long"
-        if len(self._lower_dog_names) != len(self._dogs):
-            self._lower_dog_names = {dog[DOG_NAME_FIELD].lower() for dog in self._dogs}
-        if dog_name.lower() in self._lower_dog_names:
-            return "dog_name_already_exists"
-        return None
-
-    def _validate_weight(self, user_input: DogSetupStepInput) -> str | None:
-        weight_value = _coerce_optional_float(user_input.get(CONF_DOG_WEIGHT))
-        size_raw = user_input.get(CONF_DOG_SIZE)
-        size = size_raw if isinstance(size_raw, str) and size_raw else "medium"
-
-        if weight_value is None:
-            return None
-
-        if weight_value < MIN_DOG_WEIGHT or weight_value > MAX_DOG_WEIGHT:
-            return "weight_out_of_range"
-        if not self._is_weight_size_compatible(weight_value, size):
-            return "weight_size_mismatch"
-        return None
-
-    def _validate_age(self, user_input: DogSetupStepInput) -> str | None:
-        age_value = _coerce_optional_int(user_input.get(CONF_DOG_AGE))
-        if age_value is None:
-            return None
-
-        if age_value < MIN_DOG_AGE or age_value > MAX_DOG_AGE:
-            return "age_out_of_range"
-        return None
-
-    def _validate_breed(self, user_input: DogSetupStepInput) -> str | None:
-        breed_raw = user_input.get(CONF_DOG_BREED)
-        breed = breed_raw.strip() if isinstance(breed_raw, str) else ""
-        if breed and len(breed) > 100:
-            return "breed_name_too_long"
-        return None
-
     async def _create_dog_config(self, user_input: DogSetupStepInput) -> DogConfigData:
         """Create a complete dog configuration with intelligent defaults.
 
@@ -1426,11 +1364,8 @@ class DogManagementMixin(DogManagementMixinBase):
         Returns:
             Complete dog configuration dictionary
         """
-        dog_id_raw = user_input[DOG_ID_FIELD]
-        dog_id = dog_id_raw.lower().strip().replace(" ", "_")
-
-        dog_name_raw = user_input[DOG_NAME_FIELD]
-        dog_name = dog_name_raw.strip()
+        dog_id = cast(str, user_input[DOG_ID_FIELD]).strip()
+        dog_name = cast(str, user_input[DOG_NAME_FIELD]).strip()
 
         config: DogConfigData = {
             DOG_ID_FIELD: dog_id,
@@ -1564,29 +1499,9 @@ class DogManagementMixin(DogManagementMixinBase):
                     CONF_DOG_SIZE, default=current_values.get(CONF_DOG_SIZE, "medium")
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=[
-                            {
-                                "value": "toy",
-                                "label": "🐭 Toy (1-6kg) - Chihuahua, Yorkshire Terrier",
-                            },
-                            {
-                                "value": "small",
-                                "label": "🐕 Small (6-12kg) - Beagle, Cocker Spaniel",
-                            },
-                            {
-                                "value": "medium",
-                                "label": "🐶 Medium (12-27kg) - Border Collie, Labrador",
-                            },
-                            {
-                                "value": "large",
-                                "label": "🐕‍🦺 Large (27-45kg) - German Shepherd, Golden Retriever",
-                            },
-                            {
-                                "value": "giant",
-                                "label": "🐺 Giant (45-90kg) - Great Dane, Saint Bernard",
-                            },
-                        ],
+                        options=["toy", "small", "medium", "large", "giant"],
                         mode=selector.SelectSelectorMode.DROPDOWN,
+                        translation_key="dog_size",
                     )
                 ),
             }
@@ -1915,52 +1830,42 @@ class DogManagementMixin(DogManagementMixinBase):
 
         return size_activity_map.get(dog_size, "moderate")
 
-    def _get_diet_compatibility_guidance(self, dog_age: int, dog_size: str) -> str:
-        """Get guidance text about diet compatibility based on dog characteristics.
+    async def _get_diet_compatibility_guidance(
+        self, dog_age: int, dog_size: str
+    ) -> str:
+        """Get guidance text about diet compatibility based on dog characteristics."""
 
-        Args:
-            dog_age: Dog age in years
-            dog_size: Dog size category
+        translations, fallback = await self._async_get_translation_lookup()
+        guidance_prefix = "config.step.dog_health.guidance"
 
-        Returns:
-            Formatted guidance text for diet selection
-        """
-        guidance_points = []
+        def _lookup(key: str) -> str:
+            full_key = f"{guidance_prefix}.{key}"
+            return translations.get(full_key) or fallback.get(full_key) or ""
 
-        # Age-specific guidance
+        guidance_points: list[str] = []
+
         if dog_age < 2:
-            guidance_points.append(
-                "🐶 Puppies: Consider puppy_formula, avoid weight_control"
-            )
+            guidance_points.append(_lookup("puppies"))
         elif dog_age >= 7:
-            guidance_points.append(
-                "👴 Seniors: Consider senior_formula, joint_support may be beneficial"
-            )
+            guidance_points.append(_lookup("seniors"))
 
-        # Size-specific guidance
         if dog_size in ("large", "giant"):
-            guidance_points.append(
-                "🦴 Large breeds: Joint_support recommended, watch for food allergies"
-            )
+            guidance_points.append(_lookup("large_breed"))
         elif dog_size == "toy":
-            guidance_points.append(
-                "🐭 Toy breeds: Often benefit from sensitive_stomach, small kibble size"
-            )
+            guidance_points.append(_lookup("toy_breed"))
 
-        # General compatibility warnings
         guidance_points.extend(
             [
-                "⚠️ Multiple prescription diets need vet coordination",
-                "🥩 Raw diets require careful handling with medical conditions",
-                "🏥 Prescription diets override lifestyle preferences",
+                _lookup("multiple_prescription"),
+                _lookup("raw_diets"),
+                _lookup("prescription_overrides"),
             ]
         )
 
-        return (
-            "\n".join(guidance_points)
-            if guidance_points
-            else "No specific compatibility concerns detected"
-        )
+        filtered = [entry for entry in guidance_points if entry]
+        if filtered:
+            return "\n".join(filtered)
+        return _lookup("none")
 
     async def async_step_configure_modules(
         self, user_input: ModuleConfigurationStepInput | None = None
@@ -2030,21 +1935,9 @@ class DogManagementMixin(DogManagementMixinBase):
                     "performance_mode", default=suggested_performance
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=[
-                            {
-                                "value": "minimal",
-                                "label": "⚡ Minimal - Low resource usage",
-                            },
-                            {
-                                "value": "balanced",
-                                "label": "⚖️ Balanced - Good performance and features",
-                            },
-                            {
-                                "value": "full",
-                                "label": "🚀 Full - Maximum features and responsiveness",
-                            },
-                        ],
+                        options=["minimal", "balanced", "full"],
                         mode=selector.SelectSelectorMode.DROPDOWN,
+                        translation_key="performance_mode",
                     )
                 ),
                 vol.Optional(

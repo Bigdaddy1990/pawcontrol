@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping
 from typing import Any
 
@@ -88,6 +89,7 @@ def validate_dog_setup_input(
     user_input: Mapping[str, Any],
     *,
     existing_ids: set[str],
+    existing_names: set[str] | None = None,
     current_dog_count: int,
     max_dogs: int,
 ) -> DogSetupStepInput:
@@ -97,7 +99,8 @@ def validate_dog_setup_input(
     base_errors: list[str] = []
 
     raw_id = user_input.get(CONF_DOG_ID, "")
-    dog_id = str(raw_id).strip().lower() if raw_id is not None else ""
+    dog_id_raw = str(raw_id).strip().lower() if raw_id is not None else ""
+    dog_id = re.sub(r"\s+", "_", dog_id_raw)
     if not dog_id:
         field_errors[CONF_DOG_ID] = "invalid_dog_id_format"
     elif len(dog_id) < 2:
@@ -117,6 +120,14 @@ def validate_dog_setup_input(
         field_errors[CONF_DOG_NAME] = "dog_name_too_short"
     elif len(dog_name) > MAX_DOG_NAME_LENGTH:
         field_errors[CONF_DOG_NAME] = "dog_name_too_long"
+    else:
+        normalized_names = {
+            name.strip().lower()
+            for name in (existing_names or set())
+            if isinstance(name, str) and name.strip()
+        }
+        if dog_name.lower() in normalized_names:
+            field_errors[CONF_DOG_NAME] = "dog_name_already_exists"
 
     if current_dog_count >= max_dogs:
         base_errors.append("max_dogs_reached")
@@ -177,6 +188,8 @@ def validate_dog_setup_input(
 def validate_dog_update_input(
     current_dog: DogConfigData,
     user_input: Mapping[str, Any],
+    *,
+    existing_names: set[str] | None = None,
 ) -> DogConfigData:
     """Validate updates for an existing dog configuration."""
 
@@ -193,6 +206,13 @@ def validate_dog_update_input(
     elif len(dog_name) > MAX_DOG_NAME_LENGTH:
         field_errors[CONF_DOG_NAME] = "dog_name_too_long"
     else:
+        normalized_names = {
+            name.strip().lower()
+            for name in (existing_names or set())
+            if isinstance(name, str) and name.strip()
+        }
+        if dog_name.lower() in normalized_names:
+            field_errors[CONF_DOG_NAME] = "dog_name_already_exists"
         candidate[CONF_DOG_NAME] = dog_name
 
     raw_breed = user_input.get(CONF_DOG_BREED, candidate.get(CONF_DOG_BREED))

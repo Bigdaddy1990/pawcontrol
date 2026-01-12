@@ -2884,18 +2884,9 @@ class PawControlOptionsFlow(OptionsFlow):
                     ),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=[
-                            {
-                                "value": "minimal",
-                                "label": "Minimal - Lowest resource usage",
-                            },
-                            {
-                                "value": "balanced",
-                                "label": "Balanced - Good performance",
-                            },
-                            {"value": "full", "label": "Full - Maximum responsiveness"},
-                        ],
+                        options=["minimal", "balanced", "full"],
                         mode=selector.SelectSelectorMode.DROPDOWN,
+                        translation_key="performance_mode",
                     )
                 ),
                 vol.Optional(
@@ -3709,9 +3700,15 @@ class PawControlOptionsFlow(OptionsFlow):
                 validated = validate_dog_setup_input(
                     user_input,
                     existing_ids={
-                        str(dog.get(DOG_ID_FIELD)).strip()
+                        str(dog.get(DOG_ID_FIELD)).strip().lower()
                         for dog in self._dogs
                         if isinstance(dog.get(DOG_ID_FIELD), str)
+                    },
+                    existing_names={
+                        str(dog.get(DOG_NAME_FIELD)).strip().lower()
+                        for dog in self._dogs
+                        if isinstance(dog.get(DOG_NAME_FIELD), str)
+                        and str(dog.get(DOG_NAME_FIELD)).strip()
                     },
                     current_dog_count=len(self._dogs),
                     max_dogs=MAX_DOGS_PER_ENTRY,
@@ -3802,14 +3799,9 @@ class PawControlOptionsFlow(OptionsFlow):
                 ),
                 vol.Optional(CONF_DOG_SIZE, default="medium"): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=[
-                            {"value": "toy", "label": "Toy (1-6kg)"},
-                            {"value": "small", "label": "Small (6-12kg)"},
-                            {"value": "medium", "label": "Medium (12-27kg)"},
-                            {"value": "large", "label": "Large (27-45kg)"},
-                            {"value": "giant", "label": "Giant (45-90kg)"},
-                        ],
+                        options=["toy", "small", "medium", "large", "giant"],
                         mode=selector.SelectSelectorMode.DROPDOWN,
+                        translation_key="dog_size",
                     )
                 ),
             }
@@ -3926,9 +3918,17 @@ class PawControlOptionsFlow(OptionsFlow):
                 )
 
                 if dog_index >= 0:
+                    existing_names = {
+                        str(dog.get(DOG_NAME_FIELD)).strip().lower()
+                        for dog in self._dogs
+                        if isinstance(dog.get(DOG_NAME_FIELD), str)
+                        and dog.get(DOG_ID_FIELD) != target_id
+                        and str(dog.get(DOG_NAME_FIELD)).strip()
+                    }
                     candidate = validate_dog_update_input(
                         cast(DogConfigData, dict(self._dogs[dog_index])),
                         user_input,
+                        existing_names=existing_names,
                     )
                     normalised = ensure_dog_config_data(candidate)
                     if normalised is None:
@@ -4002,14 +4002,9 @@ class PawControlOptionsFlow(OptionsFlow):
                     default=self._current_dog.get(CONF_DOG_SIZE, "medium"),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=[
-                            {"value": "toy", "label": "Toy (1-6kg)"},
-                            {"value": "small", "label": "Small (6-12kg)"},
-                            {"value": "medium", "label": "Medium (12-27kg)"},
-                            {"value": "large", "label": "Large (27-45kg)"},
-                            {"value": "giant", "label": "Giant (45-90kg)"},
-                        ],
+                        options=["toy", "small", "medium", "large", "giant"],
                         mode=selector.SelectSelectorMode.DROPDOWN,
+                        translation_key="dog_size",
                     )
                 ),
             }
@@ -4355,16 +4350,14 @@ class PawControlOptionsFlow(OptionsFlow):
             entity_default = stored_entity
 
         # Get available weather entities
-        weather_entities = [
-            {"value": "none", "label": "No weather entity (disable weather features)"}
-        ]
+        weather_entities: list[str | dict[str, str]] = ["none"]
 
         for entity_id in self.hass.states.async_entity_ids("weather"):
             entity_state = self.hass.states.get(entity_id)
             if entity_state:
                 friendly_name = entity_state.attributes.get("friendly_name", entity_id)
                 weather_entities.append(
-                    {"value": entity_id, "label": f"{friendly_name} ({entity_id})"}
+                    {"value": entity_id, "label": str(friendly_name)}
                 )
 
         return vol.Schema(
@@ -4379,6 +4372,7 @@ class PawControlOptionsFlow(OptionsFlow):
                     selector.SelectSelectorConfig(
                         options=weather_entities,
                         mode=selector.SelectSelectorMode.DROPDOWN,
+                        translation_key="weather_entity",
                     )
                 ),
                 vol.Optional(
@@ -4477,21 +4471,9 @@ class PawControlOptionsFlow(OptionsFlow):
                     ),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=[
-                            {
-                                "value": "low",
-                                "label": "Low - Only extreme weather warnings",
-                            },
-                            {
-                                "value": "moderate",
-                                "label": "Moderate - Important weather alerts",
-                            },
-                            {
-                                "value": "high",
-                                "label": "High - All weather recommendations",
-                            },
-                        ],
+                        options=["low", "moderate", "high"],
                         mode=selector.SelectSelectorMode.DROPDOWN,
+                        translation_key="weather_notification_threshold",
                     )
                 ),
             }
@@ -5077,21 +5059,9 @@ class PawControlOptionsFlow(OptionsFlow):
                     ),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=[
-                            {
-                                "value": "minimal",
-                                "label": "Minimal - Lowest resource usage",
-                            },
-                            {
-                                "value": "balanced",
-                                "label": "Balanced - Good performance and efficiency",
-                            },
-                            {
-                                "value": "full",
-                                "label": "Full - Maximum features and responsiveness",
-                            },
-                        ],
+                        options=["minimal", "balanced", "full"],
                         mode=selector.SelectSelectorMode.DROPDOWN,
+                        translation_key="performance_mode",
                     )
                 ),
             }
@@ -5287,21 +5257,9 @@ class PawControlOptionsFlow(OptionsFlow):
                     default=current_values.get("performance_mode", mode_default),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=[
-                            {
-                                "value": "minimal",
-                                "label": "Minimal - Lowest resource usage",
-                            },
-                            {
-                                "value": "balanced",
-                                "label": "Balanced - Good performance and efficiency",
-                            },
-                            {
-                                "value": "full",
-                                "label": "Full - Maximum features and responsiveness",
-                            },
-                        ],
+                        options=["minimal", "balanced", "full"],
                         mode=selector.SelectSelectorMode.DROPDOWN,
+                        translation_key="performance_mode",
                     )
                 ),
                 vol.Optional(
@@ -5489,17 +5447,9 @@ class PawControlOptionsFlow(OptionsFlow):
             {
                 vol.Required("action", default="export"): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=[
-                            {
-                                "value": "export",
-                                "label": "Export current settings",
-                            },
-                            {
-                                "value": "import",
-                                "label": "Import settings from backup",
-                            },
-                        ],
+                        options=["export", "import"],
                         mode=selector.SelectSelectorMode.DROPDOWN,
+                        translation_key="import_export_action",
                     )
                 )
             }
