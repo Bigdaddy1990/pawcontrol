@@ -3700,9 +3700,15 @@ class PawControlOptionsFlow(OptionsFlow):
                 validated = validate_dog_setup_input(
                     user_input,
                     existing_ids={
-                        str(dog.get(DOG_ID_FIELD)).strip()
+                        str(dog.get(DOG_ID_FIELD)).strip().lower()
                         for dog in self._dogs
                         if isinstance(dog.get(DOG_ID_FIELD), str)
+                    },
+                    existing_names={
+                        str(dog.get(DOG_NAME_FIELD)).strip().lower()
+                        for dog in self._dogs
+                        if isinstance(dog.get(DOG_NAME_FIELD), str)
+                        and str(dog.get(DOG_NAME_FIELD)).strip()
                     },
                     current_dog_count=len(self._dogs),
                     max_dogs=MAX_DOGS_PER_ENTRY,
@@ -3912,9 +3918,17 @@ class PawControlOptionsFlow(OptionsFlow):
                 )
 
                 if dog_index >= 0:
+                    existing_names = {
+                        str(dog.get(DOG_NAME_FIELD)).strip().lower()
+                        for dog in self._dogs
+                        if isinstance(dog.get(DOG_NAME_FIELD), str)
+                        and dog.get(DOG_ID_FIELD) != target_id
+                        and str(dog.get(DOG_NAME_FIELD)).strip()
+                    }
                     candidate = validate_dog_update_input(
                         cast(DogConfigData, dict(self._dogs[dog_index])),
                         user_input,
+                        existing_names=existing_names,
                     )
                     normalised = ensure_dog_config_data(candidate)
                     if normalised is None:
