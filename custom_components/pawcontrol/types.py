@@ -3089,7 +3089,6 @@ DOG_FEEDING_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
             "dog_name": "",
             "dog_weight": "",
             "suggested_amount": "",
-            "portion_info": "",
         }
     ),
 )
@@ -3102,10 +3101,9 @@ DOG_HEALTH_PLACEHOLDERS_TEMPLATE: Final[ConfigFlowPlaceholders] = cast(
             "dog_weight": "",
             "suggested_ideal_weight": "",
             "suggested_activity": "",
-            "medication_enabled": "",
             "bcs_info": "",
             "special_diet_count": "",
-            "health_diet_info": "",
+            "diet_compatibility_info": "",
         }
     ),
 )

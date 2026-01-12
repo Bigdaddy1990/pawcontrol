@@ -83,7 +83,7 @@
       },
       "dog_feeding": {
         "title": "Feeding Configuration for {dog_name}",
-        "description": "Set up feeding schedule for {dog_name} ({dog_weight}kg).\n\nSuggested daily amount: {suggested_amount}g\n{portion_info}",
+        "description": "Set up feeding schedule for {dog_name} ({dog_weight}kg).\n\nSuggested daily amount: {suggested_amount}g\nAutomatic portion calculation: {suggested_amount}g per day",
         "data": {
           "meals_per_day": "Meals per Day",
           "daily_food_amount": "Daily Food Amount (grams)",
@@ -117,7 +117,18 @@
       },
       "dog_health": {
         "title": "Health & Diet Configuration for {dog_name}",
-        "description": "Configure comprehensive health settings for {dog_name} ({dog_age} years, {dog_weight}kg).\n\nIdeal weight suggestion: {suggested_ideal_weight}kg\nActivity level suggestion: {suggested_activity}\n\n{bcs_info}\n\nSpecial Diet Options ({special_diet_count} available):\n{health_diet_info}",
+        "description": "Configure comprehensive health settings for {dog_name} ({dog_age} years, {dog_weight}kg).\n\nIdeal weight suggestion: {suggested_ideal_weight}kg\nActivity level suggestion: {suggested_activity}\n\n{bcs_info}\n\nSpecial Diet Options ({special_diet_count} available):\nSelect all special diet requirements that apply to optimize feeding calculations.\n\n⚠️ Compatibility Info:\n{diet_compatibility_info}",
+        "bcs_info": "Body Condition Score: 1=Emaciated, 5=Ideal, 9=Obese",
+        "guidance": {
+          "puppies": "🐶 Puppies: Consider puppy_formula, avoid weight_control",
+          "seniors": "👴 Seniors: Consider senior_formula, joint_support may be beneficial",
+          "large_breed": "🦴 Large breeds: Joint_support recommended, watch for food allergies",
+          "toy_breed": "🐭 Toy breeds: Often benefit from sensitive_stomach, small kibble size",
+          "multiple_prescription": "⚠️ Multiple prescription diets need vet coordination",
+          "raw_diets": "🥩 Raw diets require careful handling with medical conditions",
+          "prescription_overrides": "🏥 Prescription diets override lifestyle preferences",
+          "none": "No specific compatibility concerns detected"
+        },
         "data": {
           "vet_name": "Veterinarian Name",
           "vet_phone": "Veterinarian Phone",
@@ -1451,6 +1462,92 @@
     "runtime_store_compatibility": {
       "title": "Runtime cache requires attention",
       "description": "Paw Control detected {status} runtime store metadata for {config_entry_id}. Entry snapshot: status {entry_status}, version {entry_version}, created {entry_created_version}. Domain store snapshot: status {store_status}, version {store_version}, created {store_created_version}. Current schema {current_version}, minimum compatible {minimum_compatible_version}. Divergence detected: {divergence_detected}."
+    }
+  },
+  "selector": {
+    "select": {
+      "activity_level": {
+        "options": {
+          "very_low": "🛌 Very low - Inactive, elderly, or sick",
+          "low": "🚶 Low - Light exercise, mostly indoor",
+          "moderate": "🏃 Moderate - Regular walks and play",
+          "high": "🏋️ High - Very active, long walks/runs",
+          "very_high": "🏆 Very high - Working or athletic dogs"
+        }
+      },
+      "dog_size": {
+        "options": {
+          "toy": "🐭 Toy (1-6kg)",
+          "small": "🐕 Small (6-12kg)",
+          "medium": "🐶 Medium (12-27kg)",
+          "large": "🐕‍🦺 Large (27-45kg)",
+          "giant": "🐺 Giant (45-90kg)"
+        }
+      },
+      "feeding_schedule": {
+        "options": {
+          "flexible": "⏰ Flexible times",
+          "strict": "🎯 Strict schedule",
+          "custom": "⚙️ Custom schedule"
+        }
+      },
+      "food_type": {
+        "options": {
+          "dry_food": "🥜 Dry food",
+          "wet_food": "🥫 Wet food",
+          "barf": "🥩 BARF",
+          "home_cooked": "🍲 Home cooked",
+          "mixed": "🔄 Mixed"
+        }
+      },
+      "gps_source": {
+        "options": {
+          "manual": "📝 Manual GPS (configure later)",
+          "webhook": "🌐 Webhook (REST API)",
+          "mqtt": "📡 MQTT topic",
+          "tractive": "🐕 Tractive GPS collar"
+        }
+      },
+      "import_export_action": {
+        "options": {
+          "export": "Export current settings",
+          "import": "Import settings from backup"
+        }
+      },
+      "medication_frequency": {
+        "options": {
+          "daily": "Daily",
+          "twice_daily": "Twice daily",
+          "weekly": "Weekly",
+          "as_needed": "As needed"
+        }
+      },
+      "performance_mode": {
+        "options": {
+          "minimal": "⚡ Minimal - Low resource usage",
+          "balanced": "⚖️ Balanced - Good performance and efficiency",
+          "full": "🚀 Full - Maximum features and responsiveness"
+        }
+      },
+      "weather_entity": {
+        "options": {
+          "none": "No weather entity (disable weather features)"
+        }
+      },
+      "weather_notification_threshold": {
+        "options": {
+          "low": "Low - Only extreme weather warnings",
+          "moderate": "Moderate - Important weather alerts",
+          "high": "High - All weather recommendations"
+        }
+      },
+      "weight_goal": {
+        "options": {
+          "lose": "📉 Weight loss",
+          "maintain": "⚖️ Maintain current weight",
+          "gain": "📈 Weight gain"
+        }
+      }
     }
   },
   "common": {
