@@ -265,6 +265,177 @@
           "module_garden": "Turns on garden tracking automations."
         }
       },
+      "dog_gps": {
+        "title": "GPS Configuration for {dog_name}",
+        "description": "Configure GPS tracking settings for {dog_name}.\n\nSelect your preferred GPS source and adjust tracking parameters for optimal battery life and accuracy.",
+        "data": {
+          "gps_source": "GPS Source",
+          "gps_update_interval": "Update Interval (seconds)",
+          "gps_accuracy_filter": "Accuracy Filter (meters)",
+          "enable_geofencing": "Enable Geofencing",
+          "home_zone_radius": "Home Zone Radius (meters)"
+        },
+        "data_description": {
+          "gps_source": "Choose the hardware or service providing GPS updates for this dog.",
+          "gps_update_interval": "How frequently to request new GPS data. Shorter intervals use more battery.",
+          "gps_accuracy_filter": "Ignore updates less accurate than this distance in meters.",
+          "enable_geofencing": "Turn on automatic alerts when the dog leaves safe zones.",
+          "home_zone_radius": "Define the radius of the safe home zone used for geofencing alerts."
+        }
+      },
+      "dog_feeding": {
+        "title": "Feeding Configuration for {dog_name}",
+        "description": "Set up feeding schedule for {dog_name} ({dog_weight}kg).\n\nSuggested daily amount: {suggested_amount}g\nAutomatic portion calculation: {suggested_amount}g per day",
+        "data": {
+          "meals_per_day": "Meals per Day",
+          "daily_food_amount": "Daily Food Amount (grams)",
+          "food_type": "Food Type",
+          "feeding_schedule": "Feeding Schedule",
+          "breakfast_enabled": "Enable Breakfast",
+          "breakfast_time": "Breakfast Time",
+          "lunch_enabled": "Enable Lunch",
+          "lunch_time": "Lunch Time",
+          "dinner_enabled": "Enable Dinner",
+          "dinner_time": "Dinner Time",
+          "snacks_enabled": "Enable Snacks",
+          "enable_reminders": "Feeding Reminders",
+          "reminder_minutes_before": "Reminder Minutes Before Meal"
+        },
+        "data_description": {
+          "meals_per_day": "Number of meals Paw Control will plan for each day.",
+          "daily_food_amount": "Total amount of food (in grams) to distribute across all meals.",
+          "food_type": "Used to tailor nutritional advice and feeding reminders.",
+          "feeding_schedule": "Choose the preset schedule or custom times for meals.",
+          "breakfast_enabled": "Enable if this dog should receive a morning meal.",
+          "breakfast_time": "Time of day to serve breakfast when enabled.",
+          "lunch_enabled": "Enable if this dog should receive a midday meal.",
+          "lunch_time": "Time of day to serve lunch when enabled.",
+          "dinner_enabled": "Enable if this dog should receive an evening meal.",
+          "dinner_time": "Time of day to serve dinner when enabled.",
+          "snacks_enabled": "Track snacks separately from regular meals.",
+          "enable_reminders": "Send Home Assistant reminders ahead of each scheduled meal.",
+          "reminder_minutes_before": "How many minutes before a meal the reminder should trigger."
+        }
+      },
+      "dog_health": {
+        "title": "Health & Diet Configuration for {dog_name}",
+        "description": "Configure comprehensive health settings for {dog_name} ({dog_age} years, {dog_weight}kg).\n\nIdeal weight suggestion: {suggested_ideal_weight}kg\nActivity level suggestion: {suggested_activity}\n\n{bcs_info}\n\nSpecial Diet Options ({special_diet_count} available):\nSelect all special diet requirements that apply to optimize feeding calculations.\n\n⚠️ Compatibility Info:\n{diet_compatibility_info}",
+        "bcs_info": "Body Condition Score: 1=Emaciated, 5=Ideal, 9=Obese",
+        "guidance": {
+          "puppies": "🐶 Puppies: Consider puppy_formula, avoid weight_control",
+          "seniors": "👴 Seniors: Consider senior_formula, joint_support may be beneficial",
+          "large_breed": "🦴 Large breeds: Joint_support recommended, watch for food allergies",
+          "toy_breed": "🐭 Toy breeds: Often benefit from sensitive_stomach, small kibble size",
+          "multiple_prescription": "⚠️ Multiple prescription diets need vet coordination",
+          "raw_diets": "🥩 Raw diets require careful handling with medical conditions",
+          "prescription_overrides": "🏥 Prescription diets override lifestyle preferences",
+          "none": "No specific compatibility concerns detected"
+        },
+        "data": {
+          "vet_name": "Veterinarian Name",
+          "vet_phone": "Veterinarian Phone",
+          "last_vet_visit": "Last Vet Visit",
+          "next_checkup": "Next Checkup",
+          "weight_tracking": "Enable Weight Tracking",
+          "health_aware_portions": "Health-Aware Portion Calculation",
+          "ideal_weight": "Ideal Weight (kg)",
+          "body_condition_score": "Body Condition Score (1-9)",
+          "activity_level": "Activity Level",
+          "weight_goal": "Weight Goal",
+          "spayed_neutered": "Spayed/Neutered",
+          "has_diabetes": "Has Diabetes",
+          "has_kidney_disease": "Has Kidney Disease",
+          "has_heart_disease": "Has Heart Disease",
+          "has_arthritis": "Has Arthritis",
+          "has_allergies": "Has Allergies",
+          "has_digestive_issues": "Has Digestive Issues",
+          "other_health_conditions": "Other Health Conditions",
+          "prescription": "🏥 Prescription Diet",
+          "diabetic": "🩺 Diabetic Diet",
+          "kidney_support": "🫘 Kidney Support Diet",
+          "low_fat": "🥗 Low Fat Diet",
+          "weight_control": "⚖️ Weight Control Diet",
+          "sensitive_stomach": "🌿 Sensitive Stomach Diet",
+          "senior_formula": "👴 Senior Formula",
+          "puppy_formula": "🐶 Puppy Formula",
+          "grain_free": "🌾 Grain-Free Diet",
+          "hypoallergenic": "🛡️ Hypoallergenic Diet",
+          "organic": "🌱 Organic Food",
+          "raw_diet": "🥩 Raw Diet (BARF)",
+          "dental_care": "🦷 Dental Care Formula",
+          "joint_support": "🦴 Joint Support Formula",
+          "rabies_vaccination": "Rabies Vaccination Date",
+          "rabies_next": "Next Rabies Vaccination",
+          "dhpp_vaccination": "DHPP Vaccination Date",
+          "dhpp_next": "Next DHPP Vaccination",
+          "bordetella_vaccination": "Bordetella Vaccination Date",
+          "bordetella_next": "Next Bordetella Vaccination",
+          "medication_1_name": "Medication 1 Name",
+          "medication_1_dosage": "Medication 1 Dosage",
+          "medication_1_frequency": "Medication 1 Frequency",
+          "medication_1_time": "Medication 1 Time",
+          "medication_1_with_meals": "Medication 1 With Meals",
+          "medication_1_notes": "Medication 1 Notes",
+          "medication_2_name": "Medication 2 Name",
+          "medication_2_dosage": "Medication 2 Dosage",
+          "medication_2_frequency": "Medication 2 Frequency",
+          "medication_2_time": "Medication 2 Time",
+          "medication_2_with_meals": "Medication 2 With Meals",
+          "medication_2_notes": "Medication 2 Notes"
+        },
+        "data_description": {
+          "vet_name": "Primary veterinarian used in reminders and diagnostics.",
+          "vet_phone": "Contact number displayed in emergency notifications.",
+          "last_vet_visit": "Date of the most recent vet appointment for reference.",
+          "next_checkup": "Schedule the next planned vet visit to receive reminders.",
+          "weight_tracking": "Enable to log weight entries and show weight trend sensors.",
+          "health_aware_portions": "Adjust feeding recommendations based on the health profile.",
+          "ideal_weight": "Target weight (kg) used for goal tracking and alerts.",
+          "body_condition_score": "BCS score (1-9) guides nutrition recommendations.",
+          "activity_level": "Overall activity level to balance calorie suggestions.",
+          "weight_goal": "Choose whether the dog should maintain, lose, or gain weight.",
+          "spayed_neutered": "Indicate if the dog is spayed/neutered for health calculations.",
+          "has_diabetes": "Enable diabetic care prompts and medication helpers.",
+          "has_kidney_disease": "Enable kidney-friendly feeding suggestions.",
+          "has_heart_disease": "Enable heart-health alerts and diet adjustments.",
+          "has_arthritis": "Track joint-support reminders and activity guidance.",
+          "has_allergies": "Enable allergy alerts and diet filters.",
+          "has_digestive_issues": "Tailor feeding reminders for sensitive stomachs.",
+          "other_health_conditions": "List any other conditions to surface in reminders.",
+          "prescription": "Mark if the dog follows a prescription diet.",
+          "diabetic": "Flag that the dog uses a diabetic diet plan.",
+          "kidney_support": "Flag that the dog uses a kidney support diet plan.",
+          "low_fat": "Flag that the dog uses a low-fat diet plan.",
+          "weight_control": "Flag that the dog uses a weight-control diet plan.",
+          "sensitive_stomach": "Flag that the dog uses a sensitive stomach formula.",
+          "senior_formula": "Flag that the dog uses a senior-specific food.",
+          "puppy_formula": "Flag that the dog uses a puppy-specific food.",
+          "grain_free": "Flag that the dog uses a grain-free diet.",
+          "hypoallergenic": "Flag that the dog uses a hypoallergenic formula.",
+          "organic": "Flag that the dog uses organic food.",
+          "raw_diet": "Flag that the dog follows a raw/BARF diet.",
+          "dental_care": "Flag that the dog uses a dental-care food.",
+          "joint_support": "Flag that the dog uses a joint-support formula.",
+          "rabies_vaccination": "Record the date of the last rabies vaccination.",
+          "rabies_next": "Date the next rabies vaccination is due.",
+          "dhpp_vaccination": "Record the date of the last DHPP vaccination.",
+          "dhpp_next": "Date the next DHPP vaccination is due.",
+          "bordetella_vaccination": "Record the date of the last Bordetella vaccination.",
+          "bordetella_next": "Date the next Bordetella vaccination is due.",
+          "medication_1_name": "Name of the first medication you want to track.",
+          "medication_1_dosage": "Dosage instructions for the first medication.",
+          "medication_1_frequency": "How often the first medication should be given.",
+          "medication_1_time": "Default time to administer the first medication.",
+          "medication_1_with_meals": "Indicate if the first medication should be taken with food.",
+          "medication_1_notes": "Additional notes for the first medication.",
+          "medication_2_name": "Name of the second medication you want to track.",
+          "medication_2_dosage": "Dosage instructions for the second medication.",
+          "medication_2_frequency": "How often the second medication should be given.",
+          "medication_2_time": "Default time to administer the second medication.",
+          "medication_2_with_meals": "Indicate if the second medication should be taken with food.",
+          "medication_2_notes": "Additional notes for the second medication."
+        }
+      },
       "add_another": {
         "title": "Add Another Dog?",
         "description": "You have configured {dogs_configured} dog(s):\n\n{dogs_list}\n\nWould you like to add another dog?",
@@ -1624,6 +1795,92 @@
     "feeding_compliance_no_data": {
       "title": "Feeding telemetry missing for {dog_name}",
       "description": "The latest feeding compliance check covering {days_to_check} days could not generate a report: {message}."
+    }
+  },
+  "selector": {
+    "select": {
+      "activity_level": {
+        "options": {
+          "very_low": "🛌 Very low - Inactive, elderly, or sick",
+          "low": "🚶 Low - Light exercise, mostly indoor",
+          "moderate": "🏃 Moderate - Regular walks and play",
+          "high": "🏋️ High - Very active, long walks/runs",
+          "very_high": "🏆 Very high - Working or athletic dogs"
+        }
+      },
+      "dog_size": {
+        "options": {
+          "toy": "🐭 Toy (1-6kg)",
+          "small": "🐕 Small (6-12kg)",
+          "medium": "🐶 Medium (12-27kg)",
+          "large": "🐕‍🦺 Large (27-45kg)",
+          "giant": "🐺 Giant (45-90kg)"
+        }
+      },
+      "feeding_schedule": {
+        "options": {
+          "flexible": "⏰ Flexible times",
+          "strict": "🎯 Strict schedule",
+          "custom": "⚙️ Custom schedule"
+        }
+      },
+      "food_type": {
+        "options": {
+          "dry_food": "🥜 Dry food",
+          "wet_food": "🥫 Wet food",
+          "barf": "🥩 BARF",
+          "home_cooked": "🍲 Home cooked",
+          "mixed": "🔄 Mixed"
+        }
+      },
+      "gps_source": {
+        "options": {
+          "manual": "📝 Manual GPS (configure later)",
+          "webhook": "🌐 Webhook (REST API)",
+          "mqtt": "📡 MQTT topic",
+          "tractive": "🐕 Tractive GPS collar"
+        }
+      },
+      "import_export_action": {
+        "options": {
+          "export": "Export current settings",
+          "import": "Import settings from backup"
+        }
+      },
+      "medication_frequency": {
+        "options": {
+          "daily": "Daily",
+          "twice_daily": "Twice daily",
+          "weekly": "Weekly",
+          "as_needed": "As needed"
+        }
+      },
+      "performance_mode": {
+        "options": {
+          "minimal": "⚡ Minimal - Low resource usage",
+          "balanced": "⚖️ Balanced - Good performance and efficiency",
+          "full": "🚀 Full - Maximum features and responsiveness"
+        }
+      },
+      "weather_entity": {
+        "options": {
+          "none": "No weather entity (disable weather features)"
+        }
+      },
+      "weather_notification_threshold": {
+        "options": {
+          "low": "Low - Only extreme weather warnings",
+          "moderate": "Moderate - Important weather alerts",
+          "high": "High - All weather recommendations"
+        }
+      },
+      "weight_goal": {
+        "options": {
+          "lose": "📉 Weight loss",
+          "maintain": "⚖️ Maintain current weight",
+          "gain": "📈 Weight gain"
+        }
+      }
     }
   },
   "common": {
