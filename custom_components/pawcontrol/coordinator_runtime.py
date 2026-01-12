@@ -41,7 +41,12 @@ except (ImportError, ModuleNotFoundError):
     dt_util = _DateTimeModule()
 
 from .coordinator_support import CoordinatorMetrics, DogConfigRegistry
-from .exceptions import GPSUnavailableError, NetworkError, ValidationError
+from .exceptions import (
+    GPSUnavailableError,
+    NetworkError,
+    RateLimitError,
+    ValidationError,
+)
 from .module_adapters import CoordinatorModuleAdapters
 from .resilience import ResilienceManager, RetryConfig
 from .types import (
@@ -360,6 +365,18 @@ class CoordinatorRuntime:
             except ConfigEntryAuthFailed:
                 errors += 1
                 raise
+            except RateLimitError as err:
+                errors += 1
+                self._logger.warning(
+                    "Rate limit reached for dog %s: %s", dog_id, err.user_message
+                )
+                all_data[dog_id] = current_data.get(dog_id, empty_payload_factory())
+            except NetworkError as err:
+                errors += 1
+                self._logger.warning(
+                    "Network error for dog %s: %s", dog_id, err.user_message
+                )
+                all_data[dog_id] = current_data.get(dog_id, empty_payload_factory())
             except ValidationError as err:
                 errors += 1
                 self._logger.error("Invalid configuration for dog %s: %s", dog_id, err)
@@ -404,7 +421,7 @@ class CoordinatorRuntime:
         success = errors < total_dogs
         new_interval = self._adaptive_polling.record_cycle(
             duration=duration,
-            success=success,
+            success=errors == 0,
             error_ratio=error_ratio,
         )
 
