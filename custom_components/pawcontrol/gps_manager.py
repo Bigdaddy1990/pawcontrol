@@ -12,7 +12,6 @@ Python: 3.13+
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import inspect
 import logging
 import math
@@ -65,6 +64,9 @@ from .types import (
 from .utils import async_fire_event
 
 _LOGGER = logging.getLogger(__name__)
+
+_TRACKING_UPDATE_TIMEOUT = 30.0
+_TASK_CANCEL_TIMEOUT = 5.0
 
 
 class GeofenceEventType(Enum):
@@ -958,7 +960,18 @@ class GPSGeofenceManager:
             try:
                 while dog_id in self._active_routes:
                     # Try to get location from device tracker
-                    await self._update_location_from_device_tracker(dog_id)
+                    try:
+                        await asyncio.wait_for(
+                            self._update_location_from_device_tracker(dog_id),
+                            timeout=min(
+                                _TRACKING_UPDATE_TIMEOUT,
+                                max(5.0, float(config.update_interval)),
+                            ),
+                        )
+                    except asyncio.TimeoutError:
+                        _LOGGER.warning(
+                            "GPS tracking update timed out for %s", dog_id
+                        )
 
                     # Wait for next update
                     await asyncio.sleep(config.update_interval)
@@ -1044,8 +1057,14 @@ class GPSGeofenceManager:
 
         if not task.done():
             task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await task
+            try:
+                await asyncio.wait_for(task, timeout=_TASK_CANCEL_TIMEOUT)
+            except asyncio.TimeoutError:
+                _LOGGER.warning(
+                    "Timeout while stopping GPS tracking task for %s", dog_id
+                )
+            except asyncio.CancelledError:
+                _LOGGER.debug("GPS tracking task cancelled for %s", dog_id)
 
         _LOGGER.debug("Stopped GPS tracking task for %s", dog_id)
 

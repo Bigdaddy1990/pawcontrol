@@ -25,7 +25,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .diagnostics import _normalise_json as _normalise_diagnostics_json
-from .entity import PawControlEntity
+from .entity import PawControlDogEntityBase
 from .notifications import NotificationPriority, NotificationType
 from .runtime_data import get_runtime_data
 from .types import (
@@ -53,7 +53,6 @@ from .types import (
     ensure_dog_config_data,
     ensure_dog_text_metadata_snapshot,
     ensure_dog_text_snapshot,
-    ensure_json_mapping,
 )
 from .utils import async_call_add_entities
 
@@ -271,7 +270,7 @@ async def async_setup_entry(
     )
 
 
-class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
+class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
     """Base class for Paw Control text entities."""
 
     def __init__(
@@ -312,11 +311,8 @@ class PawControlTextBase(PawControlEntity, TextEntity, RestoreEntity):
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return extra state attributes."""
-        merged = ensure_json_mapping(super().extra_state_attributes)
-        merged.update(
+        merged = self._build_base_state_attributes(
             {
-                "dog_id": self._dog_id,
-                "dog_name": self._dog_name,
                 "text_type": self._text_type,
                 "character_count": len(self._current_value),
                 "last_updated": self._last_updated,

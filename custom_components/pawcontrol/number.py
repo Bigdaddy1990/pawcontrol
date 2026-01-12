@@ -43,7 +43,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .diagnostics import _normalise_json as _normalise_diagnostics_json
-from .entity import PawControlEntity
+from .entity import PawControlDogEntityBase
 from .runtime_data import get_runtime_data
 from .types import (
     DOG_AGE_FIELD,
@@ -303,7 +303,7 @@ def _create_health_numbers(
     ]
 
 
-class PawControlNumberBase(PawControlEntity, NumberEntity, RestoreEntity):
+class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity):
     """Base class for all Paw Control number entities.
 
     Provides common functionality and ensures consistent behavior across
@@ -416,27 +416,18 @@ class PawControlNumberBase(PawControlEntity, NumberEntity, RestoreEntity):
         Returns:
             Dictionary of additional state attributes
         """
-        attrs: NumberExtraAttributes = {
-            ATTR_DOG_ID: self._dog_id,
-            ATTR_DOG_NAME: self._dog_name,
-            "number_type": self._number_type,
-            "min_value": self.native_min_value,
-            "max_value": self.native_max_value,
-            "step": self.native_step,
-            "last_changed": dt_util.utcnow().isoformat(),
-        }
-
-        # Add dog-specific information
-        dog_data = self._get_dog_data()
-        if dog_data and "dog_info" in dog_data:
-            dog_info = dog_data["dog_info"]
-            attrs.update(
+        attrs = cast(
+            NumberExtraAttributes,
+            self._build_base_state_attributes(
                 {
-                    "dog_breed": dog_info.get("dog_breed", ""),
-                    "dog_age": dog_info.get("dog_age"),
-                    "dog_size": dog_info.get("dog_size"),
+                    "number_type": self._number_type,
+                    "min_value": self.native_min_value,
+                    "max_value": self.native_max_value,
+                    "step": self.native_step,
+                    "last_changed": dt_util.utcnow().isoformat(),
                 }
-            )
+            ),
+        )
 
         return _normalise_attributes(attrs)
 
@@ -488,15 +479,9 @@ class PawControlNumberBase(PawControlEntity, NumberEntity, RestoreEntity):
         pass
 
     def _get_dog_data(self) -> CoordinatorDogData | None:
-        """Get data for this number's dog from the coordinator.
+        """Get data for this number's dog from the coordinator."""
 
-        Returns:
-            Dog data dictionary or None if not available
-        """
-        if not self.coordinator.available:
-            return None
-
-        return self.coordinator.get_dog_data(self._dog_id)
+        return self._get_dog_data_cached()
 
     def _get_module_data(self, module: str) -> CoordinatorModuleState | None:
         """Get specific module data for this dog.

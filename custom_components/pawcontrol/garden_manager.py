@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Literal, TypedDict, cast
+from typing import Any, Coroutine, Literal, TypedDict, cast
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
@@ -53,6 +53,8 @@ DEFAULT_GARDEN_SESSION_TIMEOUT = 1800  # 30 minutes
 MIN_GARDEN_SESSION_DURATION = 60  # 1 minute
 MAX_GARDEN_SESSION_DURATION = 7200  # 2 hours
 POOP_CONFIRMATION_TIMEOUT = 300  # 5 minutes
+_TASK_CANCEL_TIMEOUT = 5.0
+_BACKGROUND_TASK_TIMEOUT = 20.0
 
 
 def _parse_datetime_or_now(value: str | None) -> datetime:
@@ -370,6 +372,7 @@ class GardenManager:
         self._session_history: list[GardenSession] = []
         self._dog_stats: dict[str, GardenStats] = {}
         self._pending_confirmations: dict[str, _GardenConfirmationRecord] = {}
+        self._confirmation_tasks: dict[str, asyncio.Task[None]] = {}
 
         # Configuration
         self._session_timeout = DEFAULT_GARDEN_SESSION_TIMEOUT
@@ -494,25 +497,78 @@ class GardenManager:
         except Exception as err:  # pragma: no cover - defensive
             _LOGGER.error("Failed to save garden data: %s", err)
 
+    def _create_task(
+        self, coro: Coroutine[Any, Any, None], name: str
+    ) -> asyncio.Task[None]:
+        """Create a named asyncio task using Home Assistant when available."""
+
+        hass_create_task = getattr(self.hass, "async_create_task", None)
+        if callable(hass_create_task):
+            try:
+                task = hass_create_task(coro, name=name)
+            except TypeError:
+                task = hass_create_task(coro)
+        else:
+            try:
+                task = asyncio.create_task(coro, name=name)
+            except TypeError:  # pragma: no cover - <3.8 compatibility guard
+                task = asyncio.create_task(coro)
+
+        return cast(asyncio.Task[None], task)
+
+    async def _cancel_task(self, task: asyncio.Task[Any] | None, name: str) -> None:
+        """Cancel an asyncio task with timeout handling."""
+
+        if task is None or task.done():
+            return
+
+        task.cancel()
+        try:
+            await asyncio.wait_for(task, timeout=_TASK_CANCEL_TIMEOUT)
+        except asyncio.TimeoutError:
+            _LOGGER.warning("Timeout cancelling %s task", name)
+        except asyncio.CancelledError:
+            _LOGGER.debug("%s task cancelled", name)
+        except Exception as err:  # pragma: no cover - defensive log
+            _LOGGER.warning("Error while cancelling %s task: %s", name, err)
+
     async def _start_background_tasks(self) -> None:
         """Start background monitoring tasks."""
         # Cleanup task for expired sessions and confirmations
-        self._cleanup_task = self.hass.async_create_task(self._cleanup_loop())
+        self._cleanup_task = self._create_task(
+            self._cleanup_loop(), "pawcontrol_garden_cleanup"
+        )
 
         # Stats update task
-        self._stats_update_task = self.hass.async_create_task(self._stats_update_loop())
+        self._stats_update_task = self._create_task(
+            self._stats_update_loop(), "pawcontrol_garden_stats"
+        )
 
         _LOGGER.debug("Started garden manager background tasks")
+
+    async def _cancel_confirmation_task(self, dog_id: str) -> None:
+        """Cancel a pending poop confirmation task for a dog."""
+
+        task = self._confirmation_tasks.pop(dog_id, None)
+        await self._cancel_task(task, f"poop confirmation ({dog_id})")
 
     async def _cleanup_loop(self) -> None:
         """Background cleanup task."""
         while True:
             try:
                 await asyncio.sleep(300)  # Run every 5 minutes
-                await self._cleanup_expired_sessions()
-                await self._cleanup_expired_confirmations()
+                await asyncio.wait_for(
+                    self._cleanup_expired_sessions(),
+                    timeout=_BACKGROUND_TASK_TIMEOUT,
+                )
+                await asyncio.wait_for(
+                    self._cleanup_expired_confirmations(),
+                    timeout=_BACKGROUND_TASK_TIMEOUT,
+                )
             except asyncio.CancelledError:
                 break
+            except asyncio.TimeoutError:
+                _LOGGER.warning("Garden cleanup loop timed out")
             except Exception as err:
                 _LOGGER.error("Error in garden cleanup loop: %s", err)
 
@@ -521,10 +577,15 @@ class GardenManager:
         while True:
             try:
                 await asyncio.sleep(1800)  # Run every 30 minutes
-                await self._update_all_statistics()
-                await self._save_data()
+                await asyncio.wait_for(
+                    self._update_all_statistics(),
+                    timeout=_BACKGROUND_TASK_TIMEOUT,
+                )
+                await asyncio.wait_for(self._save_data(), timeout=_BACKGROUND_TASK_TIMEOUT)
             except asyncio.CancelledError:
                 break
+            except asyncio.TimeoutError:
+                _LOGGER.warning("Garden statistics update loop timed out")
             except Exception as err:
                 _LOGGER.error("Error in garden stats update loop: %s", err)
 
@@ -589,7 +650,11 @@ class GardenManager:
 
         # Schedule automatic poop confirmation if enabled
         if self._auto_poop_detection:
-            asyncio.create_task(self._schedule_poop_confirmation(dog_id, session_id))  # noqa: RUF006
+            await self._cancel_confirmation_task(dog_id)
+            self._confirmation_tasks[dog_id] = self._create_task(
+                self._schedule_poop_confirmation(dog_id, session_id),
+                f"pawcontrol_garden_poop_confirm_{dog_id}",
+            )
 
         _LOGGER.info(
             "Started garden session for %s (session: %s, method: %s)",
@@ -618,6 +683,7 @@ class GardenManager:
         Returns:
             Completed session data or None if no active session
         """
+        await self._cancel_confirmation_task(dog_id)
         session = self._active_sessions.get(dog_id)
         if not session:
             _LOGGER.warning("No active garden session for %s", dog_id)
@@ -965,54 +1031,69 @@ class GardenManager:
             dog_id: Dog identifier
             session_id: Garden session ID
         """
-        # Wait a few minutes before asking
-        await asyncio.sleep(180)  # 3 minutes
+        current_task = asyncio.current_task()
+        try:
+            # Wait a few minutes before asking
+            await asyncio.sleep(180)  # 3 minutes
+            session = self._active_sessions.get(dog_id)
+            if not session or session.session_id != session_id:
+                return  # Session ended or changed
 
-        session = self._active_sessions.get(dog_id)
-        if not session or session.session_id != session_id:
-            return  # Session ended or changed
+            # Check if poop already logged
+            poop_activities = [
+                a
+                for a in session.activities
+                if a.activity_type == GardenActivityType.POOP
+            ]
+            if poop_activities:
+                return  # Poop already logged
 
-        # Check if poop already logged
-        poop_activities = [
-            a for a in session.activities if a.activity_type == GardenActivityType.POOP
-        ]
-        if poop_activities:
-            return  # Poop already logged
+            # Send confirmation request
+            if self._notification_manager:
+                confirmation_id = f"poop_confirm_{dog_id}_{session_id}"
+                created = dt_util.utcnow()
+                record: _GardenConfirmationRecord = {
+                    "type": "poop_confirmation",
+                    "dog_id": dog_id,
+                    "session_id": session_id,
+                    "timestamp": created,
+                    "timeout": created + timedelta(seconds=POOP_CONFIRMATION_TIMEOUT),
+                }
+                self._pending_confirmations[confirmation_id] = record
 
-        # Send confirmation request
-        if self._notification_manager:
-            confirmation_id = f"poop_confirm_{dog_id}_{session_id}"
-            created = dt_util.utcnow()
-            record: _GardenConfirmationRecord = {
-                "type": "poop_confirmation",
-                "dog_id": dog_id,
-                "session_id": session_id,
-                "timestamp": created,
-                "timeout": created + timedelta(seconds=POOP_CONFIRMATION_TIMEOUT),
-            }
-            self._pending_confirmations[confirmation_id] = record
-
-            await self._notification_manager.async_send_notification(
-                notification_type=NotificationType.SYSTEM_INFO,
-                title=f"💩 Poop check: {session.dog_name}",
-                message=f"Did {session.dog_name} have a poop in the garden? Tap to confirm or deny.",
-                dog_id=dog_id,
-                priority=NotificationPriority.NORMAL,
-                data={
-                    "confirmation_id": confirmation_id,
-                    "actions": [
-                        {
-                            "action": f"confirm_poop_{dog_id}",
-                            "title": "Yes, had a poop",
-                        },
-                        {
-                            "action": f"deny_poop_{dog_id}",
-                            "title": "No poop",
-                        },
-                    ],
-                },
-                expires_in=timedelta(seconds=POOP_CONFIRMATION_TIMEOUT),
-            )
+                await self._notification_manager.async_send_notification(
+                    notification_type=NotificationType.SYSTEM_INFO,
+                    title=f"💩 Poop check: {session.dog_name}",
+                    message=(
+                        f"Did {session.dog_name} have a poop in the garden? "
+                        "Tap to confirm or deny."
+                    ),
+                    dog_id=dog_id,
+                    priority=NotificationPriority.NORMAL,
+                    data={
+                        "confirmation_id": confirmation_id,
+                        "actions": [
+                            {
+                                "action": f"confirm_poop_{dog_id}",
+                                "title": "Yes, had a poop",
+                            },
+                            {
+                                "action": f"deny_poop_{dog_id}",
+                                "title": "No poop",
+                            },
+                        ],
+                    },
+                    expires_in=timedelta(seconds=POOP_CONFIRMATION_TIMEOUT),
+                )
+        except asyncio.CancelledError:
+            _LOGGER.debug("Poop confirmation task cancelled for %s", dog_id)
+            raise
+        finally:
+            if (
+                current_task is not None
+                and self._confirmation_tasks.get(dog_id) is current_task
+            ):
+                self._confirmation_tasks.pop(dog_id, None)
 
     async def async_handle_poop_confirmation(
         self,
@@ -1405,11 +1486,11 @@ class GardenManager:
     async def async_cleanup(self) -> None:
         """Clean up garden manager."""
         # Cancel background tasks
-        if self._cleanup_task and not self._cleanup_task.done():
-            self._cleanup_task.cancel()
+        await self._cancel_task(self._cleanup_task, "garden cleanup")
+        await self._cancel_task(self._stats_update_task, "garden stats")
 
-        if self._stats_update_task and not self._stats_update_task.done():
-            self._stats_update_task.cancel()
+        for dog_id in list(self._confirmation_tasks.keys()):
+            await self._cancel_confirmation_task(dog_id)
 
         # End all active sessions
         for dog_id in list(self._active_sessions.keys()):

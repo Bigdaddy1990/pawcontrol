@@ -38,7 +38,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .diagnostics import _normalise_json as _normalise_diagnostics_json
-from .entity import PawControlEntity
+from .entity import PawControlDogEntityBase
 from .runtime_data import get_runtime_data
 from .types import (
     DOG_ID_FIELD,
@@ -419,7 +419,7 @@ def _create_garden_binary_sensors(
 
 
 class PawControlBinarySensorBase(
-    PawControlEntity, BinarySensorEntity, BinarySensorLogicMixin
+    PawControlDogEntityBase, BinarySensorEntity, BinarySensorLogicMixin
 ):
     """Base class for all Paw Control binary sensor entities.
 
@@ -453,10 +453,7 @@ class PawControlBinarySensorBase(
         # Link entity to PawControl device entry for the dog
         self.update_device_metadata(model="Virtual Dog", sw_version="1.0.0")
 
-        # OPTIMIZED: Thread-safe instance-level caching
-        self._data_cache: dict[str, CoordinatorDogData | None] = {}
-        self._cache_timestamp: datetime | None = None
-        self._cache_ttl = 30  # 30 seconds cache TTL
+        self._set_cache_ttl(30.0)
 
     @property
     def is_on(self) -> bool:
@@ -506,27 +503,12 @@ class PawControlBinarySensorBase(
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional state attributes for the binary sensor."""
         attrs = self._build_base_attributes()
-
-        # Add dog-specific information with error handling
-        try:
-            dog_data = self._get_dog_data_cached()
-            if dog_data and "dog_info" in dog_data:
-                dog_info = cast(DogConfigData, dog_data["dog_info"])
-                attrs["dog_breed"] = cast(str | None, dog_info.get("dog_breed"))
-                attrs["dog_age"] = cast(int | float | None, dog_info.get("dog_age"))
-                attrs["dog_size"] = cast(str | None, dog_info.get("dog_size"))
-                attrs["dog_weight"] = cast(float | None, dog_info.get("dog_weight"))
-        except Exception as err:
-            _LOGGER.debug("Could not fetch dog info for attributes: %s", err)
-
         return _normalise_attributes(attrs)
 
     def _build_base_attributes(self) -> JSONMutableMapping:
         """Return a JSON-mutable mapping seeded with common attributes."""
 
-        attrs = self._inherit_extra_attributes()
-        attrs.setdefault(ATTR_DOG_ID, self._dog_id)
-        attrs.setdefault(ATTR_DOG_NAME, self._dog_name)
+        attrs = self._build_base_state_attributes()
 
         last_updated_value = attrs.get("last_updated")
         if isinstance(last_updated_value, datetime):
@@ -537,31 +519,6 @@ class PawControlBinarySensorBase(
         attrs["last_update"] = _as_local(dt_util.utcnow()).isoformat()
         attrs["sensor_type"] = self._sensor_type
         return attrs
-
-    def _get_dog_data_cached(self) -> CoordinatorDogData | None:
-        """Get dog data from coordinator with thread-safe caching."""
-        cache_key = f"dog_data_{self._dog_id}"
-        now = dt_util.utcnow()
-
-        # Check cache validity
-        if (
-            self._cache_timestamp
-            and cache_key in self._data_cache
-            and (now - self._cache_timestamp).total_seconds() < self._cache_ttl
-        ):
-            return self._data_cache[cache_key]
-
-        # Fetch fresh data
-        if not self.coordinator.available:
-            return None
-
-        dog_data = self.coordinator.get_dog_data(self._dog_id)
-
-        # Update cache
-        self._data_cache[cache_key] = dog_data
-        self._cache_timestamp = now
-
-        return dog_data
 
     def _get_dog_data(self) -> CoordinatorDogData | None:
         """Get dog data - wrapper for cached access."""

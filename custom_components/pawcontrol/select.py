@@ -41,7 +41,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .diagnostics import _normalise_json as _normalise_diagnostics_json
-from .entity import PawControlEntity
+from .entity import PawControlDogEntityBase
 from .notifications import NotificationPriority, PawControlNotificationManager
 from .runtime_data import get_runtime_data
 from .types import (
@@ -602,7 +602,7 @@ def _create_health_selects(
     ]
 
 
-class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
+class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity):
     """Base class for all Paw Control select entities.
 
     Provides common functionality and ensures consistent behavior across
@@ -826,32 +826,16 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
         Returns:
             Dictionary of additional state attributes
         """
-        base_attrs = super().extra_state_attributes
-        attrs: SelectExtraAttributes = {}
-        if base_attrs:
-            attrs.update(cast(SelectExtraAttributes, base_attrs))
-
-        attrs[ATTR_DOG_ID] = self._dog_id
-        attrs[ATTR_DOG_NAME] = self._dog_name
-        attrs["select_type"] = self._select_type
-        attrs["available_options"] = list(self.options)
-        attrs["last_changed"] = dt_util.utcnow().isoformat()
-
-        dog_data = self._get_dog_data()
-        if isinstance(dog_data, Mapping):
-            dog_info = dog_data.get("dog_info")
-            if isinstance(dog_info, Mapping):
-                breed = dog_info.get("dog_breed")
-                if isinstance(breed, str):
-                    attrs["dog_breed"] = breed
-
-                age = dog_info.get("dog_age")
-                if isinstance(age, int | float):
-                    attrs["dog_age"] = age
-
-                size = dog_info.get("dog_size")
-                if isinstance(size, str):
-                    attrs["dog_size"] = size
+        attrs = cast(
+            SelectExtraAttributes,
+            self._build_base_state_attributes(
+                {
+                    "select_type": self._select_type,
+                    "available_options": list(self.options),
+                    "last_changed": dt_util.utcnow().isoformat(),
+                }
+            ),
+        )
 
         return _normalise_attributes(attrs)
 
@@ -901,15 +885,9 @@ class PawControlSelectBase(PawControlEntity, SelectEntity, RestoreEntity):
         pass
 
     def _get_dog_data(self) -> CoordinatorDogData | None:
-        """Get data for this select's dog from the coordinator.
+        """Get data for this select's dog from the coordinator."""
 
-        Returns:
-            Dog data dictionary or None if not available
-        """
-        if not self.coordinator.available:
-            return None
-
-        return self.coordinator.get_dog_data(self._dog_id)
+        return self._get_dog_data_cached()
 
     def _get_module_data(self, module: str) -> JSONMapping | None:
         """Get specific module data for this dog.
