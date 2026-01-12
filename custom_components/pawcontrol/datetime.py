@@ -25,7 +25,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .diagnostics import _normalise_json as _normalise_diagnostics_json
-from .entity import PawControlEntity
+from .entity import PawControlDogEntityBase
 from .grooming_translations import translated_grooming_template
 from .notifications import NotificationPriority, NotificationType
 from .runtime_data import get_runtime_data
@@ -36,7 +36,6 @@ from .types import (
     DogModulesMapping,
     JSONMutableMapping,
     ensure_dog_modules_mapping,
-    ensure_json_mapping,
 )
 from .utils import async_call_add_entities, ensure_utc_datetime
 
@@ -170,7 +169,7 @@ async def async_setup_entry(
     )
 
 
-class PawControlDateTimeBase(PawControlEntity, DateTimeEntity, RestoreEntity):
+class PawControlDateTimeBase(PawControlDogEntityBase, DateTimeEntity, RestoreEntity):
     """Base class for Paw Control datetime entities."""
 
     def __init__(
@@ -203,13 +202,8 @@ class PawControlDateTimeBase(PawControlEntity, DateTimeEntity, RestoreEntity):
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return extra state attributes."""
-        attributes = ensure_json_mapping(super().extra_state_attributes)
-        attributes.update(
-            {
-                ATTR_DOG_ID: self._dog_id,
-                ATTR_DOG_NAME: self._dog_name,
-                "datetime_type": self._datetime_type,
-            }
+        attributes = self._build_base_state_attributes(
+            {"datetime_type": self._datetime_type}
         )
         return cast(JSONMutableMapping, _normalise_diagnostics_json(attributes))
 

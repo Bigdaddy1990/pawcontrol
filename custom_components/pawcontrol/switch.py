@@ -38,7 +38,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .diagnostics import _normalise_json as _normalise_diagnostics_json
-from .entity import PawControlEntity
+from .entity import PawControlDogEntityBase
 from .grooming_translations import translated_grooming_label
 from .runtime_data import get_runtime_data
 from .types import (
@@ -326,7 +326,7 @@ async def async_setup_entry(
     )
 
 
-class OptimizedSwitchBase(PawControlEntity, SwitchEntity, RestoreEntity):
+class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
     """Optimized base switch class with enhanced caching and state management."""
 
     _attr_should_poll = False

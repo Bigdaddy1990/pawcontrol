@@ -32,7 +32,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .diagnostics import _normalise_json as _normalise_diagnostics_json
-from .entity import PawControlEntity
+from .entity import PawControlDogEntityBase
 from .entity_factory import EntityFactory, EntityProfileDefinition
 from .runtime_data import get_runtime_data
 from .types import (
@@ -793,7 +793,7 @@ def _log_setup_metrics(
     )
 
 
-class PawControlSensorBase(PawControlEntity, SensorEntityProtocol):
+class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
     """Base sensor class with optimized data access and thread-safe caching."""
 
     _attr_should_poll = False
@@ -829,37 +829,11 @@ class PawControlSensorBase(PawControlEntity, SensorEntityProtocol):
         # Link entity to PawControl device entry for the dog
         self.update_device_metadata(model="Virtual Dog", sw_version="1.0.0")
 
-        # OPTIMIZED: Thread-safe instance-level caching system
-        self._data_cache: dict[str, CoordinatorDogData | None] = {}
-        self._cache_timestamp: datetime | None = None
-        self._cache_ttl = 30  # 30 seconds cache TTL
+        self._set_cache_ttl(30.0)
 
     def _get_dog_data(self) -> CoordinatorDogData | None:
         """Get dog data from coordinator with thread-safe caching."""
-        cache_key = f"dog_data_{self._dog_id}"
-        now = dt_util.utcnow()
-
-        # Check cache validity
-        if (
-            self._cache_timestamp
-            and cache_key in self._data_cache
-            and (now - self._cache_timestamp).total_seconds() < self._cache_ttl
-        ):
-            return self._data_cache[cache_key]
-
-        # Fetch fresh data
-        if not self.coordinator.available:
-            return None
-
-        dog_data = self.coordinator.get_dog_data(self._dog_id)
-        if not isinstance(dog_data, Mapping):
-            dog_data = cast(CoordinatorDogData | None, dog_data)
-
-        # Update cache
-        self._data_cache[cache_key] = cast(CoordinatorDogData | None, dog_data)
-        self._cache_timestamp = now
-
-        return cast(CoordinatorDogData | None, dog_data)
+        return self._get_dog_data_cached()
 
     @staticmethod
     def _coerce_module_payload(

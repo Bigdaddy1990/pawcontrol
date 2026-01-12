@@ -50,7 +50,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .diagnostics import _normalise_json as _normalise_diagnostics_json
-from .entity import PawControlEntity
+from .entity import PawControlDogEntityBase
 from .exceptions import WalkAlreadyInProgressError, WalkNotInProgressError
 from .grooming_translations import (
     translated_grooming_label,
@@ -62,7 +62,6 @@ from .types import (
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
     WALK_IN_PROGRESS_FIELD,
-    CoordinatorDogData,
     CoordinatorModuleState,
     CoordinatorTypedModuleName,
     DogConfigData,
@@ -765,7 +764,7 @@ async def async_setup_entry(
     )
 
 
-class PawControlButtonBase(PawControlEntity, ButtonEntity):
+class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
     """Optimized base button class with thread-safe caching and improved performance."""
 
     _attr_should_poll = False
@@ -798,10 +797,7 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
         # Link to virtual PawControl device for the dog
         self.update_device_metadata(model="Virtual Dog", sw_version="1.0.0")
 
-        # OPTIMIZED: Thread-safe instance-level caching
-        self._dog_data_cache: dict[str, CoordinatorDogData] = {}
-        self._cache_timestamp: dict[str, float] = {}
-        self._cache_ttl = 2.0  # 2 second cache for button actions
+        self._set_cache_ttl(2.0)
 
     def __setattr__(self, name: str, value: Any) -> None:
         """Intercept hass assignment to prepare a patch-friendly registry."""
@@ -815,39 +811,19 @@ class PawControlButtonBase(PawControlEntity, ButtonEntity):
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return attributes with optimized caching."""
 
-        attrs = ensure_json_mapping(super().extra_state_attributes)
-        attrs.setdefault(ATTR_DOG_ID, self._dog_id)
-        attrs.setdefault(ATTR_DOG_NAME, self._dog_name)
-        attrs["button_type"] = self._button_type
-        attrs["last_pressed"] = cast(str | None, getattr(self, "_last_pressed", None))
+        attrs = self._build_base_state_attributes(
+            {
+                "button_type": self._button_type,
+                "last_pressed": cast(
+                    str | None, getattr(self, "_last_pressed", None)
+                ),
+            }
+        )
 
         if self._action_description:
             attrs["action_description"] = self._action_description
 
         return _normalise_attributes(attrs)
-
-    def _get_dog_data_cached(self) -> CoordinatorDogData | None:
-        """Get dog data with thread-safe instance-level caching."""
-        cache_key = f"{self._dog_id}_data"
-        now = dt_util.utcnow().timestamp()
-
-        # Check cache validity
-        if (
-            cache_key in self._dog_data_cache
-            and cache_key in self._cache_timestamp
-            and now - self._cache_timestamp[cache_key] < self._cache_ttl
-        ):
-            return self._dog_data_cache[cache_key]
-
-        # Cache miss - fetch fresh data
-        if self.coordinator.available:
-            data = self.coordinator.get_dog_data(self._dog_id)
-            if data is not None:
-                self._dog_data_cache[cache_key] = data
-                self._cache_timestamp[cache_key] = now
-                return data
-
-        return None
 
     def _get_module_data(
         self, module: CoordinatorTypedModuleName

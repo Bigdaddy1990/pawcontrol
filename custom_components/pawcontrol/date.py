@@ -36,7 +36,7 @@ from .const import (
 )
 from .coordinator import PawControlCoordinator
 from .diagnostics import _normalise_json as _normalise_diagnostics_json
-from .entity import PawControlEntity
+from .entity import PawControlDogEntityBase
 from .exceptions import PawControlError, ValidationError
 from .helpers import performance_monitor
 from .runtime_data import get_runtime_data
@@ -50,7 +50,6 @@ from .types import (
     HealthModulePayload,
     JSONMutableMapping,
     ensure_dog_modules_mapping,
-    ensure_json_mapping,
 )
 from .utils import async_call_add_entities
 
@@ -231,7 +230,7 @@ async def async_setup_entry(
         ) from err
 
 
-class PawControlDateBase(PawControlEntity, DateEntity, RestoreEntity):
+class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
     """Base class for Paw Control date entities.
 
     Provides common functionality for all date entities including state
@@ -292,13 +291,8 @@ class PawControlDateBase(PawControlEntity, DateEntity, RestoreEntity):
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return extra state attributes for enhanced functionality."""
-        attributes = ensure_json_mapping(super().extra_state_attributes)
-        attributes.update(
-            {
-                "dog_id": self._dog_id,
-                "dog_name": self._dog_name,
-                "date_type": self._date_type,
-            }
+        attributes = self._build_base_state_attributes(
+            {"date_type": self._date_type}
         )
 
         # Add calculated attributes for useful automations

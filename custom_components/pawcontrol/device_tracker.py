@@ -33,7 +33,7 @@ from homeassistant.util import dt as dt_util
 from .const import MODULE_GPS
 from .coordinator import PawControlCoordinator
 from .diagnostics import _normalise_json as _normalise_diagnostics_json
-from .entity import PawControlEntity
+from .entity import PawControlDogEntityBase
 from .runtime_data import get_runtime_data
 from .types import (
     DOG_ID_FIELD,
@@ -182,7 +182,7 @@ async def async_setup_entry(
         _LOGGER.info("No GPS device trackers created due to profile restrictions")
 
 
-class PawControlGPSTracker(PawControlEntity, TrackerEntity):
+class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
     """GPS device tracker for dogs with route recording capabilities.
 
     NEW: Implements device_tracker.{dog}_gps per requirements_inventory.md

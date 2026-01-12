@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, cast
 
@@ -15,14 +16,20 @@ from .coordinator import PawControlCoordinator
 from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .runtime_data import get_runtime_data
 from .service_guard import ServiceGuardResult
-from .types import CoordinatorRuntimeManagers, JSONMutableMapping, ensure_json_mapping
+from .types import (
+    CoordinatorDogData,
+    CoordinatorRuntimeManagers,
+    DogConfigData,
+    JSONMutableMapping,
+    ensure_json_mapping,
+)
 from .utils import (
     JSONMappingLike,
     PawControlDeviceLinkMixin,
     async_call_hass_service_if_available,
 )
 
-__all__ = ["PawControlEntity"]
+__all__ = ["PawControlDogEntityBase", "PawControlEntity"]
 
 
 if TYPE_CHECKING:
@@ -210,3 +217,90 @@ class PawControlEntity(
             ),
             logger=_LOGGER,
         )
+
+
+class PawControlDogEntityBase(PawControlEntity):
+    """Shared base class that caches dog data and enriches attributes."""
+
+    _cache_ttl: float = 30.0
+
+    def __init__(
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    ) -> None:
+        """Initialize dog entity cache state."""
+
+        super().__init__(coordinator, dog_id, dog_name)
+        self._dog_data_cache: dict[str, CoordinatorDogData | None] = {}
+        self._cache_timestamp: dict[str, float] = {}
+
+    def _set_cache_ttl(self, ttl: float) -> None:
+        """Update the cache TTL for dog data lookups."""
+
+        self._cache_ttl = float(ttl)
+
+    def _get_dog_data_cached(self) -> CoordinatorDogData | None:
+        """Return cached dog data when available."""
+
+        cache_key = f"dog_data_{self._dog_id}"
+        now = dt_util.utcnow().timestamp()
+
+        if (
+            cache_key in self._dog_data_cache
+            and cache_key in self._cache_timestamp
+            and now - self._cache_timestamp[cache_key] < self._cache_ttl
+        ):
+            return self._dog_data_cache[cache_key]
+
+        if not self.coordinator.available:
+            return None
+
+        data = self.coordinator.get_dog_data(self._dog_id)
+        self._dog_data_cache[cache_key] = data
+        self._cache_timestamp[cache_key] = now
+        return data
+
+    def _get_dog_data(self) -> CoordinatorDogData | None:
+        """Return cached dog data when available."""
+
+        return self._get_dog_data_cached()
+
+    def _append_dog_info_attributes(self, attrs: JSONMutableMapping) -> None:
+        """Append dog info attributes when available."""
+
+        dog_data = self._get_dog_data_cached()
+        if not isinstance(dog_data, Mapping):
+            return
+
+        dog_info = dog_data.get("dog_info")
+        if not isinstance(dog_info, Mapping):
+            return
+
+        info = cast(DogConfigData, dog_info)
+        if (breed := info.get("dog_breed")) is not None:
+            attrs["dog_breed"] = breed
+        if (age := info.get("dog_age")) is not None:
+            attrs["dog_age"] = age
+        if (size := info.get("dog_size")) is not None:
+            attrs["dog_size"] = size
+        if (weight := info.get("dog_weight")) is not None:
+            attrs["dog_weight"] = weight
+
+    def _build_base_state_attributes(
+        self, extra: Mapping[str, object] | None = None
+    ) -> JSONMutableMapping:
+        """Return base attributes enriched with dog info."""
+
+        attrs = ensure_json_mapping(super().extra_state_attributes)
+        attrs.setdefault(ATTR_DOG_ID, self._dog_id)
+        attrs.setdefault(ATTR_DOG_NAME, self._dog_name)
+        if extra:
+            attrs.update(extra)
+        self._append_dog_info_attributes(attrs)
+        return attrs
+
+    @property
+    def extra_state_attributes(self) -> JSONMutableMapping:
+        """Expose the entity's extra state attributes payload."""
+
+        attrs = self._build_base_state_attributes()
+        return cast(JSONMutableMapping, _normalise_diagnostics_json(attrs))
