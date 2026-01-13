@@ -28,8 +28,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
     MODULE_FEEDING,
     MODULE_GARDEN,
     MODULE_GPS,
@@ -37,7 +35,7 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
+from .diagnostics import normalize_value
 from .entity import PawControlDogEntityBase
 from .runtime_data import get_runtime_data
 from .types import (
@@ -111,7 +109,7 @@ def _normalise_attributes(
     """Return JSON-serialisable attributes for entity state."""
 
     payload = ensure_json_mapping(attrs)
-    return cast(JSONMutableMapping, _normalise_diagnostics_json(payload))
+    return cast(JSONMutableMapping, normalize_value(payload))
 
 
 # Home Assistant platform configuration

@@ -14,12 +14,12 @@ import asyncio
 import csv
 import json
 import logging
-from collections.abc import Sequence
+from collections.abc import Coroutine, Sequence
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any, Coroutine, Literal, TypedDict, cast
+from typing import Any, Literal, TypedDict, cast
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
@@ -31,7 +31,7 @@ from .const import (
     EVENT_GARDEN_LEFT,
     STORAGE_VERSION,
 )
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
+from .diagnostics import normalize_value
 from .notifications import NotificationPriority, NotificationType
 from .types import (
     GardenActiveSessionSnapshot,
@@ -525,7 +525,7 @@ class GardenManager:
         task.cancel()
         try:
             await asyncio.wait_for(task, timeout=_TASK_CANCEL_TIMEOUT)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             _LOGGER.warning("Timeout cancelling %s task", name)
         except asyncio.CancelledError:
             _LOGGER.debug("%s task cancelled", name)
@@ -567,7 +567,7 @@ class GardenManager:
                 )
             except asyncio.CancelledError:
                 break
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 _LOGGER.warning("Garden cleanup loop timed out")
             except Exception as err:
                 _LOGGER.error("Error in garden cleanup loop: %s", err)
@@ -581,10 +581,12 @@ class GardenManager:
                     self._update_all_statistics(),
                     timeout=_BACKGROUND_TASK_TIMEOUT,
                 )
-                await asyncio.wait_for(self._save_data(), timeout=_BACKGROUND_TASK_TIMEOUT)
+                await asyncio.wait_for(
+                    self._save_data(), timeout=_BACKGROUND_TASK_TIMEOUT
+                )
             except asyncio.CancelledError:
                 break
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 _LOGGER.warning("Garden statistics update loop timed out")
             except Exception as err:
                 _LOGGER.error("Error in garden stats update loop: %s", err)
@@ -829,7 +831,7 @@ class GardenManager:
 
         payload_entries = cast(
             list[JSONMutableMapping],
-            _normalise_diagnostics_json(entries),
+            normalize_value(entries),
         )
 
         if normalized_format == "csv":
@@ -859,7 +861,7 @@ class GardenManager:
             def _write_json() -> None:
                 payload = cast(
                     JSONMutableMapping,
-                    _normalise_diagnostics_json(
+                    normalize_value(
                         {
                             "dog_id": dog_id,
                             "data_type": "garden",

@@ -28,7 +28,6 @@ from . import compat
 from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
 from .const import (
     ATTR_DOG_ID,
-    ATTR_DOG_NAME,
     MODULE_FEEDING,
     MODULE_GARDEN,
     MODULE_GPS,
@@ -49,7 +48,7 @@ from .const import (
     SERVICE_START_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
+from .diagnostics import normalize_value
 from .entity import PawControlDogEntityBase
 from .exceptions import WalkAlreadyInProgressError, WalkNotInProgressError
 from .grooming_translations import (
@@ -88,7 +87,7 @@ def _normalise_attributes(
     """Return JSON-serialisable attributes for button entities."""
 
     payload = ensure_json_mapping(attrs)
-    return cast(JSONMutableMapping, _normalise_diagnostics_json(payload))
+    return cast(JSONMutableMapping, normalize_value(payload))
 
 
 ensure_homeassistant_exception_symbols()
@@ -814,9 +813,7 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
         attrs = self._build_base_state_attributes(
             {
                 "button_type": self._button_type,
-                "last_pressed": cast(
-                    str | None, getattr(self, "_last_pressed", None)
-                ),
+                "last_pressed": cast(str | None, getattr(self, "_last_pressed", None)),
             }
         )
 
@@ -956,7 +953,7 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
             return
 
         raw_payload = ensure_json_mapping(data)
-        payload = cast(JSONMutableMapping, _normalise_diagnostics_json(raw_payload))
+        payload = cast(JSONMutableMapping, normalize_value(raw_payload))
         if payload != raw_payload:
             raw_keys = set(raw_payload)
             normalized_keys = set(payload)

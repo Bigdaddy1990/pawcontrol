@@ -40,9 +40,9 @@ from custom_components.pawcontrol.const import (
     CONF_MEALS_PER_DAY,
     DEFAULT_GPS_ACCURACY_FILTER,
     DEFAULT_GPS_UPDATE_INTERVAL,
+    DOMAIN,
     GPS_ACCURACY_FILTER_SELECTOR,
     GPS_UPDATE_INTERVAL_SELECTOR,
-    DOMAIN,
     MAX_DOG_AGE,
     MAX_DOG_WEIGHT,
     MIN_DOG_AGE,
@@ -424,9 +424,9 @@ class DogManagementMixin(DogManagementMixinBase):
     ) -> tuple[dict[str, str], dict[str, str]]:
         """Return translations with an English fallback mapping."""
 
-        target_language = cast(
-            str | None, getattr(self.hass.config, "language", None)
-        ) or "en"
+        target_language = (
+            cast(str | None, getattr(self.hass.config, "language", None)) or "en"
+        )
         translations = await self._async_get_flow_translations(target_language)
         fallback = (
             translations

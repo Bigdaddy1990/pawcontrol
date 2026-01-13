@@ -43,6 +43,7 @@ from .selector_shim import selector
 from .types import (
     ConfigFlowGlobalSettings,
     ConfigFlowPlaceholders,
+    ConfigFlowUserInput,
     DashboardConfigurationPlaceholders,
     DashboardConfigurationStepInput,
     DashboardSetupConfig,
@@ -264,7 +265,7 @@ if TYPE_CHECKING:
         hass: HomeAssistant
 
         async def async_step_configure_external_entities(
-            self, user_input: dict[str, object] | None = None
+            self, user_input: ExternalEntityConfig | None = None
         ) -> ConfigFlowResult:
             """Type-checking stub for the external entity step."""
             ...
@@ -282,7 +283,7 @@ if TYPE_CHECKING:
             ...
 
         async def async_step_final_setup(
-            self, user_input: dict[str, object] | None = None
+            self, user_input: ConfigFlowUserInput | None = None
         ) -> ConfigFlowResult:
             """Type-checking stub for the final setup step."""
             ...

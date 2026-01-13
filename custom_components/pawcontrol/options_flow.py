@@ -78,7 +78,7 @@ from .const import (
     RESILIENCE_SKIP_THRESHOLD_MIN,
 )
 from .device_api import validate_device_endpoint
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
+from .diagnostics import normalize_value
 from .door_sensor_manager import ensure_door_sensor_settings_config
 from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .exceptions import FlowValidationError
@@ -957,7 +957,7 @@ class PawControlOptionsFlow(
     def _normalise_export_value(self, value: Any) -> JSONValue:
         """Convert complex values into JSON-serialisable primitives."""
 
-        return cast(JSONValue, _normalise_diagnostics_json(value))
+        return cast(JSONValue, normalize_value(value))
 
     def _sanitise_imported_dog(self, raw: Mapping[str, JSONValue]) -> DogConfigData:
         """Normalise and validate a dog payload from an import file."""
