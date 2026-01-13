@@ -1412,9 +1412,7 @@ class WalkManager:
         history_payload = [
             cast(WalkSessionSnapshot, dict(walk)) for walk in reversed(history_slice)
         ]
-        return cast(
-            list[WalkSessionSnapshot], normalize_value(history_payload)
-        )
+        return cast(list[WalkSessionSnapshot], normalize_value(history_payload))
 
     def get_last_walk_info(self, dog_id: str) -> WalkSessionSnapshot | None:
         """Return the most recent walk if available."""
