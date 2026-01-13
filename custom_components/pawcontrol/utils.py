@@ -7,7 +7,6 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
@@ -16,32 +15,35 @@ import inspect
 import logging
 import math
 import re
-from collections.abc import (
-    AsyncIterator,
-    Awaitable,
-    Callable,
-    Iterable,
-    Mapping,
-    Sequence,
-)
-from contextlib import asynccontextmanager, suppress
+from collections.abc import AsyncIterator
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import Sequence
+from contextlib import asynccontextmanager
+from contextlib import suppress
 from contextvars import ContextVar
-from dataclasses import asdict, dataclass, is_dataclass
-from datetime import UTC, date, datetime, time, timedelta
+from dataclasses import asdict
+from dataclasses import dataclass
+from dataclasses import is_dataclass
+from datetime import date
+from datetime import datetime
+from datetime import time
+from datetime import timedelta
+from datetime import UTC
 from functools import wraps
 from numbers import Real
 from types import SimpleNamespace
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    ParamSpec,
-    Protocol,
-    TypedDict,
-    TypeGuard,
-    TypeVar,
-    cast,
-    overload,
-)
+from typing import Any
+from typing import cast
+from typing import overload
+from typing import ParamSpec
+from typing import Protocol
+from typing import TYPE_CHECKING
+from typing import TypedDict
+from typing import TypeGuard
+from typing import TypeVar
 from weakref import WeakKeyDictionary
 
 if TYPE_CHECKING:  # pragma: no cover - import heavy HA modules for typing only
@@ -110,14 +112,14 @@ else:  # pragma: no branch - executed under tests without Home Assistant install
             """Callable signature mirroring ``AddEntitiesCallback``."""
 
             def __call__(
-                self, entities: Iterable[Entity], update_before_add: bool = ...
+                self, entities: Iterable[Entity], update_before_add: bool = ...,
             ) -> Awaitable[Any] | None: ...
 
         AddEntitiesCallback = _AddEntitiesCallback
 
         def _missing_registry(*args: Any, **kwargs: Any) -> Any:
             raise RuntimeError(
-                'Home Assistant registry helpers are unavailable in this environment'
+                'Home Assistant registry helpers are unavailable in this environment',
             )
 
         dr = SimpleNamespace(async_get=_missing_registry)
@@ -277,14 +279,18 @@ def normalise_json(value: Any, _seen: set[int] | None = None) -> JSONValue:
                 mapping_value = cast(Mapping[str, object], value.to_mapping())
                 return normalise_json(mapping_value, _seen)
             except Exception:  # pragma: no cover - defensive guard
-                _LOGGER.debug('Failed to normalise to_mapping payload for %s', value)
+                _LOGGER.debug(
+                    'Failed to normalise to_mapping payload for %s', value,
+                )
 
         if hasattr(value, 'to_dict') and callable(value.to_dict):
             try:
                 dict_value = cast(Mapping[str, object], value.to_dict())
                 return normalise_json(dict_value, _seen)
             except Exception:  # pragma: no cover - defensive guard
-                _LOGGER.debug('Failed to normalise to_dict payload for %s', value)
+                _LOGGER.debug(
+                    'Failed to normalise to_dict payload for %s', value,
+                )
 
         if hasattr(value, '__dict__') and not isinstance(value, type):
             return normalise_json(vars(value), _seen)
@@ -295,7 +301,7 @@ def normalise_json(value: Any, _seen: set[int] | None = None) -> JSONValue:
             }
 
         if isinstance(
-            value, list | tuple | set | frozenset | Sequence
+            value, list | tuple | set | frozenset | Sequence,
         ) and not isinstance(value, str | bytes | bytearray):
             return [normalise_json(item, _seen) for item in value]
 
@@ -364,7 +370,9 @@ async def async_call_hass_service_if_available(
         return guard_result
 
     payload = _coerce_json_mutable(service_data)
-    target_payload = _coerce_json_mutable(target) if target is not None else None
+    target_payload = _coerce_json_mutable(
+        target,
+    ) if target is not None else None
 
     kwargs: ServiceCallKeywordArgs = ServiceCallKeywordArgs(blocking=blocking)
     if target_payload is not None:
@@ -424,7 +432,9 @@ async def async_fire_event(
 
     bus_async_fire = hass.bus.async_fire
 
-    accepts_any_kw, supported_keywords = _get_bus_keyword_support(bus_async_fire)
+    accepts_any_kw, supported_keywords = _get_bus_keyword_support(
+        bus_async_fire,
+    )
 
     def _supports(keyword: str) -> bool:
         return accepts_any_kw or keyword in supported_keywords
@@ -519,7 +529,7 @@ def _normalize_identifier_pair(
     if isinstance(identifier, tuple):
         candidate = identifier
     elif isinstance(identifier, Sequence) and not isinstance(
-        identifier, str | bytes | bytearray
+        identifier, str | bytes | bytearray,
     ):
         candidate = tuple(identifier)
     else:
@@ -693,7 +703,7 @@ async def async_get_or_create_dog_device_entry(
     if update_kwargs:
         try:
             if updated_device := device_registry.async_update_device(
-                device.id, **update_kwargs
+                device.id, **update_kwargs,
             ):
                 device = updated_device
         except Exception as err:  # pragma: no cover - defensive, HA guarantees API
@@ -756,7 +766,7 @@ class PawControlDeviceLinkMixin:
 
         info = self._device_link_details()
         suggested_area = info.get('suggested_area') or getattr(
-            self, '_attr_suggested_area', None
+            self, '_attr_suggested_area', None,
         )
 
         return create_device_info(
@@ -772,7 +782,7 @@ class PawControlDeviceLinkMixin:
             hw_version=info.get('hw_version'),
             suggested_area=suggested_area,
             extra_identifiers=cast(
-                Iterable[tuple[str, str]] | None, info.get('extra_identifiers')
+                Iterable[tuple[str, str]] | None, info.get('extra_identifiers'),
             ),
         )
 
@@ -826,7 +836,7 @@ class PawControlDeviceLinkMixin:
 
 
 def deep_merge_dicts[T: JSONMutableMapping](
-    base: T, updates: Mapping[str, JSONValue]
+    base: T, updates: Mapping[str, JSONValue],
 ) -> T:
     """Recursively merge JSON-compatible mappings without mutating inputs."""
 
@@ -1069,7 +1079,11 @@ def parse_weight(weight_input: str | float | int) -> float | None:
     elif 'lb' in weight_str or 'lbs' in weight_str:
         try:
             # Convert pounds to kilograms
-            lbs = float(weight_str.replace('lbs', '').replace('lb', '').strip())
+            lbs = float(
+                weight_str.replace(
+                'lbs', '',
+                ).replace('lb', '').strip(),
+            )
             return lbs * 0.453592
         except ValueError:
             pass
@@ -1135,7 +1149,7 @@ def calculate_bmi_equivalent(weight_kg: float, breed_size: str) -> float | None:
 
 
 def validate_portion_size(
-    portion: float, daily_amount: float, meals_per_day: int = 2
+    portion: float, daily_amount: float, meals_per_day: int = 2,
 ) -> PortionValidationResult:
     """Validate portion size against daily requirements.
 
@@ -1166,7 +1180,7 @@ def validate_portion_size(
         result['valid'] = False
         result['warnings'].append('Portion must be a finite number')
         result['recommendations'].append(
-            'Replace NaN or infinite values with real numbers'
+            'Replace NaN or infinite values with real numbers',
         )
         return result
 
@@ -1174,7 +1188,7 @@ def validate_portion_size(
         result['valid'] = False
         result['warnings'].append('Portion must be greater than zero')
         result['recommendations'].append(
-            'Increase the portion size or remove the feeding entry'
+            'Increase the portion size or remove the feeding entry',
         )
         return result
 
@@ -1182,7 +1196,7 @@ def validate_portion_size(
         result['valid'] = False
         result['warnings'].append('Daily food amount must be a real number')
         result['recommendations'].append(
-            'Update the feeding configuration with a numeric daily amount'
+            'Update the feeding configuration with a numeric daily amount',
         )
         return result
 
@@ -1190,19 +1204,19 @@ def validate_portion_size(
     if not math.isfinite(daily_amount_value) or daily_amount_value <= 0:
         result['valid'] = False
         result['warnings'].append(
-            'Daily food amount must be positive to validate portion sizes'
+            'Daily food amount must be positive to validate portion sizes',
         )
         result['recommendations'].append(
-            'Set a positive daily food amount for the feeding configuration'
+            'Set a positive daily food amount for the feeding configuration',
         )
         return result
 
     if meals_per_day <= 0:
         result['warnings'].append(
-            'Meals per day is not positive; assuming a single meal for validation'
+            'Meals per day is not positive; assuming a single meal for validation',
         )
         result['recommendations'].append(
-            'Adjust meals per day to a positive value in the feeding configuration'
+            'Adjust meals per day to a positive value in the feeding configuration',
         )
         meals_per_day = 1
 
@@ -1213,9 +1227,11 @@ def validate_portion_size(
 
     if portion_value > daily_amount_value:
         result['valid'] = False
-        result['warnings'].append('Portion exceeds the configured daily amount')
+        result['warnings'].append(
+            'Portion exceeds the configured daily amount',
+        )
         result['recommendations'].append(
-            'Reduce the portion size or increase the daily food amount'
+            'Reduce the portion size or increase the daily food amount',
         )
 
     if percentage > 70:
@@ -1223,12 +1239,16 @@ def validate_portion_size(
         result['warnings'].append('Portion exceeds 70% of daily requirement')
         result['recommendations'].append('Consider reducing portion size')
     elif percentage > expected_percentage * 1.5:
-        result['warnings'].append('Portion is larger than typical for meal frequency')
+        result['warnings'].append(
+            'Portion is larger than typical for meal frequency',
+        )
         result['recommendations'].append('Verify portion calculation')
     elif percentage < 5:
-        result['warnings'].append('Portion is very small compared to daily requirement')
+        result['warnings'].append(
+            'Portion is very small compared to daily requirement',
+        )
         result['recommendations'].append(
-            'Consider increasing portion or meal frequency'
+            'Consider increasing portion or meal frequency',
         )
 
     return result
@@ -1247,7 +1267,7 @@ def chunk_list[T](items: Sequence[T], chunk_size: int) -> list[list[T]]:
     if chunk_size <= 0:
         raise ValueError('Chunk size must be positive')
 
-    return [list(items[i : i + chunk_size]) for i in range(0, len(items), chunk_size)]
+    return [list(items[i: i + chunk_size]) for i in range(0, len(items), chunk_size)]
 
 
 def safe_divide(numerator: float, denominator: float, default: float = 0.0) -> float:
@@ -1318,7 +1338,7 @@ def flatten_dict(
                     cast(Mapping[str, JSONValue], value),
                     separator=separator,
                     prefix=new_key,
-                )
+                ),
             )
         else:
             flattened[new_key] = value
@@ -1327,7 +1347,7 @@ def flatten_dict(
 
 
 def unflatten_dict(
-    data: Mapping[str, JSONValue], *, separator: str = '.'
+    data: Mapping[str, JSONValue], *, separator: str = '.',
 ) -> JSONMutableMapping:
     """Expand a flattened JSON mapping that uses dot notation keys."""
 
@@ -1446,7 +1466,7 @@ def retry_on_exception(
 
             if last_exception is None:  # pragma: no cover - safety net
                 last_exception = Exception(
-                    f"{func.__name__} failed without raising a captured exception"
+                    f"{func.__name__} failed without raising a captured exception",
                 )
             raise last_exception
 

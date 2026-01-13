@@ -1,5 +1,4 @@
 """Set up and manage the PawControl integration lifecycle."""
-
 from __future__ import annotations
 
 import asyncio
@@ -8,15 +7,15 @@ import inspect
 import logging
 import sys
 import time
-from collections.abc import (
-    Awaitable,
-    Callable,
-    Iterable,
-    Mapping,
-    MutableMapping,
-    Sequence,
-)
-from typing import Any, Final, cast
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import MutableMapping
+from collections.abc import Sequence
+from typing import Any
+from typing import cast
+from typing import Final
 
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
@@ -26,63 +25,60 @@ from homeassistant.helpers.device_registry import DeviceEntry
 from homeassistant.helpers.typing import ConfigType
 
 from . import compat
-from .const import (
-    ALL_MODULES,
-    CONF_DOG_ID,
-    CONF_DOG_OPTIONS,
-    CONF_DOGS,
-    CONF_MODULES,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-    MODULE_NOTIFICATIONS,
-    MODULE_WALK,
-    PLATFORMS,
-)
+from .const import ALL_MODULES
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_OPTIONS
+from .const import CONF_DOGS
+from .const import CONF_MODULES
+from .const import DOMAIN
+from .const import MODULE_FEEDING
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .const import MODULE_NOTIFICATIONS
+from .const import MODULE_WALK
+from .const import PLATFORMS
 from .coordinator import PawControlCoordinator
 from .data_manager import PawControlDataManager
 from .door_sensor_manager import DoorSensorManager
-from .entity_factory import ENTITY_PROFILES, EntityFactory
-from .exceptions import (
-    ConfigurationError,
-    PawControlSetupError,
-    ValidationError,
-)
+from .entity_factory import ENTITY_PROFILES
+from .entity_factory import EntityFactory
+from .exceptions import ConfigurationError
+from .exceptions import PawControlSetupError
+from .exceptions import ValidationError
 from .feeding_manager import FeedingManager
 from .garden_manager import GardenManager
 from .geofencing import PawControlGeofencing
 from .gps_manager import GPSGeofenceManager
 from .helper_manager import PawControlHelperManager
-from .notifications import (
-    NotificationPriority,
-    NotificationType,
-    PawControlNotificationManager,
-)
+from .notifications import NotificationPriority
+from .notifications import NotificationType
+from .notifications import PawControlNotificationManager
 from .repairs import async_check_for_issues
-from .runtime_data import get_runtime_data, pop_runtime_data, store_runtime_data
+from .runtime_data import get_runtime_data
+from .runtime_data import pop_runtime_data
+from .runtime_data import store_runtime_data
 from .script_manager import PawControlScriptManager
-from .services import PawControlServiceManager, async_setup_daily_reset_scheduler
+from .services import async_setup_daily_reset_scheduler
+from .services import PawControlServiceManager
 from .telemetry import update_runtime_reconfigure_summary
-from .types import (
-    DOG_ID_FIELD,
-    DOG_MODULES_FIELD,
-    DOG_NAME_FIELD,
-    DogConfigData,
-    JSONLikeMapping,
-    JSONValue,
-    ManualResilienceEventRecord,
-    PawControlConfigEntry,
-    PawControlRuntimeData,
-    ensure_dog_config_data,
-)
+from .types import DOG_ID_FIELD
+from .types import DOG_MODULES_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DogConfigData
+from .types import ensure_dog_config_data
+from .types import JSONLikeMapping
+from .types import JSONValue
+from .types import ManualResilienceEventRecord
+from .types import PawControlConfigEntry
+from .types import PawControlRuntimeData
 from .utils import sanitize_dog_id
 from .walk_manager import WalkManager
 
 _CANONICAL_CONFIG_ENTRY_NOT_READY: type[Exception] | None = getattr(
-    compat, 'ConfigEntryNotReady', None
+    compat, 'ConfigEntryNotReady', None,
 )
-_CONFIG_ENTRY_NOT_READY_CACHE: dict[tuple[type[Exception], ...], type[Exception]] = {}
+_CONFIG_ENTRY_NOT_READY_CACHE: dict[tuple[type[Exception], ...], type[Exception]] = {
+}
 
 
 def _resolve_config_entry_not_ready() -> type[Exception]:
@@ -94,13 +90,15 @@ def _resolve_config_entry_not_ready() -> type[Exception]:
     compat_is_fallback = False
     if isinstance(compat_cls, type) and issubclass(compat_cls, Exception):
         compat_is_fallback = getattr(compat_cls, '__module__', '').startswith(
-            'custom_components.pawcontrol'
+            'custom_components.pawcontrol',
         )
         if (
             not compat_is_fallback
             and compat_cls is not _CANONICAL_CONFIG_ENTRY_NOT_READY
         ):
-            _CANONICAL_CONFIG_ENTRY_NOT_READY = cast(type[Exception], compat_cls)
+            _CANONICAL_CONFIG_ENTRY_NOT_READY = cast(
+                type[Exception], compat_cls,
+            )
 
     module = sys.modules.get('homeassistant.exceptions')
     if module is None:
@@ -114,9 +112,12 @@ def _resolve_config_entry_not_ready() -> type[Exception]:
     if module is not None:
         candidate = getattr(module, 'ConfigEntryNotReady', None)
         if isinstance(candidate, type) and issubclass(candidate, Exception):
-            _CANONICAL_CONFIG_ENTRY_NOT_READY = cast(type[Exception], candidate)
+            _CANONICAL_CONFIG_ENTRY_NOT_READY = cast(
+                type[Exception], candidate,
+            )
         elif _CANONICAL_CONFIG_ENTRY_NOT_READY is not None and candidate is None:
-            module.ConfigEntryNotReady = _CANONICAL_CONFIG_ENTRY_NOT_READY  # type: ignore[attr-defined]
+            # type: ignore[attr-defined]
+            module.ConfigEntryNotReady = _CANONICAL_CONFIG_ENTRY_NOT_READY
         if isinstance(candidate, type) and issubclass(candidate, Exception):
             candidates.append(cast(type[Exception], candidate))
 
@@ -219,7 +220,7 @@ def _disable_debug_logging(entry: PawControlConfigEntry) -> None:
 
     target_level = _DEFAULT_LOGGER_LEVEL
     package_logger.setLevel(
-        target_level if target_level is not None else logging.NOTSET
+        target_level if target_level is not None else logging.NOTSET,
     )
 
 
@@ -244,7 +245,8 @@ _CACHE_TTL_SECONDS: Final[int] = 3600  # 1 hour cache TTL
 _MAX_CACHE_SIZE: Final[int] = 100  # Prevent unbounded memory growth
 _MANAGER_INIT_TIMEOUT: Final[int] = 30  # 30 seconds per manager
 _COORDINATOR_REFRESH_TIMEOUT: Final[int] = 45  # 45 seconds for coordinator
-_COORDINATOR_SETUP_TIMEOUT: Final[int] = 15  # 15 seconds for coordinator pre-setup
+# 15 seconds for coordinator pre-setup
+_COORDINATOR_SETUP_TIMEOUT: Final[int] = 15
 
 
 def _is_unittest_mock(obj: Any) -> bool:
@@ -303,7 +305,10 @@ async def _async_run_manager_method(
     try:
         result = method()
     except Exception as err:  # pragma: no cover - defensive logging
-        _LOGGER.warning('Error starting %s: %s', description, err, exc_info=True)
+        _LOGGER.warning(
+            'Error starting %s: %s',
+            description, err, exc_info=True,
+        )
         return
 
     try:
@@ -383,11 +388,13 @@ def _cleanup_platform_cache() -> None:
             del _PLATFORM_CACHE[key]
 
     if expired_keys:
-        _LOGGER.debug('Cleaned up %d expired platform cache entries', len(expired_keys))
+        _LOGGER.debug(
+            'Cleaned up %d expired platform cache entries', len(expired_keys),
+        )
 
 
 def get_platforms_for_profile_and_modules(
-    dogs_config: Sequence[DogConfigData], profile: str
+    dogs_config: Sequence[DogConfigData], profile: str,
 ) -> PlatformTuple:
     """Determine required platforms based on dogs, modules and profile.
 
@@ -443,7 +450,7 @@ def get_platforms_for_profile_and_modules(
         platform_set.update({Platform.DATE, Platform.NUMBER, Platform.TEXT})
 
     ordered_platforms: PlatformTuple = tuple(
-        sorted(platform_set, key=lambda platform: platform.value)
+        sorted(platform_set, key=lambda platform: platform.value),
     )
 
     # Cache with timestamp
@@ -477,7 +484,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 
 async def _async_initialize_manager_with_timeout(
-    manager_name: str, coro: Any, timeout: int = _MANAGER_INIT_TIMEOUT
+    manager_name: str, coro: Any, timeout: int = _MANAGER_INIT_TIMEOUT,
 ) -> None:
     """Initialize a manager with timeout and proper error handling.
 
@@ -530,7 +537,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         PawControlSetupError: If setup validation fails
     """
     setup_start_time = time.time()
-    _LOGGER.debug('Setting up PawControl integration entry: %s', entry.entry_id)
+    _LOGGER.debug(
+        'Setting up PawControl integration entry: %s',
+        entry.entry_id,
+    )
 
     logger_disabled_prev = _LOGGER.disabled
     disable_logging = False
@@ -615,14 +625,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
         profile_raw = entry.options.get('entity_profile', 'standard')
         if profile_raw is None:
             profile_raw = 'standard'
-        profile = profile_raw if isinstance(profile_raw, str) else str(profile_raw)
+        profile = profile_raw if isinstance(
+            profile_raw, str,
+        ) else str(profile_raw)
         if profile not in ENTITY_PROFILES:
             _LOGGER.warning("Unknown profile '%s', using 'standard'", profile)
             profile = 'standard'
 
         # Calculate platforms
         calculated_platforms = get_platforms_for_profile_and_modules(
-            dogs_config, profile
+            dogs_config, profile,
         )
         if calculated_platforms != PLATFORMS:
             _LOGGER.debug(
@@ -647,7 +659,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             ):
 
                 def _pawcontrol_filtered_get_objects(
-                    *args: Any, **kwargs: Any
+                    *args: Any, **kwargs: Any,
                 ) -> list[Any]:
                     objects = original_get_objects(*args, **kwargs)
                     gc.get_objects = original_get_objects
@@ -668,23 +680,31 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
         services = getattr(hass, 'services', None)
         service_module = (
-            getattr(type(services), '__module__', '') if services is not None else ''
+            getattr(
+                type(services), '__module__',
+                '',
+            ) if services is not None else ''
         )
-        async_call = getattr(services, 'async_call', None) if services else None
+        async_call = getattr(
+            services, 'async_call',
+            None,
+        ) if services else None
         async_call_module = (
             getattr(type(async_call), '__module__', '')
             if async_call is not None
             else ''
         )
         skip_optional_setup = service_module.startswith(
-            'unittest.mock'
+            'unittest.mock',
         ) or async_call_module.startswith('unittest.mock')
 
         has_service_callable: Callable[[str, str], bool] | None = None
         if services is not None:
             candidate = getattr(services, 'has_service', None)
             if callable(candidate):
-                has_service_callable = cast(Callable[[str, str], bool], candidate)
+                has_service_callable = cast(
+                    Callable[[str, str], bool], candidate,
+                )
 
         if has_service_callable is not None:
             required_helper_services: tuple[tuple[str, str], ...] = (
@@ -712,7 +732,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 dogs_config=dogs_config_payload,
             )
             notification_manager = PawControlNotificationManager(
-                hass, entry.entry_id, session=session
+                hass, entry.entry_id, session=session,
             )
             feeding_manager = FeedingManager()
             walk_manager = WalkManager()
@@ -738,7 +758,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                     )
                     if migrated_options is not None:
                         hass.config_entries.async_update_entry(
-                            entry, options=migrated_options
+                            entry, options=migrated_options,
                         )
 
             gps_geofence_manager = None
@@ -748,25 +768,33 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 for dog in dogs_config
             ):
                 gps_geofence_manager = GPSGeofenceManager(hass)
-                gps_geofence_manager.set_notification_manager(notification_manager)
-                _LOGGER.debug('GPS geofence manager created for GPS-enabled dogs')
+                gps_geofence_manager.set_notification_manager(
+                    notification_manager,
+                )
+                _LOGGER.debug(
+                    'GPS geofence manager created for GPS-enabled dogs',
+                )
 
                 geofencing_manager = PawControlGeofencing(hass, entry.entry_id)
-                geofencing_manager.set_notification_manager(notification_manager)
-                _LOGGER.debug('Geofencing manager created for GPS-enabled dogs')
+                geofencing_manager.set_notification_manager(
+                    notification_manager,
+                )
+                _LOGGER.debug(
+                    'Geofencing manager created for GPS-enabled dogs',
+                )
             else:
                 _LOGGER.debug(
-                    'GPS/geofencing managers not created - optional setup skipped or GPS disabled'
+                    'GPS/geofencing managers not created - optional setup skipped or GPS disabled',
                 )
 
         except Exception as err:
             raise PawControlSetupError(
-                f"Manager initialization failed: {err.__class__.__name__}: {err}"
+                f"Manager initialization failed: {err.__class__.__name__}: {err}",
             ) from err
 
         manager_init_duration = time.time() - manager_init_start
         _LOGGER.debug(
-            'Manager creation completed in %.2f seconds', manager_init_duration
+            'Manager creation completed in %.2f seconds', manager_init_duration,
         )
         # PLATINUM: Enhanced coordinator pre-setup and refresh with timeouts
         coordinator_setup_start = time.time()
@@ -787,23 +815,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                     coordinator_setup_duration,
                 )
             else:
-                _LOGGER.debug('Coordinator async_prepare_entry unavailable; skipping')
+                _LOGGER.debug(
+                    'Coordinator async_prepare_entry unavailable; skipping',
+                )
         except TimeoutError as err:
             coordinator_setup_duration = time.time() - coordinator_setup_start
             raise not_ready_cls(
-                f"Coordinator pre-setup timeout after {coordinator_setup_duration:.2f}s"
+                f"Coordinator pre-setup timeout after {coordinator_setup_duration:.2f}s",
             ) from err
         except compat.ConfigEntryAuthFailed:
             raise
         except (OSError, ConnectionError) as err:
             raise not_ready_cls(
-                f"Network connectivity issue during coordinator pre-setup: {err}"
+                f"Network connectivity issue during coordinator pre-setup: {err}",
             ) from err
 
         coordinator_refresh_start = time.time()
         try:
             first_refresh = getattr(
-                coordinator, 'async_config_entry_first_refresh', None
+                coordinator, 'async_config_entry_first_refresh', None,
             )
             if callable(first_refresh):
                 refresh_callable = cast(Callable[[], Any], first_refresh)
@@ -825,19 +855,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 )
             else:
                 _LOGGER.debug(
-                    'Coordinator first refresh unavailable; skipping initial fetch'
+                    'Coordinator first refresh unavailable; skipping initial fetch',
                 )
         except TimeoutError as err:
             coordinator_refresh_duration = time.time() - coordinator_refresh_start
             raise not_ready_cls(
                 'Coordinator initialization timeout after '
-                f"{coordinator_refresh_duration:.2f}s"
+                f"{coordinator_refresh_duration:.2f}s",
             ) from err
         except compat.ConfigEntryAuthFailed:
             raise  # Re-raise auth failures directly
         except (OSError, ConnectionError) as err:
             raise not_ready_cls(
-                f"Network connectivity issue during coordinator setup: {err}"
+                f"Network connectivity issue during coordinator setup: {err}",
             ) from err
 
         # Initialize other managers with timeout protection and parallel execution
@@ -846,26 +876,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             initialization_tasks: list[Awaitable[None]] = []
 
             if not _simulate_async_call(
-                getattr(data_manager, 'async_initialize', None)
+                getattr(data_manager, 'async_initialize', None),
             ):
                 initialization_tasks.append(
                     _async_initialize_manager_with_timeout(
-                        'data_manager', data_manager.async_initialize()
-                    )
+                        'data_manager', data_manager.async_initialize(),
+                    ),
                 )
 
             if not _simulate_async_call(
-                getattr(notification_manager, 'async_initialize', None)
+                getattr(notification_manager, 'async_initialize', None),
             ):
                 initialization_tasks.append(
                     _async_initialize_manager_with_timeout(
                         'notification_manager',
                         notification_manager.async_initialize(),
-                    )
+                    ),
                 )
 
             if not _simulate_async_call(
-                getattr(feeding_manager, 'async_initialize', None)
+                getattr(feeding_manager, 'async_initialize', None),
             ):
                 initialization_tasks.append(
                     _async_initialize_manager_with_timeout(
@@ -874,41 +904,41 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                             cast(
                                 Sequence[JSONLikeMapping],
                                 dogs_config_payload,
-                            )
+                            ),
                         ),
-                    )
+                    ),
                 )
 
             if not _simulate_async_call(
-                getattr(walk_manager, 'async_initialize', None)
+                getattr(walk_manager, 'async_initialize', None),
             ):
                 initialization_tasks.append(
                     _async_initialize_manager_with_timeout(
                         'walk_manager',
                         walk_manager.async_initialize(dog_ids),
-                    )
+                    ),
                 )
 
             if helper_manager is not None and not _simulate_async_call(
-                getattr(helper_manager, 'async_initialize', None)
+                getattr(helper_manager, 'async_initialize', None),
             ):
                 initialization_tasks.append(
                     _async_initialize_manager_with_timeout(
-                        'helper_manager', helper_manager.async_initialize()
-                    )
+                        'helper_manager', helper_manager.async_initialize(),
+                    ),
                 )
 
             if script_manager is not None and not _simulate_async_call(
-                getattr(script_manager, 'async_initialize', None)
+                getattr(script_manager, 'async_initialize', None),
             ):
                 initialization_tasks.append(
                     _async_initialize_manager_with_timeout(
-                        'script_manager', script_manager.async_initialize()
-                    )
+                        'script_manager', script_manager.async_initialize(),
+                    ),
                 )
 
             if door_sensor_manager is not None and not _simulate_async_call(
-                getattr(door_sensor_manager, 'async_initialize', None)
+                getattr(door_sensor_manager, 'async_initialize', None),
             ):
                 initialization_tasks.append(
                     _async_initialize_manager_with_timeout(
@@ -919,11 +949,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                             notification_manager=notification_manager,
                             data_manager=data_manager,
                         ),
-                    )
+                    ),
                 )
 
             if garden_manager is not None and not _simulate_async_call(
-                getattr(garden_manager, 'async_initialize', None)
+                getattr(garden_manager, 'async_initialize', None),
             ):
                 initialization_tasks.append(
                     _async_initialize_manager_with_timeout(
@@ -933,14 +963,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                             notification_manager=notification_manager,
                             door_sensor_manager=door_sensor_manager,
                         ),
-                    )
+                    ),
                 )
 
             # Add geofencing initialization if manager was created
             if geofencing_manager and not _simulate_async_call(
-                getattr(geofencing_manager, 'async_initialize', None)
+                getattr(geofencing_manager, 'async_initialize', None),
             ):
-                geofence_options_raw = entry.options.get('geofence_settings', {})
+                geofence_options_raw = entry.options.get(
+                    'geofence_settings', {},
+                )
                 geofence_options = (
                     geofence_options_raw
                     if isinstance(geofence_options_raw, Mapping)
@@ -949,7 +981,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
                 dog_options_raw = entry.options.get(CONF_DOG_OPTIONS, {})
                 dog_options = (
-                    dog_options_raw if isinstance(dog_options_raw, Mapping) else {}
+                    dog_options_raw if isinstance(
+                        dog_options_raw, Mapping,
+                    ) else {}
                 )
 
                 per_dog_geofence_settings: list[Mapping[str, object]] = []
@@ -960,7 +994,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                     geofence_payload = entry_payload.get('geofence_settings')
                     if isinstance(geofence_payload, Mapping):
                         per_dog_geofence_settings.append(
-                            cast(Mapping[str, object], geofence_payload)
+                            cast(Mapping[str, object], geofence_payload),
                         )
 
                 geofencing_enabled = any(
@@ -997,31 +1031,31 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                             use_home_location=use_home_location,
                             home_zone_radius=home_zone_radius,
                         ),
-                    )
+                    ),
                 )
 
             await asyncio.gather(*initialization_tasks, return_exceptions=False)
 
             managers_init_duration = time.time() - managers_init_start
             _LOGGER.debug(
-                'All managers initialized in %.2f seconds', managers_init_duration
+                'All managers initialized in %.2f seconds', managers_init_duration,
             )
 
         except TimeoutError as err:
             managers_init_duration = time.time() - managers_init_start
             raise not_ready_cls(
-                f"Manager initialization timeout after {managers_init_duration:.2f}s: {err}"
+                f"Manager initialization timeout after {managers_init_duration:.2f}s: {err}",
             ) from err
         except ValidationError as err:
             raise not_ready_cls(
-                f"Manager validation failed: {err.field} - {err.constraint}"
+                f"Manager validation failed: {err.field} - {err.constraint}",
             ) from err
         except Exception as err:
             # PLATINUM: More specific error categorization
             error_type = err.__class__.__name__
             managers_init_duration = time.time() - managers_init_start
             raise not_ready_cls(
-                f"Manager initialization failed after {managers_init_duration:.2f}s ({error_type}): {err}"
+                f"Manager initialization failed after {managers_init_duration:.2f}s ({error_type}): {err}",
             ) from err
 
         # RESILIENCE: Share coordinator's ResilienceManager with other managers
@@ -1090,7 +1124,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                         from importlib import import_module
 
                         config_entries_module = import_module(
-                            'homeassistant.config_entries'
+                            'homeassistant.config_entries',
                         )
                         patched_forward = getattr(
                             config_entries_module.ConfigEntries,
@@ -1118,21 +1152,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                     if attempt == max_retries:
                         platform_setup_duration = time.time() - platform_setup_start
                         raise not_ready_cls(
-                            f"Platform setup timeout after {platform_setup_duration:.2f}s"
+                            f"Platform setup timeout after {platform_setup_duration:.2f}s",
                         ) from err
                     _LOGGER.warning(
-                        'Platform setup attempt %d timed out, retrying...', attempt + 1
+                        'Platform setup attempt %d timed out, retrying...', attempt + 1,
                     )
                     await asyncio.sleep(1)  # Brief delay before retry
                 except ImportError as err:
                     raise not_ready_cls(
-                        f"Platform import failed - missing dependency: {err}"
+                        f"Platform import failed - missing dependency: {err}",
                     ) from err
                 except Exception as err:
                     if attempt == max_retries:
                         _LOGGER.exception('Platform setup failed')
                         raise not_ready_cls(
-                            f"Platform setup failed ({err.__class__.__name__}): {err}"
+                            f"Platform setup failed ({err.__class__.__name__}): {err}",
                         ) from err
                     _LOGGER.warning(
                         'Platform setup attempt %d failed: %s, retrying...',
@@ -1152,7 +1186,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 try:
                     created_helpers = await asyncio.wait_for(
                         helper_manager.async_create_helpers_for_dogs(
-                            dogs_config, enabled_modules
+                            dogs_config, enabled_modules,
                         ),
                         timeout=20,  # 20 seconds for helper creation
                     )
@@ -1211,7 +1245,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 try:
                     created_scripts = await asyncio.wait_for(
                         script_manager.async_generate_scripts_for_dogs(
-                            dogs_config, enabled_modules
+                            dogs_config, enabled_modules,
                         ),
                         timeout=20,
                     )
@@ -1224,7 +1258,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                         for key, value in created_scripts.items()
                         if key != '__entry__'
                     }
-                    entry_script_count = len(created_scripts.get('__entry__', []))
+                    entry_script_count = len(
+                        created_scripts.get('__entry__', []),
+                    )
                     dog_target_count = len(dog_script_map)
                     scripts_duration = time.time() - scripts_start
 
@@ -1289,7 +1325,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                         runtime_data.daily_reset_unsub = reset_unsub
                 except Exception as err:
                     _LOGGER.warning(
-                        'Failed to setup daily reset scheduler (non-critical): %s', err
+                        'Failed to setup daily reset scheduler (non-critical): %s', err,
                     )
 
                 # Start background tasks with health monitoring
@@ -1297,7 +1333,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
 
                 # Start background task health monitoring
                 monitor_task = hass.async_create_task(
-                    _async_monitor_background_tasks(runtime_data)
+                    _async_monitor_background_tasks(runtime_data),
                 )
                 runtime_data.background_monitor_task = monitor_task
 
@@ -1312,15 +1348,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                 await async_check_for_issues(hass, entry)
             else:
                 _LOGGER.debug(
-                    'Skipping helper, automation, and diagnostics setup because Home Assistant services are mocked'
+                    'Skipping helper, automation, and diagnostics setup because Home Assistant services are mocked',
                 )
 
             if _is_unittest_mock(coordinator):
                 _trim_async_mock_calls(
-                    getattr(coordinator, 'async_prepare_entry', None)
+                    getattr(coordinator, 'async_prepare_entry', None),
                 )
                 _trim_async_mock_calls(
-                    getattr(coordinator, 'async_config_entry_first_refresh', None)
+                    getattr(coordinator, 'async_config_entry_first_refresh', None),
                 )
 
             for manager_obj in (
@@ -1335,7 +1371,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             ):
                 if manager_obj is not None:
                     _trim_async_mock_calls(
-                        getattr(manager_obj, 'async_initialize', None)
+                        getattr(manager_obj, 'async_initialize', None),
                     )
 
             # Add reload listener regardless of optional setup skipping
@@ -1384,9 +1420,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
             _disable_debug_logging(entry)
         if isinstance(err, known_setup_errors):
             raise
-        _LOGGER.exception('Unexpected setup error after %.2f seconds', setup_duration)
+        _LOGGER.exception(
+            'Unexpected setup error after %.2f seconds', setup_duration,
+        )
         raise PawControlSetupError(
-            f"Unexpected setup failure after {setup_duration:.2f}s ({err.__class__.__name__}): {err}"
+            f"Unexpected setup failure after {setup_duration:.2f}s ({err.__class__.__name__}): {err}",
         ) from err
     finally:
         if disable_logging:
@@ -1416,7 +1454,7 @@ async def _async_monitor_background_tasks(runtime_data: PawControlRuntimeData) -
                     and garden_manager._cleanup_task.done()
                 ):
                     _LOGGER.warning(
-                        'Garden manager cleanup task died, attempting restart'
+                        'Garden manager cleanup task died, attempting restart',
                     )
                     # Task would be restarted by the manager's internal logic
 
@@ -1427,7 +1465,7 @@ async def _async_monitor_background_tasks(runtime_data: PawControlRuntimeData) -
                     and garden_manager._stats_update_task.done()
                 ):
                     _LOGGER.warning(
-                        'Garden manager stats update task died, attempting restart'
+                        'Garden manager stats update task died, attempting restart',
                     )
                     # Task would be restarted by the manager's internal logic
 
@@ -1453,7 +1491,9 @@ async def _async_cleanup_runtime_data(runtime_data: PawControlRuntimeData) -> No
         except asyncio.CancelledError:
             _LOGGER.debug('Background monitor task cancelled')
         except Exception as err:  # pragma: no cover - defensive logging
-            _LOGGER.warning('Error while awaiting background monitor task: %s', err)
+            _LOGGER.warning(
+                'Error while awaiting background monitor task: %s', err,
+            )
         finally:
             runtime_data.background_monitor_task = None
 
@@ -1523,7 +1563,9 @@ async def _async_cleanup_runtime_data(runtime_data: PawControlRuntimeData) -> No
         _LOGGER.warning('Error clearing coordinator references: %s', err)
 
     cleanup_duration = time.time() - cleanup_start
-    _LOGGER.debug('Runtime data cleanup completed in %.2f seconds', cleanup_duration)
+    _LOGGER.debug(
+        'Runtime data cleanup completed in %.2f seconds', cleanup_duration,
+    )
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -> bool:
@@ -1553,7 +1595,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
             for dog in dogs_payload:
                 if isinstance(dog, Mapping):
                     normalised = ensure_dog_config_data(
-                        cast(Mapping[str, JSONValue], dog)
+                        cast(Mapping[str, JSONValue], dog),
                     )
                     if normalised is not None:
                         normalised_dogs.append(normalised)
@@ -1570,15 +1612,17 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     profile_value: str = profile
 
     platforms = get_platforms_for_profile_and_modules(
-        cast(Sequence[DogConfigData], dogs), profile_value
+        cast(Sequence[DogConfigData], dogs), profile_value,
     )
 
     # Unload platforms with error tolerance and timeout
     platform_unload_start = time.time()
     unload_callable = hass.config_entries.async_unload_platforms
-    config_entries_module = importlib.import_module('homeassistant.config_entries')
+    config_entries_module = importlib.import_module(
+        'homeassistant.config_entries',
+    )
     patched_unload = getattr(
-        config_entries_module.ConfigEntries, 'async_unload_platforms', None
+        config_entries_module.ConfigEntries, 'async_unload_platforms', None,
     )
     if patched_unload is not None and _is_unittest_mock(patched_unload):
         unload_callable = patched_unload
@@ -1607,7 +1651,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
         return False
 
     platform_unload_duration = time.time() - platform_unload_start
-    _LOGGER.debug('Platform unload completed in %.2f seconds', platform_unload_duration)
+    _LOGGER.debug(
+        'Platform unload completed in %.2f seconds',
+        platform_unload_duration,
+    )
 
     if not unload_ok:
         _LOGGER.error('One or more platforms failed to unload cleanly')
@@ -1683,7 +1730,7 @@ async def async_remove_config_entry_device(
             return dogs
 
         if isinstance(source, Sequence) and not isinstance(
-            source, (str, bytes, bytearray)
+            source, (str, bytes, bytearray),
         ):
             for dog_cfg in source:
                 if not isinstance(dog_cfg, Mapping):
@@ -1710,7 +1757,7 @@ async def async_remove_config_entry_device(
 
     if not identifiers:
         _LOGGER.debug(
-            'Device %s is not managed by PawControl; skipping removal', device_entry.id
+            'Device %s is not managed by PawControl; skipping removal', device_entry.id,
         )
         return False
 
@@ -1757,7 +1804,7 @@ async def async_remove_config_entry_device(
                     if sanitized_candidate:
                         yield sanitized_candidate, candidate
         elif isinstance(source, Sequence) and not isinstance(
-            source, str | bytes | bytearray
+            source, str | bytes | bytearray,
         ):
             for value in source:
                 if not isinstance(value, Mapping):
@@ -1810,11 +1857,14 @@ async def async_reload_entry(hass: HomeAssistant, entry: PawControlConfigEntry) 
     unload_ok = await async_unload_entry(hass, entry)
     if not unload_ok:
         _LOGGER.warning(
-            'Reload aborted because unload failed for entry %s', entry.entry_id
+            'Reload aborted because unload failed for entry %s', entry.entry_id,
         )
         return
 
     await async_setup_entry(hass, entry)
 
     reload_duration = time.time() - reload_start_time
-    _LOGGER.info('PawControl reload completed in %.2f seconds', reload_duration)
+    _LOGGER.info(
+        'PawControl reload completed in %.2f seconds',
+        reload_duration,
+    )

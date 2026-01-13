@@ -8,47 +8,42 @@ Quality Scale: Platinum target
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import TYPE_CHECKING, Final, cast
+from typing import cast
+from typing import Final
+from typing import TYPE_CHECKING
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 
-from .config_flow_modules import (
-    normalize_dashboard_language,
-    translated_dashboard_feature,
-)
-from .const import (
-    CONF_MODULES,
-    DASHBOARD_MODE_SELECTOR_OPTIONS,
-    DEFAULT_DASHBOARD_AUTO_CREATE,
-    DEFAULT_DASHBOARD_MODE,
-    DEFAULT_DASHBOARD_THEME,
-    MODULE_GPS,
-)
+from .config_flow_modules import normalize_dashboard_language
+from .config_flow_modules import translated_dashboard_feature
+from .const import CONF_MODULES
+from .const import DASHBOARD_MODE_SELECTOR_OPTIONS
+from .const import DEFAULT_DASHBOARD_AUTO_CREATE
+from .const import DEFAULT_DASHBOARD_MODE
+from .const import DEFAULT_DASHBOARD_THEME
+from .const import MODULE_GPS
 from .selector_shim import selector
-from .types import (
-    DASHBOARD_AUTO_CREATE_FIELD,
-    DASHBOARD_CONFIGURATION_PLACEHOLDERS_TEMPLATE,
-    DASHBOARD_ENABLED_FIELD,
-    DASHBOARD_MODE_FIELD,
-    DASHBOARD_PER_DOG_FIELD,
-    DASHBOARD_THEME_FIELD,
-    SHOW_MAPS_FIELD,
-    SHOW_STATISTICS_FIELD,
-    ConfigFlowInputMapping,
-    ConfigFlowPlaceholders,
-    DashboardConfigurationStepInput,
-    DashboardSetupConfig,
-    DogConfigData,
-    DogModulesConfig,
-    ExternalEntityConfig,
-    clone_placeholders,
-    freeze_placeholders,
-)
+from .types import clone_placeholders
+from .types import ConfigFlowInputMapping
+from .types import ConfigFlowPlaceholders
+from .types import DASHBOARD_AUTO_CREATE_FIELD
+from .types import DASHBOARD_CONFIGURATION_PLACEHOLDERS_TEMPLATE
+from .types import DASHBOARD_ENABLED_FIELD
+from .types import DASHBOARD_MODE_FIELD
+from .types import DASHBOARD_PER_DOG_FIELD
+from .types import DASHBOARD_THEME_FIELD
+from .types import DashboardConfigurationStepInput
+from .types import DashboardSetupConfig
+from .types import DogConfigData
+from .types import DogModulesConfig
+from .types import ExternalEntityConfig
+from .types import freeze_placeholders
+from .types import SHOW_MAPS_FIELD
+from .types import SHOW_STATISTICS_FIELD
 
 _DASHBOARD_INFO_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
     'auto_create': {
@@ -75,11 +70,13 @@ _DASHBOARD_INFO_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
 
 
 def _build_dashboard_configure_placeholders(
-    *, dog_count: int, dashboard_info: str, features: str
+    *, dog_count: int, dashboard_info: str, features: str,
 ) -> ConfigFlowPlaceholders:
     """Return immutable placeholders for the dashboard configuration form."""
 
-    placeholders = clone_placeholders(DASHBOARD_CONFIGURATION_PLACEHOLDERS_TEMPLATE)
+    placeholders = clone_placeholders(
+        DASHBOARD_CONFIGURATION_PLACEHOLDERS_TEMPLATE,
+    )
     placeholders['dog_count'] = dog_count
     placeholders['dashboard_info'] = dashboard_info
     placeholders['features'] = features
@@ -87,7 +84,7 @@ def _build_dashboard_configure_placeholders(
 
 
 def _translated_dashboard_info_line(
-    language: str | None, key: str, *, count: int | None = None
+    language: str | None, key: str, *, count: int | None = None,
 ) -> str:
     """Return a localized dashboard info line."""
 
@@ -116,13 +113,13 @@ class DashboardFlowMixin:
         _dashboard_config: DashboardSetupConfig
 
         async def async_step_configure_external_entities(
-            self, user_input: ExternalEntityConfig | None = None
+            self, user_input: ExternalEntityConfig | None = None,
         ) -> ConfigFlowResult:
             """Type-checking stub for the GPS entity configuration step."""
             ...
 
         async def async_step_final_setup(
-            self, user_input: ConfigFlowInputMapping | None = None
+            self, user_input: ConfigFlowInputMapping | None = None,
         ) -> ConfigFlowResult:
             """Type-checking stub for the concluding config flow step."""
             ...
@@ -139,7 +136,7 @@ class DashboardFlowMixin:
             ...
 
     async def async_step_configure_dashboard(
-        self, user_input: DashboardConfigurationStepInput | None = None
+        self, user_input: DashboardConfigurationStepInput | None = None,
     ) -> ConfigFlowResult:
         """Configure dashboard settings.
 
@@ -151,33 +148,35 @@ class DashboardFlowMixin:
 
         if user_input is not None:
             has_gps_enabled = self._enabled_modules.get(MODULE_GPS, False) or any(
-                cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(MODULE_GPS, False)
+                cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
+                    MODULE_GPS, False,
+                )
                 for dog in self._dogs
             )
             str(
                 user_input.get(
                     'dashboard_mode',
                     DEFAULT_DASHBOARD_MODE if has_multiple_dogs else 'cards',
-                )
+                ),
             )
             dashboard_config: DashboardSetupConfig = {
                 DASHBOARD_ENABLED_FIELD: True,
                 DASHBOARD_AUTO_CREATE_FIELD: bool(
                     user_input.get(
-                        'auto_create_dashboard', DEFAULT_DASHBOARD_AUTO_CREATE
-                    )
+                        'auto_create_dashboard', DEFAULT_DASHBOARD_AUTO_CREATE,
+                    ),
                 ),
                 DASHBOARD_PER_DOG_FIELD: bool(
-                    user_input.get('create_per_dog_dashboards', False)
+                    user_input.get('create_per_dog_dashboards', False),
                 ),
                 DASHBOARD_THEME_FIELD: str(
-                    user_input.get('dashboard_theme', DEFAULT_DASHBOARD_THEME)
+                    user_input.get('dashboard_theme', DEFAULT_DASHBOARD_THEME),
                 ),
                 DASHBOARD_MODE_FIELD: str(
                     user_input.get(
                         'dashboard_mode',
                         DEFAULT_DASHBOARD_MODE if has_multiple_dogs else 'cards',
-                    )
+                    ),
                 ),
                 SHOW_STATISTICS_FIELD: bool(user_input.get('show_statistics', True)),
                 SHOW_MAPS_FIELD: bool(user_input.get('show_maps', True)),
@@ -191,26 +190,30 @@ class DashboardFlowMixin:
         has_gps_enabled = bool(
             self._enabled_modules.get(MODULE_GPS, False)
             or any(
-                cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(MODULE_GPS, False)
+                cast(DogModulesConfig, dog.get(CONF_MODULES, {})).get(
+                    MODULE_GPS, False,
+                )
                 for dog in self._dogs
-            )
+            ),
         )
 
         hass_language: str | None = None
         hass = getattr(self, 'hass', None)
         if hass is not None:
-            hass_language = getattr(getattr(hass, 'config', None), 'language', None)
+            hass_language = getattr(
+                getattr(hass, 'config', None), 'language', None,
+            )
 
         schema = vol.Schema(
             {
                 vol.Optional(
-                    'auto_create_dashboard', default=DEFAULT_DASHBOARD_AUTO_CREATE
+                    'auto_create_dashboard', default=DEFAULT_DASHBOARD_AUTO_CREATE,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'create_per_dog_dashboards', default=has_multiple_dogs
+                    'create_per_dog_dashboards', default=has_multiple_dogs,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'dashboard_theme', default=DEFAULT_DASHBOARD_THEME
+                    'dashboard_theme', default=DEFAULT_DASHBOARD_THEME,
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
@@ -228,7 +231,7 @@ class DashboardFlowMixin:
                             },
                         ],
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
+                    ),
                 ),
                 vol.Optional(
                     'dashboard_mode',
@@ -237,22 +240,22 @@ class DashboardFlowMixin:
                     selector.SelectSelectorConfig(
                         options=DASHBOARD_MODE_SELECTOR_OPTIONS,
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
+                    ),
                 ),
                 vol.Optional(
-                    'show_statistics', default=True
+                    'show_statistics', default=True,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'show_maps', default=has_gps_enabled
+                    'show_maps', default=has_gps_enabled,
                 ): selector.BooleanSelector(),
-            }
+            },
         )
 
         placeholders = _build_dashboard_configure_placeholders(
             dog_count=len(self._dogs),
             dashboard_info=self._get_dashboard_info(hass_language),
             features=self._build_dashboard_features_string(
-                hass_language, has_gps_enabled
+                hass_language, has_gps_enabled,
             ),
         )
 
@@ -275,14 +278,14 @@ class DashboardFlowMixin:
         if len(self._dogs) > 1:
             info.append(
                 _translated_dashboard_info_line(
-                    language, 'multi_dog', count=len(self._dogs)
-                )
+                    language, 'multi_dog', count=len(self._dogs),
+                ),
             )
 
         return '\n'.join(info)
 
     def _build_dashboard_features_string(
-        self, language: str | None, has_gps_enabled: bool
+        self, language: str | None, has_gps_enabled: bool,
     ) -> str:
         """Return localized feature highlights for the dashboard wizard."""
 

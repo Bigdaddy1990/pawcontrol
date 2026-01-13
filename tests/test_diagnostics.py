@@ -1,5 +1,4 @@
 """Unit tests for diagnostics redaction helpers."""
-
 from __future__ import annotations
 
 import importlib.util

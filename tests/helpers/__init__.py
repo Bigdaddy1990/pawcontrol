@@ -1,5 +1,4 @@
 """Shared test helpers for the PawControl integration."""
-
 from __future__ import annotations
 
 import importlib.util
@@ -10,11 +9,9 @@ from types import ModuleType
 from typing import TypeVar
 
 from . import homeassistant_test_stubs
-from .homeassistant_test_stubs import (
-    ConfigEntryNotReady,
-    HomeAssistantError,
-    install_homeassistant_stubs,
-)
+from .homeassistant_test_stubs import ConfigEntryNotReady
+from .homeassistant_test_stubs import HomeAssistantError
+from .homeassistant_test_stubs import install_homeassistant_stubs
 
 __all__ = [
     'ConfigEntryNotReady',
@@ -40,7 +37,7 @@ def ensure_package(name: str, path: Path) -> None:
 
     if name not in sys.modules:
         module = importlib.util.module_from_spec(
-            importlib.util.spec_from_loader(name, loader=None)
+            importlib.util.spec_from_loader(name, loader=None),
         )
         module.__path__ = [str(path)]  # type: ignore[attr-defined]
         sys.modules[name] = module

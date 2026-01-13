@@ -5,26 +5,30 @@ kata-style repository.  We provide focused coverage for the repair helpers to
 ensure they gracefully handle unexpected severity values even without the real
 Home Assistant runtime.
 """
-
 from __future__ import annotations
+from tests.helpers import homeassistant_test_stubs
 
 import asyncio
 import importlib.util
 import sys
 from collections.abc import Mapping
-from datetime import UTC, datetime, timezone
+from datetime import datetime
+from datetime import timezone
+from datetime import UTC
 from enum import StrEnum
 from pathlib import Path
-from types import ModuleType, SimpleNamespace
-from typing import Any, cast
-from unittest.mock import AsyncMock, call
+from types import ModuleType
+from types import SimpleNamespace
+from typing import Any
+from typing import cast
+from unittest.mock import AsyncMock
+from unittest.mock import call
 
 import pytest
-from custom_components.pawcontrol.types import (
-    CacheRepairAggregate,
-    ConfigEntryDataPayload,
-    PawControlOptionsData,
-)
+
+from custom_components.pawcontrol.types import CacheRepairAggregate
+from custom_components.pawcontrol.types import ConfigEntryDataPayload
+from custom_components.pawcontrol.types import PawControlOptionsData
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -50,9 +54,6 @@ def _load_module(name: str, path: Path) -> ModuleType:
     sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
-
-
-from tests.helpers import homeassistant_test_stubs
 
 
 def _install_homeassistant_stubs() -> tuple[AsyncMock, type[StrEnum], AsyncMock]:
@@ -164,7 +165,7 @@ def test_async_create_issue_normalises_unknown_severity(
             'test_issue',
             severity='info',
             data={'foo': 'bar'},
-        )
+        ),
     )
 
     assert create_issue_mock.await_count == 1
@@ -193,7 +194,7 @@ def test_async_create_issue_accepts_issue_severity_instances(
             'entry_error',
             'test_issue',
             severity=cast(Any, issue_severity_cls).ERROR,
-        )
+        ),
     )
 
     assert create_issue_mock.await_count == 1
@@ -217,7 +218,7 @@ def _build_config_entries(
         return entry if entry.entry_id == entry_id else None
 
     def async_update_entry(
-        entry_obj: Any, data: Any | None = None, options: Any | None = None
+        entry_obj: Any, data: Any | None = None, options: Any | None = None,
     ) -> None:
         if data is not None:
             entry_obj.data = data
@@ -276,7 +277,11 @@ def test_storage_warning_flow_reduces_retention(
 
     delete_issue_mock.reset_mock()
     updates.clear()
-    asyncio.run(flow.async_step_storage_warning({'action': 'reduce_retention'}))
+    asyncio.run(
+        flow.async_step_storage_warning(
+        {'action': 'reduce_retention'},
+        ),
+    )
 
     assert entry.options['data_retention_days'] == 365
     _, options_payload = updates[-1]
@@ -300,7 +305,7 @@ def test_module_conflict_flow_disables_extra_gps_modules(
                 'modules': {module.MODULE_GPS: True, module.MODULE_HEALTH: True},
             }
             for i in range(6)
-        ]
+        ],
     }
     entry.options = {}
     config_entries, _, _ = _build_config_entries(entry)
@@ -348,7 +353,7 @@ def test_invalid_dog_data_flow_removes_entries(
                 module.CONF_DOG_NAME: 'Valid Dog',
             },
             {module.CONF_DOG_ID: 'invalid', module.CONF_DOG_NAME: ''},
-        ]
+        ],
     }
     entry.options = {}
     config_entries, _, _ = _build_config_entries(entry)
@@ -406,7 +411,9 @@ def test_coordinator_error_flow_triggers_reload(
 
     delete_issue_mock.reset_mock()
     reload_mock.reset_mock()
-    result = asyncio.run(flow.async_step_coordinator_error({'action': 'reload'}))
+    result = asyncio.run(
+        flow.async_step_coordinator_error({'action': 'reload'}),
+    )
 
     assert reload_mock.await_count == 1
     assert delete_issue_mock.await_count == 1
@@ -444,7 +451,9 @@ def test_coordinator_error_flow_handles_failed_reload(
 
     delete_issue_mock.reset_mock()
     reload_mock.reset_mock()
-    result = asyncio.run(flow.async_step_coordinator_error({'action': 'reload'}))
+    result = asyncio.run(
+        flow.async_step_coordinator_error({'action': 'reload'}),
+    )
 
     assert reload_mock.await_count == 1
     cache_delete_calls = [
@@ -476,8 +485,8 @@ def test_async_check_for_issues_checks_coordinator_health(
                     module.CONF_DOG_ID: 'dog_alpha',
                     module.CONF_DOG_NAME: 'Dog Alpha',
                     'modules': {},
-                }
-            ]
+                },
+            ],
         },
         options={},
         version=1,
@@ -536,7 +545,7 @@ def test_async_check_for_issues_publishes_cache_health_issue(
                 'misses': 2,
                 'hit_rate': 60.0,
                 'expired_entries': 1,
-            }
+            },
         ],
         caches_with_expired_entries=['adaptive_cache'],
     )
@@ -558,8 +567,8 @@ def test_async_check_for_issues_publishes_cache_health_issue(
                     module.CONF_DOG_ID: 'dog',
                     module.CONF_DOG_NAME: 'Dog',
                     'modules': {},
-                }
-            ]
+                },
+            ],
         },
         options={},
         version=1,
@@ -624,8 +633,8 @@ def test_async_check_for_issues_clears_cache_issue_without_anomalies(
                     module.CONF_DOG_ID: 'dog',
                     module.CONF_DOG_NAME: 'Dog',
                     'modules': {},
-                }
-            ]
+                },
+            ],
         },
         options={},
         version=1,
@@ -673,8 +682,8 @@ def test_async_check_for_issues_surfaces_reconfigure_warnings(
                     module.CONF_DOG_ID: 'dog',
                     module.CONF_DOG_NAME: 'Dog',
                     'modules': {},
-                }
-            ]
+                },
+            ],
         },
         options={
             'last_reconfigure': '2024-01-02T03:04:05+00:00',
@@ -732,8 +741,8 @@ def test_async_check_for_issues_surfaces_reconfigure_health_issue(
                     module.CONF_DOG_ID: 'dog',
                     module.CONF_DOG_NAME: 'Dog',
                     'modules': {},
-                }
-            ]
+                },
+            ],
         },
         options={
             'last_reconfigure': '2024-01-02T03:04:05+00:00',
@@ -795,11 +804,11 @@ def test_check_runtime_store_duration_alerts_creates_issue(
                     'guard_limit_seconds': 21600.0,
                     'severity': 'warning',
                     'recommended_action': 'Repair',
-                }
+                },
             ],
             'timeline_window_days': 1.0,
             'last_event_timestamp': '2024-01-02T00:00:00+00:00',
-        }
+        },
     }
 
     try:
@@ -835,7 +844,7 @@ def test_check_runtime_store_duration_alerts_clears_issue_without_alerts(
     original_get_runtime_store_health = module.get_runtime_store_health
     module.require_runtime_data = lambda _hass, _entry: runtime_data
     module.get_runtime_store_health = lambda _runtime: {
-        'assessment_timeline_summary': {'level_duration_guard_alerts': []}
+        'assessment_timeline_summary': {'level_duration_guard_alerts': []},
     }
 
     try:
@@ -873,8 +882,8 @@ def test_async_check_for_issues_clears_reconfigure_issues_when_clean(
                     module.CONF_DOG_ID: 'dog',
                     module.CONF_DOG_NAME: 'Dog',
                     'modules': {},
-                }
-            ]
+                },
+            ],
         },
         options={
             'last_reconfigure': '2024-01-02T03:04:05+00:00',
@@ -905,11 +914,15 @@ def test_async_check_for_issues_clears_reconfigure_issues_when_clean(
         for invocation in create_issue_mock.await_args_list
     )
     assert any(
-        invocation.args and str(invocation.args[-1]).endswith('reconfigure_warnings')
+        invocation.args and str(
+            invocation.args[-1],
+        ).endswith('reconfigure_warnings')
         for invocation in delete_issue_mock.await_args_list
     )
     assert any(
-        invocation.args and str(invocation.args[-1]).endswith('reconfigure_health')
+        invocation.args and str(
+            invocation.args[-1],
+        ).endswith('reconfigure_health')
         for invocation in delete_issue_mock.await_args_list
     )
 
@@ -936,8 +949,8 @@ def test_notification_check_accepts_mobile_app_service_prefix(
                     module.CONF_DOG_ID: 'dog_alpha',
                     module.CONF_DOG_NAME: 'Dog Alpha',
                     'modules': {module.MODULE_NOTIFICATIONS: True},
-                }
-            ]
+                },
+            ],
         },
         options={'notifications': {'mobile_notifications': True}},
         version=1,
@@ -981,7 +994,7 @@ def test_async_publish_feeding_compliance_issue_creates_alert(
                         'date': '2024-05-04',
                         'issues': ['Missed breakfast'],
                         'severity': 'high',
-                    }
+                    },
                 ],
                 'missed_meals': [{'date': '2024-05-03', 'actual': 1, 'expected': 2}],
                 'recommendations': ['Schedule a vet visit'],
@@ -995,7 +1008,7 @@ def test_async_publish_feeding_compliance_issue_creates_alert(
             entry,
             payload,
             context_metadata={'context_id': 'ctx-1'},
-        )
+        ),
     )
 
     assert create_issue_mock.await_count == 1
@@ -1035,9 +1048,12 @@ def test_async_publish_feeding_compliance_issue_falls_back_without_critical(
         ERROR = 'error'
         WARNING = 'warning'
 
-    monkeypatch.setattr(module.ir, 'IssueSeverity', LimitedSeverity, raising=False)
     monkeypatch.setattr(
-        module.ir, 'async_create_issue', create_issue_mock, raising=False
+        module.ir, 'IssueSeverity',
+        LimitedSeverity, raising=False,
+    )
+    monkeypatch.setattr(
+        module.ir, 'async_create_issue', create_issue_mock, raising=False,
     )
 
     hass = SimpleNamespace()
@@ -1062,7 +1078,7 @@ def test_async_publish_feeding_compliance_issue_falls_back_without_critical(
                         'date': '2024-05-04',
                         'issues': ['Missed breakfast'],
                         'severity': 'high',
-                    }
+                    },
                 ],
                 'missed_meals': [
                     {'date': '2024-05-03', 'actual': 1, 'expected': 2},
@@ -1078,7 +1094,7 @@ def test_async_publish_feeding_compliance_issue_falls_back_without_critical(
             entry,
             payload,
             context_metadata=None,
-        )
+        ),
     )
 
     assert create_issue_mock.await_count == 1
@@ -1127,7 +1143,7 @@ def test_async_publish_feeding_compliance_issue_clears_resolved_alert(
             entry,
             payload,
             context_metadata=None,
-        )
+        ),
     )
 
     assert create_issue_mock.await_count == 0
@@ -1173,7 +1189,7 @@ def test_async_publish_feeding_compliance_issue_handles_no_data(
             entry,
             payload,
             context_metadata={'context_id': None},
-        )
+        ),
     )
 
     assert create_issue_mock.await_count == 1
@@ -1234,7 +1250,7 @@ def test_async_publish_feeding_compliance_issue_sanitises_mapping_message(
             entry,
             payload,
             context_metadata=None,
-        )
+        ),
     )
 
     await_args = create_issue_mock.await_args

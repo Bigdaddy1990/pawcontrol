@@ -10,14 +10,14 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import timedelta
 from enum import Enum
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Final
+from typing import Final
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from homeassistant.const import Platform
@@ -125,7 +125,7 @@ ALL_MODULES: Final[frozenset[str]] = frozenset(
         MODULE_MEDICATION,
         MODULE_TRAINING,
         MODULE_WEATHER,
-    ]
+    ],
 )
 
 # OPTIMIZED: Source entities configuration
@@ -228,7 +228,7 @@ MANUAL_EVENT_SOURCE_CANONICAL: Final[Mapping[str, str]] = MappingProxyType(
         'options': 'options',
         'system_options': 'system_settings',
         'system_settings': 'system_settings',
-    }
+    },
 )
 RESILIENCE_SKIP_THRESHOLD_MIN: Final[int] = 0
 RESILIENCE_SKIP_THRESHOLD_MAX: Final[int] = 50
@@ -243,7 +243,7 @@ GPS_UPDATE_INTERVAL_SELECTOR: Final[selector.NumberSelector] = selector.NumberSe
         step=10,
         mode=selector.NumberSelectorMode.BOX,
         unit_of_measurement='seconds',
-    )
+    ),
 )
 
 GPS_ACCURACY_FILTER_SELECTOR: Final[selector.NumberSelector] = selector.NumberSelector(
@@ -253,7 +253,7 @@ GPS_ACCURACY_FILTER_SELECTOR: Final[selector.NumberSelector] = selector.NumberSe
         step=5,
         mode=selector.NumberSelectorMode.BOX,
         unit_of_measurement='meters',
-    )
+    ),
 )
 
 # OPTIMIZED: Food types as tuple for immutability (better performance than list)
@@ -284,13 +284,17 @@ SPECIAL_DIET_OPTIONS: Final[tuple[str, ...]] = (
 )
 
 # OPTIMIZED: Schedule types as tuple for better performance
-FEEDING_SCHEDULE_TYPES: Final[tuple[str, ...]] = ('flexible', 'strict', 'custom')
+FEEDING_SCHEDULE_TYPES: Final[tuple[str, ...]] = (
+    'flexible', 'strict', 'custom',
+)
 
 # OPTIMIZED: Meal types as tuple
 MEAL_TYPES: Final[tuple[str, ...]] = ('breakfast', 'lunch', 'dinner', 'snack')
 
 # OPTIMIZED: Dog sizes as tuple for consistency and performance
-DOG_SIZES: Final[tuple[str, ...]] = ('toy', 'small', 'medium', 'large', 'giant')
+DOG_SIZES: Final[tuple[str, ...]] = (
+    'toy', 'small', 'medium', 'large', 'giant',
+)
 
 # OPTIMIZED: Size-weight mapping for validation (frozenset for fast lookup)
 DOG_SIZE_WEIGHT_RANGES: Final[dict[str, tuple[float, float]]] = {
@@ -429,7 +433,7 @@ CORE_SERVICES: Final[frozenset[str]] = frozenset(
         SERVICE_NOTIFY_TEST,
         SERVICE_START_GARDEN_SESSION,
         SERVICE_END_GARDEN_SESSION,
-    ]
+    ],
 )
 
 # OPTIMIZED: Entity and event identifiers

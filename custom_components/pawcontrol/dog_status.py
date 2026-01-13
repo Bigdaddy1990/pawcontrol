@@ -1,17 +1,20 @@
 """Helpers for constructing centralized dog status snapshots."""
-
 from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import cast
 
-from .types import DogStatusSnapshot, JSONMapping, JSONMutableMapping
+from .types import DogStatusSnapshot
+from .types import JSONMapping
+from .types import JSONMutableMapping
 
-_DEFAULT_SAFE_ZONES: frozenset[str] = frozenset({'home', 'park', 'vet', 'friend_house'})
+_DEFAULT_SAFE_ZONES: frozenset[str] = frozenset(
+    {'home', 'park', 'vet', 'friend_house'},
+)
 
 
 def build_dog_status_snapshot(
-    dog_id: str, dog_data: Mapping[str, object]
+    dog_id: str, dog_data: Mapping[str, object],
 ) -> DogStatusSnapshot:
     """Return the centralized status snapshot for a dog."""
 

@@ -1,14 +1,23 @@
 """Localised templates for feeding compliance notifications."""
-
 from __future__ import annotations
 
 from collections import UserString
-from collections.abc import Collection, Iterable, Iterator, Mapping, Sequence
+from collections.abc import Collection
+from collections.abc import Iterable
+from collections.abc import Iterator
+from collections.abc import Mapping
+from collections.abc import Sequence
 from itertools import islice
 from math import isfinite
 from numbers import Real
-from os import PathLike, fspath
-from typing import TYPE_CHECKING, Any, Final, TypeVar, cast, overload
+from os import fspath
+from os import PathLike
+from typing import Any
+from typing import cast
+from typing import Final
+from typing import overload
+from typing import TYPE_CHECKING
+from typing import TypeVar
 
 if TYPE_CHECKING:
     from .types import (
@@ -95,7 +104,7 @@ _ALLOWED_SINGLE_WORDS: Final[frozenset[str]] = frozenset(
         'missing',
         'unknown',
         'degraded',
-    }
+    },
 )
 
 
@@ -121,7 +130,7 @@ _T = TypeVar('_T')
 
 
 def _normalise_sequence(
-    value: object, *, limit: int | None = None
+    value: object, *, limit: int | None = None,
 ) -> Sequence[_T] | None:
     """Return a bounded, re-iterable snapshot for sequence-like payloads."""
 
@@ -129,7 +138,9 @@ def _normalise_sequence(
         return None
 
     max_allowed = (
-        _SEQUENCE_SCAN_LIMIT if limit is None else min(limit, _SEQUENCE_SCAN_LIMIT)
+        _SEQUENCE_SCAN_LIMIT if limit is None else min(
+            limit, _SEQUENCE_SCAN_LIMIT,
+        )
     )
     max_items = max(max_allowed, 0)
     if max_items == 0:
@@ -218,7 +229,7 @@ def _normalise_text(value: Any) -> str | None:
 
 
 def _iter_text_candidates(
-    value: Any, *, _visited: set[int] | None = None
+    value: Any, *, _visited: set[int] | None = None,
 ) -> Iterable[str]:
     """Yield cleaned text candidates from arbitrary values."""
 
@@ -263,7 +274,7 @@ def _iter_text_candidates(
 
 
 def _iter_mapping_text_candidates(
-    mapping: Mapping[str, object], *, _visited: set[int]
+    mapping: Mapping[str, object], *, _visited: set[int],
 ) -> Iterable[str]:
     """Yield textual candidates from a mapping, preferring descriptive keys."""
 
@@ -363,7 +374,7 @@ def _collect_missed_meals(
     """Build the missed meals section with sanitised values."""
 
     entries = cast(
-        Sequence[Mapping[str, object]] | None, _normalise_sequence(raw_entries)
+        Sequence[Mapping[str, object]] | None, _normalise_sequence(raw_entries),
     )
     if entries is None:
         return []
@@ -378,7 +389,7 @@ def _collect_missed_meals(
                 date=_normalise_date(entry.get('date')),
                 actual=_normalise_count(entry.get('actual')),
                 expected=_normalise_count(entry.get('expected')),
-            )
+            ),
         )
         if len(summary) >= _MAX_MISSED_MEALS:
             break
@@ -388,7 +399,10 @@ def _collect_missed_meals(
 def _describe_issue(issue: Mapping[str, object]) -> str:
     """Return a readable description for an issue entry."""
 
-    issues = cast(Sequence[object] | None, _normalise_sequence(issue.get('issues')))
+    issues = cast(
+        Sequence[object] | None,
+        _normalise_sequence(issue.get('issues')),
+    )
     if issues:
         for candidate in issues:
             text = _first_text_candidate(candidate)
@@ -414,7 +428,7 @@ def _collect_issue_summaries(
     """Return normalised issue summary lines."""
 
     entries = cast(
-        Sequence[Mapping[str, object]] | None, _normalise_sequence(raw_entries)
+        Sequence[Mapping[str, object]] | None, _normalise_sequence(raw_entries),
     )
     if entries is None:
         return []
@@ -428,7 +442,7 @@ def _collect_issue_summaries(
             translations['issue_item'].format(
                 date=_normalise_date(entry.get('date')),
                 description=_describe_issue(entry),
-            )
+            ),
         )
         if len(summary) >= _MAX_ISSUES:
             break
@@ -436,7 +450,7 @@ def _collect_issue_summaries(
 
 
 def _collect_recommendations(
-    translations: Mapping[str, str], raw_entries: object
+    translations: Mapping[str, str], raw_entries: object,
 ) -> list[str]:
     """Return cleaned recommendation text entries."""
 
@@ -453,7 +467,9 @@ def _collect_recommendations(
         text = _first_text_candidate(entry)
         if not text:
             continue
-        summary.append(translations['recommendation_item'].format(recommendation=text))
+        summary.append(
+            translations['recommendation_item'].format(recommendation=text),
+        )
         if len(summary) >= _MAX_RECOMMENDATIONS:
             break
     return summary
@@ -465,12 +481,14 @@ def _build_localised_sections(
 ) -> tuple[list[str], list[str], list[str]]:
     """Return localised summary sections for missed meals, issues, and recommendations."""
 
-    missed_summary = _collect_missed_meals(translations, compliance.get('missed_meals'))
+    missed_summary = _collect_missed_meals(
+        translations, compliance.get('missed_meals'),
+    )
     issue_summary = _collect_issue_summaries(
-        translations, compliance.get('compliance_issues')
+        translations, compliance.get('compliance_issues'),
     )
     recommendation_summary = _collect_recommendations(
-        translations, compliance.get('recommendations')
+        translations, compliance.get('recommendations'),
     )
 
     if not recommendation_summary and (issue_summary or missed_summary):
@@ -513,11 +531,11 @@ def build_feeding_compliance_summary(
     days_value = _as_float(compliance.get('days_analyzed'))
     days_analyzed = int(days_value) if days_value is not None else 0
     missed_summary, issue_summary, recommendation_summary = _build_localised_sections(
-        translations, compliance
+        translations, compliance,
     )
 
     score_line = translations['score_line'].format(
-        score=f"{score:.1f}", days_analyzed=days_analyzed
+        score=f"{score:.1f}", days_analyzed=days_analyzed,
     )
     lines: list[str] = [score_line]
 
@@ -554,7 +572,7 @@ def build_feeding_compliance_notification(
     """Return localised title and body for a feeding compliance result."""
 
     summary = build_feeding_compliance_summary(
-        language, display_name=display_name, compliance=compliance
+        language, display_name=display_name, compliance=compliance,
     )
     return summary['title'], summary['message']
 
@@ -588,7 +606,7 @@ class _BoundedSequenceSnapshot[T](Sequence[T]):
 
     @overload
     def __getitem__(
-        self, index: slice, /
+        self, index: slice, /,
     ) -> Sequence[T]:  # pragma: no cover - defensive
         """Return a sliced view of the cached items."""
 

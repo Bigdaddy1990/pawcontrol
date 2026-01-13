@@ -1,16 +1,14 @@
 """Helpers for redacting sensitive diagnostics information."""
-
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable
+from collections.abc import Mapping
 from typing import Final
 
-from custom_components.pawcontrol.types import (
-    JSONMutableMapping,
-    JSONMutableSequence,
-    JSONValue,
-)
+from custom_components.pawcontrol.types import JSONMutableMapping
+from custom_components.pawcontrol.types import JSONMutableSequence
+from custom_components.pawcontrol.types import JSONValue
 
 __all__ = [
     'compile_redaction_patterns',

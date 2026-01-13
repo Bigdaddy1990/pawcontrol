@@ -7,19 +7,22 @@ generate or validate stub contracts, and a compact digest of the referenced
 release notes. The metadata keeps CI and local workflows aligned without
 requiring the full upstream repository during quick checks.
 """
-
 from __future__ import annotations
 
 import argparse
 import json
-from datetime import UTC, datetime
+from datetime import datetime
+from datetime import UTC
 from pathlib import Path
-from typing import Any, Final
+from typing import Any
+from typing import Final
 from urllib.error import URLError
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
-DEFAULT_OUTPUT: Final[Path] = Path('tests/helpers/homeassistant_stub_metadata.json')
+DEFAULT_OUTPUT: Final[Path] = Path(
+    'tests/helpers/homeassistant_stub_metadata.json',
+)
 DEFAULT_TARGETS: Final[tuple[str, ...]] = (
     'config_entries',
     'diagnostics',
@@ -114,7 +117,12 @@ def update_stub_metadata(
     )
 
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(metadata, indent=2, sort_keys=True), encoding='utf-8')
+    output.write_text(
+        json.dumps(
+            metadata, indent=2,
+            sort_keys=True,
+        ), encoding='utf-8',
+    )
     return output
 
 
@@ -122,7 +130,7 @@ def parse_args() -> argparse.Namespace:
     """Parse CLI arguments."""
 
     parser = argparse.ArgumentParser(
-        description='Update Home Assistant stub metadata for PawControl.'
+        description='Update Home Assistant stub metadata for PawControl.',
     )
     parser.add_argument(
         '--version',

@@ -1,59 +1,61 @@
 """Helper routines that keep the coordinator file compact."""
-
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, MutableMapping, Sequence
-from datetime import UTC, date, datetime
+from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import MutableMapping
+from collections.abc import Sequence
+from datetime import date
+from datetime import datetime
+from datetime import UTC
 from math import isfinite
-from typing import TYPE_CHECKING, Any, Final, cast
+from typing import Any
+from typing import cast
+from typing import Final
+from typing import TYPE_CHECKING
 
 from homeassistant.core import callback
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 
 from .coordinator_support import ensure_cache_repair_aggregate
-from .performance import (
-    capture_cache_diagnostics,
-    performance_tracker,
-    record_maintenance_result,
-)
-from .runtime_data import describe_runtime_store_status, get_runtime_data
+from .performance import capture_cache_diagnostics
+from .performance import performance_tracker
+from .performance import record_maintenance_result
+from .runtime_data import describe_runtime_store_status
+from .runtime_data import get_runtime_data
 from .service_guard import normalise_guard_history
-from .telemetry import (
-    get_runtime_performance_stats,
-    get_runtime_reconfigure_summary,
-    summarise_reconfigure_options,
-    update_runtime_bool_coercion_summary,
-    update_runtime_reconfigure_summary,
-    update_runtime_resilience_diagnostics,
-    update_runtime_store_health,
-)
-from .types import (
-    AdaptivePollingDiagnostics,
-    CacheRepairAggregate,
-    CircuitBreakerStateSummary,
-    CircuitBreakerStatsPayload,
-    CoordinatorRejectionMetrics,
-    CoordinatorResilienceDiagnostics,
-    CoordinatorResilienceSummary,
-    CoordinatorRuntimeStatisticsPayload,
-    CoordinatorRuntimeStoreSummary,
-    CoordinatorServiceExecutionSummary,
-    CoordinatorStatisticsPayload,
-    EntityBudgetSummary,
-    EntityFactoryGuardEvent,
-    EntityFactoryGuardMetricsSnapshot,
-    EntityFactoryGuardStabilityTrend,
-    HelperManagerGuardMetrics,
-    JSONMapping,
-    JSONMutableMapping,
-    MaintenanceMetadataPayload,
-    PawControlRuntimeData,
-    ReconfigureTelemetrySummary,
-    RejectionMetricsSource,
-    RejectionMetricsTarget,
-    RuntimeStoreHealthAssessment,
-)
+from .telemetry import get_runtime_performance_stats
+from .telemetry import get_runtime_reconfigure_summary
+from .telemetry import summarise_reconfigure_options
+from .telemetry import update_runtime_bool_coercion_summary
+from .telemetry import update_runtime_reconfigure_summary
+from .telemetry import update_runtime_resilience_diagnostics
+from .telemetry import update_runtime_store_health
+from .types import AdaptivePollingDiagnostics
+from .types import CacheRepairAggregate
+from .types import CircuitBreakerStateSummary
+from .types import CircuitBreakerStatsPayload
+from .types import CoordinatorRejectionMetrics
+from .types import CoordinatorResilienceDiagnostics
+from .types import CoordinatorResilienceSummary
+from .types import CoordinatorRuntimeStatisticsPayload
+from .types import CoordinatorRuntimeStoreSummary
+from .types import CoordinatorServiceExecutionSummary
+from .types import CoordinatorStatisticsPayload
+from .types import EntityBudgetSummary
+from .types import EntityFactoryGuardEvent
+from .types import EntityFactoryGuardMetricsSnapshot
+from .types import EntityFactoryGuardStabilityTrend
+from .types import HelperManagerGuardMetrics
+from .types import JSONMapping
+from .types import JSONMutableMapping
+from .types import MaintenanceMetadataPayload
+from .types import PawControlRuntimeData
+from .types import ReconfigureTelemetrySummary
+from .types import RejectionMetricsSource
+from .types import RejectionMetricsTarget
+from .types import RuntimeStoreHealthAssessment
 
 if TYPE_CHECKING:  # pragma: no cover - import for typing only
     from datetime import timedelta
@@ -81,14 +83,16 @@ def _fetch_cache_repair_summary(
     try:
         summary = summary_method()
     except Exception as err:  # pragma: no cover - diagnostics guard
-        coordinator.logger.debug('Failed to collect cache repair summary: %s', err)
+        coordinator.logger.debug(
+            'Failed to collect cache repair summary: %s', err,
+        )
         return None
 
     resolved_summary = ensure_cache_repair_aggregate(summary)
     if resolved_summary is not None:
         return resolved_summary
     coordinator.logger.debug(
-        'Cache repair summary did not return CacheRepairAggregate: %r', summary
+        'Cache repair summary did not return CacheRepairAggregate: %r', summary,
     )
     return None
 
@@ -118,16 +122,20 @@ def _build_runtime_store_summary(
 ) -> CoordinatorRuntimeStoreSummary:
     """Return a runtime store summary combining snapshot and history telemetry."""
 
-    snapshot = describe_runtime_store_status(coordinator.hass, coordinator.config_entry)
+    snapshot = describe_runtime_store_status(
+        coordinator.hass, coordinator.config_entry,
+    )
     history = update_runtime_store_health(
-        runtime_data, snapshot, record_event=record_event
+        runtime_data, snapshot, record_event=record_event,
     )
     summary: CoordinatorRuntimeStoreSummary = {'snapshot': snapshot}
     if history:
         summary['history'] = history
         assessment = history.get('assessment')
         if isinstance(assessment, Mapping):
-            summary['assessment'] = cast(RuntimeStoreHealthAssessment, dict(assessment))
+            summary['assessment'] = cast(
+                RuntimeStoreHealthAssessment, dict(assessment),
+            )
     return summary
 
 
@@ -418,7 +426,9 @@ def _normalise_adaptive_diagnostics(data: Any) -> AdaptivePollingDiagnostics:
         if average is not None:
             diagnostics['average_cycle_ms'] = average
 
-        diagnostics['history_samples'] = _coerce_int(data.get('history_samples'))
+        diagnostics['history_samples'] = _coerce_int(
+            data.get('history_samples'),
+        )
         diagnostics['error_streak'] = _coerce_int(data.get('error_streak'))
 
         saturation = _coerce_float(data.get('entity_saturation'))
@@ -508,7 +518,7 @@ def merge_rejection_metric_values(
             if key in source:
                 value = source[key]
                 if isinstance(value, Sequence) and not isinstance(
-                    value, str | bytes | bytearray
+                    value, str | bytes | bytearray,
                 ):
                     mutable_target[key] = list(value)
                 else:
@@ -564,27 +574,29 @@ def derive_rejection_metrics(
     if unknown_breakers is not None:
         metrics['unknown_breaker_count'] = _coerce_int(unknown_breakers)
 
-    metrics['open_breakers'] = _normalise_string_list(summary.get('open_breakers'))
+    metrics['open_breakers'] = _normalise_string_list(
+        summary.get('open_breakers'),
+    )
     metrics['open_breaker_ids'] = _normalise_string_list(
-        summary.get('open_breaker_ids')
+        summary.get('open_breaker_ids'),
     )
     metrics['half_open_breakers'] = _normalise_string_list(
-        summary.get('half_open_breakers')
+        summary.get('half_open_breakers'),
     )
     metrics['half_open_breaker_ids'] = _normalise_string_list(
-        summary.get('half_open_breaker_ids')
+        summary.get('half_open_breaker_ids'),
     )
     metrics['unknown_breakers'] = _normalise_string_list(
-        summary.get('unknown_breakers')
+        summary.get('unknown_breakers'),
     )
     metrics['unknown_breaker_ids'] = _normalise_string_list(
-        summary.get('unknown_breaker_ids')
+        summary.get('unknown_breaker_ids'),
     )
     metrics['rejection_breaker_ids'] = _normalise_string_list(
-        summary.get('rejection_breaker_ids')
+        summary.get('rejection_breaker_ids'),
     )
     metrics['rejection_breakers'] = _normalise_string_list(
-        summary.get('rejection_breakers')
+        summary.get('rejection_breakers'),
     )
 
     return metrics
@@ -637,7 +649,9 @@ def _normalise_guard_metrics(payload: Any) -> HelperManagerGuardMetrics:
     guard_metrics['reasons'] = reasons
 
     last_results_payload = payload.get('last_results')
-    guard_metrics['last_results'] = normalise_guard_history(last_results_payload)
+    guard_metrics['last_results'] = normalise_guard_history(
+        last_results_payload,
+    )
 
     return guard_metrics
 
@@ -649,7 +663,9 @@ def resolve_service_guard_metrics(payload: Any) -> HelperManagerGuardMetrics:
     if not isinstance(payload, Mapping):
         return guard_metrics
 
-    guard_metrics = _normalise_guard_metrics(payload.get('service_guard_metrics'))
+    guard_metrics = _normalise_guard_metrics(
+        payload.get('service_guard_metrics'),
+    )
 
     if isinstance(payload, MutableMapping):
         payload['service_guard_metrics'] = {
@@ -720,7 +736,9 @@ def resolve_entity_factory_guard_metrics(
     if ratio is not None and isfinite(ratio):
         snapshot['last_duration_ratio'] = ratio
 
-    last_floor_change_ratio = _coerce_float(metrics.get('last_floor_change_ratio'))
+    last_floor_change_ratio = _coerce_float(
+        metrics.get('last_floor_change_ratio'),
+    )
     if last_floor_change_ratio is not None and isfinite(last_floor_change_ratio):
         snapshot['last_floor_change_ratio'] = last_floor_change_ratio
 
@@ -828,7 +846,7 @@ def resolve_entity_factory_guard_metrics(
 
     recent_events_raw = metrics.get('recent_events')
     if isinstance(recent_events_raw, Sequence) and not isinstance(
-        recent_events_raw, (str, bytes, bytearray)
+        recent_events_raw, (str, bytes, bytearray),
     ):
         recent_events: list[EntityFactoryGuardEvent] = [
             cast(EntityFactoryGuardEvent, item)
@@ -849,7 +867,7 @@ def resolve_entity_factory_guard_metrics(
     stability_trend = metrics.get('stability_trend')
     if isinstance(stability_trend, str) and stability_trend:
         snapshot['stability_trend'] = cast(
-            'EntityFactoryGuardStabilityTrend', stability_trend
+            'EntityFactoryGuardStabilityTrend', stability_trend,
         )
 
     enforce_min_runtime = metrics.get('enforce_min_runtime')
@@ -993,7 +1011,9 @@ def _coerce_float(value: Any) -> float | None:
             start_of_day = dt_util.start_of_local_day(value)
         except (TypeError, ValueError, AttributeError):
             # ``start_of_local_day`` may be unavailable in some compat paths.
-            start_of_day = datetime(value.year, value.month, value.day, tzinfo=UTC)
+            start_of_day = datetime(
+                value.year, value.month, value.day, tzinfo=UTC,
+            )
         return _timestamp_from_datetime(start_of_day)
 
     if isinstance(value, str):
@@ -1058,7 +1078,9 @@ def collect_resilience_diagnostics(
     try:
         raw = fetch()
     except Exception as err:  # pragma: no cover - diagnostics guard
-        coordinator.logger.debug('Failed to collect circuit breaker stats: %s', err)
+        coordinator.logger.debug(
+            'Failed to collect circuit breaker stats: %s', err,
+        )
         _clear_resilience_diagnostics(coordinator)
         return payload
 
@@ -1102,37 +1124,37 @@ def collect_resilience_diagnostics(
             'breaker_id': breaker_id,
             'state': str(state_value),
             'failure_count': _coerce_int(
-                _extract_stat_value(stats, 'failure_count', 0)
+                _extract_stat_value(stats, 'failure_count', 0),
             ),
             'success_count': _coerce_int(
-                _extract_stat_value(stats, 'success_count', 0)
+                _extract_stat_value(stats, 'success_count', 0),
             ),
             'last_failure_time': _coerce_float(
-                _extract_stat_value(stats, 'last_failure_time')
+                _extract_stat_value(stats, 'last_failure_time'),
             ),
             'last_state_change': _coerce_float(
-                _extract_stat_value(stats, 'last_state_change')
+                _extract_stat_value(stats, 'last_state_change'),
             ),
             'total_calls': _coerce_int(_extract_stat_value(stats, 'total_calls', 0)),
             'total_failures': _coerce_int(
-                _extract_stat_value(stats, 'total_failures', 0)
+                _extract_stat_value(stats, 'total_failures', 0),
             ),
             'total_successes': _coerce_int(
-                _extract_stat_value(stats, 'total_successes', 0)
+                _extract_stat_value(stats, 'total_successes', 0),
             ),
             'rejected_calls': _coerce_int(
-                _extract_stat_value(stats, 'rejected_calls', 0)
+                _extract_stat_value(stats, 'rejected_calls', 0),
             ),
         }
 
         last_success_time = _coerce_float(
-            _extract_stat_value(stats, 'last_success_time')
+            _extract_stat_value(stats, 'last_success_time'),
         )
         if last_success_time is not None:
             entry['last_success_time'] = last_success_time
 
         last_rejection_time = _coerce_float(
-            _extract_stat_value(stats, 'last_rejection_time')
+            _extract_stat_value(stats, 'last_rejection_time'),
         )
         if last_rejection_time is not None:
             entry['last_rejection_time'] = last_rejection_time
@@ -1167,13 +1189,13 @@ def build_update_statistics(
     )
     runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
     stats['runtime_store'] = _build_runtime_store_summary(
-        coordinator, runtime_data, record_event=False
+        coordinator, runtime_data, record_event=False,
     )
     stats['entity_budget'] = _normalise_entity_budget_summary(
-        coordinator._entity_budget.summary()
+        coordinator._entity_budget.summary(),
     )
     stats['adaptive_polling'] = _normalise_adaptive_diagnostics(
-        coordinator._adaptive_polling.as_diagnostics()
+        coordinator._adaptive_polling.as_diagnostics(),
     )
     rejection_metrics = default_rejection_metrics()
 
@@ -1210,21 +1232,21 @@ def build_runtime_statistics(
     )
     runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
     stats['runtime_store'] = _build_runtime_store_summary(
-        coordinator, runtime_data, record_event=True
+        coordinator, runtime_data, record_event=True,
     )
     stats['bool_coercion'] = update_runtime_bool_coercion_summary(runtime_data)
     stats['entity_budget'] = _normalise_entity_budget_summary(
-        coordinator._entity_budget.summary()
+        coordinator._entity_budget.summary(),
     )
     stats['adaptive_polling'] = _normalise_adaptive_diagnostics(
-        coordinator._adaptive_polling.as_diagnostics()
+        coordinator._adaptive_polling.as_diagnostics(),
     )
     performance_stats_payload = get_runtime_performance_stats(
-        cast(PawControlRuntimeData | None, runtime_data)
+        cast(PawControlRuntimeData | None, runtime_data),
     )
     guard_metrics = resolve_service_guard_metrics(performance_stats_payload)
     entity_factory_guard = resolve_entity_factory_guard_metrics(
-        performance_stats_payload
+        performance_stats_payload,
     )
     rejection_metrics = default_rejection_metrics()
 
@@ -1262,23 +1284,29 @@ def build_runtime_statistics(
         error_summary['unknown_breaker_count'] = rejection_metrics[
             'unknown_breaker_count'
         ]
-        error_summary['open_breakers'] = list(rejection_metrics['open_breakers'])
-        error_summary['open_breaker_ids'] = list(rejection_metrics['open_breaker_ids'])
+        error_summary['open_breakers'] = list(
+            rejection_metrics['open_breakers'],
+        )
+        error_summary['open_breaker_ids'] = list(
+            rejection_metrics['open_breaker_ids'],
+        )
         error_summary['half_open_breakers'] = list(
-            rejection_metrics['half_open_breakers']
+            rejection_metrics['half_open_breakers'],
         )
         error_summary['half_open_breaker_ids'] = list(
-            rejection_metrics['half_open_breaker_ids']
+            rejection_metrics['half_open_breaker_ids'],
         )
-        error_summary['unknown_breakers'] = list(rejection_metrics['unknown_breakers'])
+        error_summary['unknown_breakers'] = list(
+            rejection_metrics['unknown_breakers'],
+        )
         error_summary['unknown_breaker_ids'] = list(
-            rejection_metrics['unknown_breaker_ids']
+            rejection_metrics['unknown_breaker_ids'],
         )
         error_summary['rejection_breaker_ids'] = list(
-            rejection_metrics['rejection_breaker_ids']
+            rejection_metrics['rejection_breaker_ids'],
         )
         error_summary['rejection_breakers'] = list(
-            rejection_metrics['rejection_breakers']
+            rejection_metrics['rejection_breakers'],
         )
     if reconfigure_summary is not None:
         stats['reconfigure'] = reconfigure_summary
@@ -1287,13 +1315,13 @@ def build_runtime_statistics(
 
 @callback
 def ensure_background_task(
-    coordinator: PawControlCoordinator, interval: timedelta
+    coordinator: PawControlCoordinator, interval: timedelta,
 ) -> None:
     """Start the maintenance task if not already running."""
 
     if coordinator._maintenance_unsub is None:
         coordinator._maintenance_unsub = async_track_time_interval(
-            coordinator.hass, coordinator._async_maintenance, interval
+            coordinator.hass, coordinator._async_maintenance, interval,
         )
 
 
@@ -1318,7 +1346,9 @@ async def run_maintenance(coordinator: PawControlCoordinator) -> None:
         try:
             expired = coordinator._modules.cleanup_expired(now)
             if expired:
-                coordinator.logger.debug('Cleaned %d expired cache entries', expired)
+                coordinator.logger.debug(
+                    'Cleaned %d expired cache entries', expired,
+                )
                 details['expired_entries'] = expired
 
             if (
@@ -1338,7 +1368,7 @@ async def run_maintenance(coordinator: PawControlCoordinator) -> None:
                     )
                     details['consecutive_errors_reset'] = previous
                     details['hours_since_last_update'] = round(
-                        hours_since_last_update, 2
+                        hours_since_last_update, 2,
                     )
 
             diagnostics = capture_cache_diagnostics(runtime_data)

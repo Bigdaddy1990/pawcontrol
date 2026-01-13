@@ -1,14 +1,17 @@
 """Runtime helpers that keep :mod:`coordinator` focused on orchestration."""
-
 from __future__ import annotations
 
 import asyncio
 import logging
 import time
 from collections import deque
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
+from datetime import UTC
 from statistics import fmean
 from typing import cast
 
@@ -191,20 +194,26 @@ class AdaptivePollingController:
 
         if not success:
             # Back off quickly when consecutive errors occur.
-            penalty_factor = 1.0 + min(0.5, 0.15 * self._error_streak + error_ratio)
-            next_interval = min(self._max_interval, next_interval * penalty_factor)
+            penalty_factor = 1.0 + \
+                min(0.5, 0.15 * self._error_streak + error_ratio)
+            next_interval = min(
+                self._max_interval,
+                next_interval * penalty_factor,
+            )
         else:
             load_factor = 1.0 + (self._entity_saturation * 0.5)
             if average_duration < self._target_cycle * 0.8:
                 reduction_factor = min(
-                    2.0, (self._target_cycle / average_duration) * 0.5
+                    2.0, (self._target_cycle / average_duration) * 0.5,
                 )
                 next_interval = max(
                     self._min_interval,
                     next_interval / max(1.0, reduction_factor * load_factor),
                 )
             elif average_duration > self._target_cycle * 1.1:
-                increase_factor = min(2.5, average_duration / self._target_cycle)
+                increase_factor = min(
+                    2.5, average_duration / self._target_cycle,
+                )
                 next_interval = min(
                     self._max_interval,
                     next_interval * (increase_factor * load_factor),
@@ -216,7 +225,9 @@ class AdaptivePollingController:
             if idle_candidate:
                 idle_elapsed = now - self._last_activity
                 if idle_elapsed >= self._idle_grace:
-                    ramp_target = max(next_interval, self._current_interval * 1.5)
+                    ramp_target = max(
+                        next_interval, self._current_interval * 1.5,
+                    )
                     next_interval = min(self._idle_interval, ramp_target)
                 else:
                     gentle_target = max(
@@ -228,7 +239,7 @@ class AdaptivePollingController:
                 self._last_activity = now
 
         self._current_interval = max(
-            self._min_interval, min(self._max_interval, next_interval)
+            self._min_interval, min(self._max_interval, next_interval),
         )
         return self._current_interval
 
@@ -297,9 +308,16 @@ def summarize_entity_budgets(
     total_capacity = sum(snapshot.capacity for snapshot in snapshots)
     total_allocated = sum(snapshot.total_allocated for snapshot in snapshots)
     total_remaining = sum(snapshot.remaining for snapshot in snapshots)
-    denied_requests = sum(len(snapshot.denied_requests) for snapshot in snapshots)
-    average_utilisation = (total_allocated / total_capacity) if total_capacity else 0.0
-    peak_utilisation = max((snapshot.saturation for snapshot in snapshots), default=0.0)
+    denied_requests = sum(
+        len(snapshot.denied_requests)
+        for snapshot in snapshots
+    )
+    average_utilisation = (
+        total_allocated / total_capacity
+    ) if total_capacity else 0.0
+    peak_utilisation = max(
+        (snapshot.saturation for snapshot in snapshots), default=0.0,
+    )
 
     summary: EntityBudgetSummary = {
         'active_dogs': len(snapshots),
@@ -369,18 +387,24 @@ class CoordinatorRuntime:
             except RateLimitError as err:
                 errors += 1
                 self._logger.warning(
-                    'Rate limit reached for dog %s: %s', dog_id, err.user_message
+                    'Rate limit reached for dog %s: %s', dog_id, err.user_message,
                 )
-                all_data[dog_id] = current_data.get(dog_id, empty_payload_factory())
+                all_data[dog_id] = current_data.get(
+                    dog_id, empty_payload_factory(),
+                )
             except NetworkError as err:
                 errors += 1
                 self._logger.warning(
-                    'Network error for dog %s: %s', dog_id, err.user_message
+                    'Network error for dog %s: %s', dog_id, err.user_message,
                 )
-                all_data[dog_id] = current_data.get(dog_id, empty_payload_factory())
+                all_data[dog_id] = current_data.get(
+                    dog_id, empty_payload_factory(),
+                )
             except ValidationError as err:
                 errors += 1
-                self._logger.error('Invalid configuration for dog %s: %s', dog_id, err)
+                self._logger.error(
+                    'Invalid configuration for dog %s: %s', dog_id, err,
+                )
                 all_data[dog_id] = empty_payload_factory()
             except Exception as err:
                 errors += 1
@@ -390,7 +414,9 @@ class CoordinatorRuntime:
                     err,
                     err.__class__.__name__,
                 )
-                all_data[dog_id] = current_data.get(dog_id, empty_payload_factory())
+                all_data[dog_id] = current_data.get(
+                    dog_id, empty_payload_factory(),
+                )
             else:
                 all_data[dog_id] = result
 
@@ -405,10 +431,14 @@ class CoordinatorRuntime:
                 self._logger.error('Task group error: %s', exc)
 
         total_dogs = len(dog_ids)
-        success_rate, all_failed = self._metrics.record_cycle(total_dogs, errors)
+        success_rate, all_failed = self._metrics.record_cycle(
+            total_dogs, errors,
+        )
 
         if all_failed:
-            raise CoordinatorUpdateFailed(f"All {total_dogs} dogs failed to update")
+            raise CoordinatorUpdateFailed(
+                f"All {total_dogs} dogs failed to update",
+            )
 
         if success_rate < 0.5:
             self._logger.warning(
@@ -443,7 +473,9 @@ class CoordinatorRuntime:
     async def _fetch_dog_data(self, dog_id: str) -> CoordinatorDogData:
         dog_config = self._registry.get(dog_id)
         if not dog_config:
-            raise ValidationError('dog_id', dog_id, 'Dog configuration not found')
+            raise ValidationError(
+                'dog_id', dog_id, 'Dog configuration not found',
+            )
 
         payload: CoordinatorDogData = {
             'dog_info': dog_config,
@@ -453,19 +485,21 @@ class CoordinatorRuntime:
 
         modules = ensure_dog_modules_mapping(dog_config)
         module_tasks: list[CoordinatorModuleTask] = self._modules.build_tasks(
-            dog_id, modules
+            dog_id, modules,
         )
         if not module_tasks:
             return payload
 
         results = await asyncio.gather(
-            *(task.coroutine for task in module_tasks), return_exceptions=True
+            *(task.coroutine for task in module_tasks), return_exceptions=True,
         )
 
         for task, result in zip(module_tasks, results, strict=True):
             module_name: CoordinatorTypedModuleName = task.module
             if isinstance(result, GPSUnavailableError):
-                self._logger.debug('GPS unavailable for %s: %s', dog_id, result)
+                self._logger.debug(
+                    'GPS unavailable for %s: %s', dog_id, result,
+                )
                 payload[module_name] = {
                     'status': 'unavailable',
                     'reason': str(result),

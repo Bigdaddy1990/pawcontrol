@@ -11,67 +11,68 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import logging
 from collections import deque
-from collections.abc import Callable, Collection, Mapping, Sequence
-from dataclasses import dataclass, field
+from collections.abc import Callable
+from collections.abc import Collection
+from collections.abc import Mapping
+from collections.abc import Sequence
+from dataclasses import dataclass
+from dataclasses import field
 from datetime import datetime
-from typing import Final, cast
+from typing import cast
+from typing import Final
 
-from homeassistant.components import (
-    input_boolean,
-    input_datetime,
-    input_number,
-    input_select,
-)
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.components import input_boolean
+from homeassistant.components import input_datetime
+from homeassistant.components import input_number
+from homeassistant.components import input_select
+from homeassistant.core import callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
-from .compat import ConfigEntry, HomeAssistantError
-from .const import (
-    CONF_DOG_ID,
-    CONF_DOGS,
-    CONF_MODULES,
-    DEFAULT_RESET_TIME,
-    HEALTH_STATUS_OPTIONS,
-    MEAL_TYPES,
-    MODULE_FEEDING,
-    MODULE_HEALTH,
-    MODULE_MEDICATION,
-)
+from .compat import ConfigEntry
+from .compat import HomeAssistantError
+from .const import CONF_DOG_ID
+from .const import CONF_DOGS
+from .const import CONF_MODULES
+from .const import DEFAULT_RESET_TIME
+from .const import HEALTH_STATUS_OPTIONS
+from .const import MEAL_TYPES
+from .const import MODULE_FEEDING
+from .const import MODULE_HEALTH
+from .const import MODULE_MEDICATION
 from .coordinator_support import CacheMonitorRegistrar
 from .grooming_translations import translated_grooming_template
-from .service_guard import ServiceGuardResult, ServiceGuardResultPayload
-from .types import (
-    DOG_ID_FIELD,
-    DOG_NAME_FIELD,
-    MODULE_TOGGLE_KEYS,
-    CacheDiagnosticsMetadata,
-    CacheDiagnosticsSnapshot,
-    DogConfigData,
-    DogHelperAssignments,
-    DogModulesConfig,
-    HelperEntityMetadata,
-    HelperEntityMetadataMapping,
-    HelperManagerGuardMetrics,
-    HelperManagerSnapshot,
-    HelperManagerStats,
-    InputBooleanCreateServiceData,
-    InputDatetimeCreateServiceData,
-    InputNumberCreateServiceData,
-    InputSelectCreateServiceData,
-    JSONMutableMapping,
-    JSONValue,
-    ModuleToggleKey,
-    ensure_dog_config_data,
-    ensure_dog_modules_config,
-)
+from .service_guard import ServiceGuardResult
+from .service_guard import ServiceGuardResultPayload
+from .types import CacheDiagnosticsMetadata
+from .types import CacheDiagnosticsSnapshot
+from .types import DOG_ID_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DogConfigData
+from .types import DogHelperAssignments
+from .types import DogModulesConfig
+from .types import ensure_dog_config_data
+from .types import ensure_dog_modules_config
+from .types import HelperEntityMetadata
+from .types import HelperEntityMetadataMapping
+from .types import HelperManagerGuardMetrics
+from .types import HelperManagerSnapshot
+from .types import HelperManagerStats
+from .types import InputBooleanCreateServiceData
+from .types import InputDatetimeCreateServiceData
+from .types import InputNumberCreateServiceData
+from .types import InputSelectCreateServiceData
+from .types import JSONMutableMapping
+from .types import JSONValue
+from .types import MODULE_TOGGLE_KEYS
+from .types import ModuleToggleKey
 from .utils import async_call_hass_service_if_available
 
 _LOGGER = logging.getLogger(__name__)
@@ -88,8 +89,8 @@ class _HelperGuardMetricsState:
     reasons: dict[str, int] = field(default_factory=dict)
     last_results: deque[ServiceGuardResultPayload] = field(
         default_factory=lambda: deque[ServiceGuardResultPayload](
-            maxlen=_MAX_GUARD_RESULTS
-        )
+            maxlen=_MAX_GUARD_RESULTS,
+        ),
     )
 
     def reset(self) -> None:
@@ -192,13 +193,20 @@ class _HelperManagerCacheMonitor:
         self,
     ) -> tuple[HelperManagerStats, HelperManagerSnapshot, CacheDiagnosticsMetadata]:
         manager = self._manager
-        created_helpers: Collection[str] = getattr(manager, '_created_helpers', set())
-        managed_entities = cast(
-            HelperEntityMetadataMapping, getattr(manager, '_managed_entities', {})
+        created_helpers: Collection[str] = getattr(
+            manager, '_created_helpers', set(),
         )
-        dog_helpers = cast(DogHelperAssignments, getattr(manager, '_dog_helpers', {}))
+        managed_entities = cast(
+            HelperEntityMetadataMapping, getattr(
+                manager, '_managed_entities', {},
+            ),
+        )
+        dog_helpers = cast(
+            DogHelperAssignments,
+            getattr(manager, '_dog_helpers', {}),
+        )
         cleanup_listeners: Sequence[Callable[[], None]] = getattr(
-            manager, '_cleanup_listeners', []
+            manager, '_cleanup_listeners', [],
         )
 
         per_dog: dict[str, int] = {
@@ -227,7 +235,7 @@ class _HelperManagerCacheMonitor:
             'entity_domains': domains,
             'cleanup_listeners': len(cleanup_listeners),
             'daily_reset_configured': bool(
-                getattr(manager, '_daily_reset_configured', False)
+                getattr(manager, '_daily_reset_configured', False),
             ),
         }
 
@@ -311,7 +319,7 @@ class PawControlHelperManager:
                 unsubscribe()
             except Exception as err:  # pragma: no cover - defensive logging
                 _LOGGER.debug(
-                    'Error cleaning up listener during initialization: %s', err
+                    'Error cleaning up listener during initialization: %s', err,
                 )
 
         self._cleanup_listeners.clear()
@@ -321,10 +329,13 @@ class PawControlHelperManager:
         self._daily_reset_configured = False
         self._reset_guard_metrics()
 
-        _LOGGER.debug('Helper manager initialized for entry %s', self._entry.entry_id)
+        _LOGGER.debug(
+            'Helper manager initialized for entry %s',
+            self._entry.entry_id,
+        )
 
     def register_cache_monitors(
-        self, registrar: CacheMonitorRegistrar, *, prefix: str = 'helpers'
+        self, registrar: CacheMonitorRegistrar, *, prefix: str = 'helpers',
     ) -> None:
         """Register helper diagnostics with the data manager cache monitor."""
 
@@ -341,7 +352,9 @@ class PawControlHelperManager:
         normalized: list[DogConfigData] = []
 
         def _append(candidate: Mapping[str, object]) -> None:
-            typed = ensure_dog_config_data(cast(Mapping[str, JSONValue], candidate))
+            typed = ensure_dog_config_data(
+                cast(Mapping[str, JSONValue], candidate),
+            )
             if typed is not None:
                 normalized.append(typed)
 
@@ -357,7 +370,7 @@ class PawControlHelperManager:
                 mapping_candidate.setdefault(DOG_ID_FIELD, str(dog_id))
                 if not isinstance(mapping_candidate.get(DOG_NAME_FIELD), str):
                     mapping_candidate[DOG_NAME_FIELD] = cast(
-                        str, mapping_candidate[DOG_ID_FIELD]
+                        str, mapping_candidate[DOG_ID_FIELD],
                     )
                 _append(mapping_candidate)
             return normalized
@@ -413,7 +426,7 @@ class PawControlHelperManager:
 
         try:
             dogs_config = self._normalize_dogs_config(
-                self._entry.data.get(CONF_DOGS, [])
+                self._entry.data.get(CONF_DOGS, []),
             )
             modules_option = (
                 self._entry.options.get(CONF_MODULES)
@@ -424,7 +437,7 @@ class PawControlHelperManager:
 
             await self.async_initialize()
             created_helpers = await self.async_create_helpers_for_dogs(
-                dogs_config, enabled_modules
+                dogs_config, enabled_modules,
             )
 
             _LOGGER.info(
@@ -435,7 +448,9 @@ class PawControlHelperManager:
 
         except Exception as err:
             _LOGGER.error('Failed to setup helper manager: %s', err)
-            raise HomeAssistantError(f"Helper manager setup failed: {err}") from err
+            raise HomeAssistantError(
+                f"Helper manager setup failed: {err}",
+            ) from err
 
     async def async_create_helpers_for_dogs(
         self,
@@ -459,7 +474,7 @@ class PawControlHelperManager:
             dog_id = dog.get(DOG_ID_FIELD)
             if not isinstance(dog_id, str) or not dog_id:
                 _LOGGER.debug(
-                    'Skipping helper creation for dog without valid id: %s', dog
+                    'Skipping helper creation for dog without valid id: %s', dog,
                 )
                 continue
 
@@ -481,7 +496,10 @@ class PawControlHelperManager:
                     existing.append(helper)
 
             created[dog_id] = new_helpers
-            _LOGGER.debug('Created %d helpers for dog %s', len(new_helpers), dog_id)
+            _LOGGER.debug(
+                'Created %d helpers for dog %s',
+                len(new_helpers), dog_id,
+            )
 
         if created:
             await self._ensure_daily_reset_listener()
@@ -503,7 +521,9 @@ class PawControlHelperManager:
         """
         dog_name_raw = dog_config.get(DOG_NAME_FIELD)
         dog_name = (
-            dog_name_raw if isinstance(dog_name_raw, str) and dog_name_raw else dog_id
+            dog_name_raw if isinstance(
+                dog_name_raw, str,
+            ) and dog_name_raw else dog_id
         )
 
         # Create feeding helpers if feeding module is enabled
@@ -531,7 +551,7 @@ class PawControlHelperManager:
         # Create meal status toggles (input_boolean)
         for meal_type in MEAL_TYPES:
             entity_id = HELPER_FEEDING_MEAL_TEMPLATE.format(
-                dog_id=slugify(dog_id), meal=meal_type
+                dog_id=slugify(dog_id), meal=meal_type,
             )
 
             await self._async_create_input_boolean(
@@ -544,7 +564,7 @@ class PawControlHelperManager:
         # Create meal time reminders (input_datetime)
         for meal_type in MEAL_TYPES:
             entity_id = HELPER_FEEDING_TIME_TEMPLATE.format(
-                dog_id=slugify(dog_id), meal=meal_type
+                dog_id=slugify(dog_id), meal=meal_type,
             )
 
             default_time = DEFAULT_FEEDING_TIMES.get(meal_type, '12:00:00')
@@ -565,7 +585,9 @@ class PawControlHelperManager:
             dog_name: Display name for the dog
         """
         # Current weight tracker (input_number)
-        weight_entity_id = HELPER_HEALTH_WEIGHT_TEMPLATE.format(dog_id=slugify(dog_id))
+        weight_entity_id = HELPER_HEALTH_WEIGHT_TEMPLATE.format(
+            dog_id=slugify(dog_id),
+        )
 
         await self._async_create_input_number(
             entity_id=weight_entity_id,
@@ -579,7 +601,9 @@ class PawControlHelperManager:
         )
 
         # Health status selector (input_select)
-        status_entity_id = HELPER_HEALTH_STATUS_TEMPLATE.format(dog_id=slugify(dog_id))
+        status_entity_id = HELPER_HEALTH_STATUS_TEMPLATE.format(
+            dog_id=slugify(dog_id),
+        )
 
         await self._async_create_input_select(
             entity_id=status_entity_id,
@@ -590,7 +614,9 @@ class PawControlHelperManager:
         )
 
         # Vet appointment reminder (input_datetime)
-        vet_entity_id = HELPER_VET_APPOINTMENT_TEMPLATE.format(dog_id=slugify(dog_id))
+        vet_entity_id = HELPER_VET_APPOINTMENT_TEMPLATE.format(
+            dog_id=slugify(dog_id),
+        )
 
         await self._async_create_input_datetime(
             entity_id=vet_entity_id,
@@ -601,10 +627,16 @@ class PawControlHelperManager:
         )
 
         # Grooming due date (input_datetime)
-        grooming_entity_id = HELPER_GROOMING_DUE_TEMPLATE.format(dog_id=slugify(dog_id))
+        grooming_entity_id = HELPER_GROOMING_DUE_TEMPLATE.format(
+            dog_id=slugify(dog_id),
+        )
 
-        language = getattr(getattr(self._hass, 'config', None), 'language', None)
-        helper_dog_name = dog_name if isinstance(dog_name, str) and dog_name else dog_id
+        language = getattr(
+            getattr(self._hass, 'config', None), 'language', None,
+        )
+        helper_dog_name = dog_name if isinstance(
+            dog_name, str,
+        ) and dog_name else dog_id
         grooming_helper_name = translated_grooming_template(
             language,
             'helper_due',
@@ -620,7 +652,7 @@ class PawControlHelperManager:
         )
 
     async def _async_create_medication_helpers(
-        self, dog_id: str, dog_name: str
+        self, dog_id: str, dog_name: str,
     ) -> None:
         """Create medication-related helpers for a dog.
 
@@ -633,7 +665,7 @@ class PawControlHelperManager:
         # based on dog's medication schedule
 
         med_entity_id = HELPER_MEDICATION_REMINDER_TEMPLATE.format(
-            dog_id=slugify(dog_id), med_id='general'
+            dog_id=slugify(dog_id), med_id='general',
         )
 
         await self._async_create_input_datetime(
@@ -679,7 +711,9 @@ class PawControlHelperManager:
             # Check if entity already exists
             entity_registry = er.async_get(self._hass)
             if entity_registry.async_get(entity_id):
-                _LOGGER.debug('Helper %s already exists, skipping creation', entity_id)
+                _LOGGER.debug(
+                    'Helper %s already exists, skipping creation', entity_id,
+                )
                 return
 
             service_data: InputBooleanCreateServiceData = {
@@ -718,7 +752,9 @@ class PawControlHelperManager:
             _LOGGER.debug('Created input_boolean helper: %s', entity_id)
 
         except Exception as err:
-            _LOGGER.warning('Failed to create input_boolean %s: %s', entity_id, err)
+            _LOGGER.warning(
+                'Failed to create input_boolean %s: %s', entity_id, err,
+            )
 
     async def _async_create_input_datetime(
         self,
@@ -741,7 +777,9 @@ class PawControlHelperManager:
             # Check if entity already exists
             entity_registry = er.async_get(self._hass)
             if entity_registry.async_get(entity_id):
-                _LOGGER.debug('Helper %s already exists, skipping creation', entity_id)
+                _LOGGER.debug(
+                    'Helper %s already exists, skipping creation', entity_id,
+                )
                 return
 
             service_data: InputDatetimeCreateServiceData = {
@@ -784,7 +822,9 @@ class PawControlHelperManager:
             _LOGGER.debug('Created input_datetime helper: %s', entity_id)
 
         except Exception as err:
-            _LOGGER.warning('Failed to create input_datetime %s: %s', entity_id, err)
+            _LOGGER.warning(
+                'Failed to create input_datetime %s: %s', entity_id, err,
+            )
 
     async def _async_create_input_number(
         self,
@@ -815,7 +855,9 @@ class PawControlHelperManager:
             # Check if entity already exists
             entity_registry = er.async_get(self._hass)
             if entity_registry.async_get(entity_id):
-                _LOGGER.debug('Helper %s already exists, skipping creation', entity_id)
+                _LOGGER.debug(
+                    'Helper %s already exists, skipping creation', entity_id,
+                )
                 return
 
             service_data: InputNumberCreateServiceData = {
@@ -870,7 +912,9 @@ class PawControlHelperManager:
             _LOGGER.debug('Created input_number helper: %s', entity_id)
 
         except Exception as err:
-            _LOGGER.warning('Failed to create input_number %s: %s', entity_id, err)
+            _LOGGER.warning(
+                'Failed to create input_number %s: %s', entity_id, err,
+            )
 
     async def _async_create_input_select(
         self,
@@ -893,7 +937,9 @@ class PawControlHelperManager:
             # Check if entity already exists
             entity_registry = er.async_get(self._hass)
             if entity_registry.async_get(entity_id):
-                _LOGGER.debug('Helper %s already exists, skipping creation', entity_id)
+                _LOGGER.debug(
+                    'Helper %s already exists, skipping creation', entity_id,
+                )
                 return
 
             service_data: InputSelectCreateServiceData = {
@@ -938,7 +984,9 @@ class PawControlHelperManager:
             _LOGGER.debug('Created input_select helper: %s', entity_id)
 
         except Exception as err:
-            _LOGGER.warning('Failed to create input_select %s: %s', entity_id, err)
+            _LOGGER.warning(
+                'Failed to create input_select %s: %s', entity_id, err,
+            )
 
     async def _ensure_daily_reset_listener(self) -> None:
         """Ensure the daily reset listener is configured exactly once."""
@@ -949,13 +997,17 @@ class PawControlHelperManager:
         try:
             await self._async_setup_daily_reset()
         except Exception as err:  # pragma: no cover - defensive logging
-            _LOGGER.warning('Failed to configure daily reset listener: %s', err)
+            _LOGGER.warning(
+                'Failed to configure daily reset listener: %s', err,
+            )
         else:
             self._daily_reset_configured = True
 
     async def _async_setup_daily_reset(self) -> None:
         """Setup daily reset to reset feeding toggles."""
-        reset_time_str = self._entry.options.get('reset_time', DEFAULT_RESET_TIME)
+        reset_time_str = self._entry.options.get(
+            'reset_time', DEFAULT_RESET_TIME,
+        )
         reset_time = dt_util.parse_time(reset_time_str)
 
         if reset_time is None:
@@ -992,7 +1044,7 @@ class PawControlHelperManager:
                 if isinstance(dogs_raw, Mapping):
                     dog_ids = [str(dog_id) for dog_id in dogs_raw]
                 elif isinstance(dogs_raw, Sequence) and not isinstance(
-                    dogs_raw, str | bytes
+                    dogs_raw, str | bytes,
                 ):
                     for dog_config in dogs_raw:
                         if isinstance(dog_config, Mapping):
@@ -1004,7 +1056,7 @@ class PawControlHelperManager:
                 slug_dog_id = slugify(dog_id)
                 for meal_type in MEAL_TYPES:
                     entity_id = HELPER_FEEDING_MEAL_TEMPLATE.format(
-                        dog_id=slug_dog_id, meal=meal_type
+                        dog_id=slug_dog_id, meal=meal_type,
                     )
 
                     guard_result = await async_call_hass_service_if_available(
@@ -1027,7 +1079,7 @@ class PawControlHelperManager:
             _LOGGER.error('Failed to reset feeding toggles: %s', err)
 
     async def async_add_dog_helpers(
-        self, dog_id: str, dog_config: Mapping[str, object]
+        self, dog_id: str, dog_config: Mapping[str, object],
     ) -> None:
         """Add helpers for a newly added dog.
 
@@ -1044,10 +1096,12 @@ class PawControlHelperManager:
             dog_data_payload[DOG_NAME_FIELD] = dog_id
 
         dog_data = ensure_dog_config_data(
-            cast(Mapping[str, JSONValue], dog_data_payload)
+            cast(Mapping[str, JSONValue], dog_data_payload),
         )
         if dog_data is None:
-            _LOGGER.debug('Skipping helper creation for invalid dog config: %s', dog_id)
+            _LOGGER.debug(
+                'Skipping helper creation for invalid dog config: %s', dog_id,
+            )
             return
 
         modules_option = (
@@ -1095,14 +1149,16 @@ class PawControlHelperManager:
                     removed_count += 1
 
                 except Exception as err:
-                    _LOGGER.warning('Failed to remove helper %s: %s', entity_id, err)
+                    _LOGGER.warning(
+                        'Failed to remove helper %s: %s', entity_id, err,
+                    )
 
         self._dog_helpers.pop(dog_id, None)
 
         _LOGGER.info('Removed %d helpers for dog: %s', removed_count, dog_id)
 
     async def async_update_dog_helpers(
-        self, dog_id: str, dog_config: Mapping[str, object]
+        self, dog_id: str, dog_config: Mapping[str, object],
     ) -> None:
         """Update helpers when dog configuration changes.
 
@@ -1125,7 +1181,7 @@ class PawControlHelperManager:
             Entity ID for the feeding status helper
         """
         return HELPER_FEEDING_MEAL_TEMPLATE.format(
-            dog_id=slugify(dog_id), meal=meal_type
+            dog_id=slugify(dog_id), meal=meal_type,
         )
 
     def get_feeding_time_entity(self, dog_id: str, meal_type: str) -> str:
@@ -1139,7 +1195,7 @@ class PawControlHelperManager:
             Entity ID for the feeding time helper
         """
         return HELPER_FEEDING_TIME_TEMPLATE.format(
-            dog_id=slugify(dog_id), meal=meal_type
+            dog_id=slugify(dog_id), meal=meal_type,
         )
 
     def get_weight_entity(self, dog_id: str) -> str:
@@ -1214,5 +1270,7 @@ class PawControlHelperManager:
         await self.async_cleanup()
 
         _LOGGER.info(
-            'Helper manager unloaded (%d helpers preserved)', len(self._created_helpers)
+            'Helper manager unloaded (%d helpers preserved)', len(
+                self._created_helpers,
+            ),
         )

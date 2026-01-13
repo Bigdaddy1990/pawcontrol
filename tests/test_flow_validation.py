@@ -1,22 +1,17 @@
 """Tests for config/options flow validation helpers."""
-
 from __future__ import annotations
 
 import pytest
 
-from custom_components.pawcontrol.const import (
-    CONF_DOG_AGE,
-    CONF_DOG_BREED,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOG_SIZE,
-    CONF_DOG_WEIGHT,
-)
+from custom_components.pawcontrol.const import CONF_DOG_AGE
+from custom_components.pawcontrol.const import CONF_DOG_BREED
+from custom_components.pawcontrol.const import CONF_DOG_ID
+from custom_components.pawcontrol.const import CONF_DOG_NAME
+from custom_components.pawcontrol.const import CONF_DOG_SIZE
+from custom_components.pawcontrol.const import CONF_DOG_WEIGHT
 from custom_components.pawcontrol.exceptions import FlowValidationError
-from custom_components.pawcontrol.flow_validation import (
-    validate_dog_setup_input,
-    validate_dog_update_input,
-)
+from custom_components.pawcontrol.flow_validation import validate_dog_setup_input
+from custom_components.pawcontrol.flow_validation import validate_dog_update_input
 
 
 def test_validate_dog_setup_input_success() -> None:

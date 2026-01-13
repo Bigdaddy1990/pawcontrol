@@ -8,60 +8,56 @@ Quality Scale: Platinum target
 Home Assistant: 2025.8.2+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
 import re
 import time
-from typing import ClassVar, Final
+from typing import ClassVar
+from typing import Final
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlow
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers import config_validation as cv
 
-from .const import (
-    CONF_DOG_AGE,
-    CONF_DOG_BREED,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOG_SIZE,
-    CONF_DOG_WEIGHT,
-    DOG_SIZES,
-    DOMAIN,
-    MAX_DOG_AGE,
-    MAX_DOG_NAME_LENGTH,
-    MAX_DOG_WEIGHT,
-    MIN_DOG_AGE,
-    MIN_DOG_NAME_LENGTH,
-    MIN_DOG_WEIGHT,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_HEALTH,
-)
-from .types import (
-    DOG_AGE_FIELD,
-    DOG_BREED_FIELD,
-    DOG_FEEDING_CONFIG_FIELD,
-    DOG_GPS_CONFIG_FIELD,
-    DOG_HEALTH_CONFIG_FIELD,
-    DOG_ID_FIELD,
-    DOG_NAME_FIELD,
-    DOG_SIZE_FIELD,
-    DOG_WEIGHT_FIELD,
-    ConfigFlowGlobalSettings,
-    DashboardSetupConfig,
-    DogConfigData,
-    DogSetupStepInput,
-    DogValidationCache,
-    FeedingSetupConfig,
-    FeedingSizeDefaults,
-    FeedingSizeDefaultsMap,
-    IntegrationNameValidationResult,
-    ensure_dog_modules_mapping,
-)
+from .const import CONF_DOG_AGE
+from .const import CONF_DOG_BREED
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import CONF_DOG_SIZE
+from .const import CONF_DOG_WEIGHT
+from .const import DOG_SIZES
+from .const import DOMAIN
+from .const import MAX_DOG_AGE
+from .const import MAX_DOG_NAME_LENGTH
+from .const import MAX_DOG_WEIGHT
+from .const import MIN_DOG_AGE
+from .const import MIN_DOG_NAME_LENGTH
+from .const import MIN_DOG_WEIGHT
+from .const import MODULE_FEEDING
+from .const import MODULE_GPS
+from .const import MODULE_HEALTH
+from .types import ConfigFlowGlobalSettings
+from .types import DashboardSetupConfig
+from .types import DOG_AGE_FIELD
+from .types import DOG_BREED_FIELD
+from .types import DOG_FEEDING_CONFIG_FIELD
+from .types import DOG_GPS_CONFIG_FIELD
+from .types import DOG_HEALTH_CONFIG_FIELD
+from .types import DOG_ID_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DOG_SIZE_FIELD
+from .types import DOG_WEIGHT_FIELD
+from .types import DogConfigData
+from .types import DogSetupStepInput
+from .types import DogValidationCache
+from .types import ensure_dog_modules_mapping
+from .types import FeedingSetupConfig
+from .types import FeedingSizeDefaults
+from .types import FeedingSizeDefaultsMap
+from .types import IntegrationNameValidationResult
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -84,9 +80,9 @@ DOG_ID_PATTERN: Final = re.compile(r'^[a-z][a-z0-9_]*$')
 INTEGRATION_SCHEMA: Final = vol.Schema(
     {
         vol.Required(CONF_NAME, default='Paw Control'): vol.All(
-            cv.string, vol.Length(min=1, max=50)
+            cv.string, vol.Length(min=1, max=50),
         ),
-    }
+    },
 )
 
 DOG_BASE_SCHEMA: Final = vol.Schema(
@@ -100,19 +96,24 @@ DOG_BASE_SCHEMA: Final = vol.Schema(
             ),
         ),
         vol.Required(CONF_DOG_NAME): vol.All(
-            cv.string, vol.Length(min=MIN_DOG_NAME_LENGTH, max=MAX_DOG_NAME_LENGTH)
+            cv.string, vol.Length(
+                min=MIN_DOG_NAME_LENGTH,
+                max=MAX_DOG_NAME_LENGTH,
+            ),
         ),
         vol.Optional(CONF_DOG_BREED, default=''): vol.All(
-            cv.string, vol.Length(max=50)
+            cv.string, vol.Length(max=50),
         ),
         vol.Optional(CONF_DOG_AGE, default=3): vol.All(
-            vol.Coerce(int), vol.Range(min=MIN_DOG_AGE, max=MAX_DOG_AGE)
+            vol.Coerce(int), vol.Range(min=MIN_DOG_AGE, max=MAX_DOG_AGE),
         ),
         vol.Optional(CONF_DOG_WEIGHT, default=20.0): vol.All(
-            vol.Coerce(float), vol.Range(min=MIN_DOG_WEIGHT, max=MAX_DOG_WEIGHT)
+            vol.Coerce(float), vol.Range(
+                min=MIN_DOG_WEIGHT, max=MAX_DOG_WEIGHT,
+            ),
         ),
         vol.Optional(CONF_DOG_SIZE, default='medium'): vol.In(DOG_SIZES),
-    }
+    },
 )
 
 
@@ -126,7 +127,8 @@ class PawControlBaseConfigFlow(ConfigFlow):
 
     domain = DOMAIN
     VERSION: ClassVar[int] = 1
-    MINOR_VERSION: ClassVar[int] = 2  # Increased for new per-dog configuration features
+    # Increased for new per-dog configuration features
+    MINOR_VERSION: ClassVar[int] = 2
 
     def __init__(self) -> None:
         """Initialize base configuration flow."""
@@ -184,7 +186,7 @@ class PawControlBaseConfigFlow(ConfigFlow):
         return '\n'.join(features)
 
     async def _async_validate_integration_name(
-        self, name: str
+        self, name: str,
     ) -> IntegrationNameValidationResult:
         """Validate integration name with enhanced checks.
 
@@ -303,7 +305,9 @@ class PawControlBaseConfigFlow(ConfigFlow):
         dogs_list = []
         for i, dog in enumerate(self._dogs, 1):
             breed_value = dog.get(DOG_BREED_FIELD)
-            breed_info = breed_value if isinstance(breed_value, str) else 'Mixed Breed'
+            breed_info = breed_value if isinstance(
+                breed_value, str,
+            ) else 'Mixed Breed'
             if not breed_info or breed_info == '':
                 breed_info = 'Mixed Breed'
 
@@ -321,7 +325,9 @@ class PawControlBaseConfigFlow(ConfigFlow):
 
             # Enabled modules count
             modules_mapping = ensure_dog_modules_mapping(dog)
-            enabled_count = sum(1 for enabled in modules_mapping.values() if enabled)
+            enabled_count = sum(
+                1 for enabled in modules_mapping.values() if enabled
+            )
             total_modules = len(modules_mapping)
 
             # Special configurations
@@ -333,14 +339,16 @@ class PawControlBaseConfigFlow(ConfigFlow):
             if dog.get(DOG_HEALTH_CONFIG_FIELD):
                 special_configs.append('🏥 Health')
 
-            special_text = ' | '.join(special_configs) if special_configs else ''
+            special_text = ' | '.join(
+                special_configs,
+            ) if special_configs else ''
 
             dogs_list.append(
                 f"{i}. {size_emoji} **{dog[DOG_NAME_FIELD]}** ({dog[DOG_ID_FIELD]})\n"
                 f"   {size_key.title()} {breed_info}, "
                 f"{dog.get(DOG_AGE_FIELD, 'unknown')} years, {dog.get(DOG_WEIGHT_FIELD, 'unknown')}kg\n"
                 f"   {enabled_count}/{total_modules} modules enabled"
-                + (f"\n   {special_text}" if special_text else '')
+                + (f"\n   {special_text}" if special_text else ''),
             )
 
         return '\n\n'.join(dogs_list)
@@ -396,7 +404,7 @@ class PawControlBaseConfigFlow(ConfigFlow):
         return ''
 
     async def _generate_smart_dog_id_suggestion(
-        self, user_input: DogSetupStepInput | None
+        self, user_input: DogSetupStepInput | None,
     ) -> str:
         """Generate intelligent dog ID suggestion with ML-style optimization.
 
@@ -471,7 +479,9 @@ class PawControlBaseConfigFlow(ConfigFlow):
         for entity_id in self.hass.states.async_entity_ids('device_tracker'):
             state = self.hass.states.get(entity_id)
             if state and state.state not in ['unknown', 'unavailable']:
-                friendly_name = state.attributes.get('friendly_name', entity_id)
+                friendly_name = state.attributes.get(
+                    'friendly_name', entity_id,
+                )
                 # Filter out the Home Assistant companion apps to avoid confusion
                 if 'home_assistant' not in entity_id.lower():
                     device_trackers[entity_id] = friendly_name
@@ -489,7 +499,9 @@ class PawControlBaseConfigFlow(ConfigFlow):
         for entity_id in self.hass.states.async_entity_ids('person'):
             state = self.hass.states.get(entity_id)
             if state:
-                friendly_name = state.attributes.get('friendly_name', entity_id)
+                friendly_name = state.attributes.get(
+                    'friendly_name', entity_id,
+                )
                 person_entities[entity_id] = friendly_name
 
         return person_entities
@@ -507,7 +519,9 @@ class PawControlBaseConfigFlow(ConfigFlow):
             if state:
                 device_class = state.attributes.get('device_class')
                 if device_class in ['door', 'window', 'opening', 'garage_door']:
-                    friendly_name = state.attributes.get('friendly_name', entity_id)
+                    friendly_name = state.attributes.get(
+                        'friendly_name', entity_id,
+                    )
                     door_sensors[entity_id] = friendly_name
 
         return door_sensors
@@ -540,7 +554,10 @@ class PawControlBaseConfigFlow(ConfigFlow):
         summaries = []
         for dog in self._dogs:
             modules = ensure_dog_modules_mapping(dog)
-            enabled_modules = [name for name, enabled in modules.items() if enabled]
+            enabled_modules = [
+                name for name,
+                enabled in modules.items() if enabled
+            ]
 
             if enabled_modules:
                 modules_text = ', '.join(enabled_modules[:3])
@@ -562,7 +579,10 @@ class PawControlBaseConfigFlow(ConfigFlow):
         Returns:
             Comma-separated feature string for dashboard descriptions.
         """
-        features = ['Statistics', 'Alerts', 'Mobile-Friendly', 'Multiple Themes']
+        features = [
+            'Statistics', 'Alerts',
+            'Mobile-Friendly', 'Multiple Themes',
+        ]
         if has_gps:
             features.insert(0, 'GPS Maps')
         if len(self._dogs) > 1:
@@ -608,14 +628,14 @@ class PawControlBaseConfigFlow(ConfigFlow):
 
         if len(self._dogs) > 1:
             info.append(
-                f"🐕 Individual dashboards for {len(self._dogs)} dogs available"
+                f"🐕 Individual dashboards for {len(self._dogs)} dogs available",
             )
 
         info.extend(
             [
                 '⚡ Real-time updates and notifications',
                 '🔧 Fully customizable via Options later',
-            ]
+            ],
         )
 
         return '\n'.join(info)

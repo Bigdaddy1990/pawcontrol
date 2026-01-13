@@ -1,57 +1,58 @@
 """System health callbacks exposing PawControl guard and breaker metrics."""
-
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Literal, cast
+from typing import Any
+from typing import cast
+from typing import Literal
 
 from homeassistant.components import system_health
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
+from homeassistant.core import HomeAssistant
 
 from .compat import ConfigEntry
 from .const import DOMAIN
-from .coordinator_tasks import (
-    derive_rejection_metrics,
-    resolve_entity_factory_guard_metrics,
-    resolve_service_guard_metrics,
-)
-from .runtime_data import describe_runtime_store_status, get_runtime_data
-from .telemetry import get_runtime_performance_stats, get_runtime_store_health
-from .types import (
-    ConfigEntryOptionsPayload,
-    CoordinatorRejectionMetrics,
-    CoordinatorResilienceSummary,
-    EntityFactoryGuardMetricsSnapshot,
-    HelperManagerGuardMetrics,
-    JSONLikeMapping,
-    JSONMapping,
-    ManualResilienceAutomationEntry,
-    ManualResilienceEventCounters,
-    ManualResilienceEventSnapshot,
-    ManualResilienceEventsTelemetry,
-    ManualResilienceListenerMetadata,
-    ManualResilienceOptionsSnapshot,
-    ManualResiliencePreferenceKey,
-    ManualResilienceSystemSettingsSnapshot,
-    PawControlRuntimeData,
-    ResilienceEscalationFieldEntry,
-    ResilienceEscalationThresholds,
-    RuntimeStoreAssessmentTimelineSegment,
-    RuntimeStoreAssessmentTimelineSummary,
-    RuntimeStoreHealthAssessment,
-    RuntimeStoreHealthHistory,
-    SystemHealthBreakerOverview,
-    SystemHealthGuardReasonEntry,
-    SystemHealthGuardSummary,
-    SystemHealthIndicatorPayload,
-    SystemHealthInfoPayload,
-    SystemHealthRemainingQuota,
-    SystemHealthServiceExecutionSnapshot,
-    SystemHealthServiceStatus,
-    SystemHealthThresholdDetail,
-    SystemHealthThresholdSummary,
-)
+from .coordinator_tasks import derive_rejection_metrics
+from .coordinator_tasks import resolve_entity_factory_guard_metrics
+from .coordinator_tasks import resolve_service_guard_metrics
+from .runtime_data import describe_runtime_store_status
+from .runtime_data import get_runtime_data
+from .telemetry import get_runtime_performance_stats
+from .telemetry import get_runtime_store_health
+from .types import ConfigEntryOptionsPayload
+from .types import CoordinatorRejectionMetrics
+from .types import CoordinatorResilienceSummary
+from .types import EntityFactoryGuardMetricsSnapshot
+from .types import HelperManagerGuardMetrics
+from .types import JSONLikeMapping
+from .types import JSONMapping
+from .types import ManualResilienceAutomationEntry
+from .types import ManualResilienceEventCounters
+from .types import ManualResilienceEventSnapshot
+from .types import ManualResilienceEventsTelemetry
+from .types import ManualResilienceListenerMetadata
+from .types import ManualResilienceOptionsSnapshot
+from .types import ManualResiliencePreferenceKey
+from .types import ManualResilienceSystemSettingsSnapshot
+from .types import PawControlRuntimeData
+from .types import ResilienceEscalationFieldEntry
+from .types import ResilienceEscalationThresholds
+from .types import RuntimeStoreAssessmentTimelineSegment
+from .types import RuntimeStoreAssessmentTimelineSummary
+from .types import RuntimeStoreHealthAssessment
+from .types import RuntimeStoreHealthHistory
+from .types import SystemHealthBreakerOverview
+from .types import SystemHealthGuardReasonEntry
+from .types import SystemHealthGuardSummary
+from .types import SystemHealthIndicatorPayload
+from .types import SystemHealthInfoPayload
+from .types import SystemHealthRemainingQuota
+from .types import SystemHealthServiceExecutionSnapshot
+from .types import SystemHealthServiceStatus
+from .types import SystemHealthThresholdDetail
+from .types import SystemHealthThresholdSummary
 
 
 @dataclass(slots=True)
@@ -376,7 +377,7 @@ def _normalise_manual_events_snapshot(
     if configured_guard := _coerce_str_list(snapshot.get('configured_guard_events')):
         payload['configured_guard_events'] = configured_guard
     if configured_breaker := _coerce_str_list(
-        snapshot.get('configured_breaker_events')
+        snapshot.get('configured_breaker_events'),
     ):
         payload['configured_breaker_events'] = configured_breaker
     if configured_check := _coerce_str_list(snapshot.get('configured_check_events')):
@@ -389,15 +390,21 @@ def _normalise_manual_events_snapshot(
     ) is not None:
         payload['system_breaker_event'] = system_breaker
 
-    listener_events = _coerce_mapping_of_str_lists(snapshot.get('listener_events'))
+    listener_events = _coerce_mapping_of_str_lists(
+        snapshot.get('listener_events'),
+    )
     if listener_events:
         payload['listener_events'] = listener_events
 
-    listener_sources = _coerce_mapping_of_str_lists(snapshot.get('listener_sources'))
+    listener_sources = _coerce_mapping_of_str_lists(
+        snapshot.get('listener_sources'),
+    )
     if listener_sources:
         payload['listener_sources'] = listener_sources
 
-    listener_metadata = _coerce_listener_metadata(snapshot.get('listener_metadata'))
+    listener_metadata = _coerce_listener_metadata(
+        snapshot.get('listener_metadata'),
+    )
     if listener_metadata:
         payload['listener_metadata'] = listener_metadata
 
@@ -406,28 +413,34 @@ def _normalise_manual_events_snapshot(
         payload['preferred_events'] = preferences
 
     preferred_guard = _coerce_str(
-        snapshot.get('preferred_guard_event')
+        snapshot.get('preferred_guard_event'),
     ) or preferences.get('manual_guard_event')
     if preferred_guard is not None:
         payload['preferred_guard_event'] = preferred_guard
 
     preferred_breaker = _coerce_str(
-        snapshot.get('preferred_breaker_event')
+        snapshot.get('preferred_breaker_event'),
     ) or preferences.get('manual_breaker_event')
     if preferred_breaker is not None:
         payload['preferred_breaker_event'] = preferred_breaker
 
     preferred_check = _coerce_str(
-        snapshot.get('preferred_check_event')
+        snapshot.get('preferred_check_event'),
     ) or preferences.get('manual_check_event')
     if preferred_check is not None:
         payload['preferred_check_event'] = preferred_check
 
-    payload['event_history'] = _coerce_event_history(snapshot.get('event_history'))
+    payload['event_history'] = _coerce_event_history(
+        snapshot.get('event_history'),
+    )
     payload['last_event'] = _coerce_event_snapshot(snapshot.get('last_event'))
-    payload['last_trigger'] = _coerce_event_snapshot(snapshot.get('last_trigger'))
+    payload['last_trigger'] = _coerce_event_snapshot(
+        snapshot.get('last_trigger'),
+    )
 
-    payload['event_counters'] = _coerce_event_counters(snapshot.get('event_counters'))
+    payload['event_counters'] = _coerce_event_counters(
+        snapshot.get('event_counters'),
+    )
 
     active_listeners = _coerce_str_list(snapshot.get('active_listeners'))
     if active_listeners:
@@ -454,7 +467,9 @@ def _default_service_execution_snapshot() -> SystemHealthServiceExecutionSnapsho
     entity_factory_guard = resolve_entity_factory_guard_metrics({})
     rejection_metrics = derive_rejection_metrics(None)
     guard_summary = _build_guard_summary(guard_metrics, guard_thresholds)
-    breaker_overview = _build_breaker_overview(rejection_metrics, breaker_thresholds)
+    breaker_overview = _build_breaker_overview(
+        rejection_metrics, breaker_thresholds,
+    )
     status = _build_service_status(guard_summary, breaker_overview)
 
     return {
@@ -470,7 +485,7 @@ def _default_service_execution_snapshot() -> SystemHealthServiceExecutionSnapsho
 
 @callback
 def async_register(
-    hass: HomeAssistant, register: system_health.SystemHealthRegistration
+    hass: HomeAssistant, register: system_health.SystemHealthRegistration,
 ) -> None:
     """Register system health callbacks for PawControl."""
 
@@ -482,7 +497,9 @@ async def system_health_info(hass: HomeAssistant) -> SystemHealthInfoPayload:
 
     entry = _async_get_first_entry(hass)
     if entry is None:
-        runtime_store_snapshot = describe_runtime_store_status(hass, 'missing-entry')
+        runtime_store_snapshot = describe_runtime_store_status(
+            hass, 'missing-entry',
+        )
         info: SystemHealthInfoPayload = {
             'can_reach_backend': False,
             'remaining_quota': 'unknown',
@@ -512,7 +529,9 @@ async def system_health_info(hass: HomeAssistant) -> SystemHealthInfoPayload:
             'service_execution': _default_service_execution_snapshot(),
             'runtime_store': runtime_store_snapshot,
         }
-        _attach_runtime_store_history(coordinator_info_payload, runtime_store_history)
+        _attach_runtime_store_history(
+            coordinator_info_payload, runtime_store_history,
+        )
         return cast(SystemHealthInfoPayload, coordinator_info_payload)
 
     stats = coordinator.get_update_statistics()
@@ -534,16 +553,20 @@ async def system_health_info(hass: HomeAssistant) -> SystemHealthInfoPayload:
         _extract_service_execution_metrics(runtime)
     )
     guard_thresholds, breaker_thresholds = _resolve_indicator_thresholds(
-        runtime, entry.options
+        runtime, entry.options,
     )
     guard_summary = _build_guard_summary(guard_metrics, guard_thresholds)
-    breaker_overview = _build_breaker_overview(rejection_metrics, breaker_thresholds)
+    breaker_overview = _build_breaker_overview(
+        rejection_metrics, breaker_thresholds,
+    )
     service_status = _build_service_status(guard_summary, breaker_overview)
 
     script_manager = getattr(runtime, 'script_manager', None)
     manual_snapshot: ManualResilienceEventsTelemetry | JSONLikeMapping | None = None
     if script_manager is not None:
-        snapshot = getattr(script_manager, 'get_resilience_escalation_snapshot', None)
+        snapshot = getattr(
+            script_manager, 'get_resilience_escalation_snapshot', None,
+        )
         if callable(snapshot):
             manager_snapshot = snapshot()
             if isinstance(manager_snapshot, Mapping):
@@ -589,7 +612,9 @@ def _extract_service_execution_metrics(
 
     performance_stats = get_runtime_performance_stats(runtime)
     guard_metrics = resolve_service_guard_metrics(performance_stats)
-    entity_factory_guard = resolve_entity_factory_guard_metrics(performance_stats)
+    entity_factory_guard = resolve_entity_factory_guard_metrics(
+        performance_stats,
+    )
 
     rejection_source: CoordinatorRejectionMetrics | JSONLikeMapping | None = None
     if performance_stats is not None:
@@ -598,7 +623,7 @@ def _extract_service_execution_metrics(
             rejection_source = raw_rejection
 
     rejection_metrics = derive_rejection_metrics(
-        cast(JSONMapping | CoordinatorResilienceSummary | None, rejection_source)
+        cast(JSONMapping | CoordinatorResilienceSummary | None, rejection_source),
     )
 
     return guard_metrics, entity_factory_guard, rejection_metrics
@@ -657,7 +682,7 @@ def _merge_option_thresholds(
     """Overlay config entry thresholds when script metadata is unavailable."""
 
     skip_value, skip_source = _resolve_option_threshold(
-        options, 'resilience_skip_threshold'
+        options, 'resilience_skip_threshold',
     )
     if guard_thresholds.source == 'default_ratio' and skip_value is not None:
         guard_thresholds = GuardIndicatorThresholds(
@@ -669,7 +694,7 @@ def _merge_option_thresholds(
         )
 
     breaker_value, breaker_source = _resolve_option_threshold(
-        options, 'resilience_breaker_threshold'
+        options, 'resilience_breaker_threshold',
     )
     if breaker_thresholds.source == 'default_counts' and breaker_value is not None:
         warning_value = breaker_value - 1
@@ -724,7 +749,7 @@ def _resolve_indicator_thresholds(
     skip_payload = thresholds.get('skip_threshold')
     if isinstance(skip_payload, Mapping):
         skip_value, source_key = _extract_threshold_value(
-            cast(ResilienceEscalationFieldEntry, dict(skip_payload))
+            cast(ResilienceEscalationFieldEntry, dict(skip_payload)),
         )
         if skip_value is not None:
             guard_thresholds = GuardIndicatorThresholds(
@@ -738,7 +763,7 @@ def _resolve_indicator_thresholds(
     breaker_payload = thresholds.get('breaker_threshold')
     if isinstance(breaker_payload, Mapping):
         breaker_value, source_key = _extract_threshold_value(
-            cast(ResilienceEscalationFieldEntry, dict(breaker_payload))
+            cast(ResilienceEscalationFieldEntry, dict(breaker_payload)),
         )
         if breaker_value is not None:
             warning_value = breaker_value - 1
@@ -753,7 +778,7 @@ def _resolve_indicator_thresholds(
 
 
 def _serialize_threshold(
-    *, count: int | None, ratio: float | None
+    *, count: int | None, ratio: float | None,
 ) -> SystemHealthThresholdDetail | None:
     """Serialize threshold metadata into diagnostics payloads."""
 
@@ -777,12 +802,12 @@ def _serialize_guard_thresholds(
         summary['source_key'] = thresholds.source_key
 
     if serialized := _serialize_threshold(
-        count=thresholds.warning_count, ratio=thresholds.warning_ratio
+        count=thresholds.warning_count, ratio=thresholds.warning_ratio,
     ):
         summary['warning'] = serialized
 
     if serialized := _serialize_threshold(
-        count=thresholds.critical_count, ratio=thresholds.critical_ratio
+        count=thresholds.critical_count, ratio=thresholds.critical_ratio,
     ):
         summary['critical'] = serialized
 
@@ -878,7 +903,7 @@ def _build_guard_summary(
 
     thresholds_payload = _serialize_guard_thresholds(thresholds)
     indicator = _derive_guard_indicator(
-        skip_ratio, skip_percentage, skipped, thresholds
+        skip_ratio, skip_percentage, skipped, thresholds,
     )
 
     summary: SystemHealthGuardSummary = {
@@ -903,17 +928,23 @@ def _build_breaker_overview(
 ) -> SystemHealthBreakerOverview:
     """Return breaker state information derived from rejection metrics."""
 
-    open_count = _coerce_int(rejection_metrics.get('open_breaker_count'), default=0)
+    open_count = _coerce_int(
+        rejection_metrics.get(
+        'open_breaker_count',
+        ), default=0,
+    )
     half_open_count = _coerce_int(
-        rejection_metrics.get('half_open_breaker_count'), default=0
+        rejection_metrics.get('half_open_breaker_count'), default=0,
     )
     unknown_count = _coerce_int(
-        rejection_metrics.get('unknown_breaker_count'), default=0
+        rejection_metrics.get('unknown_breaker_count'), default=0,
     )
     rejection_breakers = _coerce_int(
-        rejection_metrics.get('rejection_breaker_count'), default=0
+        rejection_metrics.get('rejection_breaker_count'), default=0,
     )
-    rejection_rate = _coerce_float(rejection_metrics.get('rejection_rate'), default=0.0)
+    rejection_rate = _coerce_float(
+        rejection_metrics.get('rejection_rate'), default=0.0,
+    )
 
     if open_count > 0:
         status: Literal['open', 'recovering', 'monitoring', 'healthy'] = 'open'
@@ -933,12 +964,18 @@ def _build_breaker_overview(
     )
 
     open_breakers = _coerce_str_list(rejection_metrics.get('open_breakers'))
-    half_open_breakers = _coerce_str_list(rejection_metrics.get('half_open_breakers'))
-    unknown_breakers = _coerce_str_list(rejection_metrics.get('unknown_breakers'))
+    half_open_breakers = _coerce_str_list(
+        rejection_metrics.get('half_open_breakers'),
+    )
+    unknown_breakers = _coerce_str_list(
+        rejection_metrics.get('unknown_breakers'),
+    )
 
-    last_breaker_id = _coerce_str(rejection_metrics.get('last_rejection_breaker_id'))
+    last_breaker_id = _coerce_str(
+        rejection_metrics.get('last_rejection_breaker_id'),
+    )
     last_breaker_name = _coerce_str(
-        rejection_metrics.get('last_rejection_breaker_name')
+        rejection_metrics.get('last_rejection_breaker_name'),
     )
     raw_last_rejection_time = rejection_metrics.get('last_rejection_time')
     last_rejection_time = (
@@ -981,7 +1018,9 @@ def _build_service_status(
         breaker_overview.get('indicator', _healthy_indicator('breaker')),
     )
 
-    overall_indicator = _merge_overall_indicator(guard_indicator, breaker_indicator)
+    overall_indicator = _merge_overall_indicator(
+        guard_indicator, breaker_indicator,
+    )
 
     return {
         'guard': guard_indicator,
@@ -1176,7 +1215,7 @@ def _merge_overall_indicator(
 
 
 def _healthy_indicator(
-    context: str, *, metric: float | int | None = None, message: str | None = None
+    context: str, *, metric: float | int | None = None, message: str | None = None,
 ) -> SystemHealthIndicatorPayload:
     """Return a healthy indicator payload for the provided context."""
 

@@ -7,40 +7,45 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import contextlib
 import logging
-from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass, field
+from collections.abc import Callable
+from collections.abc import Mapping
+from collections.abc import Sequence
+from dataclasses import dataclass
+from dataclasses import field
 from datetime import datetime
-from typing import Literal, cast
+from typing import cast
+from typing import Literal
 
 from homeassistant.const import STATE_HOME
-from homeassistant.core import Event, EventStateChangedData, HomeAssistant, State
+from homeassistant.core import Event
+from homeassistant.core import EventStateChangedData
+from homeassistant.core import HomeAssistant
+from homeassistant.core import State
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt as dt_util
 
-from .coordinator_support import CacheMonitorRegistrar, SupportsCoordinatorSnapshot
-from .types import (
-    CacheDiagnosticsSnapshot,
-    JSONMutableMapping,
-    PersonEntityAttributePayload,
-    PersonEntityConfigInput,
-    PersonEntityCounters,
-    PersonEntityDiagnostics,
-    PersonEntityDiscoveryResult,
-    PersonEntitySnapshot,
-    PersonEntitySnapshotEntry,
-    PersonEntityStats,
-    PersonEntityStorageEntry,
-    PersonEntityValidationResult,
-    PersonNotificationCacheEntry,
-    PersonNotificationContext,
-)
+from .coordinator_support import CacheMonitorRegistrar
+from .coordinator_support import SupportsCoordinatorSnapshot
+from .types import CacheDiagnosticsSnapshot
+from .types import JSONMutableMapping
+from .types import PersonEntityAttributePayload
+from .types import PersonEntityConfigInput
+from .types import PersonEntityCounters
+from .types import PersonEntityDiagnostics
+from .types import PersonEntityDiscoveryResult
+from .types import PersonEntitySnapshot
+from .types import PersonEntitySnapshotEntry
+from .types import PersonEntityStats
+from .types import PersonEntityStorageEntry
+from .types import PersonEntityValidationResult
+from .types import PersonNotificationCacheEntry
+from .types import PersonNotificationContext
 from .utils import ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
@@ -75,7 +80,7 @@ class PersonNotificationCache[EntryT: PersonNotificationCacheEntry]:
         self._entries.clear()
 
     def store(
-        self, key: str, targets: Sequence[str], generated_at: datetime
+        self, key: str, targets: Sequence[str], generated_at: datetime,
     ) -> tuple[str, ...]:
         """Store ``targets`` under ``key`` and return a deduplicated tuple."""
 
@@ -87,7 +92,9 @@ class PersonNotificationCache[EntryT: PersonNotificationCacheEntry]:
             seen.add(target)
             canonical.append(target)
 
-        payload = _PersonNotificationCachePayload(tuple(canonical), generated_at)
+        payload = _PersonNotificationCachePayload(
+            tuple(canonical), generated_at,
+        )
         self._entries[key] = payload
         return payload.targets
 
@@ -108,7 +115,9 @@ class PersonNotificationCache[EntryT: PersonNotificationCacheEntry]:
 
         entries: dict[str, EntryT] = {}
         for key, payload in self._entries.items():
-            age_seconds = max((now - payload.generated_at).total_seconds(), 0.0)
+            age_seconds = max(
+                (now - payload.generated_at).total_seconds(), 0.0,
+            )
             entries[key] = cast(
                 EntryT,
                 {
@@ -145,7 +154,7 @@ class PersonEntityInfo:
     mobile_device_id: str | None = None
     notification_service: str | None = None
     attributes: PersonEntityAttributePayload = field(
-        default_factory=_empty_person_attributes
+        default_factory=_empty_person_attributes,
     )
 
     def __post_init__(self) -> None:
@@ -203,9 +212,11 @@ class PersonEntityConfig:
     static_notification_targets: list[str] = field(default_factory=list)
     excluded_entities: list[str] = field(default_factory=list)
     notification_mapping: dict[str, str] = field(
-        default_factory=dict
+        default_factory=dict,
     )  # entity_id -> service
-    priority_persons: list[str] = field(default_factory=list)  # High priority persons
+    priority_persons: list[str] = field(
+        default_factory=list,
+    )  # High priority persons
 
 
 class PersonEntityManager(SupportsCoordinatorSnapshot):
@@ -249,15 +260,15 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
     @classmethod
     def _build_config_from_input(
-        cls, config: PersonEntityConfigInput
+        cls, config: PersonEntityConfigInput,
     ) -> PersonEntityConfig:
         """Normalise ``config`` into a :class:`PersonEntityConfig` instance."""
 
         discovery_interval = cls._coerce_discovery_interval(
-            config.get('discovery_interval')
+            config.get('discovery_interval'),
         )
         cache_ttl = cls._coerce_positive_int(
-            config.get('cache_ttl'), default=DEFAULT_CACHE_TTL
+            config.get('cache_ttl'), default=DEFAULT_CACHE_TTL,
         )
 
         return PersonEntityConfig(
@@ -265,16 +276,22 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             auto_discovery=bool(config.get('auto_discovery', True)),
             discovery_interval=discovery_interval,
             cache_ttl=cache_ttl,
-            include_away_persons=bool(config.get('include_away_persons', False)),
+            include_away_persons=bool(
+                config.get('include_away_persons', False),
+            ),
             fallback_to_static=bool(config.get('fallback_to_static', True)),
             static_notification_targets=cls._coerce_string_list(
-                config.get('static_notification_targets')
+                config.get('static_notification_targets'),
             ),
-            excluded_entities=cls._coerce_string_list(config.get('excluded_entities')),
+            excluded_entities=cls._coerce_string_list(
+                config.get('excluded_entities'),
+            ),
             notification_mapping=cls._coerce_string_mapping(
-                config.get('notification_mapping')
+                config.get('notification_mapping'),
             ),
-            priority_persons=cls._coerce_string_list(config.get('priority_persons')),
+            priority_persons=cls._coerce_string_list(
+                config.get('priority_persons'),
+            ),
         )
 
     def __init__(self, hass: HomeAssistant, entry_id: str) -> None:
@@ -312,7 +329,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         }
 
     async def async_initialize(
-        self, config: PersonEntityConfigInput | None = None
+        self, config: PersonEntityConfigInput | None = None,
     ) -> None:
         """Initialize person entity manager with configuration.
 
@@ -326,7 +343,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             self.register_cache_monitors(self._cache_registrar)
 
     async def _async_initialize_locked(
-        self, config: PersonEntityConfigInput | None
+        self, config: PersonEntityConfigInput | None,
     ) -> None:
         """Initialise manager internals while ``_lock`` is held."""
 
@@ -383,15 +400,19 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
                 # Extract person information
                 friendly_name = state.attributes.get(
-                    'friendly_name', entity_entry.name or entity_id
+                    'friendly_name', entity_entry.name or entity_id,
                 )
-                name = entity_entry.name or friendly_name.replace(' ', '_').lower()
+                name = entity_entry.name or friendly_name.replace(
+                    ' ', '_',
+                ).lower()
 
                 # Try to find associated mobile device
                 mobile_device_id = await self._find_mobile_device_for_person(
-                    entity_id, state
+                    entity_id, state,
                 )
-                notification_service = self._config.notification_mapping.get(entity_id)
+                notification_service = self._config.notification_mapping.get(
+                    entity_id,
+                )
 
                 # Create person info
                 person_info = PersonEntityInfo(
@@ -428,7 +449,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             _LOGGER.error('Failed to discover person entities: %s', err)
 
     async def _find_mobile_device_for_person(
-        self, person_entity_id: str, person_state: State
+        self, person_entity_id: str, person_state: State,
     ) -> str | None:
         """Find mobile device associated with person entity.
 
@@ -469,7 +490,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
         except Exception as err:
             _LOGGER.debug(
-                'Failed to find mobile device for %s: %s', person_entity_id, err
+                'Failed to find mobile device for %s: %s', person_entity_id, err,
             )
             return None
 
@@ -487,17 +508,19 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
         # Track state changes for all person entities
         listener = async_track_state_change_event(
-            self.hass, person_entity_ids, handle_person_state_change
+            self.hass, person_entity_ids, handle_person_state_change,
         )
 
         self._state_listeners.append(listener)
 
         _LOGGER.debug(
-            'Set up state tracking for %d person entities', len(person_entity_ids)
+            'Set up state tracking for %d person entities', len(
+                person_entity_ids,
+            ),
         )
 
     async def _handle_person_state_change(
-        self, event: Event[EventStateChangedData]
+        self, event: Event[EventStateChangedData],
     ) -> None:
         """Handle person entity state changes.
 
@@ -518,7 +541,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         person_info.is_home = new_state.state == STATE_HOME
         person_info.last_updated = new_state.last_updated
         person_info.attributes = cast(
-            PersonEntityAttributePayload, dict(new_state.attributes)
+            PersonEntityAttributePayload, dict(new_state.attributes),
         )
 
         # Clear cache if home status changed
@@ -616,7 +639,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         # Check cache
         now = dt_util.now()
         cached_targets = self._targets_cache.try_get(
-            cache_key, now=now, ttl=self._config.cache_ttl
+            cache_key, now=now, ttl=self._config.cache_ttl,
         )
         if cached_targets is not None:
             self._stats['cache_hits'] += 1
@@ -779,7 +802,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         if not self._persons:
             issues.append('No person entities discovered')
             recommendations.append(
-                'Create person entities in Home Assistant for better targeting'
+                'Create person entities in Home Assistant for better targeting',
             )
 
         # Check static fallback configuration
@@ -787,8 +810,12 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             self._config.fallback_to_static
             and not self._config.static_notification_targets
         ):
-            issues.append('Fallback to static enabled but no static targets configured')
-            recommendations.append('Configure static notification targets as fallback')
+            issues.append(
+                'Fallback to static enabled but no static targets configured',
+            )
+            recommendations.append(
+                'Configure static notification targets as fallback',
+            )
 
         # Check notification mappings
         unmapped_persons = []
@@ -798,9 +825,11 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
         if unmapped_persons:
             issues.append(
-                f"Persons without notification mapping: {', '.join(unmapped_persons)}"
+                f"Persons without notification mapping: {', '.join(unmapped_persons)}",
             )
-            recommendations.append('Configure notification services for all persons')
+            recommendations.append(
+                'Configure notification services for all persons',
+            )
 
         # Check excluded entities
         for excluded in self._config.excluded_entities:
@@ -839,11 +868,11 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
         now = dt_util.now()
         cache_entries = self._targets_cache.snapshot(
-            now=now, ttl=self._config.cache_ttl
+            now=now, ttl=self._config.cache_ttl,
         )
 
         discovery_task_state: Literal[
-            'not_started', 'cancelled', 'completed', 'running'
+            'not_started', 'cancelled', 'completed', 'running',
         ]
         if self._discovery_task is None:
             discovery_task_state = 'not_started'
@@ -860,7 +889,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             'listener_count': len(self._state_listeners),
             'manager_last_activity': self._last_discovery.isoformat(),
             'manager_last_activity_age_seconds': max(
-                (now - self._last_discovery).total_seconds(), 0.0
+                (now - self._last_discovery).total_seconds(), 0.0,
             ),
             'summary': cast(JSONMutableMapping, dict(self.get_notification_context())),
         }
@@ -902,7 +931,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         )
 
     def register_cache_monitors(
-        self, registrar: CacheMonitorRegistrar, *, prefix: str = 'person_entity'
+        self, registrar: CacheMonitorRegistrar, *, prefix: str = 'person_entity',
     ) -> None:
         """Register the person targeting cache with the data manager registrar."""
 

@@ -6,7 +6,6 @@ repository can run guard checks without pulling in the full Home Assistant
 package. It validates manifest structure, required keys, and translation
 presence for the PawControl integration.
 """
-
 from __future__ import annotations
 
 import json
@@ -65,7 +64,7 @@ def _validate_manifest(manifest_path: Path) -> list[str]:
     missing_keys = sorted(REQUIRED_KEYS - manifest.keys())
     if missing_keys:
         errors.append(
-            f"manifest.json is missing required keys: {', '.join(missing_keys)}"
+            f"manifest.json is missing required keys: {', '.join(missing_keys)}",
         )
 
     for key in REQUIRED_LIST_KEYS:
@@ -80,14 +79,14 @@ def _validate_manifest(manifest_path: Path) -> list[str]:
     expected_domain = manifest_path.parent.name
     if domain != expected_domain:
         errors.append(
-            f"manifest.domain '{domain}' does not match integration folder '{expected_domain}'"
+            f"manifest.domain '{domain}' does not match integration folder '{expected_domain}'",
         )
 
     quality_scale = manifest.get('quality_scale')
     if quality_scale not in QUALITY_SCALE_LEVELS:
         errors.append(
             'manifest.quality_scale must be one of: '
-            + ', '.join(sorted(QUALITY_SCALE_LEVELS))
+            + ', '.join(sorted(QUALITY_SCALE_LEVELS)),
         )
 
     loggers = manifest.get('loggers')
@@ -95,19 +94,22 @@ def _validate_manifest(manifest_path: Path) -> list[str]:
         expected_logger = f"custom_components.{expected_domain}"
         if expected_logger not in loggers:
             errors.append(
-                f"manifest.loggers must include 'custom_components.{expected_domain}'"
+                f"manifest.loggers must include 'custom_components.{expected_domain}'",
             )
 
     supported_by = manifest.get('supported_by')
     if supported_by is not None and (
         not isinstance(supported_by, str) or not supported_by
     ):
-        errors.append('manifest.supported_by must be null or a non-empty string')
+        errors.append(
+            'manifest.supported_by must be null or a non-empty string',
+        )
 
     iot_class = manifest.get('iot_class')
     if iot_class not in IOT_CLASS_VALUES:
         errors.append(
-            'manifest.iot_class must be one of: ' + ', '.join(sorted(IOT_CLASS_VALUES))
+            'manifest.iot_class must be one of: ' +
+            ', '.join(sorted(IOT_CLASS_VALUES)),
         )
 
     return errors
@@ -148,7 +150,9 @@ def _validate_translations(integration_path: Path) -> list[str]:
 
 
 def run(argv: Iterable[str] | None = None) -> int:
-    parser = ArgumentParser(description='Validate Home Assistant integration metadata')
+    parser = ArgumentParser(
+        description='Validate Home Assistant integration metadata',
+    )
     parser.add_argument(
         '--integration-path',
         type=Path,

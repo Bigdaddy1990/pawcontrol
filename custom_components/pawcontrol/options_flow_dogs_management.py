@@ -1,5 +1,4 @@
 """Dog management steps for the PawControl options flow."""
-
 from __future__ import annotations
 
 import logging
@@ -30,7 +29,7 @@ _LOGGER = logging.getLogger(__name__)
 
 class DogManagementOptionsMixin:
     async def async_step_manage_dogs(
-        self, user_input: OptionsMenuInput | None = None
+        self, user_input: OptionsMenuInput | None = None,
     ) -> ConfigFlowResult:
         """Manage dogs - add, edit, or remove dogs."""
         if user_input is not None:
@@ -70,9 +69,9 @@ class DogManagementOptionsMixin:
                             if current_dogs
                             else 'No dogs to remove',
                             'back': 'Back to main menu',
-                        }
-                    )
-                }
+                        },
+                    ),
+                },
             ),
             description_placeholders=dict(
                 freeze_placeholders(
@@ -82,17 +81,17 @@ class DogManagementOptionsMixin:
                             [
                                 f"• {dog.get(CONF_DOG_NAME, 'Unknown')} ({dog.get(CONF_DOG_ID, 'unknown')})"
                                 for dog in current_dogs
-                            ]
+                            ],
                         )
                         if current_dogs
                         else 'No dogs configured',
-                    }
-                )
+                    },
+                ),
             ),
         )
 
     async def async_step_select_dog_for_modules(
-        self, user_input: OptionsDogSelectionInput | None = None
+        self, user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to configure modules for.
 
@@ -134,14 +133,14 @@ class DogManagementOptionsMixin:
                         selector.SelectSelectorConfig(
                             options=dog_options,
                             mode=selector.SelectSelectorMode.DROPDOWN,
-                        )
-                    )
-                }
+                        ),
+                    ),
+                },
             ),
         )
 
     async def async_step_configure_dog_modules(
-        self, user_input: OptionsDogModulesInput | None = None
+        self, user_input: OptionsDogModulesInput | None = None,
     ) -> ConfigFlowResult:
         """Configure modules for the selected dog.
 
@@ -193,10 +192,12 @@ class DogManagementOptionsMixin:
                         },
                     )
                     normalised = ensure_dog_config_data(  # noqa: F821
-                        cast(Mapping[str, JSONValue], candidate)  # noqa: F821
+                        cast(Mapping[str, JSONValue], candidate),  # noqa: F821
                     )
                     if normalised is None:
-                        raise FlowValidationError(base_errors=['invalid_dog_config'])
+                        raise FlowValidationError(
+                            base_errors=['invalid_dog_config'],
+                        )
 
                     self._dogs[dog_index] = normalised
                     self._current_dog = normalised
@@ -205,7 +206,7 @@ class DogManagementOptionsMixin:
                     new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
 
                     self.hass.config_entries.async_update_entry(
-                        self._entry, data=new_data
+                        self._entry, data=new_data,
                     )
                     self._dogs = typed_dogs
             except FlowValidationError as err:
@@ -241,7 +242,9 @@ class DogManagementOptionsMixin:
         return self.async_show_form(
             step_id='configure_dog_modules',
             data_schema=self._get_dog_modules_schema(),
-            description_placeholders=dict(self._get_module_description_placeholders()),
+            description_placeholders=dict(
+                self._get_module_description_placeholders(),
+            ),
         )
 
     def _get_door_sensor_settings_schema(
@@ -275,7 +278,7 @@ class DogManagementOptionsMixin:
                     selector.SelectSelectorConfig(
                         options=options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
+                    ),
                 )
             )
         else:
@@ -284,7 +287,7 @@ class DogManagementOptionsMixin:
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT,
                         autocomplete='off',
-                    )
+                    ),
                 )
             )
 
@@ -295,7 +298,7 @@ class DogManagementOptionsMixin:
             vol.Optional(
                 'walk_detection_timeout',
                 default=_value(
-                    'walk_detection_timeout', defaults.walk_detection_timeout
+                    'walk_detection_timeout', defaults.walk_detection_timeout,
                 ),
             )
         ] = selector.NumberSelector(
@@ -305,12 +308,15 @@ class DogManagementOptionsMixin:
                 step=30,
                 mode=selector.NumberSelectorMode.BOX,
                 unit_of_measurement='seconds',
-            )
+            ),
         )
         schema_dict[
             vol.Optional(
                 'minimum_walk_duration',
-                default=_value('minimum_walk_duration', defaults.minimum_walk_duration),
+                default=_value(
+                    'minimum_walk_duration',
+                    defaults.minimum_walk_duration,
+                ),
             )
         ] = selector.NumberSelector(
             selector.NumberSelectorConfig(
@@ -319,12 +325,15 @@ class DogManagementOptionsMixin:
                 step=30,
                 mode=selector.NumberSelectorMode.BOX,
                 unit_of_measurement='seconds',
-            )
+            ),
         )
         schema_dict[
             vol.Optional(
                 'maximum_walk_duration',
-                default=_value('maximum_walk_duration', defaults.maximum_walk_duration),
+                default=_value(
+                    'maximum_walk_duration',
+                    defaults.maximum_walk_duration,
+                ),
             )
         ] = selector.NumberSelector(
             selector.NumberSelectorConfig(
@@ -333,12 +342,15 @@ class DogManagementOptionsMixin:
                 step=60,
                 mode=selector.NumberSelectorMode.BOX,
                 unit_of_measurement='seconds',
-            )
+            ),
         )
         schema_dict[
             vol.Optional(
                 'door_closed_delay',
-                default=_value('door_closed_delay', defaults.door_closed_delay),
+                default=_value(
+                    'door_closed_delay',
+                    defaults.door_closed_delay,
+                ),
             )
         ] = selector.NumberSelector(
             selector.NumberSelectorConfig(
@@ -347,12 +359,15 @@ class DogManagementOptionsMixin:
                 step=5,
                 mode=selector.NumberSelectorMode.BOX,
                 unit_of_measurement='seconds',
-            )
+            ),
         )
         schema_dict[
             vol.Optional(
                 'require_confirmation',
-                default=_value('require_confirmation', defaults.require_confirmation),
+                default=_value(
+                    'require_confirmation',
+                    defaults.require_confirmation,
+                ),
             )
         ] = selector.BooleanSelector()
         schema_dict[
@@ -364,7 +379,10 @@ class DogManagementOptionsMixin:
         schema_dict[
             vol.Optional(
                 'confidence_threshold',
-                default=_value('confidence_threshold', defaults.confidence_threshold),
+                default=_value(
+                    'confidence_threshold',
+                    defaults.confidence_threshold,
+                ),
             )
         ] = selector.NumberSelector(
             selector.NumberSelectorConfig(
@@ -372,7 +390,7 @@ class DogManagementOptionsMixin:
                 max=1.0,
                 step=0.05,
                 mode=selector.NumberSelectorMode.BOX,
-            )
+            ),
         )
 
         return vol.Schema(schema_dict)
@@ -430,7 +448,7 @@ class DogManagementOptionsMixin:
                     'module_training',
                     default=current_modules.get('training', False),
                 ): selector.BooleanSelector(),
-            }
+            },
         )
 
     def _get_available_door_sensors(self) -> dict[str, str]:
@@ -455,7 +473,9 @@ class DogManagementOptionsMixin:
 
         profile_value = self._entry.options.get('entity_profile', 'standard')
         current_profile = (
-            profile_value if isinstance(profile_value, str) else str(profile_value)
+            profile_value if isinstance(
+                profile_value, str,
+            ) else str(profile_value)
         )
         current_modules_dict = ensure_dog_modules_config(self._current_dog)  # noqa: F821
 
@@ -467,7 +487,7 @@ class DogManagementOptionsMixin:
 
         # Calculate current entity count
         current_estimate = self._entity_factory.estimate_entity_count(
-            current_profile, current_modules_dict
+            current_profile, current_modules_dict,
         )
 
         # Module descriptions
@@ -480,14 +500,14 @@ class DogManagementOptionsMixin:
             'dashboard': 'Custom dashboard generation',
             'visitor': 'Visitor mode for reduced monitoring',
             'grooming': translated_grooming_label(  # noqa: F821
-                hass_language, 'module_summary_description'
+                hass_language, 'module_summary_description',
             ),
             'medication': 'Medication reminders and tracking',
             'training': 'Training progress and notes',
         }
 
         module_labels = {
-            'grooming': translated_grooming_label(hass_language, 'module_summary_label')  # noqa: F821
+            'grooming': translated_grooming_label(hass_language, 'module_summary_label'),  # noqa: F821
         }
 
         enabled_modules = [
@@ -495,7 +515,9 @@ class DogManagementOptionsMixin:
             for module, enabled in current_modules_dict.items()
             if enabled
         ]
-        enabled_summary = '\n'.join(enabled_modules) if enabled_modules else 'None'
+        enabled_summary = '\n'.join(
+            enabled_modules,
+        ) if enabled_modules else 'None'
 
         dog_name = str(self._current_dog.get(CONF_DOG_NAME, 'Unknown'))
 
@@ -505,7 +527,7 @@ class DogManagementOptionsMixin:
                 'current_profile': str(current_profile),
                 'current_entities': str(current_estimate),
                 'enabled_modules': enabled_summary,
-            }
+            },
         )
 
     # Rest of the existing methods (add_new_dog, edit_dog, etc.) remain the same...
@@ -548,7 +570,7 @@ class DogManagementOptionsMixin:
                         'grooming': False,
                         'medication': False,
                         'training': False,
-                    }
+                    },
                 )
 
                 candidate: JSONMutableMapping = {  # noqa: F821
@@ -571,7 +593,9 @@ class DogManagementOptionsMixin:
 
                 new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
 
-                self.hass.config_entries.async_update_entry(self._entry, data=new_data)
+                self.hass.config_entries.async_update_entry(
+                    self._entry, data=new_data,
+                )
                 self._invalidate_profile_caches()
 
                 return await self.async_step_init()
@@ -595,19 +619,19 @@ class DogManagementOptionsMixin:
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT,
                         autocomplete='off',
-                    )
+                    ),
                 ),
                 vol.Required(CONF_DOG_NAME): selector.TextSelector(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT,
                         autocomplete='name',
-                    )
+                    ),
                 ),
                 vol.Optional(CONF_DOG_BREED, default=''): selector.TextSelector(),  # noqa: F821
                 vol.Optional(CONF_DOG_AGE, default=3): selector.NumberSelector(  # noqa: F821
                     selector.NumberSelectorConfig(
-                        min=0, max=30, step=1, mode=selector.NumberSelectorMode.BOX
-                    )
+                        min=0, max=30, step=1, mode=selector.NumberSelectorMode.BOX,
+                    ),
                 ),
                 vol.Optional(CONF_DOG_WEIGHT, default=20.0): selector.NumberSelector(  # noqa: F821
                     selector.NumberSelectorConfig(
@@ -616,16 +640,16 @@ class DogManagementOptionsMixin:
                         step=0.1,
                         mode=selector.NumberSelectorMode.BOX,
                         unit_of_measurement='kg',
-                    )
+                    ),
                 ),
                 vol.Optional(CONF_DOG_SIZE, default='medium'): selector.SelectSelector(  # noqa: F821
                     selector.SelectSelectorConfig(
                         options=['toy', 'small', 'medium', 'large', 'giant'],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         translation_key='dog_size',
-                    )
+                    ),
                 ),
-            }
+            },
         )
 
     def _get_remove_dog_schema(
@@ -640,12 +664,14 @@ class DogManagementOptionsMixin:
             dog_name = dog.get(DOG_NAME_FIELD)
             if not isinstance(dog_id, str) or not dog_id:
                 continue
-            label_name = dog_name if isinstance(dog_name, str) and dog_name else dog_id
+            label_name = dog_name if isinstance(
+                dog_name, str,
+            ) and dog_name else dog_id
             dog_options.append(
                 {
                     'value': dog_id,
                     'label': f"{label_name} ({dog_id})",
-                }
+                },
             )
 
         return vol.Schema(
@@ -654,17 +680,17 @@ class DogManagementOptionsMixin:
                     selector.SelectSelectorConfig(
                         options=dog_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                    )
+                    ),
                 ),
                 vol.Required(
                     'confirm_remove',
                     default=False,
                 ): selector.BooleanSelector(),
-            }
+            },
         )
 
     async def async_step_select_dog_to_edit(
-        self, user_input: OptionsDogSelectionInput | None = None
+        self, user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to edit."""
         current_dogs_raw = self._entry.data.get(CONF_DOGS, [])
@@ -673,7 +699,7 @@ class DogManagementOptionsMixin:
             for dog in current_dogs_raw:
                 if isinstance(dog, Mapping):  # noqa: F821
                     normalised = ensure_dog_config_data(  # noqa: F821
-                        cast(Mapping[str, JSONValue], dog)  # noqa: F821
+                        cast(Mapping[str, JSONValue], dog),  # noqa: F821
                     )
                     if normalised is not None:
                         current_dogs.append(normalised)
@@ -714,14 +740,14 @@ class DogManagementOptionsMixin:
                         selector.SelectSelectorConfig(
                             options=dog_options,
                             mode=selector.SelectSelectorMode.DROPDOWN,
-                        )
-                    )
-                }
+                        ),
+                    ),
+                },
             ),
         )
 
     async def async_step_edit_dog(
-        self, user_input: OptionsDogEditInput | None = None
+        self, user_input: OptionsDogEditInput | None = None,
     ) -> ConfigFlowResult:
         """Edit the selected dog."""
         if not self._current_dog:
@@ -754,7 +780,9 @@ class DogManagementOptionsMixin:
                     )
                     normalised = ensure_dog_config_data(candidate)  # noqa: F821
                     if normalised is None:
-                        raise FlowValidationError(base_errors=['invalid_dog_config'])
+                        raise FlowValidationError(
+                            base_errors=['invalid_dog_config'],
+                        )
 
                     self._dogs[dog_index] = normalised
                     typed_dogs = self._normalise_entry_dogs(self._dogs)
@@ -764,7 +792,7 @@ class DogManagementOptionsMixin:
                     new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
 
                     self.hass.config_entries.async_update_entry(
-                        self._entry, data=new_data
+                        self._entry, data=new_data,
                     )
                     self._invalidate_profile_caches()
 
@@ -784,7 +812,7 @@ class DogManagementOptionsMixin:
                 )
 
         return self.async_show_form(
-            step_id='edit_dog', data_schema=self._get_edit_dog_schema()
+            step_id='edit_dog', data_schema=self._get_edit_dog_schema(),
         )
 
     def _get_edit_dog_schema(self) -> vol.Schema:
@@ -795,7 +823,9 @@ class DogManagementOptionsMixin:
         return vol.Schema(
             {
                 vol.Optional(
-                    CONF_DOG_NAME, default=self._current_dog.get(CONF_DOG_NAME, '')
+                    CONF_DOG_NAME, default=self._current_dog.get(
+                        CONF_DOG_NAME, '',
+                    ),
                 ): selector.TextSelector(),
                 vol.Optional(
                     CONF_DOG_BREED,  # noqa: F821
@@ -806,8 +836,8 @@ class DogManagementOptionsMixin:
                     default=self._current_dog.get(CONF_DOG_AGE, 3),  # noqa: F821
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
-                        min=0, max=30, step=1, mode=selector.NumberSelectorMode.BOX
-                    )
+                        min=0, max=30, step=1, mode=selector.NumberSelectorMode.BOX,
+                    ),
                 ),
                 vol.Optional(
                     CONF_DOG_WEIGHT,  # noqa: F821
@@ -819,7 +849,7 @@ class DogManagementOptionsMixin:
                         step=0.1,
                         mode=selector.NumberSelectorMode.BOX,
                         unit_of_measurement='kg',
-                    )
+                    ),
                 ),
                 vol.Optional(
                     CONF_DOG_SIZE,  # noqa: F821
@@ -829,13 +859,13 @@ class DogManagementOptionsMixin:
                         options=['toy', 'small', 'medium', 'large', 'giant'],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         translation_key='dog_size',
-                    )
+                    ),
                 ),
-            }
+            },
         )
 
     async def async_step_select_dog_to_remove(
-        self, user_input: OptionsDogRemovalInput | None = None
+        self, user_input: OptionsDogRemovalInput | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to remove."""
         current_dogs = list(self._dogs)
@@ -856,7 +886,9 @@ class DogManagementOptionsMixin:
                 try:
                     typed_dogs = self._normalise_entry_dogs(updated_dogs)
                 except FlowValidationError as err:  # pragma: no cover - defensive guard
-                    _LOGGER.error('Invalid dog configuration during removal: %s', err)
+                    _LOGGER.error(
+                        'Invalid dog configuration during removal: %s', err,
+                    )
                     return self.async_show_form(
                         step_id='select_dog_to_remove',
                         data_schema=self._get_remove_dog_schema(current_dogs),
@@ -866,7 +898,9 @@ class DogManagementOptionsMixin:
                 # Update config entry
                 new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
 
-                self.hass.config_entries.async_update_entry(self._entry, data=new_data)
+                self.hass.config_entries.async_update_entry(
+                    self._entry, data=new_data,
+                )
                 self._dogs = typed_dogs
                 if self._current_dog and (
                     self._current_dog.get(DOG_ID_FIELD) == selected_dog_id
@@ -897,9 +931,9 @@ class DogManagementOptionsMixin:
                         'warning': (
                             'This will permanently remove the selected dog and all '
                             'associated data!'
-                        )
-                    }
-                )
+                        ),
+                    },
+                ),
             ),
         )
 

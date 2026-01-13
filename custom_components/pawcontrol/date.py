@@ -10,47 +10,46 @@ Metadata:
     Home Assistant: 2025.8.2+
     Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Awaitable, Callable, Mapping
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Mapping
 from contextlib import suppress
 from datetime import date
 from typing import cast
 
 from homeassistant.components.date import DateEntity
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
 from .compat import ConfigEntry
-from .const import (
-    ATTR_DOG_ID,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_HEALTH,
-    MODULE_WALK,
-)
+from .const import ATTR_DOG_ID
+from .const import DOMAIN
+from .const import MODULE_FEEDING
+from .const import MODULE_HEALTH
+from .const import MODULE_WALK
 from .coordinator import PawControlCoordinator
 from .diagnostics import normalize_value
 from .entity import PawControlDogEntityBase
-from .exceptions import PawControlError, ValidationError
+from .exceptions import PawControlError
+from .exceptions import ValidationError
 from .helpers import performance_monitor
 from .runtime_data import get_runtime_data
-from .types import (
-    DOG_ID_FIELD,
-    DOG_NAME_FIELD,
-    CoordinatorDogData,
-    DogConfigData,
-    DogModulesMapping,
-    DogProfileSnapshot,
-    HealthModulePayload,
-    JSONMutableMapping,
-    ensure_dog_modules_mapping,
-)
+from .types import CoordinatorDogData
+from .types import DOG_ID_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DogConfigData
+from .types import DogModulesMapping
+from .types import DogProfileSnapshot
+from .types import ensure_dog_modules_mapping
+from .types import HealthModulePayload
+from .types import JSONMutableMapping
 from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
@@ -88,7 +87,7 @@ async def _async_add_entities_in_batches(
 
     # Process entities in batches
     for i in range(0, total_entities, batch_size):
-        batch = entities[i : i + batch_size]
+        batch = entities[i: i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
 
@@ -101,7 +100,7 @@ async def _async_add_entities_in_batches(
 
         # Add batch without update_before_add to reduce Registry load
         await async_call_add_entities(
-            async_add_entities_func, batch, update_before_add=False
+            async_add_entities_func, batch, update_before_add=False,
         )
 
         # Small delay between batches to prevent Registry flooding
@@ -127,7 +126,9 @@ async def async_setup_entry(
     Raises:
         PawControlError: If setup fails due to configuration issues
     """
-    _LOGGER.debug('Setting up Paw Control date platform for entry %s', entry.entry_id)
+    _LOGGER.debug(
+        'Setting up Paw Control date platform for entry %s', entry.entry_id,
+    )
 
     try:
         # Retrieve runtime data from hass.data
@@ -159,48 +160,70 @@ async def async_setup_entry(
                     [
                         PawControlBirthdateDate(coordinator, dog_id, dog_name),
                         PawControlAdoptionDate(coordinator, dog_id, dog_name),
-                    ]
+                    ],
                 )
 
                 # Health module date entities
                 if modules.get(MODULE_HEALTH, False):
                     entities.extend(
                         [
-                            PawControlLastVetVisitDate(coordinator, dog_id, dog_name),
+                            PawControlLastVetVisitDate(
+                                coordinator, dog_id, dog_name,
+                            ),
                             PawControlNextVetAppointmentDate(
-                                coordinator, dog_id, dog_name
+                                coordinator, dog_id, dog_name,
                             ),
-                            PawControlLastGroomingDate(coordinator, dog_id, dog_name),
-                            PawControlNextGroomingDate(coordinator, dog_id, dog_name),
-                            PawControlVaccinationDate(coordinator, dog_id, dog_name),
+                            PawControlLastGroomingDate(
+                                coordinator, dog_id, dog_name,
+                            ),
+                            PawControlNextGroomingDate(
+                                coordinator, dog_id, dog_name,
+                            ),
+                            PawControlVaccinationDate(
+                                coordinator, dog_id, dog_name,
+                            ),
                             PawControlNextVaccinationDate(
-                                coordinator, dog_id, dog_name
+                                coordinator, dog_id, dog_name,
                             ),
-                            PawControlDewormingDate(coordinator, dog_id, dog_name),
-                            PawControlNextDewormingDate(coordinator, dog_id, dog_name),
-                        ]
+                            PawControlDewormingDate(
+                                coordinator, dog_id, dog_name,
+                            ),
+                            PawControlNextDewormingDate(
+                                coordinator, dog_id, dog_name,
+                            ),
+                        ],
                     )
 
                 # Feeding module date entities
                 if modules.get(MODULE_FEEDING, False):
                     entities.extend(
                         [
-                            PawControlDietStartDate(coordinator, dog_id, dog_name),
-                            PawControlDietEndDate(coordinator, dog_id, dog_name),
-                        ]
+                            PawControlDietStartDate(
+                                coordinator, dog_id, dog_name,
+                            ),
+                            PawControlDietEndDate(
+                                coordinator, dog_id, dog_name,
+                            ),
+                        ],
                     )
 
                 # Walk/Training module date entities
                 if modules.get(MODULE_WALK, False):
                     entities.extend(
                         [
-                            PawControlTrainingStartDate(coordinator, dog_id, dog_name),
-                            PawControlNextTrainingDate(coordinator, dog_id, dog_name),
-                        ]
+                            PawControlTrainingStartDate(
+                                coordinator, dog_id, dog_name,
+                            ),
+                            PawControlNextTrainingDate(
+                                coordinator, dog_id, dog_name,
+                            ),
+                        ],
                     )
 
             except KeyError as err:
-                _LOGGER.error('Missing required configuration for dog: %s', err)
+                _LOGGER.error(
+                    'Missing required configuration for dog: %s', err,
+                )
                 continue
             except Exception as err:
                 _LOGGER.error(
@@ -214,7 +237,7 @@ async def async_setup_entry(
         # Add entities in smaller batches to prevent Entity Registry overload
         # With 48+ date entities (2 dogs), batching prevents Registry flooding
         await _async_add_entities_in_batches(
-            async_add_entities, entities, batch_size=12
+            async_add_entities, entities, batch_size=12,
         )
         _LOGGER.info(
             'Successfully set up %d date entities for %d dogs using batched approach',
@@ -291,7 +314,9 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return extra state attributes for enhanced functionality."""
-        attributes = self._build_base_state_attributes({'date_type': self._date_type})
+        attributes = self._build_base_state_attributes(
+            {'date_type': self._date_type},
+        )
 
         # Add calculated attributes for useful automations
         if self._current_value is not None:
@@ -309,7 +334,9 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
                 age_days = abs(days_diff)
                 attributes['age_days'] = age_days
                 attributes['age_years'] = round(age_days / 365.25, 2)
-                attributes['age_months'] = round((age_days % 365.25) / 30.44, 1)
+                attributes['age_months'] = round(
+                    (age_days % 365.25) / 30.44, 1,
+                )
 
         return cast(JSONMutableMapping, normalize_value(attributes))
 
@@ -439,7 +466,7 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
             if dog_data:
                 # Update entity state based on coordinator data
                 updated_value = self._extract_date_from_dog_data(
-                    cast(CoordinatorDogData, dog_data)
+                    cast(CoordinatorDogData, dog_data),
                 )
 
                 if updated_value and updated_value != self._current_value:
@@ -479,7 +506,7 @@ class PawControlBirthdateDate(PawControlDateBase):
     """Date entity for dog birthdate."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the birthdate entity."""
         super().__init__(coordinator, dog_id, dog_name, 'birthdate', 'mdi:cake')
@@ -511,7 +538,7 @@ class PawControlBirthdateDate(PawControlDateBase):
             data_manager = self._get_data_manager()
             if data_manager is not None:
                 await data_manager.async_update_dog_profile(
-                    self._dog_id, {'birthdate': value.isoformat()}
+                    self._dog_id, {'birthdate': value.isoformat()},
                 )
         except Exception as err:
             _LOGGER.debug('Could not update dog profile: %s', err)
@@ -522,18 +549,20 @@ class PawControlAdoptionDate(PawControlDateBase):
     """Date entity for adoption date."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the adoption date entity."""
         super().__init__(
-            coordinator, dog_id, dog_name, 'adoption_date', 'mdi:home-heart'
+            coordinator, dog_id, dog_name, 'adoption_date', 'mdi:home-heart',
         )
 
     def _extract_date_from_dog_data(self, dog_data: CoordinatorDogData) -> date | None:
         """Extract adoption date from dog data."""
         profile = dog_data.get('profile')
         if isinstance(profile, dict):
-            adoption_date_str = cast(DogProfileSnapshot, profile).get('adoption_date')
+            adoption_date_str = cast(
+                DogProfileSnapshot, profile,
+            ).get('adoption_date')
             if adoption_date_str:
                 with suppress(ValueError, TypeError):
                     return dt_util.parse_date(adoption_date_str)
@@ -559,11 +588,11 @@ class PawControlLastVetVisitDate(PawControlDateBase):
     """Date entity for last vet visit."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the last vet visit date entity."""
         super().__init__(
-            coordinator, dog_id, dog_name, 'last_vet_visit', 'mdi:medical-bag'
+            coordinator, dog_id, dog_name, 'last_vet_visit', 'mdi:medical-bag',
         )
 
     def _extract_date_from_dog_data(self, dog_data: CoordinatorDogData) -> date | None:
@@ -584,7 +613,10 @@ class PawControlLastVetVisitDate(PawControlDateBase):
 
     async def _async_handle_date_set(self, value: date) -> None:
         """Handle vet visit date update - log health entry."""
-        _LOGGER.info('Updated last vet visit for %s: %s', self._dog_name, value)
+        _LOGGER.info(
+            'Updated last vet visit for %s: %s',
+            self._dog_name, value,
+        )
 
         # Log vet visit in health records
         try:
@@ -607,7 +639,7 @@ class PawControlNextVetAppointmentDate(PawControlDateBase):
     """Date entity for next vet appointment."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the next vet appointment date entity."""
         super().__init__(
@@ -620,7 +652,10 @@ class PawControlNextVetAppointmentDate(PawControlDateBase):
 
     async def _async_handle_date_set(self, value: date) -> None:
         """Handle next vet appointment date update."""
-        _LOGGER.info('Scheduled next vet appointment for %s: %s', self._dog_name, value)
+        _LOGGER.info(
+            'Scheduled next vet appointment for %s: %s',
+            self._dog_name, value,
+        )
 
         # Create reminder if close to appointment date
         today = dt_util.now().date()
@@ -638,11 +673,11 @@ class PawControlLastGroomingDate(PawControlDateBase):
     """Date entity for last grooming session."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the last grooming date entity."""
         super().__init__(
-            coordinator, dog_id, dog_name, 'last_grooming', 'mdi:content-cut'
+            coordinator, dog_id, dog_name, 'last_grooming', 'mdi:content-cut',
         )
 
     def _extract_date_from_dog_data(self, dog_data: CoordinatorDogData) -> date | None:
@@ -665,11 +700,11 @@ class PawControlNextGroomingDate(PawControlDateBase):
     """Date entity for next grooming appointment."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the next grooming date entity."""
         super().__init__(
-            coordinator, dog_id, dog_name, 'next_grooming', 'mdi:calendar-clock'
+            coordinator, dog_id, dog_name, 'next_grooming', 'mdi:calendar-clock',
         )
 
 
@@ -677,16 +712,19 @@ class PawControlVaccinationDate(PawControlDateBase):
     """Date entity for vaccination dates."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the vaccination date entity."""
         super().__init__(
-            coordinator, dog_id, dog_name, 'vaccination_date', 'mdi:needle'
+            coordinator, dog_id, dog_name, 'vaccination_date', 'mdi:needle',
         )
 
     async def _async_handle_date_set(self, value: date) -> None:
         """Handle vaccination date update - log health entry."""
-        _LOGGER.info('Updated vaccination date for %s: %s', self._dog_name, value)
+        _LOGGER.info(
+            'Updated vaccination date for %s: %s',
+            self._dog_name, value,
+        )
 
         # Log vaccination in health records
         try:
@@ -709,11 +747,11 @@ class PawControlNextVaccinationDate(PawControlDateBase):
     """Date entity for next vaccination due date."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the next vaccination date entity."""
         super().__init__(
-            coordinator, dog_id, dog_name, 'next_vaccination', 'mdi:calendar-plus'
+            coordinator, dog_id, dog_name, 'next_vaccination', 'mdi:calendar-plus',
         )
 
 
@@ -721,14 +759,17 @@ class PawControlDewormingDate(PawControlDateBase):
     """Date entity for deworming dates."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the deworming date entity."""
         super().__init__(coordinator, dog_id, dog_name, 'deworming_date', 'mdi:pill')
 
     async def _async_handle_date_set(self, value: date) -> None:
         """Handle deworming date update - log health entry."""
-        _LOGGER.info('Updated deworming date for %s: %s', self._dog_name, value)
+        _LOGGER.info(
+            'Updated deworming date for %s: %s',
+            self._dog_name, value,
+        )
 
         # Log deworming in health records
         try:
@@ -751,11 +792,11 @@ class PawControlNextDewormingDate(PawControlDateBase):
     """Date entity for next deworming due date."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the next deworming date entity."""
         super().__init__(
-            coordinator, dog_id, dog_name, 'next_deworming', 'mdi:calendar-alert'
+            coordinator, dog_id, dog_name, 'next_deworming', 'mdi:calendar-alert',
         )
 
 
@@ -766,7 +807,7 @@ class PawControlDietStartDate(PawControlDateBase):
     """Date entity for diet start date."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the diet start date entity."""
         super().__init__(coordinator, dog_id, dog_name, 'diet_start_date', 'mdi:scale')
@@ -780,11 +821,11 @@ class PawControlDietEndDate(PawControlDateBase):
     """Date entity for diet end date."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the diet end date entity."""
         super().__init__(
-            coordinator, dog_id, dog_name, 'diet_end_date', 'mdi:scale-off'
+            coordinator, dog_id, dog_name, 'diet_end_date', 'mdi:scale-off',
         )
 
 
@@ -795,11 +836,11 @@ class PawControlTrainingStartDate(PawControlDateBase):
     """Date entity for training program start date."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the training start date entity."""
         super().__init__(
-            coordinator, dog_id, dog_name, 'training_start_date', 'mdi:school'
+            coordinator, dog_id, dog_name, 'training_start_date', 'mdi:school',
         )
 
 
@@ -807,11 +848,11 @@ class PawControlNextTrainingDate(PawControlDateBase):
     """Date entity for next training session date."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the next training date entity."""
         super().__init__(
-            coordinator, dog_id, dog_name, 'next_training_date', 'mdi:calendar-star'
+            coordinator, dog_id, dog_name, 'next_training_date', 'mdi:calendar-star',
         )
 
     async def _async_handle_date_set(self, value: date) -> None:

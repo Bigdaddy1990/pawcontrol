@@ -4,7 +4,6 @@ This module exists to keep :mod:`custom_components.pawcontrol.options_flow_main`
 It contains common helper methods used by multiple option-flow mixins (telemetry,
 manual event helpers, system/dashboard/advanced settings builders, etc.).
 """
-
 from __future__ import annotations
 
 import json  # noqa: F401
@@ -50,10 +49,10 @@ ManualEventField = Literal[
 ]
 
 SYSTEM_ENABLE_ANALYTICS_FIELD: Final[Literal['enable_analytics']] = cast(
-    Literal['enable_analytics'], 'enable_analytics'
+    Literal['enable_analytics'], 'enable_analytics',
 )
 SYSTEM_ENABLE_CLOUD_BACKUP_FIELD: Final[Literal['enable_cloud_backup']] = cast(
-    Literal['enable_cloud_backup'], 'enable_cloud_backup'
+    Literal['enable_cloud_backup'], 'enable_cloud_backup',
 )
 EXTERNAL_INTEGRATIONS_FIELD: Final[Literal['external_integrations']] = cast(
     Literal['external_integrations'],
@@ -97,12 +96,14 @@ class OptionsFlowSharedMixin:
         placeholders: dict[str, str] = {}
         for field, values in choices.items():
             placeholder_key = f"{field}_options"
-            placeholders[placeholder_key] = ', '.join(values) if values else '—'
+            placeholders[placeholder_key] = ', '.join(
+                values,
+            ) if values else '—'
         return freeze_placeholders(placeholders)
 
     @staticmethod
     def _coerce_manual_event_with_default(
-        value: Any, default: str | None
+        value: Any, default: str | None,
     ) -> str | None:
         """Return a normalised manual event or fallback to the provided default."""
 
@@ -116,7 +117,7 @@ class OptionsFlowSharedMixin:
 
         telemetry = self._reconfigure_telemetry()
         timestamp = self._format_local_timestamp(
-            (telemetry or {}).get('timestamp') if telemetry else None
+            (telemetry or {}).get('timestamp') if telemetry else None,
         )
         placeholders = clone_placeholders(RECONFIGURE_FORM_PLACEHOLDERS_TEMPLATE)  # noqa: F405
         placeholders['last_reconfigure'] = timestamp
@@ -130,18 +131,30 @@ class OptionsFlowSharedMixin:
             placeholders['reconfigure_merge_notes'] = 'No merge adjustments recorded'
             return freeze_placeholders(placeholders)
 
-        requested_profile = str(telemetry.get('requested_profile', '')) or 'Unknown'
-        previous_profile = str(telemetry.get('previous_profile', '')) or 'Unknown'
+        requested_profile = str(
+            telemetry.get(
+            'requested_profile', '',
+            ),
+        ) or 'Unknown'
+        previous_profile = str(
+            telemetry.get(
+            'previous_profile', '',
+            ),
+        ) or 'Unknown'
         dogs_count = telemetry.get('dogs_count')
         estimated_entities = telemetry.get('estimated_entities')
-        warnings = self._string_sequence(telemetry.get('compatibility_warnings'))
+        warnings = self._string_sequence(
+            telemetry.get('compatibility_warnings'),
+        )
         merge_notes = self._string_sequence(telemetry.get('merge_notes'))
         health_summary = telemetry.get('health_summary')
 
-        last_recorded = telemetry.get('timestamp') or self._last_reconfigure_timestamp()
+        last_recorded = telemetry.get(
+            'timestamp',
+        ) or self._last_reconfigure_timestamp()
 
         placeholders['last_reconfigure'] = self._format_local_timestamp(
-            str(last_recorded) if last_recorded else None
+            str(last_recorded) if last_recorded else None,
         )
         placeholders['reconfigure_requested_profile'] = requested_profile
         placeholders['reconfigure_previous_profile'] = previous_profile
@@ -151,16 +164,20 @@ class OptionsFlowSharedMixin:
             else '0'
         )
         placeholders['reconfigure_dogs'] = (
-            str(int(dogs_count)) if isinstance(dogs_count, int | float) else '0'
+            str(int(dogs_count)) if isinstance(
+                dogs_count, int | float,
+            ) else '0'
         )
         placeholders['reconfigure_health'] = self._summarise_health_summary(
-            health_summary
+            health_summary,
         )
         placeholders['reconfigure_warnings'] = (
             ', '.join(warnings) if warnings else 'None'
         )
         placeholders['reconfigure_merge_notes'] = (
-            '\n'.join(merge_notes) if merge_notes else 'No merge adjustments recorded'
+            '\n'.join(
+                merge_notes,
+            ) if merge_notes else 'No merge adjustments recorded'
         )
         return freeze_placeholders(placeholders)
 
@@ -319,7 +336,7 @@ class OptionsFlowSharedMixin:
             if not isinstance(value, Mapping):
                 continue
             entry = ensure_dog_options_entry(  # noqa: F405
-                cast(JSONLikeMapping, dict(value)), dog_id=str(dog_id)
+                cast(JSONLikeMapping, dict(value)), dog_id=str(dog_id),
             )
             if entry:
                 dog_options[str(dog_id)] = entry
@@ -367,9 +384,9 @@ class OptionsFlowSharedMixin:
                     selector.SelectSelectorConfig(  # noqa: F405
                         options=dog_options,
                         mode=selector.SelectSelectorMode.DROPDOWN,  # noqa: F405
-                    )
-                )
-            }
+                    ),
+                ),
+            },
         )
 
     def _current_system_options(self) -> SystemOptions:
@@ -388,7 +405,9 @@ class OptionsFlowSharedMixin:
         if SYSTEM_ENABLE_ANALYTICS_FIELD not in system:
             system[SYSTEM_ENABLE_ANALYTICS_FIELD] = bool(enable_analytics)
         if SYSTEM_ENABLE_CLOUD_BACKUP_FIELD not in system:
-            system[SYSTEM_ENABLE_CLOUD_BACKUP_FIELD] = bool(enable_cloud_backup)
+            system[SYSTEM_ENABLE_CLOUD_BACKUP_FIELD] = bool(
+                enable_cloud_backup,
+            )
 
         has_skip = 'resilience_skip_threshold' in system
         has_breaker = 'resilience_breaker_threshold' in system
@@ -454,13 +473,13 @@ class OptionsFlowSharedMixin:
         }
 
         check_default: str | None = self._coerce_manual_event(
-            current_system.get('manual_check_event')
+            current_system.get('manual_check_event'),
         )
         guard_default: str | None = self._coerce_manual_event(
-            current_system.get('manual_guard_event')
+            current_system.get('manual_guard_event'),
         )
         breaker_default: str | None = self._coerce_manual_event(
-            current_system.get('manual_breaker_event')
+            current_system.get('manual_breaker_event'),
         )
 
         if manual_snapshot is None:
@@ -468,10 +487,10 @@ class OptionsFlowSharedMixin:
 
         if manual_snapshot is not None:
             system_guard = self._coerce_manual_event(
-                manual_snapshot.get('system_guard_event')
+                manual_snapshot.get('system_guard_event'),
             )
             system_breaker = self._coerce_manual_event(
-                manual_snapshot.get('system_breaker_event')
+                manual_snapshot.get('system_breaker_event'),
             )
 
             if guard_default is None:
@@ -480,7 +499,7 @@ class OptionsFlowSharedMixin:
                 breaker_default = system_breaker
 
             for event in self._string_sequence(
-                manual_snapshot.get('configured_check_events')
+                manual_snapshot.get('configured_check_events'),
             ):
                 normalised = self._coerce_manual_event(event)
                 if normalised is not None:
@@ -489,13 +508,13 @@ class OptionsFlowSharedMixin:
                         check_default = normalised
 
             for event in self._string_sequence(
-                manual_snapshot.get('configured_guard_events')
+                manual_snapshot.get('configured_guard_events'),
             ):
                 normalised = self._coerce_manual_event(event)
                 if normalised is not None:
                     guard_suggestions.add(normalised)
             for event in self._string_sequence(
-                manual_snapshot.get('configured_breaker_events')
+                manual_snapshot.get('configured_breaker_events'),
             ):
                 normalised = self._coerce_manual_event(event)
                 if normalised is not None:
@@ -505,11 +524,11 @@ class OptionsFlowSharedMixin:
                 preferred = manual_snapshot.get('preferred_events')
                 if isinstance(preferred, Mapping):
                     check_default = self._coerce_manual_event(
-                        preferred.get('manual_check_event')
+                        preferred.get('manual_check_event'),
                     )
             if check_default is None:
                 check_default = self._coerce_manual_event(
-                    manual_snapshot.get('preferred_check_event')
+                    manual_snapshot.get('preferred_check_event'),
                 )
 
         if guard_default is not None:
@@ -550,7 +569,7 @@ class OptionsFlowSharedMixin:
         return fallback
 
     def _resolve_script_threshold_fallbacks(
-        self, *, has_skip: bool, has_breaker: bool
+        self, *, has_skip: bool, has_breaker: bool,
     ) -> tuple[int | None, int | None]:
         """Return script thresholds when options are missing values."""
 
@@ -604,7 +623,11 @@ class OptionsFlowSharedMixin:
 
         options = self._current_options()
         raw = options.get(ADVANCED_SETTINGS_FIELD)
-        source = cast(JSONLikeMapping, dict(raw)) if isinstance(raw, Mapping) else {}
+        source = cast(
+            JSONLikeMapping, dict(
+            raw,
+            ),
+        ) if isinstance(raw, Mapping) else {}
         defaults = cast(JSONMutableMapping, dict(options))
         return ensure_advanced_options(source, defaults=defaults)
 
@@ -676,7 +699,7 @@ class OptionsFlowSharedMixin:
         return default
 
     def _coerce_clamped_int(
-        self, value: Any, default: int, *, minimum: int, maximum: int
+        self, value: Any, default: int, *, minimum: int, maximum: int,
     ) -> int:
         """Normalise numeric selector input and clamp to an allowed range."""
 
@@ -720,7 +743,9 @@ class OptionsFlowSharedMixin:
 
         raw_interval_default = current.get('weather_update_interval')
         interval_default = (
-            raw_interval_default if isinstance(raw_interval_default, int) else 60
+            raw_interval_default if isinstance(
+                raw_interval_default, int,
+            ) else 60
         )
         interval = self._coerce_clamped_int(
             user_input.get('weather_update_interval'),
@@ -870,20 +895,22 @@ class OptionsFlowSharedMixin:
 
         if 'manual_guard_event' in user_input:
             guard_event = self._coerce_manual_event(
-                user_input.get('manual_guard_event')
+                user_input.get('manual_guard_event'),
             )
             if guard_event is None:
                 system['manual_guard_event'] = None
             else:
                 system['manual_guard_event'] = guard_event
         elif 'manual_guard_event' in current:
-            guard_event = self._coerce_manual_event(current.get('manual_guard_event'))
+            guard_event = self._coerce_manual_event(
+                current.get('manual_guard_event'),
+            )
             if guard_event is not None:
                 system['manual_guard_event'] = guard_event
 
         if 'manual_breaker_event' in user_input:
             breaker_event = self._coerce_manual_event(
-                user_input.get('manual_breaker_event')
+                user_input.get('manual_breaker_event'),
             )
             if breaker_event is None:
                 system['manual_breaker_event'] = None
@@ -891,13 +918,13 @@ class OptionsFlowSharedMixin:
                 system['manual_breaker_event'] = breaker_event
         elif 'manual_breaker_event' in current:
             breaker_event = self._coerce_manual_event(
-                current.get('manual_breaker_event')
+                current.get('manual_breaker_event'),
             )
             if breaker_event is not None:
                 system['manual_breaker_event'] = breaker_event
 
         reset_time = self._coerce_time_string(
-            user_input.get('reset_time'), reset_default
+            user_input.get('reset_time'), reset_default,
         )
         return system, reset_time
 
@@ -967,10 +994,10 @@ class OptionsFlowSharedMixin:
             elif isinstance(value, Mapping):
                 sanitized_input[str(key)] = cast(JSONValue, dict(value))
             elif isinstance(value, Sequence) and not isinstance(
-                value, (str, bytes, bytearray)
+                value, (str, bytes, bytearray),
             ):
                 sanitized_input[str(key)] = cast(
-                    JSONValue, [cast(JSONValue, item) for item in value]
+                    JSONValue, [cast(JSONValue, item) for item in value],
                 )
             else:
                 _LOGGER.warning(
@@ -988,6 +1015,8 @@ class OptionsFlowSharedMixin:
         current_advanced = self._current_options().get(ADVANCED_SETTINGS_FIELD, {})
         advanced_defaults = cast(
             JSONMutableMapping,
-            dict(current_advanced) if isinstance(current_advanced, Mapping) else {},
+            dict(current_advanced) if isinstance(
+                current_advanced, Mapping,
+            ) else {},
         )
         return ensure_advanced_options(sanitized_input, defaults=advanced_defaults)

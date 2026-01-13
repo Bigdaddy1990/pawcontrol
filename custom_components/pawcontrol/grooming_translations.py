@@ -1,5 +1,4 @@
 """Translation helpers for grooming workflows."""
-
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -93,14 +92,16 @@ def translated_grooming_label(language: str | None, key: str, **values: object) 
         supported=SUPPORTED_LANGUAGES,
         default=DEFAULT_LANGUAGE,
     )
-    template = translations.get(normalized, translations.get(DEFAULT_LANGUAGE, key))
+    template = translations.get(
+        normalized, translations.get(DEFAULT_LANGUAGE, key),
+    )
     if values:
         return template.format(**values)
     return template
 
 
 def translated_grooming_template(
-    language: str | None, key: str, **values: object
+    language: str | None, key: str, **values: object,
 ) -> str:
     """Return a localized grooming template string."""
 
@@ -113,7 +114,9 @@ def translated_grooming_template(
         supported=SUPPORTED_LANGUAGES,
         default=DEFAULT_LANGUAGE,
     )
-    template = translations.get(normalized, translations.get(DEFAULT_LANGUAGE, key))
+    template = translations.get(
+        normalized, translations.get(DEFAULT_LANGUAGE, key),
+    )
     return template.format(**values)
 
 

@@ -4,7 +4,6 @@ The real pytest-cov plugin is optional in lightweight environments. This shim
 implements the expected entrypoint so ``-p pytest_cov.plugin`` resolves cleanly
 without affecting coverage collection.
 """
-
 from __future__ import annotations
 
 import pytest

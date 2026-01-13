@@ -1,5 +1,4 @@
 """Verify docstring coverage stays above the documented baseline."""
-
 from __future__ import annotations
 
 import argparse
@@ -57,7 +56,7 @@ def _load_baseline() -> dict[str, float] | None:
 
 def _write_baseline(stats: DocstringStats) -> None:
     BASELINE_PATH.write_text(
-        json.dumps(stats.to_dict(), indent=2) + '\n', encoding='utf-8'
+        json.dumps(stats.to_dict(), indent=2) + '\n', encoding='utf-8',
     )
 
 
@@ -94,7 +93,7 @@ def main() -> int:
             f"baseline={baseline_coverage:.4f}",
         )
         print(
-            "Run 'python scripts/enforce_docstring_baseline.py --update' after adding docstrings."
+            "Run 'python scripts/enforce_docstring_baseline.py --update' after adding docstrings.",
         )
         return 1
 

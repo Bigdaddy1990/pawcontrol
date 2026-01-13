@@ -6,14 +6,14 @@ ci:
   autoupdate_schedule: weekly
   autofix_prs: true
   autofix_commit_msg : '| [pre-commit.ci] Automatische Korrekturen von pre-commit.com-Hooks     Weitere Informationen finden Sie unter https://pre-commit.ci.'
-  autoupdate_branch : '' 
-  autoupdate_commit_msg : '[pre-commit.ci] Pre-Commit- Autoupdate' 
-  skip : [] 
-  submodules : false    
-  
+  autoupdate_branch : ''
+  autoupdate_commit_msg : '[pre-commit.ci] Pre-Commit- Autoupdate'
+  skip : []
+  submodules : false
+
 default_language_version:
     python: python3.13
-    
+
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.14.11
@@ -58,8 +58,8 @@ repos:
       - id: fix-byte-order-marker
       - id: destroyed-symlinks
       - id: check-shebang-scripts-are-executable
-      
-      
+
+
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.21.2
     hooks:
@@ -74,18 +74,18 @@ repos:
   - repo: https://github.com/hhatto/autopep8
     rev: v2.3.2
     hooks:
-    -   id: autopep8    
+    -   id: autopep8
 
   - repo: https://github.com/asottile/add-trailing-comma
     rev: v4.0.0
     hooks:
     -   id: add-trailing-comma
-    
+
   - repo: https://github.com/pre-commit/mirrors-mypy
     rev: v1.19.1
     hooks:
     -   id: mypy
-    
+
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.1
     hooks:

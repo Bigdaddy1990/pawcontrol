@@ -1,31 +1,27 @@
 """Shared validation helpers for config and options flows."""
-
 from __future__ import annotations
 
 import re
 
 from .config_flow_base import DOG_ID_PATTERN
-from .const import (
-    CONF_DOG_AGE,
-    CONF_DOG_BREED,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    CONF_DOG_SIZE,
-    CONF_DOG_WEIGHT,
-    DOG_SIZES,
-    MAX_DOG_AGE,
-    MAX_DOG_WEIGHT,
-    MIN_DOG_AGE,
-    MIN_DOG_WEIGHT,
-)
-from .exceptions import FlowValidationError, ValidationError
+from .const import CONF_DOG_AGE
+from .const import CONF_DOG_BREED
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import CONF_DOG_SIZE
+from .const import CONF_DOG_WEIGHT
+from .const import DOG_SIZES
+from .const import MAX_DOG_AGE
+from .const import MAX_DOG_WEIGHT
+from .const import MIN_DOG_AGE
+from .const import MIN_DOG_WEIGHT
+from .exceptions import FlowValidationError
+from .exceptions import ValidationError
 from .health_calculator import HealthMetrics
-from .types import (
-    DogConfigData,
-    DogSetupStepInput,
-    FlowInputMapping,
-    validate_dog_weight_for_size,
-)
+from .types import DogConfigData
+from .types import DogSetupStepInput
+from .types import FlowInputMapping
+from .types import validate_dog_weight_for_size
 from .validators import validate_name
 
 MAX_BREED_NAME_LENGTH = 100
@@ -57,7 +53,9 @@ def _coerce_int(field: str, value: object) -> int:
         try:
             return int(stripped)
         except ValueError as err:
-            raise ValidationError(field, value, 'Must be a whole number') from err
+            raise ValidationError(
+                field, value, 'Must be a whole number',
+            ) from err
     raise ValidationError(field, value, 'Must be a whole number')
 
 
@@ -157,7 +155,7 @@ def validate_dog_setup_input(
         if dog_weight < MIN_DOG_WEIGHT or dog_weight > MAX_DOG_WEIGHT:
             field_errors[CONF_DOG_WEIGHT] = 'weight_out_of_range'
         elif dog_size in DOG_SIZES and not validate_dog_weight_for_size(
-            dog_weight, dog_size
+            dog_weight, dog_size,
         ):
             field_errors[CONF_DOG_WEIGHT] = 'weight_size_mismatch'
 
@@ -181,7 +179,9 @@ def validate_dog_setup_input(
         dog_breed = None
 
     if field_errors or base_errors:
-        raise FlowValidationError(field_errors=field_errors, base_errors=base_errors)
+        raise FlowValidationError(
+            field_errors=field_errors, base_errors=base_errors,
+        )
 
     validated: DogSetupStepInput = {
         'dog_id': dog_id,
@@ -255,7 +255,9 @@ def validate_dog_update_input(
             else:
                 candidate[CONF_DOG_AGE] = dog_age
 
-    raw_weight = user_input.get(CONF_DOG_WEIGHT, candidate.get(CONF_DOG_WEIGHT))
+    raw_weight = user_input.get(
+        CONF_DOG_WEIGHT, candidate.get(CONF_DOG_WEIGHT),
+    )
     if raw_weight is None:
         candidate.pop(CONF_DOG_WEIGHT, None)
         dog_weight = None

@@ -1,9 +1,11 @@
 """Helpers for PawControl weather translations."""
-
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import Final, Literal, TypedDict, cast
+from typing import cast
+from typing import Final
+from typing import Literal
+from typing import TypedDict
 
 DEFAULT_LANGUAGE: Final[LanguageCode] = 'en'
 
@@ -322,12 +324,16 @@ WEATHER_RECOMMENDATION_KEYS: Final[tuple[WeatherRecommendationKey, ...]] = tuple
     for key in _WEATHER_TRANSLATIONS[DEFAULT_LANGUAGE]['recommendations']
 )
 
-WEATHER_ALERT_KEY_SET: Final[frozenset[WeatherAlertKey]] = frozenset(WEATHER_ALERT_KEYS)
+WEATHER_ALERT_KEY_SET: Final[frozenset[WeatherAlertKey]] = frozenset(
+    WEATHER_ALERT_KEYS,
+)
 WEATHER_RECOMMENDATION_KEY_SET: Final[frozenset[WeatherRecommendationKey]] = frozenset(
-    WEATHER_RECOMMENDATION_KEYS
+    WEATHER_RECOMMENDATION_KEYS,
 )
 
-SUPPORTED_LANGUAGES: Final[frozenset[LanguageCode]] = frozenset(_WEATHER_TRANSLATIONS)
+SUPPORTED_LANGUAGES: Final[
+    frozenset[LanguageCode]
+] = frozenset(_WEATHER_TRANSLATIONS)
 
 
 def get_weather_translations(language: str) -> WeatherTranslations:

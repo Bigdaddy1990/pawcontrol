@@ -1,35 +1,39 @@
 """Observability helpers that keep :mod:`coordinator` concise."""
-
 from __future__ import annotations
 
 import sys
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Mapping
 from datetime import datetime
 from logging import getLogger
 from math import isfinite
-from typing import Any, Final, Literal, cast
+from typing import Any
+from typing import cast
+from typing import Final
+from typing import Literal
 
-from .coordinator_runtime import EntityBudgetSnapshot, summarize_entity_budgets
+from .coordinator_runtime import EntityBudgetSnapshot
+from .coordinator_runtime import summarize_entity_budgets
 from .coordinator_support import CoordinatorMetrics
-from .coordinator_tasks import default_rejection_metrics, derive_rejection_metrics
+from .coordinator_tasks import default_rejection_metrics
+from .coordinator_tasks import derive_rejection_metrics
 from .telemetry import summarise_bool_coercion_metrics
-from .types import (
-    AdaptivePollingDiagnostics,
-    BoolCoercionSummary,
-    CoordinatorPerformanceSnapshot,
-    CoordinatorPerformanceSnapshotCounts,
-    CoordinatorPerformanceSnapshotMetrics,
-    CoordinatorRejectionMetrics,
-    CoordinatorResilienceSummary,
-    CoordinatorSecurityAdaptiveCheck,
-    CoordinatorSecurityChecks,
-    CoordinatorSecurityEntityCheck,
-    CoordinatorSecurityScorecard,
-    CoordinatorSecurityWebhookCheck,
-    EntityBudgetSummary,
-    JSONMapping,
-    WebhookSecurityStatus,
-)
+from .types import AdaptivePollingDiagnostics
+from .types import BoolCoercionSummary
+from .types import CoordinatorPerformanceSnapshot
+from .types import CoordinatorPerformanceSnapshotCounts
+from .types import CoordinatorPerformanceSnapshotMetrics
+from .types import CoordinatorRejectionMetrics
+from .types import CoordinatorResilienceSummary
+from .types import CoordinatorSecurityAdaptiveCheck
+from .types import CoordinatorSecurityChecks
+from .types import CoordinatorSecurityEntityCheck
+from .types import CoordinatorSecurityScorecard
+from .types import CoordinatorSecurityWebhookCheck
+from .types import EntityBudgetSummary
+from .types import JSONMapping
+from .types import WebhookSecurityStatus
 
 type ResilienceListField = Literal[
     'open_breakers',
@@ -76,7 +80,9 @@ class EntityBudgetTracker:
         if not self._snapshots:
             return 0.0
 
-        total_capacity = sum(snapshot.capacity for snapshot in self._snapshots.values())
+        total_capacity = sum(
+            snapshot.capacity for snapshot in self._snapshots.values()
+        )
         if total_capacity <= 0:
             return 0.0
 
@@ -161,12 +167,16 @@ def build_performance_snapshot(
         snapshot['resilience_summary'] = resilience_payload
 
     snapshot['rejection_metrics'] = rejection_metrics
-    _apply_rejection_metrics_to_performance(performance_metrics, rejection_metrics)
+    _apply_rejection_metrics_to_performance(
+        performance_metrics, rejection_metrics,
+    )
 
-    telemetry_module = sys.modules.get('custom_components.pawcontrol.telemetry')
+    telemetry_module = sys.modules.get(
+        'custom_components.pawcontrol.telemetry',
+    )
     bool_summary: BoolCoercionSummary = summarise_bool_coercion_metrics()
     if telemetry_module is not None and hasattr(
-        telemetry_module, 'summarise_bool_coercion_metrics'
+        telemetry_module, 'summarise_bool_coercion_metrics',
     ):
         summary_func = cast(
             Callable[[], BoolCoercionSummary],
@@ -269,7 +279,7 @@ def _apply_rejection_metrics_to_performance(
             'unknown_breaker_ids': list(rejection_metrics['unknown_breaker_ids']),
             'rejection_breaker_ids': list(rejection_metrics['rejection_breaker_ids']),
             'rejection_breakers': list(rejection_metrics['rejection_breakers']),
-        }
+        },
     )
 
 
@@ -300,7 +310,9 @@ def build_security_scorecard(
     if not adaptive_pass:
         adaptive_check['reason'] = 'Update interval exceeds 200ms target'
 
-    peak_utilisation = _coerce_float(entity_summary.get('peak_utilization'), 0.0)
+    peak_utilisation = _coerce_float(
+        entity_summary.get('peak_utilization'), 0.0,
+    )
     peak_utilisation = max(0.0, min(100.0, peak_utilisation))
     entity_threshold = 95.0
     entity_pass = peak_utilisation <= entity_threshold
@@ -314,7 +326,7 @@ def build_security_scorecard(
         entity_check['reason'] = 'Entity budget utilisation above safe threshold'
 
     webhook_pass = (not webhook_status.get('configured')) or bool(
-        webhook_status.get('secure')
+        webhook_status.get('secure'),
     )
     webhook_payload = dict(webhook_status)
     webhook_payload.setdefault('configured', False)
@@ -333,7 +345,7 @@ def build_security_scorecard(
         webhook_check['error'] = webhook_snapshot['error']
     if not webhook_pass:
         webhook_check.setdefault(
-            'reason', 'Webhook configurations missing HMAC protection'
+            'reason', 'Webhook configurations missing HMAC protection',
         )
 
     checks: CoordinatorSecurityChecks = {
@@ -384,7 +396,7 @@ def normalise_webhook_status(manager: Any) -> WebhookSecurityStatus:
     status.setdefault('hmac_ready', False)
     insecure = status.get('insecure_configs', ())
     if isinstance(insecure, Iterable) and not isinstance(
-        insecure, str | bytes | bytearray
+        insecure, str | bytes | bytearray,
     ):
         status['insecure_configs'] = tuple(insecure)
     else:

@@ -1,25 +1,25 @@
 """Runtime data helpers for the PawControl integration."""
-
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, MutableMapping
-from typing import Literal, cast, overload
+from collections.abc import Mapping
+from collections.abc import MutableMapping
+from typing import cast
+from typing import Literal
+from typing import overload
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN
-from .types import (
-    DomainRuntimeStore,
-    DomainRuntimeStoreEntry,
-    PawControlConfigEntry,
-    PawControlRuntimeData,
-    RuntimeStoreCompatibilitySnapshot,
-    RuntimeStoreEntrySnapshot,
-    RuntimeStoreEntryStatus,
-    RuntimeStoreOverallStatus,
-)
+from .types import DomainRuntimeStore
+from .types import DomainRuntimeStoreEntry
+from .types import PawControlConfigEntry
+from .types import PawControlRuntimeData
+from .types import RuntimeStoreCompatibilitySnapshot
+from .types import RuntimeStoreEntrySnapshot
+from .types import RuntimeStoreEntryStatus
+from .types import RuntimeStoreOverallStatus
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def _resolve_entry_id(entry_or_id: PawControlConfigEntry | str) -> str:
 
 
 def _get_entry(
-    hass: HomeAssistant, entry_or_id: PawControlConfigEntry | str
+    hass: HomeAssistant, entry_or_id: PawControlConfigEntry | str,
 ) -> PawControlConfigEntry | None:
     """Resolve a config entry from ``entry_or_id`` when available."""
 
@@ -49,23 +49,25 @@ def _get_entry(
 
 @overload
 def _get_domain_store(
-    hass: HomeAssistant, *, create: Literal[True]
+    hass: HomeAssistant, *, create: Literal[True],
 ) -> DomainRuntimeStore: ...
 
 
 @overload
 def _get_domain_store(
-    hass: HomeAssistant, *, create: Literal[False]
+    hass: HomeAssistant, *, create: Literal[False],
 ) -> DomainRuntimeStore | None: ...
 
 
 def _get_domain_store(
-    hass: HomeAssistant, *, create: bool
+    hass: HomeAssistant, *, create: bool,
 ) -> DomainRuntimeStore | None:
     """Return the PawControl storage dictionary from ``hass.data``."""
 
     domain_data: object
-    domain_data = hass.data.setdefault(DOMAIN, {}) if create else hass.data.get(DOMAIN)
+    domain_data = hass.data.setdefault(
+        DOMAIN, {},
+    ) if create else hass.data.get(DOMAIN)
 
     if not isinstance(domain_data, MutableMapping):
         if not create:
@@ -110,13 +112,15 @@ def _coerce_version(candidate: object | None) -> int | None:
 
 
 def _stamp_runtime_schema(
-    entry_id: str, runtime_data: PawControlRuntimeData
+    entry_id: str, runtime_data: PawControlRuntimeData,
 ) -> tuple[int, int]:
     """Ensure runtime payloads carry compatible schema metadata."""
 
-    schema_version = _coerce_version(getattr(runtime_data, 'schema_version', None))
+    schema_version = _coerce_version(
+        getattr(runtime_data, 'schema_version', None),
+    )
     created_schema_version = _coerce_version(
-        getattr(runtime_data, 'schema_created_version', None)
+        getattr(runtime_data, 'schema_created_version', None),
     )
 
     if schema_version is None:
@@ -131,7 +135,7 @@ def _stamp_runtime_schema(
             'Future runtime schema detected for '
             f"{entry_id} (got schema={schema_version} "
             f"created={created_schema_version}, "
-            f"current={DomainRuntimeStoreEntry.CURRENT_VERSION})"
+            f"current={DomainRuntimeStoreEntry.CURRENT_VERSION})",
         )
 
     if created_schema_version < DomainRuntimeStoreEntry.MINIMUM_COMPATIBLE_VERSION:
@@ -185,7 +189,9 @@ def _as_store_entry(value: object | None) -> DomainRuntimeStoreEntry | None:
                 return None
 
             version = _coerce_version(mapping_value.get('version'))
-            created_version = _coerce_version(mapping_value.get('created_version'))
+            created_version = _coerce_version(
+                mapping_value.get('created_version'),
+            )
             if version is None:
                 return DomainRuntimeStoreEntry(runtime_data=runtime_data)
             if created_version is None:
@@ -257,7 +263,7 @@ def _build_runtime_store_snapshot(
     """Create a snapshot dictionary for runtime store metadata."""
 
     status = _resolve_entry_status(
-        available=available, version=version, created_version=created_version
+        available=available, version=version, created_version=created_version,
     )
     snapshot: RuntimeStoreEntrySnapshot = {
         'available': available,
@@ -269,7 +275,7 @@ def _build_runtime_store_snapshot(
 
 
 def _cleanup_domain_store(
-    hass: HomeAssistant, store: DomainRuntimeStore | None
+    hass: HomeAssistant, store: DomainRuntimeStore | None,
 ) -> None:
     """Remove the PawControl domain store when it no longer holds entries."""
 
@@ -291,13 +297,15 @@ def _get_store_entry_from_entry(
         return None
 
     schema_version, schema_created_version = _stamp_runtime_schema(
-        entry.entry_id, runtime_data
+        entry.entry_id, runtime_data,
     )
     version = _coerce_version(getattr(entry, _ENTRY_VERSION_ATTR, None))
     if version is None:
         version = schema_version
 
-    created_version = _coerce_version(getattr(entry, _ENTRY_CREATED_VERSION_ATTR, None))
+    created_version = _coerce_version(
+        getattr(entry, _ENTRY_CREATED_VERSION_ATTR, None),
+    )
     if created_version is None:
         created_version = schema_created_version
 
@@ -309,7 +317,7 @@ def _get_store_entry_from_entry(
 
 
 def _apply_entry_metadata(
-    entry: PawControlConfigEntry, store_entry: DomainRuntimeStoreEntry
+    entry: PawControlConfigEntry, store_entry: DomainRuntimeStoreEntry,
 ) -> None:
     """Persist runtime metadata on the config entry."""
 
@@ -333,7 +341,7 @@ def _detach_runtime_from_entry(entry: PawControlConfigEntry | None) -> None:
 
 
 def _normalise_store_entry(
-    entry_id: str, store_entry: DomainRuntimeStoreEntry
+    entry_id: str, store_entry: DomainRuntimeStoreEntry,
 ) -> DomainRuntimeStoreEntry:
     """Ensure ``store_entry`` aligns with the supported schema version."""
 
@@ -342,11 +350,11 @@ def _normalise_store_entry(
             'Future runtime store schema detected for '
             f"{entry_id} (got version={store_entry.version} "
             f"created={store_entry.created_version}, "
-            f"current={DomainRuntimeStoreEntry.CURRENT_VERSION})"
+            f"current={DomainRuntimeStoreEntry.CURRENT_VERSION})",
         )
 
     schema_version, schema_created_version = _stamp_runtime_schema(
-        entry_id, store_entry.runtime_data
+        entry_id, store_entry.runtime_data,
     )
 
     created_version = max(store_entry.created_version, schema_created_version)
@@ -379,7 +387,9 @@ def store_runtime_data(
     """Attach runtime data to the config entry and update compatibility caches."""
 
     _stamp_runtime_schema(entry.entry_id, runtime_data)
-    store_entry = DomainRuntimeStoreEntry(runtime_data=runtime_data).ensure_current()
+    store_entry = DomainRuntimeStoreEntry(
+        runtime_data=runtime_data,
+    ).ensure_current()
     _apply_entry_metadata(entry, store_entry)
 
     store = _get_domain_store(hass, create=True)
@@ -400,7 +410,9 @@ def get_runtime_data(
     try:
         entry_store_entry = _get_store_entry_from_entry(entry)
     except RuntimeDataIncompatibleError as err:
-        _LOGGER.error('Runtime data incompatible for entry %s: %s', entry_id, err)
+        _LOGGER.error(
+            'Runtime data incompatible for entry %s: %s', entry_id, err,
+        )
         _detach_runtime_from_entry(entry)
         if raise_on_incompatible:
             raise
@@ -410,7 +422,9 @@ def get_runtime_data(
         try:
             current_entry = _normalise_store_entry(entry_id, entry_store_entry)
         except RuntimeDataIncompatibleError as err:
-            _LOGGER.error('Runtime data incompatible for entry %s: %s', entry_id, err)
+            _LOGGER.error(
+                'Runtime data incompatible for entry %s: %s', entry_id, err,
+            )
             _detach_runtime_from_entry(entry)
             if raise_on_incompatible:
                 raise
@@ -443,7 +457,9 @@ def get_runtime_data(
     try:
         current_entry = _normalise_store_entry(entry_id, store_entry)
     except RuntimeDataIncompatibleError as err:
-        _LOGGER.error('Runtime data incompatible for entry %s: %s', entry_id, err)
+        _LOGGER.error(
+            'Runtime data incompatible for entry %s: %s', entry_id, err,
+        )
         if existing_store.pop(entry_id, None) is not None:
             _cleanup_domain_store(hass, existing_store)
         _detach_runtime_from_entry(entry)
@@ -460,7 +476,7 @@ def get_runtime_data(
 
 
 def describe_runtime_store_status(
-    hass: HomeAssistant, entry_or_id: PawControlConfigEntry | str
+    hass: HomeAssistant, entry_or_id: PawControlConfigEntry | str,
 ) -> RuntimeStoreCompatibilitySnapshot:
     """Return a compatibility summary for runtime store metadata."""
 
@@ -502,7 +518,9 @@ def describe_runtime_store_status(
         mapping_value = cast(Mapping[str, object], store_value)
         store_runtime = _as_runtime_data(mapping_value.get('runtime_data'))
         store_version = _coerce_version(mapping_value.get('version'))
-        store_created_version = _coerce_version(mapping_value.get('created_version'))
+        store_created_version = _coerce_version(
+            mapping_value.get('created_version'),
+        )
     else:
         store_runtime = _as_runtime_data(store_value)
 
@@ -561,7 +579,7 @@ def describe_runtime_store_status(
 
 
 def pop_runtime_data(
-    hass: HomeAssistant, entry_or_id: PawControlConfigEntry | str
+    hass: HomeAssistant, entry_or_id: PawControlConfigEntry | str,
 ) -> PawControlRuntimeData | None:
     """Remove and return runtime data for a config entry if present."""
 
@@ -616,7 +634,7 @@ class RuntimeDataIncompatibleError(RuntimeDataUnavailableError):
 
 
 def require_runtime_data(
-    hass: HomeAssistant, entry_or_id: PawControlConfigEntry | str
+    hass: HomeAssistant, entry_or_id: PawControlConfigEntry | str,
 ) -> PawControlRuntimeData:
     """Return runtime data or raise when unavailable."""
 
@@ -628,6 +646,6 @@ def require_runtime_data(
             else getattr(entry_or_id, 'entry_id', 'unknown')
         )
         raise RuntimeDataUnavailableError(
-            f"Runtime data unavailable for PawControl entry {entry_id}"
+            f"Runtime data unavailable for PawControl entry {entry_id}",
         )
     return runtime

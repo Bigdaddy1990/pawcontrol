@@ -8,13 +8,13 @@ of the environment. The fallback mirrors Home Assistant's ``TypedDict`` based
 selector APIs to provide identical configuration schemas without depending on
 the Core runtime during tests.
 """
-
 from __future__ import annotations
 
 from collections.abc import Sequence
 from enum import StrEnum
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any
+from typing import cast
 
 _REQUIRED_ATTRIBUTES = {
     'BooleanSelector',
@@ -149,7 +149,9 @@ else:
             # TypedDict type advertised by ``ConfigT``. The cast is safe because
             # TypedDicts accept missing keys when ``total=False`` and the runtime
             # helpers perform the same normalisation before storing configs.
-            default_config: ConfigT = cast(ConfigT, {}) if config is None else config
+            default_config: ConfigT = cast(
+                ConfigT, {},
+            ) if config is None else config
             self.config = default_config
 
         def __call__(self, value: Any) -> Any:

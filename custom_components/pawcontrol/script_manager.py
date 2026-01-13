@@ -6,85 +6,85 @@ notification workflows, reset helpers, and setup automation scripts directly in
 Home Assistant's ``script`` domain so that users can trigger the documented
 automation flows without manual YAML editing.
 """
-
 from __future__ import annotations
 
 import logging
 from collections import deque
-from collections.abc import (
-    Callable,
-    Collection,
-    Iterable,
-    Mapping,
-    MutableMapping,
-    Sequence,
-)
+from collections.abc import Callable
+from collections.abc import Collection
+from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import MutableMapping
+from collections.abc import Sequence
 from contextlib import suppress
 from datetime import datetime
-from typing import Any, Final, Literal, Protocol, cast
+from typing import Any
+from typing import cast
+from typing import Final
+from typing import Literal
+from typing import Protocol
 
 from homeassistant.components.script import DOMAIN as SCRIPT_DOMAIN
 from homeassistant.components.script import ScriptEntity
 from homeassistant.components.script.config import SCRIPT_ENTITY_SCHEMA
-from homeassistant.components.script.const import CONF_FIELDS, CONF_TRACE
-from homeassistant.const import (
-    CONF_ALIAS,
-    CONF_DEFAULT,
-    CONF_DESCRIPTION,
-    CONF_NAME,
-    CONF_SEQUENCE,
-)
-from homeassistant.core import CALLBACK_TYPE, Event, HomeAssistant, callback
+from homeassistant.components.script.const import CONF_FIELDS
+from homeassistant.components.script.const import CONF_TRACE
+from homeassistant.const import CONF_ALIAS
+from homeassistant.const import CONF_DEFAULT
+from homeassistant.const import CONF_DESCRIPTION
+from homeassistant.const import CONF_NAME
+from homeassistant.const import CONF_SEQUENCE
+from homeassistant.core import callback
+from homeassistant.core import CALLBACK_TYPE
+from homeassistant.core import Event
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_component import EntityComponent
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
-from .compat import ConfigEntry, HomeAssistantError
-from .const import (
-    CACHE_TIMESTAMP_FUTURE_THRESHOLD,
-    CACHE_TIMESTAMP_STALE_THRESHOLD,
-    CONF_DOG_ID,
-    CONF_DOG_NAME,
-    DEFAULT_MANUAL_BREAKER_EVENT,
-    DEFAULT_MANUAL_CHECK_EVENT,
-    DEFAULT_MANUAL_GUARD_EVENT,
-    DEFAULT_RESILIENCE_BREAKER_THRESHOLD,
-    DEFAULT_RESILIENCE_SKIP_THRESHOLD,
-    DOMAIN,
-    MANUAL_EVENT_SOURCE_CANONICAL,
-    MODULE_NOTIFICATIONS,
-    RESILIENCE_BREAKER_THRESHOLD_MAX,
-    RESILIENCE_BREAKER_THRESHOLD_MIN,
-    RESILIENCE_SKIP_THRESHOLD_MAX,
-    RESILIENCE_SKIP_THRESHOLD_MIN,
-)
+from .compat import ConfigEntry
+from .compat import HomeAssistantError
+from .const import CACHE_TIMESTAMP_FUTURE_THRESHOLD
+from .const import CACHE_TIMESTAMP_STALE_THRESHOLD
+from .const import CONF_DOG_ID
+from .const import CONF_DOG_NAME
+from .const import DEFAULT_MANUAL_BREAKER_EVENT
+from .const import DEFAULT_MANUAL_CHECK_EVENT
+from .const import DEFAULT_MANUAL_GUARD_EVENT
+from .const import DEFAULT_RESILIENCE_BREAKER_THRESHOLD
+from .const import DEFAULT_RESILIENCE_SKIP_THRESHOLD
+from .const import DOMAIN
+from .const import MANUAL_EVENT_SOURCE_CANONICAL
+from .const import MODULE_NOTIFICATIONS
+from .const import RESILIENCE_BREAKER_THRESHOLD_MAX
+from .const import RESILIENCE_BREAKER_THRESHOLD_MIN
+from .const import RESILIENCE_SKIP_THRESHOLD_MAX
+from .const import RESILIENCE_SKIP_THRESHOLD_MIN
 from .coordinator_support import CacheMonitorRegistrar
-from .types import (
-    CacheDiagnosticsMetadata,
-    CacheDiagnosticsSnapshot,
-    ConfigEntryOptionsPayload,
-    DogConfigData,
-    JSONMutableMapping,
-    JSONValue,
-    ManualResilienceAutomationEntry,
-    ManualResilienceEventRecord,
-    ManualResilienceEventSelection,
-    ManualResilienceEventSnapshot,
-    ManualResilienceEventSource,
-    ManualResilienceEventsTelemetry,
-    ManualResilienceListenerMetadata,
-    ManualResilienceOptionsSnapshot,
-    ManualResiliencePreferenceKey,
-    ManualResilienceSystemSettingsSnapshot,
-    ResilienceEscalationSnapshot,
-    ResilienceEscalationThresholds,
-    ScriptManagerDogScripts,
-    ScriptManagerSnapshot,
-    ScriptManagerStats,
-    ensure_dog_modules_mapping,
-)
+from .types import CacheDiagnosticsMetadata
+from .types import CacheDiagnosticsSnapshot
+from .types import ConfigEntryOptionsPayload
+from .types import DogConfigData
+from .types import ensure_dog_modules_mapping
+from .types import JSONMutableMapping
+from .types import JSONValue
+from .types import ManualResilienceAutomationEntry
+from .types import ManualResilienceEventRecord
+from .types import ManualResilienceEventSelection
+from .types import ManualResilienceEventSnapshot
+from .types import ManualResilienceEventSource
+from .types import ManualResilienceEventsTelemetry
+from .types import ManualResilienceListenerMetadata
+from .types import ManualResilienceOptionsSnapshot
+from .types import ManualResiliencePreferenceKey
+from .types import ManualResilienceSystemSettingsSnapshot
+from .types import ResilienceEscalationSnapshot
+from .types import ResilienceEscalationThresholds
+from .types import ScriptManagerDogScripts
+from .types import ScriptManagerSnapshot
+from .types import ScriptManagerStats
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -203,11 +203,15 @@ def _parse_manual_resilience_system_settings(
         if manual_event is not None:
             settings[key] = manual_event
 
-    skip_threshold = _coerce_optional_int(value.get('resilience_skip_threshold'))
+    skip_threshold = _coerce_optional_int(
+        value.get('resilience_skip_threshold'),
+    )
     if skip_threshold is not None:
         settings['resilience_skip_threshold'] = skip_threshold
 
-    breaker_threshold = _coerce_optional_int(value.get('resilience_breaker_threshold'))
+    breaker_threshold = _coerce_optional_int(
+        value.get('resilience_breaker_threshold'),
+    )
     if breaker_threshold is not None:
         settings['resilience_breaker_threshold'] = breaker_threshold
 
@@ -229,20 +233,26 @@ def _parse_manual_resilience_options(
         if manual_event is not None:
             options[key] = manual_event
 
-    skip_threshold = _coerce_optional_int(value.get('resilience_skip_threshold'))
+    skip_threshold = _coerce_optional_int(
+        value.get('resilience_skip_threshold'),
+    )
     if skip_threshold is not None:
         options['resilience_skip_threshold'] = skip_threshold
 
-    breaker_threshold = _coerce_optional_int(value.get('resilience_breaker_threshold'))
+    breaker_threshold = _coerce_optional_int(
+        value.get('resilience_breaker_threshold'),
+    )
     if breaker_threshold is not None:
         options['resilience_breaker_threshold'] = breaker_threshold
 
-    history_size = _coerce_manual_history_size(value.get('manual_event_history_size'))
+    history_size = _coerce_manual_history_size(
+        value.get('manual_event_history_size'),
+    )
     if history_size is not None:
         options['manual_event_history_size'] = history_size
 
     system_settings = _parse_manual_resilience_system_settings(
-        value.get('system_settings')
+        value.get('system_settings'),
     )
     if system_settings is not None:
         options['system_settings'] = system_settings
@@ -268,7 +278,7 @@ def _parse_event_selection(
 
 
 def _coerce_threshold(
-    value: object, *, default: int, minimum: int, maximum: int
+    value: object, *, default: int, minimum: int, maximum: int,
 ) -> int:
     """Return a clamped integer threshold for resilience configuration."""
 
@@ -303,7 +313,7 @@ def _extract_field_int(fields: ScriptFieldDefinitions | None, key: str) -> int |
 
 
 def resolve_resilience_script_thresholds(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant, entry: ConfigEntry,
 ) -> tuple[int | None, int | None]:
     """Return skip and breaker thresholds from the generated script entity."""
 
@@ -317,7 +327,9 @@ def resolve_resilience_script_thresholds(
         return None, None
 
     attributes = getattr(state, 'attributes', {})
-    raw_fields = attributes.get('fields') if isinstance(attributes, Mapping) else None
+    raw_fields = attributes.get('fields') if isinstance(
+        attributes, Mapping,
+    ) else None
     fields: ScriptFieldDefinitions | None
     if isinstance(raw_fields, Mapping):
         fields = cast(ScriptFieldDefinitions, raw_fields)
@@ -339,7 +351,7 @@ def _is_resilience_blueprint(use_blueprint: Mapping[str, object] | None) -> bool
         use_blueprint.get('blueprint_id')
         or use_blueprint.get('path')
         or use_blueprint.get('id')
-        or ''
+        or '',
     )
     if not identifier:
         return False
@@ -373,7 +385,7 @@ def _serialise_event_data(data: Mapping[str, object]) -> JSONMutableMapping:
             serialised[key_text] = _serialise_event_data(value)
             continue
         if isinstance(value, Sequence) and not isinstance(
-            value, str | bytes | bytearray
+            value, str | bytes | bytearray,
         ):
             serialised[key_text] = [
                 item
@@ -399,14 +411,18 @@ class _ScriptManagerCacheMonitor:
     ) -> tuple[ScriptManagerStats, ScriptManagerSnapshot, CacheDiagnosticsMetadata]:
         manager = self._manager
         created_entities = cast(
-            Iterable[str], getattr(manager, '_created_entities', set())
+            Iterable[str], getattr(manager, '_created_entities', set()),
         )
         dog_scripts = cast(
-            dict[str, Iterable[str]], getattr(manager, '_dog_scripts', {})
+            dict[str, Iterable[str]], getattr(manager, '_dog_scripts', {}),
         )
-        entry_scripts = cast(Iterable[str], getattr(manager, '_entry_scripts', []))
+        entry_scripts = cast(
+            Iterable[str], getattr(
+            manager, '_entry_scripts', [],
+            ),
+        )
         last_generation = cast(
-            datetime | None, getattr(manager, '_last_generation', None)
+            datetime | None, getattr(manager, '_last_generation', None),
         )
 
         created_list = sorted(
@@ -416,12 +432,16 @@ class _ScriptManagerCacheMonitor:
         for dog_id, scripts in dog_scripts.items():
             if not isinstance(dog_id, str):
                 continue
-            script_list = [entity for entity in scripts if isinstance(entity, str)]
+            script_list = [
+                entity for entity in scripts if isinstance(entity, str)
+            ]
             per_dog[dog_id] = {
                 'count': len(script_list),
                 'scripts': script_list,
             }
-        entry_list = [entity for entity in entry_scripts if isinstance(entity, str)]
+        entry_list = [
+            entity for entity in entry_scripts if isinstance(entity, str)
+        ]
 
         stats: ScriptManagerStats = {
             'scripts': len(created_list),
@@ -503,7 +523,7 @@ class PawControlScriptManager:
         self._manual_event_unsubscribes: dict[str, CALLBACK_TYPE] = {}
         self._manual_history_maxlen = self._resolve_manual_history_size()
         self._manual_event_history: deque[ManualResilienceEventRecord] = deque(
-            maxlen=self._manual_history_maxlen
+            maxlen=self._manual_history_maxlen,
         )
         self._last_manual_event: ManualResilienceEventRecord | None = None
         self._entry_slug = _normalise_entry_slug(entry)
@@ -514,7 +534,9 @@ class PawControlScriptManager:
         self._restore_manual_event_history_from_runtime()
         if self._manual_event_history:
             self._last_manual_event = cast(
-                ManualResilienceEventRecord, dict(self._manual_event_history[-1])
+                ManualResilienceEventRecord, dict(
+                    self._manual_event_history[-1],
+                ),
             )
         self._sync_manual_history_to_runtime()
 
@@ -533,25 +555,32 @@ class PawControlScriptManager:
         self._manual_event_counters.clear()
         if self._manual_event_history:
             self._last_manual_event = cast(
-                ManualResilienceEventRecord, dict(self._manual_event_history[-1])
+                ManualResilienceEventRecord, dict(
+                    self._manual_event_history[-1],
+                ),
             )
         else:
             self._last_manual_event = None
         self._refresh_manual_event_listeners()
         self._sync_manual_history_to_runtime()
-        _LOGGER.debug('Script manager initialised for entry %s', self._entry.entry_id)
+        _LOGGER.debug(
+            'Script manager initialised for entry %s',
+            self._entry.entry_id,
+        )
 
     def register_cache_monitors(
-        self, registrar: CacheMonitorRegistrar, *, prefix: str = 'script_manager'
+        self, registrar: CacheMonitorRegistrar, *, prefix: str = 'script_manager',
     ) -> None:
         """Expose script diagnostics through the shared cache monitor registry."""
 
         if registrar is None:
             raise ValueError('registrar is required')
 
-        _LOGGER.debug('Registering script manager cache monitor with prefix %s', prefix)
+        _LOGGER.debug(
+            'Registering script manager cache monitor with prefix %s', prefix,
+        )
         registrar.register_cache_monitor(
-            f"{prefix}_cache", _ScriptManagerCacheMonitor(self)
+            f"{prefix}_cache", _ScriptManagerCacheMonitor(self),
         )
 
     def attach_runtime_manual_history(self, runtime: object) -> None:
@@ -596,7 +625,7 @@ class PawControlScriptManager:
             if not isinstance(mapping, Mapping):
                 continue
             candidate = _coerce_manual_history_size(
-                mapping.get('manual_event_history_size')
+                mapping.get('manual_event_history_size'),
             )
             if candidate is not None:
                 return candidate
@@ -614,7 +643,9 @@ class PawControlScriptManager:
             self._manual_history_maxlen = desired
             return
 
-        self._manual_event_history = deque(self._manual_event_history, maxlen=desired)
+        self._manual_event_history = deque(
+            self._manual_event_history, maxlen=desired,
+        )
         self._manual_history_maxlen = desired
         self._sync_manual_history_to_runtime()
 
@@ -679,7 +710,7 @@ class PawControlScriptManager:
         )
 
         script_skip, script_breaker = resolve_resilience_script_thresholds(
-            self._hass, self._entry
+            self._hass, self._entry,
         )
         if script_skip is not None:
             skip_threshold = _coerce_threshold(
@@ -707,11 +738,11 @@ class PawControlScriptManager:
         options = _parse_manual_resilience_options(raw_options)
         system_settings = options.get('system_settings')
         script_skip, script_breaker = resolve_resilience_script_thresholds(
-            self._hass, self._entry
+            self._hass, self._entry,
         )
 
         if not self._should_migrate_resilience_thresholds(
-            script_skip, script_breaker, system_settings
+            script_skip, script_breaker, system_settings,
         ):
             return None
 
@@ -892,7 +923,9 @@ class PawControlScriptManager:
             inputs_key = 'input' if 'input' in blueprint else 'inputs'
             existing_inputs = blueprint.get(inputs_key)
             inputs_mapping = (
-                existing_inputs if isinstance(existing_inputs, Mapping) else None
+                existing_inputs if isinstance(
+                    existing_inputs, Mapping,
+                ) else None
             )
             inputs_selection = _parse_event_selection(inputs_mapping)
             manual_guard = inputs_selection.get('manual_guard_event')
@@ -942,7 +975,9 @@ class PawControlScriptManager:
             ):
                 option_value = _normalise_manual_event(raw_options.get(key))
                 if option_value:
-                    canonical_sources.setdefault(option_value, set()).add('options')
+                    canonical_sources.setdefault(
+                        option_value, set(),
+                    ).add('options')
 
             system_settings_map = raw_options.get('system_settings')
             if isinstance(system_settings_map, Mapping):
@@ -951,10 +986,12 @@ class PawControlScriptManager:
                     'manual_guard_event',
                     'manual_breaker_event',
                 ):
-                    option_value = _normalise_manual_event(system_settings_map.get(key))
+                    option_value = _normalise_manual_event(
+                        system_settings_map.get(key),
+                    )
                     if option_value:
                         canonical_sources.setdefault(option_value, set()).add(
-                            'system_settings'
+                            'system_settings',
                         )
 
         entry_data = getattr(self._entry, 'data', {})
@@ -966,7 +1003,9 @@ class PawControlScriptManager:
             ):
                 data_value = _normalise_manual_event(entry_data.get(key))
                 if data_value:
-                    canonical_sources.setdefault(data_value, set()).add('config_entry')
+                    canonical_sources.setdefault(
+                        data_value, set(),
+                    ).add('config_entry')
 
         for default_value in (
             DEFAULT_MANUAL_CHECK_EVENT,
@@ -1091,7 +1130,7 @@ class PawControlScriptManager:
                 raw_sources = metadata.get('sources')
                 canonical_tags: list[str] = []
                 if isinstance(raw_sources, Sequence) and not isinstance(
-                    raw_sources, str | bytes
+                    raw_sources, str | bytes,
                 ):
                     canonical_tags = [
                         str(source)
@@ -1152,7 +1191,7 @@ class PawControlScriptManager:
         if isinstance(listener_sources, Mapping):
             for event_type, raw_sources in listener_sources.items():
                 if not isinstance(raw_sources, Sequence) or isinstance(
-                    raw_sources, str | bytes | bytearray
+                    raw_sources, str | bytes | bytearray,
                 ):
                     continue
                 normalised_sources = tuple(
@@ -1204,11 +1243,13 @@ class PawControlScriptManager:
             try:
                 unsubscribe()
             except Exception:  # pragma: no cover - defensive cleanup
-                _LOGGER.debug('Error unsubscribing manual listener for %s', event_type)
+                _LOGGER.debug(
+                    'Error unsubscribing manual listener for %s', event_type,
+                )
         self._manual_event_sources.clear()
 
     def _coerce_manual_event_record(
-        self, value: object
+        self, value: object,
     ) -> ManualResilienceEventRecord | None:
         """Normalise ``value`` into a manual event record when possible."""
 
@@ -1221,14 +1262,16 @@ class PawControlScriptManager:
         if isinstance(event_type, str) and event_type:
             record['event_type'] = event_type
 
-        preference_key = value.get('preference_key') or value.get('matched_preference')
+        preference_key = value.get(
+            'preference_key',
+        ) or value.get('matched_preference')
         if isinstance(preference_key, str) and preference_key in {
             'manual_check_event',
             'manual_guard_event',
             'manual_breaker_event',
         }:
             record['preference_key'] = cast(
-                ManualResiliencePreferenceKey, preference_key
+                ManualResiliencePreferenceKey, preference_key,
             )
 
         configured_role = value.get('configured_role') or value.get('category')
@@ -1238,7 +1281,7 @@ class PawControlScriptManager:
             'breaker',
         }:
             record['configured_role'] = cast(
-                Literal['check', 'guard', 'breaker'], configured_role
+                Literal['check', 'guard', 'breaker'], configured_role,
             )
 
         def _normalise_datetime(value: object) -> datetime | None:
@@ -1278,7 +1321,7 @@ class PawControlScriptManager:
 
         raw_sources = value.get('sources')
         if isinstance(raw_sources, Sequence) and not isinstance(
-            raw_sources, str | bytes | bytearray
+            raw_sources, str | bytes | bytearray,
         ):
             sources = tuple(
                 str(source)
@@ -1357,7 +1400,9 @@ class PawControlScriptManager:
             return None
 
         fired_at = record.get('time_fired')
-        fired_dt = dt_util.as_utc(fired_at) if isinstance(fired_at, datetime) else None
+        fired_dt = dt_util.as_utc(fired_at) if isinstance(
+            fired_at, datetime,
+        ) else None
         fired_iso = _serialize_datetime(fired_dt)
         fired_age: int | None = None
         if fired_dt is not None:
@@ -1365,12 +1410,16 @@ class PawControlScriptManager:
 
         received_at = record.get('received_at')
         received_dt = (
-            dt_util.as_utc(received_at) if isinstance(received_at, datetime) else None
+            dt_util.as_utc(received_at) if isinstance(
+                received_at, datetime,
+            ) else None
         )
         received_iso = _serialize_datetime(received_dt)
         received_age: int | None = None
         if received_dt is not None:
-            received_age = int((dt_util.utcnow() - received_dt).total_seconds())
+            received_age = int(
+                (dt_util.utcnow() - received_dt).total_seconds(),
+            )
 
         configured_role = record.get('configured_role')
         category: Literal['check', 'guard', 'breaker', 'unknown']
@@ -1379,13 +1428,15 @@ class PawControlScriptManager:
             'guard',
             'breaker',
         }:
-            category = cast(Literal['check', 'guard', 'breaker'], configured_role)
+            category = cast(
+                Literal['check', 'guard', 'breaker'], configured_role,
+            )
         else:
             category = 'unknown'
 
         raw_sources = record.get('sources')
         if isinstance(raw_sources, Sequence) and not isinstance(
-            raw_sources, str | bytes | bytearray
+            raw_sources, str | bytes | bytearray,
         ):
             sources_iter = [
                 str(source)
@@ -1404,7 +1455,9 @@ class PawControlScriptManager:
             elif isinstance(recorded_at, str):
                 parsed_recorded = dt_util.parse_datetime(recorded_at)
                 recorded_dt = (
-                    dt_util.as_utc(parsed_recorded) if parsed_recorded else None
+                    dt_util.as_utc(
+                        parsed_recorded,
+                    ) if parsed_recorded else None
                 )
             else:
                 recorded_dt = None
@@ -1415,7 +1468,9 @@ class PawControlScriptManager:
             elif isinstance(raw_recorded, str):
                 parsed_recorded = dt_util.parse_datetime(raw_recorded)
                 recorded_dt = (
-                    dt_util.as_utc(parsed_recorded) if parsed_recorded else None
+                    dt_util.as_utc(
+                        parsed_recorded,
+                    ) if parsed_recorded else None
                 )
             else:
                 recorded_dt = None
@@ -1424,19 +1479,25 @@ class PawControlScriptManager:
 
         if recorded_dt is not None:
             recorded_iso = _serialize_datetime(recorded_dt)
-            recorded_age = int((dt_util.utcnow() - recorded_dt).total_seconds())
+            recorded_age = int(
+                (dt_util.utcnow() - recorded_dt).total_seconds(),
+            )
         else:
             recorded_iso = received_iso
             recorded_age = received_age
 
         event_type_value = record.get('event_type')
-        event_type = event_type_value if isinstance(event_type_value, str) else None
+        event_type = event_type_value if isinstance(
+            event_type_value, str,
+        ) else None
 
         snapshot: ManualResilienceEventSnapshot = {
             'event_type': event_type,
             'category': category,
             'matched_preference': cast(
-                ManualResiliencePreferenceKey | None, record.get('preference_key')
+                ManualResiliencePreferenceKey | None, record.get(
+                    'preference_key',
+                ),
             ),
             'time_fired': fired_iso,
             'time_fired_age_seconds': fired_age,
@@ -1455,7 +1516,7 @@ class PawControlScriptManager:
             snapshot['data'] = cast(JSONMutableMapping, dict(data_payload))
         reasons = record.get('reasons')
         if isinstance(reasons, Sequence) and not isinstance(
-            reasons, str | bytes | bytearray
+            reasons, str | bytes | bytearray,
         ):
             reasons_list = [
                 str(reason) for reason in reasons if isinstance(reason, str) and reason
@@ -1505,7 +1566,7 @@ class PawControlScriptManager:
         raw_listener_sources = source.get('listener_sources')
         listener_sources: tuple[str, ...] | None = None
         if isinstance(raw_listener_sources, Sequence) and not isinstance(
-            raw_listener_sources, str | bytes | bytearray
+            raw_listener_sources, str | bytes | bytearray,
         ):
             normalised_sources = tuple(
                 str(source_label)
@@ -1517,7 +1578,9 @@ class PawControlScriptManager:
 
         fired_raw = getattr(event, 'time_fired', None)
         fired_at = (
-            dt_util.as_utc(fired_raw) if isinstance(fired_raw, datetime) else None
+            dt_util.as_utc(fired_raw) if isinstance(
+                fired_raw, datetime,
+            ) else None
         )
 
         context = getattr(event, 'context', None)
@@ -1546,18 +1609,22 @@ class PawControlScriptManager:
         if configured_role is not None:
             record['configured_role'] = configured_role
         self._manual_event_history.append(record)
-        self._last_manual_event = cast(ManualResilienceEventRecord, dict(record))
+        self._last_manual_event = cast(
+            ManualResilienceEventRecord, dict(record),
+        )
         self._sync_manual_history_to_runtime()
         reasons: list[str] = []
         if isinstance(configured_role, str) and configured_role:
-            reasons.append(cast(Literal['check', 'guard', 'breaker'], configured_role))
+            reasons.append(
+                cast(Literal['check', 'guard', 'breaker'], configured_role),
+            )
         if reasons:
             record['reasons'] = reasons
 
         source_tags = source.get('source_tags')
         canonical_sources: list[str] = []
         if isinstance(source_tags, Sequence) and not isinstance(
-            source_tags, str | bytes
+            source_tags, str | bytes,
         ):
             canonical_sources = [
                 str(tag) for tag in source_tags if isinstance(tag, str) and tag
@@ -1584,10 +1651,12 @@ class PawControlScriptManager:
                 self._manual_event_counters.get(event_type, 0) + 1
             )
 
-        self._last_manual_event = cast(ManualResilienceEventRecord, dict(record))
+        self._last_manual_event = cast(
+            ManualResilienceEventRecord, dict(record),
+        )
 
     async def async_sync_manual_resilience_events(
-        self, events: ManualResilienceEventSelection
+        self, events: ManualResilienceEventSelection,
     ) -> None:
         """Update resilience blueprint automations with preferred manual events."""
 
@@ -1600,14 +1669,14 @@ class PawControlScriptManager:
 
         if not callable(entries_callable) or not callable(update_entry):
             _LOGGER.debug(
-                'Skipping manual resilience event sync; config entry API not available'
+                'Skipping manual resilience event sync; config entry API not available',
             )
             return
 
         automation_entries = entries_callable('automation') or []
         if not automation_entries:
             _LOGGER.debug(
-                'Skipping manual resilience event sync; no automation entries discovered'
+                'Skipping manual resilience event sync; no automation entries discovered',
             )
             return
 
@@ -1673,22 +1742,26 @@ class PawControlScriptManager:
             updated_any = True
 
         if updated_any:
-            _LOGGER.debug('Synchronized manual resilience events with blueprint inputs')
+            _LOGGER.debug(
+                'Synchronized manual resilience events with blueprint inputs',
+            )
 
         self._refresh_manual_event_listeners()
 
     def _get_component(
-        self, *, require_loaded: bool = True
+        self, *, require_loaded: bool = True,
     ) -> EntityComponent[Any] | None:
         """Return the Home Assistant script entity component."""
 
-        component: EntityComponent[Any] | None = self._hass.data.get(SCRIPT_DOMAIN)
+        component: EntityComponent[Any] | None = self._hass.data.get(
+            SCRIPT_DOMAIN,
+        )
         if component is None:
             if require_loaded:
                 raise HomeAssistantError(
                     'The Home Assistant script integration is not loaded. '
                     "Enable the built-in script integration to use PawControl's "
-                    'auto-generated scripts.'
+                    'auto-generated scripts.',
                 )
             return None
 
@@ -1719,14 +1792,16 @@ class PawControlScriptManager:
             dog_id = dog.get(CONF_DOG_ID)
             if not isinstance(dog_id, str) or not dog_id:
                 _LOGGER.debug(
-                    'Skipping script generation for invalid dog entry: %s', dog
+                    'Skipping script generation for invalid dog entry: %s', dog,
                 )
                 continue
 
             processed_dogs.add(dog_id)
             raw_name = dog.get(CONF_DOG_NAME)
             dog_name = (
-                raw_name if isinstance(raw_name, str) and raw_name.strip() else dog_id
+                raw_name if isinstance(
+                    raw_name, str,
+                ) and raw_name.strip() else dog_id
             )
             slug = slugify(dog_id)
 
@@ -1735,11 +1810,11 @@ class PawControlScriptManager:
 
             dog_modules = ensure_dog_modules_mapping(dog)
             dog_notifications_enabled = dog_modules.get(
-                MODULE_NOTIFICATIONS, global_notifications_enabled
+                MODULE_NOTIFICATIONS, global_notifications_enabled,
             )
 
             script_definitions = self._build_scripts_for_dog(
-                slug, dog_id, dog_name, dog_notifications_enabled
+                slug, dog_id, dog_name, dog_notifications_enabled,
             )
 
             for object_id, raw_config in script_definitions:
@@ -1767,7 +1842,7 @@ class PawControlScriptManager:
                     entry.config_entry_id != self._entry.entry_id
                 ):
                     registry.async_update_entity(
-                        entity_id, config_entry_id=self._entry.entry_id
+                        entity_id, config_entry_id=self._entry.entry_id,
                     )
 
             # Remove scripts that are no longer needed for this dog (e.g. module disabled)
@@ -1812,10 +1887,11 @@ class PawControlScriptManager:
                 entry.config_entry_id != self._entry.entry_id
             ):
                 registry.async_update_entity(
-                    entity_id, config_entry_id=self._entry.entry_id
+                    entity_id, config_entry_id=self._entry.entry_id,
                 )
 
-        obsolete_entry_scripts = existing_entry_scripts - set(new_entry_scripts)
+        obsolete_entry_scripts = existing_entry_scripts - \
+            set(new_entry_scripts)
         for entity_id in obsolete_entry_scripts:
             await self._async_remove_script_entity(entity_id)
 
@@ -1859,7 +1935,7 @@ class PawControlScriptManager:
         self._entry_scripts.clear()
         self._unsubscribe_manual_event_listeners()
         _LOGGER.debug(
-            'Removed all PawControl managed scripts for entry %s', self._entry.entry_id
+            'Removed all PawControl managed scripts for entry %s', self._entry.entry_id,
         )
 
     async def _async_remove_script_entity(self, entity_id: str) -> None:
@@ -1889,12 +1965,22 @@ class PawControlScriptManager:
 
         scripts.append(self._build_reset_script(slug, dog_id, dog_name))
         scripts.append(
-            self._build_setup_script(slug, dog_id, dog_name, notifications_enabled)
+            self._build_setup_script(
+                slug, dog_id, dog_name, notifications_enabled,
+            ),
         )
 
         if notifications_enabled:
-            scripts.append(self._build_confirmation_script(slug, dog_id, dog_name))
-            scripts.append(self._build_push_test_script(slug, dog_id, dog_name))
+            scripts.append(
+                self._build_confirmation_script(
+                slug, dog_id, dog_name,
+                ),
+            )
+            scripts.append(
+                self._build_push_test_script(
+                slug, dog_id, dog_name,
+                ),
+            )
 
         return scripts
 
@@ -1983,7 +2069,7 @@ class PawControlScriptManager:
                             'value_template': (
                                 "{{ followup_script | default('') | trim != '' }}"
                             ),
-                        }
+                        },
                     ],
                     'sequence': [
                         {
@@ -1997,11 +2083,11 @@ class PawControlScriptManager:
                                     'guard_reasons': "{{ guard.get('reasons', {}) }}",
                                     'breaker_count': '{{ breaker_count }}',
                                     'half_open_count': '{{ half_open_count }}',
-                                }
+                                },
                             },
-                        }
+                        },
                     ],
-                }
+                },
             ],
             'default': [],
         }
@@ -2015,7 +2101,7 @@ class PawControlScriptManager:
                             'value_template': (
                                 "{{ followup_script | default('') | trim != '' }}"
                             ),
-                        }
+                        },
                     ],
                     'sequence': [
                         {
@@ -2030,11 +2116,11 @@ class PawControlScriptManager:
                                     'half_open_breakers': "{{ rejection.get('half_open_breakers', []) }}",
                                     'skip_count': '{{ skip_count }}',
                                     'executed_count': '{{ executed_count }}',
-                                }
+                                },
                             },
-                        }
+                        },
                     ],
-                }
+                },
             ],
             'default': [],
         }
@@ -2051,7 +2137,7 @@ class PawControlScriptManager:
                                     '{{ (skip_threshold | int(0)) > 0 and '
                                     'skip_count >= (skip_threshold | int(0)) }}'
                                 ),
-                            }
+                            },
                         ],
                         'sequence': [
                             {
@@ -2082,7 +2168,7 @@ class PawControlScriptManager:
                                     'breaker_count >= (breaker_threshold | int(0)) or '
                                     'half_open_count >= (breaker_threshold | int(0))) }}'
                                 ),
-                            }
+                            },
                         ],
                         'sequence': [
                             {
@@ -2250,32 +2336,41 @@ class PawControlScriptManager:
         if entity_id is None and isinstance(object_id, str):
             entity_id = f"{SCRIPT_DOMAIN}.{object_id}"
 
-        field_defaults = cast(JSONMutableMapping, definition.get('field_defaults', {}))
+        field_defaults = cast(
+            JSONMutableMapping,
+            definition.get('field_defaults', {}),
+        )
         manual_events = self._resolve_manual_resilience_events()
         manual_preferences = self._manual_event_preferences()
         if not self._manual_event_sources:
             self._refresh_manual_event_listeners()
         source_mapping = self._manual_event_source_mapping()
         manual_payload: JSONMutableMapping = cast(
-            JSONMutableMapping, dict(manual_events)
+            JSONMutableMapping, dict(manual_events),
         )
-        active_listeners = sorted({*self._manual_event_sources, *source_mapping})
-        manual_payload['preferred_events'] = cast(JSONValue, dict(manual_preferences))
+        active_listeners = sorted(
+            {*self._manual_event_sources, *source_mapping},
+        )
+        manual_payload['preferred_events'] = cast(
+            JSONValue, dict(manual_preferences),
+        )
         manual_payload['preferred_guard_event'] = cast(
-            JSONValue, manual_preferences.get('manual_guard_event')
+            JSONValue, manual_preferences.get('manual_guard_event'),
         )
         manual_payload['preferred_breaker_event'] = cast(
-            JSONValue, manual_preferences.get('manual_breaker_event')
+            JSONValue, manual_preferences.get('manual_breaker_event'),
         )
         manual_payload['preferred_check_event'] = cast(
-            JSONValue, manual_preferences.get('manual_check_event')
+            JSONValue, manual_preferences.get('manual_check_event'),
         )
-        manual_payload['active_listeners'] = cast(JSONValue, list(active_listeners))
+        manual_payload['active_listeners'] = cast(
+            JSONValue, list(active_listeners),
+        )
         manual_payload['last_event'] = cast(
-            JSONValue, self.get_last_manual_event_snapshot()
+            JSONValue, self.get_last_manual_event_snapshot(),
         )
         manual_payload['event_history'] = cast(
-            JSONValue, self.get_manual_event_history()
+            JSONValue, self.get_manual_event_history(),
         )
 
         state = None
@@ -2297,7 +2392,7 @@ class PawControlScriptManager:
         last_triggered_age: int | None = None
         if last_triggered is not None:
             last_triggered_age = int(
-                (dt_util.utcnow() - dt_util.as_utc(last_triggered)).total_seconds()
+                (dt_util.utcnow() - dt_util.as_utc(last_triggered)).total_seconds(),
             )
 
         active_field_defaults: JSONMutableMapping = {}
@@ -2330,7 +2425,9 @@ class PawControlScriptManager:
 
         followup_active = _active_value('followup_script')
 
-        timestamp_issue, last_generated_age = _classify_timestamp(self._last_generation)
+        timestamp_issue, last_generated_age = _classify_timestamp(
+            self._last_generation,
+        )
 
         manual_last_trigger: ManualResilienceEventSnapshot | None = None
         candidate_record: ManualResilienceEventRecord | Mapping[str, object] | None = (
@@ -2343,7 +2440,7 @@ class PawControlScriptManager:
 
         if candidate_record is not None:
             snapshot = self._serialise_manual_event_record(
-                candidate_record, recorded_at=dt_util.utcnow()
+                candidate_record, recorded_at=dt_util.utcnow(),
             )
             if snapshot is not None:
                 manual_last_trigger = snapshot
@@ -2383,7 +2480,9 @@ class PawControlScriptManager:
         )
 
         for event in sorted(candidate_events):
-            counters_by_event[event] = int(self._manual_event_counters.get(event, 0))
+            counters_by_event[event] = int(
+                self._manual_event_counters.get(event, 0),
+            )
 
         counters_by_reason: dict[str, int] = {}
         if isinstance(listener_events, Mapping):
@@ -2455,7 +2554,7 @@ class PawControlScriptManager:
         )
 
     def _build_confirmation_script(
-        self, slug: str, dog_id: str, dog_name: str
+        self, slug: str, dog_id: str, dog_name: str,
     ) -> tuple[str, ConfigType]:
         """Create the confirmation notification script definition."""
 
@@ -2500,15 +2599,15 @@ class PawControlScriptManager:
                                 {
                                     'condition': 'template',
                                     'value_template': '{{ auto_acknowledge | default(false) }}',
-                                }
+                                },
                             ],
                             'sequence': [
                                 {
                                     'service': 'pawcontrol.acknowledge_notification',
                                     'data': {'notification_id': notification_id},
-                                }
+                                },
                             ],
-                        }
+                        },
                     ],
                     'default': [],
                 },
@@ -2548,7 +2647,7 @@ class PawControlScriptManager:
         return object_id, raw_config
 
     def _build_reset_script(
-        self, slug: str, dog_id: str, dog_name: str
+        self, slug: str, dog_id: str, dog_name: str,
     ) -> tuple[str, ConfigType]:
         """Create the daily reset helper script definition."""
 
@@ -2574,7 +2673,7 @@ class PawControlScriptManager:
                                 {
                                     'condition': 'template',
                                     'value_template': "{{ summary | default('') != '' }}",
-                                }
+                                },
                             ],
                             'sequence': [
                                 {
@@ -2583,9 +2682,9 @@ class PawControlScriptManager:
                                         'name': 'PawControl',
                                         'message': '{{ summary }}',
                                     },
-                                }
+                                },
                             ],
-                        }
+                        },
                     ],
                     'default': [],
                 },
@@ -2612,7 +2711,7 @@ class PawControlScriptManager:
         return object_id, raw_config
 
     def _build_push_test_script(
-        self, slug: str, dog_id: str, dog_name: str
+        self, slug: str, dog_id: str, dog_name: str,
     ) -> tuple[str, ConfigType]:
         """Create the push notification test script definition."""
 
@@ -2633,7 +2732,7 @@ class PawControlScriptManager:
                         'message': f"{{ message | default('{default_message}') }}",
                         'priority': "{{ priority | default('normal') }}",
                     },
-                }
+                },
             ],
             CONF_FIELDS: {
                 'message': {
@@ -2649,7 +2748,7 @@ class PawControlScriptManager:
                     'selector': {
                         'select': {
                             'options': ['low', 'normal', 'high', 'urgent'],
-                        }
+                        },
                     },
                 },
             },
@@ -2674,7 +2773,7 @@ class PawControlScriptManager:
             {
                 'service': 'pawcontrol.reset_daily_stats',
                 'data': {'dog_id': dog_id, 'confirm': False},
-            }
+            },
         ]
 
         fields: dict[str, ConfigType] = {}
@@ -2688,7 +2787,7 @@ class PawControlScriptManager:
                                 {
                                     'condition': 'template',
                                     'value_template': '{{ send_notification | default(true) }}',
-                                }
+                                },
                             ],
                             'sequence': [
                                 {
@@ -2698,12 +2797,12 @@ class PawControlScriptManager:
                                         'message': f"{{ message | default('{default_message}') }}",
                                         'priority': "{{ priority | default('normal') }}",
                                     },
-                                }
+                                },
                             ],
-                        }
+                        },
                     ],
                     'default': [],
-                }
+                },
             )
 
             fields['send_notification'] = {
@@ -2725,7 +2824,7 @@ class PawControlScriptManager:
                 'selector': {
                     'select': {
                         'options': ['low', 'normal', 'high', 'urgent'],
-                    }
+                    },
                 },
             }
 
@@ -2747,7 +2846,7 @@ class ManualEventSourceList(list[str]):
     """List-like container that compares equal to listener and canonical sources."""
 
     def __eq__(
-        self, other: object
+        self, other: object,
     ) -> bool:  # pragma: no cover - behaviour validated via tests
         """Normalise ``system_options`` placeholder values during comparisons.
 

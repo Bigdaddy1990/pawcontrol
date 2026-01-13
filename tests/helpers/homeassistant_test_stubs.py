@@ -1,13 +1,15 @@
 """Home Assistant compatibility shims for PawControl's test suite."""
-
 from __future__ import annotations
 
 import re
 import sys
 import types
-from collections.abc import Callable, Iterable
-from datetime import UTC, datetime
-from enum import Enum, StrEnum
+from collections.abc import Callable
+from collections.abc import Iterable
+from datetime import datetime
+from datetime import UTC
+from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -294,7 +296,7 @@ class ConfigEntry:
         self.reason = reason
         self.error_reason_translation_key = error_reason_translation_key
         self.error_reason_translation_placeholders = dict(
-            error_reason_translation_placeholders or {}
+            error_reason_translation_placeholders or {},
         )
         self.update_listeners: list[Callable[..., object]] = []
         self.created_at: datetime = created_at or _utcnow()
@@ -307,7 +309,9 @@ class ConfigEntry:
         if self._supports_options is None:
             handler = HANDLERS.get(self.domain)
             if handler and hasattr(handler, 'async_supports_options_flow'):
-                self._supports_options = bool(handler.async_supports_options_flow(self))
+                self._supports_options = bool(
+                    handler.async_supports_options_flow(self),
+                )
 
         return bool(self._supports_options)
 
@@ -341,7 +345,7 @@ class ConfigEntry:
             handler = HANDLERS.get(self.domain)
             if handler and hasattr(handler, 'async_supports_reconfigure_flow'):
                 self._supports_reconfigure = bool(
-                    handler.async_supports_reconfigure_flow(self)
+                    handler.async_supports_reconfigure_flow(self),
                 )
 
         return bool(self._supports_reconfigure)
@@ -353,12 +357,14 @@ class ConfigEntry:
         if self._supported_subentry_types is None:
             handler = HANDLERS.get(self.domain)
             if handler and hasattr(handler, 'async_get_supported_subentry_types'):
-                supported_flows = handler.async_get_supported_subentry_types(self)
+                supported_flows = handler.async_get_supported_subentry_types(
+                    self,
+                )
                 self._supported_subentry_types = {
                     subentry_type: {
                         'supports_reconfigure': hasattr(
-                            subentry_handler, 'async_step_reconfigure'
-                        )
+                            subentry_handler, 'async_step_reconfigure',
+                        ),
                     }
                     for subentry_type, subentry_handler in supported_flows.items()
                 }
@@ -488,7 +494,9 @@ class DeviceEntry:
         self.identifiers = set(kwargs.get('identifiers', set()))
         self.connections = set(kwargs.get('connections', set()))
         self.created_at: datetime = kwargs.get('created_at') or _utcnow()
-        self.modified_at: datetime = kwargs.get('modified_at') or self.created_at
+        self.modified_at: datetime = kwargs.get(
+            'modified_at',
+        ) or self.created_at
         self.config_entries: set[str] = set()
         config_entry_id = kwargs.get('config_entry_id')
         if isinstance(config_entry_id, str):
@@ -516,16 +524,20 @@ class DeviceRegistry:
         connections = set(creation_kwargs.get('connections', set()))
 
         entry_id = creation_kwargs.pop('id', None)
-        stored = self.devices.get(entry_id) if isinstance(entry_id, str) else None
+        stored = self.devices.get(entry_id) if isinstance(
+            entry_id, str,
+        ) else None
 
         if stored is None and (identifiers or connections):
             stored = self.async_get_device(
-                identifiers=identifiers or None, connections=connections or None
+                identifiers=identifiers or None, connections=connections or None,
             )
 
         if stored is None:
             stored = DeviceEntry(
-                id=entry_id if isinstance(entry_id, str) else self._next_device_id(),
+                id=entry_id if isinstance(
+                    entry_id, str,
+                ) else self._next_device_id(),
                 **creation_kwargs,
             )
             self.devices.setdefault(stored.id, stored)
@@ -669,7 +681,7 @@ def _async_get_device_by_hints(
 
 
 def _async_entries_for_device_config(
-    registry: DeviceRegistry, entry_id: str
+    registry: DeviceRegistry, entry_id: str,
 ) -> list[DeviceEntry]:
     return registry.async_entries_for_config_entry(entry_id)
 
@@ -730,14 +742,14 @@ def _async_delete_issue(hass: object, domain: str, issue_id: str) -> bool:
 
 
 def _async_get_issue(
-    hass: object, domain: str, issue_id: str
+    hass: object, domain: str, issue_id: str,
 ) -> dict[str, object] | None:
     registry = _async_get_issue_registry(hass)
     return registry.async_get_issue(domain, issue_id)
 
 
 def _async_ignore_issue(
-    hass: object, domain: str, issue_id: str, ignore: bool
+    hass: object, domain: str, issue_id: str, ignore: bool,
 ) -> dict[str, object]:
     registry = _async_get_issue_registry(hass)
     return registry.async_ignore_issue(domain, issue_id, ignore)
@@ -770,10 +782,12 @@ class IssueRegistry:
         key = (domain, issue_id)
         existing = self.issues.get(key, {})
         severity_value = IssueSeverity.from_value(
-            severity if severity is not None else existing.get('severity')
+            severity if severity is not None else existing.get('severity'),
         )
         is_fixable_value = (
-            is_fixable if is_fixable is not None else existing.get('is_fixable', False)
+            is_fixable if is_fixable is not None else existing.get(
+                'is_fixable', False,
+            )
         )
         translation_key_value = (
             translation_key
@@ -849,7 +863,7 @@ class IssueRegistry:
         return details
 
     def async_ignore_issue(
-        self, domain: str, issue_id: str, ignore: bool
+        self, domain: str, issue_id: str, ignore: bool,
     ) -> dict[str, object]:
         key = (domain, issue_id)
         if key not in self.issues:
@@ -913,9 +927,13 @@ class RegistryEntry:
         self.capabilities = dict(kwargs.get('capabilities', {}))
         self.supported_features = kwargs.get('supported_features')
         self.unit_of_measurement = kwargs.get('unit_of_measurement')
-        self.original_unit_of_measurement = kwargs.get('original_unit_of_measurement')
+        self.original_unit_of_measurement = kwargs.get(
+            'original_unit_of_measurement',
+        )
         self.created_at: datetime = kwargs.get('created_at') or _utcnow()
-        self.modified_at: datetime = kwargs.get('modified_at') or self.created_at
+        self.modified_at: datetime = kwargs.get(
+            'modified_at',
+        ) or self.created_at
         for key, value in kwargs.items():
             if not hasattr(self, key):
                 setattr(self, key, value)
@@ -1052,13 +1070,13 @@ def _async_get_entity_registry(*args: object, **kwargs: object) -> EntityRegistr
 
 
 def _async_entries_for_registry_config(
-    registry: EntityRegistry, entry_id: str
+    registry: EntityRegistry, entry_id: str,
 ) -> list[RegistryEntry]:
     return registry.async_entries_for_config_entry(entry_id)
 
 
 def _async_entries_for_registry_device(
-    registry: EntityRegistry, device_id: str
+    registry: EntityRegistry, device_id: str,
 ) -> list[RegistryEntry]:
     return registry.async_entries_for_device(device_id)
 
@@ -1134,7 +1152,7 @@ class DataUpdateCoordinator:
     """Simplified coordinator used by runtime data tests."""
 
     def __init__(
-        self, hass: object, *, name: str | None = None, **kwargs: object
+        self, hass: object, *, name: str | None = None, **kwargs: object,
     ) -> None:
         self.hass = hass
         self.name = name or 'stub'
@@ -1165,7 +1183,7 @@ class CoordinatorEntity(Entity):
     def available(self) -> bool:
         if (
             last_update_success := getattr(
-                self.coordinator, 'last_update_success', None
+                self.coordinator, 'last_update_success', None,
             )
         ) is not None:
             return bool(last_update_success)
@@ -1239,7 +1257,7 @@ def selector(config: object) -> object:
 
 def _register_custom_component_packages() -> None:
     custom_components_pkg = sys.modules.setdefault(
-        'custom_components', types.ModuleType('custom_components')
+        'custom_components', types.ModuleType('custom_components'),
     )
     custom_components_pkg.__path__ = [str(COMPONENT_ROOT)]
 
@@ -1292,16 +1310,24 @@ def install_homeassistant_stubs() -> None:
     helpers_module.__path__ = []
     entity_module = types.ModuleType('homeassistant.helpers.entity')
     config_validation_module = types.ModuleType(
-        'homeassistant.helpers.config_validation'
+        'homeassistant.helpers.config_validation',
     )
-    aiohttp_client_module = types.ModuleType('homeassistant.helpers.aiohttp_client')
+    aiohttp_client_module = types.ModuleType(
+        'homeassistant.helpers.aiohttp_client',
+    )
     event_module = types.ModuleType('homeassistant.helpers.event')
     update_coordinator_module = types.ModuleType(
-        'homeassistant.helpers.update_coordinator'
+        'homeassistant.helpers.update_coordinator',
     )
-    device_registry_module = types.ModuleType('homeassistant.helpers.device_registry')
-    entity_registry_module = types.ModuleType('homeassistant.helpers.entity_registry')
-    issue_registry_module = types.ModuleType('homeassistant.helpers.issue_registry')
+    device_registry_module = types.ModuleType(
+        'homeassistant.helpers.device_registry',
+    )
+    entity_registry_module = types.ModuleType(
+        'homeassistant.helpers.entity_registry',
+    )
+    issue_registry_module = types.ModuleType(
+        'homeassistant.helpers.issue_registry',
+    )
     storage_module = types.ModuleType('homeassistant.helpers.storage')
     config_entries_module = types.ModuleType('homeassistant.config_entries')
     util_module = types.ModuleType('homeassistant.util')
@@ -1311,7 +1337,9 @@ def install_homeassistant_stubs() -> None:
     selector_module = types.ModuleType('homeassistant.helpers.selector')
     components_module = types.ModuleType('homeassistant.components')
     components_module.__path__ = []
-    repairs_component_module = types.ModuleType('homeassistant.components.repairs')
+    repairs_component_module = types.ModuleType(
+        'homeassistant.components.repairs',
+    )
     data_entry_flow_module = types.ModuleType('homeassistant.data_entry_flow')
 
     const_module.Platform = Platform

@@ -1,37 +1,35 @@
 """Shared base entity classes for the PawControl integration."""
-
 from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, cast
+from typing import Any
+from typing import cast
+from typing import TYPE_CHECKING
 
 from homeassistant.core import callback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import ATTR_DOG_ID, ATTR_DOG_NAME
+from .const import ATTR_DOG_ID
+from .const import ATTR_DOG_NAME
 from .coordinator import PawControlCoordinator
 from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .dog_status import build_dog_status_snapshot
 from .runtime_data import get_runtime_data
 from .service_guard import ServiceGuardResult
-from .types import (
-    CoordinatorDogData,
-    CoordinatorModuleLookupResult,
-    CoordinatorRuntimeManagers,
-    CoordinatorUntypedModuleState,
-    DogConfigData,
-    DogStatusSnapshot,
-    JSONMutableMapping,
-    ensure_json_mapping,
-)
-from .utils import (
-    JSONMappingLike,
-    PawControlDeviceLinkMixin,
-    async_call_hass_service_if_available,
-)
+from .types import CoordinatorDogData
+from .types import CoordinatorModuleLookupResult
+from .types import CoordinatorRuntimeManagers
+from .types import CoordinatorUntypedModuleState
+from .types import DogConfigData
+from .types import DogStatusSnapshot
+from .types import ensure_json_mapping
+from .types import JSONMutableMapping
+from .utils import async_call_hass_service_if_available
+from .utils import JSONMappingLike
+from .utils import PawControlDeviceLinkMixin
 
 __all__ = ['PawControlDogEntityBase', 'PawControlEntity']
 
@@ -46,7 +44,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 class PawControlEntity(
-    PawControlDeviceLinkMixin, CoordinatorEntity[PawControlCoordinator]
+    PawControlDeviceLinkMixin, CoordinatorEntity[PawControlCoordinator],
 ):
     """Common base class shared across all PawControl entities."""
 
@@ -54,7 +52,7 @@ class PawControlEntity(
     _attr_has_entity_name = True
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialise the entity and attach device metadata."""
 
@@ -140,9 +138,13 @@ class PawControlEntity(
         attrs = getattr(self, '_attr_extra_state_attributes', None)
         attributes = ensure_json_mapping(attrs)
 
-        last_update = getattr(self.coordinator, 'last_update_success_time', None)
+        last_update = getattr(
+            self.coordinator, 'last_update_success_time', None,
+        )
         if isinstance(last_update, datetime):
-            attributes['last_updated'] = dt_util.as_local(last_update).isoformat()
+            attributes['last_updated'] = dt_util.as_local(
+                last_update,
+            ).isoformat()
         else:
             attributes['last_updated'] = None
 
@@ -233,7 +235,7 @@ class PawControlDogEntityBase(PawControlEntity):
     _cache_ttl: float = 30.0
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize dog entity cache state."""
 
@@ -294,7 +296,7 @@ class PawControlDogEntityBase(PawControlEntity):
             attrs['dog_weight'] = weight
 
     def _build_base_state_attributes(
-        self, extra: Mapping[str, object] | None = None
+        self, extra: Mapping[str, object] | None = None,
     ) -> JSONMutableMapping:
         """Return base attributes enriched with dog info."""
 
@@ -307,14 +309,14 @@ class PawControlDogEntityBase(PawControlEntity):
         return attrs
 
     def _build_entity_attributes(
-        self, extra: Mapping[str, object] | None = None
+        self, extra: Mapping[str, object] | None = None,
     ) -> JSONMutableMapping:
         """Return base attributes optionally augmented by ``extra``."""
 
         return self._build_base_state_attributes(extra)
 
     def _finalize_entity_attributes(
-        self, attrs: JSONMutableMapping
+        self, attrs: JSONMutableMapping,
     ) -> JSONMutableMapping:
         """Normalize entity attributes for Home Assistant."""
 
@@ -342,7 +344,7 @@ class PawControlDogEntityBase(PawControlEntity):
             payload = self.coordinator.get_module_data(self._dog_id, module)
         except Exception as err:  # pragma: no cover - defensive log path
             _LOGGER.error(
-                'Error fetching module data for %s/%s: %s', self._dog_id, module, err
+                'Error fetching module data for %s/%s: %s', self._dog_id, module, err,
             )
             return cast(CoordinatorUntypedModuleState, {})
 

@@ -1,5 +1,4 @@
 """Block regressions that instantiate dedicated aiohttp sessions."""
-
 from __future__ import annotations
 
 import ast
@@ -68,7 +67,7 @@ def main() -> int:
     if violations:
         print(
             'Detected aiohttp.ClientSession instantiations. '
-            'Use hass.helpers.aiohttp_client.async_get_clientsession instead:'
+            'Use hass.helpers.aiohttp_client.async_get_clientsession instead:',
         )
         for violation in violations:
             print(f"  - {violation}")

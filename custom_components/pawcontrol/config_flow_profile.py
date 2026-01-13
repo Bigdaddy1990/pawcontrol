@@ -6,16 +6,17 @@ annotations, which made reuse from both the configuration flow and the
 options flow difficult.  This module now provides reusable, fully typed
 utilities that standardize how entity profiles are presented and validated.
 """
-
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Final, cast
+from typing import cast
+from typing import Final
 
 import voluptuous as vol
 
 from .entity_factory import ENTITY_PROFILES
-from .types import ProfileSelectionInput, ProfileSelectorOption
+from .types import ProfileSelectionInput
+from .types import ProfileSelectorOption
 
 #: Default profile used when the user has not made a choice yet.
 DEFAULT_PROFILE: Final[str] = 'standard'
@@ -42,7 +43,7 @@ PROFILE_TITLES: Final[dict[str, str]] = {
 
 # Schema reused by the config flow and options flow when asking for a profile.
 PROFILE_SCHEMA: Final[vol.Schema] = vol.Schema(
-    {vol.Required('entity_profile', default=DEFAULT_PROFILE): vol.In(PROFILE_TITLES)}
+    {vol.Required('entity_profile', default=DEFAULT_PROFILE): vol.In(PROFILE_TITLES)},
 )
 
 
@@ -113,7 +114,7 @@ def build_profile_summary_text() -> str:
         summary_parts = [f"{name}: {description}".rstrip()]
         if recommended_for:
             summary_parts.append(
-                f"You should pick this when you want {recommended_for.lower()}."
+                f"You should pick this when you want {recommended_for.lower()}.",
             )
 
         summaries.append(' '.join(summary_parts).strip())

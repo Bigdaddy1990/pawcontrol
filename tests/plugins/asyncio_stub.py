@@ -1,9 +1,9 @@
 """Pytest plugin that provides a minimal asyncio event loop fixture."""
-
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable, Generator
+from collections.abc import Callable
+from collections.abc import Generator
 
 import pytest
 
@@ -49,7 +49,8 @@ def pytest_sessionstart(session: pytest.Session) -> None:
 
     loop = _ensure_main_thread_loop()
     if loop is not None:
-        session.config._pawcontrol_asyncio_loop = loop  # type: ignore[attr-defined]
+        # type: ignore[attr-defined]
+        session.config._pawcontrol_asyncio_loop = loop
 
 
 def pytest_unconfigure(config: pytest.Config) -> None:
@@ -59,7 +60,8 @@ def pytest_unconfigure(config: pytest.Config) -> None:
     if isinstance(loop, asyncio.AbstractEventLoop):
         loop.close()
 
-    asyncio.get_event_loop = _ORIGINAL_GET_EVENT_LOOP  # type: ignore[assignment]
+    # type: ignore[assignment]
+    asyncio.get_event_loop = _ORIGINAL_GET_EVENT_LOOP
 
 
 @pytest.fixture(scope='session')

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import sys
-from datetime import UTC, datetime, timezone
+from datetime import datetime
+from datetime import timezone
+from datetime import UTC
 from types import ModuleType
 
 from tests.helpers import install_homeassistant_stubs
@@ -34,7 +36,9 @@ def _install_options_flow_dependencies() -> None:
     const_module.CONF_TRACE = 'trace'
     sys.modules['homeassistant.components.script.const'] = const_module
 
-    entity_component_module = ModuleType('homeassistant.helpers.entity_component')
+    entity_component_module = ModuleType(
+        'homeassistant.helpers.entity_component',
+    )
     entity_component_module.EntityComponent = object
     sys.modules['homeassistant.helpers.entity_component'] = entity_component_module
 
@@ -68,7 +72,7 @@ def test_notification_settings_payload_coercion() -> None:
     }
 
     settings = PawControlOptionsFlow._build_notification_settings_payload(
-        user_input, current
+        user_input, current,
     )
 
     assert settings['quiet_hours'] is False

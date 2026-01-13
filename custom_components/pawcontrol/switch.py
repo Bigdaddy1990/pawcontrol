@@ -7,15 +7,17 @@ Python: 3.13+
 This module implements profile-optimized switch entities that only create switches
 for enabled modules, significantly reducing entity count and improving performance.
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Mapping, Sequence
-from typing import Any, cast
+from collections.abc import Mapping
+from collections.abc import Sequence
+from typing import Any
+from typing import cast
 
-from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
+from homeassistant.components.switch import SwitchDeviceClass
+from homeassistant.components.switch import SwitchEntity
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -23,36 +25,32 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
 from .compat import HomeAssistantError
-from .const import (
-    CONF_DOGS,
-    DOMAIN,
-    MODULE_FEEDING,
-    MODULE_GPS,
-    MODULE_GROOMING,
-    MODULE_HEALTH,
-    MODULE_MEDICATION,
-    MODULE_NOTIFICATIONS,
-    MODULE_TRAINING,
-    MODULE_VISITOR,
-    MODULE_WALK,
-)
+from .const import CONF_DOGS
+from .const import DOMAIN
+from .const import MODULE_FEEDING
+from .const import MODULE_GPS
+from .const import MODULE_GROOMING
+from .const import MODULE_HEALTH
+from .const import MODULE_MEDICATION
+from .const import MODULE_NOTIFICATIONS
+from .const import MODULE_TRAINING
+from .const import MODULE_VISITOR
+from .const import MODULE_WALK
 from .coordinator import PawControlCoordinator
 from .diagnostics import normalize_value
 from .entity import PawControlDogEntityBase
 from .grooming_translations import translated_grooming_label
 from .runtime_data import get_runtime_data
-from .types import (
-    DOG_ID_FIELD,
-    DOG_MODULES_FIELD,
-    DOG_NAME_FIELD,
-    CoordinatorDogData,
-    DogConfigData,
-    DogModulesConfig,
-    JSONMutableMapping,
-    PawControlConfigEntry,
-    coerce_dog_modules_config,
-    ensure_json_mapping,
-)
+from .types import coerce_dog_modules_config
+from .types import CoordinatorDogData
+from .types import DOG_ID_FIELD
+from .types import DOG_MODULES_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DogConfigData
+from .types import DogModulesConfig
+from .types import ensure_json_mapping
+from .types import JSONMutableMapping
+from .types import PawControlConfigEntry
 from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
@@ -172,12 +170,16 @@ class ProfileOptimizedSwitchFactory:
             [
                 PawControlMainPowerSwitch(coordinator, dog_id, dog_name),
                 PawControlDoNotDisturbSwitch(coordinator, dog_id, dog_name),
-            ]
+            ],
         )
 
         # Visitor mode switch - only if visitor module enabled OR as fallback
         if MODULE_VISITOR in enabled_modules or not enabled_modules:
-            switches.append(PawControlVisitorModeSwitch(coordinator, dog_id, dog_name))
+            switches.append(
+                PawControlVisitorModeSwitch(
+                coordinator, dog_id, dog_name,
+                ),
+            )
 
         # Module control switches - only for enabled modules
         for module_id, module_name, icon in cls.MODULE_CONFIGS:
@@ -191,7 +193,7 @@ class ProfileOptimizedSwitchFactory:
                         module_name,
                         icon,
                         True,  # Already enabled in profile
-                    )
+                    ),
                 )
 
         # Feature switches - only for enabled modules
@@ -207,7 +209,7 @@ class ProfileOptimizedSwitchFactory:
                             switch_name,
                             icon,
                             module,
-                        )
+                        ),
                     )
 
         _LOGGER.debug(
@@ -249,7 +251,7 @@ async def _async_add_entities_in_batches(
 
     # Process entities in batches
     for i in range(0, total_entities, batch_size):
-        batch = entities[i : i + batch_size]
+        batch = entities[i: i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
 
@@ -262,7 +264,7 @@ async def _async_add_entities_in_batches(
 
         # Add batch without update_before_add to reduce Registry load
         await async_call_add_entities(
-            async_add_entities_func, batch, update_before_add=False
+            async_add_entities_func, batch, update_before_add=False,
         )
 
         # Small delay between batches to prevent Registry flooding
@@ -307,7 +309,7 @@ async def async_setup_entry(
 
         # Create only switches for enabled modules
         dog_switches = ProfileOptimizedSwitchFactory.create_switches_for_dog(
-            coordinator, dog_id, dog_name, modules
+            coordinator, dog_id, dog_name, modules,
         )
         all_entities.extend(dog_switches)
 
@@ -410,12 +412,17 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
                 'switch_type': self._switch_type,
                 'last_changed': self._last_changed.isoformat(),
                 'profile_optimized': True,
-            }
+            },
         )
 
         if dog_config := self._get_dog_config():
-            modules = coerce_dog_modules_config(dog_config.get(DOG_MODULES_FIELD))
-            enabled_modules = [module for module, enabled in modules.items() if enabled]
+            modules = coerce_dog_modules_config(
+                dog_config.get(DOG_MODULES_FIELD),
+            )
+            enabled_modules = [
+                module for module,
+                enabled in modules.items() if enabled
+            ]
             attrs['enabled_modules'] = enabled_modules
             attrs['total_modules'] = len(enabled_modules)
 
@@ -444,7 +451,9 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
                 self._dog_name,
                 err,
             )
-            raise HomeAssistantError(f"Failed to turn on {self._switch_type}") from err
+            raise HomeAssistantError(
+                f"Failed to turn on {self._switch_type}",
+            ) from err
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn switch off with enhanced error handling."""
@@ -469,7 +478,9 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
                 self._dog_name,
                 err,
             )
-            raise HomeAssistantError(f"Failed to turn off {self._switch_type}") from err
+            raise HomeAssistantError(
+                f"Failed to turn off {self._switch_type}",
+            ) from err
 
     async def _async_set_state(self, state: bool) -> None:
         """Set switch state - override in subclasses."""
@@ -514,7 +525,7 @@ class PawControlMainPowerSwitch(OptimizedSwitchBase):
     """Main power switch for dog monitoring system."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialise the master power toggle for the integration."""
         super().__init__(
@@ -541,18 +552,20 @@ class PawControlMainPowerSwitch(OptimizedSwitchBase):
 
             # High priority refresh for power changes
             await self.coordinator.async_request_selective_refresh(
-                [self._dog_id], priority=10
+                [self._dog_id], priority=10,
             )
 
         except Exception as err:
-            _LOGGER.warning('Power state update failed for %s: %s', self._dog_name, err)
+            _LOGGER.warning(
+                'Power state update failed for %s: %s', self._dog_name, err,
+            )
 
 
 class PawControlDoNotDisturbSwitch(OptimizedSwitchBase):
     """Do not disturb switch for quiet periods."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialise the do-not-disturb switch."""
         super().__init__(
@@ -574,19 +587,22 @@ class PawControlDoNotDisturbSwitch(OptimizedSwitchBase):
             notification_manager = self._get_notification_manager()
 
             if notification_manager and hasattr(
-                notification_manager, 'async_set_dnd_mode'
+                notification_manager, 'async_set_dnd_mode',
             ):
                 await notification_manager.async_set_dnd_mode(self._dog_id, state)
 
         except Exception as err:
-            _LOGGER.error('Failed to update DND for %s: %s', self._dog_name, err)
+            _LOGGER.error(
+                'Failed to update DND for %s: %s',
+                self._dog_name, err,
+            )
 
 
 class PawControlVisitorModeSwitch(OptimizedSwitchBase):
     """Visitor mode switch for reduced monitoring."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialise the visitor mode switch for temporary guests."""
         super().__init__(
@@ -644,7 +660,9 @@ class PawControlModuleSwitch(OptimizedSwitchBase):
             hass_language = getattr(config_obj, 'language', None)
 
         if module_id == MODULE_GROOMING:
-            display_name = translated_grooming_label(hass_language, 'module_switch')
+            display_name = translated_grooming_label(
+                hass_language, 'module_switch',
+            )
         else:
             display_name = module_name
 
@@ -679,7 +697,11 @@ class PawControlModuleSwitch(OptimizedSwitchBase):
                 if dog.get(DOG_ID_FIELD) != self._dog_id:
                     continue
 
-                modules = dict(coerce_dog_modules_config(dog.get(DOG_MODULES_FIELD)))
+                modules = dict(
+                    coerce_dog_modules_config(
+                    dog.get(DOG_MODULES_FIELD),
+                    ),
+                )
                 modules[self._module_id] = state
                 dogs_data[index] = {
                     **dog,
@@ -690,11 +712,11 @@ class PawControlModuleSwitch(OptimizedSwitchBase):
             new_data[CONF_DOGS] = dogs_data
 
             hass.config_entries.async_update_entry(
-                self.coordinator.config_entry, data=new_data
+                self.coordinator.config_entry, data=new_data,
             )
 
             await self.coordinator.async_request_selective_refresh(
-                [self._dog_id], priority=7
+                [self._dog_id], priority=7,
             )
 
             _LOGGER.info(
@@ -739,7 +761,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
 
         if module == MODULE_GROOMING:
             display_name = translated_grooming_label(
-                hass_language, f"feature_{feature_id}"
+                hass_language, f"feature_{feature_id}",
             )
         else:
             display_name = feature_name
@@ -765,7 +787,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
                 'feature_id': self._feature_id,
                 'parent_module': self._module,
                 'feature_name': self._feature_name,
-            }
+            },
         )
         return cast(JSONMutableMapping, normalize_value(feature_attrs))
 

@@ -1,13 +1,16 @@
 """Unit tests for runtime data helpers."""
-
 from __future__ import annotations
 
 import importlib.util
 import sys
-from dataclasses import field, fields, make_dataclass
+from dataclasses import field
+from dataclasses import fields
+from dataclasses import make_dataclass
 from pathlib import Path
-from types import ModuleType, SimpleNamespace
-from typing import TYPE_CHECKING, cast
+from types import ModuleType
+from types import SimpleNamespace
+from typing import cast
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
@@ -218,8 +221,10 @@ def test_get_runtime_data_resolves_store_entry(
     hass = _build_hass(
         data={
             DOMAIN: {
-                entry.entry_id: DomainRuntimeStoreEntryType(runtime_data=runtime_data)
-            }
+                entry.entry_id: DomainRuntimeStoreEntryType(
+                    runtime_data=runtime_data,
+                ),
+            },
         },
         entries={entry.entry_id: entry},
     )
@@ -310,8 +315,8 @@ def test_get_runtime_data_resolves_mapping_entry(
                 entry.entry_id: {
                     'runtime_data': runtime_data,
                     'version': DomainRuntimeStoreEntryType.MINIMUM_COMPATIBLE_VERSION,
-                }
-            }
+                },
+            },
         },
         entries={entry.entry_id: entry},
     )
@@ -348,8 +353,12 @@ def test_pop_runtime_data_handles_store_entry(
 
     hass = _build_hass(
         data={
-            DOMAIN: {'stored': DomainRuntimeStoreEntryType(runtime_data=runtime_data)}
-        }
+            DOMAIN: {
+                'stored': DomainRuntimeStoreEntryType(
+                runtime_data=runtime_data,
+                ),
+            },
+        },
     )
 
     assert pop_runtime_data(hass, 'stored') is runtime_data
@@ -444,8 +453,10 @@ def test_describe_runtime_store_status_detached_entry(
         entries={entry.entry_id: entry},
         data={
             DOMAIN: {
-                entry.entry_id: DomainRuntimeStoreEntryType(runtime_data=runtime_data)
-            }
+                entry.entry_id: DomainRuntimeStoreEntryType(
+                    runtime_data=runtime_data,
+                ),
+            },
         },
     )
 
@@ -474,7 +485,7 @@ def test_describe_runtime_store_status_future_incompatible(
             runtime_data=runtime_data,
             version=future_version,
             created_version=future_version,
-        )
+        ),
     }
 
     snapshot = describe_runtime_store_status(hass, entry)
@@ -511,7 +522,7 @@ def test_describe_runtime_store_status_detects_divergence(
         DomainRuntimeStoreEntryType.CURRENT_VERSION
     )
     hass.data[DOMAIN] = {
-        entry.entry_id: DomainRuntimeStoreEntryType(runtime_data=other_runtime)
+        entry.entry_id: DomainRuntimeStoreEntryType(runtime_data=other_runtime),
     }
 
     snapshot = describe_runtime_store_status(hass, entry)
@@ -556,7 +567,7 @@ def test_runtime_data_roundtrip_survives_module_reload(
         **{
             field.name: getattr(runtime_data, field.name)
             for field in fields(PawControlRuntimeData)
-        }
+        },
     )
 
     entry.runtime_data = cast(PawControlRuntimeDataType, reloaded_instance)
@@ -582,7 +593,7 @@ def test_store_entry_handles_reloaded_dataclass(
         **{
             field.name: getattr(runtime_data, field.name)
             for field in fields(PawControlRuntimeData)
-        }
+        },
     )
 
     reloaded_store_cls = make_dataclass(
@@ -627,8 +638,8 @@ def test_get_runtime_data_upgrades_outdated_version(
                 entry.entry_id: {
                     'runtime_data': runtime_data,
                     'version': 0,
-                }
-            }
+                },
+            },
         },
         entries={entry.entry_id: entry},
     )
@@ -658,8 +669,8 @@ def test_get_runtime_data_future_schema_returns_none(
                     'runtime_data': runtime_data,
                     'version': future_version,
                     'created_version': future_version,
-                }
-            }
+                },
+            },
         },
         entries={entry.entry_id: entry},
     )
@@ -685,8 +696,8 @@ def test_require_runtime_data_raises_on_future_schema(
                     'runtime_data': runtime_data,
                     'version': future_version,
                     'created_version': future_version,
-                }
-            }
+                },
+            },
         },
         entries={entry.entry_id: entry},
     )
@@ -814,8 +825,8 @@ def test_get_runtime_data_detects_future_runtime_schema_in_store(
                     runtime_data=runtime_data,
                     version=DomainRuntimeStoreEntryType.CURRENT_VERSION,
                     created_version=DomainRuntimeStoreEntryType.CURRENT_VERSION,
-                )
-            }
+                ),
+            },
         },
     )
 

@@ -8,43 +8,42 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import contextlib
 import logging
 import math
-from collections.abc import Iterable, Mapping
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from collections.abc import Iterable
+from collections.abc import Mapping
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import datetime
+from datetime import timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Final, cast
+from typing import Any
+from typing import cast
+from typing import Final
+from typing import TYPE_CHECKING
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from .const import (
-    DOMAIN,
-    EVENT_GEOFENCE_ENTERED,
-    EVENT_GEOFENCE_LEFT,
-    MAX_GEOFENCE_RADIUS,
-    MIN_GEOFENCE_RADIUS,
-    STORAGE_VERSION,
-)
-from .notifications import (
-    NotificationPriority,
-    NotificationTemplateData,
-    NotificationType,
-)
-from .types import (
-    GeofenceNotificationPayload,
-    GeofenceStoragePayload,
-    GeofenceZoneMetadata,
-    GeofenceZoneStoragePayload,
-    GPSLocation,
-)
+from .const import DOMAIN
+from .const import EVENT_GEOFENCE_ENTERED
+from .const import EVENT_GEOFENCE_LEFT
+from .const import MAX_GEOFENCE_RADIUS
+from .const import MIN_GEOFENCE_RADIUS
+from .const import STORAGE_VERSION
+from .notifications import NotificationPriority
+from .notifications import NotificationTemplateData
+from .notifications import NotificationType
+from .types import GeofenceNotificationPayload
+from .types import GeofenceStoragePayload
+from .types import GeofenceZoneMetadata
+from .types import GeofenceZoneStoragePayload
+from .types import GPSLocation
 from .utils import async_fire_event
 
 if TYPE_CHECKING:
@@ -90,7 +89,10 @@ def _sanitize_zone_metadata(
         if isinstance(tags_value, str):
             tags = [tags_value]
         elif isinstance(tags_value, Mapping):
-            tags = [value for value in tags_value.values() if isinstance(value, str)]
+            tags = [
+                value for value in tags_value.values()
+                if isinstance(value, str)
+            ]
         elif isinstance(tags_value, Iterable):
             tags = [tag for tag in tags_value if isinstance(tag, str)]
         if tags:
@@ -159,7 +161,9 @@ class GeofenceZone:
     description: str = ''
     created_at: datetime = field(default_factory=dt_util.utcnow)
     updated_at: datetime = field(default_factory=dt_util.utcnow)
-    metadata: GeofenceZoneMetadata = field(default_factory=_empty_zone_metadata)
+    metadata: GeofenceZoneMetadata = field(
+        default_factory=_empty_zone_metadata,
+    )
 
     def __post_init__(self) -> None:
         """Validate zone parameters after initialization."""
@@ -169,7 +173,7 @@ class GeofenceZone:
             raise ValueError(f"Invalid longitude: {self.longitude}")
         if not (MIN_GEOFENCE_RADIUS <= self.radius <= MAX_GEOFENCE_RADIUS):
             raise ValueError(
-                f"Radius must be between {MIN_GEOFENCE_RADIUS} and {MAX_GEOFENCE_RADIUS} meters"
+                f"Radius must be between {MIN_GEOFENCE_RADIUS} and {MAX_GEOFENCE_RADIUS} meters",
             )
 
         self.metadata = _sanitize_zone_metadata(self.metadata)
@@ -198,7 +202,7 @@ class GeofenceZone:
             Distance in meters
         """
         return calculate_distance(
-            self.latitude, self.longitude, location.latitude, location.longitude
+            self.latitude, self.longitude, location.latitude, location.longitude,
         )
 
     def to_storage_payload(self) -> GeofenceZoneStoragePayload:
@@ -230,7 +234,7 @@ class GeofenceZone:
 
         metadata_raw = data.get('metadata', {})
         metadata = _sanitize_zone_metadata(
-            metadata_raw if isinstance(metadata_raw, Mapping) else {}
+            metadata_raw if isinstance(metadata_raw, Mapping) else {},
         )
 
         return cls(
@@ -309,7 +313,10 @@ class PawControlGeofencing:
         self.entry_id = entry_id
 
         # Storage for zones and state
-        self._store = Store(hass, STORAGE_VERSION, f"{DOMAIN}_{entry_id}_geofencing")
+        self._store = Store(
+            hass, STORAGE_VERSION,
+            f"{DOMAIN}_{entry_id}_geofencing",
+        )
 
         # Runtime state
         self._zones: dict[str, GeofenceZone] = {}
@@ -326,7 +333,7 @@ class PawControlGeofencing:
         self._lock = asyncio.Lock()
 
     def set_notification_manager(
-        self, notification_manager: PawControlNotificationManager | None
+        self, notification_manager: PawControlNotificationManager | None,
     ) -> None:
         """Attach the notification manager used for zone alerts.
 
@@ -361,14 +368,17 @@ class PawControlGeofencing:
             try:
                 # Load stored data
                 stored_data_raw = await self._store.async_load()
-                stored_data = cast(GeofenceStoragePayload, stored_data_raw or {})
+                stored_data = cast(
+                    GeofenceStoragePayload,
+                    stored_data_raw or {},
+                )
 
                 # Load zones
                 zones_data_raw = stored_data.get('zones', {})
                 if isinstance(zones_data_raw, list):
                     zones_data_raw = {
                         cast(str, zone.get('id')): cast(
-                            GeofenceZoneStoragePayload, zone
+                            GeofenceZoneStoragePayload, zone,
                         )
                         for zone in zones_data_raw
                         if isinstance(zone, Mapping) and isinstance(zone.get('id'), str)
@@ -384,11 +394,11 @@ class PawControlGeofencing:
                 for zone_id, zone_data in zones_data.items():
                     try:
                         self._zones[zone_id] = GeofenceZone.from_storage_payload(
-                            zone_data
+                            zone_data,
                         )
                     except Exception as err:
                         _LOGGER.warning(
-                            'Failed to load geofence zone %s: %s', zone_id, err
+                            'Failed to load geofence zone %s: %s', zone_id, err,
                         )
 
                 # Initialize dog states
@@ -418,7 +428,9 @@ class PawControlGeofencing:
                 )
 
             except Exception as err:
-                _LOGGER.error('Failed to initialize geofencing system: %s', err)
+                _LOGGER.error(
+                    'Failed to initialize geofencing system: %s', err,
+                )
                 raise
 
     async def _create_home_zone(self) -> None:
@@ -456,7 +468,9 @@ class PawControlGeofencing:
             return
 
         # Start location checking task
-        self._update_task = self.hass.async_create_task(self._monitoring_loop())
+        self._update_task = self.hass.async_create_task(
+            self._monitoring_loop(),
+        )
 
         # Start cleanup task
         self._cleanup_task = self.hass.async_create_task(self._cleanup_loop())
@@ -543,7 +557,7 @@ class PawControlGeofencing:
             elif not currently_inside and was_inside:
                 # Use hysteresis to confirm exit
                 if not zone.contains_location(
-                    dog_state.last_location, 1.0 / GEOFENCE_HYSTERESIS
+                    dog_state.last_location, 1.0 / GEOFENCE_HYSTERESIS,
                 ):
                     dog_state.current_zones.discard(zone_id)
                     dog_state.zone_entry_times.pop(zone_id, None)
@@ -552,14 +566,14 @@ class PawControlGeofencing:
         # Fire events for zone changes
         for zone_id in newly_entered_zones:
             await self._fire_zone_event(
-                dog_state.dog_id, zone_id, GeofenceEvent.ENTERED
+                dog_state.dog_id, zone_id, GeofenceEvent.ENTERED,
             )
 
         for zone_id in newly_left_zones:
             await self._fire_zone_event(dog_state.dog_id, zone_id, GeofenceEvent.LEFT)
 
     async def _fire_zone_event(
-        self, dog_id: str, zone_id: str, event: GeofenceEvent
+        self, dog_id: str, zone_id: str, event: GeofenceEvent,
     ) -> None:
         """Fire a geofence event.
 
@@ -590,7 +604,7 @@ class PawControlGeofencing:
                     'latitude': location.latitude,
                     'longitude': location.longitude,
                     'altitude': location.altitude,
-                }
+                },
             )
 
         # Fire Home Assistant event
@@ -833,7 +847,7 @@ class PawControlGeofencing:
 
         priority = self._map_notification_priority(zone, event)
         title, message = self._format_notification_content(
-            dog_id, zone, event, location
+            dog_id, zone, event, location,
         )
 
         notification_data: GeofenceNotificationPayload = {
@@ -871,7 +885,7 @@ class PawControlGeofencing:
 
     @staticmethod
     def _map_notification_priority(
-        zone: GeofenceZone, event: GeofenceEvent
+        zone: GeofenceZone, event: GeofenceEvent,
     ) -> NotificationPriority:
         """Determine notification priority for a geofence event."""
 

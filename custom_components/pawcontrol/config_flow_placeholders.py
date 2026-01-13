@@ -4,21 +4,18 @@ These functions generate description placeholders for flow forms and are kept in
 dedicated module to keep the entry flow implementation smaller and easier to
 maintain.
 """
-
 from __future__ import annotations
 
-from .types import (
-    ADD_ANOTHER_DOG_PLACEHOLDERS_TEMPLATE,
-    ADD_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE,
-    DOG_MODULES_SMART_DEFAULTS_TEMPLATE,
-    ConfigFlowPlaceholders,
-    clone_placeholders,
-    freeze_placeholders,
-)
+from .types import ADD_ANOTHER_DOG_PLACEHOLDERS_TEMPLATE
+from .types import ADD_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE
+from .types import clone_placeholders
+from .types import ConfigFlowPlaceholders
+from .types import DOG_MODULES_SMART_DEFAULTS_TEMPLATE
+from .types import freeze_placeholders
 
 
 def _build_add_dog_summary_placeholders(
-    *, dogs_configured: int, max_dogs: int, discovery_hint: str
+    *, dogs_configured: int, max_dogs: int, discovery_hint: str,
 ) -> ConfigFlowPlaceholders:
     """Return placeholders for the main add-dog form."""
 
@@ -30,7 +27,7 @@ def _build_add_dog_summary_placeholders(
 
 
 def _build_dog_modules_form_placeholders(
-    *, dog_name: str, dogs_configured: int, smart_defaults: str
+    *, dog_name: str, dogs_configured: int, smart_defaults: str,
 ) -> ConfigFlowPlaceholders:
     """Return placeholders for the module selection form."""
 

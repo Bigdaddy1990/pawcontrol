@@ -1,5 +1,4 @@
 """Synchronise assistant-specific contributor guides with the canonical copy."""
-
 from __future__ import annotations
 
 import argparse
@@ -30,7 +29,7 @@ def _apply_sync_block(target: Path, block: str) -> tuple[str, str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        '--check', action='store_true', help='only verify the files are synced'
+        '--check', action='store_true', help='only verify the files are synced',
     )
     args = parser.parse_args()
 

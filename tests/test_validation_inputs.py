@@ -1,12 +1,13 @@
 """Unit tests for PawControl input validation helpers."""
-
 from __future__ import annotations
 
 from pathlib import Path
 
 import pytest
 
-from tests.helpers import ensure_package, install_homeassistant_stubs, load_module
+from tests.helpers import ensure_package
+from tests.helpers import install_homeassistant_stubs
+from tests.helpers import load_module
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -28,7 +29,9 @@ ValidationError = validation.ValidationError
 
 
 def test_validate_gps_coordinates_success() -> None:
-    latitude, longitude = InputValidator.validate_gps_coordinates(52.52, 13.405)
+    latitude, longitude = InputValidator.validate_gps_coordinates(
+        52.52, 13.405,
+    )
     assert latitude == pytest.approx(52.52)
     assert longitude == pytest.approx(13.405)
 

@@ -7,14 +7,18 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.0+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Final, Literal, NotRequired, TypedDict, cast
+from typing import cast
+from typing import Final
+from typing import Literal
+from typing import NotRequired
+from typing import TypedDict
 
 import aiohttp
 from homeassistant.core import HomeAssistant
@@ -32,7 +36,10 @@ AUTH_SUCCESS_STATUS_CODES: Final = (200, 201, 204)
 
 type CapabilityList = list[str]
 type JSONPrimitive = None | bool | float | int | str
-type JSONValue = JSONPrimitive | Mapping[str, 'JSONValue'] | Sequence['JSONValue']
+type JSONValue = JSONPrimitive | Mapping[
+    str,
+    'JSONValue',
+] | Sequence['JSONValue']
 type JSONMapping = Mapping[str, JSONValue]
 type JSONSequence = Sequence[JSONValue]
 
@@ -115,7 +122,9 @@ class APIValidator:
                 scenarios that rely on self-signed certificates.
         """
         self.hass = hass
-        self._session = ensure_shared_client_session(session, owner='APIValidator')
+        self._session = ensure_shared_client_session(
+            session, owner='APIValidator',
+        )
         self._ssl_override: bool | None = None
         if not verify_ssl:
             # aiohttp accepts ``ssl=False`` to bypass certificate validation.
@@ -185,7 +194,7 @@ class APIValidator:
             if api_token:
                 async with asyncio.timeout(API_TOKEN_VALIDATION_TIMEOUT):
                     auth_result = await self._test_authentication(
-                        api_endpoint, api_token
+                        api_endpoint, api_token,
                     )
                     authenticated = auth_result['authenticated']
                     api_version = auth_result['api_version']
@@ -300,7 +309,7 @@ class APIValidator:
             return False
 
     async def _test_authentication(
-        self, endpoint: str, token: str
+        self, endpoint: str, token: str,
     ) -> APIAuthenticationResult:
         """Test API authentication with token.
 
@@ -401,7 +410,7 @@ class APIValidator:
         try:
             async with asyncio.timeout(API_HEALTH_CHECK_TIMEOUT):
                 validation_result = await self.async_validate_api_connection(
-                    api_endpoint, api_token
+                    api_endpoint, api_token,
                 )
 
                 health_status = APIHealthStatus(
@@ -475,7 +484,7 @@ def _extract_capabilities(data: JSONMapping | _APIAuthPayload) -> CapabilityList
 
     capabilities = data.get('capabilities')
     if isinstance(capabilities, Sequence) and not isinstance(
-        capabilities, str | bytes | bytearray
+        capabilities, str | bytes | bytearray,
     ):
         string_capabilities = [
             capability for capability in capabilities if isinstance(capability, str)

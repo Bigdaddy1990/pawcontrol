@@ -1,25 +1,30 @@
 """Sensor platform for the PawControl integration."""
-
 from __future__ import annotations
 
 import asyncio
 import contextlib
 import logging
-from collections.abc import Callable, Mapping
-from datetime import date, datetime, timedelta
+from collections.abc import Callable
+from collections.abc import Mapping
+from datetime import date
+from datetime import datetime
+from datetime import timedelta
 from numbers import Real
-from typing import TYPE_CHECKING, Any, Final, Protocol, cast
+from typing import Any
+from typing import cast
+from typing import Final
+from typing import Protocol
+from typing import TYPE_CHECKING
 
-from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
-from homeassistant.const import (
-    PERCENTAGE,
-    STATE_UNKNOWN,
-    UnitOfEnergy,
-    UnitOfLength,
-    UnitOfMass,
-    UnitOfSpeed,
-    UnitOfTime,
-)
+from homeassistant.components.sensor import SensorDeviceClass
+from homeassistant.components.sensor import SensorStateClass
+from homeassistant.const import PERCENTAGE
+from homeassistant.const import STATE_UNKNOWN
+from homeassistant.const import UnitOfEnergy
+from homeassistant.const import UnitOfLength
+from homeassistant.const import UnitOfMass
+from homeassistant.const import UnitOfSpeed
+from homeassistant.const import UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -31,33 +36,30 @@ from .const import (
 from .coordinator import PawControlCoordinator
 from .diagnostics import normalize_value
 from .entity import PawControlDogEntityBase
-from .entity_factory import EntityFactory, EntityProfileDefinition
+from .entity_factory import EntityFactory
+from .entity_factory import EntityProfileDefinition
 from .runtime_data import get_runtime_data
-from .types import (
-    DOG_ID_FIELD,
-    DOG_NAME_FIELD,
-    CoordinatorDogData,
-    CoordinatorModuleLookupResult,
-    CoordinatorUntypedModuleState,
-    DogConfigData,
-    FeedingDietValidationSummary,
-    FeedingModulePayload,
-    GardenModulePayload,
-    GPSModulePayload,
-    HealthModulePayload,
-    JSONMutableMapping,
-    JSONValue,
-    PawControlConfigEntry,
-    WalkModuleTelemetry,
-    ensure_dog_modules_mapping,
-    ensure_gps_payload,
-    ensure_json_mapping,
-)
-from .utils import (
-    async_call_add_entities,
-    ensure_utc_datetime,
-    is_number,
-)
+from .types import CoordinatorDogData
+from .types import CoordinatorModuleLookupResult
+from .types import CoordinatorUntypedModuleState
+from .types import DOG_ID_FIELD
+from .types import DOG_NAME_FIELD
+from .types import DogConfigData
+from .types import ensure_dog_modules_mapping
+from .types import ensure_gps_payload
+from .types import ensure_json_mapping
+from .types import FeedingDietValidationSummary
+from .types import FeedingModulePayload
+from .types import GardenModulePayload
+from .types import GPSModulePayload
+from .types import HealthModulePayload
+from .types import JSONMutableMapping
+from .types import JSONValue
+from .types import PawControlConfigEntry
+from .types import WalkModuleTelemetry
+from .utils import async_call_add_entities
+from .utils import ensure_utc_datetime
+from .utils import is_number
 
 if TYPE_CHECKING:
 
@@ -234,11 +236,14 @@ async def async_setup_entry(
         _LOGGER.warning('No dogs configured for sensor platform')
         return
 
-    _LOGGER.info("Setting up sensors with profile '%s' for %d dogs", profile, len(dogs))
+    _LOGGER.info(
+        "Setting up sensors with profile '%s' for %d dogs",
+        profile, len(dogs),
+    )
 
     # Create profile-optimized entities
     all_entities = await _create_profile_entities(
-        coordinator, entity_factory, dogs, profile
+        coordinator, entity_factory, dogs, profile,
     )
 
     # Performance-optimized entity addition
@@ -274,7 +279,7 @@ async def _create_profile_entities(
         # Create module-specific entities based on profile
         try:
             module_entities = await _create_module_entities(
-                coordinator, entity_factory, dog_id, dog_name, modules, profile
+                coordinator, entity_factory, dog_id, dog_name, modules, profile,
             )
             all_entities.extend(module_entities)
         finally:
@@ -284,7 +289,7 @@ async def _create_profile_entities(
 
 
 def _create_core_entities(
-    coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+    coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
 ) -> list[PawControlSensorBase]:
     """Create core entities that are always present."""
     return [
@@ -292,7 +297,7 @@ def _create_core_entities(
         PawControlLastActionSensor(coordinator, dog_id, dog_name),
         PawControlActivityScoreSensor(coordinator, dog_id, dog_name),
         PawControlActivityLevelSensor(
-            coordinator, dog_id, dog_name
+            coordinator, dog_id, dog_name,
         ),  # NEW: Critical missing sensor
     ]
 
@@ -363,7 +368,10 @@ async def _create_module_entities(
                     PawControlDietValidationAdjustmentSensor,
                     0,
                 ),
-                ('diet_compatibility_score', PawControlDietCompatibilityScoreSensor, 0),
+                (
+                    'diet_compatibility_score',
+                    PawControlDietCompatibilityScoreSensor, 0,
+                ),
             ],
             'gps_focus': [
                 ('last_feeding', PawControlLastFeedingSensor, 9),
@@ -680,7 +688,7 @@ async def _create_module_entities(
 
         # Get rules for this profile (with fallback to standard)
         profile_rules = module_entity_rules[module].get(
-            profile, module_entity_rules[module].get('standard', [])
+            profile, module_entity_rules[module].get('standard', []),
         )
 
         for entity_key, entity_class, priority in profile_rules:
@@ -720,14 +728,14 @@ async def _add_entities_optimized(
     if total_entities <= PARALLEL_THRESHOLD:
         # Small setup: Create all at once
         await async_call_add_entities(
-            async_add_entities, all_entities, update_before_add=False
+            async_add_entities, all_entities, update_before_add=False,
         )
     else:
         # Large setup: Use optimized batching
         for i in range(0, total_entities, MAX_ENTITIES_PER_BATCH):
-            batch = all_entities[i : i + MAX_ENTITIES_PER_BATCH]
+            batch = all_entities[i: i + MAX_ENTITIES_PER_BATCH]
             await async_call_add_entities(
-                async_add_entities, batch, update_before_add=False
+                async_add_entities, batch, update_before_add=False,
             )
 
             # Small delay between batches for system stability
@@ -753,7 +761,10 @@ def _log_setup_metrics(
             profile_info = None
 
     raw_max_entities: object = (
-        getattr(profile_info, 'max_entities', 0) if profile_info is not None else 0
+        getattr(
+            profile_info, 'max_entities',
+            0,
+        ) if profile_info is not None else 0
     )
     if isinstance(raw_max_entities, (int, float, str)):
         try:
@@ -765,7 +776,8 @@ def _log_setup_metrics(
 
     max_possible = max_entities * len(dogs)
     efficiency = (
-        (max_possible - total_entities) / max_possible * 100 if max_possible > 0 else 0
+        (max_possible - total_entities) /
+        max_possible * 100 if max_possible > 0 else 0
     )
 
     _LOGGER.info(
@@ -942,7 +954,9 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
 
         base = cast(
             AttributeDict,
-            PawControlSensorBase.extra_state_attributes.__get__(self, type(self)),
+            PawControlSensorBase.extra_state_attributes.__get__(
+                self, type(self),
+            ),
         )
         return cast(AttributeDict, dict(base) if base else {})
 
@@ -999,7 +1013,7 @@ class PawControlGardenSensorBase(PawControlSensorBase):
                 return garden_manager.build_garden_snapshot(self._dog_id)
             except Exception as err:  # pragma: no cover - defensive logging
                 _LOGGER.debug(
-                    'Garden snapshot fallback failed for %s: %s', self._dog_id, err
+                    'Garden snapshot fallback failed for %s: %s', self._dog_id, err,
                 )
 
         return cast(GardenModulePayload, {})
@@ -1029,16 +1043,18 @@ class PawControlGardenSensorBase(PawControlSensorBase):
                     'last_session_poop': last_session.get('poop_count'),
                     'last_session_status': last_session.get('status'),
                     'last_session_weather': last_session.get('weather_conditions'),
-                }
+                },
             )
 
         stats = data.get('stats') or {}
         if stats:
             attrs['last_garden_visit'] = stats.get('last_garden_visit')
             attrs['favorite_garden_activities'] = cast(
-                JSONValue, stats.get('favorite_activities')
+                JSONValue, stats.get('favorite_activities'),
             )
-            attrs['weekly_summary'] = cast(JSONValue, stats.get('weekly_summary'))
+            attrs['weekly_summary'] = cast(
+                JSONValue, stats.get('weekly_summary'),
+            )
 
         weather_summary = data.get('weather_summary')
         if weather_summary:
@@ -1048,7 +1064,9 @@ class PawControlGardenSensorBase(PawControlSensorBase):
         if pending is not None:
             attrs['pending_confirmations'] = cast(JSONValue, pending)
 
-        attrs['hours_since_last_session'] = data.get('hours_since_last_session')
+        attrs['hours_since_last_session'] = data.get(
+            'hours_since_last_session',
+        )
 
         return _normalise_attributes(attrs)
 
@@ -1092,17 +1110,17 @@ class PawControlDietValidationSensorBase(PawControlSensorBase):
                     'diet_compatibility_score': summary.get('compatibility_score'),
                     'diet_compatibility_level': summary.get('compatibility_level'),
                     'diet_validation_adjustment': summary.get(
-                        'diet_validation_adjustment', 1.0
+                        'diet_validation_adjustment', 1.0,
                     ),
                     'diet_adjustment_direction': summary.get('adjustment_direction'),
                     'diet_adjustment_safety_factor': summary.get('safety_factor'),
                     'diet_vet_consultation': summary.get(
-                        'vet_consultation_state', 'not_needed'
+                        'vet_consultation_state', 'not_needed',
                     ),
                     'diet_consultation_urgency': summary.get(
-                        'consultation_urgency', 'none'
+                        'consultation_urgency', 'none',
                     ),
-                }
+                },
             )
         else:
             attrs['diet_validation_available'] = False
@@ -1118,7 +1136,7 @@ class PawControlLastActionSensor(PawControlSensorBase):
     """Sensor for tracking the last action timestamp."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Last Action Sensor."""
         super().__init__(
@@ -1156,7 +1174,7 @@ class PawControlLastActionSensor(PawControlSensorBase):
                     timestamps.append(timestamp)
                 else:
                     _LOGGER.debug(
-                        'Invalid timestamp in %s: %s', module, timestamp_value
+                        'Invalid timestamp in %s: %s', module, timestamp_value,
                     )
 
         return max(timestamps) if timestamps else None
@@ -1167,7 +1185,7 @@ class PawControlDogStatusSensor(PawControlSensorBase):
     """Sensor for overall dog status with enhanced logic."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Dog Status Sensor."""
         super().__init__(coordinator, dog_id, dog_name, 'status', icon='mdi:dog')
@@ -1187,13 +1205,13 @@ class PawControlDogStatusSensor(PawControlSensorBase):
                     return state
 
             walk_data: WalkModuleTelemetry = cast(
-                WalkModuleTelemetry, self._get_walk_module() or {}
+                WalkModuleTelemetry, self._get_walk_module() or {},
             )
             feeding_data: FeedingModulePayload = cast(
-                FeedingModulePayload, self._get_feeding_module() or {}
+                FeedingModulePayload, self._get_feeding_module() or {},
             )
             gps_data: GPSModulePayload = cast(
-                GPSModulePayload, self._get_gps_module() or {}
+                GPSModulePayload, self._get_gps_module() or {},
             )
 
             # Priority-based status determination
@@ -1218,7 +1236,7 @@ class PawControlDogStatusSensor(PawControlSensorBase):
 
         except Exception as err:
             _LOGGER.warning(
-                'Error determining dog status for %s: %s', self._dog_id, err
+                'Error determining dog status for %s: %s', self._dog_id, err,
             )
             return _STATE_UNKNOWN
 
@@ -1228,7 +1246,7 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
     """Sensor for calculating activity score with optimized performance."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Activity Score Sensor."""
         super().__init__(
@@ -1273,12 +1291,12 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
 
         except Exception as err:
             _LOGGER.warning(
-                'Error calculating activity score for %s: %s', self._dog_id, err
+                'Error calculating activity score for %s: %s', self._dog_id, err,
             )
             return None
 
     def _compute_activity_score_optimized(
-        self, dog_data: CoordinatorDogData
+        self, dog_data: CoordinatorDogData,
     ) -> float | None:
         """PLATINUM: Compute activity score with memory-efficient single-pass algorithm."""
         weighted_sum = 0.0
@@ -1288,7 +1306,7 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
         if walk_payload:
             try:
                 score = self._calculate_walk_score(
-                    cast(WalkModuleTelemetry, walk_payload)
+                    cast(WalkModuleTelemetry, walk_payload),
                 )
                 if score is not None:
                     weighted_sum += score * 0.4
@@ -1305,7 +1323,7 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
         if feeding_payload:
             try:
                 score = self._calculate_feeding_score(
-                    cast(FeedingModulePayload, feeding_payload)
+                    cast(FeedingModulePayload, feeding_payload),
                 )
                 if score is not None:
                     weighted_sum += score * 0.2
@@ -1321,7 +1339,9 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
         gps_payload = self._coerce_module_payload(dog_data.get('gps'))
         if gps_payload:
             try:
-                score = self._calculate_gps_score(cast(GPSModulePayload, gps_payload))
+                score = self._calculate_gps_score(
+                    cast(GPSModulePayload, gps_payload),
+                )
                 if score is not None:
                     weighted_sum += score * 0.25
                     total_weight += 0.25
@@ -1337,7 +1357,7 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
         if health_payload:
             try:
                 score = self._calculate_health_score(
-                    cast(HealthModulePayload, health_payload)
+                    cast(HealthModulePayload, health_payload),
                 )
                 if score is not None:
                     weighted_sum += score * 0.15
@@ -1362,9 +1382,10 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
                 return 0.0
 
             # OPTIMIZED: Simplified scoring algorithm
-            walk_count_score = min(walks_today * 25, 75)  # Max 75 points for frequency
+            # Max 75 points for frequency
+            walk_count_score = min(walks_today * 25, 75)
             duration_score = min(
-                total_duration / 60 * 10, 25
+                total_duration / 60 * 10, 25,
             )  # Max 25 points for duration
 
             return walk_count_score + duration_score
@@ -1373,12 +1394,12 @@ class PawControlActivityScoreSensor(PawControlSensorBase):
             return None
 
     def _calculate_feeding_score(
-        self, feeding_data: FeedingModulePayload
+        self, feeding_data: FeedingModulePayload,
     ) -> float | None:
         """Calculate feeding regularity score."""
         try:
             adherence = self._coerce_float(
-                feeding_data.get('feeding_schedule_adherence', 0), default=0.0
+                feeding_data.get('feeding_schedule_adherence', 0), default=0.0,
             )
             target_met = bool(feeding_data.get('daily_target_met', False))
 
@@ -1432,7 +1453,7 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
     """
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Activity Level Sensor."""
         super().__init__(
@@ -1452,7 +1473,7 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
 
         try:
             health_data: HealthModulePayload = cast(
-                HealthModulePayload, self._get_health_module() or {}
+                HealthModulePayload, self._get_health_module() or {},
             )
             activity_state = health_data.get('activity_level')
             if isinstance(activity_state, str) and activity_state:
@@ -1460,16 +1481,16 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
 
             # Get current activity metrics
             walk_data: WalkModuleTelemetry = cast(
-                WalkModuleTelemetry, self._get_walk_module() or {}
+                WalkModuleTelemetry, self._get_walk_module() or {},
             )
             gps_data: GPSModulePayload = cast(
-                GPSModulePayload, self._get_gps_module() or {}
+                GPSModulePayload, self._get_gps_module() or {},
             )
 
             # Check if currently walking
             if walk_data.get('walk_in_progress', False):
                 current_speed = self._coerce_float(
-                    gps_data.get('current_speed', 0), default=0.0
+                    gps_data.get('current_speed', 0), default=0.0,
                 )
                 if current_speed > 8:  # km/h - running
                     return 'high'
@@ -1480,10 +1501,10 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
             # Calculate based on recent activity (today)
             walks_today = self._coerce_int(walk_data.get('walks_today', 0))
             total_duration = self._coerce_float(
-                walk_data.get('total_duration_today', 0)
+                walk_data.get('total_duration_today', 0),
             )
             total_distance = self._coerce_float(
-                walk_data.get('total_distance_today', 0)
+                walk_data.get('total_distance_today', 0),
             )
 
             # Calculate activity intensity score
@@ -1507,7 +1528,7 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
 
         except (TypeError, ValueError) as err:
             _LOGGER.debug(
-                'Error calculating activity level for %s: %s', self._dog_id, err
+                'Error calculating activity level for %s: %s', self._dog_id, err,
             )
             if isinstance(activity_state, str) and activity_state:
                 return activity_state
@@ -1532,16 +1553,16 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
                 attrs.update(
                     {
                         'walk_in_progress': bool(
-                            walk_data.get('walk_in_progress', False)
+                            walk_data.get('walk_in_progress', False),
                         ),
                         'current_speed_kmh': self._coerce_float(speed_value),
                         'walks_today': self._coerce_int(walks_today),
                         'total_duration_minutes': self._coerce_float(duration_value),
                         'total_distance_meters': self._coerce_float(distance_value),
                         'activity_recommendation': self._get_activity_recommendation(
-                            walk_payload
+                            walk_payload,
                         ),
-                    }
+                    },
                 )
 
         return _normalise_attributes(attrs)
@@ -1572,7 +1593,7 @@ class PawControlGardenTimeTodaySensor(PawControlGardenSensorBase):
     """Sensor for tracking garden time today."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Garden Time Today Sensor."""
         super().__init__(
@@ -1602,7 +1623,7 @@ class PawControlGardenSessionsTodaySensor(PawControlGardenSensorBase):
     """Sensor for counting garden sessions today."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Garden Sessions Today Sensor."""
         super().__init__(
@@ -1630,7 +1651,7 @@ class PawControlGardenPoopCountTodaySensor(PawControlGardenSensorBase):
     """Sensor for poop events recorded in the garden today."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Garden Poop Count Today Sensor."""
         super().__init__(
@@ -1658,7 +1679,7 @@ class PawControlLastGardenSessionSensor(PawControlGardenSensorBase):
     """Sensor reporting the end of the last garden session."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Last Garden Session Sensor."""
         super().__init__(
@@ -1679,7 +1700,9 @@ class PawControlLastGardenSessionSensor(PawControlGardenSensorBase):
         if not last_session:
             return None
 
-        timestamp = last_session.get('end_time') or last_session.get('start_time')
+        timestamp = last_session.get(
+            'end_time',
+        ) or last_session.get('start_time')
         return ensure_utc_datetime(timestamp)
 
 
@@ -1688,7 +1711,7 @@ class PawControlGardenActivitiesCountSensor(PawControlGardenSensorBase):
     """Sensor tracking the total number of garden activities."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Garden Activities Count Sensor."""
         super().__init__(
@@ -1715,7 +1738,7 @@ class PawControlAverageGardenDurationSensor(PawControlGardenSensorBase):
     """Sensor reporting the average garden session duration."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Average Garden Duration Sensor."""
         super().__init__(
@@ -1745,7 +1768,7 @@ class PawControlGardenStatsWeeklySensor(PawControlGardenSensorBase):
     """Sensor summarizing weekly garden statistics."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Garden Stats Weekly Sensor."""
         super().__init__(
@@ -1774,7 +1797,7 @@ class PawControlFavoriteGardenActivitiesSensor(PawControlGardenSensorBase):
     """Sensor listing favorite garden activities."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Favorite Garden Activities Sensor."""
         super().__init__(
@@ -1804,7 +1827,7 @@ class PawControlLastGardenDurationSensor(PawControlGardenSensorBase):
     """Sensor reporting the duration of the last garden session."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Last Garden Duration Sensor."""
         super().__init__(
@@ -1836,7 +1859,7 @@ class PawControlGardenActivitiesLastSessionSensor(PawControlGardenSensorBase):
     """Sensor counting activities recorded in the last session."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Garden Activities Last Session Sensor."""
         super().__init__(
@@ -1866,7 +1889,7 @@ class PawControlGardenActivitiesTodaySensor(PawControlGardenSensorBase):
     """Sensor tracking garden activities for the current day."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Garden Activities Today Sensor."""
         super().__init__(
@@ -1893,7 +1916,7 @@ class PawControlLastGardenSessionHoursSensor(PawControlGardenSensorBase):
     """Sensor reporting hours since the last garden session."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Last Garden Session Hours Sensor."""
         super().__init__(
@@ -1926,7 +1949,7 @@ class PawControlLastFeedingSensor(PawControlSensorBase):
     """Sensor for last feeding timestamp."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Last Feeding Sensor."""
         super().__init__(
@@ -1968,7 +1991,7 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
     """
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Last Feeding Hours Sensor."""
         super().__init__(
@@ -2032,13 +2055,13 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
                             {
                                 'last_feeding_timestamp': last_feeding_dt.isoformat(),
                                 'minutes_since_feeding': round(
-                                    time_delta.total_seconds() / 60, 1
+                                    time_delta.total_seconds() / 60, 1,
                                 ),
                                 'feeding_status': self._get_feeding_status(time_delta),
                                 'next_feeding_due': self._calculate_next_feeding_due(
-                                    feeding_payload, last_feeding_dt
+                                    feeding_payload, last_feeding_dt,
                                 ),
-                            }
+                            },
                         )
 
         return _normalise_attributes(attrs)
@@ -2056,13 +2079,15 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
         return 'overdue'
 
     def _calculate_next_feeding_due(
-        self, feeding_data: FeedingModulePayload, last_feeding: datetime
+        self, feeding_data: FeedingModulePayload, last_feeding: datetime,
     ) -> str | None:
         """Calculate when next feeding is due."""
         try:
             config = feeding_data.get('config')
             if isinstance(config, Mapping):
-                meals_per_day = self._coerce_int(config.get('meals_per_day', 2), 2)
+                meals_per_day = self._coerce_int(
+                    config.get('meals_per_day', 2), 2,
+                )
             else:
                 meals_per_day = 2
             if meals_per_day <= 0:
@@ -2082,7 +2107,7 @@ class PawControlDailyCaloriesSensor(PawControlSensorBase):
     """Sensor for daily calorie intake."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Daily Calories Sensor."""
         super().__init__(
@@ -2114,7 +2139,7 @@ class PawControlFeedingScheduleAdherenceSensor(PawControlSensorBase):
     """Sensor for feeding schedule adherence."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Feeding Schedule Adherence Sensor."""
         super().__init__(
@@ -2136,7 +2161,7 @@ class PawControlFeedingScheduleAdherenceSensor(PawControlSensorBase):
 
         try:
             return self._coerce_float(
-                feeding_data.get('feeding_schedule_adherence', 100.0), default=100.0
+                feeding_data.get('feeding_schedule_adherence', 100.0), default=100.0,
             )
         except (TypeError, ValueError):
             return 100.0
@@ -2147,7 +2172,7 @@ class PawControlTotalFeedingsTodaySensor(PawControlSensorBase):
     """Sensor for total feedings today."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Total Feedings Today Sensor."""
         super().__init__(
@@ -2177,7 +2202,7 @@ class PawControlHealthAwarePortionSensor(PawControlSensorBase):
     """Sensor for health-aware calculated portion size."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Health Aware Portion Sensor."""
         super().__init__(
@@ -2206,7 +2231,7 @@ class PawControlHealthAwarePortionSensor(PawControlSensorBase):
 
             # Fallback to basic calculation
             daily_amount = self._coerce_float(
-                feeding_data.get('daily_amount_target', 500), default=500.0
+                feeding_data.get('daily_amount_target', 500), default=500.0,
             )
             config = feeding_data.get('config')
             meals_per_day = (
@@ -2229,7 +2254,7 @@ class PawControlFeedingRecommendationSensor(PawControlSensorBase):
     """Sensor for feeding recommendations based on health analysis."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Feeding Recommendation Sensor."""
         super().__init__(
@@ -2250,7 +2275,9 @@ class PawControlFeedingRecommendationSensor(PawControlSensorBase):
         try:
             # Get feeding analysis
             analysis = feeding_data.get('feeding_analysis')
-            analysis_mapping = analysis if isinstance(analysis, Mapping) else {}
+            analysis_mapping = analysis if isinstance(
+                analysis, Mapping,
+            ) else {}
             recommendations = analysis_mapping.get('recommendations', [])
 
             if recommendations and isinstance(recommendations, list):
@@ -2258,7 +2285,7 @@ class PawControlFeedingRecommendationSensor(PawControlSensorBase):
 
             # Default based on adherence
             adherence = self._coerce_float(
-                feeding_data.get('schedule_adherence', 100), default=100.0
+                feeding_data.get('schedule_adherence', 100), default=100.0,
             )
             if adherence >= 90:
                 return 'Feeding schedule is well maintained'
@@ -2275,7 +2302,7 @@ class PawControlDietValidationStatusSensor(PawControlDietValidationSensorBase):
     """Sensor for overall diet validation status."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Diet Validation Status Sensor."""
         super().__init__(
@@ -2313,7 +2340,7 @@ class PawControlDietConflictCountSensor(PawControlDietValidationSensorBase):
     """Sensor tracking the number of diet conflicts detected."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Diet Conflict Count Sensor."""
         super().__init__(
@@ -2352,7 +2379,7 @@ class PawControlDietWarningCountSensor(PawControlDietValidationSensorBase):
     """Sensor tracking warning count for diet combinations."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Diet Warning Count Sensor."""
         super().__init__(
@@ -2391,7 +2418,7 @@ class PawControlDietVetConsultationSensor(PawControlDietValidationSensorBase):
     """Sensor indicating if veterinary consultation is recommended."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Diet Vet Consultation Sensor."""
         super().__init__(
@@ -2421,11 +2448,11 @@ class PawControlDietVetConsultationSensor(PawControlDietValidationSensorBase):
             attrs.update(
                 {
                     'vet_consultation_recommended': summary.get(
-                        'vet_consultation_recommended', False
+                        'vet_consultation_recommended', False,
                     ),
                     'consultation_urgency': summary.get('consultation_urgency'),
                     'has_conflicts': summary.get('conflict_count', 0) > 0,
-                }
+                },
             )
         return _normalise_attributes(attrs)
 
@@ -2435,7 +2462,7 @@ class PawControlDietValidationAdjustmentSensor(PawControlDietValidationSensorBas
     """Sensor reporting the diet validation adjustment factor."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Diet Validation Adjustment Sensor."""
         super().__init__(
@@ -2471,7 +2498,7 @@ class PawControlDietValidationAdjustmentSensor(PawControlDietValidationSensorBas
                     'percentage_adjustment': summary.get('percentage_adjustment'),
                     'adjustment_info': summary.get('adjustment_info'),
                     'has_adjustments': summary.get('has_adjustments', False),
-                }
+                },
             )
         return _normalise_attributes(attrs)
 
@@ -2481,7 +2508,7 @@ class PawControlDietCompatibilityScoreSensor(PawControlDietValidationSensorBase)
     """Sensor showing the overall diet compatibility score."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Diet Compatibility Score Sensor."""
         super().__init__(
@@ -2522,7 +2549,7 @@ class PawControlDailyPortionsSensor(PawControlSensorBase):
     """Sensor for daily portions count."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Daily Portions Sensor."""
         super().__init__(
@@ -2545,7 +2572,9 @@ class PawControlDailyPortionsSensor(PawControlSensorBase):
         try:
             # Use total feedings as portions count
             portions = feeding_data.get(
-                'total_portions_today', feeding_data.get('total_feedings_today', 0)
+                'total_portions_today', feeding_data.get(
+                    'total_feedings_today', 0,
+                ),
             )
             return self._coerce_int(portions)
         except (TypeError, ValueError):
@@ -2557,7 +2586,7 @@ class PawControlPortionsTodaySensor(PawControlSensorBase):
     """Sensor that reports the recorded portions served today."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Portions Today Sensor."""
         super().__init__(
@@ -2594,23 +2623,25 @@ class PawControlPortionsTodaySensor(PawControlSensorBase):
                 attrs.update(
                     {
                         'target_portions': self._coerce_int(
-                            feeding_data.get('target_portions_per_day', 2)
+                            feeding_data.get('target_portions_per_day', 2),
                         ),
                         'remaining_portions': max(
                             0,
                             self._coerce_int(
-                                feeding_data.get('target_portions_per_day', 2)
+                                feeding_data.get('target_portions_per_day', 2),
                             )
                             - self._coerce_int(
-                                feeding_data.get('total_portions_today', 0)
+                                feeding_data.get('total_portions_today', 0),
                             ),
                         ),
                         'last_portion_time': feeding_data.get('last_feeding'),
                         'portion_schedule_adherence': self._coerce_float(
-                            feeding_data.get('feeding_schedule_adherence', 100.0),
+                            feeding_data.get(
+                                'feeding_schedule_adherence', 100.0,
+                            ),
                             default=100.0,
                         ),
-                    }
+                    },
                 )
 
         return _normalise_attributes(attrs)
@@ -2621,7 +2652,7 @@ class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
     """Sensor for calorie goal progress percentage."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Calorie Goal Progress Sensor."""
         super().__init__(
@@ -2644,7 +2675,7 @@ class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
 
         try:
             calories_consumed = self._coerce_float(
-                feeding_data.get('total_calories_today', 0.0)
+                feeding_data.get('total_calories_today', 0.0),
             )
             calorie_target = self._coerce_float(
                 feeding_data.get(
@@ -2658,7 +2689,8 @@ class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
                 return 0.0
 
             progress = (calories_consumed / calorie_target) * 100
-            return round(min(progress, 150.0), 1)  # Cap at 150% to show overfeeding
+            # Cap at 150% to show overfeeding
+            return round(min(progress, 150.0), 1)
 
         except (TypeError, ValueError, ZeroDivisionError):
             return 0.0
@@ -2672,12 +2704,14 @@ class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
         if feeding_snapshot:
             with contextlib.suppress(TypeError, ValueError, ZeroDivisionError):
                 calories_consumed = self._coerce_float(
-                    feeding_snapshot.get('total_calories_today', 0.0)
+                    feeding_snapshot.get('total_calories_today', 0.0),
                 )
                 calorie_target = self._coerce_float(
                     feeding_snapshot.get(
                         'daily_calorie_target',
-                        feeding_snapshot.get('target_calories_per_day', 1000.0),
+                        feeding_snapshot.get(
+                            'target_calories_per_day', 1000.0,
+                        ),
                     ),
                     default=0.0,
                 )
@@ -2687,11 +2721,11 @@ class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
                         'calories_consumed': calories_consumed,
                         'calorie_target': calorie_target,
                         'calories_remaining': max(
-                            0, calorie_target - calories_consumed
+                            0, calorie_target - calories_consumed,
                         ),
                         'over_target': calories_consumed > calorie_target,
                         'over_target_amount': max(
-                            0, calories_consumed - calorie_target
+                            0, calories_consumed - calorie_target,
                         ),
                         'target_met': calories_consumed >= calorie_target,
                         'progress_status': (
@@ -2701,7 +2735,7 @@ class PawControlCalorieGoalProgressSensor(PawControlSensorBase):
                             if calories_consumed >= calorie_target * 0.9
                             else 'under_target'
                         ),
-                    }
+                    },
                 )
 
         return _normalise_attributes(attrs)
@@ -2712,7 +2746,7 @@ class PawControlHealthFeedingStatusSensor(PawControlSensorBase):
     """Sensor reflecting overall health-aware feeding status."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Health Feeding Status Sensor."""
         super().__init__(
@@ -2729,7 +2763,9 @@ class PawControlHealthFeedingStatusSensor(PawControlSensorBase):
         """Return current health feeding status."""
 
         feeding_data = self._get_module_data('feeding')
-        status = feeding_data.get('health_feeding_status') if feeding_data else None
+        status = feeding_data.get(
+            'health_feeding_status',
+        ) if feeding_data else None
         if not status:
             return 'unknown'
         return str(status)
@@ -2741,22 +2777,22 @@ class PawControlHealthFeedingStatusSensor(PawControlSensorBase):
         attrs: AttributeDict = self._base_attributes()
         feeding_payload = self._get_feeding_module()
         feeding_data: FeedingModulePayload = feeding_payload or cast(
-            FeedingModulePayload, {}
+            FeedingModulePayload, {},
         )
         attrs.update(
             {
                 'daily_calorie_target': cast(
-                    JSONValue, feeding_data.get('daily_calorie_target')
+                    JSONValue, feeding_data.get('daily_calorie_target'),
                 ),
                 'total_calories_today': cast(
-                    JSONValue, feeding_data.get('total_calories_today')
+                    JSONValue, feeding_data.get('total_calories_today'),
                 ),
                 'portion_adjustment_factor': cast(
-                    JSONValue, feeding_data.get('portion_adjustment_factor')
+                    JSONValue, feeding_data.get('portion_adjustment_factor'),
                 ),
                 'weight_goal': cast(JSONValue, feeding_data.get('weight_goal')),
                 'emergency_active': bool(feeding_data.get('health_emergency', False)),
-            }
+            },
         )
         emergency_details = feeding_data.get('health_emergency_details')
         if emergency_details is not None:
@@ -2769,7 +2805,7 @@ class PawControlDailyCalorieTargetSensor(PawControlSensorBase):
     """Sensor reporting the calculated daily calorie target."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Daily Calorie Target Sensor."""
         super().__init__(
@@ -2804,14 +2840,16 @@ class PawControlDailyCalorieTargetSensor(PawControlSensorBase):
         attrs: AttributeDict = self._base_attributes()
         feeding_payload = self._get_feeding_module() or cast(FeedingModulePayload, {})
         health_summary = feeding_payload.get('health_summary')
-        health_mapping = health_summary if isinstance(health_summary, Mapping) else {}
+        health_mapping = health_summary if isinstance(
+            health_summary, Mapping,
+        ) else {}
         attrs.update(
             {
                 'calories_per_gram': cast(
-                    JSONValue, feeding_payload.get('calories_per_gram')
+                    JSONValue, feeding_payload.get('calories_per_gram'),
                 ),
                 'health_source': cast(JSONValue, health_mapping.get('life_stage')),
-            }
+            },
         )
         return _normalise_attributes(attrs)
 
@@ -2821,7 +2859,7 @@ class PawControlCaloriesConsumedTodaySensor(PawControlSensorBase):
     """Sensor for calories consumed today."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Calories Consumed Today Sensor."""
         super().__init__(
@@ -2857,12 +2895,12 @@ class PawControlCaloriesConsumedTodaySensor(PawControlSensorBase):
         attrs.update(
             {
                 'daily_calorie_target': cast(
-                    JSONValue, feeding_payload.get('daily_calorie_target')
+                    JSONValue, feeding_payload.get('daily_calorie_target'),
                 ),
                 'calorie_goal_progress': cast(
-                    JSONValue, feeding_payload.get('calorie_goal_progress')
+                    JSONValue, feeding_payload.get('calorie_goal_progress'),
                 ),
-            }
+            },
         )
         return _normalise_attributes(attrs)
 
@@ -2872,7 +2910,7 @@ class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
     """Sensor exposing the calculated portion adjustment factor."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Portion Adjustment Factor Sensor."""
         super().__init__(
@@ -2909,12 +2947,12 @@ class PawControlPortionAdjustmentFactorSensor(PawControlSensorBase):
                 {
                     'weight_goal': cast(JSONValue, feeding_payload.get('weight_goal')),
                     'health_conditions': cast(
-                        JSONValue, feeding_payload.get('health_conditions', [])
+                        JSONValue, feeding_payload.get('health_conditions', []),
                     ),
                     'calories_per_gram': cast(
-                        JSONValue, feeding_payload.get('calories_per_gram')
+                        JSONValue, feeding_payload.get('calories_per_gram'),
                     ),
-                }
+                },
             )
 
         return _normalise_attributes(attrs)
@@ -2925,7 +2963,7 @@ class PawControlFoodConsumptionSensor(PawControlSensorBase):
     """Sensor for food consumption tracking."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Food Consumption Sensor."""
         super().__init__(
@@ -2947,7 +2985,7 @@ class PawControlFoodConsumptionSensor(PawControlSensorBase):
             return 0.0
 
         total_consumption = self._coerce_float(
-            feeding_payload.get('total_food_consumed_today', 0.0)
+            feeding_payload.get('total_food_consumed_today', 0.0),
         )
 
         # Fallback calculation from feedings if total not available
@@ -2970,7 +3008,11 @@ class PawControlFoodConsumptionSensor(PawControlSensorBase):
         if feeding_payload:
             feedings = feeding_payload.get('feedings_today')
             feedings_list: list[Mapping[str, object]] = (
-                [feeding for feeding in feedings if isinstance(feeding, Mapping)]
+                [
+                    feeding for feeding in feedings if isinstance(
+                    feeding, Mapping,
+                    )
+                ]
                 if isinstance(feedings, list)
                 else []
             )
@@ -2986,10 +3028,10 @@ class PawControlFoodConsumptionSensor(PawControlSensorBase):
                     meal_types.add(meal_type)
 
             target_daily = self._coerce_float(
-                feeding_payload.get('daily_amount_target', 500.0), default=500.0
+                feeding_payload.get('daily_amount_target', 500.0), default=500.0,
             )
             consumed = self._coerce_float(
-                feeding_payload.get('total_food_consumed_today', 0.0)
+                feeding_payload.get('total_food_consumed_today', 0.0),
             )
 
             remaining = max(0.0, target_daily - consumed)
@@ -3009,7 +3051,7 @@ class PawControlFoodConsumptionSensor(PawControlSensorBase):
                     'meal_types_today': sorted(list(meal_types)),
                     'feedings_count': feedings_count,
                     'average_portion_size': average_portion,
-                }
+                },
             )
 
         return _normalise_attributes(attrs)
@@ -3023,7 +3065,7 @@ class PawControlLastWalkSensor(PawControlSensorBase):
     """Sensor for last walk timestamp."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Last Walk Sensor."""
         super().__init__(
@@ -3060,7 +3102,7 @@ class PawControlLastWalkHoursSensor(PawControlSensorBase):
     """Sensor providing the elapsed hours since the last walk."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Last Walk Hours Sensor."""
         super().__init__(
@@ -3092,7 +3134,7 @@ class PawControlWalksTodaySensor(PawControlSensorBase):
     """Sensor counting walks completed today."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Walks Today Sensor."""
         super().__init__(
@@ -3121,7 +3163,7 @@ class PawControlCurrentWalkDurationSensor(PawControlSensorBase):
     """Sensor indicating the active walk duration in minutes."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Current Walk Duration Sensor."""
         super().__init__(
@@ -3151,7 +3193,7 @@ class PawControlWalkCountTodaySensor(PawControlSensorBase):
     """Sensor for walk count today."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Walk Count Today Sensor."""
         super().__init__(
@@ -3178,7 +3220,7 @@ class PawControlWalkDistanceTodaySensor(PawControlSensorBase):
     """Sensor for total walk distance today."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Walk Distance Today Sensor."""
         super().__init__(
@@ -3211,7 +3253,7 @@ class PawControlWalkDistanceTodaySensor(PawControlSensorBase):
         if walk_data:
             with contextlib.suppress(TypeError, ValueError, ZeroDivisionError):
                 total_distance_today = self._coerce_float(
-                    walk_data.get('total_distance_today', 0)
+                    walk_data.get('total_distance_today', 0),
                 )
                 walks_today = self._coerce_int(walk_data.get('walks_today', 0))
                 attrs.update(
@@ -3222,7 +3264,7 @@ class PawControlWalkDistanceTodaySensor(PawControlSensorBase):
                             total_distance_today / max(1, walks_today),
                             1,
                         ),
-                    }
+                    },
                 )
 
         return _normalise_attributes(attrs)
@@ -3238,7 +3280,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
     """
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Calories Burned Today Sensor."""
         super().__init__(
@@ -3270,12 +3312,12 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
 
         except (TypeError, ValueError) as err:
             _LOGGER.debug(
-                'Error calculating calories burned for %s: %s', self._dog_id, err
+                'Error calculating calories burned for %s: %s', self._dog_id, err,
             )
             return 0.0
 
     def _calculate_calories_from_activity(
-        self, walk_data: WalkModuleTelemetry
+        self, walk_data: WalkModuleTelemetry,
     ) -> float:
         """Calculate calories burned from walk activity data."""
         try:
@@ -3285,7 +3327,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
                 return 0.0
 
             dog_weight = self._coerce_float(
-                dog_data.get('dog_info', {}).get('dog_weight', 25), default=25.0
+                dog_data.get('dog_info', {}).get('dog_weight', 25), default=25.0,
             )  # Default 25kg
 
             # Get walk metrics
@@ -3345,17 +3387,17 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
                 dog_data = self._get_dog_data()
                 dog_weight = (
                     self._coerce_float(
-                        dog_data.get('dog_info', {}).get('dog_weight', 25)
+                        dog_data.get('dog_info', {}).get('dog_weight', 25),
                     )
                     if dog_data
                     else 25.0
                 )
 
                 total_duration = self._coerce_float(
-                    walk_data.get('total_duration_today', 0)
+                    walk_data.get('total_duration_today', 0),
                 )
                 total_distance = self._coerce_float(
-                    walk_data.get('total_distance_today', 0)
+                    walk_data.get('total_distance_today', 0),
                 )
 
                 attrs.update(
@@ -3371,11 +3413,12 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
                             else 'low'
                         ),
                         'calories_per_hour': round(
-                            (self.native_value or 0) / max(0.1, total_duration / 60), 1
+                            (self.native_value or 0) /
+                            max(0.1, total_duration / 60), 1,
                         )
                         if total_duration > 0
                         else 0,
-                    }
+                    },
                 )
 
         return _normalise_attributes(attrs)
@@ -3391,7 +3434,7 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
     """
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Total Walk Distance Sensor."""
         super().__init__(
@@ -3417,18 +3460,20 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
             total_distance = walk_data.get('total_distance_all_time')
             if total_distance is not None:
                 return round(
-                    self._coerce_float(total_distance) / 1000, 2
+                    self._coerce_float(total_distance) / 1000, 2,
                 )  # Convert to km
 
             # Fallback: use cumulative calculation
-            cumulative_distance = walk_data.get('cumulative_distance_meters', 0)
+            cumulative_distance = walk_data.get(
+                'cumulative_distance_meters', 0,
+            )
             return round(
-                self._coerce_float(cumulative_distance) / 1000, 2
+                self._coerce_float(cumulative_distance) / 1000, 2,
             )  # Convert to km
 
         except (TypeError, ValueError) as err:
             _LOGGER.debug(
-                'Error calculating total walk distance for %s: %s', self._dog_id, err
+                'Error calculating total walk distance for %s: %s', self._dog_id, err,
             )
             return 0.0
 
@@ -3441,34 +3486,36 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
         if walk_data:
             with contextlib.suppress(TypeError, ValueError):
                 total_distance_m = self._coerce_float(
-                    walk_data.get('cumulative_distance_meters', 0)
+                    walk_data.get('cumulative_distance_meters', 0),
                 )
-                total_walks = self._coerce_int(walk_data.get('total_walks_recorded', 0))
+                total_walks = self._coerce_int(
+                    walk_data.get('total_walks_recorded', 0),
+                )
 
                 attrs.update(
                     {
                         'total_distance_meters': total_distance_m,
                         'total_walks_recorded': total_walks,
                         'average_distance_per_walk_km': round(
-                            (total_distance_m / 1000) / max(1, total_walks), 2
+                            (total_distance_m / 1000) / max(1, total_walks), 2,
                         )
                         if total_walks > 0
                         else 0,
                         'distance_this_week_km': round(
                             self._coerce_float(
-                                walk_data.get('total_distance_this_week', 0)
+                                walk_data.get('total_distance_this_week', 0),
                             )
                             / 1000,
                             2,
                         ),
                         'distance_this_month_km': round(
                             self._coerce_float(
-                                walk_data.get('total_distance_this_month', 0)
+                                walk_data.get('total_distance_this_month', 0),
                             )
                             / 1000,
                             2,
                         ),
-                    }
+                    },
                 )
 
         return _normalise_attributes(attrs)
@@ -3484,7 +3531,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
     """
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Walks This Week Sensor."""
         super().__init__(
@@ -3514,7 +3561,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
 
         except (TypeError, ValueError) as err:
             _LOGGER.debug(
-                'Error calculating walks this week for %s: %s', self._dog_id, err
+                'Error calculating walks this week for %s: %s', self._dog_id, err,
             )
             return 0
 
@@ -3528,13 +3575,16 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
             daily_walks = walk_data.get('daily_walk_counts', {})
             if isinstance(daily_walks, dict):
                 now = dt_util.utcnow()
-                week_start = now - timedelta(days=now.weekday())  # Monday start
+                week_start = now - \
+                    timedelta(days=now.weekday())  # Monday start
 
                 total_walks = 0
                 for i in range(7):  # 7 days in a week
                     day = week_start + timedelta(days=i)
                     day_key = day.strftime('%Y-%m-%d')
-                    total_walks += self._coerce_int(daily_walks.get(day_key, 0))
+                    total_walks += self._coerce_int(
+                        daily_walks.get(day_key, 0),
+                    )
 
                 return total_walks
 
@@ -3559,30 +3609,30 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
                     {
                         'week_start_date': week_start.strftime('%Y-%m-%d'),
                         'walks_today': self._coerce_int(
-                            walk_data.get('walks_today', 0)
+                            walk_data.get('walks_today', 0),
                         ),
                         'walks_yesterday': self._coerce_int(
-                            walk_data.get('walks_yesterday', 0)
+                            walk_data.get('walks_yesterday', 0),
                         ),
                         'average_walks_per_day': round((self.native_value or 0) / 7, 1),
                         'weekly_walk_goal': self._coerce_int(
-                            walk_data.get('weekly_walk_target', 14)
+                            walk_data.get('weekly_walk_target', 14),
                         ),  # 2 per day default
                         'weekly_goal_progress': round(
                             (self.native_value or 0)
                             / max(
                                 1,
                                 self._coerce_int(
-                                    walk_data.get('weekly_walk_target', 14)
+                                    walk_data.get('weekly_walk_target', 14),
                                 ),
                             )
                             * 100,
                             1,
                         ),
                         'total_walk_time_this_week_minutes': self._coerce_float(
-                            walk_data.get('total_duration_this_week', 0)
+                            walk_data.get('total_duration_this_week', 0),
                         ),
-                    }
+                    },
                 )
 
         return _normalise_attributes(attrs)
@@ -3593,7 +3643,7 @@ class PawControlLastWalkDurationSensor(PawControlSensorBase):
     """Sensor for duration of last walk."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Last Walk Duration Sensor."""
         super().__init__(
@@ -3625,7 +3675,7 @@ class PawControlLastWalkDistanceSensor(PawControlSensorBase):
     """Sensor for distance of last walk."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Last Walk Distance Sensor."""
         super().__init__(
@@ -3657,7 +3707,7 @@ class PawControlTotalWalkTimeTodaySensor(PawControlSensorBase):
     """Sensor for total walk time today."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Total Walk Time Today Sensor."""
         super().__init__(
@@ -3687,7 +3737,7 @@ class PawControlAverageWalkDurationSensor(PawControlSensorBase):
     """Sensor for average walk duration."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Average Walk Duration Sensor."""
         super().__init__(
@@ -3723,7 +3773,7 @@ class PawControlCurrentZoneSensor(PawControlSensorBase):
     """Sensor for current zone."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Current Zone Sensor."""
         super().__init__(coordinator, dog_id, dog_name, 'current_zone', icon='mdi:map')
@@ -3744,7 +3794,7 @@ class PawControlCurrentLocationSensor(PawControlSensorBase):
     """Sensor exposing the dog's current location label."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Current Location Sensor."""
         super().__init__(
@@ -3775,7 +3825,7 @@ class PawControlCurrentLocationSensor(PawControlSensorBase):
         """Return extra state attributes provided by this sensor."""
         attrs: AttributeDict = self._base_attributes()
         gps_data: GPSModulePayload = cast(
-            GPSModulePayload, self._get_gps_module() or {}
+            GPSModulePayload, self._get_gps_module() or {},
         )
         last_seen_raw = gps_data.get('last_seen')
         last_seen = self._coerce_utc_datetime(last_seen_raw)
@@ -3789,7 +3839,7 @@ class PawControlDistanceFromHomeSensor(PawControlSensorBase):
     """Sensor for distance from home."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Distance From Home Sensor."""
         super().__init__(
@@ -3821,7 +3871,7 @@ class PawControlCurrentSpeedSensor(PawControlSensorBase):
     """Sensor for current speed."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Current Speed Sensor."""
         super().__init__(
@@ -3853,7 +3903,7 @@ class PawControlSpeedSensor(PawControlSensorBase):
     """Compatibility sensor exposing GPS speed readings."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Speed Sensor."""
         super().__init__(
@@ -3884,7 +3934,7 @@ class PawControlGPSAccuracySensor(PawControlSensorBase):
     """Sensor for GPS accuracy."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control G P S Accuracy Sensor."""
         super().__init__(
@@ -3916,7 +3966,7 @@ class PawControlGPSBatteryLevelSensor(PawControlSensorBase):
     """Sensor for GPS tracker battery level."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control G P S Battery Level Sensor."""
         super().__init__(
@@ -3951,7 +4001,7 @@ class PawControlHealthStatusSensor(PawControlSensorBase):
     """Sensor for overall health status."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Health Status Sensor."""
         super().__init__(
@@ -3978,7 +4028,7 @@ class PawControlWeightSensor(PawControlSensorBase):
     """Sensor for dog weight."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Weight Sensor."""
         super().__init__(
@@ -4011,7 +4061,7 @@ class PawControlWeightTrendSensor(PawControlSensorBase):
     """Sensor for dog weight trend."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Weight Trend Sensor."""
         super().__init__(
@@ -4038,7 +4088,7 @@ class PawControlBodyConditionScoreSensor(PawControlSensorBase):
     """Sensor for body condition score (1-9 scale)."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Body Condition Score Sensor."""
         super().__init__(
@@ -4068,7 +4118,7 @@ class PawControlLastVetVisitSensor(PawControlSensorBase):
     """Sensor for last vet visit timestamp."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Last Vet Visit Sensor."""
         super().__init__(
@@ -4105,7 +4155,7 @@ class PawControlHealthConditionsSensor(PawControlSensorBase):
     """Sensor exposing tracked health conditions."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Health Conditions Sensor."""
         super().__init__(
@@ -4123,7 +4173,7 @@ class PawControlHealthConditionsSensor(PawControlSensorBase):
         """Return comma separated list of health conditions."""
 
         conditions: HealthModulePayload = cast(
-            HealthModulePayload, self._get_health_module() or {}
+            HealthModulePayload, self._get_health_module() or {},
         )
         condition_list = conditions.get('health_conditions')
         if not condition_list:
@@ -4142,7 +4192,7 @@ class PawControlHealthConditionsSensor(PawControlSensorBase):
         """Return extra state attributes provided by this sensor."""
         attrs: AttributeDict = self._base_attributes()
         conditions: HealthModulePayload = cast(
-            HealthModulePayload, self._get_health_module() or {}
+            HealthModulePayload, self._get_health_module() or {},
         )
         condition_list = conditions.get('health_conditions')
         normalized_list: list[str] = []
@@ -4161,7 +4211,7 @@ class PawControlWeightGoalProgressSensor(PawControlSensorBase):
     """Sensor for weight goal progress percentage."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Weight Goal Progress Sensor."""
         super().__init__(
@@ -4193,14 +4243,14 @@ class PawControlWeightGoalProgressSensor(PawControlSensorBase):
         """Return extra state attributes provided by this sensor."""
         attrs: AttributeDict = self._base_attributes()
         health_data: HealthModulePayload = cast(
-            HealthModulePayload, self._get_health_module() or {}
+            HealthModulePayload, self._get_health_module() or {},
         )
         attrs.update(
             {
                 'weight_goal': cast(JSONValue, health_data.get('weight_goal')),
                 'current_weight': cast(JSONValue, health_data.get('weight')),
                 'ideal_weight': cast(JSONValue, health_data.get('ideal_weight')),
-            }
+            },
         )
         return _normalise_attributes(attrs)
 
@@ -4210,7 +4260,7 @@ class PawControlDailyActivityLevelSensor(PawControlSensorBase):
     """Sensor summarizing the daily health activity level."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str
+        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
     ) -> None:
         """Initialize the Paw Control Daily Activity Level Sensor."""
         super().__init__(
@@ -4231,7 +4281,7 @@ class PawControlDailyActivityLevelSensor(PawControlSensorBase):
             return 'unknown'
 
         level = health_data.get('activity_level') or health_data.get(
-            'daily_activity_level'
+            'daily_activity_level',
         )
         if not level:
             return 'unknown'
@@ -4242,17 +4292,17 @@ class PawControlDailyActivityLevelSensor(PawControlSensorBase):
         """Return extra state attributes provided by this sensor."""
         attrs: AttributeDict = self._base_attributes()
         health_data: HealthModulePayload = cast(
-            HealthModulePayload, self._get_health_module() or {}
+            HealthModulePayload, self._get_health_module() or {},
         )
         attrs.update(
             {
                 'calorie_target': cast(
-                    JSONValue, health_data.get('daily_calorie_target')
+                    JSONValue, health_data.get('daily_calorie_target'),
                 ),
                 'calories_consumed': cast(
-                    JSONValue, health_data.get('total_calories_today')
+                    JSONValue, health_data.get('total_calories_today'),
                 ),
-            }
+            },
         )
         return _normalise_attributes(attrs)
 
