@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Set as ABCSet
+from collections.abc import Iterable, Mapping
+from collections.abc import Set as ABCSet
 from dataclasses import asdict, is_dataclass
 from datetime import date, datetime, time, timedelta
 from typing import Any, Union
 
 # Type alias for JSON-serializable values.
-JSONValue = Union[str, int, float, bool, None, list["JSONValue"], dict[str, "JSONValue"]]
+JSONValue = Union[
+    str, int, float, bool, None, list["JSONValue"], dict[str, "JSONValue"]
+]
+
 
 def normalize_value(value: Any) -> JSONValue:
     """Recursively normalise values to JSON-serializable primitives.
