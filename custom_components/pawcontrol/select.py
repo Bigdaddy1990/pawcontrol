@@ -24,8 +24,6 @@ from homeassistant.util import dt as dt_util
 from .compat import HomeAssistantError
 from .const import (
     ACTIVITY_LEVELS,
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
     DEFAULT_PERFORMANCE_MODE,
     DOG_SIZES,
     FOOD_TYPES,
