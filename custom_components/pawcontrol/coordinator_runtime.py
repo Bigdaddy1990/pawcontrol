@@ -41,6 +41,7 @@ except (ImportError, ModuleNotFoundError):
     dt_util = _DateTimeModule()
 
 from .coordinator_support import CoordinatorMetrics, DogConfigRegistry
+from .dog_status import build_dog_status_snapshot
 from .exceptions import (
     GPSUnavailableError,
     NetworkError,
@@ -488,5 +489,7 @@ class CoordinatorRuntime:
                 payload[module_name] = {"status": "error"}
             else:
                 payload[module_name] = cast(ModuleAdapterPayload, result)
+
+        payload["status_snapshot"] = build_dog_status_snapshot(dog_id, payload)
 
         return payload

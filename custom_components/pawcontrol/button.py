@@ -62,8 +62,6 @@ from .types import (
     DOG_MODULES_FIELD,
     DOG_NAME_FIELD,
     WALK_IN_PROGRESS_FIELD,
-    CoordinatorModuleState,
-    CoordinatorTypedModuleName,
     DogConfigData,
     GardenModulePayload,
     GPSModulePayload,
@@ -811,7 +809,7 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return attributes with optimized caching."""
 
-        attrs = self._build_base_state_attributes(
+        attrs = self._build_entity_attributes(
             {
                 "button_type": self._button_type,
                 "last_pressed": cast(
@@ -825,47 +823,22 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
 
         return _normalise_attributes(attrs)
 
-    def _get_module_data(
-        self, module: CoordinatorTypedModuleName
-    ) -> CoordinatorModuleState | None:
-        """Get module data from cached dog data."""
-        dog_data = self._get_dog_data_cached()
-        if not dog_data:
-            return None
-
-        module_data = dog_data.get(module)
-        if module_data is None:
-            return None
-
-        if isinstance(module_data, Mapping):
-            return cast(CoordinatorModuleState, module_data)
-
-        _LOGGER.warning(
-            "Invalid module data for %s/%s: expected mapping, got %s",
-            self._dog_id,
-            module,
-            type(module_data).__name__,
-        )
-        return None
-
     def _get_walk_payload(self) -> WalkModulePayload | None:
         """Return the walk module payload if available."""
 
-        walk_data = self._get_module_data(cast(CoordinatorTypedModuleName, MODULE_WALK))
+        walk_data = self._get_module_data(cast(str, MODULE_WALK))
         return cast(WalkModulePayload, walk_data) if walk_data is not None else None
 
     def _get_gps_payload(self) -> GPSModulePayload | None:
         """Return the GPS module payload if available."""
 
-        gps_data = self._get_module_data(cast(CoordinatorTypedModuleName, MODULE_GPS))
+        gps_data = self._get_module_data(cast(str, MODULE_GPS))
         return cast(GPSModulePayload, gps_data) if gps_data is not None else None
 
     def _get_garden_payload(self) -> GardenModulePayload | None:
         """Return the garden module payload if available."""
 
-        garden_data = self._get_module_data(
-            cast(CoordinatorTypedModuleName, MODULE_GARDEN)
-        )
+        garden_data = self._get_module_data(cast(str, MODULE_GARDEN))
         return (
             cast(GardenModulePayload, garden_data) if garden_data is not None else None
         )
@@ -982,6 +955,23 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
                 )
         await registry.async_call(domain, service, payload, **kwargs)
 
+    async def _async_press_service(
+        self,
+        domain: str,
+        service: str,
+        data: JSONLikeMapping,
+        *,
+        error_message: str,
+        **kwargs: Any,
+    ) -> None:
+        """Run a service call and surface consistent errors."""
+
+        try:
+            await self._async_service_call(domain, service, data, **kwargs)
+        except Exception as err:
+            _LOGGER.error("%s: %s", error_message, err)
+            raise HomeAssistantError(f"{error_message}: {err}") from err
+
     async def async_press(self) -> None:
         """Handle button press with timestamp tracking."""
         self._last_pressed = dt_util.utcnow().isoformat()
@@ -1010,20 +1000,16 @@ class PawControlTestNotificationButton(PawControlButtonBase):
     async def async_press(self) -> None:
         """Send test notification."""
         await super().async_press()
-
-        try:
-            await self._async_service_call(
-                "pawcontrol",
-                SERVICE_NOTIFY_TEST,
-                {
-                    ATTR_DOG_ID: self._dog_id,
-                    "message": f"Test notification for {self._dog_name}",
-                },
-                blocking=False,
-            )
-        except Exception as err:
-            _LOGGER.error("Failed to send test notification: %s", err)
-            raise HomeAssistantError(f"Failed to send notification: {err}") from err
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_NOTIFY_TEST,
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "message": f"Test notification for {self._dog_name}",
+            },
+            error_message="Failed to send test notification",
+            blocking=False,
+        )
 
 
 class PawControlResetDailyStatsButton(PawControlButtonBase):
@@ -1195,31 +1181,26 @@ class PawControlMarkFedButton(PawControlButtonBase):
     async def async_press(self) -> None:
         """Mark as fed with optimized meal type detection."""
         await super().async_press()
+        # OPTIMIZATION: Faster meal type lookup using pre-calculated ranges
+        hour = dt_util.now().hour
+        meal_type = "snack"  # Default
 
-        try:
-            # OPTIMIZATION: Faster meal type lookup using pre-calculated ranges
-            hour = dt_util.now().hour
-            meal_type = "snack"  # Default
+        for time_range, meal in self._meal_schedule.items():
+            if hour in time_range:
+                meal_type = meal
+                break
 
-            for time_range, meal in self._meal_schedule.items():
-                if hour in time_range:
-                    meal_type = meal
-                    break
-
-            await self._async_service_call(
-                "pawcontrol",
-                SERVICE_FEED_DOG,
-                {
-                    ATTR_DOG_ID: self._dog_id,
-                    "meal_type": meal_type,
-                    "portion_size": 0,
-                },
-                blocking=False,
-            )
-
-        except Exception as err:
-            _LOGGER.error("Failed to mark as fed: %s", err)
-            raise HomeAssistantError(f"Failed to log feeding: {err}") from err
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_FEED_DOG,
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "meal_type": meal_type,
+                "portion_size": 0,
+            },
+            error_message="Failed to mark as fed",
+            blocking=False,
+        )
 
 
 class PawControlFeedNowButton(PawControlButtonBase):
@@ -1244,21 +1225,17 @@ class PawControlFeedNowButton(PawControlButtonBase):
         """Trigger an immediate feeding service call."""
 
         await super().async_press()
-
-        try:
-            await self._async_service_call(
-                "pawcontrol",
-                SERVICE_FEED_DOG,
-                {
-                    ATTR_DOG_ID: self._dog_id,
-                    "meal_type": "immediate",
-                    "portion_size": 1,
-                },
-                blocking=False,
-            )
-        except Exception as err:
-            _LOGGER.error("Failed to feed now: %s", err)
-            raise HomeAssistantError(f"Failed to feed now: {err}") from err
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_FEED_DOG,
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "meal_type": "immediate",
+                "portion_size": 1,
+            },
+            error_message="Failed to feed now",
+            blocking=False,
+        )
 
 
 class PawControlFeedMealButton(PawControlButtonBase):
@@ -1286,22 +1263,17 @@ class PawControlFeedMealButton(PawControlButtonBase):
     async def async_press(self) -> None:
         """Feed specific meal."""
         await super().async_press()
-
-        try:
-            await self._async_service_call(
-                "pawcontrol",
-                SERVICE_FEED_DOG,
-                {
-                    ATTR_DOG_ID: self._dog_id,
-                    "meal_type": self._meal_type,
-                    "portion_size": 0,
-                },
-                blocking=False,
-            )
-
-        except Exception as err:
-            _LOGGER.error("Failed to feed %s: %s", self._meal_type, err)
-            raise HomeAssistantError(f"Failed to log {self._meal_type}: {err}") from err
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_FEED_DOG,
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "meal_type": self._meal_type,
+                "portion_size": 0,
+            },
+            error_message=f"Failed to feed {self._meal_type}",
+            blocking=False,
+        )
 
 
 class PawControlLogCustomFeedingButton(PawControlButtonBase):
@@ -1323,24 +1295,19 @@ class PawControlLogCustomFeedingButton(PawControlButtonBase):
     async def async_press(self) -> None:
         """Log custom feeding."""
         await super().async_press()
-
-        try:
-            await self._async_service_call(
-                "pawcontrol",
-                SERVICE_FEED_DOG,
-                {
-                    ATTR_DOG_ID: self._dog_id,
-                    "meal_type": "snack",
-                    "portion_size": 75,
-                    "food_type": "dry_food",
-                    "notes": "Custom feeding via button",
-                },
-                blocking=False,
-            )
-
-        except Exception as err:
-            _LOGGER.error("Failed to log custom feeding: %s", err)
-            raise HomeAssistantError(f"Failed to log custom feeding: {err}") from err
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_FEED_DOG,
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "meal_type": "snack",
+                "portion_size": 75,
+                "food_type": "dry_food",
+                "notes": "Custom feeding via button",
+            },
+            error_message="Failed to log custom feeding",
+            blocking=False,
+        )
 
 
 class PawControlStartWalkButton(PawControlButtonBase):
@@ -1495,33 +1462,29 @@ class PawControlQuickWalkButton(PawControlButtonBase):
     async def async_press(self) -> None:
         """Log quick walk as atomic operation."""
         await super().async_press()
+        # Start and immediately end walk atomically
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_START_WALK,
+            data={
+                ATTR_DOG_ID: self._dog_id,
+                "walker": "Quick walk",
+                "leash_used": True,
+            },
+            error_message="Failed to start quick walk",
+            blocking=True,
+        )
 
-        try:
-            # Start and immediately end walk atomically
-            await self._async_service_call(
-                "pawcontrol",
-                SERVICE_START_WALK,
-                data={
-                    ATTR_DOG_ID: self._dog_id,
-                    "walker": "Quick walk",
-                    "leash_used": True,
-                },
-                blocking=True,
-            )
-
-            await self._async_service_call(
-                "pawcontrol",
-                SERVICE_END_WALK,
-                data={
-                    ATTR_DOG_ID: self._dog_id,
-                    "notes": "Quick walk",
-                },
-                blocking=True,
-            )
-
-        except Exception as err:
-            _LOGGER.error("Failed to log quick walk: %s", err)
-            raise HomeAssistantError(f"Failed to log quick walk: {err}") from err
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_END_WALK,
+            data={
+                ATTR_DOG_ID: self._dog_id,
+                "notes": "Quick walk",
+            },
+            error_message="Failed to end quick walk",
+            blocking=True,
+        )
 
 
 class PawControlLogWalkManuallyButton(PawControlButtonBase):
@@ -1544,32 +1507,28 @@ class PawControlLogWalkManuallyButton(PawControlButtonBase):
     async def async_press(self) -> None:
         """Log manual walk."""
         await super().async_press()
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_START_WALK,
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "walker": "Manual entry",
+                "leash_used": True,
+            },
+            error_message="Failed to start manual walk",
+            blocking=True,
+        )
 
-        try:
-            await self._async_service_call(
-                "pawcontrol",
-                SERVICE_START_WALK,
-                {
-                    ATTR_DOG_ID: self._dog_id,
-                    "walker": "Manual entry",
-                    "leash_used": True,
-                },
-                blocking=True,
-            )
-
-            await self._async_service_call(
-                "pawcontrol",
-                SERVICE_END_WALK,
-                {
-                    ATTR_DOG_ID: self._dog_id,
-                    "notes": "Manually logged walk",
-                },
-                blocking=True,
-            )
-
-        except Exception as err:
-            _LOGGER.error("Failed to log manual walk: %s", err)
-            raise HomeAssistantError(f"Failed to log walk: {err}") from err
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_END_WALK,
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "notes": "Manually logged walk",
+            },
+            error_message="Failed to end manual walk",
+            blocking=True,
+        )
 
 
 class PawControlRefreshLocationButton(PawControlButtonBase):
@@ -1635,19 +1594,16 @@ class PawControlExportRouteButton(PawControlButtonBase):
         """Export route data."""
         await super().async_press()
 
-        try:
-            await self._async_service_call(
-                "pawcontrol",
-                SERVICE_GPS_EXPORT_ROUTE,
-                {
-                    ATTR_DOG_ID: self._dog_id,
-                    "format": "gpx",
-                },
-                blocking=False,
-            )
-        except Exception as err:
-            _LOGGER.error("Failed to export route: %s", err)
-            raise HomeAssistantError(f"Failed to export route: {err}") from err
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_GPS_EXPORT_ROUTE,
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "format": "gpx",
+            },
+            error_message="Failed to export route",
+            blocking=False,
+        )
 
 
 class PawControlCenterMapButton(PawControlButtonBase):
@@ -1733,9 +1689,7 @@ class PawControlLogWeightButton(PawControlButtonBase):
         await super().async_press()
 
         try:
-            health_data = self._get_module_data(
-                cast(CoordinatorTypedModuleName, MODULE_HEALTH)
-            )
+            health_data = self._get_module_data(MODULE_HEALTH)
             weight_payload = None
             if isinstance(health_data, Mapping):
                 weight_value = health_data.get("weight")
@@ -1754,13 +1708,16 @@ class PawControlLogWeightButton(PawControlButtonBase):
             if weight_payload is not None:
                 payload["weight"] = weight_payload
 
-            await self._async_service_call(
+            await self._async_press_service(
                 "pawcontrol",
                 SERVICE_LOG_HEALTH,
                 payload,
+                error_message="Failed to log weight",
                 blocking=False,
             )
         except Exception as err:
+            if isinstance(err, HomeAssistantError):
+                raise
             _LOGGER.error("Failed to log weight: %s", err)
             raise HomeAssistantError(f"Failed to log weight: {err}") from err
 
@@ -1785,9 +1742,7 @@ class PawControlLogMedicationButton(PawControlButtonBase):
         """Log medication administration."""
         await super().async_press()
 
-        health_data = self._get_module_data(
-            cast(CoordinatorTypedModuleName, MODULE_HEALTH)
-        )
+        health_data = self._get_module_data(MODULE_HEALTH)
         medication_name: str | None = None
         dose: str | None = None
         if isinstance(health_data, Mapping):
@@ -1810,21 +1765,18 @@ class PawControlLogMedicationButton(PawControlButtonBase):
         if not dose:
             dose = "1 dose"
 
-        try:
-            await self._async_service_call(
-                "pawcontrol",
-                SERVICE_LOG_MEDICATION,
-                {
-                    ATTR_DOG_ID: self._dog_id,
-                    "medication_name": medication_name,
-                    "dose": dose,
-                    "notes": "Logged via medication button",
-                },
-                blocking=False,
-            )
-        except Exception as err:
-            _LOGGER.error("Failed to log medication: %s", err)
-            raise HomeAssistantError(f"Failed to log medication: {err}") from err
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_LOG_MEDICATION,
+            {
+                ATTR_DOG_ID: self._dog_id,
+                "medication_name": medication_name,
+                "dose": dose,
+                "notes": "Logged via medication button",
+            },
+            error_message="Failed to log medication",
+            blocking=False,
+        )
 
 
 class PawControlStartGroomingButton(PawControlButtonBase):
@@ -1897,25 +1849,20 @@ class PawControlScheduleVetButton(PawControlButtonBase):
     async def async_press(self) -> None:
         """Schedule veterinary appointment."""
         await super().async_press()
-        try:
-            await self._async_service_call(
-                "pawcontrol",
-                SERVICE_SEND_NOTIFICATION,
-                {
-                    "title": f"Vet appointment for {self._dog_name}",
-                    "message": (
-                        f"Schedule the next veterinary appointment for {self._dog_name}."
-                    ),
-                    "dog_id": self._dog_id,
-                    "notification_type": "veterinary_appointment",
-                },
-                blocking=False,
-            )
-        except Exception as err:
-            _LOGGER.error("Failed to schedule vet visit: %s", err)
-            raise HomeAssistantError(
-                f"Failed to schedule vet appointment: {err}"
-            ) from err
+        await self._async_press_service(
+            "pawcontrol",
+            SERVICE_SEND_NOTIFICATION,
+            {
+                "title": f"Vet appointment for {self._dog_name}",
+                "message": (
+                    f"Schedule the next veterinary appointment for {self._dog_name}."
+                ),
+                "dog_id": self._dog_id,
+                "notification_type": "veterinary_appointment",
+            },
+            error_message="Failed to schedule vet appointment",
+            blocking=False,
+        )
 
 
 class PawControlHealthCheckButton(PawControlButtonBase):
@@ -1939,9 +1886,7 @@ class PawControlHealthCheckButton(PawControlButtonBase):
         """Perform comprehensive health check."""
         await super().async_press()
 
-        health_data_raw = self._get_module_data(
-            cast(CoordinatorTypedModuleName, MODULE_HEALTH)
-        )
+        health_data_raw = self._get_module_data(MODULE_HEALTH)
         health_data = (
             cast(HealthModulePayload, health_data_raw)
             if health_data_raw is not None

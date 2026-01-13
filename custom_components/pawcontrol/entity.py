@@ -13,11 +13,15 @@ from homeassistant.util import dt as dt_util
 
 from .const import ATTR_DOG_ID, ATTR_DOG_NAME
 from .coordinator import PawControlCoordinator
+from .dog_status import build_dog_status_snapshot
 from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .runtime_data import get_runtime_data
 from .service_guard import ServiceGuardResult
 from .types import (
     CoordinatorDogData,
+    CoordinatorModuleLookupResult,
+    CoordinatorUntypedModuleState,
+    DogStatusSnapshot,
     CoordinatorRuntimeManagers,
     DogConfigData,
     JSONMutableMapping,
@@ -298,9 +302,66 @@ class PawControlDogEntityBase(PawControlEntity):
         self._append_dog_info_attributes(attrs)
         return attrs
 
+    def _build_entity_attributes(
+        self, extra: Mapping[str, object] | None = None
+    ) -> JSONMutableMapping:
+        """Return base attributes optionally augmented by ``extra``."""
+
+        return self._build_base_state_attributes(extra)
+
+    def _finalize_entity_attributes(
+        self, attrs: JSONMutableMapping
+    ) -> JSONMutableMapping:
+        """Normalize entity attributes for Home Assistant."""
+
+        return cast(JSONMutableMapping, _normalise_diagnostics_json(attrs))
+
+    def _extra_state_attributes(self) -> Mapping[str, object] | None:
+        """Return extra attributes for the base entity payload."""
+
+        return None
+
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Expose the entity's extra state attributes payload."""
 
-        attrs = self._build_base_state_attributes()
-        return cast(JSONMutableMapping, _normalise_diagnostics_json(attrs))
+        attrs = self._build_entity_attributes(self._extra_state_attributes())
+        return self._finalize_entity_attributes(attrs)
+
+    def _get_module_data(self, module: str) -> CoordinatorModuleLookupResult:
+        """Return coordinator module data with strict mapping validation."""
+
+        if not isinstance(module, str) or not module:
+            return cast(CoordinatorUntypedModuleState, {})
+
+        try:
+            payload = self.coordinator.get_module_data(self._dog_id, module)
+        except Exception as err:  # pragma: no cover - defensive log path
+            _LOGGER.error(
+                "Error fetching module data for %s/%s: %s", self._dog_id, module, err
+            )
+            return cast(CoordinatorUntypedModuleState, {})
+
+        if not isinstance(payload, Mapping):
+            _LOGGER.warning(
+                "Invalid module payload for %s/%s: expected mapping, got %s",
+                self._dog_id,
+                module,
+                type(payload).__name__,
+            )
+            return cast(CoordinatorUntypedModuleState, {})
+
+        return cast(CoordinatorModuleLookupResult, payload)
+
+    def _get_status_snapshot(self) -> DogStatusSnapshot | None:
+        """Return the centralized dog status snapshot when available."""
+
+        dog_data = self._get_dog_data_cached()
+        if not isinstance(dog_data, Mapping):
+            return None
+
+        snapshot = dog_data.get("status_snapshot")
+        if isinstance(snapshot, Mapping):
+            return cast(DogStatusSnapshot, snapshot)
+
+        return build_dog_status_snapshot(self._dog_id, dog_data)

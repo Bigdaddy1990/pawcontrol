@@ -5967,6 +5967,7 @@ class CoordinatorDogData(TypedDict, total=False):
 
     dog_info: DogConfigData
     status: str
+    status_snapshot: NotRequired["DogStatusSnapshot"]
     last_update: str | None
     gps: NotRequired[CoordinatorModuleState]
     geofencing: NotRequired[CoordinatorModuleState]
@@ -5983,6 +5984,19 @@ class CoordinatorDogData(TypedDict, total=False):
     medication: NotRequired[JSONMutableMapping]
     training: NotRequired[JSONMutableMapping]
     text_values: NotRequired[DogTextSnapshot]
+
+
+class DogStatusSnapshot(TypedDict, total=False):
+    """Centralized status snapshot for a dog."""
+
+    dog_id: str
+    state: str
+    zone: str | None
+    is_home: bool
+    in_safe_zone: bool
+    on_walk: bool
+    needs_walk: bool
+    is_hungry: bool
 
 
 CoordinatorDataPayload = dict[str, CoordinatorDogData]
