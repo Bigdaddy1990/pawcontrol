@@ -18,7 +18,8 @@ def pytest_addoption(parser: pytest.Parser) -> None:
 
     parser.addini(
         'asyncio_mode',
-        'Select asyncio integration mode', default='auto',
+        'Select asyncio integration mode',
+        default='auto',
     )
 
 

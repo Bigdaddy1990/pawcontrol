@@ -84,7 +84,8 @@ def _fetch_cache_repair_summary(
         summary = summary_method()
     except Exception as err:  # pragma: no cover - diagnostics guard
         coordinator.logger.debug(
-            'Failed to collect cache repair summary: %s', err,
+            'Failed to collect cache repair summary: %s',
+            err,
         )
         return None
 
@@ -92,7 +93,8 @@ def _fetch_cache_repair_summary(
     if resolved_summary is not None:
         return resolved_summary
     coordinator.logger.debug(
-        'Cache repair summary did not return CacheRepairAggregate: %r', summary,
+        'Cache repair summary did not return CacheRepairAggregate: %r',
+        summary,
     )
     return None
 
@@ -123,10 +125,13 @@ def _build_runtime_store_summary(
     """Return a runtime store summary combining snapshot and history telemetry."""
 
     snapshot = describe_runtime_store_status(
-        coordinator.hass, coordinator.config_entry,
+        coordinator.hass,
+        coordinator.config_entry,
     )
     history = update_runtime_store_health(
-        runtime_data, snapshot, record_event=record_event,
+        runtime_data,
+        snapshot,
+        record_event=record_event,
     )
     summary: CoordinatorRuntimeStoreSummary = {'snapshot': snapshot}
     if history:
@@ -134,7 +139,8 @@ def _build_runtime_store_summary(
         assessment = history.get('assessment')
         if isinstance(assessment, Mapping):
             summary['assessment'] = cast(
-                RuntimeStoreHealthAssessment, dict(assessment),
+                RuntimeStoreHealthAssessment,
+                dict(assessment),
             )
     return summary
 
@@ -518,7 +524,8 @@ def merge_rejection_metric_values(
             if key in source:
                 value = source[key]
                 if isinstance(value, Sequence) and not isinstance(
-                    value, str | bytes | bytearray,
+                    value,
+                    str | bytes | bytearray,
                 ):
                     mutable_target[key] = list(value)
                 else:
@@ -846,7 +853,8 @@ def resolve_entity_factory_guard_metrics(
 
     recent_events_raw = metrics.get('recent_events')
     if isinstance(recent_events_raw, Sequence) and not isinstance(
-        recent_events_raw, (str, bytes, bytearray),
+        recent_events_raw,
+        (str, bytes, bytearray),
     ):
         recent_events: list[EntityFactoryGuardEvent] = [
             cast(EntityFactoryGuardEvent, item)
@@ -867,7 +875,8 @@ def resolve_entity_factory_guard_metrics(
     stability_trend = metrics.get('stability_trend')
     if isinstance(stability_trend, str) and stability_trend:
         snapshot['stability_trend'] = cast(
-            'EntityFactoryGuardStabilityTrend', stability_trend,
+            'EntityFactoryGuardStabilityTrend',
+            stability_trend,
         )
 
     enforce_min_runtime = metrics.get('enforce_min_runtime')
@@ -1012,7 +1021,10 @@ def _coerce_float(value: Any) -> float | None:
         except (TypeError, ValueError, AttributeError):
             # ``start_of_local_day`` may be unavailable in some compat paths.
             start_of_day = datetime(
-                value.year, value.month, value.day, tzinfo=UTC,
+                value.year,
+                value.month,
+                value.day,
+                tzinfo=UTC,
             )
         return _timestamp_from_datetime(start_of_day)
 
@@ -1079,7 +1091,8 @@ def collect_resilience_diagnostics(
         raw = fetch()
     except Exception as err:  # pragma: no cover - diagnostics guard
         coordinator.logger.debug(
-            'Failed to collect circuit breaker stats: %s', err,
+            'Failed to collect circuit breaker stats: %s',
+            err,
         )
         _clear_resilience_diagnostics(coordinator)
         return payload
@@ -1189,7 +1202,9 @@ def build_update_statistics(
     )
     runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
     stats['runtime_store'] = _build_runtime_store_summary(
-        coordinator, runtime_data, record_event=False,
+        coordinator,
+        runtime_data,
+        record_event=False,
     )
     stats['entity_budget'] = _normalise_entity_budget_summary(
         coordinator._entity_budget.summary(),
@@ -1232,7 +1247,9 @@ def build_runtime_statistics(
     )
     runtime_data = get_runtime_data(coordinator.hass, coordinator.config_entry)
     stats['runtime_store'] = _build_runtime_store_summary(
-        coordinator, runtime_data, record_event=True,
+        coordinator,
+        runtime_data,
+        record_event=True,
     )
     stats['bool_coercion'] = update_runtime_bool_coercion_summary(runtime_data)
     stats['entity_budget'] = _normalise_entity_budget_summary(
@@ -1315,13 +1332,16 @@ def build_runtime_statistics(
 
 @callback
 def ensure_background_task(
-    coordinator: PawControlCoordinator, interval: timedelta,
+    coordinator: PawControlCoordinator,
+    interval: timedelta,
 ) -> None:
     """Start the maintenance task if not already running."""
 
     if coordinator._maintenance_unsub is None:
         coordinator._maintenance_unsub = async_track_time_interval(
-            coordinator.hass, coordinator._async_maintenance, interval,
+            coordinator.hass,
+            coordinator._async_maintenance,
+            interval,
         )
 
 
@@ -1347,7 +1367,8 @@ async def run_maintenance(coordinator: PawControlCoordinator) -> None:
             expired = coordinator._modules.cleanup_expired(now)
             if expired:
                 coordinator.logger.debug(
-                    'Cleaned %d expired cache entries', expired,
+                    'Cleaned %d expired cache entries',
+                    expired,
                 )
                 details['expired_entries'] = expired
 
@@ -1368,7 +1389,8 @@ async def run_maintenance(coordinator: PawControlCoordinator) -> None:
                     )
                     details['consecutive_errors_reset'] = previous
                     details['hours_since_last_update'] = round(
-                        hours_since_last_update, 2,
+                        hours_since_last_update,
+                        2,
                     )
 
             diagnostics = capture_cache_diagnostics(runtime_data)

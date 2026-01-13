@@ -80,7 +80,10 @@ class PersonNotificationCache[EntryT: PersonNotificationCacheEntry]:
         self._entries.clear()
 
     def store(
-        self, key: str, targets: Sequence[str], generated_at: datetime,
+        self,
+        key: str,
+        targets: Sequence[str],
+        generated_at: datetime,
     ) -> tuple[str, ...]:
         """Store ``targets`` under ``key`` and return a deduplicated tuple."""
 
@@ -93,7 +96,8 @@ class PersonNotificationCache[EntryT: PersonNotificationCacheEntry]:
             canonical.append(target)
 
         payload = _PersonNotificationCachePayload(
-            tuple(canonical), generated_at,
+            tuple(canonical),
+            generated_at,
         )
         self._entries[key] = payload
         return payload.targets
@@ -116,7 +120,8 @@ class PersonNotificationCache[EntryT: PersonNotificationCacheEntry]:
         entries: dict[str, EntryT] = {}
         for key, payload in self._entries.items():
             age_seconds = max(
-                (now - payload.generated_at).total_seconds(), 0.0,
+                (now - payload.generated_at).total_seconds(),
+                0.0,
             )
             entries[key] = cast(
                 EntryT,
@@ -260,7 +265,8 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
     @classmethod
     def _build_config_from_input(
-        cls, config: PersonEntityConfigInput,
+        cls,
+        config: PersonEntityConfigInput,
     ) -> PersonEntityConfig:
         """Normalise ``config`` into a :class:`PersonEntityConfig` instance."""
 
@@ -268,7 +274,8 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             config.get('discovery_interval'),
         )
         cache_ttl = cls._coerce_positive_int(
-            config.get('cache_ttl'), default=DEFAULT_CACHE_TTL,
+            config.get('cache_ttl'),
+            default=DEFAULT_CACHE_TTL,
         )
 
         return PersonEntityConfig(
@@ -329,7 +336,8 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         }
 
     async def async_initialize(
-        self, config: PersonEntityConfigInput | None = None,
+        self,
+        config: PersonEntityConfigInput | None = None,
     ) -> None:
         """Initialize person entity manager with configuration.
 
@@ -343,7 +351,8 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             self.register_cache_monitors(self._cache_registrar)
 
     async def _async_initialize_locked(
-        self, config: PersonEntityConfigInput | None,
+        self,
+        config: PersonEntityConfigInput | None,
     ) -> None:
         """Initialise manager internals while ``_lock`` is held."""
 
@@ -400,15 +409,21 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
                 # Extract person information
                 friendly_name = state.attributes.get(
-                    'friendly_name', entity_entry.name or entity_id,
+                    'friendly_name',
+                    entity_entry.name or entity_id,
                 )
-                name = entity_entry.name or friendly_name.replace(
-                    ' ', '_',
-                ).lower()
+                name = (
+                    entity_entry.name
+                    or friendly_name.replace(
+                        ' ',
+                        '_',
+                    ).lower()
+                )
 
                 # Try to find associated mobile device
                 mobile_device_id = await self._find_mobile_device_for_person(
-                    entity_id, state,
+                    entity_id,
+                    state,
                 )
                 notification_service = self._config.notification_mapping.get(
                     entity_id,
@@ -449,7 +464,9 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             _LOGGER.error('Failed to discover person entities: %s', err)
 
     async def _find_mobile_device_for_person(
-        self, person_entity_id: str, person_state: State,
+        self,
+        person_entity_id: str,
+        person_state: State,
     ) -> str | None:
         """Find mobile device associated with person entity.
 
@@ -490,7 +507,9 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
         except Exception as err:
             _LOGGER.debug(
-                'Failed to find mobile device for %s: %s', person_entity_id, err,
+                'Failed to find mobile device for %s: %s',
+                person_entity_id,
+                err,
             )
             return None
 
@@ -508,19 +527,23 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
         # Track state changes for all person entities
         listener = async_track_state_change_event(
-            self.hass, person_entity_ids, handle_person_state_change,
+            self.hass,
+            person_entity_ids,
+            handle_person_state_change,
         )
 
         self._state_listeners.append(listener)
 
         _LOGGER.debug(
-            'Set up state tracking for %d person entities', len(
+            'Set up state tracking for %d person entities',
+            len(
                 person_entity_ids,
             ),
         )
 
     async def _handle_person_state_change(
-        self, event: Event[EventStateChangedData],
+        self,
+        event: Event[EventStateChangedData],
     ) -> None:
         """Handle person entity state changes.
 
@@ -541,7 +564,8 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         person_info.is_home = new_state.state == STATE_HOME
         person_info.last_updated = new_state.last_updated
         person_info.attributes = cast(
-            PersonEntityAttributePayload, dict(new_state.attributes),
+            PersonEntityAttributePayload,
+            dict(new_state.attributes),
         )
 
         # Clear cache if home status changed
@@ -639,7 +663,9 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         # Check cache
         now = dt_util.now()
         cached_targets = self._targets_cache.try_get(
-            cache_key, now=now, ttl=self._config.cache_ttl,
+            cache_key,
+            now=now,
+            ttl=self._config.cache_ttl,
         )
         if cached_targets is not None:
             self._stats['cache_hits'] += 1
@@ -868,11 +894,15 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
 
         now = dt_util.now()
         cache_entries = self._targets_cache.snapshot(
-            now=now, ttl=self._config.cache_ttl,
+            now=now,
+            ttl=self._config.cache_ttl,
         )
 
         discovery_task_state: Literal[
-            'not_started', 'cancelled', 'completed', 'running',
+            'not_started',
+            'cancelled',
+            'completed',
+            'running',
         ]
         if self._discovery_task is None:
             discovery_task_state = 'not_started'
@@ -889,7 +919,8 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             'listener_count': len(self._state_listeners),
             'manager_last_activity': self._last_discovery.isoformat(),
             'manager_last_activity_age_seconds': max(
-                (now - self._last_discovery).total_seconds(), 0.0,
+                (now - self._last_discovery).total_seconds(),
+                0.0,
             ),
             'summary': cast(JSONMutableMapping, dict(self.get_notification_context())),
         }
@@ -931,7 +962,10 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         )
 
     def register_cache_monitors(
-        self, registrar: CacheMonitorRegistrar, *, prefix: str = 'person_entity',
+        self,
+        registrar: CacheMonitorRegistrar,
+        *,
+        prefix: str = 'person_entity',
     ) -> None:
         """Register the person targeting cache with the data manager registrar."""
 

@@ -8,16 +8,6 @@ the minimal interfaces that the entity factory relies on so the module can be
 imported and exercised directly.
 """
 from __future__ import annotations
-from custom_components.pawcontrol.entity_factory import (
-    _MIN_OPERATION_DURATION,
-    _RUNTIME_CONTRACT_FACTOR,
-    _RUNTIME_CONTRACT_THRESHOLD,
-    _RUNTIME_EXPAND_THRESHOLD,
-    _RUNTIME_MAX_FLOOR,
-    _RUNTIME_TARGET_RATIO,
-    ENTITY_PROFILES,
-    EntityFactory,
-)
 
 import types
 from enum import Enum
@@ -25,6 +15,14 @@ from enum import StrEnum
 
 import pytest
 
+from custom_components.pawcontrol.entity_factory import _MIN_OPERATION_DURATION
+from custom_components.pawcontrol.entity_factory import _RUNTIME_CONTRACT_FACTOR
+from custom_components.pawcontrol.entity_factory import _RUNTIME_CONTRACT_THRESHOLD
+from custom_components.pawcontrol.entity_factory import _RUNTIME_EXPAND_THRESHOLD
+from custom_components.pawcontrol.entity_factory import _RUNTIME_MAX_FLOOR
+from custom_components.pawcontrol.entity_factory import _RUNTIME_TARGET_RATIO
+from custom_components.pawcontrol.entity_factory import ENTITY_PROFILES
+from custom_components.pawcontrol.entity_factory import EntityFactory
 from tests.helpers.homeassistant_test_stubs import (
     install_homeassistant_stubs,
 )
@@ -75,7 +73,10 @@ def test_should_create_entity_accepts_platform_enum() -> None:
     factory = EntityFactory(coordinator=None)
 
     assert factory.should_create_entity(
-        'standard', _Platform.SENSOR, 'feeding', priority=6,
+        'standard',
+        _Platform.SENSOR,
+        'feeding',
+        priority=6,
     )
 
 
@@ -85,7 +86,10 @@ def test_should_create_entity_accepts_nested_enum_alias() -> None:
     factory = EntityFactory(coordinator=None)
 
     assert factory.should_create_entity(
-        'standard', _NestedPlatformAlias.SENSOR, 'feeding', priority=6,
+        'standard',
+        _NestedPlatformAlias.SENSOR,
+        'feeding',
+        priority=6,
     )
 
 
@@ -95,7 +99,10 @@ def test_should_create_entity_blocks_unknown_module() -> None:
     factory = EntityFactory(coordinator=None)
 
     assert not factory.should_create_entity(
-        'advanced', _Platform.SENSOR, 'unknown', priority=9,
+        'advanced',
+        _Platform.SENSOR,
+        'unknown',
+        priority=9,
     )
 
 

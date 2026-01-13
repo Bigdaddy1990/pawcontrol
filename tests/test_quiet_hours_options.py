@@ -72,7 +72,8 @@ def test_notification_settings_payload_coercion() -> None:
     }
 
     settings = PawControlOptionsFlow._build_notification_settings_payload(
-        user_input, current,
+        user_input,
+        current,
     )
 
     assert settings['quiet_hours'] is False

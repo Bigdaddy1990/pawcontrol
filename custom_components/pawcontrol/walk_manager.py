@@ -128,7 +128,11 @@ class GPSCache[LocationT: CachedGPSLocation]:
         return None
 
     def set_location(
-        self, dog_id: str, latitude: float, longitude: float, timestamp: datetime,
+        self,
+        dog_id: str,
+        latitude: float,
+        longitude: float,
+        timestamp: datetime,
     ) -> None:
         """Set location with LRU eviction.
 
@@ -152,7 +156,9 @@ class GPSCache[LocationT: CachedGPSLocation]:
         self._access_order.append(dog_id)
 
     def calculate_distance_cached(
-        self, point1: tuple[float, float], point2: tuple[float, float],
+        self,
+        point1: tuple[float, float],
+        point2: tuple[float, float],
     ) -> float:
         """Calculate distance with caching for frequently used points.
 
@@ -184,7 +190,8 @@ class GPSCache[LocationT: CachedGPSLocation]:
 
     @staticmethod
     def _haversine_distance(
-        point1: tuple[float, float], point2: tuple[float, float],
+        point1: tuple[float, float],
+        point2: tuple[float, float],
     ) -> float:
         """Calculate Haversine distance between two points.
 
@@ -368,7 +375,8 @@ class WalkManager:
 
         # OPTIMIZE: Batch processing for location analysis
         self._location_analysis_queue: dict[
-            str, list[tuple[float, float, datetime]],
+            str,
+            list[tuple[float, float, datetime]],
         ] = {}
         self._batch_analysis_task: asyncio.Task | None = None
 
@@ -389,7 +397,8 @@ class WalkManager:
         active_walk = self._current_walks.get(dog_id)
         if active_walk is not None:
             container['active_walk'] = cast(
-                WalkSessionSnapshot, dict(active_walk),
+                WalkSessionSnapshot,
+                dict(active_walk),
             )
         history = self._walk_history.get(dog_id, [])
         container['history'] = [
@@ -466,7 +475,8 @@ class WalkManager:
                 )
 
         _LOGGER.info(
-            'WalkManager initialized for %d dogs with optimizations', len(
+            'WalkManager initialized for %d dogs with optimizations',
+            len(
                 dog_ids,
             ),
         )
@@ -508,14 +518,18 @@ class WalkManager:
         # OPTIMIZE: Fast coordinate validation
         if not (-90 <= latitude <= 90) or not (-180 <= longitude <= 180):
             _LOGGER.warning(
-                'Invalid GPS coordinates for %s: %f, %f', dog_id, latitude, longitude,
+                'Invalid GPS coordinates for %s: %f, %f',
+                dog_id,
+                latitude,
+                longitude,
             )
             return False
 
         async with self._data_lock:
             if dog_id not in self._gps_data:
                 _LOGGER.warning(
-                    'Dog %s not initialized for GPS tracking', dog_id,
+                    'Dog %s not initialized for GPS tracking',
+                    dog_id,
                 )
                 return False
 
@@ -563,7 +577,10 @@ class WalkManager:
             # OPTIMIZE: Process walk detection with performance tracking
             if old_location and self._walk_detection_enabled:
                 await self._process_walk_detection_optimized(
-                    dog_id, old_location, (latitude, longitude), speed,
+                    dog_id,
+                    old_location,
+                    (latitude, longitude),
+                    speed,
                 )
 
             # Update performance metrics
@@ -632,7 +649,9 @@ class WalkManager:
                             if batch:
                                 latest_lat, latest_lon, _latest_time = batch[-1]
                                 await self._update_location_analysis(
-                                    dog_id, latest_lat, latest_lon,
+                                    dog_id,
+                                    latest_lat,
+                                    latest_lon,
                                 )
 
             except asyncio.CancelledError:
@@ -673,13 +692,15 @@ class WalkManager:
         async with self._data_lock:
             if dog_id not in self._walk_data:
                 _LOGGER.warning(
-                    'Dog %s not initialized for walk tracking', dog_id,
+                    'Dog %s not initialized for walk tracking',
+                    dog_id,
                 )
                 raise KeyError(dog_id)
 
             if dog_id in self._current_walks:
                 _LOGGER.info(
-                    'Walk already in progress for %s - ending existing session', dog_id,
+                    'Walk already in progress for %s - ending existing session',
+                    dog_id,
                 )
                 await self._finalize_walk_locked(dog_id)
 
@@ -707,7 +728,8 @@ class WalkManager:
             if detection_confidence is not None:
                 try:
                     confidence_value = max(
-                        0.0, min(float(detection_confidence), 1.0),
+                        0.0,
+                        min(float(detection_confidence), 1.0),
                     )
                 except (TypeError, ValueError):
                     confidence_value = None
@@ -889,7 +911,8 @@ class WalkManager:
                 walk_data['path'],
             )
             walk_data['calories_burned'] = self._estimate_calories_burned(
-                dog_id, walk_data,
+                dog_id,
+                walk_data,
             )
 
         # Update daily statistics with batch optimization
@@ -980,7 +1003,8 @@ class WalkManager:
 
         _LOGGER.debug(
             'Optimized path: %d -> %d points',
-            len(path), len(optimized),
+            len(path),
+            len(optimized),
         )
 
         return optimized
@@ -1004,7 +1028,8 @@ class WalkManager:
         """
         # OPTIMIZE: Use cached distance calculation
         distance = self._gps_cache.calculate_distance_cached(
-            old_location, new_location,
+            old_location,
+            new_location,
         )
         self._performance_metrics['distance_calculations'] += 1
 
@@ -1032,10 +1057,12 @@ class WalkManager:
             if current_walk['path']:
                 last_point = current_walk['path'][-1]
                 last_location = (
-                    last_point['latitude'], last_point['longitude'],
+                    last_point['latitude'],
+                    last_point['longitude'],
                 )
                 last_distance = self._gps_cache.calculate_distance_cached(
-                    last_location, new_location,
+                    last_location,
+                    new_location,
                 )
 
                 # Only add if moved significantly or time passed
@@ -1060,7 +1087,8 @@ class WalkManager:
                 current_walk['path'].append(path_point)
 
     async def _calculate_total_distance_optimized(
-        self, path: list[WalkRoutePoint],
+        self,
+        path: list[WalkRoutePoint],
     ) -> float:
         """Calculate total distance with caching optimization.
 
@@ -1082,14 +1110,17 @@ class WalkManager:
             point1 = (path[i - 1]['latitude'], path[i - 1]['longitude'])
             point2 = (path[i]['latitude'], path[i]['longitude'])
             total_distance += self._gps_cache.calculate_distance_cached(
-                point1, point2,
+                point1,
+                point2,
             )
             self._performance_metrics['distance_calculations'] += 1
 
         return total_distance
 
     async def _update_daily_walk_stats_optimized(
-        self, dog_id: str, walk_data: WalkSessionSnapshot,
+        self,
+        dog_id: str,
+        walk_data: WalkSessionSnapshot,
     ) -> None:
         """Update daily walk statistics with optimized calculations.
 
@@ -1182,9 +1213,12 @@ class WalkManager:
 
         def _parse_start(value: Any) -> datetime | None:
             return (
-                value if isinstance(
-                    value, datetime,
-                ) else dt_util.parse_datetime(value)
+                value
+                if isinstance(
+                    value,
+                    datetime,
+                )
+                else dt_util.parse_datetime(value)
             )
 
         cutoff = dt_util.now() - timedelta(days=30)
@@ -1299,7 +1333,8 @@ class WalkManager:
             # Add current walk if in progress
             if dog_id in self._current_walks:
                 current_walk = cast(
-                    WalkSessionSnapshot, dict(self._current_walks[dog_id]),
+                    WalkSessionSnapshot,
+                    dict(self._current_walks[dog_id]),
                 )
 
                 # Calculate current walk duration and distance
@@ -1362,7 +1397,8 @@ class WalkManager:
             cache_stats = self._gps_cache.get_stats()
 
             performance_metrics = cast(
-                WalkPerformanceCounters, dict(self._performance_metrics),
+                WalkPerformanceCounters,
+                dict(self._performance_metrics),
             )
             snapshot: WalkPerformanceSnapshot = {
                 # Basic stats
@@ -1417,7 +1453,9 @@ class WalkManager:
             return cast(WalkGPSSnapshot, dict(self._gps_data[dog_id]))
 
     async def async_get_walk_history(
-        self, dog_id: str, days: int = 7,
+        self,
+        dog_id: str,
+        days: int = 7,
     ) -> list[WalkSessionSnapshot]:
         """Get walk history for a dog."""
         async with self._data_lock:
@@ -1439,12 +1477,16 @@ class WalkManager:
                     continue
 
             ordered = sorted(
-                recent_walks, key=lambda w: w['start_time'], reverse=True,
+                recent_walks,
+                key=lambda w: w['start_time'],
+                reverse=True,
             )
             return cast(list[WalkSessionSnapshot], normalize_value(ordered))
 
     def get_walk_history(
-        self, dog_id: str, limit: int | None = None,
+        self,
+        dog_id: str,
+        limit: int | None = None,
     ) -> list[WalkSessionSnapshot]:
         """Return stored walk history synchronously for testing helpers."""
 
@@ -1566,7 +1608,10 @@ class WalkManager:
         return weekly_stats
 
     async def _update_location_analysis(
-        self, dog_id: str, latitude: float, longitude: float,
+        self,
+        dog_id: str,
+        latitude: float,
+        longitude: float,
     ) -> None:
         """Update location-based analysis with caching.
 
@@ -1644,7 +1689,9 @@ class WalkManager:
         return max(speeds) if speeds else None
 
     def _estimate_calories_burned(
-        self, dog_id: str, walk_data: WalkSessionSnapshot,
+        self,
+        dog_id: str,
+        walk_data: WalkSessionSnapshot,
     ) -> float | None:
         """Estimate calories burned during walk."""
         duration_raw = walk_data.get('duration')
@@ -1747,7 +1794,8 @@ class WalkManager:
 
                 if not recent_walks:
                     _LOGGER.warning(
-                        'No valid walks with routes found for %s', dog_id,
+                        'No valid walks with routes found for %s',
+                        dog_id,
                     )
                     return None
 
@@ -1798,7 +1846,9 @@ class WalkManager:
                         export_data['mime_type'] = 'application/gpx+xml'
                     except Exception as err:
                         _LOGGER.error(
-                            'GPX generation failed for %s: %s', dog_id, err,
+                            'GPX generation failed for %s: %s',
+                            dog_id,
+                            err,
                         )
                         self._performance_metrics['export_errors'] += 1
                         return None
@@ -1814,7 +1864,9 @@ class WalkManager:
                         export_data['mime_type'] = 'application/json'
                     except Exception as err:
                         _LOGGER.error(
-                            'JSON generation failed for %s: %s', dog_id, err,
+                            'JSON generation failed for %s: %s',
+                            dog_id,
+                            err,
                         )
                         self._performance_metrics['export_errors'] += 1
                         return None
@@ -1828,7 +1880,9 @@ class WalkManager:
                         export_data['mime_type'] = 'text/csv'
                     except Exception as err:
                         _LOGGER.error(
-                            'CSV generation failed for %s: %s', dog_id, err,
+                            'CSV generation failed for %s: %s',
+                            dog_id,
+                            err,
                         )
                         self._performance_metrics['export_errors'] += 1
                         return None
@@ -1856,7 +1910,8 @@ class WalkManager:
             return None
 
     def _validate_route_data(
-        self, path: list[WalkRoutePoint],
+        self,
+        path: list[WalkRoutePoint],
     ) -> list[WalkRoutePoint] | None:
         """Validate and clean route data for export.
 
@@ -1905,7 +1960,8 @@ class WalkManager:
         return validated_path if len(validated_path) >= 2 else None
 
     def _calculate_route_bounds(
-        self, walks: list[WalkSessionSnapshot],
+        self,
+        walks: list[WalkSessionSnapshot],
     ) -> WalkRouteBounds:
         """Calculate geographic bounds for all routes.
 
@@ -1940,7 +1996,9 @@ class WalkManager:
         }
 
     def _generate_enhanced_gpx_data(
-        self, walks: list[WalkSessionSnapshot], dog_id: str,
+        self,
+        walks: list[WalkSessionSnapshot],
+        dog_id: str,
     ) -> str:
         """Generate GPX data with defensive error handling."""
 
@@ -1951,7 +2009,9 @@ class WalkManager:
             raise
 
     def _render_enhanced_gpx_document(
-        self, walks: list[WalkSessionSnapshot], dog_id: str,
+        self,
+        walks: list[WalkSessionSnapshot],
+        dog_id: str,
     ) -> str:
         """Generate GPX 1.1 compliant data with full metadata."""
 
@@ -1974,7 +2034,9 @@ class WalkManager:
             _append(level, f"<{tag}>{_escape(value)}</{tag}>")
 
         def _open_tag(
-            level: int, tag: str, attrs: GPXAttributeMap | None = None,
+            level: int,
+            tag: str,
+            attrs: GPXAttributeMap | None = None,
         ) -> None:
             _append(level, f"<{tag}{_format_attrs(attrs or {})}>")
 
@@ -1995,7 +2057,9 @@ class WalkManager:
         _open_tag(1, 'metadata')
         _text_element(2, 'name', f"PawControl Routes - {dog_id}")
         _text_element(
-            2, 'desc', f"GPS tracks for {dog_id} exported from PawControl",
+            2,
+            'desc',
+            f"GPS tracks for {dog_id} exported from PawControl",
         )
         _open_tag(2, 'author')
         _text_element(3, 'name', 'PawControl')
@@ -2082,9 +2146,13 @@ class WalkManager:
             if walk.get('weather'):
                 walk_info.append(f"Weather: {walk['weather']}")
 
-            description = ' | '.join(
-                walk_info,
-            ) if walk_info else f"Walk for {dog_id}"
+            description = (
+                ' | '.join(
+                    walk_info,
+                )
+                if walk_info
+                else f"Walk for {dog_id}"
+            )
             _text_element(2, 'desc', description)
             _text_element(2, 'type', walk.get('walk_type', 'walk'))
 
@@ -2108,7 +2176,9 @@ class WalkManager:
                 timestamp = point.get('timestamp')
                 if timestamp:
                     _text_element(
-                        4, 'time', self._format_gpx_timestamp(timestamp),
+                        4,
+                        'time',
+                        self._format_gpx_timestamp(timestamp),
                     )
 
                 speed = point.get('speed')
@@ -2214,7 +2284,8 @@ class WalkManager:
                 if last_point and lat is not None and lon is not None:
                     last_lat, last_lon = last_point
                     point_distance = self._gps_cache.calculate_distance_cached(
-                        (last_lat, last_lon), (lat, lon),
+                        (last_lat, last_lon),
+                        (lat, lon),
                     )
                     cumulative_distance += point_distance
 
@@ -2228,7 +2299,9 @@ class WalkManager:
         return '\n'.join(csv_lines)
 
     async def async_configure_automatic_gps(
-        self, dog_id: str, config: Mapping[str, JSONValue],
+        self,
+        dog_id: str,
+        config: Mapping[str, JSONValue],
     ) -> bool:
         """Configure automatic GPS settings for a dog.
 
@@ -2243,7 +2316,8 @@ class WalkManager:
             async with self._data_lock:
                 if dog_id not in self._gps_data:
                     _LOGGER.warning(
-                        'Dog %s not initialized for GPS configuration', dog_id,
+                        'Dog %s not initialized for GPS configuration',
+                        dog_id,
                     )
                     return False
 
@@ -2268,8 +2342,11 @@ class WalkManager:
                     'Configured automatic GPS for %s: %s',
                     dog_id,
                     {
-                        k: v for k, v in config.items() if k not in [
-                        'safe_zone_radius',
+                        k: v
+                        for k, v in config.items()
+                        if k
+                        not in [
+                            'safe_zone_radius',
                         ]
                     },
                 )
@@ -2277,7 +2354,9 @@ class WalkManager:
 
         except Exception as err:
             _LOGGER.error(
-                'Failed to configure automatic GPS for %s: %s', dog_id, err,
+                'Failed to configure automatic GPS for %s: %s',
+                dog_id,
+                err,
             )
             return False
 

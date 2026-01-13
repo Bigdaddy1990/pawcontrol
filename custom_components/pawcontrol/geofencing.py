@@ -202,7 +202,10 @@ class GeofenceZone:
             Distance in meters
         """
         return calculate_distance(
-            self.latitude, self.longitude, location.latitude, location.longitude,
+            self.latitude,
+            self.longitude,
+            location.latitude,
+            location.longitude,
         )
 
     def to_storage_payload(self) -> GeofenceZoneStoragePayload:
@@ -314,7 +317,8 @@ class PawControlGeofencing:
 
         # Storage for zones and state
         self._store = Store(
-            hass, STORAGE_VERSION,
+            hass,
+            STORAGE_VERSION,
             f"{DOMAIN}_{entry_id}_geofencing",
         )
 
@@ -333,7 +337,8 @@ class PawControlGeofencing:
         self._lock = asyncio.Lock()
 
     def set_notification_manager(
-        self, notification_manager: PawControlNotificationManager | None,
+        self,
+        notification_manager: PawControlNotificationManager | None,
     ) -> None:
         """Attach the notification manager used for zone alerts.
 
@@ -378,7 +383,8 @@ class PawControlGeofencing:
                 if isinstance(zones_data_raw, list):
                     zones_data_raw = {
                         cast(str, zone.get('id')): cast(
-                            GeofenceZoneStoragePayload, zone,
+                            GeofenceZoneStoragePayload,
+                            zone,
                         )
                         for zone in zones_data_raw
                         if isinstance(zone, Mapping) and isinstance(zone.get('id'), str)
@@ -398,7 +404,9 @@ class PawControlGeofencing:
                         )
                     except Exception as err:
                         _LOGGER.warning(
-                            'Failed to load geofence zone %s: %s', zone_id, err,
+                            'Failed to load geofence zone %s: %s',
+                            zone_id,
+                            err,
                         )
 
                 # Initialize dog states
@@ -429,7 +437,8 @@ class PawControlGeofencing:
 
             except Exception as err:
                 _LOGGER.error(
-                    'Failed to initialize geofencing system: %s', err,
+                    'Failed to initialize geofencing system: %s',
+                    err,
                 )
                 raise
 
@@ -557,7 +566,8 @@ class PawControlGeofencing:
             elif not currently_inside and was_inside:
                 # Use hysteresis to confirm exit
                 if not zone.contains_location(
-                    dog_state.last_location, 1.0 / GEOFENCE_HYSTERESIS,
+                    dog_state.last_location,
+                    1.0 / GEOFENCE_HYSTERESIS,
                 ):
                     dog_state.current_zones.discard(zone_id)
                     dog_state.zone_entry_times.pop(zone_id, None)
@@ -566,14 +576,19 @@ class PawControlGeofencing:
         # Fire events for zone changes
         for zone_id in newly_entered_zones:
             await self._fire_zone_event(
-                dog_state.dog_id, zone_id, GeofenceEvent.ENTERED,
+                dog_state.dog_id,
+                zone_id,
+                GeofenceEvent.ENTERED,
             )
 
         for zone_id in newly_left_zones:
             await self._fire_zone_event(dog_state.dog_id, zone_id, GeofenceEvent.LEFT)
 
     async def _fire_zone_event(
-        self, dog_id: str, zone_id: str, event: GeofenceEvent,
+        self,
+        dog_id: str,
+        zone_id: str,
+        event: GeofenceEvent,
     ) -> None:
         """Fire a geofence event.
 
@@ -847,7 +862,10 @@ class PawControlGeofencing:
 
         priority = self._map_notification_priority(zone, event)
         title, message = self._format_notification_content(
-            dog_id, zone, event, location,
+            dog_id,
+            zone,
+            event,
+            location,
         )
 
         notification_data: GeofenceNotificationPayload = {
@@ -885,7 +903,8 @@ class PawControlGeofencing:
 
     @staticmethod
     def _map_notification_priority(
-        zone: GeofenceZone, event: GeofenceEvent,
+        zone: GeofenceZone,
+        event: GeofenceEvent,
     ) -> NotificationPriority:
         """Determine notification priority for a geofence event."""
 

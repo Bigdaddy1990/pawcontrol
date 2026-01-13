@@ -15,7 +15,13 @@ from typing import Union
 
 # Type alias for JSON-serializable values.
 JSONValue = Union[
-    str, int, float, bool, None, list['JSONValue'], dict[str, 'JSONValue'],
+    str,
+    int,
+    float,
+    bool,
+    None,
+    list['JSONValue'],
+    dict[str, 'JSONValue'],
 ]
 
 

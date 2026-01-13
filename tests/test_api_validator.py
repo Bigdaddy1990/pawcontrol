@@ -47,12 +47,14 @@ async def test_api_validation_reports_auth_failure(hass, mock_session) -> None:
     validator._test_authentication = AsyncMock(  # type: ignore[method-assign]
         return_value={
             'authenticated': False,
-            'api_version': None, 'capabilities': None,
+            'api_version': None,
+            'capabilities': None,
         },
     )
 
     result = await validator.async_validate_api_connection(
-        'https://example.com', 'missing-token',
+        'https://example.com',
+        'missing-token',
     )
 
     assert result.valid is False

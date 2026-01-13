@@ -101,7 +101,8 @@ def _normalise_issue_severity(
             return ir.IssueSeverity(severity.lower())
         except ValueError:
             _LOGGER.warning(
-                "Unsupported issue severity '%s'; falling back to warning.", severity,
+                "Unsupported issue severity '%s'; falling back to warning.",
+                severity,
             )
             return ir.IssueSeverity.WARNING
 
@@ -214,7 +215,8 @@ async def async_create_issue(
 
     if not isawaitable(result):
         _LOGGER.debug(
-            'Issue registry create_issue returned non-awaitable result for %s', issue_id,
+            'Issue registry create_issue returned non-awaitable result for %s',
+            issue_id,
         )
         return
 
@@ -275,13 +277,15 @@ async def async_publish_feeding_compliance_issue(
         'issue_summary': cast(list[str], summary_json.get('issues', [])),
         'missed_meal_summary': cast(list[str], summary_json.get('missed_meals', [])),
         'recommendations_summary': cast(
-            list[str], summary_json.get('recommendations', []),
+            list[str],
+            summary_json.get('recommendations', []),
         ),
     }
 
     if context_metadata:
         issue_data['context_metadata'] = cast(
-            JSONMutableMapping, dict(context_metadata),
+            JSONMutableMapping,
+            dict(context_metadata),
         )
 
     summary_message = summary_copy.get('message')
@@ -333,13 +337,21 @@ async def async_publish_feeding_compliance_issue(
     )
 
     score_raw = completed.get('compliance_score', 0)
-    score = float(score_raw) if isinstance(
-        score_raw, (int, float, str),
-    ) else 0.0
+    score = (
+        float(score_raw)
+        if isinstance(
+            score_raw,
+            (int, float, str),
+        )
+        else 0.0
+    )
     has_issues = bool(
         completed.get(
             'days_with_issues',
-        ) or issues or missed_meals or score < 100,
+        )
+        or issues
+        or missed_meals
+        or score < 100,
     )
 
     delete_issue = getattr(ir, 'async_delete_issue', None)
@@ -466,12 +478,14 @@ async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> Non
     except Exception as err:
         _LOGGER.error(
             'Error during issue check for entry %s: %s',
-            entry.entry_id, err,
+            entry.entry_id,
+            err,
         )
 
 
 async def async_schedule_repair_evaluation(
-    hass: HomeAssistant, entry: ConfigEntry,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
 ) -> None:
     """Schedule an asynchronous evaluation of repair issues for ``entry``."""
 
@@ -488,7 +502,8 @@ async def async_schedule_repair_evaluation(
 
 
 async def _check_dog_configuration_issues(
-    hass: HomeAssistant, entry: ConfigEntry,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
 ) -> None:
     """Check for dog configuration issues.
 
@@ -528,9 +543,11 @@ async def _check_dog_configuration_issues(
         if isinstance(dog_id, str)
     ]
     duplicate_ids = [
-        dog_id for dog_id in set(
-        dog_ids,
-        ) if dog_ids.count(dog_id) > 1
+        dog_id
+        for dog_id in set(
+            dog_ids,
+        )
+        if dog_ids.count(dog_id) > 1
     ]
 
     if duplicate_ids:
@@ -571,7 +588,8 @@ async def _check_dog_configuration_issues(
 
 
 async def _check_gps_configuration_issues(
-    hass: HomeAssistant, entry: ConfigEntry,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
 ) -> None:
     """Check for GPS configuration issues.
 
@@ -641,7 +659,8 @@ async def _check_gps_configuration_issues(
 
 
 async def _check_notification_configuration_issues(
-    hass: HomeAssistant, entry: ConfigEntry,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
 ) -> None:
     """Check for notification configuration issues.
 
@@ -674,9 +693,12 @@ async def _check_notification_configuration_issues(
     # Check if notification services are available
     notification_config_raw = entry.options.get('notifications', {})
     notification_config = (
-        notification_config_raw if isinstance(
-            notification_config_raw, Mapping,
-        ) else {}
+        notification_config_raw
+        if isinstance(
+            notification_config_raw,
+            Mapping,
+        )
+        else {}
     )
 
     # Check for mobile app availability
@@ -686,7 +708,8 @@ async def _check_notification_configuration_issues(
     )
     if mobile_enabled:
         has_mobile_app_service = hass.services.has_service(
-            'notify', 'mobile_app',
+            'notify',
+            'mobile_app',
         )
 
         if not has_mobile_app_service:
@@ -718,7 +741,8 @@ async def _check_notification_configuration_issues(
 
 
 async def _check_outdated_configuration(
-    hass: HomeAssistant, entry: ConfigEntry,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
 ) -> None:
     """Check for outdated configuration that needs migration.
 
@@ -742,7 +766,8 @@ async def _check_outdated_configuration(
 
 
 async def _check_reconfigure_telemetry_issues(
-    hass: HomeAssistant, entry: ConfigEntry,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
 ) -> None:
     """Surface reconfigure warnings and health summaries via repairs."""
 
@@ -771,8 +796,7 @@ async def _check_reconfigure_telemetry_issues(
         return []
 
     timestamp = str(
-        telemetry.get('timestamp')
-        or options.get('last_reconfigure') or '',
+        telemetry.get('timestamp') or options.get('last_reconfigure') or '',
     )
     requested_profile = str(telemetry.get('requested_profile', ''))
     previous_profile = str(telemetry.get('previous_profile', ''))
@@ -895,9 +919,12 @@ async def _check_storage_issues(hass: HomeAssistant, entry: ConfigEntry) -> None
     # Check data retention settings
     retention_raw = entry.options.get('data_retention_days', 90)
     retention_days = (
-        int(retention_raw) if isinstance(
-            retention_raw, (int, float, str),
-        ) else 90
+        int(retention_raw)
+        if isinstance(
+            retention_raw,
+            (int, float, str),
+        )
+        else 90
     )
 
     if retention_days > 365:  # More than 1 year
@@ -1051,7 +1078,8 @@ def _format_duration_summary(seconds: float) -> str:
 
 
 async def _check_runtime_store_duration_alerts(
-    hass: HomeAssistant, entry: ConfigEntry,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
 ) -> None:
     """Raise a repair issue when timeline durations exceed guard limits."""
 
@@ -1170,7 +1198,8 @@ async def _publish_cache_health_issue(hass: HomeAssistant, entry: ConfigEntry) -
     resolved_summary = ensure_cache_repair_aggregate(summary)
     if resolved_summary is None:
         _LOGGER.debug(
-            'Cache repair summary returned unexpected payload: %r', summary,
+            'Cache repair summary returned unexpected payload: %r',
+            summary,
         )
         return
 
@@ -1249,7 +1278,8 @@ class PawControlRepairsFlow(RepairsFlow):
         self._repair_type: str = ''
 
     async def async_step_init(
-        self, user_input: ConfigFlowUserInput | None = None,
+        self,
+        user_input: ConfigFlowUserInput | None = None,
     ) -> FlowResult:
         """Handle the initial step of a repair flow.
 
@@ -1260,12 +1290,18 @@ class PawControlRepairsFlow(RepairsFlow):
             Flow result for next step or completion
         """
         self._issue_data = cast(
-            JSONMutableMapping, self.hass.data[ir.DOMAIN][self.issue_id].data,
+            JSONMutableMapping,
+            self.hass.data[ir.DOMAIN][self.issue_id].data,
         )
         issue_type_raw = self._issue_data.get('issue_type', '')
-        self._repair_type = issue_type_raw if isinstance(
-            issue_type_raw, str,
-        ) else ''
+        self._repair_type = (
+            issue_type_raw
+            if isinstance(
+                issue_type_raw,
+                str,
+            )
+            else ''
+        )
 
         # Route to appropriate repair flow based on issue type
         if self._repair_type == ISSUE_MISSING_DOG_CONFIG:
@@ -1294,7 +1330,8 @@ class PawControlRepairsFlow(RepairsFlow):
         return await self.async_step_unknown_issue()
 
     async def async_step_missing_dog_config(
-        self, user_input: ConfigFlowUserInput | None = None,
+        self,
+        user_input: ConfigFlowUserInput | None = None,
     ) -> FlowResult:
         """Handle repair flow for missing dog configuration.
 
@@ -1312,7 +1349,8 @@ class PawControlRepairsFlow(RepairsFlow):
             if action == 'reconfigure':
                 # Redirect to reconfigure flow
                 return self.async_external_step(
-                    step_id='reconfigure', url='/config/integrations',
+                    step_id='reconfigure',
+                    url='/config/integrations',
                 )
             return await self.async_step_complete_repair()
 
@@ -1342,7 +1380,8 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_add_first_dog(
-        self, user_input: ConfigFlowUserInput | None = None,
+        self,
+        user_input: ConfigFlowUserInput | None = None,
     ) -> FlowResult:
         """Handle adding the first dog.
 
@@ -1410,7 +1449,8 @@ class PawControlRepairsFlow(RepairsFlow):
                         new_data[CONF_DOGS] = [new_dog]
 
                         self.hass.config_entries.async_update_entry(
-                            entry, data=new_data,
+                            entry,
+                            data=new_data,
                         )
 
                         return await self.async_step_complete_repair()
@@ -1442,7 +1482,8 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_duplicate_dog_ids(
-        self, user_input: ConfigFlowUserInput | None = None,
+        self,
+        user_input: ConfigFlowUserInput | None = None,
     ) -> FlowResult:
         """Handle repair flow for duplicate dog IDs.
 
@@ -1461,7 +1502,8 @@ class PawControlRepairsFlow(RepairsFlow):
                 return await self.async_step_complete_repair()
             if action == 'manual_fix':
                 return self.async_external_step(
-                    step_id='reconfigure', url='/config/integrations',
+                    step_id='reconfigure',
+                    url='/config/integrations',
                 )
             return await self.async_step_complete_repair()
 
@@ -1474,9 +1516,12 @@ class PawControlRepairsFlow(RepairsFlow):
         )
         total_dogs_raw = self._issue_data.get('total_dogs', 0)
         total_dogs = (
-            int(total_dogs_raw) if isinstance(
-                total_dogs_raw, (int, float, str),
-            ) else 0
+            int(total_dogs_raw)
+            if isinstance(
+                total_dogs_raw,
+                (int, float, str),
+            )
+            else 0
         )
 
         return self.async_show_form(
@@ -1509,7 +1554,8 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_invalid_gps_config(
-        self, user_input: ConfigFlowUserInput | None = None,
+        self,
+        user_input: ConfigFlowUserInput | None = None,
     ) -> FlowResult:
         """Handle repair flow for invalid GPS configuration.
 
@@ -1559,7 +1605,8 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_configure_gps(
-        self, user_input: ConfigFlowUserInput | None = None,
+        self,
+        user_input: ConfigFlowUserInput | None = None,
     ) -> FlowResult:
         """Handle GPS configuration step.
 
@@ -1588,7 +1635,8 @@ class PawControlRepairsFlow(RepairsFlow):
                     )
 
                     self.hass.config_entries.async_update_entry(
-                        entry, options=new_options,
+                        entry,
+                        options=new_options,
                     )
 
                     return await self.async_step_complete_repair()
@@ -1615,17 +1663,20 @@ class PawControlRepairsFlow(RepairsFlow):
                         },
                     ),
                     vol.Required('update_interval', default=60): vol.All(
-                        int, vol.Range(min=30, max=600),
+                        int,
+                        vol.Range(min=30, max=600),
                     ),
                     vol.Required('accuracy_filter', default=100): vol.All(
-                        int, vol.Range(min=5, max=500),
+                        int,
+                        vol.Range(min=5, max=500),
                     ),
                 },
             ),
         )
 
     async def async_step_missing_notifications(
-        self, user_input: ConfigFlowUserInput | None = None,
+        self,
+        user_input: ConfigFlowUserInput | None = None,
     ) -> FlowResult:
         """Handle repair flow for missing notification services.
 
@@ -1640,7 +1691,8 @@ class PawControlRepairsFlow(RepairsFlow):
 
             if action == 'setup_mobile_app':
                 return self.async_external_step(
-                    step_id='setup_mobile', url='/config/mobile_app',
+                    step_id='setup_mobile',
+                    url='/config/mobile_app',
                 )
             if action == 'disable_mobile':
                 await self._disable_mobile_notifications()
@@ -1673,13 +1725,15 @@ class PawControlRepairsFlow(RepairsFlow):
             description_placeholders={
                 'missing_service': self._issue_data.get('missing_service', 'unknown'),
                 'notification_enabled_dogs': self._issue_data.get(
-                    'notification_enabled_dogs', 0,
+                    'notification_enabled_dogs',
+                    0,
                 ),
             },
         )
 
     async def async_step_performance_warning(
-        self, user_input: ConfigFlowUserInput | None = None,
+        self,
+        user_input: ConfigFlowUserInput | None = None,
     ) -> FlowResult:
         """Handle performance warning repair flow.
 
@@ -1697,7 +1751,8 @@ class PawControlRepairsFlow(RepairsFlow):
                 return await self.async_step_complete_repair()
             if action == 'configure':
                 return self.async_external_step(
-                    step_id='configure', url='/config/integrations',
+                    step_id='configure',
+                    url='/config/integrations',
                 )
             return await self.async_step_complete_repair()
 
@@ -1728,7 +1783,8 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_storage_warning(
-        self, user_input: ConfigFlowUserInput | None = None,
+        self,
+        user_input: ConfigFlowUserInput | None = None,
     ) -> FlowResult:
         """Handle repair flow for storage warnings."""
 
@@ -1740,7 +1796,8 @@ class PawControlRepairsFlow(RepairsFlow):
                 return await self.async_step_complete_repair()
             if action == 'configure':
                 return self.async_external_step(
-                    step_id='configure_storage', url='/config/integrations',
+                    step_id='configure_storage',
+                    url='/config/integrations',
                 )
             return await self.async_step_complete_repair()
 
@@ -1775,7 +1832,8 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_module_conflict(
-        self, user_input: ConfigFlowUserInput | None = None,
+        self,
+        user_input: ConfigFlowUserInput | None = None,
     ) -> FlowResult:
         """Handle repair flow for high resource module conflicts."""
 
@@ -1790,7 +1848,8 @@ class PawControlRepairsFlow(RepairsFlow):
                 return await self.async_step_complete_repair()
             if action == 'configure':
                 return self.async_external_step(
-                    step_id='configure_modules', url='/config/integrations',
+                    step_id='configure_modules',
+                    url='/config/integrations',
                 )
             return await self.async_step_complete_repair()
 
@@ -1829,7 +1888,8 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_invalid_dog_data(
-        self, user_input: ConfigFlowUserInput | None = None,
+        self,
+        user_input: ConfigFlowUserInput | None = None,
     ) -> FlowResult:
         """Handle repair flow for invalid dog configuration data."""
 
@@ -1841,7 +1901,8 @@ class PawControlRepairsFlow(RepairsFlow):
                 return await self.async_step_complete_repair()
             if action == 'reconfigure':
                 return self.async_external_step(
-                    step_id='reconfigure', url='/config/integrations',
+                    step_id='reconfigure',
+                    url='/config/integrations',
                 )
             return await self.async_step_complete_repair()
 
@@ -1854,9 +1915,12 @@ class PawControlRepairsFlow(RepairsFlow):
         )
         total_dogs_raw = self._issue_data.get('total_dogs')
         total_dogs = (
-            int(total_dogs_raw) if isinstance(
-                total_dogs_raw, (int, float, str),
-            ) else 0
+            int(total_dogs_raw)
+            if isinstance(
+                total_dogs_raw,
+                (int, float, str),
+            )
+            else 0
         )
 
         return self.async_show_form(
@@ -1889,7 +1953,8 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_coordinator_error(
-        self, user_input: ConfigFlowUserInput | None = None,
+        self,
+        user_input: ConfigFlowUserInput | None = None,
     ) -> FlowResult:
         """Handle repair flow for coordinator errors."""
 
@@ -1941,7 +2006,8 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_complete_repair(
-        self, user_input: ConfigFlowUserInput | None = None,
+        self,
+        user_input: ConfigFlowUserInput | None = None,
     ) -> FlowResult:
         """Complete the repair flow.
 
@@ -1960,7 +2026,8 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
     async def async_step_unknown_issue(
-        self, user_input: ConfigFlowUserInput | None = None,
+        self,
+        user_input: ConfigFlowUserInput | None = None,
     ) -> FlowResult:
         """Handle unknown issue types.
 
@@ -2062,12 +2129,14 @@ class PawControlRepairsFlow(RepairsFlow):
         if 'gps' in new_options:
             gps_settings = new_options['gps']
             gps_settings['gps_update_interval'] = max(
-                gps_settings.get('gps_update_interval', 60), 120,
+                gps_settings.get('gps_update_interval', 60),
+                120,
             )
 
         # Reduce data retention
         new_options['data_retention_days'] = min(
-            new_options.get('data_retention_days', 90), 30,
+            new_options.get('data_retention_days', 90),
+            30,
         )
 
         self.hass.config_entries.async_update_entry(entry, options=new_options)
@@ -2118,42 +2187,48 @@ class PawControlRepairsFlow(RepairsFlow):
                 {
                     MODULE_FEEDING: bool(
                         cast(Mapping[str, object], modules_raw).get(
-                            MODULE_FEEDING, True,
+                            MODULE_FEEDING,
+                            True,
                         ),
                     )
                     if isinstance(modules_raw, Mapping)
                     else True,
                     MODULE_WALK: bool(
                         cast(Mapping[str, object], modules_raw).get(
-                            MODULE_WALK, True,
+                            MODULE_WALK,
+                            True,
                         ),
                     )
                     if isinstance(modules_raw, Mapping)
                     else True,
                     MODULE_GPS: bool(
                         cast(Mapping[str, object], modules_raw).get(
-                            MODULE_GPS, False,
+                            MODULE_GPS,
+                            False,
                         ),
                     )
                     if isinstance(modules_raw, Mapping)
                     else False,
                     MODULE_HEALTH: bool(
                         cast(Mapping[str, object], modules_raw).get(
-                            MODULE_HEALTH, True,
+                            MODULE_HEALTH,
+                            True,
                         ),
                     )
                     if isinstance(modules_raw, Mapping)
                     else True,
                     MODULE_NOTIFICATIONS: bool(
                         cast(Mapping[str, object], modules_raw).get(
-                            MODULE_NOTIFICATIONS, True,
+                            MODULE_NOTIFICATIONS,
+                            True,
                         ),
                     )
                     if isinstance(modules_raw, Mapping)
                     else True,
                     MODULE_GARDEN: bool(
                         cast(Mapping[str, object], modules_raw).get(
-                            MODULE_GARDEN, False,
+                            MODULE_GARDEN,
+                            False,
                         ),
                     )
                     if isinstance(modules_raw, Mapping)

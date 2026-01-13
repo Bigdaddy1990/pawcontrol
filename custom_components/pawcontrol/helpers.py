@@ -254,8 +254,12 @@ class OptimizedDataCache[ValueT]:
 
     async def cleanup_expired(self, ttl_seconds: int | None = None) -> int:
         """Remove expired entries based on their per-key TTL."""
-        override_ttl = None if ttl_seconds is None else self._normalize_ttl(
-            ttl_seconds,
+        override_ttl = (
+            None
+            if ttl_seconds is None
+            else self._normalize_ttl(
+                ttl_seconds,
+            )
         )
         async with self._lock:
             now = dt_util.utcnow()
@@ -263,7 +267,9 @@ class OptimizedDataCache[ValueT]:
             for key in tuple(self._cache.keys()):
                 self._normalize_future_timestamp_locked(key, now)
                 if self._is_expired_locked(
-                    key, now, override_ttl if override_ttl is not None else None,
+                    key,
+                    now,
+                    override_ttl if override_ttl is not None else None,
                 ):
                     expired_keys.append(key)
 
@@ -288,7 +294,9 @@ class OptimizedDataCache[ValueT]:
         return len(expired_keys)
 
     def _normalize_future_timestamp_locked(
-        self, key: str, now: datetime | None = None,
+        self,
+        key: str,
+        now: datetime | None = None,
     ) -> None:
         """Clamp cached timestamps that drift into the future.
 
@@ -547,7 +555,8 @@ class PawControlDataStorage:
                 if isinstance(result, BaseException):
                     _LOGGER.error(
                         'Failed to load %s data: %s',
-                        store_key, result,
+                        store_key,
+                        result,
                     )
                     data[store_key] = cast(StorageNamespacePayload, {})
                 else:
@@ -567,7 +576,8 @@ class PawControlDataStorage:
             raise HomeAssistantError(f"Data loading failed: {err}") from err
 
     async def _load_store_data_cached(
-        self, store_key: StorageNamespaceKey,
+        self,
+        store_key: StorageNamespaceKey,
     ) -> StorageNamespacePayload:
         """Load data from store with caching."""
         # Check cache first
@@ -596,7 +606,9 @@ class PawControlDataStorage:
             return cast(StorageNamespacePayload, {})
 
     async def async_save_data(
-        self, store_key: StorageNamespaceKey, data: StorageNamespacePayload,
+        self,
+        store_key: StorageNamespaceKey,
+        data: StorageNamespacePayload,
     ) -> None:
         """OPTIMIZED: Save with batching to reduce I/O operations."""
         # Update cache immediately
@@ -654,13 +666,16 @@ class PawControlDataStorage:
                     if isinstance(result, BaseException):
                         _LOGGER.error(
                             'Failed to save %s: %s',
-                            store_key, result,
+                            store_key,
+                            result,
                         )
                     else:
                         _LOGGER.debug('Saved %s store in batch', store_key)
 
     async def _save_store_immediate(
-        self, store_key: StorageNamespaceKey, data: StorageNamespacePayload,
+        self,
+        store_key: StorageNamespaceKey,
+        data: StorageNamespacePayload,
     ) -> None:
         """Save store data immediately."""
         store = self._stores.get(store_key)
@@ -687,18 +702,22 @@ class PawControlDataStorage:
             if isinstance(result, BaseException):
                 _LOGGER.error(
                     'Failed to cleanup %s data: %s',
-                    store_key, result,
+                    store_key,
+                    result,
                 )
             else:
                 assert isinstance(result, int)
                 total_cleaned += result
 
         _LOGGER.debug(
-            'Cleaned up %d old entries across all stores', total_cleaned,
+            'Cleaned up %d old entries across all stores',
+            total_cleaned,
         )
 
     async def _cleanup_store_optimized(
-        self, store_key: StorageNamespaceKey, cutoff_date: datetime,
+        self,
+        store_key: StorageNamespaceKey,
+        cutoff_date: datetime,
     ) -> int:
         """Clean up store with size limits and optimization."""
         try:
@@ -724,7 +743,9 @@ class PawControlDataStorage:
             return 0
 
     def _cleanup_store_data(
-        self, data: StorageNamespacePayload, cutoff_date: datetime,
+        self,
+        data: StorageNamespacePayload,
+        cutoff_date: datetime,
     ) -> StorageNamespacePayload:
         """Remove entries older than cutoff date with optimization."""
         if not isinstance(data, dict):
@@ -757,7 +778,8 @@ class PawControlDataStorage:
         return cleaned
 
     def _enforce_size_limits(
-        self, data: StorageNamespacePayload,
+        self,
+        data: StorageNamespacePayload,
     ) -> StorageNamespacePayload:
         """OPTIMIZATION: Enforce size limits to prevent memory bloat."""
         limited_data: StorageNamespacePayload = {}
@@ -768,7 +790,9 @@ class PawControlDataStorage:
                     # Sort by timestamp (newest first) and keep most recent
                     try:
                         sorted_value = sorted(
-                            value, key=lambda x: x.get('timestamp', ''), reverse=True,
+                            value,
+                            key=lambda x: x.get('timestamp', ''),
+                            reverse=True,
                         )
                         before = len(value)
                         limited_slice = sorted_value[:MAX_HISTORY_ITEMS]
@@ -992,7 +1016,8 @@ class PawControlData:
 
         if value not in (None, {}):
             _LOGGER.warning(
-                "Invalid data structure for '%s'; resetting namespace", key,
+                "Invalid data structure for '%s'; resetting namespace",
+                key,
             )
         return PawControlData._empty_namespace_payload()
 
@@ -1054,13 +1079,15 @@ class PawControlData:
             normalized_health_history: list[HealthHistoryEntry] = []
             for entry in history:
                 normalized_entry = self._normalize_health_history_entry(
-                    dog_id, entry,
+                    dog_id,
+                    entry,
                 )
                 if normalized_entry is not None:
                     normalized_health_history.append(normalized_entry)
 
             health_namespace[dog_id] = cast(
-                JSONValue, normalized_health_history,
+                JSONValue,
+                normalized_health_history,
             )
 
         walk_namespace_payload = self._ensure_namespace('walks')
@@ -1083,7 +1110,8 @@ class PawControlData:
             if isinstance(history_value, list):
                 for entry in history_value:
                     normalized_entry = self._normalize_walk_event_entry(
-                        dog_id, entry,
+                        dog_id,
+                        entry,
                     )
                     if normalized_entry is not None:
                         normalized_history.append(
@@ -1096,7 +1124,8 @@ class PawControlData:
             )
 
             normalized_active = self._normalize_walk_event_entry(
-                dog_id, walk_data.get('active'),
+                dog_id,
+                walk_data.get('active'),
             )
             walk_data['active'] = cast(WalkNamespaceValue, normalized_active)
 
@@ -1110,7 +1139,8 @@ class PawControlData:
         for dog_id, history in namespace.items():
             if not isinstance(history, list):
                 normalized_entry = PawControlData._normalize_health_history_entry(
-                    dog_id, history,
+                    dog_id,
+                    history,
                 )
                 if normalized_entry is None:
                     serialized[dog_id] = cast(JSONValue, history)
@@ -1122,7 +1152,8 @@ class PawControlData:
             serialized_history: list[JSONValue] = []
             for entry in history:
                 normalized_entry = PawControlData._normalize_health_history_entry(
-                    dog_id, entry,
+                    dog_id,
+                    entry,
                 )
                 if normalized_entry is not None:
                     serialized_history.append(
@@ -1153,7 +1184,8 @@ class PawControlData:
             }
 
             normalized_active = PawControlData._normalize_walk_event_entry(
-                dog_id, walk_mapping.get('active'),
+                dog_id,
+                walk_mapping.get('active'),
             )
             serialized_walk['active'] = cast(JSONValue, normalized_active)
 
@@ -1162,7 +1194,8 @@ class PawControlData:
             if isinstance(history_value, list):
                 for entry in history_value:
                     normalized_entry = PawControlData._normalize_walk_event_entry(
-                        dog_id, entry,
+                        dog_id,
+                        entry,
                     )
                     if normalized_entry is not None:
                         history_payload.append(
@@ -1202,7 +1235,8 @@ class PawControlData:
         if isinstance(entry, Mapping):
             try:
                 normalized = HealthEvent.from_raw(
-                    dog_id, cast(JSONDateMapping, entry),
+                    dog_id,
+                    cast(JSONDateMapping, entry),
                 )
             except Exception as err:
                 _LOGGER.debug(
@@ -1290,7 +1324,9 @@ class PawControlData:
         return sorted_entries
 
     async def async_log_feeding(
-        self, dog_id: str, feeding_data: Mapping[str, object],
+        self,
+        dog_id: str,
+        feeding_data: Mapping[str, object],
     ) -> None:
         """OPTIMIZED: Log feeding with event queue."""
         if not self._is_valid_dog_id(dog_id):
@@ -1400,7 +1436,8 @@ class PawControlData:
 
             _LOGGER.debug(
                 'Processed %d feeding events for %s',
-                len(events), dog_id,
+                len(events),
+                dog_id,
             )
 
         except asyncio.CancelledError:
@@ -1423,7 +1460,8 @@ class PawControlData:
         try:
             health_namespace_payload = self._ensure_namespace('health')
             health_namespace = cast(
-                HealthNamespaceMutable, health_namespace_payload,
+                HealthNamespaceMutable,
+                health_namespace_payload,
             )
             history_value = health_namespace.get(dog_id)
             if isinstance(history_value, list):
@@ -1435,7 +1473,8 @@ class PawControlData:
                 normalized_history: list[HealthHistoryEntry] = []
                 for entry in dog_history:
                     normalized_entry = self._normalize_health_history_entry(
-                        dog_id, entry,
+                        dog_id,
+                        entry,
                     )
                     if normalized_entry is not None:
                         normalized_history.append(normalized_entry)
@@ -1447,11 +1486,14 @@ class PawControlData:
 
             for event in events:
                 event_data: JSONMutableMapping = cast(
-                    JSONMutableMapping, event.get('data', {}),
+                    JSONMutableMapping,
+                    event.get('data', {}),
                 )
                 timestamp = event.get('timestamp')
                 health_event = HealthEvent.from_raw(
-                    dog_id, event_data, timestamp,
+                    dog_id,
+                    event_data,
+                    timestamp,
                 )
                 event_payload = cast(
                     JSONMutableMapping,
@@ -1466,7 +1508,8 @@ class PawControlData:
             health_namespace[dog_id] = cast(JSONValue, dog_history)
 
             await self.storage.async_save_data(
-                'health', self._serialize_health_namespace(health_namespace),
+                'health',
+                self._serialize_health_namespace(health_namespace),
             )
 
             for payload in new_events:
@@ -1511,7 +1554,8 @@ class PawControlData:
             if isinstance(history_value, list):
                 for entry in history_value:
                     normalized_entry = self._normalize_walk_event_entry(
-                        dog_id, entry,
+                        dog_id,
+                        entry,
                     )
                     if normalized_entry is None:
                         continue
@@ -1528,12 +1572,14 @@ class PawControlData:
 
             active_session: WalkEvent | None = None
             normalized_active = self._normalize_walk_event_entry(
-                dog_id, dog_walks.get('active'),
+                dog_id,
+                dog_walks.get('active'),
             )
             if normalized_active is not None:
                 try:
                     active_session = WalkEvent.from_raw(
-                        dog_id, normalized_active,
+                        dog_id,
+                        normalized_active,
                     )
                 except Exception as err:
                     _LOGGER.debug(
@@ -1548,7 +1594,8 @@ class PawControlData:
 
             for event in events:
                 event_data: JSONMutableMapping = cast(
-                    JSONMutableMapping, event.get('data', {}),
+                    JSONMutableMapping,
+                    event.get('data', {}),
                 )
                 timestamp = event.get('timestamp')
                 walk_event = WalkEvent.from_raw(dog_id, event_data, timestamp)
@@ -1557,7 +1604,8 @@ class PawControlData:
                 if walk_event.action == 'start':
                     active_session = walk_event
                     dog_walks['active'] = cast(
-                        WalkNamespaceValue, walk_payload,
+                        WalkNamespaceValue,
+                        walk_payload,
                     )
                     updated = True
                     await async_fire_event(
@@ -1600,7 +1648,8 @@ class PawControlData:
                     and walk_event.session_id == active_session.session_id
                 ):
                     active_session.merge(
-                        walk_event.as_dict(), walk_event.timestamp,
+                        walk_event.as_dict(),
+                        walk_event.timestamp,
                     )
                     dog_walks['active'] = cast(
                         WalkNamespaceValue,
@@ -1629,7 +1678,8 @@ class PawControlData:
 
             if updated:
                 await self.storage.async_save_data(
-                    'walks', self._serialize_walk_namespace(walk_namespace),
+                    'walks',
+                    self._serialize_walk_namespace(walk_namespace),
                 )
         except asyncio.CancelledError:
             raise
@@ -1638,7 +1688,9 @@ class PawControlData:
 
     # Keep existing methods but add async optimizations where needed
     async def async_start_walk(
-        self, dog_id: str, walk_data: WalkStartPayload | None = None,
+        self,
+        dog_id: str,
+        walk_data: WalkStartPayload | None = None,
     ) -> None:
         """Start walk with immediate processing for real-time needs."""
         if not self._is_valid_dog_id(dog_id):
@@ -1664,7 +1716,8 @@ class PawControlData:
 
             # Check if a walk is already active
             active_payload = self._normalize_walk_event_entry(
-                dog_id, dog_walks.get('active'),
+                dog_id,
+                dog_walks.get('active'),
             )
             active_entry: WalkEvent | None = None
             if active_payload is not None:
@@ -1697,14 +1750,17 @@ class PawControlData:
                 timestamp_override,
             )
             dog_walks['active'] = cast(
-                WalkNamespaceValue, cast(
-                    JSONMutableMapping, active_walk.as_dict(),
+                WalkNamespaceValue,
+                cast(
+                    JSONMutableMapping,
+                    active_walk.as_dict(),
                 ),
             )
 
             # Save immediately for real-time operations
             await self.storage.async_save_data(
-                'walks', self._serialize_walk_namespace(walk_namespace),
+                'walks',
+                self._serialize_walk_namespace(walk_namespace),
             )
 
             # Fire event
@@ -1869,7 +1925,8 @@ class PawControlNotificationManager:
             self._notification_queue.append(notification)
 
     async def _send_notification_now(
-        self, notification: QueuedNotificationPayload,
+        self,
+        notification: QueuedNotificationPayload,
     ) -> None:
         """OPTIMIZED: Send notification with error handling."""
         async with self._processing_lock:
@@ -1917,7 +1974,8 @@ class PawControlNotificationManager:
 
             except TimeoutError:
                 _LOGGER.warning(
-                    'Notification send timeout for %s', notification['dog_id'],
+                    'Notification send timeout for %s',
+                    notification['dog_id'],
                 )
             except asyncio.CancelledError:
                 raise
@@ -1925,7 +1983,9 @@ class PawControlNotificationManager:
                 _LOGGER.error('Failed to send notification: %s', err)
 
     def _should_send_notification(
-        self, dog_id: str, priority: NotificationPriority,
+        self,
+        dog_id: str,
+        priority: NotificationPriority,
     ) -> bool:
         """OPTIMIZED: Check notification rules with caching."""
         # Cache quiet hours calculation for performance
@@ -1969,7 +2029,9 @@ class PawControlNotificationManager:
             return None
 
     def _calculate_notification_allowed(
-        self, dog_id: str, priority: NotificationPriority,
+        self,
+        dog_id: str,
+        priority: NotificationPriority,
     ) -> bool:
         """Calculate if notification should be sent."""
         notification_config = self._get_notification_config(dog_id)
@@ -1987,10 +2049,12 @@ class PawControlNotificationManager:
 
         now = dt_util.now().time().replace(tzinfo=None)
         quiet_start_time = self._coerce_quiet_hours_time(
-            notification_config.get(CONF_QUIET_START), '22:00:00',
+            notification_config.get(CONF_QUIET_START),
+            '22:00:00',
         )
         quiet_end_time = self._coerce_quiet_hours_time(
-            notification_config.get(CONF_QUIET_END), '07:00:00',
+            notification_config.get(CONF_QUIET_END),
+            '07:00:00',
         )
 
         if quiet_start_time is None or quiet_end_time is None:
@@ -2045,7 +2109,8 @@ class PawControlNotificationManager:
             notification = self._high_priority_queue.popleft()
             try:
                 await asyncio.wait_for(
-                    self._send_notification_now(notification), timeout=2.0,
+                    self._send_notification_now(notification),
+                    timeout=2.0,
                 )
             except Exception:
                 break  # Don't block shutdown
@@ -2125,7 +2190,8 @@ class PerformanceMonitor:
                     try:
                         if timeout is not None:
                             result = await asyncio.wait_for(
-                                func(*args, **kwargs), timeout,
+                                func(*args, **kwargs),
+                                timeout,
                             )
                         else:
                             result = await func(*args, **kwargs)
@@ -2133,7 +2199,9 @@ class PerformanceMonitor:
                         duration = loop.time() - start
                         self.record_operation(duration, success=False)
                         _LOGGER.warning(
-                            'Operation %s timed out after %.2fs', func_label, timeout,
+                            'Operation %s timed out after %.2fs',
+                            func_label,
+                            timeout,
                         )
                         raise
                     except asyncio.CancelledError:
@@ -2144,7 +2212,8 @@ class PerformanceMonitor:
                         duration = loop.time() - start
                         self.record_operation(duration, success=False)
                         _LOGGER.exception(
-                            'Operation %s raised an unexpected error', func_label,
+                            'Operation %s raised an unexpected error',
+                            func_label,
                         )
                         raise
                     else:
@@ -2163,7 +2232,8 @@ class PerformanceMonitor:
                     duration = perf_counter() - start
                     self.record_operation(duration, success=False)
                     _LOGGER.exception(
-                        'Operation %s raised an unexpected error', func_label,
+                        'Operation %s raised an unexpected error',
+                        func_label,
                     )
                     raise
                 else:

@@ -109,8 +109,10 @@ def _normalize_dog_configs(
         if isinstance(modules_payload, Mapping):
             modules_source = cast(ConfigFlowUserInput, modules_payload)
         elif isinstance(modules_payload, DogModulesProjection) or (
-            hasattr(modules_payload, 'config') and hasattr(
-                modules_payload, 'mapping',
+            hasattr(modules_payload, 'config')
+            and hasattr(
+                modules_payload,
+                'mapping',
             )
         ):
             modules_source = cast(DogModulesProjection, modules_payload)
@@ -168,7 +170,9 @@ async def _async_add_entities_in_batches(
         )
 
         await async_call_add_entities(
-            async_add_entities_func, batch, update_before_add=False,
+            async_add_entities_func,
+            batch,
+            update_before_add=False,
         )
 
         if delay_between_batches > 0 and batch_index + 1 < total_batches:
@@ -233,7 +237,9 @@ async def async_setup_entry(
                 [
                     PawControlWalkNotesText(coordinator, dog_id, dog_name),
                     PawControlCurrentWalkLabelText(
-                        coordinator, dog_id, dog_name,
+                        coordinator,
+                        dog_id,
+                        dog_name,
                     ),
                 ],
             )
@@ -244,7 +250,9 @@ async def async_setup_entry(
                 [
                     PawControlHealthNotesText(coordinator, dog_id, dog_name),
                     PawControlMedicationNotesText(
-                        coordinator, dog_id, dog_name,
+                        coordinator,
+                        dog_id,
+                        dog_name,
                     ),
                     PawControlVetNotesText(coordinator, dog_id, dog_name),
                     PawControlGroomingNotesText(coordinator, dog_id, dog_name),
@@ -260,7 +268,9 @@ async def async_setup_entry(
                 [
                     PawControlCustomMessageText(coordinator, dog_id, dog_name),
                     PawControlEmergencyContactText(
-                        coordinator, dog_id, dog_name,
+                        coordinator,
+                        dog_id,
+                        dog_name,
                     ),
                 ],
             )
@@ -268,7 +278,9 @@ async def async_setup_entry(
         if bool(modules.get(MODULE_GPS_KEY, False)):
             entities.append(
                 PawControlLocationDescriptionText(
-                    coordinator, dog_id, dog_name,
+                    coordinator,
+                    dog_id,
+                    dog_name,
                 ),
             )
 
@@ -341,7 +353,9 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
         """Clamp ``value`` to the configured maximum length when necessary."""
 
         max_length = getattr(
-            self, 'native_max', getattr(self, '_attr_native_max', None),
+            self,
+            'native_max',
+            getattr(self, '_attr_native_max', None),
         )
         if isinstance(max_length, int) and len(value) > max_length:
             return value[:max_length]
@@ -403,7 +417,10 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
         return None, None, False
 
     async def _async_persist_text_value(
-        self, value: str, *, metadata: DogTextMetadataEntry | None,
+        self,
+        value: str,
+        *,
+        metadata: DogTextMetadataEntry | None,
     ) -> None:
         """Persist updated text values and metadata to runtime caches and storage."""
 
@@ -450,7 +467,8 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
 
                     if merged:
                         dog[DOG_TEXT_VALUES_FIELD] = cast(
-                            DogTextSnapshot, merged,
+                            DogTextSnapshot,
+                            merged,
                         )
                     else:
                         dog.pop(DOG_TEXT_VALUES_FIELD, None)
@@ -473,14 +491,16 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
                     if metadata_update is not None:
                         for key, entry in metadata_update.items():
                             metadata_merged[str(key)] = cast(
-                                DogTextMetadataEntry, entry,
+                                DogTextMetadataEntry,
+                                entry,
                             )
                     elif remove_metadata:
                         metadata_merged.pop(self._text_type, None)
 
                     if metadata_merged:
                         dog[DOG_TEXT_METADATA_FIELD] = cast(
-                            DogTextMetadataSnapshot, dict(metadata_merged),
+                            DogTextMetadataSnapshot,
+                            dict(metadata_merged),
                         )
                     else:
                         dog.pop(DOG_TEXT_METADATA_FIELD, None)
@@ -491,7 +511,8 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
                 dog_payload = coordinator_data.get(self._dog_id)
                 if isinstance(dog_payload, Mapping):
                     mutable_payload: JSONMutableMapping = cast(
-                        JSONMutableMapping, dict(dog_payload),
+                        JSONMutableMapping,
+                        dict(dog_payload),
                     )
                 else:
                     mutable_payload = cast(JSONMutableMapping, {})
@@ -512,7 +533,8 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
 
                 if merged_snapshot:
                     mutable_payload[DOG_TEXT_VALUES_FIELD] = cast(
-                        JSONValue, merged_snapshot,
+                        JSONValue,
+                        merged_snapshot,
                     )
                 else:
                     mutable_payload.pop(DOG_TEXT_VALUES_FIELD, None)
@@ -537,29 +559,34 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
                 if metadata_update is not None:
                     for key, entry in metadata_update.items():
                         merged_metadata[str(key)] = cast(
-                            DogTextMetadataEntry, entry,
+                            DogTextMetadataEntry,
+                            entry,
                         )
                 elif remove_metadata:
                     merged_metadata.pop(self._text_type, None)
 
                 if merged_metadata:
                     mutable_payload[DOG_TEXT_METADATA_FIELD] = cast(
-                        JSONValue, dict(merged_metadata),
+                        JSONValue,
+                        dict(merged_metadata),
                     )
                 else:
                     mutable_payload.pop(DOG_TEXT_METADATA_FIELD, None)
 
                 coordinator_data[self._dog_id] = cast(
-                    CoordinatorDogData, mutable_payload,
+                    CoordinatorDogData,
+                    mutable_payload,
                 )
 
         if data_manager is not None:
             update_sections: JSONMutableMapping = cast(
-                JSONMutableMapping, {DOG_TEXT_VALUES_FIELD: update_payload},
+                JSONMutableMapping,
+                {DOG_TEXT_VALUES_FIELD: update_payload},
             )
             if metadata_update is not None:
                 update_sections[DOG_TEXT_METADATA_FIELD] = cast(
-                    JSONMutableMapping, metadata_update,
+                    JSONMutableMapping,
+                    metadata_update,
                 )
             elif remove_metadata:
                 update_sections[DOG_TEXT_METADATA_FIELD] = cast(
@@ -588,7 +615,8 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
         """Return metadata describing an update at ``timestamp`` with context."""
 
         metadata: DogTextMetadataEntry = cast(
-            DogTextMetadataEntry, {'last_updated': timestamp},
+            DogTextMetadataEntry,
+            {'last_updated': timestamp},
         )
         context = getattr(self, 'context', None)
         if context is None:
@@ -608,9 +636,13 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
     def _set_metadata_fields(self, metadata: DogTextMetadataEntry | None) -> None:
         """Update cached metadata fields for ``self`` from ``metadata``."""
 
-        timestamp = metadata.get(
-            'last_updated',
-        ) if metadata is not None else None
+        timestamp = (
+            metadata.get(
+                'last_updated',
+            )
+            if metadata is not None
+            else None
+        )
         self._last_updated = timestamp
         self._last_updated_context_id = (
             metadata.get('context_id') if metadata is not None else None
@@ -760,11 +792,19 @@ class PawControlDogNotesText(PawControlTextBase):
     """Text entity for general dog notes."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the text entity."""
         super().__init__(
-            coordinator, dog_id, dog_name, 'notes', max_length=1000, mode=TextMode.TEXT,
+            coordinator,
+            dog_id,
+            dog_name,
+            'notes',
+            max_length=1000,
+            mode=TextMode.TEXT,
         )
         self._attr_icon = 'mdi:note-text'
 
@@ -789,7 +829,10 @@ class PawControlCustomLabelText(PawControlTextBase):
     """Text entity for custom dog label."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the text entity."""
         super().__init__(coordinator, dog_id, dog_name, 'custom_label', max_length=50)
@@ -800,7 +843,10 @@ class PawControlWalkNotesText(PawControlTextBase):
     """Text entity for walk notes."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the text entity."""
         super().__init__(
@@ -827,11 +873,18 @@ class PawControlCurrentWalkLabelText(PawControlTextBase):
     """Text entity for current walk label."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the text entity."""
         super().__init__(
-            coordinator, dog_id, dog_name, 'current_walk_label', max_length=100,
+            coordinator,
+            dog_id,
+            dog_name,
+            'current_walk_label',
+            max_length=100,
         )
         self._attr_icon = 'mdi:tag'
 
@@ -850,7 +903,10 @@ class PawControlHealthNotesText(PawControlTextBase):
     """Text entity for health notes."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the text entity."""
         super().__init__(
@@ -884,7 +940,10 @@ class PawControlMedicationNotesText(PawControlTextBase):
     """Text entity for medication notes."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the text entity."""
         super().__init__(
@@ -923,7 +982,10 @@ class PawControlVetNotesText(PawControlTextBase):
     """Text entity for veterinary notes."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the text entity."""
         super().__init__(
@@ -957,7 +1019,10 @@ class PawControlGroomingNotesText(PawControlTextBase):
     """Text entity for grooming notes."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the text entity."""
         super().__init__(
@@ -996,7 +1061,10 @@ class PawControlCustomMessageText(PawControlTextBase):
     """Text entity for custom notification message."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the text entity."""
         super().__init__(
@@ -1045,7 +1113,10 @@ class PawControlEmergencyContactText(PawControlTextBase):
     """Text entity for emergency contact information."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the text entity."""
         super().__init__(
@@ -1063,7 +1134,10 @@ class PawControlMicrochipText(PawControlTextBase):
     """Text entity for microchip number."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the text entity."""
         super().__init__(coordinator, dog_id, dog_name, 'microchip', max_length=20)
@@ -1075,7 +1149,10 @@ class PawControlBreederInfoText(PawControlTextBase):
     """Text entity for breeder information."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the text entity."""
         super().__init__(
@@ -1093,7 +1170,10 @@ class PawControlRegistrationText(PawControlTextBase):
     """Text entity for registration information."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the text entity."""
         super().__init__(coordinator, dog_id, dog_name, 'registration', max_length=100)
@@ -1104,7 +1184,10 @@ class PawControlInsuranceText(PawControlTextBase):
     """Text entity for insurance information."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the text entity."""
         super().__init__(
@@ -1122,7 +1205,10 @@ class PawControlAllergiesText(PawControlTextBase):
     """Text entity for allergies and restrictions."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the text entity."""
         super().__init__(
@@ -1156,7 +1242,10 @@ class PawControlTrainingNotesText(PawControlTextBase):
     """Text entity for training notes."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the text entity."""
         super().__init__(
@@ -1174,7 +1263,10 @@ class PawControlBehaviorNotesText(PawControlTextBase):
     """Text entity for behavior notes."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the text entity."""
         super().__init__(
@@ -1212,7 +1304,10 @@ class PawControlLocationDescriptionText(PawControlTextBase):
     """Text entity for custom location description."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the text entity."""
         super().__init__(

@@ -99,10 +99,12 @@ type ActivityType = Literal['walk', 'play', 'exercise', 'basic_needs']
 type ActivityThresholdMap = dict[ActivityType, int]
 type AlertTranslationParts = tuple[
     Literal['alerts'],
-    WeatherAlertKey, AlertField,
+    WeatherAlertKey,
+    AlertField,
 ]
 type RecommendationTranslationParts = tuple[
-    Literal['recommendations'], WeatherRecommendationKey,
+    Literal['recommendations'],
+    WeatherRecommendationKey,
 ]
 type WeatherTranslationParts = AlertTranslationParts | RecommendationTranslationParts
 
@@ -259,7 +261,8 @@ class WeatherForecast:
         return f"Dangerous conditions - outdoor activities not recommended (avg score: {score}/100)"
 
     def get_next_optimal_window(
-        self, activity_type: ActivityType = 'walk',
+        self,
+        activity_type: ActivityType = 'walk',
     ) -> ActivityTimeSlot | None:
         """Get the next optimal time window for specified activity."""
         for window in self.optimal_activity_windows:
@@ -405,7 +408,9 @@ class WeatherHealthManager:
     """Manages weather-based health warnings for dogs."""
 
     def __init__(
-        self, hass: HomeAssistant, resilience_manager: ResilienceManager | None = None,
+        self,
+        hass: HomeAssistant,
+        resilience_manager: ResilienceManager | None = None,
     ) -> None:
         """Initialize weather health manager.
 
@@ -480,7 +485,8 @@ class WeatherHealthManager:
                     DEFAULT_LANGUAGE,
                 )
             _LOGGER.debug(
-                'Loaded weather translations for language: %s', language,
+                'Loaded weather translations for language: %s',
+                language,
             )
         except Exception as err:  # pragma: no cover - defensive fallback
             _LOGGER.warning('Failed to load weather translations: %s', err)
@@ -544,7 +550,8 @@ class WeatherHealthManager:
 
         try:
             resolved = self._resolve_translation_value(
-                self._translations, parts,
+                self._translations,
+                parts,
             )
         except ValueError as err:
             _LOGGER.debug('Translation key not found: %s (%s)', key, err)
@@ -557,19 +564,25 @@ class WeatherHealthManager:
                 return resolved.format(**kwargs)
             except (KeyError, ValueError) as err:
                 _LOGGER.debug(
-                    'Translation formatting failed for %s: %s', key, err,
+                    'Translation formatting failed for %s: %s',
+                    key,
+                    err,
                 )
 
         return self._get_english_fallback(parts, key, **kwargs)
 
     def _get_english_fallback(
-        self, parts: WeatherTranslationParts, original_key: str, **kwargs: Any,
+        self,
+        parts: WeatherTranslationParts,
+        original_key: str,
+        **kwargs: Any,
     ) -> str:
         """Get English fallback text for translation keys."""
 
         try:
             resolved = self._resolve_translation_value(
-                self._english_translations, parts,
+                self._english_translations,
+                parts,
             )
         except ValueError:
             resolved = None
@@ -584,7 +597,8 @@ class WeatherHealthManager:
 
     @staticmethod
     def _resolve_translation_value(
-        catalog: WeatherTranslations, parts: WeatherTranslationParts,
+        catalog: WeatherTranslations,
+        parts: WeatherTranslationParts,
     ) -> str | None:
         """Resolve a nested translation value from the provided catalog."""
 
@@ -593,14 +607,17 @@ class WeatherHealthManager:
             alert_parts = cast(AlertTranslationParts, parts)
             _, alert_key, field = alert_parts
             return WeatherHealthManager._resolve_alert_translation(
-                catalog['alerts'], alert_key, field,
+                catalog['alerts'],
+                alert_key,
+                field,
             )
 
         if section == 'recommendations':
             recommendation_parts = cast(RecommendationTranslationParts, parts)
             _, recommendation_key = recommendation_parts
             return WeatherHealthManager._resolve_recommendation_translation(
-                catalog['recommendations'], recommendation_key,
+                catalog['recommendations'],
+                recommendation_key,
             )
 
         raise ValueError(f"Unknown weather translation section: {section}")
@@ -659,7 +676,8 @@ class WeatherHealthManager:
         return None
 
     async def async_update_weather_data(
-        self, weather_entity_id: str | None = None,
+        self,
+        weather_entity_id: str | None = None,
     ) -> WeatherConditions | None:
         """Update weather data from Home Assistant weather entity with resilience.
 
@@ -696,7 +714,8 @@ class WeatherHealthManager:
                 STATE_UNKNOWN,
             ]:
                 _LOGGER.warning(
-                    'Weather entity %s is unavailable', weather_entity_id,
+                    'Weather entity %s is unavailable',
+                    weather_entity_id,
                 )
                 return None
 
@@ -771,7 +790,8 @@ class WeatherHealthManager:
             return await _fetch_weather_data()
         except Exception as err:
             _LOGGER.error(
-                'Failed to update weather data after retries: %s', err,
+                'Failed to update weather data after retries: %s',
+                err,
             )
             return None
 
@@ -816,7 +836,8 @@ class WeatherHealthManager:
                 STATE_UNKNOWN,
             ]:
                 _LOGGER.warning(
-                    'Weather entity %s is unavailable for forecast', weather_entity_id,
+                    'Weather entity %s is unavailable for forecast',
+                    weather_entity_id,
                 )
                 return None
 
@@ -845,13 +866,15 @@ class WeatherHealthManager:
             ]
             if not forecast_data:
                 _LOGGER.debug(
-                    'No forecast data available in weather entity %s', weather_entity_id,
+                    'No forecast data available in weather entity %s',
+                    weather_entity_id,
                 )
                 return None
 
             # Process forecast data into structured format
             forecast_points = await self._process_forecast_data(
-                forecast_data, forecast_horizon_hours,
+                forecast_data,
+                forecast_horizon_hours,
             )
 
             if not forecast_points:
@@ -896,12 +919,15 @@ class WeatherHealthManager:
             return await _fetch_forecast_data()
         except Exception as err:
             _LOGGER.error(
-                'Failed to update weather forecast data after retries: %s', err,
+                'Failed to update weather forecast data after retries: %s',
+                err,
             )
             return None
 
     async def _process_forecast_data(
-        self, forecast_data: ForecastEntries, horizon_hours: int,
+        self,
+        forecast_data: ForecastEntries,
+        horizon_hours: int,
     ) -> list[ForecastPoint]:
         """Process raw forecast data into structured forecast points.
 
@@ -941,7 +967,8 @@ class WeatherHealthManager:
                 # Convert temperature units if needed
                 if temp_high is not None:
                     temp_unit = forecast_item.get(
-                        'temperature_unit', UnitOfTemperature.CELSIUS,
+                        'temperature_unit',
+                        UnitOfTemperature.CELSIUS,
                     )
                     if temp_unit == UnitOfTemperature.FAHRENHEIT:
                         temp_high = (temp_high - 32.0) * 5 / 9
@@ -971,9 +998,14 @@ class WeatherHealthManager:
                     forecast_item.get(ATTR_FORECAST_PRECIPITATION_PROBABILITY),
                 )
                 condition_obj = forecast_item.get(ATTR_FORECAST_CONDITION)
-                condition = condition_obj if isinstance(
-                    condition_obj, str,
-                ) else None
+                condition = (
+                    condition_obj
+                    if isinstance(
+                        condition_obj,
+                        str,
+                    )
+                    else None
+                )
 
                 # Create forecast point
                 forecast_point = ForecastPoint(
@@ -1004,7 +1036,8 @@ class WeatherHealthManager:
         return forecast_points
 
     def _assess_forecast_quality(
-        self, forecast_data: ForecastEntries,
+        self,
+        forecast_data: ForecastEntries,
     ) -> ForecastQuality:
         """Assess the quality of forecast data.
 
@@ -1051,7 +1084,8 @@ class WeatherHealthManager:
         return ForecastQuality.POOR
 
     def _calculate_forecast_point_derived_values(
-        self, forecast_point: ForecastPoint,
+        self,
+        forecast_point: ForecastPoint,
     ) -> None:
         """Calculate derived values for a forecast point.
 
@@ -1215,7 +1249,8 @@ class WeatherHealthManager:
         return max(0, min(100, score))
 
     def _predict_point_alerts(
-        self, forecast_point: ForecastPoint,
+        self,
+        forecast_point: ForecastPoint,
     ) -> list[WeatherHealthImpact]:
         """Predict weather health alerts for a forecast point.
 
@@ -1336,7 +1371,10 @@ class WeatherHealthManager:
         )
 
     def _find_activity_windows(
-        self, activity_type: ActivityType, min_score: int, min_duration_hours: int = 1,
+        self,
+        activity_type: ActivityType,
+        min_score: int,
+        min_duration_hours: int = 1,
     ) -> list[ActivityTimeSlot]:
         """Find optimal time windows for a specific activity.
 
@@ -1386,7 +1424,9 @@ class WeatherHealthManager:
                             alert_level = WeatherSeverity.HIGH
 
                         recommendations = self._get_activity_recommendations(
-                            activity_type, avg_score, alert_level,
+                            activity_type,
+                            avg_score,
+                            alert_level,
                         )
 
                         windows.append(
@@ -1412,8 +1452,7 @@ class WeatherHealthManager:
 
             if window_duration >= min_duration_hours:
                 avg_score = int(
-                    sum(current_window_scores) /
-                    len(current_window_scores),
+                    sum(current_window_scores) / len(current_window_scores),
                 )
 
                 if avg_score >= 80:
@@ -1424,7 +1463,9 @@ class WeatherHealthManager:
                     alert_level = WeatherSeverity.HIGH
 
                 recommendations = self._get_activity_recommendations(
-                    activity_type, avg_score, alert_level,
+                    activity_type,
+                    avg_score,
+                    alert_level,
                 )
 
                 windows.append(
@@ -1712,7 +1753,8 @@ class WeatherHealthManager:
                         'weather.alerts.high_heat_advisory.title',
                     ),
                     message=self._get_translation(
-                        'weather.alerts.high_heat_advisory.message', temperature=temp,
+                        'weather.alerts.high_heat_advisory.message',
+                        temperature=temp,
                     ),
                     recommendations=[
                         self._get_translation(
@@ -1744,7 +1786,8 @@ class WeatherHealthManager:
                         'weather.alerts.warm_weather_caution.title',
                     ),
                     message=self._get_translation(
-                        'weather.alerts.warm_weather_caution.message', temperature=temp,
+                        'weather.alerts.warm_weather_caution.message',
+                        temperature=temp,
                     ),
                     recommendations=[
                         self._get_translation(
@@ -1798,7 +1841,9 @@ class WeatherHealthManager:
                     duration_hours=8,
                     affected_breeds=[
                         'short_hair',
-                        'small_breeds', 'elderly', 'sick',
+                        'small_breeds',
+                        'elderly',
+                        'sick',
                     ],
                     age_considerations=['puppies', 'senior_dogs'],
                 ),
@@ -1812,7 +1857,8 @@ class WeatherHealthManager:
                         'weather.alerts.high_cold_advisory.title',
                     ),
                     message=self._get_translation(
-                        'weather.alerts.high_cold_advisory.message', temperature=temp,
+                        'weather.alerts.high_cold_advisory.message',
+                        temperature=temp,
                     ),
                     recommendations=[
                         self._get_translation(
@@ -1857,7 +1903,8 @@ class WeatherHealthManager:
                         'weather.alerts.extreme_uv_warning.title',
                     ),
                     message=self._get_translation(
-                        'weather.alerts.extreme_uv_warning.message', uv_index=uv,
+                        'weather.alerts.extreme_uv_warning.message',
+                        uv_index=uv,
                     ),
                     recommendations=[
                         self._get_translation(
@@ -1879,7 +1926,8 @@ class WeatherHealthManager:
                     duration_hours=6,
                     affected_breeds=[
                         'light_colored',
-                        'pink_skin', 'sparse_hair',
+                        'pink_skin',
+                        'sparse_hair',
                     ],
                 ),
             )
@@ -1892,7 +1940,8 @@ class WeatherHealthManager:
                         'weather.alerts.high_uv_advisory.title',
                     ),
                     message=self._get_translation(
-                        'weather.alerts.high_uv_advisory.message', uv_index=uv,
+                        'weather.alerts.high_uv_advisory.message',
+                        uv_index=uv,
                     ),
                     recommendations=[
                         self._get_translation(
@@ -1936,7 +1985,8 @@ class WeatherHealthManager:
                         'weather.alerts.high_humidity_alert.title',
                     ),
                     message=self._get_translation(
-                        'weather.alerts.high_humidity_alert.message', humidity=humidity,
+                        'weather.alerts.high_humidity_alert.message',
+                        humidity=humidity,
                     ),
                     recommendations=[
                         self._get_translation(
@@ -2082,7 +2132,8 @@ class WeatherHealthManager:
         return self._current_forecast
 
     def get_next_optimal_activity_time(
-        self, activity_type: ActivityType = 'walk',
+        self,
+        activity_type: ActivityType = 'walk',
     ) -> ActivityTimeSlot | None:
         """Get the next optimal time for a specific activity.
 

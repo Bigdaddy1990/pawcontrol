@@ -6,7 +6,6 @@ ensure they gracefully handle unexpected severity values even without the real
 Home Assistant runtime.
 """
 from __future__ import annotations
-from tests.helpers import homeassistant_test_stubs
 
 import asyncio
 import importlib.util
@@ -29,6 +28,7 @@ import pytest
 from custom_components.pawcontrol.types import CacheRepairAggregate
 from custom_components.pawcontrol.types import ConfigEntryDataPayload
 from custom_components.pawcontrol.types import PawControlOptionsData
+from tests.helpers import homeassistant_test_stubs
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -218,7 +218,9 @@ def _build_config_entries(
         return entry if entry.entry_id == entry_id else None
 
     def async_update_entry(
-        entry_obj: Any, data: Any | None = None, options: Any | None = None,
+        entry_obj: Any,
+        data: Any | None = None,
+        options: Any | None = None,
     ) -> None:
         if data is not None:
             entry_obj.data = data
@@ -279,7 +281,7 @@ def test_storage_warning_flow_reduces_retention(
     updates.clear()
     asyncio.run(
         flow.async_step_storage_warning(
-        {'action': 'reduce_retention'},
+            {'action': 'reduce_retention'},
         ),
     )
 
@@ -914,13 +916,15 @@ def test_async_check_for_issues_clears_reconfigure_issues_when_clean(
         for invocation in create_issue_mock.await_args_list
     )
     assert any(
-        invocation.args and str(
+        invocation.args
+        and str(
             invocation.args[-1],
         ).endswith('reconfigure_warnings')
         for invocation in delete_issue_mock.await_args_list
     )
     assert any(
-        invocation.args and str(
+        invocation.args
+        and str(
             invocation.args[-1],
         ).endswith('reconfigure_health')
         for invocation in delete_issue_mock.await_args_list
@@ -1049,11 +1053,16 @@ def test_async_publish_feeding_compliance_issue_falls_back_without_critical(
         WARNING = 'warning'
 
     monkeypatch.setattr(
-        module.ir, 'IssueSeverity',
-        LimitedSeverity, raising=False,
+        module.ir,
+        'IssueSeverity',
+        LimitedSeverity,
+        raising=False,
     )
     monkeypatch.setattr(
-        module.ir, 'async_create_issue', create_issue_mock, raising=False,
+        module.ir,
+        'async_create_issue',
+        create_issue_mock,
+        raising=False,
     )
 
     hass = SimpleNamespace()

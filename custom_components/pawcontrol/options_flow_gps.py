@@ -71,7 +71,8 @@ if TYPE_CHECKING:
         def _current_options(self) -> Mapping[str, JSONValue]: ...
 
         def _normalise_options_snapshot(
-            self, options: Mapping[str, JSONValue] | JSONMutableMapping,
+            self,
+            options: Mapping[str, JSONValue] | JSONMutableMapping,
         ) -> Mapping[str, JSONValue]: ...
 
         def _build_dog_selector_schema(self) -> vol.Schema: ...
@@ -79,14 +80,16 @@ if TYPE_CHECKING:
         def _require_current_dog(self) -> DogConfigData | None: ...
 
         def _select_dog_by_id(
-            self, dog_id: str |
-            None,
+            self,
+            dog_id: str | None,
         ) -> DogConfigData | None: ...
 
         def _coerce_bool(self, value: Any, default: bool) -> bool: ...
 
         def _coerce_optional_float(
-            self, value: Any, default: float | None,
+            self,
+            value: Any,
+            default: float | None,
         ) -> float | None: ...
 
         def async_show_form(
@@ -99,7 +102,10 @@ if TYPE_CHECKING:
         ) -> ConfigFlowResult: ...
 
         def async_create_entry(
-            self, *, title: str, data: Mapping[str, JSONValue],
+            self,
+            *,
+            title: str,
+            data: Mapping[str, JSONValue],
         ) -> ConfigFlowResult: ...
 
         async def async_step_init(self) -> ConfigFlowResult: ...
@@ -122,9 +128,12 @@ class GPSOptionsMixin(GPSOptionsHost):
         else:
             legacy = self._current_options().get(GPS_SETTINGS_FIELD, {})
             current = (
-                cast(GPSOptions, dict(legacy)) if isinstance(
-                    legacy, Mapping,
-                ) else {}
+                cast(GPSOptions, dict(legacy))
+                if isinstance(
+                    legacy,
+                    Mapping,
+                )
+                else {}
             )
 
         if (
@@ -185,7 +194,8 @@ class GPSOptionsMixin(GPSOptionsHost):
         return cast(GeofenceOptions, {})
 
     async def async_step_select_dog_for_gps_settings(
-        self, user_input: OptionsDogSelectionInput | None = None,
+        self,
+        user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to configure GPS settings for."""
 
@@ -207,7 +217,8 @@ class GPSOptionsMixin(GPSOptionsHost):
         )
 
     async def async_step_select_dog_for_geofence_settings(
-        self, user_input: OptionsDogSelectionInput | None = None,
+        self,
+        user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Select which dog to configure geofencing for."""
 
@@ -229,7 +240,8 @@ class GPSOptionsMixin(GPSOptionsHost):
         )
 
     async def async_step_gps_settings(
-        self, user_input: OptionsGPSSettingsInput | None = None,
+        self,
+        user_input: OptionsGPSSettingsInput | None = None,
     ) -> ConfigFlowResult:
         """Configure GPS and location settings with enhanced route recording options."""
 
@@ -255,7 +267,8 @@ class GPSOptionsMixin(GPSOptionsHost):
                 return self.async_show_form(
                     step_id='gps_settings',
                     data_schema=self._get_gps_settings_schema(
-                        dog_id, user_input,
+                        dog_id,
+                        user_input,
                     ),
                     errors={CONF_GPS_UPDATE_INTERVAL: 'invalid_interval'},
                 )
@@ -273,7 +286,8 @@ class GPSOptionsMixin(GPSOptionsHost):
                 return self.async_show_form(
                     step_id='gps_settings',
                     data_schema=self._get_gps_settings_schema(
-                        dog_id, user_input,
+                        dog_id,
+                        user_input,
                     ),
                     errors={CONF_GPS_ACCURACY_FILTER: 'invalid_accuracy'},
                 )
@@ -291,7 +305,8 @@ class GPSOptionsMixin(GPSOptionsHost):
                 return self.async_show_form(
                     step_id='gps_settings',
                     data_schema=self._get_gps_settings_schema(
-                        dog_id, user_input,
+                        dog_id,
+                        user_input,
                     ),
                     errors={CONF_GPS_DISTANCE_FILTER: 'invalid_distance'},
                 )
@@ -357,7 +372,9 @@ class GPSOptionsMixin(GPSOptionsHost):
         )
 
     def _get_gps_settings_schema(
-        self, dog_id: str, user_input: OptionsGPSSettingsInput | None = None,
+        self,
+        dog_id: str,
+        user_input: OptionsGPSSettingsInput | None = None,
     ) -> vol.Schema:
         """Get GPS settings schema with current values and enhanced route options."""
 
@@ -369,7 +386,8 @@ class GPSOptionsMixin(GPSOptionsHost):
                 vol.Optional(
                     GPS_ENABLED_FIELD,
                     default=current_values.get(
-                        GPS_ENABLED_FIELD, current.get(GPS_ENABLED_FIELD, True),
+                        GPS_ENABLED_FIELD,
+                        current.get(GPS_ENABLED_FIELD, True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
@@ -377,7 +395,8 @@ class GPSOptionsMixin(GPSOptionsHost):
                     default=current_values.get(
                         CONF_GPS_UPDATE_INTERVAL,
                         current.get(
-                            CONF_GPS_UPDATE_INTERVAL, DEFAULT_GPS_UPDATE_INTERVAL,
+                            CONF_GPS_UPDATE_INTERVAL,
+                            DEFAULT_GPS_UPDATE_INTERVAL,
                         ),
                     ),
                 ): GPS_UPDATE_INTERVAL_SELECTOR,
@@ -386,7 +405,8 @@ class GPSOptionsMixin(GPSOptionsHost):
                     default=current_values.get(
                         CONF_GPS_ACCURACY_FILTER,
                         current.get(
-                            CONF_GPS_ACCURACY_FILTER, DEFAULT_GPS_ACCURACY_FILTER,
+                            CONF_GPS_ACCURACY_FILTER,
+                            DEFAULT_GPS_ACCURACY_FILTER,
                         ),
                     ),
                 ): GPS_ACCURACY_FILTER_SELECTOR,
@@ -395,7 +415,8 @@ class GPSOptionsMixin(GPSOptionsHost):
                     default=current_values.get(
                         CONF_GPS_DISTANCE_FILTER,
                         current.get(
-                            CONF_GPS_DISTANCE_FILTER, DEFAULT_GPS_DISTANCE_FILTER,
+                            CONF_GPS_DISTANCE_FILTER,
+                            DEFAULT_GPS_DISTANCE_FILTER,
                         ),
                     ),
                 ): selector.NumberSelector(
@@ -440,7 +461,8 @@ class GPSOptionsMixin(GPSOptionsHost):
         )
 
     async def async_step_geofence_settings(
-        self, user_input: OptionsGeofenceInput | None = None,
+        self,
+        user_input: OptionsGeofenceInput | None = None,
     ) -> ConfigFlowResult:
         """Configure geofencing and zone settings."""
 
@@ -497,7 +519,8 @@ class GPSOptionsMixin(GPSOptionsHost):
                 return self.async_show_form(
                     step_id='geofence_settings',
                     data_schema=self._get_geofence_settings_schema(
-                        dog_id, user_input,
+                        dog_id,
+                        user_input,
                     ),
                     errors={GEOFENCE_RADIUS_FIELD: 'radius_out_of_range'},
                 )
@@ -505,7 +528,8 @@ class GPSOptionsMixin(GPSOptionsHost):
                 return self.async_show_form(
                     step_id='geofence_settings',
                     data_schema=self._get_geofence_settings_schema(
-                        dog_id, user_input,
+                        dog_id,
+                        user_input,
                     ),
                     errors={'base': 'geofence_update_failed'},
                 )
@@ -519,7 +543,9 @@ class GPSOptionsMixin(GPSOptionsHost):
         )
 
     def _get_geofence_settings_schema(
-        self, dog_id: str, user_input: OptionsGeofenceInput | None = None,
+        self,
+        dog_id: str,
+        user_input: OptionsGeofenceInput | None = None,
     ) -> vol.Schema:
         """Get geofencing settings schema with current values."""
 
@@ -548,7 +574,8 @@ class GPSOptionsMixin(GPSOptionsHost):
                 vol.Optional(
                     GEOFENCE_LAT_FIELD,
                     default=current_values.get(
-                        GEOFENCE_LAT_FIELD, default_lat,
+                        GEOFENCE_LAT_FIELD,
+                        default_lat,
                     ),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
@@ -562,7 +589,8 @@ class GPSOptionsMixin(GPSOptionsHost):
                 vol.Optional(
                     GEOFENCE_LON_FIELD,
                     default=current_values.get(
-                        GEOFENCE_LON_FIELD, default_lon,
+                        GEOFENCE_LON_FIELD,
+                        default_lon,
                     ),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
@@ -607,7 +635,8 @@ class GPSOptionsMixin(GPSOptionsHost):
                     default=current_values.get(
                         GEOFENCE_RESTRICTED_ZONE_FIELD,
                         current_geofence.get(
-                            GEOFENCE_RESTRICTED_ZONE_FIELD, True,
+                            GEOFENCE_RESTRICTED_ZONE_FIELD,
+                            True,
                         ),
                     ),
                 ): selector.BooleanSelector(),
@@ -642,10 +671,12 @@ class GPSOptionsMixin(GPSOptionsHost):
         lat_source = user_input.get(GEOFENCE_LAT_FIELD)
         lon_source = user_input.get(GEOFENCE_LON_FIELD)
         lat = self._coerce_optional_float(
-            lat_source, current.get(GEOFENCE_LAT_FIELD, default_lat),
+            lat_source,
+            current.get(GEOFENCE_LAT_FIELD, default_lat),
         )
         lon = self._coerce_optional_float(
-            lon_source, current.get(GEOFENCE_LON_FIELD, default_lon),
+            lon_source,
+            current.get(GEOFENCE_LON_FIELD, default_lon),
         )
 
         geofence: GeofenceOptions = {
@@ -698,7 +729,8 @@ class GPSOptionsMixin(GPSOptionsHost):
         current_geofence = self._current_geofence_options(dog_id)
 
         geofencing_enabled = current_geofence.get(
-            GEOFENCE_ENABLED_FIELD, False,
+            GEOFENCE_ENABLED_FIELD,
+            False,
         )
         home_lat = self.hass.config.latitude
         home_lon = self.hass.config.longitude

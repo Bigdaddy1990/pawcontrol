@@ -93,10 +93,12 @@ def _normalise_attributes(
 
 ensure_homeassistant_exception_symbols()
 HomeAssistantError: type[Exception] = cast(
-    type[Exception], compat.HomeAssistantError,
+    type[Exception],
+    compat.HomeAssistantError,
 )
 ServiceValidationError: type[Exception] = cast(
-    type[Exception], compat.ServiceValidationError,
+    type[Exception],
+    compat.ServiceValidationError,
 )
 bind_exception_alias('HomeAssistantError', combine_with_current=True)
 bind_exception_alias('ServiceValidationError')
@@ -272,7 +274,9 @@ class ProfileAwareButtonFactory:
     """
 
     def __init__(
-        self, coordinator: PawControlCoordinator, profile: str = 'standard',
+        self,
+        coordinator: PawControlCoordinator,
+        profile: str = 'standard',
     ) -> None:
         """Initialize button factory with profile.
 
@@ -562,28 +566,36 @@ class ProfileAwareButtonFactory:
             [
                 {
                     'button': PawControlTestNotificationButton(
-                        self.coordinator, dog_id, dog_name,
+                        self.coordinator,
+                        dog_id,
+                        dog_name,
                     ),
                     'type': 'test_notification',
                     'priority': BUTTON_PRIORITIES['test_notification'],
                 },
                 {
                     'button': PawControlResetDailyStatsButton(
-                        self.coordinator, dog_id, dog_name,
+                        self.coordinator,
+                        dog_id,
+                        dog_name,
                     ),
                     'type': 'reset_daily_stats',
                     'priority': BUTTON_PRIORITIES['reset_daily_stats'],
                 },
                 {
                     'button': PawControlRefreshDataButton(
-                        self.coordinator, dog_id, dog_name,
+                        self.coordinator,
+                        dog_id,
+                        dog_name,
                     ),
                     'type': 'refresh_data',
                     'priority': BUTTON_PRIORITIES['refresh_data'],
                 },
                 {
                     'button': PawControlSyncDataButton(
-                        self.coordinator, dog_id, dog_name,
+                        self.coordinator,
+                        dog_id,
+                        dog_name,
                     ),
                     'type': 'sync_data',
                     'priority': BUTTON_PRIORITIES['sync_data'],
@@ -603,7 +615,10 @@ class ProfileAwareButtonFactory:
                     args = tuple(rule.get('args', ()))
 
                     button = button_class(
-                        self.coordinator, dog_id, dog_name, *args,
+                        self.coordinator,
+                        dog_id,
+                        dog_name,
+                        *args,
                     )
 
                     button_candidates.append(
@@ -626,7 +641,9 @@ class ProfileAwareButtonFactory:
             button_candidates.append(
                 {
                     'button': PawControlToggleVisitorModeButton(
-                        self.coordinator, dog_id, dog_name,
+                        self.coordinator,
+                        dog_id,
+                        dog_name,
                     ),
                     'type': 'toggle_visitor_mode',
                     'priority': BUTTON_PRIORITIES['toggle_visitor_mode'],
@@ -691,7 +708,9 @@ async def async_setup_entry(
     profile = runtime_data.entity_profile
 
     _LOGGER.info(
-        "Setting up buttons with profile '%s' for %d dogs", profile, len(
+        "Setting up buttons with profile '%s' for %d dogs",
+        profile,
+        len(
             dog_configs,
         ),
     )
@@ -725,7 +744,9 @@ async def async_setup_entry(
     if total_buttons_created <= batch_size:
         # Small setup: Add all at once
         await async_call_add_entities(
-            async_add_entities, all_entities, update_before_add=False,
+            async_add_entities,
+            all_entities,
+            update_before_add=False,
         )
         _LOGGER.info(
             'Created %d button entities (single batch) - profile-optimized count',
@@ -742,7 +763,9 @@ async def async_setup_entry(
         await asyncio.gather(
             *(
                 async_call_add_entities(
-                    async_add_entities, batch, update_before_add=False,
+                    async_add_entities,
+                    batch,
+                    update_before_add=False,
                 )
                 for batch in batches
             ),
@@ -852,7 +875,9 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
             cast(
                 GardenModulePayload,
                 garden_data,
-            ) if garden_data is not None else None
+            )
+            if garden_data is not None
+            else None
         )
 
     @staticmethod
@@ -989,7 +1014,8 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
         self._last_pressed = dt_util.utcnow().isoformat()
         _LOGGER.debug(
             'Button pressed: %s for %s',
-            self._button_type, self._dog_name,
+            self._button_type,
+            self._dog_name,
         )
 
 
@@ -1000,7 +1026,10 @@ class PawControlTestNotificationButton(PawControlButtonBase):
     """Button to send test notification."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialise the test-notification button."""
         super().__init__(
@@ -1031,7 +1060,10 @@ class PawControlResetDailyStatsButton(PawControlButtonBase):
     """Button to reset daily statistics."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialise the daily statistics reset control."""
         super().__init__(
@@ -1050,21 +1082,25 @@ class PawControlResetDailyStatsButton(PawControlButtonBase):
 
         try:
             runtime_data = get_runtime_data(
-                self.hass, self.coordinator.config_entry,
+                self.hass,
+                self.coordinator.config_entry,
             )
             if runtime_data is None:
                 raise HomeAssistantError('Runtime data not available')
 
             managers = runtime_data.runtime_managers
             data_manager = managers.data_manager or getattr(
-                runtime_data, 'data_manager', None,
+                runtime_data,
+                'data_manager',
+                None,
             )
             if data_manager is None:
                 raise HomeAssistantError('Data manager not available')
 
             await data_manager.async_reset_dog_daily_stats(self._dog_id)
             await self.coordinator.async_request_selective_refresh(
-                [self._dog_id], priority=8,
+                [self._dog_id],
+                priority=8,
             )
 
         except Exception as err:
@@ -1078,7 +1114,10 @@ class PawControlRefreshDataButton(PawControlButtonBase):
     """Button to trigger a coordinator refresh."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the manual refresh control."""
         super().__init__(
@@ -1106,7 +1145,10 @@ class PawControlSyncDataButton(PawControlButtonBase):
     """Button to request a high-priority selective refresh."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the high-priority sync control."""
         super().__init__(
@@ -1125,7 +1167,8 @@ class PawControlSyncDataButton(PawControlButtonBase):
 
         try:
             await self.coordinator.async_request_selective_refresh(
-                [self._dog_id], priority=10,
+                [self._dog_id],
+                priority=10,
             )
         except Exception as err:
             _LOGGER.error('Failed to sync data: %s', err)
@@ -1136,7 +1179,10 @@ class PawControlToggleVisitorModeButton(PawControlButtonBase):
     """Button to toggle visitor mode."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialise the visitor mode toggle control."""
         super().__init__(
@@ -1158,7 +1204,9 @@ class PawControlToggleVisitorModeButton(PawControlButtonBase):
                 dog_data.get(
                     'visitor_mode_active',
                     False,
-                ) if dog_data else False
+                )
+                if dog_data
+                else False
             )
 
             await self._async_service_call(
@@ -1190,7 +1238,10 @@ class PawControlMarkFedButton(PawControlButtonBase):
     }
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialise the smart feeding acknowledgement control."""
         super().__init__(
@@ -1231,7 +1282,10 @@ class PawControlFeedNowButton(PawControlButtonBase):
     """Immediate feeding button for quick manual feedings."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialise the immediate feeding control."""
         super().__init__(
@@ -1304,7 +1358,10 @@ class PawControlLogCustomFeedingButton(PawControlButtonBase):
     """Button for custom feeding."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialise the custom feeding logging control."""
         super().__init__(
@@ -1338,7 +1395,10 @@ class PawControlStartWalkButton(PawControlButtonBase):
     """Button to start walk with enhanced error handling."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialise the walk start control with validation hooks."""
         super().__init__(
@@ -1358,7 +1418,8 @@ class PawControlStartWalkButton(PawControlButtonBase):
         try:
             walk_data = self._get_walk_payload()
             if walk_data and self._normalize_module_flag(
-                walk_data.get(WALK_IN_PROGRESS_FIELD), WALK_IN_PROGRESS_FIELD,
+                walk_data.get(WALK_IN_PROGRESS_FIELD),
+                WALK_IN_PROGRESS_FIELD,
             ):
                 walk_id = walk_data.get('current_walk_id', STATE_UNKNOWN)
                 if not isinstance(walk_id, str):
@@ -1400,7 +1461,8 @@ class PawControlStartWalkButton(PawControlButtonBase):
             return True
 
         return not self._normalize_module_flag(
-            walk_data.get(WALK_IN_PROGRESS_FIELD), WALK_IN_PROGRESS_FIELD,
+            walk_data.get(WALK_IN_PROGRESS_FIELD),
+            WALK_IN_PROGRESS_FIELD,
         )
 
 
@@ -1408,7 +1470,10 @@ class PawControlEndWalkButton(PawControlButtonBase):
     """Button to end walk with enhanced validation."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialise the walk completion control."""
         super().__init__(
@@ -1428,7 +1493,8 @@ class PawControlEndWalkButton(PawControlButtonBase):
         try:
             walk_data = self._get_walk_payload()
             if not walk_data or not self._normalize_module_flag(
-                walk_data.get(WALK_IN_PROGRESS_FIELD), WALK_IN_PROGRESS_FIELD,
+                walk_data.get(WALK_IN_PROGRESS_FIELD),
+                WALK_IN_PROGRESS_FIELD,
             ):
                 last_walk_time = (
                     self._parse_datetime(walk_data.get('last_walk'))
@@ -1464,7 +1530,8 @@ class PawControlEndWalkButton(PawControlButtonBase):
             return False
 
         return self._normalize_module_flag(
-            walk_data.get(WALK_IN_PROGRESS_FIELD), WALK_IN_PROGRESS_FIELD,
+            walk_data.get(WALK_IN_PROGRESS_FIELD),
+            WALK_IN_PROGRESS_FIELD,
         )
 
 
@@ -1472,7 +1539,10 @@ class PawControlQuickWalkButton(PawControlButtonBase):
     """Button for quick walk with atomic operation."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialise the quick-walk logging control."""
         super().__init__(
@@ -1517,7 +1587,10 @@ class PawControlLogWalkManuallyButton(PawControlButtonBase):
     """Button for manual walk logging."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialise the manual walk logging control."""
         super().__init__(
@@ -1561,7 +1634,10 @@ class PawControlRefreshLocationButton(PawControlButtonBase):
     """Button to refresh GPS location."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialise the GPS refresh control."""
         super().__init__(
@@ -1580,7 +1656,8 @@ class PawControlRefreshLocationButton(PawControlButtonBase):
 
         try:
             await self.coordinator.async_request_selective_refresh(
-                [self._dog_id], priority=9,
+                [self._dog_id],
+                priority=9,
             )
         except Exception as err:
             _LOGGER.error('Failed to refresh location: %s', err)
@@ -1593,7 +1670,10 @@ class PawControlUpdateLocationButton(PawControlRefreshLocationButton):
     """Alias button for update location functionality used in tests."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialise the update-location alias control for tests."""
         super().__init__(coordinator, dog_id, dog_name)
@@ -1606,7 +1686,10 @@ class PawControlExportRouteButton(PawControlButtonBase):
     """Button to export route data."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialise the route export control."""
         super().__init__(
@@ -1638,7 +1721,10 @@ class PawControlCenterMapButton(PawControlButtonBase):
     """Button to center map on dog location."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialise the map centring control."""
         super().__init__(
@@ -1665,7 +1751,10 @@ class PawControlCallDogButton(PawControlButtonBase):
     """Button to call GPS tracker."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialise the tracker call control."""
         super().__init__(
@@ -1700,7 +1789,10 @@ class PawControlLogWeightButton(PawControlButtonBase):
     """Button to log weight measurement."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialise the quick weight logging control."""
         super().__init__(
@@ -1754,7 +1846,10 @@ class PawControlLogMedicationButton(PawControlButtonBase):
     """Button to log medication administration."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialise the medication logging shortcut."""
         super().__init__(
@@ -1811,13 +1906,22 @@ class PawControlStartGroomingButton(PawControlButtonBase):
     """Button to start grooming session."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialise the grooming session starter."""
         hass_obj = getattr(coordinator, 'hass', None)
-        language_config = getattr(
-            hass_obj, 'config', None,
-        ) if hass_obj else None
+        language_config = (
+            getattr(
+                hass_obj,
+                'config',
+                None,
+            )
+            if hass_obj
+            else None
+        )
         hass_language: str | None = None
         if language_config is not None:
             hass_language = getattr(language_config, 'language', None)
@@ -1828,7 +1932,8 @@ class PawControlStartGroomingButton(PawControlButtonBase):
             'start_grooming',
             icon='mdi:content-cut',
             action_description=translated_grooming_label(
-                hass_language, 'button_action',
+                hass_language,
+                'button_action',
             ),
         )
 
@@ -1855,7 +1960,9 @@ class PawControlStartGroomingButton(PawControlButtonBase):
         except Exception as err:
             _LOGGER.error('Failed to start grooming: %s', err)
             error_message = translated_grooming_template(
-                hass_language, 'button_error', error=str(err),
+                hass_language,
+                'button_error',
+                error=str(err),
             )
             raise HomeAssistantError(error_message) from err
 
@@ -1864,7 +1971,10 @@ class PawControlScheduleVetButton(PawControlButtonBase):
     """Button to schedule veterinary appointment."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialise the vet scheduling shortcut."""
         super().__init__(
@@ -1899,7 +2009,10 @@ class PawControlHealthCheckButton(PawControlButtonBase):
     """Button for comprehensive health check."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialise the comprehensive health check control."""
         super().__init__(
@@ -1938,7 +2051,10 @@ class PawControlStartGardenSessionButton(PawControlButtonBase):
     """Button to start a garden session."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialise the garden session start control."""
         super().__init__(
@@ -1986,7 +2102,10 @@ class PawControlEndGardenSessionButton(PawControlButtonBase):
     """Button to end a garden session."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the end-garden-session control."""
         super().__init__(
@@ -2034,7 +2153,10 @@ class PawControlLogGardenActivityButton(PawControlButtonBase):
     """Button to log a general garden activity."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the generic garden activity logger button."""
         super().__init__(
@@ -2089,7 +2211,10 @@ class PawControlConfirmGardenPoopButton(PawControlButtonBase):
     """Button to confirm a garden poop event."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the confirmation control for garden poop events."""
         super().__init__(
@@ -2132,7 +2257,11 @@ class PawControlConfirmGardenPoopButton(PawControlButtonBase):
         if not super().available:
             return False
         garden_data = self._get_garden_payload()
-        pending = garden_data.get(
-            'pending_confirmations',
-        ) if garden_data else None
+        pending = (
+            garden_data.get(
+                'pending_confirmations',
+            )
+            if garden_data
+            else None
+        )
         return bool(pending)

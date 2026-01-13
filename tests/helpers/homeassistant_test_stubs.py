@@ -363,7 +363,8 @@ class ConfigEntry:
                 self._supported_subentry_types = {
                     subentry_type: {
                         'supports_reconfigure': hasattr(
-                            subentry_handler, 'async_step_reconfigure',
+                            subentry_handler,
+                            'async_step_reconfigure',
                         ),
                     }
                     for subentry_type, subentry_handler in supported_flows.items()
@@ -494,9 +495,12 @@ class DeviceEntry:
         self.identifiers = set(kwargs.get('identifiers', set()))
         self.connections = set(kwargs.get('connections', set()))
         self.created_at: datetime = kwargs.get('created_at') or _utcnow()
-        self.modified_at: datetime = kwargs.get(
-            'modified_at',
-        ) or self.created_at
+        self.modified_at: datetime = (
+            kwargs.get(
+                'modified_at',
+            )
+            or self.created_at
+        )
         self.config_entries: set[str] = set()
         config_entry_id = kwargs.get('config_entry_id')
         if isinstance(config_entry_id, str):
@@ -524,20 +528,29 @@ class DeviceRegistry:
         connections = set(creation_kwargs.get('connections', set()))
 
         entry_id = creation_kwargs.pop('id', None)
-        stored = self.devices.get(entry_id) if isinstance(
-            entry_id, str,
-        ) else None
+        stored = (
+            self.devices.get(entry_id)
+            if isinstance(
+                entry_id,
+                str,
+            )
+            else None
+        )
 
         if stored is None and (identifiers or connections):
             stored = self.async_get_device(
-                identifiers=identifiers or None, connections=connections or None,
+                identifiers=identifiers or None,
+                connections=connections or None,
             )
 
         if stored is None:
             stored = DeviceEntry(
-                id=entry_id if isinstance(
-                    entry_id, str,
-                ) else self._next_device_id(),
+                id=entry_id
+                if isinstance(
+                    entry_id,
+                    str,
+                )
+                else self._next_device_id(),
                 **creation_kwargs,
             )
             self.devices.setdefault(stored.id, stored)
@@ -681,7 +694,8 @@ def _async_get_device_by_hints(
 
 
 def _async_entries_for_device_config(
-    registry: DeviceRegistry, entry_id: str,
+    registry: DeviceRegistry,
+    entry_id: str,
 ) -> list[DeviceEntry]:
     return registry.async_entries_for_config_entry(entry_id)
 
@@ -742,14 +756,19 @@ def _async_delete_issue(hass: object, domain: str, issue_id: str) -> bool:
 
 
 def _async_get_issue(
-    hass: object, domain: str, issue_id: str,
+    hass: object,
+    domain: str,
+    issue_id: str,
 ) -> dict[str, object] | None:
     registry = _async_get_issue_registry(hass)
     return registry.async_get_issue(domain, issue_id)
 
 
 def _async_ignore_issue(
-    hass: object, domain: str, issue_id: str, ignore: bool,
+    hass: object,
+    domain: str,
+    issue_id: str,
+    ignore: bool,
 ) -> dict[str, object]:
     registry = _async_get_issue_registry(hass)
     return registry.async_ignore_issue(domain, issue_id, ignore)
@@ -785,8 +804,11 @@ class IssueRegistry:
             severity if severity is not None else existing.get('severity'),
         )
         is_fixable_value = (
-            is_fixable if is_fixable is not None else existing.get(
-                'is_fixable', False,
+            is_fixable
+            if is_fixable is not None
+            else existing.get(
+                'is_fixable',
+                False,
             )
         )
         translation_key_value = (
@@ -863,7 +885,10 @@ class IssueRegistry:
         return details
 
     def async_ignore_issue(
-        self, domain: str, issue_id: str, ignore: bool,
+        self,
+        domain: str,
+        issue_id: str,
+        ignore: bool,
     ) -> dict[str, object]:
         key = (domain, issue_id)
         if key not in self.issues:
@@ -931,9 +956,12 @@ class RegistryEntry:
             'original_unit_of_measurement',
         )
         self.created_at: datetime = kwargs.get('created_at') or _utcnow()
-        self.modified_at: datetime = kwargs.get(
-            'modified_at',
-        ) or self.created_at
+        self.modified_at: datetime = (
+            kwargs.get(
+                'modified_at',
+            )
+            or self.created_at
+        )
         for key, value in kwargs.items():
             if not hasattr(self, key):
                 setattr(self, key, value)
@@ -1070,13 +1098,15 @@ def _async_get_entity_registry(*args: object, **kwargs: object) -> EntityRegistr
 
 
 def _async_entries_for_registry_config(
-    registry: EntityRegistry, entry_id: str,
+    registry: EntityRegistry,
+    entry_id: str,
 ) -> list[RegistryEntry]:
     return registry.async_entries_for_config_entry(entry_id)
 
 
 def _async_entries_for_registry_device(
-    registry: EntityRegistry, device_id: str,
+    registry: EntityRegistry,
+    device_id: str,
 ) -> list[RegistryEntry]:
     return registry.async_entries_for_device(device_id)
 
@@ -1152,7 +1182,11 @@ class DataUpdateCoordinator:
     """Simplified coordinator used by runtime data tests."""
 
     def __init__(
-        self, hass: object, *, name: str | None = None, **kwargs: object,
+        self,
+        hass: object,
+        *,
+        name: str | None = None,
+        **kwargs: object,
     ) -> None:
         self.hass = hass
         self.name = name or 'stub'
@@ -1183,7 +1217,9 @@ class CoordinatorEntity(Entity):
     def available(self) -> bool:
         if (
             last_update_success := getattr(
-                self.coordinator, 'last_update_success', None,
+                self.coordinator,
+                'last_update_success',
+                None,
             )
         ) is not None:
             return bool(last_update_success)
@@ -1257,7 +1293,8 @@ def selector(config: object) -> object:
 
 def _register_custom_component_packages() -> None:
     custom_components_pkg = sys.modules.setdefault(
-        'custom_components', types.ModuleType('custom_components'),
+        'custom_components',
+        types.ModuleType('custom_components'),
     )
     custom_components_pkg.__path__ = [str(COMPONENT_ROOT)]
 

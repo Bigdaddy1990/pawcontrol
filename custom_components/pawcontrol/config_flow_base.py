@@ -80,7 +80,8 @@ DOG_ID_PATTERN: Final = re.compile(r'^[a-z][a-z0-9_]*$')
 INTEGRATION_SCHEMA: Final = vol.Schema(
     {
         vol.Required(CONF_NAME, default='Paw Control'): vol.All(
-            cv.string, vol.Length(min=1, max=50),
+            cv.string,
+            vol.Length(min=1, max=50),
         ),
     },
 )
@@ -96,20 +97,25 @@ DOG_BASE_SCHEMA: Final = vol.Schema(
             ),
         ),
         vol.Required(CONF_DOG_NAME): vol.All(
-            cv.string, vol.Length(
+            cv.string,
+            vol.Length(
                 min=MIN_DOG_NAME_LENGTH,
                 max=MAX_DOG_NAME_LENGTH,
             ),
         ),
         vol.Optional(CONF_DOG_BREED, default=''): vol.All(
-            cv.string, vol.Length(max=50),
+            cv.string,
+            vol.Length(max=50),
         ),
         vol.Optional(CONF_DOG_AGE, default=3): vol.All(
-            vol.Coerce(int), vol.Range(min=MIN_DOG_AGE, max=MAX_DOG_AGE),
+            vol.Coerce(int),
+            vol.Range(min=MIN_DOG_AGE, max=MAX_DOG_AGE),
         ),
         vol.Optional(CONF_DOG_WEIGHT, default=20.0): vol.All(
-            vol.Coerce(float), vol.Range(
-                min=MIN_DOG_WEIGHT, max=MAX_DOG_WEIGHT,
+            vol.Coerce(float),
+            vol.Range(
+                min=MIN_DOG_WEIGHT,
+                max=MAX_DOG_WEIGHT,
             ),
         ),
         vol.Optional(CONF_DOG_SIZE, default='medium'): vol.In(DOG_SIZES),
@@ -186,7 +192,8 @@ class PawControlBaseConfigFlow(ConfigFlow):
         return '\n'.join(features)
 
     async def _async_validate_integration_name(
-        self, name: str,
+        self,
+        name: str,
     ) -> IntegrationNameValidationResult:
         """Validate integration name with enhanced checks.
 
@@ -305,9 +312,14 @@ class PawControlBaseConfigFlow(ConfigFlow):
         dogs_list = []
         for i, dog in enumerate(self._dogs, 1):
             breed_value = dog.get(DOG_BREED_FIELD)
-            breed_info = breed_value if isinstance(
-                breed_value, str,
-            ) else 'Mixed Breed'
+            breed_info = (
+                breed_value
+                if isinstance(
+                    breed_value,
+                    str,
+                )
+                else 'Mixed Breed'
+            )
             if not breed_info or breed_info == '':
                 breed_info = 'Mixed Breed'
 
@@ -339,9 +351,13 @@ class PawControlBaseConfigFlow(ConfigFlow):
             if dog.get(DOG_HEALTH_CONFIG_FIELD):
                 special_configs.append('🏥 Health')
 
-            special_text = ' | '.join(
-                special_configs,
-            ) if special_configs else ''
+            special_text = (
+                ' | '.join(
+                    special_configs,
+                )
+                if special_configs
+                else ''
+            )
 
             dogs_list.append(
                 f"{i}. {size_emoji} **{dog[DOG_NAME_FIELD]}** ({dog[DOG_ID_FIELD]})\n"
@@ -404,7 +420,8 @@ class PawControlBaseConfigFlow(ConfigFlow):
         return ''
 
     async def _generate_smart_dog_id_suggestion(
-        self, user_input: DogSetupStepInput | None,
+        self,
+        user_input: DogSetupStepInput | None,
     ) -> str:
         """Generate intelligent dog ID suggestion with ML-style optimization.
 
@@ -480,7 +497,8 @@ class PawControlBaseConfigFlow(ConfigFlow):
             state = self.hass.states.get(entity_id)
             if state and state.state not in ['unknown', 'unavailable']:
                 friendly_name = state.attributes.get(
-                    'friendly_name', entity_id,
+                    'friendly_name',
+                    entity_id,
                 )
                 # Filter out the Home Assistant companion apps to avoid confusion
                 if 'home_assistant' not in entity_id.lower():
@@ -500,7 +518,8 @@ class PawControlBaseConfigFlow(ConfigFlow):
             state = self.hass.states.get(entity_id)
             if state:
                 friendly_name = state.attributes.get(
-                    'friendly_name', entity_id,
+                    'friendly_name',
+                    entity_id,
                 )
                 person_entities[entity_id] = friendly_name
 
@@ -520,7 +539,8 @@ class PawControlBaseConfigFlow(ConfigFlow):
                 device_class = state.attributes.get('device_class')
                 if device_class in ['door', 'window', 'opening', 'garage_door']:
                     friendly_name = state.attributes.get(
-                        'friendly_name', entity_id,
+                        'friendly_name',
+                        entity_id,
                     )
                     door_sensors[entity_id] = friendly_name
 
@@ -580,8 +600,10 @@ class PawControlBaseConfigFlow(ConfigFlow):
             Comma-separated feature string for dashboard descriptions.
         """
         features = [
-            'Statistics', 'Alerts',
-            'Mobile-Friendly', 'Multiple Themes',
+            'Statistics',
+            'Alerts',
+            'Mobile-Friendly',
+            'Multiple Themes',
         ]
         if has_gps:
             features.insert(0, 'GPS Maps')

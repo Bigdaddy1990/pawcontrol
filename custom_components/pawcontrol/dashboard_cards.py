@@ -258,7 +258,9 @@ def _translated_visitor_label(language: str | None, label: str) -> str:
 
 
 def _translated_visitor_template(
-    language: str | None, template: str, **values: str,
+    language: str | None,
+    template: str,
+    **values: str,
 ) -> str:
     """Return a formatted visitor dashboard template string."""
 
@@ -317,7 +319,9 @@ def _translated_walk_label(language: str | None, label: str) -> str:
 
 
 def _translated_walk_template(
-    language: str | None, template: str, **values: object,
+    language: str | None,
+    template: str,
+    **values: object,
 ) -> str:
     """Return a localized walk dashboard template string."""
 
@@ -348,7 +352,9 @@ def _translated_health_label(language: str | None, label: str) -> str:
 
 
 def _translated_health_template(
-    language: str | None, template: str, **values: object,
+    language: str | None,
+    template: str,
+    **values: object,
 ) -> str:
     """Return a localized health dashboard template string."""
 
@@ -473,14 +479,16 @@ class BaseCardGenerator:
         return coerce_dog_config(dog_config)
 
     def _ensure_dog_configs(
-        self, dogs_config: Sequence[RawDogConfig],
+        self,
+        dogs_config: Sequence[RawDogConfig],
     ) -> list[DogConfigData]:
         """Return typed dog configurations for downstream processing."""
 
         return coerce_dog_configs(dogs_config)
 
     async def _collect_single_card(
-        self, card_coro: Awaitable[CardConfigType | None],
+        self,
+        card_coro: Awaitable[CardConfigType | None],
     ) -> CardCollection:
         """Resolve ``card_coro`` and wrap the payload in a list for gather usage."""
 
@@ -488,7 +496,9 @@ class BaseCardGenerator:
         return [card] if card is not None else []
 
     async def _validate_entities_batch(
-        self, entities: EntityListType, use_cache: bool = True,
+        self,
+        entities: EntityListType,
+        use_cache: bool = True,
     ) -> EntityListType:
         """Validate entities in optimized batches with caching.
 
@@ -569,7 +579,8 @@ class BaseCardGenerator:
 
                 except TimeoutError:
                     _LOGGER.warning(
-                        'Entity validation timeout for batch: %s', batch,
+                        'Entity validation timeout for batch: %s',
+                        batch,
                     )
                     for entity_id in batch:
                         cached_results[entity_id] = False
@@ -671,7 +682,9 @@ class OverviewCardGenerator(BaseCardGenerator):
     """Generator for overview dashboard cards with enhanced performance."""
 
     async def generate_welcome_card(
-        self, dogs_config: Sequence[RawDogConfig], options: OptionsConfigType,
+        self,
+        dogs_config: Sequence[RawDogConfig],
+        options: OptionsConfigType,
     ) -> CardConfigType:
         """Generate optimized welcome/summary card.
 
@@ -689,7 +702,8 @@ class OverviewCardGenerator(BaseCardGenerator):
         # OPTIMIZED: Async active dog counting with timeout
         try:
             active_dogs = await asyncio.wait_for(
-                self._count_active_dogs(typed_dogs), timeout=3.0,
+                self._count_active_dogs(typed_dogs),
+                timeout=3.0,
             )
         except TimeoutError:
             _LOGGER.debug('Active dog counting timeout, using total count')
@@ -745,7 +759,9 @@ class OverviewCardGenerator(BaseCardGenerator):
         return len(valid_entities)
 
     async def generate_dogs_grid(
-        self, dogs_config: Sequence[RawDogConfig], dashboard_url: str,
+        self,
+        dogs_config: Sequence[RawDogConfig],
+        dashboard_url: str,
     ) -> CardConfigType | None:
         """Generate optimized grid of dog navigation buttons.
 
@@ -812,7 +828,8 @@ class OverviewCardGenerator(BaseCardGenerator):
         return grid_card
 
     async def generate_quick_actions(
-        self, dogs_config: Sequence[RawDogConfig],
+        self,
+        dogs_config: Sequence[RawDogConfig],
     ) -> CardConfigType | None:
         """Generate quick action buttons with optimized module detection.
 
@@ -955,7 +972,9 @@ class DogCardGenerator(BaseCardGenerator):
                 asyncio.create_task(
                     self._collect_single_card(
                         self.templates.get_dog_status_card_template(
-                            dog_id, dog_name, modules,
+                            dog_id,
+                            dog_name,
+                            modules,
                         ),
                     ),
                 ),
@@ -992,7 +1011,8 @@ class DogCardGenerator(BaseCardGenerator):
                     asyncio.create_task(
                         self._collect_single_card(
                             self._generate_activity_graph_card(
-                                dog_config, options,
+                                dog_config,
+                                options,
                             ),
                         ),
                     ),
@@ -1003,7 +1023,8 @@ class DogCardGenerator(BaseCardGenerator):
         try:
             results = await asyncio.wait_for(
                 asyncio.gather(
-                    *(task for _, task in card_tasks), return_exceptions=True,
+                    *(task for _, task in card_tasks),
+                    return_exceptions=True,
                 ),
                 timeout=CARD_GENERATION_TIMEOUT,
             )
@@ -1024,7 +1045,8 @@ class DogCardGenerator(BaseCardGenerator):
             for _, task in card_tasks:
                 task.cancel()
             _LOGGER.error(
-                'Dog overview card generation timeout for %s', dog_name,
+                'Dog overview card generation timeout for %s',
+                dog_name,
             )
             self._performance_stats['errors_handled'] += 1
             # Return minimal cards on timeout
@@ -1040,13 +1062,17 @@ class DogCardGenerator(BaseCardGenerator):
 
         if generation_time > 2.0:
             _LOGGER.info(
-                'Slow dog card generation: %.2fs for %s', generation_time, dog_name,
+                'Slow dog card generation: %.2fs for %s',
+                generation_time,
+                dog_name,
             )
 
         return cards
 
     async def _collect_action_buttons(
-        self, dog_id: str, modules: ModulesConfigType,
+        self,
+        dog_id: str,
+        modules: ModulesConfigType,
     ) -> CardCollection:
         """Return rendered action buttons for gather pipelines."""
 
@@ -1054,7 +1080,8 @@ class DogCardGenerator(BaseCardGenerator):
         return self._build_action_button_cards(buttons)
 
     def _build_action_button_cards(
-        self, action_buttons: list[CardConfigType] | None,
+        self,
+        action_buttons: list[CardConfigType] | None,
     ) -> list[CardConfigType]:
         """Build optimized action button cards with better layout handling."""
         if not action_buttons:
@@ -1084,7 +1111,9 @@ class DogCardGenerator(BaseCardGenerator):
         return cards
 
     async def _generate_dog_header_card(
-        self, dog_config: RawDogConfig, options: OptionsConfigType,
+        self,
+        dog_config: RawDogConfig,
+        options: OptionsConfigType,
     ) -> CardConfigType | None:
         """Generate optimized dog header card with picture.
 
@@ -1109,7 +1138,8 @@ class DogCardGenerator(BaseCardGenerator):
 
         # Use custom image if provided, otherwise default
         dog_image = typed_dog.get(
-            DOG_IMAGE_FIELD, f"/local/paw_control/{dog_id}.jpg",
+            DOG_IMAGE_FIELD,
+            f"/local/paw_control/{dog_id}.jpg",
         )
 
         return {
@@ -1123,7 +1153,9 @@ class DogCardGenerator(BaseCardGenerator):
         }
 
     async def _generate_gps_map_card(
-        self, dog_id: str, options: OptionsConfigType,
+        self,
+        dog_id: str,
+        options: OptionsConfigType,
     ) -> CardConfigType | None:
         """Generate optimized GPS map card for dog.
 
@@ -1144,7 +1176,9 @@ class DogCardGenerator(BaseCardGenerator):
         return await self.templates.get_map_card_template(dog_id, map_options)
 
     async def _generate_activity_graph_card(
-        self, dog_config: RawDogConfig, options: OptionsConfigType,
+        self,
+        dog_config: RawDogConfig,
+        options: OptionsConfigType,
     ) -> CardConfigType | None:
         """Generate optimized activity graph card.
 
@@ -1179,7 +1213,9 @@ class DogCardGenerator(BaseCardGenerator):
             return None
 
         return await self.templates.get_history_graph_template(
-            valid_entities, '24h Activity', 24,
+            valid_entities,
+            '24h Activity',
+            24,
         )
 
 
@@ -1187,7 +1223,9 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
     """Generator for health-integrated feeding dashboard cards with optimization."""
 
     async def generate_health_feeding_overview(
-        self, dog_config: RawDogConfig, options: OptionsConfigType,
+        self,
+        dog_config: RawDogConfig,
+        options: OptionsConfigType,
     ) -> list[CardConfigType]:
         """Generate optimized comprehensive health-aware feeding overview cards.
 
@@ -1214,7 +1252,10 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                 asyncio.create_task(
                     self._collect_single_card(
                         self._generate_health_feeding_status_card(
-                            dog_id, dog_name, options, language,
+                            dog_id,
+                            dog_name,
+                            options,
+                            language,
                         ),
                     ),
                 ),
@@ -1224,7 +1265,9 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                 asyncio.create_task(
                     self._collect_single_card(
                         self._generate_calorie_tracking_card(
-                            dog_id, options, language,
+                            dog_id,
+                            options,
+                            language,
                         ),
                     ),
                 ),
@@ -1234,7 +1277,9 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                 asyncio.create_task(
                     self._collect_single_card(
                         self._generate_weight_management_card(
-                            dog_id, options, language,
+                            dog_id,
+                            options,
+                            language,
                         ),
                     ),
                 ),
@@ -1244,7 +1289,9 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                 asyncio.create_task(
                     self._collect_single_card(
                         self._generate_portion_calculator_card(
-                            dog_id, options, language,
+                            dog_id,
+                            options,
+                            language,
                         ),
                     ),
                 ),
@@ -1254,7 +1301,8 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
         try:
             results = await asyncio.wait_for(
                 asyncio.gather(
-                    *(task for _, task in card_generators), return_exceptions=True,
+                    *(task for _, task in card_generators),
+                    return_exceptions=True,
                 ),
                 timeout=CARD_GENERATION_TIMEOUT,
             )
@@ -1277,7 +1325,8 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
             for _, task in card_generators:
                 task.cancel()
             _LOGGER.error(
-                'Health feeding overview generation timeout for %s', dog_name,
+                'Health feeding overview generation timeout for %s',
+                dog_name,
             )
             self._performance_stats['errors_handled'] += 1
             return []
@@ -1298,7 +1347,9 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
         return {
             'type': 'entities',
             'title': _translated_health_template(
-                language, 'health_feeding_title', dog_name=dog_name,
+                language,
+                'health_feeding_title',
+                dog_name=dog_name,
             ),
             'entities': [
                 {
@@ -1327,7 +1378,10 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
         }
 
     async def _generate_calorie_tracking_card(
-        self, dog_id: str, options: OptionsConfigType, language: str | None,
+        self,
+        dog_id: str,
+        options: OptionsConfigType,
+        language: str | None,
     ) -> CardConfigType | None:
         """Generate optimized calorie tracking and progress card."""
         calorie_entities = [
@@ -1353,7 +1407,10 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
         }
 
     async def _generate_weight_management_card(
-        self, dog_id: str, options: OptionsConfigType, language: str | None,
+        self,
+        dog_id: str,
+        options: OptionsConfigType,
+        language: str | None,
     ) -> CardConfigType | None:
         """Generate optimized weight management and body condition tracking card."""
         weight_entities = [
@@ -1374,13 +1431,15 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                 {
                     'type': 'entities',
                     'title': _translated_health_label(
-                        language, 'weight_management_title',
+                        language,
+                        'weight_management_title',
                     ),
                     'entities': [
                         {
                             'entity': f"sensor.{dog_id}_current_weight",
                             'name': _translated_health_label(
-                                language, 'current_weight',
+                                language,
+                                'current_weight',
                             ),
                             'icon': 'mdi:weight-kilogram',
                         },
@@ -1392,7 +1451,8 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                         {
                             'entity': f"sensor.{dog_id}_body_condition_score",
                             'name': _translated_health_label(
-                                language, 'body_condition',
+                                language,
+                                'body_condition',
                             ),
                             'icon': 'mdi:dog-side',
                         },
@@ -1412,7 +1472,10 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
         }
 
     async def _generate_portion_calculator_card(
-        self, dog_id: str, options: OptionsConfigType, language: str | None,
+        self,
+        dog_id: str,
+        options: OptionsConfigType,
+        language: str | None,
     ) -> CardConfigType | None:
         """Generate optimized interactive health-aware portion calculator card."""
         portions_entity = f"sensor.{dog_id}_health_aware_portions"
@@ -1425,7 +1488,9 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
                 {
                     'type': 'markdown',
                     'content': _translated_health_template(
-                        language, 'portion_calculator', dog_id=dog_id,
+                        language,
+                        'portion_calculator',
+                        dog_id=dog_id,
                     ),
                 },
                 {
@@ -1457,7 +1522,9 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
         }
 
     async def generate_health_feeding_controls(
-        self, dog_config: RawDogConfig, options: OptionsConfigType,
+        self,
+        dog_config: RawDogConfig,
+        options: OptionsConfigType,
     ) -> list[CardConfigType]:
         """Generate optimized health-aware feeding control cards."""
         typed_dog = self._ensure_dog_config(dog_config)
@@ -1470,12 +1537,17 @@ class HealthAwareFeedingCardGenerator(BaseCardGenerator):
 
         # OPTIMIZED: Direct card generation without unnecessary async calls
         smart_buttons_card = self._generate_smart_feeding_buttons(
-            dog_id, options, language,
+            dog_id,
+            options,
+            language,
         )
         return [smart_buttons_card] if smart_buttons_card else []
 
     def _generate_smart_feeding_buttons(
-        self, dog_id: str, options: OptionsConfigType, language: str | None,
+        self,
+        dog_id: str,
+        options: OptionsConfigType,
+        language: str | None,
     ) -> CardConfigType:
         """Generate optimized smart feeding buttons with health-calculated portions."""
         return {
@@ -1518,7 +1590,9 @@ class ModuleCardGenerator(BaseCardGenerator):
     """Generator for module-specific dashboard cards with performance optimization."""
 
     async def generate_feeding_cards(
-        self, dog_config: RawDogConfig, options: OptionsConfigType,
+        self,
+        dog_config: RawDogConfig,
+        options: OptionsConfigType,
     ) -> list[CardConfigType]:
         """Generate optimized feeding module cards with health-aware integration.
 
@@ -1542,18 +1616,21 @@ class ModuleCardGenerator(BaseCardGenerator):
         if modules.get(MODULE_HEALTH) and modules.get(MODULE_FEEDING):
             # Use health-aware feeding card generator
             health_generator = HealthAwareFeedingCardGenerator(
-                self.hass, self.templates,
+                self.hass,
+                self.templates,
             )
 
             # OPTIMIZED: Generate health cards concurrently
             health_overview_task = asyncio.create_task(
                 health_generator.generate_health_feeding_overview(
-                    dog_config, options,
+                    dog_config,
+                    options,
                 ),
             )
             health_controls_task = asyncio.create_task(
                 health_generator.generate_health_feeding_controls(
-                    dog_config, options,
+                    dog_config,
+                    options,
                 ),
             )
 
@@ -1607,7 +1684,8 @@ class ModuleCardGenerator(BaseCardGenerator):
         return cards
 
     async def _generate_standard_feeding_cards(
-        self, dog_id: str,
+        self,
+        dog_id: str,
     ) -> list[CardConfigType]:
         """Generate standard feeding cards with batch validation."""
         schedule_entities = [
@@ -1642,7 +1720,8 @@ class ModuleCardGenerator(BaseCardGenerator):
         return cards
 
     async def _generate_feeding_history_card(
-        self, dog_id: str,
+        self,
+        dog_id: str,
     ) -> CardConfigType | None:
         """Generate optimized feeding history card."""
         history_entities = [
@@ -1652,13 +1731,17 @@ class ModuleCardGenerator(BaseCardGenerator):
 
         # OPTIMIZED: Get history graph template with entity validation
         history_card = await self.templates.get_history_graph_template(
-            history_entities, 'Feeding History (7 days)', 168,
+            history_entities,
+            'Feeding History (7 days)',
+            168,
         )
 
         return history_card if history_card.get('entities') else None
 
     async def generate_walk_cards(
-        self, dog_config: RawDogConfig, options: OptionsConfigType,
+        self,
+        dog_config: RawDogConfig,
+        options: OptionsConfigType,
     ) -> list[CardConfigType]:
         """Generate optimized walk module cards.
 
@@ -1705,7 +1788,8 @@ class ModuleCardGenerator(BaseCardGenerator):
         walking_sensor = f"binary_sensor.{dog_id}_is_walking"
         if walking_sensor in valid_entities:
             walk_controls = self._generate_walk_control_buttons(
-                dog_id, language,
+                dog_id,
+                language,
             )
             cards.extend(walk_controls)
 
@@ -1720,7 +1804,9 @@ class ModuleCardGenerator(BaseCardGenerator):
         return cards
 
     def _generate_walk_control_buttons(
-        self, dog_id: str, language: str | None,
+        self,
+        dog_id: str,
+        language: str | None,
     ) -> list[CardConfigType]:
         """Generate optimized walk control buttons."""
         return [
@@ -1767,7 +1853,9 @@ class ModuleCardGenerator(BaseCardGenerator):
         ]
 
     async def _generate_walk_history_card(
-        self, dog_id: str, language: str | None,
+        self,
+        dog_id: str,
+        language: str | None,
     ) -> CardConfigType | None:
         """Generate optimized walk history card."""
         history_entities = [
@@ -1785,7 +1873,9 @@ class ModuleCardGenerator(BaseCardGenerator):
         return history_card if history_card.get('entities') else None
 
     async def generate_health_cards(
-        self, dog_config: RawDogConfig, options: OptionsConfigType,
+        self,
+        dog_config: RawDogConfig,
+        options: OptionsConfigType,
     ) -> list[CardConfigType]:
         """Generate optimized health module cards.
 
@@ -1828,7 +1918,10 @@ class ModuleCardGenerator(BaseCardGenerator):
         )
 
         metrics_result, dates_result, weight_result = await asyncio.gather(
-            metrics_task, dates_task, weight_entity_task, return_exceptions=True,
+            metrics_task,
+            dates_task,
+            weight_entity_task,
+            return_exceptions=True,
         )
 
         valid_metrics: EntityListType = (
@@ -1872,7 +1965,8 @@ class ModuleCardGenerator(BaseCardGenerator):
 
         # Health management buttons (always add these)
         health_buttons = self._generate_health_management_buttons(
-            dog_id, language,
+            dog_id,
+            language,
         )
         cards.append(health_buttons)
 
@@ -1882,14 +1976,17 @@ class ModuleCardGenerator(BaseCardGenerator):
                 weight_card = await self.templates.get_history_graph_template(
                     [f"sensor.{dog_id}_weight"],
                     _translated_health_template(
-                        language, 'weight_history_title', days=30,
+                        language,
+                        'weight_history_title',
+                        days=30,
                     ),
                     720,
                 )
                 cards.append(weight_card)
             except Exception as err:
                 _LOGGER.debug(
-                    'Weight tracking card generation failed: %s', err,
+                    'Weight tracking card generation failed: %s',
+                    err,
                 )
 
         # Health schedule dates
@@ -1898,7 +1995,8 @@ class ModuleCardGenerator(BaseCardGenerator):
                 {
                     'type': 'entities',
                     'title': _translated_health_label(
-                        language, 'health_schedule_title',
+                        language,
+                        'health_schedule_title',
                     ),
                     'entities': valid_dates,
                 },
@@ -1907,7 +2005,9 @@ class ModuleCardGenerator(BaseCardGenerator):
         return cards
 
     async def generate_notification_cards(
-        self, dog_config: RawDogConfig, options: OptionsConfigType,
+        self,
+        dog_config: RawDogConfig,
+        options: OptionsConfigType,
     ) -> list[CardConfigType]:
         """Generate notification module cards using typed templates."""
 
@@ -1936,25 +2036,33 @@ class ModuleCardGenerator(BaseCardGenerator):
         cards: list[CardConfigType] = []
 
         settings_card = await self.templates.get_notification_settings_card_template(
-            dog_id, dog_name, valid_entities, theme=theme,
+            dog_id,
+            dog_name,
+            valid_entities,
+            theme=theme,
         )
         if settings_card is not None:
             cards.append(settings_card)
 
         overview_card = await self.templates.get_notifications_overview_card_template(
-            dog_id, dog_name, theme=theme,
+            dog_id,
+            dog_name,
+            theme=theme,
         )
         cards.append(overview_card)
 
         actions_card = await self.templates.get_notifications_actions_card_template(
-            dog_id, theme=theme,
+            dog_id,
+            theme=theme,
         )
         cards.append(actions_card)
 
         return cards
 
     async def generate_visitor_cards(
-        self, dog_config: RawDogConfig, options: OptionsConfigType,
+        self,
+        dog_config: RawDogConfig,
+        options: OptionsConfigType,
     ) -> list[CardConfigType]:
         """Generate visitor module cards highlighting guest mode controls."""
 
@@ -2007,7 +2115,8 @@ class ModuleCardGenerator(BaseCardGenerator):
             "- {alerts_reduced_label}: {{{{ iif(state_attr('binary_sensor.{dog_id}_visitor_mode', 'reduced_alerts'), {yes_value}, {no_value}) }}}}\n"
         ).format(
             status_heading=_translated_visitor_label(
-                hass_language, 'status_heading',
+                hass_language,
+                'status_heading',
             ),
             active_label=_translated_visitor_label(hass_language, 'active'),
             yes_value=yes_literal,
@@ -2017,7 +2126,8 @@ class ModuleCardGenerator(BaseCardGenerator):
             started_label=_translated_visitor_label(hass_language, 'started'),
             unknown_value=unknown_literal,
             alerts_reduced_label=_translated_visitor_label(
-                hass_language, 'alerts_reduced',
+                hass_language,
+                'alerts_reduced',
             ),
             dog_id=dog_id,
         )
@@ -2026,7 +2136,9 @@ class ModuleCardGenerator(BaseCardGenerator):
             {
                 'type': 'markdown',
                 'title': _translated_visitor_template(
-                    hass_language, 'insights_title', dog_name=dog_name,
+                    hass_language,
+                    'insights_title',
+                    dog_name=dog_name,
                 ),
                 'content': summary_content,
             },
@@ -2035,7 +2147,9 @@ class ModuleCardGenerator(BaseCardGenerator):
         return cards
 
     def _generate_health_management_buttons(
-        self, dog_id: str, language: str | None,
+        self,
+        dog_id: str,
+        language: str | None,
     ) -> CardConfigType:
         """Generate optimized health management buttons."""
         return {
@@ -2069,7 +2183,9 @@ class ModuleCardGenerator(BaseCardGenerator):
         }
 
     async def generate_gps_cards(
-        self, dog_config: RawDogConfig, options: OptionsConfigType,
+        self,
+        dog_config: RawDogConfig,
+        options: OptionsConfigType,
     ) -> list[CardConfigType]:
         """Generate optimized GPS module cards.
 
@@ -2122,7 +2238,9 @@ class ModuleCardGenerator(BaseCardGenerator):
         geofence_valid_task = self._validate_entities_batch(geofence_entities)
 
         gps_result, geofence_result = await asyncio.gather(
-            gps_valid_task, geofence_valid_task, return_exceptions=True,
+            gps_valid_task,
+            geofence_valid_task,
+            return_exceptions=True,
         )
 
         valid_gps: EntityListType = (
@@ -2173,7 +2291,9 @@ class ModuleCardGenerator(BaseCardGenerator):
             ]
 
             history_card = await self.templates.get_history_graph_template(
-                history_entities, 'Location History', 24,
+                history_entities,
+                'Location History',
+                24,
             )
 
             if history_card and history_card.get('entities'):
@@ -2260,7 +2380,7 @@ class WeatherCardGenerator(BaseCardGenerator):
 
         collected.extend(
             self._normalise_recommendations(
-            getattr(state, 'state', ''),
+                getattr(state, 'state', ''),
             ),
         )
 
@@ -2313,25 +2433,33 @@ class WeatherCardGenerator(BaseCardGenerator):
             (
                 'health_score',
                 self._generate_weather_health_score_card(
-                    dog_id, dog_name, options,
+                    dog_id,
+                    dog_name,
+                    options,
                 ),
             ),
             (
                 'active_alerts',
                 self._generate_active_weather_alerts_card(
-                    dog_id, dog_name, options,
+                    dog_id,
+                    dog_name,
+                    options,
                 ),
             ),
             (
                 'recommendations',
                 self._generate_weather_recommendations_card(
-                    dog_id, dog_name, options,
+                    dog_id,
+                    dog_name,
+                    options,
                 ),
             ),
             (
                 'current_conditions',
                 self._generate_current_weather_conditions_card(
-                    dog_id, dog_name, options,
+                    dog_id,
+                    dog_name,
+                    options,
                 ),
             ),
         ]
@@ -2342,7 +2470,8 @@ class WeatherCardGenerator(BaseCardGenerator):
                 (
                     'breed_advice',
                     self._generate_breed_weather_advice_card(
-                        dog_config, options,
+                        dog_config,
+                        options,
                     ),
                 ),
             )
@@ -2352,7 +2481,9 @@ class WeatherCardGenerator(BaseCardGenerator):
                 (
                     'forecast',
                     self._generate_weather_forecast_card(
-                        dog_id, dog_name, options,
+                        dog_id,
+                        dog_name,
+                        options,
                     ),
                 ),
             )
@@ -2360,14 +2491,17 @@ class WeatherCardGenerator(BaseCardGenerator):
         try:
             results = await asyncio.wait_for(
                 asyncio.gather(
-                    *(task for _, task in weather_card_tasks), return_exceptions=True,
+                    *(task for _, task in weather_card_tasks),
+                    return_exceptions=True,
                 ),
                 timeout=CARD_GENERATION_TIMEOUT,
             )
 
             # Process results with error handling
             for (card_type, _), result in zip(
-                weather_card_tasks, results, strict=False,
+                weather_card_tasks,
+                results,
+                strict=False,
             ):
                 card_payload = _unwrap_async_result(
                     result,
@@ -2395,13 +2529,18 @@ class WeatherCardGenerator(BaseCardGenerator):
 
         if generation_time > 1.5:
             _LOGGER.info(
-                'Slow weather card generation: %.2fs for %s', generation_time, dog_name,
+                'Slow weather card generation: %.2fs for %s',
+                generation_time,
+                dog_name,
             )
 
         return cards
 
     async def _generate_weather_health_score_card(
-        self, dog_id: str, dog_name: str, options: OptionsConfigType,
+        self,
+        dog_id: str,
+        dog_name: str,
+        options: OptionsConfigType,
     ) -> CardConfigType | None:
         """Generate weather health score card with gauge visualization."""
         score_entity = f"sensor.{dog_id}_weather_health_score"
@@ -2444,7 +2583,10 @@ class WeatherCardGenerator(BaseCardGenerator):
         }
 
     async def _generate_active_weather_alerts_card(
-        self, dog_id: str, dog_name: str, options: OptionsConfigType,
+        self,
+        dog_id: str,
+        dog_name: str,
+        options: OptionsConfigType,
     ) -> CardConfigType | None:
         """Generate active weather alerts card with alert chips."""
         # OPTIMIZED: Batch validate all alert entities
@@ -2533,7 +2675,10 @@ class WeatherCardGenerator(BaseCardGenerator):
         return card
 
     async def _generate_weather_recommendations_card(
-        self, dog_id: str, dog_name: str, options: OptionsConfigType,
+        self,
+        dog_id: str,
+        dog_name: str,
+        options: OptionsConfigType,
     ) -> CardConfigType | None:
         """Generate weather recommendations card with actionable advice."""
         recommendations_entity = f"sensor.{dog_id}_weather_recommendations"
@@ -2612,7 +2757,10 @@ class WeatherCardGenerator(BaseCardGenerator):
         return card
 
     async def _generate_current_weather_conditions_card(
-        self, dog_id: str, dog_name: str, options: OptionsConfigType,
+        self,
+        dog_id: str,
+        dog_name: str,
+        options: OptionsConfigType,
     ) -> CardConfigType | None:
         """Generate current weather conditions card with impact analysis."""
         # OPTIMIZED: Batch validate weather condition entities
@@ -2648,7 +2796,8 @@ class WeatherCardGenerator(BaseCardGenerator):
             ),
             (
                 f"sensor.{dog_id}_wind_impact",
-                'Wind Impact', 'mdi:weather-windy',
+                'Wind Impact',
+                'mdi:weather-windy',
             ),
         ]
 
@@ -2671,7 +2820,9 @@ class WeatherCardGenerator(BaseCardGenerator):
         }
 
     async def _generate_breed_weather_advice_card(
-        self, dog_config: RawDogConfig, options: OptionsConfigType,
+        self,
+        dog_config: RawDogConfig,
+        options: OptionsConfigType,
     ) -> CardConfigType | None:
         """Generate breed-specific weather advice card."""
         typed_dog = self._ensure_dog_config(dog_config)
@@ -2720,7 +2871,10 @@ class WeatherCardGenerator(BaseCardGenerator):
         }
 
     async def _generate_weather_forecast_card(
-        self, dog_id: str, dog_name: str, options: OptionsConfigType,
+        self,
+        dog_id: str,
+        dog_name: str,
+        options: OptionsConfigType,
     ) -> CardConfigType | None:
         """Generate weather forecast card with health predictions."""
         forecast_entity = f"sensor.{dog_id}_weather_forecast_health"
@@ -2778,7 +2932,9 @@ class WeatherCardGenerator(BaseCardGenerator):
         }
 
     async def generate_weather_controls_card(
-        self, dog_config: RawDogConfig, options: OptionsConfigType,
+        self,
+        dog_config: RawDogConfig,
+        options: OptionsConfigType,
     ) -> CardConfigType | None:
         """Generate weather control buttons and settings card."""
         typed_dog = self._ensure_dog_config(dog_config)
@@ -2853,7 +3009,9 @@ class WeatherCardGenerator(BaseCardGenerator):
         }
 
     async def generate_weather_history_card(
-        self, dog_config: RawDogConfig, options: OptionsConfigType,
+        self,
+        dog_config: RawDogConfig,
+        options: OptionsConfigType,
     ) -> CardConfigType | None:
         """Generate weather history and trends card."""
         typed_dog = self._ensure_dog_config(dog_config)
@@ -2933,7 +3091,8 @@ class StatisticsCardGenerator(BaseCardGenerator):
         try:
             results = await asyncio.wait_for(
                 asyncio.gather(
-                    *(task for _, task in stats_generators), return_exceptions=True,
+                    *(task for _, task in stats_generators),
+                    return_exceptions=True,
                 ),
                 timeout=CARD_GENERATION_TIMEOUT,
             )
@@ -2967,7 +3126,9 @@ class StatisticsCardGenerator(BaseCardGenerator):
         return cards
 
     async def _generate_activity_statistics(
-        self, dogs_config: Sequence[DogConfigData], theme: str,
+        self,
+        dogs_config: Sequence[DogConfigData],
+        theme: str,
     ) -> CardConfigType | None:
         """Generate optimized activity statistics card."""
         # OPTIMIZED: Build entity list efficiently
@@ -2993,7 +3154,9 @@ class StatisticsCardGenerator(BaseCardGenerator):
         )
 
     async def _generate_feeding_statistics(
-        self, dogs_config: Sequence[DogConfigData], theme: str,
+        self,
+        dogs_config: Sequence[DogConfigData],
+        theme: str,
     ) -> CardConfigType | None:
         """Generate optimized feeding statistics card."""
         feeding_entities = []
@@ -3019,7 +3182,9 @@ class StatisticsCardGenerator(BaseCardGenerator):
         )
 
     async def _generate_walk_statistics(
-        self, dogs_config: Sequence[DogConfigData], theme: str,
+        self,
+        dogs_config: Sequence[DogConfigData],
+        theme: str,
     ) -> CardConfigType | None:
         """Generate optimized walk statistics card."""
         walk_entities = []
@@ -3047,7 +3212,9 @@ class StatisticsCardGenerator(BaseCardGenerator):
         )
 
     async def _generate_health_statistics(
-        self, dogs_config: Sequence[DogConfigData], theme: str,
+        self,
+        dogs_config: Sequence[DogConfigData],
+        theme: str,
     ) -> CardConfigType | None:
         """Generate optimized health statistics card."""
         weight_entities = []
@@ -3111,7 +3278,8 @@ async def cleanup_validation_cache() -> None:
         _entity_validation_cache.pop(key, None)
 
     _LOGGER.debug(
-        'Cleaned %d expired entries from validation cache', len(expired_keys),
+        'Cleaned %d expired entries from validation cache',
+        len(expired_keys),
     )
 
 

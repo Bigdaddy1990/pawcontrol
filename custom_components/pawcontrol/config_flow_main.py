@@ -122,7 +122,8 @@ ensure_homeassistant_exception_symbols()
 
 
 ConfigEntryNotReady: type[Exception] = cast(
-    type[Exception], compat_module.ConfigEntryNotReady,
+    type[Exception],
+    compat_module.ConfigEntryNotReady,
 )
 bind_exception_alias('ConfigEntryNotReady')
 
@@ -184,7 +185,8 @@ class PawControlConfigFlow(
         self._external_entities: ExternalEntityConfig = {}
 
     async def async_step_user(
-        self, user_input: ConfigFlowUserInput | None = None,
+        self,
+        user_input: ConfigFlowUserInput | None = None,
     ) -> ConfigFlowResult:
         """Handle initial step with enhanced uniqueness validation.
 
@@ -205,7 +207,8 @@ class PawControlConfigFlow(
             return await self.async_step_add_dog()
 
     async def async_step_import(
-        self, import_config: ConfigFlowUserInput,
+        self,
+        import_config: ConfigFlowUserInput,
     ) -> ConfigFlowResult:
         """Handle import from configuration.yaml.
 
@@ -248,14 +251,16 @@ class PawControlConfigFlow(
                 ) from err
 
     async def _validate_import_config(
-        self, import_config: ConfigFlowUserInput,
+        self,
+        import_config: ConfigFlowUserInput,
     ) -> ConfigFlowImportResult:
         """Backward-compatible wrapper for enhanced import validation."""
 
         return await self._validate_import_config_enhanced(import_config)
 
     async def _validate_import_config_enhanced(
-        self, import_config: ConfigFlowUserInput,
+        self,
+        import_config: ConfigFlowUserInput,
     ) -> ConfigFlowImportResult:
         """Enhanced validation for imported configuration with better error reporting.
 
@@ -349,7 +354,8 @@ class PawControlConfigFlow(
                 for dog in validated_dogs:
                     modules = ensure_dog_modules_mapping(dog)
                     if not self._entity_factory.validate_profile_for_modules(
-                        profile, modules,
+                        profile,
+                        modules,
                     ):
                         validation_errors.append(
                             f"Profile '{profile}' may not be optimal for dog '{dog.get(DOG_NAME_FIELD)}'",
@@ -394,7 +400,9 @@ class PawControlConfigFlow(
                 ) from err
 
     def _is_supported_device(
-        self, hostname: str, properties: ConfigFlowDiscoveryProperties,
+        self,
+        hostname: str,
+        properties: ConfigFlowDiscoveryProperties,
     ) -> bool:
         """Check if discovered device is supported.
 
@@ -418,7 +426,8 @@ class PawControlConfigFlow(
         )
 
     def _extract_device_id(
-        self, properties: ConfigFlowDiscoveryProperties,
+        self,
+        properties: ConfigFlowDiscoveryProperties,
     ) -> str | None:
         """Extract device ID from discovery properties.
 
@@ -445,9 +454,13 @@ class PawControlConfigFlow(
 
         data = payload if isinstance(payload, Mapping) else {}
 
-        candidate_source = source or data.get(
-            'source',
-        ) or UNKNOWN_DISCOVERY_SOURCE
+        candidate_source = (
+            source
+            or data.get(
+                'source',
+            )
+            or UNKNOWN_DISCOVERY_SOURCE
+        )
         candidate_source_str = str(candidate_source).lower()
         resolved_source = (
             candidate_source_str
@@ -515,7 +528,8 @@ class PawControlConfigFlow(
 
         service_uuids_value = data.get('service_uuids')
         if isinstance(service_uuids_value, Sequence) and not isinstance(
-            service_uuids_value, str | bytes,
+            service_uuids_value,
+            str | bytes,
         ):
             service_uuids: list[str] = []
             for item in service_uuids_value:
@@ -538,7 +552,8 @@ class PawControlConfigFlow(
         return cast(ConfigFlowDiscoveryData, normalised)
 
     def _strip_dynamic_discovery_fields(
-        self, info: Mapping[str, object],
+        self,
+        info: Mapping[str, object],
     ) -> ConfigFlowDiscoveryData:
         """Remove dynamic fields (like timestamps) for comparison."""
 
@@ -633,7 +648,9 @@ class PawControlConfigFlow(
             )
 
         if not self._discovery_update_required(
-            entry, updates=updates, comparison=comparison,
+            entry,
+            updates=updates,
+            comparison=comparison,
         ):
             return self.async_abort(reason='already_configured')
 
@@ -658,10 +675,12 @@ class PawControlConfigFlow(
         comparison = self._strip_dynamic_discovery_fields(normalised)
 
         discovery_info: ConfigFlowDiscoveryData = cast(
-            ConfigFlowDiscoveryData, copy.deepcopy(normalised),
+            ConfigFlowDiscoveryData,
+            copy.deepcopy(normalised),
         )
         self._discovery_info = cast(
-            ConfigFlowDiscoveryData, copy.deepcopy(normalised),
+            ConfigFlowDiscoveryData,
+            copy.deepcopy(normalised),
         )
 
         updates: DiscoveryUpdatePayload = {
@@ -696,7 +715,8 @@ class PawControlConfigFlow(
         return 'Unknown device'
 
     async def async_step_add_dog(
-        self, user_input: DogSetupStepInput | None = None,
+        self,
+        user_input: DogSetupStepInput | None = None,
     ) -> ConfigFlowResult:
         """Add a dog configuration with optimized validation.
 
@@ -728,11 +748,13 @@ class PawControlConfigFlow(
                         _LOGGER.warning('Dog validation failed: %s', err)
                     else:
                         _LOGGER.warning(
-                            'Dog validation failed: %s', errors['base'],
+                            'Dog validation failed: %s',
+                            errors['base'],
                         )
                 except Exception as err:
                     _LOGGER.error(
-                        'Unexpected error during dog validation: %s', err,
+                        'Unexpected error during dog validation: %s',
+                        err,
                     )
                     errors['base'] = 'unknown_error'
 
@@ -756,7 +778,8 @@ class PawControlConfigFlow(
         return f"{len(self._dogs)}::{existing_ids}"
 
     async def _validate_dog_input_cached(
-        self, user_input: DogSetupStepInput,
+        self,
+        user_input: DogSetupStepInput,
     ) -> DogSetupStepInput | None:
         """Validate dog input with caching for repeated validations."""
 
@@ -841,7 +864,8 @@ class PawControlConfigFlow(
                 key: bool(value) for key, value in module_flags_mapping.items()
             }
             total += self._entity_factory.estimate_entity_count(
-                self._entity_profile, module_flags,
+                self._entity_profile,
+                module_flags,
             )
 
         self._profile_estimates_cache[cache_key] = total
@@ -860,7 +884,8 @@ class PawControlConfigFlow(
         return ''
 
     async def _validate_dog_input_optimized(
-        self, user_input: DogSetupStepInput,
+        self,
+        user_input: DogSetupStepInput,
     ) -> DogSetupStepInput:
         """Validate dog input data with optimized performance.
 
@@ -887,7 +912,8 @@ class PawControlConfigFlow(
         )
 
     async def _create_dog_config(
-        self, validated_input: DogSetupStepInput,
+        self,
+        validated_input: DogSetupStepInput,
     ) -> DogConfigData:
         """Create dog configuration from validated input."""
 
@@ -903,9 +929,14 @@ class PawControlConfigFlow(
             dog_breed = None
 
         age_raw = validated_input.get('dog_age')
-        dog_age: int | None = int(age_raw) if isinstance(
-            age_raw, int | float,
-        ) else None
+        dog_age: int | None = (
+            int(age_raw)
+            if isinstance(
+                age_raw,
+                int | float,
+            )
+            else None
+        )
 
         weight_raw = validated_input.get('dog_weight')
         dog_weight: float | None = (
@@ -934,13 +965,15 @@ class PawControlConfigFlow(
 
         if self._discovery_info:
             config['discovery_info'] = cast(
-                ConfigFlowDiscoveryData, dict(self._discovery_info),
+                ConfigFlowDiscoveryData,
+                dict(self._discovery_info),
             )
 
         return config
 
     async def async_step_dog_modules(
-        self, user_input: DogModuleSelectionInput | None = None,
+        self,
+        user_input: DogModuleSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Configure optional modules for the newly added dog.
 
@@ -957,7 +990,8 @@ class PawControlConfigFlow(
 
         if user_input is not None:
             existing_modules = cast(
-                DogModulesConfig | None, current_dog.get(DOG_MODULES_FIELD),
+                DogModulesConfig | None,
+                current_dog.get(DOG_MODULES_FIELD),
             )
             mapping_candidate: DogModulesConfig
             raw_mapping: DogModuleSelectionInput = {}
@@ -1046,15 +1080,18 @@ class PawControlConfigFlow(
         return vol.Schema(
             {
                 vol.Optional(
-                    MODULE_FEEDING, default=defaults[MODULE_FEEDING],
+                    MODULE_FEEDING,
+                    default=defaults[MODULE_FEEDING],
                 ): cv.boolean,
                 vol.Optional(MODULE_WALK, default=defaults[MODULE_WALK]): cv.boolean,
                 vol.Optional(
-                    MODULE_HEALTH, default=defaults[MODULE_HEALTH],
+                    MODULE_HEALTH,
+                    default=defaults[MODULE_HEALTH],
                 ): cv.boolean,
                 vol.Optional(MODULE_GPS, default=defaults[MODULE_GPS]): cv.boolean,
                 vol.Optional(
-                    MODULE_NOTIFICATIONS, default=defaults[MODULE_NOTIFICATIONS],
+                    MODULE_NOTIFICATIONS,
+                    default=defaults[MODULE_NOTIFICATIONS],
                 ): cv.boolean,
             },
         )
@@ -1096,7 +1133,8 @@ class PawControlConfigFlow(
         return '; '.join(reasons) if reasons else 'Standard defaults applied'
 
     async def async_step_add_another(
-        self, user_input: AddAnotherDogInput | None = None,
+        self,
+        user_input: AddAnotherDogInput | None = None,
     ) -> ConfigFlowResult:
         """Ask if user wants to add another dog with enhanced logic.
 
@@ -1155,7 +1193,8 @@ class PawControlConfigFlow(
         return "Single/few dogs - 'advanced' profile available for full features"
 
     async def async_step_entity_profile(
-        self, user_input: ProfileSelectionInput | None = None,
+        self,
+        user_input: ProfileSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Select entity profile with performance guidance.
 
@@ -1217,9 +1256,11 @@ class PawControlConfigFlow(
         dog_count = len(self._dogs)
         total_modules = sum(
             sum(
-                1 for enabled in ensure_dog_modules_mapping(
-                dog,
-                ).values() if enabled
+                1
+                for enabled in ensure_dog_modules_mapping(
+                    dog,
+                ).values()
+                if enabled
             )
             for dog in self._dogs
         )
@@ -1231,7 +1272,8 @@ class PawControlConfigFlow(
         return "Recommended: 'standard' or 'advanced' profile for full features"
 
     async def async_step_final_setup(
-        self, user_input: ConfigFlowUserInput | None = None,
+        self,
+        user_input: ConfigFlowUserInput | None = None,
     ) -> ConfigFlowResult:
         """Complete setup and create config entry with enhanced validation.
 
@@ -1251,7 +1293,8 @@ class PawControlConfigFlow(
             validation_results = await self._perform_comprehensive_validation()
             if not validation_results['valid']:
                 _LOGGER.error(
-                    'Final validation failed: %s', validation_results['errors'],
+                    'Final validation failed: %s',
+                    validation_results['errors'],
                 )
                 raise PawControlSetupError(
                     f"Setup validation failed: {'; '.join(validation_results['errors'])}",
@@ -1313,7 +1356,8 @@ class PawControlConfigFlow(
         for dog in self._dogs:
             modules = ensure_dog_modules_mapping(dog)
             if not self._entity_factory.validate_profile_for_modules(
-                self._entity_profile, modules,
+                self._entity_profile,
+                modules,
             ):
                 return False
 
@@ -1436,9 +1480,13 @@ class PawControlConfigFlow(
                 name for name,
                 enabled in modules.items() if enabled
             ]
-            module_summary = ', '.join(
-                enabled_modules,
-            ) if enabled_modules else 'none'
+            module_summary = (
+                ', '.join(
+                    enabled_modules,
+                )
+                if enabled_modules
+                else 'none'
+            )
 
             dogs_list.append(
                 f"{i}. {dog[DOG_NAME_FIELD]} ({dog[DOG_ID_FIELD]})\n"
@@ -1511,7 +1559,8 @@ class PawControlConfigFlow(
         return aggregated
 
     async def async_step_configure_modules(
-        self, user_input: ModuleConfigurationStepInput | None = None,
+        self,
+        user_input: ModuleConfigurationStepInput | None = None,
     ) -> ConfigFlowResult:
         """Update cached module summary before delegating to mixin."""
 
@@ -1519,14 +1568,16 @@ class PawControlConfigFlow(
         return await super().async_step_configure_modules(user_input)
 
     async def async_step_configure_dashboard(
-        self, user_input: DashboardConfigurationStepInput | None = None,
+        self,
+        user_input: DashboardConfigurationStepInput | None = None,
     ) -> ConfigFlowResult:
         """Delegate dashboard configuration to the dashboard mixin implementation."""
 
         return await DashboardFlowMixin.async_step_configure_dashboard(self, user_input)
 
     async def async_step_reconfigure(
-        self, user_input: ReconfigureProfileInput | None = None,
+        self,
+        user_input: ReconfigureProfileInput | None = None,
     ) -> ConfigFlowResult:
         """Handle reconfiguration with typed telemetry and validation."""
 
@@ -1551,13 +1602,17 @@ class PawControlConfigFlow(
             },
         )
         base_placeholders = await self._build_reconfigure_placeholders(
-            entry, dogs, current_profile, merge_notes,
+            entry,
+            dogs,
+            current_profile,
+            merge_notes,
         )
 
         if user_input is not None:
             try:
                 profile_data = cast(
-                    ReconfigureProfileInput, PROFILE_SCHEMA(dict(user_input)),
+                    ReconfigureProfileInput,
+                    PROFILE_SCHEMA(dict(user_input)),
                 )
                 new_profile = profile_data['entity_profile']
             except vol.Invalid as err:
@@ -1590,11 +1645,13 @@ class PawControlConfigFlow(
                 self._abort_if_unique_id_mismatch(reason='wrong_account')
             else:
                 _LOGGER.debug(
-                    'Skipping unique_id guard for reconfigure entry %s', entry.entry_id,
+                    'Skipping unique_id guard for reconfigure entry %s',
+                    entry.entry_id,
                 )
 
             compatibility = self._check_profile_compatibility(
-                new_profile, dogs,
+                new_profile,
+                dogs,
             )
             if compatibility['warnings']:
                 _LOGGER.warning(
@@ -1616,7 +1673,8 @@ class PawControlConfigFlow(
 
             timestamp = dt_util.utcnow().isoformat()
             estimated_entities = await self._estimate_entities_for_reconfigure(
-                dogs, new_profile,
+                dogs,
+                new_profile,
             )
             previous_profile = current_profile
             valid_dogs = sum(1 for dog in dogs if is_dog_config_valid(dog))
@@ -1662,7 +1720,8 @@ class PawControlConfigFlow(
         )
 
     def _extract_entry_dogs(
-        self, entry: ConfigEntry,
+        self,
+        entry: ConfigEntry,
     ) -> tuple[list[DogConfigData], list[str]]:
         """Return the typed dog configuration list for the given entry."""
 
@@ -1729,7 +1788,8 @@ class PawControlConfigFlow(
         """Build description placeholders for the reconfigure form."""
 
         estimated_entities = await self._estimate_entities_for_reconfigure(
-            dogs, profile,
+            dogs,
+            profile,
         )
         valid_dogs = sum(1 for dog in dogs if is_dog_config_valid(dog))
         invalid_dogs = max(len(dogs) - valid_dogs, 0)
@@ -1762,14 +1822,20 @@ class PawControlConfigFlow(
         return freeze_placeholders(placeholders)
 
     def _reconfigure_history_placeholders(
-        self, options: Mapping[str, JSONValue],
+        self,
+        options: Mapping[str, JSONValue],
     ) -> ReconfigureFormPlaceholders:
         """Return placeholders describing the latest reconfigure telemetry."""
 
         telemetry_raw = options.get('reconfigure_telemetry')
-        telemetry = telemetry_raw if isinstance(
-            telemetry_raw, Mapping,
-        ) else None
+        telemetry = (
+            telemetry_raw
+            if isinstance(
+                telemetry_raw,
+                Mapping,
+            )
+            else None
+        )
         timestamp_raw = options.get('last_reconfigure')
 
         history: ReconfigureFormPlaceholders = cast(
@@ -1789,16 +1855,24 @@ class PawControlConfigFlow(
             history['reconfigure_warnings'] = 'None'
             return history
 
-        requested_profile = str(
-            telemetry.get(
-            'requested_profile', '',
-            ),
-        ) or 'Unknown'
-        previous_profile = str(
-            telemetry.get(
-            'previous_profile', '',
-            ),
-        ) or 'Unknown'
+        requested_profile = (
+            str(
+                telemetry.get(
+                    'requested_profile',
+                    '',
+                ),
+            )
+            or 'Unknown'
+        )
+        previous_profile = (
+            str(
+                telemetry.get(
+                    'previous_profile',
+                    '',
+                ),
+            )
+            or 'Unknown'
+        )
         dogs_count = telemetry.get('dogs_count')
         estimated_entities = telemetry.get('estimated_entities')
         warnings_raw = telemetry.get('compatibility_warnings')
@@ -1818,9 +1892,12 @@ class PawControlConfigFlow(
         history['reconfigure_requested_profile'] = requested_profile
         history['reconfigure_previous_profile'] = previous_profile
         history['reconfigure_dogs'] = (
-            str(int(dogs_count)) if isinstance(
-                dogs_count, int | float,
-            ) else '0'
+            str(int(dogs_count))
+            if isinstance(
+                dogs_count,
+                int | float,
+            )
+            else '0'
         )
         history['reconfigure_entities'] = (
             str(int(estimated_entities))
@@ -1830,9 +1907,13 @@ class PawControlConfigFlow(
         history['reconfigure_health'] = self._summarise_health_summary(
             health_summary,
         )
-        history['reconfigure_warnings'] = ', '.join(
-            warnings,
-        ) if warnings else 'None'
+        history['reconfigure_warnings'] = (
+            ', '.join(
+                warnings,
+            )
+            if warnings
+            else 'None'
+        )
         if merge_notes:
             history['reconfigure_merge_notes'] = '\n'.join(merge_notes)
         return history
@@ -1844,9 +1925,13 @@ class PawControlConfigFlow(
             return 'Never reconfigured'
 
         parse_datetime = getattr(dt_util, 'parse_datetime', None)
-        parsed = parse_datetime(timestamp) if callable(
-            parse_datetime,
-        ) else None
+        parsed = (
+            parse_datetime(timestamp)
+            if callable(
+                parse_datetime,
+            )
+            else None
+        )
         if parsed is None:
             candidate = timestamp.replace('Z', '+00:00')
             try:
@@ -1858,9 +1943,13 @@ class PawControlConfigFlow(
             parsed = parsed.replace(tzinfo=dt_util.UTC)
 
         as_local = getattr(dt_util, 'as_local', None)
-        local_dt = as_local(parsed) if callable(
-            as_local,
-        ) else parsed.astimezone()
+        local_dt = (
+            as_local(parsed)
+            if callable(
+                as_local,
+            )
+            else parsed.astimezone()
+        )
         return local_dt.strftime('%Y-%m-%d %H:%M:%S %Z')
 
     def _summarise_health_summary(self, summary: Any) -> str:
@@ -1890,7 +1979,8 @@ class PawControlConfigFlow(
         """Normalise raw dog payloads from a config entry to typed dictionaries."""
 
         return self._normalise_dogs_payload(
-            entry.data.get(CONF_DOGS), preserve_empty_name=True,
+            entry.data.get(CONF_DOGS),
+            preserve_empty_name=True,
         )
 
     def _clone_merge_value(self, value: Any) -> Any:
@@ -1899,7 +1989,8 @@ class PawControlConfigFlow(
         if isinstance(value, Mapping):
             return self._merge_nested_mapping(value, {})
         if isinstance(value, Sequence) and not isinstance(
-            value, str | bytes | bytearray,
+            value,
+            str | bytes | bytearray,
         ):
             return [self._clone_merge_value(item) for item in value]
         return value
@@ -1931,7 +2022,8 @@ class PawControlConfigFlow(
 
         existing_sequence: Sequence[Any] | None
         if isinstance(existing, Sequence) and not isinstance(
-            existing, str | bytes | bytearray,
+            existing,
+            str | bytes | bytearray,
         ):
             existing_sequence = existing
         else:
@@ -1971,18 +2063,26 @@ class PawControlConfigFlow(
                 continue
             if isinstance(value, Mapping):
                 existing = merged.get(key)
-                existing_mapping = existing if isinstance(
-                    existing, Mapping,
-                ) else None
+                existing_mapping = (
+                    existing
+                    if isinstance(
+                        existing,
+                        Mapping,
+                    )
+                    else None
+                )
                 merged[key] = self._merge_nested_mapping(
-                    existing_mapping, value,
+                    existing_mapping,
+                    value,
                 )
                 continue
             if isinstance(value, Sequence) and not isinstance(
-                value, str | bytes | bytearray,
+                value,
+                str | bytes | bytearray,
             ):
                 merged[key] = self._merge_sequence_values(
-                    merged.get(key), value,
+                    merged.get(key),
+                    value,
                 )
                 continue
             merged[key] = value
@@ -2048,7 +2148,8 @@ class PawControlConfigFlow(
             )
             override_modules = coerce_dog_modules_config(modules_override)
             merged_modules: DogModulesConfig = cast(
-                DogModulesConfig, dict(current_modules),
+                DogModulesConfig,
+                dict(current_modules),
             )
             for module, enabled in override_modules.items():
                 toggle = cast(ModuleToggleKey, module)
@@ -2082,19 +2183,25 @@ class PawControlConfigFlow(
             if isinstance(value, Mapping):
                 existing_value = combined.get(key)
                 existing_mapping = (
-                    existing_value if isinstance(
-                        existing_value, Mapping,
-                    ) else None
+                    existing_value
+                    if isinstance(
+                        existing_value,
+                        Mapping,
+                    )
+                    else None
                 )
                 combined[key] = self._merge_nested_mapping(
-                    existing_mapping, value,
+                    existing_mapping,
+                    value,
                 )
                 continue
             if isinstance(value, Sequence) and not isinstance(
-                value, str | bytes | bytearray,
+                value,
+                str | bytes | bytearray,
             ):
                 combined[key] = self._merge_sequence_values(
-                    combined.get(key), value,
+                    combined.get(key),
+                    value,
                 )
                 continue
             combined[key] = value
@@ -2129,18 +2236,23 @@ class PawControlConfigFlow(
                 )
 
     def _normalise_dogs_payload(
-        self, payload: Any, *, preserve_empty_name: bool = False,
+        self,
+        payload: Any,
+        *,
+        preserve_empty_name: bool = False,
     ) -> list[DogConfigData]:
         """Return a list of dog mappings extracted from ``payload``."""
 
         dogs: list[DogConfigData] = []
 
         if isinstance(payload, Sequence) and not isinstance(
-            payload, str | bytes | bytearray,
+            payload,
+            str | bytes | bytearray,
         ):
             for raw in payload:
                 candidate = self._build_dog_candidate(
-                    raw, preserve_empty_name=preserve_empty_name,
+                    raw,
+                    preserve_empty_name=preserve_empty_name,
                 )
                 if candidate is not None:
                     dogs.append(candidate)
@@ -2203,7 +2315,8 @@ class PawControlConfigFlow(
                 ensure_dog_modules_mapping(candidate),
             )
         elif isinstance(modules, Sequence) and not isinstance(
-            modules, str | bytes | bytearray,
+            modules,
+            str | bytes | bytearray,
         ):
             toggles: DogModulesConfig = {}
             for module in modules:
@@ -2244,7 +2357,8 @@ class PawControlConfigFlow(
 
     @staticmethod
     def _resolve_dog_identifier(
-        candidate: Mapping[str, object], fallback_id: str | None,
+        candidate: Mapping[str, object],
+        fallback_id: str | None,
     ) -> str | None:
         """Return a trimmed dog identifier from legacy payloads when available."""
 
@@ -2298,14 +2412,17 @@ class PawControlConfigFlow(
         return cast(DogModulesConfig, {})
 
     async def _estimate_entities_for_reconfigure(
-        self, dogs: list[DogConfigData], profile: str,
+        self,
+        dogs: list[DogConfigData],
+        profile: str,
     ) -> int:
         """Estimate entities for reconfiguration display."""
 
         try:
             return sum(
                 self._entity_factory.estimate_entity_count(
-                    profile, self._normalise_dog_modules(dog),
+                    profile,
+                    self._normalise_dog_modules(dog),
                 )
                 for dog in dogs
                 if is_dog_config_valid(dog)
@@ -2315,7 +2432,9 @@ class PawControlConfigFlow(
             return 0
 
     def _check_profile_compatibility(
-        self, profile: str, dogs: list[DogConfigData],
+        self,
+        profile: str,
+        dogs: list[DogConfigData],
     ) -> ReconfigureCompatibilityResult:
         """Check profile compatibility with existing dogs."""
 
@@ -2325,10 +2444,12 @@ class PawControlConfigFlow(
             for dog in dogs:
                 modules = self._normalise_dog_modules(dog)
                 if modules and not self._entity_factory.validate_profile_for_modules(
-                    profile, modules,
+                    profile,
+                    modules,
                 ):
                     dog_name = dog.get(DOG_NAME_FIELD) or dog.get(
-                        DOG_ID_FIELD, 'unknown',
+                        DOG_ID_FIELD,
+                        'unknown',
                     )
                     warnings.append(
                         f"Profile '{profile}' may not be optimal for {dog_name}",
@@ -2342,7 +2463,9 @@ class PawControlConfigFlow(
         }
 
     def _get_compatibility_info(
-        self, current_profile: str, dogs: list[DogConfigData],
+        self,
+        current_profile: str,
+        dogs: list[DogConfigData],
     ) -> str:
         """Get compatibility information for profile change."""
 

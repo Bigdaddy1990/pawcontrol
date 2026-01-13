@@ -62,8 +62,12 @@ class WebhookSecurityManager:
     ) -> WebhookSignature:
         """Create an HMAC signature for the provided payload."""
 
-        ts = timestamp if timestamp is not None else int(
-            datetime.now(UTC).timestamp(),
+        ts = (
+            timestamp
+            if timestamp is not None
+            else int(
+                datetime.now(UTC).timestamp(),
+            )
         )
         nonce_value = nonce if nonce is not None else secrets.token_hex(16)
         digest = hmac.new(
@@ -104,7 +108,10 @@ class WebhookSecurityManager:
         return hmac.compare_digest(expected, provided)
 
     def build_headers(
-        self, payload: bytes, *, header_prefix: str = 'X-PawControl',
+        self,
+        payload: bytes,
+        *,
+        header_prefix: str = 'X-PawControl',
     ) -> dict[str, str]:
         """Create HTTP headers containing an HMAC signature."""
 
@@ -118,7 +125,9 @@ class WebhookSecurityManager:
 
     @staticmethod
     def extract_signature(
-        headers: Mapping[str, str], *, header_prefix: str = 'X-PawControl',
+        headers: Mapping[str, str],
+        *,
+        header_prefix: str = 'X-PawControl',
     ) -> WebhookSignature | None:
         """Extract a signature from HTTP headers if present."""
 

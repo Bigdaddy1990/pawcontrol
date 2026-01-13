@@ -170,7 +170,9 @@ async def async_setup_entry(
 
     if entities:
         await async_call_add_entities(
-            async_add_entities, entities, update_before_add=False,
+            async_add_entities,
+            entities,
+            update_before_add=False,
         )
         _LOGGER.info(
             "Set up %d GPS device trackers with profile '%s'",
@@ -379,9 +381,12 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
                 attrs['satellites'] = satellites
 
             attrs['location_source'] = (
-                location_source if isinstance(
-                    location_source, str,
-                ) else 'unknown'
+                location_source
+                if isinstance(
+                    location_source,
+                    str,
+                )
+                else 'unknown'
             )
 
             if isinstance(last_seen, datetime):
@@ -431,7 +436,8 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
             if status_snapshot is not None:
                 attrs['in_safe_zone'] = bool(
                     status_snapshot.get(
-                        'in_safe_zone', attrs.get('in_safe_zone', True),
+                        'in_safe_zone',
+                        attrs.get('in_safe_zone', True),
                     ),
                 )
 
@@ -590,7 +596,8 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
             # Cleanup old route points and enforce retention limits
             cutoff_time = dt_util.utcnow() - ROUTE_POINT_MAX_AGE
             self._route_points.prune(
-                cutoff=cutoff_time, max_points=MAX_ROUTE_POINTS,
+                cutoff=cutoff_time,
+                max_points=MAX_ROUTE_POINTS,
             )
 
             _LOGGER.debug(
@@ -607,7 +614,8 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
             )
 
     async def _update_coordinator_gps_data(
-        self, location_data: GPSLocationSample,
+        self,
+        location_data: GPSLocationSample,
     ) -> None:
         """Update coordinator with new GPS data."""
         try:
@@ -626,7 +634,8 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
                 mutable_gps_state = cast(GPSModulePayload, {})
                 runtime_payload = cast(CoordinatorDogData, dog_data)
                 runtime_payload['gps'] = cast(
-                    CoordinatorModuleState, mutable_gps_state,
+                    CoordinatorModuleState,
+                    mutable_gps_state,
                 )
 
             timestamp_iso = (
@@ -649,7 +658,8 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
             # Update route points if tracking
             current_route = mutable_gps_state.get('current_route')
             if isinstance(current_route, Mapping) and current_route.get(
-                'active', False,
+                'active',
+                False,
             ):
                 start_time_iso = self._serialize_timestamp(
                     cast(datetime | str | None, current_route.get('start_time')),
@@ -745,7 +755,8 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
             raise
 
     async def async_stop_route_recording(
-        self, save_route: bool = True,
+        self,
+        save_route: bool = True,
     ) -> JSONMutableMapping | None:
         """Stop recording the current GPS route.
 
@@ -763,15 +774,19 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
             current_route = gps_data.get('current_route')
             if not current_route or not current_route.get('active', False):
                 _LOGGER.warning(
-                    'No active route recording for %s', self._dog_name,
+                    'No active route recording for %s',
+                    self._dog_name,
                 )
                 return None
 
             end_time = dt_util.utcnow()
             start_time_raw = current_route.get('start_time')
-            start_time = ensure_utc_datetime(
-                start_time_raw,
-            ) or dt_util.utcnow()
+            start_time = (
+                ensure_utc_datetime(
+                    start_time_raw,
+                )
+                or dt_util.utcnow()
+            )
             current_route['start_time'] = dt_util.as_utc(
                 start_time,
             ).isoformat()
@@ -874,7 +889,8 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
         return total_distance
 
     async def async_export_route(
-        self, format_type: str = 'gpx',
+        self,
+        format_type: str = 'gpx',
     ) -> GPSRouteExportPayload | None:
         """Export current or last route in specified format.
 
@@ -887,7 +903,8 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
         try:
             if not self._route_points:
                 _LOGGER.warning(
-                    'No route points available for export for %s', self._dog_name,
+                    'No route points available for export for %s',
+                    self._dog_name,
                 )
                 return None
 
@@ -926,7 +943,8 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
             )
             content_lines.append(
                 '  <trkpt lat="{lat}" lon="{lon}">'.format(
-                    lat=point['latitude'], lon=point['longitude'],
+                    lat=point['latitude'],
+                    lon=point['longitude'],
                 ),
             )
             altitude = point.get('altitude')
@@ -969,7 +987,8 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
         duration_seconds = 0.0
         if isinstance(start_time, datetime) and isinstance(end_time, datetime):
             duration_seconds = max(
-                (end_time - start_time).total_seconds(), 0.0,
+                (end_time - start_time).total_seconds(),
+                0.0,
             )
 
         duration_minutes = duration_seconds / 60 if duration_seconds else None

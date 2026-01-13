@@ -185,7 +185,9 @@ def _normalize_cache_timestamp(
         return now, True
 
     _LOGGER.debug(
-        'Detected future cache timestamp %.3f (now=%.3f); normalising', cache_time, now,
+        'Detected future cache timestamp %.3f (now=%.3f); normalising',
+        cache_time,
+        now,
     )
     return now, True
 
@@ -214,7 +216,10 @@ def _coordinator_is_available(coordinator: Any) -> bool:
 
 
 def _call_coordinator_method(
-    coordinator: Any, method: str, *args: Any, **kwargs: Any,
+    coordinator: Any,
+    method: str,
+    *args: Any,
+    **kwargs: Any,
 ) -> Any | None:
     """Safely call a coordinator helper if it exists and returns synchronously."""
 
@@ -300,7 +305,8 @@ class PerformanceTracker:
 
         return {
             'avg_operation_time': round(
-                sum(self._operation_times) / len(self._operation_times), 3,
+                sum(self._operation_times) / len(self._operation_times),
+                3,
             ),
             'min_operation_time': min(self._operation_times),
             'max_operation_time': max(self._operation_times),
@@ -319,7 +325,9 @@ class PerformanceTracker:
 
 
 class OptimizedEntityBase(
-    PawControlDeviceLinkMixin, CoordinatorEntity[PawControlCoordinator], RestoreEntity,
+    PawControlDeviceLinkMixin,
+    CoordinatorEntity[PawControlCoordinator],
+    RestoreEntity,
 ):
     """Optimized base entity with advanced performance features.
 
@@ -415,7 +423,11 @@ class OptimizedEntityBase(
 
         # Configure entity attributes
         self._setup_entity_configuration(
-            unique_id_suffix, name_suffix, device_class, entity_category, icon,
+            unique_id_suffix,
+            name_suffix,
+            device_class,
+            entity_category,
+            icon,
         )
 
         # Ensure a newly constructed entity starts with a clean cache slate
@@ -580,7 +592,8 @@ class OptimizedEntityBase(
             self._performance_tracker.record_error()
             _LOGGER.error(
                 'Failed to add entity %s: %s',
-                self._attr_unique_id, err,
+                self._attr_unique_id,
+                err,
             )
             raise
 
@@ -592,11 +605,15 @@ class OptimizedEntityBase(
         try:
             await self._handle_state_restoration(last_state)
             _LOGGER.debug(
-                'Restored state for %s: %s', self._attr_unique_id, last_state.state,
+                'Restored state for %s: %s',
+                self._attr_unique_id,
+                last_state.state,
             )
         except Exception as err:
             _LOGGER.warning(
-                'Failed to restore state for %s: %s', self._attr_unique_id, err,
+                'Failed to restore state for %s: %s',
+                self._attr_unique_id,
+                err,
             )
 
     async def _handle_state_restoration(self, last_state: State) -> None:
@@ -623,7 +640,8 @@ class OptimizedEntityBase(
         # Check cache first
         if entry := _AVAILABILITY_CACHE.get(cache_key):
             cache_time, normalized = _normalize_cache_timestamp(
-                entry.timestamp, now,
+                entry.timestamp,
+                now,
             )
             if normalized:
                 entry.timestamp = cache_time
@@ -650,7 +668,9 @@ class OptimizedEntityBase(
         return available
 
     def _calculate_availability(
-        self, *, coordinator_available: bool | None = None,
+        self,
+        *,
+        coordinator_available: bool | None = None,
     ) -> bool:
         """Calculate entity availability with comprehensive checks.
 
@@ -701,7 +721,8 @@ class OptimizedEntityBase(
         # Check cache first
         if entry := _ATTRIBUTES_CACHE.get(cache_key):
             cache_time, normalized = _normalize_cache_timestamp(
-                entry.timestamp, now,
+                entry.timestamp,
+                now,
             )
             if normalized:
                 entry.timestamp = cache_time
@@ -724,7 +745,8 @@ class OptimizedEntityBase(
             # Cache result
             _ATTRIBUTES_CACHE[cache_key] = _AttributesCacheEntry(
                 attributes=cast(
-                    OptimizedEntityAttributesPayload, dict(attributes),
+                    OptimizedEntityAttributesPayload,
+                    dict(attributes),
                 ),
                 timestamp=now,
             )
@@ -735,7 +757,9 @@ class OptimizedEntityBase(
         except Exception as err:
             self._performance_tracker.record_error()
             _LOGGER.error(
-                'Error generating attributes for %s: %s', self._attr_unique_id, err,
+                'Error generating attributes for %s: %s',
+                self._attr_unique_id,
+                err,
             )
             return _normalise_attributes(self._get_fallback_attributes())
 
@@ -786,7 +810,8 @@ class OptimizedEntityBase(
         if performance_summary and performance_summary.get('status') != 'no_data':
             attributes['performance_metrics'] = {
                 'avg_operation_ms': round(
-                    performance_summary['avg_operation_time'] * 1000, 2,
+                    performance_summary['avg_operation_time'] * 1000,
+                    2,
                 ),
                 'cache_hit_rate': round(performance_summary['cache_hit_rate'], 1),
                 'error_rate': round(performance_summary['error_rate'] * 100, 1),
@@ -841,7 +866,8 @@ class OptimizedEntityBase(
         # Check cache first
         if entry := _STATE_CACHE.get(cache_key):
             cache_time, normalized = _normalize_cache_timestamp(
-                entry.timestamp, now,
+                entry.timestamp,
+                now,
             )
             if normalized:
                 entry.timestamp = cache_time
@@ -858,7 +884,9 @@ class OptimizedEntityBase(
                 dog_payload = self.coordinator.get_dog_data(self._dog_id)
             else:
                 result = _call_coordinator_method(
-                    self.coordinator, 'get_dog_data', self._dog_id,
+                    self.coordinator,
+                    'get_dog_data',
+                    self._dog_id,
                 )
                 if isinstance(result, Mapping):
                     dog_payload = cast(CoordinatorDogData, dict(result))
@@ -914,7 +942,8 @@ class OptimizedEntityBase(
         # Check cache first
         if entry := _STATE_CACHE.get(cache_key):
             cache_time, normalized = _normalize_cache_timestamp(
-                entry.timestamp, now,
+                entry.timestamp,
+                now,
             )
             if normalized:
                 entry.timestamp = cache_time
@@ -942,7 +971,10 @@ class OptimizedEntityBase(
                 result = self.coordinator.get_module_data(self._dog_id, module)
             else:
                 result = _call_coordinator_method(
-                    self.coordinator, 'get_module_data', self._dog_id, module,
+                    self.coordinator,
+                    'get_module_data',
+                    self._dog_id,
+                    module,
                 )
             if isinstance(result, Mapping):
                 mapped_result = ensure_json_mapping(
@@ -958,8 +990,9 @@ class OptimizedEntityBase(
                 )
             elif typed_module:
                 module_payload = cast(
-                    CoordinatorModuleState, {
-                    'status': 'unknown',
+                    CoordinatorModuleState,
+                    {
+                        'status': 'unknown',
                     },
                 )
         elif typed_module:
@@ -975,7 +1008,8 @@ class OptimizedEntityBase(
         cached_payload: OptimizedEntityStateCachePayload
         if typed_module:
             cached_payload = cast(
-                OptimizedEntityStateCachePayload, module_payload_mapping,
+                OptimizedEntityStateCachePayload,
+                module_payload_mapping,
             )
         else:
             cached_payload = cast(
@@ -1016,7 +1050,8 @@ class OptimizedEntityBase(
             self._performance_tracker.record_error()
             _LOGGER.error(
                 'Update failed for %s: %s',
-                self._attr_unique_id, err,
+                self._attr_unique_id,
+                err,
             )
             raise
 
@@ -1055,7 +1090,8 @@ class OptimizedEntityBase(
 
         _ATTRIBUTES_CACHE.pop(f"attrs_{self._attr_unique_id}", None)
         _AVAILABILITY_CACHE.pop(
-            f"available_{self._dog_id}_{self._entity_type}", None,
+            f"available_{self._dog_id}_{self._entity_type}",
+            None,
         )
 
     @callback
@@ -1340,7 +1376,8 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
             self._performance_tracker.record_error()
             _LOGGER.error(
                 'Failed to turn on %s: %s',
-                self._attr_unique_id, err,
+                self._attr_unique_id,
+                err,
             )
             raise HomeAssistantError('Failed to turn on switch') from err
 
@@ -1365,7 +1402,8 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
             self._performance_tracker.record_error()
             _LOGGER.error(
                 'Failed to turn off %s: %s',
-                self._attr_unique_id, err,
+                self._attr_unique_id,
+                err,
             )
             raise HomeAssistantError('Failed to turn off switch') from err
 
@@ -1583,7 +1621,8 @@ class _RegistrySentinelCoordinator:
         self._listeners: set[Callable[[], None]] = set()
 
     def async_add_listener(
-        self, update_callback: Callable[[], None],
+        self,
+        update_callback: Callable[[], None],
     ) -> Callable[[], None]:
         self._listeners.add(update_callback)
 
@@ -1609,7 +1648,9 @@ class _RegistrySentinelCoordinator:
         return cast(CoordinatorDogData, {})
 
     def get_module_data(
-        self, dog_id: str, module: str,
+        self,
+        dog_id: str,
+        module: str,
     ) -> CoordinatorUntypedModuleState:
         return {}
 
@@ -1670,19 +1711,23 @@ async def create_optimized_entities_batched(
 
     if batch_size <= 0:
         _LOGGER.debug(
-            'Received non-positive batch size %s; defaulting to 1', batch_size,
+            'Received non-positive batch size %s; defaulting to 1',
+            batch_size,
         )
         batch_size = 1
 
     if delay_between_batches < 0:
         _LOGGER.debug(
-            'Received negative batch delay %.3f; clamping to 0', delay_between_batches,
+            'Received negative batch delay %.3f; clamping to 0',
+            delay_between_batches,
         )
         delay_between_batches = 0.0
 
     total_entities = len(entities)
     _LOGGER.debug(
-        'Adding %d optimized entities in batches of %d', total_entities, batch_size,
+        'Adding %d optimized entities in batches of %d',
+        total_entities,
+        batch_size,
     )
 
     for i in range(0, total_entities, batch_size):
@@ -1698,7 +1743,9 @@ async def create_optimized_entities_batched(
         )
 
         await async_call_add_entities(
-            async_add_entities_callback, batch, update_before_add=False,
+            async_add_entities_callback,
+            batch,
+            update_before_add=False,
         )
 
         if i + batch_size < total_entities:
@@ -1760,7 +1807,8 @@ def get_global_performance_stats() -> OptimizedEntityGlobalPerformanceStats:
 
 ensure_homeassistant_exception_symbols()
 HomeAssistantError: type[Exception] = cast(
-    type[Exception], compat.HomeAssistantError,
+    type[Exception],
+    compat.HomeAssistantError,
 )
 bind_exception_alias(
     'HomeAssistantError',

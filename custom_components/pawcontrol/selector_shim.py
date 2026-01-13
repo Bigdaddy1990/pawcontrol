@@ -149,9 +149,14 @@ else:
             # TypedDict type advertised by ``ConfigT``. The cast is safe because
             # TypedDicts accept missing keys when ``total=False`` and the runtime
             # helpers perform the same normalisation before storing configs.
-            default_config: ConfigT = cast(
-                ConfigT, {},
-            ) if config is None else config
+            default_config: ConfigT = (
+                cast(
+                    ConfigT,
+                    {},
+                )
+                if config is None
+                else config
+            )
             self.config = default_config
 
         def __call__(self, value: Any) -> Any:

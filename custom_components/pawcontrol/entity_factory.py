@@ -676,27 +676,36 @@ class EntityFactory:
         self._entity_cache: dict[str, Entity] = {}
         self._profile_cache: dict[str, EntityProfileDefinition] = {}
         self._estimate_cache: OrderedDict[
-            tuple[str, tuple[tuple[str, bool], ...]], EntityEstimate,
+            tuple[str, tuple[tuple[str, bool], ...]],
+            EntityEstimate,
         ] = OrderedDict()
         self._performance_metrics_cache: OrderedDict[
-            tuple[str, tuple[tuple[str, bool], ...]], EntityPerformanceMetrics,
+            tuple[str, tuple[tuple[str, bool], ...]],
+            EntityPerformanceMetrics,
         ] = OrderedDict()
         self._should_create_cache: OrderedDict[tuple[str, str, str, int], bool] = (
             OrderedDict()
         )
         self._should_create_hits = 0
         self._should_create_misses = 0
-        self._last_estimate_key: tuple[
-            str,
-            tuple[tuple[str, bool], ...],
-        ] | None = None
+        self._last_estimate_key: (
+            tuple[
+                str,
+                tuple[tuple[str, bool], ...],
+            ]
+            | None
+        ) = None
         self._last_module_weights: dict[str, int] = {}
         if enforce_min_runtime is None:
             env_value = os.getenv(
-                'PAWCONTROL_ENABLE_ENTITY_FACTORY_BENCHMARKS', '',
+                'PAWCONTROL_ENABLE_ENTITY_FACTORY_BENCHMARKS',
+                '',
             )
             enforce_min_runtime = env_value.lower() in {
-                '1', 'true', 'yes', 'on',
+                '1',
+                'true',
+                'yes',
+                'on',
             }
         self._enforce_min_runtime = enforce_min_runtime
         self._runtime_guard_floor = _MIN_OPERATION_DURATION
@@ -715,7 +724,9 @@ class EntityFactory:
 
         default_modules = self._get_default_modules()
         default_estimate = self._get_entity_estimate(
-            'standard', default_modules, log_invalid_inputs=False,
+            'standard',
+            default_modules,
+            log_invalid_inputs=False,
         )
 
         default_module_dict = dict(default_modules)
@@ -723,19 +734,27 @@ class EntityFactory:
         self.get_performance_metrics('standard', default_module_dict)
         for priority in (3, 5, 7, 9):
             self.should_create_entity(
-                'standard', 'sensor', 'feeding', priority,
+                'standard',
+                'sensor',
+                'feeding',
+                priority,
             )
 
         for profile, modules in _COMMON_PROFILE_PRESETS:
             module_dict = dict(modules)
             self._get_entity_estimate(
-                profile, module_dict, log_invalid_inputs=False,
+                profile,
+                module_dict,
+                log_invalid_inputs=False,
             )
             self.estimate_entity_count(profile, module_dict)
             self.get_performance_metrics(profile, module_dict)
             for priority in (3, 5, 7, 9):
                 self.should_create_entity(
-                    profile, 'sensor', 'feeding', priority,
+                    profile,
+                    'sensor',
+                    'feeding',
+                    priority,
                 )
 
         # Ensure the default combination remains the active baseline after warming
@@ -772,7 +791,11 @@ class EntityFactory:
         )
 
     def begin_budget(
-        self, dog_id: str, profile: str, *, base_allocation: int = 0,
+        self,
+        dog_id: str,
+        profile: str,
+        *,
+        base_allocation: int = 0,
     ) -> EntityBudget:
         """Begin tracking an entity budget for a dog/profile combination."""
 
@@ -871,10 +894,12 @@ class EntityFactory:
         """Return cached entity estimate for a profile and module set."""
 
         normalized_profile = self._normalize_profile(
-            profile, log=log_invalid_inputs,
+            profile,
+            log=log_invalid_inputs,
         )
         normalized_modules = self._normalize_modules(
-            modules, log=log_invalid_inputs,
+            modules,
+            log=log_invalid_inputs,
         )
 
         module_signature = tuple(sorted(normalized_modules.items()))
@@ -890,7 +915,9 @@ class EntityFactory:
             return cached_estimate
 
         estimate = self._compute_entity_estimate(
-            normalized_profile, normalized_modules, module_signature,
+            normalized_profile,
+            normalized_modules,
+            module_signature,
         )
         self._estimate_cache[cache_key] = estimate
 
@@ -911,7 +938,10 @@ class EntityFactory:
         return 'standard'
 
     def _normalize_modules(
-        self, modules: Mapping[str, bool] | None, *, log: bool,
+        self,
+        modules: Mapping[str, bool] | None,
+        *,
+        log: bool,
     ) -> dict[str, bool]:
         """Normalize module configuration and optionally log when invalid."""
 
@@ -954,7 +984,8 @@ class EntityFactory:
                 continue
 
             module_entities += profile_estimates.get(
-                profile, profile_estimates.get('standard', 2),
+                profile,
+                profile_estimates.get('standard', 2),
             )
 
         raw_total = base_entities + module_entities
@@ -985,7 +1016,9 @@ class EntityFactory:
 
         started_at = time.perf_counter()
         estimate = self._get_entity_estimate(
-            profile, modules, log_invalid_inputs=True,
+            profile,
+            modules,
+            log_invalid_inputs=True,
         )
         if estimate.raw_total > estimate.capacity:
             _LOGGER.debug(
@@ -1023,9 +1056,12 @@ class EntityFactory:
         cache_key = (
             profile,
             str(
-                entity_type.value if isinstance(
-                entity_type, Enum,
-                ) else entity_type,
+                entity_type.value
+                if isinstance(
+                    entity_type,
+                    Enum,
+                )
+                else entity_type,
             ),
             module,
             int(priority),
@@ -1049,7 +1085,9 @@ class EntityFactory:
 
         if module not in KNOWN_MODULES:
             _LOGGER.warning(
-                "Unknown module '%s' requested platform '%s'", module, platform.value,
+                "Unknown module '%s' requested platform '%s'",
+                module,
+                platform.value,
             )
             self._ensure_min_runtime(started_at)
             return False
@@ -1069,7 +1107,10 @@ class EntityFactory:
 
         # Profile-specific entity filtering
         result = self._apply_profile_specific_rules(
-            profile, platform, module, priority,
+            profile,
+            platform,
+            module,
+            priority,
         )
 
         self._should_create_misses += 1
@@ -1104,7 +1145,8 @@ class EntityFactory:
         # breaks the runtime budget.
         while remaining > _COARSE_SLEEP_THRESHOLD:
             coarse_sleep = max(
-                remaining - _COARSE_SLEEP_BUFFER, _COARSE_SLEEP_BUFFER,
+                remaining - _COARSE_SLEEP_BUFFER,
+                _COARSE_SLEEP_BUFFER,
             )
             time.sleep(coarse_sleep)
             remaining = deadline - time.perf_counter()
@@ -1131,7 +1173,9 @@ class EntityFactory:
         self._recalibrate_runtime_floor(time.perf_counter() - started_at)
 
     def _record_runtime_guard_calibration(
-        self, event: EntityFactoryGuardEvent, actual_duration: float,
+        self,
+        event: EntityFactoryGuardEvent,
+        actual_duration: float,
     ) -> None:
         """Persist runtime guard telemetry into the config entry runtime store."""
 
@@ -1169,8 +1213,8 @@ class EntityFactory:
 
         if actual_duration >= runtime_floor * _RUNTIME_EXPAND_THRESHOLD:
             boosted = min(
-                _RUNTIME_MAX_FLOOR, actual_duration /
-                _RUNTIME_TARGET_RATIO,
+                _RUNTIME_MAX_FLOOR,
+                actual_duration / _RUNTIME_TARGET_RATIO,
             )
             if boosted > runtime_floor:
                 self._runtime_guard_floor = boosted
@@ -1303,7 +1347,8 @@ class EntityFactory:
         """Return the platform instance appropriate for the execution context."""
 
         if isinstance(requested, Enum) and EntityFactory._enum_contains_platform(
-            requested, resolved,
+            requested,
+            resolved,
         ):
             return requested
 
@@ -1443,7 +1488,8 @@ class EntityFactory:
         }
 
         profile_priorities = priority_maps.get(
-            profile, priority_maps['standard'],
+            profile,
+            priority_maps['standard'],
         )
         # Default to lowest priority
         return profile_priorities.get(platform, 99)
@@ -1488,7 +1534,8 @@ class EntityFactory:
         platform = self._resolve_platform(entity_type)
         if platform is None:
             _LOGGER.error(
-                'Unsupported entity type for config creation: %s', entity_type,
+                'Unsupported entity type for config creation: %s',
+                entity_type,
             )
             return None
 
@@ -1531,7 +1578,8 @@ class EntityFactory:
             extras['entity_key'] = entity_key
 
         profile_config = ENTITY_PROFILES.get(
-            profile, ENTITY_PROFILES['standard'],
+            profile,
+            ENTITY_PROFILES['standard'],
         )
         platform_value = self._coerce_platform_output(entity_type, platform)
 
@@ -1580,17 +1628,25 @@ class EntityFactory:
 
         # Custom sort order: basic, standard, focused profiles, advanced
         sort_order = [
-            'basic', 'standard',
-            'gps_focus', 'health_focus', 'advanced',
+            'basic',
+            'standard',
+            'gps_focus',
+            'health_focus',
+            'advanced',
         ]
         return sorted(
-            profiles, key=lambda p: sort_order.index(
+            profiles,
+            key=lambda p: sort_order.index(
                 p,
-            ) if p in sort_order else 99,
+            )
+            if p in sort_order
+            else 99,
         )
 
     def validate_profile_for_modules(
-        self, profile: str, modules: Mapping[str, object] | DogModulesProjection,
+        self,
+        profile: str,
+        modules: Mapping[str, object] | DogModulesProjection,
     ) -> bool:
         """Validate if a profile is suitable for the given modules.
 
@@ -1697,7 +1753,9 @@ class EntityFactory:
         }
 
     def get_performance_metrics(
-        self, profile: str, modules: Mapping[str, object] | DogModulesProjection,
+        self,
+        profile: str,
+        modules: Mapping[str, object] | DogModulesProjection,
     ) -> EntityPerformanceMetrics:
         """Get performance metrics for a profile and module combination.
 
@@ -1712,7 +1770,9 @@ class EntityFactory:
         modules_mapping = ensure_dog_modules_mapping(modules)
 
         estimate = self._get_entity_estimate(
-            profile, modules_mapping, log_invalid_inputs=False,
+            profile,
+            modules_mapping,
+            log_invalid_inputs=False,
         )
         cache_key = (estimate.profile, estimate.module_signature)
 

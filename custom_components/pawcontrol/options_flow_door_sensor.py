@@ -26,7 +26,8 @@ _LOGGER = logging.getLogger(__name__)
 
 class DoorSensorOptionsMixin:
     async def async_step_select_dog_for_door_sensor(
-        self, user_input: OptionsDogSelectionInput | None = None,
+        self,
+        user_input: OptionsDogSelectionInput | None = None,
     ) -> ConfigFlowResult:
         """Select a dog for door sensor configuration."""
 
@@ -71,7 +72,8 @@ class DoorSensorOptionsMixin:
         )
 
     async def async_step_configure_door_sensor(
-        self, user_input: OptionsDoorSensorInput | None = None,
+        self,
+        user_input: OptionsDoorSensorInput | None = None,
     ) -> ConfigFlowResult:
         """Configure door sensor entity and overrides for the current dog."""
 
@@ -90,7 +92,8 @@ class DoorSensorOptionsMixin:
 
         available_sensors = self._get_available_door_sensors()
         existing_sensor = cast(
-            str | None, self._current_dog.get(CONF_DOOR_SENSOR),
+            str | None,
+            self._current_dog.get(CONF_DOOR_SENSOR),
         )
         existing_payload = self._current_dog.get(CONF_DOOR_SENSOR_SETTINGS)
         existing_settings: Mapping[str, bool | int | float | str | None] | None = None  # noqa: F821
@@ -121,9 +124,13 @@ class DoorSensorOptionsMixin:
 
             if trimmed_sensor:
                 state = self.hass.states.get(trimmed_sensor)
-                device_class = state.attributes.get(
-                    'device_class',
-                ) if state else None
+                device_class = (
+                    state.attributes.get(
+                        'device_class',
+                    )
+                    if state
+                    else None
+                )
                 if device_class not in DOOR_SENSOR_DEVICE_CLASSES:  # noqa: F821
                     errors[CONF_DOOR_SENSOR] = 'door_sensor_not_found'
 
@@ -157,7 +164,8 @@ class DoorSensorOptionsMixin:
                     settings_store = None
                 else:
                     settings_store = cast(
-                        DoorSensorSettingsPayload, settings_payload,
+                        DoorSensorSettingsPayload,
+                        settings_payload,
                     )
 
                 existing_sensor_trimmed = (
@@ -167,7 +175,8 @@ class DoorSensorOptionsMixin:
                 )
 
                 updated_dog: JSONMutableMapping = cast(
-                    JSONMutableMapping, dict(self._current_dog),
+                    JSONMutableMapping,
+                    dict(self._current_dog),
                 )
                 if sensor_store is None:
                     updated_dog.pop(CONF_DOOR_SENSOR, None)
@@ -178,7 +187,8 @@ class DoorSensorOptionsMixin:
                         updated_dog.pop(CONF_DOOR_SENSOR_SETTINGS, None)
                     else:
                         updated_dog[CONF_DOOR_SENSOR_SETTINGS] = cast(
-                            JSONValue, settings_store,
+                            JSONValue,
+                            settings_store,
                         )
 
                 try:
@@ -203,7 +213,8 @@ class DoorSensorOptionsMixin:
                         or settings_store is not None
                     ) and existing_settings_payload != settings_store:
                         persist_updates[CONF_DOOR_SENSOR_SETTINGS] = cast(
-                            JSONValue, settings_store,
+                            JSONValue,
+                            settings_store,
                         )
 
                     data_manager = None
@@ -219,7 +230,9 @@ class DoorSensorOptionsMixin:
                             errors['base'] = 'runtime_cache_unavailable'
                         else:
                             data_manager = getattr(
-                                runtime, 'data_manager', None,
+                                runtime,
+                                'data_manager',
+                                None,
                             )
                             if data_manager is None:
                                 _LOGGER.error(
@@ -231,7 +244,8 @@ class DoorSensorOptionsMixin:
                     if data_manager and persist_updates and 'base' not in errors:
                         try:
                             await data_manager.async_update_dog_data(
-                                dog_id, persist_updates,
+                                dog_id,
+                                persist_updates,
                             )
                         except Exception as err:  # pragma: no cover - defensive
                             _LOGGER.error(
@@ -301,7 +315,8 @@ class DoorSensorOptionsMixin:
 
                             new_data = {**self._entry.data, CONF_DOGS: typed_dogs}  # noqa: F821
                             self.hass.config_entries.async_update_entry(
-                                self._entry, data=new_data,
+                                self._entry,
+                                data=new_data,
                             )
                             self._invalidate_profile_caches()
                         return await self.async_step_manage_dogs()

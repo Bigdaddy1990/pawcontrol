@@ -70,12 +70,16 @@ class CoordinatorDataAccessMixin:
 
     @overload
     def get_module_data(
-        self, dog_id: str, module: str,
+        self,
+        dog_id: str,
+        module: str,
     ) -> CoordinatorModuleLookupResult:
         """Return cached data for a module without strict typing."""
 
     def get_module_data(
-        self, dog_id: str, module: str,
+        self,
+        dog_id: str,
+        module: str,
     ) -> CoordinatorModuleLookupResult:
         """Return cached data for a specific module."""
 

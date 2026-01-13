@@ -98,7 +98,8 @@ _STORAGE_FILENAME = 'data.json'
 
 _CANONICAL_HOMEASSISTANT_ERROR: type[Exception] = HomeAssistantError
 _HOMEASSISTANT_ERROR_PROXY_CACHE: dict[
-    tuple[type[Exception], ...], type[Exception],
+    tuple[type[Exception], ...],
+    type[Exception],
 ] = {}
 
 _MODULE_HISTORY_ATTRS: Final[dict[str, tuple[str, str]]] = {
@@ -306,7 +307,10 @@ class AdaptiveCache[ValueT]:
         )
 
     def _normalize_entry_locked(
-        self, key: str, entry: AdaptiveCacheEntry, now: datetime,
+        self,
+        key: str,
+        entry: AdaptiveCacheEntry,
+        now: datetime,
     ) -> AdaptiveCacheEntry:
         """Clamp metadata when cached entries originate from the future."""
 
@@ -563,7 +567,8 @@ def _estimate_namespace_entries(payload: Any) -> int:
         return total or len(payload)
 
     if isinstance(payload, Sequence) and not isinstance(
-        payload, str | bytes | bytearray,
+        payload,
+        str | bytes | bytearray,
     ):
         return len(payload)
 
@@ -583,7 +588,8 @@ def _find_namespace_timestamp(payload: Any) -> str | None:
             if found is not None:
                 return found
     elif isinstance(payload, Sequence) and not isinstance(
-        payload, str | bytes | bytearray,
+        payload,
+        str | bytes | bytearray,
     ):
         for item in payload:
             found = _find_namespace_timestamp(item)
@@ -601,7 +607,8 @@ def _namespace_has_timestamp_field(payload: Any) -> bool:
                 return True
         return any(_namespace_has_timestamp_field(value) for value in payload.values())
     if isinstance(payload, Sequence) and not isinstance(
-        payload, str | bytes | bytearray,
+        payload,
+        str | bytes | bytearray,
     ):
         return any(_namespace_has_timestamp_field(item) for item in payload)
     return False
@@ -613,7 +620,10 @@ class _StorageNamespaceCacheMonitor:
     __slots__ = ('_label', '_manager', '_namespace')
 
     def __init__(
-        self, manager: PawControlDataManager, namespace: str, label: str,
+        self,
+        manager: PawControlDataManager,
+        namespace: str,
+        label: str,
     ) -> None:
         self._manager = manager
         self._namespace = namespace
@@ -622,7 +632,9 @@ class _StorageNamespaceCacheMonitor:
     def _build_payload(
         self,
     ) -> tuple[
-        StorageNamespaceStats, StorageNamespaceSnapshot, CacheDiagnosticsMetadata,
+        StorageNamespaceStats,
+        StorageNamespaceSnapshot,
+        CacheDiagnosticsMetadata,
     ]:
         state = self._manager._namespace_state.get(self._namespace, {})
         per_dog: dict[str, StorageNamespaceDogSummary] = {}
@@ -756,10 +768,12 @@ def _resolve_homeassistant_error() -> type[Exception]:
     if module is not None:
         module_candidate = getattr(module, 'HomeAssistantError', None)
         if isinstance(module_candidate, type) and issubclass(
-            module_candidate, Exception,
+            module_candidate,
+            Exception,
         ):
             _CANONICAL_HOMEASSISTANT_ERROR = cast(
-                type[Exception], module_candidate,
+                type[Exception],
+                module_candidate,
             )
             candidates.append(cast(type[Exception], module_candidate))
 
@@ -831,7 +845,8 @@ def _coerce_mapping(value: JSONLikeMapping | None) -> JSONMutableMapping:
 
 
 def _merge_dicts(
-    base: JSONLikeMapping | None, updates: JSONLikeMapping | None,
+    base: JSONLikeMapping | None,
+    updates: JSONLikeMapping | None,
 ) -> JSONMutableMapping:
     """Deep merge ``updates`` into ``base`` using Home Assistant semantics."""
 
@@ -855,7 +870,9 @@ def _merge_dicts(
 
 
 def _limit_entries(
-    entries: list[JSONMutableMapping], *, limit: int | None,
+    entries: list[JSONMutableMapping],
+    *,
+    limit: int | None,
 ) -> list[JSONMutableMapping]:
     """Return ``entries`` optionally constrained to the most recent ``limit``."""
 
@@ -953,7 +970,9 @@ class DogProfile:
 
     @classmethod
     def from_storage(
-        cls, config: JSONLikeMapping, stored: JSONLikeMapping | None,
+        cls,
+        config: JSONLikeMapping,
+        stored: JSONLikeMapping | None,
     ) -> DogProfile:
         """Restore a profile from persisted JSON data."""
 
@@ -962,7 +981,8 @@ class DogProfile:
             raw_daily_stats = stored.get('daily_stats')
             if isinstance(raw_daily_stats, Mapping):
                 daily_stats_payload = cast(
-                    JSONMappingLike | JSONMutableMapping, raw_daily_stats,
+                    JSONMappingLike | JSONMutableMapping,
+                    raw_daily_stats,
                 )
         feeding_history = (
             _normalise_history_entries(stored.get('feeding_history', ()))
@@ -972,9 +992,12 @@ class DogProfile:
         walk_history = (
             _normalise_history_entries(
                 stored.get(
-                'walk_history', (),
+                    'walk_history',
+                    (),
                 ),
-            ) if stored else []
+            )
+            if stored
+            else []
         )
         health_history = (
             _normalise_history_entries(stored.get('health_history', ()))
@@ -989,9 +1012,12 @@ class DogProfile:
         poop_history = (
             _normalise_history_entries(
                 stored.get(
-                'poop_history', (),
+                    'poop_history',
+                    (),
                 ),
-            ) if stored else []
+            )
+            if stored
+            else []
         )
         grooming_sessions = (
             _normalise_history_entries(stored.get('grooming_sessions', ()))
@@ -1254,7 +1280,8 @@ class PawControlDataManager:
             stored_mapping: JSONMappingLike | JSONMutableMapping | None
             if isinstance(stored_payload, Mapping):
                 stored_mapping = cast(
-                    JSONMappingLike | JSONMutableMapping, stored_payload,
+                    JSONMappingLike | JSONMutableMapping,
+                    stored_payload,
                 )
             else:
                 stored_mapping = None
@@ -1274,7 +1301,8 @@ class PawControlDataManager:
                 await self._get_namespace_data(namespace)
             except HomeAssistantError:
                 _LOGGER.debug(
-                    'Failed to preload namespace %s during initialization', namespace,
+                    'Failed to preload namespace %s during initialization',
+                    namespace,
                 )
 
         self._initialised = True
@@ -1290,7 +1318,8 @@ class PawControlDataManager:
                 await self._async_save_dog_data(dog_id)
             except HomeAssistantError:
                 _LOGGER.exception(
-                    'Failed to persist PawControl data for %s', dog_id,
+                    'Failed to persist PawControl data for %s',
+                    dog_id,
                 )
 
     async def async_log_feeding(self, dog_id: str, feeding: FeedingData) -> bool:
@@ -1320,7 +1349,8 @@ class PawControlDataManager:
             )
             profile.feeding_history.append(entry)
             profile.daily_stats.register_feeding(
-                feeding.portion_size, feeding.timestamp,
+                feeding.portion_size,
+                feeding.timestamp,
             )
 
         try:
@@ -1329,7 +1359,9 @@ class PawControlDataManager:
             return False
         except Exception as err:  # pragma: no cover - defensive guard
             _LOGGER.error(
-                'Failed to persist feeding data for %s: %s', dog_id, err,
+                'Failed to persist feeding data for %s: %s',
+                dog_id,
+                err,
             )
             return False
         return True
@@ -1371,9 +1403,12 @@ class PawControlDataManager:
                 dog_id,
                 lambda current: _merge_dicts(
                     _coerce_mapping(
-                        current if isinstance(
-                        current, Mapping,
-                        ) else {},
+                        current
+                        if isinstance(
+                            current,
+                            Mapping,
+                        )
+                        else {},
                     ),
                     payload,
                 ),
@@ -1393,7 +1428,8 @@ class PawControlDataManager:
         return True
 
     async def async_get_visitor_mode_status(
-        self, dog_id: str,
+        self,
+        dog_id: str,
     ) -> VisitorModeSettingsPayload:
         """Return the visitor mode status for ``dog_id``."""
 
@@ -1420,11 +1456,14 @@ class PawControlDataManager:
                 self.register_cache_monitor(name, cache)
             except ValueError:  # pragma: no cover - invalid names guarded earlier
                 _LOGGER.debug(
-                    'Rejected cache monitor %s due to invalid name', name,
+                    'Rejected cache monitor %s due to invalid name',
+                    name,
                 )
             except Exception as err:  # pragma: no cover - diagnostics guard
                 _LOGGER.debug(
-                    'Failed to register cache monitor %s: %s', name, err,
+                    'Failed to register cache monitor %s: %s',
+                    name,
+                    err,
                 )
 
         runtime = self._get_runtime_data()
@@ -1433,19 +1472,29 @@ class PawControlDataManager:
 
         storage_monitors = {
             'storage_visitor_mode': _StorageNamespaceCacheMonitor(
-                self, 'visitor_mode', 'visitor_mode',
+                self,
+                'visitor_mode',
+                'visitor_mode',
             ),
             'storage_module_state': _StorageNamespaceCacheMonitor(
-                self, 'module_state', 'module_state',
+                self,
+                'module_state',
+                'module_state',
             ),
             'storage_analysis_cache': _StorageNamespaceCacheMonitor(
-                self, 'analysis_cache', 'analysis',
+                self,
+                'analysis_cache',
+                'analysis',
             ),
             'storage_reports': _StorageNamespaceCacheMonitor(
-                self, 'reports', 'reports',
+                self,
+                'reports',
+                'reports',
             ),
             'storage_health_reports': _StorageNamespaceCacheMonitor(
-                self, 'health_reports', 'health_reports',
+                self,
+                'health_reports',
+                'health_reports',
             ),
         }
 
@@ -1453,13 +1502,18 @@ class PawControlDataManager:
             _try_register(name, monitor)
 
     def _register_manager_cache_monitors(
-        self, manager: Any, *, prefix: str | None, label: str,
+        self,
+        manager: Any,
+        *,
+        prefix: str | None,
+        label: str,
     ) -> None:
         """Register cache monitors exposed by ``manager`` if available."""
 
         if manager is None:
             _LOGGER.debug(
-                'Skipping cache monitor registration for %s: manager missing', label,
+                'Skipping cache monitor registration for %s: manager missing',
+                label,
             )
             return
 
@@ -1529,24 +1583,28 @@ class PawControlDataManager:
         if modules is not None:
             try:
                 self.register_cache_monitor(
-                    'coordinator_modules', _CoordinatorModuleCacheMonitor(
+                    'coordinator_modules',
+                    _CoordinatorModuleCacheMonitor(
                         modules,
                     ),
                 )
             except Exception as err:  # pragma: no cover - diagnostics guard
                 _LOGGER.debug(
-                    'Failed to register coordinator module cache monitor: %s', err,
+                    'Failed to register coordinator module cache monitor: %s',
+                    err,
                 )
 
         tracker = getattr(coordinator, '_entity_budget', None)
         if tracker is not None:
             try:
                 self.register_cache_monitor(
-                    'entity_budget_tracker', _EntityBudgetMonitor(tracker),
+                    'entity_budget_tracker',
+                    _EntityBudgetMonitor(tracker),
                 )
             except Exception as err:  # pragma: no cover - diagnostics guard
                 _LOGGER.debug(
-                    'Failed to register entity budget cache monitor: %s', err,
+                    'Failed to register entity budget cache monitor: %s',
+                    err,
                 )
 
         self._register_manager_cache_monitors(
@@ -1617,7 +1675,8 @@ class PawControlDataManager:
                     raw_stats = stats_method()
                     if isinstance(raw_stats, Mapping):
                         stats_payload = cast(
-                            JSONMutableMapping, dict(raw_stats),
+                            JSONMutableMapping,
+                            dict(raw_stats),
                         )
                     elif raw_stats is not None:
                         stats_payload = cast(JSONMutableMapping, raw_stats)
@@ -1627,11 +1686,13 @@ class PawControlDataManager:
                     raw_diagnostics = diagnostics_method()
                     if isinstance(raw_diagnostics, Mapping):
                         diagnostics_payload = cast(
-                            CacheDiagnosticsMetadata, dict(raw_diagnostics),
+                            CacheDiagnosticsMetadata,
+                            dict(raw_diagnostics),
                         )
                     elif raw_diagnostics is not None:
                         diagnostics_payload = cast(
-                            CacheDiagnosticsMetadata, raw_diagnostics,
+                            CacheDiagnosticsMetadata,
+                            raw_diagnostics,
                         )
 
                 return CacheDiagnosticsSnapshot(
@@ -1655,7 +1716,8 @@ class PawControlDataManager:
         return snapshots
 
     def cache_repair_summary(
-        self, snapshots: CacheDiagnosticsMap | None = None,
+        self,
+        snapshots: CacheDiagnosticsMap | None = None,
     ) -> CacheRepairAggregate | None:
         """Return aggregated cache metrics suitable for Home Assistant repairs."""
 
@@ -1740,9 +1802,12 @@ class PawControlDataManager:
 
             diagnostics_payload = snapshot_payload.diagnostics
             diagnostics_map = (
-                diagnostics_payload if isinstance(
-                    diagnostics_payload, Mapping,
-                ) else {}
+                diagnostics_payload
+                if isinstance(
+                    diagnostics_payload,
+                    Mapping,
+                )
+                else {}
             )
 
             expired_entries = _as_int(diagnostics_map.get('expired_entries'))
@@ -1772,7 +1837,8 @@ class PawControlDataManager:
 
             errors_payload = diagnostics_map.get('errors')
             if isinstance(errors_payload, Sequence) and not isinstance(
-                errors_payload, str | bytes | bytearray,
+                errors_payload,
+                str | bytes | bytearray,
             ):
                 error_list = [
                     str(item)
@@ -1846,7 +1912,8 @@ class PawControlDataManager:
         total_requests: float = float(totals.hits) + float(totals.misses)
         if total_requests:
             totals.overall_hit_rate = round(
-                float(totals.hits) / total_requests * 100.0, 2,
+                float(totals.hits) / total_requests * 100.0,
+                2,
             )
 
         severity = 'info'
@@ -1921,7 +1988,10 @@ class PawControlDataManager:
         }
 
     def get_feeding_history(
-        self, dog_id: str, *, limit: int | None = None,
+        self,
+        dog_id: str,
+        *,
+        limit: int | None = None,
     ) -> list[JSONMutableMapping]:
         """Return historical feeding entries."""
 
@@ -1931,7 +2001,8 @@ class PawControlDataManager:
 
         history = list(profile.feeding_history)
         history.sort(
-            key=lambda item: _history_sort_key(item, 'timestamp'), reverse=True,
+            key=lambda item: _history_sort_key(item, 'timestamp'),
+            reverse=True,
         )
         if limit is not None:
             return history[:limit]
@@ -1992,12 +2063,20 @@ class PawControlDataManager:
         if not isinstance(entries, list):
             return []
 
-        since_bound = _deserialize_datetime(
-            since,
-        ) if since is not None else None
-        until_bound = _deserialize_datetime(
-            until,
-        ) if until is not None else None
+        since_bound = (
+            _deserialize_datetime(
+                since,
+            )
+            if since is not None
+            else None
+        )
+        until_bound = (
+            _deserialize_datetime(
+                until,
+            )
+            if until is not None
+            else None
+        )
 
         prepared: list[tuple[datetime | None, JSONMutableMapping]] = []
         for entry in entries:
@@ -2082,7 +2161,11 @@ class PawControlDataManager:
         await self._update_namespace_for_dog('module_state', dog_id, updater)
 
     async def async_log_poop_data(
-        self, dog_id: str, poop_data: JSONLikeMapping, *, limit: int = 100,
+        self,
+        dog_id: str,
+        poop_data: JSONLikeMapping,
+        *,
+        limit: int = 100,
     ) -> bool:
         """Store poop events for ``dog_id`` with optional history limit."""
 
@@ -2099,7 +2182,8 @@ class PawControlDataManager:
             profile = self._dog_profiles[dog_id]
             profile.poop_history.append(payload)
             profile.poop_history[:] = _limit_entries(
-                profile.poop_history, limit=limit,
+                profile.poop_history,
+                limit=limit,
             )
 
         try:
@@ -2129,7 +2213,8 @@ class PawControlDataManager:
         async with self._data_lock:
             profile.grooming_sessions.append(payload)
             profile.grooming_sessions[:] = _limit_entries(
-                profile.grooming_sessions, limit=50,
+                profile.grooming_sessions,
+                limit=50,
             )
 
         await self._async_save_profile(dog_id, profile)
@@ -2161,7 +2246,9 @@ class PawControlDataManager:
 
         if analysis_type in {'feeding', 'comprehensive'}:
             feedings_raw = await self.async_get_module_history(
-                MODULE_FEEDING, dog_id, since=window_start,
+                MODULE_FEEDING,
+                dog_id,
+                since=window_start,
             )
             feedings: list[tuple[datetime, JSONMutableMapping]] = []
             for entry in feedings_raw:
@@ -2183,7 +2270,9 @@ class PawControlDataManager:
 
         if analysis_type in {'walking', 'comprehensive'}:
             walks_raw = await self.async_get_module_history(
-                MODULE_WALK, dog_id, since=window_start,
+                MODULE_WALK,
+                dog_id,
+                since=window_start,
             )
             walks: list[tuple[datetime, JSONMutableMapping]] = []
             for entry in walks_raw:
@@ -2203,7 +2292,9 @@ class PawControlDataManager:
 
         if analysis_type in {'health', 'comprehensive'}:
             health_raw = await self.async_get_module_history(
-                MODULE_HEALTH, dog_id, since=window_start,
+                MODULE_HEALTH,
+                dog_id,
+                since=window_start,
             )
             health_entries = [
                 entry
@@ -2220,9 +2311,12 @@ class PawControlDataManager:
             dog_id,
             lambda current: _merge_dicts(
                 _coerce_mapping(
-                    current if isinstance(
-                    current, Mapping,
-                    ) else {},
+                    current
+                    if isinstance(
+                        current,
+                        Mapping,
+                    )
+                    else {},
                 ),
                 {analysis_type: result},
             ),
@@ -2237,13 +2331,15 @@ class PawControlDataManager:
         ):
             try:
                 advanced = await feeding_manager.async_analyze_feeding_health(
-                    dog_id, days,
+                    dog_id,
+                    days,
                 )
             except Exception:  # pragma: no cover - non-critical fallback
                 advanced = None
             if advanced:
                 feeding_section = cast(
-                    JSONMutableMapping, result.setdefault('feeding', {}),
+                    JSONMutableMapping,
+                    result.setdefault('feeding', {}),
                 )
                 feeding_section['health_analysis'] = advanced
 
@@ -2266,12 +2362,20 @@ class PawControlDataManager:
 
         profile = self._ensure_profile(dog_id)
         now = _utcnow()
-        report_window_start = _deserialize_datetime(
-            start_date,
-        ) if start_date else None
-        report_window_end = _deserialize_datetime(
-            end_date,
-        ) if end_date else None
+        report_window_start = (
+            _deserialize_datetime(
+                start_date,
+            )
+            if start_date
+            else None
+        )
+        report_window_end = (
+            _deserialize_datetime(
+                end_date,
+            )
+            if end_date
+            else None
+        )
         if report_window_start is None:
             report_window_start = now - timedelta(days=max(days, 1))
         if report_window_end is None:
@@ -2369,7 +2473,8 @@ class PawControlDataManager:
                 health_report = None
             if health_report:
                 health_section = cast(
-                    JSONMutableMapping, report.setdefault('health', {}),
+                    JSONMutableMapping,
+                    report.setdefault('health', {}),
                 )
                 health_section['detailed_report'] = health_report
 
@@ -2378,9 +2483,12 @@ class PawControlDataManager:
             dog_id,
             lambda current: _merge_dicts(
                 _coerce_mapping(
-                    current if isinstance(
-                    current, Mapping,
-                    ) else {},
+                    current
+                    if isinstance(
+                        current,
+                        Mapping,
+                    )
+                    else {},
                 ),
                 {report_type: report},
             ),
@@ -2389,10 +2497,13 @@ class PawControlDataManager:
         if send_notification:
             runtime = runtime or self._get_runtime_data()
             notification_manager = getattr(
-                runtime, 'notification_manager', None,
+                runtime,
+                'notification_manager',
+                None,
             )
             if notification_manager and hasattr(
-                notification_manager, 'async_send_notification',
+                notification_manager,
+                'async_send_notification',
             ):
                 try:
                     await notification_manager.async_send_notification(
@@ -2406,13 +2517,17 @@ class PawControlDataManager:
                     )
                 except Exception:  # pragma: no cover - notification best-effort
                     _LOGGER.debug(
-                        'Notification dispatch for report failed', exc_info=True,
+                        'Notification dispatch for report failed',
+                        exc_info=True,
                     )
 
         return report
 
     async def async_generate_weekly_health_report(
-        self, dog_id: str, *, include_medication: bool = True,
+        self,
+        dog_id: str,
+        *,
+        include_medication: bool = True,
     ) -> JSONMutableMapping:
         """Generate a weekly health overview for ``dog_id``."""
 
@@ -2421,7 +2536,9 @@ class PawControlDataManager:
         cutoff = now - timedelta(days=7)
 
         health_entries = await self.async_get_module_history(
-            MODULE_HEALTH, dog_id, since=cutoff,
+            MODULE_HEALTH,
+            dog_id,
+            since=cutoff,
         )
 
         report: JSONMutableMapping = {
@@ -2442,7 +2559,9 @@ class PawControlDataManager:
 
         if include_medication:
             medications = await self.async_get_module_history(
-                MODULE_MEDICATION, dog_id, since=cutoff,
+                MODULE_MEDICATION,
+                dog_id,
+                since=cutoff,
             )
             report['medication'] = {
                 'entries': len(medications),
@@ -2454,9 +2573,12 @@ class PawControlDataManager:
             dog_id,
             lambda current: _merge_dicts(
                 _coerce_mapping(
-                    current if isinstance(
-                    current, Mapping,
-                    ) else {},
+                    current
+                    if isinstance(
+                        current,
+                        Mapping,
+                    )
+                    else {},
                 ),
                 {'weekly': report},
             ),
@@ -2538,7 +2660,8 @@ class PawControlDataManager:
                 if isinstance(content, Mapping):
                     return content
                 if isinstance(content, Sequence) and not isinstance(
-                    content, (str, bytes, bytearray),
+                    content,
+                    (str, bytes, bytearray),
                 ):
                     return list(content)
                 if content is None:
@@ -2558,7 +2681,8 @@ class PawControlDataManager:
                     )
                 else:
                     export_path.write_text(
-                        str(content or ''), encoding='utf-8',
+                        str(content or ''),
+                        encoding='utf-8',
                     )
 
             await asyncio.to_thread(_write_route_export)
@@ -2593,7 +2717,10 @@ class PawControlDataManager:
                 end = _utcnow()
 
             history = await self.async_get_module_history(
-                module_name, dog_id, since=start, until=end,
+                module_name,
+                dog_id,
+                since=start,
+                until=end,
             )
 
             def _sort_key(payload: JSONLikeMapping) -> tuple[int, str]:
@@ -2627,7 +2754,8 @@ class PawControlDataManager:
 
             extension = 'md' if normalized_format == 'markdown' else normalized_format
             filename = f"{self.entry_id}_{dog_id}_{export_type}_{timestamp}.{extension}".replace(
-                ' ', '_',
+                ' ',
+                '_',
             )
             export_path = export_dir / filename
 
@@ -2651,7 +2779,8 @@ class PawControlDataManager:
 
                 def _write_markdown() -> None:
                     lines = [
-                        f"# {export_type.title()} export for {dog_id}", '',
+                        f"# {export_type.title()} export for {dog_id}",
+                        '',
                     ]
                     lines.extend(
                         '- ' + ', '.join(f"{k}: {v}" for k, v in entry.items())
@@ -2759,7 +2888,9 @@ class PawControlDataManager:
             return False
         except Exception as err:  # pragma: no cover - defensive guard
             _LOGGER.error(
-                'Failed to persist walk data for %s: %s', dog_id, err,
+                'Failed to persist walk data for %s: %s',
+                dog_id,
+                err,
             )
             return False
         return True
@@ -2799,7 +2930,9 @@ class PawControlDataManager:
             profile.walk_history.append(_serialize_walk(walk))
             profile.current_walk = None
             profile.daily_stats.register_walk(
-                walk.duration, walk.distance, end_time,
+                walk.duration,
+                walk.distance,
+                end_time,
             )
 
         try:
@@ -2808,13 +2941,18 @@ class PawControlDataManager:
             return False
         except Exception as err:  # pragma: no cover - defensive guard
             _LOGGER.error(
-                'Failed to persist walk route for %s: %s', dog_id, err,
+                'Failed to persist walk route for %s: %s',
+                dog_id,
+                err,
             )
             return False
         return True
 
     def get_walk_history(
-        self, dog_id: str, *, limit: int | None = None,
+        self,
+        dog_id: str,
+        *,
+        limit: int | None = None,
     ) -> list[JSONMutableMapping]:
         """Return stored walk history."""
 
@@ -2825,8 +2963,10 @@ class PawControlDataManager:
         history = list(profile.walk_history)
         history.sort(
             key=lambda item: _history_sort_key(
-            item, 'end_time',
-            ), reverse=True,
+                item,
+                'end_time',
+            ),
+            reverse=True,
         )
         if limit is not None:
             return history[:limit]
@@ -2867,13 +3007,17 @@ class PawControlDataManager:
             return False
         except Exception as err:  # pragma: no cover - defensive guard
             _LOGGER.error(
-                'Failed to persist health data for %s: %s', dog_id, err,
+                'Failed to persist health data for %s: %s',
+                dog_id,
+                err,
             )
             return False
         return True
 
     async def async_log_health_data(
-        self, dog_id: str, health: HealthData | JSONLikeMapping,
+        self,
+        dog_id: str,
+        health: HealthData | JSONLikeMapping,
     ) -> bool:
         """Record a health measurement."""
 
@@ -2881,9 +3025,12 @@ class PawControlDataManager:
             return False
 
         payload = _coerce_health_payload(health)
-        timestamp = _deserialize_datetime(
-            payload.get('timestamp'),
-        ) or _utcnow()
+        timestamp = (
+            _deserialize_datetime(
+                payload.get('timestamp'),
+            )
+            or _utcnow()
+        )
 
         async with self._data_lock:
             profile = self._dog_profiles[dog_id]
@@ -2902,7 +3049,9 @@ class PawControlDataManager:
         return True
 
     async def async_log_medication(
-        self, dog_id: str, medication_data: JSONLikeMapping,
+        self,
+        dog_id: str,
+        medication_data: JSONLikeMapping,
     ) -> bool:
         """Persist medication information for ``dog_id``."""
 
@@ -2922,7 +3071,11 @@ class PawControlDataManager:
         return True
 
     async def async_update_dog_data(
-        self, dog_id: str, updates: JSONLikeMapping, *, persist: bool = True,
+        self,
+        dog_id: str,
+        updates: JSONLikeMapping,
+        *,
+        persist: bool = True,
     ) -> bool:
         """Merge ``updates`` into the stored dog configuration."""
 
@@ -2943,7 +3096,8 @@ class PawControlDataManager:
                         else None,
                     )
                     config[section] = _merge_dicts(
-                        current, cast(JSONLikeMapping, payload),
+                        current,
+                        cast(JSONLikeMapping, payload),
                     )
                 else:
                     config[section] = cast(JSONValue, payload)
@@ -2968,16 +3122,25 @@ class PawControlDataManager:
         return True
 
     async def async_update_dog_profile(
-        self, dog_id: str, profile_updates: JSONLikeMapping, *, persist: bool = True,
+        self,
+        dog_id: str,
+        profile_updates: JSONLikeMapping,
+        *,
+        persist: bool = True,
     ) -> bool:
         """Persist profile-specific updates for ``dog_id``."""
 
         return await self.async_update_dog_data(
-            dog_id, {'profile': profile_updates}, persist=persist,
+            dog_id,
+            {'profile': profile_updates},
+            persist=persist,
         )
 
     def get_health_history(
-        self, dog_id: str, *, limit: int | None = None,
+        self,
+        dog_id: str,
+        *,
+        limit: int | None = None,
     ) -> list[JSONMutableMapping]:
         """Return stored health entries."""
 
@@ -2987,14 +3150,18 @@ class PawControlDataManager:
 
         history = list(profile.health_history)
         history.sort(
-            key=lambda item: _history_sort_key(item, 'timestamp'), reverse=True,
+            key=lambda item: _history_sort_key(item, 'timestamp'),
+            reverse=True,
         )
         if limit is not None:
             return history[:limit]
         return history
 
     def get_health_trends(
-        self, dog_id: str, *, days: int = 7,
+        self,
+        dog_id: str,
+        *,
+        days: int = 7,
     ) -> JSONMutableMapping | None:
         """Analyse health entries recorded within ``days``."""
 
@@ -3127,7 +3294,9 @@ class PawControlDataManager:
             payload = json.loads(contents)
         except json.JSONDecodeError:
             _LOGGER.warning(
-                'Corrupted PawControl %s data detected at %s', namespace, path,
+                'Corrupted PawControl %s data detected at %s',
+                namespace,
+                path,
             )
             self._namespace_state[namespace] = {}
             return {}
@@ -3141,7 +3310,9 @@ class PawControlDataManager:
         return {}
 
     async def _save_namespace(
-        self, namespace: str, data: StorageNamespacePayload,
+        self,
+        namespace: str,
+        data: StorageNamespacePayload,
     ) -> None:
         """Persist a JSON payload for ``namespace`` to disk."""
 
@@ -3158,7 +3329,8 @@ class PawControlDataManager:
         self._ensure_metrics_containers()
         self._increment_metric('saves')
         self._namespace_state[namespace] = cast(
-            StorageNamespacePayload, dict(data),
+            StorageNamespacePayload,
+            dict(data),
         )
 
     async def _async_load_storage(self) -> JSONMutableMapping:
@@ -3177,7 +3349,8 @@ class PawControlDataManager:
             return {}
         except json.JSONDecodeError:
             _LOGGER.warning(
-                'Corrupted PawControl data detected at %s', self._storage_path,
+                'Corrupted PawControl data detected at %s',
+                self._storage_path,
             )
         except OSError as err:
             error_cls = _resolve_homeassistant_error()
@@ -3196,7 +3369,8 @@ class PawControlDataManager:
             return {}
         except json.JSONDecodeError:
             _LOGGER.warning(
-                'Backup PawControl data is corrupted at %s', self._backup_path,
+                'Backup PawControl data is corrupted at %s',
+                self._backup_path,
             )
         except OSError as err:
             error_cls = _resolve_homeassistant_error()

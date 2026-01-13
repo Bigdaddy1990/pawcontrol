@@ -15,7 +15,10 @@ from .types import freeze_placeholders
 
 
 def _build_add_dog_summary_placeholders(
-    *, dogs_configured: int, max_dogs: int, discovery_hint: str,
+    *,
+    dogs_configured: int,
+    max_dogs: int,
+    discovery_hint: str,
 ) -> ConfigFlowPlaceholders:
     """Return placeholders for the main add-dog form."""
 
@@ -27,7 +30,10 @@ def _build_add_dog_summary_placeholders(
 
 
 def _build_dog_modules_form_placeholders(
-    *, dog_name: str, dogs_configured: int, smart_defaults: str,
+    *,
+    dog_name: str,
+    dogs_configured: int,
+    smart_defaults: str,
 ) -> ConfigFlowPlaceholders:
     """Return placeholders for the module selection form."""
 

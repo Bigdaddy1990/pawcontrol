@@ -69,7 +69,8 @@ _BOOL_COERCION_METRICS: BoolCoercionMetrics = {
 _BOOL_COERCION_SAMPLE_LIMIT = 10
 
 _RUNTIME_STORE_STATUS_LEVELS: dict[
-    RuntimeStoreOverallStatus, tuple[RuntimeStoreHealthLevel, str],
+    RuntimeStoreOverallStatus,
+    tuple[RuntimeStoreHealthLevel, str],
 ] = {
     'current': (
         'ok',
@@ -255,23 +256,32 @@ def _coerce_runtime_store_assessment_event(
 
     level_streak_raw = candidate.get('level_streak')
     level_streak = (
-        int(level_streak_raw) if isinstance(
-            level_streak_raw, (int, float),
-        ) else 0
+        int(level_streak_raw)
+        if isinstance(
+            level_streak_raw,
+            (int, float),
+        )
+        else 0
     )
 
     escalations_raw = candidate.get('escalations')
     escalations = (
-        int(escalations_raw) if isinstance(
-            escalations_raw, (int, float),
-        ) else 0
+        int(escalations_raw)
+        if isinstance(
+            escalations_raw,
+            (int, float),
+        )
+        else 0
     )
 
     deescalations_raw = candidate.get('deescalations')
     deescalations = (
-        int(deescalations_raw) if isinstance(
-            deescalations_raw, (int, float),
-        ) else 0
+        int(deescalations_raw)
+        if isinstance(
+            deescalations_raw,
+            (int, float),
+        )
+        else 0
     )
 
     level_changed = bool(candidate.get('level_changed'))
@@ -328,7 +338,8 @@ def _normalise_runtime_store_assessment_events(
 
 
 def _calculate_percentile_value(
-    sorted_values: Sequence[float], percentile: float,
+    sorted_values: Sequence[float],
+    percentile: float,
 ) -> float | None:
     """Return the percentile value for ``sorted_values``."""
 
@@ -360,19 +371,22 @@ def _calculate_duration_percentiles(
 
     sorted_values = sorted(durations)
     percentile_p75 = _calculate_percentile_value(
-        sorted_values, _LEVEL_DURATION_PERCENTILE_TARGETS['p75'],
+        sorted_values,
+        _LEVEL_DURATION_PERCENTILE_TARGETS['p75'],
     )
     if percentile_p75 is not None:
         percentiles['p75'] = percentile_p75
 
     percentile_p90 = _calculate_percentile_value(
-        sorted_values, _LEVEL_DURATION_PERCENTILE_TARGETS['p90'],
+        sorted_values,
+        _LEVEL_DURATION_PERCENTILE_TARGETS['p90'],
     )
     if percentile_p90 is not None:
         percentiles['p90'] = percentile_p90
 
     percentile_p95 = _calculate_percentile_value(
-        sorted_values, _LEVEL_DURATION_PERCENTILE_TARGETS['p95'],
+        sorted_values,
+        _LEVEL_DURATION_PERCENTILE_TARGETS['p95'],
     )
     if percentile_p95 is not None:
         percentiles['p95'] = percentile_p95
@@ -429,7 +443,8 @@ def _summarise_runtime_store_assessment_events(
         'action_required': [],
     }
     level_duration_percentiles: dict[
-        RuntimeStoreHealthLevel, RuntimeStoreLevelDurationPercentiles,
+        RuntimeStoreHealthLevel,
+        RuntimeStoreLevelDurationPercentiles,
     ] = {
         'ok': {},
         'watch': {},
@@ -521,7 +536,8 @@ def _summarise_runtime_store_assessment_events(
                     if candidate_dt is None or candidate_dt < start_dt:
                         continue
                     duration = max(
-                        (candidate_dt - start_dt).total_seconds(), 0.0,
+                        (candidate_dt - start_dt).total_seconds(),
+                        0.0,
                     )
                     break
 
@@ -543,7 +559,8 @@ def _summarise_runtime_store_assessment_events(
     )
 
     timeline_window_seconds = _calculate_active_window_seconds(
-        first_event_timestamp, last_event_timestamp,
+        first_event_timestamp,
+        last_event_timestamp,
     )
     timeline_window_days: float | None = None
     events_per_day: float | None = None
@@ -559,7 +576,8 @@ def _summarise_runtime_store_assessment_events(
     most_common_reason: str | None = None
     if reason_counts:
         most_common_reason = max(
-            reason_counts, key=lambda item: reason_counts[item],
+            reason_counts,
+            key=lambda item: reason_counts[item],
         )
 
     most_common_level: RuntimeStoreHealthLevel | None = None
@@ -572,7 +590,8 @@ def _summarise_runtime_store_assessment_events(
     most_common_status: RuntimeStoreOverallStatus | None = None
     if status_counts and max(status_counts.values()) > 0:
         most_common_status = max(
-            status_counts.items(), key=lambda item: item[1],
+            status_counts.items(),
+            key=lambda item: item[1],
         )[0]
 
     average_divergence_rate: float | None = None
@@ -707,13 +726,15 @@ def _build_runtime_store_assessment_segments(
         entry_status = event.get('entry_status')
         if isinstance(entry_status, str):
             segment['entry_status'] = cast(
-                RuntimeStoreEntryStatus, entry_status,
+                RuntimeStoreEntryStatus,
+                entry_status,
             )
 
         store_status = event.get('store_status')
         if isinstance(store_status, str):
             segment['store_status'] = cast(
-                RuntimeStoreEntryStatus, store_status,
+                RuntimeStoreEntryStatus,
+                store_status,
             )
 
         reason = event.get('reason')
@@ -750,7 +771,8 @@ def _build_runtime_store_assessment_segments(
                 continue
             end_timestamp = candidate_timestamp
             duration_seconds = max(
-                (candidate_dt - start_dt).total_seconds(), 0.0,
+                (candidate_dt - start_dt).total_seconds(),
+                0.0,
             )
             break
 
@@ -809,7 +831,8 @@ def _record_runtime_store_assessment_event(
 
     level = cast(RuntimeStoreHealthLevel, assessment.get('level', 'ok'))
     previous_level = cast(
-        RuntimeStoreHealthLevel | None, assessment.get('previous_level'),
+        RuntimeStoreHealthLevel | None,
+        assessment.get('previous_level'),
     )
     level_changed = previous_level != level
 
@@ -837,7 +860,8 @@ def _record_runtime_store_assessment_event(
     checks = int(checks_raw) if isinstance(checks_raw, (int, float)) else 0
 
     divergence_events_raw = assessment.get(
-        'divergence_events', history.get('divergence_events', 0),
+        'divergence_events',
+        history.get('divergence_events', 0),
     )
     divergence_events = (
         int(divergence_events_raw)
@@ -846,30 +870,42 @@ def _record_runtime_store_assessment_event(
     )
 
     level_streak_raw = assessment.get(
-        'level_streak', history.get('assessment_level_streak', 0),
+        'level_streak',
+        history.get('assessment_level_streak', 0),
     )
     level_streak = (
-        int(level_streak_raw) if isinstance(
-            level_streak_raw, (int, float),
-        ) else 0
+        int(level_streak_raw)
+        if isinstance(
+            level_streak_raw,
+            (int, float),
+        )
+        else 0
     )
 
     escalations_raw = assessment.get(
-        'escalations', history.get('assessment_escalations', 0),
+        'escalations',
+        history.get('assessment_escalations', 0),
     )
     escalations = (
-        int(escalations_raw) if isinstance(
-            escalations_raw, (int, float),
-        ) else 0
+        int(escalations_raw)
+        if isinstance(
+            escalations_raw,
+            (int, float),
+        )
+        else 0
     )
 
     deescalations_raw = assessment.get(
-        'deescalations', history.get('assessment_deescalations', 0),
+        'deescalations',
+        history.get('assessment_deescalations', 0),
     )
     deescalations = (
-        int(deescalations_raw) if isinstance(
-            deescalations_raw, (int, float),
-        ) else 0
+        int(deescalations_raw)
+        if isinstance(
+            deescalations_raw,
+            (int, float),
+        )
+        else 0
     )
 
     current_duration_raw = assessment.get('current_level_duration_seconds')
@@ -963,7 +999,8 @@ def _safe_repr(value: Any, *, limit: int = 80) -> str:
 
 
 def _calculate_active_window_seconds(
-    first_seen: str | None, last_seen: str | None,
+    first_seen: str | None,
+    last_seen: str | None,
 ) -> float | None:
     """Return the duration between the first and last coercions when available."""
 
@@ -1083,10 +1120,12 @@ def update_runtime_store_health(
     entry_version = cast(int | None, entry_snapshot.get('version'))
     store_version = cast(int | None, store_snapshot.get('version'))
     entry_created_version = cast(
-        int | None, entry_snapshot.get('created_version'),
+        int | None,
+        entry_snapshot.get('created_version'),
     )
     store_created_version = cast(
-        int | None, store_snapshot.get('created_version'),
+        int | None,
+        store_snapshot.get('created_version'),
     )
     divergence_detected = bool(snapshot.get('divergence_detected'))
 
@@ -1121,7 +1160,8 @@ def update_runtime_store_health(
     history['last_store_created_version'] = store_created_version
     history['divergence_detected'] = divergence_detected
     history['status_counts'] = cast(
-        dict[RuntimeStoreOverallStatus, int], status_counts,
+        dict[RuntimeStoreOverallStatus, int],
+        status_counts,
     )
 
     previous_assessment = history.get('assessment')
@@ -1180,14 +1220,16 @@ def _build_runtime_store_assessment(
     divergence_events = int(history.get('divergence_events', 0) or 0)
     divergence_rate = float(divergence_events) / checks if checks > 0 else None
     last_status = cast(
-        RuntimeStoreOverallStatus |
-        None, history.get('last_status'),
+        RuntimeStoreOverallStatus | None,
+        history.get('last_status'),
     )
     entry_status = cast(
-        RuntimeStoreEntryStatus | None, history.get('last_entry_status'),
+        RuntimeStoreEntryStatus | None,
+        history.get('last_entry_status'),
     )
     store_status = cast(
-        RuntimeStoreEntryStatus | None, history.get('last_store_status'),
+        RuntimeStoreEntryStatus | None,
+        history.get('last_store_status'),
     )
     divergence_detected = bool(history.get('divergence_detected'))
     status_for_level = last_status or snapshot['status']
@@ -1254,8 +1296,9 @@ def _build_runtime_store_assessment(
         )
 
     last_level_change = cast(
-        str | None, history.get(
-        'assessment_last_level_change',
+        str | None,
+        history.get(
+            'assessment_last_level_change',
         ),
     )
     previous_last_level_change = last_level_change
@@ -1293,9 +1336,13 @@ def _build_runtime_store_assessment(
 
     level_changed = previous_level != level
 
-    parsed_last_checked = dt_util.parse_datetime(
-        last_checked,
-    ) if last_checked else None
+    parsed_last_checked = (
+        dt_util.parse_datetime(
+            last_checked,
+        )
+        if last_checked
+        else None
+    )
     parsed_last_change = (
         dt_util.parse_datetime(previous_last_level_change)
         if previous_last_level_change
@@ -1304,7 +1351,8 @@ def _build_runtime_store_assessment(
     elapsed_since_change: float | None = None
     if parsed_last_checked and parsed_last_change:
         elapsed_since_change = max(
-            (parsed_last_checked - parsed_last_change).total_seconds(), 0.0,
+            (parsed_last_checked - parsed_last_change).total_seconds(),
+            0.0,
         )
 
     current_level_duration = previous_current_duration
@@ -1324,7 +1372,8 @@ def _build_runtime_store_assessment(
                 resolved_previous_duration = elapsed_since_change
             previous_total = max(level_durations.get(previous_level, 0.0), 0.0)
             base_previous_total = max(
-                previous_total - previous_current_duration, 0.0,
+                previous_total - previous_current_duration,
+                0.0,
             )
             level_durations[previous_level] = (
                 base_previous_total + resolved_previous_duration
@@ -1350,7 +1399,8 @@ def _build_runtime_store_assessment(
     previous_baseline = previous_total_for_level
     if not level_changed:
         previous_baseline = max(
-            previous_total_for_level - previous_current_duration, 0.0,
+            previous_total_for_level - previous_current_duration,
+            0.0,
         )
     resolved_current_duration = (
         current_level_duration
@@ -1443,7 +1493,8 @@ def update_runtime_entity_factory_guard_metrics(
     metrics['max_floor'] = max(max_floor, 0.0)
     metrics['runtime_floor'] = max(runtime_floor, 0.0)
     metrics['runtime_floor_delta'] = max(
-        metrics['runtime_floor'] - metrics['baseline_floor'], 0.0,
+        metrics['runtime_floor'] - metrics['baseline_floor'],
+        0.0,
     )
     metrics['peak_runtime_floor'] = max(
         metrics['runtime_floor'],
@@ -1457,7 +1508,8 @@ def update_runtime_entity_factory_guard_metrics(
         )
     else:
         metrics['lowest_runtime_floor'] = max(
-            metrics['runtime_floor'], metrics['baseline_floor'],
+            metrics['runtime_floor'],
+            metrics['baseline_floor'],
         )
     duration = max(actual_duration, 0.0)
     metrics['last_actual_duration'] = duration
@@ -1507,23 +1559,29 @@ def update_runtime_entity_factory_guard_metrics(
         metrics['contractions'] = int(metrics.get('contractions', 0) or 0) + 1
         metrics['last_contraction_duration'] = duration
     elif event == 'stable':
-        metrics['stable_samples'] = int(
-            metrics.get('stable_samples', 0) or 0,
-        ) + 1
+        metrics['stable_samples'] = (
+            int(
+                metrics.get('stable_samples', 0) or 0,
+            )
+            + 1
+        )
     else:
         metrics.setdefault(
-            'stable_samples', int(
-            metrics.get('stable_samples', 0) or 0,
+            'stable_samples',
+            int(
+                metrics.get('stable_samples', 0) or 0,
             ),
         )
         metrics.setdefault(
-            'expansions', int(
-            metrics.get('expansions', 0) or 0,
+            'expansions',
+            int(
+                metrics.get('expansions', 0) or 0,
             ),
         )
         metrics.setdefault(
-            'contractions', int(
-            metrics.get('contractions', 0) or 0,
+            'contractions',
+            int(
+                metrics.get('contractions', 0) or 0,
             ),
         )
 
@@ -1539,19 +1597,27 @@ def update_runtime_entity_factory_guard_metrics(
     metrics['longest_stable_run'] = longest_run
 
     if samples > 0:
-        metrics['stable_ratio'] = float(
-            metrics.get('stable_samples', 0),
-        ) / samples
-        metrics['expansion_ratio'] = float(
-            metrics.get('expansions', 0),
-        ) / samples
-        metrics['contraction_ratio'] = float(
-            metrics.get('contractions', 0),
-        ) / samples
+        metrics['stable_ratio'] = (
+            float(
+                metrics.get('stable_samples', 0),
+            )
+            / samples
+        )
+        metrics['expansion_ratio'] = (
+            float(
+                metrics.get('expansions', 0),
+            )
+            / samples
+        )
+        metrics['contraction_ratio'] = (
+            float(
+                metrics.get('contractions', 0),
+            )
+            / samples
+        )
         metrics['volatility_ratio'] = (
             float(
-                metrics.get('expansions', 0) +
-                metrics.get('contractions', 0),
+                metrics.get('expansions', 0) + metrics.get('contractions', 0),
             )
             / samples
         )
@@ -1563,7 +1629,8 @@ def update_runtime_entity_factory_guard_metrics(
 
     existing_recent = metrics.get('recent_durations')
     if isinstance(existing_recent, Sequence) and not isinstance(
-        existing_recent, (str, bytes, bytearray),
+        existing_recent,
+        (str, bytes, bytearray),
     ):
         recent: list[float] = [
             max(float(sample), 0.0)
@@ -1592,7 +1659,8 @@ def update_runtime_entity_factory_guard_metrics(
 
     existing_events = metrics.get('recent_events')
     if isinstance(existing_events, Sequence) and not isinstance(
-        existing_events, (str, bytes, bytearray),
+        existing_events,
+        (str, bytes, bytearray),
     ):
         recent_events: list[EntityFactoryGuardEvent] = [
             cast(EntityFactoryGuardEvent, event_name)
@@ -1644,7 +1712,11 @@ def update_runtime_entity_factory_guard_metrics(
 
 
 def record_bool_coercion_event(
-    *, value: Any, default: bool, result: bool, reason: str,
+    *,
+    value: Any,
+    default: bool,
+    result: bool,
+    reason: str,
 ) -> None:
     """Record details about a boolean coercion for diagnostics."""
 
@@ -1715,7 +1787,8 @@ def get_bool_coercion_metrics() -> BoolCoercionMetrics:
         'first_seen': first_seen,
         'last_seen': last_seen,
         'active_window_seconds': _calculate_active_window_seconds(
-            first_seen, last_seen,
+            first_seen,
+            last_seen,
         ),
         'last_reset': _BOOL_COERCION_METRICS.get('last_reset'),
         'last_reason': _BOOL_COERCION_METRICS.get('last_reason'),
@@ -1837,7 +1910,8 @@ def update_runtime_bool_coercion_summary(
     if runtime_data is not None:
         performance_stats = ensure_runtime_performance_stats(runtime_data)
         performance_stats['bool_coercion_summary'] = cast(
-            BoolCoercionSummary, dict(summary),
+            BoolCoercionSummary,
+            dict(summary),
         )
     return summary
 
@@ -1892,14 +1966,15 @@ def summarise_reconfigure_options(
         health_warnings = _as_list(health_summary.get('warnings'))
 
     timestamp = str(
-        telemetry.get('timestamp')
-        or options.get('last_reconfigure') or '',
+        telemetry.get('timestamp') or options.get('last_reconfigure') or '',
     )
     requested_profile = str(telemetry.get('requested_profile', ''))
     previous_profile = str(
-        telemetry.get('previous_profile') or options.get(
+        telemetry.get('previous_profile')
+        or options.get(
             'previous_profile',
-        ) or '',
+        )
+        or '',
     )
 
     summary: ReconfigureTelemetrySummary = {
@@ -2024,7 +2099,8 @@ def update_runtime_resilience_summary(
             diagnostics.pop('summary', None)
             if diagnostics:
                 performance_stats['resilience_diagnostics'] = cast(
-                    CoordinatorResilienceDiagnostics, dict(diagnostics),
+                    CoordinatorResilienceDiagnostics,
+                    dict(diagnostics),
                 )
             else:
                 performance_stats.pop('resilience_diagnostics', None)
@@ -2039,7 +2115,8 @@ def update_runtime_resilience_summary(
     diagnostics_payload: CoordinatorResilienceDiagnostics
     if isinstance(diagnostics, Mapping):
         diagnostics_payload = cast(
-            CoordinatorResilienceDiagnostics, dict(diagnostics),
+            CoordinatorResilienceDiagnostics,
+            dict(diagnostics),
         )
     else:
         diagnostics_payload = {}

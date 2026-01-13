@@ -45,7 +45,9 @@ async def runtime_data(mock_coordinator, mock_dog_config) -> PawControlRuntimeDa
 @pytest.mark.asyncio
 @pytest.mark.parametrize('module_path', PLATFORM_MODULES)
 async def test_platform_setup_skips_without_runtime_data(
-    hass, mock_config_entry, module_path: str,
+    hass,
+    mock_config_entry,
+    module_path: str,
 ) -> None:
     module = importlib.import_module(module_path)
     async_add_entities = AsyncMock()

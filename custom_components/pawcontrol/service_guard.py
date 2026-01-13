@@ -92,7 +92,8 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
 
     @classmethod
     def from_sequence(
-        cls, results: Sequence[TGuardResult],
+        cls,
+        results: Sequence[TGuardResult],
     ) -> ServiceGuardSnapshot[TGuardResult]:
         """Create a snapshot from an ordered guard result sequence."""
 
@@ -145,7 +146,8 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
         return metrics
 
     def accumulate(
-        self, metrics: MutableMapping[str, JSONValue],
+        self,
+        metrics: MutableMapping[str, JSONValue],
     ) -> ServiceGuardMetricsSnapshot:
         """Accumulate snapshot counts into ``metrics`` and return the payload."""
 
@@ -160,7 +162,8 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
         reasons_payload_raw = metrics.get('reasons')
         if isinstance(reasons_payload_raw, MutableMapping):
             reasons_payload = cast(
-                MutableMapping[str, JSONValue], reasons_payload_raw,
+                MutableMapping[str, JSONValue],
+                reasons_payload_raw,
             )
         else:
             reasons_payload = cast(JSONMutableMapping, {})
@@ -169,9 +172,12 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
         for reason_key, count in self.reasons.items():
             existing_value = reasons_payload.get(reason_key)
             existing = (
-                int(existing_value) if isinstance(
-                    existing_value, (int, float),
-                ) else 0
+                int(existing_value)
+                if isinstance(
+                    existing_value,
+                    (int, float),
+                )
+                else 0
             )
             reasons_payload[reason_key] = existing + count
 
@@ -252,7 +258,8 @@ def normalise_guard_history(payload: Any) -> ServiceGuardResultHistory:
     """Convert an arbitrary sequence into a guard result history payload."""
 
     if not isinstance(payload, Sequence) or isinstance(
-        payload, str | bytes | bytearray,
+        payload,
+        str | bytes | bytearray,
     ):
         return []
 

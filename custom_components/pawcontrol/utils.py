@@ -112,7 +112,9 @@ else:  # pragma: no branch - executed under tests without Home Assistant install
             """Callable signature mirroring ``AddEntitiesCallback``."""
 
             def __call__(
-                self, entities: Iterable[Entity], update_before_add: bool = ...,
+                self,
+                entities: Iterable[Entity],
+                update_before_add: bool = ...,
             ) -> Awaitable[Any] | None: ...
 
         AddEntitiesCallback = _AddEntitiesCallback
@@ -280,7 +282,8 @@ def normalise_json(value: Any, _seen: set[int] | None = None) -> JSONValue:
                 return normalise_json(mapping_value, _seen)
             except Exception:  # pragma: no cover - defensive guard
                 _LOGGER.debug(
-                    'Failed to normalise to_mapping payload for %s', value,
+                    'Failed to normalise to_mapping payload for %s',
+                    value,
                 )
 
         if hasattr(value, 'to_dict') and callable(value.to_dict):
@@ -289,7 +292,8 @@ def normalise_json(value: Any, _seen: set[int] | None = None) -> JSONValue:
                 return normalise_json(dict_value, _seen)
             except Exception:  # pragma: no cover - defensive guard
                 _LOGGER.debug(
-                    'Failed to normalise to_dict payload for %s', value,
+                    'Failed to normalise to_dict payload for %s',
+                    value,
                 )
 
         if hasattr(value, '__dict__') and not isinstance(value, type):
@@ -301,7 +305,8 @@ def normalise_json(value: Any, _seen: set[int] | None = None) -> JSONValue:
             }
 
         if isinstance(
-            value, list | tuple | set | frozenset | Sequence,
+            value,
+            list | tuple | set | frozenset | Sequence,
         ) and not isinstance(value, str | bytes | bytearray):
             return [normalise_json(item, _seen) for item in value]
 
@@ -370,9 +375,13 @@ async def async_call_hass_service_if_available(
         return guard_result
 
     payload = _coerce_json_mutable(service_data)
-    target_payload = _coerce_json_mutable(
-        target,
-    ) if target is not None else None
+    target_payload = (
+        _coerce_json_mutable(
+            target,
+        )
+        if target is not None
+        else None
+    )
 
     kwargs: ServiceCallKeywordArgs = ServiceCallKeywordArgs(blocking=blocking)
     if target_payload is not None:
@@ -529,7 +538,8 @@ def _normalize_identifier_pair(
     if isinstance(identifier, tuple):
         candidate = identifier
     elif isinstance(identifier, Sequence) and not isinstance(
-        identifier, str | bytes | bytearray,
+        identifier,
+        str | bytes | bytearray,
     ):
         candidate = tuple(identifier)
     else:
@@ -703,7 +713,8 @@ async def async_get_or_create_dog_device_entry(
     if update_kwargs:
         try:
             if updated_device := device_registry.async_update_device(
-                device.id, **update_kwargs,
+                device.id,
+                **update_kwargs,
             ):
                 device = updated_device
         except Exception as err:  # pragma: no cover - defensive, HA guarantees API
@@ -766,7 +777,9 @@ class PawControlDeviceLinkMixin:
 
         info = self._device_link_details()
         suggested_area = info.get('suggested_area') or getattr(
-            self, '_attr_suggested_area', None,
+            self,
+            '_attr_suggested_area',
+            None,
         )
 
         return create_device_info(
@@ -782,7 +795,8 @@ class PawControlDeviceLinkMixin:
             hw_version=info.get('hw_version'),
             suggested_area=suggested_area,
             extra_identifiers=cast(
-                Iterable[tuple[str, str]] | None, info.get('extra_identifiers'),
+                Iterable[tuple[str, str]] | None,
+                info.get('extra_identifiers'),
             ),
         )
 
@@ -836,7 +850,8 @@ class PawControlDeviceLinkMixin:
 
 
 def deep_merge_dicts[T: JSONMutableMapping](
-    base: T, updates: Mapping[str, JSONValue],
+    base: T,
+    updates: Mapping[str, JSONValue],
 ) -> T:
     """Recursively merge JSON-compatible mappings without mutating inputs."""
 
@@ -1081,8 +1096,11 @@ def parse_weight(weight_input: str | float | int) -> float | None:
             # Convert pounds to kilograms
             lbs = float(
                 weight_str.replace(
-                'lbs', '',
-                ).replace('lb', '').strip(),
+                    'lbs',
+                    '',
+                )
+                .replace('lb', '')
+                .strip(),
             )
             return lbs * 0.453592
         except ValueError:
@@ -1149,7 +1167,9 @@ def calculate_bmi_equivalent(weight_kg: float, breed_size: str) -> float | None:
 
 
 def validate_portion_size(
-    portion: float, daily_amount: float, meals_per_day: int = 2,
+    portion: float,
+    daily_amount: float,
+    meals_per_day: int = 2,
 ) -> PortionValidationResult:
     """Validate portion size against daily requirements.
 
@@ -1347,7 +1367,9 @@ def flatten_dict(
 
 
 def unflatten_dict(
-    data: Mapping[str, JSONValue], *, separator: str = '.',
+    data: Mapping[str, JSONValue],
+    *,
+    separator: str = '.',
 ) -> JSONMutableMapping:
     """Expand a flattened JSON mapping that uses dot notation keys."""
 

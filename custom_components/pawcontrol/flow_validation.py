@@ -54,7 +54,9 @@ def _coerce_int(field: str, value: object) -> int:
             return int(stripped)
         except ValueError as err:
             raise ValidationError(
-                field, value, 'Must be a whole number',
+                field,
+                value,
+                'Must be a whole number',
             ) from err
     raise ValidationError(field, value, 'Must be a whole number')
 
@@ -155,7 +157,8 @@ def validate_dog_setup_input(
         if dog_weight < MIN_DOG_WEIGHT or dog_weight > MAX_DOG_WEIGHT:
             field_errors[CONF_DOG_WEIGHT] = 'weight_out_of_range'
         elif dog_size in DOG_SIZES and not validate_dog_weight_for_size(
-            dog_weight, dog_size,
+            dog_weight,
+            dog_size,
         ):
             field_errors[CONF_DOG_WEIGHT] = 'weight_size_mismatch'
 
@@ -180,7 +183,8 @@ def validate_dog_setup_input(
 
     if field_errors or base_errors:
         raise FlowValidationError(
-            field_errors=field_errors, base_errors=base_errors,
+            field_errors=field_errors,
+            base_errors=base_errors,
         )
 
     validated: DogSetupStepInput = {
@@ -256,7 +260,8 @@ def validate_dog_update_input(
                 candidate[CONF_DOG_AGE] = dog_age
 
     raw_weight = user_input.get(
-        CONF_DOG_WEIGHT, candidate.get(CONF_DOG_WEIGHT),
+        CONF_DOG_WEIGHT,
+        candidate.get(CONF_DOG_WEIGHT),
     )
     if raw_weight is None:
         candidate.pop(CONF_DOG_WEIGHT, None)

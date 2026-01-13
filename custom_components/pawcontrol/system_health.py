@@ -468,7 +468,8 @@ def _default_service_execution_snapshot() -> SystemHealthServiceExecutionSnapsho
     rejection_metrics = derive_rejection_metrics(None)
     guard_summary = _build_guard_summary(guard_metrics, guard_thresholds)
     breaker_overview = _build_breaker_overview(
-        rejection_metrics, breaker_thresholds,
+        rejection_metrics,
+        breaker_thresholds,
     )
     status = _build_service_status(guard_summary, breaker_overview)
 
@@ -485,7 +486,8 @@ def _default_service_execution_snapshot() -> SystemHealthServiceExecutionSnapsho
 
 @callback
 def async_register(
-    hass: HomeAssistant, register: system_health.SystemHealthRegistration,
+    hass: HomeAssistant,
+    register: system_health.SystemHealthRegistration,
 ) -> None:
     """Register system health callbacks for PawControl."""
 
@@ -498,7 +500,8 @@ async def system_health_info(hass: HomeAssistant) -> SystemHealthInfoPayload:
     entry = _async_get_first_entry(hass)
     if entry is None:
         runtime_store_snapshot = describe_runtime_store_status(
-            hass, 'missing-entry',
+            hass,
+            'missing-entry',
         )
         info: SystemHealthInfoPayload = {
             'can_reach_backend': False,
@@ -530,7 +533,8 @@ async def system_health_info(hass: HomeAssistant) -> SystemHealthInfoPayload:
             'runtime_store': runtime_store_snapshot,
         }
         _attach_runtime_store_history(
-            coordinator_info_payload, runtime_store_history,
+            coordinator_info_payload,
+            runtime_store_history,
         )
         return cast(SystemHealthInfoPayload, coordinator_info_payload)
 
@@ -553,11 +557,13 @@ async def system_health_info(hass: HomeAssistant) -> SystemHealthInfoPayload:
         _extract_service_execution_metrics(runtime)
     )
     guard_thresholds, breaker_thresholds = _resolve_indicator_thresholds(
-        runtime, entry.options,
+        runtime,
+        entry.options,
     )
     guard_summary = _build_guard_summary(guard_metrics, guard_thresholds)
     breaker_overview = _build_breaker_overview(
-        rejection_metrics, breaker_thresholds,
+        rejection_metrics,
+        breaker_thresholds,
     )
     service_status = _build_service_status(guard_summary, breaker_overview)
 
@@ -565,7 +571,9 @@ async def system_health_info(hass: HomeAssistant) -> SystemHealthInfoPayload:
     manual_snapshot: ManualResilienceEventsTelemetry | JSONLikeMapping | None = None
     if script_manager is not None:
         snapshot = getattr(
-            script_manager, 'get_resilience_escalation_snapshot', None,
+            script_manager,
+            'get_resilience_escalation_snapshot',
+            None,
         )
         if callable(snapshot):
             manager_snapshot = snapshot()
@@ -682,7 +690,8 @@ def _merge_option_thresholds(
     """Overlay config entry thresholds when script metadata is unavailable."""
 
     skip_value, skip_source = _resolve_option_threshold(
-        options, 'resilience_skip_threshold',
+        options,
+        'resilience_skip_threshold',
     )
     if guard_thresholds.source == 'default_ratio' and skip_value is not None:
         guard_thresholds = GuardIndicatorThresholds(
@@ -694,7 +703,8 @@ def _merge_option_thresholds(
         )
 
     breaker_value, breaker_source = _resolve_option_threshold(
-        options, 'resilience_breaker_threshold',
+        options,
+        'resilience_breaker_threshold',
     )
     if breaker_thresholds.source == 'default_counts' and breaker_value is not None:
         warning_value = breaker_value - 1
@@ -778,7 +788,9 @@ def _resolve_indicator_thresholds(
 
 
 def _serialize_threshold(
-    *, count: int | None, ratio: float | None,
+    *,
+    count: int | None,
+    ratio: float | None,
 ) -> SystemHealthThresholdDetail | None:
     """Serialize threshold metadata into diagnostics payloads."""
 
@@ -802,12 +814,14 @@ def _serialize_guard_thresholds(
         summary['source_key'] = thresholds.source_key
 
     if serialized := _serialize_threshold(
-        count=thresholds.warning_count, ratio=thresholds.warning_ratio,
+        count=thresholds.warning_count,
+        ratio=thresholds.warning_ratio,
     ):
         summary['warning'] = serialized
 
     if serialized := _serialize_threshold(
-        count=thresholds.critical_count, ratio=thresholds.critical_ratio,
+        count=thresholds.critical_count,
+        ratio=thresholds.critical_ratio,
     ):
         summary['critical'] = serialized
 
@@ -903,7 +917,10 @@ def _build_guard_summary(
 
     thresholds_payload = _serialize_guard_thresholds(thresholds)
     indicator = _derive_guard_indicator(
-        skip_ratio, skip_percentage, skipped, thresholds,
+        skip_ratio,
+        skip_percentage,
+        skipped,
+        thresholds,
     )
 
     summary: SystemHealthGuardSummary = {
@@ -930,20 +947,25 @@ def _build_breaker_overview(
 
     open_count = _coerce_int(
         rejection_metrics.get(
-        'open_breaker_count',
-        ), default=0,
+            'open_breaker_count',
+        ),
+        default=0,
     )
     half_open_count = _coerce_int(
-        rejection_metrics.get('half_open_breaker_count'), default=0,
+        rejection_metrics.get('half_open_breaker_count'),
+        default=0,
     )
     unknown_count = _coerce_int(
-        rejection_metrics.get('unknown_breaker_count'), default=0,
+        rejection_metrics.get('unknown_breaker_count'),
+        default=0,
     )
     rejection_breakers = _coerce_int(
-        rejection_metrics.get('rejection_breaker_count'), default=0,
+        rejection_metrics.get('rejection_breaker_count'),
+        default=0,
     )
     rejection_rate = _coerce_float(
-        rejection_metrics.get('rejection_rate'), default=0.0,
+        rejection_metrics.get('rejection_rate'),
+        default=0.0,
     )
 
     if open_count > 0:
@@ -1019,7 +1041,8 @@ def _build_service_status(
     )
 
     overall_indicator = _merge_overall_indicator(
-        guard_indicator, breaker_indicator,
+        guard_indicator,
+        breaker_indicator,
     )
 
     return {
@@ -1215,7 +1238,10 @@ def _merge_overall_indicator(
 
 
 def _healthy_indicator(
-    context: str, *, metric: float | int | None = None, message: str | None = None,
+    context: str,
+    *,
+    metric: float | int | None = None,
+    message: str | None = None,
 ) -> SystemHealthIndicatorPayload:
     """Return a healthy indicator payload for the provided context."""
 

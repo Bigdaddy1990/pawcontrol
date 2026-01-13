@@ -375,7 +375,8 @@ GROOMING_TYPE_DETAILS: Final[Mapping[str, GroomingTypeInfo]] = MappingProxyType(
 
 
 def _merge_json_mappings(
-    base: Mapping[str, JSONValue] | None, updates: Mapping[str, JSONValue],
+    base: Mapping[str, JSONValue] | None,
+    updates: Mapping[str, JSONValue],
 ) -> JSONMutableMapping:
     """Return a JSON-compatible mapping that merges base and updates."""
 
@@ -425,7 +426,9 @@ async def _async_add_entities_in_batches(
 
         # Add batch without update_before_add to reduce Registry load
         await async_call_add_entities(
-            async_add_entities_func, batch, update_before_add=False,
+            async_add_entities_func,
+            batch,
+            update_before_add=False,
         )
 
         # Small delay between batches to prevent Registry flooding
@@ -467,13 +470,17 @@ async def async_setup_entry(
 
         _LOGGER.debug(
             'Creating select entities for dog: %s (%s)',
-            dog_name, dog_id,
+            dog_name,
+            dog_id,
         )
 
         # Base selects - always created for every dog
         entities.extend(
             _create_base_selects(
-            coordinator, dog_id, dog_name, dog,
+                coordinator,
+                dog_id,
+                dog_name,
+                dog,
             ),
         )
 
@@ -481,14 +488,18 @@ async def async_setup_entry(
         if modules.get(MODULE_FEEDING, False):
             entities.extend(
                 _create_feeding_selects(
-                coordinator, dog_id, dog_name,
+                    coordinator,
+                    dog_id,
+                    dog_name,
                 ),
             )
 
         if modules.get(MODULE_WALK, False):
             entities.extend(
                 _create_walk_selects(
-                coordinator, dog_id, dog_name,
+                    coordinator,
+                    dog_id,
+                    dog_name,
                 ),
             )
 
@@ -498,7 +509,9 @@ async def async_setup_entry(
         if modules.get(MODULE_HEALTH, False):
             entities.extend(
                 _create_health_selects(
-                coordinator, dog_id, dog_name,
+                    coordinator,
+                    dog_id,
+                    dog_name,
                 ),
             )
 
@@ -538,7 +551,9 @@ def _create_base_selects(
 
 
 def _create_feeding_selects(
-    coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+    coordinator: PawControlCoordinator,
+    dog_id: str,
+    dog_name: str,
 ) -> list[PawControlSelectBase]:
     """Create feeding-related selects for a dog.
 
@@ -559,7 +574,9 @@ def _create_feeding_selects(
 
 
 def _create_walk_selects(
-    coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+    coordinator: PawControlCoordinator,
+    dog_id: str,
+    dog_name: str,
 ) -> list[PawControlSelectBase]:
     """Create walk-related selects for a dog.
 
@@ -579,7 +596,9 @@ def _create_walk_selects(
 
 
 def _create_gps_selects(
-    coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+    coordinator: PawControlCoordinator,
+    dog_id: str,
+    dog_name: str,
 ) -> list[PawControlSelectBase]:
     """Create GPS and location-related selects for a dog.
 
@@ -599,7 +618,9 @@ def _create_gps_selects(
 
 
 def _create_health_selects(
-    coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+    coordinator: PawControlCoordinator,
+    dog_id: str,
+    dog_name: str,
 ) -> list[PawControlSelectBase]:
     """Create health and medical-related selects for a dog.
 
@@ -737,7 +758,8 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
         if data_manager:
             try:
                 await data_manager.async_update_dog_data(
-                    self._dog_id, {module: updates},
+                    self._dog_id,
+                    {module: updates},
                 )
             except Exception as err:  # pragma: no cover - defensive log
                 _LOGGER.warning(
@@ -748,7 +770,8 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
                 )
 
         coordinator_payload = cast(
-            Mapping[str, JSONMutableMapping] | None, self.coordinator.data,
+            Mapping[str, JSONMutableMapping] | None,
+            self.coordinator.data,
         )
         coordinator_data: dict[str, JSONMutableMapping] = (
             dict(coordinator_payload) if coordinator_payload else {}
@@ -758,7 +781,8 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
             dict(existing_dog) if isinstance(existing_dog, Mapping) else {}
         )
         existing_module = cast(
-            Mapping[str, JSONValue] | None, dog_data.get(module),
+            Mapping[str, JSONValue] | None,
+            dog_data.get(module),
         )
         merged = _merge_json_mappings(existing_module, updates)
         dog_data[module] = merged
@@ -786,7 +810,8 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
         if config_updates:
             current_config = self._get_current_gps_config()
             merged_config = _merge_json_mappings(
-                current_config, config_updates,
+                current_config,
+                config_updates,
             )
             gps_updates.setdefault('config', merged_config)
 
@@ -891,7 +916,10 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
 
         except Exception as err:
             _LOGGER.error(
-                'Failed to set %s for %s: %s', self._select_type, self._dog_name, err,
+                'Failed to set %s for %s: %s',
+                self._select_type,
+                self._dog_name,
+                err,
             )
             raise HomeAssistantError(
                 f"Failed to set {self._select_type}",
@@ -1005,7 +1033,10 @@ class PawControlPerformanceModeSelect(PawControlSelectBase):
     """Select entity for system performance mode."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the performance mode select."""
         super().__init__(
@@ -1057,7 +1088,10 @@ class PawControlNotificationPrioritySelect(PawControlSelectBase):
     """Select entity for default notification priority."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the notification priority select."""
         super().__init__(
@@ -1097,7 +1131,8 @@ class PawControlNotificationPrioritySelect(PawControlSelectBase):
 
         if notification_manager is not None:
             await notification_manager.async_set_priority_threshold(
-                self._dog_id, priority,
+                self._dog_id,
+                priority,
             )
         else:
             _LOGGER.debug(
@@ -1119,7 +1154,10 @@ class PawControlFoodTypeSelect(PawControlSelectBase):
     """Select entity for primary food type."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the food type select."""
         super().__init__(
@@ -1170,7 +1208,10 @@ class PawControlFeedingScheduleSelect(PawControlSelectBase):
     """Select entity for feeding schedule type."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the feeding schedule select."""
         super().__init__(
@@ -1193,7 +1234,10 @@ class PawControlDefaultMealTypeSelect(PawControlSelectBase):
     """Select entity for default meal type."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the default meal type select."""
         super().__init__(
@@ -1216,7 +1260,10 @@ class PawControlFeedingModeSelect(PawControlSelectBase):
     """Select entity for feeding mode."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the feeding mode select."""
         super().__init__(
@@ -1240,7 +1287,10 @@ class PawControlWalkModeSelect(PawControlSelectBase):
     """Select entity for walk tracking mode."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the walk mode select."""
         super().__init__(
@@ -1291,7 +1341,10 @@ class PawControlWeatherPreferenceSelect(PawControlSelectBase):
     """Select entity for walk weather preference."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the weather preference select."""
         super().__init__(
@@ -1314,7 +1367,10 @@ class PawControlWalkIntensitySelect(PawControlSelectBase):
     """Select entity for preferred walk intensity."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the walk intensity select."""
         super().__init__(
@@ -1338,7 +1394,10 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
     """Select entity for GPS data source."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the GPS source select."""
         super().__init__(
@@ -1396,7 +1455,10 @@ class PawControlTrackingModeSelect(PawControlSelectBase):
     """Select entity for GPS tracking mode."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the tracking mode select."""
         super().__init__(
@@ -1416,8 +1478,11 @@ class PawControlTrackingModeSelect(PawControlSelectBase):
         preset = TRACKING_MODE_PRESETS.get(option)
         config_updates: JSONMutableMapping | None = (
             cast(
-                JSONMutableMapping, dict(preset),
-            ) if preset is not None else None
+                JSONMutableMapping,
+                dict(preset),
+            )
+            if preset is not None
+            else None
         )
         await self._async_update_gps_settings(
             state_updates={
@@ -1432,7 +1497,10 @@ class PawControlLocationAccuracySelect(PawControlSelectBase):
     """Select entity for location accuracy preference."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the location accuracy select."""
         super().__init__(
@@ -1470,7 +1538,10 @@ class PawControlHealthStatusSelect(PawControlSelectBase):
     """Select entity for current health status."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the health status select."""
         super().__init__(
@@ -1504,7 +1575,10 @@ class PawControlActivityLevelSelect(PawControlSelectBase):
     """Select entity for current activity level."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the activity level select."""
         super().__init__(
@@ -1538,7 +1612,10 @@ class PawControlMoodSelect(PawControlSelectBase):
     """Select entity for current mood."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the mood select."""
         super().__init__(
@@ -1561,7 +1638,10 @@ class PawControlGroomingTypeSelect(PawControlSelectBase):
     """Select entity for selecting grooming type."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the grooming type select."""
         super().__init__(

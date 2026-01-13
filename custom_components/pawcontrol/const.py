@@ -285,7 +285,9 @@ SPECIAL_DIET_OPTIONS: Final[tuple[str, ...]] = (
 
 # OPTIMIZED: Schedule types as tuple for better performance
 FEEDING_SCHEDULE_TYPES: Final[tuple[str, ...]] = (
-    'flexible', 'strict', 'custom',
+    'flexible',
+    'strict',
+    'custom',
 )
 
 # OPTIMIZED: Meal types as tuple
@@ -293,7 +295,11 @@ MEAL_TYPES: Final[tuple[str, ...]] = ('breakfast', 'lunch', 'dinner', 'snack')
 
 # OPTIMIZED: Dog sizes as tuple for consistency and performance
 DOG_SIZES: Final[tuple[str, ...]] = (
-    'toy', 'small', 'medium', 'large', 'giant',
+    'toy',
+    'small',
+    'medium',
+    'large',
+    'giant',
 )
 
 # OPTIMIZED: Size-weight mapping for validation (frozenset for fast lookup)

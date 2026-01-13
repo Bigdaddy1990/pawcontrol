@@ -179,9 +179,13 @@ class HealthMetrics:
             list(health_conditions) if health_conditions is not None else []
         )
         self.medications = list(medications) if medications is not None else []
-        self.special_diet = list(
-            special_diet,
-        ) if special_diet is not None else []
+        self.special_diet = (
+            list(
+                special_diet,
+            )
+            if special_diet is not None
+            else []
+        )
         self.daily_calorie_requirement = daily_calorie_requirement
         self.portion_adjustment_factor = portion_adjustment_factor
         self.weight_goal = weight_goal
@@ -299,7 +303,8 @@ class HealthCalculator:
         }
 
         thresholds = size_adjustments.get(
-            breed_size, size_adjustments['medium'],
+            breed_size,
+            size_adjustments['medium'],
         )
 
         if age_months < thresholds['adult']:
@@ -405,7 +410,8 @@ class HealthCalculator:
 
         # Apply activity level multiplier
         activity_multiplier = HealthCalculator.ACTIVITY_MULTIPLIERS.get(
-            activity_level, 1.0,
+            activity_level,
+            1.0,
         )
 
         # Calculate base daily calories
@@ -438,14 +444,16 @@ class HealthCalculator:
         # Apply body condition score adjustment
         if health_metrics.body_condition_score:
             bcs_adjustment = HealthCalculator.BCS_ADJUSTMENTS.get(
-                health_metrics.body_condition_score, 1.0,
+                health_metrics.body_condition_score,
+                1.0,
             )
             adjustment_factor *= bcs_adjustment
 
         # Apply health condition adjustments
         for condition in health_metrics.health_conditions:
             condition_adjustment = HealthCalculator.HEALTH_CONDITION_ADJUSTMENTS.get(
-                condition.lower(), 1.0,
+                condition.lower(),
+                1.0,
             )
             adjustment_factor *= condition_adjustment
 
@@ -470,7 +478,8 @@ class HealthCalculator:
         if diet_validation:
             validation_adjustment = (
                 HealthCalculator.calculate_diet_validation_adjustment(
-                    diet_validation, health_metrics.special_diet,
+                    diet_validation,
+                    health_metrics.special_diet,
                 )
             )
             adjustment_factor *= validation_adjustment
@@ -488,7 +497,8 @@ class HealthCalculator:
 
             # Time-based adjustments
             weight_loss_rate = feeding_goals.get(
-                'weight_loss_rate', 'moderate',
+                'weight_loss_rate',
+                'moderate',
             )
             if weight_loss_rate == 'aggressive' and weight_goal == 'lose':
                 adjustment_factor *= 0.9  # Additional 10% reduction
@@ -505,7 +515,8 @@ class HealthCalculator:
 
     @staticmethod
     def calculate_diet_validation_adjustment(
-        diet_validation: DietValidationResult, special_diets: list[str],
+        diet_validation: DietValidationResult,
+        special_diets: list[str],
     ) -> float:
         """Calculate portion adjustment based on diet validation results.
 
@@ -974,7 +985,10 @@ class HealthCalculator:
         # NEW: Weather-based health assessment
         if weather_conditions and weather_health_manager:
             HealthCalculator._assess_weather_impact(
-                health_metrics, weather_conditions, weather_health_manager, report,
+                health_metrics,
+                weather_conditions,
+                weather_health_manager,
+                report,
             )
 
         HealthCalculator._finalize_status(report)
@@ -1002,7 +1016,8 @@ class HealthCalculator:
 
     @staticmethod
     def _assess_body_condition(
-        health_metrics: HealthMetrics, report: HealthReport,
+        health_metrics: HealthMetrics,
+        report: HealthReport,
     ) -> None:
         if not health_metrics.body_condition_score:
             return
@@ -1027,7 +1042,8 @@ class HealthCalculator:
 
     @staticmethod
     def _assess_health_conditions(
-        health_metrics: HealthMetrics, report: HealthReport,
+        health_metrics: HealthMetrics,
+        report: HealthReport,
     ) -> None:
         serious_conditions = {
             'diabetes',

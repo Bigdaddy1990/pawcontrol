@@ -83,7 +83,9 @@ async def _async_add_entities_in_batches(
 
         # Add batch without update_before_add to reduce Registry load
         await async_call_add_entities(
-            async_add_entities_func, list(batch), update_before_add=False,
+            async_add_entities_func,
+            list(batch),
+            update_before_add=False,
         )
 
         # Small delay between batches to prevent Registry flooding
@@ -125,17 +127,25 @@ async def async_setup_entry(
             entities.extend(
                 [
                     PawControlBreakfastTimeDateTime(
-                        coordinator, dog_id, dog_name,
+                        coordinator,
+                        dog_id,
+                        dog_name,
                     ),
                     PawControlLunchTimeDateTime(coordinator, dog_id, dog_name),
                     PawControlDinnerTimeDateTime(
-                        coordinator, dog_id, dog_name,
+                        coordinator,
+                        dog_id,
+                        dog_name,
                     ),
                     PawControlLastFeedingDateTime(
-                        coordinator, dog_id, dog_name,
+                        coordinator,
+                        dog_id,
+                        dog_name,
                     ),
                     PawControlNextFeedingDateTime(
-                        coordinator, dog_id, dog_name,
+                        coordinator,
+                        dog_id,
+                        dog_name,
                     ),
                 ],
             )
@@ -145,22 +155,34 @@ async def async_setup_entry(
             entities.extend(
                 [
                     PawControlLastVetVisitDateTime(
-                        coordinator, dog_id, dog_name,
+                        coordinator,
+                        dog_id,
+                        dog_name,
                     ),
                     PawControlNextVetAppointmentDateTime(
-                        coordinator, dog_id, dog_name,
+                        coordinator,
+                        dog_id,
+                        dog_name,
                     ),
                     PawControlLastGroomingDateTime(
-                        coordinator, dog_id, dog_name,
+                        coordinator,
+                        dog_id,
+                        dog_name,
                     ),
                     PawControlNextGroomingDateTime(
-                        coordinator, dog_id, dog_name,
+                        coordinator,
+                        dog_id,
+                        dog_name,
                     ),
                     PawControlLastMedicationDateTime(
-                        coordinator, dog_id, dog_name,
+                        coordinator,
+                        dog_id,
+                        dog_name,
                     ),
                     PawControlNextMedicationDateTime(
-                        coordinator, dog_id, dog_name,
+                        coordinator,
+                        dog_id,
+                        dog_name,
                     ),
                 ],
             )
@@ -171,7 +193,9 @@ async def async_setup_entry(
                 [
                     PawControlLastWalkDateTime(coordinator, dog_id, dog_name),
                     PawControlNextWalkReminderDateTime(
-                        coordinator, dog_id, dog_name,
+                        coordinator,
+                        dog_id,
+                        dog_name,
                     ),
                 ],
             )
@@ -240,7 +264,9 @@ class PawControlDateTimeBase(PawControlDogEntityBase, DateTimeEntity, RestoreEnt
         self.async_write_ha_state()
         _LOGGER.debug(
             'Set %s for %s to %s',
-            self._datetime_type, self._dog_name, value,
+            self._datetime_type,
+            self._dog_name,
+            value,
         )
 
 
@@ -248,7 +274,10 @@ class PawControlBirthdateDateTime(PawControlDateTimeBase):
     """DateTime entity for dog birthdate."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
         super().__init__(coordinator, dog_id, dog_name, 'birthdate')
@@ -274,7 +303,10 @@ class PawControlAdoptionDateDateTime(PawControlDateTimeBase):
     """DateTime entity for adoption date."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
         super().__init__(coordinator, dog_id, dog_name, 'adoption_date')
@@ -285,7 +317,10 @@ class PawControlBreakfastTimeDateTime(PawControlDateTimeBase):
     """DateTime entity for breakfast time."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
         super().__init__(coordinator, dog_id, dog_name, 'breakfast_time')
@@ -301,7 +336,10 @@ class PawControlLunchTimeDateTime(PawControlDateTimeBase):
     """DateTime entity for lunch time."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
         super().__init__(coordinator, dog_id, dog_name, 'lunch_time')
@@ -317,7 +355,10 @@ class PawControlDinnerTimeDateTime(PawControlDateTimeBase):
     """DateTime entity for dinner time."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
         super().__init__(coordinator, dog_id, dog_name, 'dinner_time')
@@ -333,7 +374,10 @@ class PawControlLastFeedingDateTime(PawControlDateTimeBase):
     """DateTime entity for last feeding (read-only)."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
         super().__init__(coordinator, dog_id, dog_name, 'last_feeding')
@@ -374,7 +418,10 @@ class PawControlNextFeedingDateTime(PawControlDateTimeBase):
     """DateTime entity for next feeding reminder."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
         super().__init__(coordinator, dog_id, dog_name, 'next_feeding')
@@ -387,7 +434,8 @@ class PawControlNextFeedingDateTime(PawControlDateTimeBase):
         # This could schedule a reminder automation
         _LOGGER.debug(
             'Next feeding reminder set for %s at %s',
-            self._dog_name, value,
+            self._dog_name,
+            value,
         )
 
 
@@ -395,7 +443,10 @@ class PawControlLastVetVisitDateTime(PawControlDateTimeBase):
     """DateTime entity for last vet visit."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
         super().__init__(coordinator, dog_id, dog_name, 'last_vet_visit')
@@ -436,7 +487,10 @@ class PawControlNextVetAppointmentDateTime(PawControlDateTimeBase):
     """DateTime entity for next vet appointment."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
         super().__init__(coordinator, dog_id, dog_name, 'next_vet_appointment')
@@ -448,7 +502,9 @@ class PawControlNextVetAppointmentDateTime(PawControlDateTimeBase):
 
         # This could create calendar event or reminder
         _LOGGER.debug(
-            'Next vet appointment scheduled for %s at %s', self._dog_name, value,
+            'Next vet appointment scheduled for %s at %s',
+            self._dog_name,
+            value,
         )
 
 
@@ -456,7 +512,10 @@ class PawControlLastGroomingDateTime(PawControlDateTimeBase):
     """DateTime entity for last grooming session."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
         super().__init__(coordinator, dog_id, dog_name, 'last_grooming')
@@ -507,7 +566,10 @@ class PawControlNextGroomingDateTime(PawControlDateTimeBase):
     """DateTime entity for next grooming appointment."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
         super().__init__(coordinator, dog_id, dog_name, 'next_grooming')
@@ -518,7 +580,10 @@ class PawControlLastMedicationDateTime(PawControlDateTimeBase):
     """DateTime entity for last medication."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
         super().__init__(coordinator, dog_id, dog_name, 'last_medication')
@@ -545,7 +610,10 @@ class PawControlNextMedicationDateTime(PawControlDateTimeBase):
     """DateTime entity for next medication reminder."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
         super().__init__(coordinator, dog_id, dog_name, 'next_medication')
@@ -557,7 +625,9 @@ class PawControlNextMedicationDateTime(PawControlDateTimeBase):
 
         # This could schedule medication reminder
         _LOGGER.debug(
-            'Next medication reminder set for %s at %s', self._dog_name, value,
+            'Next medication reminder set for %s at %s',
+            self._dog_name,
+            value,
         )
 
 
@@ -565,7 +635,10 @@ class PawControlLastWalkDateTime(PawControlDateTimeBase):
     """DateTime entity for last walk."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
         super().__init__(coordinator, dog_id, dog_name, 'last_walk')
@@ -611,7 +684,10 @@ class PawControlNextWalkReminderDateTime(PawControlDateTimeBase):
     """DateTime entity for next walk reminder."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
         super().__init__(coordinator, dog_id, dog_name, 'next_walk_reminder')
@@ -624,7 +700,8 @@ class PawControlNextWalkReminderDateTime(PawControlDateTimeBase):
         # This could schedule walk reminder
         _LOGGER.debug(
             'Next walk reminder set for %s at %s',
-            self._dog_name, value,
+            self._dog_name,
+            value,
         )
 
 
@@ -632,7 +709,10 @@ class PawControlVaccinationDateDateTime(PawControlDateTimeBase):
     """DateTime entity for vaccination dates."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
         super().__init__(coordinator, dog_id, dog_name, 'vaccination_date')
@@ -658,7 +738,10 @@ class PawControlTrainingSessionDateTime(PawControlDateTimeBase):
     """DateTime entity for training sessions."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
         super().__init__(coordinator, dog_id, dog_name, 'training_session')
@@ -684,7 +767,10 @@ class PawControlEmergencyDateTime(PawControlDateTimeBase):
     """DateTime entity for emergency events."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
         super().__init__(coordinator, dog_id, dog_name, 'emergency_date')

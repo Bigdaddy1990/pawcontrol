@@ -168,7 +168,8 @@ def build_performance_snapshot(
 
     snapshot['rejection_metrics'] = rejection_metrics
     _apply_rejection_metrics_to_performance(
-        performance_metrics, rejection_metrics,
+        performance_metrics,
+        rejection_metrics,
     )
 
     telemetry_module = sys.modules.get(
@@ -176,7 +177,8 @@ def build_performance_snapshot(
     )
     bool_summary: BoolCoercionSummary = summarise_bool_coercion_metrics()
     if telemetry_module is not None and hasattr(
-        telemetry_module, 'summarise_bool_coercion_metrics',
+        telemetry_module,
+        'summarise_bool_coercion_metrics',
     ):
         summary_func = cast(
             Callable[[], BoolCoercionSummary],
@@ -311,7 +313,8 @@ def build_security_scorecard(
         adaptive_check['reason'] = 'Update interval exceeds 200ms target'
 
     peak_utilisation = _coerce_float(
-        entity_summary.get('peak_utilization'), 0.0,
+        entity_summary.get('peak_utilization'),
+        0.0,
     )
     peak_utilisation = max(0.0, min(100.0, peak_utilisation))
     entity_threshold = 95.0
@@ -345,7 +348,8 @@ def build_security_scorecard(
         webhook_check['error'] = webhook_snapshot['error']
     if not webhook_pass:
         webhook_check.setdefault(
-            'reason', 'Webhook configurations missing HMAC protection',
+            'reason',
+            'Webhook configurations missing HMAC protection',
         )
 
     checks: CoordinatorSecurityChecks = {
@@ -396,7 +400,8 @@ def normalise_webhook_status(manager: Any) -> WebhookSecurityStatus:
     status.setdefault('hmac_ready', False)
     insecure = status.get('insecure_configs', ())
     if isinstance(insecure, Iterable) and not isinstance(
-        insecure, str | bytes | bytearray,
+        insecure,
+        str | bytes | bytearray,
     ):
         status['insecure_configs'] = tuple(insecure)
     else:

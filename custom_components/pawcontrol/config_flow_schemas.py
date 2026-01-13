@@ -34,11 +34,14 @@ DOG_SCHEMA = vol.Schema(
         vol.Required(CONF_DOG_NAME): cv.string,
         vol.Optional(CONF_DOG_BREED, default=''): cv.string,
         vol.Optional(CONF_DOG_AGE, default=3): vol.All(
-            vol.Coerce(int), vol.Range(min=MIN_DOG_AGE, max=MAX_DOG_AGE),
+            vol.Coerce(int),
+            vol.Range(min=MIN_DOG_AGE, max=MAX_DOG_AGE),
         ),
         vol.Optional(CONF_DOG_WEIGHT, default=20.0): vol.All(
-            vol.Coerce(float), vol.Range(
-                min=MIN_DOG_WEIGHT, max=MAX_DOG_WEIGHT,
+            vol.Coerce(float),
+            vol.Range(
+                min=MIN_DOG_WEIGHT,
+                max=MAX_DOG_WEIGHT,
             ),
         ),
         vol.Optional(CONF_DOG_SIZE, default='medium'): vol.In(VALID_DOG_SIZES),

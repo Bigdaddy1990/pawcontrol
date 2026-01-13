@@ -58,7 +58,9 @@ type DiscoveryCategory = Literal[
 
 type DiscoveryConnectionType = Literal[
     'bluetooth',
-    'network', 'usb', 'unknown',
+    'network',
+    'usb',
+    'unknown',
 ]
 
 type DiscoveryCapabilityList = list[str]
@@ -196,7 +198,8 @@ class PawControlDiscovery:
         except Exception as err:
             _LOGGER.error(
                 'Failed to initialize discovery: %s',
-                err, exc_info=True,
+                err,
+                exc_info=True,
             )
             raise HomeAssistantError(
                 f"Discovery initialization failed: {err}",
@@ -274,7 +277,8 @@ class PawControlDiscovery:
 
         except TimeoutError:
             _LOGGER.warning(
-                'Device discovery timed out after %ds', scan_timeout,
+                'Device discovery timed out after %ds',
+                scan_timeout,
             )
             return list(self._discovered_devices.values())
         except Exception as err:
@@ -284,7 +288,8 @@ class PawControlDiscovery:
             self._scan_active = False
 
     async def _discover_usb_devices(
-        self, categories: list[DiscoveryCategory],
+        self,
+        categories: list[DiscoveryCategory],
     ) -> list[DiscoveredDevice]:
         """Discover USB-connected dog devices (placeholder)."""
 
@@ -292,7 +297,8 @@ class PawControlDiscovery:
         return []
 
     async def _discover_registry_devices(
-        self, categories: list[DiscoveryCategory],
+        self,
+        categories: list[DiscoveryCategory],
     ) -> list[DiscoveredDevice]:
         """Discover devices by inspecting Home Assistant registries."""
 
@@ -304,7 +310,8 @@ class PawControlDiscovery:
 
         for device_entry in device_registry.devices.values():
             classification = self._classify_device(
-                device_entry, entity_registry,
+                device_entry,
+                entity_registry,
             )
             if not classification:
                 continue
@@ -464,7 +471,8 @@ class PawControlDiscovery:
         return category, capabilities, confidence
 
     def _connection_details(
-        self, device_entry: DeviceEntry,
+        self,
+        device_entry: DeviceEntry,
     ) -> tuple[DiscoveryConnectionType, DiscoveryConnectionInfo]:
         connection_info: DiscoveryConnectionInfo = {}
         connection_type: DiscoveryConnectionType = 'unknown'
@@ -510,7 +518,9 @@ class PawControlDiscovery:
         # Schedule regular discovery scans
         self._listeners.append(
             async_track_time_interval(
-                self.hass, _scheduled_scan, DISCOVERY_SCAN_INTERVAL,
+                self.hass,
+                _scheduled_scan,
+                DISCOVERY_SCAN_INTERVAL,
             ),
         )
 
@@ -558,7 +568,8 @@ class PawControlDiscovery:
 
         except Exception as err:  # pragma: no cover - listener errors are rare
             _LOGGER.warning(
-                'Failed to register some discovery listeners: %s', err,
+                'Failed to register some discovery listeners: %s',
+                err,
             )
 
     async def _wait_for_scan_completion(self) -> None:
@@ -573,7 +584,8 @@ class PawControlDiscovery:
 
         if self._scan_active:
             _LOGGER.warning(
-                'Discovery scan did not complete within %ds', max_wait,
+                'Discovery scan did not complete within %ds',
+                max_wait,
             )
 
     async def async_shutdown(self) -> None:
@@ -602,7 +614,8 @@ class PawControlDiscovery:
         _LOGGER.info('Paw Control discovery shutdown complete')
 
     def _deduplicate_devices(
-        self, devices: Iterable[DiscoveredDevice],
+        self,
+        devices: Iterable[DiscoveredDevice],
     ) -> list[DiscoveredDevice]:
         """Return a list of devices keyed by the strongest confidence value.
 
@@ -622,7 +635,8 @@ class PawControlDiscovery:
 
     @callback
     def get_discovered_devices(
-        self, category: str | None = None,
+        self,
+        category: str | None = None,
     ) -> list[DiscoveredDevice]:
         """Get all discovered devices, optionally filtered by category."""
 
@@ -745,6 +759,7 @@ async def async_shutdown_discovery_manager() -> None:
 
 ensure_homeassistant_exception_symbols()
 HomeAssistantError: type[Exception] = cast(
-    type[Exception], compat.HomeAssistantError,
+    type[Exception],
+    compat.HomeAssistantError,
 )
 bind_exception_alias('HomeAssistantError', combine_with_current=True)

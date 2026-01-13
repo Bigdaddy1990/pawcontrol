@@ -355,7 +355,7 @@ def test_pop_runtime_data_handles_store_entry(
         data={
             DOMAIN: {
                 'stored': DomainRuntimeStoreEntryType(
-                runtime_data=runtime_data,
+                    runtime_data=runtime_data,
                 ),
             },
         },

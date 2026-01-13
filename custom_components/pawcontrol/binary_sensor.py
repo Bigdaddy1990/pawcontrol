@@ -230,7 +230,9 @@ async def _async_add_entities_in_batches(
 
         # Add batch without update_before_add to reduce Registry load
         await async_call_add_entities(
-            async_add_entities_func, batch, update_before_add=False,
+            async_add_entities_func,
+            batch,
+            update_before_add=False,
         )
 
         # Small delay between batches to prevent Registry flooding
@@ -277,13 +279,16 @@ async def async_setup_entry(
 
         _LOGGER.debug(
             'Creating binary sensors for dog: %s (%s)',
-            dog_name, dog_id,
+            dog_name,
+            dog_id,
         )
 
         # Base binary sensors - always created for every dog
         entities.extend(
             _create_base_binary_sensors(
-            coordinator, dog_id, dog_name,
+                coordinator,
+                dog_id,
+                dog_name,
             ),
         )
 
@@ -296,14 +301,18 @@ async def async_setup_entry(
         if modules.get(MODULE_WALK, False):
             entities.extend(
                 _create_walk_binary_sensors(
-                coordinator, dog_id, dog_name,
+                    coordinator,
+                    dog_id,
+                    dog_name,
                 ),
             )
 
         if modules.get(MODULE_GPS, False):
             entities.extend(
                 _create_gps_binary_sensors(
-                coordinator, dog_id, dog_name,
+                    coordinator,
+                    dog_id,
+                    dog_name,
                 ),
             )
 
@@ -322,7 +331,9 @@ async def async_setup_entry(
         # Small setup: Create all at once for better performance
 
         await async_call_add_entities(
-            async_add_entities, entities, update_before_add=False,
+            async_add_entities,
+            entities,
+            update_before_add=False,
         )
 
         _LOGGER.info(
@@ -341,7 +352,9 @@ async def async_setup_entry(
 
 
 def _create_base_binary_sensors(
-    coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+    coordinator: PawControlCoordinator,
+    dog_id: str,
+    dog_name: str,
 ) -> list[PawControlBinarySensorBase]:
     """Create base binary sensors that are always present for every dog.
 
@@ -361,23 +374,31 @@ def _create_base_binary_sensors(
 
 
 def _create_feeding_binary_sensors(
-    coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+    coordinator: PawControlCoordinator,
+    dog_id: str,
+    dog_name: str,
 ) -> list[PawControlBinarySensorBase]:
     """Create feeding-related binary sensors for a dog."""
     return [
         PawControlIsHungryBinarySensor(coordinator, dog_id, dog_name),
         PawControlFeedingDueBinarySensor(coordinator, dog_id, dog_name),
         PawControlFeedingScheduleOnTrackBinarySensor(
-            coordinator, dog_id, dog_name,
+            coordinator,
+            dog_id,
+            dog_name,
         ),
         PawControlDailyFeedingGoalMetBinarySensor(
-            coordinator, dog_id, dog_name,
+            coordinator,
+            dog_id,
+            dog_name,
         ),
     ]
 
 
 def _create_walk_binary_sensors(
-    coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+    coordinator: PawControlCoordinator,
+    dog_id: str,
+    dog_name: str,
 ) -> list[PawControlBinarySensorBase]:
     """Create walk-related binary sensors for a dog."""
     return [
@@ -389,14 +410,18 @@ def _create_walk_binary_sensors(
 
 
 def _create_gps_binary_sensors(
-    coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+    coordinator: PawControlCoordinator,
+    dog_id: str,
+    dog_name: str,
 ) -> list[PawControlBinarySensorBase]:
     """Create GPS and location-related binary sensors for a dog."""
     return [
         PawControlIsHomeBinarySensor(coordinator, dog_id, dog_name),
         PawControlInSafeZoneBinarySensor(coordinator, dog_id, dog_name),
         PawControlGPSAccuratelyTrackedBinarySensor(
-            coordinator, dog_id, dog_name,
+            coordinator,
+            dog_id,
+            dog_name,
         ),
         PawControlMovingBinarySensor(coordinator, dog_id, dog_name),
         PawControlGeofenceAlertBinarySensor(coordinator, dog_id, dog_name),
@@ -405,7 +430,9 @@ def _create_gps_binary_sensors(
 
 
 def _create_health_binary_sensors(
-    coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+    coordinator: PawControlCoordinator,
+    dog_id: str,
+    dog_name: str,
 ) -> list[PawControlBinarySensorBase]:
     """Create health and medical-related binary sensors for a dog."""
     return [
@@ -415,26 +442,36 @@ def _create_health_binary_sensors(
         PawControlVetCheckupDueBinarySensor(coordinator, dog_id, dog_name),
         PawControlGroomingDueBinarySensor(coordinator, dog_id, dog_name),
         PawControlActivityLevelConcernBinarySensor(
-            coordinator, dog_id, dog_name,
+            coordinator,
+            dog_id,
+            dog_name,
         ),
         PawControlHealthAwareFeedingBinarySensor(
-            coordinator, dog_id, dog_name,
+            coordinator,
+            dog_id,
+            dog_name,
         ),
         PawControlMedicationWithMealsBinarySensor(
-            coordinator, dog_id, dog_name,
+            coordinator,
+            dog_id,
+            dog_name,
         ),
         PawControlHealthEmergencyBinarySensor(coordinator, dog_id, dog_name),
     ]
 
 
 def _create_garden_binary_sensors(
-    coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+    coordinator: PawControlCoordinator,
+    dog_id: str,
+    dog_name: str,
 ) -> list[PawControlBinarySensorBase]:
     """Create garden-related binary sensors for a dog."""
 
     return [
         PawControlGardenSessionActiveBinarySensor(
-            coordinator, dog_id, dog_name,
+            coordinator,
+            dog_id,
+            dog_name,
         ),
         PawControlInGardenBinarySensor(coordinator, dog_id, dog_name),
         PawControlGardenPoopPendingBinarySensor(coordinator, dog_id, dog_name),
@@ -442,7 +479,9 @@ def _create_garden_binary_sensors(
 
 
 class PawControlBinarySensorBase(
-    PawControlDogEntityBase, BinarySensorEntity, BinarySensorLogicMixin,
+    PawControlDogEntityBase,
+    BinarySensorEntity,
+    BinarySensorLogicMixin,
 ):
     """Base class for all Paw Control binary sensor entities.
 
@@ -596,7 +635,9 @@ class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
                 return garden_manager.build_garden_snapshot(self._dog_id)
             except Exception as err:  # pragma: no cover - defensive logging
                 _LOGGER.debug(
-                    'Garden snapshot fallback failed for %s: %s', self._dog_id, err,
+                    'Garden snapshot fallback failed for %s: %s',
+                    self._dog_id,
+                    err,
                 )
 
         return cast(GardenModulePayload, {})
@@ -615,7 +656,8 @@ class PawControlGardenBinarySensorBase(PawControlBinarySensorBase):
         pending_confirmations = data.get('pending_confirmations')
         if pending_confirmations is not None:
             attrs['pending_confirmations'] = cast(
-                JSONValue, pending_confirmations,
+                JSONValue,
+                pending_confirmations,
             )
         return _normalise_attributes(attrs)
 
@@ -625,7 +667,10 @@ class PawControlOnlineBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if the dog monitoring system is online."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the online status binary sensor."""
         super().__init__(
@@ -646,7 +691,9 @@ class PawControlOnlineBinarySensor(PawControlBinarySensorBase):
 
         last_update = dog_data.get('last_update')
         return self._calculate_time_based_status(
-            last_update, 10.0 / 60, False,
+            last_update,
+            10.0 / 60,
+            False,
         )  # 10 minutes
 
     @property
@@ -677,7 +724,10 @@ class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if the dog needs immediate attention."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the attention needed binary sensor."""
         super().__init__(
@@ -794,7 +844,10 @@ class PawControlVisitorModeBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if visitor mode is active."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the visitor mode binary sensor."""
         super().__init__(
@@ -822,7 +875,8 @@ class PawControlVisitorModeBinarySensor(PawControlBinarySensorBase):
 
         if dog_data:
             visitor_settings = cast(
-                JSONMapping, dog_data.get('visitor_mode_settings', {}),
+                JSONMapping,
+                dog_data.get('visitor_mode_settings', {}),
             )
             visitor_mode_started = dog_data.get('visitor_mode_started')
             visitor_name = cast(str | None, dog_data.get('visitor_name'))
@@ -848,7 +902,10 @@ class PawControlIsHungryBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if the dog is hungry."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the hungry binary sensor."""
         super().__init__(
@@ -921,7 +978,10 @@ class PawControlFeedingDueBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if a feeding is due based on schedule."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the feeding due binary sensor."""
         super().__init__(
@@ -954,7 +1014,10 @@ class PawControlFeedingScheduleOnTrackBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if feeding schedule is being followed."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the feeding schedule on track binary sensor."""
         super().__init__(
@@ -982,7 +1045,10 @@ class PawControlDailyFeedingGoalMetBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if daily feeding goals are met."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the daily feeding goal met binary sensor."""
         super().__init__(
@@ -1008,7 +1074,10 @@ class PawControlWalkInProgressBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if a walk is currently in progress."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the walk in progress binary sensor."""
         super().__init__(
@@ -1079,7 +1148,10 @@ class PawControlNeedsWalkBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if the dog needs a walk."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the needs walk binary sensor."""
         super().__init__(
@@ -1148,7 +1220,10 @@ class PawControlWalkGoalMetBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if daily walk goals are met."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the walk goal met binary sensor."""
         super().__init__(
@@ -1173,7 +1248,10 @@ class PawControlLongWalkOverdueBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if a longer walk is overdue."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the long walk overdue binary sensor."""
         super().__init__(
@@ -1195,7 +1273,9 @@ class PawControlLongWalkOverdueBinarySensor(PawControlBinarySensorBase):
         last_long_walk = walk_data.get('last_long_walk')
         if isinstance(last_long_walk, str | datetime):
             return not self._calculate_time_based_status(
-                last_long_walk, 48, False,
+                last_long_walk,
+                48,
+                False,
             )  # 2 days
 
         return True  # No long walk recorded or invalid payload
@@ -1206,7 +1286,10 @@ class PawControlIsHomeBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if the dog is at home."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the is home binary sensor."""
         super().__init__(
@@ -1237,9 +1320,12 @@ class PawControlIsHomeBinarySensor(PawControlBinarySensorBase):
         if gps_data:
             current_zone = gps_data.get('zone')
             attrs['current_zone'] = (
-                current_zone if isinstance(
-                    current_zone, str,
-                ) else STATE_UNKNOWN
+                current_zone
+                if isinstance(
+                    current_zone,
+                    str,
+                )
+                else STATE_UNKNOWN
             )
 
             distance_from_home = gps_data.get('distance_from_home')
@@ -1263,7 +1349,10 @@ class PawControlInSafeZoneBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if the dog is in a safe zone."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the in safe zone binary sensor."""
         super().__init__(
@@ -1297,7 +1386,10 @@ class PawControlGPSAccuratelyTrackedBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if GPS tracking is accurate."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the GPS accurately tracked binary sensor."""
         super().__init__(
@@ -1318,9 +1410,14 @@ class PawControlGPSAccuratelyTrackedBinarySensor(PawControlBinarySensorBase):
 
         accuracy = gps_data.get('accuracy')
         accuracy_value: float | None
-        accuracy_value = float(accuracy) if isinstance(
-            accuracy, int | float,
-        ) else None
+        accuracy_value = (
+            float(accuracy)
+            if isinstance(
+                accuracy,
+                int | float,
+            )
+            else None
+        )
 
         last_seen_input = gps_data.get('last_seen')
         last_seen: datetime | str | None
@@ -1331,10 +1428,15 @@ class PawControlGPSAccuratelyTrackedBinarySensor(PawControlBinarySensorBase):
 
         # Check accuracy threshold and data freshness
         accuracy_good = self._evaluate_threshold(
-            accuracy_value, 50, 'less_equal', False,
+            accuracy_value,
+            50,
+            'less_equal',
+            False,
         )
         data_fresh = self._calculate_time_based_status(
-            last_seen, 5.0 / 60, False,
+            last_seen,
+            5.0 / 60,
+            False,
         )  # 5 minutes
 
         return accuracy_good and data_fresh
@@ -1344,7 +1446,10 @@ class PawControlMovingBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if the dog is currently moving."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the moving binary sensor."""
         super().__init__(
@@ -1366,7 +1471,10 @@ class PawControlMovingBinarySensor(PawControlBinarySensorBase):
         speed = gps_data.get('speed')
         numeric_speed = float(speed) if isinstance(speed, int | float) else 0.0
         return self._evaluate_threshold(
-            numeric_speed, 1.0, 'greater', False,
+            numeric_speed,
+            1.0,
+            'greater',
+            False,
         )  # 1 km/h threshold
 
 
@@ -1374,7 +1482,10 @@ class PawControlGeofenceAlertBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if there's a geofence alert."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the geofence alert binary sensor."""
         super().__init__(
@@ -1404,7 +1515,10 @@ class PawControlGPSBatteryLowBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if GPS device battery is low."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the GPS battery low binary sensor."""
         super().__init__(
@@ -1427,7 +1541,10 @@ class PawControlGPSBatteryLowBinarySensor(PawControlBinarySensorBase):
         if not isinstance(battery_level, int | float):
             return False
         return self._evaluate_threshold(
-            float(battery_level), 20, 'less_equal', False,
+            float(battery_level),
+            20,
+            'less_equal',
+            False,
         )  # 20% threshold
 
 
@@ -1436,7 +1553,10 @@ class PawControlHealthAlertBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if there's a health alert."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the health alert binary sensor."""
         super().__init__(
@@ -1489,7 +1609,10 @@ class PawControlWeightAlertBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if there's a weight-related alert."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the weight alert binary sensor."""
         super().__init__(
@@ -1518,7 +1641,10 @@ class PawControlMedicationDueBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if medication is due."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the medication due binary sensor."""
         super().__init__(
@@ -1547,7 +1673,10 @@ class PawControlVetCheckupDueBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if vet checkup is due."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the vet checkup due binary sensor."""
         super().__init__(
@@ -1580,7 +1709,10 @@ class PawControlGroomingDueBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if grooming is due."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the grooming due binary sensor."""
         super().__init__(
@@ -1605,7 +1737,10 @@ class PawControlActivityLevelConcernBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if there's concern about activity level."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the activity level concern binary sensor."""
         super().__init__(
@@ -1671,7 +1806,10 @@ class PawControlHealthAwareFeedingBinarySensor(PawControlBinarySensorBase):
     """Binary sensor showing if health-aware feeding mode is active."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the health-aware feeding status sensor."""
         super().__init__(
@@ -1724,7 +1862,10 @@ class PawControlMedicationWithMealsBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating if medication should be given with meals."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the medication reminder sensor."""
         super().__init__(
@@ -1764,7 +1905,10 @@ class PawControlHealthEmergencyBinarySensor(PawControlBinarySensorBase):
     """Binary sensor indicating an active health emergency."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the emergency escalation sensor."""
         super().__init__(
@@ -1796,7 +1940,9 @@ class PawControlHealthEmergencyBinarySensor(PawControlBinarySensorBase):
         emergency_payload = (
             feeding_data.get(
                 'emergency_mode',
-            ) if feeding_data is not None else None
+            )
+            if feeding_data is not None
+            else None
         )
 
         if isinstance(emergency_payload, Mapping):
@@ -1832,7 +1978,10 @@ class PawControlGardenSessionActiveBinarySensor(PawControlGardenBinarySensorBase
     """Binary sensor indicating an active garden session."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the garden session activity sensor."""
         super().__init__(
@@ -1861,7 +2010,10 @@ class PawControlInGardenBinarySensor(PawControlGardenBinarySensorBase):
     """Binary sensor indicating whether the dog is currently in the garden."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the in-garden presence sensor."""
         super().__init__(
@@ -1887,7 +2039,10 @@ class PawControlGardenPoopPendingBinarySensor(PawControlGardenBinarySensorBase):
     """Binary sensor indicating pending garden poop confirmation."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the pending garden poop confirmation sensor."""
         super().__init__(

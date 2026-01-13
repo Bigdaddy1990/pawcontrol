@@ -118,7 +118,8 @@ __all__ = ['EntityBudgetSnapshot', 'PawControlCoordinator', 'RuntimeCycleInfo']
 
 
 class PawControlCoordinator(
-    CoordinatorDataAccessMixin, DataUpdateCoordinator[CoordinatorDataPayload],
+    CoordinatorDataAccessMixin,
+    DataUpdateCoordinator[CoordinatorDataPayload],
 ):
     """Central orchestrator that keeps runtime logic in dedicated helpers."""
 
@@ -131,7 +132,8 @@ class PawControlCoordinator(
         """Initialise the coordinator with Home Assistant runtime context."""
         self.config_entry = entry
         self.session = ensure_shared_client_session(
-            session, owner='PawControlCoordinator',
+            session,
+            owner='PawControlCoordinator',
         )
         self.registry = DogConfigRegistry.from_entry(entry)
         self._use_external_api = bool(
@@ -229,7 +231,10 @@ class PawControlCoordinator(
             return UPDATE_INTERVALS.get('balanced', 120)
 
     def _build_api_client(
-        self, *, endpoint: str, token: str,
+        self,
+        *,
+        endpoint: str,
+        token: str,
     ) -> PawControlDeviceClient | None:
         if not endpoint:
             return None
@@ -242,7 +247,9 @@ class PawControlCoordinator(
             )
         except ValueError as err:
             _LOGGER.warning(
-                "Invalid Paw Control API endpoint '%s': %s", endpoint, err,
+                "Invalid Paw Control API endpoint '%s': %s",
+                endpoint,
+                err,
             )
             return None
 
@@ -387,7 +394,8 @@ class PawControlCoordinator(
         self.update_interval = timedelta(seconds=new_interval)
 
     async def _execute_cycle(
-        self, dog_ids: Sequence[str],
+        self,
+        dog_ids: Sequence[str],
     ) -> tuple[CoordinatorDataPayload, RuntimeCycleInfo]:
         data, cycle = await self._runtime.execute_cycle(
             dog_ids,
@@ -419,7 +427,8 @@ class PawControlCoordinator(
         await self._refresh_subset([dog_id])
 
     async def async_request_selective_refresh(
-        self, dog_ids: Iterable[str] | None = None,
+        self,
+        dog_ids: Iterable[str] | None = None,
     ) -> None:
         """Refresh a subset of dogs while keeping existing payloads."""
 
@@ -509,12 +518,16 @@ class PawControlCoordinator(
 
     @overload
     def get_module_data(
-        self, dog_id: str, module: str,
+        self,
+        dog_id: str,
+        module: str,
     ) -> CoordinatorModuleLookupResult:
         """Return module-specific data for the dog."""
 
     def get_module_data(
-        self, dog_id: str, module: str,
+        self,
+        dog_id: str,
+        module: str,
     ) -> CoordinatorModuleLookupResult:
         """Return module-specific data for the dog."""
 

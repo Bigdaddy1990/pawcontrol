@@ -52,7 +52,9 @@ def _build_runtime(
 
 
 def _baseline_data(
-    registry: DogConfigRegistry, dog_id: str, status: str,
+    registry: DogConfigRegistry,
+    dog_id: str,
+    status: str,
 ) -> CoordinatorDogData:
     dog_info = registry.get(dog_id)
     return {

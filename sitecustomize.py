@@ -208,12 +208,16 @@ def _import_hook(
             pass
         else:
             ensure_symbols = getattr(
-                compat, 'ensure_homeassistant_config_entry_symbols', None,
+                compat,
+                'ensure_homeassistant_config_entry_symbols',
+                None,
             )
             if callable(ensure_symbols):
                 ensure_symbols()
             ensure_exception_symbols = getattr(
-                compat, 'ensure_homeassistant_exception_symbols', None,
+                compat,
+                'ensure_homeassistant_exception_symbols',
+                None,
             )
             if callable(ensure_exception_symbols):
                 ensure_exception_symbols()

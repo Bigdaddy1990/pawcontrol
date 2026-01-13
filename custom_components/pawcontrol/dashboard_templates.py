@@ -228,14 +228,17 @@ def _format_breaker_list(entries: Sequence[str], language: str | None) -> str:
 
 
 def _format_guard_reasons(
-    reasons: Mapping[str, int], language: str | None,
+    reasons: Mapping[str, int],
+    language: str | None,
 ) -> list[str]:
     """Return formatted guard skip reasons for summary output."""
 
     if not reasons:
         default_value = _format_breaker_list((), language)
         fallback = _translated_statistics_fallback(
-            language, 'no_guard_reasons', default_value,
+            language,
+            'no_guard_reasons',
+            default_value,
         )
         return [fallback]
 
@@ -270,7 +273,8 @@ def _format_guard_results(
         reason = entry.get('reason')
         if isinstance(reason, str) and reason:
             reason_label = _translated_statistics_label(
-                language, 'guard_result_reason',
+                language,
+                'guard_result_reason',
             )
             outcome_label = f"{outcome_label} ({reason_label}: {reason})"
 
@@ -285,7 +289,9 @@ def _format_guard_results(
 
     default_value = _format_breaker_list((), language)
     fallback = _translated_statistics_fallback(
-        language, 'no_guard_results', default_value,
+        language,
+        'no_guard_results',
+        default_value,
     )
     return [fallback]
 
@@ -336,10 +342,15 @@ class MapCardOptions(TypedDict, total=False):
 
 
 type _MapOptionPairs = Iterable[tuple[str, object]]
-type MapOptionsInput = MapCardOptions | Mapping[
-    str,
-    object,
-] | _MapOptionPairs | None
+type MapOptionsInput = (
+    MapCardOptions
+    | Mapping[
+        str,
+        object,
+    ]
+    | _MapOptionPairs
+    | None
+)
 
 
 class NotificationLastEvent(TypedDict, total=False):
@@ -489,7 +500,9 @@ _STATISTICS_LABEL_TRANSLATIONS: Final[dict[str, Mapping[str, str]]] = {
 
 
 def _translated_statistics_fallback(
-    language: str | None, label: str, default: str,
+    language: str | None,
+    label: str,
+    default: str,
 ) -> str:
     """Return a localized fallback string for statistics summaries."""
 
@@ -598,7 +611,9 @@ def _translated_health_label(language: str | None, label: str) -> str:
 
 
 def _translated_health_template(
-    language: str | None, template: str, **values: object,
+    language: str | None,
+    template: str,
+    **values: object,
 ) -> str:
     """Return a localized health dashboard template string."""
 
@@ -745,7 +760,9 @@ class TemplateCache[PayloadT: CardTemplatePayload]:
             template_size = len(json.dumps(template, separators=(',', ':')))
             if template_size > MAX_TEMPLATE_SIZE:
                 _LOGGER.warning(
-                    'Template %s too large (%d bytes), not caching', key, template_size,
+                    'Template %s too large (%d bytes), not caching',
+                    key,
+                    template_size,
                 )
                 return
 
@@ -815,7 +832,8 @@ class TemplateCache[PayloadT: CardTemplatePayload]:
         """Return a snapshot suitable for diagnostics collectors."""
 
         return TemplateCacheSnapshot(
-            stats=self.get_stats(), metadata=self.get_metadata(),
+            stats=self.get_stats(),
+            metadata=self.get_metadata(),
         )
 
 
@@ -1047,7 +1065,9 @@ class DashboardTemplates:
         return cast(CardModConfig, card_mod.copy())
 
     def _ensure_card_mod(
-        self, template: CardConfig, theme_styles: ThemeStyles,
+        self,
+        template: CardConfig,
+        theme_styles: ThemeStyles,
     ) -> CardModConfig:
         """Return a card-mod payload attached to ``template``."""
 
@@ -1098,7 +1118,8 @@ class DashboardTemplates:
             ]
 
         if isinstance(value, Sequence) and not isinstance(
-            value, str | bytes | bytearray,
+            value,
+            str | bytes | bytearray,
         ):
             channels: list[str] = []
             for item in value:
@@ -1211,7 +1232,10 @@ class DashboardTemplates:
 
         # Generate template
         template = await self._generate_dog_status_template(
-            dog_id, dog_name, modules, theme,
+            dog_id,
+            dog_name,
+            modules,
+            theme,
         )
 
         # Cache for future use
@@ -1341,21 +1365,33 @@ class DashboardTemplates:
         if modules.get('feeding'):
             buttons.append(
                 self._create_feeding_button(
-                    dog_id, base_button, button_style, theme_styles, theme,
+                    dog_id,
+                    base_button,
+                    button_style,
+                    theme_styles,
+                    theme,
                 ),
             )
 
         if modules.get('walk'):
             buttons.extend(
                 self._create_walk_buttons(
-                    dog_id, base_button, button_style, theme_styles, theme,
+                    dog_id,
+                    base_button,
+                    button_style,
+                    theme_styles,
+                    theme,
                 ),
             )
 
         if modules.get('health'):
             buttons.append(
                 self._create_health_button(
-                    dog_id, base_button, button_style, theme_styles, theme,
+                    dog_id,
+                    base_button,
+                    button_style,
+                    theme_styles,
+                    theme,
                 ),
             )
 
@@ -1525,7 +1561,9 @@ class DashboardTemplates:
         }
 
     def _wrap_buttons_layout(
-        self, buttons: CardCollection, layout: str,
+        self,
+        buttons: CardCollection,
+        layout: str,
     ) -> CardCollection | None:
         """Wrap buttons in layout-specific containers."""
         if layout == 'grid':
@@ -1617,11 +1655,13 @@ class DashboardTemplates:
                         candidate_pairs.append((key, value))
                     else:
                         _LOGGER.debug(
-                            'Skipping map option entry with non-string key: %r', key,
+                            'Skipping map option entry with non-string key: %r',
+                            key,
                         )
                 else:
                     _LOGGER.debug(
-                        'Skipping unsupported map option entry: %s', type(
+                        'Skipping unsupported map option entry: %s',
+                        type(
                             item,
                         ).__name__,
                     )
@@ -1677,7 +1717,8 @@ class DashboardTemplates:
         default_zoom_value = _coerce_int(default_zoom_candidate)
         if default_zoom_value is not None:
             resolved_default_zoom = max(
-                MAP_ZOOM_MIN, min(MAP_ZOOM_MAX, default_zoom_value),
+                MAP_ZOOM_MIN,
+                min(MAP_ZOOM_MAX, default_zoom_value),
             )
             resolved['default_zoom'] = resolved_default_zoom
             if zoom_value is None:
@@ -1702,7 +1743,8 @@ class DashboardTemplates:
         hours_value = _coerce_int(hours_candidate)
         if hours_value is not None:
             resolved['hours_to_show'] = max(
-                MAP_HISTORY_MIN_HOURS, min(MAP_HISTORY_MAX_HOURS, hours_value),
+                MAP_HISTORY_MIN_HOURS,
+                min(MAP_HISTORY_MAX_HOURS, hours_value),
             )
 
         return resolved
@@ -1751,7 +1793,8 @@ class DashboardTemplates:
             'zoom': final_zoom,
             'dark_mode': dark_mode_enabled,
             'hours_to_show': resolved_options.get(
-                'hours_to_show', DEFAULT_MAP_HOURS_TO_SHOW,
+                'hours_to_show',
+                DEFAULT_MAP_HOURS_TO_SHOW,
             ),
         }
 
@@ -1821,7 +1864,9 @@ class DashboardTemplates:
 
         if modules.get('health'):
             stats_content += _translated_health_template(
-                hass_language, 'statistics_health_section', dog_id=dog_id,
+                hass_language,
+                'statistics_health_section',
+                dog_id=dog_id,
             )
 
         card_mod = self._card_mod(theme_styles)
@@ -1897,27 +1942,33 @@ class DashboardTemplates:
         hass_language: str | None = getattr(self.hass.config, 'language', None)
 
         statistics_header = _translated_statistics_label(
-            hass_language, 'statistics_header',
+            hass_language,
+            'statistics_header',
         )
         dogs_managed_label = _translated_statistics_label(
-            hass_language, 'dogs_managed',
+            hass_language,
+            'dogs_managed',
         )
         active_modules_label = _translated_statistics_label(
-            hass_language, 'active_modules',
+            hass_language,
+            'active_modules',
         )
         module_labels = {
             MODULE_FEEDING: _translated_statistics_label(
-                hass_language, 'module_feeding',
+                hass_language,
+                'module_feeding',
             ),
             MODULE_WALK: _translated_statistics_label(hass_language, 'module_walks'),
             MODULE_HEALTH: _translated_statistics_label(hass_language, 'module_health'),
             MODULE_GPS: _translated_statistics_label(hass_language, 'module_gps'),
             MODULE_NOTIFICATIONS: _translated_statistics_label(
-                hass_language, 'module_notifications',
+                hass_language,
+                'module_notifications',
             ),
         }
         last_updated_label = _translated_statistics_label(
-            hass_language, 'last_updated',
+            hass_language,
+            'last_updated',
         )
 
         content_lines = [
@@ -1950,9 +2001,14 @@ class DashboardTemplates:
 
             if isinstance(payload, Mapping):
                 nested = payload.get('rejection_metrics')
-                metrics_source = nested if isinstance(
-                    nested, Mapping,
-                ) else payload
+                metrics_source = (
+                    nested
+                    if isinstance(
+                        nested,
+                        Mapping,
+                    )
+                    else payload
+                )
 
                 metrics = default_rejection_metrics()
                 merge_rejection_metric_values(metrics, metrics_source)
@@ -2010,7 +2066,8 @@ class DashboardTemplates:
             raw_metrics = coordinator_statistics.get('rejection_metrics')
             if isinstance(raw_metrics, Mapping):
                 metrics_source = cast(
-                    JSONMapping | CoordinatorResilienceSummary | None, raw_metrics,
+                    JSONMapping | CoordinatorResilienceSummary | None,
+                    raw_metrics,
                 )
                 coordinator_metrics = derive_rejection_metrics(metrics_source)
 
@@ -2040,7 +2097,9 @@ class DashboardTemplates:
                 rate_display = f"{rejection_rate * 100:.2f}%"
             else:
                 rate_display = _translated_statistics_fallback(
-                    hass_language, 'no_rejection_rate', 'n/a',
+                    hass_language,
+                    'no_rejection_rate',
+                    'n/a',
                 )
 
             if last_rejection_value is not None:
@@ -2053,7 +2112,9 @@ class DashboardTemplates:
                     last_rejection_iso = str(last_rejection_value)
             else:
                 last_rejection_iso = _translated_statistics_fallback(
-                    hass_language, 'no_last_rejection', 'never',
+                    hass_language,
+                    'no_last_rejection',
+                    'never',
                 )
 
             lines.extend(
@@ -2066,7 +2127,8 @@ class DashboardTemplates:
                     (
                         '- '
                         + _translated_statistics_label(
-                            hass_language, 'rejecting_breakers',
+                            hass_language,
+                            'rejecting_breakers',
                         )
                         + f": {metrics_payload['rejection_breaker_count']}"
                     ),
@@ -2091,23 +2153,28 @@ class DashboardTemplates:
                 lines.append(
                     '- '
                     + _translated_statistics_label(
-                        hass_language, 'last_rejecting_breaker',
+                        hass_language,
+                        'last_rejecting_breaker',
                     )
                     + f": {breaker_label_value}",
                 )
 
             breaker_name_lists = {
                 _translated_statistics_label(
-                    hass_language, 'open_breaker_names',
+                    hass_language,
+                    'open_breaker_names',
                 ): metrics_payload['open_breakers'],
                 _translated_statistics_label(
-                    hass_language, 'half_open_breaker_names',
+                    hass_language,
+                    'half_open_breaker_names',
                 ): metrics_payload['half_open_breakers'],
                 _translated_statistics_label(
-                    hass_language, 'unknown_breaker_names',
+                    hass_language,
+                    'unknown_breaker_names',
                 ): metrics_payload['unknown_breakers'],
                 _translated_statistics_label(
-                    hass_language, 'rejection_breaker_names',
+                    hass_language,
+                    'rejection_breaker_names',
                 ): metrics_payload['rejection_breakers'],
             }
 
@@ -2118,16 +2185,20 @@ class DashboardTemplates:
 
             breaker_lists = {
                 _translated_statistics_label(
-                    hass_language, 'open_breaker_ids',
+                    hass_language,
+                    'open_breaker_ids',
                 ): metrics_payload['open_breaker_ids'],
                 _translated_statistics_label(
-                    hass_language, 'half_open_breaker_ids',
+                    hass_language,
+                    'half_open_breaker_ids',
                 ): metrics_payload['half_open_breaker_ids'],
                 _translated_statistics_label(
-                    hass_language, 'unknown_breaker_ids',
+                    hass_language,
+                    'unknown_breaker_ids',
                 ): metrics_payload['unknown_breaker_ids'],
                 _translated_statistics_label(
-                    hass_language, 'rejection_breaker_ids',
+                    hass_language,
+                    'rejection_breaker_ids',
                 ): metrics_payload['rejection_breaker_ids'],
             }
 
@@ -2138,43 +2209,50 @@ class DashboardTemplates:
 
             if guard_payload is not None:
                 guard_header = _translated_statistics_label(
-                    hass_language, 'guard_metrics_header',
+                    hass_language,
+                    'guard_metrics_header',
                 )
                 lines.append(f"- {guard_header}:")
 
                 executed_label = _translated_statistics_label(
-                    hass_language, 'guard_executed',
+                    hass_language,
+                    'guard_executed',
                 )
                 lines.append(
                     f"  - {executed_label}: {guard_payload['executed']}",
                 )
 
                 skipped_label = _translated_statistics_label(
-                    hass_language, 'guard_skipped',
+                    hass_language,
+                    'guard_skipped',
                 )
                 lines.append(
                     f"  - {skipped_label}: {guard_payload['skipped']}",
                 )
 
                 reasons_label = _translated_statistics_label(
-                    hass_language, 'guard_reasons',
+                    hass_language,
+                    'guard_reasons',
                 )
                 lines.append(f"  - {reasons_label}:")
                 lines.extend(
                     f"    - {reason_line}"
                     for reason_line in _format_guard_reasons(
-                        guard_payload['reasons'], hass_language,
+                        guard_payload['reasons'],
+                        hass_language,
                     )
                 )
 
                 results_label = _translated_statistics_label(
-                    hass_language, 'guard_last_results',
+                    hass_language,
+                    'guard_last_results',
                 )
                 lines.append(f"  - {results_label}:")
                 lines.extend(
                     f"    - {result_line}"
                     for result_line in _format_guard_results(
-                        guard_payload['last_results'], hass_language,
+                        guard_payload['last_results'],
+                        hass_language,
                     )
                 )
 
@@ -2182,7 +2260,8 @@ class DashboardTemplates:
 
         metrics_sections: list[
             tuple[
-                str, CoordinatorRejectionMetrics,
+                str,
+                CoordinatorRejectionMetrics,
                 HelperManagerGuardMetrics | None,
             ]
         ] = []
@@ -2197,7 +2276,8 @@ class DashboardTemplates:
 
         if metrics_sections:
             resilience_header = _translated_statistics_label(
-                hass_language, 'resilience_metrics_header',
+                hass_language,
+                'resilience_metrics_header',
             )
             content_lines.append('')
             content_lines.append(f"### {resilience_header}")
@@ -2208,19 +2288,22 @@ class DashboardTemplates:
                 if index > 0:
                     content_lines.append('')
                 section_label = _translated_statistics_label(
-                    hass_language, label_key,
+                    hass_language,
+                    label_key,
                 )
                 content_lines.append(f"**{section_label}:**")
                 content_lines.extend(
                     _format_resilience_section(
-                        metrics_payload, guard_payload=guard_payload,
+                        metrics_payload,
+                        guard_payload=guard_payload,
                     ),
                 )
 
         theme_styles = self._get_theme_styles(theme)
 
         summary_title = _translated_statistics_label(
-            hass_language, 'summary_card_title',
+            hass_language,
+            'summary_card_title',
         )
 
         card_mod = self._card_mod(theme_styles)
@@ -2248,7 +2331,9 @@ class DashboardTemplates:
         theme_styles = self._get_theme_styles(theme)
         hass_language: str | None = getattr(self.hass.config, 'language', None)
         title_text = _translated_notification_template(
-            hass_language, 'settings_title', dog_name=dog_name,
+            hass_language,
+            'settings_title',
+            dog_name=dog_name,
         )
 
         card_mod = self._card_mod(theme_styles)
@@ -2297,7 +2382,9 @@ class DashboardTemplates:
         quiet_hours_display = '✅' if quiet_hours_active else '❌'
 
         overview_heading = _translated_notification_template(
-            hass_language, 'overview_heading', dog_name=dog_name,
+            hass_language,
+            'overview_heading',
+            dog_name=dog_name,
         )
         content_lines = [
             f"## 🔔 {overview_heading}",
@@ -2347,7 +2434,9 @@ class DashboardTemplates:
                 str(notification_type_raw)
                 if notification_type_raw not in (None, '')
                 else _translated_notification_fallback(
-                    hass_language, 'unknown_value', 'unknown',
+                    hass_language,
+                    'unknown_value',
+                    'unknown',
                 )
             )
             priority_raw = last_notification.get('priority', 'normal')
@@ -2355,7 +2444,9 @@ class DashboardTemplates:
                 str(priority_raw).capitalize()
                 if priority_raw not in (None, '')
                 else _translated_notification_fallback(
-                    hass_language, 'default_priority', 'Normal',
+                    hass_language,
+                    'default_priority',
+                    'Normal',
                 )
             )
             sent_at_raw = last_notification.get('sent_at', 'unknown')
@@ -2363,7 +2454,9 @@ class DashboardTemplates:
                 str(sent_at_raw)
                 if sent_at_raw not in (None, '')
                 else _translated_notification_fallback(
-                    hass_language, 'unknown_value', 'unknown',
+                    hass_language,
+                    'unknown_value',
+                    'unknown',
                 )
             )
 
@@ -2418,7 +2511,8 @@ class DashboardTemplates:
             {
                 **base_button,
                 'name': _translated_notification_label(
-                    hass_language, 'send_test_notification',
+                    hass_language,
+                    'send_test_notification',
                 ),
                 'icon': 'mdi:bell-check',
                 'tap_action': {
@@ -2443,7 +2537,8 @@ class DashboardTemplates:
             {
                 **base_button,
                 'name': _translated_notification_label(
-                    hass_language, 'reset_quiet_hours',
+                    hass_language,
+                    'reset_quiet_hours',
                 ),
                 'icon': 'mdi:weather-night',
                 'tap_action': {
@@ -2470,7 +2565,9 @@ class DashboardTemplates:
         return template
 
     async def get_feeding_schedule_template(
-        self, dog_id: str, theme: str = 'modern',
+        self,
+        dog_id: str,
+        theme: str = 'modern',
     ) -> CardConfig:
         """Get themed feeding schedule template.
 
@@ -2484,7 +2581,8 @@ class DashboardTemplates:
         theme_styles = self._get_theme_styles(theme)
         hass_language: str | None = getattr(self.hass.config, 'language', None)
         schedule_label = _translated_feeding_label(
-            hass_language, 'feeding_schedule',
+            hass_language,
+            'feeding_schedule',
         )
 
         template: CardConfig
@@ -2517,7 +2615,9 @@ class DashboardTemplates:
         return template
 
     async def get_feeding_controls_template(
-        self, dog_id: str, theme: str = 'modern',
+        self,
+        dog_id: str,
+        theme: str = 'modern',
     ) -> CardConfig:
         """Get themed feeding control buttons template.
 
@@ -2636,7 +2736,9 @@ class DashboardTemplates:
         }
 
     async def get_health_charts_template(
-        self, dog_id: str, theme: str = 'modern',
+        self,
+        dog_id: str,
+        theme: str = 'modern',
     ) -> CardConfig:
         """Get themed health charts template.
 
@@ -2745,7 +2847,10 @@ class DashboardTemplates:
         return template
 
     async def get_timeline_template(
-        self, dog_id: str, dog_name: str, theme: str = 'modern',
+        self,
+        dog_id: str,
+        dog_name: str,
+        theme: str = 'modern',
     ) -> CardConfig:
         """Get activity timeline template.
 
@@ -2760,7 +2865,8 @@ class DashboardTemplates:
         theme_styles = self._get_theme_styles(theme)
         hass_language: str | None = getattr(self.hass.config, 'language', None)
         last_health_label = _translated_health_label(
-            hass_language, 'timeline_last_health_check',
+            hass_language,
+            'timeline_last_health_check',
         )
 
         timeline_content = f"""
@@ -2837,7 +2943,8 @@ class DashboardTemplates:
                 {
                     'entity': f"sensor.{dog_id}_weather_health_score",
                     'name': _translated_health_label(
-                        hass_language, 'weather_health_score',
+                        hass_language,
+                        'weather_health_score',
                     ),
                     'icon': 'mdi:heart-pulse',
                 },
@@ -3148,7 +3255,8 @@ class DashboardTemplates:
                 {
                     'entity': f"sensor.{dog_id}_weather_health_score",
                     'name': _translated_health_label(
-                        hass_language, 'weather_health_score',
+                        hass_language,
+                        'weather_health_score',
                     ),
                     'color': theme_styles['colors']['primary'],
                 },
@@ -3160,7 +3268,8 @@ class DashboardTemplates:
                 },
             ]
             chart_title = _translated_health_template(
-                hass_language, 'weather_health_chart_title',
+                hass_language,
+                'weather_health_chart_title',
             )
         elif chart_type == 'temperature':
             entities = [
@@ -3430,7 +3539,8 @@ class DashboardTemplates:
 
         buttons: CardCollection = [
             update_button,
-            alerts_button, recommendations_button,
+            alerts_button,
+            recommendations_button,
         ]
 
         # Apply theme styling to buttons
@@ -3637,13 +3747,21 @@ class DashboardTemplates:
             # Compact layout for smaller screens
             compact_cards: CardCollection = [
                 await self.get_weather_status_card_template(
-                    dog_id, dog_name, theme, compact=True,
+                    dog_id,
+                    dog_name,
+                    theme,
+                    compact=True,
                 ),
                 await self.get_weather_alerts_card_template(
-                    dog_id, dog_name, theme, max_alerts=1,
+                    dog_id,
+                    dog_name,
+                    theme,
+                    max_alerts=1,
                 ),
                 await self.get_weather_action_buttons_template(
-                    dog_id, theme, layout='horizontal',
+                    dog_id,
+                    theme,
+                    layout='horizontal',
                 ),
             ]
 
@@ -3656,13 +3774,21 @@ class DashboardTemplates:
             # Mobile-optimized layout
             mobile_cards: CardCollection = [
                 await self.get_weather_status_card_template(
-                    dog_id, dog_name, theme, compact=True,
+                    dog_id,
+                    dog_name,
+                    theme,
+                    compact=True,
                 ),
                 await self.get_weather_chart_template(
-                    dog_id, 'health_score', theme, '24h',
+                    dog_id,
+                    'health_score',
+                    theme,
+                    '24h',
                 ),
                 await self.get_weather_action_buttons_template(
-                    dog_id, theme, layout='grid',
+                    dog_id,
+                    theme,
+                    layout='grid',
                 ),
             ]
 
@@ -3679,10 +3805,14 @@ class DashboardTemplates:
                 'type': 'horizontal-stack',
                 'cards': [
                     await self.get_weather_status_card_template(
-                        dog_id, dog_name, theme,
+                        dog_id,
+                        dog_name,
+                        theme,
                     ),
                     await self.get_weather_alerts_card_template(
-                        dog_id, dog_name, theme,
+                        dog_id,
+                        dog_name,
+                        theme,
                     ),
                 ],
             },
@@ -3691,10 +3821,16 @@ class DashboardTemplates:
                 'type': 'horizontal-stack',
                 'cards': [
                     await self.get_weather_chart_template(
-                        dog_id, 'health_score', theme, '24h',
+                        dog_id,
+                        'health_score',
+                        theme,
+                        '24h',
                     ),
                     await self.get_weather_chart_template(
-                        dog_id, 'temperature', theme, '24h',
+                        dog_id,
+                        'temperature',
+                        theme,
+                        '24h',
                     ),
                 ],
             },
@@ -3703,16 +3839,23 @@ class DashboardTemplates:
                 'type': 'horizontal-stack',
                 'cards': [
                     await self.get_weather_recommendations_card_template(
-                        dog_id, dog_name, theme,
+                        dog_id,
+                        dog_name,
+                        theme,
                     ),
                     await self.get_weather_breed_advisory_template(
-                        dog_id, dog_name, breed, theme,
+                        dog_id,
+                        dog_name,
+                        breed,
+                        theme,
                     ),
                 ],
             },
             # Bottom row: Action buttons
             await self.get_weather_action_buttons_template(
-                dog_id, theme, layout='horizontal',
+                dog_id,
+                theme,
+                layout='horizontal',
             ),
         ]
 

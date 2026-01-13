@@ -34,7 +34,8 @@ def test_repairs_flow_stub_matches_home_assistant_contract() -> None:
     }
 
     external_result = flow.async_external_step(
-        step_id='external', url='https://example.com',
+        step_id='external',
+        url='https://example.com',
     )
     assert external_result == {
         'type': 'external',
@@ -88,7 +89,8 @@ def test_repairs_flow_stub_matches_home_assistant_contract() -> None:
 
     external_done_result = flow.async_external_step_done(next_step_id='finish')
     assert external_done_result == {
-        'type': 'external_done', 'next_step_id': 'finish',
+        'type': 'external_done',
+        'next_step_id': 'finish',
     }
 
 
@@ -110,7 +112,8 @@ def test_repairs_flow_stub_populates_default_placeholders() -> None:
     }
 
     progress_result = flow.async_show_progress(
-        step_id='progress', progress_action='waiting',
+        step_id='progress',
+        progress_action='waiting',
     )
     assert progress_result == {
         'type': 'progress',
@@ -228,7 +231,8 @@ def test_options_flow_stub_handles_external_and_progress_results() -> None:
     flow = SampleOptionsFlow()
 
     external_result = flow.async_external_step(
-        step_id='external', url='https://example.com/continue',
+        step_id='external',
+        url='https://example.com/continue',
     )
     assert external_result == {
         'type': 'external',
@@ -237,7 +241,8 @@ def test_options_flow_stub_handles_external_and_progress_results() -> None:
     }
 
     progress_result = flow.async_show_progress(
-        step_id='progress', progress_action='working',
+        step_id='progress',
+        progress_action='working',
     )
     assert progress_result == {
         'type': 'progress',
@@ -520,17 +525,25 @@ def test_support_helpers_follow_handler_hooks() -> None:
     HANDLERS['with_support'] = FlowHandler()
 
     assert asyncio.run(support_entry_unload(object(), 'with_support')) is True
-    assert asyncio.run(
-        support_remove_from_device(
-        object(), 'with_support',
-        ),
-    ) is True
+    assert (
+        asyncio.run(
+            support_remove_from_device(
+                object(),
+                'with_support',
+            ),
+        )
+        is True
+    )
     assert asyncio.run(support_entry_unload(object(), 'missing')) is False
-    assert asyncio.run(
-        support_remove_from_device(
-        object(), 'missing',
-        ),
-    ) is False
+    assert (
+        asyncio.run(
+            support_remove_from_device(
+                object(),
+                'missing',
+            ),
+        )
+        is False
+    )
 
 
 def test_compat_config_entry_states_include_unload_progress() -> None:
@@ -693,17 +706,25 @@ def test_compat_support_helpers_follow_handler_hooks() -> None:
     HANDLERS['with_support'] = FlowHandler()
 
     assert asyncio.run(support_entry_unload(object(), 'with_support')) is True
-    assert asyncio.run(
-        support_remove_from_device(
-        object(), 'with_support',
-        ),
-    ) is True
+    assert (
+        asyncio.run(
+            support_remove_from_device(
+                object(),
+                'with_support',
+            ),
+        )
+        is True
+    )
     assert asyncio.run(support_entry_unload(object(), 'missing')) is False
-    assert asyncio.run(
-        support_remove_from_device(
-        object(), 'missing',
-        ),
-    ) is False
+    assert (
+        asyncio.run(
+            support_remove_from_device(
+                object(),
+                'missing',
+            ),
+        )
+        is False
+    )
 
 
 def test_compat_config_entry_metadata_can_be_overridden() -> None:
@@ -774,7 +795,8 @@ def test_registry_singletons_are_shared_between_helpers() -> None:
     assert device_registry_first is device_registry_second
 
     stored_device = device_registry_first.async_get_or_create(
-        id='device-one', config_entry_id='entry-id',
+        id='device-one',
+        config_entry_id='entry-id',
     )
     assert device_registry_second.async_entries_for_config_entry('entry-id') == [
         stored_device,
@@ -785,7 +807,8 @@ def test_registry_singletons_are_shared_between_helpers() -> None:
     assert entity_registry_first is entity_registry_second
 
     stored_entity = entity_registry_first.async_get_or_create(
-        'sensor.shared', config_entry_id='entry-id',
+        'sensor.shared',
+        config_entry_id='entry-id',
     )
     assert entity_registry_second.async_entries_for_config_entry('entry-id') == [
         stored_entity,
@@ -823,7 +846,8 @@ def test_entity_and_device_registry_factories_track_entries() -> None:
         modified_at=created_at,
     )
     other_device = device_registry_stub.async_get_or_create(
-        id='device-two', config_entry_id='other',
+        id='device-two',
+        config_entry_id='other',
     )
     updated_device = device_registry_stub.async_update_device(
         device.id,
@@ -858,7 +882,8 @@ def test_entity_and_device_registry_factories_track_entries() -> None:
     assert updated_device.name_by_user == 'friendly'
     assert updated_device.preferred_area_id == 'kitchen'
     assert device_registry.async_entries_for_config_entry(
-        device_registry_stub, 'other',
+        device_registry_stub,
+        'other',
     ) == [other_device]
 
     entity_registry_stub = entity_registry_get(None)
@@ -884,7 +909,9 @@ def test_entity_and_device_registry_factories_track_entries() -> None:
         modified_at=created_at,
     )
     other_entity = entity_registry_stub.async_get_or_create(
-        'sensor.other', device_id=device.id, config_entry_id='other',
+        'sensor.other',
+        device_id=device.id,
+        config_entry_id='other',
     )
     updated_entity = entity_registry_stub.async_update_entity(
         entity.entity_id,
@@ -928,7 +955,8 @@ def test_entity_and_device_registry_factories_track_entries() -> None:
         'entry-id',
     ) == [entity]
     assert entity_registry.async_entries_for_config_entry(
-        entity_registry_stub, 'other',
+        entity_registry_stub,
+        'other',
     ) == [other_entity]
 
 
@@ -951,21 +979,30 @@ def test_device_registry_lookup_matches_identifiers_and_connections() -> None:
         connections={('mac', 'aa:bb:cc:dd:ee:ff')},
     )
 
-    assert registry.async_get_device(
-        identifiers={('domain', 'one')},
-    ) is matched
     assert (
-        device_registry.async_get_device(
-            registry, connections={('mac', '00:11:22:33:44:55')},
+        registry.async_get_device(
+            identifiers={('domain', 'one')},
         )
         is matched
     )
-    assert device_registry.async_get_device(
-        registry, identifiers=set(),
-    ) is None
     assert (
         device_registry.async_get_device(
-            registry, connections={('mac', 'ff:ee:dd:cc:bb:aa')},
+            registry,
+            connections={('mac', '00:11:22:33:44:55')},
+        )
+        is matched
+    )
+    assert (
+        device_registry.async_get_device(
+            registry,
+            identifiers=set(),
+        )
+        is None
+    )
+    assert (
+        device_registry.async_get_device(
+            registry,
+            connections={('mac', 'ff:ee:dd:cc:bb:aa')},
         )
         is None
     )
@@ -1054,15 +1091,20 @@ def test_device_registry_fetches_devices_by_id() -> None:
     stored = registry.async_get_or_create(id='device-one')
     matched = registry.async_get('device-one')
     helper_matched = device_registry.async_get_device(
-        registry, device_id='device-one',
+        registry,
+        device_id='device-one',
     )
 
     assert matched is stored
     assert helper_matched is stored
     assert registry.async_get('missing') is None
-    assert device_registry.async_get_device(
-        registry, device_id='missing',
-    ) is None
+    assert (
+        device_registry.async_get_device(
+            registry,
+            device_id='missing',
+        )
+        is None
+    )
 
 
 def test_device_registry_accumulates_identifiers_and_connections() -> None:
@@ -1096,13 +1138,15 @@ def test_device_registry_accumulates_identifiers_and_connections() -> None:
     assert device.config_entries == {'entry-one', 'entry-two'}
     assert (
         device_registry.async_get_device(
-            registry, identifiers={('domain', 'two')},
+            registry,
+            identifiers={('domain', 'two')},
         )
         is device
     )
     assert (
         device_registry.async_get_device(
-            registry, connections={('mdns', 'paw.local')},
+            registry,
+            connections={('mdns', 'paw.local')},
         )
         is device
     )
@@ -1117,15 +1161,20 @@ def test_entity_registry_entries_filter_by_device_id() -> None:
 
     registry = entity_registry.async_get(None)
     first = registry.async_get_or_create(
-        'sensor.first', device_id='device-one', config_entry_id='entry-id',
+        'sensor.first',
+        device_id='device-one',
+        config_entry_id='entry-id',
     )
     second = registry.async_get_or_create(
-        'sensor.second', device_id='device-two', config_entry_id='entry-id',
+        'sensor.second',
+        device_id='device-two',
+        config_entry_id='entry-id',
     )
 
     assert registry.async_entries_for_device('device-one') == [first]
     assert entity_registry.async_entries_for_device(
-        registry, 'device-two',
+        registry,
+        'device-two',
     ) == [second]
     assert entity_registry.async_entries_for_device(registry, 'missing') == []
 
@@ -1169,7 +1218,9 @@ def test_device_registry_remove_follows_home_assistant_helper() -> None:
 
     registry = device_registry.async_get(None)
     device = registry.async_get_or_create(
-        id='device-one', config_entry_id='entry-id', identifiers={('domain', 'one')},
+        id='device-one',
+        config_entry_id='entry-id',
+        identifiers={('domain', 'one')},
     )
 
     assert registry.async_entries_for_config_entry('entry-id') == [device]
@@ -1179,9 +1230,13 @@ def test_device_registry_remove_follows_home_assistant_helper() -> None:
     assert registry.async_remove_device('device-one')
     assert device_registry.async_remove_device(registry, 'device-one') is False
     assert registry.async_entries_for_config_entry('entry-id') == []
-    assert device_registry.async_entries_for_config_entry(
-        registry, 'entry-id',
-    ) == []
+    assert (
+        device_registry.async_entries_for_config_entry(
+            registry,
+            'entry-id',
+        )
+        == []
+    )
 
 
 def test_entity_registry_remove_follows_home_assistant_helper() -> None:
@@ -1193,7 +1248,9 @@ def test_entity_registry_remove_follows_home_assistant_helper() -> None:
 
     registry = entity_registry.async_get(None)
     entity = registry.async_get_or_create(
-        'sensor.test', device_id='device-one', config_entry_id='entry-id',
+        'sensor.test',
+        device_id='device-one',
+        config_entry_id='entry-id',
     )
 
     assert registry.async_entries_for_device('device-one') == [entity]
@@ -1203,9 +1260,13 @@ def test_entity_registry_remove_follows_home_assistant_helper() -> None:
     assert registry.async_remove('sensor.test')
     assert entity_registry.async_remove(registry, 'sensor.test') is False
     assert registry.async_entries_for_device('device-one') == []
-    assert entity_registry.async_entries_for_config_entry(
-        registry, 'entry-id',
-    ) == []
+    assert (
+        entity_registry.async_entries_for_config_entry(
+            registry,
+            'entry-id',
+        )
+        == []
+    )
 
 
 def test_issue_registry_helpers_store_and_remove_issues() -> None:
@@ -1220,7 +1281,9 @@ def test_issue_registry_helpers_store_and_remove_issues() -> None:
     assert issue_registry.async_get(object()) is registry
     assert (
         issue_registry.async_get_issue(
-            object(), 'test_domain', 'missing_config',
+            object(),
+            'test_domain',
+            'missing_config',
         )
         is None
     )
@@ -1261,7 +1324,9 @@ def test_issue_registry_helpers_store_and_remove_issues() -> None:
     assert dismissed_at.tzinfo is UTC
     assert (
         issue_registry.async_get_issue(
-            object(), 'test_domain', 'missing_config',
+            object(),
+            'test_domain',
+            'missing_config',
         )
         == created
     )
@@ -1293,7 +1358,9 @@ def test_issue_registry_helpers_store_and_remove_issues() -> None:
     assert updated['active'] is True
     assert (
         issue_registry.async_get_issue(
-            object(), 'test_domain', 'missing_config',
+            object(),
+            'test_domain',
+            'missing_config',
         )
         == updated
     )
@@ -1316,7 +1383,10 @@ def test_issue_registry_helpers_store_and_remove_issues() -> None:
     from homeassistant import const
 
     ignored = issue_registry.async_ignore_issue(
-        object(), 'test_domain', 'missing_config', True,
+        object(),
+        'test_domain',
+        'missing_config',
+        True,
     )
     assert ignored['dismissed_version'] == const.__version__
     assert ignored['dismissed'] != dismissed_at
@@ -1324,13 +1394,18 @@ def test_issue_registry_helpers_store_and_remove_issues() -> None:
     assert ignored['active'] is False
     assert (
         issue_registry.async_get_issue(
-            object(), 'test_domain', 'missing_config',
+            object(),
+            'test_domain',
+            'missing_config',
         )
         == ignored
     )
 
     unignored = issue_registry.async_ignore_issue(
-        object(), 'test_domain', 'missing_config', False,
+        object(),
+        'test_domain',
+        'missing_config',
+        False,
     )
     assert unignored['dismissed_version'] is None
     assert unignored['dismissed'] is None
@@ -1338,13 +1413,17 @@ def test_issue_registry_helpers_store_and_remove_issues() -> None:
     assert unignored['active'] is True
     assert (
         issue_registry.async_get_issue(
-            object(), 'test_domain', 'missing_config',
+            object(),
+            'test_domain',
+            'missing_config',
         )
         == unignored
     )
 
     defaulted = issue_registry.async_create_issue(
-        object(), 'another_domain', 'missing_translation',
+        object(),
+        'another_domain',
+        'missing_translation',
     )
     assert defaulted['severity'] is issue_severity_cls.WARNING
     assert defaulted['translation_domain'] == 'another_domain'
@@ -1352,21 +1431,32 @@ def test_issue_registry_helpers_store_and_remove_issues() -> None:
     assert defaulted['issue_domain'] == 'another_domain'
 
     assert issue_registry.async_delete_issue(
-        object(), 'test_domain', 'missing_config',
+        object(),
+        'test_domain',
+        'missing_config',
     )
     assert ('test_domain', 'missing_config') not in registry.issues
     assert (
         issue_registry.async_delete_issue(
-            object(), 'test_domain', 'missing_config',
+            object(),
+            'test_domain',
+            'missing_config',
         )
         is False
     )
-    assert issue_registry.async_delete_issue(
-        object(), 'test_domain', 'absent',
-    ) is False
+    assert (
+        issue_registry.async_delete_issue(
+            object(),
+            'test_domain',
+            'absent',
+        )
+        is False
+    )
     assert (
         issue_registry.async_get_issue(
-            object(), 'test_domain', 'missing_config',
+            object(),
+            'test_domain',
+            'missing_config',
         )
         is None
     )
@@ -1382,7 +1472,9 @@ def test_issue_registry_preserves_optional_metadata() -> None:
     registry = issue_registry.async_get(object())
 
     defaulted = issue_registry.async_create_issue(
-        object(), 'domain', 'missing_metadata',
+        object(),
+        'domain',
+        'missing_metadata',
     )
 
     assert defaulted['data'] is None

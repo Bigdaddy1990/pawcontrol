@@ -30,7 +30,8 @@ ValidationError = validation.ValidationError
 
 def test_validate_gps_coordinates_success() -> None:
     latitude, longitude = InputValidator.validate_gps_coordinates(
-        52.52, 13.405,
+        52.52,
+        13.405,
     )
     assert latitude == pytest.approx(52.52)
     assert longitude == pytest.approx(13.405)

@@ -267,7 +267,10 @@ def ensure_door_sensor_settings_config(
     )
     door_delay = _coerce_int(
         pick(
-            'door_closed_delay', 'door_closed_timeout', 'close_delay', 'close_timeout',
+            'door_closed_delay',
+            'door_closed_timeout',
+            'close_delay',
+            'close_timeout',
         ),
         default=base_settings.door_closed_delay,
         minimum=0,
@@ -322,7 +325,8 @@ DEFAULT_DOOR_SENSOR_SETTINGS_PAYLOAD: Final[DoorSensorSettingsPayload] = (
 
 
 def _apply_settings_to_config(
-    config: DoorSensorConfig, settings: DoorSensorSettingsConfig,
+    config: DoorSensorConfig,
+    settings: DoorSensorSettingsConfig,
 ) -> None:
     """Apply ``settings`` to ``config`` in-place."""
 
@@ -595,9 +599,9 @@ class WalkDetectionState:
         # Pattern: Multiple quick opens/closes (uncertainty)
         rapid_changes = len(
             [
-                event for event in recent_events if (
-                now - event[0]
-                ).total_seconds() < 120
+                event
+                for event in recent_events
+                if (now - event[0]).total_seconds() < 120
             ],
         )
 
@@ -649,7 +653,10 @@ class DoorSensorManager:
         }
 
     def register_cache_monitors(
-        self, registrar: CacheMonitorRegistrar, *, prefix: str = 'door_sensor',
+        self,
+        registrar: CacheMonitorRegistrar,
+        *,
+        prefix: str = 'door_sensor',
     ) -> None:
         """Register cache diagnostics for the door sensor manager."""
 
@@ -657,10 +664,12 @@ class DoorSensorManager:
             raise ValueError('registrar is required')
 
         _LOGGER.debug(
-            'Registering door sensor cache monitor with prefix %s', prefix,
+            'Registering door sensor cache monitor with prefix %s',
+            prefix,
         )
         registrar.register_cache_monitor(
-            f"{prefix}_cache", _DoorSensorManagerCacheMonitor(self),
+            f"{prefix}_cache",
+            _DoorSensorManagerCacheMonitor(self),
         )
 
     def _ensure_data_manager(self) -> PawControlDataManager | None:
@@ -709,7 +718,8 @@ class DoorSensorManager:
                 updates[CONF_DOOR_SENSOR_SETTINGS] = None
             else:
                 updates[CONF_DOOR_SENSOR_SETTINGS] = cast(
-                    DoorSensorSettingsPayload | None, settings,
+                    DoorSensorSettingsPayload | None,
+                    settings,
                 )
 
         if not updates:
@@ -721,12 +731,15 @@ class DoorSensorManager:
             await data_manager.async_update_dog_data(dog_id, update_payload)
         except Exception as err:  # pragma: no cover - defensive guard
             _LOGGER.error(
-                'Failed to persist door sensor overrides for %s: %s', dog_id, err,
+                'Failed to persist door sensor overrides for %s: %s',
+                dog_id,
+                err,
             )
 
     @staticmethod
     def _settings_for_persistence(
-        raw_settings: object, normalised: DoorSensorSettingsConfig,
+        raw_settings: object,
+        normalised: DoorSensorSettingsConfig,
     ) -> object:
         """Return payload to persist when ``raw_settings`` differs from ``normalised``."""
 
@@ -807,7 +820,9 @@ class DoorSensorManager:
 
             if not await self._validate_sensor_entity(trimmed_sensor):
                 _LOGGER.warning(
-                    'Door sensor %s for %s is not available', door_sensor, dog_name,
+                    'Door sensor %s for %s is not available',
+                    door_sensor,
+                    dog_name,
                 )
                 continue
 
@@ -919,7 +934,9 @@ class DoorSensorManager:
 
         # Register state change listener
         listener = async_track_state_change_event(
-            self.hass, sensor_entities, handle_state_change,
+            self.hass,
+            sensor_entities,
+            handle_state_change,
         )
         self._state_listeners.append(listener)
 
@@ -935,7 +952,8 @@ class DoorSensorManager:
         )
 
     async def _handle_door_state_change(
-        self, event: Event[EventStateChangedData],
+        self,
+        event: Event[EventStateChangedData],
     ) -> None:
         """Handle door sensor state changes.
 
@@ -976,7 +994,9 @@ class DoorSensorManager:
             await self._handle_door_closed(config, detection_state)
 
     async def _handle_door_opened(
-        self, config: DoorSensorConfig, state: WalkDetectionState,
+        self,
+        config: DoorSensorConfig,
+        state: WalkDetectionState,
     ) -> None:
         """Handle door opening event.
 
@@ -1013,7 +1033,9 @@ class DoorSensorManager:
             asyncio.create_task(check_walk_timeout())
 
     async def _handle_door_closed(
-        self, config: DoorSensorConfig, state: WalkDetectionState,
+        self,
+        config: DoorSensorConfig,
+        state: WalkDetectionState,
     ) -> None:
         """Handle door closing event.
 
@@ -1048,7 +1070,9 @@ class DoorSensorManager:
             await self._handle_walk_return(config, state)
 
     async def _initiate_walk_detection(
-        self, config: DoorSensorConfig, state: WalkDetectionState,
+        self,
+        config: DoorSensorConfig,
+        state: WalkDetectionState,
     ) -> None:
         """Initiate walk detection based on door sensor patterns.
 
@@ -1070,7 +1094,9 @@ class DoorSensorManager:
             await self._start_automatic_walk(config, state)
 
     async def _send_walk_confirmation_request(
-        self, config: DoorSensorConfig, state: WalkDetectionState,
+        self,
+        config: DoorSensorConfig,
+        state: WalkDetectionState,
     ) -> None:
         """Send walk confirmation request via notifications.
 
@@ -1133,7 +1159,9 @@ class DoorSensorManager:
         asyncio.create_task(confirmation_timeout())
 
     async def _start_automatic_walk(
-        self, config: DoorSensorConfig, state: WalkDetectionState,
+        self,
+        config: DoorSensorConfig,
+        state: WalkDetectionState,
     ) -> None:
         """Start automatic walk tracking.
 
@@ -1195,12 +1223,16 @@ class DoorSensorManager:
 
         except Exception as err:
             _LOGGER.error(
-                'Failed to start automatic walk for %s: %s', config.dog_name, err,
+                'Failed to start automatic walk for %s: %s',
+                config.dog_name,
+                err,
             )
             state.current_state = WALK_STATE_IDLE
 
     async def _handle_walk_return(
-        self, config: DoorSensorConfig, state: WalkDetectionState,
+        self,
+        config: DoorSensorConfig,
+        state: WalkDetectionState,
     ) -> None:
         """Handle dog returning from walk.
 
@@ -1232,7 +1264,10 @@ class DoorSensorManager:
         await self._end_automatic_walk(config, state, 'door_return')
 
     async def _end_automatic_walk(
-        self, config: DoorSensorConfig, state: WalkDetectionState, reason: str,
+        self,
+        config: DoorSensorConfig,
+        state: WalkDetectionState,
+        reason: str,
     ) -> None:
         """End automatic walk tracking.
 
@@ -1298,11 +1333,15 @@ class DoorSensorManager:
 
         except Exception as err:
             _LOGGER.error(
-                'Failed to end automatic walk for %s: %s', config.dog_name, err,
+                'Failed to end automatic walk for %s: %s',
+                config.dog_name,
+                err,
             )
 
     async def _handle_walk_timeout(
-        self, config: DoorSensorConfig, state: WalkDetectionState,
+        self,
+        config: DoorSensorConfig,
+        state: WalkDetectionState,
     ) -> None:
         """Handle walk detection timeout.
 
@@ -1346,7 +1385,8 @@ class DoorSensorManager:
 
                 if cleaned > 0:
                     _LOGGER.debug(
-                        'Cleaned %d old state history entries', cleaned,
+                        'Cleaned %d old state history entries',
+                        cleaned,
                     )
 
             except asyncio.CancelledError:
@@ -1355,7 +1395,9 @@ class DoorSensorManager:
                 _LOGGER.error('Error in door sensor cleanup task: %s', err)
 
     async def async_handle_walk_confirmation(
-        self, dog_id: str, confirmed: bool,
+        self,
+        dog_id: str,
+        confirmed: bool,
     ) -> None:
         """Handle walk confirmation response.
 
@@ -1462,7 +1504,8 @@ class DoorSensorManager:
             config = self._sensor_configs.get(dog_id)
             if not config:
                 _LOGGER.warning(
-                    'No door sensor configuration found for dog %s', dog_id,
+                    'No door sensor configuration found for dog %s',
+                    dog_id,
                 )
                 return False
 
@@ -1474,7 +1517,8 @@ class DoorSensorManager:
             if settings is not None:
                 before = _settings_from_config(config)
                 normalised = ensure_door_sensor_settings_config(
-                    settings, base=before,
+                    settings,
+                    base=before,
                 )
                 if normalised != before:
                     _apply_settings_to_config(config, normalised)
@@ -1488,7 +1532,8 @@ class DoorSensorManager:
                 )
             else:
                 _LOGGER.debug(
-                    'Door sensor configuration for %s unchanged', config.dog_name,
+                    'Door sensor configuration for %s unchanged',
+                    config.dog_name,
                 )
 
         if changed:

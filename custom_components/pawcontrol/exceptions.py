@@ -487,7 +487,8 @@ class WalkError(PawControlError):
             **kwargs: Additional arguments for parent class
         """
         base_context: dict[str, object] = {
-            'dog_id': dog_id, 'walk_id': walk_id,
+            'dog_id': dog_id,
+            'walk_id': walk_id,
         }
         if context:
             base_context.update(context)
@@ -1141,7 +1142,8 @@ def handle_exception_gracefully(
                 logger = logging.getLogger(__name__)
                 logger.error(
                     'PawControl error in %s: %s',
-                    func.__name__, e.to_dict(),
+                    func.__name__,
+                    e.to_dict(),
                 )
 
             if reraise_critical and e.severity == ErrorSeverity.CRITICAL:

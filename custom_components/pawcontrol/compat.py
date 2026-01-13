@@ -258,7 +258,11 @@ def bind_exception_alias(
         namespace[target] = candidate
 
     bound = _BoundExceptionAlias(
-        name, module_name, target, combine_with_current, _apply,
+        name,
+        module_name,
+        target,
+        combine_with_current,
+        _apply,
     )
     _BOUND_EXCEPTION_ALIASES[key] = bound
     _apply(_current_exception_mapping())
@@ -315,7 +319,10 @@ def _auth_failed_factory() -> type[Exception]:
     base = cast(type[Exception], ConfigEntryError)
 
     def _init(
-        self: Any, message: str | None = None, *, auth_migration: bool | None = None,
+        self: Any,
+        message: str | None = None,
+        *,
+        auth_migration: bool | None = None,
     ) -> None:
         base.__init__(self, message)
         self.auth_migration = auth_migration
@@ -508,7 +515,9 @@ def _build_subentries(
             title=str(subentry_data.get('title', subentry_id)),
             unique_id=str(
                 raw_unique_id,
-            ) if raw_unique_id is not None else None,
+            )
+            if raw_unique_id is not None
+            else None,
         )
 
     return subentries
@@ -661,7 +670,8 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
                 self._supported_subentry_types = {
                     subentry_type: {
                         'supports_reconfigure': hasattr(
-                            subentry_handler, 'async_step_reconfigure',
+                            subentry_handler,
+                            'async_step_reconfigure',
                         ),
                     }
                     for subentry_type, subentry_handler in supported_flows.items()
@@ -674,7 +684,9 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
 
         self._hass = hass
         manager = getattr(
-            getattr(hass, 'config_entries', None), '_entries', None,
+            getattr(hass, 'config_entries', None),
+            '_entries',
+            None,
         )
         if isinstance(manager, dict):  # pragma: no branch - test helper hook
             manager[self.entry_id] = self
@@ -694,7 +706,8 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
         return _remove
 
     def async_on_unload(
-        self, callback: Callable[[], Coroutine[Any, Any, None] | None],
+        self,
+        callback: Callable[[], Coroutine[Any, Any, None] | None],
     ) -> Callable[[], Coroutine[Any, Any, None] | None]:
         """Register a callback invoked when the entry unloads."""
 
@@ -747,7 +760,8 @@ def _is_enum_type(value: Any) -> bool:
 
 
 def _sync_config_entry_symbols(
-    config_entries_module: Any | None, core_module: Any | None,
+    config_entries_module: Any | None,
+    core_module: Any | None,
 ) -> None:
     """Ensure Home Assistant modules expose the compatibility ConfigEntry types."""
 
@@ -781,7 +795,8 @@ def _sync_config_entry_symbols(
 
         module_change = getattr(
             config_entries_module,
-            'ConfigEntryChange', None,
+            'ConfigEntryChange',
+            None,
         )
         if _is_enum_type(module_change):
             globals()['ConfigEntryChange'] = cast(type[Enum], module_change)

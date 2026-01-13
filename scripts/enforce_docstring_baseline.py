@@ -56,7 +56,8 @@ def _load_baseline() -> dict[str, float] | None:
 
 def _write_baseline(stats: DocstringStats) -> None:
     BASELINE_PATH.write_text(
-        json.dumps(stats.to_dict(), indent=2) + '\n', encoding='utf-8',
+        json.dumps(stats.to_dict(), indent=2) + '\n',
+        encoding='utf-8',
     )
 
 

@@ -93,7 +93,8 @@ def translated_grooming_label(language: str | None, key: str, **values: object) 
         default=DEFAULT_LANGUAGE,
     )
     template = translations.get(
-        normalized, translations.get(DEFAULT_LANGUAGE, key),
+        normalized,
+        translations.get(DEFAULT_LANGUAGE, key),
     )
     if values:
         return template.format(**values)
@@ -101,7 +102,9 @@ def translated_grooming_label(language: str | None, key: str, **values: object) 
 
 
 def translated_grooming_template(
-    language: str | None, key: str, **values: object,
+    language: str | None,
+    key: str,
+    **values: object,
 ) -> str:
     """Return a localized grooming template string."""
 
@@ -115,7 +118,8 @@ def translated_grooming_template(
         default=DEFAULT_LANGUAGE,
     )
     template = translations.get(
-        normalized, translations.get(DEFAULT_LANGUAGE, key),
+        normalized,
+        translations.get(DEFAULT_LANGUAGE, key),
     )
     return template.format(**values)
 

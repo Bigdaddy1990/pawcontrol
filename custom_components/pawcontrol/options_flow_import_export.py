@@ -18,7 +18,8 @@ _LOGGER = logging.getLogger(__name__)
 
 class ImportExportOptionsMixin:
     async def async_step_import_export(
-        self, user_input: OptionsImportExportInput | None = None,
+        self,
+        user_input: OptionsImportExportInput | None = None,
     ) -> ConfigFlowResult:
         """Handle selection for the import/export utilities."""
 
@@ -52,7 +53,8 @@ class ImportExportOptionsMixin:
         )
 
     async def async_step_import_export_export(
-        self, user_input: OptionsExportDisplayInput | None = None,
+        self,
+        user_input: OptionsExportDisplayInput | None = None,
     ) -> ConfigFlowResult:
         """Surface a JSON export of the current configuration."""
 
@@ -88,7 +90,8 @@ class ImportExportOptionsMixin:
         )
 
     async def async_step_import_export_import(
-        self, user_input: OptionsImportPayloadInput | None = None,
+        self,
+        user_input: OptionsImportPayloadInput | None = None,
     ) -> ConfigFlowResult:
         """Import configuration from a JSON payload."""
 
@@ -109,7 +112,8 @@ class ImportExportOptionsMixin:
                         validated = self._validate_import_payload(parsed)
                     except FlowValidationError as err:  # noqa: F821
                         _LOGGER.debug(
-                            'Import payload validation failed: %s', err,
+                            'Import payload validation failed: %s',
+                            err,
                         )
                         errors.update(err.as_form_errors())
                     else:
@@ -128,7 +132,8 @@ class ImportExportOptionsMixin:
 
                         new_data = {**self._entry.data, CONF_DOGS: new_dogs}  # noqa: F821
                         self.hass.config_entries.async_update_entry(
-                            self._entry, data=new_data,
+                            self._entry,
+                            data=new_data,
                         )
                         self._dogs = new_dogs
                         self._current_dog = None

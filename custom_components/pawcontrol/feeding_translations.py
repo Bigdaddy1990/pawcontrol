@@ -130,7 +130,9 @@ _T = TypeVar('_T')
 
 
 def _normalise_sequence(
-    value: object, *, limit: int | None = None,
+    value: object,
+    *,
+    limit: int | None = None,
 ) -> Sequence[_T] | None:
     """Return a bounded, re-iterable snapshot for sequence-like payloads."""
 
@@ -138,8 +140,11 @@ def _normalise_sequence(
         return None
 
     max_allowed = (
-        _SEQUENCE_SCAN_LIMIT if limit is None else min(
-            limit, _SEQUENCE_SCAN_LIMIT,
+        _SEQUENCE_SCAN_LIMIT
+        if limit is None
+        else min(
+            limit,
+            _SEQUENCE_SCAN_LIMIT,
         )
     )
     max_items = max(max_allowed, 0)
@@ -229,7 +234,9 @@ def _normalise_text(value: Any) -> str | None:
 
 
 def _iter_text_candidates(
-    value: Any, *, _visited: set[int] | None = None,
+    value: Any,
+    *,
+    _visited: set[int] | None = None,
 ) -> Iterable[str]:
     """Yield cleaned text candidates from arbitrary values."""
 
@@ -274,7 +281,9 @@ def _iter_text_candidates(
 
 
 def _iter_mapping_text_candidates(
-    mapping: Mapping[str, object], *, _visited: set[int],
+    mapping: Mapping[str, object],
+    *,
+    _visited: set[int],
 ) -> Iterable[str]:
     """Yield textual candidates from a mapping, preferring descriptive keys."""
 
@@ -374,7 +383,8 @@ def _collect_missed_meals(
     """Build the missed meals section with sanitised values."""
 
     entries = cast(
-        Sequence[Mapping[str, object]] | None, _normalise_sequence(raw_entries),
+        Sequence[Mapping[str, object]] | None,
+        _normalise_sequence(raw_entries),
     )
     if entries is None:
         return []
@@ -428,7 +438,8 @@ def _collect_issue_summaries(
     """Return normalised issue summary lines."""
 
     entries = cast(
-        Sequence[Mapping[str, object]] | None, _normalise_sequence(raw_entries),
+        Sequence[Mapping[str, object]] | None,
+        _normalise_sequence(raw_entries),
     )
     if entries is None:
         return []
@@ -450,7 +461,8 @@ def _collect_issue_summaries(
 
 
 def _collect_recommendations(
-    translations: Mapping[str, str], raw_entries: object,
+    translations: Mapping[str, str],
+    raw_entries: object,
 ) -> list[str]:
     """Return cleaned recommendation text entries."""
 
@@ -482,13 +494,16 @@ def _build_localised_sections(
     """Return localised summary sections for missed meals, issues, and recommendations."""
 
     missed_summary = _collect_missed_meals(
-        translations, compliance.get('missed_meals'),
+        translations,
+        compliance.get('missed_meals'),
     )
     issue_summary = _collect_issue_summaries(
-        translations, compliance.get('compliance_issues'),
+        translations,
+        compliance.get('compliance_issues'),
     )
     recommendation_summary = _collect_recommendations(
-        translations, compliance.get('recommendations'),
+        translations,
+        compliance.get('recommendations'),
     )
 
     if not recommendation_summary and (issue_summary or missed_summary):
@@ -531,11 +546,13 @@ def build_feeding_compliance_summary(
     days_value = _as_float(compliance.get('days_analyzed'))
     days_analyzed = int(days_value) if days_value is not None else 0
     missed_summary, issue_summary, recommendation_summary = _build_localised_sections(
-        translations, compliance,
+        translations,
+        compliance,
     )
 
     score_line = translations['score_line'].format(
-        score=f"{score:.1f}", days_analyzed=days_analyzed,
+        score=f"{score:.1f}",
+        days_analyzed=days_analyzed,
     )
     lines: list[str] = [score_line]
 
@@ -572,7 +589,9 @@ def build_feeding_compliance_notification(
     """Return localised title and body for a feeding compliance result."""
 
     summary = build_feeding_compliance_summary(
-        language, display_name=display_name, compliance=compliance,
+        language,
+        display_name=display_name,
+        compliance=compliance,
     )
     return summary['title'], summary['message']
 
@@ -606,7 +625,9 @@ class _BoundedSequenceSnapshot[T](Sequence[T]):
 
     @overload
     def __getitem__(
-        self, index: slice, /,
+        self,
+        index: slice,
+        /,
     ) -> Sequence[T]:  # pragma: no cover - defensive
         """Return a sliced view of the cached items."""
 

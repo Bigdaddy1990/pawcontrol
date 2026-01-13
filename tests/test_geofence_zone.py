@@ -48,7 +48,8 @@ def test_geofence_zone_accepts_valid_coordinates() -> None:
     [(-91, 10), (91, 10), (10, -181), (10, 181)],
 )
 def test_geofence_zone_rejects_invalid_coordinates(
-    latitude: float, longitude: float,
+    latitude: float,
+    longitude: float,
 ) -> None:
     with pytest.raises(ValueError):
         GeofenceZone(

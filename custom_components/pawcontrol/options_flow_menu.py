@@ -8,7 +8,8 @@ from .types import OptionsMainMenuInput
 
 class MenuOptionsMixin:
     async def async_step_init(
-        self, user_input: OptionsMainMenuInput | None = None,
+        self,
+        user_input: OptionsMainMenuInput | None = None,
     ) -> ConfigFlowResult:
         """Show the main options menu with enhanced navigation.
 

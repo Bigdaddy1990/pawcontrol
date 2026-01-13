@@ -21,7 +21,8 @@ from .compat import ensure_homeassistant_exception_symbols
 
 ensure_homeassistant_exception_symbols()
 ServiceValidationError: type[Exception] = cast(
-    type[Exception], compat.ServiceValidationError,
+    type[Exception],
+    compat.ServiceValidationError,
 )
 bind_exception_alias('ServiceValidationError')
 
@@ -294,7 +295,10 @@ class InputValidator:
 
         if not isinstance(name, str):
             raise ValidationError(
-                'dog_name', name, 'Must be a string', f"Received {type(name).__name__}",
+                'dog_name',
+                name,
+                'Must be a string',
+                f"Received {type(name).__name__}",
             )
 
         name = name.strip()
@@ -302,7 +306,10 @@ class InputValidator:
         if not name:
             if required:
                 raise ValidationError(
-                    'dog_name', name, 'Cannot be empty', 'Provide a display name',
+                    'dog_name',
+                    name,
+                    'Cannot be empty',
+                    'Provide a display name',
                 )
             return None
 
@@ -351,7 +358,10 @@ class InputValidator:
 
         if weight <= 0:
             raise ValidationError(
-                'weight', weight, 'Must be positive', 'Weight must be greater than 0',
+                'weight',
+                weight,
+                'Must be positive',
+                'Weight must be greater than 0',
             )
 
         if weight < min_kg:
@@ -396,7 +406,10 @@ class InputValidator:
         if age is None:
             if required:
                 raise ValidationError(
-                    'age_months', age, 'Age is required', 'Provide dog age in months',
+                    'age_months',
+                    age,
+                    'Age is required',
+                    'Provide dog age in months',
                 )
             return None
 
@@ -641,13 +654,19 @@ class InputValidator:
         if text is None or text == '':
             if required:
                 raise ValidationError(
-                    field_name, text, f"{field_name} is required", 'Provide text input',
+                    field_name,
+                    text,
+                    f"{field_name} is required",
+                    'Provide text input',
                 )
             return None
 
         if not isinstance(text, str):
             raise ValidationError(
-                field_name, text, 'Must be text', f"Received {type(text).__name__}",
+                field_name,
+                text,
+                'Must be text',
+                f"Received {type(text).__name__}",
             )
 
         text = text.strip()
@@ -761,7 +780,10 @@ class InputValidator:
 
         if radius <= 0:
             raise ValidationError(
-                'radius', radius, 'Must be positive', 'Radius must be greater than 0',
+                'radius',
+                radius,
+                'Must be positive',
+                'Radius must be greater than 0',
             )
 
         if radius < MIN_GEOFENCE_RADIUS:
@@ -811,14 +833,20 @@ class InputValidator:
 
         if not isinstance(email, str):
             raise ValidationError(
-                'email', email, 'Must be text', f"Received {type(email).__name__}",
+                'email',
+                email,
+                'Must be text',
+                f"Received {type(email).__name__}",
             )
 
         email = email.strip().lower()
 
         if not re.match(VALID_EMAIL_PATTERN, email):
             raise ValidationError(
-                'email', email, 'Invalid email format', 'Use format: user@example.com',
+                'email',
+                email,
+                'Invalid email format',
+                'Use format: user@example.com',
             )
 
         if len(email) > 254:  # RFC 5321

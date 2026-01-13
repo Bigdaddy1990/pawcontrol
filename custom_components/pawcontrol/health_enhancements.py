@@ -181,7 +181,8 @@ class EnhancedHealthProfile:
         return [v for v in self.vaccinations if v.is_overdue()]
 
     def get_due_soon_vaccinations(
-        self, days_ahead: int = 14,
+        self,
+        days_ahead: int = 14,
     ) -> list[VaccinationRecord]:
         """Get vaccinations due within specified days."""
         return [
@@ -459,7 +460,8 @@ class EnhancedHealthCalculator:
                     continue
 
                 treatment_name = deworming.treatment_type.value.replace(
-                    '_', ' ',
+                    '_',
+                    ' ',
                 ).title()
                 message = (
                     f"{treatment_name} treatment is {abs(days_until_due)} days overdue"
@@ -483,7 +485,8 @@ class EnhancedHealthCalculator:
                     continue
 
                 treatment_name = deworming.treatment_type.value.replace(
-                    '_', ' ',
+                    '_',
+                    ' ',
                 ).title()
                 message = f"{treatment_name} treatment due in {days_until_due} days"
                 deworming_entry: HealthUpcomingCareEntry = {
@@ -554,14 +557,16 @@ class EnhancedHealthCalculator:
 
         # Final score adjustment
         health_status['overall_score'] = max(
-            0, min(100, health_status['overall_score']),
+            0,
+            min(100, health_status['overall_score']),
         )
 
         return health_status
 
     @staticmethod
     def calculate_next_appointment_recommendation(
-        health_profile: EnhancedHealthProfile, dog_age_months: int,
+        health_profile: EnhancedHealthProfile,
+        dog_age_months: int,
     ) -> HealthAppointmentRecommendation:
         """Calculate when the next veterinary appointment should be scheduled."""
         current_date = dt_util.now()

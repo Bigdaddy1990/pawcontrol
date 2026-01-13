@@ -119,8 +119,11 @@ def calculate_activity_level(
 
         if health_activity:
             activity_levels = [
-                'very_low', 'low',
-                'moderate', 'high', 'very_high',
+                'very_low',
+                'low',
+                'moderate',
+                'high',
+                'very_high',
             ]
             health_index = (
                 activity_levels.index(health_activity)
@@ -232,7 +235,10 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
     """Sensor for the current activity level of a dog."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the activity level sensor for the specified dog."""
         super().__init__(
@@ -269,8 +275,10 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
                         'walks_today': int(cast(int, walk_data.get('walks_today', 0))),
                         'total_walk_minutes_today': float(
                             cast(
-                                float, walk_data.get(
-                                'total_duration_today', 0.0,
+                                float,
+                                walk_data.get(
+                                    'total_duration_today',
+                                    0.0,
                                 ),
                             ),
                         ),
@@ -280,7 +288,8 @@ class PawControlActivityLevelSensor(PawControlSensorBase):
 
         if health_data:
             activity_level = cast(
-                str | None, health_data.get('activity_level'),
+                str | None,
+                health_data.get('activity_level'),
             )
             attrs['health_activity_level'] = activity_level
             attrs['activity_source'] = 'health_data' if activity_level else 'calculated'
@@ -293,7 +302,10 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
     """Sensor estimating calories burned today."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the calories burned sensor for the specified dog."""
         super().__init__(
@@ -308,7 +320,8 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
         )
 
     def _resolve_dog_weight(
-        self, health_data: ModuleSnapshot[HealthModulePayload],
+        self,
+        health_data: ModuleSnapshot[HealthModulePayload],
     ) -> float:
         weight = 25.0
         if health_data and 'weight' in health_data:
@@ -372,7 +385,10 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
     """Sensor reporting hours since the last feeding."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the last feeding hours sensor for the specified dog."""
         super().__init__(
@@ -394,7 +410,8 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
             return None
 
         last_feeding = cast(
-            DateTimeConvertible | None, feeding_data.get('last_feeding'),
+            DateTimeConvertible | None,
+            feeding_data.get('last_feeding'),
         )
         hours_since = calculate_hours_since(last_feeding)
         return round(hours_since, 1) if hours_since is not None else None
@@ -409,10 +426,12 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
 
         with contextlib.suppress(TypeError, ValueError):
             last_feeding = cast(
-                DateTimeConvertible | None, feeding_data.get('last_feeding'),
+                DateTimeConvertible | None,
+                feeding_data.get('last_feeding'),
             )
             feedings_today = cast(
-                int, feeding_data.get('total_feedings_today', 0),
+                int,
+                feeding_data.get('total_feedings_today', 0),
             )
             serialized_last_feeding: str | float | int | None
             if isinstance(last_feeding, datetime):
@@ -437,7 +456,8 @@ class PawControlLastFeedingHoursSensor(PawControlSensorBase):
         return _normalise_attributes(attrs)
 
     def _is_feeding_overdue(
-        self, feeding_data: ModuleSnapshot[FeedingModuleTelemetry],
+        self,
+        feeding_data: ModuleSnapshot[FeedingModuleTelemetry],
     ) -> bool:
         last_feeding = cast(
             DateTimeConvertible | None,
@@ -454,7 +474,10 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
     """Sensor exposing the lifetime walk distance."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the lifetime walk distance sensor for the specified dog."""
         super().__init__(
@@ -487,7 +510,8 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
                     for walk in walks_history:
                         with contextlib.suppress(TypeError, ValueError):
                             distance_value = cast(
-                                float | int | None, walk.get('distance'),
+                                float | int | None,
+                                walk.get('distance'),
                             )
                             if isinstance(distance_value, int | float):
                                 total_distance_meters += float(distance_value)
@@ -510,27 +534,33 @@ class PawControlTotalWalkDistanceSensor(PawControlSensorBase):
             )
             total_distance_m = float(total_distance_value or 0.0)
             total_walks_value = cast(
-                int | float | None, walk_data.get('total_walks_lifetime', 0),
+                int | float | None,
+                walk_data.get('total_walks_lifetime', 0),
             )
             total_walks = int(total_walks_value or 0)
             distance_this_week = cast(
-                float | int | None, walk_data.get('distance_this_week', 0.0),
+                float | int | None,
+                walk_data.get('distance_this_week', 0.0),
             )
             distance_this_month = cast(
-                float | int | None, walk_data.get('distance_this_month', 0.0),
+                float | int | None,
+                walk_data.get('distance_this_month', 0.0),
             )
             attrs.update(
                 {
                     'total_walks': total_walks,
                     'total_distance_meters': total_distance_m,
                     'average_distance_per_walk_km': round(
-                        (total_distance_m / 1000) / max(1, total_walks), 2,
+                        (total_distance_m / 1000) / max(1, total_walks),
+                        2,
                     ),
                     'distance_this_week_km': round(
-                        float(distance_this_week or 0.0) / 1000, 2,
+                        float(distance_this_week or 0.0) / 1000,
+                        2,
                     ),
                     'distance_this_month_km': round(
-                        float(distance_this_month or 0.0) / 1000, 2,
+                        float(distance_this_month or 0.0) / 1000,
+                        2,
                     ),
                 },
             )
@@ -543,7 +573,10 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
     """Sensor tracking the number of walks completed during the current week."""
 
     def __init__(
-        self, coordinator: PawControlCoordinator, dog_id: str, dog_name: str,
+        self,
+        coordinator: PawControlCoordinator,
+        dog_id: str,
+        dog_name: str,
     ) -> None:
         """Initialize the weekly walk count sensor for the specified dog."""
         super().__init__(
@@ -577,7 +610,10 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
             now = dt_util.utcnow()
             start_of_week = now - timedelta(days=now.weekday())
             start_of_week = start_of_week.replace(
-                hour=0, minute=0, second=0, microsecond=0,
+                hour=0,
+                minute=0,
+                second=0,
+                microsecond=0,
             )
             for walk in walks_history:
                 walk_time_candidate = walk.get('timestamp')

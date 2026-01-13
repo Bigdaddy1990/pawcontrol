@@ -1069,7 +1069,9 @@ FeedingConfigKey = Literal[
 ]
 
 DEFAULT_FEEDING_SCHEDULE: Final[tuple[str, ...]] = (
-    '10:00:00', '15:00:00', '20:00:00',
+    '10:00:00',
+    '15:00:00',
+    '20:00:00',
 )
 
 
@@ -1092,7 +1094,11 @@ class DogModulesProjection:
 
 
 def _record_bool_coercion(
-    value: Any, *, default: bool, result: bool, reason: str,
+    value: Any,
+    *,
+    default: bool,
+    result: bool,
+    reason: str,
 ) -> None:
     """Record bool coercion telemetry for diagnostics consumers."""
 
@@ -1103,7 +1109,10 @@ def _record_bool_coercion(
 
     try:
         record_bool_coercion_event(
-            value=value, default=default, result=result, reason=reason,
+            value=value,
+            default=default,
+            result=result,
+            reason=reason,
         )
     except Exception:  # pragma: no cover - telemetry failures must not break coercion
         return
@@ -1183,8 +1192,10 @@ def _coerce_bool(value: Any, *, default: bool = False) -> bool:
 
     if value is None:
         _record_bool_coercion(
-            value, default=default,
-            result=default, reason='none',
+            value,
+            default=default,
+            result=default,
+            reason='none',
         )
         return default
     if isinstance(value, bool):
@@ -1209,17 +1220,26 @@ def _coerce_bool(value: Any, *, default: bool = False) -> bool:
         text = value.strip().lower()
         if not text:
             _record_bool_coercion(
-                value, default=default, result=default, reason='blank_string',
+                value,
+                default=default,
+                result=default,
+                reason='blank_string',
             )
             return default
         if text in _TRUTHY_BOOL_STRINGS:
             _record_bool_coercion(
-                value, default=default, result=True, reason='truthy_string',
+                value,
+                default=default,
+                result=True,
+                reason='truthy_string',
             )
             return True
         if text in _FALSY_BOOL_STRINGS:
             _record_bool_coercion(
-                value, default=default, result=False, reason='falsy_string',
+                value,
+                default=default,
+                result=False,
+                reason='falsy_string',
             )
             return False
 
@@ -1234,8 +1254,10 @@ def _coerce_bool(value: Any, *, default: bool = False) -> bool:
 
     result = bool(value)
     _record_bool_coercion(
-        value, default=default,
-        result=result, reason='fallback',
+        value,
+        default=default,
+        result=result,
+        reason='fallback',
     )
     return result
 
@@ -1368,15 +1390,18 @@ def ensure_advanced_options(
     baseline = defaults or {}
 
     retention_default = _coerce_int(
-        baseline.get('data_retention_days'), default=90,
+        baseline.get('data_retention_days'),
+        default=90,
     )
     debug_default = _coerce_bool(baseline.get('debug_logging'), default=False)
     backup_default = _coerce_bool(baseline.get('auto_backup'), default=False)
     experimental_default = _coerce_bool(
-        baseline.get('experimental_features'), default=False,
+        baseline.get('experimental_features'),
+        default=False,
     )
     integrations_default = _coerce_bool(
-        baseline.get(CONF_EXTERNAL_INTEGRATIONS), default=False,
+        baseline.get(CONF_EXTERNAL_INTEGRATIONS),
+        default=False,
     )
     endpoint_default = _coerce_str(baseline.get(CONF_API_ENDPOINT), default='')
     token_default = _coerce_str(baseline.get(CONF_API_TOKEN), default='')
@@ -1387,7 +1412,8 @@ def ensure_advanced_options(
             current=cast(str | None, baseline.get('performance_mode')),
         ),
         'debug_logging': _coerce_bool(
-            source.get('debug_logging'), default=debug_default,
+            source.get('debug_logging'),
+            default=debug_default,
         ),
         'data_retention_days': _coerce_clamped_int(
             source.get('data_retention_days'),
@@ -1397,13 +1423,16 @@ def ensure_advanced_options(
         ),
         'auto_backup': _coerce_bool(source.get('auto_backup'), default=backup_default),
         'experimental_features': _coerce_bool(
-            source.get('experimental_features'), default=experimental_default,
+            source.get('experimental_features'),
+            default=experimental_default,
         ),
         'external_integrations': _coerce_bool(
-            source.get(CONF_EXTERNAL_INTEGRATIONS), default=integrations_default,
+            source.get(CONF_EXTERNAL_INTEGRATIONS),
+            default=integrations_default,
         ),
         'api_endpoint': _coerce_str(
-            source.get(CONF_API_ENDPOINT), default=endpoint_default,
+            source.get(CONF_API_ENDPOINT),
+            default=endpoint_default,
         ),
         'api_token': _coerce_str(source.get(CONF_API_TOKEN), default=token_default),
     }
@@ -1440,7 +1469,8 @@ def dog_modules_projection_from_flow_input(
 
     for flow_flag, module_key in MODULE_TOGGLE_FLOW_FLAGS:
         modules[module_key] = _coerce_bool(
-            user_input.get(flow_flag), default=modules.get(module_key, False),
+            user_input.get(flow_flag),
+            default=modules.get(module_key, False),
         )
 
     config: DogModulesConfig = {}
@@ -1539,14 +1569,17 @@ def dog_feeding_config_from_flow(user_input: DogFeedingStepInput) -> DogFeedingC
     """Build a :class:`DogFeedingConfig` structure from flow input data."""
 
     meals_per_day = max(
-        1, _coerce_int(
-        user_input.get(CONF_MEALS_PER_DAY), default=2,
+        1,
+        _coerce_int(
+            user_input.get(CONF_MEALS_PER_DAY),
+            default=2,
         ),
     )
     daily_amount = _coerce_float(
         user_input.get(
-        CONF_DAILY_FOOD_AMOUNT,
-        ), default=500.0,
+            CONF_DAILY_FOOD_AMOUNT,
+        ),
+        default=500.0,
     )
     portion_size = daily_amount / meals_per_day if meals_per_day else 0.0
 
@@ -1556,29 +1589,35 @@ def dog_feeding_config_from_flow(user_input: DogFeedingStepInput) -> DogFeedingC
         'portion_size': portion_size,
         'food_type': _coerce_str(user_input.get(CONF_FOOD_TYPE), default='dry_food'),
         'feeding_schedule': _coerce_str(
-            user_input.get('feeding_schedule'), default='flexible',
+            user_input.get('feeding_schedule'),
+            default='flexible',
         ),
         'enable_reminders': _coerce_bool(
-            user_input.get('enable_reminders'), default=True,
+            user_input.get('enable_reminders'),
+            default=True,
         ),
         'reminder_minutes_before': _coerce_int(
-            user_input.get('reminder_minutes_before'), default=15,
+            user_input.get('reminder_minutes_before'),
+            default=15,
         ),
     }
 
     if _coerce_bool(user_input.get('breakfast_enabled'), default=meals_per_day >= 1):
         feeding_config['breakfast_time'] = _coerce_str(
-            user_input.get(CONF_BREAKFAST_TIME), default='07:00:00',
+            user_input.get(CONF_BREAKFAST_TIME),
+            default='07:00:00',
         )
 
     if _coerce_bool(user_input.get('lunch_enabled'), default=meals_per_day >= 3):
         feeding_config['lunch_time'] = _coerce_str(
-            user_input.get(CONF_LUNCH_TIME), default='12:00:00',
+            user_input.get(CONF_LUNCH_TIME),
+            default='12:00:00',
         )
 
     if _coerce_bool(user_input.get('dinner_enabled'), default=meals_per_day >= 2):
         feeding_config['dinner_time'] = _coerce_str(
-            user_input.get(CONF_DINNER_TIME), default='18:00:00',
+            user_input.get(CONF_DINNER_TIME),
+            default='18:00:00',
         )
 
     if _coerce_bool(user_input.get('snacks_enabled'), default=False):
@@ -1887,7 +1926,9 @@ def ensure_notification_options(
     _apply(CONF_QUIET_START, NOTIFICATION_QUIET_START_FIELD, _coerce_time)
     _apply(CONF_QUIET_END, NOTIFICATION_QUIET_END_FIELD, _coerce_time)
     _apply(
-        CONF_REMINDER_REPEAT_MIN, NOTIFICATION_REMINDER_REPEAT_FIELD, _coerce_interval,
+        CONF_REMINDER_REPEAT_MIN,
+        NOTIFICATION_REMINDER_REPEAT_FIELD,
+        _coerce_interval,
     )
     _apply('priority_notifications', NOTIFICATION_PRIORITY_FIELD, _coerce_bool)
     _apply('mobile_notifications', NOTIFICATION_MOBILE_FIELD, _coerce_bool)
@@ -3289,7 +3330,10 @@ class HelperManagerGuardMetrics(TypedDict):
 
 EntityFactoryGuardEvent = Literal[
     'expand',
-    'contract', 'stable', 'disabled', 'unknown',
+    'contract',
+    'stable',
+    'disabled',
+    'unknown',
 ]
 EntityFactoryGuardStabilityTrend = Literal[
     'improving',
@@ -4869,7 +4913,9 @@ class PersonEntityDiagnostics(CacheDiagnosticsMetadata, total=False):
     cache_entries: dict[str, PersonNotificationCacheEntry]
     discovery_task_state: Literal[
         'not_started',
-        'running', 'completed', 'cancelled',
+        'running',
+        'completed',
+        'cancelled',
     ]
     listener_count: int
 
@@ -4908,7 +4954,8 @@ class CacheDiagnosticsSnapshot(Mapping[str, JSONValue]):
             payload['error'] = self.error
         if isinstance(self.repair_summary, CacheRepairAggregate):
             payload['repair_summary'] = cast(
-                JSONValue, self.repair_summary.to_mapping(),
+                JSONValue,
+                self.repair_summary.to_mapping(),
             )
         return payload
 
@@ -6200,10 +6247,14 @@ class SystemHealthServiceStatus(TypedDict):
     overall: SystemHealthIndicatorPayload
 
 
-type SystemHealthRemainingQuota = Literal[
-    'unknown',
-    'untracked', 'unlimited',
-] | int
+type SystemHealthRemainingQuota = (
+    Literal[
+        'unknown',
+        'untracked',
+        'unlimited',
+    ]
+    | int
+)
 
 
 class SystemHealthServiceExecutionSnapshot(TypedDict):
@@ -6599,7 +6650,8 @@ def _normalise_door_sensor_settings_payload(
         return None
 
     if settings_payload == cast(
-        DoorSensorSettingsPayload, asdict(DEFAULT_DOOR_SENSOR_SETTINGS),
+        DoorSensorSettingsPayload,
+        asdict(DEFAULT_DOOR_SENSOR_SETTINGS),
     ):
         return None
 
@@ -6646,7 +6698,8 @@ def ensure_dog_options_entry(
     geofence_payload = value.get('geofence_settings')
     if isinstance(geofence_payload, Mapping):
         entry['geofence_settings'] = cast(
-            GeofenceOptions, dict(geofence_payload),
+            GeofenceOptions,
+            dict(geofence_payload),
         )
 
     feeding_payload = value.get('feeding_settings')
@@ -6972,7 +7025,9 @@ class PawControlRuntimeData:
     schema_created_version: int = DOMAIN_RUNTIME_STORE_VERSION
     schema_version: int = DOMAIN_RUNTIME_STORE_VERSION
     _runtime_managers_cache: CoordinatorRuntimeManagers | None = field(
-        default=None, init=False, repr=False,
+        default=None,
+        init=False,
+        repr=False,
     )
 
     @property
@@ -6984,7 +7039,9 @@ class PawControlRuntimeData:
             return cached
 
         coordinator_managers = getattr(
-            self.coordinator, 'runtime_managers', None,
+            self.coordinator,
+            'runtime_managers',
+            None,
         )
         if isinstance(coordinator_managers, CoordinatorRuntimeManagers):
             self._runtime_managers_cache = coordinator_managers
@@ -6998,7 +7055,9 @@ class PawControlRuntimeData:
             gps_geofence_manager=getattr(self, 'gps_geofence_manager', None),
             geofencing_manager=getattr(self, 'geofencing_manager', None),
             weather_health_manager=getattr(
-                self, 'weather_health_manager', None,
+                self,
+                'weather_health_manager',
+                None,
             ),
             garden_manager=getattr(self, 'garden_manager', None),
         )
@@ -7274,7 +7333,8 @@ class RuntimeStoreAssessmentTimelineSummary(TypedDict, total=False):
     level_duration_medians: dict[RuntimeStoreHealthLevel, float | None]
     level_duration_standard_deviations: dict[RuntimeStoreHealthLevel, float | None]
     level_duration_percentiles: dict[
-        RuntimeStoreHealthLevel, RuntimeStoreLevelDurationPercentiles,
+        RuntimeStoreHealthLevel,
+        RuntimeStoreLevelDurationPercentiles,
     ]
     level_duration_alert_thresholds: dict[RuntimeStoreHealthLevel, float | None]
     level_duration_guard_alerts: list[RuntimeStoreLevelDurationAlert]
@@ -7463,7 +7523,9 @@ class DailyStats:
             return default
 
         def _coerce_float(
-            value: JSONDateValue | None, *, default: float = 0.0,
+            value: JSONDateValue | None,
+            *,
+            default: float = 0.0,
         ) -> float:
             if isinstance(value, bool):
                 return float(value)
@@ -7742,9 +7804,14 @@ class HealthEvent:
         )
         event_data.pop('timestamp', None)
         raw_timestamp = payload.get('timestamp')
-        event_timestamp = raw_timestamp if isinstance(
-            raw_timestamp, str,
-        ) else None
+        event_timestamp = (
+            raw_timestamp
+            if isinstance(
+                raw_timestamp,
+                str,
+            )
+            else None
+        )
         if isinstance(raw_timestamp, datetime):
             event_timestamp = raw_timestamp.isoformat()
         if event_timestamp is None:
@@ -7837,9 +7904,14 @@ class WalkEvent:
             },
         )
         raw_timestamp = event_data.pop('timestamp', None)
-        timestamp_value = raw_timestamp if isinstance(
-            raw_timestamp, str,
-        ) else None
+        timestamp_value = (
+            raw_timestamp
+            if isinstance(
+                raw_timestamp,
+                str,
+            )
+            else None
+        )
         if isinstance(raw_timestamp, datetime):
             timestamp_value = raw_timestamp.isoformat()
         raw_action = event_data.pop('action', None)

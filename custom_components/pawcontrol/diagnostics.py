@@ -182,7 +182,9 @@ _ASYNC_GET_TRANSLATIONS: Callable[..., Awaitable[dict[str, str]]] | None
 try:
     _translations_module = importlib.import_module(_TRANSLATIONS_IMPORT_PATH)
     _ASYNC_GET_TRANSLATIONS = getattr(
-        _translations_module, 'async_get_translations', None,
+        _translations_module,
+        'async_get_translations',
+        None,
     )
 except (ModuleNotFoundError, AttributeError):
     _ASYNC_GET_TRANSLATIONS = None
@@ -228,7 +230,8 @@ async def _async_resolve_setup_flag_translations(
             return await _ASYNC_GET_TRANSLATIONS(hass, lang, 'component', {DOMAIN})
         except Exception:  # pragma: no cover - defensive guard for HA API
             _LOGGER.debug(
-                'Failed to load %s translations for setup flags', lang,
+                'Failed to load %s translations for setup flags',
+                lang,
             )
             return {}
 
@@ -268,18 +271,31 @@ def _collect_setup_flag_snapshots(entry: ConfigEntry) -> dict[str, SetupFlagSnap
     """Return analytics, backup, and debug logging flag states and sources."""
 
     raw_options = entry.options
-    options = cast(JSONMapping, raw_options) if isinstance(
-        raw_options, Mapping,
-    ) else {}
+    options = (
+        cast(JSONMapping, raw_options)
+        if isinstance(
+            raw_options,
+            Mapping,
+        )
+        else {}
+    )
     system_raw = options.get('system_settings')
-    system = cast(JSONMapping, system_raw) if isinstance(
-        system_raw, Mapping,
-    ) else {}
+    system = (
+        cast(JSONMapping, system_raw)
+        if isinstance(
+            system_raw,
+            Mapping,
+        )
+        else {}
+    )
     advanced_raw = options.get('advanced_settings')
     advanced = (
-        cast(JSONMapping, advanced_raw) if isinstance(
-            advanced_raw, Mapping,
-        ) else {}
+        cast(JSONMapping, advanced_raw)
+        if isinstance(
+            advanced_raw,
+            Mapping,
+        )
+        else {}
     )
     entry_data = cast(JSONMapping, entry.data)
 
@@ -322,7 +338,8 @@ def _summarise_setup_flags(entry: ConfigEntry) -> dict[str, bool]:
 
 
 async def _async_build_setup_flags_panel(
-    hass: HomeAssistant, entry: ConfigEntry,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
 ) -> SetupFlagsPanelPayload:
     """Expose setup flag metadata in a dashboard-friendly structure."""
 
@@ -355,7 +372,8 @@ async def _async_build_setup_flags_panel(
                 'enabled': snapshot['value'],
                 'source': source,
                 'source_label': source_labels.get(
-                    source, SETUP_FLAG_SOURCE_LABELS[source],
+                    source,
+                    SETUP_FLAG_SOURCE_LABELS[source],
                 ),
                 'source_label_default': SETUP_FLAG_SOURCE_LABELS[source],
                 'source_label_translation_key': source_label_translation_keys[source],
@@ -589,7 +607,8 @@ def _build_statistics_payload(
 
 
 def _entity_registry_entries_for_config_entry(
-    entity_registry: er.EntityRegistry, entry_id: str,
+    entity_registry: er.EntityRegistry,
+    entry_id: str,
 ) -> list[er.RegistryEntry]:
     """Return registry entries associated with a config entry."""
 
@@ -606,7 +625,8 @@ def _entity_registry_entries_for_config_entry(
 
 
 def _device_registry_entries_for_config_entry(
-    device_registry: dr.DeviceRegistry, entry_id: str,
+    device_registry: dr.DeviceRegistry,
+    entry_id: str,
 ) -> list[dr.DeviceEntry]:
     """Return device registry entries associated with a config entry."""
 
@@ -627,7 +647,8 @@ def _device_registry_entries_for_config_entry(
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: PawControlConfigEntry,
+    hass: HomeAssistant,
+    entry: PawControlConfigEntry,
 ) -> JSONMutableMapping:
     """Return diagnostics for a config entry.
 
@@ -643,7 +664,8 @@ async def async_get_config_entry_diagnostics(
         Dictionary containing diagnostic information
     """
     _LOGGER.debug(
-        'Generating diagnostics for Paw Control entry: %s', entry.entry_id,
+        'Generating diagnostics for Paw Control entry: %s',
+        entry.entry_id,
     )
 
     # Get runtime data using the shared helper (runtime adoption still being proven)
@@ -709,7 +731,8 @@ async def async_get_config_entry_diagnostics(
         )
 
     normalised_payload = cast(
-        JSONMutableMapping, _normalise_json(diagnostics_payload),
+        JSONMutableMapping,
+        _normalise_json(diagnostics_payload),
     )
 
     # Redact sensitive information
@@ -719,7 +742,8 @@ async def async_get_config_entry_diagnostics(
     )
 
     _LOGGER.debug(
-        'Diagnostics generated successfully for entry %s', entry.entry_id,
+        'Diagnostics generated successfully for entry %s',
+        entry.entry_id,
     )
     return redacted_diagnostics
 
@@ -921,7 +945,8 @@ def _collect_cache_diagnostics(
     for name, payload in snapshots.items():
         if not isinstance(name, str) or not name:
             _LOGGER.debug(
-                'Skipping cache diagnostics entry with invalid name: %s', name,
+                'Skipping cache diagnostics entry with invalid name: %s',
+                name,
             )
             continue
 
@@ -977,7 +1002,8 @@ def _normalise_cache_snapshot(payload: Any) -> CacheDiagnosticsSnapshot:
 
     if snapshot.snapshot is not None:
         snapshot.snapshot = cast(
-            JSONMutableMapping, _normalise_json(snapshot.snapshot),
+            JSONMutableMapping,
+            _normalise_json(snapshot.snapshot),
         )
 
     if not snapshot.to_mapping():
@@ -1060,7 +1086,8 @@ def normalize_value(value: object, _seen: set[int] | None = None) -> JSONValue:
                 return normalize_value(mapping_value, _seen)
             except Exception:  # pragma: no cover - defensive guard
                 _LOGGER.debug(
-                    'Failed to normalise to_mapping payload for %s', value,
+                    'Failed to normalise to_mapping payload for %s',
+                    value,
                 )
 
         if hasattr(value, 'to_dict') and callable(value.to_dict):
@@ -1069,7 +1096,8 @@ def normalize_value(value: object, _seen: set[int] | None = None) -> JSONValue:
                 return normalize_value(dict_value, _seen)
             except Exception:  # pragma: no cover - defensive guard
                 _LOGGER.debug(
-                    'Failed to normalise to_dict payload for %s', value,
+                    'Failed to normalise to_dict payload for %s',
+                    value,
                 )
 
         if hasattr(value, '__dict__') and not isinstance(value, type):
@@ -1084,7 +1112,8 @@ def normalize_value(value: object, _seen: set[int] | None = None) -> JSONValue:
             return [normalize_value(item, _seen) for item in value]
 
         if isinstance(value, Sequence) and not isinstance(
-            value, (str, bytes, bytearray),
+            value,
+            (str, bytes, bytearray),
         ):
             return [normalize_value(item, _seen) for item in value]
 
@@ -1221,7 +1250,8 @@ async def _get_coordinator_diagnostics(
 
 
 async def _get_entities_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
 ) -> JSONMutableMapping:
     """Get entities diagnostic information.
 
@@ -1236,7 +1266,8 @@ async def _get_entities_diagnostics(
 
     # Get all entities for this integration
     entities = _entity_registry_entries_for_config_entry(
-        entity_registry, entry.entry_id,
+        entity_registry,
+        entry.entry_id,
     )
 
     # Group entities by platform
@@ -1296,7 +1327,8 @@ async def _get_entities_diagnostics(
 
 
 async def _get_devices_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
 ) -> JSONMutableMapping:
     """Get devices diagnostic information.
 
@@ -1311,7 +1343,8 @@ async def _get_devices_diagnostics(
 
     # Get all devices for this integration
     devices = _device_registry_entries_for_config_entry(
-        device_registry, entry.entry_id,
+        device_registry,
+        entry.entry_id,
     )
 
     devices_info: list[JSONMutableMapping] = []
@@ -1344,7 +1377,8 @@ async def _get_devices_diagnostics(
 
 
 async def _get_dogs_summary(
-    entry: ConfigEntry, coordinator: PawControlCoordinator | None,
+    entry: ConfigEntry,
+    coordinator: PawControlCoordinator | None,
 ) -> JSONMutableMapping:
     """Get summary of configured dogs.
 
@@ -1377,9 +1411,14 @@ async def _get_dogs_summary(
         if not isinstance(dog_id, str):
             continue
         modules_payload = dog.get('modules', {})
-        modules = modules_payload if isinstance(
-            modules_payload, Mapping,
-        ) else {}
+        modules = (
+            modules_payload
+            if isinstance(
+                modules_payload,
+                Mapping,
+            )
+            else {}
+        )
         enabled_modules = {
             str(name): bool(enabled)
             for name, enabled in modules.items()
@@ -1404,7 +1443,9 @@ async def _get_dogs_summary(
         if coordinator:
             try:
                 get_dog_data_method = getattr(
-                    coordinator, 'get_dog_data', None,
+                    coordinator,
+                    'get_dog_data',
+                    None,
                 )
                 dog_data = (
                     get_dog_data_method(dog_id)
@@ -1423,7 +1464,9 @@ async def _get_dogs_summary(
                     dog_summary['coordinator_data_available'] = False
             except Exception as err:
                 _LOGGER.debug(
-                    'Could not get coordinator data for dog %s: %s', dog_id, err,
+                    'Could not get coordinator data for dog %s: %s',
+                    dog_id,
+                    err,
                 )
                 dog_summary['coordinator_data_available'] = False
 
@@ -1460,9 +1503,12 @@ async def _get_performance_metrics(
         return cast(JSONMutableMapping, {'available': False, 'error': str(err)})
 
     stats_mapping: JSONLikeMapping = (
-        cast(JSONLikeMapping, raw_stats) if isinstance(
-            raw_stats, Mapping,
-        ) else {}
+        cast(JSONLikeMapping, raw_stats)
+        if isinstance(
+            raw_stats,
+            Mapping,
+        )
+        else {}
     )
     statistics = _build_statistics_payload(stats_mapping)
     stats_payload: JSONMutableMapping = (
@@ -1471,10 +1517,12 @@ async def _get_performance_metrics(
         else cast(JSONMutableMapping, {})
     )
     stats_payload['update_counts'] = cast(
-        JSONMapping, dict(statistics['update_counts']),
+        JSONMapping,
+        dict(statistics['update_counts']),
     )
     stats_payload['health_indicators'] = cast(
-        JSONMapping, dict(statistics['health_indicators']),
+        JSONMapping,
+        dict(statistics['health_indicators']),
     )
 
     update_counts = statistics['update_counts']
@@ -1496,16 +1544,19 @@ async def _get_performance_metrics(
 
     statistics['rejection_metrics'] = rejection_metrics
     rejection_metrics_payload = cast(
-        JSONMapping, _normalise_json(dict(rejection_metrics)),
+        JSONMapping,
+        _normalise_json(dict(rejection_metrics)),
     )
     stats_payload['rejection_metrics'] = rejection_metrics_payload
 
     performance_metrics = statistics['performance_metrics']
     _apply_rejection_metrics_to_performance(
-        performance_metrics, rejection_metrics,
+        performance_metrics,
+        rejection_metrics,
     )
     stats_payload['performance_metrics'] = cast(
-        JSONMapping, dict(performance_metrics),
+        JSONMapping,
+        dict(performance_metrics),
     )
 
     repairs = statistics.get('repairs')
@@ -1515,25 +1566,29 @@ async def _get_performance_metrics(
     reconfigure = statistics.get('reconfigure')
     if reconfigure is not None:
         stats_payload['reconfigure'] = cast(
-            JSONValue, _normalise_json(reconfigure),
+            JSONValue,
+            _normalise_json(reconfigure),
         )
 
     entity_budget = statistics.get('entity_budget')
     if entity_budget is not None:
         stats_payload['entity_budget'] = cast(
-            JSONValue, _normalise_json(entity_budget),
+            JSONValue,
+            _normalise_json(entity_budget),
         )
 
     adaptive_polling = statistics.get('adaptive_polling')
     if adaptive_polling is not None:
         stats_payload['adaptive_polling'] = cast(
-            JSONValue, _normalise_json(adaptive_polling),
+            JSONValue,
+            _normalise_json(adaptive_polling),
         )
 
     resilience = statistics.get('resilience')
     if resilience is not None:
         stats_payload['resilience'] = cast(
-            JSONValue, _normalise_json(resilience),
+            JSONValue,
+            _normalise_json(resilience),
         )
 
     stats_payload = cast(JSONMutableMapping, _normalise_json(stats_payload))
@@ -1563,7 +1618,8 @@ async def _get_performance_metrics(
         )
     else:
         merge_rejection_metric_values(
-            metrics_output, rejection_metrics_payload,
+            metrics_output,
+            rejection_metrics_payload,
         )
 
     return cast(JSONMutableMapping, _normalise_json(metrics_output))
@@ -1593,12 +1649,14 @@ async def _get_door_sensor_diagnostics(
         last_failure = performance_stats.get('last_door_sensor_failure')
         if isinstance(last_failure, Mapping):
             telemetry['last_failure'] = cast(
-                JSONMutableMapping, dict(last_failure),
+                JSONMutableMapping,
+                dict(last_failure),
             )
 
         failures = performance_stats.get('door_sensor_failures')
         if isinstance(failures, Sequence) and not isinstance(
-            failures, str | bytes | bytearray,
+            failures,
+            str | bytes | bytearray,
         ):
             serialised_failures: list[JSONMutableMapping] = [
                 cast(JSONMutableMapping, dict(entry))
@@ -1667,7 +1725,8 @@ async def _get_service_execution_diagnostics(
     )
     if entity_guard_payload:
         diagnostics['entity_factory_guard'] = cast(
-            JSONMutableMapping, _normalise_json(dict(entity_guard_payload)),
+            JSONMutableMapping,
+            _normalise_json(dict(entity_guard_payload)),
         )
 
     rejection_metrics = performance_stats.get('rejection_metrics')
@@ -1678,12 +1737,14 @@ async def _get_service_execution_diagnostics(
             cast(JSONMapping, rejection_metrics),
         )
         diagnostics['rejection_metrics'] = cast(
-            JSONMutableMapping, _normalise_json(metrics_payload),
+            JSONMutableMapping,
+            _normalise_json(metrics_payload),
         )
 
     service_results = performance_stats.get('service_results')
     if isinstance(service_results, Sequence) and not isinstance(
-        service_results, str | bytes | bytearray,
+        service_results,
+        str | bytes | bytearray,
     ):
         normalised_results: list[JSONMutableMapping] = [
             cast(JSONMutableMapping, _normalise_json(dict(result)))
@@ -1696,7 +1757,8 @@ async def _get_service_execution_diagnostics(
     last_result = performance_stats.get('last_service_result')
     if isinstance(last_result, Mapping):
         diagnostics['last_service_result'] = cast(
-            JSONMutableMapping, _normalise_json(dict(last_result)),
+            JSONMutableMapping,
+            _normalise_json(dict(last_result)),
         )
 
     service_call_telemetry = performance_stats.get('service_call_telemetry')
@@ -1783,7 +1845,8 @@ def _normalise_service_call_telemetry(payload: Any) -> JSONMutableMapping | None
         return None
 
     telemetry_payload = cast(
-        JSONMutableMapping, _normalise_json(dict(payload)),
+        JSONMutableMapping,
+        _normalise_json(dict(payload)),
     )
 
     per_service = payload.get('per_service')
@@ -1864,7 +1927,8 @@ async def _get_data_statistics(
 
     dogs_payload = getattr(runtime_data, 'dogs', None)
     if isinstance(dogs_payload, Sequence) and not isinstance(
-        dogs_payload, (str, bytes, bytearray),
+        dogs_payload,
+        (str, bytes, bytearray),
     ):
         metrics.setdefault('dogs', len(dogs_payload))
 
@@ -1895,7 +1959,8 @@ async def _get_recent_errors(entry_id: str) -> list[RecentErrorEntry]:
 
 
 async def _get_debug_information(
-    hass: HomeAssistant, entry: ConfigEntry,
+    hass: HomeAssistant,
+    entry: ConfigEntry,
 ) -> DebugInformationPayload:
     """Get debug information.
 
@@ -1946,7 +2011,8 @@ async def _get_loaded_platforms(hass: HomeAssistant, entry: ConfigEntry) -> list
     # Check which platforms have been loaded by checking entity registry
     entity_registry = er.async_get(hass)
     entities = _entity_registry_entries_for_config_entry(
-        entity_registry, entry.entry_id,
+        entity_registry,
+        entry.entry_id,
     )
 
     # Get unique platforms
@@ -1998,9 +2064,14 @@ def _calculate_module_usage(dogs: Sequence[DogConfigData]) -> ModuleUsageBreakdo
 
     for dog in valid_dogs:
         modules_payload = dog.get('modules')
-        modules = modules_payload if isinstance(
-            modules_payload, Mapping,
-        ) else {}
+        modules = (
+            modules_payload
+            if isinstance(
+                modules_payload,
+                Mapping,
+            )
+            else {}
+        )
         for module in module_counts:
             if modules.get(module, False):
                 module_counts[module] += 1
@@ -2021,7 +2092,8 @@ def _calculate_module_usage(dogs: Sequence[DogConfigData]) -> ModuleUsageBreakdo
         if module_counts
         else None,
         'least_used_module': min(
-            module_counts, key=lambda module: module_counts[module],
+            module_counts,
+            key=lambda module: module_counts[module],
         )
         if module_counts
         else None,

@@ -29,7 +29,8 @@ class DiscoveryFlowMixin:
     """Mixin that provides HA discovery steps for the config flow."""
 
     async def async_step_zeroconf(
-        self, discovery_info: ZeroconfServiceInfo,
+        self,
+        discovery_info: ZeroconfServiceInfo,
     ) -> ConfigFlowResult:
         """Handle Zeroconf discovery."""
 
@@ -57,7 +58,8 @@ class DiscoveryFlowMixin:
             discovery_payload['name'] = discovery_info.name
 
         updates, comparison = self._prepare_discovery_updates(
-            discovery_payload, source='zeroconf',
+            discovery_payload,
+            source='zeroconf',
         )
 
         device_id = self._extract_device_id(properties)
@@ -74,7 +76,8 @@ class DiscoveryFlowMixin:
         return await self.async_step_discovery_confirm()
 
     async def async_step_dhcp(
-        self, discovery_info: DhcpServiceInfo,
+        self,
+        discovery_info: DhcpServiceInfo,
     ) -> ConfigFlowResult:
         """Handle DHCP discovery."""
 
@@ -95,7 +98,8 @@ class DiscoveryFlowMixin:
             dhcp_payload['ip'] = discovery_info.ip
 
         updates, comparison = self._prepare_discovery_updates(
-            dhcp_payload, source='dhcp',
+            dhcp_payload,
+            source='dhcp',
         )
 
         await self.async_set_unique_id(macaddress)
@@ -140,7 +144,8 @@ class DiscoveryFlowMixin:
             usb_payload['device'] = discovery_info.device
 
         updates, comparison = self._prepare_discovery_updates(
-            usb_payload, source='usb',
+            usb_payload,
+            source='usb',
         )
 
         unique_id = serial_number or f"{discovery_info.vid}:{discovery_info.pid}"
@@ -157,7 +162,8 @@ class DiscoveryFlowMixin:
         return await self.async_step_discovery_confirm()
 
     async def async_step_bluetooth(
-        self, discovery_info: BluetoothServiceInfoBleak,
+        self,
+        discovery_info: BluetoothServiceInfoBleak,
     ) -> ConfigFlowResult:
         """Handle Bluetooth discovery for supported trackers."""
 
@@ -187,7 +193,8 @@ class DiscoveryFlowMixin:
         }
 
         updates, comparison = self._prepare_discovery_updates(
-            bluetooth_payload, source='bluetooth',
+            bluetooth_payload,
+            source='bluetooth',
         )
 
         if address:
@@ -203,7 +210,8 @@ class DiscoveryFlowMixin:
         return await self.async_step_discovery_confirm()
 
     async def async_step_discovery_confirm(
-        self, user_input: DiscoveryConfirmInput | None = None,
+        self,
+        user_input: DiscoveryConfirmInput | None = None,
     ) -> ConfigFlowResult:
         """Confirm discovered device setup."""
 

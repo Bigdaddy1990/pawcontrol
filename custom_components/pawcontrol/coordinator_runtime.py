@@ -204,7 +204,8 @@ class AdaptivePollingController:
             load_factor = 1.0 + (self._entity_saturation * 0.5)
             if average_duration < self._target_cycle * 0.8:
                 reduction_factor = min(
-                    2.0, (self._target_cycle / average_duration) * 0.5,
+                    2.0,
+                    (self._target_cycle / average_duration) * 0.5,
                 )
                 next_interval = max(
                     self._min_interval,
@@ -212,7 +213,8 @@ class AdaptivePollingController:
                 )
             elif average_duration > self._target_cycle * 1.1:
                 increase_factor = min(
-                    2.5, average_duration / self._target_cycle,
+                    2.5,
+                    average_duration / self._target_cycle,
                 )
                 next_interval = min(
                     self._max_interval,
@@ -226,7 +228,8 @@ class AdaptivePollingController:
                 idle_elapsed = now - self._last_activity
                 if idle_elapsed >= self._idle_grace:
                     ramp_target = max(
-                        next_interval, self._current_interval * 1.5,
+                        next_interval,
+                        self._current_interval * 1.5,
                     )
                     next_interval = min(self._idle_interval, ramp_target)
                 else:
@@ -239,7 +242,8 @@ class AdaptivePollingController:
                 self._last_activity = now
 
         self._current_interval = max(
-            self._min_interval, min(self._max_interval, next_interval),
+            self._min_interval,
+            min(self._max_interval, next_interval),
         )
         return self._current_interval
 
@@ -316,7 +320,8 @@ def summarize_entity_budgets(
         total_allocated / total_capacity
     ) if total_capacity else 0.0
     peak_utilisation = max(
-        (snapshot.saturation for snapshot in snapshots), default=0.0,
+        (snapshot.saturation for snapshot in snapshots),
+        default=0.0,
     )
 
     summary: EntityBudgetSummary = {
@@ -387,23 +392,31 @@ class CoordinatorRuntime:
             except RateLimitError as err:
                 errors += 1
                 self._logger.warning(
-                    'Rate limit reached for dog %s: %s', dog_id, err.user_message,
+                    'Rate limit reached for dog %s: %s',
+                    dog_id,
+                    err.user_message,
                 )
                 all_data[dog_id] = current_data.get(
-                    dog_id, empty_payload_factory(),
+                    dog_id,
+                    empty_payload_factory(),
                 )
             except NetworkError as err:
                 errors += 1
                 self._logger.warning(
-                    'Network error for dog %s: %s', dog_id, err.user_message,
+                    'Network error for dog %s: %s',
+                    dog_id,
+                    err.user_message,
                 )
                 all_data[dog_id] = current_data.get(
-                    dog_id, empty_payload_factory(),
+                    dog_id,
+                    empty_payload_factory(),
                 )
             except ValidationError as err:
                 errors += 1
                 self._logger.error(
-                    'Invalid configuration for dog %s: %s', dog_id, err,
+                    'Invalid configuration for dog %s: %s',
+                    dog_id,
+                    err,
                 )
                 all_data[dog_id] = empty_payload_factory()
             except Exception as err:
@@ -415,7 +428,8 @@ class CoordinatorRuntime:
                     err.__class__.__name__,
                 )
                 all_data[dog_id] = current_data.get(
-                    dog_id, empty_payload_factory(),
+                    dog_id,
+                    empty_payload_factory(),
                 )
             else:
                 all_data[dog_id] = result
@@ -432,7 +446,8 @@ class CoordinatorRuntime:
 
         total_dogs = len(dog_ids)
         success_rate, all_failed = self._metrics.record_cycle(
-            total_dogs, errors,
+            total_dogs,
+            errors,
         )
 
         if all_failed:
@@ -474,7 +489,9 @@ class CoordinatorRuntime:
         dog_config = self._registry.get(dog_id)
         if not dog_config:
             raise ValidationError(
-                'dog_id', dog_id, 'Dog configuration not found',
+                'dog_id',
+                dog_id,
+                'Dog configuration not found',
             )
 
         payload: CoordinatorDogData = {
@@ -485,20 +502,24 @@ class CoordinatorRuntime:
 
         modules = ensure_dog_modules_mapping(dog_config)
         module_tasks: list[CoordinatorModuleTask] = self._modules.build_tasks(
-            dog_id, modules,
+            dog_id,
+            modules,
         )
         if not module_tasks:
             return payload
 
         results = await asyncio.gather(
-            *(task.coroutine for task in module_tasks), return_exceptions=True,
+            *(task.coroutine for task in module_tasks),
+            return_exceptions=True,
         )
 
         for task, result in zip(module_tasks, results, strict=True):
             module_name: CoordinatorTypedModuleName = task.module
             if isinstance(result, GPSUnavailableError):
                 self._logger.debug(
-                    'GPS unavailable for %s: %s', dog_id, result,
+                    'GPS unavailable for %s: %s',
+                    dog_id,
+                    result,
                 )
                 payload[module_name] = {
                     'status': 'unavailable',

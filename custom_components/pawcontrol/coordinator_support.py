@@ -159,7 +159,9 @@ def ensure_cache_repair_aggregate(
 
     types_module = sys.modules.get('custom_components.pawcontrol.types')
     aggregate_cls = getattr(
-        types_module, 'CacheRepairAggregate', CacheRepairAggregate,
+        types_module,
+        'CacheRepairAggregate',
+        CacheRepairAggregate,
     )
 
     candidate_classes: list[type[CacheRepairAggregate]] = []
@@ -218,7 +220,9 @@ class CoordinatorModuleAdapter(Protocol):
         """Detach previously bound runtime managers."""
 
     def build_tasks(
-        self, dog_id: str, modules: DogModulesMapping,
+        self,
+        dog_id: str,
+        modules: DogModulesMapping,
     ) -> list[CoordinatorModuleTask]:
         """Return coroutine tasks for each enabled module."""
 
@@ -318,7 +322,8 @@ class DogConfigRegistry:
         if not config:
             return frozenset()
         modules_payload = cast(
-            Mapping[str, object] | None, config.get(CONF_MODULES),
+            Mapping[str, object] | None,
+            config.get(CONF_MODULES),
         )
         modules = coerce_dog_modules_config(modules_payload)
         return frozenset(module for module, enabled in modules.items() if bool(enabled))
@@ -352,8 +357,9 @@ class DogConfigRegistry:
         for module in sorted(ALL_MODULES):
             if module in _STATUS_DEFAULT_MODULES:
                 payload[module] = cast(
-                    CoordinatorModuleState, {
-                    'status': 'unknown',
+                    CoordinatorModuleState,
+                    {
+                        'status': 'unknown',
                     },
                 )
             else:
@@ -400,12 +406,16 @@ class DogConfigRegistry:
 
         if not isinstance(interval, int):
             raise ValidationError(
-                'update_interval', interval, 'Polling interval must be an integer',
+                'update_interval',
+                interval,
+                'Polling interval must be an integer',
             )
 
         if interval <= 0:
             raise ValidationError(
-                'update_interval', interval, 'Polling interval must be positive',
+                'update_interval',
+                interval,
+                'Polling interval must be positive',
             )
 
         return min(interval, MAX_IDLE_POLL_INTERVAL, MAX_POLLING_INTERVAL_SECONDS)
@@ -416,30 +426,40 @@ class DogConfigRegistry:
 
         if isinstance(value, bool):
             raise ValidationError(
-                'gps_update_interval', value, 'Invalid GPS update interval',
+                'gps_update_interval',
+                value,
+                'Invalid GPS update interval',
             )
 
         if isinstance(value, str):
             candidate = value.strip()
             if not candidate:
                 raise ValidationError(
-                    'gps_update_interval', value, 'Invalid GPS update interval',
+                    'gps_update_interval',
+                    value,
+                    'Invalid GPS update interval',
                 )
             try:
                 value = int(candidate)
             except ValueError as err:  # pragma: no cover - defensive casting
                 raise ValidationError(
-                    'gps_update_interval', value, 'Invalid GPS update interval',
+                    'gps_update_interval',
+                    value,
+                    'Invalid GPS update interval',
                 ) from err
 
         if not isinstance(value, int):
             raise ValidationError(
-                'gps_update_interval', value, 'Invalid GPS update interval',
+                'gps_update_interval',
+                value,
+                'Invalid GPS update interval',
             )
 
         if value <= 0:
             raise ValidationError(
-                'gps_update_interval', value, 'Invalid GPS update interval',
+                'gps_update_interval',
+                value,
+                'Invalid GPS update interval',
             )
 
         return value
@@ -649,14 +669,17 @@ def bind_runtime_managers(
         and isinstance(data_manager, CacheMonitorRegistrar)
     ):
         register_method = getattr(
-            notification_manager, 'register_cache_monitors', None,
+            notification_manager,
+            'register_cache_monitors',
+            None,
         )
         if callable(register_method):
             register_method(data_manager)
 
 
 def clear_runtime_managers(
-    coordinator: CoordinatorBindingTarget, modules: CoordinatorModuleAdapter,
+    coordinator: CoordinatorBindingTarget,
+    modules: CoordinatorModuleAdapter,
 ) -> None:
     """Clear bound runtime managers from the coordinator."""
 

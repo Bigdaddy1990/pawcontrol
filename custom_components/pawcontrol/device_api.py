@@ -75,7 +75,8 @@ class PawControlDeviceClient:
         base_url = validate_device_endpoint(endpoint)
 
         self._session = ensure_shared_client_session(
-            session, owner='PawControlDeviceClient',
+            session,
+            owner='PawControlDeviceClient',
         )
         self._endpoint = DeviceEndpoint(base_url=base_url, api_key=api_key)
         self._timeout = timeout or _DEFAULT_TIMEOUT

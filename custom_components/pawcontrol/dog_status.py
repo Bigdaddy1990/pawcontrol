@@ -14,7 +14,8 @@ _DEFAULT_SAFE_ZONES: frozenset[str] = frozenset(
 
 
 def build_dog_status_snapshot(
-    dog_id: str, dog_data: Mapping[str, object],
+    dog_id: str,
+    dog_data: Mapping[str, object],
 ) -> DogStatusSnapshot:
     """Return the centralized status snapshot for a dog."""
 

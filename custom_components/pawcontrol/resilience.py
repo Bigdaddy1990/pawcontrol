@@ -72,7 +72,8 @@ from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
 
 ensure_homeassistant_exception_symbols()
 HOME_ASSISTANT_ERROR_CLS: type[Exception] = cast(
-    type[Exception], compat.HomeAssistantError,
+    type[Exception],
+    compat.HomeAssistantError,
 )
 bind_exception_alias('HomeAssistantError', combine_with_current=True)
 
@@ -141,13 +142,19 @@ class CircuitBreakerStats:
     rejected_calls: int = 0
     last_rejection_time: float | None = None
     _last_failure_monotonic: float | None = field(
-        default=None, init=False, repr=False,
+        default=None,
+        init=False,
+        repr=False,
     )
     _last_state_change_monotonic: float | None = field(
-        default=None, init=False, repr=False,
+        default=None,
+        init=False,
+        repr=False,
     )
     _last_success_monotonic: float | None = field(
-        default=None, init=False, repr=False,
+        default=None,
+        init=False,
+        repr=False,
     )
 
 
@@ -451,7 +458,8 @@ async def retry_with_backoff[T](
         RetryExhaustedError: If all retry attempts fail
     """
     retry_config = kwargs.pop(
-        'config', None,
+        'config',
+        None,
     ) or kwargs.pop('retry_config', None)
     retry_config = retry_config or RetryConfig()
     if retry_config.max_attempts < 1:
@@ -596,7 +604,10 @@ class ResilienceManager:
         # Apply retry logic
         if retry_config:
             return await retry_with_backoff(
-                execution_func, *args, config=retry_config, **kwargs,
+                execution_func,
+                *args,
+                config=retry_config,
+                **kwargs,
             )
         return await execution_func(*args, **kwargs)
 

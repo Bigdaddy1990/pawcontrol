@@ -119,9 +119,11 @@ def update_stub_metadata(
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(
         json.dumps(
-            metadata, indent=2,
+            metadata,
+            indent=2,
             sort_keys=True,
-        ), encoding='utf-8',
+        ),
+        encoding='utf-8',
     )
     return output
 
