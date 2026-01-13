@@ -9,7 +9,7 @@ on:
 
 env:
   PYTHON_VERSION: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.13' }}
-  HA_VERSION: ${{ vars.HA_VERSION != '' && vars.HA_VERSION || '2025.12.5' }}
+  HA_VERSION: ${{ vars.HA_VERSION != '' && vars.HA_VERSION || '2026.1.1' }}
   CI_COVERAGE_MIN: ${{ vars.CI_COVERAGE_MIN != '' && vars.CI_COVERAGE_MIN || '95' }}
 
 concurrency:
