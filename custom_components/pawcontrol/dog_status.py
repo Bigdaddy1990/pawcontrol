@@ -7,9 +7,7 @@ from typing import cast
 
 from .types import DogStatusSnapshot, JSONMapping, JSONMutableMapping
 
-_DEFAULT_SAFE_ZONES: frozenset[str] = frozenset(
-    {"home", "park", "vet", "friend_house"}
-)
+_DEFAULT_SAFE_ZONES: frozenset[str] = frozenset({"home", "park", "vet", "friend_house"})
 
 
 def build_dog_status_snapshot(
@@ -68,9 +66,7 @@ def _coerce_zone_name(value: object | None) -> str | None:
     return None
 
 
-def _resolve_safe_zone(
-    geofence_status: JSONMapping, zone: str | None
-) -> bool:
+def _resolve_safe_zone(geofence_status: JSONMapping, zone: str | None) -> bool:
     """Determine safe-zone membership from geofence and zone data."""
 
     if geofence_status:

@@ -5987,7 +5987,7 @@ class CoordinatorDogData(TypedDict, total=False):
 
     dog_info: DogConfigData
     status: str
-    status_snapshot: NotRequired["DogStatusSnapshot"]
+    status_snapshot: NotRequired[DogStatusSnapshot]
     last_update: str | None
     gps: NotRequired[CoordinatorModuleState]
     geofencing: NotRequired[CoordinatorModuleState]

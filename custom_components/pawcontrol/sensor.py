@@ -26,8 +26,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
     MODULE_GARDEN,
 )
 from .coordinator import PawControlCoordinator
@@ -86,7 +84,6 @@ PARALLEL_UPDATES = 0
 ENTITY_CREATION_DELAY = 0.005  # 5ms between batches (optimized for profiles)
 MAX_ENTITIES_PER_BATCH = 6  # Smaller batches for profile-based creation
 PARALLEL_THRESHOLD = 12  # Lower threshold for profile-optimized entity counts
-
 
 
 # Gracefully handle Home Assistant constant backports in the test harness

@@ -13,17 +13,17 @@ from homeassistant.util import dt as dt_util
 
 from .const import ATTR_DOG_ID, ATTR_DOG_NAME
 from .coordinator import PawControlCoordinator
-from .dog_status import build_dog_status_snapshot
 from .diagnostics import _normalise_json as _normalise_diagnostics_json
+from .dog_status import build_dog_status_snapshot
 from .runtime_data import get_runtime_data
 from .service_guard import ServiceGuardResult
 from .types import (
     CoordinatorDogData,
     CoordinatorModuleLookupResult,
-    CoordinatorUntypedModuleState,
-    DogStatusSnapshot,
     CoordinatorRuntimeManagers,
+    CoordinatorUntypedModuleState,
     DogConfigData,
+    DogStatusSnapshot,
     JSONMutableMapping,
     ensure_json_mapping,
 )
