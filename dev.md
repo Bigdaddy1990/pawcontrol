@@ -99,6 +99,47 @@ sequenceDiagram
 - Use Home Assistant type aliases (`ConfigEntry`, `HomeAssistant`, `Platform`)
   consistently to keep annotations aligned with HA.
 
+### JSON-safe attributes
+
+- All `extra_state_attributes` implementations must return a
+  `JSONMutableMapping` and **must not** leak `datetime`, `timedelta`, sets, or
+  other complex objects.
+- Use `custom_components.pawcontrol.diagnostics.normalize_value()` (and its
+  `_normalise_json` wrapper) to normalise payloads before returning them.
+
+> Note: The integration already contains a top-level `utils.py` module.
+> Avoid adding a `utils/` package directory, as it would conflict with
+> `pawcontrol.utils` imports.
+
+
+## Flow structure
+
+The Home Assistant entrypoint modules are intentionally kept **small**:
+
+- `custom_components/pawcontrol/config_flow.py` → imports the full implementation from
+  `custom_components/pawcontrol/config_flow_main.py`
+- `custom_components/pawcontrol/options_flow.py` → imports the full implementation from
+  `custom_components/pawcontrol/options_flow_main.py`
+
+The large flows are composed from themed mixins to keep responsibilities separated:
+
+- Config flow mixins live in `config_flow_*.py` (dogs, modules, profile, dashboard, reauth, external, …)
+- Options flow mixins live in `options_flow_*.py` and are grouped by domain:
+
+  - `options_flow_menu.py` → main menu step (`async_step_init`)
+  - `options_flow_profiles.py` → entity profiles + performance settings
+  - `options_flow_dogs_management.py` → dog CRUD + per-dog module configuration
+  - `options_flow_door_sensor.py` → per-dog door-sensor configuration
+  - `options_flow_system_settings.py` → weather / system / dashboard / advanced settings
+  - `options_flow_import_export.py` → import/export helpers + UI steps
+  - `options_flow_gps.py`, `options_flow_notifications.py`, `options_flow_feeding.py`, `options_flow_health.py` → feature domains
+  - `options_flow_shared.py` → shared helpers used across multiple mixins (telemetry, manual events, typed builders)
+
+
+When adding new steps, prefer extending an existing themed mixin (or creating a new one)
+instead of growing the `*_main.py` modules.
+
+
 ## Quality gate (run before PR)
 
 ```bash
