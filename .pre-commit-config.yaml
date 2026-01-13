@@ -3,7 +3,7 @@
 # To update the versions:
 #   pre-commit autoupdate
 ci:
-  autoupdate_schedule: daily
+  autoupdate_schedule: weekly
   autofix_prs: true
 
 repos:
