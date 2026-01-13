@@ -8,7 +8,7 @@ import logging
 from collections.abc import Callable, Mapping
 from datetime import date, datetime, timedelta
 from numbers import Real
-from typing import TYPE_CHECKING, Any, Final, Protocol, TypeGuard, cast
+from typing import TYPE_CHECKING, Any, Final, Protocol, cast
 
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 from homeassistant.const import (
@@ -26,12 +26,10 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
     MODULE_GARDEN,
 )
 from .coordinator import PawControlCoordinator
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
+from .diagnostics import normalize_value
 from .entity import PawControlDogEntityBase
 from .entity_factory import EntityFactory, EntityProfileDefinition
 from .runtime_data import get_runtime_data
@@ -40,8 +38,6 @@ from .types import (
     DOG_NAME_FIELD,
     CoordinatorDogData,
     CoordinatorModuleLookupResult,
-    CoordinatorModuleState,
-    CoordinatorTypedModuleName,
     CoordinatorUntypedModuleState,
     DogConfigData,
     FeedingDietValidationSummary,
@@ -89,16 +85,6 @@ ENTITY_CREATION_DELAY = 0.005  # 5ms between batches (optimized for profiles)
 MAX_ENTITIES_PER_BATCH = 6  # Smaller batches for profile-based creation
 PARALLEL_THRESHOLD = 12  # Lower threshold for profile-optimized entity counts
 
-_TYPED_SENSOR_MODULES: Final[frozenset[CoordinatorTypedModuleName]] = frozenset(
-    {"feeding", "garden", "geofencing", "gps", "health", "walk", "weather"}
-)
-
-
-def _is_typed_sensor_module(module: str) -> TypeGuard[CoordinatorTypedModuleName]:
-    """Return True when ``module`` stores structured coordinator payloads."""
-
-    return module in _TYPED_SENSOR_MODULES
-
 
 # Gracefully handle Home Assistant constant backports in the test harness
 try:  # pragma: no cover - executed indirectly during import
@@ -116,7 +102,7 @@ def _normalise_attributes(attrs: Mapping[str, object]) -> AttributeDict:
     """Return JSON-serialisable attributes for sensor entities."""
 
     payload = ensure_json_mapping(attrs)
-    return cast(AttributeDict, _normalise_diagnostics_json(payload))
+    return cast(AttributeDict, normalize_value(payload))
 
 
 # PLATINUM: Dynamic cache TTL based on coordinator update interval
@@ -984,70 +970,15 @@ class PawControlSensorBase(PawControlDogEntityBase, SensorEntityProtocol):
 
         return self.native_value
 
-    def _get_module_data(self, module: str) -> CoordinatorModuleLookupResult:
-        """Return coordinator module data with strict mapping validation."""
-
-        if not isinstance(module, str) or not module:
-            return cast(CoordinatorUntypedModuleState, {})
-
-        try:
-            payload = self.coordinator.get_module_data(self._dog_id, module)
-        except Exception as err:  # pragma: no cover - defensive log path
-            _LOGGER.error(
-                "Error fetching module data for %s/%s: %s", self._dog_id, module, err
-            )
-            return cast(CoordinatorUntypedModuleState, {})
-
-        if not isinstance(payload, Mapping):
-            _LOGGER.warning(
-                "Invalid module payload for %s/%s: expected mapping, got %s",
-                self._dog_id,
-                module,
-                type(payload).__name__,
-            )
-            return cast(CoordinatorUntypedModuleState, {})
-
-        if _is_typed_sensor_module(module):
-            return cast(CoordinatorModuleState, payload)
-
-        return cast(CoordinatorModuleLookupResult, payload)
-
     @property
     def available(self) -> bool:
         """Return True if the coordinator and dog data are available."""
         return self.coordinator.available and self._get_dog_data() is not None
 
-    @property
-    def extra_state_attributes(self) -> AttributeDict:
+    def _extra_state_attributes(self) -> AttributeDict:
         """Return additional state attributes for the sensor."""
-        attrs: AttributeDict = {
-            ATTR_DOG_ID: self._dog_id,
-            ATTR_DOG_NAME: self._dog_name,
-            "sensor_type": self._sensor_type,
-        }
 
-        try:
-            dog_data = self._get_dog_data()
-            if dog_data and "dog_info" in dog_data:
-                dog_info = dog_data["dog_info"]
-                attrs.update(
-                    {
-                        "dog_breed": dog_info.get("dog_breed", ""),
-                        "dog_age": dog_info.get("dog_age"),
-                        "dog_size": dog_info.get("dog_size"),
-                        "dog_weight": dog_info.get("dog_weight"),
-                    }
-                )
-        except Exception as err:
-            _LOGGER.debug("Could not fetch dog info for attributes: %s", err)
-
-        last_update = getattr(self.coordinator, "last_update_success_time", None)
-        if isinstance(last_update, datetime):
-            attrs["last_updated"] = dt_util.as_local(last_update).isoformat()
-        else:
-            attrs["last_updated"] = None
-
-        return _normalise_attributes(attrs)
+        return {"sensor_type": self._sensor_type}
 
 
 class PawControlGardenSensorBase(PawControlSensorBase):
@@ -1249,6 +1180,12 @@ class PawControlDogStatusSensor(PawControlSensorBase):
             return _STATE_UNKNOWN
 
         try:
+            status_snapshot = self._get_status_snapshot()
+            if status_snapshot is not None:
+                state = status_snapshot.get("state")
+                if isinstance(state, str) and state:
+                    return state
+
             walk_data: WalkModuleTelemetry = cast(
                 WalkModuleTelemetry, self._get_walk_module() or {}
             )

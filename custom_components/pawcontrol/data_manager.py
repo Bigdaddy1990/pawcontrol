@@ -45,7 +45,7 @@ from .coordinator_support import (
     CoordinatorMetrics,
     CoordinatorModuleAdapter,
 )
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
+from .diagnostics import normalize_value
 from .module_adapters import (
     ModuleAdapterCacheError,
     ModuleAdapterCacheSnapshot,
@@ -903,7 +903,7 @@ def _normalise_history_entries(entries: object) -> list[JSONMutableMapping]:
     return [
         cast(
             JSONMutableMapping,
-            _normalise_diagnostics_json(
+            normalize_value(
                 _coerce_json_mutable(cast(JSONMappingLike | JSONMutableMapping, entry))
             ),
         )
@@ -1941,7 +1941,7 @@ class PawControlDataManager:
             timestamp = _deserialize_datetime(payload.get(timestamp_key))
             normalised_payload = cast(
                 JSONMutableMapping,
-                _normalise_diagnostics_json(payload),
+                normalize_value(payload),
             )
 
             if since_bound is not None and (
@@ -2517,7 +2517,7 @@ class PawControlDataManager:
             entries: list[JSONMutableMapping] = [
                 cast(
                     JSONMutableMapping,
-                    _normalise_diagnostics_json(
+                    normalize_value(
                         _coerce_json_mutable(
                             cast(JSONMappingLike | JSONMutableMapping, item)
                         )
@@ -2570,7 +2570,7 @@ class PawControlDataManager:
                 def _write_json() -> None:
                     payload = cast(
                         JSONMutableMapping,
-                        _normalise_diagnostics_json(
+                        normalize_value(
                             {
                                 "dog_id": dog_id,
                                 "data_type": export_type,

@@ -28,8 +28,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
     MODULE_FEEDING,
     MODULE_GARDEN,
     MODULE_GPS,
@@ -37,7 +35,7 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
+from .diagnostics import normalize_value
 from .entity import PawControlDogEntityBase
 from .runtime_data import get_runtime_data
 from .types import (
@@ -45,8 +43,6 @@ from .types import (
     DOG_NAME_FIELD,
     VISITOR_MODE_ACTIVE_FIELD,
     WALK_IN_PROGRESS_FIELD,
-    CoordinatorDogData,
-    CoordinatorModuleState,
     CoordinatorTypedModuleName,
     DogConfigData,
     FeedingEmergencyState,
@@ -111,7 +107,7 @@ def _normalise_attributes(
     """Return JSON-serialisable attributes for entity state."""
 
     payload = ensure_json_mapping(attrs)
-    return cast(JSONMutableMapping, _normalise_diagnostics_json(payload))
+    return cast(JSONMutableMapping, normalize_value(payload))
 
 
 # Home Assistant platform configuration
@@ -502,77 +498,45 @@ class PawControlBinarySensorBase(
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return additional state attributes for the binary sensor."""
-        attrs = self._build_base_attributes()
-        return _normalise_attributes(attrs)
+        attrs = self._build_entity_attributes(self._extra_state_attributes())
+        return self._finalize_entity_attributes(attrs)
 
-    def _build_base_attributes(self) -> JSONMutableMapping:
-        """Return a JSON-mutable mapping seeded with common attributes."""
+    def _extra_state_attributes(self) -> Mapping[str, object] | None:
+        """Return additional attributes shared by binary sensors."""
 
-        attrs = self._build_base_state_attributes()
-
-        last_updated_value = attrs.get("last_updated")
-        if isinstance(last_updated_value, datetime):
-            attrs["last_updated"] = _as_local(last_updated_value).isoformat()
-        elif last_updated_value is None:
-            attrs["last_updated"] = None
-
-        attrs["last_update"] = _as_local(dt_util.utcnow()).isoformat()
-        attrs["sensor_type"] = self._sensor_type
-        return attrs
-
-    def _get_dog_data(self) -> CoordinatorDogData | None:
-        """Get dog data - wrapper for cached access."""
-        return self._get_dog_data_cached()
-
-    def _get_module_state(
-        self, module: CoordinatorTypedModuleName
-    ) -> CoordinatorModuleState | None:
-        """Return coordinator state for the provided module."""
-
-        dog_data = self._get_dog_data_cached()
-        if not dog_data:
-            return None
-
-        module_data = dog_data.get(module)
-        if isinstance(module_data, Mapping):
-            return cast(CoordinatorModuleState, module_data)
-
-        _LOGGER.debug(
-            "Coordinator returned unexpected payload for module %s/%s: %s",
-            self._dog_id,
-            module,
-            type(module_data).__name__ if module_data is not None else "None",
-        )
-        return None
+        return {
+            "last_update": _as_local(dt_util.utcnow()).isoformat(),
+            "sensor_type": self._sensor_type,
+        }
 
     def _get_feeding_payload(self) -> FeedingModulePayload | None:
         """Return the structured feeding payload when available."""
 
-        module_state = self._get_module_state(FEEDING_MODULE)
+        module_state = self._get_module_data(FEEDING_MODULE)
         return cast(FeedingModulePayload, module_state) if module_state else None
 
     def _get_walk_payload(self) -> WalkModulePayload | None:
         """Return the structured walk payload when available."""
 
-        module_state = self._get_module_state(WALK_MODULE)
+        module_state = self._get_module_data(WALK_MODULE)
         return cast(WalkModulePayload, module_state) if module_state else None
 
     def _get_gps_payload(self) -> GPSModulePayload | None:
         """Return the structured GPS payload when available."""
 
-        module_state = self._get_module_state(GPS_MODULE)
+        module_state = self._get_module_data(GPS_MODULE)
         return cast(GPSModulePayload, module_state) if module_state else None
 
     def _get_health_payload(self) -> HealthModulePayload | None:
         """Return the structured health payload when available."""
 
-        module_state = self._get_module_state(HEALTH_MODULE)
+        module_state = self._get_module_data(HEALTH_MODULE)
         return cast(HealthModulePayload, module_state) if module_state else None
 
     def _get_garden_payload(self) -> GardenModulePayload | None:
         """Return the structured garden payload when available."""
 
-        module_state = self._get_module_state(GARDEN_MODULE)
+        module_state = self._get_module_data(GARDEN_MODULE)
         return cast(GardenModulePayload, module_state) if module_state else None
 
     @property
@@ -724,14 +688,19 @@ class PawControlAttentionNeededBinarySensor(PawControlBinarySensorBase):
             if isinstance(health_alerts, Sequence) and health_alerts:
                 attention_reasons.append("health_alert")
 
-        gps_data = self._get_gps_payload()
-        if gps_data is not None:
-            geofence_status = gps_data.get("geofence_status")
-            in_safe_zone = True
-            if isinstance(geofence_status, Mapping):
-                in_safe_zone = bool(geofence_status.get("in_safe_zone", True))
-            if not in_safe_zone:
+        status_snapshot = self._get_status_snapshot()
+        if status_snapshot is not None:
+            if not bool(status_snapshot.get("in_safe_zone", True)):
                 attention_reasons.append("outside_safe_zone")
+        else:
+            gps_data = self._get_gps_payload()
+            if gps_data is not None:
+                geofence_status = gps_data.get("geofence_status")
+                in_safe_zone = True
+                if isinstance(geofence_status, Mapping):
+                    in_safe_zone = bool(geofence_status.get("in_safe_zone", True))
+                if not in_safe_zone:
+                    attention_reasons.append("outside_safe_zone")
 
         self._attention_reasons = attention_reasons
 
@@ -1019,6 +988,10 @@ class PawControlWalkInProgressBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if a walk is currently in progress."""
+        status_snapshot = self._get_status_snapshot()
+        if status_snapshot is not None:
+            return bool(status_snapshot.get("on_walk", False))
+
         walk_data = self._get_walk_payload()
         if not walk_data:
             return False
@@ -1085,6 +1058,10 @@ class PawControlNeedsWalkBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if the dog needs a walk."""
+        status_snapshot = self._get_status_snapshot()
+        if status_snapshot is not None:
+            return bool(status_snapshot.get("needs_walk", False))
+
         walk_data = self._get_walk_payload()
         if not walk_data:
             return False
@@ -1264,6 +1241,10 @@ class PawControlInSafeZoneBinarySensor(PawControlBinarySensorBase):
 
     def _get_is_on_state(self) -> bool:
         """Return True if the dog is in a safe zone."""
+        status_snapshot = self._get_status_snapshot()
+        if status_snapshot is not None:
+            return bool(status_snapshot.get("in_safe_zone", True))
+
         gps_data = self._get_gps_payload()
         if not gps_data:
             return True  # Assume safe if no GPS data
