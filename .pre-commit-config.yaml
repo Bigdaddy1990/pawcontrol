@@ -51,7 +51,6 @@ repos:
       - id: check-symlinks
       - id: pretty-format-json
         args: [--autofix]
-      - id: additional_dependencies
       - id: debug-statements
       - id: name-tests-test
       - id: pretty-format-json
