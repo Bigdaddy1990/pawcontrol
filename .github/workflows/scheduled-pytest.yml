@@ -42,7 +42,7 @@ jobs:
     uses: ./.github/workflows/reusable-python-tests.yml
     with:
       python-version: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.13' }}
-      home-assistant-spec: ${{ format('=={0}', vars.HA_VERSION != '' && vars.HA_VERSION || '2025.9.3') }}
+      home-assistant-spec: ${{ format('=={0}', vars.HA_VERSION != '' && vars.HA_VERSION || '2026.1.1') }}
       coverage-min: ${{ vars.CI_COVERAGE_MIN != '' && vars.CI_COVERAGE_MIN || '95' }}
       coverage-xml-path: generated/coverage/coverage.xml
       coverage-html-dir: generated/coverage/html
