@@ -667,7 +667,7 @@ def resolve_entity_factory_guard_metrics(
 ) -> EntityFactoryGuardMetricsSnapshot:
     """Return normalised entity factory guard metrics for diagnostics consumers."""
 
-    metrics: Mapping[str, Any] | None = None
+    metrics: Mapping[str, object] | None = None
     if isinstance(payload, Mapping):
         candidate = payload.get("entity_factory_guard_metrics")
         if isinstance(candidate, Mapping):

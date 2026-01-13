@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping
-from typing import Any
 
 from .config_flow_base import DOG_ID_PATTERN
 from .const import (
@@ -22,7 +20,7 @@ from .const import (
 )
 from .exceptions import FlowValidationError, ValidationError
 from .health_calculator import HealthMetrics
-from .types import DogConfigData, DogSetupStepInput, validate_dog_weight_for_size
+from .types import DogConfigData, DogSetupStepInput, FlowInputMapping, validate_dog_weight_for_size
 from .validators import validate_name
 
 MAX_BREED_NAME_LENGTH = 100
@@ -38,7 +36,7 @@ def _map_name_error(err: ValidationError) -> str:
     return "invalid_dog_name"
 
 
-def _coerce_int(field: str, value: Any) -> int:
+def _coerce_int(field: str, value: object) -> int:
     if isinstance(value, bool):
         raise ValidationError(field, value, "Must be a whole number")
     if isinstance(value, int):
@@ -58,7 +56,7 @@ def _coerce_int(field: str, value: Any) -> int:
     raise ValidationError(field, value, "Must be a whole number")
 
 
-def _coerce_float(field: str, value: Any) -> float:
+def _coerce_float(field: str, value: object) -> float:
     if isinstance(value, bool):
         raise ValidationError(field, value, "Must be numeric")
     if isinstance(value, int | float):
@@ -74,7 +72,7 @@ def _coerce_float(field: str, value: Any) -> float:
     raise ValidationError(field, value, "Must be numeric")
 
 
-def _validate_breed(raw_breed: Any) -> str | None:
+def _validate_breed(raw_breed: object) -> str | None:
     if raw_breed is None:
         return None
     if not isinstance(raw_breed, str):
@@ -95,7 +93,7 @@ def _validate_breed(raw_breed: Any) -> str | None:
 
 
 def validate_dog_setup_input(
-    user_input: Mapping[str, Any],
+    user_input: FlowInputMapping,
     *,
     existing_ids: set[str],
     existing_names: set[str] | None = None,
@@ -194,7 +192,7 @@ def validate_dog_setup_input(
 
 def validate_dog_update_input(
     current_dog: DogConfigData,
-    user_input: Mapping[str, Any],
+    user_input: FlowInputMapping,
     *,
     existing_names: set[str] | None = None,
 ) -> DogConfigData:

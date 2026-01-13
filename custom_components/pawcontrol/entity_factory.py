@@ -1052,6 +1052,19 @@ class EntityFactory:
             self._record_runtime_guard_calibration("disabled", 0.0)
             return
 
+        # Home Assistant calls into the entity factory from within the event loop during
+        # setup and platform refreshes. The runtime floor calibration is primarily a
+        # testing/benchmark aid and must never block the event loop in production.
+        # When invoked from within a running loop we skip the sleep-based guard to
+        # avoid stalling other tasks.
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            pass
+        else:
+            self._record_runtime_guard_calibration("disabled", 0.0)
+            return
+
         runtime_floor = self._runtime_guard_floor
         deadline = started_at + runtime_floor
         remaining = deadline - time.perf_counter()

@@ -632,7 +632,7 @@ async def async_get_config_entry_diagnostics(
     # Base diagnostics structure
     cache_snapshots = _collect_cache_diagnostics(runtime_data)
 
-    diagnostics_payload: dict[str, Any] = {
+    diagnostics_payload: JSONMutableMapping = {
         "config_entry": await _get_config_entry_diagnostics(entry),
         "system_info": await _get_system_diagnostics(hass),
         "integration_status": await _get_integration_status(hass, entry, runtime_data),
