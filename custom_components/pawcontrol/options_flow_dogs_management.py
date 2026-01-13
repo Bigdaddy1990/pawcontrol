@@ -224,8 +224,8 @@ class DogManagementOptionsMixin:
             dog_options = self._current_dog_options()
             existing = dog_options.get(dog_id, {})
             entry = ensure_dog_options_entry(  # noqa: F821
-                cast(JSONLikeMapping, dict(existing)),
-                dog_id=dog_id,  # noqa: F821
+                cast(JSONLikeMapping, dict(existing)),  # noqa: F821
+                dog_id=dog_id,
             )
             entry[DOG_ID_FIELD] = dog_id
             entry[DOG_MODULES_FIELD] = modules_payload  # noqa: F821
@@ -797,11 +797,11 @@ class DogManagementOptionsMixin:
                     CONF_DOG_NAME, default=self._current_dog.get(CONF_DOG_NAME, '')
                 ): selector.TextSelector(),
                 vol.Optional(
-                    CONF_DOG_BREED,
+                    CONF_DOG_BREED,  # noqa: F821
                     default=self._current_dog.get(CONF_DOG_BREED, ''),  # noqa: F821
                 ): selector.TextSelector(),
                 vol.Optional(
-                    CONF_DOG_AGE,
+                    CONF_DOG_AGE,  # noqa: F821
                     default=self._current_dog.get(CONF_DOG_AGE, 3),  # noqa: F821
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(

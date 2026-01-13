@@ -29,18 +29,15 @@ from .types import clone_placeholders
 from .types import ConfigFlowPlaceholders
 from .types import DashboardOptions
 from .types import ensure_advanced_options
-from .types import ensure_json_mapping
 from .types import freeze_placeholders
 from .types import JSONLikeMapping
 from .types import JSONMutableMapping
 from .types import JSONValue
-from .types import MutableConfigFlowPlaceholders
 from .types import normalize_performance_mode
 from .types import NotificationThreshold
 from .types import OptionsAdvancedSettingsInput
 from .types import OptionsDashboardSettingsInput
 from .types import OptionsSystemSettingsInput
-from .types import ReconfigureTelemetry
 from .types import SystemOptions
 
 _LOGGER = logging.getLogger(__name__)
@@ -220,8 +217,8 @@ class OptionsFlowSharedMixin:
             modules_mapping = ensure_dog_modules_mapping(normalised)  # noqa: F405
             if modules_mapping:
                 normalised[DOG_MODULES_FIELD] = cast(  # noqa: F405
-                    DogModulesConfig,
-                    dict(modules_mapping),  # noqa: F405
+                    DogModulesConfig,  # noqa: F405
+                    dict(modules_mapping),
                 )
             elif DOG_MODULES_FIELD in normalised:  # noqa: F405
                 normalised.pop(DOG_MODULES_FIELD, None)  # noqa: F405
@@ -948,7 +945,7 @@ class OptionsFlowSharedMixin:
         """Create typed advanced configuration metadata."""
 
         endpoint_raw = user_input.get(
-            CONF_API_ENDPOINT,
+            CONF_API_ENDPOINT,  # noqa: F405
             current.get(CONF_API_ENDPOINT, ''),  # noqa: F405
         )
         endpoint = (

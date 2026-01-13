@@ -1156,7 +1156,7 @@ class PawControlMarkFedButton(PawControlButtonBase):
     """Button to mark dog as fed with optimized meal type detection."""
 
     # OPTIMIZATION: Pre-calculated meal schedule lookup table
-    _meal_schedule = {  # noqa: RUF012
+    _meal_schedule = {
         range(5, 11): "breakfast",
         range(11, 16): "lunch",
         range(16, 22): "dinner",

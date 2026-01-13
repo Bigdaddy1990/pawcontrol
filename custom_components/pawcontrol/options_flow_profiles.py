@@ -25,7 +25,6 @@ from .types import ensure_dog_config_data
 from .types import ensure_dog_modules_config
 from .types import EntityProfileOptionsInput
 from .types import freeze_placeholders
-from .types import JSONLikeMapping
 from .types import JSONMutableMapping
 from .types import JSONValue
 from .types import MutableConfigFlowPlaceholders

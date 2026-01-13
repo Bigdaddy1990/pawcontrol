@@ -122,11 +122,11 @@ class _ConfigEntryError(Exception):
     """Base class for stub config entry exceptions."""
 
 
-class ConfigEntryAuthFailed(_ConfigEntryError):  # noqa: N818
+class ConfigEntryAuthFailed(_ConfigEntryError):
     """Replacement for :class:`homeassistant.exceptions.ConfigEntryAuthFailed`."""
 
 
-class ConfigEntryNotReady(_ConfigEntryError):  # noqa: N818
+class ConfigEntryNotReady(_ConfigEntryError):
     """Replacement for :class:`homeassistant.exceptions.ConfigEntryNotReady`."""
 
 
@@ -1150,7 +1150,7 @@ class DataUpdateCoordinator:
         return cls
 
 
-class CoordinatorUpdateFailed(Exception):  # noqa: N818
+class CoordinatorUpdateFailed(Exception):
     """Error raised when DataUpdateCoordinator refreshes fail."""
 
 

@@ -66,8 +66,8 @@ class SystemSettingsOptionsMixin:
                 mutable_options = cast(JSONMutableMapping, dict(new_options))  # noqa: F821
                 mutable_options['weather_settings'] = cast(JSONValue, weather_settings)  # noqa: F821
                 mutable_options[CONF_WEATHER_ENTITY] = cast(
-                    JSONValue,
-                    weather_settings.get(CONF_WEATHER_ENTITY),  # noqa: F821
+                    JSONValue,  # noqa: F821
+                    weather_settings.get(CONF_WEATHER_ENTITY),
                 )
                 typed_options = self._normalise_options_snapshot(mutable_options)
                 return self.async_create_entry(title='', data=typed_options)
@@ -593,8 +593,8 @@ class SystemSettingsOptionsMixin:
                 )
                 mutable_options = cast(JSONMutableMapping, dict(new_options))  # noqa: F821
                 mutable_options['dashboard_settings'] = cast(
-                    JSONValue,
-                    dashboard_settings,  # noqa: F821
+                    JSONValue,  # noqa: F821
+                    dashboard_settings,
                 )
                 mutable_options[CONF_DASHBOARD_MODE] = dashboard_mode
                 typed_options = self._normalise_options_snapshot(mutable_options)
@@ -699,8 +699,8 @@ class SystemSettingsOptionsMixin:
                 )
                 mutable_options = cast(JSONMutableMapping, dict(new_options))  # noqa: F821
                 mutable_options[ADVANCED_SETTINGS_FIELD] = cast(  # noqa: F821
-                    JSONValue,
-                    advanced_settings,  # noqa: F821
+                    JSONValue,  # noqa: F821
+                    advanced_settings,
                 )
                 for key, value in advanced_settings.items():
                     if isinstance(value, (bool, int, float, str)) or value is None:
@@ -745,8 +745,8 @@ class SystemSettingsOptionsMixin:
             current_advanced.get('experimental_features'), False
         )
         integrations_default = self._coerce_bool(
-            current_advanced.get(CONF_EXTERNAL_INTEGRATIONS),
-            False,  # noqa: F821
+            current_advanced.get(CONF_EXTERNAL_INTEGRATIONS),  # noqa: F821
+            False,
         )
         endpoint_default = (
             current_advanced.get(CONF_API_ENDPOINT)
@@ -802,8 +802,8 @@ class SystemSettingsOptionsMixin:
                 vol.Optional(
                     CONF_EXTERNAL_INTEGRATIONS,  # noqa: F821
                     default=current_values.get(
-                        CONF_EXTERNAL_INTEGRATIONS,
-                        integrations_default,  # noqa: F821
+                        CONF_EXTERNAL_INTEGRATIONS,  # noqa: F821
+                        integrations_default,
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(

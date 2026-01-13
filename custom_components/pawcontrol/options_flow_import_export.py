@@ -3,8 +3,6 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime
-from datetime import UTC
 from pathlib import Path  # noqa: F401
 from typing import cast
 
@@ -12,7 +10,6 @@ import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 
 from .types import OptionsExportDisplayInput
-from .types import OptionsExportPayload
 from .types import OptionsImportExportInput
 from .types import OptionsImportPayloadInput
 
