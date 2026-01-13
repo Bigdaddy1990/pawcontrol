@@ -5,16 +5,14 @@ including mode selections, option choices, and status settings. All select entit
 are designed to meet Home Assistant's Platinum quality ambitions with full type
 annotations, async operations, and robust validation.
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Mapping
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from types import MappingProxyType
-from typing import cast
-from typing import Final
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final, cast
 
 from homeassistant.components.select import SelectEntity
 from homeassistant.core import HomeAssistant
@@ -24,50 +22,52 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
 from .compat import HomeAssistantError
-from .const import ACTIVITY_LEVELS
-from .const import DEFAULT_PERFORMANCE_MODE
-from .const import DOG_SIZES
-from .const import FOOD_TYPES
-from .const import GPS_SOURCES
-from .const import HEALTH_STATUS_OPTIONS
-from .const import MEAL_TYPES
-from .const import MODULE_FEEDING
-from .const import MODULE_GPS
-from .const import MODULE_HEALTH
-from .const import MODULE_WALK
-from .const import MOOD_OPTIONS
-from .const import PERFORMANCE_MODES
+from .const import (
+    ACTIVITY_LEVELS,
+    DEFAULT_PERFORMANCE_MODE,
+    DOG_SIZES,
+    FOOD_TYPES,
+    GPS_SOURCES,
+    HEALTH_STATUS_OPTIONS,
+    MEAL_TYPES,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_WALK,
+    MOOD_OPTIONS,
+    PERFORMANCE_MODES,
+)
 from .coordinator import PawControlCoordinator
 from .diagnostics import normalize_value
 from .entity import PawControlDogEntityBase
-from .notifications import NotificationPriority
-from .notifications import PawControlNotificationManager
+from .notifications import NotificationPriority, PawControlNotificationManager
 from .runtime_data import get_runtime_data
-from .types import coerce_dog_modules_config
-from .types import CoordinatorDogData
-from .types import DOG_ID_FIELD
-from .types import DOG_MODULES_FIELD
-from .types import DOG_NAME_FIELD
-from .types import DOG_SIZE_FIELD
-from .types import DogConfigData
-from .types import DogSizeInfo
-from .types import ensure_json_mapping
-from .types import FoodTypeInfo
-from .types import GPSSourceInfo
-from .types import GPSTrackingConfigInput
-from .types import GroomingTypeInfo
-from .types import JSONMapping
-from .types import JSONMutableMapping
-from .types import JSONValue
-from .types import LocationAccuracyConfig
-from .types import PawControlConfigEntry
-from .types import PawControlRuntimeData
-from .types import PerformanceModeInfo
-from .types import SelectExtraAttributes
-from .types import TrackingModePreset
-from .types import WalkModeInfo
-from .utils import async_call_add_entities
-from .utils import deep_merge_dicts
+from .types import (
+    DOG_ID_FIELD,
+    DOG_MODULES_FIELD,
+    DOG_NAME_FIELD,
+    DOG_SIZE_FIELD,
+    CoordinatorDogData,
+    DogConfigData,
+    DogSizeInfo,
+    FoodTypeInfo,
+    GPSSourceInfo,
+    GPSTrackingConfigInput,
+    GroomingTypeInfo,
+    JSONMapping,
+    JSONMutableMapping,
+    JSONValue,
+    LocationAccuracyConfig,
+    PawControlConfigEntry,
+    PawControlRuntimeData,
+    PerformanceModeInfo,
+    SelectExtraAttributes,
+    TrackingModePreset,
+    WalkModeInfo,
+    coerce_dog_modules_config,
+    ensure_json_mapping,
+)
+from .utils import async_call_add_entities, deep_merge_dicts
 
 if TYPE_CHECKING:
     from .data_manager import PawControlDataManager
@@ -89,46 +89,46 @@ def _normalise_attributes(attrs: Mapping[str, object]) -> SelectExtraAttributes:
 
 # Additional option lists for selects
 WALK_MODES = [
-    'automatic',
-    'manual',
-    'hybrid',
+    "automatic",
+    "manual",
+    "hybrid",
 ]
 
 NOTIFICATION_PRIORITIES = [
-    'low',
-    'normal',
-    'high',
-    'urgent',
+    "low",
+    "normal",
+    "high",
+    "urgent",
 ]
 
 TRACKING_MODES = [
-    'continuous',
-    'interval',
-    'on_demand',
-    'battery_saver',
+    "continuous",
+    "interval",
+    "on_demand",
+    "battery_saver",
 ]
 
 TRACKING_MODE_PRESETS: Final[Mapping[str, TrackingModePreset]] = MappingProxyType(
     {
-        'continuous': {
-            'update_interval_seconds': 15,
-            'auto_start_walk': True,
-            'track_route': True,
+        "continuous": {
+            "update_interval_seconds": 15,
+            "auto_start_walk": True,
+            "track_route": True,
         },
-        'interval': {
-            'update_interval_seconds': 60,
-            'auto_start_walk': True,
-            'track_route': True,
+        "interval": {
+            "update_interval_seconds": 60,
+            "auto_start_walk": True,
+            "track_route": True,
         },
-        'on_demand': {
-            'update_interval_seconds': 300,
-            'auto_start_walk': False,
-            'track_route': False,
+        "on_demand": {
+            "update_interval_seconds": 300,
+            "auto_start_walk": False,
+            "track_route": False,
         },
-        'battery_saver': {
-            'update_interval_seconds': 180,
-            'auto_start_walk': True,
-            'route_smoothing': True,
+        "battery_saver": {
+            "update_interval_seconds": 180,
+            "auto_start_walk": True,
+            "route_smoothing": True,
         },
     }
 )
@@ -136,239 +136,239 @@ TRACKING_MODE_PRESETS: Final[Mapping[str, TrackingModePreset]] = MappingProxyTyp
 LOCATION_ACCURACY_CONFIGS: Final[Mapping[str, LocationAccuracyConfig]] = (
     MappingProxyType(
         {
-            'low': {
-                'gps_accuracy_threshold': 150.0,
-                'min_distance_for_point': 50.0,
+            "low": {
+                "gps_accuracy_threshold": 150.0,
+                "min_distance_for_point": 50.0,
             },
-            'balanced': {
-                'gps_accuracy_threshold': 75.0,
-                'min_distance_for_point': 25.0,
+            "balanced": {
+                "gps_accuracy_threshold": 75.0,
+                "min_distance_for_point": 25.0,
             },
-            'high': {
-                'gps_accuracy_threshold': 30.0,
-                'min_distance_for_point': 10.0,
+            "high": {
+                "gps_accuracy_threshold": 30.0,
+                "min_distance_for_point": 10.0,
             },
-            'best': {
-                'gps_accuracy_threshold': 10.0,
-                'min_distance_for_point': 5.0,
-                'route_smoothing': False,
+            "best": {
+                "gps_accuracy_threshold": 10.0,
+                "min_distance_for_point": 5.0,
+                "route_smoothing": False,
             },
         }
     )
 )
 
 FEEDING_SCHEDULES = [
-    'flexible',
-    'strict',
-    'custom',
+    "flexible",
+    "strict",
+    "custom",
 ]
 
 GROOMING_TYPES = [
-    'bath',
-    'brush',
-    'nails',
-    'teeth',
-    'trim',
-    'full_grooming',
+    "bath",
+    "brush",
+    "nails",
+    "teeth",
+    "trim",
+    "full_grooming",
 ]
 
 WEATHER_CONDITIONS = [
-    'any',
-    'sunny',
-    'cloudy',
-    'light_rain',
-    'no_rain',
-    'warm',
-    'cool',
+    "any",
+    "sunny",
+    "cloudy",
+    "light_rain",
+    "no_rain",
+    "warm",
+    "cool",
 ]
 
 
 DOG_SIZE_DETAILS: Final[Mapping[str, DogSizeInfo]] = MappingProxyType(
     {
-        'toy': {
-            'weight_range': '1-6kg',
-            'exercise_needs': 'low',
-            'food_portion': 'small',
+        "toy": {
+            "weight_range": "1-6kg",
+            "exercise_needs": "low",
+            "food_portion": "small",
         },
-        'small': {
-            'weight_range': '6-12kg',
-            'exercise_needs': 'moderate',
-            'food_portion': 'small',
+        "small": {
+            "weight_range": "6-12kg",
+            "exercise_needs": "moderate",
+            "food_portion": "small",
         },
-        'medium': {
-            'weight_range': '12-27kg',
-            'exercise_needs': 'moderate',
-            'food_portion': 'medium',
+        "medium": {
+            "weight_range": "12-27kg",
+            "exercise_needs": "moderate",
+            "food_portion": "medium",
         },
-        'large': {
-            'weight_range': '27-45kg',
-            'exercise_needs': 'high',
-            'food_portion': 'large',
+        "large": {
+            "weight_range": "27-45kg",
+            "exercise_needs": "high",
+            "food_portion": "large",
         },
-        'giant': {
-            'weight_range': '45-90kg',
-            'exercise_needs': 'high',
-            'food_portion': 'extra_large',
+        "giant": {
+            "weight_range": "45-90kg",
+            "exercise_needs": "high",
+            "food_portion": "extra_large",
         },
     }
 )
 
 PERFORMANCE_MODE_DETAILS: Final[Mapping[str, PerformanceModeInfo]] = MappingProxyType(
     {
-        'minimal': {
-            'description': 'Minimal resource usage, longer update intervals',
-            'update_interval': '5 minutes',
-            'battery_impact': 'minimal',
+        "minimal": {
+            "description": "Minimal resource usage, longer update intervals",
+            "update_interval": "5 minutes",
+            "battery_impact": "minimal",
         },
-        'balanced': {
-            'description': 'Balanced performance and resource usage',
-            'update_interval': '2 minutes',
-            'battery_impact': 'moderate',
+        "balanced": {
+            "description": "Balanced performance and resource usage",
+            "update_interval": "2 minutes",
+            "battery_impact": "moderate",
         },
-        'full': {
-            'description': 'Maximum performance, frequent updates',
-            'update_interval': '30 seconds',
-            'battery_impact': 'high',
+        "full": {
+            "description": "Maximum performance, frequent updates",
+            "update_interval": "30 seconds",
+            "battery_impact": "high",
         },
     }
 )
 
 WALK_MODE_DETAILS: Final[Mapping[str, WalkModeInfo]] = MappingProxyType(
     {
-        'automatic': {
-            'description': 'Automatically detect walk start/end',
-            'gps_required': True,
-            'accuracy': 'high',
+        "automatic": {
+            "description": "Automatically detect walk start/end",
+            "gps_required": True,
+            "accuracy": "high",
         },
-        'manual': {
-            'description': 'Manually start and end walks',
-            'gps_required': False,
-            'accuracy': 'user-dependent',
+        "manual": {
+            "description": "Manually start and end walks",
+            "gps_required": False,
+            "accuracy": "user-dependent",
         },
-        'hybrid': {
-            'description': 'Automatic detection with manual override',
-            'gps_required': True,
-            'accuracy': 'very high',
+        "hybrid": {
+            "description": "Automatic detection with manual override",
+            "gps_required": True,
+            "accuracy": "very high",
         },
     }
 )
 
 FOOD_TYPE_DETAILS: Final[Mapping[str, FoodTypeInfo]] = MappingProxyType(
     {
-        'dry_food': {
-            'calories_per_gram': 3.5,
-            'moisture_content': '10%',
-            'storage': 'dry place',
-            'shelf_life': '12-18 months',
+        "dry_food": {
+            "calories_per_gram": 3.5,
+            "moisture_content": "10%",
+            "storage": "dry place",
+            "shelf_life": "12-18 months",
         },
-        'wet_food': {
-            'calories_per_gram': 1.2,
-            'moisture_content': '75%',
-            'storage': 'refrigerate after opening',
-            'shelf_life': '2-3 days opened',
+        "wet_food": {
+            "calories_per_gram": 1.2,
+            "moisture_content": "75%",
+            "storage": "refrigerate after opening",
+            "shelf_life": "2-3 days opened",
         },
-        'barf': {
-            'calories_per_gram': 2.0,
-            'moisture_content': '70%',
-            'storage': 'frozen until use',
-            'shelf_life': '3-6 months frozen',
+        "barf": {
+            "calories_per_gram": 2.0,
+            "moisture_content": "70%",
+            "storage": "frozen until use",
+            "shelf_life": "3-6 months frozen",
         },
-        'home_cooked': {
-            'calories_per_gram': 1.8,
-            'moisture_content': '65%',
-            'storage': 'refrigerate',
-            'shelf_life': '2-3 days',
+        "home_cooked": {
+            "calories_per_gram": 1.8,
+            "moisture_content": "65%",
+            "storage": "refrigerate",
+            "shelf_life": "2-3 days",
         },
-        'mixed': {
-            'calories_per_gram': 2.5,
-            'moisture_content': '40%',
-            'storage': 'varies',
-            'shelf_life': 'varies',
+        "mixed": {
+            "calories_per_gram": 2.5,
+            "moisture_content": "40%",
+            "storage": "varies",
+            "shelf_life": "varies",
         },
     }
 )
 
 GPS_SOURCE_DETAILS: Final[Mapping[str, GPSSourceInfo]] = MappingProxyType(
     {
-        'manual': {
-            'accuracy': 'user-dependent',
-            'update_frequency': 'manual',
-            'battery_usage': 'none',
+        "manual": {
+            "accuracy": "user-dependent",
+            "update_frequency": "manual",
+            "battery_usage": "none",
         },
-        'device_tracker': {
-            'accuracy': 'high',
-            'update_frequency': 'automatic',
-            'battery_usage': 'low',
+        "device_tracker": {
+            "accuracy": "high",
+            "update_frequency": "automatic",
+            "battery_usage": "low",
         },
-        'person_entity': {
-            'accuracy': 'device-dependent',
-            'update_frequency': 'automatic',
-            'battery_usage': 'low',
+        "person_entity": {
+            "accuracy": "device-dependent",
+            "update_frequency": "automatic",
+            "battery_usage": "low",
         },
-        'gps_logger': {
-            'accuracy': 'medium',
-            'update_frequency': '15 minutes',
-            'battery_usage': 'medium',
+        "gps_logger": {
+            "accuracy": "medium",
+            "update_frequency": "15 minutes",
+            "battery_usage": "medium",
         },
-        'ble_beacon': {
-            'accuracy': 'near proximity',
-            'update_frequency': 'on demand',
-            'battery_usage': 'low',
+        "ble_beacon": {
+            "accuracy": "near proximity",
+            "update_frequency": "on demand",
+            "battery_usage": "low",
         },
-        'smartphone': {
-            'accuracy': 'high',
-            'update_frequency': 'real-time',
-            'battery_usage': 'medium',
+        "smartphone": {
+            "accuracy": "high",
+            "update_frequency": "real-time",
+            "battery_usage": "medium",
         },
-        'tractive': {
-            'accuracy': 'very high',
-            'update_frequency': 'real-time',
-            'battery_usage': 'device-dependent',
+        "tractive": {
+            "accuracy": "very high",
+            "update_frequency": "real-time",
+            "battery_usage": "device-dependent",
         },
-        'webhook': {
-            'accuracy': 'source-dependent',
-            'update_frequency': 'real-time',
-            'battery_usage': 'none',
+        "webhook": {
+            "accuracy": "source-dependent",
+            "update_frequency": "real-time",
+            "battery_usage": "none",
         },
-        'mqtt': {
-            'accuracy': 'source-dependent',
-            'update_frequency': 'real-time',
-            'battery_usage': 'none',
+        "mqtt": {
+            "accuracy": "source-dependent",
+            "update_frequency": "real-time",
+            "battery_usage": "none",
         },
     }
 )
 
 GROOMING_TYPE_DETAILS: Final[Mapping[str, GroomingTypeInfo]] = MappingProxyType(
     {
-        'bath': {
-            'frequency': '4-6 weeks',
-            'duration': '30-60 minutes',
-            'difficulty': 'medium',
+        "bath": {
+            "frequency": "4-6 weeks",
+            "duration": "30-60 minutes",
+            "difficulty": "medium",
         },
-        'brush': {
-            'frequency': 'daily',
-            'duration': '5-15 minutes',
-            'difficulty': 'easy',
+        "brush": {
+            "frequency": "daily",
+            "duration": "5-15 minutes",
+            "difficulty": "easy",
         },
-        'nails': {
-            'frequency': '2-4 weeks',
-            'duration': '10-20 minutes',
-            'difficulty': 'medium',
+        "nails": {
+            "frequency": "2-4 weeks",
+            "duration": "10-20 minutes",
+            "difficulty": "medium",
         },
-        'teeth': {
-            'frequency': 'daily',
-            'duration': '2-5 minutes',
-            'difficulty': 'easy',
+        "teeth": {
+            "frequency": "daily",
+            "duration": "2-5 minutes",
+            "difficulty": "easy",
         },
-        'trim': {
-            'frequency': '6-8 weeks',
-            'duration': '60-90 minutes',
-            'difficulty': 'hard',
+        "trim": {
+            "frequency": "6-8 weeks",
+            "duration": "60-90 minutes",
+            "difficulty": "hard",
         },
-        'full_grooming': {
-            'frequency': '6-8 weeks',
-            'duration': '120-180 minutes',
-            'difficulty': 'hard',
+        "full_grooming": {
+            "frequency": "6-8 weeks",
+            "duration": "120-180 minutes",
+            "difficulty": "hard",
         },
     }
 )
@@ -405,7 +405,7 @@ async def _async_add_entities_in_batches(
     total_entities = len(entities)
 
     _LOGGER.debug(
-        'Adding %d select entities in batches of %d to prevent Registry overload',
+        "Adding %d select entities in batches of %d to prevent Registry overload",
         total_entities,
         batch_size,
     )
@@ -417,7 +417,7 @@ async def _async_add_entities_in_batches(
         total_batches = (total_entities + batch_size - 1) // batch_size
 
         _LOGGER.debug(
-            'Processing select batch %d/%d with %d entities',
+            "Processing select batch %d/%d with %d entities",
             batch_num,
             total_batches,
             len(batch),
@@ -451,7 +451,7 @@ async def async_setup_entry(
     """
     runtime_data = get_runtime_data(hass, entry)
     if runtime_data is None:
-        _LOGGER.error('Runtime data missing for entry %s', entry.entry_id)
+        _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
         return
 
     coordinator: PawControlCoordinator = runtime_data.coordinator
@@ -465,7 +465,7 @@ async def async_setup_entry(
         dog_name = dog[DOG_NAME_FIELD]
         modules = coerce_dog_modules_config(dog.get(DOG_MODULES_FIELD))
 
-        _LOGGER.debug('Creating select entities for dog: %s (%s)', dog_name, dog_id)
+        _LOGGER.debug("Creating select entities for dog: %s (%s)", dog_name, dog_id)
 
         # Base selects - always created for every dog
         entities.extend(_create_base_selects(coordinator, dog_id, dog_name, dog))
@@ -488,7 +488,7 @@ async def async_setup_entry(
     await _async_add_entities_in_batches(async_add_entities, entities, batch_size=10)
 
     _LOGGER.info(
-        'Created %d select entities for %d dogs using batched approach',
+        "Created %d select entities for %d dogs using batched approach",
         len(entities),
         len(dogs),
     )
@@ -645,9 +645,9 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
 
         # Link entity to PawControl device entry for the dog
         self.update_device_metadata(
-            model='Smart Dog Monitoring',
-            sw_version='1.0.0',
-            configuration_url='https://github.com/BigDaddy1990/pawcontrol',
+            model="Smart Dog Monitoring",
+            sw_version="1.0.0",
+            configuration_url="https://github.com/BigDaddy1990/pawcontrol",
         )
 
     def _get_runtime_data(self) -> PawControlRuntimeData | None:
@@ -672,21 +672,21 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
 
         runtime_data = self._get_runtime_data()
         if runtime_data is not None:
-            manager_container = getattr(runtime_data, 'runtime_managers', None)
+            manager_container = getattr(runtime_data, "runtime_managers", None)
             if manager_container is not None:
-                return getattr(manager_container, 'data_manager', None)
+                return getattr(manager_container, "data_manager", None)
 
         entry_data = self._get_domain_entry_data()
-        managers = entry_data.get('runtime_managers')
+        managers = entry_data.get("runtime_managers")
         if managers is None:
             return None
 
-        manager_obj = getattr(managers, 'data_manager', None)
+        manager_obj = getattr(managers, "data_manager", None)
         if manager_obj is not None:
             return cast(PawControlDataManager | None, manager_obj)
 
         if isinstance(managers, Mapping):
-            candidate = managers.get('data_manager')
+            candidate = managers.get("data_manager")
             if candidate is not None:
                 return cast(PawControlDataManager | None, candidate)
 
@@ -699,9 +699,9 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
         if dog_data is None:
             return cast(JSONMutableMapping, {})
 
-        gps_data = dog_data.get('gps')
+        gps_data = dog_data.get("gps")
         if isinstance(gps_data, Mapping):
-            config = gps_data.get('config')
+            config = gps_data.get("config")
             if isinstance(config, Mapping):
                 return cast(JSONMutableMapping, dict(config))
 
@@ -722,7 +722,7 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
                 )
             except Exception as err:  # pragma: no cover - defensive log
                 _LOGGER.warning(
-                    'Failed to persist %s updates for %s: %s',
+                    "Failed to persist %s updates for %s: %s",
                     module,
                     self._dog_name,
                     err,
@@ -763,15 +763,15 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
         if config_updates:
             current_config = self._get_current_gps_config()
             merged_config = _merge_json_mappings(current_config, config_updates)
-            gps_updates.setdefault('config', merged_config)
+            gps_updates.setdefault("config", merged_config)
 
         if gps_updates:
-            await self._async_update_module_settings('gps', gps_updates)
+            await self._async_update_module_settings("gps", gps_updates)
 
         if merged_config:
             runtime_data = self._get_runtime_data()
             gps_manager = (
-                getattr(runtime_data, 'gps_geofence_manager', None)
+                getattr(runtime_data, "gps_geofence_manager", None)
                 if runtime_data
                 else None
             )
@@ -783,7 +783,7 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
                     )
                 except Exception as err:  # pragma: no cover - defensive log
                     _LOGGER.warning(
-                        'Failed to apply GPS configuration for %s: %s',
+                        "Failed to apply GPS configuration for %s: %s",
                         self._dog_name,
                         err,
                     )
@@ -800,7 +800,7 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
         if last_state is not None and last_state.state in self.options:
             self._current_option = last_state.state
             _LOGGER.debug(
-                'Restored select option for %s %s: %s',
+                "Restored select option for %s %s: %s",
                 self._dog_name,
                 self._select_type,
                 self._current_option,
@@ -828,9 +828,9 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
             SelectExtraAttributes,
             self._build_base_state_attributes(
                 {
-                    'select_type': self._select_type,
-                    'available_options': list(self.options),
-                    'last_changed': dt_util.utcnow().isoformat(),
+                    "select_type": self._select_type,
+                    "available_options": list(self.options),
+                    "last_changed": dt_util.utcnow().isoformat(),
                 }
             ),
         )
@@ -866,7 +866,7 @@ class PawControlSelectBase(PawControlDogEntityBase, SelectEntity, RestoreEntity)
 
         except Exception as err:
             _LOGGER.error(
-                'Failed to set %s for %s: %s', self._select_type, self._dog_name, err
+                "Failed to set %s for %s: %s", self._select_type, self._dog_name, err
             )
             raise HomeAssistantError(f"Failed to set {self._select_type}") from err
 
@@ -926,15 +926,15 @@ class PawControlDogSizeSelect(PawControlSelectBase):
         dog_config: DogConfigData,
     ) -> None:
         """Initialize the dog size select."""
-        current_size = dog_config.get(DOG_SIZE_FIELD, 'medium')
+        current_size = dog_config.get(DOG_SIZE_FIELD, "medium")
 
         super().__init__(
             coordinator,
             dog_id,
             dog_name,
-            'size',
+            "size",
             options=list(DOG_SIZES),
-            icon='mdi:dog',
+            icon="mdi:dog",
             entity_category=EntityCategory.CONFIG,
             initial_option=current_size,
         )
@@ -985,9 +985,9 @@ class PawControlPerformanceModeSelect(PawControlSelectBase):
             coordinator,
             dog_id,
             dog_name,
-            'performance_mode',
+            "performance_mode",
             options=list(PERFORMANCE_MODES),
-            icon='mdi:speedometer',
+            icon="mdi:speedometer",
             entity_category=EntityCategory.CONFIG,
             initial_option=DEFAULT_PERFORMANCE_MODE,
         )
@@ -1037,10 +1037,10 @@ class PawControlNotificationPrioritySelect(PawControlSelectBase):
             coordinator,
             dog_id,
             dog_name,
-            'notification_priority',
+            "notification_priority",
             options=NOTIFICATION_PRIORITIES,
-            icon='mdi:bell-ring',
-            initial_option='normal',
+            icon="mdi:bell-ring",
+            initial_option="normal",
         )
 
     async def _async_set_select_option(self, option: str) -> None:
@@ -1060,11 +1060,11 @@ class PawControlNotificationPrioritySelect(PawControlSelectBase):
 
         if notification_manager is None:
             entry_data = self._get_domain_entry_data()
-            fallback = entry_data.get('notification_manager')
+            fallback = entry_data.get("notification_manager")
             if isinstance(fallback, PawControlNotificationManager):
                 notification_manager = fallback
             else:
-                legacy = entry_data.get('notifications')
+                legacy = entry_data.get("notifications")
                 if isinstance(legacy, PawControlNotificationManager):
                     notification_manager = legacy
 
@@ -1074,17 +1074,17 @@ class PawControlNotificationPrioritySelect(PawControlSelectBase):
             )
         else:
             _LOGGER.debug(
-                'Notification manager not available when updating priority for %s',
+                "Notification manager not available when updating priority for %s",
                 self._dog_name,
             )
 
         timestamp = dt_util.utcnow().isoformat()
         updates: JSONMutableMapping = {
-            'default_priority': option,
-            'priority_last_updated': timestamp,
-            'priority_numeric': priority.value_numeric,
+            "default_priority": option,
+            "priority_last_updated": timestamp,
+            "priority_numeric": priority.value_numeric,
         }
-        await self._async_update_module_settings('notifications', updates)
+        await self._async_update_module_settings("notifications", updates)
 
 
 # Feeding selects
@@ -1099,10 +1099,10 @@ class PawControlFoodTypeSelect(PawControlSelectBase):
             coordinator,
             dog_id,
             dog_name,
-            'food_type',
+            "food_type",
             options=list(FOOD_TYPES),
-            icon='mdi:food',
-            initial_option='dry_food',
+            icon="mdi:food",
+            initial_option="dry_food",
         )
 
     async def _async_set_select_option(self, option: str) -> None:
@@ -1150,10 +1150,10 @@ class PawControlFeedingScheduleSelect(PawControlSelectBase):
             coordinator,
             dog_id,
             dog_name,
-            'feeding_schedule',
+            "feeding_schedule",
             options=FEEDING_SCHEDULES,
-            icon='mdi:calendar-clock',
-            initial_option='flexible',
+            icon="mdi:calendar-clock",
+            initial_option="flexible",
         )
 
     async def _async_set_select_option(self, option: str) -> None:
@@ -1173,10 +1173,10 @@ class PawControlDefaultMealTypeSelect(PawControlSelectBase):
             coordinator,
             dog_id,
             dog_name,
-            'default_meal_type',
+            "default_meal_type",
             options=list(MEAL_TYPES),
-            icon='mdi:food-drumstick',
-            initial_option='dinner',
+            icon="mdi:food-drumstick",
+            initial_option="dinner",
         )
 
     async def _async_set_select_option(self, option: str) -> None:
@@ -1196,10 +1196,10 @@ class PawControlFeedingModeSelect(PawControlSelectBase):
             coordinator,
             dog_id,
             dog_name,
-            'feeding_mode',
-            options=['manual', 'scheduled', 'automatic'],
-            icon='mdi:cog',
-            initial_option='manual',
+            "feeding_mode",
+            options=["manual", "scheduled", "automatic"],
+            icon="mdi:cog",
+            initial_option="manual",
         )
 
     async def _async_set_select_option(self, option: str) -> None:
@@ -1220,10 +1220,10 @@ class PawControlWalkModeSelect(PawControlSelectBase):
             coordinator,
             dog_id,
             dog_name,
-            'walk_mode',
+            "walk_mode",
             options=WALK_MODES,
-            icon='mdi:walk',
-            initial_option='automatic',
+            icon="mdi:walk",
+            initial_option="automatic",
         )
 
     async def _async_set_select_option(self, option: str) -> None:
@@ -1271,10 +1271,10 @@ class PawControlWeatherPreferenceSelect(PawControlSelectBase):
             coordinator,
             dog_id,
             dog_name,
-            'weather_preference',
+            "weather_preference",
             options=WEATHER_CONDITIONS,
-            icon='mdi:weather-partly-cloudy',
-            initial_option='any',
+            icon="mdi:weather-partly-cloudy",
+            initial_option="any",
         )
 
     async def _async_set_select_option(self, option: str) -> None:
@@ -1294,10 +1294,10 @@ class PawControlWalkIntensitySelect(PawControlSelectBase):
             coordinator,
             dog_id,
             dog_name,
-            'walk_intensity',
-            options=['relaxed', 'moderate', 'vigorous', 'mixed'],
-            icon='mdi:run',
-            initial_option='moderate',
+            "walk_intensity",
+            options=["relaxed", "moderate", "vigorous", "mixed"],
+            icon="mdi:run",
+            initial_option="moderate",
         )
 
     async def _async_set_select_option(self, option: str) -> None:
@@ -1318,11 +1318,11 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
             coordinator,
             dog_id,
             dog_name,
-            'gps_source',
+            "gps_source",
             options=list(GPS_SOURCES),
-            icon='mdi:crosshairs-gps',
+            icon="mdi:crosshairs-gps",
             entity_category=EntityCategory.CONFIG,
-            initial_option='device_tracker',
+            initial_option="device_tracker",
         )
 
     async def _async_set_select_option(self, option: str) -> None:
@@ -1331,8 +1331,8 @@ class PawControlGPSSourceSelect(PawControlSelectBase):
         timestamp = dt_util.utcnow().isoformat()
         await self._async_update_gps_settings(
             state_updates={
-                'source': option,
-                'source_updated_at': timestamp,
+                "source": option,
+                "source_updated_at": timestamp,
             }
         )
 
@@ -1376,10 +1376,10 @@ class PawControlTrackingModeSelect(PawControlSelectBase):
             coordinator,
             dog_id,
             dog_name,
-            'tracking_mode',
+            "tracking_mode",
             options=list(TRACKING_MODES),
-            icon='mdi:map-marker',
-            initial_option='interval',
+            icon="mdi:map-marker",
+            initial_option="interval",
         )
 
     async def _async_set_select_option(self, option: str) -> None:
@@ -1392,8 +1392,8 @@ class PawControlTrackingModeSelect(PawControlSelectBase):
         )
         await self._async_update_gps_settings(
             state_updates={
-                'tracking_mode': option,
-                'tracking_mode_updated_at': timestamp,
+                "tracking_mode": option,
+                "tracking_mode_updated_at": timestamp,
             },
             config_updates=config_updates,
         )
@@ -1410,11 +1410,11 @@ class PawControlLocationAccuracySelect(PawControlSelectBase):
             coordinator,
             dog_id,
             dog_name,
-            'location_accuracy',
-            options=['low', 'balanced', 'high', 'best'],
-            icon='mdi:crosshairs',
+            "location_accuracy",
+            options=["low", "balanced", "high", "best"],
+            icon="mdi:crosshairs",
             entity_category=EntityCategory.CONFIG,
-            initial_option='balanced',
+            initial_option="balanced",
         )
 
     async def _async_set_select_option(self, option: str) -> None:
@@ -1429,8 +1429,8 @@ class PawControlLocationAccuracySelect(PawControlSelectBase):
         )
         await self._async_update_gps_settings(
             state_updates={
-                'location_accuracy': option,
-                'location_accuracy_updated_at': timestamp,
+                "location_accuracy": option,
+                "location_accuracy_updated_at": timestamp,
             },
             config_updates=config_updates,
         )
@@ -1448,18 +1448,18 @@ class PawControlHealthStatusSelect(PawControlSelectBase):
             coordinator,
             dog_id,
             dog_name,
-            'health_status',
+            "health_status",
             options=list(HEALTH_STATUS_OPTIONS),
-            icon='mdi:heart-pulse',
-            initial_option='good',
+            icon="mdi:heart-pulse",
+            initial_option="good",
         )
 
     @property
     def current_option(self) -> str | None:
         """Return the current health status from data."""
-        health_data = self._get_module_data('health')
+        health_data = self._get_module_data("health")
         if health_data:
-            value = health_data.get('health_status')
+            value = health_data.get("health_status")
             if isinstance(value, str):
                 return value
 
@@ -1482,18 +1482,18 @@ class PawControlActivityLevelSelect(PawControlSelectBase):
             coordinator,
             dog_id,
             dog_name,
-            'activity_level',
+            "activity_level",
             options=list(ACTIVITY_LEVELS),
-            icon='mdi:run',
-            initial_option='normal',
+            icon="mdi:run",
+            initial_option="normal",
         )
 
     @property
     def current_option(self) -> str | None:
         """Return the current activity level from data."""
-        health_data = self._get_module_data('health')
+        health_data = self._get_module_data("health")
         if health_data:
-            value = health_data.get('activity_level')
+            value = health_data.get("activity_level")
             if isinstance(value, str):
                 return value
 
@@ -1516,10 +1516,10 @@ class PawControlMoodSelect(PawControlSelectBase):
             coordinator,
             dog_id,
             dog_name,
-            'mood',
+            "mood",
             options=list(MOOD_OPTIONS),
-            icon='mdi:emoticon',
-            initial_option='happy',
+            icon="mdi:emoticon",
+            initial_option="happy",
         )
 
     async def _async_set_select_option(self, option: str) -> None:
@@ -1539,10 +1539,10 @@ class PawControlGroomingTypeSelect(PawControlSelectBase):
             coordinator,
             dog_id,
             dog_name,
-            'grooming_type',
+            "grooming_type",
             options=GROOMING_TYPES,
-            icon='mdi:content-cut',
-            initial_option='brush',
+            icon="mdi:content-cut",
+            initial_option="brush",
         )
 
     async def _async_set_select_option(self, option: str) -> None:

@@ -1,25 +1,27 @@
 """Feeding configuration steps for Paw Control options flow."""
+
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import cast
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 
 from .exceptions import FlowValidationError
 from .selector_shim import selector
-from .types import DOG_ID_FIELD
-from .types import DOG_OPTIONS_FIELD
-from .types import DogConfigData
-from .types import DogOptionsMap
-from .types import ensure_dog_options_entry
-from .types import FeedingOptions
-from .types import JSONLikeMapping
-from .types import JSONValue
-from .types import OptionsDogSelectionInput
-from .types import OptionsFeedingSettingsInput
+from .types import (
+    DOG_ID_FIELD,
+    DOG_OPTIONS_FIELD,
+    DogConfigData,
+    DogOptionsMap,
+    FeedingOptions,
+    JSONLikeMapping,
+    JSONValue,
+    OptionsDogSelectionInput,
+    OptionsFeedingSettingsInput,
+    ensure_dog_options_entry,
+)
 
 if TYPE_CHECKING:
 
@@ -69,11 +71,11 @@ class FeedingOptionsMixin(FeedingOptionsHost):
 
         dog_options = self._current_dog_options()
         entry = dog_options.get(dog_id, {})
-        raw = entry.get('feeding_settings')
+        raw = entry.get("feeding_settings")
         if isinstance(raw, Mapping):
             return cast(FeedingOptions, dict(raw))
 
-        legacy = self._current_options().get('feeding_settings', {})
+        legacy = self._current_options().get("feeding_settings", {})
         if isinstance(legacy, Mapping):
             return cast(FeedingOptions, dict(legacy))
 
@@ -88,7 +90,7 @@ class FeedingOptionsMixin(FeedingOptionsHost):
             return await self.async_step_init()
 
         if user_input is not None:
-            selected_dog_id = user_input.get('dog_id')
+            selected_dog_id = user_input.get("dog_id")
             self._select_dog_by_id(
                 selected_dog_id if isinstance(selected_dog_id, str) else None
             )
@@ -97,7 +99,7 @@ class FeedingOptionsMixin(FeedingOptionsHost):
             return await self.async_step_init()
 
         return self.async_show_form(
-            step_id='select_dog_for_feeding_settings',
+            step_id="select_dog_for_feeding_settings",
             data_schema=self._build_dog_selector_schema(),
         )
 
@@ -123,29 +125,29 @@ class FeedingOptionsMixin(FeedingOptionsHost):
                     cast(JSONLikeMapping, dict(dog_options.get(dog_id, {}))),
                     dog_id=dog_id,
                 )
-                entry['feeding_settings'] = self._build_feeding_settings(
+                entry["feeding_settings"] = self._build_feeding_settings(
                     user_input, current_feeding
                 )
                 dog_options[dog_id] = entry
                 new_options[DOG_OPTIONS_FIELD] = dog_options
 
                 typed_options = self._normalise_options_snapshot(new_options)
-                return self.async_create_entry(title='', data=typed_options)
+                return self.async_create_entry(title="", data=typed_options)
             except FlowValidationError as err:
                 return self.async_show_form(
-                    step_id='feeding_settings',
+                    step_id="feeding_settings",
                     data_schema=self._get_feeding_settings_schema(dog_id, user_input),
                     errors=err.as_form_errors(),
                 )
             except Exception:
                 return self.async_show_form(
-                    step_id='feeding_settings',
+                    step_id="feeding_settings",
                     data_schema=self._get_feeding_settings_schema(dog_id, user_input),
-                    errors={'base': 'update_failed'},
+                    errors={"base": "update_failed"},
                 )
 
         return self.async_show_form(
-            step_id='feeding_settings',
+            step_id="feeding_settings",
             data_schema=self._get_feeding_settings_schema(dog_id),
         )
 
@@ -160,10 +162,10 @@ class FeedingOptionsMixin(FeedingOptionsHost):
         return vol.Schema(
             {
                 vol.Optional(
-                    'meals_per_day',
+                    "meals_per_day",
                     default=current_values.get(
-                        'meals_per_day',
-                        current_feeding.get('default_meals_per_day', 2),
+                        "meals_per_day",
+                        current_feeding.get("default_meals_per_day", 2),
                     ),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
@@ -171,31 +173,31 @@ class FeedingOptionsMixin(FeedingOptionsHost):
                     )
                 ),
                 vol.Optional(
-                    'feeding_reminders',
+                    "feeding_reminders",
                     default=current_values.get(
-                        'feeding_reminders',
-                        current_feeding.get('feeding_reminders', True),
+                        "feeding_reminders",
+                        current_feeding.get("feeding_reminders", True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'portion_tracking',
+                    "portion_tracking",
                     default=current_values.get(
-                        'portion_tracking',
-                        current_feeding.get('portion_tracking', True),
+                        "portion_tracking",
+                        current_feeding.get("portion_tracking", True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'calorie_tracking',
+                    "calorie_tracking",
                     default=current_values.get(
-                        'calorie_tracking',
-                        current_feeding.get('calorie_tracking', True),
+                        "calorie_tracking",
+                        current_feeding.get("calorie_tracking", True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'auto_schedule',
+                    "auto_schedule",
                     default=current_values.get(
-                        'auto_schedule',
-                        current_feeding.get('auto_schedule', False),
+                        "auto_schedule",
+                        current_feeding.get("auto_schedule", False),
                     ),
                 ): selector.BooleanSelector(),
             }
@@ -211,28 +213,28 @@ class FeedingOptionsMixin(FeedingOptionsHost):
         return cast(
             FeedingOptions,
             {
-                'default_meals_per_day': int(
+                "default_meals_per_day": int(
                     user_input.get(
-                        'meals_per_day', current.get('default_meals_per_day', 2)
+                        "meals_per_day", current.get("default_meals_per_day", 2)
                     )
                 ),
-                'feeding_reminders': bool(
+                "feeding_reminders": bool(
                     user_input.get(
-                        'feeding_reminders', current.get('feeding_reminders', True)
+                        "feeding_reminders", current.get("feeding_reminders", True)
                     )
                 ),
-                'portion_tracking': bool(
+                "portion_tracking": bool(
                     user_input.get(
-                        'portion_tracking', current.get('portion_tracking', True)
+                        "portion_tracking", current.get("portion_tracking", True)
                     )
                 ),
-                'calorie_tracking': bool(
+                "calorie_tracking": bool(
                     user_input.get(
-                        'calorie_tracking', current.get('calorie_tracking', True)
+                        "calorie_tracking", current.get("calorie_tracking", True)
                     )
                 ),
-                'auto_schedule': bool(
-                    user_input.get('auto_schedule', current.get('auto_schedule', False))
+                "auto_schedule": bool(
+                    user_input.get("auto_schedule", current.get("auto_schedule", False))
                 ),
             },
         )

@@ -6,36 +6,27 @@ manages. The implementation targets Home Assistant's Platinum quality scale,
 keeps all runtime interactions asynchronous, and leans on typed payloads so the
 strict mypy gate can reason about gathered devices.
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
-from datetime import datetime
-from datetime import timedelta
-from typing import Any
-from typing import cast
-from typing import Final
-from typing import Literal
-from typing import TypedDict
+from datetime import datetime, timedelta
+from typing import Any, Final, Literal, TypedDict, cast
 
-from homeassistant.core import callback
-from homeassistant.core import CALLBACK_TYPE
-from homeassistant.core import HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from homeassistant.helpers.device_registry import DeviceEntry
-from homeassistant.helpers.device_registry import DeviceRegistryEvent
+from homeassistant.helpers.device_registry import DeviceEntry, DeviceRegistryEvent
 from homeassistant.helpers.entity_registry import EntityRegistryEvent
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util.dt import utcnow
 
 from . import compat
-from .compat import bind_exception_alias
-from .compat import ensure_homeassistant_exception_symbols
-from .const import DEVICE_CATEGORIES
-from .const import DOMAIN
+from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
+from .const import DEVICE_CATEGORIES, DOMAIN
 from .exceptions import PawControlError
 
 _LOGGER = logging.getLogger(__name__)
@@ -45,18 +36,18 @@ DISCOVERY_SCAN_INTERVAL: Final[timedelta] = timedelta(minutes=5)
 DISCOVERY_TIMEOUT: Final[float] = 10.0
 
 type DiscoveryCategory = Literal[
-    'gps_tracker',
-    'smart_feeder',
-    'activity_monitor',
-    'health_device',
-    'smart_collar',
-    'treat_dispenser',
-    'water_fountain',
-    'camera',
-    'door_sensor',
+    "gps_tracker",
+    "smart_feeder",
+    "activity_monitor",
+    "health_device",
+    "smart_collar",
+    "treat_dispenser",
+    "water_fountain",
+    "camera",
+    "door_sensor",
 ]
 
-type DiscoveryConnectionType = Literal['bluetooth', 'network', 'usb', 'unknown']
+type DiscoveryConnectionType = Literal["bluetooth", "network", "usb", "unknown"]
 
 type DiscoveryCapabilityList = list[str]
 
@@ -99,39 +90,39 @@ class LegacyDiscoveryEntry(TypedDict):
 
 
 CATEGORY_KEYWORDS: Final[dict[DiscoveryCategory, tuple[str, ...]]] = {
-    'gps_tracker': ('tractive', 'whistle', 'fi', 'link', 'pawtrack'),
-    'smart_feeder': ('petnet', 'sureflap', 'pawcontrol feeder', 'smartfeeder'),
-    'activity_monitor': ('fitbark', 'whistle', 'fi', 'activity'),
-    'health_device': ('whistle', 'fitbark', 'petpuls', 'vital'),
-    'smart_collar': ('collar', 'halo', 'wagz', 'pawcontrol collar'),
-    'treat_dispenser': ('furbo', 'petcube', 'treat', 'petzi'),
-    'water_fountain': ('fountain', 'petlibro', 'drinkwell', 'hydration'),
-    'camera': ('camera', 'pawcam', 'pawcontrol cam', 'petcam'),
-    'door_sensor': ('door', 'gate', 'entry', 'petdoor'),
+    "gps_tracker": ("tractive", "whistle", "fi", "link", "pawtrack"),
+    "smart_feeder": ("petnet", "sureflap", "pawcontrol feeder", "smartfeeder"),
+    "activity_monitor": ("fitbark", "whistle", "fi", "activity"),
+    "health_device": ("whistle", "fitbark", "petpuls", "vital"),
+    "smart_collar": ("collar", "halo", "wagz", "pawcontrol collar"),
+    "treat_dispenser": ("furbo", "petcube", "treat", "petzi"),
+    "water_fountain": ("fountain", "petlibro", "drinkwell", "hydration"),
+    "camera": ("camera", "pawcam", "pawcontrol cam", "petcam"),
+    "door_sensor": ("door", "gate", "entry", "petdoor"),
 }
 
 CATEGORY_CAPABILITIES: Final[dict[DiscoveryCategory, DiscoveryCapabilityList]] = {
-    'gps_tracker': ['gps', 'activity_tracking', 'geofence'],
-    'smart_feeder': ['portion_control', 'scheduling', 'monitoring'],
-    'activity_monitor': ['activity_tracking', 'sleep_tracking'],
-    'health_device': ['health_monitoring', 'weight_tracking'],
-    'smart_collar': ['gps', 'activity_tracking', 'health_monitoring'],
-    'treat_dispenser': ['remote_treats', 'camera_stream', 'two_way_audio'],
-    'water_fountain': ['water_monitoring', 'filter_tracking', 'flow_control'],
-    'camera': ['camera_stream', 'two_way_audio'],
-    'door_sensor': ['door_state', 'entry_logging'],
+    "gps_tracker": ["gps", "activity_tracking", "geofence"],
+    "smart_feeder": ["portion_control", "scheduling", "monitoring"],
+    "activity_monitor": ["activity_tracking", "sleep_tracking"],
+    "health_device": ["health_monitoring", "weight_tracking"],
+    "smart_collar": ["gps", "activity_tracking", "health_monitoring"],
+    "treat_dispenser": ["remote_treats", "camera_stream", "two_way_audio"],
+    "water_fountain": ["water_monitoring", "filter_tracking", "flow_control"],
+    "camera": ["camera_stream", "two_way_audio"],
+    "door_sensor": ["door_state", "entry_logging"],
 }
 
 CATEGORY_PRIORITY: Final[tuple[DiscoveryCategory, ...]] = (
-    'gps_tracker',
-    'smart_feeder',
-    'smart_collar',
-    'activity_monitor',
-    'health_device',
-    'treat_dispenser',
-    'water_fountain',
-    'camera',
-    'door_sensor',
+    "gps_tracker",
+    "smart_feeder",
+    "smart_collar",
+    "activity_monitor",
+    "health_device",
+    "treat_dispenser",
+    "water_fountain",
+    "camera",
+    "door_sensor",
 )
 
 
@@ -176,7 +167,7 @@ class PawControlDiscovery:
 
     async def async_initialize(self) -> None:
         """Initialize discovery systems and start background scanning."""
-        _LOGGER.debug('Initializing Paw Control device discovery')
+        _LOGGER.debug("Initializing Paw Control device discovery")
 
         try:
             self._device_registry = dr.async_get(self.hass)
@@ -188,10 +179,10 @@ class PawControlDiscovery:
             # Register discovery listeners for real-time detection
             await self._register_discovery_listeners()
 
-            _LOGGER.info('Paw Control discovery initialized successfully')
+            _LOGGER.info("Paw Control discovery initialized successfully")
 
         except Exception as err:
-            _LOGGER.error('Failed to initialize discovery: %s', err, exc_info=True)
+            _LOGGER.error("Failed to initialize discovery: %s", err, exc_info=True)
             raise HomeAssistantError(f"Discovery initialization failed: {err}") from err
 
     async def async_discover_devices(
@@ -212,7 +203,7 @@ class PawControlDiscovery:
             PawControlError: If discovery fails
         """
         if self._scan_active:
-            _LOGGER.warning('Discovery scan already active, waiting for completion')
+            _LOGGER.warning("Discovery scan already active, waiting for completion")
             await self._wait_for_scan_completion()
 
         categories_list: list[DiscoveryCategory]
@@ -225,8 +216,8 @@ class PawControlDiscovery:
         scan_timeout = DISCOVERY_TIMEOUT if quick_scan else DISCOVERY_TIMEOUT * 3
 
         _LOGGER.info(
-            'Starting %s device discovery for categories: %s',
-            'quick' if quick_scan else 'thorough',
+            "Starting %s device discovery for categories: %s",
+            "quick" if quick_scan else "thorough",
             categories_list,
         )
 
@@ -243,7 +234,7 @@ class PawControlDiscovery:
 
                 for result in discovery_results:
                     if isinstance(result, BaseException):
-                        _LOGGER.warning('Discovery method failed: %s', result)
+                        _LOGGER.warning("Discovery method failed: %s", result)
                         continue
 
                     discovered_devices.extend(result)
@@ -255,7 +246,7 @@ class PawControlDiscovery:
                 self._discovered_devices[device.device_id] = device
 
             _LOGGER.info(
-                'Discovery completed: %d devices found (%d unique)',
+                "Discovery completed: %d devices found (%d unique)",
                 len(discovered_devices),
                 len(unique_devices),
             )
@@ -263,10 +254,10 @@ class PawControlDiscovery:
             return unique_devices
 
         except TimeoutError:
-            _LOGGER.warning('Device discovery timed out after %ds', scan_timeout)
+            _LOGGER.warning("Device discovery timed out after %ds", scan_timeout)
             return list(self._discovered_devices.values())
         except Exception as err:
-            _LOGGER.error('Discovery failed: %s', err, exc_info=True)
+            _LOGGER.error("Discovery failed: %s", err, exc_info=True)
             raise PawControlError(f"Device discovery failed: {err}") from err
         finally:
             self._scan_active = False
@@ -276,7 +267,7 @@ class PawControlDiscovery:
     ) -> list[DiscoveredDevice]:
         """Discover USB-connected dog devices (placeholder)."""
 
-        _LOGGER.debug('USB discovery currently relies on registry data only')
+        _LOGGER.debug("USB discovery currently relies on registry data only")
         return []
 
     async def _discover_registry_devices(
@@ -300,8 +291,8 @@ class PawControlDiscovery:
                 continue
 
             connection_type, connection_info = self._connection_details(device_entry)
-            manufacturer = device_entry.manufacturer or 'Unknown'
-            model = device_entry.model or device_entry.hw_version or 'Unknown'
+            manufacturer = device_entry.manufacturer or "Unknown"
+            model = device_entry.model or device_entry.hw_version or "Unknown"
             name = (
                 device_entry.name_by_user
                 or device_entry.name
@@ -309,18 +300,18 @@ class PawControlDiscovery:
             )
 
             metadata: DiscoveredDeviceMetadata = {
-                'identifiers': [
+                "identifiers": [
                     f"{domain}:{identifier}"
                     for domain, identifier in device_entry.identifiers
                 ],
-                'via_device_id': device_entry.via_device_id,
-                'sw_version': device_entry.sw_version,
-                'hw_version': device_entry.hw_version,
+                "via_device_id": device_entry.via_device_id,
+                "sw_version": device_entry.sw_version,
+                "hw_version": device_entry.hw_version,
             }
             if device_entry.configuration_url:
-                metadata['configuration_url'] = device_entry.configuration_url
+                metadata["configuration_url"] = device_entry.configuration_url
             if device_entry.area_id:
-                metadata['area_id'] = device_entry.area_id
+                metadata["area_id"] = device_entry.area_id
 
             discovered.append(
                 DiscoveredDevice(
@@ -338,7 +329,7 @@ class PawControlDiscovery:
                 )
             )
 
-        _LOGGER.debug('Registry discovery found %d devices', len(discovered))
+        _LOGGER.debug("Registry discovery found %d devices", len(discovered))
         return discovered
 
     def _classify_device(
@@ -346,8 +337,8 @@ class PawControlDiscovery:
         device_entry: DeviceEntry,
         entity_registry: er.EntityRegistry,
     ) -> tuple[DiscoveryCategory, DiscoveryCapabilityList, float] | None:
-        manufacturer = (device_entry.manufacturer or '').lower()
-        model = (device_entry.model or '').lower()
+        manufacturer = (device_entry.manufacturer or "").lower()
+        model = (device_entry.model or "").lower()
         related_entities = [
             entry
             for entry in entity_registry.entities.values()
@@ -370,68 +361,68 @@ class PawControlDiscovery:
                 _register_category(category, 0.15)
 
         entry_names = [
-            (getattr(entry, 'original_name', None) or entry.entity_id).lower()
+            (getattr(entry, "original_name", None) or entry.entity_id).lower()
             for entry in related_entities
         ]
 
-        if 'device_tracker' in domains:
-            _register_category('gps_tracker', 0.2)
+        if "device_tracker" in domains:
+            _register_category("gps_tracker", 0.2)
 
         bluetooth_aliases = {
-            getattr(dr, 'CONNECTION_BLUETOOTH', 'bluetooth'),
-            'bluetooth',
+            getattr(dr, "CONNECTION_BLUETOOTH", "bluetooth"),
+            "bluetooth",
         }
         if any(
             conn_type in bluetooth_aliases for conn_type, _ in device_entry.connections
         ):
-            _register_category('smart_collar', 0.1)
+            _register_category("smart_collar", 0.1)
 
         if {
-            'switch',
-            'select',
+            "switch",
+            "select",
         } & domains and any(
             term in name
             for name in entry_names
-            for term in ('feed', 'feeder', 'meal', 'portion')
+            for term in ("feed", "feeder", "meal", "portion")
         ):
-            _register_category('smart_feeder', 0.1)
+            _register_category("smart_feeder", 0.1)
 
         if {
-            'switch',
-            'sensor',
+            "switch",
+            "sensor",
         } & domains and any(
             term in name
             for name in entry_names
-            for term in ('fountain', 'water', 'hydration', 'drink')
+            for term in ("fountain", "water", "hydration", "drink")
         ):
-            _register_category('water_fountain', 0.1)
+            _register_category("water_fountain", 0.1)
 
         if {
-            'button',
-            'switch',
+            "button",
+            "switch",
         } & domains and any(
             term in name
             for name in entry_names
-            for term in ('treat', 'reward', 'snack', 'dispenser')
+            for term in ("treat", "reward", "snack", "dispenser")
         ):
-            _register_category('treat_dispenser', 0.1)
+            _register_category("treat_dispenser", 0.1)
 
-        if 'camera' in domains:
-            _register_category('camera', 0.1)
+        if "camera" in domains:
+            _register_category("camera", 0.1)
 
-        if 'sensor' in domains:
+        if "sensor" in domains:
             for name in entry_names:
-                if 'activity' in name:
-                    _register_category('activity_monitor', 0.1)
-                if any(term in name for term in ('health', 'weight', 'vet')):
-                    _register_category('health_device', 0.1)
-                if 'collar' in name:
-                    _register_category('smart_collar', 0.1)
+                if "activity" in name:
+                    _register_category("activity_monitor", 0.1)
+                if any(term in name for term in ("health", "weight", "vet")):
+                    _register_category("health_device", 0.1)
+                if "collar" in name:
+                    _register_category("smart_collar", 0.1)
 
-        if 'binary_sensor' in domains and any(
-            term in name for name in entry_names for term in ('door', 'gate', 'entry')
+        if "binary_sensor" in domains and any(
+            term in name for name in entry_names for term in ("door", "gate", "entry")
         ):
-            _register_category('door_sensor', 0.1)
+            _register_category("door_sensor", 0.1)
 
         if not matched_categories:
             return None
@@ -451,26 +442,26 @@ class PawControlDiscovery:
         self, device_entry: DeviceEntry
     ) -> tuple[DiscoveryConnectionType, DiscoveryConnectionInfo]:
         connection_info: DiscoveryConnectionInfo = {}
-        connection_type: DiscoveryConnectionType = 'unknown'
+        connection_type: DiscoveryConnectionType = "unknown"
 
         for conn_type, conn_id in device_entry.connections:
-            if conn_type in (dr.CONNECTION_BLUETOOTH, 'bluetooth'):
-                connection_type = 'bluetooth'
-                connection_info.setdefault('address', conn_id)
-            elif conn_type in (dr.CONNECTION_NETWORK_MAC, 'mac'):
-                connection_type = 'network'
-                connection_info.setdefault('mac', conn_id)
-            elif conn_type == 'usb':
-                connection_type = 'usb'
-                connection_info.setdefault('usb', conn_id)
+            if conn_type in (dr.CONNECTION_BLUETOOTH, "bluetooth"):
+                connection_type = "bluetooth"
+                connection_info.setdefault("address", conn_id)
+            elif conn_type in (dr.CONNECTION_NETWORK_MAC, "mac"):
+                connection_type = "network"
+                connection_info.setdefault("mac", conn_id)
+            elif conn_type == "usb":
+                connection_type = "usb"
+                connection_info.setdefault("usb", conn_id)
 
         if (
             device_entry.configuration_url
-            and 'configuration_url' not in connection_info
+            and "configuration_url" not in connection_info
         ):
-            connection_info['configuration_url'] = device_entry.configuration_url
+            connection_info["configuration_url"] = device_entry.configuration_url
         if device_entry.via_device_id:
-            connection_info['via_device_id'] = device_entry.via_device_id
+            connection_info["via_device_id"] = device_entry.via_device_id
 
         return connection_type, connection_info
 
@@ -486,7 +477,7 @@ class PawControlDiscovery:
 
             task = self.hass.async_create_task(
                 self.async_discover_devices(quick_scan=True),
-                name='paw_control_background_discovery',
+                name="paw_control_background_discovery",
             )
             self._discovery_tasks.add(task)
             task.add_done_callback(self._discovery_tasks.discard)
@@ -498,7 +489,7 @@ class PawControlDiscovery:
             )
         )
 
-        _LOGGER.debug('Background discovery scanning started')
+        _LOGGER.debug("Background discovery scanning started")
 
     async def _register_discovery_listeners(self) -> None:
         """Register real-time discovery listeners."""
@@ -510,7 +501,7 @@ class PawControlDiscovery:
             @callback
             def _handle_device_event(event: DeviceRegistryEvent) -> None:
                 _LOGGER.debug(
-                    'Device registry event: action=%s device=%s',
+                    "Device registry event: action=%s device=%s",
                     event.action,
                     event.device_id,
                 )
@@ -522,7 +513,7 @@ class PawControlDiscovery:
             @callback
             def _handle_entity_event(event: EntityRegistryEvent) -> None:
                 _LOGGER.debug(
-                    'Entity registry event: action=%s entity=%s',
+                    "Entity registry event: action=%s entity=%s",
                     event.action,
                     event.entity_id,
                 )
@@ -534,10 +525,10 @@ class PawControlDiscovery:
             self._listeners.append(device_registry.async_listen(_handle_device_event))
             self._listeners.append(entity_registry.async_listen(_handle_entity_event))
 
-            _LOGGER.debug('Discovery listeners registered')
+            _LOGGER.debug("Discovery listeners registered")
 
         except Exception as err:  # pragma: no cover - listener errors are rare
-            _LOGGER.warning('Failed to register some discovery listeners: %s', err)
+            _LOGGER.warning("Failed to register some discovery listeners: %s", err)
 
     async def _wait_for_scan_completion(self) -> None:
         """Wait for active discovery scan to complete."""
@@ -550,12 +541,12 @@ class PawControlDiscovery:
             waited += 0.5
 
         if self._scan_active:
-            _LOGGER.warning('Discovery scan did not complete within %ds', max_wait)
+            _LOGGER.warning("Discovery scan did not complete within %ds", max_wait)
 
     async def async_shutdown(self) -> None:
         """Shutdown discovery and cleanup resources."""
 
-        _LOGGER.debug('Shutting down Paw Control discovery')
+        _LOGGER.debug("Shutting down Paw Control discovery")
 
         # Cancel background tasks
         for task in set(self._discovery_tasks):
@@ -575,7 +566,7 @@ class PawControlDiscovery:
         # Clear discovered devices
         self._discovered_devices.clear()
 
-        _LOGGER.info('Paw Control discovery shutdown complete')
+        _LOGGER.info("Paw Control discovery shutdown complete")
 
     def _deduplicate_devices(
         self, devices: Iterable[DiscoveredDevice]
@@ -636,7 +627,7 @@ async def async_get_discovered_devices(
         List of discovered devices in legacy format
     """
     discovery = PawControlDiscovery(hass)
-    hass.data.setdefault(DOMAIN, {})['legacy_discovery'] = discovery
+    hass.data.setdefault(DOMAIN, {})["legacy_discovery"] = discovery
 
     try:
         await discovery.async_initialize()
@@ -646,37 +637,37 @@ async def async_get_discovered_devices(
         legacy_devices: list[LegacyDiscoveryEntry] = []
         for device in devices:
             data: LegacyDiscoveryData = {
-                'device_id': device.device_id,
-                'name': device.name,
-                'manufacturer': device.manufacturer,
-                'category': device.category,
+                "device_id": device.device_id,
+                "name": device.name,
+                "manufacturer": device.manufacturer,
+                "category": device.category,
             }
-            if address := device.connection_info.get('address'):
-                data['address'] = address
-            if mac := device.connection_info.get('mac'):
-                data['mac'] = mac
-            if usb := device.connection_info.get('usb'):
-                data['usb'] = usb
-            if configuration_url := device.connection_info.get('configuration_url'):
-                data['configuration_url'] = configuration_url
-            if via_device_id := device.connection_info.get('via_device_id'):
-                data['via_device_id'] = via_device_id
+            if address := device.connection_info.get("address"):
+                data["address"] = address
+            if mac := device.connection_info.get("mac"):
+                data["mac"] = mac
+            if usb := device.connection_info.get("usb"):
+                data["usb"] = usb
+            if configuration_url := device.connection_info.get("configuration_url"):
+                data["configuration_url"] = configuration_url
+            if via_device_id := device.connection_info.get("via_device_id"):
+                data["via_device_id"] = via_device_id
 
             legacy_devices.append(
                 {
-                    'source': device.connection_type,
-                    'data': data,
+                    "source": device.connection_type,
+                    "data": data,
                 }
             )
 
         return legacy_devices
 
     except Exception as err:
-        _LOGGER.error('Legacy discovery failed: %s', err)
+        _LOGGER.error("Legacy discovery failed: %s", err)
         return []
     finally:
         await discovery.async_shutdown()
-        hass.data[DOMAIN].pop('legacy_discovery', None)
+        hass.data[DOMAIN].pop("legacy_discovery", None)
 
 
 async def async_start_discovery() -> bool:
@@ -721,4 +712,4 @@ async def async_shutdown_discovery_manager() -> None:
 
 ensure_homeassistant_exception_symbols()
 HomeAssistantError: type[Exception] = cast(type[Exception], compat.HomeAssistantError)
-bind_exception_alias('HomeAssistantError', combine_with_current=True)
+bind_exception_alias("HomeAssistantError", combine_with_current=True)

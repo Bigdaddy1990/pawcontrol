@@ -9,23 +9,23 @@ Quality Scale: Platinum target
 Home Assistant: 2025.8.2+
 Python: 3.12+
 """
+
 from __future__ import annotations
 
 import traceback
-from collections.abc import Callable
-from collections.abc import Mapping
-from collections.abc import Sequence
-from datetime import datetime
-from datetime import UTC
+from collections.abc import Callable, Mapping, Sequence
+from datetime import UTC, datetime
 from enum import Enum
-from typing import Any
-from typing import cast
-from typing import Final
-from typing import ParamSpec
-from typing import TYPE_CHECKING
-from typing import TypedDict
-from typing import TypeVar
-from typing import Unpack
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Final,
+    ParamSpec,
+    TypedDict,
+    TypeVar,
+    Unpack,
+    cast,
+)
 
 if TYPE_CHECKING:
     from homeassistant.exceptions import HomeAssistantError as HomeAssistantErrorType
@@ -50,32 +50,32 @@ except ModuleNotFoundError:  # pragma: no cover - compatibility shim for tests
 
 from .types import ErrorContext, ErrorPayload, GPSLocation, JSONValue
 
-P = ParamSpec('P')
-T = TypeVar('T')
+P = ParamSpec("P")
+T = TypeVar("T")
 
 
 class ErrorSeverity(Enum):
     """Error severity levels for better error handling and user experience."""
 
-    LOW = 'low'  # Minor issues, degraded functionality
-    MEDIUM = 'medium'  # Significant issues, some features unavailable
-    HIGH = 'high'  # Major issues, core functionality affected
-    CRITICAL = 'critical'  # System-breaking issues, immediate attention needed
+    LOW = "low"  # Minor issues, degraded functionality
+    MEDIUM = "medium"  # Significant issues, some features unavailable
+    HIGH = "high"  # Major issues, core functionality affected
+    CRITICAL = "critical"  # System-breaking issues, immediate attention needed
 
 
 class ErrorCategory(Enum):
     """Error categories for better organization and handling."""
 
-    CONFIGURATION = 'configuration'  # Configuration and setup errors
-    DATA = 'data'  # Data validation and processing errors
-    NETWORK = 'network'  # Network and connectivity errors
-    GPS = 'gps'  # GPS and location errors
-    AUTHENTICATION = 'authentication'  # Authentication and authorization errors
-    RATE_LIMIT = 'rate_limit'  # Rate limiting errors
-    STORAGE = 'storage'  # Storage and persistence errors
-    VALIDATION = 'validation'  # Input validation errors
-    BUSINESS_LOGIC = 'business_logic'  # Business logic violations
-    SYSTEM = 'system'  # System and resource errors
+    CONFIGURATION = "configuration"  # Configuration and setup errors
+    DATA = "data"  # Data validation and processing errors
+    NETWORK = "network"  # Network and connectivity errors
+    GPS = "gps"  # GPS and location errors
+    AUTHENTICATION = "authentication"  # Authentication and authorization errors
+    RATE_LIMIT = "rate_limit"  # Rate limiting errors
+    STORAGE = "storage"  # Storage and persistence errors
+    VALIDATION = "validation"  # Input validation errors
+    BUSINESS_LOGIC = "business_logic"  # Business logic violations
+    SYSTEM = "system"  # System and resource errors
 
 
 class PawControlErrorKwargs(TypedDict, total=False):
@@ -176,16 +176,16 @@ class PawControlError(HomeAssistantErrorType):
             Dictionary representation of the exception
         """
         return {
-            'error_code': self.error_code,
-            'message': str(self),
-            'user_message': self.user_message,
-            'severity': self.severity.value,
-            'category': self.category.value,
-            'context': self.context,
-            'recovery_suggestions': self.recovery_suggestions,
-            'technical_details': self.technical_details,
-            'timestamp': self.timestamp.isoformat(),
-            'exception_type': self.__class__.__name__,
+            "error_code": self.error_code,
+            "message": str(self),
+            "user_message": self.user_message,
+            "severity": self.severity.value,
+            "category": self.category.value,
+            "context": self.context,
+            "recovery_suggestions": self.recovery_suggestions,
+            "technical_details": self.technical_details,
+            "timestamp": self.timestamp.isoformat(),
+            "exception_type": self.__class__.__name__,
         }
 
     def add_context(self, key: str, value: object) -> PawControlError:
@@ -259,19 +259,19 @@ class ConfigurationError(PawControlError):
 
         super().__init__(
             message,
-            error_code='configuration_error',
+            error_code="configuration_error",
             severity=ErrorSeverity.HIGH,
             category=ErrorCategory.CONFIGURATION,
             context={
-                'setting': setting,
-                'value': value,
-                'expected_type': expected_type.__name__ if expected_type else None,
-                'valid_values': valid_values,
+                "setting": setting,
+                "value": value,
+                "expected_type": expected_type.__name__ if expected_type else None,
+                "valid_values": valid_values,
             },
             recovery_suggestions=[
-                'Check the integration configuration in Home Assistant',
-                'Verify the setting value is within acceptable range',
-                'Restart Home Assistant after configuration changes',
+                "Check the integration configuration in Home Assistant",
+                "Verify the setting value is within acceptable range",
+                "Restart Home Assistant after configuration changes",
             ],
         )
 
@@ -284,7 +284,7 @@ class ConfigurationError(PawControlError):
 class PawControlSetupError(PawControlError):
     """Exception raised when integration setup fails."""
 
-    def __init__(self, message: str, error_code: str = 'setup_failed') -> None:
+    def __init__(self, message: str, error_code: str = "setup_failed") -> None:
         """Initialize setup error."""
         super().__init__(
             message,
@@ -308,16 +308,16 @@ class DogNotFoundError(PawControlError):
 
         super().__init__(
             message,
-            error_code='dog_not_found',
+            error_code="dog_not_found",
             severity=ErrorSeverity.MEDIUM,
             category=ErrorCategory.DATA,
             context={
-                'dog_id': dog_id,
-                'available_dogs': available_dogs or [],
+                "dog_id": dog_id,
+                "available_dogs": available_dogs or [],
             },
             recovery_suggestions=[
-                'Check if the dog ID is spelled correctly',
-                'Verify the dog is configured in the integration',
+                "Check if the dog ID is spelled correctly",
+                "Verify the dog is configured in the integration",
                 f"Available dogs: {', '.join(available_dogs) if available_dogs else 'None'}",
             ],
             user_message=f"The dog '{dog_id}' was not found. Please check the dog ID.",
@@ -353,9 +353,9 @@ class GPSError(PawControlError):
             if location
             else None
         )
-        context_payload: dict[str, object] = {'dog_id': dog_id}
+        context_payload: dict[str, object] = {"dog_id": dog_id}
         if location_context is not None:
-            context_payload['location'] = location_context
+            context_payload["location"] = location_context
         if context:
             context_payload.update(context)
         super().__init__(
@@ -389,32 +389,32 @@ class InvalidCoordinatesError(GPSError):
         if latitude is not None and longitude is not None:
             message = f"Invalid GPS coordinates: ({latitude}, {longitude})"
             details = (
-                'Latitude must be between -90 and 90, longitude between -180 and 180'
+                "Latitude must be between -90 and 90, longitude between -180 and 180"
             )
         else:
-            message = 'Invalid GPS coordinates provided'
-            details = 'GPS coordinates are missing or malformed'
+            message = "Invalid GPS coordinates provided"
+            details = "GPS coordinates are missing or malformed"
 
         super().__init__(
             message,
             dog_id=dog_id,
-            error_code='invalid_coordinates',
+            error_code="invalid_coordinates",
             severity=ErrorSeverity.MEDIUM,
             context={
-                'latitude': latitude,
-                'longitude': longitude,
-                'latitude_valid': -90 <= latitude <= 90
+                "latitude": latitude,
+                "longitude": longitude,
+                "latitude_valid": -90 <= latitude <= 90
                 if latitude is not None
                 else False,
-                'longitude_valid': -180 <= longitude <= 180
+                "longitude_valid": -180 <= longitude <= 180
                 if longitude is not None
                 else False,
             },
             recovery_suggestions=[
-                'Verify GPS coordinates are in decimal degrees format',
-                'Check that latitude is between -90 and 90',
-                'Check that longitude is between -180 and 180',
-                'Ensure GPS device is functioning properly',
+                "Verify GPS coordinates are in decimal degrees format",
+                "Check that latitude is between -90 and 90",
+                "Check that longitude is between -180 and 180",
+                "Ensure GPS device is functioning properly",
             ],
             technical_details=details,
         )
@@ -448,13 +448,13 @@ class GPSUnavailableError(GPSError):
             message,
             dog_id=dog_id,
             location=last_known_location,
-            error_code='gps_unavailable',
+            error_code="gps_unavailable",
             severity=ErrorSeverity.LOW,
             recovery_suggestions=[
-                'Check if GPS tracking is enabled for this dog',
-                'Verify GPS device battery and connectivity',
-                'Ensure GPS module is configured correctly',
-                'Wait for GPS signal to stabilize if outdoors',
+                "Check if GPS tracking is enabled for this dog",
+                "Verify GPS device battery and connectivity",
+                "Ensure GPS module is configured correctly",
+                "Wait for GPS signal to stabilize if outdoors",
             ],
             user_message=f"GPS location for {dog_id} is currently unavailable",
         )
@@ -484,7 +484,7 @@ class WalkError(PawControlError):
             walk_id: Walk ID if applicable
             **kwargs: Additional arguments for parent class
         """
-        base_context: dict[str, object] = {'dog_id': dog_id, 'walk_id': walk_id}
+        base_context: dict[str, object] = {"dog_id": dog_id, "walk_id": walk_id}
         if context:
             base_context.update(context)
         super().__init__(
@@ -514,17 +514,17 @@ class WalkNotInProgressError(WalkError):
         super().__init__(
             message,
             dog_id=dog_id,
-            error_code='walk_not_in_progress',
+            error_code="walk_not_in_progress",
             severity=ErrorSeverity.LOW,
             context={
-                'last_walk_time': last_walk_time.isoformat()
+                "last_walk_time": last_walk_time.isoformat()
                 if last_walk_time
                 else None,
             },
             recovery_suggestions=[
-                'Start a new walk before trying to end one',
-                'Check if a walk was already ended',
-                'Verify the correct dog ID is being used',
+                "Start a new walk before trying to end one",
+                "Check if a walk was already ended",
+                "Verify the correct dog ID is being used",
             ],
             user_message=f"No walk is currently active for {dog_id}",
         )
@@ -554,16 +554,16 @@ class WalkAlreadyInProgressError(WalkError):
             message,
             dog_id=dog_id,
             walk_id=walk_id,
-            error_code='walk_already_in_progress',
+            error_code="walk_already_in_progress",
             severity=ErrorSeverity.LOW,
             context={
-                'current_walk_id': walk_id,
-                'start_time': start_time.isoformat() if start_time else None,
+                "current_walk_id": walk_id,
+                "start_time": start_time.isoformat() if start_time else None,
             },
             recovery_suggestions=[
-                'End the current walk before starting a new one',
-                'Continue tracking the current walk',
-                'Check if the walk was started accidentally',
+                "End the current walk before starting a new one",
+                "Continue tracking the current walk",
+                "Check if the walk was started accidentally",
             ],
             user_message=f"A walk for {dog_id} is already in progress",
         )
@@ -613,16 +613,16 @@ class ValidationError(PawControlError):
 
         super().__init__(
             message,
-            error_code='validation_error',
+            error_code="validation_error",
             severity=ErrorSeverity.MEDIUM,
             category=ErrorCategory.VALIDATION,
             context={
-                'field': field,
-                'value': value,
-                'constraint': constraint,
-                'min_value': min_value,
-                'max_value': max_value,
-                'valid_values': valid_values,
+                "field": field,
+                "value": value,
+                "constraint": constraint,
+                "min_value": min_value,
+                "max_value": max_value,
+                "valid_values": valid_values,
             },
             recovery_suggestions=suggestions,
             user_message=f"Invalid value for {field.replace('_', ' ')}",
@@ -657,21 +657,21 @@ class FlowValidationError(PawControlError):
         message_parts: list[str] = []
         message_parts.extend(field_errors.values())
         message_parts.extend(base_errors)
-        message = '; '.join(message_parts) or 'Flow validation failed'
+        message = "; ".join(message_parts) or "Flow validation failed"
 
         super().__init__(
             message,
-            error_code='flow_validation_error',
+            error_code="flow_validation_error",
             severity=ErrorSeverity.MEDIUM,
             category=ErrorCategory.VALIDATION,
             context={
-                'field_errors': field_errors,
-                'base_errors': base_errors,
+                "field_errors": field_errors,
+                "base_errors": base_errors,
             },
             recovery_suggestions=[
-                'Review the highlighted fields and correct any invalid values',
+                "Review the highlighted fields and correct any invalid values",
             ],
-            user_message='Please review the form and correct the highlighted fields.',
+            user_message="Please review the form and correct the highlighted fields.",
         )
 
         self.field_errors = field_errors
@@ -684,9 +684,9 @@ class FlowValidationError(PawControlError):
             return dict(self.field_errors)
 
         if self.base_errors:
-            return {'base': self.base_errors[0]}
+            return {"base": self.base_errors[0]}
 
-        return {'base': 'validation_error'}
+        return {"base": "validation_error"}
 
 
 class InvalidMealTypeError(ValidationError):
@@ -700,9 +700,9 @@ class InvalidMealTypeError(ValidationError):
             valid_types: List of valid meal types
         """
         super().__init__(
-            field='meal_type',
+            field="meal_type",
             value=meal_type,
-            constraint='Must be a valid meal type',
+            constraint="Must be a valid meal type",
             valid_values=valid_types,
         )
 
@@ -726,7 +726,7 @@ class InvalidWeightError(ValidationError):
             min_weight: Minimum allowed weight
             max_weight: Maximum allowed weight
         """
-        constraint = 'Weight must be a positive number'
+        constraint = "Weight must be a positive number"
         if min_weight is not None and max_weight is not None:
             constraint = f"Weight must be between {min_weight}kg and {max_weight}kg"
         elif min_weight is not None:
@@ -735,7 +735,7 @@ class InvalidWeightError(ValidationError):
             constraint = f"Weight must be at most {max_weight}kg"
 
         super().__init__(
-            field='weight',
+            field="weight",
             value=weight,
             constraint=constraint,
             min_value=min_weight,
@@ -754,7 +754,7 @@ class StorageError(PawControlError):
         self,
         operation: str,
         reason: str | None = None,
-        storage_type: str = 'file',
+        storage_type: str = "file",
         retry_possible: bool = True,
     ) -> None:
         """Initialize storage error.
@@ -772,27 +772,27 @@ class StorageError(PawControlError):
 
         suggestions = []
         if retry_possible:
-            suggestions.append('Retry the operation')
+            suggestions.append("Retry the operation")
         suggestions.extend(
             [
-                'Check available disk space',
-                'Verify file permissions',
-                'Ensure storage directory exists',
+                "Check available disk space",
+                "Verify file permissions",
+                "Ensure storage directory exists",
             ]
         )
 
         super().__init__(
             message,
-            error_code='storage_error',
+            error_code="storage_error",
             severity=ErrorSeverity.HIGH,
             category=ErrorCategory.STORAGE,
             context={
-                'operation': operation,
-                'storage_type': storage_type,
-                'retry_possible': retry_possible,
+                "operation": operation,
+                "storage_type": storage_type,
+                "retry_possible": retry_possible,
             },
             recovery_suggestions=suggestions,
-            user_message='Data storage operation failed',
+            user_message="Data storage operation failed",
         )
 
         self.operation = operation
@@ -836,26 +836,26 @@ class RateLimitError(PawControlError):
             suggestions.append(f"Wait {retry_after} seconds before retrying")
         suggestions.extend(
             [
-                'Reduce the frequency of requests',
-                'Check if rate limiting can be adjusted',
-                'Consider implementing request batching',
+                "Reduce the frequency of requests",
+                "Check if rate limiting can be adjusted",
+                "Consider implementing request batching",
             ]
         )
 
         super().__init__(
             message,
-            error_code='rate_limit_exceeded',
+            error_code="rate_limit_exceeded",
             severity=ErrorSeverity.LOW,
             category=ErrorCategory.RATE_LIMIT,
             context={
-                'action': action,
-                'limit': limit,
-                'retry_after': retry_after,
-                'current_count': current_count,
-                'max_count': max_count,
+                "action": action,
+                "limit": limit,
+                "retry_after": retry_after,
+                "current_count": current_count,
+                "max_count": max_count,
             },
             recovery_suggestions=suggestions,
-            user_message='Too many requests. Please wait before trying again.',
+            user_message="Too many requests. Please wait before trying again.",
         )
 
         self.action = action
@@ -879,24 +879,24 @@ class NetworkError(PawControlError):
         """Initialize network error."""
 
         suggestions = [
-            'Check your internet connection',
-            'Verify the PawControl service is reachable',
+            "Check your internet connection",
+            "Verify the PawControl service is reachable",
         ]
         if retryable:
-            suggestions.append('Try the operation again later')
+            suggestions.append("Try the operation again later")
 
         super().__init__(
             message,
-            error_code='network_error',
+            error_code="network_error",
             severity=ErrorSeverity.MEDIUM if retryable else ErrorSeverity.HIGH,
             category=ErrorCategory.NETWORK,
             context={
-                'endpoint': endpoint,
-                'operation': operation,
-                'retryable': retryable,
+                "endpoint": endpoint,
+                "operation": operation,
+                "retryable": retryable,
             },
             recovery_suggestions=suggestions,
-            user_message='Network communication with PawControl failed',
+            user_message="Network communication with PawControl failed",
         )
 
         self.endpoint = endpoint
@@ -929,27 +929,27 @@ class NotificationError(PawControlError):
 
         suggestions = []
         if fallback_available:
-            suggestions.append('Fallback notification method will be used')
+            suggestions.append("Fallback notification method will be used")
         suggestions.extend(
             [
-                'Check notification service configuration',
-                'Verify network connectivity',
-                'Test notification channels manually',
+                "Check notification service configuration",
+                "Verify network connectivity",
+                "Test notification channels manually",
             ]
         )
 
         super().__init__(
             message,
-            error_code='notification_send_failed',
+            error_code="notification_send_failed",
             severity=ErrorSeverity.LOW if fallback_available else ErrorSeverity.MEDIUM,
             category=ErrorCategory.NETWORK,
             context={
-                'notification_type': notification_type,
-                'channel': channel,
-                'fallback_available': fallback_available,
+                "notification_type": notification_type,
+                "channel": channel,
+                "fallback_available": fallback_available,
             },
             recovery_suggestions=suggestions,
-            user_message='Notification could not be sent',
+            user_message="Notification could not be sent",
         )
 
         self.notification_type = notification_type
@@ -967,7 +967,7 @@ class DataExportError(PawControlError):
         self,
         export_type: str,
         reason: str | None = None,
-        format_type: str = 'json',
+        format_type: str = "json",
         partial_export: bool = False,
     ) -> None:
         """Initialize data export error."""
@@ -977,18 +977,18 @@ class DataExportError(PawControlError):
 
         super().__init__(
             message,
-            error_code='data_export_failed',
+            error_code="data_export_failed",
             severity=ErrorSeverity.MEDIUM,
             category=ErrorCategory.DATA,
             context={
-                'export_type': export_type,
-                'format_type': format_type,
-                'partial_export': partial_export,
+                "export_type": export_type,
+                "format_type": format_type,
+                "partial_export": partial_export,
             },
             recovery_suggestions=[
-                'Try exporting in a different format',
-                'Check available disk space',
-                'Verify export permissions',
+                "Try exporting in a different format",
+                "Check available disk space",
+                "Verify export permissions",
             ],
         )
 
@@ -1012,35 +1012,35 @@ class DataImportError(PawControlError):
 
         super().__init__(
             message,
-            error_code='data_import_failed',
+            error_code="data_import_failed",
             severity=ErrorSeverity.MEDIUM,
             category=ErrorCategory.DATA,
             context={
-                'import_type': import_type,
-                'line_number': line_number,
-                'recoverable': recoverable,
+                "import_type": import_type,
+                "line_number": line_number,
+                "recoverable": recoverable,
             },
         )
 
 
 # Exception mapping with enhanced lookup capabilities
 EXCEPTION_MAP: Final[dict[str, type[PawControlError]]] = {
-    'configuration_error': ConfigurationError,
-    'dog_not_found': DogNotFoundError,
-    'invalid_coordinates': InvalidCoordinatesError,
-    'gps_unavailable': GPSUnavailableError,
-    'walk_not_in_progress': WalkNotInProgressError,
-    'walk_already_in_progress': WalkAlreadyInProgressError,
-    'validation_error': ValidationError,
-    'invalid_meal_type': InvalidMealTypeError,
-    'invalid_weight': InvalidWeightError,
-    'storage_error': StorageError,
-    'rate_limit_exceeded': RateLimitError,
-    'notification_send_failed': NotificationError,
-    'network_error': NetworkError,
-    'data_export_failed': DataExportError,
-    'data_import_failed': DataImportError,
-    'setup_failed': PawControlSetupError,
+    "configuration_error": ConfigurationError,
+    "dog_not_found": DogNotFoundError,
+    "invalid_coordinates": InvalidCoordinatesError,
+    "gps_unavailable": GPSUnavailableError,
+    "walk_not_in_progress": WalkNotInProgressError,
+    "walk_already_in_progress": WalkAlreadyInProgressError,
+    "validation_error": ValidationError,
+    "invalid_meal_type": InvalidMealTypeError,
+    "invalid_weight": InvalidWeightError,
+    "storage_error": StorageError,
+    "rate_limit_exceeded": RateLimitError,
+    "notification_send_failed": NotificationError,
+    "network_error": NetworkError,
+    "data_export_failed": DataExportError,
+    "data_import_failed": DataImportError,
+    "setup_failed": PawControlSetupError,
 }
 
 
@@ -1133,7 +1133,7 @@ def handle_exception_gracefully(
                 import logging
 
                 logger = logging.getLogger(__name__)
-                logger.error('PawControl error in %s: %s', func.__name__, e.to_dict())
+                logger.error("PawControl error in %s: %s", func.__name__, e.to_dict())
 
             if reraise_critical and e.severity == ErrorSeverity.CRITICAL:
                 raise
@@ -1144,7 +1144,7 @@ def handle_exception_gracefully(
                 import logging
 
                 logger = logging.getLogger(__name__)
-                logger.exception('Unexpected error in %s', func.__name__)
+                logger.exception("Unexpected error in %s", func.__name__)
 
             if reraise_critical:
                 raise
@@ -1169,12 +1169,12 @@ def create_error_context(
     Returns:
         Structured error context dictionary
     """
-    context: ErrorContext = {'timestamp': dt_util.utcnow().isoformat()}
+    context: ErrorContext = {"timestamp": dt_util.utcnow().isoformat()}
 
     if dog_id is not None:
-        context['dog_id'] = dog_id
+        context["dog_id"] = dog_id
     if operation is not None:
-        context['operation'] = operation
+        context["operation"] = operation
 
     for key, value in additional_context.items():
         serialised = _serialise_json_value(value)

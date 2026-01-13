@@ -21,6 +21,7 @@ Features:
 - Optimized device information management
 - Intelligent state restoration and persistence
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -30,56 +31,49 @@ import logging
 import sys
 import weakref
 from abc import abstractmethod
-from collections.abc import Callable
-from collections.abc import Iterator
-from collections.abc import Mapping
+from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass
-from datetime import datetime
-from datetime import timedelta
-from typing import Any
-from typing import cast
-from typing import ClassVar
-from typing import Final
-from typing import Protocol
+from datetime import datetime, timedelta
+from typing import Any, ClassVar, Final, Protocol, cast
 from unittest.mock import Mock
 
-from homeassistant.core import callback
-from homeassistant.core import State
+from homeassistant.core import State, callback
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from . import compat
-from .compat import bind_exception_alias
-from .compat import ensure_homeassistant_exception_symbols
-from .const import ATTR_DOG_ID
-from .const import ATTR_DOG_NAME
-from .const import MANUFACTURER
+from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
+from .const import ATTR_DOG_ID, ATTR_DOG_NAME, MANUFACTURER
 from .coordinator import PawControlCoordinator
 from .coordinator_accessors import CoordinatorDataAccessMixin
 from .diagnostics import normalize_value
-from .types import CoordinatorDataPayload
-from .types import CoordinatorDogData
-from .types import CoordinatorModuleLookupResult
-from .types import CoordinatorModuleState
-from .types import CoordinatorUntypedModuleState
-from .types import DeviceLinkDetails
-from .types import ensure_json_mapping
-from .types import OptimizedEntityAttributesPayload
-from .types import OptimizedEntityCacheStats
-from .types import OptimizedEntityGlobalPerformanceStats
-from .types import OptimizedEntityMemoryConfig
-from .types import OptimizedEntityMemoryEstimate
-from .types import OptimizedEntityPerformanceMetrics
-from .types import OptimizedEntityPerformanceSummary
-from .types import OptimizedEntityStateCachePayload
-from .utils import _coerce_json_mutable
-from .utils import async_call_add_entities
-from .utils import ensure_utc_datetime
-from .utils import JSONMappingLike
-from .utils import JSONMutableMapping
-from .utils import PawControlDeviceLinkMixin
+from .types import (
+    CoordinatorDataPayload,
+    CoordinatorDogData,
+    CoordinatorModuleLookupResult,
+    CoordinatorModuleState,
+    CoordinatorUntypedModuleState,
+    DeviceLinkDetails,
+    OptimizedEntityAttributesPayload,
+    OptimizedEntityCacheStats,
+    OptimizedEntityGlobalPerformanceStats,
+    OptimizedEntityMemoryConfig,
+    OptimizedEntityMemoryEstimate,
+    OptimizedEntityPerformanceMetrics,
+    OptimizedEntityPerformanceSummary,
+    OptimizedEntityStateCachePayload,
+    ensure_json_mapping,
+)
+from .utils import (
+    JSONMappingLike,
+    JSONMutableMapping,
+    PawControlDeviceLinkMixin,
+    _coerce_json_mutable,
+    async_call_add_entities,
+    ensure_utc_datetime,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -97,16 +91,16 @@ def _normalise_attributes(
 
 # Performance optimization constants
 CACHE_TTL_SECONDS: Final[dict[str, int]] = {
-    'state': 30,  # Entity state cache TTL
-    'attributes': 60,  # Attribute cache TTL
-    'availability': 10,  # Availability cache TTL
+    "state": 30,  # Entity state cache TTL
+    "attributes": 60,  # Attribute cache TTL
+    "availability": 10,  # Availability cache TTL
 }
 
 MEMORY_OPTIMIZATION: Final[OptimizedEntityMemoryConfig] = {
-    'max_cache_entries': 1000,  # Maximum cache entries per entity type
-    'cache_cleanup_threshold': 0.8,  # When to trigger aggressive cleanup
-    'weak_ref_cleanup_interval': 300,  # Seconds between weak reference cleanup
-    'performance_sample_size': 100,  # Number of operations to track for performance
+    "max_cache_entries": 1000,  # Maximum cache entries per entity type
+    "cache_cleanup_threshold": 0.8,  # When to trigger aggressive cleanup
+    "weak_ref_cleanup_interval": 300,  # Seconds between weak reference cleanup
+    "performance_sample_size": 100,  # Number of operations to track for performance
 }
 
 # Global caches with memory management
@@ -185,7 +179,7 @@ def _normalize_cache_timestamp(
         return now, True
 
     _LOGGER.debug(
-        'Detected future cache timestamp %.3f (now=%.3f); normalising', cache_time, now
+        "Detected future cache timestamp %.3f (now=%.3f); normalising", cache_time, now
     )
     return now, True
 
@@ -196,7 +190,7 @@ def _coordinator_is_available(coordinator: Any) -> bool:
     if coordinator is None:
         return True
 
-    available = getattr(coordinator, 'available', True)
+    available = getattr(coordinator, "available", True)
 
     if callable(available):
         try:
@@ -230,7 +224,7 @@ def _call_coordinator_method(
     except TypeError:
         return None
     except Exception as err:  # pragma: no cover - defensive guard
-        _LOGGER.debug('Coordinator method %s failed: %s', method, err)
+        _LOGGER.debug("Coordinator method %s failed: %s", method, err)
         return None
 
     if inspect.isawaitable(result):
@@ -243,11 +237,11 @@ class PerformanceTracker:
     """Advanced performance tracking for entity operations."""
 
     __slots__ = (
-        '_cache_hits',
-        '_cache_misses',
-        '_entity_id',
-        '_error_count',
-        '_operation_times',
+        "_cache_hits",
+        "_cache_misses",
+        "_entity_id",
+        "_error_count",
+        "_operation_times",
     )
 
     def __init__(self, entity_id: str) -> None:
@@ -271,7 +265,7 @@ class PerformanceTracker:
         samples = [*self._operation_times, operation_time]
 
         # Limit memory usage by keeping only recent samples
-        max_samples = MEMORY_OPTIMIZATION['performance_sample_size']
+        max_samples = MEMORY_OPTIMIZATION["performance_sample_size"]
         if len(samples) > max_samples:
             samples = samples[-max_samples:]
 
@@ -296,25 +290,25 @@ class PerformanceTracker:
             Dictionary containing performance metrics and analysis
         """
         if not self._operation_times:
-            return {'status': 'no_data'}
+            return {"status": "no_data"}
 
         return {
-            'avg_operation_time': round(
+            "avg_operation_time": round(
                 sum(self._operation_times) / len(self._operation_times), 3
             ),
-            'min_operation_time': min(self._operation_times),
-            'max_operation_time': max(self._operation_times),
-            'total_operations': len(self._operation_times),
-            'error_count': self._error_count,
-            'error_rate': self._error_count / len(self._operation_times)
+            "min_operation_time": min(self._operation_times),
+            "max_operation_time": max(self._operation_times),
+            "total_operations": len(self._operation_times),
+            "error_count": self._error_count,
+            "error_rate": self._error_count / len(self._operation_times)
             if self._operation_times
             else 0,
-            'cache_hit_rate': self._cache_hits
+            "cache_hit_rate": self._cache_hits
             / (self._cache_hits + self._cache_misses)
             * 100
             if (self._cache_hits + self._cache_misses) > 0
             else 0,
-            'total_cache_operations': self._cache_hits + self._cache_misses,
+            "total_cache_operations": self._cache_hits + self._cache_misses,
         }
 
 
@@ -341,25 +335,25 @@ class OptimizedEntityBase(
 
     # Essential attributes for optimal memory usage
     __slots__ = (
-        '_attr_device_class',
-        '_attr_entity_category',
-        '_attr_has_entity_name',
-        '_attr_icon',
-        '_attr_name',
-        '_attr_should_poll',
-        '_attr_suggested_area',
-        '_attr_unique_id',
-        '_cached_attributes',
-        '_cached_state',
-        '_dog_id',
-        '_dog_name',
-        '_entity_type',
-        '_initialization_time',
-        '_last_coordinator_available',
-        '_last_updated',
-        '_performance_tracker',
-        '_previous_coordinator_available',
-        '_state_change_listeners',
+        "_attr_device_class",
+        "_attr_entity_category",
+        "_attr_has_entity_name",
+        "_attr_icon",
+        "_attr_name",
+        "_attr_should_poll",
+        "_attr_suggested_area",
+        "_attr_unique_id",
+        "_cached_attributes",
+        "_cached_state",
+        "_dog_id",
+        "_dog_name",
+        "_entity_type",
+        "_initialization_time",
+        "_last_coordinator_available",
+        "_last_updated",
+        "_performance_tracker",
+        "_previous_coordinator_available",
+        "_state_change_listeners",
     )
 
     def __init__(
@@ -421,12 +415,12 @@ class OptimizedEntityBase(
 
         # Prepare default device link information for the dog
         self._set_device_link_info(
-            model='Smart Dog Monitoring System',
-            sw_version='2.1.0',
+            model="Smart Dog Monitoring System",
+            sw_version="2.1.0",
             configuration_url=(
                 f"https://github.com/BigDaddy1990/pawcontrol/wiki/dog-{dog_id}"
             ),
-            manufacturer=MANUFACTURER.replace(' ', ''),
+            manufacturer=MANUFACTURER.replace(" ", ""),
         )
 
         # Register entity for cleanup tracking
@@ -453,18 +447,18 @@ class OptimizedEntityBase(
             icon: Material Design icon
         """
         # Generate unique ID
-        unique_id_parts = ['pawcontrol', self._dog_id, self._entity_type]
+        unique_id_parts = ["pawcontrol", self._dog_id, self._entity_type]
         if unique_id_suffix:
             unique_id_parts.append(unique_id_suffix)
-        self._attr_unique_id = '_'.join(unique_id_parts)
+        self._attr_unique_id = "_".join(unique_id_parts)
 
         # Generate display name
         name_parts = [self._dog_name]
         if name_suffix:
             name_parts.append(name_suffix)
         else:
-            name_parts.append(self._entity_type.replace('_', ' ').title())
-        self._attr_name = ' '.join(name_parts)
+            name_parts.append(self._entity_type.replace("_", " ").title())
+        self._attr_name = " ".join(name_parts)
 
         # Set additional attributes
         self._attr_device_class = device_class
@@ -479,31 +473,31 @@ class OptimizedEntityBase(
     def suggested_area(self) -> str | None:
         """Expose the suggested area assigned during configuration."""
 
-        return getattr(self, '_attr_suggested_area', None)
+        return getattr(self, "_attr_suggested_area", None)
 
     @property
     def device_class(self) -> str | None:
         """Expose the configured device class for Home Assistant stubs."""
 
-        return getattr(self, '_attr_device_class', None)
+        return getattr(self, "_attr_device_class", None)
 
     @property
     def icon(self) -> str | None:
         """Expose the configured icon for entity inspectors."""
 
-        return getattr(self, '_attr_icon', None)
+        return getattr(self, "_attr_icon", None)
 
     def _device_link_details(self) -> DeviceLinkDetails:
         """Extend base device metadata with dynamic dog information."""
 
         info = cast(DeviceLinkDetails, super()._device_link_details())
         dog_data = self._get_dog_data_cached()
-        if dog_data and (dog_info := dog_data.get('dog_info')):
-            if dog_breed := dog_info.get('dog_breed'):
-                info['breed'] = dog_breed
-            if dog_age := dog_info.get('dog_age'):
+        if dog_data and (dog_info := dog_data.get("dog_info")):
+            if dog_breed := dog_info.get("dog_breed"):
+                info["breed"] = dog_breed
+            if dog_age := dog_info.get("dog_age"):
                 suggested_area = f"Pet Area - {self._dog_name} ({dog_age}yo)"
-                info['suggested_area'] = suggested_area
+                info["suggested_area"] = suggested_area
                 self._attr_suggested_area = suggested_area
 
         return info
@@ -526,7 +520,7 @@ class OptimizedEntityBase(
     def _maybe_cleanup_caches(self) -> None:
         """Perform cache cleanup if needed based on time and memory pressure."""
         now = _utcnow_timestamp()
-        cleanup_interval = MEMORY_OPTIMIZATION['weak_ref_cleanup_interval']
+        cleanup_interval = MEMORY_OPTIMIZATION["weak_ref_cleanup_interval"]
 
         if now - type(self)._last_cache_cleanup > cleanup_interval:
             type(self)._last_cache_cleanup = now
@@ -536,7 +530,7 @@ class OptimizedEntityBase(
         """Wrap patched async_update calls so error tracking remains accurate."""
 
         attr = super().__getattribute__(name)
-        if name == 'async_update' and isinstance(attr, Mock):
+        if name == "async_update" and isinstance(attr, Mock):
 
             async def _wrapped_async_update(*args: Any, **kwargs: Any) -> Any:
                 try:
@@ -567,14 +561,14 @@ class OptimizedEntityBase(
             self._performance_tracker.record_operation_time(operation_time)
 
             _LOGGER.debug(
-                'Entity %s added successfully in %.3f seconds',
+                "Entity %s added successfully in %.3f seconds",
                 self._attr_unique_id,
                 operation_time,
             )
 
         except Exception as err:
             self._performance_tracker.record_error()
-            _LOGGER.error('Failed to add entity %s: %s', self._attr_unique_id, err)
+            _LOGGER.error("Failed to add entity %s: %s", self._attr_unique_id, err)
             raise
 
     async def _async_restore_state(self) -> None:
@@ -585,11 +579,11 @@ class OptimizedEntityBase(
         try:
             await self._handle_state_restoration(last_state)
             _LOGGER.debug(
-                'Restored state for %s: %s', self._attr_unique_id, last_state.state
+                "Restored state for %s: %s", self._attr_unique_id, last_state.state
             )
         except Exception as err:
             _LOGGER.warning(
-                'Failed to restore state for %s: %s', self._attr_unique_id, err
+                "Failed to restore state for %s: %s", self._attr_unique_id, err
             )
 
     async def _handle_state_restoration(self, last_state: State) -> None:
@@ -619,7 +613,7 @@ class OptimizedEntityBase(
             if normalized:
                 entry.timestamp = cache_time
             if (
-                now - cache_time < CACHE_TTL_SECONDS['availability']
+                now - cache_time < CACHE_TTL_SECONDS["availability"]
                 and entry.coordinator_available == coordinator_available_now
             ):
                 self._performance_tracker.record_cache_hit()
@@ -659,16 +653,16 @@ class OptimizedEntityBase(
         dog_data = self._get_dog_data_cached()
         if not dog_data:
             return False
-        status = dog_data.get('status')
-        if status in {'offline', 'error'}:
+        status = dog_data.get("status")
+        if status in {"offline", "error"}:
             return False
-        if status == 'recovering':
+        if status == "recovering":
             return True
-        if status == 'missing':
+        if status == "missing":
             return False
 
         # Check for recent updates (within last 10 minutes)
-        if last_update := dog_data.get('last_update'):
+        if last_update := dog_data.get("last_update"):
             last_update_dt = ensure_utc_datetime(last_update)
             if last_update_dt is None:
                 return False
@@ -694,7 +688,7 @@ class OptimizedEntityBase(
             cache_time, normalized = _normalize_cache_timestamp(entry.timestamp, now)
             if normalized:
                 entry.timestamp = cache_time
-            if now - cache_time < CACHE_TTL_SECONDS['attributes']:
+            if now - cache_time < CACHE_TTL_SECONDS["attributes"]:
                 self._performance_tracker.record_cache_hit()
                 return cast(OptimizedEntityAttributesPayload, dict(entry.attributes))
 
@@ -720,7 +714,7 @@ class OptimizedEntityBase(
         except Exception as err:
             self._performance_tracker.record_error()
             _LOGGER.error(
-                'Error generating attributes for %s: %s', self._attr_unique_id, err
+                "Error generating attributes for %s: %s", self._attr_unique_id, err
             )
             return _normalise_attributes(self._get_fallback_attributes())
 
@@ -735,46 +729,46 @@ class OptimizedEntityBase(
             coordinator_available
         )
 
-        base_status = 'online'
+        base_status = "online"
         if not coordinator_available:
-            base_status = 'offline'
+            base_status = "offline"
         elif not previous_available:
-            base_status = 'recovering'
+            base_status = "recovering"
 
         attributes: OptimizedEntityAttributesPayload = {
             ATTR_DOG_ID: self._dog_id,
             ATTR_DOG_NAME: self._dog_name,
-            'entity_type': self._entity_type,
-            'last_updated': dt_util.utcnow().isoformat(),
-            'status': base_status,
-            'coordinator_available': coordinator_available,
+            "entity_type": self._entity_type,
+            "last_updated": dt_util.utcnow().isoformat(),
+            "status": base_status,
+            "coordinator_available": coordinator_available,
         }
 
         # Add dog information if available
         if dog_data := self._get_dog_data_cached():
-            if status := dog_data.get('status'):
-                attributes['status'] = status
-            if last_update := dog_data.get('last_update'):
-                attributes['data_last_update'] = last_update
-            if dog_info := dog_data.get('dog_info', {}):
+            if status := dog_data.get("status"):
+                attributes["status"] = status
+            if last_update := dog_data.get("last_update"):
+                attributes["data_last_update"] = last_update
+            if dog_info := dog_data.get("dog_info", {}):
                 attributes.update(
                     {
-                        'dog_breed': dog_info.get('dog_breed'),
-                        'dog_age': dog_info.get('dog_age'),
-                        'dog_size': dog_info.get('dog_size'),
-                        'dog_weight': dog_info.get('dog_weight'),
+                        "dog_breed": dog_info.get("dog_breed"),
+                        "dog_age": dog_info.get("dog_age"),
+                        "dog_size": dog_info.get("dog_size"),
+                        "dog_weight": dog_info.get("dog_weight"),
                     }
                 )
 
         # Add performance metrics for debugging
         performance_summary = self._performance_tracker.get_performance_summary()
-        if performance_summary and performance_summary.get('status') != 'no_data':
-            attributes['performance_metrics'] = {
-                'avg_operation_ms': round(
-                    performance_summary['avg_operation_time'] * 1000, 2
+        if performance_summary and performance_summary.get("status") != "no_data":
+            attributes["performance_metrics"] = {
+                "avg_operation_ms": round(
+                    performance_summary["avg_operation_time"] * 1000, 2
                 ),
-                'cache_hit_rate': round(performance_summary['cache_hit_rate'], 1),
-                'error_rate': round(performance_summary['error_rate'] * 100, 1),
+                "cache_hit_rate": round(performance_summary["cache_hit_rate"], 1),
+                "error_rate": round(performance_summary["error_rate"] * 100, 1),
             }
 
         return attributes
@@ -782,18 +776,18 @@ class OptimizedEntityBase(
     def _update_coordinator_availability(self, current: bool) -> bool:
         """Track coordinator availability transitions and return the previous state."""
 
-        last = getattr(self, '_last_coordinator_available', current)
-        previous = getattr(self, '_previous_coordinator_available', last)
+        last = getattr(self, "_last_coordinator_available", current)
+        previous = getattr(self, "_previous_coordinator_available", last)
 
         if last != current:
             previous = last
             self._previous_coordinator_available = previous
             self._last_coordinator_available = current
         else:
-            if not hasattr(self, '_previous_coordinator_available'):
+            if not hasattr(self, "_previous_coordinator_available"):
                 self._previous_coordinator_available = previous
 
-        return getattr(self, '_previous_coordinator_available', current)
+        return getattr(self, "_previous_coordinator_available", current)
 
     def _get_fallback_attributes(self) -> OptimizedEntityAttributesPayload:
         """Get minimal fallback attributes when normal generation fails.
@@ -804,9 +798,9 @@ class OptimizedEntityBase(
         return {
             ATTR_DOG_ID: self._dog_id,
             ATTR_DOG_NAME: self._dog_name,
-            'entity_type': self._entity_type,
-            'status': 'error',
-            'last_updated': dt_util.utcnow().isoformat(),
+            "entity_type": self._entity_type,
+            "status": "error",
+            "last_updated": dt_util.utcnow().isoformat(),
         }
 
     def _get_dog_data_cached(self) -> CoordinatorDogData | None:
@@ -829,7 +823,7 @@ class OptimizedEntityBase(
             if normalized:
                 entry.timestamp = cache_time
             cached_available = entry.coordinator_available
-            if now - cache_time < CACHE_TTL_SECONDS['state'] and (
+            if now - cache_time < CACHE_TTL_SECONDS["state"] and (
                 not coordinator_available or cached_available is not False
             ):
                 self._performance_tracker.record_cache_hit()
@@ -841,7 +835,7 @@ class OptimizedEntityBase(
                 dog_payload = self.coordinator.get_dog_data(self._dog_id)
             else:
                 result = _call_coordinator_method(
-                    self.coordinator, 'get_dog_data', self._dog_id
+                    self.coordinator, "get_dog_data", self._dog_id
                 )
                 if isinstance(result, Mapping):
                     dog_payload = cast(CoordinatorDogData, dict(result))
@@ -850,25 +844,25 @@ class OptimizedEntityBase(
             dog_data = cast(CoordinatorDogData, dict(dog_payload))
         else:
             if not coordinator_available:
-                status = 'offline'
+                status = "offline"
             elif not previous_available:
-                status = 'recovering'
+                status = "recovering"
             else:
-                status = 'missing'
+                status = "missing"
             dog_data = cast(
                 CoordinatorDogData,
                 {
-                    'dog_info': {
-                        'dog_id': self._dog_id,
-                        'dog_name': self._dog_name,
+                    "dog_info": {
+                        "dog_id": self._dog_id,
+                        "dog_name": self._dog_name,
                     },
-                    'status': status,
-                    'last_update': None,
+                    "status": status,
+                    "last_update": None,
                 },
             )
 
-        dog_data.setdefault('status', 'online')
-        dog_data.setdefault('last_update', None)
+        dog_data.setdefault("status", "online")
+        dog_data.setdefault("last_update", None)
 
         # Cache result (including empty dicts) to prevent repeated lookups
         _STATE_CACHE[cache_key] = _StateCacheEntry(
@@ -900,7 +894,7 @@ class OptimizedEntityBase(
             if normalized:
                 entry.timestamp = cache_time
             cached_available = entry.coordinator_available
-            if now - cache_time < CACHE_TTL_SECONDS['state'] and (
+            if now - cache_time < CACHE_TTL_SECONDS["state"] and (
                 not coordinator_available or cached_available is not False
             ):
                 self._performance_tracker.record_cache_hit()
@@ -923,7 +917,7 @@ class OptimizedEntityBase(
                 result = self.coordinator.get_module_data(self._dog_id, module)
             else:
                 result = _call_coordinator_method(
-                    self.coordinator, 'get_module_data', self._dog_id, module
+                    self.coordinator, "get_module_data", self._dog_id, module
                 )
             if isinstance(result, Mapping):
                 mapped_result = ensure_json_mapping(
@@ -938,9 +932,9 @@ class OptimizedEntityBase(
                     )
                 )
             elif typed_module:
-                module_payload = cast(CoordinatorModuleState, {'status': 'unknown'})
+                module_payload = cast(CoordinatorModuleState, {"status": "unknown"})
         elif typed_module:
-            module_payload = cast(CoordinatorModuleState, {'status': 'unknown'})
+            module_payload = cast(CoordinatorModuleState, {"status": "unknown"})
 
         # Cache result
         module_payload_mapping = ensure_json_mapping(
@@ -988,26 +982,26 @@ class OptimizedEntityBase(
 
         except Exception as err:
             self._performance_tracker.record_error()
-            _LOGGER.error('Update failed for %s: %s', self._attr_unique_id, err)
+            _LOGGER.error("Update failed for %s: %s", self._attr_unique_id, err)
             raise
 
     async def _async_request_refresh(self) -> None:
         """Request a data refresh from the coordinator or parent class."""
 
-        parent_update = getattr(super(), 'async_update', None)
+        parent_update = getattr(super(), "async_update", None)
         if parent_update is not None:
             maybe_coro = parent_update()
             if inspect.isawaitable(maybe_coro):
                 await maybe_coro
             return
 
-        if hasattr(self.coordinator, 'async_request_refresh'):
+        if hasattr(self.coordinator, "async_request_refresh"):
             maybe_coro = self.coordinator.async_request_refresh()
             if inspect.isawaitable(maybe_coro):
                 await maybe_coro
             return
 
-        if hasattr(self.coordinator, 'async_refresh'):
+        if hasattr(self.coordinator, "async_refresh"):
             maybe_coro = self.coordinator.async_refresh()
             if inspect.isawaitable(maybe_coro):
                 await maybe_coro
@@ -1048,15 +1042,15 @@ class OptimizedEntityBase(
             Dictionary containing detailed performance information
         """
         return {
-            'entity_id': self._attr_unique_id,
-            'dog_id': self._dog_id,
-            'entity_type': self._entity_type,
-            'initialization_time': self._initialization_time.isoformat(),
-            'uptime_seconds': (
+            "entity_id": self._attr_unique_id,
+            "dog_id": self._dog_id,
+            "entity_type": self._entity_type,
+            "initialization_time": self._initialization_time.isoformat(),
+            "uptime_seconds": (
                 dt_util.utcnow() - self._initialization_time
             ).total_seconds(),
-            'performance': self._performance_tracker.get_performance_summary(),
-            'memory_usage_estimate': self._estimate_memory_usage(),
+            "performance": self._performance_tracker.get_performance_summary(),
+            "memory_usage_estimate": self._estimate_memory_usage(),
         }
 
     def _estimate_memory_usage(self) -> OptimizedEntityMemoryEstimate:
@@ -1075,9 +1069,9 @@ class OptimizedEntityBase(
                 cache_size += sys.getsizeof(key) + sys.getsizeof(value)
 
         return {
-            'base_entity_bytes': base_size,
-            'cache_contribution_bytes': cache_size,
-            'estimated_total_bytes': base_size + cache_size,
+            "base_entity_bytes": base_size,
+            "cache_contribution_bytes": cache_size,
+            "estimated_total_bytes": base_size + cache_size,
         }
 
     @abstractmethod
@@ -1107,9 +1101,9 @@ class OptimizedSensorBase(OptimizedEntityBase):
     """
 
     __slots__ = (
-        '_attr_native_unit_of_measurement',
-        '_attr_native_value',
-        '_attr_state_class',
+        "_attr_native_unit_of_measurement",
+        "_attr_native_value",
+        "_attr_state_class",
     )
 
     def __init__(
@@ -1142,7 +1136,7 @@ class OptimizedSensorBase(OptimizedEntityBase):
             dog_name,
             f"sensor_{sensor_type}",
             unique_id_suffix=sensor_type,
-            name_suffix=sensor_type.replace('_', ' ').title(),
+            name_suffix=sensor_type.replace("_", " ").title(),
             device_class=device_class,
             **kwargs,
         )
@@ -1168,7 +1162,7 @@ class OptimizedBinarySensorBase(OptimizedEntityBase):
     management, icon handling, and device class support.
     """
 
-    __slots__ = ('_attr_is_on', '_icon_off', '_icon_on')
+    __slots__ = ("_attr_is_on", "_icon_off", "_icon_on")
 
     def __init__(
         self,
@@ -1200,7 +1194,7 @@ class OptimizedBinarySensorBase(OptimizedEntityBase):
             dog_name,
             f"binary_sensor_{sensor_type}",
             unique_id_suffix=sensor_type,
-            name_suffix=sensor_type.replace('_', ' ').title(),
+            name_suffix=sensor_type.replace("_", " ").title(),
             device_class=device_class,
             **kwargs,
         )
@@ -1235,7 +1229,7 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
     turn on/off operations, and enhanced error handling.
     """
 
-    __slots__ = ('_attr_is_on', '_last_changed')
+    __slots__ = ("_attr_is_on", "_last_changed")
 
     def __init__(
         self,
@@ -1265,7 +1259,7 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
             dog_name,
             f"switch_{switch_type}",
             unique_id_suffix=switch_type,
-            name_suffix=switch_type.replace('_', ' ').title(),
+            name_suffix=switch_type.replace("_", " ").title(),
             device_class=device_class,
             **kwargs,
         )
@@ -1280,10 +1274,10 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
 
     async def _handle_state_restoration(self, last_state: State) -> None:
         """Restore switch state from previous session."""
-        if last_state.state in ('on', 'off'):
-            self._attr_is_on = last_state.state == 'on'
+        if last_state.state in ("on", "off"):
+            self._attr_is_on = last_state.state == "on"
             _LOGGER.debug(
-                'Restored switch state for %s: %s',
+                "Restored switch state for %s: %s",
                 self._attr_unique_id,
                 last_state.state,
             )
@@ -1296,7 +1290,7 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
             await self._async_turn_on_implementation(**kwargs)
             self._attr_is_on = True
             self._last_changed = dt_util.utcnow()
-            write_state = getattr(self, 'async_write_ha_state', None)
+            write_state = getattr(self, "async_write_ha_state", None)
             if callable(write_state):
                 result = write_state()
                 if inspect.isawaitable(result):
@@ -1307,8 +1301,8 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
 
         except Exception as err:
             self._performance_tracker.record_error()
-            _LOGGER.error('Failed to turn on %s: %s', self._attr_unique_id, err)
-            raise HomeAssistantError('Failed to turn on switch') from err
+            _LOGGER.error("Failed to turn on %s: %s", self._attr_unique_id, err)
+            raise HomeAssistantError("Failed to turn on switch") from err
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn switch off with performance tracking."""
@@ -1318,7 +1312,7 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
             await self._async_turn_off_implementation(**kwargs)
             self._attr_is_on = False
             self._last_changed = dt_util.utcnow()
-            write_state = getattr(self, 'async_write_ha_state', None)
+            write_state = getattr(self, "async_write_ha_state", None)
             if callable(write_state):
                 result = write_state()
                 if inspect.isawaitable(result):
@@ -1329,8 +1323,8 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
 
         except Exception as err:
             self._performance_tracker.record_error()
-            _LOGGER.error('Failed to turn off %s: %s', self._attr_unique_id, err)
-            raise HomeAssistantError('Failed to turn off switch') from err
+            _LOGGER.error("Failed to turn off %s: %s", self._attr_unique_id, err)
+            raise HomeAssistantError("Failed to turn off switch") from err
 
     async def _async_turn_on_implementation(self, **kwargs: Any) -> None:
         """Implement turn on logic - override in subclasses."""
@@ -1352,8 +1346,8 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
         )
         attributes.update(
             {
-                'last_changed': self._last_changed.isoformat(),
-                'switch_type': self._entity_type,
+                "last_changed": self._last_changed.isoformat(),
+                "switch_type": self._entity_type,
             }
         )
         return attributes
@@ -1365,7 +1359,7 @@ class OptimizedSwitchBase(OptimizedEntityBase, RestoreEntity):
 class EntityRegistry:
     """Container that exposes only live weak references during iteration."""
 
-    __slots__ = ('_refs', '_sentinel')
+    __slots__ = ("_refs", "_sentinel")
 
     def __init__(self) -> None:
         """Initialize an empty registry without any tracked entities."""
@@ -1388,7 +1382,7 @@ class EntityRegistry:
             gc.collect()
         for reference in tuple(self._refs):
             instance = reference()
-            if instance is None or getattr(instance, 'is_registry_sentinel', False):
+            if instance is None or getattr(instance, "is_registry_sentinel", False):
                 self._refs.discard(reference)
 
     def add(self, reference: weakref.ReferenceType[OptimizedEntityBase]) -> None:
@@ -1439,23 +1433,23 @@ def _cleanup_global_caches() -> None:
     """Clean up global caches to prevent memory leaks."""
 
     now = dt_util.utcnow().timestamp()
-    cleanup_stats = {'cleaned': 0, 'total': 0}
+    cleanup_stats = {"cleaned": 0, "total": 0}
 
     caches: tuple[tuple[str, dict[str, _TimestampedEntry], int], ...] = (
         (
-            'state',
+            "state",
             cast(dict[str, _TimestampedEntry], _STATE_CACHE),
-            CACHE_TTL_SECONDS['state'],
+            CACHE_TTL_SECONDS["state"],
         ),
         (
-            'attributes',
+            "attributes",
             cast(dict[str, _TimestampedEntry], _ATTRIBUTES_CACHE),
-            CACHE_TTL_SECONDS['attributes'],
+            CACHE_TTL_SECONDS["attributes"],
         ),
         (
-            'availability',
+            "availability",
             cast(dict[str, _TimestampedEntry], _AVAILABILITY_CACHE),
-            CACHE_TTL_SECONDS['availability'],
+            CACHE_TTL_SECONDS["availability"],
         ),
     )
 
@@ -1469,12 +1463,12 @@ def _cleanup_global_caches() -> None:
             cache_dict.pop(key, None)
 
         cleaned = len(expired_keys)
-        cleanup_stats['cleaned'] += cleaned
-        cleanup_stats['total'] += original_size
+        cleanup_stats["cleaned"] += cleaned
+        cleanup_stats["total"] += original_size
 
         if cleaned > 0:
             _LOGGER.debug(
-                'Cleaned %d/%d expired entries from %s cache',
+                "Cleaned %d/%d expired entries from %s cache",
                 cleaned,
                 original_size,
                 cache_name,
@@ -1490,18 +1484,18 @@ def _cleanup_global_caches() -> None:
         if dead_refs:
             for entity_ref in dead_refs:
                 _ENTITY_REGISTRY.discard(entity_ref)
-            _LOGGER.debug('Removed %d dead entity weakrefs', len(dead_refs))
+            _LOGGER.debug("Removed %d dead entity weakrefs", len(dead_refs))
 
-    if cleanup_stats['cleaned'] > 0:
+    if cleanup_stats["cleaned"] > 0:
         reduction = (
-            cleanup_stats['cleaned'] / cleanup_stats['total'] * 100
-            if cleanup_stats['total'] > 0
+            cleanup_stats["cleaned"] / cleanup_stats["total"] * 100
+            if cleanup_stats["total"] > 0
             else 0
         )
         _LOGGER.info(
-            'Cache cleanup completed: %d/%d entries cleaned (%.1f%% reduction)',
-            cleanup_stats['cleaned'],
-            cleanup_stats['total'],
+            "Cache cleanup completed: %d/%d entries cleaned (%.1f%% reduction)",
+            cleanup_stats["cleaned"],
+            cleanup_stats["total"],
             reduction,
         )
 
@@ -1511,7 +1505,7 @@ def _register_entity(entity: OptimizedEntityBase) -> None:
 
     _cleanup_global_caches()
 
-    if getattr(entity, 'is_registry_sentinel', False):
+    if getattr(entity, "is_registry_sentinel", False):
         _ENTITY_REGISTRY.set_sentinel(entity)
         return
 
@@ -1525,14 +1519,14 @@ class _RegistrySentinelCoordinator:
     """Minimal coordinator stub that keeps the registry warm."""
 
     __slots__ = (
-        '_listeners',
-        'available',
-        'config_entry',
-        'data',
-        'hass',
-        'last_update_success',
-        'name',
-        'update_interval',
+        "_listeners",
+        "available",
+        "config_entry",
+        "data",
+        "hass",
+        "last_update_success",
+        "name",
+        "update_interval",
     )
 
     def __init__(self) -> None:
@@ -1541,7 +1535,7 @@ class _RegistrySentinelCoordinator:
         self.data: CoordinatorDataPayload = {}
         self.hass = None
         self.last_update_success = True
-        self.name = 'PawControl Registry Sentinel'
+        self.name = "PawControl Registry Sentinel"
         self.update_interval = timedelta(seconds=0)
         self._listeners: set[Callable[[], None]] = set()
 
@@ -1586,19 +1580,19 @@ class _RegistrySentinelEntity(OptimizedEntityBase):
     def __init__(self, coordinator: _RegistrySentinelCoordinator) -> None:
         super().__init__(
             coordinator=coordinator,
-            dog_id='__registry_sentinel__',
-            dog_name='Registry Sentinel',
-            entity_type='sentinel',
-            unique_id_suffix='registry',
-            name_suffix='Sentinel',
+            dog_id="__registry_sentinel__",
+            dog_name="Registry Sentinel",
+            entity_type="sentinel",
+            unique_id_suffix="registry",
+            name_suffix="Sentinel",
             entity_category=None,
         )
 
     def _get_entity_state(self) -> CoordinatorUntypedModuleState:
-        return {'status': 'sentinel'}
+        return {"status": "sentinel"}
 
     def _generate_state_attributes(self) -> OptimizedEntityAttributesPayload:
-        return {'registry': 'sentinel'}
+        return {"registry": "sentinel"}
 
 
 _REGISTRY_SENTINEL_COORDINATOR = _RegistrySentinelCoordinator()
@@ -1631,19 +1625,19 @@ async def create_optimized_entities_batched(
 
     if batch_size <= 0:
         _LOGGER.debug(
-            'Received non-positive batch size %s; defaulting to 1', batch_size
+            "Received non-positive batch size %s; defaulting to 1", batch_size
         )
         batch_size = 1
 
     if delay_between_batches < 0:
         _LOGGER.debug(
-            'Received negative batch delay %.3f; clamping to 0', delay_between_batches
+            "Received negative batch delay %.3f; clamping to 0", delay_between_batches
         )
         delay_between_batches = 0.0
 
     total_entities = len(entities)
     _LOGGER.debug(
-        'Adding %d optimized entities in batches of %d', total_entities, batch_size
+        "Adding %d optimized entities in batches of %d", total_entities, batch_size
     )
 
     for i in range(0, total_entities, batch_size):
@@ -1652,7 +1646,7 @@ async def create_optimized_entities_batched(
         total_batches = (total_entities + batch_size - 1) // batch_size
 
         _LOGGER.debug(
-            'Processing optimized entity batch %d/%d with %d entities',
+            "Processing optimized entity batch %d/%d with %d entities",
             batch_num,
             total_batches,
             len(batch),
@@ -1669,7 +1663,7 @@ async def create_optimized_entities_batched(
                 await asyncio.sleep(0)
 
     _LOGGER.info(
-        'Successfully added %d optimized entities in %d batches',
+        "Successfully added %d optimized entities in %d batches",
         total_entities,
         (total_entities + batch_size - 1) // batch_size,
     )
@@ -1685,44 +1679,44 @@ def get_global_performance_stats() -> OptimizedEntityGlobalPerformanceStats:
     active_entities = sum(1 for ref in _ENTITY_REGISTRY if ref() is not None)
 
     cache_stats: OptimizedEntityCacheStats = {
-        'state_cache_size': len(_STATE_CACHE),
-        'attributes_cache_size': len(_ATTRIBUTES_CACHE),
-        'availability_cache_size': len(_AVAILABILITY_CACHE),
+        "state_cache_size": len(_STATE_CACHE),
+        "attributes_cache_size": len(_ATTRIBUTES_CACHE),
+        "availability_cache_size": len(_AVAILABILITY_CACHE),
     }
 
     performance_summaries = [
         summary
         for tracker in OptimizedEntityBase._performance_registry.values()
         if (summary := tracker.get_performance_summary())
-        and summary.get('status') != 'no_data'
+        and summary.get("status") != "no_data"
     ]
 
     if performance_summaries:
         avg_operation_time = sum(
-            s['avg_operation_time'] for s in performance_summaries
+            s["avg_operation_time"] for s in performance_summaries
         ) / len(performance_summaries)
         avg_cache_hit_rate = sum(
-            s['cache_hit_rate'] for s in performance_summaries
+            s["cache_hit_rate"] for s in performance_summaries
         ) / len(performance_summaries)
-        total_errors = sum(s['error_count'] for s in performance_summaries)
+        total_errors = sum(s["error_count"] for s in performance_summaries)
     else:
         avg_operation_time = avg_cache_hit_rate = total_errors = 0
 
     return {
-        'total_entities_registered': total_entities,
-        'active_entities': active_entities,
-        'cache_statistics': cache_stats,
-        'average_operation_time_ms': round(avg_operation_time * 1000, 2),
-        'average_cache_hit_rate': round(avg_cache_hit_rate, 1),
-        'total_errors': total_errors,
-        'entities_with_performance_data': len(performance_summaries),
+        "total_entities_registered": total_entities,
+        "active_entities": active_entities,
+        "cache_statistics": cache_stats,
+        "average_operation_time_ms": round(avg_operation_time * 1000, 2),
+        "average_cache_hit_rate": round(avg_cache_hit_rate, 1),
+        "total_errors": total_errors,
+        "entities_with_performance_data": len(performance_summaries),
     }
 
 
 ensure_homeassistant_exception_symbols()
 HomeAssistantError: type[Exception] = cast(type[Exception], compat.HomeAssistantError)
 bind_exception_alias(
-    'HomeAssistantError',
+    "HomeAssistantError",
     combine_with_current=True,
 )
-type CoordinatorLike = PawControlCoordinator | '_RegistrySentinelCoordinator'
+type CoordinatorLike = PawControlCoordinator | "_RegistrySentinelCoordinator"

@@ -1,15 +1,11 @@
 """Helpers that translate runtime managers into coordinator-facing adapters."""
+
 from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from datetime import datetime
-from datetime import timedelta
-from datetime import UTC
-from typing import cast
-from typing import Literal
-from typing import TYPE_CHECKING
-from typing import TypedDict
+from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING, Literal, TypedDict, cast
 
 from aiohttp import ClientSession
 
@@ -112,13 +108,13 @@ class _ExpiringCache[PayloadT]:
     """Cache that evicts entries after a fixed TTL."""
 
     __slots__ = (
-        '_data',
-        '_evicted_total',
-        '_hits',
-        '_last_cleanup',
-        '_last_expired',
-        '_misses',
-        '_ttl',
+        "_data",
+        "_evicted_total",
+        "_hits",
+        "_last_cleanup",
+        "_last_expired",
+        "_misses",
+        "_ttl",
     )
 
     def __init__(self, ttl: timedelta) -> None:
@@ -192,13 +188,13 @@ class _ExpiringCache[PayloadT]:
         """Return metadata describing cache state for diagnostics."""
 
         metadata: ModuleAdapterCacheMetadata = {
-            'ttl_seconds': self._ttl.total_seconds(),
+            "ttl_seconds": self._ttl.total_seconds(),
         }
         if self._last_cleanup is not None:
-            metadata['last_cleanup'] = self._last_cleanup
-            metadata['last_expired_count'] = self._last_expired
+            metadata["last_cleanup"] = self._last_cleanup
+            metadata["last_expired_count"] = self._last_expired
         if self._evicted_total:
-            metadata['expired_total'] = self._evicted_total
+            metadata["expired_total"] = self._evicted_total
         return metadata
 
     def snapshot(self) -> ModuleAdapterCacheSnapshot:
@@ -206,33 +202,33 @@ class _ExpiringCache[PayloadT]:
 
         metrics = self.metrics()
         stats: ModuleAdapterCacheStats = {
-            'entries': metrics.entries,
-            'hits': metrics.hits,
-            'misses': metrics.misses,
-            'hit_rate': metrics.hit_rate,
+            "entries": metrics.entries,
+            "hits": metrics.hits,
+            "misses": metrics.misses,
+            "hit_rate": metrics.hit_rate,
         }
         return {
-            'stats': stats,
-            'metadata': self.metadata(),
+            "stats": stats,
+            "metadata": self.metadata(),
         }
 
 
 def _normalise_health_alert(payload: Mapping[str, object]) -> HealthAlertEntry:
     """Return a typed health alert entry with defaulted metadata."""
 
-    alert_type = str(payload.get('type', 'custom'))
-    raw_message = payload.get('message')
-    message = str(raw_message or alert_type.replace('_', ' ').title())
+    alert_type = str(payload.get("type", "custom"))
+    raw_message = payload.get("message")
+    message = str(raw_message or alert_type.replace("_", " ").title())
 
-    raw_severity = str(payload.get('severity', 'medium')).lower()
-    severity: Literal['low', 'medium', 'high', 'critical']
-    if raw_severity in {'low', 'medium', 'high', 'critical'}:
-        severity = cast(Literal['low', 'medium', 'high', 'critical'], raw_severity)
+    raw_severity = str(payload.get("severity", "medium")).lower()
+    severity: Literal["low", "medium", "high", "critical"]
+    if raw_severity in {"low", "medium", "high", "critical"}:
+        severity = cast(Literal["low", "medium", "high", "critical"], raw_severity)
     else:
-        severity = 'medium'
+        severity = "medium"
 
     details: JSONMutableMapping | None = None
-    raw_details = payload.get('details')
+    raw_details = payload.get("details")
     if isinstance(raw_details, Mapping):
         details = cast(
             JSONMutableMapping,
@@ -240,13 +236,13 @@ def _normalise_health_alert(payload: Mapping[str, object]) -> HealthAlertEntry:
         )
 
     alert: HealthAlertEntry = {
-        'type': alert_type,
-        'message': message,
-        'severity': severity,
-        'action_required': bool(payload.get('action_required', False)),
+        "type": alert_type,
+        "message": message,
+        "severity": severity,
+        "action_required": bool(payload.get("action_required", False)),
     }
     if details is not None:
-        alert['details'] = details
+        alert["details"] = details
     return alert
 
 
@@ -255,27 +251,27 @@ def _normalise_health_medication(
 ) -> HealthMedicationReminder:
     """Normalise stored medication payloads into typed reminders."""
 
-    name = str(payload.get('name', payload.get('medication', 'medication')))
-    entry: HealthMedicationReminder = {'name': name}
+    name = str(payload.get("name", payload.get("medication", "medication")))
+    entry: HealthMedicationReminder = {"name": name}
 
-    if 'dosage' in payload:
-        dosage = payload.get('dosage')
-        entry['dosage'] = str(dosage) if dosage is not None else None
+    if "dosage" in payload:
+        dosage = payload.get("dosage")
+        entry["dosage"] = str(dosage) if dosage is not None else None
 
-    if 'frequency' in payload:
-        frequency = payload.get('frequency')
-        entry['frequency'] = str(frequency) if frequency is not None else None
+    if "frequency" in payload:
+        frequency = payload.get("frequency")
+        entry["frequency"] = str(frequency) if frequency is not None else None
 
-    if 'next_dose' in payload:
-        next_dose = payload.get('next_dose')
-        entry['next_dose'] = str(next_dose) if next_dose is not None else None
+    if "next_dose" in payload:
+        next_dose = payload.get("next_dose")
+        entry["next_dose"] = str(next_dose) if next_dose is not None else None
 
-    if 'notes' in payload:
-        notes = payload.get('notes')
-        entry['notes'] = str(notes) if notes is not None else None
+    if "notes" in payload:
+        notes = payload.get("notes")
+        entry["notes"] = str(notes) if notes is not None else None
 
-    if 'with_meals' in payload:
-        entry['with_meals'] = bool(payload.get('with_meals'))
+    if "with_meals" in payload:
+        entry["with_meals"] = bool(payload.get("with_meals"))
 
     return entry
 
@@ -283,7 +279,7 @@ def _normalise_health_medication(
 class _BaseModuleAdapter[PayloadT]:
     """Base helper for adapters that maintain a TTL cache."""
 
-    __slots__ = ('_cache', '_ttl')
+    __slots__ = ("_cache", "_ttl")
 
     def __init__(self, ttl: timedelta | None) -> None:
         self._ttl = ttl
@@ -318,18 +314,18 @@ class _BaseModuleAdapter[PayloadT]:
     def cache_snapshot(self) -> ModuleAdapterCacheSnapshot:
         if not self._cache:
             stats: ModuleAdapterCacheStats = {
-                'entries': 0,
-                'hits': 0,
-                'misses': 0,
-                'hit_rate': 0.0,
+                "entries": 0,
+                "hits": 0,
+                "misses": 0,
+                "hit_rate": 0.0,
             }
-            metadata: ModuleAdapterCacheMetadata = {'ttl_seconds': None}
-            return {'stats': stats, 'metadata': metadata}
+            metadata: ModuleAdapterCacheMetadata = {"ttl_seconds": None}
+            return {"stats": stats, "metadata": metadata}
 
         snapshot = self._cache.snapshot()
-        metadata = snapshot['metadata']
+        metadata = snapshot["metadata"]
         metadata.setdefault(
-            'ttl_seconds',
+            "ttl_seconds",
             self._ttl.total_seconds() if self._ttl is not None else None,
         )
         return snapshot
@@ -349,7 +345,7 @@ class FeedingModuleAdapter(_BaseModuleAdapter[FeedingModulePayload]):
         """Initialise the feeding adapter with HTTP and manager context."""
         super().__init__(ttl)
         self._session = ensure_shared_client_session(
-            session, owner='FeedingModuleAdapter'
+            session, owner="FeedingModuleAdapter"
         )
         self._use_external_api = use_external_api
         self._manager: FeedingManager | None = None
@@ -370,10 +366,10 @@ class FeedingModuleAdapter(_BaseModuleAdapter[FeedingModulePayload]):
             try:
                 manager_data = await self._manager.async_get_feeding_data(dog_id)
             except Exception as err:  # pragma: no cover - defensive logging
-                _LOGGER.debug('Feeding manager unavailable for %s: %s', dog_id, err)
+                _LOGGER.debug("Feeding manager unavailable for %s: %s", dog_id, err)
             else:
                 payload = cast(FeedingModulePayload, dict(manager_data))
-                payload.setdefault('status', 'ready')
+                payload.setdefault("status", "ready")
                 self._remember(dog_id, payload)
                 return payload
 
@@ -389,12 +385,12 @@ class FeedingModuleAdapter(_BaseModuleAdapter[FeedingModulePayload]):
                 raise
             except Exception as err:  # pragma: no cover - unexpected
                 raise NetworkError(f"Device API error: {err}") from err
-            payload.setdefault('status', 'ready')
+            payload.setdefault("status", "ready")
             self._remember(dog_id, payload)
             return payload
 
         default_data: FeedingModulePayload = FeedingModulePayload(
-            status='ready',
+            status="ready",
             last_feeding=None,
             last_feeding_type=None,
             last_feeding_hours=None,
@@ -420,7 +416,7 @@ class FeedingModuleAdapter(_BaseModuleAdapter[FeedingModulePayload]):
             weight_goal=None,
             emergency_mode=None,
             health_emergency=False,
-            health_feeding_status='insufficient_data',
+            health_feeding_status="insufficient_data",
             feeding_schedule=[],
             daily_portions=0,
             health_conditions=[],
@@ -455,36 +451,36 @@ class WalkModuleAdapter(_BaseModuleAdapter[WalkModulePayload]):
         try:
             walk_data = await self._manager.async_get_walk_data(dog_id)
         except Exception as err:  # pragma: no cover - defensive logging
-            _LOGGER.warning('Failed to fetch walk data for %s: %s', dog_id, err)
-            return self._default_payload(status='error', message=str(err))
+            _LOGGER.warning("Failed to fetch walk data for %s: %s", dog_id, err)
+            return self._default_payload(status="error", message=str(err))
 
         if not walk_data:
-            return self._default_payload(status='empty')
+            return self._default_payload(status="empty")
 
         payload = cast(WalkModulePayload, walk_data)
         self._remember(dog_id, payload)
         return payload
 
     def _default_payload(
-        self, *, status: str = 'unavailable', message: str | None = None
+        self, *, status: str = "unavailable", message: str | None = None
     ) -> WalkModulePayload:
         payload: WalkModulePayload = {
-            'current_walk': None,
-            'last_walk': None,
-            'daily_walks': 0,
-            'total_distance': 0.0,
-            'walks_today': 0,
-            'total_duration_today': 0.0,
-            'total_distance_today': 0.0,
-            'weekly_walks': 0,
-            'weekly_distance': 0.0,
-            'needs_walk': False,
-            'walk_streak': 0,
-            'energy_level': 'unknown',
-            'status': status,
+            "current_walk": None,
+            "last_walk": None,
+            "daily_walks": 0,
+            "total_distance": 0.0,
+            "walks_today": 0,
+            "total_duration_today": 0.0,
+            "total_distance_today": 0.0,
+            "weekly_walks": 0,
+            "weekly_distance": 0.0,
+            "needs_walk": False,
+            "walk_streak": 0,
+            "energy_level": "unknown",
+            "status": status,
         }
         if message:
-            payload['message'] = message
+            payload["message"] = message
         return payload
 
 
@@ -502,31 +498,31 @@ class GPSModuleAdapter:
     async def async_get_data(self, dog_id: str) -> GPSModulePayload:
         """Return the latest GPS fix and active route information."""
         if not self._manager:
-            raise GPSUnavailableError(dog_id, 'GPS manager not available')
+            raise GPSUnavailableError(dog_id, "GPS manager not available")
 
         try:
             current_location = await self._manager.async_get_current_location(dog_id)
             active_route = await self._manager.async_get_active_route(dog_id)
         except Exception as err:  # pragma: no cover - defensive logging
-            _LOGGER.warning('Failed to retrieve GPS data for %s: %s', dog_id, err)
+            _LOGGER.warning("Failed to retrieve GPS data for %s: %s", dog_id, err)
             raise GPSUnavailableError(dog_id, str(err)) from err
 
         payload: GPSModulePayload = {
-            'latitude': current_location.latitude if current_location else None,
-            'longitude': current_location.longitude if current_location else None,
-            'accuracy': current_location.accuracy if current_location else None,
-            'last_update': current_location.timestamp.isoformat()
+            "latitude": current_location.latitude if current_location else None,
+            "longitude": current_location.longitude if current_location else None,
+            "accuracy": current_location.accuracy if current_location else None,
+            "last_update": current_location.timestamp.isoformat()
             if current_location
             else None,
-            'source': current_location.source.value if current_location else None,
-            'status': 'tracking'
+            "source": current_location.source.value if current_location else None,
+            "status": "tracking"
             if active_route and active_route.is_active
-            else 'ready',
-            'active_route': {
-                'start_time': active_route.start_time.isoformat(),
-                'duration_minutes': active_route.duration_minutes,
-                'distance_km': active_route.distance_km,
-                'points_count': len(active_route.gps_points),
+            else "ready",
+            "active_route": {
+                "start_time": active_route.start_time.isoformat(),
+                "duration_minutes": active_route.duration_minutes,
+                "distance_km": active_route.distance_km,
+                "points_count": len(active_route.gps_points),
             }
             if active_route and active_route.is_active
             else None,
@@ -554,38 +550,38 @@ class GeofencingModuleAdapter(_BaseModuleAdapter[GeofencingModulePayload]):
         payload: GeofencingModulePayload
         if not self._manager:
             payload = {
-                'status': 'unavailable',
-                'message': 'geofencing disabled',
-                'zones_configured': 0,
-                'zone_status': {},
-                'current_location': None,
-                'safe_zone_breaches': 0,
-                'last_update': None,
+                "status": "unavailable",
+                "message": "geofencing disabled",
+                "zones_configured": 0,
+                "zone_status": {},
+                "current_location": None,
+                "safe_zone_breaches": 0,
+                "last_update": None,
             }
         else:
             try:
                 geofence_status = await self._manager.async_get_geofence_status(dog_id)
             except Exception as err:  # pragma: no cover - defensive logging
                 _LOGGER.warning(
-                    'Failed to fetch geofence status for %s: %s', dog_id, err
+                    "Failed to fetch geofence status for %s: %s", dog_id, err
                 )
                 payload = {
-                    'status': 'error',
-                    'error': str(err),
-                    'zones_configured': 0,
-                    'zone_status': {},
-                    'current_location': None,
-                    'safe_zone_breaches': 0,
-                    'last_update': None,
+                    "status": "error",
+                    "error": str(err),
+                    "zones_configured": 0,
+                    "zone_status": {},
+                    "current_location": None,
+                    "safe_zone_breaches": 0,
+                    "last_update": None,
                 }
             else:
                 payload = {
-                    'status': 'active',
-                    'zones_configured': geofence_status.get('zones_configured', 0),
-                    'zone_status': geofence_status.get('zone_status', {}),
-                    'current_location': geofence_status.get('current_location'),
-                    'safe_zone_breaches': geofence_status.get('safe_zone_breaches', 0),
-                    'last_update': geofence_status.get('last_update'),
+                    "status": "active",
+                    "zones_configured": geofence_status.get("zones_configured", 0),
+                    "zone_status": geofence_status.get("zone_status", {}),
+                    "current_location": geofence_status.get("current_location"),
+                    "safe_zone_breaches": geofence_status.get("safe_zone_breaches", 0),
+                    "last_update": geofence_status.get("last_update"),
                 }
 
         geofence_payload: GeofencingModulePayload = payload
@@ -628,7 +624,7 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
             last_vet_visit=None,
             medications=medications,
             health_alerts=health_alerts,
-            status='healthy',
+            status="healthy",
         )
 
         if self._data_manager is not None:
@@ -638,7 +634,7 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                 )
             except Exception as err:  # pragma: no cover - defensive logging
                 _LOGGER.debug(
-                    'Unable to load stored health entries for %s: %s', dog_id, err
+                    "Unable to load stored health entries for %s: %s", dog_id, err
                 )
             else:
                 if entries:
@@ -646,9 +642,9 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                     if isinstance(latest, Mapping):
                         latest_payload = cast(HealthModulePayload, dict(latest))
                         health_data.update(latest_payload)
-                        health_data.setdefault('status', 'healthy')
+                        health_data.setdefault("status", "healthy")
 
-                    stored_medications = latest.get('medications')
+                    stored_medications = latest.get("medications")
                     if isinstance(stored_medications, list):
                         for medication in stored_medications:
                             if isinstance(medication, dict):
@@ -657,10 +653,10 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                                 )
                             elif isinstance(medication, str):
                                 medications.append(
-                                    _normalise_health_medication({'name': medication})
+                                    _normalise_health_medication({"name": medication})
                                 )
 
-                    stored_alerts = latest.get('health_alerts')
+                    stored_alerts = latest.get("health_alerts")
                     if isinstance(stored_alerts, list):
                         for stored_alert in stored_alerts:
                             if isinstance(stored_alert, dict):
@@ -674,18 +670,18 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                                 health_alerts.append(
                                     _normalise_health_alert(
                                         {
-                                            'type': stored_alert,
-                                            'message': stored_alert.replace(
-                                                '_', ' '
+                                            "type": stored_alert,
+                                            "message": stored_alert.replace(
+                                                "_", " "
                                             ).title(),
-                                            'severity': 'medium',
-                                            'action_required': False,
+                                            "severity": "medium",
+                                            "action_required": False,
                                         }
                                     )
                                 )
 
-                    health_data['medications'] = medications
-                    health_data['health_alerts'] = health_alerts
+                    health_data["medications"] = medications
+                    health_data["health_alerts"] = health_alerts
 
         feeding_context: FeedingSnapshot | None = None
         if self._feeding_manager is not None:
@@ -695,88 +691,88 @@ class HealthModuleAdapter(_BaseModuleAdapter[HealthModulePayload]):
                 )
             except Exception as err:  # pragma: no cover - defensive logging
                 _LOGGER.debug(
-                    'Failed to gather feeding context for %s: %s', dog_id, err
+                    "Failed to gather feeding context for %s: %s", dog_id, err
                 )
 
         if feeding_context is not None:
-            summary = feeding_context.get('health_summary', {})
+            summary = feeding_context.get("health_summary", {})
             if summary:
                 health_data.update(
                     {
-                        'weight': summary.get('current_weight', health_data['weight']),
-                        'ideal_weight': summary.get(
-                            'ideal_weight', health_data['ideal_weight']
+                        "weight": summary.get("current_weight", health_data["weight"]),
+                        "ideal_weight": summary.get(
+                            "ideal_weight", health_data["ideal_weight"]
                         ),
-                        'life_stage': summary.get('life_stage'),
-                        'activity_level': summary.get('activity_level'),
-                        'body_condition_score': summary.get('body_condition_score'),
-                        'health_conditions': summary.get('health_conditions', []),
+                        "life_stage": summary.get("life_stage"),
+                        "activity_level": summary.get("activity_level"),
+                        "body_condition_score": summary.get("body_condition_score"),
+                        "health_conditions": summary.get("health_conditions", []),
                     }
                 )
 
-            if feeding_context.get('health_conditions') and not health_data.get(
-                'health_conditions'
+            if feeding_context.get("health_conditions") and not health_data.get(
+                "health_conditions"
             ):
-                health_data['health_conditions'] = feeding_context.get(
-                    'health_conditions', []
+                health_data["health_conditions"] = feeding_context.get(
+                    "health_conditions", []
                 )
 
-            if feeding_context.get('health_emergency'):
+            if feeding_context.get("health_emergency"):
                 emergency: JSONMutableMapping = cast(
                     JSONMutableMapping,
                     dict(
                         cast(
                             JSONLikeMapping,
-                            feeding_context.get('emergency_mode') or {},
+                            feeding_context.get("emergency_mode") or {},
                         )
                     ),
                 )
-                health_data['status'] = 'attention'
-                health_data['emergency'] = emergency
+                health_data["status"] = "attention"
+                health_data["emergency"] = emergency
                 emergency_alert: HealthAlertEntry = {
-                    'type': 'emergency_feeding',
-                    'message': 'Emergency feeding protocol active',
-                    'severity': 'critical',
-                    'action_required': True,
+                    "type": "emergency_feeding",
+                    "message": "Emergency feeding protocol active",
+                    "severity": "critical",
+                    "action_required": True,
                 }
-                emergency_alert['details'] = emergency
+                emergency_alert["details"] = emergency
                 health_alerts.append(emergency_alert)
 
-            if feeding_context.get('medication_with_meals'):
+            if feeding_context.get("medication_with_meals"):
                 medications.append(
                     _normalise_health_medication(
-                        {'name': 'meal_medication', 'with_meals': True}
+                        {"name": "meal_medication", "with_meals": True}
                     )
                 )
 
-            health_data['health_status'] = feeding_context.get(
-                'health_feeding_status', health_data.get('health_status', 'healthy')
+            health_data["health_status"] = feeding_context.get(
+                "health_feeding_status", health_data.get("health_status", "healthy")
             )
-            health_data['daily_calorie_target'] = feeding_context.get(
-                'daily_calorie_target'
+            health_data["daily_calorie_target"] = feeding_context.get(
+                "daily_calorie_target"
             )
-            health_data['total_calories_today'] = feeding_context.get(
-                'total_calories_today'
+            health_data["total_calories_today"] = feeding_context.get(
+                "total_calories_today"
             )
-            health_data['weight_goal_progress'] = feeding_context.get(
-                'weight_goal_progress'
+            health_data["weight_goal_progress"] = feeding_context.get(
+                "weight_goal_progress"
             )
-            health_data['weight_goal'] = feeding_context.get('weight_goal')
-            if feeding_context.get('daily_activity_level'):
-                health_data['activity_level'] = feeding_context.get(
-                    'daily_activity_level'
+            health_data["weight_goal"] = feeding_context.get("weight_goal")
+            if feeding_context.get("daily_activity_level"):
+                health_data["activity_level"] = feeding_context.get(
+                    "daily_activity_level"
                 )
 
-        if self._walk_manager is not None and 'activity_level' not in health_data:
+        if self._walk_manager is not None and "activity_level" not in health_data:
             try:
                 walk_overview = await self._walk_manager.async_get_walk_data(dog_id)
             except Exception as err:  # pragma: no cover - defensive logging
-                _LOGGER.debug('Walk context unavailable for %s: %s', dog_id, err)
+                _LOGGER.debug("Walk context unavailable for %s: %s", dog_id, err)
             else:
-                if walk_overview and walk_overview.get('daily_walks'):
-                    health_data['activity_level'] = 'active'
+                if walk_overview and walk_overview.get("daily_walks"):
+                    health_data["activity_level"] = "active"
                 elif walk_overview:
-                    health_data['activity_level'] = 'low'
+                    health_data["activity_level"] = "low"
 
         payload = cast(HealthModulePayload, health_data)
         self._remember(dog_id, payload)
@@ -819,7 +815,7 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
 
         if self._manager is None:
             payload: WeatherModulePayload = WeatherModulePayload(
-                status='disabled',
+                status="disabled",
                 health_score=None,
                 alerts=[],
                 recommendations=[],
@@ -833,7 +829,7 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
                 await self._manager.async_update_weather_data(weather_entity)
             except Exception as err:  # pragma: no cover - defensive logging
                 _LOGGER.debug(
-                    'Failed to refresh weather data from %s: %s', weather_entity, err
+                    "Failed to refresh weather data from %s: %s", weather_entity, err
                 )
 
         dog_config = self._resolve_dog_config(dog_id)
@@ -855,7 +851,7 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
                 except ValueError:
                     dog_age_months = None
 
-            raw_conditions = dog_config.get('health_conditions')
+            raw_conditions = dog_config.get("health_conditions")
             if isinstance(raw_conditions, list):
                 health_conditions = [
                     str(condition)
@@ -866,8 +862,8 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
         try:
             alerts: list[WeatherAlertPayload] = [
                 WeatherAlertPayload(
-                    type=getattr(alert.alert_type, 'value', str(alert.alert_type)),
-                    severity=getattr(alert.severity, 'value', str(alert.severity)),
+                    type=getattr(alert.alert_type, "value", str(alert.alert_type)),
+                    severity=getattr(alert.severity, "value", str(alert.severity)),
                     title=alert.title,
                     message=alert.message,
                     recommendations=list(alert.recommendations),
@@ -885,9 +881,9 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
             health_score = self._manager.get_weather_health_score()
             conditions = self._manager.get_current_conditions()
         except Exception as err:  # pragma: no cover - defensive logging
-            _LOGGER.warning('Failed to build weather health data: %s', err)
+            _LOGGER.warning("Failed to build weather health data: %s", err)
             payload = WeatherModulePayload(
-                status='error',
+                status="error",
                 alerts=[],
                 recommendations=[],
                 message=str(err),
@@ -895,13 +891,13 @@ class WeatherModuleAdapter(_BaseModuleAdapter[WeatherModulePayload]):
             )
         else:
             payload = WeatherModulePayload(
-                status='ready',
+                status="ready",
                 health_score=health_score,
                 alerts=alerts,
                 recommendations=recommendations,
             )
             if conditions is not None:
-                payload['conditions'] = WeatherConditionsPayload(
+                payload["conditions"] = WeatherConditionsPayload(
                     temperature_c=conditions.temperature_c,
                     humidity_percent=conditions.humidity_percent,
                     uv_index=conditions.uv_index,
@@ -933,18 +929,18 @@ class GardenModuleAdapter(_BaseModuleAdapter[GardenModulePayload]):
 
         if self._manager is None:
             payload: GardenModulePayload = {
-                'status': 'disabled',
-                'sessions_today': 0,
-                'time_today_minutes': 0.0,
-                'poop_today': 0,
-                'activities_today': 0,
-                'activities_total': 0,
-                'active_session': None,
-                'last_session': None,
-                'hours_since_last_session': None,
-                'stats': cast(GardenStatsSnapshot, {}),
-                'pending_confirmations': [],
-                'weather_summary': None,
+                "status": "disabled",
+                "sessions_today": 0,
+                "time_today_minutes": 0.0,
+                "poop_today": 0,
+                "activities_today": 0,
+                "activities_total": 0,
+                "active_session": None,
+                "last_session": None,
+                "hours_since_last_session": None,
+                "stats": cast(GardenStatsSnapshot, {}),
+                "pending_confirmations": [],
+                "weather_summary": None,
             }
             self._remember(dog_id, payload)
             return payload
@@ -952,29 +948,29 @@ class GardenModuleAdapter(_BaseModuleAdapter[GardenModulePayload]):
         try:
             snapshot = self._manager.build_garden_snapshot(dog_id)
         except Exception as err:  # pragma: no cover - defensive logging
-            _LOGGER.warning('Failed to build garden snapshot for %s: %s', dog_id, err)
+            _LOGGER.warning("Failed to build garden snapshot for %s: %s", dog_id, err)
             payload = cast(
                 GardenModulePayload,
                 {
-                    'status': 'error',
-                    'message': str(err),
-                    'sessions_today': 0,
-                    'time_today_minutes': 0.0,
-                    'poop_today': 0,
-                    'activities_today': 0,
-                    'activities_total': 0,
-                    'active_session': None,
-                    'last_session': None,
-                    'hours_since_last_session': None,
-                    'stats': cast(GardenStatsSnapshot, {}),
-                    'pending_confirmations': [],
-                    'weather_summary': None,
+                    "status": "error",
+                    "message": str(err),
+                    "sessions_today": 0,
+                    "time_today_minutes": 0.0,
+                    "poop_today": 0,
+                    "activities_today": 0,
+                    "activities_total": 0,
+                    "active_session": None,
+                    "last_session": None,
+                    "hours_since_last_session": None,
+                    "stats": cast(GardenStatsSnapshot, {}),
+                    "pending_confirmations": [],
+                    "weather_summary": None,
                 },
             )
             self._remember(dog_id, payload)
             return payload
 
-        snapshot.setdefault('status', 'idle')
+        snapshot.setdefault("status", "idle")
         payload = cast(GardenModulePayload, snapshot)
         self._remember(dog_id, payload)
         return payload
@@ -1053,48 +1049,48 @@ class CoordinatorModuleAdapters:
         if modules.get(MODULE_FEEDING):
             tasks.append(
                 CoordinatorModuleTask(
-                    module='feeding',
+                    module="feeding",
                     coroutine=self.feeding.async_get_data(dog_id),
                 )
             )
         if modules.get(MODULE_WALK):
             tasks.append(
                 CoordinatorModuleTask(
-                    module='walk',
+                    module="walk",
                     coroutine=self.walk.async_get_data(dog_id),
                 )
             )
         if modules.get(MODULE_GPS):
             tasks.append(
                 CoordinatorModuleTask(
-                    module='gps',
+                    module="gps",
                     coroutine=self.gps.async_get_data(dog_id),
                 )
             )
             tasks.append(
                 CoordinatorModuleTask(
-                    module='geofencing',
+                    module="geofencing",
                     coroutine=self.geofencing.async_get_data(dog_id),
                 )
             )
         if modules.get(MODULE_HEALTH):
             tasks.append(
                 CoordinatorModuleTask(
-                    module='health',
+                    module="health",
                     coroutine=self.health.async_get_data(dog_id),
                 )
             )
         if modules.get(MODULE_WEATHER):
             tasks.append(
                 CoordinatorModuleTask(
-                    module='weather',
+                    module="weather",
                     coroutine=self.weather.async_get_data(dog_id),
                 )
             )
         if modules.get(MODULE_GARDEN):
             tasks.append(
                 CoordinatorModuleTask(
-                    module='garden',
+                    module="garden",
                     coroutine=self.garden.async_get_data(dog_id),
                 )
             )

@@ -1,12 +1,11 @@
-"""Config flow entrypoint for the PawControl integration.
+"""Config flow entrypoint for PawControl.
 
-This file is intentionally kept small. The full implementation lives in
-:mod:`custom_components.pawcontrol.config_flow_main` and composes themed mixins
-(e.g. dogs/modules/profile/dashboard/reauth) to keep responsibilities separated.
+The full config flow implementation lives in :mod:`.config_flow_main`.
+This shim exists to keep the Home Assistant entry module small and stable.
 """
+
 from __future__ import annotations
 
-from .config_flow_main import ConfigFlow
-from .config_flow_main import PawControlConfigFlow
+from .config_flow_main import ConfigFlow, PawControlConfigFlow
 
-__all__ = ['ConfigFlow', 'PawControlConfigFlow']
+__all__ = ["ConfigFlow", "PawControlConfigFlow"]

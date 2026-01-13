@@ -1,29 +1,22 @@
 """Compatibility helpers that keep the integration functional without Home Assistant."""
+
 from __future__ import annotations
 
 import inspect
 import sys
-from collections.abc import Awaitable
-from collections.abc import Callable
-from collections.abc import Coroutine
-from collections.abc import Iterable
-from collections.abc import Mapping
-from collections.abc import Sequence
+from collections.abc import Awaitable, Callable, Coroutine, Iterable, Mapping, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
-from datetime import datetime
-from datetime import UTC
+from datetime import UTC, datetime
 from enum import Enum
 from itertools import count
 from types import ModuleType
-from typing import Any
-from typing import cast
-from typing import TypeVar
+from typing import Any, TypeVar, cast
 
 type JSONPrimitive = None | bool | int | float | str
 """Primitive JSON-compatible value."""
 
-type JSONValue = JSONPrimitive | Sequence['JSONValue'] | Mapping[str, 'JSONValue']
+type JSONValue = JSONPrimitive | Sequence["JSONValue"] | Mapping[str, "JSONValue"]
 """Recursive JSON-compatible value supporting nested mappings."""
 
 type JSONMapping = Mapping[str, JSONValue]
@@ -44,7 +37,7 @@ type ConfigEntryOptions = JSONMutableMapping
 type TranslationPlaceholders = dict[str, str]
 """Translation placeholder mapping for compatibility error payloads."""
 
-RuntimeT = TypeVar('RuntimeT')
+RuntimeT = TypeVar("RuntimeT")
 
 
 def _build_exception(
@@ -55,7 +48,7 @@ def _build_exception(
 ) -> type[Exception]:
     """Create a lightweight exception class used when Home Assistant isn't available."""
 
-    namespace: dict[str, object] = {'__doc__': doc}
+    namespace: dict[str, object] = {"__doc__": doc}
     if extra_attrs:
         namespace.update(extra_attrs)
     return type(name, (base,), namespace)
@@ -63,14 +56,14 @@ def _build_exception(
 
 def _import_optional(module: str) -> Any:
     try:  # pragma: no cover - executed when Home Assistant is installed
-        return __import__(module, fromlist=['*'])
+        return __import__(module, fromlist=["*"])
     except (ImportError, ModuleNotFoundError):
         return None
 
 
-_ha_exceptions = _import_optional('homeassistant.exceptions')
-_ha_config_entries = _import_optional('homeassistant.config_entries')
-_ha_core = _import_optional('homeassistant.core')
+_ha_exceptions = _import_optional("homeassistant.exceptions")
+_ha_config_entries = _import_optional("homeassistant.config_entries")
+_ha_core = _import_optional("homeassistant.core")
 
 type _ExceptionRebindCallback = Callable[[dict[str, type[Exception]]], None]
 
@@ -84,14 +77,14 @@ async def support_entry_unload(hass: Any, domain: str) -> bool:
     """Return ``True`` if the registered handler exposes an unload hook."""
 
     handler = HANDLERS.get(domain)
-    return bool(handler and hasattr(handler, 'async_unload_entry'))
+    return bool(handler and hasattr(handler, "async_unload_entry"))
 
 
 async def support_remove_from_device(hass: Any, domain: str) -> bool:
     """Return ``True`` if the handler exposes a remove-device hook."""
 
     handler = HANDLERS.get(domain)
-    return bool(handler and hasattr(handler, 'async_remove_config_entry_device'))
+    return bool(handler and hasattr(handler, "async_remove_config_entry_device"))
 
 
 @dataclass(slots=True)
@@ -112,11 +105,11 @@ def _current_exception_mapping() -> dict[str, type[Exception]]:
     """Return the latest Home Assistant exception bindings."""
 
     return {
-        'HomeAssistantError': HomeAssistantError,
-        'ConfigEntryError': ConfigEntryError,
-        'ConfigEntryAuthFailed': ConfigEntryAuthFailed,
-        'ConfigEntryNotReady': ConfigEntryNotReady,
-        'ServiceValidationError': ServiceValidationError,
+        "HomeAssistantError": HomeAssistantError,
+        "ConfigEntryError": ConfigEntryError,
+        "ConfigEntryAuthFailed": ConfigEntryAuthFailed,
+        "ConfigEntryNotReady": ConfigEntryNotReady,
+        "ServiceValidationError": ServiceValidationError,
     }
 
 
@@ -168,12 +161,12 @@ def _resolve_binding_module(module: ModuleType | str | None) -> ModuleType:
         frame = sys._getframe(2)
     except ValueError as exc:  # pragma: no cover - extremely defensive
         raise RuntimeError(
-            'bind_exception_alias could not determine the caller module'
+            "bind_exception_alias could not determine the caller module"
         ) from exc
 
     try:
         while frame is not None:
-            module_name = frame.f_globals.get('__name__')
+            module_name = frame.f_globals.get("__name__")
             if module_name and module_name != __name__:
                 candidate = sys.modules.get(module_name)
                 if candidate is not None:
@@ -182,7 +175,7 @@ def _resolve_binding_module(module: ModuleType | str | None) -> ModuleType:
     finally:
         del frame
 
-    raise RuntimeError('bind_exception_alias could not determine the caller module')
+    raise RuntimeError("bind_exception_alias could not determine the caller module")
 
 
 def bind_exception_alias(
@@ -204,9 +197,9 @@ def bind_exception_alias(
     module_obj = _resolve_binding_module(module)
 
     target = attr or name
-    module_name = getattr(module_obj, '__name__', None)
+    module_name = getattr(module_obj, "__name__", None)
     if not module_name:
-        raise RuntimeError('bind_exception_alias requires a named module')
+        raise RuntimeError("bind_exception_alias requires a named module")
 
     key = (module_name, target)
 
@@ -247,7 +240,7 @@ def bind_exception_alias(
                     namespace[target] = type(
                         f"PawControl{name}Alias",
                         (candidate, current),
-                        {'__module__': module_name},
+                        {"__module__": module_name},
                     )
                 except TypeError:
                     namespace[target] = candidate
@@ -303,9 +296,9 @@ ServiceValidationError: type[Exception]
 def _config_entry_error_factory() -> type[Exception]:
     base = cast(type[Exception], HomeAssistantError)
     return type(
-        'ConfigEntryError',
+        "ConfigEntryError",
         (base,),
-        {'__doc__': 'Fallback ConfigEntry error used outside Home Assistant.'},
+        {"__doc__": "Fallback ConfigEntry error used outside Home Assistant."},
     )
 
 
@@ -319,28 +312,28 @@ def _auth_failed_factory() -> type[Exception]:
         self.auth_migration = auth_migration
 
     namespace = {
-        '__doc__': 'Fallback ConfigEntryAuthFailed stand-in.',
-        '__slots__': ('auth_migration',),
-        '__init__': _init,
+        "__doc__": "Fallback ConfigEntryAuthFailed stand-in.",
+        "__slots__": ("auth_migration",),
+        "__init__": _init,
     }
-    return type('ConfigEntryAuthFailed', (base,), namespace)
+    return type("ConfigEntryAuthFailed", (base,), namespace)
 
 
 def _not_ready_factory() -> type[Exception]:
     base = cast(type[Exception], ConfigEntryError)
     return type(
-        'ConfigEntryNotReady',
+        "ConfigEntryNotReady",
         (base,),
-        {'__doc__': 'Fallback ConfigEntryNotReady used when HA is unavailable.'},
+        {"__doc__": "Fallback ConfigEntryNotReady used when HA is unavailable."},
     )
 
 
 def _service_validation_error_factory() -> type[Exception]:
     base = cast(type[Exception], HomeAssistantError)
     return type(
-        'ServiceValidationError',
+        "ServiceValidationError",
         (base,),
-        {'__doc__': 'Fallback validation error raised for invalid service payloads.'},
+        {"__doc__": "Fallback validation error raised for invalid service payloads."},
     )
 
 
@@ -359,7 +352,7 @@ def _refresh_exception_symbols(exceptions_module: ModuleType | None) -> None:
 
     resolved_homeassistant_error: type[Exception] | None = None
     if exceptions_module is not None:
-        candidate = getattr(exceptions_module, 'HomeAssistantError', None)
+        candidate = getattr(exceptions_module, "HomeAssistantError", None)
         if isinstance(candidate, type) and issubclass(candidate, Exception):
             resolved_homeassistant_error = cast(type[Exception], candidate)
 
@@ -371,22 +364,22 @@ def _refresh_exception_symbols(exceptions_module: ModuleType | None) -> None:
         _HOMEASSISTANT_ERROR_IS_FALLBACK = False
 
     ConfigEntryError = _get_exception(
-        'ConfigEntryError',
+        "ConfigEntryError",
         _config_entry_error_factory,
         exceptions_module,
     )
     ConfigEntryAuthFailed = _get_exception(
-        'ConfigEntryAuthFailed',
+        "ConfigEntryAuthFailed",
         _auth_failed_factory,
         exceptions_module,
     )
     ConfigEntryNotReady = _get_exception(
-        'ConfigEntryNotReady',
+        "ConfigEntryNotReady",
         _not_ready_factory,
         exceptions_module,
     )
     ServiceValidationError = _get_exception(
-        'ServiceValidationError',
+        "ServiceValidationError",
         _service_validation_error_factory,
         exceptions_module,
     )
@@ -397,7 +390,7 @@ def _refresh_exception_symbols(exceptions_module: ModuleType | None) -> None:
 def ensure_homeassistant_exception_symbols() -> None:
     """Ensure exception exports mirror the active Home Assistant module."""
 
-    _refresh_exception_symbols(sys.modules.get('homeassistant.exceptions'))
+    _refresh_exception_symbols(sys.modules.get("homeassistant.exceptions"))
 
 
 ConfigEntryError = _config_entry_error_factory()
@@ -417,14 +410,14 @@ def _utcnow() -> datetime:
 class ConfigEntryState(Enum):
     """Minimal stand-in mirroring Home Assistant config entry states."""
 
-    NOT_LOADED = ('not_loaded', True)
-    LOADED = ('loaded', True)
-    SETUP_IN_PROGRESS = ('setup_in_progress', False)
-    SETUP_RETRY = ('setup_retry', True)
-    SETUP_ERROR = ('setup_error', True)
-    MIGRATION_ERROR = ('migration_error', False)
-    FAILED_UNLOAD = ('failed_unload', False)
-    UNLOAD_IN_PROGRESS = ('unload_in_progress', False)
+    NOT_LOADED = ("not_loaded", True)
+    LOADED = ("loaded", True)
+    SETUP_IN_PROGRESS = ("setup_in_progress", False)
+    SETUP_RETRY = ("setup_retry", True)
+    SETUP_ERROR = ("setup_error", True)
+    MIGRATION_ERROR = ("migration_error", False)
+    FAILED_UNLOAD = ("failed_unload", False)
+    UNLOAD_IN_PROGRESS = ("unload_in_progress", False)
 
     def __new__(cls, value: str, recoverable: bool) -> ConfigEntryState:
         """Create enum members that store the recoverability flag."""
@@ -460,9 +453,9 @@ class ConfigEntryState(Enum):
 class ConfigEntryChange(Enum):
     """Enum describing why a config entry update listener fired."""
 
-    ADDED = 'added'
-    REMOVED = 'removed'
-    UPDATED = 'updated'
+    ADDED = "added"
+    REMOVED = "removed"
+    UPDATED = "updated"
 
 
 class ConfigSubentry:
@@ -492,18 +485,18 @@ def _build_subentries(
     subentries: dict[str, ConfigSubentry] = {}
     for index, subentry_data in enumerate(subentries_data or (), start=1):
         subentry_id = (
-            str(subentry_data.get('subentry_id'))
-            if 'subentry_id' in subentry_data
+            str(subentry_data.get("subentry_id"))
+            if "subentry_id" in subentry_data
             else f"subentry_{index}"
         )
-        raw_data = subentry_data.get('data', {})
+        raw_data = subentry_data.get("data", {})
         data_mapping = dict(raw_data) if isinstance(raw_data, Mapping) else {}
-        raw_unique_id = subentry_data.get('unique_id')
+        raw_unique_id = subentry_data.get("unique_id")
         subentries[subentry_id] = ConfigSubentry(
             subentry_id=subentry_id,
             data=data_mapping,
-            subentry_type=str(subentry_data.get('subentry_type', 'subentry')),
-            title=str(subentry_data.get('title', subentry_id)),
+            subentry_type=str(subentry_data.get("subentry_type", "subentry")),
+            title=str(subentry_data.get("title", subentry_id)),
             unique_id=str(raw_unique_id) if raw_unique_id is not None else None,
         )
 
@@ -526,7 +519,7 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
         discovery_keys: dict[str, tuple[object, ...]] | None = None,
         subentries_data: Iterable[ConfigEntryDataMapping] | None = None,
         title: str | None = None,
-        source: str = 'user',
+        source: str = "user",
         version: int = 1,
         minor_version: int = 0,
         unique_id: str | None = None,
@@ -548,7 +541,7 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
         """Initialize a shim config entry compatible with Home Assistant tests."""
 
         self.entry_id = entry_id or f"entry_{next(self._id_source)}"
-        self.domain = domain or 'unknown'
+        self.domain = domain or "unknown"
         self.data: ConfigEntryData = dict(data or {})
         self.options: ConfigEntryOptions = dict(options or {})
         self.title = title or self.domain
@@ -597,7 +590,7 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
 
         if self._supports_options is None:
             handler = HANDLERS.get(self.domain)
-            if handler and hasattr(handler, 'async_supports_options_flow'):
+            if handler and hasattr(handler, "async_supports_options_flow"):
                 self._supports_options = bool(handler.async_supports_options_flow(self))
 
         return bool(self._supports_options)
@@ -608,7 +601,7 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
 
         if self._supports_unload is None:
             handler = HANDLERS.get(self.domain)
-            if handler and hasattr(handler, 'async_unload_entry'):
+            if handler and hasattr(handler, "async_unload_entry"):
                 self._supports_unload = True
 
         return bool(self._supports_unload)
@@ -619,7 +612,7 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
 
         if self._supports_remove_device is None:
             handler = HANDLERS.get(self.domain)
-            if handler and hasattr(handler, 'async_remove_config_entry_device'):
+            if handler and hasattr(handler, "async_remove_config_entry_device"):
                 self._supports_remove_device = True
 
         return bool(self._supports_remove_device)
@@ -630,7 +623,7 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
 
         if self._supports_reconfigure is None:
             handler = HANDLERS.get(self.domain)
-            if handler and hasattr(handler, 'async_supports_reconfigure_flow'):
+            if handler and hasattr(handler, "async_supports_reconfigure_flow"):
                 self._supports_reconfigure = bool(
                     handler.async_supports_reconfigure_flow(self)
                 )
@@ -643,12 +636,12 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
 
         if self._supported_subentry_types is None:
             handler = HANDLERS.get(self.domain)
-            if handler and hasattr(handler, 'async_get_supported_subentry_types'):
+            if handler and hasattr(handler, "async_get_supported_subentry_types"):
                 supported_flows = handler.async_get_supported_subentry_types(self)
                 self._supported_subentry_types = {
                     subentry_type: {
-                        'supports_reconfigure': hasattr(
-                            subentry_handler, 'async_step_reconfigure'
+                        "supports_reconfigure": hasattr(
+                            subentry_handler, "async_step_reconfigure"
                         )
                     }
                     for subentry_type, subentry_handler in supported_flows.items()
@@ -660,7 +653,7 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
         """Associate the entry with a Home Assistant instance."""
 
         self._hass = hass
-        manager = getattr(getattr(hass, 'config_entries', None), '_entries', None)
+        manager = getattr(getattr(hass, "config_entries", None), "_entries", None)
         if isinstance(manager, dict):  # pragma: no branch - test helper hook
             manager[self.entry_id] = self
 
@@ -699,7 +692,7 @@ class ConfigEntry[RuntimeT]:  # type: ignore[override]
         self.state = ConfigEntryState.NOT_LOADED
         for callback in list(self._on_unload):
             result = callback()
-            if hasattr(result, '__await__'):
+            if hasattr(result, "__await__"):
                 await cast(Awaitable[Any], result)
         return True
 
@@ -710,7 +703,7 @@ def _should_use_module_entry(entry_cls: Any) -> bool:
     if not isinstance(entry_cls, type):
         return False
 
-    init = getattr(entry_cls, '__init__', None)
+    init = getattr(entry_cls, "__init__", None)
     if init is None:
         return False
 
@@ -720,7 +713,7 @@ def _should_use_module_entry(entry_cls: Any) -> bool:
         return False
 
     parameter_names = {parameter.name for parameter in signature.parameters.values()}
-    return {'domain', 'entry_id'}.issubset(parameter_names)
+    return {"domain", "entry_id"}.issubset(parameter_names)
 
 
 def _is_enum_type(value: Any) -> bool:
@@ -750,40 +743,40 @@ def _sync_config_entry_symbols(
     # implementation is available and, if not, injects the compatibility
     # classes in the places the rest of the codebase expects to find them.
     if config_entries_module is not None:
-        module_entry_cls = getattr(config_entries_module, 'ConfigEntry', None)
+        module_entry_cls = getattr(config_entries_module, "ConfigEntry", None)
         if _should_use_module_entry(module_entry_cls):
-            globals()['ConfigEntry'] = cast(type[Any], module_entry_cls)
+            globals()["ConfigEntry"] = cast(type[Any], module_entry_cls)
         else:
             config_entries_module.ConfigEntry = ConfigEntry
 
-        module_state = getattr(config_entries_module, 'ConfigEntryState', None)
+        module_state = getattr(config_entries_module, "ConfigEntryState", None)
         if _is_enum_type(module_state):
-            globals()['ConfigEntryState'] = cast(type[Enum], module_state)
+            globals()["ConfigEntryState"] = cast(type[Enum], module_state)
         else:
             config_entries_module.ConfigEntryState = ConfigEntryState
 
-        module_change = getattr(config_entries_module, 'ConfigEntryChange', None)
+        module_change = getattr(config_entries_module, "ConfigEntryChange", None)
         if _is_enum_type(module_change):
-            globals()['ConfigEntryChange'] = cast(type[Enum], module_change)
+            globals()["ConfigEntryChange"] = cast(type[Enum], module_change)
         else:
             config_entries_module.ConfigEntryChange = ConfigEntryChange
 
     if core_module is not None:
-        module_entry_cls = getattr(core_module, 'ConfigEntry', None)
+        module_entry_cls = getattr(core_module, "ConfigEntry", None)
         if _should_use_module_entry(module_entry_cls):
-            globals()['ConfigEntry'] = cast(type[Any], module_entry_cls)
+            globals()["ConfigEntry"] = cast(type[Any], module_entry_cls)
         else:
             core_module.ConfigEntry = ConfigEntry
 
-        state_cls = getattr(core_module, 'ConfigEntryState', None)
+        state_cls = getattr(core_module, "ConfigEntryState", None)
         if _is_enum_type(state_cls):
-            globals()['ConfigEntryState'] = cast(type[Enum], state_cls)
+            globals()["ConfigEntryState"] = cast(type[Enum], state_cls)
         else:
             core_module.ConfigEntryState = ConfigEntryState
 
-        change_cls = getattr(core_module, 'ConfigEntryChange', None)
+        change_cls = getattr(core_module, "ConfigEntryChange", None)
         if _is_enum_type(change_cls):
-            globals()['ConfigEntryChange'] = cast(type[Enum], change_cls)
+            globals()["ConfigEntryChange"] = cast(type[Enum], change_cls)
         else:
             core_module.ConfigEntryChange = ConfigEntryChange
 
@@ -795,14 +788,14 @@ def ensure_homeassistant_config_entry_symbols() -> None:
     """Re-apply ConfigEntry exports when Home Assistant stubs are installed late."""
 
     _sync_config_entry_symbols(
-        sys.modules.get('homeassistant.config_entries'),
-        sys.modules.get('homeassistant.core'),
+        sys.modules.get("homeassistant.config_entries"),
+        sys.modules.get("homeassistant.core"),
     )
 
 
 def _fallback_service_registry() -> type[Any]:
     if _ha_core is not None:
-        registry = getattr(_ha_core, 'ServiceRegistry', None)
+        registry = getattr(_ha_core, "ServiceRegistry", None)
         if isinstance(registry, type):  # pragma: no cover - prefer HA implementation
             return registry
 
@@ -837,7 +830,7 @@ def _fallback_service_registry() -> type[Any]:
             if handler is None:
                 raise KeyError(f"Service {domain}.{service} not registered")
             result = handler(_ServiceCall(domain, service, data or {}))
-            if hasattr(result, '__await__'):
+            if hasattr(result, "__await__"):
                 await cast(Awaitable[Any], result)
 
         def async_services(self) -> dict[str, dict[str, Callable[..., Any]]]:
@@ -853,21 +846,21 @@ ServiceRegistry = _fallback_service_registry()
 
 
 __all__ = [
-    'HANDLERS',
-    'ConfigEntry',
-    'ConfigEntryAuthFailed',
-    'ConfigEntryChange',
-    'ConfigEntryError',
-    'ConfigEntryNotReady',
-    'ConfigEntryState',
-    'ConfigSubentry',
-    'HomeAssistantError',
-    'ServiceRegistry',
-    'ServiceValidationError',
-    'bind_exception_alias',
-    'ensure_homeassistant_config_entry_symbols',
-    'ensure_homeassistant_exception_symbols',
-    'register_exception_rebind_callback',
-    'support_entry_unload',
-    'support_remove_from_device',
+    "HANDLERS",
+    "ConfigEntry",
+    "ConfigEntryAuthFailed",
+    "ConfigEntryChange",
+    "ConfigEntryError",
+    "ConfigEntryNotReady",
+    "ConfigEntryState",
+    "ConfigSubentry",
+    "HomeAssistantError",
+    "ServiceRegistry",
+    "ServiceValidationError",
+    "bind_exception_alias",
+    "ensure_homeassistant_config_entry_symbols",
+    "ensure_homeassistant_exception_symbols",
+    "register_exception_rebind_callback",
+    "support_entry_unload",
+    "support_remove_from_device",
 ]
