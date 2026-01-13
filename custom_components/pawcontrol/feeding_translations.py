@@ -16,34 +16,34 @@ if TYPE_CHECKING:
         FeedingComplianceLocalizedSummary,
     )
 
-DEFAULT_LANGUAGE: Final[str] = "en"
+DEFAULT_LANGUAGE: Final[str] = 'en'
 
 _FEEDING_COMPLIANCE_TRANSLATIONS: dict[str, dict[str, str]] = {
-    "en": {
-        "no_data_title": "🍽️ Feeding telemetry missing for {display_name}",
-        "no_data_fallback": "Feeding telemetry is unavailable.",
-        "alert_title": "🍽️ Feeding compliance alert for {display_name}",
-        "score_line": "Score: {score}% over {days_analyzed} days.",
-        "missed_meals_header": "Missed meals:",
-        "missed_meal_item": "{date}: {actual}/{expected} meals",
-        "issues_header": "Key issues:",
-        "issue_item": "{date}: {description}",
-        "recommendations_header": "Next steps:",
-        "recommendation_item": "{recommendation}",
-        "no_recommendations": "No recommendations provided.",
+    'en': {
+        'no_data_title': '🍽️ Feeding telemetry missing for {display_name}',
+        'no_data_fallback': 'Feeding telemetry is unavailable.',
+        'alert_title': '🍽️ Feeding compliance alert for {display_name}',
+        'score_line': 'Score: {score}% over {days_analyzed} days.',
+        'missed_meals_header': 'Missed meals:',
+        'missed_meal_item': '{date}: {actual}/{expected} meals',
+        'issues_header': 'Key issues:',
+        'issue_item': '{date}: {description}',
+        'recommendations_header': 'Next steps:',
+        'recommendation_item': '{recommendation}',
+        'no_recommendations': 'No recommendations provided.',
     },
-    "de": {
-        "no_data_title": "🍽️ Fütterungstelemetrie fehlt für {display_name}",
-        "no_data_fallback": "Fütterungstelemetrie ist nicht verfügbar.",
-        "alert_title": "🍽️ Fütterungs-Compliance-Warnung für {display_name}",
-        "score_line": "Punktzahl: {score}% über {days_analyzed} Tage.",
-        "missed_meals_header": "Verpasste Mahlzeiten:",
-        "missed_meal_item": "{date}: {actual}/{expected} Mahlzeiten",
-        "issues_header": "Wichtige Probleme:",
-        "issue_item": "{date}: {description}",
-        "recommendations_header": "Nächste Schritte:",
-        "recommendation_item": "{recommendation}",
-        "no_recommendations": "Keine Empfehlungen verfügbar.",
+    'de': {
+        'no_data_title': '🍽️ Fütterungstelemetrie fehlt für {display_name}',
+        'no_data_fallback': 'Fütterungstelemetrie ist nicht verfügbar.',
+        'alert_title': '🍽️ Fütterungs-Compliance-Warnung für {display_name}',
+        'score_line': 'Punktzahl: {score}% über {days_analyzed} Tage.',
+        'missed_meals_header': 'Verpasste Mahlzeiten:',
+        'missed_meal_item': '{date}: {actual}/{expected} Mahlzeiten',
+        'issues_header': 'Wichtige Probleme:',
+        'issue_item': '{date}: {description}',
+        'recommendations_header': 'Nächste Schritte:',
+        'recommendation_item': '{recommendation}',
+        'no_recommendations': 'Keine Empfehlungen verfügbar.',
     },
 }
 
@@ -54,7 +54,7 @@ def get_feeding_compliance_translations(language: str | None) -> dict[str, str]:
     if not language:
         return _FEEDING_COMPLIANCE_TRANSLATIONS[DEFAULT_LANGUAGE]
 
-    normalised = language.lower().split("-")[0]
+    normalised = language.lower().split('-')[0]
     translations = _FEEDING_COMPLIANCE_TRANSLATIONS.get(normalised)
     if translations is None:
         return _FEEDING_COMPLIANCE_TRANSLATIONS[DEFAULT_LANGUAGE]
@@ -68,33 +68,33 @@ _MAX_RECOMMENDATIONS: Final[int] = 2
 _SEQUENCE_SCAN_LIMIT: Final[int] = 16
 
 _PREFERRED_TEXT_KEYS: Final[tuple[str, ...]] = (
-    "text",
-    "description",
-    "summary",
-    "message",
-    "recommendation",
-    "detail",
-    "details",
-    "value",
-    "reason",
-    "title",
-    "note",
-    "notes",
-    "info",
-    "information",
-    "content",
+    'text',
+    'description',
+    'summary',
+    'message',
+    'recommendation',
+    'detail',
+    'details',
+    'value',
+    'reason',
+    'title',
+    'note',
+    'notes',
+    'info',
+    'information',
+    'content',
 )
 
 _ALLOWED_SINGLE_WORDS: Final[frozenset[str]] = frozenset(
     {
-        "offline",
-        "error",
-        "warning",
-        "critical",
-        "stale",
-        "missing",
-        "unknown",
-        "degraded",
+        'offline',
+        'error',
+        'warning',
+        'critical',
+        'stale',
+        'missing',
+        'unknown',
+        'degraded',
     }
 )
 
@@ -117,7 +117,7 @@ def _is_structured_message_payload(value: object) -> bool:
     return isinstance(value, Iterable)
 
 
-_T = TypeVar("_T")
+_T = TypeVar('_T')
 
 
 def _normalise_sequence(
@@ -179,7 +179,7 @@ def _normalise_count(value: Any) -> str:
 
     number = _as_float(value)
     if number is None:
-        return "?"
+        return '?'
     if float(number).is_integer():
         return str(int(number))
     return f"{number:.1f}"
@@ -192,7 +192,7 @@ def _normalise_date(value: Any) -> str:
         text = value.strip()
         if text:
             return text
-    return "unknown"
+    return 'unknown'
 
 
 def _normalise_text(value: Any) -> str | None:
@@ -203,13 +203,13 @@ def _normalise_text(value: Any) -> str | None:
     elif isinstance(value, PathLike):
         fspath_value = fspath(value)
         if isinstance(fspath_value, bytes):
-            text = fspath_value.decode("utf-8", "ignore").strip()
+            text = fspath_value.decode('utf-8', 'ignore').strip()
         else:
             text = fspath_value.strip()
     elif isinstance(value, bytes | bytearray):
-        text = value.decode("utf-8", "ignore").strip()
+        text = value.decode('utf-8', 'ignore').strip()
     elif isinstance(value, memoryview):
-        text = value.tobytes().decode("utf-8", "ignore").strip()
+        text = value.tobytes().decode('utf-8', 'ignore').strip()
     elif value is None:
         return None
     else:
@@ -236,13 +236,13 @@ def _iter_text_candidates(
             return
 
         if isinstance(value, bytes | bytearray):
-            candidate = value.decode("utf-8", "ignore").strip()
+            candidate = value.decode('utf-8', 'ignore').strip()
             if candidate:
                 yield candidate
             return
 
         if isinstance(value, memoryview):
-            candidate = value.tobytes().decode("utf-8", "ignore").strip()
+            candidate = value.tobytes().decode('utf-8', 'ignore').strip()
             if candidate:
                 yield candidate
             return
@@ -309,22 +309,22 @@ def _clean_structured_text_candidate(text: str | None) -> str | None:
         return None
 
     if (
-        stripped.startswith("<")
-        and stripped.endswith(">")
-        and " object at " in stripped
+        stripped.startswith('<')
+        and stripped.endswith('>')
+        and ' object at ' in stripped
     ):
         return None
 
-    if stripped.startswith("{") and stripped.endswith("}") and ":" in stripped:
+    if stripped.startswith('{') and stripped.endswith('}') and ':' in stripped:
         return None
 
-    if stripped.startswith("[") and stripped.endswith("]") and "," in stripped:
+    if stripped.startswith('[') and stripped.endswith(']') and ',' in stripped:
         return None
 
-    if stripped.startswith("(") and stripped.endswith(")") and "," in stripped:
+    if stripped.startswith('(') and stripped.endswith(')') and ',' in stripped:
         return None
 
-    if " " not in stripped and stripped.casefold() not in _ALLOWED_SINGLE_WORDS:
+    if ' ' not in stripped and stripped.casefold() not in _ALLOWED_SINGLE_WORDS:
         return None
 
     return stripped
@@ -353,7 +353,7 @@ def _format_structured_message(value: Any) -> str | None:
     if len(texts) == 1:
         return texts[0]
 
-    return "; ".join(texts)
+    return '; '.join(texts)
 
 
 def _collect_missed_meals(
@@ -374,10 +374,10 @@ def _collect_missed_meals(
             continue
 
         summary.append(
-            translations["missed_meal_item"].format(
-                date=_normalise_date(entry.get("date")),
-                actual=_normalise_count(entry.get("actual")),
-                expected=_normalise_count(entry.get("expected")),
+            translations['missed_meal_item'].format(
+                date=_normalise_date(entry.get('date')),
+                actual=_normalise_count(entry.get('actual')),
+                expected=_normalise_count(entry.get('expected')),
             )
         )
         if len(summary) >= _MAX_MISSED_MEALS:
@@ -388,23 +388,23 @@ def _collect_missed_meals(
 def _describe_issue(issue: Mapping[str, object]) -> str:
     """Return a readable description for an issue entry."""
 
-    issues = cast(Sequence[object] | None, _normalise_sequence(issue.get("issues")))
+    issues = cast(Sequence[object] | None, _normalise_sequence(issue.get('issues')))
     if issues:
         for candidate in issues:
             text = _first_text_candidate(candidate)
             if text:
                 return text
 
-    for key in ("description", "summary", "severity"):
+    for key in ('description', 'summary', 'severity'):
         text = _first_text_candidate(issue.get(key))
         if text:
             return text
 
-    fallback = issue.get("issues")
+    fallback = issue.get('issues')
     text = _first_text_candidate(fallback)
     if text:
         return text
-    return "issue"
+    return 'issue'
 
 
 def _collect_issue_summaries(
@@ -425,8 +425,8 @@ def _collect_issue_summaries(
             continue
 
         summary.append(
-            translations["issue_item"].format(
-                date=_normalise_date(entry.get("date")),
+            translations['issue_item'].format(
+                date=_normalise_date(entry.get('date')),
                 description=_describe_issue(entry),
             )
         )
@@ -453,7 +453,7 @@ def _collect_recommendations(
         text = _first_text_candidate(entry)
         if not text:
             continue
-        summary.append(translations["recommendation_item"].format(recommendation=text))
+        summary.append(translations['recommendation_item'].format(recommendation=text))
         if len(summary) >= _MAX_RECOMMENDATIONS:
             break
     return summary
@@ -465,16 +465,16 @@ def _build_localised_sections(
 ) -> tuple[list[str], list[str], list[str]]:
     """Return localised summary sections for missed meals, issues, and recommendations."""
 
-    missed_summary = _collect_missed_meals(translations, compliance.get("missed_meals"))
+    missed_summary = _collect_missed_meals(translations, compliance.get('missed_meals'))
     issue_summary = _collect_issue_summaries(
-        translations, compliance.get("compliance_issues")
+        translations, compliance.get('compliance_issues')
     )
     recommendation_summary = _collect_recommendations(
-        translations, compliance.get("recommendations")
+        translations, compliance.get('recommendations')
     )
 
     if not recommendation_summary and (issue_summary or missed_summary):
-        recommendation_summary.append(translations["no_recommendations"])
+        recommendation_summary.append(translations['no_recommendations'])
 
     return missed_summary, issue_summary, recommendation_summary
 
@@ -488,60 +488,60 @@ def build_feeding_compliance_summary(
     """Return a localised summary for a feeding compliance result."""
 
     translations = get_feeding_compliance_translations(language)
-    status = compliance.get("status")
+    status = compliance.get('status')
 
-    if status != "completed":
-        raw_message = compliance.get("message")
+    if status != 'completed':
+        raw_message = compliance.get('message')
         if _is_structured_message_payload(raw_message):
             message = _format_structured_message(raw_message)
         else:
             message = _normalise_text(raw_message)
         if not message:
-            message = translations["no_data_fallback"]
+            message = translations['no_data_fallback']
 
-        title = translations["no_data_title"].format(display_name=display_name)
+        title = translations['no_data_title'].format(display_name=display_name)
         return {
-            "title": title,
-            "message": message,
-            "score_line": None,
-            "missed_meals": [],
-            "issues": [],
-            "recommendations": [],
+            'title': title,
+            'message': message,
+            'score_line': None,
+            'missed_meals': [],
+            'issues': [],
+            'recommendations': [],
         }
 
-    score = _as_float(compliance.get("compliance_score")) or 0.0
-    days_value = _as_float(compliance.get("days_analyzed"))
+    score = _as_float(compliance.get('compliance_score')) or 0.0
+    days_value = _as_float(compliance.get('days_analyzed'))
     days_analyzed = int(days_value) if days_value is not None else 0
     missed_summary, issue_summary, recommendation_summary = _build_localised_sections(
         translations, compliance
     )
 
-    score_line = translations["score_line"].format(
+    score_line = translations['score_line'].format(
         score=f"{score:.1f}", days_analyzed=days_analyzed
     )
     lines: list[str] = [score_line]
 
     if missed_summary:
-        lines.append(translations["missed_meals_header"])
+        lines.append(translations['missed_meals_header'])
         lines.extend(f"- {entry}" for entry in missed_summary)
 
     if issue_summary:
-        lines.append(translations["issues_header"])
+        lines.append(translations['issues_header'])
         lines.extend(f"- {entry}" for entry in issue_summary)
 
     if recommendation_summary:
-        lines.append(translations["recommendations_header"])
+        lines.append(translations['recommendations_header'])
         lines.extend(f"- {entry}" for entry in recommendation_summary)
 
-    title = translations["alert_title"].format(display_name=display_name)
-    message = "\n".join(lines) if lines else None
+    title = translations['alert_title'].format(display_name=display_name)
+    message = '\n'.join(lines) if lines else None
     return {
-        "title": title,
-        "message": message,
-        "score_line": score_line,
-        "missed_meals": missed_summary,
-        "issues": issue_summary,
-        "recommendations": recommendation_summary,
+        'title': title,
+        'message': message,
+        'score_line': score_line,
+        'missed_meals': missed_summary,
+        'issues': issue_summary,
+        'recommendations': recommendation_summary,
     }
 
 
@@ -556,13 +556,13 @@ def build_feeding_compliance_notification(
     summary = build_feeding_compliance_summary(
         language, display_name=display_name, compliance=compliance
     )
-    return summary["title"], summary["message"]
+    return summary['title'], summary['message']
 
 
 class _BoundedSequenceSnapshot[T](Sequence[T]):
     """Cache at most ``limit`` items from an iterable for safe re-iteration."""
 
-    __slots__ = ("_cache", "_iterator", "_limit")
+    __slots__ = ('_cache', '_iterator', '_limit')
 
     def __init__(self, source: Iterable[T], limit: int) -> None:
         self._iterator: Iterator[T] | None = iter(source)

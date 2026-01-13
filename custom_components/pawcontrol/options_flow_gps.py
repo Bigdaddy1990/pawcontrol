@@ -171,11 +171,11 @@ class GPSOptionsMixin(GPSOptionsHost):
 
         dog_options = self._current_dog_options()
         entry = dog_options.get(dog_id, {})
-        raw = entry.get("geofence_settings")
+        raw = entry.get('geofence_settings')
         if isinstance(raw, Mapping):
             return cast(GeofenceOptions, dict(raw))
 
-        legacy = self._current_options().get("geofence_settings", {})
+        legacy = self._current_options().get('geofence_settings', {})
         if isinstance(legacy, Mapping):
             return cast(GeofenceOptions, dict(legacy))
 
@@ -190,7 +190,7 @@ class GPSOptionsMixin(GPSOptionsHost):
             return await self.async_step_init()
 
         if user_input is not None:
-            selected_dog_id = user_input.get("dog_id")
+            selected_dog_id = user_input.get('dog_id')
             self._select_dog_by_id(
                 selected_dog_id if isinstance(selected_dog_id, str) else None
             )
@@ -199,7 +199,7 @@ class GPSOptionsMixin(GPSOptionsHost):
             return await self.async_step_init()
 
         return self.async_show_form(
-            step_id="select_dog_for_gps_settings",
+            step_id='select_dog_for_gps_settings',
             data_schema=self._build_dog_selector_schema(),
         )
 
@@ -212,7 +212,7 @@ class GPSOptionsMixin(GPSOptionsHost):
             return await self.async_step_init()
 
         if user_input is not None:
-            selected_dog_id = user_input.get("dog_id")
+            selected_dog_id = user_input.get('dog_id')
             self._select_dog_by_id(
                 selected_dog_id if isinstance(selected_dog_id, str) else None
             )
@@ -221,7 +221,7 @@ class GPSOptionsMixin(GPSOptionsHost):
             return await self.async_step_init()
 
         return self.async_show_form(
-            step_id="select_dog_for_geofence_settings",
+            step_id='select_dog_for_geofence_settings',
             data_schema=self._build_dog_selector_schema(),
         )
 
@@ -250,9 +250,9 @@ class GPSOptionsMixin(GPSOptionsHost):
                 )
             except ValidationError:
                 return self.async_show_form(
-                    step_id="gps_settings",
+                    step_id='gps_settings',
                     data_schema=self._get_gps_settings_schema(dog_id, user_input),
-                    errors={CONF_GPS_UPDATE_INTERVAL: "invalid_interval"},
+                    errors={CONF_GPS_UPDATE_INTERVAL: 'invalid_interval'},
                 )
 
             try:
@@ -266,9 +266,9 @@ class GPSOptionsMixin(GPSOptionsHost):
                 )
             except ValidationError:
                 return self.async_show_form(
-                    step_id="gps_settings",
+                    step_id='gps_settings',
                     data_schema=self._get_gps_settings_schema(dog_id, user_input),
-                    errors={CONF_GPS_ACCURACY_FILTER: "invalid_accuracy"},
+                    errors={CONF_GPS_ACCURACY_FILTER: 'invalid_accuracy'},
                 )
 
             try:
@@ -282,9 +282,9 @@ class GPSOptionsMixin(GPSOptionsHost):
                 )
             except ValidationError:
                 return self.async_show_form(
-                    step_id="gps_settings",
+                    step_id='gps_settings',
                     data_schema=self._get_gps_settings_schema(dog_id, user_input),
-                    errors={CONF_GPS_DISTANCE_FILTER: "invalid_distance"},
+                    errors={CONF_GPS_DISTANCE_FILTER: 'invalid_distance'},
                 )
 
             history_candidate = user_input.get(
@@ -340,10 +340,10 @@ class GPSOptionsMixin(GPSOptionsHost):
 
             typed_options = self._normalise_options_snapshot(new_options)
 
-            return self.async_create_entry(title="", data=typed_options)
+            return self.async_create_entry(title='', data=typed_options)
 
         return self.async_show_form(
-            step_id="gps_settings",
+            step_id='gps_settings',
             data_schema=self._get_gps_settings_schema(dog_id),
         )
 
@@ -395,7 +395,7 @@ class GPSOptionsMixin(GPSOptionsHost):
                         max=100,
                         step=1,
                         mode=selector.NumberSelectorMode.BOX,
-                        unit_of_measurement="meters",
+                        unit_of_measurement='meters',
                     )
                 ),
                 vol.Optional(
@@ -417,7 +417,7 @@ class GPSOptionsMixin(GPSOptionsHost):
                         max=365,
                         step=1,
                         mode=selector.NumberSelectorMode.BOX,
-                        unit_of_measurement="days",
+                        unit_of_measurement='days',
                     )
                 ),
                 vol.Optional(
@@ -470,7 +470,7 @@ class GPSOptionsMixin(GPSOptionsHost):
                     cast(JSONLikeMapping, dict(dog_options.get(dog_id, {}))),
                     dog_id=dog_id,
                 )
-                entry["geofence_settings"] = self._build_geofence_settings(
+                entry['geofence_settings'] = self._build_geofence_settings(
                     typed_input,
                     current_geofence,
                     radius=int(radius),
@@ -482,23 +482,23 @@ class GPSOptionsMixin(GPSOptionsHost):
 
                 typed_options = self._normalise_options_snapshot(new_options)
 
-                return self.async_create_entry(title="", data=typed_options)
+                return self.async_create_entry(title='', data=typed_options)
 
             except ValidationError:
                 return self.async_show_form(
-                    step_id="geofence_settings",
+                    step_id='geofence_settings',
                     data_schema=self._get_geofence_settings_schema(dog_id, user_input),
-                    errors={GEOFENCE_RADIUS_FIELD: "radius_out_of_range"},
+                    errors={GEOFENCE_RADIUS_FIELD: 'radius_out_of_range'},
                 )
             except Exception:
                 return self.async_show_form(
-                    step_id="geofence_settings",
+                    step_id='geofence_settings',
                     data_schema=self._get_geofence_settings_schema(dog_id, user_input),
-                    errors={"base": "geofence_update_failed"},
+                    errors={'base': 'geofence_update_failed'},
                 )
 
         return self.async_show_form(
-            step_id="geofence_settings",
+            step_id='geofence_settings',
             data_schema=self._get_geofence_settings_schema(dog_id),
             description_placeholders=dict(
                 self._get_geofence_description_placeholders()
@@ -541,7 +541,7 @@ class GPSOptionsMixin(GPSOptionsHost):
                         max=90,
                         step=0.000001,
                         mode=selector.NumberSelectorMode.BOX,
-                        unit_of_measurement="°",
+                        unit_of_measurement='°',
                     )
                 ),
                 vol.Optional(
@@ -553,7 +553,7 @@ class GPSOptionsMixin(GPSOptionsHost):
                         max=180,
                         step=0.000001,
                         mode=selector.NumberSelectorMode.BOX,
-                        unit_of_measurement="°",
+                        unit_of_measurement='°',
                     )
                 ),
                 vol.Optional(
@@ -568,7 +568,7 @@ class GPSOptionsMixin(GPSOptionsHost):
                         max=MAX_GEOFENCE_RADIUS,
                         step=1,
                         mode=selector.NumberSelectorMode.BOX,
-                        unit_of_measurement="meters",
+                        unit_of_measurement='meters',
                     )
                 ),
                 vol.Optional(
@@ -686,8 +686,8 @@ class GPSOptionsMixin(GPSOptionsHost):
         geofence_radius = current_geofence.get(GEOFENCE_RADIUS_FIELD, 50)
 
         return {
-            "geofencing_enabled": "yes" if geofencing_enabled else "no",
-            "geofence_lat": str(geofence_lat) if geofence_lat is not None else "n/a",
-            "geofence_lon": str(geofence_lon) if geofence_lon is not None else "n/a",
-            "geofence_radius": str(geofence_radius),
+            'geofencing_enabled': 'yes' if geofencing_enabled else 'no',
+            'geofence_lat': str(geofence_lat) if geofence_lat is not None else 'n/a',
+            'geofence_lon': str(geofence_lon) if geofence_lon is not None else 'n/a',
+            'geofence_radius': str(geofence_radius),
         }

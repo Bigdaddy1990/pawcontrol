@@ -1,4 +1,5 @@
 """Door sensor configuration steps for the PawControl options flow."""
+
 from __future__ import annotations
 
 import logging
@@ -15,9 +16,7 @@ from .selector_shim import selector
 from .types import DEFAULT_DOOR_SENSOR_SETTINGS
 from .types import DOG_ID_FIELD
 from .types import DOG_NAME_FIELD
-from .types import DoorSensorSettingsConfig
 from .types import DoorSensorSettingsPayload
-from .types import freeze_placeholders
 from .types import JSONMutableMapping
 from .types import JSONValue
 from .types import OptionsDogSelectionInput

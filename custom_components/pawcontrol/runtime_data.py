@@ -23,8 +23,8 @@ from .types import (
 
 _LOGGER = logging.getLogger(__name__)
 
-_ENTRY_VERSION_ATTR = "_pawcontrol_runtime_store_version"
-_ENTRY_CREATED_VERSION_ATTR = "_pawcontrol_runtime_store_created_version"
+_ENTRY_VERSION_ATTR = '_pawcontrol_runtime_store_version'
+_ENTRY_CREATED_VERSION_ATTR = '_pawcontrol_runtime_store_created_version'
 
 
 def _resolve_entry_id(entry_or_id: PawControlConfigEntry | str) -> str:
@@ -86,14 +86,14 @@ def _as_runtime_data(value: object | None) -> PawControlRuntimeData | None:
     if value is None:
         return None
 
-    value_cls = getattr(value, "__class__", None)
+    value_cls = getattr(value, '__class__', None)
     if value_cls is None:
         return None
 
-    if getattr(value_cls, "__name__", "") != "PawControlRuntimeData":
+    if getattr(value_cls, '__name__', '') != 'PawControlRuntimeData':
         return None
 
-    if getattr(value_cls, "__module__", "") != PawControlRuntimeData.__module__:
+    if getattr(value_cls, '__module__', '') != PawControlRuntimeData.__module__:
         return None
 
     return cast(PawControlRuntimeData, value)
@@ -114,9 +114,9 @@ def _stamp_runtime_schema(
 ) -> tuple[int, int]:
     """Ensure runtime payloads carry compatible schema metadata."""
 
-    schema_version = _coerce_version(getattr(runtime_data, "schema_version", None))
+    schema_version = _coerce_version(getattr(runtime_data, 'schema_version', None))
     created_schema_version = _coerce_version(
-        getattr(runtime_data, "schema_created_version", None)
+        getattr(runtime_data, 'schema_created_version', None)
     )
 
     if schema_version is None:
@@ -128,7 +128,7 @@ def _stamp_runtime_schema(
         created_schema_version > DomainRuntimeStoreEntry.CURRENT_VERSION
     ):
         raise RuntimeDataIncompatibleError(
-            "Future runtime schema detected for "
+            'Future runtime schema detected for '
             f"{entry_id} (got schema={schema_version} "
             f"created={created_schema_version}, "
             f"current={DomainRuntimeStoreEntry.CURRENT_VERSION})"
@@ -136,7 +136,7 @@ def _stamp_runtime_schema(
 
     if created_schema_version < DomainRuntimeStoreEntry.MINIMUM_COMPATIBLE_VERSION:
         _LOGGER.debug(
-            "Upgrading runtime schema origin for %s from %s to %s",
+            'Upgrading runtime schema origin for %s from %s to %s',
             entry_id,
             created_schema_version,
             DomainRuntimeStoreEntry.MINIMUM_COMPATIBLE_VERSION,
@@ -145,7 +145,7 @@ def _stamp_runtime_schema(
 
     if schema_version < DomainRuntimeStoreEntry.CURRENT_VERSION:
         _LOGGER.debug(
-            "Upgrading runtime schema version for %s from %s to %s",
+            'Upgrading runtime schema version for %s from %s to %s',
             entry_id,
             schema_version,
             DomainRuntimeStoreEntry.CURRENT_VERSION,
@@ -171,21 +171,21 @@ def _as_store_entry(value: object | None) -> DomainRuntimeStoreEntry | None:
     if runtime_data is not None:
         return DomainRuntimeStoreEntry(runtime_data=runtime_data)
 
-    value_cls = getattr(value, "__class__", None)
+    value_cls = getattr(value, '__class__', None)
     if value_cls is None:
         return None
 
-    if getattr(value_cls, "__name__", "") != "DomainRuntimeStoreEntry":
+    if getattr(value_cls, '__name__', '') != 'DomainRuntimeStoreEntry':
         if isinstance(value, Mapping):
             mapping_value: Mapping[str, object]
             mapping_value = cast(Mapping[str, object], value)
-            runtime_candidate = mapping_value.get("runtime_data")
+            runtime_candidate = mapping_value.get('runtime_data')
             runtime_data = _as_runtime_data(runtime_candidate)
             if runtime_data is None:
                 return None
 
-            version = _coerce_version(mapping_value.get("version"))
-            created_version = _coerce_version(mapping_value.get("created_version"))
+            version = _coerce_version(mapping_value.get('version'))
+            created_version = _coerce_version(mapping_value.get('created_version'))
             if version is None:
                 return DomainRuntimeStoreEntry(runtime_data=runtime_data)
             if created_version is None:
@@ -198,16 +198,16 @@ def _as_store_entry(value: object | None) -> DomainRuntimeStoreEntry | None:
 
         return None
 
-    if getattr(value_cls, "__module__", "") != DomainRuntimeStoreEntry.__module__:
+    if getattr(value_cls, '__module__', '') != DomainRuntimeStoreEntry.__module__:
         return None
 
-    runtime_candidate = getattr(value, "runtime_data", None)
+    runtime_candidate = getattr(value, 'runtime_data', None)
     runtime_data = _as_runtime_data(runtime_candidate)
     if runtime_data is None:
         return None
 
-    version = _coerce_version(getattr(value, "version", None))
-    created_version = _coerce_version(getattr(value, "created_version", None))
+    version = _coerce_version(getattr(value, 'version', None))
+    created_version = _coerce_version(getattr(value, 'created_version', None))
     if version is None:
         return DomainRuntimeStoreEntry(runtime_data=runtime_data)
     if created_version is None:
@@ -228,24 +228,24 @@ def _resolve_entry_status(
     """Return a :class:`RuntimeStoreEntryStatus` for runtime metadata."""
 
     if not available:
-        return "missing"
+        return 'missing'
 
     if version is None or created_version is None:
-        return "unstamped"
+        return 'unstamped'
 
     if version > DomainRuntimeStoreEntry.CURRENT_VERSION or (
         created_version is not None
         and created_version > DomainRuntimeStoreEntry.CURRENT_VERSION
     ):
-        return "future_incompatible"
+        return 'future_incompatible'
 
     if created_version < DomainRuntimeStoreEntry.MINIMUM_COMPATIBLE_VERSION:
-        return "legacy_upgrade_required"
+        return 'legacy_upgrade_required'
 
     if version != DomainRuntimeStoreEntry.CURRENT_VERSION:
-        return "upgrade_pending"
+        return 'upgrade_pending'
 
-    return "current"
+    return 'current'
 
 
 def _build_runtime_store_snapshot(
@@ -260,10 +260,10 @@ def _build_runtime_store_snapshot(
         available=available, version=version, created_version=created_version
     )
     snapshot: RuntimeStoreEntrySnapshot = {
-        "available": available,
-        "version": version,
-        "created_version": created_version,
-        "status": status,
+        'available': available,
+        'version': version,
+        'created_version': created_version,
+        'status': status,
     }
     return snapshot
 
@@ -285,7 +285,7 @@ def _get_store_entry_from_entry(
     if entry is None:
         return None
 
-    runtime = getattr(entry, "runtime_data", None)
+    runtime = getattr(entry, 'runtime_data', None)
     runtime_data = _as_runtime_data(runtime)
     if runtime_data is None:
         return None
@@ -324,7 +324,7 @@ def _detach_runtime_from_entry(entry: PawControlConfigEntry | None) -> None:
     if entry is None:
         return
 
-    if hasattr(entry, "runtime_data"):
+    if hasattr(entry, 'runtime_data'):
         entry.runtime_data = None
     if hasattr(entry, _ENTRY_VERSION_ATTR):
         setattr(entry, _ENTRY_VERSION_ATTR, None)
@@ -339,7 +339,7 @@ def _normalise_store_entry(
 
     if store_entry.is_future_version():
         raise RuntimeDataIncompatibleError(
-            "Future runtime store schema detected for "
+            'Future runtime store schema detected for '
             f"{entry_id} (got version={store_entry.version} "
             f"created={store_entry.created_version}, "
             f"current={DomainRuntimeStoreEntry.CURRENT_VERSION})"
@@ -352,7 +352,7 @@ def _normalise_store_entry(
     created_version = max(store_entry.created_version, schema_created_version)
     if created_version < DomainRuntimeStoreEntry.MINIMUM_COMPATIBLE_VERSION:
         _LOGGER.debug(
-            "Upgrading legacy runtime store entry for %s from schema %s",
+            'Upgrading legacy runtime store entry for %s from schema %s',
             entry_id,
             created_version,
         )
@@ -400,7 +400,7 @@ def get_runtime_data(
     try:
         entry_store_entry = _get_store_entry_from_entry(entry)
     except RuntimeDataIncompatibleError as err:
-        _LOGGER.error("Runtime data incompatible for entry %s: %s", entry_id, err)
+        _LOGGER.error('Runtime data incompatible for entry %s: %s', entry_id, err)
         _detach_runtime_from_entry(entry)
         if raise_on_incompatible:
             raise
@@ -410,7 +410,7 @@ def get_runtime_data(
         try:
             current_entry = _normalise_store_entry(entry_id, entry_store_entry)
         except RuntimeDataIncompatibleError as err:
-            _LOGGER.error("Runtime data incompatible for entry %s: %s", entry_id, err)
+            _LOGGER.error('Runtime data incompatible for entry %s: %s', entry_id, err)
             _detach_runtime_from_entry(entry)
             if raise_on_incompatible:
                 raise
@@ -443,7 +443,7 @@ def get_runtime_data(
     try:
         current_entry = _normalise_store_entry(entry_id, store_entry)
     except RuntimeDataIncompatibleError as err:
-        _LOGGER.error("Runtime data incompatible for entry %s: %s", entry_id, err)
+        _LOGGER.error('Runtime data incompatible for entry %s: %s', entry_id, err)
         if existing_store.pop(entry_id, None) is not None:
             _cleanup_domain_store(hass, existing_store)
         _detach_runtime_from_entry(entry)
@@ -467,7 +467,7 @@ def describe_runtime_store_status(
     entry = _get_entry(hass, entry_or_id)
     entry_id = _resolve_entry_id(entry_or_id)
 
-    entry_runtime = _as_runtime_data(getattr(entry, "runtime_data", None))
+    entry_runtime = _as_runtime_data(getattr(entry, 'runtime_data', None))
     entry_version = (
         _coerce_version(getattr(entry, _ENTRY_VERSION_ATTR, None))
         if entry is not None
@@ -500,9 +500,9 @@ def describe_runtime_store_status(
         store_created_version = store_value.created_version
     elif isinstance(store_value, Mapping):
         mapping_value = cast(Mapping[str, object], store_value)
-        store_runtime = _as_runtime_data(mapping_value.get("runtime_data"))
-        store_version = _coerce_version(mapping_value.get("version"))
-        store_created_version = _coerce_version(mapping_value.get("created_version"))
+        store_runtime = _as_runtime_data(mapping_value.get('runtime_data'))
+        store_version = _coerce_version(mapping_value.get('version'))
+        store_created_version = _coerce_version(mapping_value.get('created_version'))
     else:
         store_runtime = _as_runtime_data(store_value)
 
@@ -513,50 +513,50 @@ def describe_runtime_store_status(
     )
 
     divergence_detected = (
-        entry_snapshot.get("available")
-        and store_snapshot.get("available")
+        entry_snapshot.get('available')
+        and store_snapshot.get('available')
         and entry_runtime is not None
         and store_runtime is not None
         and entry_runtime is not store_runtime
     )
 
-    entry_status = cast(RuntimeStoreEntryStatus, entry_snapshot["status"])
-    store_status = cast(RuntimeStoreEntryStatus, store_snapshot["status"])
+    entry_status = cast(RuntimeStoreEntryStatus, entry_snapshot['status'])
+    store_status = cast(RuntimeStoreEntryStatus, store_snapshot['status'])
 
     statuses: set[RuntimeStoreEntryStatus] = {entry_status, store_status}
-    entry_available = bool(entry_snapshot.get("available"))
-    store_available = bool(store_snapshot.get("available"))
+    entry_available = bool(entry_snapshot.get('available'))
+    store_available = bool(store_snapshot.get('available'))
 
     overall_status: RuntimeStoreOverallStatus
-    if "future_incompatible" in statuses:
-        overall_status = "future_incompatible"
+    if 'future_incompatible' in statuses:
+        overall_status = 'future_incompatible'
     elif {
-        "legacy_upgrade_required",
-        "upgrade_pending",
-        "unstamped",
+        'legacy_upgrade_required',
+        'upgrade_pending',
+        'unstamped',
     } & statuses:
-        overall_status = "needs_migration"
+        overall_status = 'needs_migration'
     elif divergence_detected:
-        overall_status = "diverged"
+        overall_status = 'diverged'
     elif entry_available and not store_available:
-        overall_status = "detached_store"
+        overall_status = 'detached_store'
     elif store_available and not entry_available:
-        overall_status = "detached_entry"
+        overall_status = 'detached_entry'
     elif not entry_available and not store_available:
-        overall_status = "missing"
+        overall_status = 'missing'
     else:
-        overall_status = "current"
+        overall_status = 'current'
 
     return {
-        "entry_id": entry_id,
-        "status": overall_status,
-        "current_version": DomainRuntimeStoreEntry.CURRENT_VERSION,
-        "minimum_compatible_version": (
+        'entry_id': entry_id,
+        'status': overall_status,
+        'current_version': DomainRuntimeStoreEntry.CURRENT_VERSION,
+        'minimum_compatible_version': (
             DomainRuntimeStoreEntry.MINIMUM_COMPATIBLE_VERSION
         ),
-        "entry": entry_snapshot,
-        "store": store_snapshot,
-        "divergence_detected": bool(divergence_detected),
+        'entry': entry_snapshot,
+        'store': store_snapshot,
+        'divergence_detected': bool(divergence_detected),
     }
 
 
@@ -625,7 +625,7 @@ def require_runtime_data(
         entry_id = (
             entry_or_id
             if isinstance(entry_or_id, str)
-            else getattr(entry_or_id, "entry_id", "unknown")
+            else getattr(entry_or_id, 'entry_id', 'unknown')
         )
         raise RuntimeDataUnavailableError(
             f"Runtime data unavailable for PawControl entry {entry_id}"

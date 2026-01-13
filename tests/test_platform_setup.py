@@ -13,16 +13,16 @@ from custom_components.pawcontrol.runtime_data import store_runtime_data
 from custom_components.pawcontrol.types import PawControlRuntimeData
 
 PLATFORM_MODULES: tuple[str, ...] = (
-    "custom_components.pawcontrol.binary_sensor",
-    "custom_components.pawcontrol.button",
-    "custom_components.pawcontrol.date",
-    "custom_components.pawcontrol.datetime",
-    "custom_components.pawcontrol.device_tracker",
-    "custom_components.pawcontrol.number",
-    "custom_components.pawcontrol.select",
-    "custom_components.pawcontrol.sensor",
-    "custom_components.pawcontrol.switch",
-    "custom_components.pawcontrol.text",
+    'custom_components.pawcontrol.binary_sensor',
+    'custom_components.pawcontrol.button',
+    'custom_components.pawcontrol.date',
+    'custom_components.pawcontrol.datetime',
+    'custom_components.pawcontrol.device_tracker',
+    'custom_components.pawcontrol.number',
+    'custom_components.pawcontrol.select',
+    'custom_components.pawcontrol.sensor',
+    'custom_components.pawcontrol.switch',
+    'custom_components.pawcontrol.text',
 )
 
 
@@ -36,13 +36,13 @@ async def runtime_data(mock_coordinator, mock_dog_config) -> PawControlRuntimeDa
         feeding_manager=MagicMock(),
         walk_manager=MagicMock(),
         entity_factory=entity_factory,
-        entity_profile="standard",
+        entity_profile='standard',
         dogs=[mock_dog_config],
     )
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("module_path", PLATFORM_MODULES)
+@pytest.mark.parametrize('module_path', PLATFORM_MODULES)
 async def test_platform_setup_skips_without_runtime_data(
     hass, mock_config_entry, module_path: str
 ) -> None:
@@ -55,7 +55,7 @@ async def test_platform_setup_skips_without_runtime_data(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("module_path", PLATFORM_MODULES)
+@pytest.mark.parametrize('module_path', PLATFORM_MODULES)
 async def test_platform_setup_adds_entities_when_configured(
     hass,
     mock_config_entry,

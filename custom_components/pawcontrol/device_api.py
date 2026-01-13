@@ -30,17 +30,17 @@ def validate_device_endpoint(endpoint: str) -> URL:
     """Validate and normalize the configured device endpoint."""
 
     if not endpoint:
-        raise ValueError("endpoint must be provided for device client")
+        raise ValueError('endpoint must be provided for device client')
 
     try:
         base_url = URL(endpoint)
     except ValueError as err:  # pragma: no cover - defensive
         raise ValueError(f"Invalid Paw Control endpoint: {endpoint}") from err
 
-    if base_url.scheme not in {"http", "https"}:
-        raise ValueError("endpoint must use http or https scheme")
+    if base_url.scheme not in {'http', 'https'}:
+        raise ValueError('endpoint must use http or https scheme')
     if not base_url.host:
-        raise ValueError("endpoint must include a valid hostname")
+        raise ValueError('endpoint must include a valid hostname')
 
     return base_url
 
@@ -71,7 +71,7 @@ class PawControlDeviceClient:
         base_url = validate_device_endpoint(endpoint)
 
         self._session = ensure_shared_client_session(
-            session, owner="PawControlDeviceClient"
+            session, owner='PawControlDeviceClient'
         )
         self._endpoint = DeviceEndpoint(base_url=base_url, api_key=api_key)
         self._timeout = timeout or _DEFAULT_TIMEOUT
@@ -99,19 +99,19 @@ class PawControlDeviceClient:
         if self._resilience_manager:
             response = await self._resilience_manager.execute_with_resilience(
                 self._async_request_protected,
-                "GET",
+                'GET',
                 path,
-                circuit_breaker_name="device_api_request",
+                circuit_breaker_name='device_api_request',
                 retry_config=self._retry_config,
             )
         else:
-            response = await self._async_request("GET", path)
+            response = await self._async_request('GET', path)
 
         try:
             payload = await response.json()
         except (ContentTypeError, ValueError) as err:  # pragma: no cover - defensive
             raise NetworkError(
-                "Device API returned a non-JSON response. Check the configured endpoint."
+                'Device API returned a non-JSON response. Check the configured endpoint.'
             ) from err
         return _coerce_json_mutable(payload)
 
@@ -145,7 +145,7 @@ class PawControlDeviceClient:
         url = self._endpoint.base_url.join(URL(path))
         headers: dict[str, str] | None = None
         if self._endpoint.api_key:
-            headers = {"Authorization": f"Bearer {self._endpoint.api_key}"}
+            headers = {'Authorization': f"Bearer {self._endpoint.api_key}"}
 
         try:
             response = await self._session.request(
@@ -156,7 +156,7 @@ class PawControlDeviceClient:
             )
         except TimeoutError as err:  # pragma: no cover - transport timeout
             raise NetworkError(
-                "Timed out while contacting the Paw Control device API"
+                'Timed out while contacting the Paw Control device API'
             ) from err
         except ClientError as err:  # pragma: no cover - transport errors
             raise NetworkError(f"Client error talking to device API: {err}") from err
@@ -164,13 +164,13 @@ class PawControlDeviceClient:
             raise NetworkError(f"Network error talking to device API: {err}") from err
 
         if response.status == 401:
-            raise ConfigEntryAuthFailed("Authentication with Paw Control device failed")
+            raise ConfigEntryAuthFailed('Authentication with Paw Control device failed')
         if response.status == 429:
-            retry_after = response.headers.get("Retry-After")
+            retry_after = response.headers.get('Retry-After')
             retry_seconds = (
                 int(retry_after) if retry_after and retry_after.isdigit() else 60
             )
-            raise RateLimitError("device_api", retry_after=retry_seconds)
+            raise RateLimitError('device_api', retry_after=retry_seconds)
         if response.status >= 400:
             text = await response.text()
             raise NetworkError(
@@ -180,4 +180,4 @@ class PawControlDeviceClient:
         return response
 
 
-__all__ = ["PawControlDeviceClient", "validate_device_endpoint"]
+__all__ = ['PawControlDeviceClient', 'validate_device_endpoint']

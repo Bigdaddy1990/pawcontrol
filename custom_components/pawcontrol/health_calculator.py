@@ -52,21 +52,21 @@ class BodyConditionScore(Enum):
 class LifeStage(Enum):
     """Life stage classification for nutritional needs."""
 
-    PUPPY = "puppy"  # 0-12 months
-    YOUNG_ADULT = "young_adult"  # 1-2 years
-    ADULT = "adult"  # 2-7 years
-    SENIOR = "senior"  # 7-10 years
-    GERIATRIC = "geriatric"  # 10+ years
+    PUPPY = 'puppy'  # 0-12 months
+    YOUNG_ADULT = 'young_adult'  # 1-2 years
+    ADULT = 'adult'  # 2-7 years
+    SENIOR = 'senior'  # 7-10 years
+    GERIATRIC = 'geriatric'  # 10+ years
 
 
 class ActivityLevel(Enum):
     """Activity level classification."""
 
-    VERY_LOW = "very_low"  # Inactive, elderly, sick
-    LOW = "low"  # Light exercise, indoor
-    MODERATE = "moderate"  # Regular walks
-    HIGH = "high"  # Active, long walks
-    VERY_HIGH = "very_high"  # Working, athletic dogs
+    VERY_LOW = 'very_low'  # Inactive, elderly, sick
+    LOW = 'low'  # Light exercise, indoor
+    MODERATE = 'moderate'  # Regular walks
+    HIGH = 'high'  # Active, long walks
+    VERY_HIGH = 'very_high'  # Working, athletic dogs
 
 
 class DietSafetyResult(TypedDict):
@@ -87,7 +87,7 @@ class DietInteractionDetails(TypedDict):
     conflicting: list[tuple[str, str]]
     recommendations: list[str]
     overall_complexity: int
-    risk_level: Literal["low", "medium", "high"]
+    risk_level: Literal['low', 'medium', 'high']
 
 
 class FeedingHistoryDaySummary(TypedDict):
@@ -114,10 +114,10 @@ class HealthMetrics:
     breed: str | None = field(
         default=None,
         metadata={
-            "doc": (
+            'doc': (
                 "Standardized breed name (e.g., 'Golden Retriever'). Used "
-                "by downstream weather guidance for breed-specific "
-                "recommendations."
+                'by downstream weather guidance for breed-specific '
+                'recommendations.'
             )
         },
     )
@@ -191,32 +191,32 @@ class HealthMetrics:
         if breed is None:
             return None
         if not isinstance(breed, str):
-            raise TypeError("breed must be provided as a string")
+            raise TypeError('breed must be provided as a string')
 
         normalized = breed.strip()
         if not normalized:
-            raise ValueError("breed must not be empty when provided")
+            raise ValueError('breed must not be empty when provided')
 
         if len(normalized) < 2:
-            raise ValueError("breed must contain at least two characters")
+            raise ValueError('breed must contain at least two characters')
 
         if not all(
             char.isalpha() or char in cls._BREED_ALLOWED_CHARACTERS
             for char in normalized
         ):
             raise ValueError(
-                "breed may only contain letters, spaces, apostrophes, or hyphens"
+                'breed may only contain letters, spaces, apostrophes, or hyphens'
             )
 
         # Collapse repeated internal whitespace to a single space for consistency.
-        return re.sub(r"\s+", " ", normalized)
+        return re.sub(r'\s+', ' ', normalized)
 
 
 class HealthCalculator:
     """Enhanced health calculator for comprehensive dog health metrics."""
 
     # Calorie requirements per kg by life stage (kcal/kg/day)
-    BASE_CALORIE_REQUIREMENTS = {  # noqa: RUF012
+    BASE_CALORIE_REQUIREMENTS = {
         LifeStage.PUPPY: 130,  # Growing puppies need more calories
         LifeStage.YOUNG_ADULT: 110,  # Active young adults
         LifeStage.ADULT: 95,  # Standard adult maintenance
@@ -225,7 +225,7 @@ class HealthCalculator:
     }
 
     # Activity level multipliers
-    ACTIVITY_MULTIPLIERS = {  # noqa: RUF012
+    ACTIVITY_MULTIPLIERS = {
         ActivityLevel.VERY_LOW: 0.8,  # Sedentary, sick, or elderly
         ActivityLevel.LOW: 0.9,  # Light activity
         ActivityLevel.MODERATE: 1.0,  # Baseline
@@ -234,7 +234,7 @@ class HealthCalculator:
     }
 
     # Body condition score adjustments for portion size
-    BCS_ADJUSTMENTS = {  # noqa: RUF012
+    BCS_ADJUSTMENTS = {
         BodyConditionScore.EMACIATED: 1.5,  # Increase portions significantly
         BodyConditionScore.VERY_THIN: 1.3,  # Increase portions
         BodyConditionScore.THIN: 1.15,  # Slight increase
@@ -247,21 +247,21 @@ class HealthCalculator:
     }
 
     # Health condition adjustments
-    HEALTH_CONDITION_ADJUSTMENTS = {  # noqa: RUF012
-        "diabetes": 0.9,  # Controlled portions
-        "kidney_disease": 0.85,  # Reduced protein/phosphorus
-        "heart_disease": 0.85,  # Weight management critical
-        "arthritis": 0.9,  # Weight management for joints
-        "thyroid_disorder": 0.8,  # Often affects metabolism
-        "allergies": 1.0,  # No portion change, diet change
-        "digestive_issues": 0.95,  # Smaller, more frequent meals
-        "dental_problems": 1.0,  # Texture change, not portion
-        "cancer": 1.1,  # May need more calories
-        "liver_disease": 0.9,  # Controlled nutrition
+    HEALTH_CONDITION_ADJUSTMENTS = {
+        'diabetes': 0.9,  # Controlled portions
+        'kidney_disease': 0.85,  # Reduced protein/phosphorus
+        'heart_disease': 0.85,  # Weight management critical
+        'arthritis': 0.9,  # Weight management for joints
+        'thyroid_disorder': 0.8,  # Often affects metabolism
+        'allergies': 1.0,  # No portion change, diet change
+        'digestive_issues': 0.95,  # Smaller, more frequent meals
+        'dental_problems': 1.0,  # Texture change, not portion
+        'cancer': 1.1,  # May need more calories
+        'liver_disease': 0.9,  # Controlled nutrition
     }
 
     @staticmethod
-    def calculate_life_stage(age_months: int, breed_size: str = "medium") -> LifeStage:
+    def calculate_life_stage(age_months: int, breed_size: str = 'medium') -> LifeStage:
         """Calculate life stage based on age and breed size.
 
         Args:
@@ -272,33 +272,33 @@ class HealthCalculator:
             Life stage classification
         """
         if age_months < 0:
-            raise ValueError("age_months must be greater than or equal to zero")
+            raise ValueError('age_months must be greater than or equal to zero')
 
         # Adjust adult/senior thresholds based on breed size
         size_adjustments = {
             # 10 months to adult, 8 years to senior
-            "toy": {"adult": 10, "senior": 96},
+            'toy': {'adult': 10, 'senior': 96},
             # 1 year to adult, 7 years to senior
-            "small": {"adult": 12, "senior": 84},
-            "medium": {
-                "adult": 15,
-                "senior": 84,
+            'small': {'adult': 12, 'senior': 84},
+            'medium': {
+                'adult': 15,
+                'senior': 84,
             },  # 15 months to adult, 7 years to senior
-            "large": {
-                "adult": 18,
-                "senior": 72,
+            'large': {
+                'adult': 18,
+                'senior': 72,
             },  # 18 months to adult, 6 years to senior
             # 2 years to adult, 5 years to senior
-            "giant": {"adult": 24, "senior": 60},
+            'giant': {'adult': 24, 'senior': 60},
         }
 
-        thresholds = size_adjustments.get(breed_size, size_adjustments["medium"])
+        thresholds = size_adjustments.get(breed_size, size_adjustments['medium'])
 
-        if age_months < thresholds["adult"]:
+        if age_months < thresholds['adult']:
             return LifeStage.PUPPY
         if age_months < 24:
             return LifeStage.YOUNG_ADULT
-        if age_months < thresholds["senior"]:
+        if age_months < thresholds['senior']:
             return LifeStage.ADULT
         if age_months < 120:  # 10 years
             return LifeStage.SENIOR
@@ -443,15 +443,15 @@ class HealthCalculator:
 
         # Apply special diet considerations
         diet_adjustments = {
-            "weight_control": 0.85,  # Weight management formula
-            "senior_formula": 0.95,  # Often lower calorie
-            "puppy_formula": 1.15,  # Higher calorie density
-            "low_fat": 0.9,  # Reduced calorie density
-            "prescription": 0.9,  # Often therapeutic portions
-            "high_protein": 1.05,  # May need slight increase
-            "diabetic": 0.85,  # Controlled portions critical
-            "kidney_support": 0.9,  # Reduced protein portions
-            "sensitive_stomach": 0.95,  # Smaller, more frequent meals
+            'weight_control': 0.85,  # Weight management formula
+            'senior_formula': 0.95,  # Often lower calorie
+            'puppy_formula': 1.15,  # Higher calorie density
+            'low_fat': 0.9,  # Reduced calorie density
+            'prescription': 0.9,  # Often therapeutic portions
+            'high_protein': 1.05,  # May need slight increase
+            'diabetic': 0.85,  # Controlled portions critical
+            'kidney_support': 0.9,  # Reduced protein portions
+            'sensitive_stomach': 0.95,  # Smaller, more frequent meals
         }
 
         for diet_type in health_metrics.special_diet:
@@ -469,20 +469,20 @@ class HealthCalculator:
 
         # Apply feeding goals
         if feeding_goals:
-            weight_goal = feeding_goals.get("weight_goal")
-            if weight_goal == "lose":
+            weight_goal = feeding_goals.get('weight_goal')
+            if weight_goal == 'lose':
                 if health_metrics.life_stage == LifeStage.PUPPY:
                     adjustment_factor *= 0.9  # gentler reduction for growth
                 else:
                     adjustment_factor *= 0.8  # 20% reduction for weight loss
-            elif weight_goal == "gain":
+            elif weight_goal == 'gain':
                 adjustment_factor *= 1.2  # 20% increase for weight gain
 
             # Time-based adjustments
-            weight_loss_rate = feeding_goals.get("weight_loss_rate", "moderate")
-            if weight_loss_rate == "aggressive" and weight_goal == "lose":
+            weight_loss_rate = feeding_goals.get('weight_loss_rate', 'moderate')
+            if weight_loss_rate == 'aggressive' and weight_goal == 'lose':
                 adjustment_factor *= 0.9  # Additional 10% reduction
-            elif weight_loss_rate == "gradual" and weight_goal == "lose":
+            elif weight_loss_rate == 'gradual' and weight_goal == 'lose':
                 adjustment_factor *= 1.1  # Less aggressive reduction
 
         # Ensure reasonable bounds
@@ -512,71 +512,71 @@ class HealthCalculator:
         adjustment = 1.0
 
         # Handle conflicts (more conservative adjustments)
-        for conflict in diet_validation["conflicts"]:
-            conflict_type = conflict["type"]
+        for conflict in diet_validation['conflicts']:
+            conflict_type = conflict['type']
 
-            if conflict_type == "age_conflict":
+            if conflict_type == 'age_conflict':
                 # Age conflicts require veterinary guidance - use conservative portions
                 adjustment *= 0.9
                 _LOGGER.warning(
-                    "Age-based diet conflict detected: applying conservative 10%% portion reduction"
+                    'Age-based diet conflict detected: applying conservative 10%% portion reduction'
                 )
 
         # Handle warnings (milder adjustments)
-        for warning in diet_validation["warnings"]:
-            warning_type = warning["type"]
+        for warning in diet_validation['warnings']:
+            warning_type = warning['type']
 
-            if warning_type == "multiple_prescription_warning":
+            if warning_type == 'multiple_prescription_warning':
                 # Multiple prescription diets need careful portion control
                 adjustment *= 0.95
                 _LOGGER.info(
-                    "Multiple prescription diets: applying 5%% portion reduction for safety"
+                    'Multiple prescription diets: applying 5%% portion reduction for safety'
                 )
 
-            elif warning_type == "raw_medical_warning":
+            elif warning_type == 'raw_medical_warning':
                 # Raw diet with medical conditions - slightly conservative
                 adjustment *= 0.95
                 _LOGGER.info(
-                    "Raw diet with medical conditions: applying 5%% portion reduction"
+                    'Raw diet with medical conditions: applying 5%% portion reduction'
                 )
 
-            elif warning_type == "weight_puppy_warning":
+            elif warning_type == 'weight_puppy_warning':
                 # Weight control for puppies - less restrictive than adults
                 adjustment *= 1.05  # Actually increase slightly for growing puppy
                 _LOGGER.info(
-                    "Weight control for puppy: applying 5%% portion increase for growth"
+                    'Weight control for puppy: applying 5%% portion increase for growth'
                 )
 
-            elif warning_type == "hypoallergenic_warning":
+            elif warning_type == 'hypoallergenic_warning':
                 # Hypoallergenic with other diets - standard portions but monitor
                 adjustment *= 0.98  # Very minor reduction for safety
                 _LOGGER.info(
-                    "Hypoallergenic diet combination: minor portion adjustment for monitoring"
+                    'Hypoallergenic diet combination: minor portion adjustment for monitoring'
                 )
 
-            elif warning_type == "low_fat_activity_warning":
+            elif warning_type == 'low_fat_activity_warning':
                 # Low fat with joint support - may need calorie compensation
                 adjustment *= 1.05  # Slight increase to compensate for low fat
                 _LOGGER.info(
-                    "Low fat diet with joint support needs: applying 5%% portion increase"
+                    'Low fat diet with joint support needs: applying 5%% portion increase'
                 )
 
         # Additional adjustments based on total diet complexity
-        total_diets = diet_validation["total_diets"]
+        total_diets = diet_validation['total_diets']
         if total_diets >= 4:
             # Complex diet combinations need careful monitoring
             adjustment *= 0.97  # 3% reduction for very complex diets
             _LOGGER.info(
-                "Complex diet combination (%d diets): applying 3%% portion reduction for safety",
+                'Complex diet combination (%d diets): applying 3%% portion reduction for safety',
                 total_diets,
             )
 
         # Veterinary consultation recommendation adjustment
-        if diet_validation["recommended_vet_consultation"]:
+        if diet_validation['recommended_vet_consultation']:
             # When vet consultation is recommended, use more conservative portions
             adjustment *= 0.95
             _LOGGER.info(
-                "Veterinary consultation recommended: applying 5%% conservative portion adjustment"
+                'Veterinary consultation recommended: applying 5%% conservative portion adjustment'
             )
 
         # Ensure reasonable bounds (more conservative than general adjustments)
@@ -585,7 +585,7 @@ class HealthCalculator:
         # Log the final adjustment if it's not neutral
         if adjustment != 1.0:
             _LOGGER.info(
-                "Diet validation adjustment applied: %.2fx (%.0f%% of base portion)",
+                'Diet validation adjustment applied: %.2fx (%.0f%% of base portion)',
                 adjustment,
                 adjustment * 100,
             )
@@ -613,10 +613,10 @@ class HealthCalculator:
             Dictionary with safety validation results
         """
         safety_result: DietSafetyResult = {
-            "safe": True,
-            "warnings": [],
-            "recommendations": [],
-            "portion_per_kg": round(calculated_portion / dog_weight, 1)
+            'safe': True,
+            'warnings': [],
+            'recommendations': [],
+            'portion_per_kg': round(calculated_portion / dog_weight, 1)
             if dog_weight > 0
             else 0.0,
         }
@@ -634,40 +634,40 @@ class HealthCalculator:
                 min_threshold, max_threshold = 10, 50  # Adult dogs
 
             if portion_per_kg < min_threshold:
-                safety_result["warnings"].append(
+                safety_result['warnings'].append(
                     f"Portion may be too small: {portion_per_kg:.1f}g/kg (minimum: {min_threshold}g/kg)"
                 )
-                safety_result["recommendations"].append(
-                    "Consider increasing portion size or adding additional meals"
+                safety_result['recommendations'].append(
+                    'Consider increasing portion size or adding additional meals'
                 )
 
             elif portion_per_kg > max_threshold:
-                safety_result["warnings"].append(
+                safety_result['warnings'].append(
                     f"Portion may be too large: {portion_per_kg:.1f}g/kg (maximum: {max_threshold}g/kg)"
                 )
-                safety_result["recommendations"].append(
-                    "Consider reducing portion size or splitting into smaller meals"
+                safety_result['recommendations'].append(
+                    'Consider reducing portion size or splitting into smaller meals'
                 )
-                safety_result["safe"] = False
+                safety_result['safe'] = False
 
         # Special diet safety checks
-        high_risk_diets = ["prescription", "diabetic", "kidney_support"]
+        high_risk_diets = ['prescription', 'diabetic', 'kidney_support']
         if any(diet in special_diets for diet in high_risk_diets):
-            safety_result["recommendations"].append(
-                "Prescription diet detected - verify portions with veterinarian"
+            safety_result['recommendations'].append(
+                'Prescription diet detected - verify portions with veterinarian'
             )
 
         # Diet validation safety checks
         if diet_validation:
-            if diet_validation["conflicts"]:
-                safety_result["warnings"].append(
-                    "Diet conflicts detected - extra monitoring recommended"
+            if diet_validation['conflicts']:
+                safety_result['warnings'].append(
+                    'Diet conflicts detected - extra monitoring recommended'
                 )
-                safety_result["safe"] = False
+                safety_result['safe'] = False
 
-            if diet_validation["recommended_vet_consultation"]:
-                safety_result["recommendations"].append(
-                    "Veterinary consultation recommended due to diet complexity"
+            if diet_validation['recommended_vet_consultation']:
+                safety_result['recommendations'].append(
+                    'Veterinary consultation recommended due to diet complexity'
                 )
 
         return safety_result
@@ -685,36 +685,36 @@ class HealthCalculator:
             Dictionary with interaction analysis
         """
         interactions: DietInteractionDetails = {
-            "synergistic": [],  # Diets that work well together
-            "neutral": [],  # Diets with no significant interaction
-            "caution": [],  # Combinations requiring monitoring
-            "conflicting": [],  # Combinations that may conflict
-            "recommendations": [],
-            "overall_complexity": 0,
-            "risk_level": "low",
+            'synergistic': [],  # Diets that work well together
+            'neutral': [],  # Diets with no significant interaction
+            'caution': [],  # Combinations requiring monitoring
+            'conflicting': [],  # Combinations that may conflict
+            'recommendations': [],
+            'overall_complexity': 0,
+            'risk_level': 'low',
         }
 
         # Define interaction matrix
         synergistic_pairs = [
-            ("senior_formula", "joint_support"),
-            ("senior_formula", "low_fat"),
-            ("weight_control", "low_fat"),
-            ("dental_care", "senior_formula"),
-            ("hypoallergenic", "sensitive_stomach"),
-            ("grain_free", "hypoallergenic"),
+            ('senior_formula', 'joint_support'),
+            ('senior_formula', 'low_fat'),
+            ('weight_control', 'low_fat'),
+            ('dental_care', 'senior_formula'),
+            ('hypoallergenic', 'sensitive_stomach'),
+            ('grain_free', 'hypoallergenic'),
         ]
 
         caution_pairs = [
-            ("raw_diet", "prescription"),
-            ("raw_diet", "kidney_support"),
-            ("raw_diet", "diabetic"),
-            ("organic", "prescription"),
-            ("weight_control", "puppy_formula"),
+            ('raw_diet', 'prescription'),
+            ('raw_diet', 'kidney_support'),
+            ('raw_diet', 'diabetic'),
+            ('organic', 'prescription'),
+            ('weight_control', 'puppy_formula'),
         ]
 
         conflicting_pairs = [
-            ("puppy_formula", "senior_formula"),
-            ("low_fat", "puppy_formula"),  # Puppies need fat for development
+            ('puppy_formula', 'senior_formula'),
+            ('low_fat', 'puppy_formula'),  # Puppies need fat for development
         ]
 
         # Check for interactions
@@ -722,42 +722,42 @@ class HealthCalculator:
 
         for diet1, diet2 in synergistic_pairs:
             if diet1 in diet_set and diet2 in diet_set:
-                interactions["synergistic"].append((diet1, diet2))
+                interactions['synergistic'].append((diet1, diet2))
 
         for diet1, diet2 in caution_pairs:
             if diet1 in diet_set and diet2 in diet_set:
-                interactions["caution"].append((diet1, diet2))
+                interactions['caution'].append((diet1, diet2))
 
         for diet1, diet2 in conflicting_pairs:
             if diet1 in diet_set and diet2 in diet_set:
-                interactions["conflicting"].append((diet1, diet2))
+                interactions['conflicting'].append((diet1, diet2))
 
         # Add recommendations based on interactions
         recommendations: list[str] = []
 
-        if interactions["synergistic"]:
+        if interactions['synergistic']:
             recommendations.append(
                 f"Good diet combinations detected: {len(interactions['synergistic'])} synergistic pairs"
             )
 
-        if interactions["caution"]:
+        if interactions['caution']:
             recommendations.append(
                 f"Monitor carefully: {len(interactions['caution'])} combinations need attention"
             )
 
-        if interactions["conflicting"]:
+        if interactions['conflicting']:
             recommendations.append(
                 f"Conflicting diets detected: {len(interactions['conflicting'])} pairs need resolution"
             )
 
-        interactions["recommendations"] = recommendations
-        interactions["overall_complexity"] = len(special_diets)
-        interactions["risk_level"] = (
-            "high"
-            if interactions["conflicting"]
-            else "medium"
-            if interactions["caution"]
-            else "low"
+        interactions['recommendations'] = recommendations
+        interactions['overall_complexity'] = len(special_diets)
+        interactions['risk_level'] = (
+            'high'
+            if interactions['conflicting']
+            else 'medium'
+            if interactions['caution']
+            else 'low'
         )
 
         return interactions
@@ -780,8 +780,8 @@ class HealthCalculator:
         """
         if not feeding_events:
             return FeedingHistoryAnalysis(
-                status="no_data",
-                recommendation="Start tracking feedings to analyze patterns",
+                status='no_data',
+                recommendation='Start tracking feedings to analyze patterns',
             )
 
         # Calculate daily averages over last 7 days
@@ -792,7 +792,7 @@ class HealthCalculator:
         midpoint_adjustment = timedelta(hours=12)
 
         for event in feeding_events:
-            event_time = ensure_local_datetime(event.get("time"))
+            event_time = ensure_local_datetime(event.get('time'))
             if event_time is None or event_time <= week_ago:
                 continue
 
@@ -809,23 +809,23 @@ class HealthCalculator:
                     meals=0,
                 )
 
-            amount = float(event.get("amount", 0))
+            amount = float(event.get('amount', 0))
             calories = amount * food_calories_per_gram
             day_summary = recent_days[bucket_date]
-            day_summary["calories"] += calories
-            day_summary["meals"] += 1
+            day_summary['calories'] += calories
+            day_summary['meals'] += 1
 
         if not recent_days:
             return FeedingHistoryAnalysis(
-                status="insufficient_data",
-                recommendation="Need at least one week of feeding data",
+                status='insufficient_data',
+                recommendation='Need at least one week of feeding data',
             )
 
         # Calculate averages
-        avg_daily_calories = sum(day["calories"] for day in recent_days.values()) / len(
+        avg_daily_calories = sum(day['calories'] for day in recent_days.values()) / len(
             recent_days
         )
-        avg_daily_meals = sum(day["meals"] for day in recent_days.values()) / len(
+        avg_daily_meals = sum(day['meals'] for day in recent_days.values()) / len(
             recent_days
         )
 
@@ -836,32 +836,32 @@ class HealthCalculator:
 
         # Generate recommendations
         recommendations: list[str] = []
-        status: FeedingHistoryStatus = "good"
+        status: FeedingHistoryStatus = 'good'
 
         if calorie_variance > 20:
-            status = "overfeeding"
-            recommendations.append("Consider reducing portion sizes by 15-20%")
-            recommendations.append("Increase exercise if possible")
+            status = 'overfeeding'
+            recommendations.append('Consider reducing portion sizes by 15-20%')
+            recommendations.append('Increase exercise if possible')
         elif calorie_variance > 10:
-            status = "slight_overfeeding"
-            recommendations.append("Slightly reduce portion sizes by 5-10%")
+            status = 'slight_overfeeding'
+            recommendations.append('Slightly reduce portion sizes by 5-10%')
         elif calorie_variance < -20:
-            status = "underfeeding"
-            recommendations.append("Increase portion sizes by 15-20%")
-            recommendations.append("Consider more nutrient-dense food")
+            status = 'underfeeding'
+            recommendations.append('Increase portion sizes by 15-20%')
+            recommendations.append('Consider more nutrient-dense food')
         elif calorie_variance < -10:
-            status = "slight_underfeeding"
-            recommendations.append("Slightly increase portion sizes by 5-10%")
+            status = 'slight_underfeeding'
+            recommendations.append('Slightly increase portion sizes by 5-10%')
         else:
             recommendations.append(
-                "Feeding is well balanced, maintain current portions"
+                'Feeding is well balanced, maintain current portions'
             )
 
         # Meal frequency recommendations
         if avg_daily_meals < 1.5:
-            recommendations.append("Consider splitting daily food into 2+ meals")
+            recommendations.append('Consider splitting daily food into 2+ meals')
         elif avg_daily_meals > 4:
-            recommendations.append("Consider consolidating into 2-3 larger meals")
+            recommendations.append('Consider consolidating into 2-3 larger meals')
 
         return FeedingHistoryAnalysis(
             status=status,
@@ -893,20 +893,20 @@ class HealthCalculator:
         """
         # Breed-specific weight ranges (kg)
         breed_weights = {
-            "chihuahua": (1.5, 3.0),
-            "yorkshire_terrier": (2.0, 3.5),
-            "beagle": (9.0, 11.0),
-            "cocker_spaniel": (12.0, 16.0),
-            "border_collie": (14.0, 20.0),
-            "labrador": (25.0, 32.0),
-            "golden_retriever": (25.0, 34.0),
-            "german_shepherd": (22.0, 40.0),
-            "great_dane": (50.0, 90.0),
-            "saint_bernard": (64.0, 82.0),
+            'chihuahua': (1.5, 3.0),
+            'yorkshire_terrier': (2.0, 3.5),
+            'beagle': (9.0, 11.0),
+            'cocker_spaniel': (12.0, 16.0),
+            'border_collie': (14.0, 20.0),
+            'labrador': (25.0, 32.0),
+            'golden_retriever': (25.0, 34.0),
+            'german_shepherd': (22.0, 40.0),
+            'great_dane': (50.0, 90.0),
+            'saint_bernard': (64.0, 82.0),
         }
 
-        if breed and breed.lower().replace(" ", "_") in breed_weights:
-            return breed_weights[breed.lower().replace(" ", "_")]
+        if breed and breed.lower().replace(' ', '_') in breed_weights:
+            return breed_weights[breed.lower().replace(' ', '_')]
 
         # Height-based estimation if available
         if height_cm and height_cm > 0:
@@ -942,7 +942,7 @@ class HealthCalculator:
         """Generate a detailed health report with recommendations."""
         report: HealthReport = HealthReport(
             timestamp=dt_util.now().isoformat(),
-            overall_status=cast(HealthReportStatus, "good"),
+            overall_status=cast(HealthReportStatus, 'good'),
             recommendations=[],
             health_score=85,
             areas_of_concern=[],
@@ -970,15 +970,15 @@ class HealthCalculator:
         if health_metrics.ideal_weight and health_metrics.current_weight:
             weight_ratio = health_metrics.current_weight / health_metrics.ideal_weight
             if weight_ratio < 0.85:
-                report["areas_of_concern"].append("underweight")
-                report["recommendations"].append("Consult vet about weight gain plan")
-                report["health_score"] -= 15
+                report['areas_of_concern'].append('underweight')
+                report['recommendations'].append('Consult vet about weight gain plan')
+                report['health_score'] -= 15
             elif weight_ratio > 1.2:
-                report["areas_of_concern"].append("overweight")
-                report["recommendations"].append("Implement weight management plan")
-                report["health_score"] -= 10
+                report['areas_of_concern'].append('overweight')
+                report['recommendations'].append('Implement weight management plan')
+                report['health_score'] -= 10
             else:
-                report["positive_indicators"].append("healthy_weight")
+                report['positive_indicators'].append('healthy_weight')
 
     @staticmethod
     def _assess_body_condition(
@@ -989,39 +989,39 @@ class HealthCalculator:
 
         bcs = health_metrics.body_condition_score
         if bcs in [BodyConditionScore.EMACIATED, BodyConditionScore.VERY_THIN]:
-            report["overall_status"] = "concerning"
-            report["areas_of_concern"].append("severe_underweight")
-            report["recommendations"].append(
-                "Immediate veterinary consultation needed",
+            report['overall_status'] = 'concerning'
+            report['areas_of_concern'].append('severe_underweight')
+            report['recommendations'].append(
+                'Immediate veterinary consultation needed',
             )
-            report["health_score"] -= 25
+            report['health_score'] -= 25
         elif bcs in [BodyConditionScore.OBESE, BodyConditionScore.SEVERELY_OBESE]:
-            report["overall_status"] = "needs_attention"
-            report["areas_of_concern"].append("obesity")
-            report["recommendations"].append("Urgent weight management required")
-            report["health_score"] -= 20
+            report['overall_status'] = 'needs_attention'
+            report['areas_of_concern'].append('obesity')
+            report['recommendations'].append('Urgent weight management required')
+            report['health_score'] -= 20
         elif bcs == BodyConditionScore.IDEAL:
-            report["positive_indicators"].append("ideal_body_condition")
+            report['positive_indicators'].append('ideal_body_condition')
 
     @staticmethod
     def _assess_health_conditions(
         health_metrics: HealthMetrics, report: HealthReport
     ) -> None:
         serious_conditions = {
-            "diabetes",
-            "heart_disease",
-            "kidney_disease",
-            "liver_disease",
-            "cancer",
+            'diabetes',
+            'heart_disease',
+            'kidney_disease',
+            'liver_disease',
+            'cancer',
         }
         for condition in health_metrics.health_conditions:
             if condition.lower() in serious_conditions:
-                report["overall_status"] = "managing_condition"
-                report["areas_of_concern"].append(f"chronic_{condition}")
-                report["recommendations"].append(
+                report['overall_status'] = 'managing_condition'
+                report['areas_of_concern'].append(f"chronic_{condition}")
+                report['recommendations'].append(
                     f"Continue monitoring {condition} as prescribed",
                 )
-                report["health_score"] -= 15
+                report['health_score'] -= 15
 
     @staticmethod
     def _assess_age(health_metrics: HealthMetrics, report: HealthReport) -> None:
@@ -1029,36 +1029,36 @@ class HealthCalculator:
             return
         age_years = health_metrics.age_months / 12
         if age_years < 1:
-            report["recommendations"].append(
-                "Ensure puppy vaccination schedule is complete",
+            report['recommendations'].append(
+                'Ensure puppy vaccination schedule is complete',
             )
-            report["recommendations"].append(
-                "Monitor growth rate and adjust portions accordingly",
+            report['recommendations'].append(
+                'Monitor growth rate and adjust portions accordingly',
             )
         elif age_years > 7:
-            report["recommendations"].append("Consider senior health screening")
-            report["recommendations"].append("Monitor for age-related conditions")
+            report['recommendations'].append('Consider senior health screening')
+            report['recommendations'].append('Monitor for age-related conditions')
 
     @staticmethod
     def _assess_activity(health_metrics: HealthMetrics, report: HealthReport) -> None:
         if health_metrics.activity_level == ActivityLevel.VERY_LOW:
-            report["recommendations"].append(
-                "Gradually increase physical activity if health permits",
+            report['recommendations'].append(
+                'Gradually increase physical activity if health permits',
             )
         elif health_metrics.activity_level == ActivityLevel.VERY_HIGH:
-            report["positive_indicators"].append("excellent_activity_level")
+            report['positive_indicators'].append('excellent_activity_level')
 
     @staticmethod
     def _finalize_status(report: HealthReport) -> None:
-        score = report["health_score"]
+        score = report['health_score']
         if score >= 90:
-            report["overall_status"] = "excellent"
+            report['overall_status'] = 'excellent'
         elif score >= 75:
-            report["overall_status"] = "good"
+            report['overall_status'] = 'good'
         elif score >= 60:
-            report["overall_status"] = "needs_attention"
+            report['overall_status'] = 'needs_attention'
         else:
-            report["overall_status"] = "concerning"
+            report['overall_status'] = 'concerning'
 
     @staticmethod
     def _assess_weather_impact(
@@ -1083,24 +1083,24 @@ class HealthCalculator:
 
         # Assess overall weather impact
         if weather_score < 30:
-            report["areas_of_concern"].append("dangerous_weather_conditions")
-            report["health_score"] -= 25
-            report["recommendations"].append(
-                "Dangerous weather conditions - avoid outdoor activities"
+            report['areas_of_concern'].append('dangerous_weather_conditions')
+            report['health_score'] -= 25
+            report['recommendations'].append(
+                'Dangerous weather conditions - avoid outdoor activities'
             )
         elif weather_score < 50:
-            report["areas_of_concern"].append("poor_weather_conditions")
-            report["health_score"] -= 15
-            report["recommendations"].append(
-                "Poor weather conditions - limit outdoor exposure"
+            report['areas_of_concern'].append('poor_weather_conditions')
+            report['health_score'] -= 15
+            report['recommendations'].append(
+                'Poor weather conditions - limit outdoor exposure'
             )
         elif weather_score < 70:
-            report["recommendations"].append(
-                "Moderate weather concerns - take basic precautions"
+            report['recommendations'].append(
+                'Moderate weather concerns - take basic precautions'
             )
-            report["health_score"] -= 5
+            report['health_score'] -= 5
         else:
-            report["positive_indicators"].append("favorable_weather_conditions")
+            report['positive_indicators'].append('favorable_weather_conditions')
 
         # Add weather-specific recommendations
         if health_metrics.breed:
@@ -1111,32 +1111,32 @@ class HealthCalculator:
                     health_conditions=health_metrics.health_conditions,
                 )
             )
-            report["recommendations"].extend(
+            report['recommendations'].extend(
                 weather_recommendations[:3]
             )  # Limit to 3 most important
 
         # Add alert-specific concerns
         for alert in active_alerts:
-            if alert.severity.value in ["high", "extreme"]:
-                report["areas_of_concern"].append(f"weather_{alert.alert_type.value}")
+            if alert.severity.value in ['high', 'extreme']:
+                report['areas_of_concern'].append(f"weather_{alert.alert_type.value}")
 
         # Temperature-specific assessments for health conditions
         if weather_conditions.temperature_c is not None:
             temp = weather_conditions.temperature_c
 
             # Heat concerns for specific health conditions
-            if temp > 25 and "heart_disease" in health_metrics.health_conditions:
-                report["recommendations"].append(
-                    "Heart condition + hot weather: Avoid strenuous activity"
+            if temp > 25 and 'heart_disease' in health_metrics.health_conditions:
+                report['recommendations'].append(
+                    'Heart condition + hot weather: Avoid strenuous activity'
                 )
-                report["health_score"] -= 10
+                report['health_score'] -= 10
 
             # Cold concerns for arthritis
-            if temp < 10 and "arthritis" in health_metrics.health_conditions:
-                report["recommendations"].append(
-                    "Arthritis + cold weather: Ensure warm environment"
+            if temp < 10 and 'arthritis' in health_metrics.health_conditions:
+                report['recommendations'].append(
+                    'Arthritis + cold weather: Ensure warm environment'
                 )
-                report["health_score"] -= 5
+                report['health_score'] -= 5
 
             # Respiratory concerns with humidity
             if (
@@ -1144,13 +1144,13 @@ class HealthCalculator:
                 and weather_conditions.humidity_percent > 80
                 and any(
                     condition in health_metrics.health_conditions
-                    for condition in ["respiratory", "breathing", "asthma"]
+                    for condition in ['respiratory', 'breathing', 'asthma']
                 )
             ):
-                report["recommendations"].append(
-                    "Respiratory condition + high humidity: Monitor breathing closely"
+                report['recommendations'].append(
+                    'Respiratory condition + high humidity: Monitor breathing closely'
                 )
-                report["health_score"] -= 10
+                report['health_score'] -= 10
 
     @staticmethod
     def calculate_weather_adjusted_activity_level(
@@ -1208,7 +1208,7 @@ class HealthCalculator:
 
             # Brachycephalic breeds more sensitive to heat/humidity
             if any(
-                breed in breed_lower for breed in ["bulldog", "pug", "boxer", "boston"]
+                breed in breed_lower for breed in ['bulldog', 'pug', 'boxer', 'boston']
             ) and (
                 (
                     weather_conditions.temperature_c
@@ -1231,7 +1231,7 @@ class HealthCalculator:
             if (
                 any(
                     breed in breed_lower
-                    for breed in ["chihuahua", "greyhound", "whippet"]
+                    for breed in ['chihuahua', 'greyhound', 'whippet']
                 )
                 and (
                     weather_conditions.temperature_c
@@ -1248,7 +1248,7 @@ class HealthCalculator:
 
                 # Heart conditions + heat
                 if (
-                    "heart" in condition_lower
+                    'heart' in condition_lower
                     and weather_conditions.temperature_c
                     and weather_conditions.temperature_c > 25
                 ) and adjusted_level in [ActivityLevel.HIGH, ActivityLevel.VERY_HIGH]:
@@ -1258,7 +1258,7 @@ class HealthCalculator:
                 if (
                     any(
                         resp in condition_lower
-                        for resp in ["respiratory", "breathing", "asthma"]
+                        for resp in ['respiratory', 'breathing', 'asthma']
                     )
                     and weather_conditions.humidity_percent
                     and weather_conditions.humidity_percent > 80

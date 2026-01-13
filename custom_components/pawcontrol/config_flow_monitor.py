@@ -45,9 +45,9 @@ class ConfigFlowPerformanceMonitor:
             if not times:
                 continue
             operations[operation] = {
-                "avg_time": sum(times) / len(times),
-                "max_time": max(times),
-                "count": len(times),
+                'avg_time': sum(times) / len(times),
+                'max_time': max(times),
+                'count': len(times),
             }
 
         return ConfigFlowPerformanceStats(
@@ -71,7 +71,7 @@ async def timed_operation(operation_name: str) -> AsyncIterator[None]:
         config_flow_monitor.record_operation(operation_name, duration)
         if duration > 2.0:
             _LOGGER.warning(
-                "Slow config flow operation: %s took %.2fs",
+                'Slow config flow operation: %s took %.2fs',
                 operation_name,
                 duration,
             )

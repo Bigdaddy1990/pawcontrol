@@ -11,24 +11,24 @@ from pathlib import Path
 from packaging.requirements import Requirement
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-TESTS_ROOT = REPO_ROOT / "tests"
+TESTS_ROOT = REPO_ROOT / 'tests'
 REQUIREMENT_FILES = [
-    REPO_ROOT / "requirements_test.txt",
-    REPO_ROOT / "requirements.txt",
+    REPO_ROOT / 'requirements_test.txt',
+    REPO_ROOT / 'requirements.txt',
 ]
-STANDARD_LIB = {name.replace(".", "_") for name in sys.stdlib_module_names}
-INTERNAL_PREFIXES = ("tests", "custom_components", "script")
-INTERNAL_MODULES = {"sitecustomize"}
+STANDARD_LIB = {name.replace('.', '_') for name in sys.stdlib_module_names}
+INTERNAL_PREFIXES = ('tests', 'custom_components', 'script')
+INTERNAL_MODULES = {'sitecustomize'}
 
 
 def _extract_requirement_name(line: str) -> str | None:
     """Return the normalized package name from a requirement line."""
 
-    stripped = line.split("#", 1)[0].strip()
-    if not stripped or stripped.startswith("-"):
+    stripped = line.split('#', 1)[0].strip()
+    if not stripped or stripped.startswith('-'):
         return None
 
-    delimiters = frozenset("[] <>!=~();")
+    delimiters = frozenset('[] <>!=~();')
     for i, char in enumerate(stripped):
         if char in delimiters:
             name = stripped[:i].strip()
@@ -41,41 +41,41 @@ def _parse_requirements() -> set[str]:
     modules: set[str] = set()
 
     for requirement_file in REQUIREMENT_FILES:
-        content = requirement_file.read_text(encoding="utf-8")
+        content = requirement_file.read_text(encoding='utf-8')
         for raw_line in content.splitlines():
             name = _extract_requirement_name(raw_line)
             if not name:
                 continue
             normalized = name.lower()
             modules.add(normalized)
-            modules.add(normalized.replace("-", "_"))
-            line = raw_line.split("#", 1)[0].strip()
+            modules.add(normalized.replace('-', '_'))
+            line = raw_line.split('#', 1)[0].strip()
             if not line:
                 continue
             requirement = Requirement(line)
             name = requirement.name.lower()
-            modules.add(name.replace("-", "_"))
+            modules.add(name.replace('-', '_'))
             modules.add(name)
 
     return modules
 
 
 def _iter_test_files() -> Iterable[Path]:
-    return TESTS_ROOT.rglob("*.py")
+    return TESTS_ROOT.rglob('*.py')
 
 
 def _collect_imports(path: Path) -> set[str]:
     imports: set[str] = set()
-    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    tree = ast.parse(path.read_text(encoding='utf-8'), filename=str(path))
 
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
-                imports.add(alias.name.split(".")[0])
+                imports.add(alias.name.split('.')[0])
         elif isinstance(node, ast.ImportFrom):
             if node.module is None or node.level:
                 continue
-            imports.add(node.module.split(".")[0])
+            imports.add(node.module.split('.')[0])
 
     return imports
 
@@ -92,9 +92,9 @@ def _is_third_party(module: str) -> bool:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--verbose",
-        action="store_true",
-        help="print all discovered imports for debugging",
+        '--verbose',
+        action='store_true',
+        help='print all discovered imports for debugging',
     )
     args = parser.parse_args()
 
@@ -108,22 +108,22 @@ def main() -> int:
         for module in imports:
             if not _is_third_party(module):
                 continue
-            normalized = module.lower().replace("-", "_")
+            normalized = module.lower().replace('-', '_')
             if normalized in requirements:
                 continue
             missing.setdefault(file.as_posix(), set()).add(module)
 
     if missing:
-        print("Missing test requirement declarations detected:")
+        print('Missing test requirement declarations detected:')
         for file, modules in sorted(missing.items()):
-            formatted = ", ".join(sorted(modules))
+            formatted = ', '.join(sorted(modules))
             print(f"  - {file}: {formatted}")
-        print("Add the packages to requirements_test.txt to fix the violation.")
+        print('Add the packages to requirements_test.txt to fix the violation.')
         return 1
 
-    print("All third-party test imports map to requirements_test.txt entries.")
+    print('All third-party test imports map to requirements_test.txt entries.')
     return 0
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     raise SystemExit(main())

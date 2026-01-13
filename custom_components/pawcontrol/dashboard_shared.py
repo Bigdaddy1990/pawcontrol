@@ -19,11 +19,11 @@ type CardConfig = LovelaceCardConfig
 type CardCollection = list[LovelaceCardConfig]
 
 __all__ = [
-    "CardCollection",
-    "CardConfig",
-    "coerce_dog_config",
-    "coerce_dog_configs",
-    "unwrap_async_result",
+    'CardCollection',
+    'CardConfig',
+    'coerce_dog_config',
+    'coerce_dog_configs',
+    'unwrap_async_result',
 ]
 
 
@@ -82,14 +82,14 @@ def unwrap_async_result[T](
 
     if isinstance(result, asyncio.CancelledError):
         if suppress_cancelled:
-            logger.log(level, "%s: task cancelled", context)
+            logger.log(level, '%s: task cancelled', context)
             return None
         raise result
 
     if isinstance(result, BaseException):
         logger.log(
             level,
-            "%s: %s",
+            '%s: %s',
             context,
             result,
             exc_info=(type(result), result, result.__traceback__),

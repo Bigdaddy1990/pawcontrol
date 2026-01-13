@@ -12,7 +12,7 @@ Python: 3.13+
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Final, Literal, Protocol, cast
+from typing import TYPE_CHECKING, Final, Literal, Protocol, cast
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
@@ -43,14 +43,14 @@ from .types import (
 )
 from .validators import validate_gps_source
 
-GPS_SOURCE_KEY: Final[Literal["gps_source"]] = cast(
-    Literal["gps_source"], CONF_GPS_SOURCE
+GPS_SOURCE_KEY: Final[Literal['gps_source']] = cast(
+    Literal['gps_source'], CONF_GPS_SOURCE
 )
-DOOR_SENSOR_KEY: Final[Literal["door_sensor"]] = cast(
-    Literal["door_sensor"], CONF_DOOR_SENSOR
+DOOR_SENSOR_KEY: Final[Literal['door_sensor']] = cast(
+    Literal['door_sensor'], CONF_DOOR_SENSOR
 )
-NOTIFY_FALLBACK_KEY: Final[Literal["notify_fallback"]] = cast(
-    Literal["notify_fallback"], CONF_NOTIFY_FALLBACK
+NOTIFY_FALLBACK_KEY: Final[Literal['notify_fallback']] = cast(
+    Literal['notify_fallback'], CONF_NOTIFY_FALLBACK
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -62,9 +62,9 @@ def _build_external_entities_placeholders(
     """Return immutable placeholders for the external entities step."""
 
     placeholder_payload = clone_placeholders(EXTERNAL_ENTITIES_PLACEHOLDERS_TEMPLATE)
-    placeholder_payload["gps_enabled"] = gps_enabled
-    placeholder_payload["visitor_enabled"] = visitor_enabled
-    placeholder_payload["dog_count"] = dog_count
+    placeholder_payload['gps_enabled'] = gps_enabled
+    placeholder_payload['visitor_enabled'] = visitor_enabled
+    placeholder_payload['dog_count'] = dog_count
 
     return freeze_placeholders(placeholder_payload)
 
@@ -167,13 +167,13 @@ class ExternalEntityConfigurationMixin:
                 return await flow.async_step_final_setup()
             except FlowValidationError as err:
                 return flow.async_show_form(
-                    step_id="configure_external_entities",
+                    step_id='configure_external_entities',
                     data_schema=self._get_external_entities_schema(),
                     errors=err.as_form_errors(),
                 )
 
         return flow.async_show_form(
-            step_id="configure_external_entities",
+            step_id='configure_external_entities',
             data_schema=self._get_external_entities_schema(),
             description_placeholders=dict(
                 _build_external_entities_placeholders(
@@ -236,13 +236,13 @@ class ExternalEntityConfigurationMixin:
         selector_config = selector.SelectSelectorConfig(
             options=[
                 ExternalEntitySelectorOption(
-                    value="manual", label="📝 Manual GPS (configure later)"
+                    value='manual', label='📝 Manual GPS (configure later)'
                 )
             ],
             mode=selector.SelectSelectorMode.DROPDOWN,
         )
         return {
-            vol.Required(CONF_GPS_SOURCE, default="manual"): selector.SelectSelector(
+            vol.Required(CONF_GPS_SOURCE, default='manual'): selector.SelectSelector(
                 selector_config
             )
         }
@@ -254,7 +254,7 @@ class ExternalEntityConfigurationMixin:
             return {}
 
         options: list[ExternalEntitySelectorOption] = [
-            ExternalEntitySelectorOption(value="", label="None (optional)")
+            ExternalEntitySelectorOption(value='', label='None (optional)')
         ]
         options.extend(
             ExternalEntitySelectorOption(value=entity_id, label=f"🚪 {name}")
@@ -265,7 +265,7 @@ class ExternalEntityConfigurationMixin:
             options=options, mode=selector.SelectSelectorMode.DROPDOWN
         )
         return {
-            vol.Optional(CONF_DOOR_SENSOR, default=""): selector.SelectSelector(
+            vol.Optional(CONF_DOOR_SENSOR, default=''): selector.SelectSelector(
                 selector_config
             )
         }
@@ -278,7 +278,7 @@ class ExternalEntityConfigurationMixin:
 
         options: list[ExternalEntitySelectorOption] = [
             ExternalEntitySelectorOption(
-                value="", label="Default (persistent_notification)"
+                value='', label='Default (persistent_notification)'
             )
         ]
         options.extend(
@@ -290,7 +290,7 @@ class ExternalEntityConfigurationMixin:
             options=options, mode=selector.SelectSelectorMode.DROPDOWN
         )
         return {
-            vol.Optional(CONF_NOTIFY_FALLBACK, default=""): selector.SelectSelector(
+            vol.Optional(CONF_NOTIFY_FALLBACK, default=''): selector.SelectSelector(
                 selector_config
             )
         }
@@ -374,7 +374,7 @@ class ExternalEntityConfigurationMixin:
         state = self.hass.states.get(door_sensor)
         if not state:
             raise ValidationError(
-                CONF_DOOR_SENSOR, door_sensor, "door_sensor_not_found"
+                CONF_DOOR_SENSOR, door_sensor, 'door_sensor_not_found'
             )
         return {DOOR_SENSOR_FIELD: door_sensor}
 
@@ -384,32 +384,32 @@ class ExternalEntityConfigurationMixin:
         """Validate notification service selection."""
         if not notify_service:
             return {}
-        service_parts = notify_service.split(".", 1)
-        if len(service_parts) != 2 or service_parts[0] != "notify":
+        service_parts = notify_service.split('.', 1)
+        if len(service_parts) != 2 or service_parts[0] != 'notify':
             raise ValidationError(
-                CONF_NOTIFY_FALLBACK, notify_service, "notify_service_invalid"
+                CONF_NOTIFY_FALLBACK, notify_service, 'notify_service_invalid'
             )
 
-        services = self.hass.services.async_services().get("notify", {})
+        services = self.hass.services.async_services().get('notify', {})
         if service_parts[1] not in services:
             raise ValidationError(
-                CONF_NOTIFY_FALLBACK, notify_service, "notify_service_not_found"
+                CONF_NOTIFY_FALLBACK, notify_service, 'notify_service_not_found'
             )
 
         return {NOTIFY_FALLBACK_FIELD: notify_service}
 
 
 def _map_external_error(error: ValidationError) -> str:
-    if error.constraint == "gps_source_required":
-        return "required"
-    if error.constraint == "gps_source_not_found":
-        return "gps_entity_not_found"
-    if error.constraint == "gps_source_unavailable":
-        return "gps_entity_unavailable"
-    if error.constraint == "door_sensor_not_found":
-        return "door_sensor_not_found"
-    if error.constraint == "notify_service_invalid":
-        return "invalid_notification_service"
-    if error.constraint == "notify_service_not_found":
-        return "notification_service_not_found"
-    return "invalid_external_entity"
+    if error.constraint == 'gps_source_required':
+        return 'required'
+    if error.constraint == 'gps_source_not_found':
+        return 'gps_entity_not_found'
+    if error.constraint == 'gps_source_unavailable':
+        return 'gps_entity_unavailable'
+    if error.constraint == 'door_sensor_not_found':
+        return 'door_sensor_not_found'
+    if error.constraint == 'notify_service_invalid':
+        return 'invalid_notification_service'
+    if error.constraint == 'notify_service_not_found':
+        return 'notification_service_not_found'
+    return 'invalid_external_entity'

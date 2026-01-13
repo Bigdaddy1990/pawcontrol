@@ -69,18 +69,18 @@ ensure_homeassistant_exception_symbols()
 HOME_ASSISTANT_ERROR_CLS: type[Exception] = cast(
     type[Exception], compat.HomeAssistantError
 )
-bind_exception_alias("HomeAssistantError", combine_with_current=True)
+bind_exception_alias('HomeAssistantError', combine_with_current=True)
 
 
 def _resolve_homeassistant_error() -> type[Exception]:
     """Return the active Home Assistant error type."""
 
     try:
-        module = import_module("custom_components.pawcontrol.data_manager")
+        module = import_module('custom_components.pawcontrol.data_manager')
     except Exception:  # pragma: no cover - fallback when data manager unavailable
         return HOME_ASSISTANT_ERROR_CLS
 
-    resolver = getattr(module, "_resolve_homeassistant_error", None)
+    resolver = getattr(module, '_resolve_homeassistant_error', None)
     if callable(resolver):
         try:
             return resolver()
@@ -93,7 +93,7 @@ def _resolve_homeassistant_error() -> type[Exception]:
 _LOGGER = logging.getLogger(__name__)
 
 # Type variables for generic retry/circuit breaker
-T = TypeVar("T")
+T = TypeVar('T')
 
 AsyncCallable = Callable[..., Awaitable[T]]
 
@@ -105,9 +105,9 @@ class CircuitBreakerStateError(HomeAssistantErrorType):
 class CircuitState(Enum):
     """Circuit breaker states."""
 
-    CLOSED = "closed"  # Normal operation
-    OPEN = "open"  # Failing, reject requests
-    HALF_OPEN = "half_open"  # Testing if recovered
+    CLOSED = 'closed'  # Normal operation
+    OPEN = 'open'  # Failing, reject requests
+    HALF_OPEN = 'half_open'  # Testing if recovered
 
 
 @dataclass
@@ -146,7 +146,7 @@ def _utc_timestamp() -> float:
     """Return the current UTC timestamp as a float."""
 
     now = dt_util.utcnow()
-    convert = getattr(dt_util, "as_timestamp", None)
+    convert = getattr(dt_util, 'as_timestamp', None)
     if callable(convert):
         try:
             return float(convert(now))
@@ -439,10 +439,10 @@ async def retry_with_backoff[T](
     Raises:
         RetryExhaustedError: If all retry attempts fail
     """
-    retry_config = kwargs.pop("config", None) or kwargs.pop("retry_config", None)
+    retry_config = kwargs.pop('config', None) or kwargs.pop('retry_config', None)
     retry_config = retry_config or RetryConfig()
     if retry_config.max_attempts < 1:
-        raise _resolve_homeassistant_error()("Retry requires at least one attempt")
+        raise _resolve_homeassistant_error()('Retry requires at least one attempt')
     last_exception: Exception | None = None
 
     for attempt in range(1, retry_config.max_attempts + 1):
@@ -455,7 +455,7 @@ async def retry_with_backoff[T](
                     else _LOGGER.warning
                 )
                 log_method(
-                    "Retry succeeded on attempt %d/%d for %s",
+                    'Retry succeeded on attempt %d/%d for %s',
                     attempt,
                     retry_config.max_attempts,
                     func.__name__,
@@ -467,7 +467,7 @@ async def retry_with_backoff[T](
 
             if attempt >= retry_config.max_attempts:
                 _LOGGER.error(
-                    "Retry exhausted after %d attempts for %s: %s",
+                    'Retry exhausted after %d attempts for %s: %s',
                     attempt,
                     func.__name__,
                     err,
@@ -493,7 +493,7 @@ async def retry_with_backoff[T](
                 delay = delay * (0.5 + random_value)
 
             _LOGGER.warning(
-                "Retry attempt %d/%d failed for %s: %s - waiting %.1fs",
+                'Retry attempt %d/%d failed for %s: %s - waiting %.1fs',
                 attempt,
                 retry_config.max_attempts,
                 func.__name__,
@@ -506,7 +506,7 @@ async def retry_with_backoff[T](
     # Should never reach here due to raise in loop, but satisfy type checker
     if last_exception:  # pragma: no cover - defensive safeguard
         raise RetryExhaustedError(retry_config.max_attempts, last_exception)
-    raise _resolve_homeassistant_error()("Retry failed with no exception recorded")
+    raise _resolve_homeassistant_error()('Retry failed with no exception recorded')
 
 
 class ResilienceManager:
@@ -522,7 +522,7 @@ class ResilienceManager:
         self._circuit_breakers: dict[str, CircuitBreaker] = {}
         self._lock = asyncio.Lock()
 
-        _LOGGER.info("Initialized ResilienceManager")
+        _LOGGER.info('Initialized ResilienceManager')
 
     async def get_circuit_breaker(
         self,
@@ -622,5 +622,5 @@ class ResilienceManager:
                 await breaker.reset()
                 reset_count += 1
 
-            _LOGGER.info("Reset %d circuit breakers", reset_count)
+            _LOGGER.info('Reset %d circuit breakers', reset_count)
             return reset_count

@@ -17,7 +17,7 @@ from .types import (
 )
 
 _TYPED_MODULES: frozenset[CoordinatorTypedModuleName] = frozenset(
-    {"feeding", "garden", "geofencing", "gps", "health", "walk", "weather"}
+    {'feeding', 'garden', 'geofencing', 'gps', 'health', 'walk', 'weather'}
 )
 
 if TYPE_CHECKING:  # pragma: no cover - import for typing only
@@ -56,13 +56,13 @@ class CoordinatorDataAccessMixin:
         self,
         dog_id: str,
         module: Literal[
-            "feeding",
-            "garden",
-            "geofencing",
-            "gps",
-            "health",
-            "walk",
-            "weather",
+            'feeding',
+            'garden',
+            'geofencing',
+            'gps',
+            'health',
+            'walk',
+            'weather',
         ],
     ) -> CoordinatorModuleState:
         """Return coordinator data for a typed module."""
@@ -84,7 +84,7 @@ class CoordinatorDataAccessMixin:
         dog_data = self._data.get(dog_id)
         if not dog_data:
             return (
-                cast(CoordinatorModuleState, {"status": "unknown"})
+                cast(CoordinatorModuleState, {'status': 'unknown'})
                 if CoordinatorDataAccessMixin._is_typed_module(module)
                 else cast(CoordinatorUntypedModuleState, {})
             )
@@ -93,7 +93,7 @@ class CoordinatorDataAccessMixin:
         if CoordinatorDataAccessMixin._is_typed_module(module):
             if isinstance(module_data, Mapping):
                 return cast(CoordinatorModuleState, module_data)
-            return cast(CoordinatorModuleState, {"status": "unknown"})
+            return cast(CoordinatorModuleState, {'status': 'unknown'})
 
         if isinstance(module_data, Mapping):
             return cast(CoordinatorUntypedModuleState, module_data)
@@ -116,7 +116,7 @@ class CoordinatorDataAccessMixin:
 
         dog_data = self.get_dog_data(dog_id)
         if dog_data is not None:
-            dog_info = dog_data.get("dog_info")
+            dog_info = dog_data.get('dog_info')
             if isinstance(dog_info, Mapping):
                 return cast(DogConfigData, dog_info)
 
