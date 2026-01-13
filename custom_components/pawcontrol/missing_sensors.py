@@ -12,7 +12,7 @@ from homeassistant.const import UnitOfEnergy, UnitOfLength, UnitOfTime
 from homeassistant.util import dt as dt_util
 
 from .coordinator import PawControlCoordinator
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
+from .diagnostics import normalize_value
 from .sensor import PawControlSensorBase, register_sensor
 from .types import (
     DogConfigData,
@@ -80,7 +80,7 @@ def _feeding_payload(
 def _normalise_attributes(attrs: JSONMutableMapping) -> JSONMutableMapping:
     """Return JSON-serialisable attributes for missing sensors."""
 
-    return cast(JSONMutableMapping, _normalise_diagnostics_json(attrs))
+    return cast(JSONMutableMapping, normalize_value(attrs))
 
 
 def calculate_activity_level(

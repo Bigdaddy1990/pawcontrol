@@ -146,7 +146,7 @@ class PawControlEntity(
         else:
             attributes["last_updated"] = None
 
-        return cast(JSONMutableMapping, _normalise_diagnostics_json(attributes))
+        return cast(JSONMutableMapping, normalize_value(attributes))
 
     @callback
     def update_device_metadata(self, **details: Any) -> None:

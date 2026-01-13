@@ -32,7 +32,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import MODULE_GPS
 from .coordinator import PawControlCoordinator
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
+from .diagnostics import normalize_value
 from .entity import PawControlDogEntityBase
 from .runtime_data import get_runtime_data
 from .types import (
@@ -70,7 +70,7 @@ _LOGGER = logging.getLogger(__name__)
 def _normalise_attributes(attrs: JSONMutableMapping) -> JSONMutableMapping:
     """Return JSON-serialisable attributes for device tracker entities."""
 
-    return cast(JSONMutableMapping, _normalise_diagnostics_json(attrs))
+    return cast(JSONMutableMapping, normalize_value(attrs))
 
 
 # Coordinator drives refreshes, so we can safely allow unlimited parallel
