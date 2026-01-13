@@ -961,8 +961,8 @@ def _serialise_cache_snapshot(snapshot: Any) -> JSONMutableMapping:
     return cast(JSONMutableMapping, _normalise_json(snapshot_payload))
 
 
-def _normalise_json(value: Any, _seen: set[int] | None = None) -> Any:
-    """Normalise diagnostics payloads into JSON-serialisable data."""
+def normalize_value(value: Any, _seen: set[int] | None = None) -> JSONValue:
+    """Normalise values into JSON-serialisable primitives."""
 
     if isinstance(value, int | float | str | bool) or value is None:
         return value
@@ -977,7 +977,7 @@ def _normalise_json(value: Any, _seen: set[int] | None = None) -> Any:
         return value.isoformat()
 
     if isinstance(value, timedelta):
-        return value.total_seconds()
+        return str(value)
 
     if _seen is None:
         _seen = set()
@@ -989,38 +989,47 @@ def _normalise_json(value: Any, _seen: set[int] | None = None) -> Any:
     _seen.add(obj_id)
     try:
         if is_dataclass(value):
-            return _normalise_json(asdict(value), _seen)
+            return normalize_value(asdict(value), _seen)
 
         if hasattr(value, "to_mapping") and callable(value.to_mapping):
             try:
                 mapping_value = cast(Mapping[str, Any], value.to_mapping())
-                return _normalise_json(mapping_value, _seen)
+                return normalize_value(mapping_value, _seen)
             except Exception:  # pragma: no cover - defensive guard
                 _LOGGER.debug("Failed to normalise to_mapping payload for %s", value)
 
         if hasattr(value, "to_dict") and callable(value.to_dict):
             try:
                 dict_value = cast(Mapping[str, Any], value.to_dict())
-                return _normalise_json(dict_value, _seen)
+                return normalize_value(dict_value, _seen)
             except Exception:  # pragma: no cover - defensive guard
                 _LOGGER.debug("Failed to normalise to_dict payload for %s", value)
 
         if hasattr(value, "__dict__") and not isinstance(value, type):
-            return _normalise_json(vars(value), _seen)
+            return normalize_value(vars(value), _seen)
 
         if isinstance(value, Mapping):
             return {
-                str(key): _normalise_json(item, _seen) for key, item in value.items()
+                str(key): normalize_value(item, _seen) for key, item in value.items()
             }
 
-        if isinstance(
-            value, list | tuple | set | frozenset | Sequence
-        ) and not isinstance(value, str | bytes | bytearray):
-            return [_normalise_json(item, _seen) for item in value]
+        if isinstance(value, (set, frozenset)):
+            return [normalize_value(item, _seen) for item in value]
+
+        if isinstance(value, Sequence) and not isinstance(
+            value, (str, bytes, bytearray)
+        ):
+            return [normalize_value(item, _seen) for item in value]
 
         return repr(value)
     finally:
         _seen.discard(obj_id)
+
+
+def _normalise_json(value: Any, _seen: set[int] | None = None) -> JSONValue:
+    """Normalise diagnostics payloads into JSON-serialisable data."""
+
+    return normalize_value(value, _seen)
 
 
 async def _get_integration_status(

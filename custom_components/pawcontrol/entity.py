@@ -13,7 +13,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import ATTR_DOG_ID, ATTR_DOG_NAME
 from .coordinator import PawControlCoordinator
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
+from .diagnostics import normalize_value
 from .runtime_data import get_runtime_data
 from .service_guard import ServiceGuardResult
 from .types import (
@@ -142,7 +142,7 @@ class PawControlEntity(
         else:
             attributes["last_updated"] = None
 
-        return cast(JSONMutableMapping, _normalise_diagnostics_json(attributes))
+        return cast(JSONMutableMapping, normalize_value(attributes))
 
     @callback
     def update_device_metadata(self, **details: Any) -> None:
@@ -303,4 +303,4 @@ class PawControlDogEntityBase(PawControlEntity):
         """Expose the entity's extra state attributes payload."""
 
         attrs = self._build_base_state_attributes()
-        return cast(JSONMutableMapping, _normalise_diagnostics_json(attrs))
+        return cast(JSONMutableMapping, normalize_value(attrs))

@@ -35,7 +35,7 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
+from .diagnostics import normalize_value
 from .entity import PawControlDogEntityBase
 from .exceptions import PawControlError, ValidationError
 from .helpers import performance_monitor
@@ -311,7 +311,7 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
                 attributes["age_years"] = round(age_days / 365.25, 2)
                 attributes["age_months"] = round((age_days % 365.25) / 30.44, 1)
 
-        return cast(JSONMutableMapping, _normalise_diagnostics_json(attributes))
+        return cast(JSONMutableMapping, normalize_value(attributes))
 
     async def async_added_to_hass(self) -> None:
         """Called when entity is added to Home Assistant.
