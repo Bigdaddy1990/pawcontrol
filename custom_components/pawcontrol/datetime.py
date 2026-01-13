@@ -17,7 +17,6 @@ from homeassistant.util import dt as dt_util
 from .compat import ConfigEntry
 from .const import (
     ATTR_DOG_ID,
-    ATTR_DOG_NAME,
     DOMAIN,
     MODULE_FEEDING,
     MODULE_HEALTH,

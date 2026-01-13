@@ -28,8 +28,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import dt as dt_util
 
 from .const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
     MODULE_FEEDING,
     MODULE_GARDEN,
     MODULE_GPS,
