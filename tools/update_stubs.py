@@ -7,25 +7,26 @@ generate or validate stub contracts, and a compact digest of the referenced
 release notes. The metadata keeps CI and local workflows aligned without
 requiring the full upstream repository during quick checks.
 """
-
 from __future__ import annotations
 
 import argparse
 import json
-from datetime import UTC, datetime
+from datetime import datetime
+from datetime import UTC
 from pathlib import Path
-from typing import Any, Final
+from typing import Any
+from typing import Final
 from urllib.error import URLError
 from urllib.parse import urlparse
 from urllib.request import urlopen
 
-DEFAULT_OUTPUT: Final[Path] = Path("tests/helpers/homeassistant_stub_metadata.json")
+DEFAULT_OUTPUT: Final[Path] = Path('tests/helpers/homeassistant_stub_metadata.json')
 DEFAULT_TARGETS: Final[tuple[str, ...]] = (
-    "config_entries",
-    "diagnostics",
-    "device_registry",
-    "entity_registry",
-    "repairs",
+    'config_entries',
+    'diagnostics',
+    'device_registry',
+    'entity_registry',
+    'repairs',
 )
 
 
@@ -33,27 +34,27 @@ def _read_notes_from_url(url: str) -> str:
     """Return the contents of ``url`` as text, tolerating network failures."""
 
     parsed = urlparse(url)
-    if parsed.scheme not in {"http", "https"}:
-        return ""
+    if parsed.scheme not in {'http', 'https'}:
+        return ''
 
     try:
         with urlopen(url, timeout=10) as response:
-            charset = response.headers.get_content_charset() or "utf-8"
+            charset = response.headers.get_content_charset() or 'utf-8'
             return response.read().decode(charset)
     except (OSError, URLError):
-        return ""
+        return ''
 
 
 def _load_release_notes(path: Path | None, url: str | None) -> str:
     """Load release notes from a local file or remote source."""
 
     if path is not None and path.exists():
-        return path.read_text(encoding="utf-8")
+        return path.read_text(encoding='utf-8')
 
     if url:
         return _read_notes_from_url(url)
 
-    return ""
+    return ''
 
 
 def _extract_note_summary(notes: str, *, max_lines: int = 20) -> list[str]:
@@ -64,7 +65,7 @@ def _extract_note_summary(notes: str, *, max_lines: int = 20) -> list[str]:
 
     summary: list[str] = []
     for line in notes.splitlines():
-        if line.startswith("#"):
+        if line.startswith('#'):
             continue
         line = line.strip()
         if not line:
@@ -86,11 +87,11 @@ def _build_metadata(
     """Construct a JSON-serialisable metadata payload."""
 
     return {
-        "version": version,
-        "notes_source": notes_source,
-        "updated_at": datetime.now(UTC).isoformat(),
-        "targets": sorted(targets),
-        "note_summary": _extract_note_summary(notes),
+        'version': version,
+        'notes_source': notes_source,
+        'updated_at': datetime.now(UTC).isoformat(),
+        'targets': sorted(targets),
+        'note_summary': _extract_note_summary(notes),
     }
 
 
@@ -105,7 +106,7 @@ def update_stub_metadata(
     """Create or refresh the stub metadata file."""
 
     notes = _load_release_notes(notes_path, notes_url)
-    source = str(notes_path) if notes_path else (notes_url or "unspecified")
+    source = str(notes_path) if notes_path else (notes_url or 'unspecified')
     metadata = _build_metadata(
         version=version,
         notes_source=source,
@@ -114,7 +115,7 @@ def update_stub_metadata(
     )
 
     output.parent.mkdir(parents=True, exist_ok=True)
-    output.write_text(json.dumps(metadata, indent=2, sort_keys=True), encoding="utf-8")
+    output.write_text(json.dumps(metadata, indent=2, sort_keys=True), encoding='utf-8')
     return output
 
 
@@ -122,32 +123,32 @@ def parse_args() -> argparse.Namespace:
     """Parse CLI arguments."""
 
     parser = argparse.ArgumentParser(
-        description="Update Home Assistant stub metadata for PawControl."
+        description='Update Home Assistant stub metadata for PawControl.'
     )
     parser.add_argument(
-        "--version",
+        '--version',
         required=True,
-        help="Home Assistant Core release version used for stub validation.",
+        help='Home Assistant Core release version used for stub validation.',
     )
     parser.add_argument(
-        "--output",
+        '--output',
         type=Path,
         default=DEFAULT_OUTPUT,
         help=f"Target metadata path (default: {DEFAULT_OUTPUT})",
     )
     parser.add_argument(
-        "--notes-path",
+        '--notes-path',
         type=Path,
-        help="Optional path to a local release notes file.",
+        help='Optional path to a local release notes file.',
     )
     parser.add_argument(
-        "--notes-url",
-        help="Optional URL to fetch Home Assistant release notes.",
+        '--notes-url',
+        help='Optional URL to fetch Home Assistant release notes.',
     )
     parser.add_argument(
-        "--targets",
-        nargs="*",
-        help="Override the stub target modules recorded in the metadata.",
+        '--targets',
+        nargs='*',
+        help='Override the stub target modules recorded in the metadata.',
     )
     return parser.parse_args()
 
@@ -167,5 +168,5 @@ def main() -> None:
     print(f"Updated stub metadata at {output_path}")
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

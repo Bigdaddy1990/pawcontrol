@@ -7,7 +7,6 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
@@ -16,32 +15,35 @@ import inspect
 import logging
 import math
 import re
-from collections.abc import (
-    AsyncIterator,
-    Awaitable,
-    Callable,
-    Iterable,
-    Mapping,
-    Sequence,
-)
-from contextlib import asynccontextmanager, suppress
+from collections.abc import AsyncIterator
+from collections.abc import Awaitable
+from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import Sequence
+from contextlib import asynccontextmanager
+from contextlib import suppress
 from contextvars import ContextVar
-from dataclasses import asdict, dataclass, is_dataclass
-from datetime import UTC, date, datetime, time, timedelta
+from dataclasses import asdict
+from dataclasses import dataclass
+from dataclasses import is_dataclass
+from datetime import date
+from datetime import datetime
+from datetime import time
+from datetime import timedelta
+from datetime import UTC
 from functools import wraps
 from numbers import Real
 from types import SimpleNamespace
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    ParamSpec,
-    Protocol,
-    TypedDict,
-    TypeGuard,
-    TypeVar,
-    cast,
-    overload,
-)
+from typing import Any
+from typing import cast
+from typing import overload
+from typing import ParamSpec
+from typing import Protocol
+from typing import TYPE_CHECKING
+from typing import TypedDict
+from typing import TypeGuard
+from typing import TypeVar
 from weakref import WeakKeyDictionary
 
 if TYPE_CHECKING:  # pragma: no cover - import heavy HA modules for typing only
@@ -84,7 +86,7 @@ else:  # pragma: no branch - executed under tests without Home Assistant install
         class DeviceEntry:  # type: ignore[override]
             """Fallback representation of Home Assistant's device registry entry."""
 
-            id: str = ""
+            id: str = ''
             manufacturer: str | None = None
             model: str | None = None
             sw_version: str | None = None
@@ -117,7 +119,7 @@ else:  # pragma: no branch - executed under tests without Home Assistant install
 
         def _missing_registry(*args: Any, **kwargs: Any) -> Any:
             raise RuntimeError(
-                "Home Assistant registry helpers are unavailable in this environment"
+                'Home Assistant registry helpers are unavailable in this environment'
             )
 
         dr = SimpleNamespace(async_get=_missing_registry)
@@ -181,15 +183,15 @@ else:
 _LOGGER = logging.getLogger(__name__)
 
 # Type variables for generic functions
-T = TypeVar("T")
-K = TypeVar("K")
-V = TypeVar("V")
-P = ParamSpec("P")
-R = TypeVar("R")
+T = TypeVar('T')
+K = TypeVar('K')
+V = TypeVar('V')
+P = ParamSpec('P')
+R = TypeVar('R')
 Number = Real
 
 type DateTimeConvertible = datetime | date | str | float | int | Number
-type JSONMappingLike = Mapping[str, "JSONValue"]
+type JSONMappingLike = Mapping[str, 'JSONValue']
 
 
 class ServiceCallKeywordArgs(TypedDict, total=False):
@@ -272,21 +274,21 @@ def normalise_json(value: Any, _seen: set[int] | None = None) -> JSONValue:
         if is_dataclass(value):
             return normalise_json(asdict(value), _seen)
 
-        if hasattr(value, "to_mapping") and callable(value.to_mapping):
+        if hasattr(value, 'to_mapping') and callable(value.to_mapping):
             try:
                 mapping_value = cast(Mapping[str, Any], value.to_mapping())
                 return normalise_json(mapping_value, _seen)
             except Exception:  # pragma: no cover - defensive guard
-                _LOGGER.debug("Failed to normalise to_mapping payload for %s", value)
+                _LOGGER.debug('Failed to normalise to_mapping payload for %s', value)
 
-        if hasattr(value, "to_dict") and callable(value.to_dict):
+        if hasattr(value, 'to_dict') and callable(value.to_dict):
             try:
                 dict_value = cast(Mapping[str, Any], value.to_dict())
                 return normalise_json(dict_value, _seen)
             except Exception:  # pragma: no cover - defensive guard
-                _LOGGER.debug("Failed to normalise to_dict payload for %s", value)
+                _LOGGER.debug('Failed to normalise to_dict payload for %s', value)
 
-        if hasattr(value, "__dict__") and not isinstance(value, type):
+        if hasattr(value, '__dict__') and not isinstance(value, type):
             return normalise_json(vars(value), _seen)
 
         if isinstance(value, Mapping):
@@ -322,9 +324,9 @@ async def async_call_hass_service_if_available(
     description_hint = description or None
 
     if hass is None:
-        context_hint = f" for {description}" if description_hint else ""
+        context_hint = f" for {description}" if description_hint else ''
         active_logger.debug(
-            "Skipping %s.%s service call%s because Home Assistant is not available",
+            'Skipping %s.%s service call%s because Home Assistant is not available',
             domain,
             service,
             context_hint,
@@ -333,7 +335,7 @@ async def async_call_hass_service_if_available(
             domain=domain,
             service=service,
             executed=False,
-            reason="missing_instance",
+            reason='missing_instance',
             description=description_hint,
         )
         capture = _GUARD_CAPTURE.get(None)
@@ -341,12 +343,12 @@ async def async_call_hass_service_if_available(
             capture.append(guard_result)
         return guard_result
 
-    services = getattr(hass, "services", None)
-    async_call = getattr(services, "async_call", None)
+    services = getattr(hass, 'services', None)
+    async_call = getattr(services, 'async_call', None)
     if not callable(async_call):
-        context_hint = f" for {description}" if description_hint else ""
+        context_hint = f" for {description}" if description_hint else ''
         active_logger.debug(
-            "Skipping %s.%s service call%s because the Home Assistant services API is not available",
+            'Skipping %s.%s service call%s because the Home Assistant services API is not available',
             domain,
             service,
             context_hint,
@@ -355,7 +357,7 @@ async def async_call_hass_service_if_available(
             domain=domain,
             service=service,
             executed=False,
-            reason="missing_services_api",
+            reason='missing_services_api',
             description=description_hint,
         )
         capture = _GUARD_CAPTURE.get(None)
@@ -368,9 +370,9 @@ async def async_call_hass_service_if_available(
 
     kwargs: ServiceCallKeywordArgs = ServiceCallKeywordArgs(blocking=blocking)
     if target_payload is not None:
-        kwargs["target"] = target_payload
+        kwargs['target'] = target_payload
     if context is not None:
-        kwargs["context"] = context
+        kwargs['context'] = context
 
     await async_call(
         domain,
@@ -430,21 +432,21 @@ async def async_fire_event(
         return accepts_any_kw or keyword in supported_keywords
 
     kwargs: FireEventKeywordArgs = FireEventKeywordArgs()
-    if context is not None and _supports("context"):
-        kwargs["context"] = context
-    if origin is not None and _supports("origin"):
-        kwargs["origin"] = origin
+    if context is not None and _supports('context'):
+        kwargs['context'] = context
+    if origin is not None and _supports('origin'):
+        kwargs['origin'] = origin
     sanitized_time_fired: datetime | None = None
     if time_fired is not None:
         sanitized_time_fired = ensure_utc_datetime(time_fired)
         if sanitized_time_fired is None:
             _LOGGER.debug(
-                "Dropping invalid time_fired payload %r for %s event",
+                'Dropping invalid time_fired payload %r for %s event',
                 time_fired,
                 event_type,
             )
-    if sanitized_time_fired is not None and _supports("time_fired"):
-        kwargs["time_fired"] = sanitized_time_fired
+    if sanitized_time_fired is not None and _supports('time_fired'):
+        kwargs['time_fired'] = sanitized_time_fired
 
     result = bus_async_fire(event_type, event_data, **kwargs)
     if inspect.isawaitable(result):
@@ -463,7 +465,7 @@ def _get_bus_keyword_support(
 ) -> tuple[bool, frozenset[str]]:
     """Return metadata describing which keywords the bus supports."""
 
-    cache_key: object = getattr(bus_async_fire, "__func__", bus_async_fire)
+    cache_key: object = getattr(bus_async_fire, '__func__', bus_async_fire)
 
     try:
         return _SIGNATURE_SUPPORT_CACHE[cache_key]
@@ -589,31 +591,31 @@ def create_device_info(
     if microchip_id is not None:
         sanitized_microchip = sanitize_microchip_id(str(microchip_id))
         if sanitized_microchip:
-            identifiers.add(("microchip", sanitized_microchip))
+            identifiers.add(('microchip', sanitized_microchip))
 
     computed_model = f"{model} - {breed}" if breed else model
 
     device_info: DeviceInfo = {
-        "identifiers": identifiers,
-        "name": dog_name,
-        "manufacturer": manufacturer,
-        "model": computed_model,
+        'identifiers': identifiers,
+        'name': dog_name,
+        'manufacturer': manufacturer,
+        'model': computed_model,
     }
 
     if sw_version:
-        device_info["sw_version"] = sw_version
+        device_info['sw_version'] = sw_version
 
     if configuration_url:
-        device_info["configuration_url"] = configuration_url
+        device_info['configuration_url'] = configuration_url
 
     if serial_number:
-        device_info["serial_number"] = str(serial_number)
+        device_info['serial_number'] = str(serial_number)
 
     if hw_version:
-        device_info["hw_version"] = str(hw_version)
+        device_info['hw_version'] = str(hw_version)
 
     if suggested_area:
-        device_info["suggested_area"] = suggested_area
+        device_info['suggested_area'] = suggested_area
 
     return device_info
 
@@ -670,21 +672,21 @@ async def async_get_or_create_dog_device_entry(
     device_registry = dr.async_get(hass)
     device = device_registry.async_get_or_create(
         config_entry_id=config_entry_id,
-        identifiers=device_info["identifiers"],
-        manufacturer=device_info["manufacturer"],
-        model=device_info["model"],
-        name=device_info["name"],
-        sw_version=device_info.get("sw_version"),
-        configuration_url=device_info.get("configuration_url"),
+        identifiers=device_info['identifiers'],
+        manufacturer=device_info['manufacturer'],
+        model=device_info['model'],
+        name=device_info['name'],
+        sw_version=device_info.get('sw_version'),
+        configuration_url=device_info.get('configuration_url'),
     )
 
     update_kwargs: DeviceRegistryUpdate = DeviceRegistryUpdate()
     for field in (
-        "suggested_area",
-        "serial_number",
-        "hw_version",
-        "sw_version",
-        "configuration_url",
+        'suggested_area',
+        'serial_number',
+        'hw_version',
+        'sw_version',
+        'configuration_url',
     ):
         value = device_info.get(field)
         if value and getattr(device, field, None) != value:
@@ -698,7 +700,7 @@ async def async_get_or_create_dog_device_entry(
                 device = updated_device
         except Exception as err:  # pragma: no cover - defensive, HA guarantees API
             _LOGGER.debug(
-                "Failed to update device registry entry %s for dog %s: %s",
+                'Failed to update device registry entry %s for dog %s: %s',
                 device.id,
                 dog_id,
                 err,
@@ -715,10 +717,10 @@ class PawControlDeviceLinkMixin:
 
         super().__init__(*args, **kwargs)
         self._device_link_defaults: DeviceLinkDetails = {
-            "manufacturer": MANUFACTURER,
-            "model": DEFAULT_MODEL,
-            "sw_version": "1.0.0",
-            "configuration_url": "https://github.com/BigDaddy1990/pawcontrol",
+            'manufacturer': MANUFACTURER,
+            'model': DEFAULT_MODEL,
+            'sw_version': '1.0.0',
+            'configuration_url': 'https://github.com/BigDaddy1990/pawcontrol',
         }
         self._linked_device_entry: DeviceEntry | None = None
         self._device_link_initialized = False
@@ -726,12 +728,12 @@ class PawControlDeviceLinkMixin:
     def _set_device_link_info(self, **info: Any) -> None:
         """Update device link metadata used when creating the device entry."""
 
-        self._device_link_defaults.update(cast("DeviceLinkDetails", info))
+        self._device_link_defaults.update(cast('DeviceLinkDetails', info))
 
     def _device_link_details(self) -> DeviceLinkDetails:
         """Return a copy of the device metadata for linking."""
 
-        return cast("DeviceLinkDetails", dict(self._device_link_defaults))
+        return cast('DeviceLinkDetails', dict(self._device_link_defaults))
 
     # Home Assistant's cooperative multiple inheritance confuses type checkers
     # about the precise async_added_to_hass signature, so we silence the
@@ -749,30 +751,30 @@ class PawControlDeviceLinkMixin:
     def device_info(self) -> DeviceInfo | None:
         """Return device metadata for entity registry registration."""
 
-        dog_id = getattr(self, "_dog_id", None)
-        dog_name = getattr(self, "_dog_name", None)
+        dog_id = getattr(self, '_dog_id', None)
+        dog_name = getattr(self, '_dog_name', None)
         if not dog_id or not dog_name:
             return None
 
         info = self._device_link_details()
-        suggested_area = info.get("suggested_area") or getattr(
-            self, "_attr_suggested_area", None
+        suggested_area = info.get('suggested_area') or getattr(
+            self, '_attr_suggested_area', None
         )
 
         return create_device_info(
             dog_id,
             dog_name,
-            manufacturer=info.get("manufacturer", MANUFACTURER),
-            model=info.get("model", DEFAULT_MODEL),
-            sw_version=info.get("sw_version"),
-            configuration_url=info.get("configuration_url"),
-            breed=info.get("breed"),
-            microchip_id=info.get("microchip_id"),
-            serial_number=info.get("serial_number"),
-            hw_version=info.get("hw_version"),
+            manufacturer=info.get('manufacturer', MANUFACTURER),
+            model=info.get('model', DEFAULT_MODEL),
+            sw_version=info.get('sw_version'),
+            configuration_url=info.get('configuration_url'),
+            breed=info.get('breed'),
+            microchip_id=info.get('microchip_id'),
+            serial_number=info.get('serial_number'),
+            hw_version=info.get('hw_version'),
             suggested_area=suggested_area,
             extra_identifiers=cast(
-                Iterable[tuple[str, str]] | None, info.get("extra_identifiers")
+                Iterable[tuple[str, str]] | None, info.get('extra_identifiers')
             ),
         )
 
@@ -782,14 +784,14 @@ class PawControlDeviceLinkMixin:
         if self._device_link_initialized:
             return
 
-        hass: HomeAssistant | None = getattr(self, "hass", None)
-        coordinator = getattr(self, "coordinator", None)
+        hass: HomeAssistant | None = getattr(self, 'hass', None)
+        coordinator = getattr(self, 'coordinator', None)
         if hass is None or coordinator is None:
             return
 
-        config_entry = getattr(coordinator, "config_entry", None)
-        dog_id = getattr(self, "_dog_id", None)
-        dog_name = getattr(self, "_dog_name", None)
+        config_entry = getattr(coordinator, 'config_entry', None)
+        dog_id = getattr(self, '_dog_id', None)
+        dog_name = getattr(self, '_dog_name', None)
 
         if config_entry is None or dog_id is None or dog_name is None:
             return
@@ -804,8 +806,8 @@ class PawControlDeviceLinkMixin:
             )
         except Exception as err:  # pragma: no cover - defensive logging
             _LOGGER.warning(
-                "Failed to link PawControl entity %s to device: %s",
-                getattr(self, "entity_id", f"pawcontrol_{dog_id}"),
+                'Failed to link PawControl entity %s to device: %s',
+                getattr(self, 'entity_id', f"pawcontrol_{dog_id}"),
                 err,
             )
             return
@@ -814,7 +816,7 @@ class PawControlDeviceLinkMixin:
         self._linked_device_entry = device
         self._device_link_initialized = True
 
-        entity_id = cast(str | None, getattr(self, "entity_id", None))
+        entity_id = cast(str | None, getattr(self, 'entity_id', None))
         if entity_id:
             entity_registry = er.async_get(hass)
             entity_entry = entity_registry.async_get(entity_id)
@@ -850,7 +852,7 @@ def safe_get_nested[DefaultT](
     path: str,
     *,
     default: DefaultT | None = None,
-    separator: str = ".",
+    separator: str = '.',
 ) -> JSONValue | DefaultT | None:
     """Safely resolve a dotted path from a JSON-compatible mapping."""
     try:
@@ -873,7 +875,7 @@ def safe_set_nested[T: JSONMutableMapping](
     path: str,
     value: JSONValue,
     *,
-    separator: str = ".",
+    separator: str = '.',
 ) -> T:
     """Safely set a dotted path within a JSON-compatible mapping."""
     keys = path.split(separator)
@@ -908,11 +910,11 @@ def validate_time_string(time_str: str | None) -> time | None:
 
     try:
         # Support both HH:MM and HH:MM:SS formats
-        if re.match(r"^\d{1,2}:\d{2}$", time_str):
-            hour, minute = map(int, time_str.split(":"))
+        if re.match(r'^\d{1,2}:\d{2}$', time_str):
+            hour, minute = map(int, time_str.split(':'))
             return time(hour, minute)
-        if re.match(r"^\d{1,2}:\d{2}:\d{2}$", time_str):
-            hour, minute, second = map(int, time_str.split(":"))
+        if re.match(r'^\d{1,2}:\d{2}:\d{2}$', time_str):
+            hour, minute, second = map(int, time_str.split(':'))
             return time(hour, minute, second)
     except (ValueError, AttributeError):
         pass
@@ -933,7 +935,7 @@ def validate_email(email: str | None) -> bool:
         return False
 
     # Simple but effective email regex
-    pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     return bool(re.match(pattern, email))
 
 
@@ -947,11 +949,11 @@ def sanitize_dog_id(dog_id: str) -> str:
         Sanitized dog ID suitable for entity IDs
     """
     # Convert to lowercase and replace invalid characters
-    sanitized = re.sub(r"[^a-z0-9_]", "_", dog_id.lower())
-    sanitized = re.sub(r"_+", "_", sanitized).strip("_")
+    sanitized = re.sub(r'[^a-z0-9_]', '_', dog_id.lower())
+    sanitized = re.sub(r'_+', '_', sanitized).strip('_')
 
     if not sanitized:
-        digest = hashlib.sha256(dog_id.encode("utf-8", "ignore")).hexdigest()
+        digest = hashlib.sha256(dog_id.encode('utf-8', 'ignore')).hexdigest()
         sanitized = f"dog_{digest[:8]}"
     elif not sanitized[0].isalpha():
         sanitized = f"dog_{sanitized}"
@@ -962,7 +964,7 @@ def sanitize_dog_id(dog_id: str) -> str:
 def sanitize_microchip_id(microchip_id: str) -> str | None:
     """Normalize microchip identifiers for consistent device registry entries."""
 
-    sanitized = re.sub(r"[^A-Za-z0-9]", "", microchip_id).upper()
+    sanitized = re.sub(r'[^A-Za-z0-9]', '', microchip_id).upper()
     return sanitized or None
 
 
@@ -990,7 +992,7 @@ def format_duration(seconds: int | float) -> str:
     return f"{hours}h"
 
 
-def format_distance(meters: float, unit: str = "metric") -> str:
+def format_distance(meters: float, unit: str = 'metric') -> str:
     """Format distance with appropriate units.
 
     Args:
@@ -1000,7 +1002,7 @@ def format_distance(meters: float, unit: str = "metric") -> str:
     Returns:
         Formatted distance string
     """
-    if unit == "imperial":
+    if unit == 'imperial':
         feet = meters * 3.28084
         if feet < 5280:
             return f"{int(feet)} ft"
@@ -1026,18 +1028,18 @@ def calculate_age_from_months(age_months: int) -> dict[str, int]:
         ValueError: If ``age_months`` is negative
     """
     if isinstance(age_months, bool) or not isinstance(age_months, int):
-        raise TypeError("age_months must be provided as an integer")
+        raise TypeError('age_months must be provided as an integer')
 
     if age_months < 0:
-        raise ValueError("age_months must be non-negative")
+        raise ValueError('age_months must be non-negative')
 
     years = age_months // 12
     months = age_months % 12
 
     return {
-        "years": years,
-        "months": months,
-        "total_months": age_months,
+        'years': years,
+        'months': months,
+        'total_months': age_months,
     }
 
 
@@ -1061,15 +1063,15 @@ def parse_weight(weight_input: str | float | int) -> float | None:
     weight_str = weight_input.strip().lower()
 
     # Handle common weight formats
-    if "kg" in weight_str:
+    if 'kg' in weight_str:
         try:
-            return float(weight_str.replace("kg", "").strip())
+            return float(weight_str.replace('kg', '').strip())
         except ValueError:
             pass
-    elif "lb" in weight_str or "lbs" in weight_str:
+    elif 'lb' in weight_str or 'lbs' in weight_str:
         try:
             # Convert pounds to kilograms
-            lbs = float(weight_str.replace("lbs", "").replace("lb", "").strip())
+            lbs = float(weight_str.replace('lbs', '').replace('lb', '').strip())
             return lbs * 0.453592
         except ValueError:
             pass
@@ -1095,7 +1097,7 @@ def generate_entity_id(domain: str, dog_id: str, entity_type: str) -> str:
         Generated entity ID
     """
     sanitized_dog_id = sanitize_dog_id(dog_id)
-    sanitized_type = re.sub(r"[^a-z0-9_]", "_", entity_type.lower())
+    sanitized_type = re.sub(r'[^a-z0-9_]', '_', entity_type.lower())
 
     return f"{domain}.{sanitized_dog_id}_{sanitized_type}"
 
@@ -1112,11 +1114,11 @@ def calculate_bmi_equivalent(weight_kg: float, breed_size: str) -> float | None:
     """
     # Standard weight ranges for breed sizes (kg)
     size_ranges = {
-        "toy": (1.0, 6.0),
-        "small": (4.0, 15.0),
-        "medium": (8.0, 30.0),
-        "large": (22.0, 50.0),
-        "giant": (35.0, 90.0),
+        'toy': (1.0, 6.0),
+        'small': (4.0, 15.0),
+        'medium': (8.0, 30.0),
+        'large': (22.0, 50.0),
+        'giant': (35.0, 90.0),
     }
 
     if breed_size not in size_ranges:
@@ -1149,86 +1151,86 @@ def validate_portion_size(
     """
 
     result: PortionValidationResult = {
-        "valid": True,
-        "warnings": [],
-        "recommendations": [],
-        "percentage_of_daily": 0.0,
+        'valid': True,
+        'warnings': [],
+        'recommendations': [],
+        'percentage_of_daily': 0.0,
     }
 
     if not is_number(portion):
-        result["valid"] = False
-        result["warnings"].append("Portion must be a real number")
-        result["recommendations"].append("Provide the portion size in grams")
+        result['valid'] = False
+        result['warnings'].append('Portion must be a real number')
+        result['recommendations'].append('Provide the portion size in grams')
         return result
 
     portion_value = float(portion)
     if not math.isfinite(portion_value):
-        result["valid"] = False
-        result["warnings"].append("Portion must be a finite number")
-        result["recommendations"].append(
-            "Replace NaN or infinite values with real numbers"
+        result['valid'] = False
+        result['warnings'].append('Portion must be a finite number')
+        result['recommendations'].append(
+            'Replace NaN or infinite values with real numbers'
         )
         return result
 
     if portion_value <= 0:
-        result["valid"] = False
-        result["warnings"].append("Portion must be greater than zero")
-        result["recommendations"].append(
-            "Increase the portion size or remove the feeding entry"
+        result['valid'] = False
+        result['warnings'].append('Portion must be greater than zero')
+        result['recommendations'].append(
+            'Increase the portion size or remove the feeding entry'
         )
         return result
 
     if not is_number(daily_amount):
-        result["valid"] = False
-        result["warnings"].append("Daily food amount must be a real number")
-        result["recommendations"].append(
-            "Update the feeding configuration with a numeric daily amount"
+        result['valid'] = False
+        result['warnings'].append('Daily food amount must be a real number')
+        result['recommendations'].append(
+            'Update the feeding configuration with a numeric daily amount'
         )
         return result
 
     daily_amount_value = float(daily_amount)
     if not math.isfinite(daily_amount_value) or daily_amount_value <= 0:
-        result["valid"] = False
-        result["warnings"].append(
-            "Daily food amount must be positive to validate portion sizes"
+        result['valid'] = False
+        result['warnings'].append(
+            'Daily food amount must be positive to validate portion sizes'
         )
-        result["recommendations"].append(
-            "Set a positive daily food amount for the feeding configuration"
+        result['recommendations'].append(
+            'Set a positive daily food amount for the feeding configuration'
         )
         return result
 
     if meals_per_day <= 0:
-        result["warnings"].append(
-            "Meals per day is not positive; assuming a single meal for validation"
+        result['warnings'].append(
+            'Meals per day is not positive; assuming a single meal for validation'
         )
-        result["recommendations"].append(
-            "Adjust meals per day to a positive value in the feeding configuration"
+        result['recommendations'].append(
+            'Adjust meals per day to a positive value in the feeding configuration'
         )
         meals_per_day = 1
 
     percentage = (portion_value / daily_amount_value) * 100
-    result["percentage_of_daily"] = percentage
+    result['percentage_of_daily'] = percentage
 
     expected_percentage = 100 / meals_per_day
 
     if portion_value > daily_amount_value:
-        result["valid"] = False
-        result["warnings"].append("Portion exceeds the configured daily amount")
-        result["recommendations"].append(
-            "Reduce the portion size or increase the daily food amount"
+        result['valid'] = False
+        result['warnings'].append('Portion exceeds the configured daily amount')
+        result['recommendations'].append(
+            'Reduce the portion size or increase the daily food amount'
         )
 
     if percentage > 70:
-        result["valid"] = False
-        result["warnings"].append("Portion exceeds 70% of daily requirement")
-        result["recommendations"].append("Consider reducing portion size")
+        result['valid'] = False
+        result['warnings'].append('Portion exceeds 70% of daily requirement')
+        result['recommendations'].append('Consider reducing portion size')
     elif percentage > expected_percentage * 1.5:
-        result["warnings"].append("Portion is larger than typical for meal frequency")
-        result["recommendations"].append("Verify portion calculation")
+        result['warnings'].append('Portion is larger than typical for meal frequency')
+        result['recommendations'].append('Verify portion calculation')
     elif percentage < 5:
-        result["warnings"].append("Portion is very small compared to daily requirement")
-        result["recommendations"].append(
-            "Consider increasing portion or meal frequency"
+        result['warnings'].append('Portion is very small compared to daily requirement')
+        result['recommendations'].append(
+            'Consider increasing portion or meal frequency'
         )
 
     return result
@@ -1245,7 +1247,7 @@ def chunk_list[T](items: Sequence[T], chunk_size: int) -> list[list[T]]:
         List of chunks
     """
     if chunk_size <= 0:
-        raise ValueError("Chunk size must be positive")
+        raise ValueError('Chunk size must be positive')
 
     return [list(items[i : i + chunk_size]) for i in range(0, len(items), chunk_size)]
 
@@ -1302,8 +1304,8 @@ def is_dict_subset(subset: Mapping[K, V], superset: Mapping[K, V]) -> bool:
 def flatten_dict(
     data: JSONMapping,
     *,
-    separator: str = ".",
-    prefix: str = "",
+    separator: str = '.',
+    prefix: str = '',
 ) -> JSONMutableMapping:
     """Flatten a JSON mapping using dot notation for nested keys."""
 
@@ -1327,7 +1329,7 @@ def flatten_dict(
 
 
 def unflatten_dict(
-    data: Mapping[str, JSONValue], *, separator: str = "."
+    data: Mapping[str, JSONValue], *, separator: str = '.'
 ) -> JSONMutableMapping:
     """Expand a flattened JSON mapping that uses dot notation keys."""
 
@@ -1348,7 +1350,7 @@ def extract_numbers(text: str) -> list[float]:
     Returns:
         List of extracted numbers
     """
-    pattern = r"-?\d+(?:\.\d+)?"
+    pattern = r'-?\d+(?:\.\d+)?'
     matches = re.findall(pattern, text)
 
     try:
@@ -1370,12 +1372,12 @@ def generate_unique_id(*parts: str) -> str:
     sanitized_parts = []
     for part in parts:
         if part:
-            sanitized = re.sub(r"[^a-zA-Z0-9_]", "_", str(part))
-            sanitized = re.sub(r"_+", "_", sanitized).strip("_")
+            sanitized = re.sub(r'[^a-zA-Z0-9_]', '_', str(part))
+            sanitized = re.sub(r'_+', '_', sanitized).strip('_')
             if sanitized:
                 sanitized_parts.append(sanitized.lower())
 
-    return "_".join(sanitized_parts) if sanitized_parts else "unknown"
+    return '_'.join(sanitized_parts) if sanitized_parts else 'unknown'
 
 
 def retry_on_exception(
@@ -1429,7 +1431,7 @@ def retry_on_exception(
                     last_exception = err
                     if attempt < max_retries:
                         _LOGGER.debug(
-                            "Attempt %d failed for %s: %s. Retrying in %.1fs",
+                            'Attempt %d failed for %s: %s. Retrying in %.1fs',
                             attempt + 1,
                             func.__name__,
                             err,
@@ -1439,7 +1441,7 @@ def retry_on_exception(
                         current_delay *= backoff_factor
                     else:
                         _LOGGER.error(
-                            "All %d attempts failed for %s",
+                            'All %d attempts failed for %s',
                             max_retries + 1,
                             func.__name__,
                         )
@@ -1500,7 +1502,7 @@ def format_relative_time(dt: datetime) -> str:
     delta = now - dt
 
     if delta.total_seconds() < 60:
-        return "just now"
+        return 'just now'
     if delta.total_seconds() < 3600:
         minutes = int(delta.total_seconds() / 60)
         return f"{minutes}m ago"
@@ -1508,7 +1510,7 @@ def format_relative_time(dt: datetime) -> str:
         hours = int(delta.total_seconds() / 3600)
         return f"{hours}h ago"
     if delta.days == 1:
-        return "yesterday"
+        return 'yesterday'
     if delta.days < 7:
         return f"{delta.days} days ago"
     if delta.days < 30:
@@ -1570,7 +1572,7 @@ def _parse_datetime_string(value: str) -> datetime | None:
     if dt_value is not None:
         return dt_value
 
-    date_parser = getattr(dt_util, "parse_date", None)
+    date_parser = getattr(dt_util, 'parse_date', None)
     date_value: date | None = None
 
     if callable(date_parser):
@@ -1595,7 +1597,7 @@ def _datetime_from_timestamp(value: Number) -> datetime | None:
     except (TypeError, ValueError):
         return None
 
-    utc_from_timestamp = getattr(dt_util, "utc_from_timestamp", None)
+    utc_from_timestamp = getattr(dt_util, 'utc_from_timestamp', None)
     if callable(utc_from_timestamp):
         with suppress(OverflowError, OSError, ValueError):
             return utc_from_timestamp(timestamp)
@@ -1639,7 +1641,7 @@ def merge_configurations(
 
     for key, value in user_config.items():
         if key in protected_keys:
-            _LOGGER.warning("Ignoring protected configuration key: %s", key)
+            _LOGGER.warning('Ignoring protected configuration key: %s', key)
             continue
 
         existing_value = merged.get(key)
@@ -1700,28 +1702,28 @@ def convert_units(value: float, from_unit: str, to_unit: str) -> float:
     """
     # Weight conversions
     weight_conversions = {
-        ("kg", "lb"): lambda x: x * 2.20462,
-        ("lb", "kg"): lambda x: x * 0.453592,
-        ("g", "kg"): lambda x: x / 1000,
-        ("kg", "g"): lambda x: x * 1000,
-        ("oz", "g"): lambda x: x * 28.3495,
-        ("g", "oz"): lambda x: x / 28.3495,
+        ('kg', 'lb'): lambda x: x * 2.20462,
+        ('lb', 'kg'): lambda x: x * 0.453592,
+        ('g', 'kg'): lambda x: x / 1000,
+        ('kg', 'g'): lambda x: x * 1000,
+        ('oz', 'g'): lambda x: x * 28.3495,
+        ('g', 'oz'): lambda x: x / 28.3495,
     }
 
     # Distance conversions
     distance_conversions = {
-        ("m", "ft"): lambda x: x * 3.28084,
-        ("ft", "m"): lambda x: x / 3.28084,
-        ("km", "mi"): lambda x: x * 0.621371,
-        ("mi", "km"): lambda x: x / 0.621371,
-        ("m", "km"): lambda x: x / 1000,
-        ("km", "m"): lambda x: x * 1000,
+        ('m', 'ft'): lambda x: x * 3.28084,
+        ('ft', 'm'): lambda x: x / 3.28084,
+        ('km', 'mi'): lambda x: x * 0.621371,
+        ('mi', 'km'): lambda x: x / 0.621371,
+        ('m', 'km'): lambda x: x / 1000,
+        ('km', 'm'): lambda x: x * 1000,
     }
 
     # Temperature conversions
     temp_conversions = {
-        ("c", "f"): lambda x: (x * 9 / 5) + 32,
-        ("f", "c"): lambda x: (x - 32) * 5 / 9,
+        ('c', 'f'): lambda x: (x * 9 / 5) + 32,
+        ('f', 'c'): lambda x: (x - 32) * 5 / 9,
     }
 
     # Combine all conversions
@@ -1748,7 +1750,7 @@ def convert_units(value: float, from_unit: str, to_unit: str) -> float:
 
 
 _GUARD_CAPTURE: ContextVar[list[ServiceGuardResult] | None] = ContextVar(
-    "pawcontrol_service_guard_capture",
+    'pawcontrol_service_guard_capture',
     default=None,
 )
 

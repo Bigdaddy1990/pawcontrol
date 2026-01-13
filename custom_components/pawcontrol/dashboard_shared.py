@@ -1,29 +1,27 @@
 """Shared helpers and typing aliases for PawControl dashboard orchestration."""
-
 from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping
+from collections.abc import Sequence
 from typing import cast
 
-from .types import (
-    DogConfigData,
-    JSONValue,
-    LovelaceCardConfig,
-    RawDogConfig,
-    ensure_dog_config_data,
-)
+from .types import DogConfigData
+from .types import ensure_dog_config_data
+from .types import JSONValue
+from .types import LovelaceCardConfig
+from .types import RawDogConfig
 
 type CardConfig = LovelaceCardConfig
 type CardCollection = list[LovelaceCardConfig]
 
 __all__ = [
-    "CardCollection",
-    "CardConfig",
-    "coerce_dog_config",
-    "coerce_dog_configs",
-    "unwrap_async_result",
+    'CardCollection',
+    'CardConfig',
+    'coerce_dog_config',
+    'coerce_dog_configs',
+    'unwrap_async_result',
 ]
 
 
@@ -82,14 +80,14 @@ def unwrap_async_result[T](
 
     if isinstance(result, asyncio.CancelledError):
         if suppress_cancelled:
-            logger.log(level, "%s: task cancelled", context)
+            logger.log(level, '%s: task cancelled', context)
             return None
         raise result
 
     if isinstance(result, BaseException):
         logger.log(
             level,
-            "%s: %s",
+            '%s: %s',
             context,
             result,
             exc_info=(type(result), result, result.__traceback__),

@@ -4,7 +4,6 @@ These tests guarantee that the lightweight plugin shims keep importing without
 third-party dependencies, preventing regressions when upstream pytest plugins
 change behaviour.
 """
-
 from __future__ import annotations
 
 import asyncio
@@ -39,11 +38,11 @@ def _reload(module_name: str):
 
 
 def test_pytest_asyncio_stub_registers_asyncio_mode_and_loop() -> None:
-    pytest_asyncio = _reload("pytest_asyncio")
+    pytest_asyncio = _reload('pytest_asyncio')
 
     parser = _DummyParser()
     pytest_asyncio.pytest_addoption(parser)
-    assert ("asyncio_mode", "Select asyncio integration mode", "auto") in parser.inis
+    assert ('asyncio_mode', 'Select asyncio integration mode', 'auto') in parser.inis
 
     event_loop_func = pytest_asyncio.event_loop._fixture_function
     event_loop: Generator[asyncio.AbstractEventLoop] = event_loop_func()
@@ -55,34 +54,34 @@ def test_pytest_asyncio_stub_registers_asyncio_mode_and_loop() -> None:
 
 
 def test_pytest_cov_plugin_registers_marker() -> None:
-    pytest_cov_plugin = _reload("pytest_cov.plugin")
+    pytest_cov_plugin = _reload('pytest_cov.plugin')
 
     config = _DummyConfig()
     pytest_cov_plugin.pytest_configure(config)
 
-    assert ("markers", "cov: dummy marker for pytest-cov shim") in config.markers
+    assert ('markers', 'cov: dummy marker for pytest-cov shim') in config.markers
 
 
 def test_pytest_homeassistant_shim_registers_marker() -> None:
-    plugin = _reload("pytest_homeassistant_custom_component")
+    plugin = _reload('pytest_homeassistant_custom_component')
 
     config = _DummyConfig()
     plugin.pytest_configure(config)
 
     assert (
-        "markers",
-        "hacc: compatibility marker for pytest-homeassistant stubs",
+        'markers',
+        'hacc: compatibility marker for pytest-homeassistant stubs',
     ) in config.markers
 
 
 def test_asyncio_stub_imports_and_restores_get_event_loop() -> None:
-    stub = _reload("tests.plugins.asyncio_stub")
+    stub = _reload('tests.plugins.asyncio_stub')
 
     original_get_event_loop = stub._ORIGINAL_GET_EVENT_LOOP
-    config = type("Config", (), {})()
+    config = type('Config', (), {})()
 
     stub.pytest_configure(config)
-    loop = getattr(config, "_pawcontrol_asyncio_loop", None)
+    loop = getattr(config, '_pawcontrol_asyncio_loop', None)
     assert isinstance(loop, asyncio.AbstractEventLoop)
     assert asyncio.get_event_loop is stub._patched_get_event_loop
 

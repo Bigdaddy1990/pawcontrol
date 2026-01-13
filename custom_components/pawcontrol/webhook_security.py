@@ -1,5 +1,4 @@
 """HMAC signing and verification helpers for PawControl webhooks."""
-
 from __future__ import annotations
 
 import base64
@@ -8,7 +7,8 @@ import hmac
 import secrets
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
+from datetime import UTC
 from typing import ClassVar
 
 
@@ -30,18 +30,18 @@ class WebhookSecurityManager:
     """Generate and validate HMAC signatures for webhook payloads."""
 
     DEFAULT_TOLERANCE_SECONDS: ClassVar[int] = 300
-    SUPPORTED_ALGORITHMS: ClassVar[set[str]] = {"sha256", "sha512"}
+    SUPPORTED_ALGORITHMS: ClassVar[set[str]] = {'sha256', 'sha512'}
 
     def __init__(
         self,
         secret: str,
         *,
-        algorithm: str = "sha256",
+        algorithm: str = 'sha256',
         tolerance_seconds: int = DEFAULT_TOLERANCE_SECONDS,
     ) -> None:
         """Create a security manager for signing and verifying webhooks."""
         if not secret:
-            raise ValueError("secret must not be empty")
+            raise ValueError('secret must not be empty')
 
         normalized_algorithm = algorithm.lower()
         if normalized_algorithm not in self.SUPPORTED_ALGORITHMS:
@@ -49,7 +49,7 @@ class WebhookSecurityManager:
                 f"Unsupported HMAC algorithm: {algorithm}. Supported algorithms: {sorted(self.SUPPORTED_ALGORITHMS)}"
             )
 
-        self._secret = secret.encode("utf-8")
+        self._secret = secret.encode('utf-8')
         self._algorithm = normalized_algorithm
         self._tolerance = max(0, tolerance_seconds)
 
@@ -70,7 +70,7 @@ class WebhookSecurityManager:
             self._algorithm,
         ).digest()
 
-        signature = base64.b64encode(digest).decode("ascii")
+        signature = base64.b64encode(digest).decode('ascii')
         return WebhookSignature(
             algorithm=self._algorithm,
             signature=signature,
@@ -102,7 +102,7 @@ class WebhookSecurityManager:
         return hmac.compare_digest(expected, provided)
 
     def build_headers(
-        self, payload: bytes, *, header_prefix: str = "X-PawControl"
+        self, payload: bytes, *, header_prefix: str = 'X-PawControl'
     ) -> dict[str, str]:
         """Create HTTP headers containing an HMAC signature."""
 
@@ -116,7 +116,7 @@ class WebhookSecurityManager:
 
     @staticmethod
     def extract_signature(
-        headers: Mapping[str, str], *, header_prefix: str = "X-PawControl"
+        headers: Mapping[str, str], *, header_prefix: str = 'X-PawControl'
     ) -> WebhookSignature | None:
         """Extract a signature from HTTP headers if present."""
 
@@ -146,4 +146,4 @@ class WebhookSecurityManager:
         """Build the message that is signed or verified."""
 
         prefix = f"{timestamp}.{nonce}".encode()
-        return prefix + b"." + payload
+        return prefix + b'.' + payload

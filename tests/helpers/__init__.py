@@ -1,5 +1,4 @@
 """Shared test helpers for the PawControl integration."""
-
 from __future__ import annotations
 
 import importlib.util
@@ -10,23 +9,21 @@ from types import ModuleType
 from typing import TypeVar
 
 from . import homeassistant_test_stubs
-from .homeassistant_test_stubs import (
-    ConfigEntryNotReady,
-    HomeAssistantError,
-    install_homeassistant_stubs,
-)
+from .homeassistant_test_stubs import ConfigEntryNotReady
+from .homeassistant_test_stubs import HomeAssistantError
+from .homeassistant_test_stubs import install_homeassistant_stubs
 
 __all__ = [
-    "ConfigEntryNotReady",
-    "HomeAssistantError",
-    "ensure_package",
-    "homeassistant_test_stubs",
-    "install_homeassistant_stubs",
-    "load_module",
-    "typed_deepcopy",
+    'ConfigEntryNotReady',
+    'HomeAssistantError',
+    'ensure_package',
+    'homeassistant_test_stubs',
+    'install_homeassistant_stubs',
+    'load_module',
+    'typed_deepcopy',
 ]
 
-T = TypeVar("T")
+T = TypeVar('T')
 
 
 def typed_deepcopy[T](value: T) -> T:

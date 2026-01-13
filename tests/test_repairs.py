@@ -5,26 +5,29 @@ kata-style repository.  We provide focused coverage for the repair helpers to
 ensure they gracefully handle unexpected severity values even without the real
 Home Assistant runtime.
 """
-
 from __future__ import annotations
 
 import asyncio
 import importlib.util
 import sys
 from collections.abc import Mapping
-from datetime import UTC, datetime, timezone
+from datetime import datetime
+from datetime import timezone
+from datetime import UTC
 from enum import StrEnum
 from pathlib import Path
-from types import ModuleType, SimpleNamespace
-from typing import Any, cast
-from unittest.mock import AsyncMock, call
+from types import ModuleType
+from types import SimpleNamespace
+from typing import Any
+from typing import cast
+from unittest.mock import AsyncMock
+from unittest.mock import call
 
 import pytest
-from custom_components.pawcontrol.types import (
-    CacheRepairAggregate,
-    ConfigEntryDataPayload,
-    PawControlOptionsData,
-)
+
+from custom_components.pawcontrol.types import CacheRepairAggregate
+from custom_components.pawcontrol.types import ConfigEntryDataPayload
+from custom_components.pawcontrol.types import PawControlOptionsData
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -79,15 +82,15 @@ def _install_homeassistant_stubs() -> tuple[AsyncMock, type[StrEnum], AsyncMock]
             errors: Mapping[str, object] | None = None,
         ) -> dict[str, object]:
             return {
-                "type": "form",
-                "step_id": step_id,
-                "data_schema": data_schema,
-                "description_placeholders": dict(description_placeholders or {}),
-                "errors": dict(errors or {}),
+                'type': 'form',
+                'step_id': step_id,
+                'data_schema': data_schema,
+                'description_placeholders': dict(description_placeholders or {}),
+                'errors': dict(errors or {}),
             }
 
         def async_external_step(self, *, step_id: str, url: str) -> dict[str, object]:
-            return {"type": "external", "step_id": step_id, "url": url}
+            return {'type': 'external', 'step_id': step_id, 'url': url}
 
         def async_create_entry(
             self,
@@ -95,17 +98,17 @@ def _install_homeassistant_stubs() -> tuple[AsyncMock, type[StrEnum], AsyncMock]
             title: str,
             data: Mapping[str, object],
         ) -> dict[str, object]:
-            return {"type": "create_entry", "title": title, "data": dict(data)}
+            return {'type': 'create_entry', 'title': title, 'data': dict(data)}
 
         def async_abort(self, *, reason: str) -> dict[str, object]:
-            return {"type": "abort", "reason": reason}
+            return {'type': 'abort', 'reason': reason}
 
     repairs_component.RepairsFlow = _RepairsFlowStub
 
     class IssueSeverity(StrEnum):
-        WARNING = "warning"
-        ERROR = "error"
-        CRITICAL = "critical"
+        WARNING = 'warning'
+        ERROR = 'error'
+        CRITICAL = 'critical'
 
     issue_registry.IssueSeverity = IssueSeverity
     issue_registry.async_create_issue = async_create_issue
@@ -125,19 +128,19 @@ def repairs_module() -> tuple[Any, AsyncMock, type[StrEnum], AsyncMock]:
         _install_homeassistant_stubs()
     )
 
-    _ensure_package("custom_components", PROJECT_ROOT / "custom_components")
+    _ensure_package('custom_components', PROJECT_ROOT / 'custom_components')
     _ensure_package(
-        "custom_components.pawcontrol",
-        PROJECT_ROOT / "custom_components" / "pawcontrol",
+        'custom_components.pawcontrol',
+        PROJECT_ROOT / 'custom_components' / 'pawcontrol',
     )
 
-    module_name = "custom_components.pawcontrol.repairs"
+    module_name = 'custom_components.pawcontrol.repairs'
     sys.modules.pop(module_name, None)
     module = cast(
         Any,
         _load_module(
             module_name,
-            PROJECT_ROOT / "custom_components" / "pawcontrol" / "repairs.py",
+            PROJECT_ROOT / 'custom_components' / 'pawcontrol' / 'repairs.py',
         ),
     )
 
@@ -152,18 +155,18 @@ def test_async_create_issue_normalises_unknown_severity(
 
     module, create_issue_mock, issue_severity_cls, _ = repairs_module
     hass = SimpleNamespace()
-    entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+    entry = SimpleNamespace(entry_id='entry', data={}, options={}, version=1)
 
-    caplog.set_level("WARNING")
+    caplog.set_level('WARNING')
 
     asyncio.run(
         module.async_create_issue(
             hass,
             entry,
-            "entry_unknown",
-            "test_issue",
-            severity="info",
-            data={"foo": "bar"},
+            'entry_unknown',
+            'test_issue',
+            severity='info',
+            data={'foo': 'bar'},
         )
     )
 
@@ -172,8 +175,8 @@ def test_async_create_issue_normalises_unknown_severity(
     assert await_args is not None
     kwargs = await_args.kwargs
     severity_enum = cast(Any, issue_severity_cls)
-    assert kwargs["severity"] == severity_enum.WARNING
-    assert kwargs["translation_placeholders"]["severity"] == severity_enum.WARNING.value
+    assert kwargs['severity'] == severity_enum.WARNING
+    assert kwargs['translation_placeholders']['severity'] == severity_enum.WARNING.value
     assert "Unsupported issue severity 'info'" in caplog.text
 
 
@@ -184,14 +187,14 @@ def test_async_create_issue_accepts_issue_severity_instances(
 
     module, create_issue_mock, issue_severity_cls, _ = repairs_module
     hass = SimpleNamespace()
-    entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+    entry = SimpleNamespace(entry_id='entry', data={}, options={}, version=1)
 
     asyncio.run(
         module.async_create_issue(
             hass,
             entry,
-            "entry_error",
-            "test_issue",
+            'entry_error',
+            'test_issue',
             severity=cast(Any, issue_severity_cls).ERROR,
         )
     )
@@ -201,8 +204,8 @@ def test_async_create_issue_accepts_issue_severity_instances(
     assert await_args is not None
     kwargs = await_args.kwargs
     severity_enum = cast(Any, issue_severity_cls)
-    assert kwargs["severity"] == severity_enum.ERROR
-    assert kwargs["translation_placeholders"]["severity"] == severity_enum.ERROR.value
+    assert kwargs['severity'] == severity_enum.ERROR
+    assert kwargs['translation_placeholders']['severity'] == severity_enum.ERROR.value
 
 
 def _build_config_entries(
@@ -249,18 +252,18 @@ def test_storage_warning_flow_reduces_retention(
     """Storage warning repair should lower retention and resolve the issue."""
 
     module, _, _, delete_issue_mock = repairs_module
-    entry = module.ConfigEntry("entry")
+    entry = module.ConfigEntry('entry')
     entry.data = {module.CONF_DOGS: []}
-    entry.options = {"data_retention_days": 400}
+    entry.options = {'data_retention_days': 400}
     config_entries, updates, _ = _build_config_entries(entry)
 
-    issue_id = "entry_storage_warning"
+    issue_id = 'entry_storage_warning'
     issue_data = {
-        "config_entry_id": entry.entry_id,
-        "issue_type": module.ISSUE_STORAGE_WARNING,
-        "current_retention": 400,
-        "recommended_max": 365,
-        "suggestion": "Consider reducing data retention period",
+        'config_entry_id': entry.entry_id,
+        'issue_type': module.ISSUE_STORAGE_WARNING,
+        'current_retention': 400,
+        'recommended_max': 365,
+        'suggestion': 'Consider reducing data retention period',
     }
 
     hass = SimpleNamespace(
@@ -271,17 +274,17 @@ def test_storage_warning_flow_reduces_retention(
     flow = _create_flow(module, hass, issue_id)
 
     result = asyncio.run(flow.async_step_init())
-    assert result["type"] == "form"
-    assert result["step_id"] == "storage_warning"
+    assert result['type'] == 'form'
+    assert result['step_id'] == 'storage_warning'
 
     delete_issue_mock.reset_mock()
     updates.clear()
-    asyncio.run(flow.async_step_storage_warning({"action": "reduce_retention"}))
+    asyncio.run(flow.async_step_storage_warning({'action': 'reduce_retention'}))
 
-    assert entry.options["data_retention_days"] == 365
+    assert entry.options['data_retention_days'] == 365
     _, options_payload = updates[-1]
     assert options_payload is not None
-    assert options_payload["data_retention_days"] == 365
+    assert options_payload['data_retention_days'] == 365
     assert delete_issue_mock.await_count == 1
 
 
@@ -291,13 +294,13 @@ def test_module_conflict_flow_disables_extra_gps_modules(
     """Module conflict repair should disable GPS for dogs beyond the limit."""
 
     module, _, _, delete_issue_mock = repairs_module
-    entry = module.ConfigEntry("entry")
+    entry = module.ConfigEntry('entry')
     entry.data = {
         module.CONF_DOGS: [
             {
                 module.CONF_DOG_ID: f"dog{i}",
                 module.CONF_DOG_NAME: f"Dog {i}",
-                "modules": {module.MODULE_GPS: True, module.MODULE_HEALTH: True},
+                'modules': {module.MODULE_GPS: True, module.MODULE_HEALTH: True},
             }
             for i in range(6)
         ]
@@ -305,13 +308,13 @@ def test_module_conflict_flow_disables_extra_gps_modules(
     entry.options = {}
     config_entries, _, _ = _build_config_entries(entry)
 
-    issue_id = "entry_module_conflict"
+    issue_id = 'entry_module_conflict'
     issue_data = {
-        "config_entry_id": entry.entry_id,
-        "issue_type": module.ISSUE_MODULE_CONFLICT,
-        "intensive_dogs": 6,
-        "total_dogs": 6,
-        "suggestion": "Consider selective module enabling",
+        'config_entry_id': entry.entry_id,
+        'issue_type': module.ISSUE_MODULE_CONFLICT,
+        'intensive_dogs': 6,
+        'total_dogs': 6,
+        'suggestion': 'Consider selective module enabling',
     }
 
     hass = SimpleNamespace(
@@ -323,14 +326,14 @@ def test_module_conflict_flow_disables_extra_gps_modules(
     asyncio.run(flow.async_step_init())
 
     delete_issue_mock.reset_mock()
-    asyncio.run(flow.async_step_module_conflict({"action": "reduce_load"}))
+    asyncio.run(flow.async_step_module_conflict({'action': 'reduce_load'}))
 
     disabled = [
         dog
         for dog in entry.data[module.CONF_DOGS]
-        if dog["modules"].get(module.MODULE_GPS) is False
+        if dog['modules'].get(module.MODULE_GPS) is False
     ]
-    assert disabled, "Expected at least one dog to have GPS disabled"
+    assert disabled, 'Expected at least one dog to have GPS disabled'
     assert delete_issue_mock.await_count == 1
 
 
@@ -340,25 +343,25 @@ def test_invalid_dog_data_flow_removes_entries(
     """Invalid dog data repair should remove malformed entries."""
 
     module, _, _, delete_issue_mock = repairs_module
-    entry = module.ConfigEntry("entry")
+    entry = module.ConfigEntry('entry')
     entry.data = {
         module.CONF_DOGS: [
             {
-                module.CONF_DOG_ID: "valid",
-                module.CONF_DOG_NAME: "Valid Dog",
+                module.CONF_DOG_ID: 'valid',
+                module.CONF_DOG_NAME: 'Valid Dog',
             },
-            {module.CONF_DOG_ID: "invalid", module.CONF_DOG_NAME: ""},
+            {module.CONF_DOG_ID: 'invalid', module.CONF_DOG_NAME: ''},
         ]
     }
     entry.options = {}
     config_entries, _, _ = _build_config_entries(entry)
 
-    issue_id = "entry_invalid_dogs"
+    issue_id = 'entry_invalid_dogs'
     issue_data = {
-        "config_entry_id": entry.entry_id,
-        "issue_type": module.ISSUE_INVALID_DOG_DATA,
-        "invalid_dogs": ["invalid"],
-        "total_dogs": 2,
+        'config_entry_id': entry.entry_id,
+        'issue_type': module.ISSUE_INVALID_DOG_DATA,
+        'invalid_dogs': ['invalid'],
+        'total_dogs': 2,
     }
 
     hass = SimpleNamespace(
@@ -370,10 +373,10 @@ def test_invalid_dog_data_flow_removes_entries(
     asyncio.run(flow.async_step_init())
 
     delete_issue_mock.reset_mock()
-    asyncio.run(flow.async_step_invalid_dog_data({"action": "clean_up"}))
+    asyncio.run(flow.async_step_invalid_dog_data({'action': 'clean_up'}))
 
     dogs = entry.data[module.CONF_DOGS]
-    assert len(dogs) == 1 and dogs[0][module.CONF_DOG_ID] == "valid"
+    assert len(dogs) == 1 and dogs[0][module.CONF_DOG_ID] == 'valid'
     assert delete_issue_mock.await_count == 1
 
 
@@ -383,17 +386,17 @@ def test_coordinator_error_flow_triggers_reload(
     """Coordinator repair should reload the config entry and resolve the issue."""
 
     module, _, _, delete_issue_mock = repairs_module
-    entry = module.ConfigEntry("entry")
+    entry = module.ConfigEntry('entry')
     entry.data = {module.CONF_DOGS: []}
     entry.options = {}
     config_entries, _, reload_mock = _build_config_entries(entry)
 
-    issue_id = "entry_coordinator_error"
+    issue_id = 'entry_coordinator_error'
     issue_data = {
-        "config_entry_id": entry.entry_id,
-        "issue_type": module.ISSUE_COORDINATOR_ERROR,
-        "error": "coordinator_not_initialized",
-        "suggestion": "Try reloading the integration",
+        'config_entry_id': entry.entry_id,
+        'issue_type': module.ISSUE_COORDINATOR_ERROR,
+        'error': 'coordinator_not_initialized',
+        'suggestion': 'Try reloading the integration',
     }
 
     hass = SimpleNamespace(
@@ -406,11 +409,11 @@ def test_coordinator_error_flow_triggers_reload(
 
     delete_issue_mock.reset_mock()
     reload_mock.reset_mock()
-    result = asyncio.run(flow.async_step_coordinator_error({"action": "reload"}))
+    result = asyncio.run(flow.async_step_coordinator_error({'action': 'reload'}))
 
     assert reload_mock.await_count == 1
     assert delete_issue_mock.await_count == 1
-    assert result["type"] == "create_entry"
+    assert result['type'] == 'create_entry'
 
 
 def test_coordinator_error_flow_handles_failed_reload(
@@ -419,19 +422,19 @@ def test_coordinator_error_flow_handles_failed_reload(
     """Coordinator repair should keep the issue when reload fails."""
 
     module, _, _, delete_issue_mock = repairs_module
-    entry = module.ConfigEntry("entry")
+    entry = module.ConfigEntry('entry')
     entry.data = {module.CONF_DOGS: []}
     entry.options = {}
     config_entries, _, reload_mock = _build_config_entries(entry)
 
     reload_mock.return_value = False
 
-    issue_id = "entry_coordinator_error"
+    issue_id = 'entry_coordinator_error'
     issue_data = {
-        "config_entry_id": entry.entry_id,
-        "issue_type": module.ISSUE_COORDINATOR_ERROR,
-        "error": "coordinator_not_initialized",
-        "suggestion": "Try reloading the integration",
+        'config_entry_id': entry.entry_id,
+        'issue_type': module.ISSUE_COORDINATOR_ERROR,
+        'error': 'coordinator_not_initialized',
+        'suggestion': 'Try reloading the integration',
     }
 
     hass = SimpleNamespace(
@@ -444,17 +447,17 @@ def test_coordinator_error_flow_handles_failed_reload(
 
     delete_issue_mock.reset_mock()
     reload_mock.reset_mock()
-    result = asyncio.run(flow.async_step_coordinator_error({"action": "reload"}))
+    result = asyncio.run(flow.async_step_coordinator_error({'action': 'reload'}))
 
     assert reload_mock.await_count == 1
     cache_delete_calls = [
         invocation
         for invocation in delete_issue_mock.await_args_list
-        if invocation.args and str(invocation.args[-1]).endswith("_cache_health")
+        if invocation.args and str(invocation.args[-1]).endswith('_cache_health')
     ]
     assert not cache_delete_calls
-    assert result["type"] == "form"
-    assert result["errors"]["base"] == "reload_failed"
+    assert result['type'] == 'form'
+    assert result['errors']['base'] == 'reload_failed'
 
 
 def test_async_check_for_issues_checks_coordinator_health(
@@ -469,13 +472,13 @@ def test_async_check_for_issues_checks_coordinator_health(
     hass.services = SimpleNamespace(has_service=lambda *args, **kwargs: True)
 
     entry = SimpleNamespace(
-        entry_id="entry",
+        entry_id='entry',
         data={
             module.CONF_DOGS: [
                 {
-                    module.CONF_DOG_ID: "dog_alpha",
-                    module.CONF_DOG_NAME: "Dog Alpha",
-                    "modules": {},
+                    module.CONF_DOG_ID: 'dog_alpha',
+                    module.CONF_DOG_NAME: 'Dog Alpha',
+                    'modules': {},
                 }
             ]
         },
@@ -486,7 +489,7 @@ def test_async_check_for_issues_checks_coordinator_health(
     original_require_runtime_data = module.require_runtime_data
 
     def _raise_runtime_error(*_: Any, **__: Any) -> Any:
-        raise module.RuntimeDataUnavailableError("runtime missing")
+        raise module.RuntimeDataUnavailableError('runtime missing')
 
     module.require_runtime_data = _raise_runtime_error
 
@@ -499,13 +502,13 @@ def test_async_check_for_issues_checks_coordinator_health(
     await_args = create_issue_mock.await_args
     assert await_args is not None
     kwargs = await_args.kwargs
-    assert kwargs["translation_key"] == module.ISSUE_COORDINATOR_ERROR
-    assert kwargs["data"]["error"] == "coordinator_not_initialized"
+    assert kwargs['translation_key'] == module.ISSUE_COORDINATOR_ERROR
+    assert kwargs['data']['error'] == 'coordinator_not_initialized'
 
     cache_delete_calls = [
         invocation
         for invocation in delete_issue_mock.await_args_list
-        if invocation.args and str(invocation.args[-1]).endswith("_cache_health")
+        if invocation.args and str(invocation.args[-1]).endswith('_cache_health')
     ]
     assert len(cache_delete_calls) == 1
 
@@ -526,19 +529,19 @@ def test_async_check_for_issues_publishes_cache_health_issue(
     summary = CacheRepairAggregate(
         total_caches=1,
         anomaly_count=1,
-        severity="warning",
-        generated_at="2024-01-01T00:00:00+00:00",
+        severity='warning',
+        generated_at='2024-01-01T00:00:00+00:00',
         issues=[
             {
-                "cache": "adaptive_cache",
-                "entries": 5,
-                "hits": 3,
-                "misses": 2,
-                "hit_rate": 60.0,
-                "expired_entries": 1,
+                'cache': 'adaptive_cache',
+                'entries': 5,
+                'hits': 3,
+                'misses': 2,
+                'hit_rate': 60.0,
+                'expired_entries': 1,
             }
         ],
-        caches_with_expired_entries=["adaptive_cache"],
+        caches_with_expired_entries=['adaptive_cache'],
     )
 
     class _DataManager:
@@ -551,13 +554,13 @@ def test_async_check_for_issues_publishes_cache_health_issue(
     )
 
     entry = SimpleNamespace(
-        entry_id="entry",
+        entry_id='entry',
         data={
             module.CONF_DOGS: [
                 {
-                    module.CONF_DOG_ID: "dog",
-                    module.CONF_DOG_NAME: "Dog",
-                    "modules": {},
+                    module.CONF_DOG_ID: 'dog',
+                    module.CONF_DOG_NAME: 'Dog',
+                    'modules': {},
                 }
             ]
         },
@@ -577,12 +580,12 @@ def test_async_check_for_issues_publishes_cache_health_issue(
     await_args = create_issue_mock.await_args
     assert await_args is not None
     kwargs = await_args.kwargs
-    assert kwargs["translation_key"] == module.ISSUE_CACHE_HEALTH_SUMMARY
-    assert kwargs["data"]["summary"] == summary.to_mapping()
+    assert kwargs['translation_key'] == module.ISSUE_CACHE_HEALTH_SUMMARY
+    assert kwargs['data']['summary'] == summary.to_mapping()
     cache_delete_calls = [
         invocation
         for invocation in delete_issue_mock.await_args_list
-        if invocation.args and str(invocation.args[-1]).endswith("_cache_health")
+        if invocation.args and str(invocation.args[-1]).endswith('_cache_health')
     ]
     assert not cache_delete_calls
 
@@ -603,8 +606,8 @@ def test_async_check_for_issues_clears_cache_issue_without_anomalies(
     summary = CacheRepairAggregate(
         total_caches=1,
         anomaly_count=0,
-        severity="info",
-        generated_at="2024-01-01T00:00:00+00:00",
+        severity='info',
+        generated_at='2024-01-01T00:00:00+00:00',
     )
 
     class _DataManager:
@@ -617,13 +620,13 @@ def test_async_check_for_issues_clears_cache_issue_without_anomalies(
     )
 
     entry = SimpleNamespace(
-        entry_id="entry",
+        entry_id='entry',
         data={
             module.CONF_DOGS: [
                 {
-                    module.CONF_DOG_ID: "dog",
-                    module.CONF_DOG_NAME: "Dog",
-                    "modules": {},
+                    module.CONF_DOG_ID: 'dog',
+                    module.CONF_DOG_NAME: 'Dog',
+                    'modules': {},
                 }
             ]
         },
@@ -643,7 +646,7 @@ def test_async_check_for_issues_clears_cache_issue_without_anomalies(
     cache_delete_calls = [
         invocation
         for invocation in delete_issue_mock.await_args_list
-        if invocation.args and str(invocation.args[-1]).endswith("_cache_health")
+        if invocation.args and str(invocation.args[-1]).endswith('_cache_health')
     ]
     assert len(cache_delete_calls) == 1
 
@@ -666,28 +669,28 @@ def test_async_check_for_issues_surfaces_reconfigure_warnings(
     )
 
     entry = SimpleNamespace(
-        entry_id="entry",
+        entry_id='entry',
         data={
             module.CONF_DOGS: [
                 {
-                    module.CONF_DOG_ID: "dog",
-                    module.CONF_DOG_NAME: "Dog",
-                    "modules": {},
+                    module.CONF_DOG_ID: 'dog',
+                    module.CONF_DOG_NAME: 'Dog',
+                    'modules': {},
                 }
             ]
         },
         options={
-            "last_reconfigure": "2024-01-02T03:04:05+00:00",
-            "reconfigure_telemetry": {
-                "timestamp": "2024-01-02T03:04:05+00:00",
-                "requested_profile": "balanced",
-                "previous_profile": "advanced",
-                "dogs_count": 1,
-                "estimated_entities": 8,
-                "compatibility_warnings": [
-                    "GPS module disabled for configured dog",
+            'last_reconfigure': '2024-01-02T03:04:05+00:00',
+            'reconfigure_telemetry': {
+                'timestamp': '2024-01-02T03:04:05+00:00',
+                'requested_profile': 'balanced',
+                'previous_profile': 'advanced',
+                'dogs_count': 1,
+                'estimated_entities': 8,
+                'compatibility_warnings': [
+                    'GPS module disabled for configured dog',
                 ],
-                "health_summary": {"healthy": True, "issues": [], "warnings": []},
+                'health_summary': {'healthy': True, 'issues': [], 'warnings': []},
             },
         },
         version=1,
@@ -702,7 +705,7 @@ def test_async_check_for_issues_surfaces_reconfigure_warnings(
         module.require_runtime_data = original_require_runtime_data
 
     assert any(
-        invocation.kwargs["translation_key"] == module.ISSUE_RECONFIGURE_WARNINGS
+        invocation.kwargs['translation_key'] == module.ISSUE_RECONFIGURE_WARNINGS
         for invocation in create_issue_mock.await_args_list
     )
 
@@ -725,29 +728,29 @@ def test_async_check_for_issues_surfaces_reconfigure_health_issue(
     )
 
     entry = SimpleNamespace(
-        entry_id="entry",
+        entry_id='entry',
         data={
             module.CONF_DOGS: [
                 {
-                    module.CONF_DOG_ID: "dog",
-                    module.CONF_DOG_NAME: "Dog",
-                    "modules": {},
+                    module.CONF_DOG_ID: 'dog',
+                    module.CONF_DOG_NAME: 'Dog',
+                    'modules': {},
                 }
             ]
         },
         options={
-            "last_reconfigure": "2024-01-02T03:04:05+00:00",
-            "reconfigure_telemetry": {
-                "timestamp": "2024-01-02T03:04:05+00:00",
-                "requested_profile": "balanced",
-                "previous_profile": "advanced",
-                "dogs_count": 1,
-                "estimated_entities": 8,
-                "compatibility_warnings": [],
-                "health_summary": {
-                    "healthy": False,
-                    "issues": ["profile missing GPS support"],
-                    "warnings": ["consider reauth"],
+            'last_reconfigure': '2024-01-02T03:04:05+00:00',
+            'reconfigure_telemetry': {
+                'timestamp': '2024-01-02T03:04:05+00:00',
+                'requested_profile': 'balanced',
+                'previous_profile': 'advanced',
+                'dogs_count': 1,
+                'estimated_entities': 8,
+                'compatibility_warnings': [],
+                'health_summary': {
+                    'healthy': False,
+                    'issues': ['profile missing GPS support'],
+                    'warnings': ['consider reauth'],
                 },
             },
         },
@@ -763,7 +766,7 @@ def test_async_check_for_issues_surfaces_reconfigure_health_issue(
         module.require_runtime_data = original_require_runtime_data
 
     assert any(
-        invocation.kwargs["translation_key"] == module.ISSUE_RECONFIGURE_HEALTH
+        invocation.kwargs['translation_key'] == module.ISSUE_RECONFIGURE_HEALTH
         for invocation in create_issue_mock.await_args_list
     )
 
@@ -778,27 +781,27 @@ def test_check_runtime_store_duration_alerts_creates_issue(
     delete_issue_mock.reset_mock()
 
     hass = SimpleNamespace()
-    entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+    entry = SimpleNamespace(entry_id='entry', data={}, options={}, version=1)
     runtime_data = SimpleNamespace()
 
     original_require_runtime_data = module.require_runtime_data
     original_get_runtime_store_health = module.get_runtime_store_health
     module.require_runtime_data = lambda _hass, _entry: runtime_data
     module.get_runtime_store_health = lambda _runtime: {
-        "assessment_timeline_summary": {
-            "level_duration_guard_alerts": [
+        'assessment_timeline_summary': {
+            'level_duration_guard_alerts': [
                 {
-                    "level": "watch",
-                    "percentile_label": "p95",
-                    "percentile_rank": 0.95,
-                    "percentile_seconds": 28800.0,
-                    "guard_limit_seconds": 21600.0,
-                    "severity": "warning",
-                    "recommended_action": "Repair",
+                    'level': 'watch',
+                    'percentile_label': 'p95',
+                    'percentile_rank': 0.95,
+                    'percentile_seconds': 28800.0,
+                    'guard_limit_seconds': 21600.0,
+                    'severity': 'warning',
+                    'recommended_action': 'Repair',
                 }
             ],
-            "timeline_window_days": 1.0,
-            "last_event_timestamp": "2024-01-02T00:00:00+00:00",
+            'timeline_window_days': 1.0,
+            'last_event_timestamp': '2024-01-02T00:00:00+00:00',
         }
     }
 
@@ -810,12 +813,12 @@ def test_check_runtime_store_duration_alerts_creates_issue(
 
     assert create_issue_mock.await_count == 1
     kwargs = create_issue_mock.await_args.kwargs
-    assert kwargs["translation_key"] == module.ISSUE_RUNTIME_STORE_DURATION_ALERT
-    assert kwargs["severity"] == issue_severity_cls.WARNING
-    data = kwargs["data"]
-    assert data["alert_count"] == 1
-    assert data["triggered_levels"] == "watch"
-    assert "alert_summaries" in data
+    assert kwargs['translation_key'] == module.ISSUE_RUNTIME_STORE_DURATION_ALERT
+    assert kwargs['severity'] == issue_severity_cls.WARNING
+    data = kwargs['data']
+    assert data['alert_count'] == 1
+    assert data['triggered_levels'] == 'watch'
+    assert 'alert_summaries' in data
 
 
 def test_check_runtime_store_duration_alerts_clears_issue_without_alerts(
@@ -828,14 +831,14 @@ def test_check_runtime_store_duration_alerts_clears_issue_without_alerts(
     delete_issue_mock.reset_mock()
 
     hass = SimpleNamespace()
-    entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+    entry = SimpleNamespace(entry_id='entry', data={}, options={}, version=1)
     runtime_data = SimpleNamespace()
 
     original_require_runtime_data = module.require_runtime_data
     original_get_runtime_store_health = module.get_runtime_store_health
     module.require_runtime_data = lambda _hass, _entry: runtime_data
     module.get_runtime_store_health = lambda _runtime: {
-        "assessment_timeline_summary": {"level_duration_guard_alerts": []}
+        'assessment_timeline_summary': {'level_duration_guard_alerts': []}
     }
 
     try:
@@ -866,26 +869,26 @@ def test_async_check_for_issues_clears_reconfigure_issues_when_clean(
     )
 
     entry = SimpleNamespace(
-        entry_id="entry",
+        entry_id='entry',
         data={
             module.CONF_DOGS: [
                 {
-                    module.CONF_DOG_ID: "dog",
-                    module.CONF_DOG_NAME: "Dog",
-                    "modules": {},
+                    module.CONF_DOG_ID: 'dog',
+                    module.CONF_DOG_NAME: 'Dog',
+                    'modules': {},
                 }
             ]
         },
         options={
-            "last_reconfigure": "2024-01-02T03:04:05+00:00",
-            "reconfigure_telemetry": {
-                "timestamp": "2024-01-02T03:04:05+00:00",
-                "requested_profile": "balanced",
-                "previous_profile": "advanced",
-                "dogs_count": 1,
-                "estimated_entities": 8,
-                "compatibility_warnings": [],
-                "health_summary": {"healthy": True, "issues": [], "warnings": []},
+            'last_reconfigure': '2024-01-02T03:04:05+00:00',
+            'reconfigure_telemetry': {
+                'timestamp': '2024-01-02T03:04:05+00:00',
+                'requested_profile': 'balanced',
+                'previous_profile': 'advanced',
+                'dogs_count': 1,
+                'estimated_entities': 8,
+                'compatibility_warnings': [],
+                'health_summary': {'healthy': True, 'issues': [], 'warnings': []},
             },
         },
         version=1,
@@ -900,16 +903,16 @@ def test_async_check_for_issues_clears_reconfigure_issues_when_clean(
         module.require_runtime_data = original_require_runtime_data
 
     assert not any(
-        invocation.kwargs["translation_key"]
+        invocation.kwargs['translation_key']
         in {module.ISSUE_RECONFIGURE_WARNINGS, module.ISSUE_RECONFIGURE_HEALTH}
         for invocation in create_issue_mock.await_args_list
     )
     assert any(
-        invocation.args and str(invocation.args[-1]).endswith("reconfigure_warnings")
+        invocation.args and str(invocation.args[-1]).endswith('reconfigure_warnings')
         for invocation in delete_issue_mock.await_args_list
     )
     assert any(
-        invocation.args and str(invocation.args[-1]).endswith("reconfigure_health")
+        invocation.args and str(invocation.args[-1]).endswith('reconfigure_health')
         for invocation in delete_issue_mock.await_args_list
     )
 
@@ -925,21 +928,21 @@ def test_notification_check_accepts_mobile_app_service_prefix(
 
     hass.services = SimpleNamespace(
         has_service=lambda domain, service: False,
-        async_services=lambda: {"notify": {"mobile_app_jane": object()}},
+        async_services=lambda: {'notify': {'mobile_app_jane': object()}},
     )
 
     entry = SimpleNamespace(
-        entry_id="entry",
+        entry_id='entry',
         data={
             module.CONF_DOGS: [
                 {
-                    module.CONF_DOG_ID: "dog_alpha",
-                    module.CONF_DOG_NAME: "Dog Alpha",
-                    "modules": {module.MODULE_NOTIFICATIONS: True},
+                    module.CONF_DOG_ID: 'dog_alpha',
+                    module.CONF_DOG_NAME: 'Dog Alpha',
+                    'modules': {module.MODULE_NOTIFICATIONS: True},
                 }
             ]
         },
-        options={"notifications": {"mobile_notifications": True}},
+        options={'notifications': {'mobile_notifications': True}},
         version=1,
     )
 
@@ -958,33 +961,33 @@ def test_async_publish_feeding_compliance_issue_creates_alert(
     delete_issue_mock.reset_mock()
 
     hass = SimpleNamespace()
-    entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+    entry = SimpleNamespace(entry_id='entry', data={}, options={}, version=1)
 
     payload = cast(
         dict[str, object],
         {
-            "dog_id": "buddy",
-            "dog_name": "Buddy",
-            "days_to_check": 5,
-            "notify_on_issues": True,
-            "notification_sent": True,
-            "notification_id": "notif-1",
-            "result": {
-                "status": "completed",
-                "compliance_score": 65,
-                "compliance_rate": 65.0,
-                "days_analyzed": 5,
-                "days_with_issues": 2,
-                "checked_at": "2024-05-05T10:00:00+00:00",
-                "compliance_issues": [
+            'dog_id': 'buddy',
+            'dog_name': 'Buddy',
+            'days_to_check': 5,
+            'notify_on_issues': True,
+            'notification_sent': True,
+            'notification_id': 'notif-1',
+            'result': {
+                'status': 'completed',
+                'compliance_score': 65,
+                'compliance_rate': 65.0,
+                'days_analyzed': 5,
+                'days_with_issues': 2,
+                'checked_at': '2024-05-05T10:00:00+00:00',
+                'compliance_issues': [
                     {
-                        "date": "2024-05-04",
-                        "issues": ["Missed breakfast"],
-                        "severity": "high",
+                        'date': '2024-05-04',
+                        'issues': ['Missed breakfast'],
+                        'severity': 'high',
                     }
                 ],
-                "missed_meals": [{"date": "2024-05-03", "actual": 1, "expected": 2}],
-                "recommendations": ["Schedule a vet visit"],
+                'missed_meals': [{'date': '2024-05-03', 'actual': 1, 'expected': 2}],
+                'recommendations': ['Schedule a vet visit'],
             },
         },
     )
@@ -994,7 +997,7 @@ def test_async_publish_feeding_compliance_issue_creates_alert(
             hass,
             entry,
             payload,
-            context_metadata={"context_id": "ctx-1"},
+            context_metadata={'context_id': 'ctx-1'},
         )
     )
 
@@ -1002,23 +1005,23 @@ def test_async_publish_feeding_compliance_issue_creates_alert(
     await_args = create_issue_mock.await_args
     assert await_args is not None
     kwargs = await_args.kwargs
-    assert kwargs["translation_key"] == module.ISSUE_FEEDING_COMPLIANCE_ALERT
+    assert kwargs['translation_key'] == module.ISSUE_FEEDING_COMPLIANCE_ALERT
     severity_enum = cast(Any, issue_severity_cls)
-    assert kwargs["severity"] == severity_enum.CRITICAL
-    data = kwargs["data"]
-    assert data["dog_id"] == "buddy"
-    assert data["issue_count"] == 1
-    assert data["missed_meal_count"] == 1
-    assert data["context_metadata"]["context_id"] == "ctx-1"
-    assert data["notification_sent"] is True
-    summary = data["localized_summary"]
-    assert summary["title"].startswith("🍽️ Feeding compliance alert")
-    assert summary["score_line"].startswith("Score: 65")
-    assert data["notification_title"] == summary["title"]
-    assert data["notification_message"] is not None
-    assert data["issue_summary"] == ["2024-05-04: Missed breakfast"]
-    assert data["missed_meal_summary"] == ["2024-05-03: 1/2 meals"]
-    assert data["recommendations_summary"] == ["Schedule a vet visit"]
+    assert kwargs['severity'] == severity_enum.CRITICAL
+    data = kwargs['data']
+    assert data['dog_id'] == 'buddy'
+    assert data['issue_count'] == 1
+    assert data['missed_meal_count'] == 1
+    assert data['context_metadata']['context_id'] == 'ctx-1'
+    assert data['notification_sent'] is True
+    summary = data['localized_summary']
+    assert summary['title'].startswith('🍽️ Feeding compliance alert')
+    assert summary['score_line'].startswith('Score: 65')
+    assert data['notification_title'] == summary['title']
+    assert data['notification_message'] is not None
+    assert data['issue_summary'] == ['2024-05-04: Missed breakfast']
+    assert data['missed_meal_summary'] == ['2024-05-03: 1/2 meals']
+    assert data['recommendations_summary'] == ['Schedule a vet visit']
 
 
 def test_async_publish_feeding_compliance_issue_falls_back_without_critical(
@@ -1032,42 +1035,42 @@ def test_async_publish_feeding_compliance_issue_falls_back_without_critical(
     delete_issue_mock.reset_mock()
 
     class LimitedSeverity(StrEnum):
-        ERROR = "error"
-        WARNING = "warning"
+        ERROR = 'error'
+        WARNING = 'warning'
 
-    monkeypatch.setattr(module.ir, "IssueSeverity", LimitedSeverity, raising=False)
+    monkeypatch.setattr(module.ir, 'IssueSeverity', LimitedSeverity, raising=False)
     monkeypatch.setattr(
-        module.ir, "async_create_issue", create_issue_mock, raising=False
+        module.ir, 'async_create_issue', create_issue_mock, raising=False
     )
 
     hass = SimpleNamespace()
-    entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+    entry = SimpleNamespace(entry_id='entry', data={}, options={}, version=1)
 
     payload = cast(
         dict[str, object],
         {
-            "dog_id": "buddy",
-            "dog_name": "Buddy",
-            "days_to_check": 5,
-            "notify_on_issues": True,
-            "notification_sent": False,
-            "result": {
-                "status": "completed",
-                "compliance_score": 65,
-                "compliance_rate": 65.0,
-                "days_analyzed": 5,
-                "days_with_issues": 2,
-                "compliance_issues": [
+            'dog_id': 'buddy',
+            'dog_name': 'Buddy',
+            'days_to_check': 5,
+            'notify_on_issues': True,
+            'notification_sent': False,
+            'result': {
+                'status': 'completed',
+                'compliance_score': 65,
+                'compliance_rate': 65.0,
+                'days_analyzed': 5,
+                'days_with_issues': 2,
+                'compliance_issues': [
                     {
-                        "date": "2024-05-04",
-                        "issues": ["Missed breakfast"],
-                        "severity": "high",
+                        'date': '2024-05-04',
+                        'issues': ['Missed breakfast'],
+                        'severity': 'high',
                     }
                 ],
-                "missed_meals": [
-                    {"date": "2024-05-03", "actual": 1, "expected": 2},
+                'missed_meals': [
+                    {'date': '2024-05-03', 'actual': 1, 'expected': 2},
                 ],
-                "recommendations": ["Schedule a vet visit"],
+                'recommendations': ['Schedule a vet visit'],
             },
         },
     )
@@ -1085,7 +1088,7 @@ def test_async_publish_feeding_compliance_issue_falls_back_without_critical(
     await_args = create_issue_mock.await_args
     assert await_args is not None
     kwargs = await_args.kwargs
-    assert kwargs["severity"] == LimitedSeverity.ERROR
+    assert kwargs['severity'] == LimitedSeverity.ERROR
 
 
 def test_async_publish_feeding_compliance_issue_clears_resolved_alert(
@@ -1098,25 +1101,25 @@ def test_async_publish_feeding_compliance_issue_clears_resolved_alert(
     delete_issue_mock.reset_mock()
 
     hass = SimpleNamespace()
-    entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+    entry = SimpleNamespace(entry_id='entry', data={}, options={}, version=1)
 
     payload = cast(
         dict[str, object],
         {
-            "dog_id": "buddy",
-            "dog_name": "Buddy",
-            "days_to_check": 5,
-            "notify_on_issues": True,
-            "notification_sent": False,
-            "result": {
-                "status": "completed",
-                "compliance_score": 100,
-                "compliance_rate": 100.0,
-                "days_analyzed": 5,
-                "days_with_issues": 0,
-                "compliance_issues": [],
-                "missed_meals": [],
-                "recommendations": [],
+            'dog_id': 'buddy',
+            'dog_name': 'Buddy',
+            'days_to_check': 5,
+            'notify_on_issues': True,
+            'notification_sent': False,
+            'result': {
+                'status': 'completed',
+                'compliance_score': 100,
+                'compliance_rate': 100.0,
+                'days_analyzed': 5,
+                'days_with_issues': 0,
+                'compliance_issues': [],
+                'missed_meals': [],
+                'recommendations': [],
             },
         },
     )
@@ -1150,19 +1153,19 @@ def test_async_publish_feeding_compliance_issue_handles_no_data(
     delete_issue_mock.reset_mock()
 
     hass = SimpleNamespace()
-    entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+    entry = SimpleNamespace(entry_id='entry', data={}, options={}, version=1)
 
     payload = cast(
         dict[str, object],
         {
-            "dog_id": "buddy",
-            "dog_name": None,
-            "days_to_check": 3,
-            "notify_on_issues": False,
-            "notification_sent": False,
-            "result": {
-                "status": "no_data",
-                "message": "Telemetry unavailable",
+            'dog_id': 'buddy',
+            'dog_name': None,
+            'days_to_check': 3,
+            'notify_on_issues': False,
+            'notification_sent': False,
+            'result': {
+                'status': 'no_data',
+                'message': 'Telemetry unavailable',
             },
         },
     )
@@ -1172,7 +1175,7 @@ def test_async_publish_feeding_compliance_issue_handles_no_data(
             hass,
             entry,
             payload,
-            context_metadata={"context_id": None},
+            context_metadata={'context_id': None},
         )
     )
 
@@ -1180,16 +1183,16 @@ def test_async_publish_feeding_compliance_issue_handles_no_data(
     await_args = create_issue_mock.await_args
     assert await_args is not None
     kwargs = await_args.kwargs
-    assert kwargs["translation_key"] == module.ISSUE_FEEDING_COMPLIANCE_NO_DATA
+    assert kwargs['translation_key'] == module.ISSUE_FEEDING_COMPLIANCE_NO_DATA
     severity_enum = cast(Any, issue_severity_cls)
-    assert kwargs["severity"] == severity_enum.WARNING
-    data = kwargs["data"]
-    assert data["dog_name"] == "buddy"
-    assert data["message"] == "Telemetry unavailable"
-    summary = data["localized_summary"]
-    assert summary["title"].startswith("🍽️ Feeding telemetry missing")
-    assert summary["message"] == "Telemetry unavailable"
-    assert data["issue_summary"] == []
+    assert kwargs['severity'] == severity_enum.WARNING
+    data = kwargs['data']
+    assert data['dog_name'] == 'buddy'
+    assert data['message'] == 'Telemetry unavailable'
+    summary = data['localized_summary']
+    assert summary['title'].startswith('🍽️ Feeding telemetry missing')
+    assert summary['message'] == 'Telemetry unavailable'
+    assert data['issue_summary'] == []
     assert delete_issue_mock.await_count == 0
 
 
@@ -1203,27 +1206,27 @@ def test_async_publish_feeding_compliance_issue_sanitises_mapping_message(
     delete_issue_mock.reset_mock()
 
     hass = SimpleNamespace()
-    entry = SimpleNamespace(entry_id="entry", data={}, options={}, version=1)
+    entry = SimpleNamespace(entry_id='entry', data={}, options={}, version=1)
 
     payload = cast(
         dict[str, object],
         {
-            "dog_id": "buddy",
-            "dog_name": None,
-            "days_to_check": 2,
-            "notify_on_issues": False,
-            "notification_sent": False,
-            "result": {
-                "status": "no_data",
-                "message": {"description": "Telemetry offline"},
+            'dog_id': 'buddy',
+            'dog_name': None,
+            'days_to_check': 2,
+            'notify_on_issues': False,
+            'notification_sent': False,
+            'result': {
+                'status': 'no_data',
+                'message': {'description': 'Telemetry offline'},
             },
-            "localized_summary": {
-                "title": "🍽️ Feeding telemetry missing for Buddy",
-                "message": "Telemetry offline",
-                "score_line": None,
-                "missed_meals": [],
-                "issues": [],
-                "recommendations": [],
+            'localized_summary': {
+                'title': '🍽️ Feeding telemetry missing for Buddy',
+                'message': 'Telemetry offline',
+                'score_line': None,
+                'missed_meals': [],
+                'issues': [],
+                'recommendations': [],
             },
         },
     )
@@ -1239,6 +1242,6 @@ def test_async_publish_feeding_compliance_issue_sanitises_mapping_message(
 
     await_args = create_issue_mock.await_args
     assert await_args is not None
-    data = await_args.kwargs["data"]
-    assert data["message"] == "Telemetry offline"
-    assert data["localized_summary"]["message"] == "Telemetry offline"
+    data = await_args.kwargs['data']
+    assert data['message'] == 'Telemetry offline'
+    assert data['localized_summary']['message'] == 'Telemetry offline'
