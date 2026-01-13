@@ -146,7 +146,11 @@ class PawControlEntity(
         else:
             attributes["last_updated"] = None
 
-        return cast(JSONMutableMapping, normalize_value(attributes))  # noqa: F821
+                # Normalise attributes to ensure all values are JSON-serialisable. Use the
+        # internal diagnostics normalisation helper instead of an undefined
+        # `normalize_value` symbol. This avoids flake8 F821 errors and ensures
+        # consistency with PawControlDogEntityBase._finalize_entity_attributes().
+        return cast(JSONMutableMapping, _normalise_diagnostics_json(attributes))
 
     @callback
     def update_device_metadata(self, **details: Any) -> None:
