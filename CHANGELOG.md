@@ -5,6 +5,18 @@ All notable changes to PawControl will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Expanded the user guide with module setup details, automation guidance, and
+  screenshot recommendations to make onboarding clearer.【F:docs/user_guide.md†L1-L152】
+- Added more automation examples, including garden and blueprint samples, for
+  reusable workflows.【F:docs/automation_examples.md†L1-L128】
+- Extended troubleshooting coverage for GPS, services, and reminders to reduce
+  support gaps.【F:docs/troubleshooting.md†L1-L72】
+- Added architecture diagrams and async/typing guidelines to the developer
+  guide, plus localization workflow reminders.【F:dev.md†L1-L114】
+
 ## [1.0.0] - 2025-09-08 - Production Release 🎉
 
 ### Added

@@ -81,3 +81,76 @@ action:
         — Calories:
         {{ states('sensor.pawcontrol_calories_consumed_today') }}.
 ```
+
+## 5) Garden session auto-start on door sensor
+
+**Goal:** automatically start a garden session when the garden door opens.
+
+```yaml
+alias: PawControl - auto garden session
+trigger:
+  - platform: state
+    entity_id: binary_sensor.garden_door
+    to: "on"
+action:
+  - service: pawcontrol.start_garden_session
+    data:
+      dog_id: "buddy"
+```
+
+## 6) Health reminder on weigh-in day
+
+**Goal:** remind yourself to log weight every week.
+
+```yaml
+alias: PawControl - weekly weigh-in reminder
+trigger:
+  - platform: time
+    at: "19:00:00"
+condition:
+  - condition: time
+    weekday:
+      - sat
+action:
+  - service: notify.mobile_app
+    data:
+      title: "Weekly weigh-in"
+      message: "Log Buddy's weight in PawControl."
+```
+
+## 7) Blueprint: reusable walk reminder
+
+**Goal:** create a reusable automation with inputs for different dogs.
+
+Save this blueprint to `blueprints/automation/pawcontrol/walk-reminder.yaml`:
+
+```yaml
+blueprint:
+  name: PawControl - Walk reminder
+  description: Notify when a walk is overdue.
+  domain: automation
+  input:
+    overdue_sensor:
+      name: Walk overdue sensor
+      selector:
+        entity:
+          domain: binary_sensor
+    notify_target:
+      name: Notification service
+      selector:
+        text: {}
+trigger:
+  - platform: state
+    entity_id: !input overdue_sensor
+    to: "on"
+action:
+  - service: !input notify_target
+    data:
+      title: "Walk reminder"
+      message: >
+        Walk overdue for
+        {{ state_attr(trigger.entity_id, 'dog_name') }}.
+```
+
+After saving, create automations in **Settings → Automations & Scenes → Create
+Automation → From Blueprint** and select this blueprint.

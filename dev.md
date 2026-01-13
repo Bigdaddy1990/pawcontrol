@@ -34,6 +34,71 @@ the PawControl Home Assistant integration. User-facing documentation lives in
 2. Restart Home Assistant.
 3. Add the integration from **Settings → Devices & Services**.
 
+## Architecture overview
+
+PawControl follows the Home Assistant **config entry + coordinator** pattern.
+High-level architecture:
+
+```mermaid
+flowchart LR
+  subgraph Home_Assistant
+    UI[HA UI / Automations]
+    Services[Service Calls]
+    Entities[Entities]
+  end
+
+  subgraph PawControl
+    ConfigEntry[Config Entry]
+    Coordinator[DataUpdateCoordinator]
+    Managers[Feature Managers<br/>Walk • Feeding • Garden • Health]
+    DataManager[Persistence + Runtime Data]
+  end
+
+  UI --> Entities
+  Services --> Managers
+  ConfigEntry --> Coordinator
+  Coordinator --> Managers
+  Managers --> DataManager
+  DataManager --> Entities
+```
+
+### Runtime data flow
+
+```mermaid
+sequenceDiagram
+  participant HA as Home Assistant
+  participant CE as Config Entry
+  participant CO as Coordinator
+  participant MG as Manager
+  participant DM as Data Manager
+
+  HA->>CE: Setup integration
+  CE->>CO: Start coordinator
+  CO->>MG: Refresh data
+  MG->>DM: Persist updates
+  DM-->>CO: Provide normalized data
+  CO-->>HA: Update entities
+```
+
+## Async & concurrency guidelines
+
+- **Everything that touches HA must be async**: use `async def` and await on
+  I/O, coordinator refreshes, or service handlers.
+- **Never block the event loop**: wrap blocking work with
+  `hass.async_add_executor_job`.
+- **Centralize polling in the coordinator**: entities should read from
+  coordinator data rather than calling APIs directly.
+- **Avoid race conditions**: schedule changes via the data manager and reuse
+  shared guards, rather than creating new background tasks.
+
+## Typing guidelines
+
+- Keep **strict typing** (`mypy` runs in strict mode). Avoid implicit
+  optionals and untyped returns.
+- Add new models to `types.py` and reuse existing type aliases.
+- Use Home Assistant type aliases (`ConfigEntry`, `HomeAssistant`, `Platform`)
+  consistently to keep annotations aligned with HA.
+
 ## Quality gate (run before PR)
 
 ```bash
@@ -45,6 +110,16 @@ pytest -q
 python -m script.hassfest --integration-path custom_components/pawcontrol
 python -m script.sync_contributor_guides
 ```
+
+## Localization workflow
+
+Missing translation keys are a common cause of `hassfest` failures.
+
+1. Add new user-facing strings to `custom_components/pawcontrol/strings.json`.
+2. Propagate them to all locale files under
+   `custom_components/pawcontrol/translations/`.
+3. Re-run `python -m script.hassfest --integration-path custom_components/pawcontrol`
+   to validate schema and localization.
 
 ## Testing strategy
 
