@@ -73,7 +73,7 @@ jobs:
     uses: ./.github/workflows/reusable-python-tests.yml
     with:
       python-version: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.13' }}
-      home-assistant-spec: ${{ format('=={0}', vars.HA_VERSION != '' && vars.HA_VERSION || '2025.9.3') }}
+      home-assistant-spec: ${{ format('=={0}', vars.HA_VERSION != '' && vars.HA_VERSION || '2026.1.1') }}
       coverage-min: ${{ vars.RELEASE_COVERAGE_MIN != '' && vars.RELEASE_COVERAGE_MIN || (vars.CI_COVERAGE_MIN != '' && vars.CI_COVERAGE_MIN || '95') }}
       run-codecov: false
       upload-coverage-artifact: false
@@ -151,7 +151,7 @@ jobs:
 
       - name: Create release package
         env:
-          HA_VERSION: ${{ vars.HA_VERSION != '' && vars.HA_VERSION || '2025.9.3' }}
+          HA_VERSION: ${{ vars.HA_VERSION != '' && vars.HA_VERSION || '2026.1.1' }}
           PYTHON_VERSION: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.13' }}
         run: |
           VERSION="${{ needs.prepare-release.outputs.version }}"
@@ -241,7 +241,7 @@ jobs:
             Download `pawcontrol_v${{ needs.prepare-release.outputs.version }}.zip` and extract to `config/custom_components/`
 
             ## Requirements
-            - Home Assistant ${{ vars.HA_VERSION != '' && vars.HA_VERSION || '2025.9.3' }} or newer
+            - Home Assistant ${{ vars.HA_VERSION != '' && vars.HA_VERSION || '2026.1.1' }} or newer
             - Python ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.13' }}+
 
             ## Documentation
