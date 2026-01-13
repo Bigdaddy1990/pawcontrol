@@ -2587,7 +2587,9 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             raise _service_validation_error("notification_id must be a string")
         notification_id = notification_id.strip()
         if not notification_id:
-            raise _service_validation_error("notification_id must be a non-empty string")
+            raise _service_validation_error(
+                "notification_id must be a non-empty string"
+            )
 
         guard_results: list[ServiceGuardResult] = []
         guard_snapshot: tuple[ServiceGuardResult, ...] = ()
