@@ -652,6 +652,7 @@ async def async_get_config_entry_diagnostics(
         "resilience": _get_resilience_diagnostics(runtime_data, coordinator),
         "resilience_escalation": _get_resilience_escalation_snapshot(runtime_data),
         "runtime_store": describe_runtime_store_status(hass, entry),
+        "notifications": await _get_notification_diagnostics(runtime_data),
     }
 
     runtime_store_history = get_runtime_store_health(runtime_data)
@@ -1096,6 +1097,31 @@ async def _get_integration_status(
             "platforms_loaded": await _get_loaded_platforms(hass, entry),
             "services_registered": await _get_registered_services(hass),
             "setup_completed": True,
+        },
+    )
+
+
+async def _get_notification_diagnostics(
+    runtime_data: PawControlRuntimeData | None,
+) -> JSONMutableMapping:
+    """Return notification-specific diagnostics."""
+
+    if runtime_data is None:
+        return cast(JSONMutableMapping, {"available": False})
+
+    notification_manager = _resolve_notification_manager(runtime_data)
+    if notification_manager is None:
+        return cast(JSONMutableMapping, {"available": False})
+
+    stats = await notification_manager.async_get_performance_statistics()
+    delivery = notification_manager.get_delivery_status_snapshot()
+
+    return cast(
+        JSONMutableMapping,
+        {
+            "available": True,
+            "manager_stats": stats,
+            "delivery_status": delivery,
         },
     )
 

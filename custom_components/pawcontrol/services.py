@@ -2567,6 +2567,26 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         guard_snapshot: tuple[ServiceGuardResult, ...] = ()
 
         try:
+            if not isinstance(title, str):
+                raise _service_validation_error("title must be a string")
+            title = title.strip()
+            if not title:
+                raise _service_validation_error("title must be a non-empty string")
+
+            if not isinstance(message, str):
+                raise _service_validation_error("message must be a string")
+            message = message.strip()
+            if not message:
+                raise _service_validation_error("message must be a non-empty string")
+
+            if dog_id is not None:
+                if not isinstance(dog_id, str):
+                    raise _service_validation_error("dog_id must be a string")
+                dog_id = dog_id.strip()
+                if not dog_id:
+                    raise _service_validation_error("dog_id must be a non-empty string")
+                dog_id, _ = _resolve_dog(coordinator, dog_id)
+
             try:
                 notification_type_enum = NotificationType(notification_type_raw)
             except (TypeError, ValueError):
@@ -2628,23 +2648,17 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             expires_in = None
             expires_in_hours: float | None = None
             if expires_in_hours_raw is not None:
-                expires_in_hours_candidate: float
                 try:
-                    expires_in_hours_candidate = float(expires_in_hours_raw)
+                    expires_in_hours = float(expires_in_hours_raw)
                 except (TypeError, ValueError):
-                    _LOGGER.warning(
-                        "Invalid expires_in_hours '%s'; ignoring override",
-                        expires_in_hours_raw,
+                    raise _service_validation_error(
+                        "expires_in_hours must be a positive number"
+                    ) from None
+                if expires_in_hours <= 0:
+                    raise _service_validation_error(
+                        "expires_in_hours must be greater than 0"
                     )
-                else:
-                    if expires_in_hours_candidate <= 0:
-                        _LOGGER.warning(
-                            "Non-positive expires_in_hours '%s'; ignoring override",
-                            expires_in_hours_raw,
-                        )
-                    else:
-                        expires_in_hours = expires_in_hours_candidate
-                        expires_in = timedelta(hours=expires_in_hours_candidate)
+                expires_in = timedelta(hours=expires_in_hours)
 
             async with async_capture_service_guard_results() as captured_guards:
                 guard_results = captured_guards
@@ -2718,6 +2732,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
 
         notification_id = call.data["notification_id"]
+        if not isinstance(notification_id, str):
+            raise _service_validation_error("notification_id must be a string")
+        notification_id = notification_id.strip()
+        if not notification_id:
+            raise _service_validation_error(
+                "notification_id must be a non-empty string"
+            )
 
         guard_results: list[ServiceGuardResult] = []
         guard_snapshot: tuple[ServiceGuardResult, ...] = ()

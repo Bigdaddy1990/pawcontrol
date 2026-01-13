@@ -202,6 +202,28 @@ class NotificationEventSerialized(TypedDict):
     send_attempts: NotificationSendAttempts
     targeted_persons: list[str]
     notification_services: list[str]
+    failed_notification_services: list[str]
+
+
+@dataclass
+class NotificationDeliveryStatus:
+    """Snapshot of delivery status for a notification service."""
+
+    last_success_at: datetime | None = None
+    last_failure_at: datetime | None = None
+    consecutive_failures: int = 0
+    total_failures: int = 0
+    total_successes: int = 0
+    last_error: str | None = None
+    last_error_reason: str | None = None
+
+
+class NotificationDeliveryDiagnostics(TypedDict):
+    """Diagnostics payload for notification delivery outcomes."""
+
+    total_services: int
+    failed_services: list[str]
+    services: dict[str, JSONMutableMapping]
 
 
 class NotificationWebhookPayload(TypedDict):
@@ -297,6 +319,7 @@ class NotificationEvent:
     notification_services: list[str] = field(
         default_factory=list
     )  # Actual services used
+    failed_notification_services: list[str] = field(default_factory=list)
 
     def to_dict(self) -> NotificationEventSerialized:
         """Convert to dictionary for storage."""
@@ -323,6 +346,7 @@ class NotificationEvent:
             "send_attempts": self.send_attempts,
             "targeted_persons": self.targeted_persons,
             "notification_services": self.notification_services,
+            "failed_notification_services": self.failed_notification_services,
         }
 
     def can_be_batched_with(self, other: NotificationEvent) -> bool:
@@ -729,6 +753,7 @@ class PawControlNotificationManager:
         self._cache: NotificationCache = NotificationCache()
         self._batch_queue: deque[NotificationEvent] = deque()
         self._pending_batches: dict[str, list[NotificationEvent]] = {}
+        self._delivery_status: dict[str, NotificationDeliveryStatus] = {}
 
         # OPTIMIZE: Performance monitoring
         self._performance_metrics: NotificationPerformanceMetrics = {
@@ -772,6 +797,77 @@ class PawControlNotificationManager:
             **self._performance_metrics,
         }
         return metrics
+
+    def get_delivery_status_snapshot(self) -> NotificationDeliveryDiagnostics:
+        """Return a diagnostics payload for notification delivery status."""
+
+        services: dict[str, JSONMutableMapping] = {}
+        failed_services: list[str] = []
+
+        for service_name, status in self._delivery_status.items():
+            payload: JSONMutableMapping = {
+                "last_success_at": status.last_success_at.isoformat()
+                if status.last_success_at
+                else None,
+                "last_failure_at": status.last_failure_at.isoformat()
+                if status.last_failure_at
+                else None,
+                "consecutive_failures": status.consecutive_failures,
+                "total_failures": status.total_failures,
+                "total_successes": status.total_successes,
+                "last_error": status.last_error,
+                "last_error_reason": status.last_error_reason,
+            }
+            services[service_name] = payload
+            if status.consecutive_failures > 0:
+                failed_services.append(service_name)
+
+        return {
+            "total_services": len(services),
+            "failed_services": failed_services,
+            "services": services,
+        }
+
+    def _record_delivery_success(self, service_name: str) -> None:
+        """Persist a successful delivery outcome for diagnostics."""
+
+        status = self._delivery_status.setdefault(
+            service_name, NotificationDeliveryStatus()
+        )
+        status.last_success_at = dt_util.now()
+        status.total_successes += 1
+        status.consecutive_failures = 0
+        status.last_error = None
+        status.last_error_reason = None
+
+    def _record_delivery_failure(
+        self,
+        service_name: str,
+        *,
+        reason: str,
+        error: Exception | None = None,
+    ) -> None:
+        """Persist a failed delivery outcome for diagnostics."""
+
+        status = self._delivery_status.setdefault(
+            service_name, NotificationDeliveryStatus()
+        )
+        status.last_failure_at = dt_util.now()
+        status.total_failures += 1
+        status.consecutive_failures += 1
+        status.last_error_reason = reason
+        status.last_error = str(error) if error else reason
+
+    def _notify_service_available(self, service_name: str) -> bool:
+        """Return True when a notify service is registered."""
+
+        services = getattr(self._hass, "services", None)
+        async_services = getattr(services, "async_services", None)
+        if not callable(async_services):
+            return False
+
+        domain_services = async_services().get("notify", {})
+        return service_name in domain_services
 
     def _setup_default_handlers(self) -> None:
         """Setup default notification handlers with error handling."""
@@ -1590,6 +1686,18 @@ class PawControlNotificationManager:
                 notification.send_attempts.get(channel_key, 0) + 1
             )
 
+            if (
+                channel == NotificationChannel.MOBILE
+                and notification.failed_notification_services
+                and channel not in notification.failed_channels
+            ):
+                notification.failed_channels.append(channel)
+                _LOGGER.info(
+                    "Mobile notification %s had failed services: %s",
+                    notification.id,
+                    ", ".join(notification.failed_notification_services),
+                )
+
         except Exception:
             if channel not in notification.failed_channels:
                 notification.failed_channels.append(channel)
@@ -1773,11 +1881,23 @@ class PawControlNotificationManager:
 
     async def _send_mobile_notification(self, notification: NotificationEvent) -> None:
         """Send mobile app notification with enhanced features and person targeting."""
+        failed_services: list[str] = []
         # NEW: Use person-targeted services if available
         if notification.notification_services:
             # Send to each targeted service
             for service_name in notification.notification_services:
                 try:
+                    if not self._notify_service_available(service_name):
+                        _LOGGER.warning(
+                            "Notify service %s is not registered; skipping delivery",
+                            service_name,
+                        )
+                        failed_services.append(service_name)
+                        self._record_delivery_failure(
+                            service_name, reason="missing_notify_service"
+                        )
+                        continue
+
                     service_data: NotificationServicePayload = {
                         "title": notification.title,
                         "message": notification.message,
@@ -1807,17 +1927,17 @@ class PawControlNotificationManager:
                         actions_target["actions"] = [
                             {
                                 "action": f"acknowledge_{notification.id}",
-                                "title": "Mark as Done",
+                                "title": "✅ Mark as done",
                                 "icon": "sli:check",
                             },
                             {
                                 "action": f"snooze_{notification.id}",
-                                "title": "Snooze 15min",
+                                "title": "⏰ Snooze 15 min",
                                 "icon": "sli:clock",
                             },
                         ]
 
-                    await async_call_hass_service_if_available(
+                    guard_result = await async_call_hass_service_if_available(
                         self._hass,
                         "notify",
                         service_name,
@@ -1828,10 +1948,23 @@ class PawControlNotificationManager:
                         logger=_LOGGER,
                     )
 
+                    if guard_result.executed:
+                        self._record_delivery_success(service_name)
+                    else:
+                        failed_services.append(service_name)
+                        self._record_delivery_failure(
+                            service_name,
+                            reason=guard_result.reason or "service_not_executed",
+                        )
+
                     _LOGGER.debug("Sent mobile notification to %s", service_name)
 
                 except Exception as err:
                     _LOGGER.error("Failed to send to service %s: %s", service_name, err)
+                    failed_services.append(service_name)
+                    self._record_delivery_failure(
+                        service_name, reason="exception", error=err
+                    )
 
         else:
             # Fallback to original behavior
@@ -1839,56 +1972,80 @@ class PawControlNotificationManager:
             config = await self._get_config_cached(config_key)
 
             mobile_service = config.custom_settings.get("mobile_service", "mobile_app")
+            if not self._notify_service_available(mobile_service):
+                _LOGGER.warning(
+                    "Notify service %s is not registered; skipping delivery",
+                    mobile_service,
+                )
+                failed_services.append(mobile_service)
+                self._record_delivery_failure(
+                    mobile_service, reason="missing_notify_service"
+                )
+            else:
+                fallback_service_data: NotificationServicePayload = {
+                    "title": notification.title,
+                    "message": notification.message,
+                    "data": {
+                        "notification_id": notification.id,
+                        "priority": notification.priority.value,
+                        "dog_id": notification.dog_id,
+                        "entry_id": self._entry_id,
+                        **notification.data,
+                    },
+                }
 
-            fallback_service_data: NotificationServicePayload = {
-                "title": notification.title,
-                "message": notification.message,
-                "data": {
-                    "notification_id": notification.id,
-                    "priority": notification.priority.value,
-                    "dog_id": notification.dog_id,
-                    "entry_id": self._entry_id,
-                    **notification.data,
-                },
-            }
+                # Add actions for interactive notifications
+                if notification.notification_type in [
+                    NotificationType.FEEDING_REMINDER,
+                    NotificationType.WALK_REMINDER,
+                    NotificationType.MEDICATION_REMINDER,
+                ]:
+                    fallback_data = fallback_service_data.get("data")
+                    fallback_target: JSONMutableMapping
+                    if isinstance(fallback_data, MutableMapping):
+                        fallback_target = cast(JSONMutableMapping, fallback_data)
+                    else:
+                        fallback_target = cast(JSONMutableMapping, {})
+                        fallback_service_data["data"] = fallback_target
 
-            # Add actions for interactive notifications
-            if notification.notification_type in [
-                NotificationType.FEEDING_REMINDER,
-                NotificationType.WALK_REMINDER,
-                NotificationType.MEDICATION_REMINDER,
-            ]:
-                fallback_data = fallback_service_data.get("data")
-                fallback_target: JSONMutableMapping
-                if isinstance(fallback_data, MutableMapping):
-                    fallback_target = cast(JSONMutableMapping, fallback_data)
+                    fallback_target["actions"] = [
+                        {
+                            "action": f"acknowledge_{notification.id}",
+                            "title": "✅ Mark as done",
+                            "icon": "sli:check",
+                        },
+                        {
+                            "action": f"snooze_{notification.id}",
+                            "title": "⏰ Snooze 15 min",
+                            "icon": "sli:clock",
+                        },
+                    ]
+
+                guard_result = await async_call_hass_service_if_available(
+                    self._hass,
+                    "notify",
+                    mobile_service,
+                    fallback_service_data,
+                    description=(
+                        f"fallback notification {notification.id} for {mobile_service}"
+                    ),
+                    logger=_LOGGER,
+                )
+                if guard_result.executed:
+                    self._record_delivery_success(mobile_service)
                 else:
-                    fallback_target = cast(JSONMutableMapping, {})
-                    fallback_service_data["data"] = fallback_target
+                    failed_services.append(mobile_service)
+                    self._record_delivery_failure(
+                        mobile_service,
+                        reason=guard_result.reason or "service_not_executed",
+                    )
 
-                fallback_target["actions"] = [
-                    {
-                        "action": f"acknowledge_{notification.id}",
-                        "title": "Mark as Done",
-                        "icon": "sli:check",
-                    },
-                    {
-                        "action": f"snooze_{notification.id}",
-                        "title": "Snooze 15min",
-                        "icon": "sli:clock",
-                    },
-                ]
-
-            await async_call_hass_service_if_available(
-                self._hass,
-                "notify",
-                mobile_service,
-                fallback_service_data,
-                description=(
-                    f"fallback notification {notification.id} for {mobile_service}"
-                ),
-                logger=_LOGGER,
+        if failed_services:
+            notification.failed_notification_services = list(
+                dict.fromkeys(failed_services)
             )
+        else:
+            notification.failed_notification_services.clear()
 
     async def _send_tts_notification(self, notification: NotificationEvent) -> None:
         """Send text-to-speech notification."""
@@ -2261,7 +2418,10 @@ class PawControlNotificationManager:
                         if (
                             (notification.expires_at and notification.expires_at < now)
                             or notification.acknowledged
-                            or not notification.failed_channels
+                            or (
+                                not notification.failed_channels
+                                and not notification.failed_notification_services
+                            )
                             or notification.retry_count >= MAX_RETRY_ATTEMPTS
                         ):
                             continue
@@ -2271,23 +2431,36 @@ class PawControlNotificationManager:
                             retry_notifications.append(notification)
 
                     for notification in retry_notifications:
-                        if notification.failed_channels:
-                            _LOGGER.info(
-                                "Retrying notification %s (attempt %d)",
-                                notification.id,
-                                notification.retry_count + 1,
-                            )
+                        if not notification.failed_channels and (
+                            not notification.failed_notification_services
+                        ):
+                            continue
 
-                            failed_channels = notification.failed_channels.copy()
-                            notification.failed_channels.clear()
-                            notification.channels = failed_channels
-                            notification.retry_count += 1
-                            self._performance_metrics["retry_reschedules"] += 1
+                        _LOGGER.info(
+                            "Retrying notification %s (attempt %d)",
+                            notification.id,
+                            notification.retry_count + 1,
+                        )
 
-                            await self._send_to_channels(notification)
+                        failed_services = list(
+                            notification.failed_notification_services
+                        )
+                        if failed_services:
+                            notification.notification_services = failed_services
+                        notification.failed_notification_services.clear()
 
-                            if not notification.failed_channels:
-                                self._performance_metrics["retry_successes"] += 1
+                        failed_channels = notification.failed_channels.copy()
+                        if not failed_channels and failed_services:
+                            failed_channels = [NotificationChannel.MOBILE]
+                        notification.failed_channels.clear()
+                        notification.channels = failed_channels
+                        notification.retry_count += 1
+                        self._performance_metrics["retry_reschedules"] += 1
+
+                        await self._send_to_channels(notification)
+
+                        if not notification.failed_channels:
+                            self._performance_metrics["retry_successes"] += 1
 
             except asyncio.CancelledError:
                 break
