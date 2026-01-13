@@ -8,10 +8,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
-- Standardised JSON-safe attribute normalisation in the shared base entity by
-  using the exported `diagnostics.normalize_value` helper, and removed an
-  unused `utils/normalize.py` prototype that conflicted with the existing
-  `utils.py` module.
 - Expanded the user guide with module setup details, automation guidance, and
   screenshot recommendations to make onboarding clearer.【F:docs/user_guide.md†L1-L152】
 - Added more automation examples, including garden and blueprint samples, for
