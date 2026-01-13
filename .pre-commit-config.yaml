@@ -3,7 +3,7 @@
 # To update the versions:
 #   pre-commit autoupdate
 ci:
-  autoupdate_schedule: monthly
+  autoupdate_schedule: daily
   autofix_prs: true
 
 repos:
@@ -32,17 +32,28 @@ repos:
       - id: trailing-whitespace
       - id: mixed-line-ending
         args: [--fix=lf]
+      - id: double-quote-string-fixer
       - id: debug-statements
       - id: requirements-txt-fixer
       - id: check-added-large-files
       - id: check-case-conflict
       - id: check-merge-conflict
+        args: [--assume-in-merge]
+      - id: check-symlinks
+      - id: fix-byte-order-marker
+      - id: pretty-format-json
+        args: [--autofix]
 
-#  - repo: https://github.com/asottile/reorder-python-imports
-#    rev: v3.15.0
-#    hooks:
-#    -   id: reorder-python-imports
-#        args: [--py313-plus, --add-import, 'from __future__ import annotations']
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v3.21.2
+    hooks:
+    -   id: pyupgrade
+
+  - repo: https://github.com/asottile/reorder-python-imports
+    rev: v3.15.0
+    hooks:
+    -   id: reorder-python-imports
+        args: [--py313-plus, --add-import, 'from __future__ import annotations']
 
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.1
@@ -79,7 +90,7 @@ repos:
         entry: python -m script.enforce_test_requirements
         language: python
         additional_dependencies:
-          - packaging==24.2
+          - packaging>=24.2
         pass_filenames: false
       - id: docstring-baseline
         name: Ensure docstring baseline has no regressions
@@ -87,7 +98,7 @@ repos:
         language: python
         pass_filenames: false
         additional_dependencies:
-          - ruff==0.12.11
+          - ruff>=0.12.11
       - id: contributor-guide-sync-check
         name: Ensure assistant contributor guides are synced
         entry: python -m script.sync_contributor_guides --check
