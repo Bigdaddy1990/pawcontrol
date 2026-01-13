@@ -23,6 +23,7 @@ from homeassistant.util import dt as dt_util
 
 from .compat import ConfigEntry, HomeAssistantError
 from .const import (
+    CONF_DOG_OPTIONS,
     CONF_DOGS,
     CONF_NOTIFICATIONS,
     CONF_QUIET_END,
@@ -1772,7 +1773,7 @@ class PawControlNotificationManager:
         else:
             priority_value = priority
 
-        if not self._should_send_notification(priority_value):
+        if not self._should_send_notification(dog_id, priority_value):
             _LOGGER.debug("Notification suppressed due to quiet hours")
             return
 
@@ -1851,10 +1852,12 @@ class PawControlNotificationManager:
             except Exception as err:
                 _LOGGER.error("Failed to send notification: %s", err)
 
-    def _should_send_notification(self, priority: NotificationPriority) -> bool:
+    def _should_send_notification(
+        self, dog_id: str, priority: NotificationPriority
+    ) -> bool:
         """OPTIMIZED: Check notification rules with caching."""
         # Cache quiet hours calculation for performance
-        cache_key = f"quiet_hours_{priority}"
+        cache_key = f"quiet_hours_{dog_id}_{priority}"
 
         cached = self._quiet_hours_cache.get(cache_key)
         if cached is not None:
@@ -1862,7 +1865,7 @@ class PawControlNotificationManager:
             if (dt_util.utcnow() - cache_time).total_seconds() < 60:
                 return cached_result
 
-        result = self._calculate_notification_allowed(priority)
+        result = self._calculate_notification_allowed(dog_id, priority)
 
         # Cache result for 1 minute
         self._quiet_hours_cache[cache_key] = (result, dt_util.utcnow())
@@ -1893,9 +1896,11 @@ class PawControlNotificationManager:
         except ValueError:
             return None
 
-    def _calculate_notification_allowed(self, priority: NotificationPriority) -> bool:
+    def _calculate_notification_allowed(
+        self, dog_id: str, priority: NotificationPriority
+    ) -> bool:
         """Calculate if notification should be sent."""
-        notification_config = self.config_entry.options.get(CONF_NOTIFICATIONS)
+        notification_config = self._get_notification_config(dog_id)
 
         # Always send urgent notifications
         if priority == "urgent":
@@ -1925,6 +1930,24 @@ class PawControlNotificationManager:
             return not (now >= quiet_start_time or now <= quiet_end_time)
         # Quiet hours within same day
         return not (quiet_start_time <= now <= quiet_end_time)
+
+    def _get_notification_config(self, dog_id: str) -> Mapping[str, JSONValue] | None:
+        """Return per-dog notification settings when available."""
+
+        options = self.config_entry.options
+        dog_options = options.get(CONF_DOG_OPTIONS)
+        if isinstance(dog_options, Mapping):
+            entry = dog_options.get(dog_id)
+            if isinstance(entry, Mapping):
+                notifications = entry.get(CONF_NOTIFICATIONS)
+                if isinstance(notifications, Mapping):
+                    return cast(Mapping[str, JSONValue], notifications)
+
+        notification_config = options.get(CONF_NOTIFICATIONS)
+        if isinstance(notification_config, Mapping):
+            return cast(Mapping[str, JSONValue], notification_config)
+
+        return None
 
     def get_queue_stats(self) -> NotificationQueueStats:
         """Get notification queue statistics."""

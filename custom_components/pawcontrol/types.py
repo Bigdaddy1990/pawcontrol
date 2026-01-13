@@ -57,12 +57,15 @@ from .const import (
     CONF_DOOR_SENSOR_SETTINGS,
     CONF_EXTERNAL_INTEGRATIONS,
     CONF_FOOD_TYPE,
+    CONF_GPS_SETTINGS,
     CONF_LUNCH_TIME,
     CONF_MEALS_PER_DAY,
+    CONF_NOTIFICATIONS,
     CONF_QUIET_END,
     CONF_QUIET_HOURS,
     CONF_QUIET_START,
     CONF_REMINDER_REPEAT_MIN,
+    DEFAULT_REMINDER_REPEAT_MIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -1779,6 +1782,18 @@ type NotificationOptionsInput = NotificationSettingsInput | JSONMapping
 """Mapping accepted by :func:`ensure_notification_options`."""
 
 
+DEFAULT_NOTIFICATION_OPTIONS: Final[NotificationOptionsInput] = MappingProxyType(
+    {
+        NOTIFICATION_QUIET_HOURS_FIELD: True,
+        NOTIFICATION_QUIET_START_FIELD: "22:00:00",
+        NOTIFICATION_QUIET_END_FIELD: "07:00:00",
+        NOTIFICATION_REMINDER_REPEAT_FIELD: DEFAULT_REMINDER_REPEAT_MIN,
+        NOTIFICATION_PRIORITY_FIELD: True,
+        NOTIFICATION_MOBILE_FIELD: True,
+    }
+)
+
+
 class NotificationSettingsInput(TypedDict, total=False):
     """UI payload captured when editing notification options."""
 
@@ -2114,6 +2129,11 @@ class DogOptionsEntry(TypedDict, total=False):
 
     dog_id: str
     modules: DogModulesConfig
+    notifications: NotificationOptions
+    gps_settings: GPSOptions
+    geofence_settings: GeofenceOptions
+    feeding_settings: FeedingOptions
+    health_settings: HealthOptions
 
 
 type DogOptionsMap = dict[str, DogOptionsEntry]
@@ -5203,6 +5223,32 @@ class ServiceExecutionResult(TypedDict, total=False):
     guard: NotRequired[ServiceGuardSummary]
 
 
+class ServiceCallLatencyTelemetry(TypedDict, total=False):
+    """Latency summary for Home Assistant service calls."""
+
+    samples: int
+    average_ms: float
+    minimum_ms: float
+    maximum_ms: float
+    last_ms: float
+
+
+class ServiceCallTelemetryEntry(TypedDict, total=False):
+    """Aggregated telemetry for a subset of service calls."""
+
+    total_calls: int
+    success_calls: int
+    error_calls: int
+    error_rate: float
+    latency_ms: ServiceCallLatencyTelemetry
+
+
+class ServiceCallTelemetry(ServiceCallTelemetryEntry, total=False):
+    """Aggregated telemetry for all service calls, grouped by service."""
+
+    per_service: dict[str, ServiceCallTelemetryEntry]
+
+
 ManualResiliencePreferenceKey = Literal[
     "manual_check_event",
     "manual_guard_event",
@@ -5967,6 +6013,7 @@ class CoordinatorDogData(TypedDict, total=False):
 
     dog_info: DogConfigData
     status: str
+    status_snapshot: NotRequired[DogStatusSnapshot]
     last_update: str | None
     gps: NotRequired[CoordinatorModuleState]
     geofencing: NotRequired[CoordinatorModuleState]
@@ -5983,6 +6030,19 @@ class CoordinatorDogData(TypedDict, total=False):
     medication: NotRequired[JSONMutableMapping]
     training: NotRequired[JSONMutableMapping]
     text_values: NotRequired[DogTextSnapshot]
+
+
+class DogStatusSnapshot(TypedDict, total=False):
+    """Centralized status snapshot for a dog."""
+
+    dog_id: str
+    state: str
+    zone: str | None
+    is_home: bool
+    in_safe_zone: bool
+    on_walk: bool
+    needs_walk: bool
+    is_hungry: bool
 
 
 CoordinatorDataPayload = dict[str, CoordinatorDogData]
@@ -6522,6 +6582,29 @@ def ensure_dog_options_entry(
             cast(Mapping[str, object], modules_payload)
         )
 
+    notifications_payload = value.get(CONF_NOTIFICATIONS)
+    if isinstance(notifications_payload, Mapping):
+        entry["notifications"] = ensure_notification_options(
+            cast(NotificationOptionsInput, dict(notifications_payload)),
+            defaults=DEFAULT_NOTIFICATION_OPTIONS,
+        )
+
+    gps_payload = value.get(CONF_GPS_SETTINGS)
+    if isinstance(gps_payload, Mapping):
+        entry["gps_settings"] = cast(GPSOptions, dict(gps_payload))
+
+    geofence_payload = value.get("geofence_settings")
+    if isinstance(geofence_payload, Mapping):
+        entry["geofence_settings"] = cast(GeofenceOptions, dict(geofence_payload))
+
+    feeding_payload = value.get("feeding_settings")
+    if isinstance(feeding_payload, Mapping):
+        entry["feeding_settings"] = cast(FeedingOptions, dict(feeding_payload))
+
+    health_payload = value.get("health_settings")
+    if isinstance(health_payload, Mapping):
+        entry["health_settings"] = cast(HealthOptions, dict(health_payload))
+
     return entry
 
 
@@ -6751,6 +6834,7 @@ class RuntimePerformanceStats(TypedDict, total=False):
     rejection_metrics: CoordinatorRejectionMetrics
     service_results: list[ServiceExecutionResult]
     last_service_result: ServiceExecutionResult
+    service_call_telemetry: ServiceCallTelemetry
     maintenance_results: list[MaintenanceExecutionResult]
     last_maintenance_result: MaintenanceExecutionResult
     last_cache_diagnostics: CacheDiagnosticsCapture

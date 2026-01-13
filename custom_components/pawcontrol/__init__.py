@@ -946,16 +946,47 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                     if isinstance(geofence_options_raw, Mapping)
                     else {}
                 )
-                geofencing_enabled = bool(
-                    geofence_options.get("geofencing_enabled", False)
+
+                dog_options_raw = entry.options.get(CONF_DOG_OPTIONS, {})
+                dog_options = (
+                    dog_options_raw if isinstance(dog_options_raw, Mapping) else {}
                 )
-                use_home_location = bool(
-                    geofence_options.get("use_home_location", True)
+
+                per_dog_geofence_settings: list[Mapping[str, object]] = []
+                for dog_id in dog_ids:
+                    entry_payload = dog_options.get(dog_id)
+                    if not isinstance(entry_payload, Mapping):
+                        continue
+                    geofence_payload = entry_payload.get("geofence_settings")
+                    if isinstance(geofence_payload, Mapping):
+                        per_dog_geofence_settings.append(
+                            cast(Mapping[str, object], geofence_payload)
+                        )
+
+                geofencing_enabled = any(
+                    settings.get("geofencing_enabled", False)
+                    for settings in per_dog_geofence_settings
+                ) or bool(geofence_options.get("geofencing_enabled", False))
+                use_home_location = (
+                    any(
+                        settings.get("use_home_location", True)
+                        for settings in per_dog_geofence_settings
+                    )
+                    if per_dog_geofence_settings
+                    else bool(geofence_options.get("use_home_location", True))
                 )
-                radius = geofence_options.get("geofence_radius_m", 50)
-                home_zone_radius = (
-                    int(radius) if isinstance(radius, (int, float)) else 50
-                )
+                radius_candidates = [
+                    settings.get("geofence_radius_m")
+                    for settings in per_dog_geofence_settings
+                    if isinstance(settings.get("geofence_radius_m"), (int, float))
+                ]
+                if radius_candidates:
+                    home_zone_radius = int(max(radius_candidates))
+                else:
+                    radius = geofence_options.get("geofence_radius_m", 50)
+                    home_zone_radius = (
+                        int(radius) if isinstance(radius, (int, float)) else 50
+                    )
 
                 initialization_tasks.append(
                     _async_initialize_manager_with_timeout(

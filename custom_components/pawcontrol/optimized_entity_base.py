@@ -48,7 +48,7 @@ from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
 from .const import ATTR_DOG_ID, ATTR_DOG_NAME, MANUFACTURER
 from .coordinator import PawControlCoordinator
 from .coordinator_accessors import CoordinatorDataAccessMixin
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
+from .diagnostics import normalize_value
 from .types import (
     CoordinatorDataPayload,
     CoordinatorDogData,
@@ -85,7 +85,7 @@ def _normalise_attributes(
 
     return cast(
         OptimizedEntityAttributesPayload,
-        _normalise_diagnostics_json(attributes),
+        normalize_value(attributes),
     )
 
 

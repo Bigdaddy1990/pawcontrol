@@ -26,6 +26,7 @@ from .const import (
     MODULE_NOTIFICATIONS,
     MODULE_VISITOR,
 )
+from .exceptions import FlowValidationError, ValidationError
 from .selector_shim import selector
 from .types import (
     DOOR_SENSOR_FIELD,
@@ -40,6 +41,7 @@ from .types import (
     clone_placeholders,
     freeze_placeholders,
 )
+from .validators import validate_gps_source
 
 GPS_SOURCE_KEY: Final[Literal["gps_source"]] = cast(
     Literal["gps_source"], CONF_GPS_SOURCE
@@ -163,11 +165,11 @@ class ExternalEntityConfigurationMixin:
                     flow._external_entities, validated_entities
                 )
                 return await flow.async_step_final_setup()
-            except ValueError as err:
+            except FlowValidationError as err:
                 return flow.async_show_form(
                     step_id="configure_external_entities",
                     data_schema=self._get_external_entities_schema(),
-                    errors={"base": str(err)},
+                    errors=err.as_form_errors(),
                 )
 
         return flow.async_show_form(
@@ -321,23 +323,38 @@ class ExternalEntityConfigurationMixin:
             Validated entity configuration
 
         Raises:
-            ValueError: If validation fails
+            FlowValidationError: If validation fails
         """
         validated: ExternalEntityConfig = {}
+        errors: dict[str, str] = {}
 
         gps_source = cast(str | None, user_input.get(CONF_GPS_SOURCE))
         door_sensor = cast(str | None, user_input.get(CONF_DOOR_SENSOR))
         notify_service = cast(str | None, user_input.get(CONF_NOTIFY_FALLBACK))
 
-        self._merge_external_entity_config(
-            validated, self._validate_gps_source(gps_source)
-        )
-        self._merge_external_entity_config(
-            validated, self._validate_door_sensor(door_sensor)
-        )
-        self._merge_external_entity_config(
-            validated, self._validate_notify_service(notify_service)
-        )
+        try:
+            self._merge_external_entity_config(
+                validated, self._validate_gps_source(gps_source)
+            )
+        except ValidationError as err:
+            errors[CONF_GPS_SOURCE] = _map_external_error(err)
+
+        try:
+            self._merge_external_entity_config(
+                validated, self._validate_door_sensor(door_sensor)
+            )
+        except ValidationError as err:
+            errors[CONF_DOOR_SENSOR] = _map_external_error(err)
+
+        try:
+            self._merge_external_entity_config(
+                validated, self._validate_notify_service(notify_service)
+            )
+        except ValidationError as err:
+            errors[CONF_NOTIFY_FALLBACK] = _map_external_error(err)
+
+        if errors:
+            raise FlowValidationError(field_errors=errors)
 
         return validated
 
@@ -345,15 +362,10 @@ class ExternalEntityConfigurationMixin:
         """Validate GPS source selection."""
         if not gps_source:
             return {}
-        if gps_source == "manual":
-            return {GPS_SOURCE_FIELD: "manual"}
-
-        state = self.hass.states.get(gps_source)
-        if not state:
-            raise ValueError(f"GPS source entity {gps_source} not found")
-        if state.state in ["unknown", "unavailable"]:
-            raise ValueError(f"GPS source entity {gps_source} is unavailable")
-        return {GPS_SOURCE_FIELD: gps_source}
+        validated = validate_gps_source(
+            self.hass, gps_source, field=CONF_GPS_SOURCE, allow_manual=True
+        )
+        return {GPS_SOURCE_FIELD: validated}
 
     def _validate_door_sensor(self, door_sensor: str | None) -> ExternalEntityConfig:
         """Validate door sensor selection."""
@@ -361,7 +373,9 @@ class ExternalEntityConfigurationMixin:
             return {}
         state = self.hass.states.get(door_sensor)
         if not state:
-            raise ValueError(f"Door sensor entity {door_sensor} not found")
+            raise ValidationError(
+                CONF_DOOR_SENSOR, door_sensor, "door_sensor_not_found"
+            )
         return {DOOR_SENSOR_FIELD: door_sensor}
 
     def _validate_notify_service(
@@ -372,10 +386,30 @@ class ExternalEntityConfigurationMixin:
             return {}
         service_parts = notify_service.split(".", 1)
         if len(service_parts) != 2 or service_parts[0] != "notify":
-            raise ValueError(f"Invalid notification service: {notify_service}")
+            raise ValidationError(
+                CONF_NOTIFY_FALLBACK, notify_service, "notify_service_invalid"
+            )
 
         services = self.hass.services.async_services().get("notify", {})
         if service_parts[1] not in services:
-            raise ValueError(f"Notification service {service_parts[1]} not found")
+            raise ValidationError(
+                CONF_NOTIFY_FALLBACK, notify_service, "notify_service_not_found"
+            )
 
         return {NOTIFY_FALLBACK_FIELD: notify_service}
+
+
+def _map_external_error(error: ValidationError) -> str:
+    if error.constraint == "gps_source_required":
+        return "required"
+    if error.constraint == "gps_source_not_found":
+        return "gps_entity_not_found"
+    if error.constraint == "gps_source_unavailable":
+        return "gps_entity_unavailable"
+    if error.constraint == "door_sensor_not_found":
+        return "door_sensor_not_found"
+    if error.constraint == "notify_service_invalid":
+        return "invalid_notification_service"
+    if error.constraint == "notify_service_not_found":
+        return "notification_service_not_found"
+    return "invalid_external_entity"

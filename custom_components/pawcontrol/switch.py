@@ -37,7 +37,7 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
+from .diagnostics import normalize_value
 from .entity import PawControlDogEntityBase
 from .grooming_translations import translated_grooming_label
 from .runtime_data import get_runtime_data
@@ -419,7 +419,7 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
             attrs["enabled_modules"] = enabled_modules
             attrs["total_modules"] = len(enabled_modules)
 
-        return cast(JSONMutableMapping, _normalise_diagnostics_json(attrs))
+        return cast(JSONMutableMapping, normalize_value(attrs))
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn switch on with enhanced error handling."""
@@ -767,7 +767,7 @@ class PawControlFeatureSwitch(OptimizedSwitchBase):
                 "feature_name": self._feature_name,
             }
         )
-        return cast(JSONMutableMapping, _normalise_diagnostics_json(feature_attrs))
+        return cast(JSONMutableMapping, normalize_value(feature_attrs))
 
     async def _async_set_state(self, state: bool) -> None:
         """Set feature state with module-specific handling."""

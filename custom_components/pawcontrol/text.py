@@ -24,7 +24,7 @@ from .const import (
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
+from .diagnostics import normalize_value
 from .entity import PawControlDogEntityBase
 from .notifications import NotificationPriority, NotificationType
 from .runtime_data import get_runtime_data
@@ -322,7 +322,7 @@ class PawControlTextBase(PawControlDogEntityBase, TextEntity, RestoreEntity):
             }
         )
 
-        return cast(JSONMutableMapping, _normalise_diagnostics_json(merged))
+        return cast(JSONMutableMapping, normalize_value(merged))
 
     def _clamp_value(self, value: str) -> str:
         """Clamp ``value`` to the configured maximum length when necessary."""
