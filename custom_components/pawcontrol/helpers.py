@@ -23,8 +23,8 @@ from homeassistant.util import dt as dt_util
 
 from .compat import ConfigEntry, HomeAssistantError
 from .const import (
-    CONF_DOGS,
     CONF_DOG_OPTIONS,
+    CONF_DOGS,
     CONF_NOTIFICATIONS,
     CONF_QUIET_END,
     CONF_QUIET_HOURS,
@@ -1931,9 +1931,7 @@ class PawControlNotificationManager:
         # Quiet hours within same day
         return not (quiet_start_time <= now <= quiet_end_time)
 
-    def _get_notification_config(
-        self, dog_id: str
-    ) -> Mapping[str, JSONValue] | None:
+    def _get_notification_config(self, dog_id: str) -> Mapping[str, JSONValue] | None:
         """Return per-dog notification settings when available."""
 
         options = self.config_entry.options

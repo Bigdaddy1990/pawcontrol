@@ -967,11 +967,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: PawControlConfigEntry) -
                     settings.get("geofencing_enabled", False)
                     for settings in per_dog_geofence_settings
                 ) or bool(geofence_options.get("geofencing_enabled", False))
-                use_home_location = any(
-                    settings.get("use_home_location", True)
-                    for settings in per_dog_geofence_settings
-                ) if per_dog_geofence_settings else bool(
-                    geofence_options.get("use_home_location", True)
+                use_home_location = (
+                    any(
+                        settings.get("use_home_location", True)
+                        for settings in per_dog_geofence_settings
+                    )
+                    if per_dog_geofence_settings
+                    else bool(geofence_options.get("use_home_location", True))
                 )
                 radius_candidates = [
                     settings.get("geofence_radius_m")

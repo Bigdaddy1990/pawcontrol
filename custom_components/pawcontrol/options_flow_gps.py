@@ -84,8 +84,9 @@ if TYPE_CHECKING:
 
         def _coerce_bool(self, value: Any, default: bool) -> bool: ...
 
-        def _coerce_optional_float(self, value: Any, default: float | None) -> float | None:
-            ...
+        def _coerce_optional_float(
+            self, value: Any, default: float | None
+        ) -> float | None: ...
 
         def async_show_form(
             self,
@@ -119,7 +120,9 @@ class GPSOptionsMixin(GPSOptionsHost):
             current = cast(GPSOptions, dict(raw))
         else:
             legacy = self._current_options().get(GPS_SETTINGS_FIELD, {})
-            current = cast(GPSOptions, dict(legacy)) if isinstance(legacy, Mapping) else {}
+            current = (
+                cast(GPSOptions, dict(legacy)) if isinstance(legacy, Mapping) else {}
+            )
 
         if (
             GPS_UPDATE_INTERVAL_FIELD not in current
@@ -497,7 +500,9 @@ class GPSOptionsMixin(GPSOptionsHost):
         return self.async_show_form(
             step_id="geofence_settings",
             data_schema=self._get_geofence_settings_schema(dog_id),
-            description_placeholders=dict(self._get_geofence_description_placeholders()),
+            description_placeholders=dict(
+                self._get_geofence_description_placeholders()
+            ),
         )
 
     def _get_geofence_settings_schema(

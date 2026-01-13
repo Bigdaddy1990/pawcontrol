@@ -18,6 +18,7 @@ from .entity_factory import ENTITY_PROFILES, EntityFactory
 from .exceptions import ValidationError
 from .types import (
     DOG_ID_FIELD,
+    REAUTH_PLACEHOLDERS_TEMPLATE,
     DogConfigData,
     DogModulesConfig,
     ReauthConfirmInput,
@@ -25,9 +26,7 @@ from .types import (
     ReauthHealthSummary,
     ReauthOptionsUpdates,
     ReauthPlaceholders,
-    REAUTH_PLACEHOLDERS_TEMPLATE,
     clone_placeholders,
-    ensure_dog_modules_mapping,
     freeze_placeholders,
     is_dog_config_valid,
 )
@@ -227,8 +226,7 @@ class ReauthFlowMixin(ReauthFlowHost):
                 raise ValidationError(
                     "entry_dogs",
                     constraint=(
-                        "All dog configurations are invalid: "
-                        f"{', '.join(invalid_dogs)}"
+                        f"All dog configurations are invalid: {', '.join(invalid_dogs)}"
                     ),
                 )
 

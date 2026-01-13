@@ -55,11 +55,6 @@ from custom_components.pawcontrol.const import (
 )
 from custom_components.pawcontrol.exceptions import FlowValidationError, ValidationError
 from custom_components.pawcontrol.flow_validation import validate_dog_setup_input
-from custom_components.pawcontrol.validators import (
-    validate_gps_source,
-    validate_radius,
-    validate_timer,
-)
 from custom_components.pawcontrol.types import (
     ADD_ANOTHER_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE,
     ADD_DOG_CAPACITY_PLACEHOLDERS_TEMPLATE,
@@ -108,6 +103,11 @@ from custom_components.pawcontrol.types import (
     ensure_dog_modules_config,
     freeze_placeholders,
     normalize_performance_mode,
+)
+from custom_components.pawcontrol.validators import (
+    validate_gps_source,
+    validate_radius,
+    validate_timer,
 )
 from homeassistant.config_entries import ConfigFlowResult
 

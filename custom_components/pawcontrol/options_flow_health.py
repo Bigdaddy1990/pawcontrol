@@ -210,7 +210,9 @@ class HealthOptionsMixin(HealthOptionsHost):
             HealthOptions,
             {
                 "weight_tracking": bool(
-                    user_input.get("weight_tracking", current.get("weight_tracking", True))
+                    user_input.get(
+                        "weight_tracking", current.get("weight_tracking", True)
+                    )
                 ),
                 "medication_tracking": bool(
                     user_input.get(

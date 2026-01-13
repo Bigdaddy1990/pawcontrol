@@ -16,16 +16,14 @@ from .const import (
     CONF_DOG_WEIGHT,
     DOG_SIZES,
     MAX_DOG_AGE,
-    MAX_DOG_NAME_LENGTH,
     MAX_DOG_WEIGHT,
     MIN_DOG_AGE,
-    MIN_DOG_NAME_LENGTH,
     MIN_DOG_WEIGHT,
 )
 from .exceptions import FlowValidationError, ValidationError
-from .validators import validate_name
 from .health_calculator import HealthMetrics
 from .types import DogConfigData, DogSetupStepInput, validate_dog_weight_for_size
+from .validators import validate_name
 
 MAX_BREED_NAME_LENGTH = 100
 

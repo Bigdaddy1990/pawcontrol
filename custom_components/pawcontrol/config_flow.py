@@ -4,7 +4,6 @@ from __future__ import annotations
 
 __all__ = ["ConfigFlow", "PawControlConfigFlow"]
 
-import asyncio
 import copy
 import logging
 import re

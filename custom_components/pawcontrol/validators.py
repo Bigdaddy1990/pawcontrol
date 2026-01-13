@@ -10,8 +10,8 @@ from .const import (
     CONF_DOG_NAME,
     CONF_GPS_SOURCE,
     MAX_DOG_NAME_LENGTH,
-    MIN_DOG_NAME_LENGTH,
     MAX_GEOFENCE_RADIUS,
+    MIN_DOG_NAME_LENGTH,
     MIN_GEOFENCE_RADIUS,
 )
 from .exceptions import ValidationError

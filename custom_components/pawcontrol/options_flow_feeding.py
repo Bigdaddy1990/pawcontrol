@@ -214,7 +214,9 @@ class FeedingOptionsMixin(FeedingOptionsHost):
             FeedingOptions,
             {
                 "default_meals_per_day": int(
-                    user_input.get("meals_per_day", current.get("default_meals_per_day", 2))
+                    user_input.get(
+                        "meals_per_day", current.get("default_meals_per_day", 2)
+                    )
                 ),
                 "feeding_reminders": bool(
                     user_input.get(

@@ -35,10 +35,6 @@ from .config_flow_profile import (
     get_profile_selector_options,
     validate_profile_selection,
 )
-from .options_flow_feeding import FeedingOptionsMixin
-from .options_flow_gps import GPSOptionsMixin
-from .options_flow_health import HealthOptionsMixin
-from .options_flow_notifications import NotificationOptionsMixin
 from .const import (
     CONF_ADVANCED_SETTINGS,
     CONF_API_ENDPOINT,
@@ -85,10 +81,14 @@ from .device_api import validate_device_endpoint
 from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .door_sensor_manager import ensure_door_sensor_settings_config
 from .entity_factory import ENTITY_PROFILES, EntityFactory
-from .exceptions import FlowValidationError, ValidationError
+from .exceptions import FlowValidationError
 from .flow_validation import validate_dog_setup_input, validate_dog_update_input
 from .grooming_translations import translated_grooming_label
 from .language import normalize_language
+from .options_flow_feeding import FeedingOptionsMixin
+from .options_flow_gps import GPSOptionsMixin
+from .options_flow_health import HealthOptionsMixin
+from .options_flow_notifications import NotificationOptionsMixin
 from .repairs import (
     ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE,
     async_create_issue,
