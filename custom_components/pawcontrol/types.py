@@ -5203,6 +5203,32 @@ class ServiceExecutionResult(TypedDict, total=False):
     guard: NotRequired[ServiceGuardSummary]
 
 
+class ServiceCallLatencyTelemetry(TypedDict, total=False):
+    """Latency summary for Home Assistant service calls."""
+
+    samples: int
+    average_ms: float
+    minimum_ms: float
+    maximum_ms: float
+    last_ms: float
+
+
+class ServiceCallTelemetryEntry(TypedDict, total=False):
+    """Aggregated telemetry for a subset of service calls."""
+
+    total_calls: int
+    success_calls: int
+    error_calls: int
+    error_rate: float
+    latency_ms: ServiceCallLatencyTelemetry
+
+
+class ServiceCallTelemetry(ServiceCallTelemetryEntry, total=False):
+    """Aggregated telemetry for all service calls, grouped by service."""
+
+    per_service: dict[str, ServiceCallTelemetryEntry]
+
+
 ManualResiliencePreferenceKey = Literal[
     "manual_check_event",
     "manual_guard_event",
@@ -6751,6 +6777,7 @@ class RuntimePerformanceStats(TypedDict, total=False):
     rejection_metrics: CoordinatorRejectionMetrics
     service_results: list[ServiceExecutionResult]
     last_service_result: ServiceExecutionResult
+    service_call_telemetry: ServiceCallTelemetry
     maintenance_results: list[MaintenanceExecutionResult]
     last_maintenance_result: MaintenanceExecutionResult
     last_cache_diagnostics: CacheDiagnosticsCapture
