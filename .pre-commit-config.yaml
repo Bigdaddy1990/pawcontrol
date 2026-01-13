@@ -49,12 +49,6 @@ repos:
     hooks:
     -   id: pyupgrade
 
-  - repo: https://github.com/asottile/reorder-python-imports
-    rev: v3.15.0
-    hooks:
-    -   id: reorder-python-imports
-        args: [--py313-plus, --add-import, 'from __future__ import annotations']
-
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.1
     hooks:
