@@ -11,7 +11,7 @@ from typing import Any, Union
 # Type alias for JSON-serializable values.
 JSONValue = Union[
     str, int, float, bool, None, list["JSONValue"], dict[str, "JSONValue"]
-]  # noqa: UP007
+]
 
 
 def normalize_value(value: Any) -> JSONValue:
