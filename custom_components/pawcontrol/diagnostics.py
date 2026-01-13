@@ -377,6 +377,25 @@ _LOGGER = logging.getLogger(__name__)
 
 # Sensitive keys that should be redacted in diagnostics
 REDACTED_KEYS = {
+    "access_token",
+    "auth",
+    "authorization",
+    "bearer",
+    "client_id",
+    "client_secret",
+    "cookie",
+    "credentials",
+    "id_token",
+    "jwt",
+    "passphrase",
+    "private_key",
+    "refresh_token",
+    "secret_key",
+    "session",
+    "session_id",
+    "signature",
+    "ssh_key",
+    "token_secret",
     "api_key",
     "api_token",
     "password",
@@ -671,7 +690,7 @@ async def async_get_config_entry_diagnostics(
         _redact_sensitive_data(cast(JSONValue, normalised_payload)),
     )
 
-    _LOGGER.info("Diagnostics generated successfully for entry %s", entry.entry_id)
+    _LOGGER.debug("Diagnostics generated successfully for entry %s", entry.entry_id)
     return redacted_diagnostics
 
 
@@ -691,7 +710,10 @@ def _get_resilience_escalation_snapshot(
     if snapshot is None:
         return {"available": False}
 
-    return snapshot
+    return cast(
+        ResilienceEscalationSnapshot,
+        _normalise_json(cast(JSONLikeMapping, snapshot)),
+    )
 
 
 def _get_resilience_diagnostics(
@@ -1550,7 +1572,7 @@ async def _get_service_execution_diagnostics(
     )
     if entity_guard_payload:
         diagnostics["entity_factory_guard"] = cast(
-            JSONMutableMapping, dict(entity_guard_payload)
+            JSONMutableMapping, _normalise_json(dict(entity_guard_payload))
         )
 
     rejection_metrics = performance_stats.get("rejection_metrics")
@@ -1581,6 +1603,11 @@ async def _get_service_execution_diagnostics(
         diagnostics["last_service_result"] = cast(
             JSONMutableMapping, _normalise_json(dict(last_result))
         )
+
+    service_call_telemetry = performance_stats.get("service_call_telemetry")
+    telemetry_payload = _normalise_service_call_telemetry(service_call_telemetry)
+    if telemetry_payload is not None:
+        diagnostics["service_call_telemetry"] = telemetry_payload
 
     return cast(JSONMutableMapping, _normalise_json(diagnostics))
 
@@ -1650,6 +1677,25 @@ def _normalise_service_guard_metrics(
         guard_metrics["last_results"] = last_results_payload
 
     return guard_metrics
+
+
+def _normalise_service_call_telemetry(payload: Any) -> JSONMutableMapping | None:
+    """Return a JSON-safe snapshot of service call telemetry metrics."""
+
+    if not isinstance(payload, Mapping):
+        return None
+
+    telemetry_payload = cast(JSONMutableMapping, _normalise_json(dict(payload)))
+
+    per_service = payload.get("per_service")
+    if isinstance(per_service, Mapping):
+        telemetry_payload["per_service"] = {
+            str(service): cast(JSONMutableMapping, _normalise_json(dict(entry)))
+            for service, entry in per_service.items()
+            if isinstance(entry, Mapping)
+        }
+
+    return telemetry_payload
 
 
 def _coerce_int(value: Any) -> int | None:
