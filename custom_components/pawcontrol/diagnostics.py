@@ -377,6 +377,25 @@ _LOGGER = logging.getLogger(__name__)
 
 # Sensitive keys that should be redacted in diagnostics
 REDACTED_KEYS = {
+    "access_token",
+    "auth",
+    "authorization",
+    "bearer",
+    "client_id",
+    "client_secret",
+    "cookie",
+    "credentials",
+    "id_token",
+    "jwt",
+    "passphrase",
+    "private_key",
+    "refresh_token",
+    "secret_key",
+    "session",
+    "session_id",
+    "signature",
+    "ssh_key",
+    "token_secret",
     "api_key",
     "api_token",
     "password",
@@ -633,6 +652,7 @@ async def async_get_config_entry_diagnostics(
         "resilience": _get_resilience_diagnostics(runtime_data, coordinator),
         "resilience_escalation": _get_resilience_escalation_snapshot(runtime_data),
         "runtime_store": describe_runtime_store_status(hass, entry),
+        "notifications": await _get_notification_diagnostics(runtime_data),
     }
 
     runtime_store_history = get_runtime_store_health(runtime_data)
@@ -671,7 +691,7 @@ async def async_get_config_entry_diagnostics(
         _redact_sensitive_data(cast(JSONValue, normalised_payload)),
     )
 
-    _LOGGER.info("Diagnostics generated successfully for entry %s", entry.entry_id)
+    _LOGGER.debug("Diagnostics generated successfully for entry %s", entry.entry_id)
     return redacted_diagnostics
 
 
@@ -691,7 +711,10 @@ def _get_resilience_escalation_snapshot(
     if snapshot is None:
         return {"available": False}
 
-    return snapshot
+    return cast(
+        ResilienceEscalationSnapshot,
+        _normalise_json(cast(JSONLikeMapping, snapshot)),
+    )
 
 
 def _get_resilience_diagnostics(
@@ -961,8 +984,8 @@ def _serialise_cache_snapshot(snapshot: Any) -> JSONMutableMapping:
     return cast(JSONMutableMapping, _normalise_json(snapshot_payload))
 
 
-def _normalise_json(value: Any, _seen: set[int] | None = None) -> Any:
-    """Normalise diagnostics payloads into JSON-serialisable data."""
+def normalize_value(value: Any, _seen: set[int] | None = None) -> JSONValue:
+    """Normalise values into JSON-serialisable primitives."""
 
     if isinstance(value, int | float | str | bool) or value is None:
         return value
@@ -977,7 +1000,7 @@ def _normalise_json(value: Any, _seen: set[int] | None = None) -> Any:
         return value.isoformat()
 
     if isinstance(value, timedelta):
-        return value.total_seconds()
+        return str(value)
 
     if _seen is None:
         _seen = set()
@@ -989,38 +1012,47 @@ def _normalise_json(value: Any, _seen: set[int] | None = None) -> Any:
     _seen.add(obj_id)
     try:
         if is_dataclass(value):
-            return _normalise_json(asdict(value), _seen)
+            return normalize_value(asdict(value), _seen)
 
         if hasattr(value, "to_mapping") and callable(value.to_mapping):
             try:
                 mapping_value = cast(Mapping[str, Any], value.to_mapping())
-                return _normalise_json(mapping_value, _seen)
+                return normalize_value(mapping_value, _seen)
             except Exception:  # pragma: no cover - defensive guard
                 _LOGGER.debug("Failed to normalise to_mapping payload for %s", value)
 
         if hasattr(value, "to_dict") and callable(value.to_dict):
             try:
                 dict_value = cast(Mapping[str, Any], value.to_dict())
-                return _normalise_json(dict_value, _seen)
+                return normalize_value(dict_value, _seen)
             except Exception:  # pragma: no cover - defensive guard
                 _LOGGER.debug("Failed to normalise to_dict payload for %s", value)
 
         if hasattr(value, "__dict__") and not isinstance(value, type):
-            return _normalise_json(vars(value), _seen)
+            return normalize_value(vars(value), _seen)
 
         if isinstance(value, Mapping):
             return {
-                str(key): _normalise_json(item, _seen) for key, item in value.items()
+                str(key): normalize_value(item, _seen) for key, item in value.items()
             }
 
-        if isinstance(
-            value, list | tuple | set | frozenset | Sequence
-        ) and not isinstance(value, str | bytes | bytearray):
-            return [_normalise_json(item, _seen) for item in value]
+        if isinstance(value, (set, frozenset)):
+            return [normalize_value(item, _seen) for item in value]
+
+        if isinstance(value, Sequence) and not isinstance(
+            value, (str, bytes, bytearray)
+        ):
+            return [normalize_value(item, _seen) for item in value]
 
         return repr(value)
     finally:
         _seen.discard(obj_id)
+
+
+def _normalise_json(value: Any, _seen: set[int] | None = None) -> JSONValue:
+    """Normalise diagnostics payloads into JSON-serialisable data."""
+
+    return normalize_value(value, _seen)
 
 
 async def _get_integration_status(
@@ -1065,6 +1097,31 @@ async def _get_integration_status(
             "platforms_loaded": await _get_loaded_platforms(hass, entry),
             "services_registered": await _get_registered_services(hass),
             "setup_completed": True,
+        },
+    )
+
+
+async def _get_notification_diagnostics(
+    runtime_data: PawControlRuntimeData | None,
+) -> JSONMutableMapping:
+    """Return notification-specific diagnostics."""
+
+    if runtime_data is None:
+        return cast(JSONMutableMapping, {"available": False})
+
+    notification_manager = _resolve_notification_manager(runtime_data)
+    if notification_manager is None:
+        return cast(JSONMutableMapping, {"available": False})
+
+    stats = await notification_manager.async_get_performance_statistics()
+    delivery = notification_manager.get_delivery_status_snapshot()
+
+    return cast(
+        JSONMutableMapping,
+        {
+            "available": True,
+            "manager_stats": stats,
+            "delivery_status": delivery,
         },
     )
 
@@ -1541,7 +1598,7 @@ async def _get_service_execution_diagnostics(
     )
     if entity_guard_payload:
         diagnostics["entity_factory_guard"] = cast(
-            JSONMutableMapping, dict(entity_guard_payload)
+            JSONMutableMapping, _normalise_json(dict(entity_guard_payload))
         )
 
     rejection_metrics = performance_stats.get("rejection_metrics")
@@ -1572,6 +1629,11 @@ async def _get_service_execution_diagnostics(
         diagnostics["last_service_result"] = cast(
             JSONMutableMapping, _normalise_json(dict(last_result))
         )
+
+    service_call_telemetry = performance_stats.get("service_call_telemetry")
+    telemetry_payload = _normalise_service_call_telemetry(service_call_telemetry)
+    if telemetry_payload is not None:
+        diagnostics["service_call_telemetry"] = telemetry_payload
 
     return cast(JSONMutableMapping, _normalise_json(diagnostics))
 
@@ -1641,6 +1703,25 @@ def _normalise_service_guard_metrics(
         guard_metrics["last_results"] = last_results_payload
 
     return guard_metrics
+
+
+def _normalise_service_call_telemetry(payload: Any) -> JSONMutableMapping | None:
+    """Return a JSON-safe snapshot of service call telemetry metrics."""
+
+    if not isinstance(payload, Mapping):
+        return None
+
+    telemetry_payload = cast(JSONMutableMapping, _normalise_json(dict(payload)))
+
+    per_service = payload.get("per_service")
+    if isinstance(per_service, Mapping):
+        telemetry_payload["per_service"] = {
+            str(service): cast(JSONMutableMapping, _normalise_json(dict(entry)))
+            for service, entry in per_service.items()
+            if isinstance(entry, Mapping)
+        }
+
+    return telemetry_payload
 
 
 def _coerce_int(value: Any) -> int | None:

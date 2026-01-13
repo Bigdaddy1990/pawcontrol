@@ -17,14 +17,13 @@ from homeassistant.util import dt as dt_util
 from .compat import ConfigEntry
 from .const import (
     ATTR_DOG_ID,
-    ATTR_DOG_NAME,
     DOMAIN,
     MODULE_FEEDING,
     MODULE_HEALTH,
     MODULE_WALK,
 )
 from .coordinator import PawControlCoordinator
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
+from .diagnostics import normalize_value
 from .entity import PawControlDogEntityBase
 from .grooming_translations import translated_grooming_template
 from .notifications import NotificationPriority, NotificationType
@@ -205,7 +204,7 @@ class PawControlDateTimeBase(PawControlDogEntityBase, DateTimeEntity, RestoreEnt
         attributes = self._build_base_state_attributes(
             {"datetime_type": self._datetime_type}
         )
-        return cast(JSONMutableMapping, _normalise_diagnostics_json(attributes))
+        return cast(JSONMutableMapping, normalize_value(attributes))
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""

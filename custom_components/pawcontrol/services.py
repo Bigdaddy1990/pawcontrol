@@ -13,7 +13,15 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
+import time
+from collections.abc import (
+    Awaitable,
+    Callable,
+    Iterable,
+    Mapping,
+    MutableMapping,
+    Sequence,
+)
 from contextlib import suppress
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -111,6 +119,9 @@ from .types import (
     JSONLikeMapping,
     JSONMutableMapping,
     JSONValue,
+    PawControlRuntimeData,
+    ServiceCallTelemetry,
+    ServiceCallTelemetryEntry,
     ServiceContextMetadata,
     ServiceData,
     ServiceDetailsPayload,
@@ -1313,6 +1324,144 @@ async def async_setup_services(hass: HomeAssistant) -> None:
 
         return dog_id, dog_config
 
+    def _update_latency_metrics(
+        target: MutableMapping[str, JSONValue], duration_ms: float
+    ) -> None:
+        """Update latency metrics for a service call."""
+
+        latency_raw = target.get("latency_ms")
+        if isinstance(latency_raw, MutableMapping):
+            latency = latency_raw
+        else:
+            latency = cast(JSONMutableMapping, {})
+            target["latency_ms"] = latency
+
+        samples = int(latency.get("samples", 0) or 0)
+        average = float(latency.get("average_ms", 0.0) or 0.0)
+        next_samples = samples + 1
+        latency["samples"] = next_samples
+        latency["average_ms"] = ((average * samples) + duration_ms) / next_samples
+
+        minimum = latency.get("minimum_ms")
+        maximum = latency.get("maximum_ms")
+        duration_value = float(duration_ms)
+        if minimum is None or duration_value < float(minimum):
+            latency["minimum_ms"] = duration_value
+        if maximum is None or duration_value > float(maximum):
+            latency["maximum_ms"] = duration_value
+        latency["last_ms"] = duration_value
+
+    def _apply_service_call_metrics(
+        target: MutableMapping[str, JSONValue],
+        *,
+        status: Literal["success", "error"],
+        duration_ms: float,
+    ) -> None:
+        """Accumulate service call metrics into ``target``."""
+
+        total_calls = int(target.get("total_calls", 0) or 0) + 1
+        success_calls = int(target.get("success_calls", 0) or 0)
+        error_calls = int(target.get("error_calls", 0) or 0)
+        if status == "success":
+            success_calls += 1
+        else:
+            error_calls += 1
+
+        target["total_calls"] = total_calls
+        target["success_calls"] = success_calls
+        target["error_calls"] = error_calls
+        target["error_rate"] = (error_calls / total_calls) if total_calls else 0.0
+
+        _update_latency_metrics(target, duration_ms)
+
+    def _update_service_call_telemetry(
+        runtime_data: PawControlRuntimeData | None,
+        *,
+        service: str,
+        status: Literal["success", "error"],
+        duration_ms: float,
+    ) -> None:
+        """Record service call telemetry in runtime performance stats."""
+
+        if runtime_data is None:
+            return
+
+        performance_stats = ensure_runtime_performance_stats(runtime_data)
+        telemetry_raw = performance_stats.setdefault(
+            "service_call_telemetry", cast(ServiceCallTelemetry, {})
+        )
+        if not isinstance(telemetry_raw, MutableMapping):
+            telemetry_raw = {}
+            performance_stats["service_call_telemetry"] = telemetry_raw
+
+        _apply_service_call_metrics(
+            telemetry_raw, status=status, duration_ms=duration_ms
+        )
+
+        per_service_raw = telemetry_raw.setdefault("per_service", {})
+        if not isinstance(per_service_raw, MutableMapping):
+            per_service_raw = {}
+            telemetry_raw["per_service"] = per_service_raw
+
+        entry_raw = per_service_raw.setdefault(
+            service, cast(ServiceCallTelemetryEntry, {})
+        )
+        if not isinstance(entry_raw, MutableMapping):
+            entry_raw = {}
+            per_service_raw[service] = entry_raw
+
+        _apply_service_call_metrics(entry_raw, status=status, duration_ms=duration_ms)
+
+    def _wrap_service_handler(
+        service: str,
+        handler: Callable[[ServiceCall], Awaitable[None]],
+    ) -> Callable[[ServiceCall], Awaitable[None]]:
+        """Wrap a service handler to capture runtime telemetry."""
+
+        async def _wrapped(call: ServiceCall) -> None:
+            start = time.perf_counter()
+            status: Literal["success", "error"] = "success"
+            try:
+                await handler(call)
+            except Exception:
+                status = "error"
+                raise
+            finally:
+                duration_ms = max((time.perf_counter() - start) * 1000.0, 0.0)
+                runtime_data: PawControlRuntimeData | None = None
+                try:
+                    coordinator = _get_coordinator()
+                    runtime_data = get_runtime_data(hass, coordinator.config_entry)
+                except Exception as err:  # pragma: no cover - telemetry guard
+                    dog_id = call.data.get("dog_id")
+                    _LOGGER.debug(
+                        "Skipping service telemetry update for %s (dog_id=%s): %s",
+                        service,
+                        dog_id,
+                        err,
+                    )
+                else:
+                    _update_service_call_telemetry(
+                        runtime_data,
+                        service=service,
+                        status=status,
+                        duration_ms=duration_ms,
+                    )
+
+        return _wrapped
+
+    def _register_service(
+        service: str,
+        handler: Callable[[ServiceCall], Awaitable[None]],
+        *,
+        schema: vol.Schema,
+    ) -> None:
+        """Register a service with telemetry wrapping."""
+
+        hass.services.async_register(
+            DOMAIN, service, _wrap_service_handler(service, handler), schema=schema
+        )
+
     async def _async_handle_feeding_request(
         data: ServiceData, *, service_name: str
     ) -> None:
@@ -2418,6 +2567,26 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         guard_snapshot: tuple[ServiceGuardResult, ...] = ()
 
         try:
+            if not isinstance(title, str):
+                raise _service_validation_error("title must be a string")
+            title = title.strip()
+            if not title:
+                raise _service_validation_error("title must be a non-empty string")
+
+            if not isinstance(message, str):
+                raise _service_validation_error("message must be a string")
+            message = message.strip()
+            if not message:
+                raise _service_validation_error("message must be a non-empty string")
+
+            if dog_id is not None:
+                if not isinstance(dog_id, str):
+                    raise _service_validation_error("dog_id must be a string")
+                dog_id = dog_id.strip()
+                if not dog_id:
+                    raise _service_validation_error("dog_id must be a non-empty string")
+                dog_id, _ = _resolve_dog(coordinator, dog_id)
+
             try:
                 notification_type_enum = NotificationType(notification_type_raw)
             except (TypeError, ValueError):
@@ -2479,23 +2648,17 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             expires_in = None
             expires_in_hours: float | None = None
             if expires_in_hours_raw is not None:
-                expires_in_hours_candidate: float
                 try:
-                    expires_in_hours_candidate = float(expires_in_hours_raw)
+                    expires_in_hours = float(expires_in_hours_raw)
                 except (TypeError, ValueError):
-                    _LOGGER.warning(
-                        "Invalid expires_in_hours '%s'; ignoring override",
-                        expires_in_hours_raw,
+                    raise _service_validation_error(
+                        "expires_in_hours must be a positive number"
+                    ) from None
+                if expires_in_hours <= 0:
+                    raise _service_validation_error(
+                        "expires_in_hours must be greater than 0"
                     )
-                else:
-                    if expires_in_hours_candidate <= 0:
-                        _LOGGER.warning(
-                            "Non-positive expires_in_hours '%s'; ignoring override",
-                            expires_in_hours_raw,
-                        )
-                    else:
-                        expires_in_hours = expires_in_hours_candidate
-                        expires_in = timedelta(hours=expires_in_hours_candidate)
+                expires_in = timedelta(hours=expires_in_hours)
 
             async with async_capture_service_guard_results() as captured_guards:
                 guard_results = captured_guards
@@ -2569,6 +2732,13 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         runtime_data = _get_runtime_data_for_coordinator(coordinator)
 
         notification_id = call.data["notification_id"]
+        if not isinstance(notification_id, str):
+            raise _service_validation_error("notification_id must be a string")
+        notification_id = notification_id.strip()
+        if not notification_id:
+            raise _service_validation_error(
+                "notification_id must be a non-empty string"
+            )
 
         guard_results: list[ServiceGuardResult] = []
         guard_snapshot: tuple[ServiceGuardResult, ...] = ()
@@ -4397,295 +4567,255 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             ) from err
 
     # Register all services
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_ADD_FEEDING,
         add_feeding_service,
         schema=SERVICE_ADD_FEEDING_SCHEMA,
     )
 
     # Register feed_dog as alias for backward compatibility
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_FEED_DOG,
         feed_dog_service,
         schema=SERVICE_FEED_DOG_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_START_WALK,
         start_walk_service,
         schema=SERVICE_START_WALK_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_END_WALK,
         end_walk_service,
         schema=SERVICE_END_WALK_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_ADD_GPS_POINT,
         add_gps_point_service,
         schema=SERVICE_ADD_GPS_POINT_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_UPDATE_HEALTH,
         update_health_service,
         schema=SERVICE_UPDATE_HEALTH_SCHEMA,
     )
 
     # Register new health and medication services
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_LOG_HEALTH,
         log_health_service,
         schema=SERVICE_LOG_HEALTH_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_LOG_MEDICATION,
         log_medication_service,
         schema=SERVICE_LOG_MEDICATION_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_TOGGLE_VISITOR_MODE,
         toggle_visitor_mode_service,
         schema=SERVICE_TOGGLE_VISITOR_MODE_SCHEMA,
     )
 
     # Register GPS services
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_GPS_START_WALK,
         gps_start_walk_service,
         schema=SERVICE_GPS_START_WALK_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_GPS_END_WALK,
         gps_end_walk_service,
         schema=SERVICE_GPS_END_WALK_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_GPS_POST_LOCATION,
         gps_post_location_service,
         schema=SERVICE_GPS_POST_LOCATION_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_GPS_EXPORT_ROUTE,
         gps_export_route_service,
         schema=SERVICE_GPS_EXPORT_ROUTE_SCHEMA,
     )
 
     # NEW: Register the missing setup_automatic_gps service
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_SETUP_AUTOMATIC_GPS,
         setup_automatic_gps_service,
         schema=SERVICE_SETUP_AUTOMATIC_GPS_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_SEND_NOTIFICATION,
         send_notification_service,
         schema=SERVICE_SEND_NOTIFICATION_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_ACKNOWLEDGE_NOTIFICATION,
         acknowledge_notification_service,
         schema=SERVICE_ACKNOWLEDGE_NOTIFICATION_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_CALCULATE_PORTION,
         calculate_portion_service,
         schema=SERVICE_CALCULATE_PORTION_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_EXPORT_DATA,
         export_data_service,
         schema=SERVICE_EXPORT_DATA_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_ANALYZE_PATTERNS,
         analyze_patterns_service,
         schema=SERVICE_ANALYZE_PATTERNS_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_GENERATE_REPORT,
         generate_report_service,
         schema=SERVICE_GENERATE_REPORT_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_DAILY_RESET,
         daily_reset_service,
         schema=SERVICE_DAILY_RESET_SCHEMA,
     )
 
     # Register automation services
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_RECALCULATE_HEALTH_PORTIONS,
         recalculate_health_portions_service,
         schema=SERVICE_RECALCULATE_HEALTH_PORTIONS_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_ADJUST_CALORIES_FOR_ACTIVITY,
         adjust_calories_for_activity_service,
         schema=SERVICE_ADJUST_CALORIES_FOR_ACTIVITY_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_ACTIVATE_DIABETIC_FEEDING_MODE,
         activate_diabetic_feeding_mode_service,
         schema=SERVICE_ACTIVATE_DIABETIC_FEEDING_MODE_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_FEED_WITH_MEDICATION,
         feed_with_medication_service,
         schema=SERVICE_FEED_WITH_MEDICATION_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_GENERATE_WEEKLY_HEALTH_REPORT,
         generate_weekly_health_report_service,
         schema=SERVICE_GENERATE_WEEKLY_HEALTH_REPORT_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_ACTIVATE_EMERGENCY_FEEDING_MODE,
         activate_emergency_feeding_mode_service,
         schema=SERVICE_ACTIVATE_EMERGENCY_FEEDING_MODE_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_START_DIET_TRANSITION,
         start_diet_transition_service,
         schema=SERVICE_START_DIET_TRANSITION_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_CHECK_FEEDING_COMPLIANCE,
         check_feeding_compliance_service,
         schema=SERVICE_CHECK_FEEDING_COMPLIANCE_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_ADJUST_DAILY_PORTIONS,
         adjust_daily_portions_service,
         schema=SERVICE_ADJUST_DAILY_PORTIONS_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_ADD_HEALTH_SNACK,
         add_health_snack_service,
         schema=SERVICE_ADD_HEALTH_SNACK_SCHEMA,
     )
 
     # Register missing services
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_LOG_POOP,
         log_poop_service,
         schema=SERVICE_LOG_POOP_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_START_GROOMING,
         start_grooming_service,
         schema=SERVICE_START_GROOMING_SCHEMA,
     )
 
     # NEW: Register garden tracking services
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_START_GARDEN,
         start_garden_session_service,
         schema=SERVICE_START_GARDEN_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_END_GARDEN,
         end_garden_session_service,
         schema=SERVICE_END_GARDEN_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_ADD_GARDEN_ACTIVITY,
         add_garden_activity_service,
         schema=SERVICE_ADD_GARDEN_ACTIVITY_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_CONFIRM_POOP,
         confirm_garden_poop_service,
         schema=SERVICE_CONFIRM_POOP_SCHEMA,
     )
 
     # NEW: Register weather services
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_UPDATE_WEATHER,
         update_weather_service,
         schema=SERVICE_UPDATE_WEATHER_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_GET_WEATHER_ALERTS,
         get_weather_alerts_service,
         schema=SERVICE_GET_WEATHER_ALERTS_SCHEMA,
     )
 
-    hass.services.async_register(
-        DOMAIN,
+    _register_service(
         SERVICE_GET_WEATHER_RECOMMENDATIONS,
         get_weather_recommendations_service,
         schema=SERVICE_GET_WEATHER_RECOMMENDATIONS_SCHEMA,
     )
 
-    _LOGGER.info(
+    _LOGGER.debug(
         "Registered PawControl services with enhanced automation, GPS setup, garden tracking, and weather health functionality"
     )
 

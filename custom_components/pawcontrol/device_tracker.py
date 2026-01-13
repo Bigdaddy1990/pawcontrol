@@ -32,7 +32,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import MODULE_GPS
 from .coordinator import PawControlCoordinator
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
+from .diagnostics import normalize_value
 from .entity import PawControlDogEntityBase
 from .runtime_data import get_runtime_data
 from .types import (
@@ -61,7 +61,6 @@ from .types import (
     ensure_dog_config_data,
     ensure_dog_modules_projection,
     ensure_gps_payload,
-    ensure_json_mapping,
 )
 from .utils import async_call_add_entities, ensure_utc_datetime
 
@@ -71,7 +70,7 @@ _LOGGER = logging.getLogger(__name__)
 def _normalise_attributes(attrs: JSONMutableMapping) -> JSONMutableMapping:
     """Return JSON-serialisable attributes for device tracker entities."""
 
-    return cast(JSONMutableMapping, _normalise_diagnostics_json(attrs))
+    return cast(JSONMutableMapping, normalize_value(attrs))
 
 
 # Coordinator drives refreshes, so we can safely allow unlimited parallel
@@ -349,11 +348,8 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
         which satisfies Home Assistant's requirement for entity attribute types. The
         returned mapping is mutable and contains only JSON-serialisable values.
         """
-        attrs: JSONMutableMapping = ensure_json_mapping(super().extra_state_attributes)
-        attrs.update(
+        attrs = self._build_entity_attributes(
             {
-                "dog_id": self._dog_id,
-                "dog_name": self._dog_name,
                 "tracker_type": MODULE_GPS,
                 "route_active": False,
                 "route_points": len(self._route_points),
@@ -425,6 +421,12 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
                 if isinstance(zone_distance, int | float):
                     attrs["zone_distance"] = float(zone_distance)
 
+            status_snapshot = self._get_status_snapshot()
+            if status_snapshot is not None:
+                attrs["in_safe_zone"] = bool(
+                    status_snapshot.get("in_safe_zone", attrs.get("in_safe_zone", True))
+                )
+
             # Walk integration
             walk_info = gps_data.get("walk_info")
             if walk_info:
@@ -447,12 +449,8 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
         if not self.coordinator.available:
             return None
 
-        dog_data = self.coordinator.get_dog_data(self._dog_id)
-        if not dog_data:
-            return None
-
-        gps_state = dog_data.get(MODULE_GPS)
-        if isinstance(gps_state, Mapping):
+        gps_state = self._get_module_data(MODULE_GPS)
+        if gps_state:
             return ensure_gps_payload(cast(Mapping[str, object], gps_state))
 
         return None

@@ -1067,8 +1067,12 @@ class DoorSensorManager:
             await self._start_automatic_walk(config, state)
             return
 
-        title = f"🚪 Walk detected: {config.dog_name}"
-        message = f"Did {config.dog_name} just go for a walk? Door activity detected with {state.confidence_score:.0%} confidence."
+        title = f"🚶 Walk detected: {config.dog_name}"
+        message = (
+            f"Did {config.dog_name} just go for a walk? "
+            f"Door activity detected with {state.confidence_score:.0%} confidence. "
+            "No response switches to automatic tracking in 10 minutes."
+        )
 
         # Send notification with action buttons
         await self._notification_manager.async_send_notification(
@@ -1084,11 +1088,11 @@ class DoorSensorManager:
                 "actions": [
                     {
                         "action": f"confirm_walk_{config.dog_id}",
-                        "title": "Yes, start walk tracking",
+                        "title": "✅ Start walk tracking",
                     },
                     {
                         "action": f"deny_walk_{config.dog_id}",
-                        "title": "No, false alarm",
+                        "title": "❌ False alarm",
                     },
                 ],
             },
