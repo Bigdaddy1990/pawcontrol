@@ -5,7 +5,6 @@ requiring the PyPI package.  It provides the minimal configuration hook and
 ``event_loop`` fixture expected by the test suite while deferring detailed loop
 management to ``tests.plugins.asyncio_stub``.
 """
-
 from __future__ import annotations
 
 import asyncio
@@ -17,10 +16,10 @@ import pytest
 def pytest_addoption(parser: pytest.Parser) -> None:
     """Register the ``asyncio_mode`` ini option used by the suite."""
 
-    parser.addini("asyncio_mode", "Select asyncio integration mode", default="auto")
+    parser.addini('asyncio_mode', 'Select asyncio integration mode', default='auto')
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope='session')
 def event_loop() -> Generator[asyncio.AbstractEventLoop]:
     """Provide a session-scoped event loop when pytest-asyncio is unavailable."""
 

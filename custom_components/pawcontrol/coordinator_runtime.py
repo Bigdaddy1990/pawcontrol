@@ -1,14 +1,17 @@
 """Runtime helpers that keep :mod:`coordinator` focused on orchestration."""
-
 from __future__ import annotations
 
 import asyncio
 import logging
 import time
 from collections import deque
-from collections.abc import Callable, Iterable, Mapping, Sequence
+from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Mapping
+from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import datetime
+from datetime import UTC
 from statistics import fmean
 from typing import cast
 
@@ -106,16 +109,16 @@ class AdaptivePollingController:
     """Manage dynamic polling intervals based on runtime performance."""
 
     __slots__ = (
-        "_current_interval",
-        "_entity_saturation",
-        "_error_streak",
-        "_history",
-        "_idle_grace",
-        "_idle_interval",
-        "_last_activity",
-        "_max_interval",
-        "_min_interval",
-        "_target_cycle",
+        '_current_interval',
+        '_entity_saturation',
+        '_error_streak',
+        '_history',
+        '_idle_grace',
+        '_idle_interval',
+        '_last_activity',
+        '_max_interval',
+        '_min_interval',
+        '_target_cycle',
     )
 
     def __init__(
@@ -238,14 +241,14 @@ class AdaptivePollingController:
         history_count = len(self._history)
         average_duration = fmean(self._history) if history_count else 0.0
         diagnostics: AdaptivePollingDiagnostics = {
-            "target_cycle_ms": round(self._target_cycle * 1000, 2),
-            "current_interval_ms": round(self._current_interval * 1000, 2),
-            "average_cycle_ms": round(average_duration * 1000, 2),
-            "history_samples": history_count,
-            "error_streak": self._error_streak,
-            "entity_saturation": round(self._entity_saturation, 3),
-            "idle_interval_ms": round(self._idle_interval * 1000, 2),
-            "idle_grace_ms": round(self._idle_grace * 1000, 2),
+            'target_cycle_ms': round(self._target_cycle * 1000, 2),
+            'current_interval_ms': round(self._current_interval * 1000, 2),
+            'average_cycle_ms': round(average_duration * 1000, 2),
+            'history_samples': history_count,
+            'error_streak': self._error_streak,
+            'entity_saturation': round(self._entity_saturation, 3),
+            'idle_interval_ms': round(self._idle_interval * 1000, 2),
+            'idle_grace_ms': round(self._idle_grace * 1000, 2),
         }
         return diagnostics
 
@@ -266,13 +269,13 @@ class RuntimeCycleInfo:
         """Return a serialisable representation of the cycle."""
 
         snapshot: CoordinatorRuntimeCycleSnapshot = {
-            "dog_count": self.dog_count,
-            "errors": self.errors,
-            "success_rate": round(self.success_rate * 100, 2),
-            "duration_ms": round(self.duration * 1000, 2),
-            "next_interval_s": round(self.new_interval, 3),
-            "error_ratio": round(self.error_ratio, 3),
-            "success": self.success,
+            'dog_count': self.dog_count,
+            'errors': self.errors,
+            'success_rate': round(self.success_rate * 100, 2),
+            'duration_ms': round(self.duration * 1000, 2),
+            'next_interval_s': round(self.new_interval, 3),
+            'error_ratio': round(self.error_ratio, 3),
+            'success': self.success,
         }
         return snapshot
 
@@ -285,13 +288,13 @@ def summarize_entity_budgets(
     snapshots = list(snapshots)
     if not snapshots:
         return {
-            "active_dogs": 0,
-            "total_capacity": 0,
-            "total_allocated": 0,
-            "total_remaining": 0,
-            "average_utilization": 0.0,
-            "peak_utilization": 0.0,
-            "denied_requests": 0,
+            'active_dogs': 0,
+            'total_capacity': 0,
+            'total_allocated': 0,
+            'total_remaining': 0,
+            'average_utilization': 0.0,
+            'peak_utilization': 0.0,
+            'denied_requests': 0,
         }
 
     total_capacity = sum(snapshot.capacity for snapshot in snapshots)
@@ -302,13 +305,13 @@ def summarize_entity_budgets(
     peak_utilisation = max((snapshot.saturation for snapshot in snapshots), default=0.0)
 
     summary: EntityBudgetSummary = {
-        "active_dogs": len(snapshots),
-        "total_capacity": total_capacity,
-        "total_allocated": total_allocated,
-        "total_remaining": total_remaining,
-        "average_utilization": round(average_utilisation * 100, 1),
-        "peak_utilization": round(peak_utilisation * 100, 1),
-        "denied_requests": denied_requests,
+        'active_dogs': len(snapshots),
+        'total_capacity': total_capacity,
+        'total_allocated': total_allocated,
+        'total_remaining': total_remaining,
+        'average_utilization': round(average_utilisation * 100, 1),
+        'peak_utilization': round(peak_utilisation * 100, 1),
+        'denied_requests': denied_requests,
     }
     return summary
 
@@ -346,7 +349,7 @@ class CoordinatorRuntime:
         """Fetch data for all configured dogs and return diagnostics."""
 
         if not dog_ids:
-            raise CoordinatorUpdateFailed("No valid dogs configured")
+            raise CoordinatorUpdateFailed('No valid dogs configured')
 
         self._metrics.start_cycle()
         all_data: CoordinatorDataPayload = {}
@@ -369,23 +372,23 @@ class CoordinatorRuntime:
             except RateLimitError as err:
                 errors += 1
                 self._logger.warning(
-                    "Rate limit reached for dog %s: %s", dog_id, err.user_message
+                    'Rate limit reached for dog %s: %s', dog_id, err.user_message
                 )
                 all_data[dog_id] = current_data.get(dog_id, empty_payload_factory())
             except NetworkError as err:
                 errors += 1
                 self._logger.warning(
-                    "Network error for dog %s: %s", dog_id, err.user_message
+                    'Network error for dog %s: %s', dog_id, err.user_message
                 )
                 all_data[dog_id] = current_data.get(dog_id, empty_payload_factory())
             except ValidationError as err:
                 errors += 1
-                self._logger.error("Invalid configuration for dog %s: %s", dog_id, err)
+                self._logger.error('Invalid configuration for dog %s: %s', dog_id, err)
                 all_data[dog_id] = empty_payload_factory()
             except Exception as err:
                 errors += 1
                 self._logger.error(
-                    "Resilience patterns exhausted for dog %s: %s (%s)",
+                    'Resilience patterns exhausted for dog %s: %s (%s)',
                     dog_id,
                     err,
                     err.__class__.__name__,
@@ -402,7 +405,7 @@ class CoordinatorRuntime:
             raise auth_error_group.exceptions[0]
         except* Exception as error_group:  # pragma: no cover - defensive logging
             for exc in error_group.exceptions:
-                self._logger.error("Task group error: %s", exc)
+                self._logger.error('Task group error: %s', exc)
 
         total_dogs = len(dog_ids)
         success_rate, all_failed = self._metrics.record_cycle(total_dogs, errors)
@@ -412,7 +415,7 @@ class CoordinatorRuntime:
 
         if success_rate < 0.5:
             self._logger.warning(
-                "Low success rate: %d/%d dogs updated successfully",
+                'Low success rate: %d/%d dogs updated successfully',
                 total_dogs - errors,
                 total_dogs,
             )
@@ -443,12 +446,12 @@ class CoordinatorRuntime:
     async def _fetch_dog_data(self, dog_id: str) -> CoordinatorDogData:
         dog_config = self._registry.get(dog_id)
         if not dog_config:
-            raise ValidationError("dog_id", dog_id, "Dog configuration not found")
+            raise ValidationError('dog_id', dog_id, 'Dog configuration not found')
 
         payload: CoordinatorDogData = {
-            "dog_info": dog_config,
-            "status": "online",
-            "last_update": dt_util.utcnow().isoformat(),
+            'dog_info': dog_config,
+            'status': 'online',
+            'last_update': dt_util.utcnow().isoformat(),
         }
 
         modules = ensure_dog_modules_mapping(dog_config)
@@ -465,31 +468,31 @@ class CoordinatorRuntime:
         for task, result in zip(module_tasks, results, strict=True):
             module_name: CoordinatorTypedModuleName = task.module
             if isinstance(result, GPSUnavailableError):
-                self._logger.debug("GPS unavailable for %s: %s", dog_id, result)
+                self._logger.debug('GPS unavailable for %s: %s', dog_id, result)
                 payload[module_name] = {
-                    "status": "unavailable",
-                    "reason": str(result),
+                    'status': 'unavailable',
+                    'reason': str(result),
                 }
             elif isinstance(result, NetworkError):
                 self._logger.warning(
-                    "Network error fetching %s data for %s: %s",
+                    'Network error fetching %s data for %s: %s',
                     module_name,
                     dog_id,
                     result,
                 )
-                payload[module_name] = {"status": "network_error"}
+                payload[module_name] = {'status': 'network_error'}
             elif isinstance(result, Exception):
                 self._logger.warning(
-                    "Failed to fetch %s data for %s: %s (%s)",
+                    'Failed to fetch %s data for %s: %s (%s)',
                     module_name,
                     dog_id,
                     result,
                     result.__class__.__name__,
                 )
-                payload[module_name] = {"status": "error"}
+                payload[module_name] = {'status': 'error'}
             else:
                 payload[module_name] = cast(ModuleAdapterPayload, result)
 
-        payload["status_snapshot"] = build_dog_status_snapshot(dog_id, payload)
+        payload['status_snapshot'] = build_dog_status_snapshot(dog_id, payload)
 
         return payload

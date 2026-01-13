@@ -7,59 +7,61 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.4+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass, field
-from datetime import datetime, timedelta
+from collections.abc import Mapping
+from collections.abc import Sequence
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import datetime
+from datetime import timedelta
 from enum import Enum
-from typing import Any, Final, Literal, NamedTuple, TypedDict, cast
+from typing import Any
+from typing import cast
+from typing import Final
+from typing import Literal
+from typing import NamedTuple
+from typing import TypedDict
 
-from homeassistant.components.weather import (
-    ATTR_FORECAST,
-    ATTR_FORECAST_CONDITION,
-    ATTR_FORECAST_HUMIDITY,
-    ATTR_FORECAST_PRECIPITATION,
-    ATTR_FORECAST_PRECIPITATION_PROBABILITY,
-    ATTR_FORECAST_PRESSURE,
-    ATTR_FORECAST_TEMP,
-    ATTR_FORECAST_TEMP_LOW,
-    ATTR_FORECAST_TIME,
-    ATTR_FORECAST_UV_INDEX,
-    ATTR_FORECAST_WIND_SPEED,
-    ATTR_WEATHER_HUMIDITY,
-    ATTR_WEATHER_PRESSURE,
-    ATTR_WEATHER_TEMPERATURE,
-    ATTR_WEATHER_UV_INDEX,
-    ATTR_WEATHER_VISIBILITY,
-    ATTR_WEATHER_WIND_SPEED,
-)
+from homeassistant.components.weather import ATTR_FORECAST
+from homeassistant.components.weather import ATTR_FORECAST_CONDITION
+from homeassistant.components.weather import ATTR_FORECAST_HUMIDITY
+from homeassistant.components.weather import ATTR_FORECAST_PRECIPITATION
+from homeassistant.components.weather import ATTR_FORECAST_PRECIPITATION_PROBABILITY
+from homeassistant.components.weather import ATTR_FORECAST_PRESSURE
+from homeassistant.components.weather import ATTR_FORECAST_TEMP
+from homeassistant.components.weather import ATTR_FORECAST_TEMP_LOW
+from homeassistant.components.weather import ATTR_FORECAST_TIME
+from homeassistant.components.weather import ATTR_FORECAST_UV_INDEX
+from homeassistant.components.weather import ATTR_FORECAST_WIND_SPEED
+from homeassistant.components.weather import ATTR_WEATHER_HUMIDITY
+from homeassistant.components.weather import ATTR_WEATHER_PRESSURE
+from homeassistant.components.weather import ATTR_WEATHER_TEMPERATURE
+from homeassistant.components.weather import ATTR_WEATHER_UV_INDEX
+from homeassistant.components.weather import ATTR_WEATHER_VISIBILITY
+from homeassistant.components.weather import ATTR_WEATHER_WIND_SPEED
 from homeassistant.components.weather import (
     DOMAIN as WEATHER_DOMAIN,
 )
-from homeassistant.const import (
-    STATE_UNAVAILABLE,
-    STATE_UNKNOWN,
-    UnitOfTemperature,
-)
+from homeassistant.const import STATE_UNAVAILABLE
+from homeassistant.const import STATE_UNKNOWN
+from homeassistant.const import UnitOfTemperature
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
-from .resilience import ResilienceManager, RetryConfig
-from .weather_translations import (
-    DEFAULT_LANGUAGE,
-    SUPPORTED_LANGUAGES,
-    WEATHER_ALERT_KEY_SET,
-    WEATHER_RECOMMENDATION_KEY_SET,
-    WeatherAlertKey,
-    WeatherAlertTranslations,
-    WeatherRecommendationKey,
-    WeatherRecommendationTranslations,
-    WeatherTranslations,
-    get_weather_translations,
-)
+from .resilience import ResilienceManager
+from .resilience import RetryConfig
+from .weather_translations import DEFAULT_LANGUAGE
+from .weather_translations import get_weather_translations
+from .weather_translations import SUPPORTED_LANGUAGES
+from .weather_translations import WEATHER_ALERT_KEY_SET
+from .weather_translations import WEATHER_RECOMMENDATION_KEY_SET
+from .weather_translations import WeatherAlertKey
+from .weather_translations import WeatherAlertTranslations
+from .weather_translations import WeatherRecommendationKey
+from .weather_translations import WeatherRecommendationTranslations
+from .weather_translations import WeatherTranslations
 
 
 class ForecastEntry(TypedDict, total=False):
@@ -92,20 +94,20 @@ class WeatherEntityAttributes(TypedDict, total=False):
 
 
 type ForecastEntries = Sequence[ForecastEntry]
-type AlertField = Literal["title", "message"]
-type ActivityType = Literal["walk", "play", "exercise", "basic_needs"]
+type AlertField = Literal['title', 'message']
+type ActivityType = Literal['walk', 'play', 'exercise', 'basic_needs']
 type ActivityThresholdMap = dict[ActivityType, int]
-type AlertTranslationParts = tuple[Literal["alerts"], WeatherAlertKey, AlertField]
+type AlertTranslationParts = tuple[Literal['alerts'], WeatherAlertKey, AlertField]
 type RecommendationTranslationParts = tuple[
-    Literal["recommendations"], WeatherRecommendationKey
+    Literal['recommendations'], WeatherRecommendationKey
 ]
 type WeatherTranslationParts = AlertTranslationParts | RecommendationTranslationParts
 
-TRANSLATION_PREFIX: Final[str] = "weather"
-ALERT_FIELD_TOKENS: Final[frozenset[AlertField]] = frozenset(("title", "message"))
+TRANSLATION_PREFIX: Final[str] = 'weather'
+ALERT_FIELD_TOKENS: Final[frozenset[AlertField]] = frozenset(('title', 'message'))
 PRIMARY_ACTIVITIES: Final[
-    tuple[Literal["walk"], Literal["play"], Literal["exercise"]]
-] = ("walk", "play", "exercise")
+    tuple[Literal['walk'], Literal['play'], Literal['exercise']]
+] = ('walk', 'play', 'exercise')
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -113,37 +115,37 @@ _LOGGER = logging.getLogger(__name__)
 class WeatherSeverity(Enum):
     """Weather condition severity levels for dog health."""
 
-    LOW = "low"
-    MODERATE = "moderate"
-    HIGH = "high"
-    EXTREME = "extreme"
+    LOW = 'low'
+    MODERATE = 'moderate'
+    HIGH = 'high'
+    EXTREME = 'extreme'
 
 
 type SeverityMap[T] = dict[WeatherSeverity, T]
-type TemperatureBand = Literal["hot", "cold"]
+type TemperatureBand = Literal['hot', 'cold']
 type TemperatureThresholdMap = dict[TemperatureBand, SeverityMap[float]]
 
 
 class WeatherHealthImpact(Enum):
     """Types of health impacts from weather conditions."""
 
-    HEAT_STRESS = "heat_stress"
-    COLD_STRESS = "cold_stress"
-    UV_EXPOSURE = "uv_exposure"
-    AIR_QUALITY = "air_quality"
-    EXERCISE_LIMITATION = "exercise_limitation"
-    HYDRATION_RISK = "hydration_risk"
-    PAW_PROTECTION = "paw_protection"
-    RESPIRATORY_RISK = "respiratory_risk"
+    HEAT_STRESS = 'heat_stress'
+    COLD_STRESS = 'cold_stress'
+    UV_EXPOSURE = 'uv_exposure'
+    AIR_QUALITY = 'air_quality'
+    EXERCISE_LIMITATION = 'exercise_limitation'
+    HYDRATION_RISK = 'hydration_risk'
+    PAW_PROTECTION = 'paw_protection'
+    RESPIRATORY_RISK = 'respiratory_risk'
 
 
 class ForecastQuality(Enum):
     """Quality indicators for weather forecast data."""
 
-    EXCELLENT = "excellent"  # <6h old, high confidence
-    GOOD = "good"  # <12h old, medium confidence
-    FAIR = "fair"  # <24h old, basic data
-    POOR = "poor"  # >24h old or incomplete
+    EXCELLENT = 'excellent'  # <6h old, high confidence
+    GOOD = 'good'  # <12h old, medium confidence
+    FAIR = 'fair'  # <24h old, basic data
+    POOR = 'poor'  # >24h old or incomplete
 
 
 class ActivityTimeSlot(NamedTuple):
@@ -189,12 +191,12 @@ class ForecastPoint:
         """Get time category for display purposes."""
         hour = self.timestamp.hour
         if 6 <= hour < 12:
-            return "morning"
+            return 'morning'
         if 12 <= hour < 17:
-            return "afternoon"
+            return 'afternoon'
         if 17 <= hour < 21:
-            return "evening"
-        return "night"
+            return 'evening'
+        return 'night'
 
 
 @dataclass
@@ -228,10 +230,10 @@ class WeatherForecast:
     def forecast_summary(self) -> str:
         """Get human-readable forecast summary."""
         if not self.forecast_points:
-            return "No forecast data available"
+            return 'No forecast data available'
 
         if self.avg_health_score is None:
-            return "Forecast data incomplete"
+            return 'Forecast data incomplete'
 
         score = self.avg_health_score
         if score >= 80:
@@ -245,7 +247,7 @@ class WeatherForecast:
         return f"Dangerous conditions - outdoor activities not recommended (avg score: {score}/100)"
 
     def get_next_optimal_window(
-        self, activity_type: ActivityType = "walk"
+        self, activity_type: ActivityType = 'walk'
     ) -> ActivityTimeSlot | None:
         """Get the next optimal time window for specified activity."""
         for window in self.optimal_activity_windows:
@@ -314,7 +316,7 @@ class WorstPeriodSummary:
 class ForecastPlanningSummary:
     """Typed representation of forecast planning guidance."""
 
-    status: Literal["available", "unavailable"]
+    status: Literal['available', 'unavailable']
     message: str | None = None
     forecast_quality: str | None = None
     forecast_summary: str | None = None
@@ -417,12 +419,12 @@ class WeatherHealthManager:
 
         # Temperature thresholds for different severity levels (Celsius)
         self.temperature_thresholds: TemperatureThresholdMap = {
-            "hot": {
+            'hot': {
                 WeatherSeverity.MODERATE: 25.0,
                 WeatherSeverity.HIGH: 30.0,
                 WeatherSeverity.EXTREME: 35.0,
             },
-            "cold": {
+            'cold': {
                 WeatherSeverity.MODERATE: 5.0,
                 WeatherSeverity.HIGH: 0.0,
                 WeatherSeverity.EXTREME: -10.0,
@@ -443,7 +445,7 @@ class WeatherHealthManager:
             WeatherSeverity.EXTREME: 95.0,
         }
 
-    async def async_load_translations(self, language: str = "en") -> None:
+    async def async_load_translations(self, language: str = 'en') -> None:
         """Load translations for weather alerts and recommendations.
 
         Args:
@@ -452,7 +454,7 @@ class WeatherHealthManager:
         try:
             if language not in SUPPORTED_LANGUAGES:
                 _LOGGER.debug(
-                    "Weather translations for %s not available, using English fallback",
+                    'Weather translations for %s not available, using English fallback',
                     language,
                 )
             self._translations = get_weather_translations(language)
@@ -460,9 +462,9 @@ class WeatherHealthManager:
                 self._english_translations = self._translations
             else:
                 self._english_translations = get_weather_translations(DEFAULT_LANGUAGE)
-            _LOGGER.debug("Loaded weather translations for language: %s", language)
+            _LOGGER.debug('Loaded weather translations for language: %s', language)
         except Exception as err:  # pragma: no cover - defensive fallback
-            _LOGGER.warning("Failed to load weather translations: %s", err)
+            _LOGGER.warning('Failed to load weather translations: %s', err)
             self._translations = get_weather_translations(DEFAULT_LANGUAGE)
             self._english_translations = self._translations
 
@@ -470,7 +472,7 @@ class WeatherHealthManager:
     def _parse_translation_key(key: str) -> WeatherTranslationParts | None:
         """Normalise dotted translation keys into typed translation segments."""
 
-        segments = tuple(part for part in key.split(".") if part)
+        segments = tuple(part for part in key.split('.') if part)
         if segments and segments[0] == TRANSLATION_PREFIX:
             segments = segments[1:]
 
@@ -478,7 +480,7 @@ class WeatherHealthManager:
             return None
 
         section = segments[0]
-        if section == "alerts":
+        if section == 'alerts':
             if len(segments) != 3:
                 return None
             alert_key, field_token = segments[1], segments[2]
@@ -488,19 +490,19 @@ class WeatherHealthManager:
             ):
                 return None
             return (
-                "alerts",
+                'alerts',
                 cast(WeatherAlertKey, alert_key),
                 cast(AlertField, field_token),
             )
 
-        if section == "recommendations":
+        if section == 'recommendations':
             if len(segments) != 2:
                 return None
             recommendation_key = segments[1]
             if recommendation_key not in WEATHER_RECOMMENDATION_KEY_SET:
                 return None
             return (
-                "recommendations",
+                'recommendations',
                 cast(WeatherRecommendationKey, recommendation_key),
             )
 
@@ -524,7 +526,7 @@ class WeatherHealthManager:
         try:
             resolved = self._resolve_translation_value(self._translations, parts)
         except ValueError as err:
-            _LOGGER.debug("Translation key not found: %s (%s)", key, err)
+            _LOGGER.debug('Translation key not found: %s (%s)', key, err)
             resolved = None
 
         if resolved is not None:
@@ -533,7 +535,7 @@ class WeatherHealthManager:
             try:
                 return resolved.format(**kwargs)
             except (KeyError, ValueError) as err:
-                _LOGGER.debug("Translation formatting failed for %s: %s", key, err)
+                _LOGGER.debug('Translation formatting failed for %s: %s', key, err)
 
         return self._get_english_fallback(parts, key, **kwargs)
 
@@ -564,18 +566,18 @@ class WeatherHealthManager:
         """Resolve a nested translation value from the provided catalog."""
 
         section = parts[0]
-        if section == "alerts":
+        if section == 'alerts':
             alert_parts = cast(AlertTranslationParts, parts)
             _, alert_key, field = alert_parts
             return WeatherHealthManager._resolve_alert_translation(
-                catalog["alerts"], alert_key, field
+                catalog['alerts'], alert_key, field
             )
 
-        if section == "recommendations":
+        if section == 'recommendations':
             recommendation_parts = cast(RecommendationTranslationParts, parts)
             _, recommendation_key = recommendation_parts
             return WeatherHealthManager._resolve_recommendation_translation(
-                catalog["recommendations"], recommendation_key
+                catalog['recommendations'], recommendation_key
             )
 
         raise ValueError(f"Unknown weather translation section: {section}")
@@ -659,7 +661,7 @@ class WeatherHealthManager:
                 weather_entity_id_local = await self._find_weather_entity()
 
             if weather_entity_id_local is None:
-                _LOGGER.warning("No weather entity found for weather health monitoring")
+                _LOGGER.warning('No weather entity found for weather health monitoring')
                 return None
 
             # Get weather state
@@ -668,7 +670,7 @@ class WeatherHealthManager:
                 STATE_UNAVAILABLE,
                 STATE_UNKNOWN,
             ]:
-                _LOGGER.warning("Weather entity %s is unavailable", weather_entity_id)
+                _LOGGER.warning('Weather entity %s is unavailable', weather_entity_id)
                 return None
 
             # Extract weather data
@@ -679,7 +681,7 @@ class WeatherHealthManager:
                 # Convert temperature to Celsius if needed
                 temp_unit = cast(
                     UnitOfTemperature | str,
-                    attributes.get("temperature_unit", UnitOfTemperature.CELSIUS),
+                    attributes.get('temperature_unit', UnitOfTemperature.CELSIUS),
                 )
                 if temp_unit == UnitOfTemperature.FAHRENHEIT:
                     temperature_c = (temperature_c - 32) * 5 / 9
@@ -711,10 +713,10 @@ class WeatherHealthManager:
             await self._update_weather_alerts()
 
             _LOGGER.debug(
-                "Updated weather conditions: %.1f°C, %s, UV: %s",
+                'Updated weather conditions: %.1f°C, %s, UV: %s',
                 temperature_c or 0,
                 weather_state.state,
-                attributes.get(ATTR_WEATHER_UV_INDEX, "unknown"),
+                attributes.get(ATTR_WEATHER_UV_INDEX, 'unknown'),
             )
 
             return self._current_conditions
@@ -729,7 +731,7 @@ class WeatherHealthManager:
             # Fallback if no resilience manager
             return await _fetch_weather_data()
         except Exception as err:
-            _LOGGER.error("Failed to update weather data after retries: %s", err)
+            _LOGGER.error('Failed to update weather data after retries: %s', err)
             return None
 
     async def async_update_forecast_data(
@@ -761,7 +763,7 @@ class WeatherHealthManager:
                 weather_entity_id_local = await self._find_weather_entity()
 
             if weather_entity_id_local is None:
-                _LOGGER.warning("No weather entity found for forecast analysis")
+                _LOGGER.warning('No weather entity found for forecast analysis')
                 return None
 
             # Get weather entity with forecast data
@@ -771,7 +773,7 @@ class WeatherHealthManager:
                 STATE_UNKNOWN,
             ]:
                 _LOGGER.warning(
-                    "Weather entity %s is unavailable for forecast", weather_entity_id
+                    'Weather entity %s is unavailable for forecast', weather_entity_id
                 )
                 return None
 
@@ -780,14 +782,14 @@ class WeatherHealthManager:
             forecast_data_raw = attributes.get(ATTR_FORECAST)
             if not isinstance(forecast_data_raw, Sequence):
                 _LOGGER.debug(
-                    "Weather entity %s does not expose a forecast sequence",
+                    'Weather entity %s does not expose a forecast sequence',
                     weather_entity_id_local,
                 )
                 return None
 
             if not all(isinstance(item, Mapping) for item in forecast_data_raw):
                 _LOGGER.debug(
-                    "Weather entity %s returned non-mapping forecast entries",
+                    'Weather entity %s returned non-mapping forecast entries',
                     weather_entity_id_local,
                 )
                 return None
@@ -797,7 +799,7 @@ class WeatherHealthManager:
             ]
             if not forecast_data:
                 _LOGGER.debug(
-                    "No forecast data available in weather entity %s", weather_entity_id
+                    'No forecast data available in weather entity %s', weather_entity_id
                 )
                 return None
 
@@ -807,7 +809,7 @@ class WeatherHealthManager:
             )
 
             if not forecast_points:
-                _LOGGER.warning("No valid forecast points generated")
+                _LOGGER.warning('No valid forecast points generated')
                 return None
 
             # Create forecast object
@@ -829,7 +831,7 @@ class WeatherHealthManager:
             await self._identify_optimal_activity_windows()
 
             _LOGGER.debug(
-                "Updated weather forecast: %d points, %dh horizon, quality: %s",
+                'Updated weather forecast: %d points, %dh horizon, quality: %s',
                 len(forecast_points),
                 forecast_horizon_hours,
                 self._current_forecast.quality.value,
@@ -848,7 +850,7 @@ class WeatherHealthManager:
             return await _fetch_forecast_data()
         except Exception as err:
             _LOGGER.error(
-                "Failed to update weather forecast data after retries: %s", err
+                'Failed to update weather forecast data after retries: %s', err
             )
             return None
 
@@ -889,7 +891,7 @@ class WeatherHealthManager:
                 # Convert temperature units if needed
                 if temp_high is not None:
                     temp_unit = forecast_item.get(
-                        "temperature_unit", UnitOfTemperature.CELSIUS
+                        'temperature_unit', UnitOfTemperature.CELSIUS
                     )
                     if temp_unit == UnitOfTemperature.FAHRENHEIT:
                         temp_high = (temp_high - 32.0) * 5 / 9
@@ -935,7 +937,7 @@ class WeatherHealthManager:
                 forecast_points.append(forecast_point)
 
             except Exception as err:
-                _LOGGER.debug("Error processing forecast item: %s", err)
+                _LOGGER.debug('Error processing forecast item: %s', err)
                 continue
 
         # Sort by timestamp
@@ -1137,14 +1139,14 @@ class WeatherHealthManager:
         if forecast_point.condition:
             condition = forecast_point.condition.lower()
             if any(
-                keyword in condition for keyword in ["storm", "thunder", "lightning"]
+                keyword in condition for keyword in ['storm', 'thunder', 'lightning']
             ):
                 score -= 30
-            elif any(keyword in condition for keyword in ["snow", "ice", "sleet"]):
+            elif any(keyword in condition for keyword in ['snow', 'ice', 'sleet']):
                 score -= 20
-            elif any(keyword in condition for keyword in ["rain", "drizzle"]):
+            elif any(keyword in condition for keyword in ['rain', 'drizzle']):
                 score -= 15
-            elif "fog" in condition:
+            elif 'fog' in condition:
                 score -= 10
 
         return max(0, min(100, score))
@@ -1168,10 +1170,10 @@ class WeatherHealthManager:
         temp = forecast_point.temperature_c
 
         # Temperature-based alerts
-        if temp >= self.temperature_thresholds["hot"][WeatherSeverity.MODERATE]:
+        if temp >= self.temperature_thresholds['hot'][WeatherSeverity.MODERATE]:
             alerts.append(WeatherHealthImpact.HEAT_STRESS)
 
-        if temp <= self.temperature_thresholds["cold"][WeatherSeverity.MODERATE]:
+        if temp <= self.temperature_thresholds['cold'][WeatherSeverity.MODERATE]:
             alerts.append(WeatherHealthImpact.COLD_STRESS)
 
         # UV alerts
@@ -1199,7 +1201,7 @@ class WeatherHealthManager:
         # Storm alerts
         if forecast_point.condition and any(
             keyword in forecast_point.condition.lower()
-            for keyword in ["storm", "thunder", "lightning"]
+            for keyword in ['storm', 'thunder', 'lightning']
         ):
             alerts.append(WeatherHealthImpact.EXERCISE_LIMITATION)
 
@@ -1251,10 +1253,10 @@ class WeatherHealthManager:
 
         # Activity thresholds (minimum health scores)
         activity_thresholds: ActivityThresholdMap = {
-            "walk": 60,  # Regular walks
-            "play": 70,  # Active play sessions
-            "exercise": 75,  # Intensive exercise
-            "basic_needs": 30,  # Essential outdoor time
+            'walk': 60,  # Regular walks
+            'play': 70,  # Active play sessions
+            'exercise': 75,  # Intensive exercise
+            'basic_needs': 30,  # Essential outdoor time
         }
 
         for activity_type, min_score in activity_thresholds.items():
@@ -1384,64 +1386,64 @@ class WeatherHealthManager:
         recommendations = []
 
         # Base recommendations by activity type
-        if activity_type == "walk":
+        if activity_type == 'walk':
             if alert_level == WeatherSeverity.LOW:
                 recommendations.extend(
                     [
-                        "Excellent conditions for regular walks",
-                        "Normal duration and intensity recommended",
+                        'Excellent conditions for regular walks',
+                        'Normal duration and intensity recommended',
                     ]
                 )
             else:
                 recommendations.extend(
                     [
-                        "Monitor weather conditions during walk",
-                        "Be prepared to cut walk short if needed",
+                        'Monitor weather conditions during walk',
+                        'Be prepared to cut walk short if needed',
                     ]
                 )
-        elif activity_type == "play":
+        elif activity_type == 'play':
             if alert_level == WeatherSeverity.LOW:
                 recommendations.extend(
                     [
-                        "Great time for active play sessions",
-                        "Consider outdoor training activities",
+                        'Great time for active play sessions',
+                        'Consider outdoor training activities',
                     ]
                 )
             else:
                 recommendations.extend(
                     [
-                        "Moderate play activities recommended",
-                        "Monitor for signs of stress or discomfort",
+                        'Moderate play activities recommended',
+                        'Monitor for signs of stress or discomfort',
                     ]
                 )
-        elif activity_type == "exercise":
+        elif activity_type == 'exercise':
             if alert_level == WeatherSeverity.LOW:
                 recommendations.extend(
                     [
-                        "Optimal conditions for intensive exercise",
-                        "Running and high-energy activities safe",
+                        'Optimal conditions for intensive exercise',
+                        'Running and high-energy activities safe',
                     ]
                 )
             else:
                 recommendations.extend(
                     [
-                        "Reduce exercise intensity",
-                        "Take frequent breaks for monitoring",
+                        'Reduce exercise intensity',
+                        'Take frequent breaks for monitoring',
                     ]
                 )
-        elif activity_type == "basic_needs":
+        elif activity_type == 'basic_needs':
             recommendations.extend(
                 [
-                    "Quick potty breaks acceptable",
-                    "Minimize outdoor exposure time",
+                    'Quick potty breaks acceptable',
+                    'Minimize outdoor exposure time',
                 ]
             )
 
         # Add score-based recommendations
         if avg_score < 50:
-            recommendations.append("Use extra caution during this window")
+            recommendations.append('Use extra caution during this window')
         elif avg_score >= 80:
-            recommendations.append("Ideal conditions for this activity")
+            recommendations.append('Ideal conditions for this activity')
 
         return recommendations
 
@@ -1461,7 +1463,7 @@ class WeatherHealthManager:
         if weather_entities:
             # Prefer entities with "weather" in the name
             for entity_id in weather_entities:
-                if "weather" in entity_id.lower():
+                if 'weather' in entity_id.lower():
                     return entity_id
             # Fall back to first available
             return weather_entities[0]
@@ -1556,7 +1558,7 @@ class WeatherHealthManager:
             ):
                 self._active_alerts.append(new_alert)
                 _LOGGER.info(
-                    "New weather health alert: %s (%s)",
+                    'New weather health alert: %s (%s)',
                     new_alert.title,
                     new_alert.severity.value,
                 )
@@ -1583,93 +1585,93 @@ class WeatherHealthManager:
         )
 
         # Hot weather alerts
-        if temp >= self.temperature_thresholds["hot"][WeatherSeverity.EXTREME]:
+        if temp >= self.temperature_thresholds['hot'][WeatherSeverity.EXTREME]:
             alerts.append(
                 WeatherAlert(
                     alert_type=WeatherHealthImpact.HEAT_STRESS,
                     severity=WeatherSeverity.EXTREME,
                     title=self._get_translation(
-                        "weather.alerts.extreme_heat_warning.title"
+                        'weather.alerts.extreme_heat_warning.title'
                     ),
                     message=self._get_translation(
-                        "weather.alerts.extreme_heat_warning.message",
+                        'weather.alerts.extreme_heat_warning.message',
                         temperature=temp,
                         feels_like=effective_temp,
                     ),
                     recommendations=[
                         self._get_translation(
-                            "weather.recommendations.avoid_peak_hours"
+                            'weather.recommendations.avoid_peak_hours'
                         ),
-                        self._get_translation("weather.recommendations.provide_water"),
-                        self._get_translation("weather.recommendations.keep_indoors"),
+                        self._get_translation('weather.recommendations.provide_water'),
+                        self._get_translation('weather.recommendations.keep_indoors'),
                         self._get_translation(
-                            "weather.recommendations.watch_heat_signs"
-                        ),
-                        self._get_translation(
-                            "weather.recommendations.use_cooling_aids"
+                            'weather.recommendations.watch_heat_signs'
                         ),
                         self._get_translation(
-                            "weather.recommendations.never_leave_in_car"
+                            'weather.recommendations.use_cooling_aids'
+                        ),
+                        self._get_translation(
+                            'weather.recommendations.never_leave_in_car'
                         ),
                     ],
                     duration_hours=6,
                     affected_breeds=[
-                        "brachycephalic",
-                        "thick_coat",
-                        "elderly",
-                        "overweight",
+                        'brachycephalic',
+                        'thick_coat',
+                        'elderly',
+                        'overweight',
                     ],
-                    age_considerations=["puppies", "senior_dogs"],
+                    age_considerations=['puppies', 'senior_dogs'],
                 )
             )
-        elif temp >= self.temperature_thresholds["hot"][WeatherSeverity.HIGH]:
+        elif temp >= self.temperature_thresholds['hot'][WeatherSeverity.HIGH]:
             alerts.append(
                 WeatherAlert(
                     alert_type=WeatherHealthImpact.HEAT_STRESS,
                     severity=WeatherSeverity.HIGH,
                     title=self._get_translation(
-                        "weather.alerts.high_heat_advisory.title"
+                        'weather.alerts.high_heat_advisory.title'
                     ),
                     message=self._get_translation(
-                        "weather.alerts.high_heat_advisory.message", temperature=temp
+                        'weather.alerts.high_heat_advisory.message', temperature=temp
                     ),
                     recommendations=[
                         self._get_translation(
-                            "weather.recommendations.limit_outdoor_time"
+                            'weather.recommendations.limit_outdoor_time'
                         ),
-                        self._get_translation("weather.recommendations.ensure_shade"),
+                        self._get_translation('weather.recommendations.ensure_shade'),
                         self._get_translation(
-                            "weather.recommendations.provide_shade_always"
-                        ),
-                        self._get_translation(
-                            "weather.recommendations.monitor_overheating"
+                            'weather.recommendations.provide_shade_always'
                         ),
                         self._get_translation(
-                            "weather.recommendations.cooler_surfaces"
+                            'weather.recommendations.monitor_overheating'
+                        ),
+                        self._get_translation(
+                            'weather.recommendations.cooler_surfaces'
                         ),
                     ],
                     duration_hours=4,
-                    affected_breeds=["brachycephalic", "thick_coat"],
+                    affected_breeds=['brachycephalic', 'thick_coat'],
                 )
             )
-        elif temp >= self.temperature_thresholds["hot"][WeatherSeverity.MODERATE]:
+        elif temp >= self.temperature_thresholds['hot'][WeatherSeverity.MODERATE]:
             alerts.append(
                 WeatherAlert(
                     alert_type=WeatherHealthImpact.HEAT_STRESS,
                     severity=WeatherSeverity.MODERATE,
                     title=self._get_translation(
-                        "weather.alerts.warm_weather_caution.title"
+                        'weather.alerts.warm_weather_caution.title'
                     ),
                     message=self._get_translation(
-                        "weather.alerts.warm_weather_caution.message", temperature=temp
+                        'weather.alerts.warm_weather_caution.message', temperature=temp
                     ),
                     recommendations=[
-                        self._get_translation("weather.recommendations.extra_water"),
+                        self._get_translation('weather.recommendations.extra_water'),
                         self._get_translation(
-                            "weather.recommendations.cooler_day_parts"
+                            'weather.recommendations.cooler_day_parts'
                         ),
                         self._get_translation(
-                            "weather.recommendations.watch_heat_stress"
+                            'weather.recommendations.watch_heat_stress'
                         ),
                     ],
                     duration_hours=3,
@@ -1677,65 +1679,65 @@ class WeatherHealthManager:
             )
 
         # Cold weather alerts
-        if temp <= self.temperature_thresholds["cold"][WeatherSeverity.EXTREME]:
+        if temp <= self.temperature_thresholds['cold'][WeatherSeverity.EXTREME]:
             alerts.append(
                 WeatherAlert(
                     alert_type=WeatherHealthImpact.COLD_STRESS,
                     severity=WeatherSeverity.EXTREME,
                     title=self._get_translation(
-                        "weather.alerts.extreme_cold_warning.title"
+                        'weather.alerts.extreme_cold_warning.title'
                     ),
                     message=self._get_translation(
-                        "weather.alerts.extreme_cold_warning.message",
+                        'weather.alerts.extreme_cold_warning.message',
                         temperature=temp,
                         feels_like=effective_temp,
                     ),
                     recommendations=[
-                        self._get_translation("weather.recommendations.essential_only"),
+                        self._get_translation('weather.recommendations.essential_only'),
                         self._get_translation(
-                            "weather.recommendations.protective_clothing"
+                            'weather.recommendations.protective_clothing'
                         ),
-                        self._get_translation("weather.recommendations.protect_paws"),
-                        self._get_translation("weather.recommendations.warm_shelter"),
+                        self._get_translation('weather.recommendations.protect_paws'),
+                        self._get_translation('weather.recommendations.warm_shelter'),
                         self._get_translation(
-                            "weather.recommendations.watch_hypothermia"
+                            'weather.recommendations.watch_hypothermia'
                         ),
                         self._get_translation(
-                            "weather.recommendations.postpone_activities"
+                            'weather.recommendations.postpone_activities'
                         ),
                     ],
                     duration_hours=8,
-                    affected_breeds=["short_hair", "small_breeds", "elderly", "sick"],
-                    age_considerations=["puppies", "senior_dogs"],
+                    affected_breeds=['short_hair', 'small_breeds', 'elderly', 'sick'],
+                    age_considerations=['puppies', 'senior_dogs'],
                 )
             )
-        elif temp <= self.temperature_thresholds["cold"][WeatherSeverity.HIGH]:
+        elif temp <= self.temperature_thresholds['cold'][WeatherSeverity.HIGH]:
             alerts.append(
                 WeatherAlert(
                     alert_type=WeatherHealthImpact.COLD_STRESS,
                     severity=WeatherSeverity.HIGH,
                     title=self._get_translation(
-                        "weather.alerts.high_cold_advisory.title"
+                        'weather.alerts.high_cold_advisory.title'
                     ),
                     message=self._get_translation(
-                        "weather.alerts.high_cold_advisory.message", temperature=temp
+                        'weather.alerts.high_cold_advisory.message', temperature=temp
                     ),
                     recommendations=[
                         self._get_translation(
-                            "weather.recommendations.shorten_activities"
+                            'weather.recommendations.shorten_activities'
                         ),
                         self._get_translation(
-                            "weather.recommendations.consider_clothing"
+                            'weather.recommendations.consider_clothing'
                         ),
                         self._get_translation(
-                            "weather.recommendations.cold_surface_protection"
+                            'weather.recommendations.cold_surface_protection'
                         ),
                         self._get_translation(
-                            "weather.recommendations.warm_shelter_available"
+                            'weather.recommendations.warm_shelter_available'
                         ),
                     ],
                     duration_hours=6,
-                    affected_breeds=["short_hair", "small_breeds"],
+                    affected_breeds=['short_hair', 'small_breeds'],
                 )
             )
 
@@ -1760,26 +1762,26 @@ class WeatherHealthManager:
                     alert_type=WeatherHealthImpact.UV_EXPOSURE,
                     severity=WeatherSeverity.EXTREME,
                     title=self._get_translation(
-                        "weather.alerts.extreme_uv_warning.title"
+                        'weather.alerts.extreme_uv_warning.title'
                     ),
                     message=self._get_translation(
-                        "weather.alerts.extreme_uv_warning.message", uv_index=uv
+                        'weather.alerts.extreme_uv_warning.message', uv_index=uv
                     ),
                     recommendations=[
-                        self._get_translation("weather.recommendations.avoid_peak_uv"),
+                        self._get_translation('weather.recommendations.avoid_peak_uv'),
                         self._get_translation(
-                            "weather.recommendations.provide_shade_always"
+                            'weather.recommendations.provide_shade_always'
                         ),
                         self._get_translation(
-                            "weather.recommendations.uv_protective_clothing"
+                            'weather.recommendations.uv_protective_clothing'
                         ),
                         self._get_translation(
-                            "weather.recommendations.protect_nose_ears"
+                            'weather.recommendations.protect_nose_ears'
                         ),
-                        self._get_translation("weather.recommendations.pet_sunscreen"),
+                        self._get_translation('weather.recommendations.pet_sunscreen'),
                     ],
                     duration_hours=6,
-                    affected_breeds=["light_colored", "pink_skin", "sparse_hair"],
+                    affected_breeds=['light_colored', 'pink_skin', 'sparse_hair'],
                 )
             )
         elif uv >= self.uv_thresholds[WeatherSeverity.HIGH]:
@@ -1788,20 +1790,20 @@ class WeatherHealthManager:
                     alert_type=WeatherHealthImpact.UV_EXPOSURE,
                     severity=WeatherSeverity.HIGH,
                     title=self._get_translation(
-                        "weather.alerts.high_uv_advisory.title"
+                        'weather.alerts.high_uv_advisory.title'
                     ),
                     message=self._get_translation(
-                        "weather.alerts.high_uv_advisory.message", uv_index=uv
+                        'weather.alerts.high_uv_advisory.message', uv_index=uv
                     ),
                     recommendations=[
                         self._get_translation(
-                            "weather.recommendations.shade_during_activities"
+                            'weather.recommendations.shade_during_activities'
                         ),
                         self._get_translation(
-                            "weather.recommendations.limit_peak_exposure"
+                            'weather.recommendations.limit_peak_exposure'
                         ),
                         self._get_translation(
-                            "weather.recommendations.monitor_skin_irritation"
+                            'weather.recommendations.monitor_skin_irritation'
                         ),
                     ],
                     duration_hours=4,
@@ -1832,27 +1834,27 @@ class WeatherHealthManager:
                     alert_type=WeatherHealthImpact.RESPIRATORY_RISK,
                     severity=WeatherSeverity.HIGH,
                     title=self._get_translation(
-                        "weather.alerts.high_humidity_alert.title"
+                        'weather.alerts.high_humidity_alert.title'
                     ),
                     message=self._get_translation(
-                        "weather.alerts.high_humidity_alert.message", humidity=humidity
+                        'weather.alerts.high_humidity_alert.message', humidity=humidity
                     ),
                     recommendations=[
                         self._get_translation(
-                            "weather.recommendations.reduce_exercise_intensity"
+                            'weather.recommendations.reduce_exercise_intensity'
                         ),
                         self._get_translation(
-                            "weather.recommendations.good_air_circulation"
+                            'weather.recommendations.good_air_circulation'
                         ),
                         self._get_translation(
-                            "weather.recommendations.monitor_breathing"
+                            'weather.recommendations.monitor_breathing'
                         ),
                         self._get_translation(
-                            "weather.recommendations.cool_ventilated_areas"
+                            'weather.recommendations.cool_ventilated_areas'
                         ),
                     ],
                     duration_hours=4,
-                    affected_breeds=["brachycephalic", "respiratory_issues"],
+                    affected_breeds=['brachycephalic', 'respiratory_issues'],
                 )
             )
 
@@ -1872,27 +1874,27 @@ class WeatherHealthManager:
         condition = self._current_conditions.condition.lower()
 
         # Rain/wet conditions
-        if any(keyword in condition for keyword in ["rain", "drizzle", "shower"]):
+        if any(keyword in condition for keyword in ['rain', 'drizzle', 'shower']):
             alerts.append(
                 WeatherAlert(
                     alert_type=WeatherHealthImpact.PAW_PROTECTION,
                     severity=WeatherSeverity.MODERATE,
                     title=self._get_translation(
-                        "weather.alerts.wet_weather_advisory.title"
+                        'weather.alerts.wet_weather_advisory.title'
                     ),
                     message=self._get_translation(
-                        "weather.alerts.wet_weather_advisory.message"
+                        'weather.alerts.wet_weather_advisory.message'
                     ),
                     recommendations=[
                         self._get_translation(
-                            "weather.recommendations.dry_paws_thoroughly"
+                            'weather.recommendations.dry_paws_thoroughly'
                         ),
                         self._get_translation(
-                            "weather.recommendations.check_toe_irritation"
+                            'weather.recommendations.check_toe_irritation'
                         ),
-                        self._get_translation("weather.recommendations.use_paw_balm"),
+                        self._get_translation('weather.recommendations.use_paw_balm'),
                         self._get_translation(
-                            "weather.recommendations.waterproof_protection"
+                            'weather.recommendations.waterproof_protection'
                         ),
                     ],
                     duration_hours=2,
@@ -1900,54 +1902,54 @@ class WeatherHealthManager:
             )
 
         # Storm conditions
-        if any(keyword in condition for keyword in ["storm", "thunder", "lightning"]):
+        if any(keyword in condition for keyword in ['storm', 'thunder', 'lightning']):
             alerts.append(
                 WeatherAlert(
                     alert_type=WeatherHealthImpact.EXERCISE_LIMITATION,
                     severity=WeatherSeverity.HIGH,
-                    title=self._get_translation("weather.alerts.storm_warning.title"),
+                    title=self._get_translation('weather.alerts.storm_warning.title'),
                     message=self._get_translation(
-                        "weather.alerts.storm_warning.message"
+                        'weather.alerts.storm_warning.message'
                     ),
                     recommendations=[
                         self._get_translation(
-                            "weather.recommendations.keep_indoors_storm"
+                            'weather.recommendations.keep_indoors_storm'
                         ),
                         self._get_translation(
-                            "weather.recommendations.comfort_anxious"
+                            'weather.recommendations.comfort_anxious'
                         ),
-                        self._get_translation("weather.recommendations.secure_id_tags"),
+                        self._get_translation('weather.recommendations.secure_id_tags'),
                         self._get_translation(
-                            "weather.recommendations.avoid_until_passes"
+                            'weather.recommendations.avoid_until_passes'
                         ),
                     ],
                     duration_hours=3,
-                    age_considerations=["anxious_dogs", "noise_sensitive"],
+                    age_considerations=['anxious_dogs', 'noise_sensitive'],
                 )
             )
 
         # Snow/ice conditions
-        if any(keyword in condition for keyword in ["snow", "ice", "sleet"]):
+        if any(keyword in condition for keyword in ['snow', 'ice', 'sleet']):
             alerts.append(
                 WeatherAlert(
                     alert_type=WeatherHealthImpact.PAW_PROTECTION,
                     severity=WeatherSeverity.MODERATE,
-                    title=self._get_translation("weather.alerts.snow_ice_alert.title"),
+                    title=self._get_translation('weather.alerts.snow_ice_alert.title'),
                     message=self._get_translation(
-                        "weather.alerts.snow_ice_alert.message"
+                        'weather.alerts.snow_ice_alert.message'
                     ),
                     recommendations=[
                         self._get_translation(
-                            "weather.recommendations.use_paw_protection"
+                            'weather.recommendations.use_paw_protection'
                         ),
                         self._get_translation(
-                            "weather.recommendations.watch_ice_buildup"
+                            'weather.recommendations.watch_ice_buildup'
                         ),
                         self._get_translation(
-                            "weather.recommendations.rinse_salt_chemicals"
+                            'weather.recommendations.rinse_salt_chemicals'
                         ),
                         self._get_translation(
-                            "weather.recommendations.provide_traction"
+                            'weather.recommendations.provide_traction'
                         ),
                     ],
                     duration_hours=4,
@@ -1973,7 +1975,7 @@ class WeatherHealthManager:
         return self._current_forecast
 
     def get_next_optimal_activity_time(
-        self, activity_type: ActivityType = "walk"
+        self, activity_type: ActivityType = 'walk'
     ) -> ActivityTimeSlot | None:
         """Get the next optimal time for a specific activity.
 
@@ -2004,14 +2006,14 @@ class WeatherHealthManager:
         """
         if not self._current_forecast or not self._current_forecast.is_valid:
             return ForecastPlanningSummary(
-                status="unavailable",
-                message="Weather forecast data not available",
+                status='unavailable',
+                message='Weather forecast data not available',
             )
 
         forecast = self._current_forecast
 
         summary = ForecastPlanningSummary(
-            status="available",
+            status='available',
             forecast_quality=forecast.quality.value,
             forecast_summary=forecast.forecast_summary,
             avg_health_score=forecast.avg_health_score,
@@ -2061,7 +2063,7 @@ class WeatherHealthManager:
             summary.worst_period = WorstPeriodSummary(
                 start=worst_period[0].isoformat(),
                 end=worst_period[1].isoformat(),
-                advice="Plan indoor activities during this time",
+                advice='Plan indoor activities during this time',
             )
 
         return summary
@@ -2169,7 +2171,7 @@ class WeatherHealthManager:
         active_alerts = self.get_active_alerts()
         if not active_alerts:
             recommendations.append(
-                "Weather conditions are suitable for normal activities"
+                'Weather conditions are suitable for normal activities'
             )
             return recommendations
 
@@ -2185,7 +2187,7 @@ class WeatherHealthManager:
                 ):
                     recommendations.append(
                         self._get_translation(
-                            "weather.recommendations.breed_specific_caution",
+                            'weather.recommendations.breed_specific_caution',
                             breed=dog_breed,
                             alert_type=alert.title.lower(),
                         )
@@ -2193,16 +2195,16 @@ class WeatherHealthManager:
 
             # Add age-specific recommendations
             if dog_age_months is not None:
-                if dog_age_months < 12 and "puppies" in alert.age_considerations:
+                if dog_age_months < 12 and 'puppies' in alert.age_considerations:
                     recommendations.append(
                         self._get_translation(
-                            "weather.recommendations.puppy_extra_monitoring"
+                            'weather.recommendations.puppy_extra_monitoring'
                         )
                     )
-                elif dog_age_months > 84 and "senior_dogs" in alert.age_considerations:
+                elif dog_age_months > 84 and 'senior_dogs' in alert.age_considerations:
                     recommendations.append(
                         self._get_translation(
-                            "weather.recommendations.senior_extra_protection"
+                            'weather.recommendations.senior_extra_protection'
                         )
                     )
 
@@ -2210,7 +2212,7 @@ class WeatherHealthManager:
             if health_conditions:
                 for condition in health_conditions:
                     condition_lower = condition.lower()
-                    if condition_lower in ["respiratory", "breathing", "asthma"] and (
+                    if condition_lower in ['respiratory', 'breathing', 'asthma'] and (
                         alert.alert_type
                         in [
                             WeatherHealthImpact.RESPIRATORY_RISK,
@@ -2219,10 +2221,10 @@ class WeatherHealthManager:
                     ):
                         recommendations.append(
                             self._get_translation(
-                                "weather.recommendations.respiratory_monitoring"
+                                'weather.recommendations.respiratory_monitoring'
                             )
                         )
-                    elif condition_lower in ["heart", "cardiac"] and (
+                    elif condition_lower in ['heart', 'cardiac'] and (
                         alert.alert_type
                         in [
                             WeatherHealthImpact.HEAT_STRESS,
@@ -2231,7 +2233,7 @@ class WeatherHealthManager:
                     ):
                         recommendations.append(
                             self._get_translation(
-                                "weather.recommendations.heart_avoid_strenuous"
+                                'weather.recommendations.heart_avoid_strenuous'
                             )
                         )
 
@@ -2250,4 +2252,4 @@ class WeatherHealthManager:
         self._current_forecast = None
         self._translations = get_weather_translations(DEFAULT_LANGUAGE)
         self._english_translations = self._translations
-        _LOGGER.debug("Weather health manager cleaned up")
+        _LOGGER.debug('Weather health manager cleaned up')

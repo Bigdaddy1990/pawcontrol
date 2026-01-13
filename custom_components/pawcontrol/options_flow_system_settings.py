@@ -1,5 +1,4 @@
 """System, dashboard, advanced and weather settings steps for the PawControl options flow."""
-
 from __future__ import annotations
 
 import logging
@@ -8,25 +7,21 @@ from typing import cast
 import voluptuous as vol
 from homeassistant.config_entries import ConfigFlowResult
 
-from .const import (
-    CONF_API_ENDPOINT,
-    CONF_API_TOKEN,
-    CONF_DASHBOARD_MODE,
-    CONF_RESET_TIME,
-    CONF_WEATHER_ENTITY,
-    DASHBOARD_MODE_SELECTOR_OPTIONS,
-    DEFAULT_RESET_TIME,
-)
+from .const import CONF_API_ENDPOINT
+from .const import CONF_API_TOKEN
+from .const import CONF_DASHBOARD_MODE
+from .const import CONF_RESET_TIME
+from .const import CONF_WEATHER_ENTITY
+from .const import DASHBOARD_MODE_SELECTOR_OPTIONS
+from .const import DEFAULT_RESET_TIME
 from .device_api import validate_device_endpoint
 from .exceptions import FlowValidationError  # noqa: F401
 from .selector_shim import selector
-from .types import (
-    OptionsAdvancedSettingsInput,
-    OptionsDashboardSettingsInput,
-    OptionsSystemSettingsInput,
-    OptionsWeatherSettingsInput,
-    freeze_placeholders,
-)
+from .types import freeze_placeholders
+from .types import OptionsAdvancedSettingsInput
+from .types import OptionsDashboardSettingsInput
+from .types import OptionsSystemSettingsInput
+from .types import OptionsWeatherSettingsInput
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,23 +39,23 @@ class SystemSettingsOptionsMixin:
         if user_input is not None:
             try:
                 # Validate weather entity if specified
-                raw_entity = user_input.get("weather_entity")
+                raw_entity = user_input.get('weather_entity')
                 candidate = raw_entity.strip() if isinstance(raw_entity, str) else None
-                if candidate and candidate.lower() != "none":
+                if candidate and candidate.lower() != 'none':
                     weather_state = self.hass.states.get(candidate)
                     if weather_state is None:
                         return self.async_show_form(
-                            step_id="weather_settings",
+                            step_id='weather_settings',
                             data_schema=self._get_weather_settings_schema(user_input),
-                            errors={"weather_entity": "weather_entity_not_found"},
+                            errors={'weather_entity': 'weather_entity_not_found'},
                         )
 
                     # Check if it's a weather entity
-                    if not candidate.startswith("weather."):
+                    if not candidate.startswith('weather.'):
                         return self.async_show_form(
-                            step_id="weather_settings",
+                            step_id='weather_settings',
                             data_schema=self._get_weather_settings_schema(user_input),
-                            errors={"weather_entity": "invalid_weather_entity"},
+                            errors={'weather_entity': 'invalid_weather_entity'},
                         )
 
                 current_weather = self._current_weather_options()
@@ -69,23 +64,24 @@ class SystemSettingsOptionsMixin:
                     user_input, current_weather
                 )
                 mutable_options = cast(JSONMutableMapping, dict(new_options))  # noqa: F821
-                mutable_options["weather_settings"] = cast(JSONValue, weather_settings)  # noqa: F821
+                mutable_options['weather_settings'] = cast(JSONValue, weather_settings)  # noqa: F821
                 mutable_options[CONF_WEATHER_ENTITY] = cast(
-                    JSONValue, weather_settings.get(CONF_WEATHER_ENTITY)  # noqa: F821
+                    JSONValue,
+                    weather_settings.get(CONF_WEATHER_ENTITY),  # noqa: F821
                 )
                 typed_options = self._normalise_options_snapshot(mutable_options)
-                return self.async_create_entry(title="", data=typed_options)
+                return self.async_create_entry(title='', data=typed_options)
 
             except Exception as err:
-                _LOGGER.error("Error updating weather settings: %s", err)
+                _LOGGER.error('Error updating weather settings: %s', err)
                 return self.async_show_form(
-                    step_id="weather_settings",
+                    step_id='weather_settings',
                     data_schema=self._get_weather_settings_schema(user_input),
-                    errors={"base": "weather_update_failed"},
+                    errors={'base': 'weather_update_failed'},
                 )
 
         return self.async_show_form(
-            step_id="weather_settings",
+            step_id='weather_settings',
             data_schema=self._get_weather_settings_schema(),
             description_placeholders=dict(self._get_weather_description_placeholders()),
         )
@@ -98,58 +94,58 @@ class SystemSettingsOptionsMixin:
         current_values = user_input or {}
 
         stored_entity = current_weather.get(CONF_WEATHER_ENTITY)
-        entity_default = "none"
+        entity_default = 'none'
         if isinstance(stored_entity, str) and stored_entity.strip():
             entity_default = stored_entity
 
         # Get available weather entities
-        weather_entities: list[str | dict[str, str]] = ["none"]
+        weather_entities: list[str | dict[str, str]] = ['none']
 
-        for entity_id in self.hass.states.async_entity_ids("weather"):
+        for entity_id in self.hass.states.async_entity_ids('weather'):
             entity_state = self.hass.states.get(entity_id)
             if entity_state:
-                friendly_name = entity_state.attributes.get("friendly_name", entity_id)
+                friendly_name = entity_state.attributes.get('friendly_name', entity_id)
                 weather_entities.append(
-                    {"value": entity_id, "label": str(friendly_name)}
+                    {'value': entity_id, 'label': str(friendly_name)}
                 )
 
         return vol.Schema(
             {
                 vol.Optional(
-                    "weather_entity",
+                    'weather_entity',
                     default=current_values.get(
-                        "weather_entity",
+                        'weather_entity',
                         entity_default,
                     ),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=weather_entities,
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                        translation_key="weather_entity",
+                        translation_key='weather_entity',
                     )
                 ),
                 vol.Optional(
-                    "weather_health_monitoring",
+                    'weather_health_monitoring',
                     default=current_values.get(
-                        "weather_health_monitoring",
+                        'weather_health_monitoring',
                         current_weather.get(
-                            "weather_health_monitoring",
+                            'weather_health_monitoring',
                             DEFAULT_WEATHER_HEALTH_MONITORING,  # noqa: F821
                         ),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "weather_alerts",
+                    'weather_alerts',
                     default=current_values.get(
-                        "weather_alerts",
-                        current_weather.get("weather_alerts", DEFAULT_WEATHER_ALERTS),  # noqa: F821
+                        'weather_alerts',
+                        current_weather.get('weather_alerts', DEFAULT_WEATHER_ALERTS),  # noqa: F821
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "weather_update_interval",
+                    'weather_update_interval',
                     default=current_values.get(
-                        "weather_update_interval",
-                        current_weather.get("weather_update_interval", 60),
+                        'weather_update_interval',
+                        current_weather.get('weather_update_interval', 60),
                     ),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
@@ -157,76 +153,76 @@ class SystemSettingsOptionsMixin:
                         max=1440,
                         step=15,
                         mode=selector.NumberSelectorMode.BOX,
-                        unit_of_measurement="minutes",
+                        unit_of_measurement='minutes',
                     )
                 ),
                 vol.Optional(
-                    "temperature_alerts",
+                    'temperature_alerts',
                     default=current_values.get(
-                        "temperature_alerts",
-                        current_weather.get("temperature_alerts", True),
+                        'temperature_alerts',
+                        current_weather.get('temperature_alerts', True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "uv_alerts",
+                    'uv_alerts',
                     default=current_values.get(
-                        "uv_alerts",
-                        current_weather.get("uv_alerts", True),
+                        'uv_alerts',
+                        current_weather.get('uv_alerts', True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "humidity_alerts",
+                    'humidity_alerts',
                     default=current_values.get(
-                        "humidity_alerts",
-                        current_weather.get("humidity_alerts", True),
+                        'humidity_alerts',
+                        current_weather.get('humidity_alerts', True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "wind_alerts",
+                    'wind_alerts',
                     default=current_values.get(
-                        "wind_alerts",
-                        current_weather.get("wind_alerts", False),
+                        'wind_alerts',
+                        current_weather.get('wind_alerts', False),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "storm_alerts",
+                    'storm_alerts',
                     default=current_values.get(
-                        "storm_alerts",
-                        current_weather.get("storm_alerts", True),
+                        'storm_alerts',
+                        current_weather.get('storm_alerts', True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "breed_specific_recommendations",
+                    'breed_specific_recommendations',
                     default=current_values.get(
-                        "breed_specific_recommendations",
-                        current_weather.get("breed_specific_recommendations", True),
+                        'breed_specific_recommendations',
+                        current_weather.get('breed_specific_recommendations', True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "health_condition_adjustments",
+                    'health_condition_adjustments',
                     default=current_values.get(
-                        "health_condition_adjustments",
-                        current_weather.get("health_condition_adjustments", True),
+                        'health_condition_adjustments',
+                        current_weather.get('health_condition_adjustments', True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "auto_activity_adjustments",
+                    'auto_activity_adjustments',
                     default=current_values.get(
-                        "auto_activity_adjustments",
-                        current_weather.get("auto_activity_adjustments", False),
+                        'auto_activity_adjustments',
+                        current_weather.get('auto_activity_adjustments', False),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "notification_threshold",
+                    'notification_threshold',
                     default=current_values.get(
-                        "notification_threshold",
-                        current_weather.get("notification_threshold", "moderate"),
+                        'notification_threshold',
+                        current_weather.get('notification_threshold', 'moderate'),
                     ),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=["low", "moderate", "high"],
+                        options=['low', 'moderate', 'high'],
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                        translation_key="weather_notification_threshold",
+                        translation_key='weather_notification_threshold',
                     )
                 ),
             }
@@ -248,77 +244,78 @@ class SystemSettingsOptionsMixin:
 
         # Current weather entity status
         weather_entity = current_weather.get(CONF_WEATHER_ENTITY)
-        weather_status = "Not configured"
-        weather_info = "No weather entity selected"
+        weather_status = 'Not configured'
+        weather_info = 'No weather entity selected'
 
         if weather_entity:
             weather_state = self.hass.states.get(weather_entity)
             if weather_state:
-                weather_status = "Available"
-                temperature = weather_state.attributes.get("temperature", "Unknown")
-                condition = weather_state.state or "Unknown"
+                weather_status = 'Available'
+                temperature = weather_state.attributes.get('temperature', 'Unknown')
+                condition = weather_state.state or 'Unknown'
                 weather_info = f"Current: {temperature}°C, {condition}"
             else:
-                weather_status = "Entity not found"
+                weather_status = 'Entity not found'
                 weather_info = f"Entity {weather_entity} is not available"
 
         # Count dogs with health conditions
         dogs_with_health_conditions = 0
         dogs_with_breeds = 0
         for dog_config in current_dogs:
-            if dog_config.get("health_conditions"):
+            if dog_config.get('health_conditions'):
                 dogs_with_health_conditions += 1
             dog_breed = dog_config.get(CONF_DOG_BREED)  # noqa: F821
-            if dog_breed and dog_breed != "Mixed Breed":
+            if dog_breed and dog_breed != 'Mixed Breed':
                 dogs_with_breeds += 1
 
         # Alert configuration summary
         enabled_alerts = []
-        if current_weather.get("temperature_alerts", True):
-            enabled_alerts.append("Temperature")
-        if current_weather.get("uv_alerts", True):
-            enabled_alerts.append("UV")
-        if current_weather.get("humidity_alerts", True):
-            enabled_alerts.append("Humidity")
-        if current_weather.get("storm_alerts", True):
-            enabled_alerts.append("Storms")
-        if current_weather.get("wind_alerts", False):
-            enabled_alerts.append("Wind")
+        if current_weather.get('temperature_alerts', True):
+            enabled_alerts.append('Temperature')
+        if current_weather.get('uv_alerts', True):
+            enabled_alerts.append('UV')
+        if current_weather.get('humidity_alerts', True):
+            enabled_alerts.append('Humidity')
+        if current_weather.get('storm_alerts', True):
+            enabled_alerts.append('Storms')
+        if current_weather.get('wind_alerts', False):
+            enabled_alerts.append('Wind')
 
-        alerts_summary = ", ".join(enabled_alerts) if enabled_alerts else "None"
+        alerts_summary = ', '.join(enabled_alerts) if enabled_alerts else 'None'
 
         # Feature status
         weather_monitoring = current_weather.get(
-            "weather_health_monitoring", DEFAULT_WEATHER_HEALTH_MONITORING  # noqa: F821
+            'weather_health_monitoring',
+            DEFAULT_WEATHER_HEALTH_MONITORING,  # noqa: F821
         )
         breed_recommendations = current_weather.get(
-            "breed_specific_recommendations", True
+            'breed_specific_recommendations', True
         )
-        health_adjustments = current_weather.get("health_condition_adjustments", True)
+        health_adjustments = current_weather.get('health_condition_adjustments', True)
 
         return freeze_placeholders(
             {
-                "weather_entity_status": weather_status,
-                "current_weather_info": weather_info,
-                "total_dogs": str(len(current_dogs)),
-                "dogs_with_health_conditions": str(dogs_with_health_conditions),
-                "dogs_with_breeds": str(dogs_with_breeds),
-                "monitoring_status": "Enabled" if weather_monitoring else "Disabled",
-                "alerts_enabled": alerts_summary,
-                "breed_recommendations_status": "Enabled"
+                'weather_entity_status': weather_status,
+                'current_weather_info': weather_info,
+                'total_dogs': str(len(current_dogs)),
+                'dogs_with_health_conditions': str(dogs_with_health_conditions),
+                'dogs_with_breeds': str(dogs_with_breeds),
+                'monitoring_status': 'Enabled' if weather_monitoring else 'Disabled',
+                'alerts_enabled': alerts_summary,
+                'breed_recommendations_status': 'Enabled'
                 if breed_recommendations
-                else "Disabled",
-                "health_adjustments_status": "Enabled"
+                else 'Disabled',
+                'health_adjustments_status': 'Enabled'
                 if health_adjustments
-                else "Disabled",
-                "update_interval": str(
-                    current_weather.get("weather_update_interval", 60)
+                else 'Disabled',
+                'update_interval': str(
+                    current_weather.get('weather_update_interval', 60)
                 ),
-                "notification_threshold": current_weather.get(
-                    "notification_threshold", "moderate"
+                'notification_threshold': current_weather.get(
+                    'notification_threshold', 'moderate'
                 ).title(),
-                "available_weather_entities": str(
-                    len([e for e in self.hass.states.async_entity_ids("weather")])
+                'available_weather_entities': str(
+                    len([e for e in self.hass.states.async_entity_ids('weather')])
                 ),
             }
         )
@@ -339,7 +336,7 @@ class SystemSettingsOptionsMixin:
                 system_settings, reset_time = self._build_system_settings(
                     user_input, current_system, reset_default=reset_default
                 )
-                mutable_options["system_settings"] = cast(JSONValue, system_settings)  # noqa: F821
+                mutable_options['system_settings'] = cast(JSONValue, system_settings)  # noqa: F821
                 mutable_options[CONF_RESET_TIME] = reset_time
                 mutable_options[SYSTEM_ENABLE_ANALYTICS_FIELD] = system_settings[  # noqa: F821
                     SYSTEM_ENABLE_ANALYTICS_FIELD  # noqa: F821
@@ -347,44 +344,44 @@ class SystemSettingsOptionsMixin:
                 mutable_options[SYSTEM_ENABLE_CLOUD_BACKUP_FIELD] = system_settings[  # noqa: F821
                     SYSTEM_ENABLE_CLOUD_BACKUP_FIELD  # noqa: F821
                 ]
-                guard_option = system_settings.get("manual_guard_event")
+                guard_option = system_settings.get('manual_guard_event')
                 if guard_option is None:
-                    mutable_options.pop("manual_guard_event", None)
+                    mutable_options.pop('manual_guard_event', None)
                 else:
-                    mutable_options["manual_guard_event"] = guard_option
-                breaker_option = system_settings.get("manual_breaker_event")
+                    mutable_options['manual_guard_event'] = guard_option
+                breaker_option = system_settings.get('manual_breaker_event')
                 if breaker_option is None:
-                    mutable_options.pop("manual_breaker_event", None)
+                    mutable_options.pop('manual_breaker_event', None)
                 else:
-                    mutable_options["manual_breaker_event"] = breaker_option
+                    mutable_options['manual_breaker_event'] = breaker_option
                 runtime = get_runtime_data(self.hass, self._entry)  # noqa: F821
-                script_manager = getattr(runtime, "script_manager", None)
+                script_manager = getattr(runtime, 'script_manager', None)
                 if script_manager is not None:
                     await script_manager.async_sync_manual_resilience_events(
                         {
-                            "manual_check_event": system_settings.get(
-                                "manual_check_event"
+                            'manual_check_event': system_settings.get(
+                                'manual_check_event'
                             ),
-                            "manual_guard_event": system_settings.get(
-                                "manual_guard_event"
+                            'manual_guard_event': system_settings.get(
+                                'manual_guard_event'
                             ),
-                            "manual_breaker_event": system_settings.get(
-                                "manual_breaker_event"
+                            'manual_breaker_event': system_settings.get(
+                                'manual_breaker_event'
                             ),
                         }
                     )
                 typed_options = self._normalise_options_snapshot(mutable_options)
-                return self.async_create_entry(title="", data=typed_options)
+                return self.async_create_entry(title='', data=typed_options)
             except Exception:
                 return self.async_show_form(
-                    step_id="system_settings",
+                    step_id='system_settings',
                     data_schema=self._get_system_settings_schema(user_input),
                     description_placeholders=dict(placeholders),
-                    errors={"base": "update_failed"},
+                    errors={'base': 'update_failed'},
                 )
 
         return self.async_show_form(
-            step_id="system_settings",
+            step_id='system_settings',
             data_schema=self._get_system_settings_schema(),
             description_placeholders=dict(placeholders),
         )
@@ -399,37 +396,38 @@ class SystemSettingsOptionsMixin:
             self._current_options().get(CONF_RESET_TIME), DEFAULT_RESET_TIME
         )
         mode_default = normalize_performance_mode(  # noqa: F821
-            current_system.get("performance_mode"),
-            current=self._current_options().get("performance_mode"),
+            current_system.get('performance_mode'),
+            current=self._current_options().get('performance_mode'),
         )
         analytics_default = self._coerce_bool(
             current_values.get(
-                "enable_analytics",
+                'enable_analytics',
                 current_system.get(SYSTEM_ENABLE_ANALYTICS_FIELD),  # noqa: F821
             ),
-            bool(self._current_options().get("enable_analytics", False)),
+            bool(self._current_options().get('enable_analytics', False)),
         )
         cloud_backup_default = self._coerce_bool(
             current_values.get(
-                "enable_cloud_backup",
+                'enable_cloud_backup',
                 current_system.get(SYSTEM_ENABLE_CLOUD_BACKUP_FIELD),  # noqa: F821
             ),
-            bool(self._current_options().get("enable_cloud_backup", False)),
+            bool(self._current_options().get('enable_cloud_backup', False)),
         )
 
         skip_threshold_default = self._coerce_clamped_int(
-            current_values.get("resilience_skip_threshold"),
+            current_values.get('resilience_skip_threshold'),
             current_system.get(
-                "resilience_skip_threshold", DEFAULT_RESILIENCE_SKIP_THRESHOLD  # noqa: F821
+                'resilience_skip_threshold',
+                DEFAULT_RESILIENCE_SKIP_THRESHOLD,  # noqa: F821
             ),
             minimum=RESILIENCE_SKIP_THRESHOLD_MIN,  # noqa: F821
             maximum=RESILIENCE_SKIP_THRESHOLD_MAX,  # noqa: F821
         )
 
         breaker_threshold_default = self._coerce_clamped_int(
-            current_values.get("resilience_breaker_threshold"),
+            current_values.get('resilience_breaker_threshold'),
             current_system.get(
-                "resilience_breaker_threshold",
+                'resilience_breaker_threshold',
                 DEFAULT_RESILIENCE_BREAKER_THRESHOLD,  # noqa: F821
             ),
             minimum=RESILIENCE_BREAKER_THRESHOLD_MIN,  # noqa: F821
@@ -454,9 +452,9 @@ class SystemSettingsOptionsMixin:
 
         manual_context_defaults: dict[str, str] = {}
         context_mapping = (
-            ("manual_check_event", "check_default"),
-            ("manual_guard_event", "guard_default"),
-            ("manual_breaker_event", "breaker_default"),
+            ('manual_check_event', 'check_default'),
+            ('manual_guard_event', 'guard_default'),
+            ('manual_breaker_event', 'breaker_default'),
         )
         for field, context_key in context_mapping:
             context_value = manual_context.get(context_key)
@@ -475,14 +473,14 @@ class SystemSettingsOptionsMixin:
         return vol.Schema(
             {
                 vol.Optional(
-                    "reset_time",
-                    default=current_values.get("reset_time", reset_default),
+                    'reset_time',
+                    default=current_values.get('reset_time', reset_default),
                 ): selector.TimeSelector(),
                 vol.Optional(
-                    "data_retention_days",
+                    'data_retention_days',
                     default=current_values.get(
-                        "data_retention_days",
-                        current_system.get("data_retention_days", 90),
+                        'data_retention_days',
+                        current_system.get('data_retention_days', 90),
                     ),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
@@ -490,25 +488,25 @@ class SystemSettingsOptionsMixin:
                         max=365,
                         step=1,
                         mode=selector.NumberSelectorMode.BOX,
-                        unit_of_measurement="days",
+                        unit_of_measurement='days',
                     )
                 ),
                 vol.Optional(
-                    "auto_backup",
+                    'auto_backup',
                     default=current_values.get(
-                        "auto_backup", current_system.get("auto_backup", False)
+                        'auto_backup', current_system.get('auto_backup', False)
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "enable_analytics",
+                    'enable_analytics',
                     default=analytics_default,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "enable_cloud_backup",
+                    'enable_cloud_backup',
                     default=cloud_backup_default,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "resilience_skip_threshold",
+                    'resilience_skip_threshold',
                     default=skip_threshold_default,
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
@@ -519,7 +517,7 @@ class SystemSettingsOptionsMixin:
                     )
                 ),
                 vol.Optional(
-                    "resilience_breaker_threshold",
+                    'resilience_breaker_threshold',
                     default=breaker_threshold_default,
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
@@ -530,46 +528,46 @@ class SystemSettingsOptionsMixin:
                     )
                 ),
                 vol.Optional(
-                    "manual_check_event",
-                    default=_manual_default("manual_check_event"),
+                    'manual_check_event',
+                    default=_manual_default('manual_check_event'),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=manual_choices["manual_check_event"],
+                        options=manual_choices['manual_check_event'],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         custom_value=True,
                     )
                 ),
                 vol.Optional(
-                    "manual_guard_event",
-                    default=_manual_default("manual_guard_event"),
+                    'manual_guard_event',
+                    default=_manual_default('manual_guard_event'),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=manual_choices["manual_guard_event"],
+                        options=manual_choices['manual_guard_event'],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         custom_value=True,
                     )
                 ),
                 vol.Optional(
-                    "manual_breaker_event",
-                    default=_manual_default("manual_breaker_event"),
+                    'manual_breaker_event',
+                    default=_manual_default('manual_breaker_event'),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=manual_choices["manual_breaker_event"],
+                        options=manual_choices['manual_breaker_event'],
                         mode=selector.SelectSelectorMode.DROPDOWN,
                         custom_value=True,
                     )
                 ),
                 vol.Optional(
-                    "performance_mode",
+                    'performance_mode',
                     default=current_values.get(
-                        "performance_mode",
+                        'performance_mode',
                         mode_default,
                     ),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=["minimal", "balanced", "full"],
+                        options=['minimal', 'balanced', 'full'],
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                        translation_key="performance_mode",
+                        translation_key='performance_mode',
                     )
                 ),
             }
@@ -583,32 +581,33 @@ class SystemSettingsOptionsMixin:
             try:
                 current_dashboard = self._current_dashboard_options()
                 default_mode = self._normalize_choice(
-                    self._current_options().get(CONF_DASHBOARD_MODE, "full"),
+                    self._current_options().get(CONF_DASHBOARD_MODE, 'full'),
                     valid={
-                        option["value"] for option in DASHBOARD_MODE_SELECTOR_OPTIONS
+                        option['value'] for option in DASHBOARD_MODE_SELECTOR_OPTIONS
                     },
-                    default="full",
+                    default='full',
                 )
                 new_options = self._clone_options()
                 dashboard_settings, dashboard_mode = self._build_dashboard_settings(
                     user_input, current_dashboard, default_mode=default_mode
                 )
                 mutable_options = cast(JSONMutableMapping, dict(new_options))  # noqa: F821
-                mutable_options["dashboard_settings"] = cast(
-                    JSONValue, dashboard_settings  # noqa: F821
+                mutable_options['dashboard_settings'] = cast(
+                    JSONValue,
+                    dashboard_settings,  # noqa: F821
                 )
                 mutable_options[CONF_DASHBOARD_MODE] = dashboard_mode
                 typed_options = self._normalise_options_snapshot(mutable_options)
-                return self.async_create_entry(title="", data=typed_options)
+                return self.async_create_entry(title='', data=typed_options)
             except Exception:
                 return self.async_show_form(
-                    step_id="dashboard_settings",
+                    step_id='dashboard_settings',
                     data_schema=self._get_dashboard_settings_schema(user_input),
-                    errors={"base": "update_failed"},
+                    errors={'base': 'update_failed'},
                 )
 
         return self.async_show_form(
-            step_id="dashboard_settings",
+            step_id='dashboard_settings',
             data_schema=self._get_dashboard_settings_schema(),
         )
 
@@ -619,17 +618,17 @@ class SystemSettingsOptionsMixin:
         current_dashboard = self._current_dashboard_options()
         current_values = user_input or {}
         default_mode = self._normalize_choice(
-            self._current_options().get(CONF_DASHBOARD_MODE, "full"),
-            valid={option["value"] for option in DASHBOARD_MODE_SELECTOR_OPTIONS},
-            default="full",
+            self._current_options().get(CONF_DASHBOARD_MODE, 'full'),
+            valid={option['value'] for option in DASHBOARD_MODE_SELECTOR_OPTIONS},
+            default='full',
         )
 
         return vol.Schema(
             {
                 vol.Optional(
-                    "dashboard_mode",
+                    'dashboard_mode',
                     default=current_values.get(
-                        "dashboard_mode",
+                        'dashboard_mode',
                         default_mode,
                     ),
                 ): selector.SelectSelector(
@@ -639,31 +638,31 @@ class SystemSettingsOptionsMixin:
                     )
                 ),
                 vol.Optional(
-                    "show_statistics",
+                    'show_statistics',
                     default=current_values.get(
-                        "show_statistics",
-                        current_dashboard.get("show_statistics", True),
+                        'show_statistics',
+                        current_dashboard.get('show_statistics', True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "show_alerts",
+                    'show_alerts',
                     default=current_values.get(
-                        "show_alerts",
-                        current_dashboard.get("show_alerts", True),
+                        'show_alerts',
+                        current_dashboard.get('show_alerts', True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "compact_mode",
+                    'compact_mode',
                     default=current_values.get(
-                        "compact_mode",
-                        current_dashboard.get("compact_mode", False),
+                        'compact_mode',
+                        current_dashboard.get('compact_mode', False),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "show_maps",
+                    'show_maps',
                     default=current_values.get(
-                        "show_maps",
-                        current_dashboard.get("show_maps", True),
+                        'show_maps',
+                        current_dashboard.get('show_maps', True),
                     ),
                 ): selector.BooleanSelector(),
             }
@@ -675,19 +674,19 @@ class SystemSettingsOptionsMixin:
         """Handle advanced settings configuration."""
         if user_input is not None:
             errors: dict[str, str] = {}
-            raw_endpoint = user_input.get(CONF_API_ENDPOINT, "")
+            raw_endpoint = user_input.get(CONF_API_ENDPOINT, '')
             endpoint_value = (
-                raw_endpoint.strip() if isinstance(raw_endpoint, str) else ""
+                raw_endpoint.strip() if isinstance(raw_endpoint, str) else ''
             )
             if endpoint_value:
                 try:
                     validate_device_endpoint(endpoint_value)
                 except ValueError:
-                    errors[CONF_API_ENDPOINT] = "invalid_api_endpoint"
+                    errors[CONF_API_ENDPOINT] = 'invalid_api_endpoint'
 
             if errors:
                 return self.async_show_form(
-                    step_id="advanced_settings",
+                    step_id='advanced_settings',
                     errors=errors,
                     data_schema=self._get_advanced_settings_schema(user_input),
                 )
@@ -700,7 +699,8 @@ class SystemSettingsOptionsMixin:
                 )
                 mutable_options = cast(JSONMutableMapping, dict(new_options))  # noqa: F821
                 mutable_options[ADVANCED_SETTINGS_FIELD] = cast(  # noqa: F821
-                    JSONValue, advanced_settings  # noqa: F821
+                    JSONValue,
+                    advanced_settings,  # noqa: F821
                 )
                 for key, value in advanced_settings.items():
                     if isinstance(value, (bool, int, float, str)) or value is None:
@@ -710,19 +710,19 @@ class SystemSettingsOptionsMixin:
                     else:
                         mutable_options[str(key)] = repr(value)
                 return self.async_create_entry(
-                    title="",
+                    title='',
                     data=self._normalise_options_snapshot(mutable_options),
                 )
             except Exception as err:
-                _LOGGER.error("Error saving advanced settings: %s", err)
+                _LOGGER.error('Error saving advanced settings: %s', err)
                 return self.async_show_form(
-                    step_id="advanced_settings",
-                    errors={"base": "save_failed"},
+                    step_id='advanced_settings',
+                    errors={'base': 'save_failed'},
                     data_schema=self._get_advanced_settings_schema(user_input),
                 )
 
         return self.async_show_form(
-            step_id="advanced_settings",
+            step_id='advanced_settings',
             data_schema=self._get_advanced_settings_schema(),
         )
 
@@ -733,51 +733,52 @@ class SystemSettingsOptionsMixin:
         current_advanced = self._current_advanced_options()
         current_values = user_input or {}
         mode_default = normalize_performance_mode(  # noqa: F821
-            current_advanced.get("performance_mode"),
-            current=self._current_options().get("performance_mode"),
+            current_advanced.get('performance_mode'),
+            current=self._current_options().get('performance_mode'),
         )
         retention_default = self._coerce_int(
-            current_advanced.get("data_retention_days"), 90
+            current_advanced.get('data_retention_days'), 90
         )
-        debug_default = self._coerce_bool(current_advanced.get("debug_logging"), False)
-        backup_default = self._coerce_bool(current_advanced.get("auto_backup"), False)
+        debug_default = self._coerce_bool(current_advanced.get('debug_logging'), False)
+        backup_default = self._coerce_bool(current_advanced.get('auto_backup'), False)
         experimental_default = self._coerce_bool(
-            current_advanced.get("experimental_features"), False
+            current_advanced.get('experimental_features'), False
         )
         integrations_default = self._coerce_bool(
-            current_advanced.get(CONF_EXTERNAL_INTEGRATIONS), False  # noqa: F821
+            current_advanced.get(CONF_EXTERNAL_INTEGRATIONS),
+            False,  # noqa: F821
         )
         endpoint_default = (
             current_advanced.get(CONF_API_ENDPOINT)
             if isinstance(current_advanced.get(CONF_API_ENDPOINT), str)
-            else ""
+            else ''
         )
         token_default = (
             current_advanced.get(CONF_API_TOKEN)
             if isinstance(current_advanced.get(CONF_API_TOKEN), str)
-            else ""
+            else ''
         )
 
         return vol.Schema(
             {
                 vol.Optional(
-                    "performance_mode",
-                    default=current_values.get("performance_mode", mode_default),
+                    'performance_mode',
+                    default=current_values.get('performance_mode', mode_default),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
-                        options=["minimal", "balanced", "full"],
+                        options=['minimal', 'balanced', 'full'],
                         mode=selector.SelectSelectorMode.DROPDOWN,
-                        translation_key="performance_mode",
+                        translation_key='performance_mode',
                     )
                 ),
                 vol.Optional(
-                    "debug_logging",
-                    default=current_values.get("debug_logging", debug_default),
+                    'debug_logging',
+                    default=current_values.get('debug_logging', debug_default),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "data_retention_days",
+                    'data_retention_days',
                     default=current_values.get(
-                        "data_retention_days", retention_default
+                        'data_retention_days', retention_default
                     ),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
@@ -785,23 +786,24 @@ class SystemSettingsOptionsMixin:
                         max=365,
                         step=1,
                         mode=selector.NumberSelectorMode.BOX,
-                        unit_of_measurement="days",
+                        unit_of_measurement='days',
                     )
                 ),
                 vol.Optional(
-                    "auto_backup",
-                    default=current_values.get("auto_backup", backup_default),
+                    'auto_backup',
+                    default=current_values.get('auto_backup', backup_default),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "experimental_features",
+                    'experimental_features',
                     default=current_values.get(
-                        "experimental_features", experimental_default
+                        'experimental_features', experimental_default
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
                     CONF_EXTERNAL_INTEGRATIONS,  # noqa: F821
                     default=current_values.get(
-                        CONF_EXTERNAL_INTEGRATIONS, integrations_default  # noqa: F821
+                        CONF_EXTERNAL_INTEGRATIONS,
+                        integrations_default,  # noqa: F821
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
@@ -824,4 +826,3 @@ class SystemSettingsOptionsMixin:
                 ),
             }
         )
-

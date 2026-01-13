@@ -1,38 +1,40 @@
 """Home Assistant compatibility shims for PawControl's test suite."""
-
 from __future__ import annotations
 
 import re
 import sys
 import types
-from collections.abc import Callable, Iterable
-from datetime import UTC, datetime
-from enum import Enum, StrEnum
+from collections.abc import Callable
+from collections.abc import Iterable
+from datetime import datetime
+from datetime import UTC
+from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
 __all__ = [
-    "ConfigEntry",
-    "ConfigEntryAuthFailed",
-    "ConfigEntryNotReady",
-    "ConfigEntryState",
-    "ConfigSubentry",
-    "HomeAssistantError",
-    "IssueSeverity",
-    "Platform",
-    "install_homeassistant_stubs",
-    "support_entry_unload",
-    "support_remove_from_device",
+    'ConfigEntry',
+    'ConfigEntryAuthFailed',
+    'ConfigEntryNotReady',
+    'ConfigEntryState',
+    'ConfigSubentry',
+    'HomeAssistantError',
+    'IssueSeverity',
+    'Platform',
+    'install_homeassistant_stubs',
+    'support_entry_unload',
+    'support_remove_from_device',
 ]
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-COMPONENT_ROOT = REPO_ROOT / "custom_components"
-PAWCONTROL_ROOT = COMPONENT_ROOT / "pawcontrol"
+COMPONENT_ROOT = REPO_ROOT / 'custom_components'
+PAWCONTROL_ROOT = COMPONENT_ROOT / 'pawcontrol'
 
 _DEVICE_REGISTRY: DeviceRegistry | None = None
 _ENTITY_REGISTRY: EntityRegistry | None = None
 _ISSUE_REGISTRY: IssueRegistry | None = None
-HOME_ASSISTANT_VERSION = "2025.1.0"
+HOME_ASSISTANT_VERSION = '2025.1.0'
 
 
 def _utcnow() -> datetime:
@@ -44,29 +46,29 @@ def _utcnow() -> datetime:
 class Platform(StrEnum):
     """StrEnum stub that mirrors ``homeassistant.const.Platform``."""
 
-    SENSOR = "sensor"
-    BINARY_SENSOR = "binary_sensor"
-    BUTTON = "button"
-    SWITCH = "switch"
-    NUMBER = "number"
-    SELECT = "select"
-    TEXT = "text"
-    DEVICE_TRACKER = "device_tracker"
-    DATE = "date"
-    DATETIME = "datetime"
+    SENSOR = 'sensor'
+    BINARY_SENSOR = 'binary_sensor'
+    BUTTON = 'button'
+    SWITCH = 'switch'
+    NUMBER = 'number'
+    SELECT = 'select'
+    TEXT = 'text'
+    DEVICE_TRACKER = 'device_tracker'
+    DATE = 'date'
+    DATETIME = 'datetime'
 
 
 class ConfigEntryState(Enum):
     """Enum mirroring Home Assistant's config entry states."""
 
-    LOADED = ("loaded", True)
-    SETUP_ERROR = ("setup_error", True)
-    MIGRATION_ERROR = ("migration_error", False)
-    SETUP_RETRY = ("setup_retry", True)
-    NOT_LOADED = ("not_loaded", True)
-    FAILED_UNLOAD = ("failed_unload", False)
-    SETUP_IN_PROGRESS = ("setup_in_progress", False)
-    UNLOAD_IN_PROGRESS = ("unload_in_progress", False)
+    LOADED = ('loaded', True)
+    SETUP_ERROR = ('setup_error', True)
+    MIGRATION_ERROR = ('migration_error', False)
+    SETUP_RETRY = ('setup_retry', True)
+    NOT_LOADED = ('not_loaded', True)
+    FAILED_UNLOAD = ('failed_unload', False)
+    SETUP_IN_PROGRESS = ('setup_in_progress', False)
+    UNLOAD_IN_PROGRESS = ('unload_in_progress', False)
 
     def __new__(cls, value: str, recoverable: bool) -> ConfigEntryState:
         """Store the string value and recoverability flag."""
@@ -100,9 +102,9 @@ class ConfigEntryState(Enum):
 class IssueSeverity(StrEnum):
     """Home Assistant issue severity mirror."""
 
-    WARNING = "warning"
-    ERROR = "error"
-    CRITICAL = "critical"
+    WARNING = 'warning'
+    ERROR = 'error'
+    CRITICAL = 'critical'
 
     @classmethod
     def from_value(cls, value: str | IssueSeverity | None) -> IssueSeverity:
@@ -182,14 +184,14 @@ async def support_entry_unload(hass: object, domain: str) -> bool:
     """Return ``True`` if the handler exposes an unload hook."""
 
     handler = HANDLERS.get(domain)
-    return bool(handler and hasattr(handler, "async_unload_entry"))
+    return bool(handler and hasattr(handler, 'async_unload_entry'))
 
 
 async def support_remove_from_device(hass: object, domain: str) -> bool:
     """Return ``True`` if the handler exposes a remove-device hook."""
 
     handler = HANDLERS.get(domain)
-    return bool(handler and hasattr(handler, "async_remove_config_entry_device"))
+    return bool(handler and hasattr(handler, 'async_remove_config_entry_device'))
 
 
 class ConfigSubentry:
@@ -219,16 +221,16 @@ def _build_subentries(
     subentries: dict[str, ConfigSubentry] = {}
     for index, subentry_data in enumerate(subentries_data or (), start=1):
         subentry_id = (
-            str(subentry_data.get("subentry_id"))
-            if "subentry_id" in subentry_data
+            str(subentry_data.get('subentry_id'))
+            if 'subentry_id' in subentry_data
             else f"subentry_{index}"
         )
         subentries[subentry_id] = ConfigSubentry(
             subentry_id=subentry_id,
-            data=dict(subentry_data.get("data", {})),
-            subentry_type=str(subentry_data.get("subentry_type", "subentry")),
-            title=str(subentry_data.get("title", subentry_id)),
-            unique_id=subentry_data.get("unique_id"),
+            data=dict(subentry_data.get('data', {})),
+            subentry_type=str(subentry_data.get('subentry_type', 'subentry')),
+            title=str(subentry_data.get('title', subentry_id)),
+            unique_id=subentry_data.get('unique_id'),
         )
 
     return subentries
@@ -248,7 +250,7 @@ class ConfigEntry:
         discovery_keys: dict[str, tuple[object, ...]] | None = None,
         subentries_data: Iterable[dict[str, Any]] | None = None,
         title: str | None = None,
-        source: str = "user",
+        source: str = 'user',
         version: int = 1,
         minor_version: int = 0,
         unique_id: str | None = None,
@@ -267,8 +269,8 @@ class ConfigEntry:
         error_reason_translation_placeholders: dict[str, object] | None = None,
         modified_at: datetime | None = None,
     ) -> None:
-        self.entry_id = entry_id or "stub-entry"
-        self.domain = domain or "unknown"
+        self.entry_id = entry_id or 'stub-entry'
+        self.domain = domain or 'unknown'
         self.data = dict(data or {})
         self.options = dict(options or {})
         self.title = title or self.domain
@@ -306,7 +308,7 @@ class ConfigEntry:
 
         if self._supports_options is None:
             handler = HANDLERS.get(self.domain)
-            if handler and hasattr(handler, "async_supports_options_flow"):
+            if handler and hasattr(handler, 'async_supports_options_flow'):
                 self._supports_options = bool(handler.async_supports_options_flow(self))
 
         return bool(self._supports_options)
@@ -317,7 +319,7 @@ class ConfigEntry:
 
         if self._supports_unload is None:
             handler = HANDLERS.get(self.domain)
-            if handler and hasattr(handler, "async_unload_entry"):
+            if handler and hasattr(handler, 'async_unload_entry'):
                 self._supports_unload = True
 
         return bool(self._supports_unload)
@@ -328,7 +330,7 @@ class ConfigEntry:
 
         if self._supports_remove_device is None:
             handler = HANDLERS.get(self.domain)
-            if handler and hasattr(handler, "async_remove_config_entry_device"):
+            if handler and hasattr(handler, 'async_remove_config_entry_device'):
                 self._supports_remove_device = True
 
         return bool(self._supports_remove_device)
@@ -339,7 +341,7 @@ class ConfigEntry:
 
         if self._supports_reconfigure is None:
             handler = HANDLERS.get(self.domain)
-            if handler and hasattr(handler, "async_supports_reconfigure_flow"):
+            if handler and hasattr(handler, 'async_supports_reconfigure_flow'):
                 self._supports_reconfigure = bool(
                     handler.async_supports_reconfigure_flow(self)
                 )
@@ -352,12 +354,12 @@ class ConfigEntry:
 
         if self._supported_subentry_types is None:
             handler = HANDLERS.get(self.domain)
-            if handler and hasattr(handler, "async_get_supported_subentry_types"):
+            if handler and hasattr(handler, 'async_get_supported_subentry_types'):
                 supported_flows = handler.async_get_supported_subentry_types(self)
                 self._supported_subentry_types = {
                     subentry_type: {
-                        "supports_reconfigure": hasattr(
-                            subentry_handler, "async_step_reconfigure"
+                        'supports_reconfigure': hasattr(
+                            subentry_handler, 'async_step_reconfigure'
                         )
                     }
                     for subentry_type, subentry_handler in supported_flows.items()
@@ -378,15 +380,15 @@ class _FlowBase:
         errors: dict[str, object] | None = None,
     ) -> FlowResult:
         return {
-            "type": "form",
-            "step_id": step_id,
-            "data_schema": data_schema,
-            "description_placeholders": dict(description_placeholders or {}),
-            "errors": dict(errors or {}),
+            'type': 'form',
+            'step_id': step_id,
+            'data_schema': data_schema,
+            'description_placeholders': dict(description_placeholders or {}),
+            'errors': dict(errors or {}),
         }
 
     def async_external_step(self, *, step_id: str, url: str) -> FlowResult:
-        return {"type": "external", "step_id": step_id, "url": url}
+        return {'type': 'external', 'step_id': step_id, 'url': url}
 
     def async_create_entry(
         self,
@@ -395,13 +397,13 @@ class _FlowBase:
         data: dict[str, object] | None = None,
     ) -> FlowResult:
         return {
-            "type": "create_entry",
-            **({"title": title} if title is not None else {}),
-            "data": dict(data or {}),
+            'type': 'create_entry',
+            **({'title': title} if title is not None else {}),
+            'data': dict(data or {}),
         }
 
     def async_abort(self, *, reason: str) -> FlowResult:
-        return {"type": "abort", "reason": reason}
+        return {'type': 'abort', 'reason': reason}
 
     def async_show_menu(
         self,
@@ -411,10 +413,10 @@ class _FlowBase:
         description_placeholders: dict[str, object] | None = None,
     ) -> FlowResult:
         return {
-            "type": "menu",
-            "step_id": step_id,
-            "menu_options": list(menu_options),
-            "description_placeholders": dict(description_placeholders or {}),
+            'type': 'menu',
+            'step_id': step_id,
+            'menu_options': list(menu_options),
+            'description_placeholders': dict(description_placeholders or {}),
         }
 
     def async_show_progress(
@@ -425,10 +427,10 @@ class _FlowBase:
         description_placeholders: dict[str, object] | None = None,
     ) -> FlowResult:
         return {
-            "type": "progress",
-            "step_id": step_id,
-            "progress_action": progress_action,
-            "description_placeholders": dict(description_placeholders or {}),
+            'type': 'progress',
+            'step_id': step_id,
+            'progress_action': progress_action,
+            'description_placeholders': dict(description_placeholders or {}),
         }
 
     def async_show_progress_done(
@@ -438,13 +440,13 @@ class _FlowBase:
         description_placeholders: dict[str, object] | None = None,
     ) -> FlowResult:
         return {
-            "type": "progress_done",
-            "next_step_id": next_step_id,
-            "description_placeholders": dict(description_placeholders or {}),
+            'type': 'progress_done',
+            'next_step_id': next_step_id,
+            'description_placeholders': dict(description_placeholders or {}),
         }
 
     def async_external_step_done(self, *, next_step_id: str) -> FlowResult:
-        return {"type": "external_done", "next_step_id": next_step_id}
+        return {'type': 'external_done', 'next_step_id': next_step_id}
 
 
 class OptionsFlow(_FlowBase):
@@ -469,33 +471,33 @@ class DeviceEntry:
     """Simple device registry entry stub."""
 
     def __init__(self, **kwargs: object) -> None:
-        self.id = kwargs.get("id", "device")
-        self.name = kwargs.get("name")
-        self.manufacturer = kwargs.get("manufacturer")
-        self.model = kwargs.get("model")
-        self.model_id = kwargs.get("model_id")
-        self.sw_version = kwargs.get("sw_version")
-        self.via_device_id = kwargs.get("via_device_id")
-        self.configuration_url = kwargs.get("configuration_url")
-        self.area_id = kwargs.get("area_id")
-        self.suggested_area = kwargs.get("suggested_area")
-        self.disabled_by = kwargs.get("disabled_by")
-        self.primary_config_entry = kwargs.get("primary_config_entry")
-        self.hw_version = kwargs.get("hw_version")
-        self.serial_number = kwargs.get("serial_number")
-        self.name_by_user = kwargs.get("name_by_user")
-        self.entry_type = kwargs.get("entry_type")
-        self.identifiers = set(kwargs.get("identifiers", set()))
-        self.connections = set(kwargs.get("connections", set()))
-        self.created_at: datetime = kwargs.get("created_at") or _utcnow()
-        self.modified_at: datetime = kwargs.get("modified_at") or self.created_at
+        self.id = kwargs.get('id', 'device')
+        self.name = kwargs.get('name')
+        self.manufacturer = kwargs.get('manufacturer')
+        self.model = kwargs.get('model')
+        self.model_id = kwargs.get('model_id')
+        self.sw_version = kwargs.get('sw_version')
+        self.via_device_id = kwargs.get('via_device_id')
+        self.configuration_url = kwargs.get('configuration_url')
+        self.area_id = kwargs.get('area_id')
+        self.suggested_area = kwargs.get('suggested_area')
+        self.disabled_by = kwargs.get('disabled_by')
+        self.primary_config_entry = kwargs.get('primary_config_entry')
+        self.hw_version = kwargs.get('hw_version')
+        self.serial_number = kwargs.get('serial_number')
+        self.name_by_user = kwargs.get('name_by_user')
+        self.entry_type = kwargs.get('entry_type')
+        self.identifiers = set(kwargs.get('identifiers', set()))
+        self.connections = set(kwargs.get('connections', set()))
+        self.created_at: datetime = kwargs.get('created_at') or _utcnow()
+        self.modified_at: datetime = kwargs.get('modified_at') or self.created_at
         self.config_entries: set[str] = set()
-        config_entry_id = kwargs.get("config_entry_id")
+        config_entry_id = kwargs.get('config_entry_id')
         if isinstance(config_entry_id, str):
             self.config_entries.add(config_entry_id)
         self.config_entries.update(
             entry
-            for entry in kwargs.get("config_entries", set())
+            for entry in kwargs.get('config_entries', set())
             if isinstance(entry, str)
         )
         for key, value in kwargs.items():
@@ -512,10 +514,10 @@ class DeviceRegistry:
 
     def async_get_or_create(self, **kwargs: object) -> DeviceEntry:
         creation_kwargs = dict(kwargs)
-        identifiers = set(creation_kwargs.get("identifiers", set()))
-        connections = set(creation_kwargs.get("connections", set()))
+        identifiers = set(creation_kwargs.get('identifiers', set()))
+        connections = set(creation_kwargs.get('connections', set()))
 
-        entry_id = creation_kwargs.pop("id", None)
+        entry_id = creation_kwargs.pop('id', None)
         stored = self.devices.get(entry_id) if isinstance(entry_id, str) else None
 
         if stored is None and (identifiers or connections):
@@ -581,54 +583,54 @@ class DeviceRegistry:
         return None
 
     def _update_device(self, entry: DeviceEntry, **kwargs: object) -> None:
-        if isinstance(kwargs.get("config_entry_id"), str):
-            entry.config_entries.add(kwargs["config_entry_id"])
-        if "config_entries" in kwargs:
+        if isinstance(kwargs.get('config_entry_id'), str):
+            entry.config_entries.add(kwargs['config_entry_id'])
+        if 'config_entries' in kwargs:
             entry.config_entries.update(
                 entry_id
-                for entry_id in kwargs["config_entries"]
+                for entry_id in kwargs['config_entries']
                 if isinstance(entry_id, str)
             )
-        if "name" in kwargs:
-            entry.name = kwargs["name"]
-        if "manufacturer" in kwargs:
-            entry.manufacturer = kwargs["manufacturer"]
-        if "model" in kwargs:
-            entry.model = kwargs["model"]
-        if "model_id" in kwargs:
-            entry.model_id = kwargs["model_id"]
-        if "sw_version" in kwargs:
-            entry.sw_version = kwargs["sw_version"]
-        if "via_device_id" in kwargs:
-            entry.via_device_id = kwargs["via_device_id"]
-        if "configuration_url" in kwargs:
-            entry.configuration_url = kwargs["configuration_url"]
-        if "area_id" in kwargs:
-            entry.area_id = kwargs["area_id"]
-        if "suggested_area" in kwargs:
-            entry.suggested_area = kwargs["suggested_area"]
-        if "disabled_by" in kwargs:
-            entry.disabled_by = kwargs["disabled_by"]
-        if "primary_config_entry" in kwargs:
-            entry.primary_config_entry = kwargs["primary_config_entry"]
-        if "hw_version" in kwargs:
-            entry.hw_version = kwargs["hw_version"]
-        if "serial_number" in kwargs:
-            entry.serial_number = kwargs["serial_number"]
-        if "identifiers" in kwargs:
-            entry.identifiers.update(set(kwargs["identifiers"]))
-        if "connections" in kwargs:
-            entry.connections.update(set(kwargs["connections"]))
-        if "name_by_user" in kwargs:
-            entry.name_by_user = kwargs["name_by_user"]
-        if "entry_type" in kwargs:
-            entry.entry_type = kwargs["entry_type"]
-        if "preferred_area_id" in kwargs:
-            entry.preferred_area_id = kwargs["preferred_area_id"]
-        if "created_at" in kwargs:
-            entry.created_at = kwargs["created_at"]
-        if "modified_at" in kwargs:
-            entry.modified_at = kwargs["modified_at"]
+        if 'name' in kwargs:
+            entry.name = kwargs['name']
+        if 'manufacturer' in kwargs:
+            entry.manufacturer = kwargs['manufacturer']
+        if 'model' in kwargs:
+            entry.model = kwargs['model']
+        if 'model_id' in kwargs:
+            entry.model_id = kwargs['model_id']
+        if 'sw_version' in kwargs:
+            entry.sw_version = kwargs['sw_version']
+        if 'via_device_id' in kwargs:
+            entry.via_device_id = kwargs['via_device_id']
+        if 'configuration_url' in kwargs:
+            entry.configuration_url = kwargs['configuration_url']
+        if 'area_id' in kwargs:
+            entry.area_id = kwargs['area_id']
+        if 'suggested_area' in kwargs:
+            entry.suggested_area = kwargs['suggested_area']
+        if 'disabled_by' in kwargs:
+            entry.disabled_by = kwargs['disabled_by']
+        if 'primary_config_entry' in kwargs:
+            entry.primary_config_entry = kwargs['primary_config_entry']
+        if 'hw_version' in kwargs:
+            entry.hw_version = kwargs['hw_version']
+        if 'serial_number' in kwargs:
+            entry.serial_number = kwargs['serial_number']
+        if 'identifiers' in kwargs:
+            entry.identifiers.update(set(kwargs['identifiers']))
+        if 'connections' in kwargs:
+            entry.connections.update(set(kwargs['connections']))
+        if 'name_by_user' in kwargs:
+            entry.name_by_user = kwargs['name_by_user']
+        if 'entry_type' in kwargs:
+            entry.entry_type = kwargs['entry_type']
+        if 'preferred_area_id' in kwargs:
+            entry.preferred_area_id = kwargs['preferred_area_id']
+        if 'created_at' in kwargs:
+            entry.created_at = kwargs['created_at']
+        if 'modified_at' in kwargs:
+            entry.modified_at = kwargs['modified_at']
         elif kwargs:
             entry.modified_at = _utcnow()
         for key, value in kwargs.items():
@@ -636,7 +638,7 @@ class DeviceRegistry:
                 setattr(entry, key, value)
 
     def _track_device_id(self, device_id: str) -> None:
-        match = re.fullmatch(r"device-(\d+)", device_id)
+        match = re.fullmatch(r'device-(\d+)', device_id)
         if match:
             self._id_sequence = max(self._id_sequence, int(match.group(1)))
 
@@ -770,15 +772,15 @@ class IssueRegistry:
         key = (domain, issue_id)
         existing = self.issues.get(key, {})
         severity_value = IssueSeverity.from_value(
-            severity if severity is not None else existing.get("severity")
+            severity if severity is not None else existing.get('severity')
         )
         is_fixable_value = (
-            is_fixable if is_fixable is not None else existing.get("is_fixable", False)
+            is_fixable if is_fixable is not None else existing.get('is_fixable', False)
         )
         translation_key_value = (
             translation_key
             if translation_key is not None
-            else existing.get("translation_key") or issue_id
+            else existing.get('translation_key') or issue_id
         )
         data_value: dict[str, object] | None
         if data is not None:
@@ -786,7 +788,7 @@ class IssueRegistry:
         else:
             data_value = (
                 dict(existing_data)
-                if (existing_data := existing.get("data")) is not None
+                if (existing_data := existing.get('data')) is not None
                 else None
             )
         translation_placeholders_value: dict[str, object] | None
@@ -795,55 +797,55 @@ class IssueRegistry:
         else:
             translation_placeholders_value = (
                 dict(existing_placeholders)
-                if (existing_placeholders := existing.get("translation_placeholders"))
+                if (existing_placeholders := existing.get('translation_placeholders'))
                 is not None
                 else None
             )
         dismissed_version_value = (
             dismissed_version
             if dismissed_version is not None
-            else existing.get("dismissed_version")
+            else existing.get('dismissed_version')
         )
-        dismissed_at = existing.get("dismissed")
+        dismissed_at = existing.get('dismissed')
         if dismissed_version is not None:
             dismissed_at = dismissed_at or _utcnow()
         if dismissed_version is None and dismissed_version_value is None:
             dismissed_at = None
         details = {
             **existing,
-            "active": active if active is not None else existing.get("active", True),
-            "created": existing.get("created", _utcnow()),
-            "domain": domain,
-            "issue_domain": issue_domain
+            'active': active if active is not None else existing.get('active', True),
+            'created': existing.get('created', _utcnow()),
+            'domain': domain,
+            'issue_domain': issue_domain
             if issue_domain is not None
-            else existing.get("issue_domain") or domain,
-            "issue_id": issue_id,
-            "translation_domain": translation_domain
+            else existing.get('issue_domain') or domain,
+            'issue_id': issue_id,
+            'translation_domain': translation_domain
             if translation_domain is not None
-            else existing.get("translation_domain", domain),
-            "translation_key": translation_key_value,
-            "translation_placeholders": translation_placeholders_value,
-            "severity": severity_value,
-            "is_fixable": is_fixable_value,
-            "breaks_in_ha_version": (
+            else existing.get('translation_domain', domain),
+            'translation_key': translation_key_value,
+            'translation_placeholders': translation_placeholders_value,
+            'severity': severity_value,
+            'is_fixable': is_fixable_value,
+            'breaks_in_ha_version': (
                 breaks_in_ha_version
                 if breaks_in_ha_version is not None
-                else existing.get("breaks_in_ha_version")
+                else existing.get('breaks_in_ha_version')
             ),
-            "learn_more_url": (
+            'learn_more_url': (
                 learn_more_url
                 if learn_more_url is not None
-                else existing.get("learn_more_url")
+                else existing.get('learn_more_url')
             ),
-            "is_persistent": (
+            'is_persistent': (
                 is_persistent
                 if is_persistent is not None
-                else existing.get("is_persistent", False)
+                else existing.get('is_persistent', False)
             ),
-            "data": data_value,
-            "dismissed": dismissed_at,
-            "dismissed_version": dismissed_version_value,
-            "ignored": existing.get("ignored", False),
+            'data': data_value,
+            'dismissed': dismissed_at,
+            'dismissed_version': dismissed_version_value,
+            'ignored': existing.get('ignored', False),
         }
         self.issues[key] = details
         return details
@@ -860,15 +862,15 @@ class IssueRegistry:
         dismissed_version_value = HOME_ASSISTANT_VERSION if ignore else None
 
         if (
-            details.get("dismissed_version") == dismissed_version_value
-            and details.get("ignored") is ignore
+            details.get('dismissed_version') == dismissed_version_value
+            and details.get('ignored') is ignore
         ):
             return details
 
-        details["dismissed_version"] = dismissed_version_value
-        details["dismissed"] = _utcnow() if ignore else None
-        details["ignored"] = ignore
-        details["active"] = not ignore
+        details['dismissed_version'] = dismissed_version_value
+        details['dismissed'] = _utcnow() if ignore else None
+        details['ignored'] = ignore
+        details['active'] = not ignore
         self.issues[key] = details
         return details
 
@@ -884,38 +886,38 @@ class RegistryEntry:
 
     def __init__(self, entity_id: str, **kwargs: object) -> None:
         self.entity_id = entity_id
-        self.device_id = kwargs.get("device_id")
+        self.device_id = kwargs.get('device_id')
         self.config_entries: set[str] = set()
-        if isinstance(kwargs.get("config_entry_id"), str):
-            self.config_entries.add(kwargs["config_entry_id"])
+        if isinstance(kwargs.get('config_entry_id'), str):
+            self.config_entries.add(kwargs['config_entry_id'])
         self.config_entries.update(
             entry
-            for entry in kwargs.get("config_entries", set())
+            for entry in kwargs.get('config_entries', set())
             if isinstance(entry, str)
         )
-        self.unique_id = kwargs.get("unique_id")
-        self.platform = kwargs.get("platform")
-        self.original_name = kwargs.get("original_name")
-        self.name = kwargs.get("name")
-        self.original_device_class = kwargs.get("original_device_class")
-        self.device_class = kwargs.get("device_class")
-        self.translation_key = kwargs.get("translation_key")
-        self.has_entity_name = kwargs.get("has_entity_name")
-        self.area_id = kwargs.get("area_id")
-        self.disabled_by = kwargs.get("disabled_by")
-        self.entity_category = kwargs.get("entity_category")
-        self.icon = kwargs.get("icon")
-        self.original_icon = kwargs.get("original_icon")
-        self.aliases = set(kwargs.get("aliases", set()))
-        self.hidden_by = kwargs.get("hidden_by")
-        self.preferred_area_id = kwargs.get("preferred_area_id")
-        self.options = dict(kwargs.get("options", {}))
-        self.capabilities = dict(kwargs.get("capabilities", {}))
-        self.supported_features = kwargs.get("supported_features")
-        self.unit_of_measurement = kwargs.get("unit_of_measurement")
-        self.original_unit_of_measurement = kwargs.get("original_unit_of_measurement")
-        self.created_at: datetime = kwargs.get("created_at") or _utcnow()
-        self.modified_at: datetime = kwargs.get("modified_at") or self.created_at
+        self.unique_id = kwargs.get('unique_id')
+        self.platform = kwargs.get('platform')
+        self.original_name = kwargs.get('original_name')
+        self.name = kwargs.get('name')
+        self.original_device_class = kwargs.get('original_device_class')
+        self.device_class = kwargs.get('device_class')
+        self.translation_key = kwargs.get('translation_key')
+        self.has_entity_name = kwargs.get('has_entity_name')
+        self.area_id = kwargs.get('area_id')
+        self.disabled_by = kwargs.get('disabled_by')
+        self.entity_category = kwargs.get('entity_category')
+        self.icon = kwargs.get('icon')
+        self.original_icon = kwargs.get('original_icon')
+        self.aliases = set(kwargs.get('aliases', set()))
+        self.hidden_by = kwargs.get('hidden_by')
+        self.preferred_area_id = kwargs.get('preferred_area_id')
+        self.options = dict(kwargs.get('options', {}))
+        self.capabilities = dict(kwargs.get('capabilities', {}))
+        self.supported_features = kwargs.get('supported_features')
+        self.unit_of_measurement = kwargs.get('unit_of_measurement')
+        self.original_unit_of_measurement = kwargs.get('original_unit_of_measurement')
+        self.created_at: datetime = kwargs.get('created_at') or _utcnow()
+        self.modified_at: datetime = kwargs.get('modified_at') or self.created_at
         for key, value in kwargs.items():
             if not hasattr(self, key):
                 setattr(self, key, value)
@@ -931,8 +933,8 @@ class EntityRegistry:
         return self.entities.get(entity_id)
 
     def async_get_or_create(self, entity_id: str, **kwargs: object) -> RegistryEntry:
-        unique_id = kwargs.get("unique_id")
-        platform = kwargs.get("platform")
+        unique_id = kwargs.get('unique_id')
+        platform = kwargs.get('platform')
 
         entry = self.entities.get(entity_id)
         if entry is None and unique_id is not None:
@@ -979,62 +981,62 @@ class EntityRegistry:
         return None
 
     def _update_entry(self, entry: RegistryEntry, **kwargs: object) -> None:
-        if isinstance(kwargs.get("config_entry_id"), str):
-            entry.config_entries.add(kwargs["config_entry_id"])
-        if "config_entries" in kwargs:
+        if isinstance(kwargs.get('config_entry_id'), str):
+            entry.config_entries.add(kwargs['config_entry_id'])
+        if 'config_entries' in kwargs:
             entry.config_entries.update(
                 entry_id
-                for entry_id in kwargs["config_entries"]
+                for entry_id in kwargs['config_entries']
                 if isinstance(entry_id, str)
             )
-        if "device_id" in kwargs:
-            entry.device_id = kwargs["device_id"]
-        if "unique_id" in kwargs:
-            entry.unique_id = kwargs["unique_id"]
-        if "platform" in kwargs:
-            entry.platform = kwargs["platform"]
-        if "original_name" in kwargs:
-            entry.original_name = kwargs["original_name"]
-        if "name" in kwargs:
-            entry.name = kwargs["name"]
-        if "original_device_class" in kwargs:
-            entry.original_device_class = kwargs["original_device_class"]
-        if "device_class" in kwargs:
-            entry.device_class = kwargs["device_class"]
-        if "translation_key" in kwargs:
-            entry.translation_key = kwargs["translation_key"]
-        if "has_entity_name" in kwargs:
-            entry.has_entity_name = kwargs["has_entity_name"]
-        if "area_id" in kwargs:
-            entry.area_id = kwargs["area_id"]
-        if "disabled_by" in kwargs:
-            entry.disabled_by = kwargs["disabled_by"]
-        if "entity_category" in kwargs:
-            entry.entity_category = kwargs["entity_category"]
-        if "icon" in kwargs:
-            entry.icon = kwargs["icon"]
-        if "original_icon" in kwargs:
-            entry.original_icon = kwargs["original_icon"]
-        if "aliases" in kwargs:
-            entry.aliases = set(kwargs["aliases"])
-        if "hidden_by" in kwargs:
-            entry.hidden_by = kwargs["hidden_by"]
-        if "preferred_area_id" in kwargs:
-            entry.preferred_area_id = kwargs["preferred_area_id"]
-        if "options" in kwargs:
-            entry.options = dict(kwargs["options"])
-        if "capabilities" in kwargs:
-            entry.capabilities = dict(kwargs["capabilities"])
-        if "supported_features" in kwargs:
-            entry.supported_features = kwargs["supported_features"]
-        if "unit_of_measurement" in kwargs:
-            entry.unit_of_measurement = kwargs["unit_of_measurement"]
-        if "original_unit_of_measurement" in kwargs:
-            entry.original_unit_of_measurement = kwargs["original_unit_of_measurement"]
-        if "created_at" in kwargs:
-            entry.created_at = kwargs["created_at"]
-        if "modified_at" in kwargs:
-            entry.modified_at = kwargs["modified_at"]
+        if 'device_id' in kwargs:
+            entry.device_id = kwargs['device_id']
+        if 'unique_id' in kwargs:
+            entry.unique_id = kwargs['unique_id']
+        if 'platform' in kwargs:
+            entry.platform = kwargs['platform']
+        if 'original_name' in kwargs:
+            entry.original_name = kwargs['original_name']
+        if 'name' in kwargs:
+            entry.name = kwargs['name']
+        if 'original_device_class' in kwargs:
+            entry.original_device_class = kwargs['original_device_class']
+        if 'device_class' in kwargs:
+            entry.device_class = kwargs['device_class']
+        if 'translation_key' in kwargs:
+            entry.translation_key = kwargs['translation_key']
+        if 'has_entity_name' in kwargs:
+            entry.has_entity_name = kwargs['has_entity_name']
+        if 'area_id' in kwargs:
+            entry.area_id = kwargs['area_id']
+        if 'disabled_by' in kwargs:
+            entry.disabled_by = kwargs['disabled_by']
+        if 'entity_category' in kwargs:
+            entry.entity_category = kwargs['entity_category']
+        if 'icon' in kwargs:
+            entry.icon = kwargs['icon']
+        if 'original_icon' in kwargs:
+            entry.original_icon = kwargs['original_icon']
+        if 'aliases' in kwargs:
+            entry.aliases = set(kwargs['aliases'])
+        if 'hidden_by' in kwargs:
+            entry.hidden_by = kwargs['hidden_by']
+        if 'preferred_area_id' in kwargs:
+            entry.preferred_area_id = kwargs['preferred_area_id']
+        if 'options' in kwargs:
+            entry.options = dict(kwargs['options'])
+        if 'capabilities' in kwargs:
+            entry.capabilities = dict(kwargs['capabilities'])
+        if 'supported_features' in kwargs:
+            entry.supported_features = kwargs['supported_features']
+        if 'unit_of_measurement' in kwargs:
+            entry.unit_of_measurement = kwargs['unit_of_measurement']
+        if 'original_unit_of_measurement' in kwargs:
+            entry.original_unit_of_measurement = kwargs['original_unit_of_measurement']
+        if 'created_at' in kwargs:
+            entry.created_at = kwargs['created_at']
+        if 'modified_at' in kwargs:
+            entry.modified_at = kwargs['modified_at']
         elif kwargs:
             entry.modified_at = _utcnow()
         for key, value in kwargs.items():
@@ -1137,7 +1139,7 @@ class DataUpdateCoordinator:
         self, hass: object, *, name: str | None = None, **kwargs: object
     ) -> None:
         self.hass = hass
-        self.name = name or "stub"
+        self.name = name or 'stub'
 
     async def async_config_entry_first_refresh(self) -> None:
         return None
@@ -1165,11 +1167,11 @@ class CoordinatorEntity(Entity):
     def available(self) -> bool:
         if (
             last_update_success := getattr(
-                self.coordinator, "last_update_success", None
+                self.coordinator, 'last_update_success', None
             )
         ) is not None:
             return bool(last_update_success)
-        return bool(getattr(self.coordinator, "available", True))
+        return bool(getattr(self.coordinator, 'available', True))
 
 
 class _SelectorBase:
@@ -1178,8 +1180,8 @@ class _SelectorBase:
 
 
 class SelectSelectorMode(StrEnum):
-    DROPDOWN = "dropdown"
-    LIST = "list"
+    DROPDOWN = 'dropdown'
+    LIST = 'list'
 
 
 class SelectSelectorConfig:
@@ -1196,8 +1198,8 @@ class BooleanSelector(_SelectorBase):
 
 
 class NumberSelectorMode(StrEnum):
-    BOX = "box"
-    SLIDER = "slider"
+    BOX = 'box'
+    SLIDER = 'slider'
 
 
 class NumberSelectorConfig:
@@ -1210,8 +1212,8 @@ class NumberSelector(_SelectorBase):
 
 
 class TextSelectorType(StrEnum):
-    TEXT = "text"
-    TEL = "tel"
+    TEXT = 'text'
+    TEL = 'tel'
 
 
 class TextSelectorConfig:
@@ -1239,41 +1241,41 @@ def selector(config: object) -> object:
 
 def _register_custom_component_packages() -> None:
     custom_components_pkg = sys.modules.setdefault(
-        "custom_components", types.ModuleType("custom_components")
+        'custom_components', types.ModuleType('custom_components')
     )
     custom_components_pkg.__path__ = [str(COMPONENT_ROOT)]
 
-    pawcontrol_pkg = types.ModuleType("custom_components.pawcontrol")
+    pawcontrol_pkg = types.ModuleType('custom_components.pawcontrol')
     pawcontrol_pkg.__path__ = [str(PAWCONTROL_ROOT)]
-    sys.modules["custom_components.pawcontrol"] = pawcontrol_pkg
+    sys.modules['custom_components.pawcontrol'] = pawcontrol_pkg
 
 
 def install_homeassistant_stubs() -> None:
     """Register lightweight Home Assistant modules required by the tests."""
 
     for module_name in [
-        "homeassistant",
-        "homeassistant.const",
-        "homeassistant.core",
-        "homeassistant.exceptions",
-        "homeassistant.helpers",
-        "homeassistant.helpers.entity",
-        "homeassistant.helpers.config_validation",
-        "homeassistant.helpers.aiohttp_client",
-        "homeassistant.helpers.event",
-        "homeassistant.helpers.update_coordinator",
-        "homeassistant.helpers.selector",
-        "homeassistant.helpers.device_registry",
-        "homeassistant.helpers.entity_registry",
-        "homeassistant.helpers.storage",
-        "homeassistant.helpers.issue_registry",
-        "homeassistant.util",
-        "homeassistant.util.dt",
-        "homeassistant.util.logging",
-        "homeassistant.config_entries",
-        "homeassistant.components",
-        "homeassistant.components.repairs",
-        "homeassistant.data_entry_flow",
+        'homeassistant',
+        'homeassistant.const',
+        'homeassistant.core',
+        'homeassistant.exceptions',
+        'homeassistant.helpers',
+        'homeassistant.helpers.entity',
+        'homeassistant.helpers.config_validation',
+        'homeassistant.helpers.aiohttp_client',
+        'homeassistant.helpers.event',
+        'homeassistant.helpers.update_coordinator',
+        'homeassistant.helpers.selector',
+        'homeassistant.helpers.device_registry',
+        'homeassistant.helpers.entity_registry',
+        'homeassistant.helpers.storage',
+        'homeassistant.helpers.issue_registry',
+        'homeassistant.util',
+        'homeassistant.util.dt',
+        'homeassistant.util.logging',
+        'homeassistant.config_entries',
+        'homeassistant.components',
+        'homeassistant.components.repairs',
+        'homeassistant.data_entry_flow',
     ]:
         sys.modules.pop(module_name, None)
 
@@ -1284,43 +1286,43 @@ def install_homeassistant_stubs() -> None:
 
     _register_custom_component_packages()
 
-    homeassistant = types.ModuleType("homeassistant")
-    const_module = types.ModuleType("homeassistant.const")
-    core_module = types.ModuleType("homeassistant.core")
-    exceptions_module = types.ModuleType("homeassistant.exceptions")
-    helpers_module = types.ModuleType("homeassistant.helpers")
+    homeassistant = types.ModuleType('homeassistant')
+    const_module = types.ModuleType('homeassistant.const')
+    core_module = types.ModuleType('homeassistant.core')
+    exceptions_module = types.ModuleType('homeassistant.exceptions')
+    helpers_module = types.ModuleType('homeassistant.helpers')
     helpers_module.__path__ = []
-    entity_module = types.ModuleType("homeassistant.helpers.entity")
+    entity_module = types.ModuleType('homeassistant.helpers.entity')
     config_validation_module = types.ModuleType(
-        "homeassistant.helpers.config_validation"
+        'homeassistant.helpers.config_validation'
     )
-    aiohttp_client_module = types.ModuleType("homeassistant.helpers.aiohttp_client")
-    event_module = types.ModuleType("homeassistant.helpers.event")
+    aiohttp_client_module = types.ModuleType('homeassistant.helpers.aiohttp_client')
+    event_module = types.ModuleType('homeassistant.helpers.event')
     update_coordinator_module = types.ModuleType(
-        "homeassistant.helpers.update_coordinator"
+        'homeassistant.helpers.update_coordinator'
     )
-    device_registry_module = types.ModuleType("homeassistant.helpers.device_registry")
-    entity_registry_module = types.ModuleType("homeassistant.helpers.entity_registry")
-    issue_registry_module = types.ModuleType("homeassistant.helpers.issue_registry")
-    storage_module = types.ModuleType("homeassistant.helpers.storage")
-    config_entries_module = types.ModuleType("homeassistant.config_entries")
-    util_module = types.ModuleType("homeassistant.util")
+    device_registry_module = types.ModuleType('homeassistant.helpers.device_registry')
+    entity_registry_module = types.ModuleType('homeassistant.helpers.entity_registry')
+    issue_registry_module = types.ModuleType('homeassistant.helpers.issue_registry')
+    storage_module = types.ModuleType('homeassistant.helpers.storage')
+    config_entries_module = types.ModuleType('homeassistant.config_entries')
+    util_module = types.ModuleType('homeassistant.util')
     util_module.__path__ = []
-    dt_util_module = types.ModuleType("homeassistant.util.dt")
-    logging_util_module = types.ModuleType("homeassistant.util.logging")
-    selector_module = types.ModuleType("homeassistant.helpers.selector")
-    components_module = types.ModuleType("homeassistant.components")
+    dt_util_module = types.ModuleType('homeassistant.util.dt')
+    logging_util_module = types.ModuleType('homeassistant.util.logging')
+    selector_module = types.ModuleType('homeassistant.helpers.selector')
+    components_module = types.ModuleType('homeassistant.components')
     components_module.__path__ = []
-    repairs_component_module = types.ModuleType("homeassistant.components.repairs")
-    data_entry_flow_module = types.ModuleType("homeassistant.data_entry_flow")
+    repairs_component_module = types.ModuleType('homeassistant.components.repairs')
+    data_entry_flow_module = types.ModuleType('homeassistant.data_entry_flow')
 
     const_module.Platform = Platform
     const_module.__version__ = HOME_ASSISTANT_VERSION
-    const_module.STATE_ON = "on"
-    const_module.STATE_OFF = "off"
-    const_module.STATE_UNKNOWN = "unknown"
-    const_module.STATE_HOME = "home"
-    const_module.STATE_NOT_HOME = "not_home"
+    const_module.STATE_ON = 'on'
+    const_module.STATE_OFF = 'off'
+    const_module.STATE_UNKNOWN = 'unknown'
+    const_module.STATE_HOME = 'home'
+    const_module.STATE_NOT_HOME = 'not_home'
 
     core_module.HomeAssistant = HomeAssistant
     core_module.Event = Event
@@ -1361,7 +1363,7 @@ def install_homeassistant_stubs() -> None:
     entity_registry_module.async_entries_for_device = _async_entries_for_registry_device
     entity_registry_module.async_remove = _async_remove_registry_entry
 
-    issue_registry_module.DOMAIN = "issue_registry"
+    issue_registry_module.DOMAIN = 'issue_registry'
     issue_registry_module.IssueSeverity = IssueSeverity
     issue_registry_module.async_get = _async_get_issue_registry
     issue_registry_module.async_get_issue = _async_get_issue
@@ -1394,7 +1396,7 @@ def install_homeassistant_stubs() -> None:
         """Placeholder for Home Assistant repairs flow base class."""
 
     repairs_component_module.RepairsFlow = _RepairsFlow
-    repairs_component_module.DOMAIN = "repairs"
+    repairs_component_module.DOMAIN = 'repairs'
 
     data_entry_flow_module.FlowResult = FlowResult
     config_entries_module.FlowResult = FlowResult
@@ -1436,25 +1438,25 @@ def install_homeassistant_stubs() -> None:
 
     components_module.repairs = repairs_component_module
 
-    sys.modules["homeassistant"] = homeassistant
-    sys.modules["homeassistant.const"] = const_module
-    sys.modules["homeassistant.core"] = core_module
-    sys.modules["homeassistant.exceptions"] = exceptions_module
-    sys.modules["homeassistant.helpers"] = helpers_module
-    sys.modules["homeassistant.helpers.entity"] = entity_module
-    sys.modules["homeassistant.helpers.config_validation"] = config_validation_module
-    sys.modules["homeassistant.helpers.aiohttp_client"] = aiohttp_client_module
-    sys.modules["homeassistant.helpers.event"] = event_module
-    sys.modules["homeassistant.helpers.update_coordinator"] = update_coordinator_module
-    sys.modules["homeassistant.helpers.selector"] = selector_module
-    sys.modules["homeassistant.helpers.device_registry"] = device_registry_module
-    sys.modules["homeassistant.helpers.entity_registry"] = entity_registry_module
-    sys.modules["homeassistant.helpers.issue_registry"] = issue_registry_module
-    sys.modules["homeassistant.helpers.storage"] = storage_module
-    sys.modules["homeassistant.util"] = util_module
-    sys.modules["homeassistant.util.dt"] = dt_util_module
-    sys.modules["homeassistant.util.logging"] = logging_util_module
-    sys.modules["homeassistant.config_entries"] = config_entries_module
-    sys.modules["homeassistant.components"] = components_module
-    sys.modules["homeassistant.components.repairs"] = repairs_component_module
-    sys.modules["homeassistant.data_entry_flow"] = data_entry_flow_module
+    sys.modules['homeassistant'] = homeassistant
+    sys.modules['homeassistant.const'] = const_module
+    sys.modules['homeassistant.core'] = core_module
+    sys.modules['homeassistant.exceptions'] = exceptions_module
+    sys.modules['homeassistant.helpers'] = helpers_module
+    sys.modules['homeassistant.helpers.entity'] = entity_module
+    sys.modules['homeassistant.helpers.config_validation'] = config_validation_module
+    sys.modules['homeassistant.helpers.aiohttp_client'] = aiohttp_client_module
+    sys.modules['homeassistant.helpers.event'] = event_module
+    sys.modules['homeassistant.helpers.update_coordinator'] = update_coordinator_module
+    sys.modules['homeassistant.helpers.selector'] = selector_module
+    sys.modules['homeassistant.helpers.device_registry'] = device_registry_module
+    sys.modules['homeassistant.helpers.entity_registry'] = entity_registry_module
+    sys.modules['homeassistant.helpers.issue_registry'] = issue_registry_module
+    sys.modules['homeassistant.helpers.storage'] = storage_module
+    sys.modules['homeassistant.util'] = util_module
+    sys.modules['homeassistant.util.dt'] = dt_util_module
+    sys.modules['homeassistant.util.logging'] = logging_util_module
+    sys.modules['homeassistant.config_entries'] = config_entries_module
+    sys.modules['homeassistant.components'] = components_module
+    sys.modules['homeassistant.components.repairs'] = repairs_component_module
+    sys.modules['homeassistant.data_entry_flow'] = data_entry_flow_module

@@ -1,12 +1,19 @@
 """Service guard telemetry models for Home Assistant service invocations."""
-
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Mapping
+from collections.abc import MutableMapping
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, NotRequired, Required, TypedDict, cast
+from typing import Any
+from typing import cast
+from typing import NotRequired
+from typing import Required
+from typing import TypedDict
 
-from .types import JSONLikeMapping, JSONMutableMapping, JSONValue
+from .types import JSONLikeMapping
+from .types import JSONMutableMapping
+from .types import JSONValue
 
 
 @dataclass(slots=True, frozen=True)
@@ -23,16 +30,16 @@ class ServiceGuardResult:
         """Return a serialisable mapping for diagnostics exports."""
 
         payload: ServiceGuardResultPayload = {
-            "domain": self.domain,
-            "service": self.service,
-            "executed": self.executed,
+            'domain': self.domain,
+            'service': self.service,
+            'executed': self.executed,
         }
 
         if self.reason is not None:
-            payload["reason"] = self.reason
+            payload['reason'] = self.reason
 
         if self.description is not None:
-            payload["description"] = self.description
+            payload['description'] = self.description
 
         return payload
 
@@ -96,7 +103,7 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
         for entry in ordered:
             if entry.executed:
                 continue
-            reason_key = entry.reason or "unknown"
+            reason_key = entry.reason or 'unknown'
             reasons[reason_key] = reasons.get(reason_key, 0) + 1
 
         return cls(ordered, executed, skipped, reasons)
@@ -106,10 +113,10 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
         """Return an empty metrics payload for service guard aggregation."""
 
         return {
-            "executed": 0,
-            "skipped": 0,
-            "reasons": {},
-            "last_results": [],
+            'executed': 0,
+            'skipped': 0,
+            'reasons': {},
+            'last_results': [],
         }
 
     def history(self) -> ServiceGuardResultHistory:
@@ -121,20 +128,20 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
         """Return a diagnostics summary payload for the aggregated guard data."""
 
         return {
-            "executed": self.executed,
-            "skipped": self.skipped,
-            "reasons": dict(self.reasons),
-            "results": self.history(),
+            'executed': self.executed,
+            'skipped': self.skipped,
+            'reasons': dict(self.reasons),
+            'results': self.history(),
         }
 
     def to_metrics(self) -> ServiceGuardMetricsSnapshot:
         """Return a metrics snapshot representing the aggregated guard data."""
 
         metrics = self.zero_metrics()
-        metrics["executed"] = self.executed
-        metrics["skipped"] = self.skipped
-        metrics["reasons"] = dict(self.reasons)
-        metrics["last_results"] = self.history()
+        metrics['executed'] = self.executed
+        metrics['skipped'] = self.skipped
+        metrics['reasons'] = dict(self.reasons)
+        metrics['last_results'] = self.history()
         return metrics
 
     def accumulate(
@@ -142,20 +149,20 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
     ) -> ServiceGuardMetricsSnapshot:
         """Accumulate snapshot counts into ``metrics`` and return the payload."""
 
-        executed_value = metrics.get("executed", 0)
+        executed_value = metrics.get('executed', 0)
         executed = _coerce_int(executed_value)
-        metrics["executed"] = executed + self.executed
+        metrics['executed'] = executed + self.executed
 
-        skipped_value = metrics.get("skipped", 0)
+        skipped_value = metrics.get('skipped', 0)
         skipped = _coerce_int(skipped_value)
-        metrics["skipped"] = skipped + self.skipped
+        metrics['skipped'] = skipped + self.skipped
 
-        reasons_payload_raw = metrics.get("reasons")
+        reasons_payload_raw = metrics.get('reasons')
         if isinstance(reasons_payload_raw, MutableMapping):
             reasons_payload = cast(MutableMapping[str, JSONValue], reasons_payload_raw)
         else:
             reasons_payload = cast(JSONMutableMapping, {})
-            metrics["reasons"] = reasons_payload
+            metrics['reasons'] = reasons_payload
 
         for reason_key, count in self.reasons.items():
             existing_value = reasons_payload.get(reason_key)
@@ -164,9 +171,9 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
             )
             reasons_payload[reason_key] = existing + count
 
-        metrics["last_results"] = cast(JSONValue, list(self.history()))
+        metrics['last_results'] = cast(JSONValue, list(self.history()))
 
-        reasons_snapshot = metrics.get("reasons")
+        reasons_snapshot = metrics.get('reasons')
         reasons_dict: dict[str, int]
         if isinstance(reasons_snapshot, Mapping):
             reasons_dict = {
@@ -176,7 +183,7 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
         else:
             reasons_dict = {}
 
-        last_results_raw = metrics.get("last_results", [])
+        last_results_raw = metrics.get('last_results', [])
         last_results = (
             last_results_raw
             if isinstance(last_results_raw, list)
@@ -184,10 +191,10 @@ class ServiceGuardSnapshot[TGuardResult: ServiceGuardResult]:
         )
 
         return {
-            "executed": _coerce_int(metrics.get("executed", 0)),
-            "skipped": _coerce_int(metrics.get("skipped", 0)),
-            "reasons": reasons_dict,
-            "last_results": cast(ServiceGuardResultHistory, last_results),
+            'executed': _coerce_int(metrics.get('executed', 0)),
+            'skipped': _coerce_int(metrics.get('skipped', 0)),
+            'reasons': reasons_dict,
+            'last_results': cast(ServiceGuardResultHistory, last_results),
         }
 
 
@@ -196,23 +203,23 @@ def normalise_guard_result_payload(
 ) -> ServiceGuardResultPayload:
     """Return a JSON-compatible payload for a guard result mapping."""
 
-    result: ServiceGuardResultPayload = {"executed": bool(payload.get("executed"))}
+    result: ServiceGuardResultPayload = {'executed': bool(payload.get('executed'))}
 
-    domain = payload.get("domain")
+    domain = payload.get('domain')
     if isinstance(domain, str) and domain:
-        result["domain"] = domain
+        result['domain'] = domain
 
-    service = payload.get("service")
+    service = payload.get('service')
     if isinstance(service, str) and service:
-        result["service"] = service
+        result['service'] = service
 
-    reason = payload.get("reason")
+    reason = payload.get('reason')
     if isinstance(reason, str) and reason:
-        result["reason"] = reason
+        result['reason'] = reason
 
-    description = payload.get("description")
+    description = payload.get('description')
     if isinstance(description, str) and description:
-        result["description"] = description
+        result['description'] = description
 
     return result
 

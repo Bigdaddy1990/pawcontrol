@@ -9,7 +9,7 @@ The authoritative source is `custom_components/pawcontrol/quality_scale.yaml`.
 
 ## Checklist
 
-All rules are currently marked as **done** in `custom_components/pawcontrol/quality_scale.yaml`.  
+All rules are currently marked as **done** in `custom_components/pawcontrol/quality_scale.yaml`.
 If you change behavior that affects quality-scale compliance, update both `custom_components/pawcontrol/quality_scale.yaml` and this checklist.
 
 ### Evidence pointers

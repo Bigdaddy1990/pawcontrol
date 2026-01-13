@@ -7,7 +7,6 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """
-
 from __future__ import annotations
 
 import asyncio
@@ -15,26 +14,30 @@ import logging
 import os
 import time
 from collections import OrderedDict
-from collections.abc import Iterator, Mapping
-from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from collections.abc import Iterator
+from collections.abc import Mapping
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import datetime
+from datetime import UTC
 from enum import Enum
 from functools import lru_cache
 from itertools import combinations
 from types import MappingProxyType
-from typing import TYPE_CHECKING, Final, Literal, cast
+from typing import cast
+from typing import Final
+from typing import Literal
+from typing import TYPE_CHECKING
 
 from homeassistant.const import Platform
 from homeassistant.helpers.entity import Entity
 
 from .coordinator_runtime import EntityBudgetSnapshot
 from .telemetry import update_runtime_entity_factory_guard_metrics
-from .types import (
-    DOG_MODULES_FIELD,
-    DogModulesProjection,
-    EntityFactoryGuardEvent,
-    ensure_dog_modules_mapping,
-)
+from .types import DOG_MODULES_FIELD
+from .types import DogModulesProjection
+from .types import ensure_dog_modules_mapping
+from .types import EntityFactoryGuardEvent
 
 if TYPE_CHECKING:
     from .coordinator import PawControlCoordinator
@@ -101,7 +104,7 @@ _ENTITY_TYPE_TO_PLATFORM: Final[dict[str, Platform]] = {
 }
 
 # Entity profile definitions with performance impact
-EntityPerformanceImpact = Literal["minimal", "low", "medium"]
+EntityPerformanceImpact = Literal['minimal', 'low', 'medium']
 
 
 type EntityCreationValue = (
@@ -111,7 +114,7 @@ type EntityCreationValue = (
     | str
     | Platform
     | EntityPerformanceImpact
-    | "PawControlCoordinator"
+    | 'PawControlCoordinator'
     | None
     | Mapping[str, object]
     | tuple[object, ...]
@@ -137,21 +140,21 @@ class EntityCreationConfig(Mapping[str, EntityCreationValue]):
         """Return the requested creation attribute for mapping compatibility."""
 
         match key:
-            case "dog_id":
+            case 'dog_id':
                 return self.dog_id
-            case "entity_type":
+            case 'entity_type':
                 return self.entity_type
-            case "module":
+            case 'module':
                 return self.module
-            case "profile":
+            case 'profile':
                 return self.profile
-            case "priority":
+            case 'priority':
                 return self.priority
-            case "coordinator":
+            case 'coordinator':
                 return self.coordinator
-            case "platform":
+            case 'platform':
                 return self.platform
-            case "performance_impact":
+            case 'performance_impact':
                 return self.performance_impact
         if key in self.extras:
             return self.extras[key]
@@ -161,14 +164,14 @@ class EntityCreationConfig(Mapping[str, EntityCreationValue]):
         """Yield entity creation keys to mimic mapping iteration."""
 
         yield from (
-            "dog_id",
-            "entity_type",
-            "module",
-            "profile",
-            "priority",
-            "coordinator",
-            "platform",
-            "performance_impact",
+            'dog_id',
+            'entity_type',
+            'module',
+            'profile',
+            'priority',
+            'coordinator',
+            'platform',
+            'performance_impact',
         )
         yield from self.extras
 
@@ -181,14 +184,14 @@ class EntityCreationConfig(Mapping[str, EntityCreationValue]):
         """Return a standard mutable mapping copy."""
 
         payload = {
-            "dog_id": self.dog_id,
-            "entity_type": self.entity_type,
-            "module": self.module,
-            "profile": self.profile,
-            "priority": self.priority,
-            "coordinator": self.coordinator,
-            "platform": self.platform,
-            "performance_impact": self.performance_impact,
+            'dog_id': self.dog_id,
+            'entity_type': self.entity_type,
+            'module': self.module,
+            'profile': self.profile,
+            'priority': self.priority,
+            'coordinator': self.coordinator,
+            'platform': self.platform,
+            'performance_impact': self.performance_impact,
         }
         payload.update(self.extras)
         return payload
@@ -221,21 +224,21 @@ class EntityProfileDefinition(Mapping[str, EntityProfileValue]):
         """Return the requested profile metadata attribute."""
 
         match key:
-            case "name":
+            case 'name':
                 return self.name
-            case "description":
+            case 'description':
                 return self.description
-            case "max_entities":
+            case 'max_entities':
                 return self.max_entities
-            case "performance_impact":
+            case 'performance_impact':
                 return self.performance_impact
-            case "recommended_for":
+            case 'recommended_for':
                 return self.recommended_for
-            case "platforms":
+            case 'platforms':
                 return self.platforms
-            case "priority_threshold":
+            case 'priority_threshold':
                 return self.priority_threshold
-            case "preferred_modules":
+            case 'preferred_modules':
                 return self.preferred_modules
         raise KeyError(key)  # pragma: no cover - defensive
 
@@ -243,14 +246,14 @@ class EntityProfileDefinition(Mapping[str, EntityProfileValue]):
         """Yield profile attribute keys in canonical order."""
 
         yield from (
-            "name",
-            "description",
-            "max_entities",
-            "performance_impact",
-            "recommended_for",
-            "platforms",
-            "priority_threshold",
-            "preferred_modules",
+            'name',
+            'description',
+            'max_entities',
+            'performance_impact',
+            'recommended_for',
+            'platforms',
+            'priority_threshold',
+            'preferred_modules',
         )
 
     def __len__(self) -> int:
@@ -278,19 +281,19 @@ class EntityPerformanceMetrics(Mapping[str, float | int | str]):
         """Return the requested performance metric value."""
 
         match key:
-            case "profile":
+            case 'profile':
                 return self.profile
-            case "estimated_entities":
+            case 'estimated_entities':
                 return self.estimated_entities
-            case "max_entities":
+            case 'max_entities':
                 return self.max_entities
-            case "performance_impact":
+            case 'performance_impact':
                 return self.performance_impact
-            case "utilization_percentage":
+            case 'utilization_percentage':
                 return self.utilization_percentage
-            case "enabled_modules":
+            case 'enabled_modules':
                 return self.enabled_modules
-            case "total_modules":
+            case 'total_modules':
                 return self.total_modules
         raise KeyError(key)  # pragma: no cover - defensive
 
@@ -298,13 +301,13 @@ class EntityPerformanceMetrics(Mapping[str, float | int | str]):
         """Yield metric keys in deterministic order."""
 
         yield from (
-            "profile",
-            "estimated_entities",
-            "max_entities",
-            "performance_impact",
-            "utilization_percentage",
-            "enabled_modules",
-            "total_modules",
+            'profile',
+            'estimated_entities',
+            'max_entities',
+            'performance_impact',
+            'utilization_percentage',
+            'enabled_modules',
+            'total_modules',
         )
 
     def __len__(self) -> int:
@@ -316,24 +319,24 @@ class EntityPerformanceMetrics(Mapping[str, float | int | str]):
         """Return a standard mapping representation for diagnostics/logging."""
 
         return {
-            "profile": self.profile,
-            "estimated_entities": self.estimated_entities,
-            "max_entities": self.max_entities,
-            "performance_impact": self.performance_impact,
-            "utilization_percentage": self.utilization_percentage,
-            "enabled_modules": self.enabled_modules,
-            "total_modules": self.total_modules,
+            'profile': self.profile,
+            'estimated_entities': self.estimated_entities,
+            'max_entities': self.max_entities,
+            'performance_impact': self.performance_impact,
+            'utilization_percentage': self.utilization_percentage,
+            'enabled_modules': self.enabled_modules,
+            'total_modules': self.total_modules,
         }
 
 
 ENTITY_PROFILES: Final[EntityProfilesTable] = MappingProxyType(
     {
-        "basic": EntityProfileDefinition(
-            name="Basic (≤8 entities)",
-            description="Absolute minimum footprint for one dog",
+        'basic': EntityProfileDefinition(
+            name='Basic (≤8 entities)',
+            description='Absolute minimum footprint for one dog',
             max_entities=8,
-            performance_impact="minimal",
-            recommended_for="Single dog, essential telemetry only",
+            performance_impact='minimal',
+            recommended_for='Single dog, essential telemetry only',
             platforms=(
                 Platform.SENSOR,
                 Platform.BINARY_SENSOR,
@@ -341,12 +344,12 @@ ENTITY_PROFILES: Final[EntityProfilesTable] = MappingProxyType(
             ),
             priority_threshold=5,
         ),
-        "standard": EntityProfileDefinition(
-            name="Standard (≤12 entities)",
-            description="Balanced monitoring with selective extras",
+        'standard': EntityProfileDefinition(
+            name='Standard (≤12 entities)',
+            description='Balanced monitoring with selective extras',
             max_entities=12,
-            performance_impact="low",
-            recommended_for="Most users, curated functionality",
+            performance_impact='low',
+            recommended_for='Most users, curated functionality',
             platforms=(
                 Platform.SENSOR,
                 Platform.BUTTON,
@@ -356,21 +359,21 @@ ENTITY_PROFILES: Final[EntityProfilesTable] = MappingProxyType(
             ),
             priority_threshold=5,
         ),
-        "advanced": EntityProfileDefinition(
-            name="Advanced (≤18 entities)",
-            description="Comprehensive monitoring - higher resource usage",
+        'advanced': EntityProfileDefinition(
+            name='Advanced (≤18 entities)',
+            description='Comprehensive monitoring - higher resource usage',
             max_entities=18,
-            performance_impact="medium",
-            recommended_for="Power users, detailed analytics",
+            performance_impact='medium',
+            recommended_for='Power users, detailed analytics',
             platforms=ALL_AVAILABLE_PLATFORMS,
             priority_threshold=3,
         ),
-        "gps_focus": EntityProfileDefinition(
-            name="GPS Focus (≤10 entities)",
-            description="GPS tracking optimised for active dogs",
+        'gps_focus': EntityProfileDefinition(
+            name='GPS Focus (≤10 entities)',
+            description='GPS tracking optimised for active dogs',
             max_entities=10,
-            performance_impact="low",
-            recommended_for="Active dogs, outdoor adventures",
+            performance_impact='low',
+            recommended_for='Active dogs, outdoor adventures',
             platforms=(
                 Platform.SENSOR,
                 Platform.BUTTON,
@@ -379,14 +382,14 @@ ENTITY_PROFILES: Final[EntityProfilesTable] = MappingProxyType(
                 Platform.NUMBER,
             ),
             priority_threshold=6,
-            preferred_modules=("gps", "walk", "visitor"),
+            preferred_modules=('gps', 'walk', 'visitor'),
         ),
-        "health_focus": EntityProfileDefinition(
-            name="Health Focus (≤10 entities)",
-            description="Health monitoring optimised for senior dogs",
+        'health_focus': EntityProfileDefinition(
+            name='Health Focus (≤10 entities)',
+            description='Health monitoring optimised for senior dogs',
             max_entities=10,
-            performance_impact="low",
-            recommended_for="Senior dogs, health conditions",
+            performance_impact='low',
+            recommended_for='Senior dogs, health conditions',
             platforms=(
                 Platform.SENSOR,
                 Platform.BUTTON,
@@ -396,7 +399,7 @@ ENTITY_PROFILES: Final[EntityProfilesTable] = MappingProxyType(
                 Platform.TEXT,
             ),
             priority_threshold=6,
-            preferred_modules=("health", "feeding", "medication"),
+            preferred_modules=('health', 'feeding', 'medication'),
         ),
     }
 )
@@ -404,165 +407,165 @@ ENTITY_PROFILES: Final[EntityProfilesTable] = MappingProxyType(
 # Pre-computed module entity estimates to avoid rebuilding dictionaries during
 # performance-critical calculations.
 MODULE_ENTITY_ESTIMATES: Final[dict[str, dict[str, int]]] = {
-    "feeding": {
-        "basic": 2,  # last feeding + critical schedule helper
-        "standard": 4,  # adds calories/portions without diagnostics
-        "advanced": 8,  # detailed nutrition insights
-        "health_focus": 5,  # curated for health automations
-        "gps_focus": 2,  # minimal feeding context for GPS builds
+    'feeding': {
+        'basic': 2,  # last feeding + critical schedule helper
+        'standard': 4,  # adds calories/portions without diagnostics
+        'advanced': 8,  # detailed nutrition insights
+        'health_focus': 5,  # curated for health automations
+        'gps_focus': 2,  # minimal feeding context for GPS builds
     },
-    "walk": {
-        "basic": 2,  # last walk + count today
-        "standard": 3,  # adds duration and weekly rollups
-        "advanced": 6,  # full history/analytics
-        "gps_focus": 5,  # GPS-centric walk metrics
-        "health_focus": 3,  # walk data that feeds health scoring
+    'walk': {
+        'basic': 2,  # last walk + count today
+        'standard': 3,  # adds duration and weekly rollups
+        'advanced': 6,  # full history/analytics
+        'gps_focus': 5,  # GPS-centric walk metrics
+        'health_focus': 3,  # walk data that feeds health scoring
     },
-    "gps": {
-        "basic": 1,  # location state only
-        "standard": 3,  # adds accuracy/battery context
-        "advanced": 5,  # altitude, heading, etc.
-        "gps_focus": 6,  # full GPS feature set
-        "health_focus": 2,  # minimal health context from GPS
+    'gps': {
+        'basic': 1,  # location state only
+        'standard': 3,  # adds accuracy/battery context
+        'advanced': 5,  # altitude, heading, etc.
+        'gps_focus': 6,  # full GPS feature set
+        'health_focus': 2,  # minimal health context from GPS
     },
-    "health": {
-        "basic": 2,  # status + weight
-        "standard": 3,  # adds trend scoring
-        "advanced": 6,  # deep health analytics
-        "health_focus": 8,  # full dedicated health set
-        "gps_focus": 3,  # minimal health overlay
+    'health': {
+        'basic': 2,  # status + weight
+        'standard': 3,  # adds trend scoring
+        'advanced': 6,  # deep health analytics
+        'health_focus': 8,  # full dedicated health set
+        'gps_focus': 3,  # minimal health overlay
     },
-    "notifications": {
-        "basic": 1,
-        "standard": 2,
-        "advanced": 3,
-        "gps_focus": 2,
-        "health_focus": 2,
+    'notifications': {
+        'basic': 1,
+        'standard': 2,
+        'advanced': 3,
+        'gps_focus': 2,
+        'health_focus': 2,
     },
-    "dashboard": {
-        "basic": 0,
-        "standard": 1,
-        "advanced": 2,
-        "gps_focus": 1,
-        "health_focus": 1,
+    'dashboard': {
+        'basic': 0,
+        'standard': 1,
+        'advanced': 2,
+        'gps_focus': 1,
+        'health_focus': 1,
     },
-    "visitor": {
-        "basic": 1,
-        "standard": 2,
-        "advanced": 3,
-        "gps_focus": 2,
-        "health_focus": 1,
+    'visitor': {
+        'basic': 1,
+        'standard': 2,
+        'advanced': 3,
+        'gps_focus': 2,
+        'health_focus': 1,
     },
-    "medication": {
-        "basic": 1,
-        "standard": 2,
-        "advanced": 4,
-        "health_focus": 5,
-        "gps_focus": 1,
+    'medication': {
+        'basic': 1,
+        'standard': 2,
+        'advanced': 4,
+        'health_focus': 5,
+        'gps_focus': 1,
     },
-    "training": {
-        "basic": 1,
-        "standard": 2,
-        "advanced": 4,
-        "gps_focus": 2,
-        "health_focus": 2,
+    'training': {
+        'basic': 1,
+        'standard': 2,
+        'advanced': 4,
+        'gps_focus': 2,
+        'health_focus': 2,
     },
-    "grooming": {
-        "basic": 1,
-        "standard": 2,
-        "advanced": 3,
-        "health_focus": 3,
-        "gps_focus": 1,
+    'grooming': {
+        'basic': 1,
+        'standard': 2,
+        'advanced': 3,
+        'health_focus': 3,
+        'gps_focus': 1,
     },
-    "garden": {
-        "basic": 2,  # time + sessions only
-        "standard": 5,  # adds poop + recent duration/summary
-        "advanced": 8,  # statistics suite
-        "gps_focus": 5,
-        "health_focus": 6,
+    'garden': {
+        'basic': 2,  # time + sessions only
+        'standard': 5,  # adds poop + recent duration/summary
+        'advanced': 8,  # statistics suite
+        'gps_focus': 5,
+        'health_focus': 6,
     },
 }
 
 _ESTIMATE_CACHE_MAX_SIZE: Final[int] = 128
 
 KNOWN_MODULES: Final[frozenset[str]] = frozenset(
-    set(MODULE_ENTITY_ESTIMATES) | {"weather"}
+    set(MODULE_ENTITY_ESTIMATES) | {'weather'}
 )
 
 _COMMON_PROFILE_PRESETS: Final[tuple[tuple[str, Mapping[str, bool]], ...]] = (
     (
-        "standard",
+        'standard',
         MappingProxyType(
             {
-                "feeding": True,
-                "walk": True,
-                "notifications": True,
+                'feeding': True,
+                'walk': True,
+                'notifications': True,
             }
         ),
     ),
     (
-        "standard",
+        'standard',
         MappingProxyType(
             {
-                "feeding": True,
-                "walk": True,
-                "health": True,
-                "gps": True,
+                'feeding': True,
+                'walk': True,
+                'health': True,
+                'gps': True,
             }
         ),
     ),
     (
-        "standard",
+        'standard',
         MappingProxyType(
             {
-                "feeding": True,
-                "walk": True,
-                "health": True,
-                "garden": True,
-                "notifications": True,
-                "dashboard": True,
+                'feeding': True,
+                'walk': True,
+                'health': True,
+                'garden': True,
+                'notifications': True,
+                'dashboard': True,
             }
         ),
     ),
     (
-        "standard",
+        'standard',
         MappingProxyType(
             {
-                "feeding": True,
-                "walk": True,
-                "health": True,
-                "gps": True,
-                "notifications": True,
-                "dashboard": True,
+                'feeding': True,
+                'walk': True,
+                'health': True,
+                'gps': True,
+                'notifications': True,
+                'dashboard': True,
             }
         ),
     ),
     (
-        "gps_focus",
+        'gps_focus',
         MappingProxyType(
             {
-                "feeding": True,
-                "walk": True,
-                "gps": True,
-                "notifications": True,
-                "visitor": True,
+                'feeding': True,
+                'walk': True,
+                'gps': True,
+                'notifications': True,
+                'visitor': True,
             }
         ),
     ),
     (
-        "health_focus",
+        'health_focus',
         MappingProxyType(
             {
-                "feeding": True,
-                "health": True,
-                "notifications": True,
-                "medication": True,
-                "grooming": True,
+                'feeding': True,
+                'health': True,
+                'notifications': True,
+                'medication': True,
+                'grooming': True,
             }
         ),
     ),
     (
-        "advanced",
+        'advanced',
         MappingProxyType(dict.fromkeys(MODULE_ENTITY_ESTIMATES, True)),
     ),
 )
@@ -598,7 +601,7 @@ class EntityBudget:
 
         if self.base_allocation > self.capacity:
             _LOGGER.warning(
-                "Base allocation %d exceeds capacity %d for %s/%s",  # pragma: no cover - log only
+                'Base allocation %d exceeds capacity %d for %s/%s',  # pragma: no cover - log only
                 self.base_allocation,
                 self.capacity,
                 self.dog_id,
@@ -682,8 +685,8 @@ class EntityFactory:
         self._last_estimate_key: tuple[str, tuple[tuple[str, bool], ...]] | None = None
         self._last_module_weights: dict[str, int] = {}
         if enforce_min_runtime is None:
-            env_value = os.getenv("PAWCONTROL_ENABLE_ENTITY_FACTORY_BENCHMARKS", "")
-            enforce_min_runtime = env_value.lower() in {"1", "true", "yes", "on"}
+            env_value = os.getenv('PAWCONTROL_ENABLE_ENTITY_FACTORY_BENCHMARKS', '')
+            enforce_min_runtime = env_value.lower() in {'1', 'true', 'yes', 'on'}
         self._enforce_min_runtime = enforce_min_runtime
         self._runtime_guard_floor = _MIN_OPERATION_DURATION
         self._last_synergy_score: int = 0
@@ -701,14 +704,14 @@ class EntityFactory:
 
         default_modules = self._get_default_modules()
         default_estimate = self._get_entity_estimate(
-            "standard", default_modules, log_invalid_inputs=False
+            'standard', default_modules, log_invalid_inputs=False
         )
 
         default_module_dict = dict(default_modules)
-        self.estimate_entity_count("standard", default_module_dict)
-        self.get_performance_metrics("standard", default_module_dict)
+        self.estimate_entity_count('standard', default_module_dict)
+        self.get_performance_metrics('standard', default_module_dict)
         for priority in (3, 5, 7, 9):
-            self.should_create_entity("standard", "sensor", "feeding", priority)
+            self.should_create_entity('standard', 'sensor', 'feeding', priority)
 
         for profile, modules in _COMMON_PROFILE_PRESETS:
             module_dict = dict(modules)
@@ -716,7 +719,7 @@ class EntityFactory:
             self.estimate_entity_count(profile, module_dict)
             self.get_performance_metrics(profile, module_dict)
             for priority in (3, 5, 7, 9):
-                self.should_create_entity(profile, "sensor", "feeding", priority)
+                self.should_create_entity(profile, 'sensor', 'feeding', priority)
 
         # Ensure the default combination remains the active baseline after warming
         self._update_last_estimate_state(default_estimate)
@@ -788,7 +791,7 @@ class EntityFactory:
                 self.coordinator.report_entity_budget(snapshot)
             except AttributeError:  # pragma: no cover - defensive guard
                 _LOGGER.debug(
-                    "Coordinator does not support entity budget reporting",  # pragma: no cover - log only
+                    'Coordinator does not support entity budget reporting',  # pragma: no cover - log only
                 )
 
         return snapshot
@@ -882,9 +885,9 @@ class EntityFactory:
             return profile
 
         if log:
-            _LOGGER.warning("Invalid profile %s, using standard", profile)
+            _LOGGER.warning('Invalid profile %s, using standard', profile)
 
-        return "standard"
+        return 'standard'
 
     def _normalize_modules(
         self, modules: Mapping[str, bool] | None, *, log: bool
@@ -893,13 +896,13 @@ class EntityFactory:
 
         if modules is None or not isinstance(modules, Mapping):
             if log:
-                _LOGGER.warning("Invalid modules configuration, using defaults")
+                _LOGGER.warning('Invalid modules configuration, using defaults')
             return self._get_default_modules()
 
         module_dict = dict(modules)
         if not self._validate_modules(module_dict):
             if log:
-                _LOGGER.warning("Invalid modules configuration, using defaults")
+                _LOGGER.warning('Invalid modules configuration, using defaults')
             return self._get_default_modules()
 
         return module_dict
@@ -926,7 +929,7 @@ class EntityFactory:
                 continue
 
             module_entities += profile_estimates.get(
-                profile, profile_estimates.get("standard", 2)
+                profile, profile_estimates.get('standard', 2)
             )
 
         raw_total = base_entities + module_entities
@@ -959,14 +962,14 @@ class EntityFactory:
         estimate = self._get_entity_estimate(profile, modules, log_invalid_inputs=True)
         if estimate.raw_total > estimate.capacity:
             _LOGGER.debug(
-                "Entity count capped from %d to %d for profile %s",  # pragma: no cover - log only
+                'Entity count capped from %d to %d for profile %s',  # pragma: no cover - log only
                 estimate.raw_total,
                 estimate.capacity,
                 estimate.profile,
             )
 
         self._update_last_estimate_state(estimate)
-        self._stabilize_priority_workload(5, "estimate")
+        self._stabilize_priority_workload(5, 'estimate')
         result = estimate.final_count
         self._ensure_min_runtime(started_at)
         return result
@@ -1005,11 +1008,11 @@ class EntityFactory:
             return cached
 
         if not self._validate_profile(profile):
-            profile = "standard"
+            profile = 'standard'
 
         platform = self._resolve_platform(entity_type)
         if platform is None:
-            _LOGGER.warning("Invalid entity type: %s", entity_type)
+            _LOGGER.warning('Invalid entity type: %s', entity_type)
             self._ensure_min_runtime(started_at)
             return False
 
@@ -1049,7 +1052,7 @@ class EntityFactory:
         """Sleep until ``_MIN_OPERATION_DURATION`` elapses when enabled."""
 
         if not self._enforce_min_runtime:
-            self._record_runtime_guard_calibration("disabled", 0.0)
+            self._record_runtime_guard_calibration('disabled', 0.0)
             return
 
         # Home Assistant calls into the entity factory from within the event loop during
@@ -1062,7 +1065,7 @@ class EntityFactory:
         except RuntimeError:
             pass
         else:
-            self._record_runtime_guard_calibration("disabled", 0.0)
+            self._record_runtime_guard_calibration('disabled', 0.0)
             return
 
         runtime_floor = self._runtime_guard_floor
@@ -1112,12 +1115,12 @@ class EntityFactory:
         if coordinator is None:
             return
 
-        config_entry = getattr(coordinator, "config_entry", None)
+        config_entry = getattr(coordinator, 'config_entry', None)
         runtime_data = None
         if config_entry is not None:
             runtime_data = cast(
-                "PawControlRuntimeData | None",
-                getattr(config_entry, "runtime_data", None),
+                'PawControlRuntimeData | None',
+                getattr(config_entry, 'runtime_data', None),
             )
 
         update_runtime_entity_factory_guard_metrics(
@@ -1134,17 +1137,17 @@ class EntityFactory:
         """Adapt the runtime guard to smooth jitter in busy environments."""
 
         if not self._enforce_min_runtime:
-            self._record_runtime_guard_calibration("disabled", actual_duration)
+            self._record_runtime_guard_calibration('disabled', actual_duration)
             return
 
         runtime_floor = self._runtime_guard_floor
-        event: EntityFactoryGuardEvent = "stable"
+        event: EntityFactoryGuardEvent = 'stable'
 
         if actual_duration >= runtime_floor * _RUNTIME_EXPAND_THRESHOLD:
             boosted = min(_RUNTIME_MAX_FLOOR, actual_duration / _RUNTIME_TARGET_RATIO)
             if boosted > runtime_floor:
                 self._runtime_guard_floor = boosted
-                event = "expand"
+                event = 'expand'
             self._record_runtime_guard_calibration(event, actual_duration)
             return
 
@@ -1158,7 +1161,7 @@ class EntityFactory:
                 self._runtime_guard_floor = _MIN_OPERATION_DURATION
             else:
                 self._runtime_guard_floor = contracted
-                event = "contract"
+                event = 'contract'
 
         self._record_runtime_guard_calibration(event, actual_duration)
 
@@ -1211,11 +1214,11 @@ class EntityFactory:
 
                 seen.add(identifier)
 
-                enum_name = getattr(current, "name", None)
+                enum_name = getattr(current, 'name', None)
                 if isinstance(enum_name, str):
                     yield enum_name
 
-                enum_value = getattr(current, "value", None)
+                enum_value = getattr(current, 'value', None)
                 if enum_value is not None:
                     stack.append(enum_value)
 
@@ -1223,7 +1226,7 @@ class EntityFactory:
     def _enum_contains_platform(enum_value: Enum, resolved: Platform) -> bool:
         """Return ``True`` if the enum contains the resolved platform value."""
 
-        resolved_value = getattr(resolved, "value", None)
+        resolved_value = getattr(resolved, 'value', None)
         target_value = (
             str(resolved_value).lower() if resolved_value is not None else None
         )
@@ -1251,11 +1254,11 @@ class EntityFactory:
 
                 seen.add(identifier)
 
-                enum_inner_value = getattr(current, "value", None)
+                enum_inner_value = getattr(current, 'value', None)
                 if enum_inner_value is not None:
                     stack.append(enum_inner_value)
 
-                enum_inner_name = getattr(current, "name", None)
+                enum_inner_name = getattr(current, 'name', None)
                 if (
                     isinstance(enum_inner_name, str)
                     and target_value is not None
@@ -1305,7 +1308,7 @@ class EntityFactory:
         if platform not in profile_config.platforms:
             return False
 
-        if profile == "basic":
+        if profile == 'basic':
             # Only essential entities
             essential_types = {
                 Platform.SENSOR,
@@ -1313,14 +1316,14 @@ class EntityFactory:
                 Platform.BINARY_SENSOR,
                 Platform.SWITCH,
             }
-            essential_modules = {"feeding", "health", "walk"}
+            essential_modules = {'feeding', 'health', 'walk'}
             return (
                 platform in essential_types
                 and module in essential_modules
                 and priority >= 5
             )
 
-        if profile == "gps_focus":
+        if profile == 'gps_focus':
             # GPS-related entities prioritized
             preferred_modules = profile_config.preferred_modules
             gps_types = {
@@ -1333,7 +1336,7 @@ class EntityFactory:
                 module in preferred_modules or priority >= 7
             )
 
-        if profile == "health_focus":
+        if profile == 'health_focus':
             # Health-related entities prioritized
             preferred_modules = profile_config.preferred_modules
             health_types = {
@@ -1347,7 +1350,7 @@ class EntityFactory:
                 module in preferred_modules or priority >= 7
             )
 
-        if profile == "advanced":
+        if profile == 'advanced':
             # Almost all entities created, minimal filtering
             return priority >= 3
 
@@ -1366,15 +1369,15 @@ class EntityFactory:
             Priority (1-10, lower = load first)
         """
         if not self._validate_profile(profile):
-            profile = "standard"
+            profile = 'standard'
 
         priority_maps = {
-            "basic": {
+            'basic': {
                 Platform.SENSOR: 1,
                 Platform.BUTTON: 2,
                 Platform.BINARY_SENSOR: 3,
             },
-            "standard": {
+            'standard': {
                 Platform.SENSOR: 1,
                 Platform.BINARY_SENSOR: 2,
                 Platform.BUTTON: 3,
@@ -1383,14 +1386,14 @@ class EntityFactory:
                 Platform.NUMBER: 6,
                 Platform.DEVICE_TRACKER: 7,
             },
-            "gps_focus": {
+            'gps_focus': {
                 Platform.DEVICE_TRACKER: 1,
                 Platform.SENSOR: 2,
                 Platform.BINARY_SENSOR: 3,
                 Platform.NUMBER: 4,
                 Platform.BUTTON: 5,
             },
-            "health_focus": {
+            'health_focus': {
                 Platform.SENSOR: 1,
                 Platform.NUMBER: 2,
                 Platform.DATE: 3,
@@ -1398,7 +1401,7 @@ class EntityFactory:
                 Platform.TEXT: 5,
                 Platform.BUTTON: 6,
             },
-            "advanced": {
+            'advanced': {
                 Platform.SENSOR: 1,
                 Platform.BINARY_SENSOR: 2,
                 Platform.DEVICE_TRACKER: 3,
@@ -1412,7 +1415,7 @@ class EntityFactory:
             },
         }
 
-        profile_priorities = priority_maps.get(profile, priority_maps["standard"])
+        profile_priorities = priority_maps.get(profile, priority_maps['standard'])
         return profile_priorities.get(platform, 99)  # Default to lowest priority
 
     def create_entity_config(
@@ -1445,7 +1448,7 @@ class EntityFactory:
         # Validate inputs
         if not dog_id or not entity_type or not module:
             _LOGGER.error(
-                "Missing required parameters: dog_id=%s, entity_type=%s, module=%s",
+                'Missing required parameters: dog_id=%s, entity_type=%s, module=%s',
                 dog_id,
                 entity_type,
                 module,
@@ -1455,19 +1458,19 @@ class EntityFactory:
         platform = self._resolve_platform(entity_type)
         if platform is None:
             _LOGGER.error(
-                "Unsupported entity type for config creation: %s", entity_type
+                'Unsupported entity type for config creation: %s', entity_type
             )
             return None
 
         normalized_type = platform.value
 
         if module not in KNOWN_MODULES:
-            _LOGGER.error("Unsupported module for config creation: %s", module)
+            _LOGGER.error('Unsupported module for config creation: %s', module)
             return None
 
         if not self.should_create_entity(profile, platform, module, resolved_priority):
             _LOGGER.debug(
-                "Skipping %s entity for %s/%s (profile: %s, priority: %d)",
+                'Skipping %s entity for %s/%s (profile: %s, priority: %d)',
                 normalized_type,
                 dog_id,
                 module,
@@ -1481,10 +1484,10 @@ class EntityFactory:
             identifier_parts = [module, normalized_type]
             if entity_key is not None:
                 identifier_parts.append(str(entity_key))
-            identifier = ":".join(identifier_parts)
+            identifier = ':'.join(identifier_parts)
             if not budget.reserve(identifier, priority=resolved_priority):
                 _LOGGER.debug(
-                    "Entity budget exhausted for %s/%s (identifier: %s)",
+                    'Entity budget exhausted for %s/%s (identifier: %s)',
                     dog_id,
                     profile,
                     identifier,
@@ -1495,9 +1498,9 @@ class EntityFactory:
             key: cast(EntityCreationValue, value) for key, value in overrides.items()
         }
         if entity_key is not None:
-            extras["entity_key"] = entity_key
+            extras['entity_key'] = entity_key
 
-        profile_config = ENTITY_PROFILES.get(profile, ENTITY_PROFILES["standard"])
+        profile_config = ENTITY_PROFILES.get(profile, ENTITY_PROFILES['standard'])
         platform_value = self._coerce_platform_output(entity_type, platform)
 
         extras_mapping = (
@@ -1530,7 +1533,7 @@ class EntityFactory:
 
         info = ENTITY_PROFILES.get(profile)
         if info is None:
-            info = ENTITY_PROFILES["standard"]
+            info = ENTITY_PROFILES['standard']
         self._profile_cache[profile] = info
         return info
 
@@ -1544,7 +1547,7 @@ class EntityFactory:
         profiles = list(ENTITY_PROFILES.keys())
 
         # Custom sort order: basic, standard, focused profiles, advanced
-        sort_order = ["basic", "standard", "gps_focus", "health_focus", "advanced"]
+        sort_order = ['basic', 'standard', 'gps_focus', 'health_focus', 'advanced']
         return sorted(
             profiles, key=lambda p: sort_order.index(p) if p in sort_order else 99
         )
@@ -1629,8 +1632,8 @@ class EntityFactory:
         unknown_modules = [module for module in modules if module not in KNOWN_MODULES]
         if unknown_modules:
             _LOGGER.warning(
-                "Ignoring unknown modules in configuration: %s",
-                ", ".join(sorted(unknown_modules)),
+                'Ignoring unknown modules in configuration: %s',
+                ', '.join(sorted(unknown_modules)),
             )
             return False
 
@@ -1644,12 +1647,12 @@ class EntityFactory:
             Default modules configuration
         """
         return {
-            "feeding": True,
-            "walk": True,
-            "notifications": True,
-            "health": False,
-            "garden": False,
-            "gps": False,
+            'feeding': True,
+            'walk': True,
+            'notifications': True,
+            'health': False,
+            'garden': False,
+            'gps': False,
         }
 
     def get_performance_metrics(
