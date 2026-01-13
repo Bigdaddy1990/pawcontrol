@@ -25,7 +25,7 @@ from typing import Any, Final, cast
 
 from homeassistant.util import dt as dt_util
 
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
+from .diagnostics import normalize_value
 from .types import (
     GPSCacheDiagnosticsMetadata,
     GPSCacheSnapshot,
@@ -871,7 +871,7 @@ class WalkManager:
 
         # OPTIMIZE: Store in history with size limit
         self._walk_history[dog_id].append(
-            cast(WalkSessionSnapshot, _normalise_diagnostics_json(dict(walk_data)))
+            cast(WalkSessionSnapshot, normalize_value(dict(walk_data)))
         )
 
         # Keep only last 100 walks to prevent memory leaks
@@ -1280,7 +1280,7 @@ class WalkManager:
                 data["walk_in_progress"] = False
                 data["current_walk"] = None
 
-            normalised = cast(WalkStatisticsSnapshot, _normalise_diagnostics_json(data))
+            normalised = cast(WalkStatisticsSnapshot, normalize_value(data))
 
             # Cache result
             self._statistics_cache[cache_key] = (normalised, dt_util.now())
@@ -1396,7 +1396,7 @@ class WalkManager:
                     continue
 
             ordered = sorted(recent_walks, key=lambda w: w["start_time"], reverse=True)
-            return cast(list[WalkSessionSnapshot], _normalise_diagnostics_json(ordered))
+            return cast(list[WalkSessionSnapshot], normalize_value(ordered))
 
     def get_walk_history(
         self, dog_id: str, limit: int | None = None
@@ -1413,7 +1413,7 @@ class WalkManager:
             cast(WalkSessionSnapshot, dict(walk)) for walk in reversed(history_slice)
         ]
         return cast(
-            list[WalkSessionSnapshot], _normalise_diagnostics_json(history_payload)
+            list[WalkSessionSnapshot], normalize_value(history_payload)
         )
 
     def get_last_walk_info(self, dog_id: str) -> WalkSessionSnapshot | None:
@@ -1445,7 +1445,7 @@ class WalkManager:
             if elapsed >= 0:
                 info["elapsed_duration"] = elapsed
 
-        return cast(WalkSessionSnapshot, _normalise_diagnostics_json(info))
+        return cast(WalkSessionSnapshot, normalize_value(info))
 
     def get_walk_data(self, dog_id: str) -> WalkOverviewSnapshot | None:
         """Return a snapshot of walk data for a dog."""
@@ -1481,7 +1481,7 @@ class WalkManager:
             "statistics": cast(WalkStatisticsSnapshot, dict(stats_snapshot)),
             "gps": gps_snapshot,
         }
-        return cast(WalkOverviewSnapshot, _normalise_diagnostics_json(overview))
+        return cast(WalkOverviewSnapshot, normalize_value(overview))
 
     def get_daily_walk_stats(self, dog_id: str) -> WalkDailyStatistics | None:
         """Return aggregated statistics for the current day."""
@@ -1722,7 +1722,7 @@ class WalkManager:
 
                 serialised_walks = cast(
                     list[JSONMutableMapping],
-                    _normalise_diagnostics_json(recent_walks),
+                    normalize_value(recent_walks),
                 )
 
                 export_data: WalkRouteExportPayload = {

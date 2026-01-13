@@ -31,7 +31,7 @@ from .const import (
     EVENT_GARDEN_LEFT,
     STORAGE_VERSION,
 )
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
+from .diagnostics import normalize_value
 from .notifications import NotificationPriority, NotificationType
 from .types import (
     GardenActiveSessionSnapshot,
@@ -829,7 +829,7 @@ class GardenManager:
 
         payload_entries = cast(
             list[JSONMutableMapping],
-            _normalise_diagnostics_json(entries),
+            normalize_value(entries),
         )
 
         if normalized_format == "csv":
@@ -859,7 +859,7 @@ class GardenManager:
             def _write_json() -> None:
                 payload = cast(
                     JSONMutableMapping,
-                    _normalise_diagnostics_json(
+                    normalize_value(
                         {
                             "dog_id": dog_id,
                             "data_type": "garden",

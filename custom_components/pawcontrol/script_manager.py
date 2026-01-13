@@ -64,6 +64,7 @@ from .coordinator_support import CacheMonitorRegistrar
 from .types import (
     CacheDiagnosticsMetadata,
     CacheDiagnosticsSnapshot,
+    ConfigEntryOptionsPayload,
     DogConfigData,
     JSONMutableMapping,
     JSONValue,
@@ -697,7 +698,9 @@ class PawControlScriptManager:
 
         return skip_threshold, breaker_threshold
 
-    def ensure_resilience_threshold_options(self) -> dict[str, object] | None:
+    def ensure_resilience_threshold_options(
+        self,
+    ) -> ConfigEntryOptionsPayload | None:
         """Return updated options when legacy script defaults need migration."""
 
         raw_options = getattr(self._entry, "options", None)
@@ -721,7 +724,7 @@ class PawControlScriptManager:
         if migrated_system is None:
             return None
 
-        options_mapping: Mapping[str, object] = (
+        options_mapping: Mapping[str, JSONValue] = (
             raw_options if isinstance(raw_options, Mapping) else {}
         )
 
@@ -755,7 +758,7 @@ class PawControlScriptManager:
     ) -> ManualResilienceSystemSettingsSnapshot | None:
         """Return a system settings payload with migrated thresholds."""
 
-        original: dict[str, object]
+        original: ManualResilienceSystemSettingsSnapshot
         original = dict(system_settings) if system_settings is not None else {}
         updated: ManualResilienceSystemSettingsSnapshot = {}
         if system_settings is not None:
@@ -799,12 +802,12 @@ class PawControlScriptManager:
 
     @staticmethod
     def _apply_resilience_system_settings(
-        options: Mapping[str, object],
+        options: Mapping[str, JSONValue],
         system_settings: ManualResilienceSystemSettingsSnapshot,
-    ) -> dict[str, object]:
+    ) -> ConfigEntryOptionsPayload:
         """Return updated options including migrated system settings."""
 
-        updated_options = dict(options)
+        updated_options = cast(ConfigEntryOptionsPayload, dict(options))
         updated_options["system_settings"] = dict(system_settings)
 
         for key in ("resilience_skip_threshold", "resilience_breaker_threshold"):

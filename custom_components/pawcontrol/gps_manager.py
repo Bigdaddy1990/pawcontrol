@@ -33,7 +33,7 @@ from .const import (
     EVENT_GEOFENCE_LEFT,
     EVENT_GEOFENCE_RETURN,
 )
-from .diagnostics import _normalise_json as _normalise_diagnostics_json
+from .diagnostics import normalize_value
 from .notifications import (
     NotificationPriority,
     NotificationTemplateData,
@@ -1436,7 +1436,7 @@ class GPSGeofenceManager:
 
         normalised_content = cast(
             GPSRouteExportJSONContent,
-            _normalise_diagnostics_json(export_data),
+            normalize_value(export_data),
         )
         payload: GPSRouteExportJSONPayload = {
             "format": "json",
