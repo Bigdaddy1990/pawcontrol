@@ -88,7 +88,7 @@ requires-python = ">=3.13"
 [project.optional-dependencies]
 tests = [
     "coverage[toml]>=7.13.1",
-    "homeassistant>=2025.10.1",
+    "homeassistant>=2026.1.1",
     "packaging>=25.0",
     "pip>=25.3",
     "pytest>=9.0.2",
