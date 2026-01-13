@@ -936,7 +936,7 @@ class DoorSensorManager:
         # Find which dog this sensor belongs to
         dog_id: str | None = None
         config = None
-        for dog_id, cfg in self._sensor_configs.items():  # noqa: B007
+        for dog_id, cfg in self._sensor_configs.items():
             if cfg.entity_id == entity_id:
                 config = cfg
                 break
@@ -994,7 +994,7 @@ class DoorSensorManager:
                 await asyncio.sleep(config.walk_detection_timeout)
                 await self._handle_walk_timeout(config, state)
 
-            asyncio.create_task(check_walk_timeout())  # noqa: RUF006
+            asyncio.create_task(check_walk_timeout())
 
     async def _handle_door_closed(
         self, config: DoorSensorConfig, state: WalkDetectionState
@@ -1112,7 +1112,7 @@ class DoorSensorManager:
                 )
                 await self._start_automatic_walk(config, state)
 
-        asyncio.create_task(confirmation_timeout())  # noqa: RUF006
+        asyncio.create_task(confirmation_timeout())
 
     async def _start_automatic_walk(
         self, config: DoorSensorConfig, state: WalkDetectionState
@@ -1173,7 +1173,7 @@ class DoorSensorManager:
                     if state.current_state == WALK_STATE_ACTIVE:
                         await self._end_automatic_walk(config, state, "timeout")
 
-                asyncio.create_task(auto_end_walk())  # noqa: RUF006
+                asyncio.create_task(auto_end_walk())
 
         except Exception as err:
             _LOGGER.error(

@@ -399,7 +399,7 @@ class CoordinatorRuntime:
                 for dog_id in dog_ids:
                     task_group.create_task(fetch_and_store(dog_id))
         except* ConfigEntryAuthFailed as auth_error_group:
-            raise auth_error_group.exceptions[0]  # noqa: B904
+            raise auth_error_group.exceptions[0]
         except* Exception as error_group:  # pragma: no cover - defensive logging
             for exc in error_group.exceptions:
                 self._logger.error("Task group error: %s", exc)

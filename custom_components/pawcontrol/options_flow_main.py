@@ -100,7 +100,7 @@ from .options_flow_system_settings import SystemSettingsOptionsMixin
 from .repairs import (  # noqa: F401
     ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE,
     async_create_issue,
-    async_schedule_repair_evaluation,  # noqa: F401 - imported for flow-side effects
+    async_schedule_repair_evaluation,
 )
 from .runtime_data import (  # noqa: F401
     RuntimeDataUnavailableError,

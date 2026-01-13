@@ -794,7 +794,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         unmapped_persons = []
         for person in self._persons.values():
             if not person.notification_service and not person.mobile_device_id:
-                unmapped_persons.append(person.friendly_name)  # noqa: PERF401
+                unmapped_persons.append(person.friendly_name)
 
         if unmapped_persons:
             issues.append(
@@ -805,7 +805,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
         # Check excluded entities
         for excluded in self._config.excluded_entities:
             if excluded not in [p.entity_id for p in self._persons.values()]:
-                issues.append(f"Excluded entity {excluded} not found")  # noqa: PERF401
+                issues.append(f"Excluded entity {excluded} not found")
 
         result: PersonEntityValidationResult = {
             "valid": len(issues) == 0,

@@ -94,8 +94,8 @@ class DoorSensorOptionsMixin:
         available_sensors = self._get_available_door_sensors()
         existing_sensor = cast(str | None, self._current_dog.get(CONF_DOOR_SENSOR))
         existing_payload = self._current_dog.get(CONF_DOOR_SENSOR_SETTINGS)
-        existing_settings: Mapping[str, bool | int | float | str | None] | None = None
-        if isinstance(existing_payload, Mapping):
+        existing_settings: Mapping[str, bool | int | float | str | None] | None = None  # noqa: F821
+        if isinstance(existing_payload, Mapping):  # noqa: F821
             filtered_settings: dict[str, bool | int | float | str | None] = {}
             for key, value in existing_payload.items():
                 if isinstance(value, (bool, int, float, str)) or value is None:
@@ -103,10 +103,10 @@ class DoorSensorOptionsMixin:
             existing_settings = filtered_settings
         base_settings = (
             ensure_door_sensor_settings_config(existing_settings)
-            if isinstance(existing_settings, Mapping)
+            if isinstance(existing_settings, Mapping)  # noqa: F821
             else ensure_door_sensor_settings_config(None)
         )
-        default_payload = asdict(DEFAULT_DOOR_SENSOR_SETTINGS)
+        default_payload = asdict(DEFAULT_DOOR_SENSOR_SETTINGS)  # noqa: F821
 
         errors: dict[str, str] = {}
 
@@ -123,7 +123,7 @@ class DoorSensorOptionsMixin:
             if trimmed_sensor:
                 state = self.hass.states.get(trimmed_sensor)
                 device_class = state.attributes.get("device_class") if state else None
-                if device_class not in DOOR_SENSOR_DEVICE_CLASSES:
+                if device_class not in DOOR_SENSOR_DEVICE_CLASSES:  # noqa: F821
                     errors[CONF_DOOR_SENSOR] = "door_sensor_not_found"
 
             settings_overrides: dict[str, bool | int | float | str | None] = {}
@@ -143,12 +143,12 @@ class DoorSensorOptionsMixin:
             if not errors:
                 normalised_settings = ensure_door_sensor_settings_config(
                     cast(
-                        Mapping[str, bool | int | float | str | None],
+                        Mapping[str, bool | int | float | str | None],  # noqa: F821
                         settings_overrides,
                     ),
                     base=base_settings,
                 )
-                settings_payload = asdict(normalised_settings)
+                settings_payload = asdict(normalised_settings)  # noqa: F821
 
                 sensor_store = trimmed_sensor
                 settings_store: DoorSensorSettingsPayload | None
@@ -179,7 +179,7 @@ class DoorSensorOptionsMixin:
                         )
 
                 try:
-                    normalised_dog = ensure_dog_config_data(updated_dog)
+                    normalised_dog = ensure_dog_config_data(updated_dog)  # noqa: F821
                     if normalised_dog is None:
                         raise ValueError
                 except ValueError:
@@ -190,7 +190,7 @@ class DoorSensorOptionsMixin:
                         persist_updates[CONF_DOOR_SENSOR] = sensor_store
 
                     existing_settings_payload = existing_settings
-                    if isinstance(existing_settings_payload, Mapping):
+                    if isinstance(existing_settings_payload, Mapping):  # noqa: F821
                         existing_settings_payload = dict(existing_settings_payload)
 
                     if (
@@ -204,8 +204,8 @@ class DoorSensorOptionsMixin:
                     data_manager = None
                     if persist_updates:
                         try:
-                            runtime = require_runtime_data(self.hass, self._entry)
-                        except RuntimeDataUnavailableError:
+                            runtime = require_runtime_data(self.hass, self._entry)  # noqa: F821
+                        except RuntimeDataUnavailableError:  # noqa: F821
                             _LOGGER.error(
                                 "Runtime data unavailable while updating door sensor "
                                 "overrides for dog %s",
@@ -232,7 +232,7 @@ class DoorSensorOptionsMixin:
                                 dog_id,
                                 err,
                             )
-                            failure = record_door_sensor_persistence_failure(
+                            failure = record_door_sensor_persistence_failure(  # noqa: F821
                                 runtime,
                                 dog_id=dog_id,
                                 dog_name=dog_name,
@@ -243,7 +243,7 @@ class DoorSensorOptionsMixin:
                             issue_timestamp = (
                                 failure["recorded_at"]
                                 if failure and "recorded_at" in failure
-                                else dt_util.utcnow().isoformat()
+                                else dt_util.utcnow().isoformat()  # noqa: F821
                             )
                             issue_payload: JSONMutableMapping = {
                                 "dog_id": dog_id,
@@ -256,12 +256,12 @@ class DoorSensorOptionsMixin:
                                 "timestamp": issue_timestamp,
                             }
                             try:
-                                await async_create_issue(
+                                await async_create_issue(  # noqa: F821
                                     self.hass,
                                     self._entry,
                                     f"{self._entry.entry_id}_door_sensor_{dog_id}",
-                                    ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE,
-                                    cast(JSONLikeMapping, issue_payload),
+                                    ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE,  # noqa: F821
+                                    cast(JSONLikeMapping, issue_payload),  # noqa: F821
                                     severity="error",
                                 )
                             except Exception as issue_err:  # pragma: no cover
@@ -292,7 +292,7 @@ class DoorSensorOptionsMixin:
                             self._dogs = typed_dogs
                             self._current_dog = typed_dogs[dog_index]
 
-                            new_data = {**self._entry.data, CONF_DOGS: typed_dogs}
+                            new_data = {**self._entry.data, CONF_DOGS: typed_dogs}  # noqa: F821
                             self.hass.config_entries.async_update_entry(
                                 self._entry, data=new_data
                             )

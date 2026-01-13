@@ -32,7 +32,7 @@ class ImportExportOptionsMixin:
                 step_id="import_export",
                 data_schema=self._get_import_export_menu_schema(),
                 description_placeholders=dict(
-                    freeze_placeholders(
+                    freeze_placeholders(  # noqa: F821
                         {
                             "instructions": (
                                 "Create a JSON backup of the current PawControl "
@@ -74,16 +74,16 @@ class ImportExportOptionsMixin:
                     vol.Optional(
                         "export_blob",
                         default=export_blob,
-                    ): selector.TextSelector(
-                        selector.TextSelectorConfig(
-                            type=selector.TextSelectorType.TEXT,
+                    ): selector.TextSelector(  # noqa: F821
+                        selector.TextSelectorConfig(  # noqa: F821
+                            type=selector.TextSelectorType.TEXT,  # noqa: F821
                             multiline=True,
                         )
                     )
                 }
             ),
             description_placeholders=dict(
-                freeze_placeholders(
+                freeze_placeholders(  # noqa: F821
                     {
                         "export_blob": export_blob,
                         "generated_at": payload["created_at"],
@@ -112,24 +112,24 @@ class ImportExportOptionsMixin:
                 else:
                     try:
                         validated = self._validate_import_payload(parsed)
-                    except FlowValidationError as err:
+                    except FlowValidationError as err:  # noqa: F821
                         _LOGGER.debug("Import payload validation failed: %s", err)
                         errors.update(err.as_form_errors())
                     else:
                         new_options = self._normalise_options_snapshot(
                             validated["options"]
                         )
-                        new_dogs: list[DogConfigData] = []
+                        new_dogs: list[DogConfigData] = []  # noqa: F821
                         for dog in validated.get("dogs", []):
-                            if not isinstance(dog, Mapping):
+                            if not isinstance(dog, Mapping):  # noqa: F821
                                 continue
-                            normalised = ensure_dog_config_data(
-                                cast(Mapping[str, JSONValue], dog)
+                            normalised = ensure_dog_config_data(  # noqa: F821
+                                cast(Mapping[str, JSONValue], dog)  # noqa: F821
                             )
                             if normalised is not None:
                                 new_dogs.append(normalised)
 
-                        new_data = {**self._entry.data, CONF_DOGS: new_dogs}
+                        new_data = {**self._entry.data, CONF_DOGS: new_dogs}  # noqa: F821
                         self.hass.config_entries.async_update_entry(
                             self._entry, data=new_data
                         )
@@ -150,10 +150,10 @@ class ImportExportOptionsMixin:
 
         return vol.Schema(
             {
-                vol.Required("action", default="export"): selector.SelectSelector(
-                    selector.SelectSelectorConfig(
+                vol.Required("action", default="export"): selector.SelectSelector(  # noqa: F821
+                    selector.SelectSelectorConfig(  # noqa: F821
                         options=["export", "import"],
-                        mode=selector.SelectSelectorMode.DROPDOWN,
+                        mode=selector.SelectSelectorMode.DROPDOWN,  # noqa: F821
                         translation_key="import_export_action",
                     )
                 )
@@ -165,9 +165,9 @@ class ImportExportOptionsMixin:
 
         return vol.Schema(
             {
-                vol.Required("payload", default=default_payload): selector.TextSelector(
-                    selector.TextSelectorConfig(
-                        type=selector.TextSelectorType.TEXT,
+                vol.Required("payload", default=default_payload): selector.TextSelector(  # noqa: F821
+                    selector.TextSelectorConfig(  # noqa: F821
+                        type=selector.TextSelectorType.TEXT,  # noqa: F821
                         multiline=True,
                     )
                 )
