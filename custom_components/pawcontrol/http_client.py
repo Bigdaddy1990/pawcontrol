@@ -31,7 +31,7 @@ def ensure_shared_client_session(session: Any, *, owner: str) -> ClientSession:
             f"{owner} requires Home Assistant's shared aiohttp ClientSession; received None."
         )
 
-    request = getattr(session, "request", None)
+    request = getattr(session, 'request', None)
     if not callable(request):
         raise ValueError(
             f"{owner} received an object without an aiohttp-compatible 'request' coroutine."
@@ -41,11 +41,11 @@ def ensure_shared_client_session(session: Any, *, owner: str) -> ClientSession:
         if func is None:
             return False
 
-        candidate = unwrap(getattr(func, "__func__", func))
+        candidate = unwrap(getattr(func, '__func__', func))
 
         return asyncio.iscoroutinefunction(candidate)
 
-    request_attr = getattr(type(session), "request", None)
+    request_attr = getattr(type(session), 'request', None)
 
     if (
         not _is_coroutine(request)
@@ -53,8 +53,8 @@ def ensure_shared_client_session(session: Any, *, owner: str) -> ClientSession:
         and (
             not callable(request_attr)
             or (
-                not _is_coroutine(getattr(session, "_request", None))
-                and not _is_coroutine(getattr(type(session), "_request", None))
+                not _is_coroutine(getattr(session, '_request', None))
+                and not _is_coroutine(getattr(type(session), '_request', None))
             )
         )
     ):
@@ -65,7 +65,7 @@ def ensure_shared_client_session(session: Any, *, owner: str) -> ClientSession:
             f"{owner} received an object without an aiohttp-compatible 'request' coroutine."
         )
 
-    closed_attr = getattr(session, "closed", False)
+    closed_attr = getattr(session, 'closed', False)
     closed = closed_attr if isinstance(closed_attr, bool) else False
     if closed:
         raise ValueError(
@@ -75,4 +75,4 @@ def ensure_shared_client_session(session: Any, *, owner: str) -> ClientSession:
     return cast(ClientSession, session)
 
 
-__all__ = ["ensure_shared_client_session"]
+__all__ = ['ensure_shared_client_session']

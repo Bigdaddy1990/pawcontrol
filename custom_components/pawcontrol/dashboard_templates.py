@@ -61,154 +61,154 @@ from .types import (
 )
 
 _STATISTICS_EMPTY_LIST_TRANSLATIONS: Final[Mapping[str, str]] = {
-    "en": "none",
-    "de": "keine",
+    'en': 'none',
+    'de': 'keine',
 }
 
 _STATISTICS_FALLBACK_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
-    "no_rejection_rate": {
-        "en": "n/a",
-        "de": "nicht verfügbar",
+    'no_rejection_rate': {
+        'en': 'n/a',
+        'de': 'nicht verfügbar',
     },
-    "no_last_rejection": {
-        "en": "never",
-        "de": "nie",
+    'no_last_rejection': {
+        'en': 'never',
+        'de': 'nie',
     },
-    "no_guard_reasons": {
-        "en": "none recorded",
-        "de": "keine Einträge",
+    'no_guard_reasons': {
+        'en': 'none recorded',
+        'de': 'keine Einträge',
     },
-    "no_guard_results": {
-        "en": "none recorded",
-        "de": "keine Einträge",
+    'no_guard_results': {
+        'en': 'none recorded',
+        'de': 'keine Einträge',
     },
 }
 
 _NOTIFICATION_LABEL_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
-    "sent_today": {
-        "en": "Notifications Sent Today",
-        "de": "Heute gesendete Benachrichtigungen",
+    'sent_today': {
+        'en': 'Notifications Sent Today',
+        'de': 'Heute gesendete Benachrichtigungen',
     },
-    "failed_deliveries": {
-        "en": "Failed Deliveries",
-        "de": "Fehlgeschlagene Zustellungen",
+    'failed_deliveries': {
+        'en': 'Failed Deliveries',
+        'de': 'Fehlgeschlagene Zustellungen',
     },
-    "quiet_hours_active": {
-        "en": "Quiet Hours Active",
-        "de": "Ruhezeiten aktiv",
+    'quiet_hours_active': {
+        'en': 'Quiet Hours Active',
+        'de': 'Ruhezeiten aktiv',
     },
-    "preferred_channels": {
-        "en": "Preferred Channels",
-        "de": "Bevorzugte Kanäle",
+    'preferred_channels': {
+        'en': 'Preferred Channels',
+        'de': 'Bevorzugte Kanäle',
     },
-    "recent_notification": {
-        "en": "Recent Notification",
-        "de": "Letzte Benachrichtigung",
+    'recent_notification': {
+        'en': 'Recent Notification',
+        'de': 'Letzte Benachrichtigung',
     },
-    "type": {"en": "Type", "de": "Typ"},
-    "priority": {"en": "Priority", "de": "Priorität"},
-    "sent": {"en": "Sent", "de": "Gesendet"},
-    "send_test_notification": {
-        "en": "Send Test Notification",
-        "de": "Testbenachrichtigung senden",
+    'type': {'en': 'Type', 'de': 'Typ'},
+    'priority': {'en': 'Priority', 'de': 'Priorität'},
+    'sent': {'en': 'Sent', 'de': 'Gesendet'},
+    'send_test_notification': {
+        'en': 'Send Test Notification',
+        'de': 'Testbenachrichtigung senden',
     },
-    "reset_quiet_hours": {
-        "en": "Reset Quiet Hours",
-        "de": "Ruhezeiten zurücksetzen",
+    'reset_quiet_hours': {
+        'en': 'Reset Quiet Hours',
+        'de': 'Ruhezeiten zurücksetzen',
     },
 }
 
 _NOTIFICATION_TEMPLATE_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
-    "overview_heading": {
-        "en": "Notification Overview for {dog_name}",
-        "de": "Benachrichtigungsübersicht für {dog_name}",
+    'overview_heading': {
+        'en': 'Notification Overview for {dog_name}',
+        'de': 'Benachrichtigungsübersicht für {dog_name}',
     },
-    "settings_title": {
-        "en": "{dog_name} Notification Controls",
-        "de": "{dog_name} Benachrichtigungssteuerung",
+    'settings_title': {
+        'en': '{dog_name} Notification Controls',
+        'de': '{dog_name} Benachrichtigungssteuerung',
     },
 }
 
 _NOTIFICATION_FALLBACK_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
-    "default_channels": {
-        "en": "Using default integration channels",
-        "de": "Verwendet Standardkanäle der Integration",
+    'default_channels': {
+        'en': 'Using default integration channels',
+        'de': 'Verwendet Standardkanäle der Integration',
     },
-    "no_notifications": {
-        "en": "No notifications recorded for this dog yet.",
-        "de": "Für diesen Hund wurden noch keine Benachrichtigungen aufgezeichnet.",
+    'no_notifications': {
+        'en': 'No notifications recorded for this dog yet.',
+        'de': 'Für diesen Hund wurden noch keine Benachrichtigungen aufgezeichnet.',
     },
-    "unknown_value": {"en": "unknown", "de": "unbekannt"},
-    "default_priority": {"en": "Normal", "de": "Normal"},
-    "diagnostics_title": {
-        "en": "PawControl Diagnostics",
-        "de": "PawControl-Diagnose",
+    'unknown_value': {'en': 'unknown', 'de': 'unbekannt'},
+    'default_priority': {'en': 'Normal', 'de': 'Normal'},
+    'diagnostics_title': {
+        'en': 'PawControl Diagnostics',
+        'de': 'PawControl-Diagnose',
     },
-    "diagnostics_message": {
-        "en": "Test notification from dashboard",
-        "de": "Testbenachrichtigung vom Dashboard",
+    'diagnostics_message': {
+        'en': 'Test notification from dashboard',
+        'de': 'Testbenachrichtigung vom Dashboard',
     },
 }
 
 _FEEDING_LABEL_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
-    "feeding_schedule": {"en": "Feeding Schedule", "de": "Fütterungsplan"},
-    "meal_breakfast": {"en": "Breakfast", "de": "Frühstück"},
-    "meal_lunch": {"en": "Lunch", "de": "Mittagessen"},
-    "meal_dinner": {"en": "Dinner", "de": "Abendessen"},
-    "meal_snack": {"en": "Snack", "de": "Snack"},
+    'feeding_schedule': {'en': 'Feeding Schedule', 'de': 'Fütterungsplan'},
+    'meal_breakfast': {'en': 'Breakfast', 'de': 'Frühstück'},
+    'meal_lunch': {'en': 'Lunch', 'de': 'Mittagessen'},
+    'meal_dinner': {'en': 'Dinner', 'de': 'Abendessen'},
+    'meal_snack': {'en': 'Snack', 'de': 'Snack'},
 }
 
 _HEALTH_LABEL_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
-    "health_check_button": {"en": "Health Check", "de": "Gesundheitsprüfung"},
-    "health_metrics": {"en": "Health Metrics", "de": "Gesundheitsmetriken"},
-    "weight": {"en": "Weight", "de": "Gewicht"},
-    "health_score": {"en": "Health Score", "de": "Gesundheitswert"},
-    "health_gauge": {"en": "Health", "de": "Gesundheit"},
-    "activity": {"en": "Activity", "de": "Aktivität"},
-    "health_trends": {"en": "Health Trends", "de": "Gesundheitsverlauf"},
-    "timeline_last_health_check": {
-        "en": "Last Health Check",
-        "de": "Letzte Gesundheitsprüfung",
+    'health_check_button': {'en': 'Health Check', 'de': 'Gesundheitsprüfung'},
+    'health_metrics': {'en': 'Health Metrics', 'de': 'Gesundheitsmetriken'},
+    'weight': {'en': 'Weight', 'de': 'Gewicht'},
+    'health_score': {'en': 'Health Score', 'de': 'Gesundheitswert'},
+    'health_gauge': {'en': 'Health', 'de': 'Gesundheit'},
+    'activity': {'en': 'Activity', 'de': 'Aktivität'},
+    'health_trends': {'en': 'Health Trends', 'de': 'Gesundheitsverlauf'},
+    'timeline_last_health_check': {
+        'en': 'Last Health Check',
+        'de': 'Letzte Gesundheitsprüfung',
     },
-    "weather_health_score": {
-        "en": "Health Score",
-        "de": "Gesundheitswert",
+    'weather_health_score': {
+        'en': 'Health Score',
+        'de': 'Gesundheitswert',
     },
-    "temperature_risk": {
-        "en": "Temperature Risk",
-        "de": "Temperaturrisiko",
+    'temperature_risk': {
+        'en': 'Temperature Risk',
+        'de': 'Temperaturrisiko',
     },
-    "activity_level": {
-        "en": "Activity Level",
-        "de": "Aktivitätsniveau",
+    'activity_level': {
+        'en': 'Activity Level',
+        'de': 'Aktivitätsniveau',
     },
-    "walk_safety": {"en": "Walk Safety", "de": "Spaziersicherheit"},
+    'walk_safety': {'en': 'Walk Safety', 'de': 'Spaziersicherheit'},
 }
 
 _HEALTH_TEMPLATE_TRANSLATIONS: Final[Mapping[str, Mapping[str, str]]] = {
-    "statistics_health_section": {
-        "en": """### ❤️ Health
+    'statistics_health_section': {
+        'en': """### ❤️ Health
 - **Weight**: {{{{ states('sensor.{dog_id}_weight') }}}} kg
 - **Health Score**: {{{{ states('sensor.{dog_id}_health_score') }}}}/100
 - **Activity Level**: {{{{ states('sensor.{dog_id}_activity_level') }}}}
 """,
-        "de": """### ❤️ Gesundheit
+        'de': """### ❤️ Gesundheit
 - **Gewicht**: {{{{ states('sensor.{dog_id}_weight') }}}} kg
 - **Gesundheitswert**: {{{{ states('sensor.{dog_id}_health_score') }}}}/100
 - **Aktivitätsniveau**: {{{{ states('sensor.{dog_id}_activity_level') }}}}
 """,
     },
-    "weather_health_compact_name": {
-        "en": "{icon} Weather Health",
-        "de": "{icon} Wettergesundheit",
+    'weather_health_compact_name': {
+        'en': '{icon} Weather Health',
+        'de': '{icon} Wettergesundheit',
     },
-    "weather_health_card_title": {
-        "en": "{icon} {dog_name} Weather Health",
-        "de": "{icon} {dog_name} Wettergesundheit",
+    'weather_health_card_title': {
+        'en': '{icon} {dog_name} Weather Health',
+        'de': '{icon} {dog_name} Wettergesundheit',
     },
-    "weather_health_chart_title": {
-        "en": "Weather Health Impact",
-        "de": "Wettergesundheitswirkung",
+    'weather_health_chart_title': {
+        'en': 'Weather Health Impact',
+        'de': 'Wettergesundheitswirkung',
     },
 }
 
@@ -217,13 +217,13 @@ def _format_breaker_list(entries: Sequence[str], language: str | None) -> str:
     """Return a human readable summary for breaker identifier lists."""
 
     if entries:
-        return ", ".join(entries)
+        return ', '.join(entries)
 
     normalized_language = normalize_language(language)
     if normalized_language in _STATISTICS_EMPTY_LIST_TRANSLATIONS:
         return _STATISTICS_EMPTY_LIST_TRANSLATIONS[normalized_language]
 
-    return _STATISTICS_EMPTY_LIST_TRANSLATIONS.get("en", "none")
+    return _STATISTICS_EMPTY_LIST_TRANSLATIONS.get('en', 'none')
 
 
 def _format_guard_reasons(
@@ -234,7 +234,7 @@ def _format_guard_reasons(
     if not reasons:
         default_value = _format_breaker_list((), language)
         fallback = _translated_statistics_fallback(
-            language, "no_guard_reasons", default_value
+            language, 'no_guard_reasons', default_value
         )
         return [fallback]
 
@@ -259,19 +259,19 @@ def _format_guard_results(
         if not isinstance(entry, Mapping):
             continue
 
-        domain = str(entry.get("domain", "unknown"))
-        service = str(entry.get("service", "unknown"))
-        executed = bool(entry.get("executed"))
+        domain = str(entry.get('domain', 'unknown'))
+        service = str(entry.get('service', 'unknown'))
+        executed = bool(entry.get('executed'))
 
-        outcome_key = "guard_result_executed" if executed else "guard_result_skipped"
+        outcome_key = 'guard_result_executed' if executed else 'guard_result_skipped'
         outcome_label = _translated_statistics_label(language, outcome_key)
 
-        reason = entry.get("reason")
+        reason = entry.get('reason')
         if isinstance(reason, str) and reason:
-            reason_label = _translated_statistics_label(language, "guard_result_reason")
+            reason_label = _translated_statistics_label(language, 'guard_result_reason')
             outcome_label = f"{outcome_label} ({reason_label}: {reason})"
 
-        description = entry.get("description")
+        description = entry.get('description')
         if isinstance(description, str) and description:
             outcome_label = f"{outcome_label} - {description}"
 
@@ -282,7 +282,7 @@ def _format_guard_results(
 
     default_value = _format_breaker_list((), language)
     fallback = _translated_statistics_fallback(
-        language, "no_guard_results", default_value
+        language, 'no_guard_results', default_value
     )
     return [fallback]
 
@@ -373,111 +373,111 @@ class NotificationOverviewAttributes(TypedDict, total=False):
 _LOGGER = logging.getLogger(__name__)
 
 _STATISTICS_LABEL_TRANSLATIONS: Final[dict[str, Mapping[str, str]]] = {
-    "statistics_header": {
-        "en": "Paw Control Statistics",
-        "de": "Paw Control Statistiken",
+    'statistics_header': {
+        'en': 'Paw Control Statistics',
+        'de': 'Paw Control Statistiken',
     },
-    "dogs_managed": {"en": "Dogs managed", "de": "Verwaltete Hunde"},
-    "active_modules": {"en": "Active modules", "de": "Aktive Module"},
-    "module_feeding": {"en": "Feeding", "de": "Fütterung"},
-    "module_walks": {"en": "Walks", "de": "Spaziergänge"},
-    "module_health": {"en": "Health", "de": "Gesundheit"},
-    "module_gps": {"en": "GPS", "de": "GPS"},
-    "module_notifications": {
-        "en": "Notifications",
-        "de": "Benachrichtigungen",
+    'dogs_managed': {'en': 'Dogs managed', 'de': 'Verwaltete Hunde'},
+    'active_modules': {'en': 'Active modules', 'de': 'Aktive Module'},
+    'module_feeding': {'en': 'Feeding', 'de': 'Fütterung'},
+    'module_walks': {'en': 'Walks', 'de': 'Spaziergänge'},
+    'module_health': {'en': 'Health', 'de': 'Gesundheit'},
+    'module_gps': {'en': 'GPS', 'de': 'GPS'},
+    'module_notifications': {
+        'en': 'Notifications',
+        'de': 'Benachrichtigungen',
     },
-    "last_updated": {"en": "Last updated", "de": "Zuletzt aktualisiert"},
-    "summary_card_title": {"en": "Summary", "de": "Zusammenfassung"},
-    "resilience_metrics_header": {
-        "en": "Resilience metrics",
-        "de": "Resilienzmetriken",
+    'last_updated': {'en': 'Last updated', 'de': 'Zuletzt aktualisiert'},
+    'summary_card_title': {'en': 'Summary', 'de': 'Zusammenfassung'},
+    'resilience_metrics_header': {
+        'en': 'Resilience metrics',
+        'de': 'Resilienzmetriken',
     },
-    "coordinator_resilience_label": {
-        "en": "Coordinator telemetry",
-        "de": "Koordinator-Telemetrie",
+    'coordinator_resilience_label': {
+        'en': 'Coordinator telemetry',
+        'de': 'Koordinator-Telemetrie',
     },
-    "service_resilience_label": {
-        "en": "Service execution telemetry",
-        "de": "Serviceausführungs-Telemetrie",
+    'service_resilience_label': {
+        'en': 'Service execution telemetry',
+        'de': 'Serviceausführungs-Telemetrie',
     },
-    "guard_metrics_header": {
-        "en": "Guard outcomes",
-        "de": "Guard-Ergebnisse",
+    'guard_metrics_header': {
+        'en': 'Guard outcomes',
+        'de': 'Guard-Ergebnisse',
     },
-    "guard_executed": {
-        "en": "Guarded calls executed",
-        "de": "Ausgeführte Guard-Aufrufe",
+    'guard_executed': {
+        'en': 'Guarded calls executed',
+        'de': 'Ausgeführte Guard-Aufrufe',
     },
-    "guard_skipped": {
-        "en": "Guarded calls skipped",
-        "de": "Übersprungene Guard-Aufrufe",
+    'guard_skipped': {
+        'en': 'Guarded calls skipped',
+        'de': 'Übersprungene Guard-Aufrufe',
     },
-    "guard_reasons": {
-        "en": "Skip reasons",
-        "de": "Übersprung-Gründe",
+    'guard_reasons': {
+        'en': 'Skip reasons',
+        'de': 'Übersprung-Gründe',
     },
-    "guard_last_results": {
-        "en": "Recent guard results",
-        "de": "Aktuelle Guard-Ergebnisse",
+    'guard_last_results': {
+        'en': 'Recent guard results',
+        'de': 'Aktuelle Guard-Ergebnisse',
     },
-    "guard_result_executed": {
-        "en": "executed",
-        "de": "ausgeführt",
+    'guard_result_executed': {
+        'en': 'executed',
+        'de': 'ausgeführt',
     },
-    "guard_result_skipped": {
-        "en": "skipped",
-        "de": "übersprungen",
+    'guard_result_skipped': {
+        'en': 'skipped',
+        'de': 'übersprungen',
     },
-    "guard_result_reason": {
-        "en": "reason",
-        "de": "Grund",
+    'guard_result_reason': {
+        'en': 'reason',
+        'de': 'Grund',
     },
-    "rejected_calls": {
-        "en": "Rejected calls",
-        "de": "Abgelehnte Aufrufe",
+    'rejected_calls': {
+        'en': 'Rejected calls',
+        'de': 'Abgelehnte Aufrufe',
     },
-    "rejecting_breakers": {
-        "en": "Rejecting breakers",
-        "de": "Blockierende Breaker",
+    'rejecting_breakers': {
+        'en': 'Rejecting breakers',
+        'de': 'Blockierende Breaker',
     },
-    "rejection_rate": {
-        "en": "Rejection rate",
-        "de": "Ablehnungsrate",
+    'rejection_rate': {
+        'en': 'Rejection rate',
+        'de': 'Ablehnungsrate',
     },
-    "last_rejection": {
-        "en": "Last rejection",
-        "de": "Letzte Ablehnung",
+    'last_rejection': {
+        'en': 'Last rejection',
+        'de': 'Letzte Ablehnung',
     },
-    "open_breaker_names": {"en": "Open breaker names", "de": "Namen offener Breaker"},
-    "half_open_breaker_names": {
-        "en": "Half-open breaker names",
-        "de": "Namen halb geöffneter Breaker",
+    'open_breaker_names': {'en': 'Open breaker names', 'de': 'Namen offener Breaker'},
+    'half_open_breaker_names': {
+        'en': 'Half-open breaker names',
+        'de': 'Namen halb geöffneter Breaker',
     },
-    "unknown_breaker_names": {
-        "en": "Unknown breaker names",
-        "de": "Namen unbekannter Breaker",
+    'unknown_breaker_names': {
+        'en': 'Unknown breaker names',
+        'de': 'Namen unbekannter Breaker',
     },
-    "rejection_breaker_names": {
-        "en": "Rejecting breaker names",
-        "de": "Namen blockierender Breaker",
+    'rejection_breaker_names': {
+        'en': 'Rejecting breaker names',
+        'de': 'Namen blockierender Breaker',
     },
-    "open_breaker_ids": {"en": "Open breaker IDs", "de": "IDs offener Breaker"},
-    "half_open_breaker_ids": {
-        "en": "Half-open breaker IDs",
-        "de": "IDs halb geöffneter Breaker",
+    'open_breaker_ids': {'en': 'Open breaker IDs', 'de': 'IDs offener Breaker'},
+    'half_open_breaker_ids': {
+        'en': 'Half-open breaker IDs',
+        'de': 'IDs halb geöffneter Breaker',
     },
-    "unknown_breaker_ids": {
-        "en": "Unknown breaker IDs",
-        "de": "IDs unbekannter Breaker",
+    'unknown_breaker_ids': {
+        'en': 'Unknown breaker IDs',
+        'de': 'IDs unbekannter Breaker',
     },
-    "rejection_breaker_ids": {
-        "en": "Rejecting breaker IDs",
-        "de": "IDs blockierender Breaker",
+    'rejection_breaker_ids': {
+        'en': 'Rejecting breaker IDs',
+        'de': 'IDs blockierender Breaker',
     },
-    "last_rejecting_breaker": {
-        "en": "Last rejecting breaker",
-        "de": "Letzter blockierender Breaker",
+    'last_rejecting_breaker': {
+        'en': 'Last rejecting breaker',
+        'de': 'Letzter blockierender Breaker',
     },
 }
 
@@ -495,7 +495,7 @@ def _translated_statistics_fallback(
     if normalized_language in translations:
         return translations[normalized_language]
 
-    return translations.get("en", default)
+    return translations.get('en', default)
 
 
 def _translated_statistics_label(language: str | None, label: str) -> str:
@@ -509,7 +509,7 @@ def _translated_statistics_label(language: str | None, label: str) -> str:
     if normalized_language in translations:
         return translations[normalized_language]
 
-    return translations.get("en", label)
+    return translations.get('en', label)
 
 
 def _translated_notification_label(language: str | None, label: str) -> str:
@@ -523,7 +523,7 @@ def _translated_notification_label(language: str | None, label: str) -> str:
     if normalized_language in translations:
         return translations[normalized_language]
 
-    return translations.get("en", label)
+    return translations.get('en', label)
 
 
 def _translated_notification_template(
@@ -540,7 +540,7 @@ def _translated_notification_template(
     normalized_language = normalize_language(language)
     template_value = translations.get(normalized_language)
     if template_value is None:
-        template_value = translations.get("en", template)
+        template_value = translations.get('en', template)
 
     return template_value.format(**values)
 
@@ -560,7 +560,7 @@ def _translated_notification_fallback(
     if normalized_language in translations:
         return translations[normalized_language]
 
-    return translations.get("en", default)
+    return translations.get('en', default)
 
 
 def _translated_feeding_label(language: str | None, label: str) -> str:
@@ -574,7 +574,7 @@ def _translated_feeding_label(language: str | None, label: str) -> str:
     if normalized_language in translations:
         return translations[normalized_language]
 
-    return translations.get("en", label)
+    return translations.get('en', label)
 
 
 def _translated_health_label(language: str | None, label: str) -> str:
@@ -588,7 +588,7 @@ def _translated_health_label(language: str | None, label: str) -> str:
     if normalized_language in translations:
         return translations[normalized_language]
 
-    return translations.get("en", label)
+    return translations.get('en', label)
 
 
 def _translated_health_template(
@@ -603,51 +603,51 @@ def _translated_health_template(
     normalized_language = normalize_language(language)
     template_value = translations.get(normalized_language)
     if template_value is None:
-        template_value = translations.get("en", template)
+        template_value = translations.get('en', template)
 
     return template_value.format(**values)
 
 
 # Weather dashboard constants
 WEATHER_THEMES: Final[dict[str, WeatherThemeConfig]] = {
-    "modern": {
-        "primary_color": "#2196F3",
-        "accent_color": "#FF5722",
-        "success_color": "#4CAF50",
-        "warning_color": "#FF9800",
-        "danger_color": "#F44336",
+    'modern': {
+        'primary_color': '#2196F3',
+        'accent_color': '#FF5722',
+        'success_color': '#4CAF50',
+        'warning_color': '#FF9800',
+        'danger_color': '#F44336',
     },
-    "playful": {
-        "primary_color": "#FF6B6B",
-        "accent_color": "#4ECDC4",
-        "success_color": "#95E1D3",
-        "warning_color": "#FFE66D",
-        "danger_color": "#FF8B94",
+    'playful': {
+        'primary_color': '#FF6B6B',
+        'accent_color': '#4ECDC4',
+        'success_color': '#95E1D3',
+        'warning_color': '#FFE66D',
+        'danger_color': '#FF8B94',
     },
-    "minimal": {
-        "primary_color": "#000000",
-        "accent_color": "#666666",
-        "success_color": "#333333",
-        "warning_color": "#999999",
-        "danger_color": "#CCCCCC",
+    'minimal': {
+        'primary_color': '#000000',
+        'accent_color': '#666666',
+        'success_color': '#333333',
+        'warning_color': '#999999',
+        'danger_color': '#CCCCCC',
     },
-    "dark": {
-        "primary_color": "#0F3460",
-        "accent_color": "#E94560",
-        "success_color": "#16213E",
-        "warning_color": "#0F4C75",
-        "danger_color": "#3282B8",
+    'dark': {
+        'primary_color': '#0F3460',
+        'accent_color': '#E94560',
+        'success_color': '#16213E',
+        'warning_color': '#0F4C75',
+        'danger_color': '#3282B8',
     },
 }
 
 WEATHER_CARD_TYPES: Final[list[str]] = [
-    "weather_status",
-    "weather_alerts",
-    "weather_recommendations",
-    "weather_chart",
-    "weather_breed_advisory",
-    "weather_action_buttons",
-    "weather_dashboard_layout",
+    'weather_status',
+    'weather_alerts',
+    'weather_recommendations',
+    'weather_chart',
+    'weather_breed_advisory',
+    'weather_action_buttons',
+    'weather_dashboard_layout',
 ]
 
 # Cache configuration
@@ -662,7 +662,7 @@ DEFAULT_MAP_HOURS_TO_SHOW: Final[int] = 2
 MAP_HISTORY_MIN_HOURS: Final[int] = 1
 MAP_HISTORY_MAX_HOURS: Final[int] = 168
 MAP_OPTION_KEYS: Final[frozenset[str]] = frozenset(
-    {"zoom", "default_zoom", "dark_mode", "hours_to_show"}
+    {'zoom', 'default_zoom', 'dark_mode', 'hours_to_show'}
 )
 
 
@@ -736,10 +736,10 @@ class TemplateCache[PayloadT: CardTemplatePayload]:
         """
         async with self._lock:
             # Check template size to prevent memory bloat
-            template_size = len(json.dumps(template, separators=(",", ":")))
+            template_size = len(json.dumps(template, separators=(',', ':')))
             if template_size > MAX_TEMPLATE_SIZE:
                 _LOGGER.warning(
-                    "Template %s too large (%d bytes), not caching", key, template_size
+                    'Template %s too large (%d bytes), not caching', key, template_size
                 )
                 return
 
@@ -778,12 +778,12 @@ class TemplateCache[PayloadT: CardTemplatePayload]:
         hit_rate = (self._hits / total * 100.0) if total > 0 else 0.0
 
         stats: TemplateCacheStats = {
-            "hits": self._hits,
-            "misses": self._misses,
-            "hit_rate": hit_rate,
-            "cached_items": len(self._cache),
-            "evictions": self._evictions,
-            "max_size": self._maxsize,
+            'hits': self._hits,
+            'misses': self._misses,
+            'hit_rate': hit_rate,
+            'cached_items': len(self._cache),
+            'evictions': self._evictions,
+            'max_size': self._maxsize,
         }
 
         return stats
@@ -793,10 +793,10 @@ class TemplateCache[PayloadT: CardTemplatePayload]:
         """Return metadata describing cache configuration."""
 
         metadata: TemplateCacheDiagnosticsMetadata = {
-            "cached_keys": sorted(self._cache),
-            "ttl_seconds": TEMPLATE_TTL_SECONDS,
-            "max_size": self._maxsize,
-            "evictions": self._evictions,
+            'cached_keys': sorted(self._cache),
+            'ttl_seconds': TEMPLATE_TTL_SECONDS,
+            'max_size': self._maxsize,
+            'evictions': self._evictions,
         }
 
         return metadata
@@ -837,84 +837,84 @@ class DashboardTemplates:
             Base card template
         """
         base_templates: dict[str, CardConfig] = {
-            "status": {
-                "type": "entities",
-                "state_color": True,
-                "show_header_toggle": False,
+            'status': {
+                'type': 'entities',
+                'state_color': True,
+                'show_header_toggle': False,
             },
-            "button": {
-                "type": "button",
-                "show_state": True,
-                "show_icon": True,
+            'button': {
+                'type': 'button',
+                'show_state': True,
+                'show_icon': True,
             },
-            "horizontal_stack": {
-                "type": "horizontal-stack",
-                "cards": [],
+            'horizontal_stack': {
+                'type': 'horizontal-stack',
+                'cards': [],
             },
-            "vertical_stack": {
-                "type": "vertical-stack",
-                "cards": [],
+            'vertical_stack': {
+                'type': 'vertical-stack',
+                'cards': [],
             },
-            "grid": {
-                "type": "grid",
-                "columns": 2,
-                "cards": [],
+            'grid': {
+                'type': 'grid',
+                'columns': 2,
+                'cards': [],
             },
-            "map": {
-                "type": "map",
-                "default_zoom": DEFAULT_MAP_ZOOM,
-                "dark_mode": False,
-                "hours_to_show": DEFAULT_MAP_HOURS_TO_SHOW,
+            'map': {
+                'type': 'map',
+                'default_zoom': DEFAULT_MAP_ZOOM,
+                'dark_mode': False,
+                'hours_to_show': DEFAULT_MAP_HOURS_TO_SHOW,
             },
-            "history_graph": {
-                "type": "history-graph",
-                "hours_to_show": 24,
-                "refresh_interval": 0,
+            'history_graph': {
+                'type': 'history-graph',
+                'hours_to_show': 24,
+                'refresh_interval': 0,
             },
-            "statistics_graph": {
-                "type": "statistics-graph",
-                "stat_types": ["mean", "min", "max"],
-                "days_to_show": 30,
+            'statistics_graph': {
+                'type': 'statistics-graph',
+                'stat_types': ['mean', 'min', 'max'],
+                'days_to_show': 30,
             },
-            "markdown": {
-                "type": "markdown",
-                "content": "",
+            'markdown': {
+                'type': 'markdown',
+                'content': '',
             },
-            "conditional": {
-                "type": "conditional",
-                "conditions": [],
-                "card": {},
+            'conditional': {
+                'type': 'conditional',
+                'conditions': [],
+                'card': {},
             },
-            "gauge": {
-                "type": "gauge",
-                "min": 0,
-                "max": 100,
-                "unit": "%",
+            'gauge': {
+                'type': 'gauge',
+                'min': 0,
+                'max': 100,
+                'unit': '%',
             },
-            "picture_elements": {
-                "type": "picture-elements",
-                "elements": [],
+            'picture_elements': {
+                'type': 'picture-elements',
+                'elements': [],
             },
-            "custom:mushroom-entity": {
-                "type": "custom:mushroom-entity",
-                "icon_color": "blue",
-                "fill_container": True,
+            'custom:mushroom-entity': {
+                'type': 'custom:mushroom-entity',
+                'icon_color': 'blue',
+                'fill_container': True,
             },
-            "custom:mini-graph-card": {
-                "type": "custom:mini-graph-card",
-                "hours_to_show": 24,
-                "points_per_hour": 2,
-                "line_width": 2,
+            'custom:mini-graph-card': {
+                'type': 'custom:mini-graph-card',
+                'hours_to_show': 24,
+                'points_per_hour': 2,
+                'line_width': 2,
             },
         }
 
         template = base_templates.get(card_type)
         if template is None:
-            return {"type": card_type}
+            return {'type': card_type}
 
         return template.copy()
 
-    def _get_theme_styles(self, theme: str = "modern") -> ThemeStyles:
+    def _get_theme_styles(self, theme: str = 'modern') -> ThemeStyles:
         """Get theme-specific styling options.
 
         Args:
@@ -924,9 +924,9 @@ class DashboardTemplates:
             Theme styling dictionary
         """
         themes: dict[str, ThemeStyles] = {
-            "modern": {
-                "card_mod": {
-                    "style": """
+            'modern': {
+                'card_mod': {
+                    'style': """
                         ha-card {
                             background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(250,250,250,0.95) 100%);
                             border-radius: 16px;
@@ -939,20 +939,20 @@ class DashboardTemplates:
                         }
                     """
                 },
-                "colors": {
-                    "primary": "#2196F3",
-                    "accent": "#FF5722",
-                    "background": "#FAFAFA",
-                    "text": "#212121",
+                'colors': {
+                    'primary': '#2196F3',
+                    'accent': '#FF5722',
+                    'background': '#FAFAFA',
+                    'text': '#212121',
                 },
-                "icons": {
-                    "style": "rounded",
-                    "animated": True,
+                'icons': {
+                    'style': 'rounded',
+                    'animated': True,
                 },
             },
-            "playful": {
-                "card_mod": {
-                    "style": """
+            'playful': {
+                'card_mod': {
+                    'style': """
                         ha-card {
                             background: linear-gradient(45deg, #FF6B6B 0%, #4ECDC4 100%);
                             border-radius: 24px;
@@ -968,21 +968,21 @@ class DashboardTemplates:
                         }
                     """
                 },
-                "colors": {
-                    "primary": "#FF6B6B",
-                    "accent": "#4ECDC4",
-                    "background": "#FFE66D",
-                    "text": "#292F36",
+                'colors': {
+                    'primary': '#FF6B6B',
+                    'accent': '#4ECDC4',
+                    'background': '#FFE66D',
+                    'text': '#292F36',
                 },
-                "icons": {
-                    "style": "emoji",
-                    "animated": True,
-                    "bounce": True,
+                'icons': {
+                    'style': 'emoji',
+                    'animated': True,
+                    'bounce': True,
                 },
             },
-            "minimal": {
-                "card_mod": {
-                    "style": """
+            'minimal': {
+                'card_mod': {
+                    'style': """
                         ha-card {
                             background: white;
                             border-radius: 4px;
@@ -991,20 +991,20 @@ class DashboardTemplates:
                         }
                     """
                 },
-                "colors": {
-                    "primary": "#000000",
-                    "accent": "#666666",
-                    "background": "#FFFFFF",
-                    "text": "#000000",
+                'colors': {
+                    'primary': '#000000',
+                    'accent': '#666666',
+                    'background': '#FFFFFF',
+                    'text': '#000000',
                 },
-                "icons": {
-                    "style": "outlined",
-                    "animated": False,
+                'icons': {
+                    'style': 'outlined',
+                    'animated': False,
                 },
             },
-            "dark": {
-                "card_mod": {
-                    "style": """
+            'dark': {
+                'card_mod': {
+                    'style': """
                         ha-card {
                             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
                             border-radius: 12px;
@@ -1013,26 +1013,26 @@ class DashboardTemplates:
                         }
                     """
                 },
-                "colors": {
-                    "primary": "#0F3460",
-                    "accent": "#E94560",
-                    "background": "#1A1A2E",
-                    "text": "#FFFFFF",
+                'colors': {
+                    'primary': '#0F3460',
+                    'accent': '#E94560',
+                    'background': '#1A1A2E',
+                    'text': '#FFFFFF',
                 },
-                "icons": {
-                    "style": "filled",
-                    "animated": True,
-                    "glow": True,
+                'icons': {
+                    'style': 'filled',
+                    'animated': True,
+                    'glow': True,
                 },
             },
         }
 
-        return themes.get(theme, themes["modern"])
+        return themes.get(theme, themes['modern'])
 
     def _card_mod(self, theme_styles: ThemeStyles) -> CardModConfig:
         """Return a mutable card-mod payload for template assembly."""
 
-        card_mod = theme_styles.get("card_mod")
+        card_mod = theme_styles.get('card_mod')
         if card_mod is None:
             return cast(CardModConfig, {})
         return cast(CardModConfig, card_mod.copy())
@@ -1042,12 +1042,12 @@ class DashboardTemplates:
     ) -> CardModConfig:
         """Return a card-mod payload attached to ``template``."""
 
-        existing = template.get("card_mod")
+        existing = template.get('card_mod')
         if isinstance(existing, dict):
             return cast(CardModConfig, existing)
 
         card_mod = self._card_mod(theme_styles)
-        template["card_mod"] = card_mod
+        template['card_mod'] = card_mod
         return card_mod
 
     @staticmethod
@@ -1076,7 +1076,7 @@ class DashboardTemplates:
         if isinstance(value, int | float):
             return value != 0
         if isinstance(value, str):
-            return value.strip().lower() in {"1", "true", "yes", "on"}
+            return value.strip().lower() in {'1', 'true', 'yes', 'on'}
         return False
 
     @staticmethod
@@ -1085,7 +1085,7 @@ class DashboardTemplates:
 
         if isinstance(value, str):
             return [
-                chunk for chunk in (part.strip() for part in value.split(",")) if chunk
+                chunk for chunk in (part.strip() for part in value.split(',')) if chunk
             ]
 
         if isinstance(value, Sequence) and not isinstance(
@@ -1109,17 +1109,17 @@ class DashboardTemplates:
 
         event: NotificationLastEvent = {}
 
-        for key in ("type", "priority", "title", "message", "channel", "status"):
+        for key in ('type', 'priority', 'title', 'message', 'channel', 'status'):
             raw = value.get(key)
             if raw is None:
                 continue
             event[key] = str(raw)
 
-        sent_at = value.get("sent_at")
+        sent_at = value.get('sent_at')
         if isinstance(sent_at, str):
-            event["sent_at"] = sent_at
+            event['sent_at'] = sent_at
         elif sent_at is not None:
-            event["sent_at"] = str(sent_at)
+            event['sent_at'] = str(sent_at)
 
         return event or None
 
@@ -1129,47 +1129,47 @@ class DashboardTemplates:
     ) -> tuple[NotificationPerformanceMetrics, dict[str, NotificationDogOverview]]:
         """Return typed metrics extracted from ``sensor.pawcontrol_notifications``."""
 
-        metrics: NotificationPerformanceMetrics = {"notifications_failed": 0}
+        metrics: NotificationPerformanceMetrics = {'notifications_failed': 0}
         per_dog: dict[str, NotificationDogOverview] = {}
 
         if state is None:
             return metrics, per_dog
 
-        attributes = getattr(state, "attributes", None)
+        attributes = getattr(state, 'attributes', None)
         if not isinstance(attributes, Mapping):
             return metrics, per_dog
 
-        raw_metrics = attributes.get("performance_metrics")
+        raw_metrics = attributes.get('performance_metrics')
         if isinstance(raw_metrics, Mapping):
-            metrics["notifications_failed"] = DashboardTemplates._parse_int(
-                raw_metrics.get("notifications_failed"),
+            metrics['notifications_failed'] = DashboardTemplates._parse_int(
+                raw_metrics.get('notifications_failed'),
                 default=0,
             )
 
-        raw_per_dog = attributes.get("per_dog")
+        raw_per_dog = attributes.get('per_dog')
         if isinstance(raw_per_dog, Mapping):
             for dog_id, raw_stats in raw_per_dog.items():
                 if not isinstance(dog_id, str) or not isinstance(raw_stats, Mapping):
                     continue
 
                 dog_overview: NotificationDogOverview = {
-                    "sent_today": DashboardTemplates._parse_int(
-                        raw_stats.get("sent_today"),
+                    'sent_today': DashboardTemplates._parse_int(
+                        raw_stats.get('sent_today'),
                         default=0,
                     ),
-                    "quiet_hours_active": DashboardTemplates._parse_bool(
-                        raw_stats.get("quiet_hours_active")
+                    'quiet_hours_active': DashboardTemplates._parse_bool(
+                        raw_stats.get('quiet_hours_active')
                     ),
-                    "channels": DashboardTemplates._parse_channels(
-                        raw_stats.get("channels")
+                    'channels': DashboardTemplates._parse_channels(
+                        raw_stats.get('channels')
                     ),
                 }
 
                 last_notification = DashboardTemplates._parse_last_notification(
-                    raw_stats.get("last_notification")
+                    raw_stats.get('last_notification')
                 )
                 if last_notification is not None:
-                    dog_overview["last_notification"] = last_notification
+                    dog_overview['last_notification'] = last_notification
 
                 per_dog[dog_id] = dog_overview
 
@@ -1180,7 +1180,7 @@ class DashboardTemplates:
         dog_id: str,
         dog_name: str,
         modules: DogModulesConfig,
-        theme: str = "modern",
+        theme: str = 'modern',
     ) -> CardConfig:
         """Get themed dog status card template.
 
@@ -1215,7 +1215,7 @@ class DashboardTemplates:
         dog_id: str,
         dog_name: str,
         modules: DogModulesConfig,
-        theme: str = "modern",
+        theme: str = 'modern',
     ) -> CardConfig:
         """Generate themed dog status card template.
 
@@ -1228,7 +1228,7 @@ class DashboardTemplates:
         Returns:
             Status card template with theme styling
         """
-        base_template = self._get_base_card_template("status")
+        base_template = self._get_base_card_template('status')
         theme_styles = self._get_theme_styles(theme)
 
         # Core entities - always present
@@ -1238,7 +1238,7 @@ class DashboardTemplates:
         ]
 
         # Add module-specific entities
-        if modules.get("feeding"):
+        if modules.get('feeding'):
             entities.extend(
                 [
                     f"sensor.{dog_id}_last_fed",
@@ -1247,7 +1247,7 @@ class DashboardTemplates:
                 ]
             )
 
-        if modules.get("walk"):
+        if modules.get('walk'):
             entities.extend(
                 [
                     f"binary_sensor.{dog_id}_is_walking",
@@ -1256,7 +1256,7 @@ class DashboardTemplates:
                 ]
             )
 
-        if modules.get("health"):
+        if modules.get('health'):
             entities.extend(
                 [
                     f"sensor.{dog_id}_weight",
@@ -1265,7 +1265,7 @@ class DashboardTemplates:
                 ]
             )
 
-        if modules.get("gps"):
+        if modules.get('gps'):
             entities.extend(
                 [
                     f"device_tracker.{dog_id}_location",
@@ -1278,18 +1278,18 @@ class DashboardTemplates:
         card_mod = self._card_mod(theme_styles)
         template: CardConfig = {
             **base_template,
-            "title": f"{self._get_dog_emoji(theme)} {dog_name} Status",
-            "entities": entities,
-            "card_mod": card_mod,
+            'title': f"{self._get_dog_emoji(theme)} {dog_name} Status",
+            'entities': entities,
+            'card_mod': card_mod,
         }
 
         # Add theme-specific enhancements
-        if theme == "playful":
-            template["icon"] = "mdi:dog-side"
-            template["icon_color"] = theme_styles["colors"]["primary"]
-        elif theme == "modern":
-            template["show_state"] = True
-            template["state_color"] = True
+        if theme == 'playful':
+            template['icon'] = 'mdi:dog-side'
+            template['icon_color'] = theme_styles['colors']['primary']
+        elif theme == 'modern':
+            template['show_state'] = True
+            template['state_color'] = True
 
         return template
 
@@ -1303,19 +1303,19 @@ class DashboardTemplates:
             Dog emoji for the theme
         """
         emojis = {
-            "modern": "🐕",
-            "playful": "🐶",
-            "minimal": "•",
-            "dark": "🌙",
+            'modern': '🐕',
+            'playful': '🐶',
+            'minimal': '•',
+            'dark': '🌙',
         }
-        return emojis.get(theme, "🐕")
+        return emojis.get(theme, '🐕')
 
     async def get_action_buttons_template(
         self,
         dog_id: str,
         modules: DogModulesConfig,
-        theme: str = "modern",
-        layout: str = "cards",
+        theme: str = 'modern',
+        layout: str = 'cards',
     ) -> CardCollection:
         """Get themed action buttons template for dog."""
         cache_key = f"action_buttons_{dog_id}_{hash(frozenset(modules.items()))}_{theme}_{layout}"
@@ -1324,26 +1324,26 @@ class DashboardTemplates:
         if isinstance(cached, list):
             return cached
 
-        base_button = self._get_base_card_template("button")
+        base_button = self._get_base_card_template('button')
         theme_styles = self._get_theme_styles(theme)
         button_style = self._get_button_style(theme)
 
         buttons: CardCollection = []
-        if modules.get("feeding"):
+        if modules.get('feeding'):
             buttons.append(
                 self._create_feeding_button(
                     dog_id, base_button, button_style, theme_styles, theme
                 )
             )
 
-        if modules.get("walk"):
+        if modules.get('walk'):
             buttons.extend(
                 self._create_walk_buttons(
                     dog_id, base_button, button_style, theme_styles, theme
                 )
             )
 
-        if modules.get("health"):
+        if modules.get('health'):
             buttons.append(
                 self._create_health_button(
                     dog_id, base_button, button_style, theme_styles, theme
@@ -1360,8 +1360,8 @@ class DashboardTemplates:
     def _gradient_style(self, primary: str, secondary: str) -> CardConfig:
         """Return gradient card_mod style with provided colors."""
         return {
-            "card_mod": {
-                "style": f"""
+            'card_mod': {
+                'style': f"""
                     ha-card {{
                         background: linear-gradient(135deg, {primary} 0%, {secondary} 100%);
                         color: white;
@@ -1377,12 +1377,12 @@ class DashboardTemplates:
 
     def _get_button_style(self, theme: str) -> CardConfig:
         """Return card style based on theme."""
-        if theme == "modern":
-            return self._gradient_style("#667eea", "#764ba2")
-        if theme == "playful":
+        if theme == 'modern':
+            return self._gradient_style('#667eea', '#764ba2')
+        if theme == 'playful':
             return {
-                "card_mod": {
-                    "style": """
+                'card_mod': {
+                    'style': """
                         ha-card {
                             background: linear-gradient(45deg, #f093fb 0%, #f5576c 100%);
                             color: white;
@@ -1411,13 +1411,13 @@ class DashboardTemplates:
         return {
             **base_button,
             **button_style,
-            "name": "Feed",
-            "icon": "mdi:food-drumstick" if theme != "playful" else "mdi:bone",
-            "icon_color": theme_styles["colors"]["accent"],
-            "tap_action": {
-                "action": "call-service",
-                "service": f"{DOMAIN}.feed_dog",
-                "service_data": {"dog_id": dog_id, "meal_type": "regular"},
+            'name': 'Feed',
+            'icon': 'mdi:food-drumstick' if theme != 'playful' else 'mdi:bone',
+            'icon_color': theme_styles['colors']['accent'],
+            'tap_action': {
+                'action': 'call-service',
+                'service': f"{DOMAIN}.feed_dog",
+                'service_data': {'dog_id': dog_id, 'meal_type': 'regular'},
             },
         }
 
@@ -1431,8 +1431,8 @@ class DashboardTemplates:
     ) -> CardCollection:
         """Create start/end walk buttons."""
         walk_style = (
-            self._gradient_style("#00bfa5", "#00acc1")
-            if theme == "modern"
+            self._gradient_style('#00bfa5', '#00acc1')
+            if theme == 'modern'
             else button_style
         )
 
@@ -1442,22 +1442,22 @@ class DashboardTemplates:
         start_card.update(walk_style)
         start_card.update(
             {
-                "name": "Start Walk",
-                "icon": "mdi:walk",
-                "icon_color": theme_styles["colors"]["primary"],
-                "tap_action": {
-                    "action": "call-service",
-                    "service": f"{DOMAIN}.start_walk",
-                    "service_data": {"dog_id": dog_id},
+                'name': 'Start Walk',
+                'icon': 'mdi:walk',
+                'icon_color': theme_styles['colors']['primary'],
+                'tap_action': {
+                    'action': 'call-service',
+                    'service': f"{DOMAIN}.start_walk",
+                    'service_data': {'dog_id': dog_id},
                 },
             }
         )
         start_wrapper: CardConfig = {
-            "type": "conditional",
-            "conditions": [
-                {"entity": f"binary_sensor.{dog_id}_is_walking", "state": "off"}
+            'type': 'conditional',
+            'conditions': [
+                {'entity': f"binary_sensor.{dog_id}_is_walking", 'state': 'off'}
             ],
-            "card": start_card,
+            'card': start_card,
         }
         cards.append(start_wrapper)
 
@@ -1465,22 +1465,22 @@ class DashboardTemplates:
         end_card.update(walk_style)
         end_card.update(
             {
-                "name": "End Walk",
-                "icon": "mdi:stop",
-                "icon_color": "red",
-                "tap_action": {
-                    "action": "call-service",
-                    "service": f"{DOMAIN}.end_walk",
-                    "service_data": {"dog_id": dog_id},
+                'name': 'End Walk',
+                'icon': 'mdi:stop',
+                'icon_color': 'red',
+                'tap_action': {
+                    'action': 'call-service',
+                    'service': f"{DOMAIN}.end_walk",
+                    'service_data': {'dog_id': dog_id},
                 },
             }
         )
         end_wrapper: CardConfig = {
-            "type": "conditional",
-            "conditions": [
-                {"entity": f"binary_sensor.{dog_id}_is_walking", "state": "on"}
+            'type': 'conditional',
+            'conditions': [
+                {'entity': f"binary_sensor.{dog_id}_is_walking", 'state': 'on'}
             ],
-            "card": end_card,
+            'card': end_card,
         }
         cards.append(end_wrapper)
 
@@ -1496,22 +1496,22 @@ class DashboardTemplates:
     ) -> CardConfig:
         """Create health check button."""
         health_style = (
-            self._gradient_style("#e91e63", "#f06292")
-            if theme == "modern"
+            self._gradient_style('#e91e63', '#f06292')
+            if theme == 'modern'
             else button_style
         )
-        hass_language: str | None = getattr(self.hass.config, "language", None)
+        hass_language: str | None = getattr(self.hass.config, 'language', None)
 
         return {
             **base_button,
             **health_style,
-            "name": _translated_health_label(hass_language, "health_check_button"),
-            "icon": "mdi:heart-pulse",
-            "icon_color": theme_styles["colors"]["accent"],
-            "tap_action": {
-                "action": "call-service",
-                "service": f"{DOMAIN}.log_health",
-                "service_data": {"dog_id": dog_id},
+            'name': _translated_health_label(hass_language, 'health_check_button'),
+            'icon': 'mdi:heart-pulse',
+            'icon_color': theme_styles['colors']['accent'],
+            'tap_action': {
+                'action': 'call-service',
+                'service': f"{DOMAIN}.log_health",
+                'service_data': {'dog_id': dog_id},
             },
         }
 
@@ -1519,10 +1519,10 @@ class DashboardTemplates:
         self, buttons: CardCollection, layout: str
     ) -> CardCollection | None:
         """Wrap buttons in layout-specific containers."""
-        if layout == "grid":
-            return [{"type": "grid", "columns": 3, "cards": buttons}]
-        if layout == "panels":
-            return [{"type": "horizontal-stack", "cards": buttons[:3]}]
+        if layout == 'grid':
+            return [{'type': 'grid', 'columns': 3, 'cards': buttons}]
+        if layout == 'panels':
+            return [{'type': 'horizontal-stack', 'cards': buttons[:3]}]
         return None
 
     @staticmethod
@@ -1532,9 +1532,9 @@ class DashboardTemplates:
         """Return a typed ``MapCardOptions`` payload extracted from ``options``."""
 
         resolved: MapCardOptions = {
-            "zoom": DEFAULT_MAP_ZOOM,
-            "default_zoom": DEFAULT_MAP_ZOOM,
-            "hours_to_show": DEFAULT_MAP_HOURS_TO_SHOW,
+            'zoom': DEFAULT_MAP_ZOOM,
+            'default_zoom': DEFAULT_MAP_ZOOM,
+            'hours_to_show': DEFAULT_MAP_HOURS_TO_SHOW,
         }
 
         if not options:
@@ -1547,7 +1547,7 @@ class DashboardTemplates:
             for key, value in options.items():
                 if not isinstance(key, str):
                     _LOGGER.debug(
-                        "Skipping map option entry with non-string key from mapping: %r",
+                        'Skipping map option entry with non-string key from mapping: %r',
                         key,
                     )
                     continue
@@ -1563,7 +1563,7 @@ class DashboardTemplates:
 
             if not filtered_options:
                 _LOGGER.debug(
-                    "Ignoring map options mapping payload without supported entries: %s",
+                    'Ignoring map options mapping payload without supported entries: %s',
                     type(options).__name__,
                 )
                 return resolved
@@ -1576,7 +1576,7 @@ class DashboardTemplates:
                     for key, value in item.items():
                         if not isinstance(key, str):
                             _LOGGER.debug(
-                                "Skipping map option entry with non-string key from mapping: %r",
+                                'Skipping map option entry with non-string key from mapping: %r',
                                 key,
                             )
                             continue
@@ -1608,16 +1608,16 @@ class DashboardTemplates:
                         candidate_pairs.append((key, value))
                     else:
                         _LOGGER.debug(
-                            "Skipping map option entry with non-string key: %r", key
+                            'Skipping map option entry with non-string key: %r', key
                         )
                 else:
                     _LOGGER.debug(
-                        "Skipping unsupported map option entry: %s", type(item).__name__
+                        'Skipping unsupported map option entry: %s', type(item).__name__
                     )
 
             if not candidate_pairs:
                 _LOGGER.debug(
-                    "Ignoring map options iterable payload without usable entries: %s",
+                    'Ignoring map options iterable payload without usable entries: %s',
                     type(options).__name__,
                 )
                 return resolved
@@ -1625,7 +1625,7 @@ class DashboardTemplates:
             options_mapping = dict(candidate_pairs)
         else:
             _LOGGER.debug(
-                "Ignoring map options payload with unsupported type: %s",
+                'Ignoring map options payload with unsupported type: %s',
                 type(options).__name__,
             )
             return resolved
@@ -1656,41 +1656,41 @@ class DashboardTemplates:
                 return int(numeric)
             return None
 
-        zoom_candidate = options_mapping.get("zoom")
+        zoom_candidate = options_mapping.get('zoom')
         zoom_value = _coerce_int(zoom_candidate)
         if zoom_value is not None:
             resolved_zoom = max(MAP_ZOOM_MIN, min(MAP_ZOOM_MAX, zoom_value))
-            resolved["zoom"] = resolved_zoom
+            resolved['zoom'] = resolved_zoom
 
-        default_zoom_candidate = options_mapping.get("default_zoom")
+        default_zoom_candidate = options_mapping.get('default_zoom')
         default_zoom_value = _coerce_int(default_zoom_candidate)
         if default_zoom_value is not None:
             resolved_default_zoom = max(
                 MAP_ZOOM_MIN, min(MAP_ZOOM_MAX, default_zoom_value)
             )
-            resolved["default_zoom"] = resolved_default_zoom
+            resolved['default_zoom'] = resolved_default_zoom
             if zoom_value is None:
-                resolved["zoom"] = resolved_default_zoom
+                resolved['zoom'] = resolved_default_zoom
         elif zoom_value is not None:
             # Mirror the explicitly provided zoom when no default override exists.
-            resolved["default_zoom"] = resolved["zoom"]
+            resolved['default_zoom'] = resolved['zoom']
 
-        dark_mode = options_mapping.get("dark_mode")
+        dark_mode = options_mapping.get('dark_mode')
         if isinstance(dark_mode, bool):
-            resolved["dark_mode"] = dark_mode
+            resolved['dark_mode'] = dark_mode
         elif isinstance(dark_mode, int | float):
-            resolved["dark_mode"] = bool(dark_mode)
+            resolved['dark_mode'] = bool(dark_mode)
         elif isinstance(dark_mode, str):
             lowered = dark_mode.strip().casefold()
-            if lowered in {"1", "true", "yes", "on"}:
-                resolved["dark_mode"] = True
-            elif lowered in {"0", "false", "no", "off"}:
-                resolved["dark_mode"] = False
+            if lowered in {'1', 'true', 'yes', 'on'}:
+                resolved['dark_mode'] = True
+            elif lowered in {'0', 'false', 'no', 'off'}:
+                resolved['dark_mode'] = False
 
-        hours_candidate = options_mapping.get("hours_to_show")
+        hours_candidate = options_mapping.get('hours_to_show')
         hours_value = _coerce_int(hours_candidate)
         if hours_value is not None:
-            resolved["hours_to_show"] = max(
+            resolved['hours_to_show'] = max(
                 MAP_HISTORY_MIN_HOURS, min(MAP_HISTORY_MAX_HOURS, hours_value)
             )
 
@@ -1700,7 +1700,7 @@ class DashboardTemplates:
         self,
         dog_id: str,
         options: MapOptionsInput = None,
-        theme: str = "modern",
+        theme: str = 'modern',
     ) -> CardConfig:
         """Get themed GPS map card template.
 
@@ -1715,8 +1715,8 @@ class DashboardTemplates:
         resolved_options = self._normalise_map_options(options)
         self._get_theme_styles(theme)
 
-        resolved_zoom = resolved_options.get("zoom")
-        resolved_default_zoom = resolved_options.get("default_zoom")
+        resolved_zoom = resolved_options.get('zoom')
+        resolved_default_zoom = resolved_options.get('default_zoom')
 
         if resolved_zoom is None and resolved_default_zoom is not None:
             resolved_zoom = resolved_default_zoom
@@ -1728,24 +1728,24 @@ class DashboardTemplates:
             resolved_default_zoom if resolved_default_zoom is not None else final_zoom
         )
 
-        dark_mode_override = resolved_options.get("dark_mode")
+        dark_mode_override = resolved_options.get('dark_mode')
         dark_mode_enabled = (
-            theme == "dark" if dark_mode_override is None else dark_mode_override
+            theme == 'dark' if dark_mode_override is None else dark_mode_override
         )
 
         template: CardConfig = {
-            **self._get_base_card_template("map"),
-            "entities": [f"device_tracker.{dog_id}_location"],
-            "default_zoom": final_default_zoom,
-            "zoom": final_zoom,
-            "dark_mode": dark_mode_enabled,
-            "hours_to_show": resolved_options.get(
-                "hours_to_show", DEFAULT_MAP_HOURS_TO_SHOW
+            **self._get_base_card_template('map'),
+            'entities': [f"device_tracker.{dog_id}_location"],
+            'default_zoom': final_default_zoom,
+            'zoom': final_zoom,
+            'dark_mode': dark_mode_enabled,
+            'hours_to_show': resolved_options.get(
+                'hours_to_show', DEFAULT_MAP_HOURS_TO_SHOW
             ),
         }
 
         # Add theme-specific map styling
-        if theme == "modern":
+        if theme == 'modern':
             card_mod = CardModConfig(
                 style="""
                     ha-card {
@@ -1754,8 +1754,8 @@ class DashboardTemplates:
                     }
                 """
             )
-            template["card_mod"] = card_mod
-        elif theme == "playful":
+            template['card_mod'] = card_mod
+        elif theme == 'playful':
             card_mod = CardModConfig(
                 style="""
                     ha-card {
@@ -1764,7 +1764,7 @@ class DashboardTemplates:
                     }
                 """
             )
-            template["card_mod"] = card_mod
+            template['card_mod'] = card_mod
 
         return template
 
@@ -1773,7 +1773,7 @@ class DashboardTemplates:
         dog_id: str,
         dog_name: str,
         modules: DogModulesConfig,
-        theme: str = "modern",
+        theme: str = 'modern',
     ) -> CardConfig:
         """Get themed statistics card template.
 
@@ -1787,12 +1787,12 @@ class DashboardTemplates:
             Statistics card template
         """
         theme_styles = self._get_theme_styles(theme)
-        hass_language: str | None = getattr(self.hass.config, "language", None)
+        hass_language: str | None = getattr(self.hass.config, 'language', None)
 
         # Build statistics based on enabled modules
         stats_content = f"## 📊 {dog_name} Statistics\n\n"
 
-        if modules.get("feeding"):
+        if modules.get('feeding'):
             stats_content += f"""
 ### 🍖 Feeding
 - **Today's Meals**: {{{{ states('sensor.{dog_id}_meals_today') }}}}
@@ -1800,7 +1800,7 @@ class DashboardTemplates:
 - **Schedule Adherence**: {{{{ states('sensor.{dog_id}_feeding_schedule_adherence') }}}}%
 """
 
-        if modules.get("walk"):
+        if modules.get('walk'):
             stats_content += f"""
 ### 🚶 Walking
 - **Daily Walk Time**: {{{{ states('sensor.{dog_id}_daily_walk_time') }}}} min
@@ -1808,16 +1808,16 @@ class DashboardTemplates:
 - **Walk Goal**: {{{{ states('sensor.{dog_id}_walk_goal_progress') }}}}%
 """
 
-        if modules.get("health"):
+        if modules.get('health'):
             stats_content += _translated_health_template(
-                hass_language, "statistics_health_section", dog_id=dog_id
+                hass_language, 'statistics_health_section', dog_id=dog_id
             )
 
         card_mod = self._card_mod(theme_styles)
         template: CardConfig = {
-            "type": "markdown",
-            "content": stats_content,
-            "card_mod": card_mod,
+            'type': 'markdown',
+            'content': stats_content,
+            'card_mod': card_mod,
         }
 
         return template
@@ -1829,7 +1829,7 @@ class DashboardTemplates:
         stat_types: Sequence[str],
         *,
         days_to_show: int,
-        theme: str = "modern",
+        theme: str = 'modern',
     ) -> CardConfig | None:
         """Return a typed statistics-graph card for analytics dashboards."""
 
@@ -1840,22 +1840,22 @@ class DashboardTemplates:
         card_mod = self._card_mod(theme_styles)
 
         template: CardConfig = {
-            "type": "statistics-graph",
-            "title": title,
-            "entities": list(entities),
-            "stat_types": list(stat_types),
-            "days_to_show": days_to_show,
+            'type': 'statistics-graph',
+            'title': title,
+            'entities': list(entities),
+            'stat_types': list(stat_types),
+            'days_to_show': days_to_show,
         }
 
         if card_mod:
-            template["card_mod"] = card_mod
+            template['card_mod'] = card_mod
 
         return template
 
     def get_statistics_summary_template(
         self,
         dogs: Sequence[RawDogConfig],
-        theme: str = "modern",
+        theme: str = 'modern',
         *,
         coordinator_statistics: CoordinatorStatisticsPayload
         | JSONMapping
@@ -1878,38 +1878,38 @@ class DashboardTemplates:
         }
 
         for dog in typed_dogs:
-            modules = coerce_dog_modules_config(dog.get("modules"))
+            modules = coerce_dog_modules_config(dog.get('modules'))
             for module_name in module_counts:
                 if modules.get(module_name):
                     module_counts[module_name] += 1
 
-        hass_language: str | None = getattr(self.hass.config, "language", None)
+        hass_language: str | None = getattr(self.hass.config, 'language', None)
 
         statistics_header = _translated_statistics_label(
-            hass_language, "statistics_header"
+            hass_language, 'statistics_header'
         )
-        dogs_managed_label = _translated_statistics_label(hass_language, "dogs_managed")
+        dogs_managed_label = _translated_statistics_label(hass_language, 'dogs_managed')
         active_modules_label = _translated_statistics_label(
-            hass_language, "active_modules"
+            hass_language, 'active_modules'
         )
         module_labels = {
             MODULE_FEEDING: _translated_statistics_label(
-                hass_language, "module_feeding"
+                hass_language, 'module_feeding'
             ),
-            MODULE_WALK: _translated_statistics_label(hass_language, "module_walks"),
-            MODULE_HEALTH: _translated_statistics_label(hass_language, "module_health"),
-            MODULE_GPS: _translated_statistics_label(hass_language, "module_gps"),
+            MODULE_WALK: _translated_statistics_label(hass_language, 'module_walks'),
+            MODULE_HEALTH: _translated_statistics_label(hass_language, 'module_health'),
+            MODULE_GPS: _translated_statistics_label(hass_language, 'module_gps'),
             MODULE_NOTIFICATIONS: _translated_statistics_label(
-                hass_language, "module_notifications"
+                hass_language, 'module_notifications'
             ),
         }
-        last_updated_label = _translated_statistics_label(hass_language, "last_updated")
+        last_updated_label = _translated_statistics_label(hass_language, 'last_updated')
 
         content_lines = [
             f"## {statistics_header}",
-            "",
+            '',
             f"**{dogs_managed_label}:** {len(typed_dogs)}",
-            "",
+            '',
             f"**{active_modules_label}:**",
         ]
 
@@ -1918,9 +1918,9 @@ class DashboardTemplates:
 
         content_lines.extend(
             [
-                "",
+                '',
                 (
-                    "*"
+                    '*'
                     + last_updated_label
                     + ": {{ now().strftime('%Y-%m-%d %H:%M') }}*"
                 ),
@@ -1934,7 +1934,7 @@ class DashboardTemplates:
                 return None
 
             if isinstance(payload, Mapping):
-                nested = payload.get("rejection_metrics")
+                nested = payload.get('rejection_metrics')
                 metrics_source = nested if isinstance(nested, Mapping) else payload
 
                 metrics = default_rejection_metrics()
@@ -1966,7 +1966,7 @@ class DashboardTemplates:
                     return 0
 
                 reasons_payload: dict[str, int] = {}
-                raw_reasons = payload.get("reasons")
+                raw_reasons = payload.get('reasons')
                 if isinstance(raw_reasons, Mapping):
                     reasons_payload = {
                         str(key): _int_value(value)
@@ -1974,21 +1974,21 @@ class DashboardTemplates:
                         if isinstance(key, str)
                     }
 
-                raw_last_results = payload.get("last_results")
+                raw_last_results = payload.get('last_results')
                 last_results_payload = normalise_guard_history(raw_last_results)
 
                 return {
-                    "executed": _int_value(payload.get("executed")),
-                    "skipped": _int_value(payload.get("skipped")),
-                    "reasons": reasons_payload,
-                    "last_results": last_results_payload,
+                    'executed': _int_value(payload.get('executed')),
+                    'skipped': _int_value(payload.get('skipped')),
+                    'reasons': reasons_payload,
+                    'last_results': last_results_payload,
                 }
 
             return None
 
         coordinator_metrics: CoordinatorRejectionMetrics | None = None
         if isinstance(coordinator_statistics, Mapping):
-            raw_metrics = coordinator_statistics.get("rejection_metrics")
+            raw_metrics = coordinator_statistics.get('rejection_metrics')
             if isinstance(raw_metrics, Mapping):
                 metrics_source = cast(
                     JSONMapping | CoordinatorResilienceSummary | None, raw_metrics
@@ -2005,14 +2005,14 @@ class DashboardTemplates:
         ) -> list[str]:
             lines: list[str] = []
 
-            last_rejection_value = metrics_payload["last_rejection_time"]
+            last_rejection_value = metrics_payload['last_rejection_time']
             has_rejection_history = (
-                metrics_payload["rejected_call_count"] > 0
-                or metrics_payload["rejection_breaker_count"] > 0
+                metrics_payload['rejected_call_count'] > 0
+                or metrics_payload['rejection_breaker_count'] > 0
                 or last_rejection_value is not None
             )
 
-            rejection_rate = metrics_payload["rejection_rate"]
+            rejection_rate = metrics_payload['rejection_rate']
             if (
                 has_rejection_history
                 and rejection_rate is not None
@@ -2021,7 +2021,7 @@ class DashboardTemplates:
                 rate_display = f"{rejection_rate * 100:.2f}%"
             else:
                 rate_display = _translated_statistics_fallback(
-                    hass_language, "no_rejection_rate", "n/a"
+                    hass_language, 'no_rejection_rate', 'n/a'
                 )
 
             if last_rejection_value is not None:
@@ -2034,62 +2034,62 @@ class DashboardTemplates:
                     last_rejection_iso = str(last_rejection_value)
             else:
                 last_rejection_iso = _translated_statistics_fallback(
-                    hass_language, "no_last_rejection", "never"
+                    hass_language, 'no_last_rejection', 'never'
                 )
 
             lines.extend(
                 [
                     (
-                        "- "
-                        + _translated_statistics_label(hass_language, "rejected_calls")
+                        '- '
+                        + _translated_statistics_label(hass_language, 'rejected_calls')
                         + f": {metrics_payload['rejected_call_count']}"
                     ),
                     (
-                        "- "
+                        '- '
                         + _translated_statistics_label(
-                            hass_language, "rejecting_breakers"
+                            hass_language, 'rejecting_breakers'
                         )
                         + f": {metrics_payload['rejection_breaker_count']}"
                     ),
                     (
-                        "- "
-                        + _translated_statistics_label(hass_language, "rejection_rate")
+                        '- '
+                        + _translated_statistics_label(hass_language, 'rejection_rate')
                         + f": {rate_display}"
                     ),
                     (
-                        "- "
-                        + _translated_statistics_label(hass_language, "last_rejection")
+                        '- '
+                        + _translated_statistics_label(hass_language, 'last_rejection')
                         + f": {last_rejection_iso}"
                     ),
                 ]
             )
 
             breaker_label_value = (
-                metrics_payload["last_rejection_breaker_name"]
-                or metrics_payload["last_rejection_breaker_id"]
+                metrics_payload['last_rejection_breaker_name']
+                or metrics_payload['last_rejection_breaker_id']
             )
             if breaker_label_value:
                 lines.append(
-                    "- "
+                    '- '
                     + _translated_statistics_label(
-                        hass_language, "last_rejecting_breaker"
+                        hass_language, 'last_rejecting_breaker'
                     )
                     + f": {breaker_label_value}"
                 )
 
             breaker_name_lists = {
                 _translated_statistics_label(
-                    hass_language, "open_breaker_names"
-                ): metrics_payload["open_breakers"],
+                    hass_language, 'open_breaker_names'
+                ): metrics_payload['open_breakers'],
                 _translated_statistics_label(
-                    hass_language, "half_open_breaker_names"
-                ): metrics_payload["half_open_breakers"],
+                    hass_language, 'half_open_breaker_names'
+                ): metrics_payload['half_open_breakers'],
                 _translated_statistics_label(
-                    hass_language, "unknown_breaker_names"
-                ): metrics_payload["unknown_breakers"],
+                    hass_language, 'unknown_breaker_names'
+                ): metrics_payload['unknown_breakers'],
                 _translated_statistics_label(
-                    hass_language, "rejection_breaker_names"
-                ): metrics_payload["rejection_breakers"],
+                    hass_language, 'rejection_breaker_names'
+                ): metrics_payload['rejection_breakers'],
             }
 
             for label, breaker_names in breaker_name_lists.items():
@@ -2099,17 +2099,17 @@ class DashboardTemplates:
 
             breaker_lists = {
                 _translated_statistics_label(
-                    hass_language, "open_breaker_ids"
-                ): metrics_payload["open_breaker_ids"],
+                    hass_language, 'open_breaker_ids'
+                ): metrics_payload['open_breaker_ids'],
                 _translated_statistics_label(
-                    hass_language, "half_open_breaker_ids"
-                ): metrics_payload["half_open_breaker_ids"],
+                    hass_language, 'half_open_breaker_ids'
+                ): metrics_payload['half_open_breaker_ids'],
                 _translated_statistics_label(
-                    hass_language, "unknown_breaker_ids"
-                ): metrics_payload["unknown_breaker_ids"],
+                    hass_language, 'unknown_breaker_ids'
+                ): metrics_payload['unknown_breaker_ids'],
                 _translated_statistics_label(
-                    hass_language, "rejection_breaker_ids"
-                ): metrics_payload["rejection_breaker_ids"],
+                    hass_language, 'rejection_breaker_ids'
+                ): metrics_payload['rejection_breaker_ids'],
             }
 
             for label, breaker_ids in breaker_lists.items():
@@ -2119,39 +2119,39 @@ class DashboardTemplates:
 
             if guard_payload is not None:
                 guard_header = _translated_statistics_label(
-                    hass_language, "guard_metrics_header"
+                    hass_language, 'guard_metrics_header'
                 )
                 lines.append(f"- {guard_header}:")
 
                 executed_label = _translated_statistics_label(
-                    hass_language, "guard_executed"
+                    hass_language, 'guard_executed'
                 )
                 lines.append(f"  - {executed_label}: {guard_payload['executed']}")
 
                 skipped_label = _translated_statistics_label(
-                    hass_language, "guard_skipped"
+                    hass_language, 'guard_skipped'
                 )
                 lines.append(f"  - {skipped_label}: {guard_payload['skipped']}")
 
                 reasons_label = _translated_statistics_label(
-                    hass_language, "guard_reasons"
+                    hass_language, 'guard_reasons'
                 )
                 lines.append(f"  - {reasons_label}:")
                 lines.extend(
                     f"    - {reason_line}"
                     for reason_line in _format_guard_reasons(
-                        guard_payload["reasons"], hass_language
+                        guard_payload['reasons'], hass_language
                     )
                 )
 
                 results_label = _translated_statistics_label(
-                    hass_language, "guard_last_results"
+                    hass_language, 'guard_last_results'
                 )
                 lines.append(f"  - {results_label}:")
                 lines.extend(
                     f"    - {result_line}"
                     for result_line in _format_guard_results(
-                        guard_payload["last_results"], hass_language
+                        guard_payload['last_results'], hass_language
                     )
                 )
 
@@ -2162,25 +2162,25 @@ class DashboardTemplates:
         ] = []
         if coordinator_metrics is not None:
             metrics_sections.append(
-                ("coordinator_resilience_label", coordinator_metrics, None)
+                ('coordinator_resilience_label', coordinator_metrics, None)
             )
         if service_metrics is not None:
             metrics_sections.append(
-                ("service_resilience_label", service_metrics, guard_metrics)
+                ('service_resilience_label', service_metrics, guard_metrics)
             )
 
         if metrics_sections:
             resilience_header = _translated_statistics_label(
-                hass_language, "resilience_metrics_header"
+                hass_language, 'resilience_metrics_header'
             )
-            content_lines.append("")
+            content_lines.append('')
             content_lines.append(f"### {resilience_header}")
 
             for index, (label_key, metrics_payload, guard_payload) in enumerate(
                 metrics_sections
             ):
                 if index > 0:
-                    content_lines.append("")
+                    content_lines.append('')
                 section_label = _translated_statistics_label(hass_language, label_key)
                 content_lines.append(f"**{section_label}:**")
                 content_lines.extend(
@@ -2192,15 +2192,15 @@ class DashboardTemplates:
         theme_styles = self._get_theme_styles(theme)
 
         summary_title = _translated_statistics_label(
-            hass_language, "summary_card_title"
+            hass_language, 'summary_card_title'
         )
 
         card_mod = self._card_mod(theme_styles)
         template: CardConfig = {
-            "type": "markdown",
-            "title": summary_title,
-            "content": "\n".join(content_lines),
-            "card_mod": card_mod,
+            'type': 'markdown',
+            'title': summary_title,
+            'content': '\n'.join(content_lines),
+            'card_mod': card_mod,
         }
 
         return template
@@ -2210,7 +2210,7 @@ class DashboardTemplates:
         dog_id: str,
         dog_name: str,
         entities: Sequence[str],
-        theme: str = "modern",
+        theme: str = 'modern',
     ) -> CardConfig | None:
         """Return the notification control entities card."""
 
@@ -2218,18 +2218,18 @@ class DashboardTemplates:
             return None
 
         theme_styles = self._get_theme_styles(theme)
-        hass_language: str | None = getattr(self.hass.config, "language", None)
+        hass_language: str | None = getattr(self.hass.config, 'language', None)
         title_text = _translated_notification_template(
-            hass_language, "settings_title", dog_name=dog_name
+            hass_language, 'settings_title', dog_name=dog_name
         )
 
         card_mod = self._card_mod(theme_styles)
         template: CardConfig = {
-            "type": "entities",
-            "title": f"🔔 {title_text}",
-            "entities": list(entities),
-            "state_color": True,
-            "card_mod": card_mod,
+            'type': 'entities',
+            'title': f"🔔 {title_text}",
+            'entities': list(entities),
+            'state_color': True,
+            'card_mod': card_mod,
         }
 
         return template
@@ -2238,116 +2238,116 @@ class DashboardTemplates:
         self,
         dog_id: str,
         dog_name: str,
-        theme: str = "modern",
+        theme: str = 'modern',
     ) -> CardConfig:
         """Return a markdown overview for the notification dashboard."""
 
         theme_styles = self._get_theme_styles(theme)
         card_mod = self._card_mod(theme_styles)
-        hass_language: str | None = getattr(self.hass.config, "language", None)
+        hass_language: str | None = getattr(self.hass.config, 'language', None)
 
-        notifications_state = self.hass.states.get("sensor.pawcontrol_notifications")
+        notifications_state = self.hass.states.get('sensor.pawcontrol_notifications')
         metrics, per_dog = self._normalise_notifications_state(notifications_state)
 
         default_overview: NotificationDogOverview = {
-            "sent_today": 0,
-            "quiet_hours_active": False,
-            "channels": [],
+            'sent_today': 0,
+            'quiet_hours_active': False,
+            'channels': [],
         }
         dog_overview = per_dog.get(dog_id, default_overview)
 
-        sent_today = dog_overview.get("sent_today", 0)
-        failed_deliveries = metrics.get("notifications_failed", 0)
-        quiet_hours_active = dog_overview.get("quiet_hours_active", False)
-        channels = dog_overview.get("channels", [])
-        last_notification = dog_overview.get("last_notification")
+        sent_today = dog_overview.get('sent_today', 0)
+        failed_deliveries = metrics.get('notifications_failed', 0)
+        quiet_hours_active = dog_overview.get('quiet_hours_active', False)
+        channels = dog_overview.get('channels', [])
+        last_notification = dog_overview.get('last_notification')
 
-        quiet_hours_display = "✅" if quiet_hours_active else "❌"
+        quiet_hours_display = '✅' if quiet_hours_active else '❌'
 
         overview_heading = _translated_notification_template(
-            hass_language, "overview_heading", dog_name=dog_name
+            hass_language, 'overview_heading', dog_name=dog_name
         )
         content_lines = [
             f"## 🔔 {overview_heading}",
-            "",
+            '',
             (
-                "**"
-                + _translated_notification_label(hass_language, "sent_today")
+                '**'
+                + _translated_notification_label(hass_language, 'sent_today')
                 + f":** {sent_today}"
             ),
             (
-                "**"
-                + _translated_notification_label(hass_language, "failed_deliveries")
+                '**'
+                + _translated_notification_label(hass_language, 'failed_deliveries')
                 + f":** {failed_deliveries}"
             ),
             (
-                "**"
-                + _translated_notification_label(hass_language, "quiet_hours_active")
+                '**'
+                + _translated_notification_label(hass_language, 'quiet_hours_active')
                 + f":** {quiet_hours_display}"
             ),
-            "",
-            "### "
-            + _translated_notification_label(hass_language, "preferred_channels"),
+            '',
+            '### '
+            + _translated_notification_label(hass_language, 'preferred_channels'),
         ]
 
         if channels:
             content_lines.extend(f"• {channel.capitalize()}" for channel in channels)
         else:
             content_lines.append(
-                "• "
+                '• '
                 + _translated_notification_fallback(
                     hass_language,
-                    "default_channels",
-                    "Using default integration channels",
+                    'default_channels',
+                    'Using default integration channels',
                 )
             )
 
-        content_lines.append("")
+        content_lines.append('')
         content_lines.append(
-            "### "
-            + _translated_notification_label(hass_language, "recent_notification")
+            '### '
+            + _translated_notification_label(hass_language, 'recent_notification')
         )
         if last_notification:
-            notification_type_raw = last_notification.get("type")
+            notification_type_raw = last_notification.get('type')
             notification_type = (
                 str(notification_type_raw)
-                if notification_type_raw not in (None, "")
+                if notification_type_raw not in (None, '')
                 else _translated_notification_fallback(
-                    hass_language, "unknown_value", "unknown"
+                    hass_language, 'unknown_value', 'unknown'
                 )
             )
-            priority_raw = last_notification.get("priority", "normal")
+            priority_raw = last_notification.get('priority', 'normal')
             priority = (
                 str(priority_raw).capitalize()
-                if priority_raw not in (None, "")
+                if priority_raw not in (None, '')
                 else _translated_notification_fallback(
-                    hass_language, "default_priority", "Normal"
+                    hass_language, 'default_priority', 'Normal'
                 )
             )
-            sent_at_raw = last_notification.get("sent_at", "unknown")
+            sent_at_raw = last_notification.get('sent_at', 'unknown')
             sent_at = (
                 str(sent_at_raw)
-                if sent_at_raw not in (None, "")
+                if sent_at_raw not in (None, '')
                 else _translated_notification_fallback(
-                    hass_language, "unknown_value", "unknown"
+                    hass_language, 'unknown_value', 'unknown'
                 )
             )
 
             content_lines.extend(
                 [
                     (
-                        "- **"
-                        + _translated_notification_label(hass_language, "type")
+                        '- **'
+                        + _translated_notification_label(hass_language, 'type')
                         + f":** {notification_type}"
                     ),
                     (
-                        "- **"
-                        + _translated_notification_label(hass_language, "priority")
+                        '- **'
+                        + _translated_notification_label(hass_language, 'priority')
                         + f":** {priority}"
                     ),
                     (
-                        "- **"
-                        + _translated_notification_label(hass_language, "sent")
+                        '- **'
+                        + _translated_notification_label(hass_language, 'sent')
                         + f":** {sent_at}"
                     ),
                 ]
@@ -2356,71 +2356,71 @@ class DashboardTemplates:
             content_lines.append(
                 _translated_notification_fallback(
                     hass_language,
-                    "no_notifications",
-                    "No notifications recorded for this dog yet.",
+                    'no_notifications',
+                    'No notifications recorded for this dog yet.',
                 )
             )
 
-        content = "\n".join(content_lines)
+        content = '\n'.join(content_lines)
 
         return {
-            "type": "markdown",
-            "content": content,
-            "card_mod": card_mod,
+            'type': 'markdown',
+            'content': content,
+            'card_mod': card_mod,
         }
 
     async def get_notifications_actions_card_template(
         self,
         dog_id: str,
-        theme: str = "modern",
+        theme: str = 'modern',
     ) -> CardConfig:
         """Return quick action buttons for notification workflows."""
 
         theme_styles = self._get_theme_styles(theme)
-        base_button = self._get_base_card_template("button")
-        hass_language: str | None = getattr(self.hass.config, "language", None)
+        base_button = self._get_base_card_template('button')
+        hass_language: str | None = getattr(self.hass.config, 'language', None)
 
         buttons: CardCollection = [
             {
                 **base_button,
-                "name": _translated_notification_label(
-                    hass_language, "send_test_notification"
+                'name': _translated_notification_label(
+                    hass_language, 'send_test_notification'
                 ),
-                "icon": "mdi:bell-check",
-                "tap_action": {
-                    "action": "call-service",
-                    "service": f"{DOMAIN}.send_notification",
-                    "service_data": {
-                        "dog_id": dog_id,
-                        "notification_type": "system_info",
-                        "title": _translated_notification_fallback(
+                'icon': 'mdi:bell-check',
+                'tap_action': {
+                    'action': 'call-service',
+                    'service': f"{DOMAIN}.send_notification",
+                    'service_data': {
+                        'dog_id': dog_id,
+                        'notification_type': 'system_info',
+                        'title': _translated_notification_fallback(
                             hass_language,
-                            "diagnostics_title",
-                            "PawControl Diagnostics",
+                            'diagnostics_title',
+                            'PawControl Diagnostics',
                         ),
-                        "message": _translated_notification_fallback(
+                        'message': _translated_notification_fallback(
                             hass_language,
-                            "diagnostics_message",
-                            "Test notification from dashboard",
+                            'diagnostics_message',
+                            'Test notification from dashboard',
                         ),
                     },
                 },
             },
             {
                 **base_button,
-                "name": _translated_notification_label(
-                    hass_language, "reset_quiet_hours"
+                'name': _translated_notification_label(
+                    hass_language, 'reset_quiet_hours'
                 ),
-                "icon": "mdi:weather-night",
-                "tap_action": {
-                    "action": "call-service",
-                    "service": f"{DOMAIN}.configure_alerts",
-                    "service_data": {
-                        "dog_id": dog_id,
-                        "feeding_alerts": True,
-                        "walk_alerts": True,
-                        "health_alerts": True,
-                        "gps_alerts": True,
+                'icon': 'mdi:weather-night',
+                'tap_action': {
+                    'action': 'call-service',
+                    'service': f"{DOMAIN}.configure_alerts",
+                    'service_data': {
+                        'dog_id': dog_id,
+                        'feeding_alerts': True,
+                        'walk_alerts': True,
+                        'health_alerts': True,
+                        'gps_alerts': True,
                     },
                 },
             },
@@ -2428,15 +2428,15 @@ class DashboardTemplates:
 
         card_mod = self._card_mod(theme_styles)
         template: CardConfig = {
-            "type": "horizontal-stack",
-            "cards": buttons,
-            "card_mod": card_mod,
+            'type': 'horizontal-stack',
+            'cards': buttons,
+            'card_mod': card_mod,
         }
 
         return template
 
     async def get_feeding_schedule_template(
-        self, dog_id: str, theme: str = "modern"
+        self, dog_id: str, theme: str = 'modern'
     ) -> CardConfig:
         """Get themed feeding schedule template.
 
@@ -2448,30 +2448,30 @@ class DashboardTemplates:
             Feeding schedule card template
         """
         theme_styles = self._get_theme_styles(theme)
-        hass_language: str | None = getattr(self.hass.config, "language", None)
-        schedule_label = _translated_feeding_label(hass_language, "feeding_schedule")
+        hass_language: str | None = getattr(self.hass.config, 'language', None)
+        schedule_label = _translated_feeding_label(hass_language, 'feeding_schedule')
 
         template: CardConfig
-        if theme == "modern":
+        if theme == 'modern':
             # Use a clean timeline view
             card_mod = self._card_mod(theme_styles)
             template = {
-                "type": "custom:scheduler-card",
-                "title": f"🍽️ {schedule_label}",
-                "discover_existing": False,
-                "standard_configuration": True,
-                "entities": [f"sensor.{dog_id}_feeding_schedule"],
-                "card_mod": card_mod,
+                'type': 'custom:scheduler-card',
+                'title': f"🍽️ {schedule_label}",
+                'discover_existing': False,
+                'standard_configuration': True,
+                'entities': [f"sensor.{dog_id}_feeding_schedule"],
+                'card_mod': card_mod,
             }
-        elif theme == "playful":
+        elif theme == 'playful':
             # Use colorful meal buttons
             template = await self.get_feeding_controls_template(dog_id, theme)
         else:
             # Minimal text-based schedule
             template = {
-                "type": "entities",
-                "title": schedule_label,
-                "entities": [
+                'type': 'entities',
+                'title': schedule_label,
+                'entities': [
                     f"sensor.{dog_id}_breakfast_time",
                     f"sensor.{dog_id}_lunch_time",
                     f"sensor.{dog_id}_dinner_time",
@@ -2481,7 +2481,7 @@ class DashboardTemplates:
         return template
 
     async def get_feeding_controls_template(
-        self, dog_id: str, theme: str = "modern"
+        self, dog_id: str, theme: str = 'modern'
     ) -> CardConfig:
         """Get themed feeding control buttons template.
 
@@ -2492,34 +2492,34 @@ class DashboardTemplates:
         Returns:
             Feeding controls template
         """
-        base_button = self._get_base_card_template("button")
+        base_button = self._get_base_card_template('button')
         self._get_theme_styles(theme)
-        hass_language: str | None = getattr(self.hass.config, "language", None)
+        hass_language: str | None = getattr(self.hass.config, 'language', None)
 
         meal_types = [
             (
-                "breakfast",
-                _translated_feeding_label(hass_language, "meal_breakfast"),
-                "mdi:weather-sunny",
-                "#FFA726",
+                'breakfast',
+                _translated_feeding_label(hass_language, 'meal_breakfast'),
+                'mdi:weather-sunny',
+                '#FFA726',
             ),
             (
-                "lunch",
-                _translated_feeding_label(hass_language, "meal_lunch"),
-                "mdi:weather-partly-cloudy",
-                "#66BB6A",
+                'lunch',
+                _translated_feeding_label(hass_language, 'meal_lunch'),
+                'mdi:weather-partly-cloudy',
+                '#66BB6A',
             ),
             (
-                "dinner",
-                _translated_feeding_label(hass_language, "meal_dinner"),
-                "mdi:weather-night",
-                "#5C6BC0",
+                'dinner',
+                _translated_feeding_label(hass_language, 'meal_dinner'),
+                'mdi:weather-night',
+                '#5C6BC0',
             ),
             (
-                "snack",
-                _translated_feeding_label(hass_language, "meal_snack"),
-                "mdi:cookie",
-                "#EC407A",
+                'snack',
+                _translated_feeding_label(hass_language, 'meal_snack'),
+                'mdi:cookie',
+                '#EC407A',
             ),
         ]
 
@@ -2527,10 +2527,10 @@ class DashboardTemplates:
         for meal_type, name, icon, color in meal_types:
             button_style = {}
 
-            if theme == "modern":
+            if theme == 'modern':
                 button_style = {
-                    "card_mod": {
-                        "style": f"""
+                    'card_mod': {
+                        'style': f"""
                             ha-card {{
                                 background: linear-gradient(135deg, {color} 0%, {color}CC 100%);
                                 color: white;
@@ -2539,10 +2539,10 @@ class DashboardTemplates:
                         """
                     }
                 }
-            elif theme == "playful":
+            elif theme == 'playful':
                 button_style = {
-                    "card_mod": {
-                        "style": f"""
+                    'card_mod': {
+                        'style': f"""
                             ha-card {{
                                 background: {color};
                                 color: white;
@@ -2563,25 +2563,25 @@ class DashboardTemplates:
                 {
                     **base_button,
                     **button_style,
-                    "name": name,
-                    "icon": icon,
-                    "tap_action": {
-                        "action": "call-service",
-                        "service": f"{DOMAIN}.feed_dog",
-                        "service_data": {
-                            "dog_id": dog_id,
-                            "meal_type": meal_type,
+                    'name': name,
+                    'icon': icon,
+                    'tap_action': {
+                        'action': 'call-service',
+                        'service': f"{DOMAIN}.feed_dog",
+                        'service_data': {
+                            'dog_id': dog_id,
+                            'meal_type': meal_type,
                         },
                     },
                 }
             )
 
         # Group buttons based on theme
-        if theme == "playful":
+        if theme == 'playful':
             # Circular arrangement
             return {
-                "type": "horizontal-stack",
-                "cards": buttons,
+                'type': 'horizontal-stack',
+                'cards': buttons,
             }
         # Grid arrangement
         grouped_buttons: CardCollection = []
@@ -2589,18 +2589,18 @@ class DashboardTemplates:
             button_pair = buttons[i : i + 2]
             grouped_buttons.append(
                 {
-                    "type": "horizontal-stack",
-                    "cards": button_pair,
+                    'type': 'horizontal-stack',
+                    'cards': button_pair,
                 }
             )
 
         return {
-            "type": "vertical-stack",
-            "cards": grouped_buttons,
+            'type': 'vertical-stack',
+            'cards': grouped_buttons,
         }
 
     async def get_health_charts_template(
-        self, dog_id: str, theme: str = "modern"
+        self, dog_id: str, theme: str = 'modern'
     ) -> CardConfig:
         """Get themed health charts template.
 
@@ -2612,59 +2612,59 @@ class DashboardTemplates:
             Health charts template
         """
         theme_styles = self._get_theme_styles(theme)
-        hass_language: str | None = getattr(self.hass.config, "language", None)
+        hass_language: str | None = getattr(self.hass.config, 'language', None)
 
         template: CardConfig
-        if theme in ["modern", "dark"]:
+        if theme in ['modern', 'dark']:
             # Use advanced graph card
             card_mod = self._card_mod(theme_styles)
             template = {
-                "type": "custom:mini-graph-card",
-                "name": _translated_health_label(hass_language, "health_metrics"),
-                "entities": [
+                'type': 'custom:mini-graph-card',
+                'name': _translated_health_label(hass_language, 'health_metrics'),
+                'entities': [
                     {
-                        "entity": f"sensor.{dog_id}_weight",
-                        "name": _translated_health_label(hass_language, "weight"),
-                        "color": theme_styles["colors"]["primary"],
+                        'entity': f"sensor.{dog_id}_weight",
+                        'name': _translated_health_label(hass_language, 'weight'),
+                        'color': theme_styles['colors']['primary'],
                     },
                     {
-                        "entity": f"sensor.{dog_id}_health_score",
-                        "name": _translated_health_label(hass_language, "health_score"),
-                        "color": theme_styles["colors"]["accent"],
-                        "y_axis": "secondary",
+                        'entity': f"sensor.{dog_id}_health_score",
+                        'name': _translated_health_label(hass_language, 'health_score'),
+                        'color': theme_styles['colors']['accent'],
+                        'y_axis': 'secondary',
                     },
                 ],
-                "hours_to_show": 168,  # 1 week
-                "points_per_hour": 0.5,
-                "line_width": 3,
-                "animate": True,
-                "show": {
-                    "labels": True,
-                    "points": True,
-                    "legend": True,
-                    "average": True,
-                    "extrema": True,
+                'hours_to_show': 168,  # 1 week
+                'points_per_hour': 0.5,
+                'line_width': 3,
+                'animate': True,
+                'show': {
+                    'labels': True,
+                    'points': True,
+                    'legend': True,
+                    'average': True,
+                    'extrema': True,
                 },
-                "card_mod": card_mod,
+                'card_mod': card_mod,
             }
-        elif theme == "playful":
+        elif theme == 'playful':
             # Use colorful gauge cards
             template = {
-                "type": "horizontal-stack",
-                "cards": [
+                'type': 'horizontal-stack',
+                'cards': [
                     {
-                        "type": "gauge",
-                        "entity": f"sensor.{dog_id}_health_score",
-                        "name": _translated_health_label(hass_language, "health_gauge"),
-                        "min": 0,
-                        "max": 100,
-                        "severity": {
-                            "green": 70,
-                            "yellow": 40,
-                            "red": 0,
+                        'type': 'gauge',
+                        'entity': f"sensor.{dog_id}_health_score",
+                        'name': _translated_health_label(hass_language, 'health_gauge'),
+                        'min': 0,
+                        'max': 100,
+                        'severity': {
+                            'green': 70,
+                            'yellow': 40,
+                            'red': 0,
                         },
-                        "card_mod": {
-                            "style": """
+                        'card_mod': {
+                            'style': """
                                 ha-card {
                                     background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
                                     border-radius: 50%;
@@ -2673,18 +2673,18 @@ class DashboardTemplates:
                         },
                     },
                     {
-                        "type": "gauge",
-                        "entity": f"sensor.{dog_id}_activity_level",
-                        "name": _translated_health_label(hass_language, "activity"),
-                        "min": 0,
-                        "max": 100,
-                        "severity": {
-                            "green": 60,
-                            "yellow": 30,
-                            "red": 0,
+                        'type': 'gauge',
+                        'entity': f"sensor.{dog_id}_activity_level",
+                        'name': _translated_health_label(hass_language, 'activity'),
+                        'min': 0,
+                        'max': 100,
+                        'severity': {
+                            'green': 60,
+                            'yellow': 30,
+                            'red': 0,
                         },
-                        "card_mod": {
-                            "style": """
+                        'card_mod': {
+                            'style': """
                                 ha-card {
                                     background: linear-gradient(45deg, #4ECDC4, #FFE66D);
                                     border-radius: 50%;
@@ -2697,19 +2697,19 @@ class DashboardTemplates:
         else:
             # Minimal line graph
             template = {
-                "type": "history-graph",
-                "title": _translated_health_label(hass_language, "health_trends"),
-                "entities": [
+                'type': 'history-graph',
+                'title': _translated_health_label(hass_language, 'health_trends'),
+                'entities': [
                     f"sensor.{dog_id}_weight",
                     f"sensor.{dog_id}_health_score",
                 ],
-                "hours_to_show": 168,
+                'hours_to_show': 168,
             }
 
         return template
 
     async def get_timeline_template(
-        self, dog_id: str, dog_name: str, theme: str = "modern"
+        self, dog_id: str, dog_name: str, theme: str = 'modern'
     ) -> CardConfig:
         """Get activity timeline template.
 
@@ -2722,9 +2722,9 @@ class DashboardTemplates:
             Timeline template
         """
         theme_styles = self._get_theme_styles(theme)
-        hass_language: str | None = getattr(self.hass.config, "language", None)
+        hass_language: str | None = getattr(self.hass.config, 'language', None)
         last_health_label = _translated_health_label(
-            hass_language, "timeline_last_health_check"
+            hass_language, 'timeline_last_health_check'
         )
 
         timeline_content = f"""
@@ -2741,9 +2741,9 @@ class DashboardTemplates:
 
         card_mod = self._card_mod(theme_styles)
         template: CardConfig = {
-            "type": "markdown",
-            "content": timeline_content,
-            "card_mod": card_mod,
+            'type': 'markdown',
+            'content': timeline_content,
+            'card_mod': card_mod,
         }
 
         return template
@@ -2752,7 +2752,7 @@ class DashboardTemplates:
         self,
         dog_id: str,
         dog_name: str,
-        theme: str = "modern",
+        theme: str = 'modern',
         compact: bool = False,
     ) -> CardConfig:
         """Get weather status card template for dog health monitoring.
@@ -2773,73 +2773,73 @@ class DashboardTemplates:
 
         theme_styles = self._get_theme_styles(theme)
         weather_icon = self._get_weather_icon(theme)
-        hass_language: str | None = getattr(self.hass.config, "language", None)
+        hass_language: str | None = getattr(self.hass.config, 'language', None)
 
         template: CardConfig
         if compact:
             # Compact card for mobile/small spaces
             card_mod = self._card_mod(theme_styles)
             template = {
-                "type": "custom:mushroom-entity",
-                "entity": f"sensor.{dog_id}_weather_health_score",
-                "name": _translated_health_template(
+                'type': 'custom:mushroom-entity',
+                'entity': f"sensor.{dog_id}_weather_health_score",
+                'name': _translated_health_template(
                     hass_language,
-                    "weather_health_compact_name",
+                    'weather_health_compact_name',
                     icon=weather_icon,
                 ),
-                "icon": "mdi:weather-partly-cloudy",
-                "icon_color": self._get_weather_color_by_score(theme),
-                "secondary_info": "state",
-                "tap_action": {
-                    "action": "more-info",
+                'icon': 'mdi:weather-partly-cloudy',
+                'icon_color': self._get_weather_color_by_score(theme),
+                'secondary_info': 'state',
+                'tap_action': {
+                    'action': 'more-info',
                 },
-                "card_mod": card_mod,
+                'card_mod': card_mod,
             }
         else:
             # Full weather status card
             entities = [
                 {
-                    "entity": f"sensor.{dog_id}_weather_health_score",
-                    "name": _translated_health_label(
-                        hass_language, "weather_health_score"
+                    'entity': f"sensor.{dog_id}_weather_health_score",
+                    'name': _translated_health_label(
+                        hass_language, 'weather_health_score'
                     ),
-                    "icon": "mdi:heart-pulse",
+                    'icon': 'mdi:heart-pulse',
                 },
                 {
-                    "entity": f"sensor.{dog_id}_weather_temperature_risk",
-                    "name": _translated_health_label(hass_language, "temperature_risk"),
-                    "icon": "mdi:thermometer-alert",
+                    'entity': f"sensor.{dog_id}_weather_temperature_risk",
+                    'name': _translated_health_label(hass_language, 'temperature_risk'),
+                    'icon': 'mdi:thermometer-alert',
                 },
                 {
-                    "entity": f"sensor.{dog_id}_weather_activity_recommendation",
-                    "name": _translated_health_label(hass_language, "activity_level"),
-                    "icon": "mdi:run",
+                    'entity': f"sensor.{dog_id}_weather_activity_recommendation",
+                    'name': _translated_health_label(hass_language, 'activity_level'),
+                    'icon': 'mdi:run',
                 },
                 {
-                    "entity": f"binary_sensor.{dog_id}_weather_safe_for_walks",
-                    "name": _translated_health_label(hass_language, "walk_safety"),
-                    "icon": "mdi:walk",
+                    'entity': f"binary_sensor.{dog_id}_weather_safe_for_walks",
+                    'name': _translated_health_label(hass_language, 'walk_safety'),
+                    'icon': 'mdi:walk',
                 },
             ]
 
             card_mod = self._card_mod(theme_styles)
             template = {
-                "type": "entities",
-                "title": _translated_health_template(
+                'type': 'entities',
+                'title': _translated_health_template(
                     hass_language,
-                    "weather_health_card_title",
+                    'weather_health_card_title',
                     icon=weather_icon,
                     dog_name=dog_name,
                 ),
-                "entities": entities,
-                "state_color": True,
-                "show_header_toggle": False,
-                "card_mod": card_mod,
+                'entities': entities,
+                'state_color': True,
+                'show_header_toggle': False,
+                'card_mod': card_mod,
             }
 
             # Add theme-specific styling
-            if theme == "modern":
-                style = card_mod.get("style", "")
+            if theme == 'modern':
+                style = card_mod.get('style', '')
                 style += """
                     .card-header {
                         background: linear-gradient(90deg, #2196F3, #21CBF3);
@@ -2847,9 +2847,9 @@ class DashboardTemplates:
                         border-radius: 16px 16px 0 0;
                     }
                 """
-                card_mod["style"] = style
-            elif theme == "playful":
-                style = card_mod.get("style", "")
+                card_mod['style'] = style
+            elif theme == 'playful':
+                style = card_mod.get('style', '')
                 style += """
                     .card-header {
                         background: linear-gradient(45deg, #FF6B6B, #4ECDC4, #FFE66D);
@@ -2863,7 +2863,7 @@ class DashboardTemplates:
                         100% { background-position: 0% 50%; }
                     }
                 """
-                card_mod["style"] = style
+                card_mod['style'] = style
 
         await self._cache.set(cache_key, template)
         return template
@@ -2872,7 +2872,7 @@ class DashboardTemplates:
         self,
         dog_id: str,
         dog_name: str,
-        theme: str = "modern",
+        theme: str = 'modern',
         max_alerts: int = 3,
     ) -> CardConfig:
         """Get weather alerts card template.
@@ -2887,7 +2887,7 @@ class DashboardTemplates:
             Weather alerts card template
         """
         theme_styles = self._get_theme_styles(theme)
-        alert_icon = "⚠️" if theme == "playful" else "mdi:weather-lightning"
+        alert_icon = '⚠️' if theme == 'playful' else 'mdi:weather-lightning'
 
         # Dynamic content based on current alerts
         alerts_content = f"""
@@ -2915,7 +2915,7 @@ class DashboardTemplates:
 """
 
         # Conditional styling based on alert severity
-        if theme == "modern":
+        if theme == 'modern':
             card_mod_style = """
                 ha-card {
                     background: linear-gradient(135deg,
@@ -2932,8 +2932,8 @@ class DashboardTemplates:
                             #4CAF50
                         {% endif %};
                 }
-            """.replace("{dog_id}", dog_id)
-        elif theme == "playful":
+            """.replace('{dog_id}', dog_id)
+        elif theme == 'playful':
             card_mod_style = """
                 ha-card {
                     background: {% if states('sensor.{dog_id}_weather_alerts') | int > 0 %}
@@ -2949,15 +2949,15 @@ class DashboardTemplates:
                     50% { transform: scale(1.02); }
                     100% { transform: scale(1); }
                 }
-            """.replace("{dog_id}", dog_id)
+            """.replace('{dog_id}', dog_id)
         else:
-            card_mod_style = self._card_mod(theme_styles).get("style", "")
+            card_mod_style = self._card_mod(theme_styles).get('style', '')
 
         template: CardConfig = {
-            "type": "markdown",
-            "content": alerts_content,
-            "card_mod": {
-                "style": card_mod_style,
+            'type': 'markdown',
+            'content': alerts_content,
+            'card_mod': {
+                'style': card_mod_style,
             },
         }
 
@@ -2967,7 +2967,7 @@ class DashboardTemplates:
         self,
         dog_id: str,
         dog_name: str,
-        theme: str = "modern",
+        theme: str = 'modern',
         include_breed_specific: bool = True,
         recommendations: Sequence[str] | None = None,
         *,
@@ -2988,7 +2988,7 @@ class DashboardTemplates:
         """
 
         theme_styles = self._get_theme_styles(theme)
-        rec_icon = "💡" if theme == "playful" else "mdi:lightbulb-on"
+        rec_icon = '💡' if theme == 'playful' else 'mdi:lightbulb-on'
 
         bullet_lines: list[str] = []
         if recommendations:
@@ -3000,9 +3000,9 @@ class DashboardTemplates:
         if not bullet_lines:
             bullet_lines.extend(
                 [
-                    "• Perfect weather for normal activities!",
-                    "• Maintain regular exercise schedule",
-                    "• Keep hydration available",
+                    '• Perfect weather for normal activities!',
+                    '• Maintain regular exercise schedule',
+                    '• Keep hydration available',
                 ]
             )
 
@@ -3014,47 +3014,47 @@ class DashboardTemplates:
         breed_section: list[str] = []
         if include_breed_specific:
             breed_section = [
-                "### 🐕 Breed-Specific Advice",
+                '### 🐕 Breed-Specific Advice',
                 "{{%- set breed = states.sensor.{dog_id}_breed.state | default('Mixed') -%}}",
                 "{{{{ states.sensor.{dog_id}_breed_weather_advice.attributes.advice | default('No specific advice available for this breed.') }}}}",
             ]
 
         lines = [
             f"## {rec_icon} Weather Recommendations for {dog_name}",
-            "",
-            "### 🌡️ Temperature Guidance",
+            '',
+            '### 🌡️ Temperature Guidance',
             f"**Current Feel:** {{{{ states('sensor.{dog_id}_weather_feels_like') }}}}°C",
             f"**Recommendation:** {{{{ states('sensor.{dog_id}_weather_activity_recommendation') }}}}",
-            "",
-            "### 🚶 Activity Suggestions",
+            '',
+            '### 🚶 Activity Suggestions',
             *bullet_lines,
         ]
 
         if breed_section:
-            lines.extend(["", *breed_section])
+            lines.extend(['', *breed_section])
 
         lines.extend(
             [
-                "",
-                "### ⏰ Best Activity Times",
+                '',
+                '### ⏰ Best Activity Times',
                 f"**Optimal Walk Time:** {{{{ states('sensor.{dog_id}_optimal_walk_time') }}}}",
                 f"**Avoid Outdoors:** {{{{ states('sensor.{dog_id}_weather_avoid_times') }}}}",
-                "",
+                '',
                 f"**Last Updated:** {{{{ states('sensor.{dog_id}_weather_last_update') }}}}",
             ]
         )
 
-        recommendations_content = "\n".join(lines).replace("{dog_id}", dog_id)
+        recommendations_content = '\n'.join(lines).replace('{dog_id}', dog_id)
 
         card_mod = self._card_mod(theme_styles)
         template: CardConfig = {
-            "type": "markdown",
-            "content": recommendations_content,
-            "card_mod": card_mod,
+            'type': 'markdown',
+            'content': recommendations_content,
+            'card_mod': card_mod,
         }
 
-        if theme == "modern":
-            style = card_mod.get("style", "")
+        if theme == 'modern':
+            style = card_mod.get('style', '')
             style += """
                 .card-content {
                     padding-bottom: 60px;
@@ -3073,16 +3073,16 @@ class DashboardTemplates:
                     justify-content: center;
                 }
             """
-            card_mod["style"] = style
+            card_mod['style'] = style
 
         return template
 
     async def get_weather_chart_template(
         self,
         dog_id: str,
-        chart_type: str = "health_score",
-        theme: str = "modern",
-        time_range: str = "24h",
+        chart_type: str = 'health_score',
+        theme: str = 'modern',
+        time_range: str = '24h',
     ) -> CardConfig:
         """Get weather impact chart template.
 
@@ -3096,106 +3096,106 @@ class DashboardTemplates:
             Weather chart template
         """
         theme_styles = self._get_theme_styles(theme)
-        hass_language: str | None = getattr(self.hass.config, "language", None)
+        hass_language: str | None = getattr(self.hass.config, 'language', None)
 
         hours_map = {
-            "24h": 24,
-            "7d": 168,
-            "30d": 720,
+            '24h': 24,
+            '7d': 168,
+            '30d': 720,
         }
         hours_to_show = hours_map.get(time_range, 24)
 
         entities: list[JSONMutableMapping]
 
-        if chart_type == "health_score":
+        if chart_type == 'health_score':
             entities = [
                 {
-                    "entity": f"sensor.{dog_id}_weather_health_score",
-                    "name": _translated_health_label(
-                        hass_language, "weather_health_score"
+                    'entity': f"sensor.{dog_id}_weather_health_score",
+                    'name': _translated_health_label(
+                        hass_language, 'weather_health_score'
                     ),
-                    "color": theme_styles["colors"]["primary"],
+                    'color': theme_styles['colors']['primary'],
                 },
                 {
-                    "entity": f"sensor.{dog_id}_outdoor_temperature",
-                    "name": "Temperature",
-                    "color": theme_styles["colors"]["accent"],
-                    "y_axis": "secondary",
+                    'entity': f"sensor.{dog_id}_outdoor_temperature",
+                    'name': 'Temperature',
+                    'color': theme_styles['colors']['accent'],
+                    'y_axis': 'secondary',
                 },
             ]
             chart_title = _translated_health_template(
-                hass_language, "weather_health_chart_title"
+                hass_language, 'weather_health_chart_title'
             )
-        elif chart_type == "temperature":
+        elif chart_type == 'temperature':
             entities = [
                 {
-                    "entity": f"sensor.{dog_id}_outdoor_temperature",
-                    "name": "Temperature",
-                    "color": "#FF5722",
+                    'entity': f"sensor.{dog_id}_outdoor_temperature",
+                    'name': 'Temperature',
+                    'color': '#FF5722',
                 },
                 {
-                    "entity": f"sensor.{dog_id}_feels_like_temperature",
-                    "name": "Feels Like",
-                    "color": "#FF9800",
+                    'entity': f"sensor.{dog_id}_feels_like_temperature",
+                    'name': 'Feels Like',
+                    'color': '#FF9800',
                 },
                 {
-                    "entity": f"sensor.{dog_id}_temperature_comfort_zone",
-                    "name": "Comfort Zone",
-                    "color": "#4CAF50",
-                    "show_fill": True,
+                    'entity': f"sensor.{dog_id}_temperature_comfort_zone",
+                    'name': 'Comfort Zone',
+                    'color': '#4CAF50',
+                    'show_fill': True,
                 },
             ]
-            chart_title = "Temperature Trends"
+            chart_title = 'Temperature Trends'
         else:  # activity
             entities = [
                 {
-                    "entity": f"sensor.{dog_id}_weather_activity_level",
-                    "name": "Recommended Activity",
-                    "color": theme_styles["colors"]["primary"],
+                    'entity': f"sensor.{dog_id}_weather_activity_level",
+                    'name': 'Recommended Activity',
+                    'color': theme_styles['colors']['primary'],
                 },
                 {
-                    "entity": f"sensor.{dog_id}_actual_activity_level",
-                    "name": "Actual Activity",
-                    "color": theme_styles["colors"]["accent"],
+                    'entity': f"sensor.{dog_id}_actual_activity_level",
+                    'name': 'Actual Activity',
+                    'color': theme_styles['colors']['accent'],
                 },
             ]
-            chart_title = "Activity vs Weather"
+            chart_title = 'Activity vs Weather'
 
         template: CardConfig
-        if theme in ["modern", "dark"]:
+        if theme in ['modern', 'dark']:
             card_mod = self._card_mod(theme_styles)
             template = {
-                "type": "custom:mini-graph-card",
-                "name": chart_title,
-                "entities": entities,
-                "hours_to_show": hours_to_show,
-                "points_per_hour": 2 if hours_to_show <= 24 else 1,
-                "line_width": 3,
-                "animate": True,
-                "show": {
-                    "labels": True,
-                    "points": True,
-                    "legend": True,
-                    "average": True,
-                    "extrema": True,
-                    "fill": "fade",
+                'type': 'custom:mini-graph-card',
+                'name': chart_title,
+                'entities': entities,
+                'hours_to_show': hours_to_show,
+                'points_per_hour': 2 if hours_to_show <= 24 else 1,
+                'line_width': 3,
+                'animate': True,
+                'show': {
+                    'labels': True,
+                    'points': True,
+                    'legend': True,
+                    'average': True,
+                    'extrema': True,
+                    'fill': 'fade',
                 },
-                "color_thresholds": [
-                    {"value": 30, "color": "#4CAF50"},
-                    {"value": 60, "color": "#FF9800"},
-                    {"value": 80, "color": "#F44336"},
+                'color_thresholds': [
+                    {'value': 30, 'color': '#4CAF50'},
+                    {'value': 60, 'color': '#FF9800'},
+                    {'value': 80, 'color': '#F44336'},
                 ],
-                "card_mod": card_mod,
+                'card_mod': card_mod,
             }
         else:
             # Fallback to simple history graph
             card_mod = self._card_mod(theme_styles)
             template = {
-                "type": "history-graph",
-                "title": chart_title,
-                "entities": [entity["entity"] for entity in entities],
-                "hours_to_show": hours_to_show,
-                "card_mod": card_mod,
+                'type': 'history-graph',
+                'title': chart_title,
+                'entities': [entity['entity'] for entity in entities],
+                'hours_to_show': hours_to_show,
+                'card_mod': card_mod,
             }
 
         return template
@@ -3205,7 +3205,7 @@ class DashboardTemplates:
         dog_id: str,
         dog_name: str,
         breed: str,
-        theme: str = "modern",
+        theme: str = 'modern',
     ) -> CardConfig:
         """Get breed-specific weather advisory template.
 
@@ -3261,11 +3261,11 @@ class DashboardTemplates:
         )
         breed_advice_attrs: Mapping[str, object] = {}
         if breed_advice_state is not None:
-            attrs = getattr(breed_advice_state, "attributes", {})
+            attrs = getattr(breed_advice_state, 'attributes', {})
             if isinstance(attrs, Mapping):
                 breed_advice_attrs = attrs
 
-        comfort_range_obj = breed_advice_attrs.get("comfort_range", {})
+        comfort_range_obj = breed_advice_attrs.get('comfort_range', {})
         comfort_range: Mapping[str, object]
         if isinstance(comfort_range_obj, Mapping):
             comfort_range = comfort_range_obj
@@ -3282,11 +3282,11 @@ class DashboardTemplates:
                     return fallback
             return fallback
 
-        comfort_min_value = _coerce_temperature(comfort_range.get("min"), 10.0)
-        comfort_max_value = _coerce_temperature(comfort_range.get("max"), 25.0)
+        comfort_min_value = _coerce_temperature(comfort_range.get('min'), 10.0)
+        comfort_max_value = _coerce_temperature(comfort_range.get('max'), 25.0)
 
         # Breed-specific styling
-        if theme == "modern":
+        if theme == 'modern':
             card_style = (
                 """
                 ha-card {
@@ -3308,18 +3308,18 @@ class DashboardTemplates:
                             #4CAF50
                         {% endif %};
                 }
-            """.replace("{dog_id}", dog_id)
-                .replace("breed_comfort_min", str(comfort_min_value))
-                .replace("breed_comfort_max", str(comfort_max_value))
+            """.replace('{dog_id}', dog_id)
+                .replace('breed_comfort_min', str(comfort_min_value))
+                .replace('breed_comfort_max', str(comfort_max_value))
             )
         else:
-            card_style = self._card_mod(theme_styles).get("style", "")
+            card_style = self._card_mod(theme_styles).get('style', '')
 
         template: CardConfig = {
-            "type": "markdown",
-            "content": advisory_content,
-            "card_mod": {
-                "style": card_style,
+            'type': 'markdown',
+            'content': advisory_content,
+            'card_mod': {
+                'style': card_style,
             },
         }
 
@@ -3328,8 +3328,8 @@ class DashboardTemplates:
     async def get_weather_action_buttons_template(
         self,
         dog_id: str,
-        theme: str = "modern",
-        layout: str = "horizontal",
+        theme: str = 'modern',
+        layout: str = 'horizontal',
     ) -> CardConfig:
         """Get weather action buttons template.
 
@@ -3341,20 +3341,20 @@ class DashboardTemplates:
         Returns:
             Weather action buttons template
         """
-        base_button = self._get_base_card_template("button")
+        base_button = self._get_base_card_template('button')
         theme_styles = self._get_theme_styles(theme)
 
         # Weather update button
         update_button: CardConfig = dict(base_button)
         update_button.update(
             {
-                "name": "Update Weather",
-                "icon": "mdi:weather-cloudy-arrow-right",
-                "icon_color": theme_styles["colors"]["primary"],
-                "tap_action": {
-                    "action": "call-service",
-                    "service": f"{DOMAIN}.update_weather",
-                    "service_data": {"force_update": True},
+                'name': 'Update Weather',
+                'icon': 'mdi:weather-cloudy-arrow-right',
+                'icon_color': theme_styles['colors']['primary'],
+                'tap_action': {
+                    'action': 'call-service',
+                    'service': f"{DOMAIN}.update_weather",
+                    'service_data': {'force_update': True},
                 },
             }
         )
@@ -3363,13 +3363,13 @@ class DashboardTemplates:
         alerts_button: CardConfig = dict(base_button)
         alerts_button.update(
             {
-                "name": "Check Alerts",
-                "icon": "mdi:weather-lightning",
-                "icon_color": "orange",
-                "tap_action": {
-                    "action": "call-service",
-                    "service": f"{DOMAIN}.get_weather_alerts",
-                    "service_data": {"dog_id": dog_id},
+                'name': 'Check Alerts',
+                'icon': 'mdi:weather-lightning',
+                'icon_color': 'orange',
+                'tap_action': {
+                    'action': 'call-service',
+                    'service': f"{DOMAIN}.get_weather_alerts",
+                    'service_data': {'dog_id': dog_id},
                 },
             }
         )
@@ -3378,15 +3378,15 @@ class DashboardTemplates:
         recommendations_button: CardConfig = dict(base_button)
         recommendations_button.update(
             {
-                "name": "Get Advice",
-                "icon": "mdi:lightbulb-on",
-                "icon_color": theme_styles["colors"]["accent"],
-                "tap_action": {
-                    "action": "call-service",
-                    "service": f"{DOMAIN}.get_weather_recommendations",
-                    "service_data": {
-                        "dog_id": dog_id,
-                        "include_breed_specific": True,
+                'name': 'Get Advice',
+                'icon': 'mdi:lightbulb-on',
+                'icon_color': theme_styles['colors']['accent'],
+                'tap_action': {
+                    'action': 'call-service',
+                    'service': f"{DOMAIN}.get_weather_recommendations",
+                    'service_data': {
+                        'dog_id': dog_id,
+                        'include_breed_specific': True,
                     },
                 },
             }
@@ -3395,8 +3395,8 @@ class DashboardTemplates:
         buttons: CardCollection = [update_button, alerts_button, recommendations_button]
 
         # Apply theme styling to buttons
-        if theme == "modern":
-            colors = ["#2196F3", "#FF9800", "#4CAF50"]
+        if theme == 'modern':
+            colors = ['#2196F3', '#FF9800', '#4CAF50']
             for index, button in enumerate(buttons):
                 card_mod = CardModConfig(
                     style=f"""
@@ -3412,8 +3412,8 @@ class DashboardTemplates:
                         }}
                     """
                 )
-                button["card_mod"] = card_mod
-        elif theme == "playful":
+                button['card_mod'] = card_mod
+        elif theme == 'playful':
             playful_card_mod = CardModConfig(
                 style="""
                     ha-card {
@@ -3430,24 +3430,24 @@ class DashboardTemplates:
                 """
             )
             for button in buttons:
-                button["card_mod"] = playful_card_mod
+                button['card_mod'] = playful_card_mod
 
         # Layout buttons according to specified layout
-        if layout == "vertical":
+        if layout == 'vertical':
             return {
-                "type": "vertical-stack",
-                "cards": buttons,
+                'type': 'vertical-stack',
+                'cards': buttons,
             }
-        if layout == "grid":
+        if layout == 'grid':
             return {
-                "type": "grid",
-                "columns": 3,
-                "cards": buttons,
+                'type': 'grid',
+                'columns': 3,
+                'cards': buttons,
             }
         # horizontal (default)
         return {
-            "type": "horizontal-stack",
-            "cards": buttons,
+            'type': 'horizontal-stack',
+            'cards': buttons,
         }
 
     def _get_weather_icon(self, theme: str) -> str:
@@ -3460,12 +3460,12 @@ class DashboardTemplates:
             Weather icon for the theme
         """
         icons = {
-            "modern": "🌤️",
-            "playful": "☀️",
-            "minimal": "○",
-            "dark": "🌙",
+            'modern': '🌤️',
+            'playful': '☀️',
+            'minimal': '○',
+            'dark': '🌙',
         }
-        return icons.get(theme, "🌤️")
+        return icons.get(theme, '🌤️')
 
     def _get_weather_color_by_score(self, theme: str) -> str:
         """Get weather health score color by theme.
@@ -3477,7 +3477,7 @@ class DashboardTemplates:
             Color for weather health score
         """
         theme_styles = self._get_theme_styles(theme)
-        return theme_styles["colors"]["primary"]
+        return theme_styles['colors']['primary']
 
     def _get_breed_emoji(self, breed: str, theme: str) -> str:
         """Get breed-specific emoji.
@@ -3489,19 +3489,19 @@ class DashboardTemplates:
         Returns:
             Breed-appropriate emoji
         """
-        if theme != "playful":
-            return "🐕"
+        if theme != 'playful':
+            return '🐕'
 
         # Breed-specific emojis for playful theme
         breed_emojis = {
-            "husky": "🐺",
-            "golden retriever": "🦮",
-            "bulldog": "🐶",
-            "poodle": "🐩",
-            "german shepherd": "🦮",
-            "labrador": "🦮",
-            "chihuahua": "🐕‍🦺",
-            "beagle": "🐕",
+            'husky': '🐺',
+            'golden retriever': '🦮',
+            'bulldog': '🐶',
+            'poodle': '🐩',
+            'german shepherd': '🦮',
+            'labrador': '🦮',
+            'chihuahua': '🐕‍🦺',
+            'beagle': '🐕',
         }
 
         breed_lower = breed.lower().strip()
@@ -3509,14 +3509,14 @@ class DashboardTemplates:
             if breed_key in breed_lower:
                 return emoji
 
-        return "🐶"  # Default playful dog emoji
+        return '🐶'  # Default playful dog emoji
 
     async def get_history_graph_template(
         self,
         entities: list[str],
         title: str,
         hours_to_show: int = 24,
-        theme: str = "modern",
+        theme: str = 'modern',
     ) -> CardConfig:
         """Get themed history graph template.
 
@@ -3535,19 +3535,19 @@ class DashboardTemplates:
         if not valid_entities:
             # Return empty markdown card if no valid entities
             return {
-                "type": "markdown",
-                "content": f"**{title}**\n\nNo data available",
+                'type': 'markdown',
+                'content': f"**{title}**\n\nNo data available",
             }
 
         theme_styles = self._get_theme_styles(theme)
 
         card_mod = self._card_mod(theme_styles)
         template: CardConfig = {
-            **self._get_base_card_template("history_graph"),
-            "title": title,
-            "entities": valid_entities,
-            "hours_to_show": hours_to_show,
-            "card_mod": card_mod,
+            **self._get_base_card_template('history_graph'),
+            'title': title,
+            'entities': valid_entities,
+            'hours_to_show': hours_to_show,
+            'card_mod': card_mod,
         }
 
         return template
@@ -3579,8 +3579,8 @@ class DashboardTemplates:
         dog_id: str,
         dog_name: str,
         breed: str,
-        theme: str = "modern",
-        layout: str = "full",
+        theme: str = 'modern',
+        layout: str = 'full',
     ) -> CardConfig:
         """Get complete weather dashboard layout template.
 
@@ -3594,7 +3594,7 @@ class DashboardTemplates:
         Returns:
             Complete weather dashboard layout
         """
-        if layout == "compact":
+        if layout == 'compact':
             # Compact layout for smaller screens
             compact_cards: CardCollection = [
                 await self.get_weather_status_card_template(
@@ -3604,32 +3604,32 @@ class DashboardTemplates:
                     dog_id, dog_name, theme, max_alerts=1
                 ),
                 await self.get_weather_action_buttons_template(
-                    dog_id, theme, layout="horizontal"
+                    dog_id, theme, layout='horizontal'
                 ),
             ]
 
             return {
-                "type": "vertical-stack",
-                "cards": compact_cards,
+                'type': 'vertical-stack',
+                'cards': compact_cards,
             }
 
-        if layout == "mobile":
+        if layout == 'mobile':
             # Mobile-optimized layout
             mobile_cards: CardCollection = [
                 await self.get_weather_status_card_template(
                     dog_id, dog_name, theme, compact=True
                 ),
                 await self.get_weather_chart_template(
-                    dog_id, "health_score", theme, "24h"
+                    dog_id, 'health_score', theme, '24h'
                 ),
                 await self.get_weather_action_buttons_template(
-                    dog_id, theme, layout="grid"
+                    dog_id, theme, layout='grid'
                 ),
             ]
 
             return {
-                "type": "vertical-stack",
-                "cards": mobile_cards,
+                'type': 'vertical-stack',
+                'cards': mobile_cards,
             }
 
         # full layout
@@ -3637,8 +3637,8 @@ class DashboardTemplates:
         full_cards: CardCollection = [
             # Top row: Status and alerts
             {
-                "type": "horizontal-stack",
-                "cards": [
+                'type': 'horizontal-stack',
+                'cards': [
                     await self.get_weather_status_card_template(
                         dog_id, dog_name, theme
                     ),
@@ -3649,20 +3649,20 @@ class DashboardTemplates:
             },
             # Second row: Charts
             {
-                "type": "horizontal-stack",
-                "cards": [
+                'type': 'horizontal-stack',
+                'cards': [
                     await self.get_weather_chart_template(
-                        dog_id, "health_score", theme, "24h"
+                        dog_id, 'health_score', theme, '24h'
                     ),
                     await self.get_weather_chart_template(
-                        dog_id, "temperature", theme, "24h"
+                        dog_id, 'temperature', theme, '24h'
                     ),
                 ],
             },
             # Third row: Recommendations and breed advice
             {
-                "type": "horizontal-stack",
-                "cards": [
+                'type': 'horizontal-stack',
+                'cards': [
                     await self.get_weather_recommendations_card_template(
                         dog_id, dog_name, theme
                     ),
@@ -3673,13 +3673,13 @@ class DashboardTemplates:
             },
             # Bottom row: Action buttons
             await self.get_weather_action_buttons_template(
-                dog_id, theme, layout="horizontal"
+                dog_id, theme, layout='horizontal'
             ),
         ]
 
         return {
-            "type": "vertical-stack",
-            "cards": full_cards,
+            'type': 'vertical-stack',
+            'cards': full_cards,
         }
 
     @callback

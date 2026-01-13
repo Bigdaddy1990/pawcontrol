@@ -4,6 +4,7 @@ This module exists to keep :mod:`custom_components.pawcontrol.options_flow_main`
 It contains common helper methods used by multiple option-flow mixins (telemetry,
 manual event helpers, system/dashboard/advanced settings builders, etc.).
 """
+
 from __future__ import annotations
 
 import json  # noqa: F401

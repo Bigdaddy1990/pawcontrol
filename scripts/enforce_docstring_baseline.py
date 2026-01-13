@@ -9,8 +9,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-INTEGRATION_ROOT = REPO_ROOT / "custom_components" / "pawcontrol"
-BASELINE_PATH = REPO_ROOT / "docs" / "docstring_baseline.json"
+INTEGRATION_ROOT = REPO_ROOT / 'custom_components' / 'pawcontrol'
+BASELINE_PATH = REPO_ROOT / 'docs' / 'docstring_baseline.json'
 
 
 @dataclass
@@ -26,9 +26,9 @@ class DocstringStats:
 
     def to_dict(self) -> dict[str, float]:
         return {
-            "total_defs": self.total_defs,
-            "documented_defs": self.documented_defs,
-            "coverage": self.coverage,
+            'total_defs': self.total_defs,
+            'documented_defs': self.documented_defs,
+            'coverage': self.coverage,
         }
 
 
@@ -38,8 +38,8 @@ _DEF_TYPES = (ast.AsyncFunctionDef, ast.FunctionDef, ast.ClassDef)
 def _gather_docstring_stats() -> DocstringStats:
     stats = DocstringStats()
 
-    for path in INTEGRATION_ROOT.rglob("*.py"):
-        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    for path in INTEGRATION_ROOT.rglob('*.py'):
+        tree = ast.parse(path.read_text(encoding='utf-8'), filename=str(path))
         for node in ast.walk(tree):
             if isinstance(node, _DEF_TYPES):
                 stats.total_defs += 1
@@ -52,21 +52,21 @@ def _gather_docstring_stats() -> DocstringStats:
 def _load_baseline() -> dict[str, float] | None:
     if not BASELINE_PATH.exists():
         return None
-    return json.loads(BASELINE_PATH.read_text(encoding="utf-8"))
+    return json.loads(BASELINE_PATH.read_text(encoding='utf-8'))
 
 
 def _write_baseline(stats: DocstringStats) -> None:
     BASELINE_PATH.write_text(
-        json.dumps(stats.to_dict(), indent=2) + "\n", encoding="utf-8"
+        json.dumps(stats.to_dict(), indent=2) + '\n', encoding='utf-8'
     )
 
 
 def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--update",
-        action="store_true",
-        help="rewrite the baseline with the current docstring coverage",
+        '--update',
+        action='store_true',
+        help='rewrite the baseline with the current docstring coverage',
     )
     return parser.parse_args()
 
@@ -79,17 +79,17 @@ def main() -> int:
     if args.update or baseline is None:
         _write_baseline(stats)
         print(
-            "Updated docstring baseline to",
+            'Updated docstring baseline to',
             f"{stats.documented_defs}/{stats.total_defs} definitions",
         )
         return 0
 
     coverage = stats.coverage
-    baseline_coverage = float(baseline.get("coverage", 0.0))
+    baseline_coverage = float(baseline.get('coverage', 0.0))
 
     if coverage + 1e-9 < baseline_coverage:
         print(
-            "Docstring coverage regressed:",
+            'Docstring coverage regressed:',
             f"current={coverage:.4f}",
             f"baseline={baseline_coverage:.4f}",
         )
@@ -99,12 +99,12 @@ def main() -> int:
         return 1
 
     print(
-        "Docstring coverage OK:",
+        'Docstring coverage OK:',
         f"{stats.documented_defs}/{stats.total_defs} definitions",
         f"(baseline {baseline_coverage:.4f})",
     )
     return 0
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     raise SystemExit(main())

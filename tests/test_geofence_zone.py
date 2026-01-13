@@ -12,15 +12,15 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 install_homeassistant_stubs()
-ensure_package("custom_components", PROJECT_ROOT / "custom_components")
+ensure_package('custom_components', PROJECT_ROOT / 'custom_components')
 ensure_package(
-    "custom_components.pawcontrol",
-    PROJECT_ROOT / "custom_components" / "pawcontrol",
+    'custom_components.pawcontrol',
+    PROJECT_ROOT / 'custom_components' / 'pawcontrol',
 )
 
 geofencing = load_module(
-    "custom_components.pawcontrol.geofencing",
-    PROJECT_ROOT / "custom_components" / "pawcontrol" / "geofencing.py",
+    'custom_components.pawcontrol.geofencing',
+    PROJECT_ROOT / 'custom_components' / 'pawcontrol' / 'geofencing.py',
 )
 
 GeofenceZone = geofencing.GeofenceZone
@@ -31,19 +31,19 @@ MAX_GEOFENCE_RADIUS = geofencing.MAX_GEOFENCE_RADIUS
 
 def test_geofence_zone_accepts_valid_coordinates() -> None:
     zone = GeofenceZone(
-        id="home",
-        name="Home",
+        id='home',
+        name='Home',
         type=GeofenceType.HOME_ZONE,
         latitude=52.52,
         longitude=13.405,
         radius=50,
     )
 
-    assert zone.name == "Home"
+    assert zone.name == 'Home'
 
 
 @pytest.mark.parametrize(
-    "latitude,longitude",
+    'latitude,longitude',
     [(-91, 10), (91, 10), (10, -181), (10, 181)],
 )
 def test_geofence_zone_rejects_invalid_coordinates(
@@ -51,8 +51,8 @@ def test_geofence_zone_rejects_invalid_coordinates(
 ) -> None:
     with pytest.raises(ValueError):
         GeofenceZone(
-            id="bad",
-            name="Bad",
+            id='bad',
+            name='Bad',
             type=GeofenceType.SAFE_ZONE,
             latitude=latitude,
             longitude=longitude,
@@ -63,8 +63,8 @@ def test_geofence_zone_rejects_invalid_coordinates(
 def test_geofence_zone_rejects_invalid_radius() -> None:
     with pytest.raises(ValueError):
         GeofenceZone(
-            id="bad-radius",
-            name="Bad radius",
+            id='bad-radius',
+            name='Bad radius',
             type=GeofenceType.SAFE_ZONE,
             latitude=52.52,
             longitude=13.405,
@@ -72,11 +72,11 @@ def test_geofence_zone_rejects_invalid_radius() -> None:
         )
 
 
-@pytest.mark.parametrize("radius", [MIN_GEOFENCE_RADIUS, MAX_GEOFENCE_RADIUS])
+@pytest.mark.parametrize('radius', [MIN_GEOFENCE_RADIUS, MAX_GEOFENCE_RADIUS])
 def test_geofence_zone_accepts_radius_bounds(radius: float) -> None:
     zone = GeofenceZone(
         id=f"radius-{radius}",
-        name="Radius bound",
+        name='Radius bound',
         type=GeofenceType.SAFE_ZONE,
         latitude=52.52,
         longitude=13.405,
@@ -89,8 +89,8 @@ def test_geofence_zone_accepts_radius_bounds(radius: float) -> None:
 def test_geofence_zone_rejects_radius_above_maximum() -> None:
     with pytest.raises(ValueError):
         GeofenceZone(
-            id="too-large",
-            name="Too large",
+            id='too-large',
+            name='Too large',
             type=GeofenceType.SAFE_ZONE,
             latitude=52.52,
             longitude=13.405,

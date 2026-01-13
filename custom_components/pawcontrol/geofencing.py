@@ -64,28 +64,28 @@ def _sanitize_zone_metadata(
     metadata_map = dict(metadata)
     result: GeofenceZoneMetadata = {}
 
-    if "auto_created" in metadata_map:
-        auto_created = metadata_map.get("auto_created")
+    if 'auto_created' in metadata_map:
+        auto_created = metadata_map.get('auto_created')
         if isinstance(auto_created, bool):
-            result["auto_created"] = auto_created
+            result['auto_created'] = auto_created
 
-    if "color" in metadata_map:
-        color = metadata_map.get("color")
+    if 'color' in metadata_map:
+        color = metadata_map.get('color')
         if isinstance(color, str) or color is None:
-            result["color"] = color
+            result['color'] = color
 
-    if "created_by" in metadata_map:
-        created_by = metadata_map.get("created_by")
+    if 'created_by' in metadata_map:
+        created_by = metadata_map.get('created_by')
         if isinstance(created_by, str) or created_by is None:
-            result["created_by"] = created_by
+            result['created_by'] = created_by
 
-    if "notes" in metadata_map:
-        notes = metadata_map.get("notes")
+    if 'notes' in metadata_map:
+        notes = metadata_map.get('notes')
         if isinstance(notes, str) or notes is None:
-            result["notes"] = notes
+            result['notes'] = notes
 
-    if "tags" in metadata_map:
-        tags_value = metadata_map.get("tags")
+    if 'tags' in metadata_map:
+        tags_value = metadata_map.get('tags')
         tags: list[str] = []
         if isinstance(tags_value, str):
             tags = [tags_value]
@@ -94,7 +94,7 @@ def _sanitize_zone_metadata(
         elif isinstance(tags_value, Iterable):
             tags = [tag for tag in tags_value if isinstance(tag, str)]
         if tags:
-            result["tags"] = tags
+            result['tags'] = tags
 
     return result
 
@@ -115,18 +115,18 @@ EARTH_RADIUS_KM: Final[float] = 6371.0  # Earth radius in kilometers
 class GeofenceType(Enum):
     """Enumeration of supported geofence zone types."""
 
-    SAFE_ZONE = "safe_zone"
-    RESTRICTED_AREA = "restricted_area"
-    POINT_OF_INTEREST = "point_of_interest"
-    HOME_ZONE = "home_zone"
+    SAFE_ZONE = 'safe_zone'
+    RESTRICTED_AREA = 'restricted_area'
+    POINT_OF_INTEREST = 'point_of_interest'
+    HOME_ZONE = 'home_zone'
 
 
 class GeofenceEvent(Enum):
     """Enumeration of geofence events."""
 
-    ENTERED = "entered"
-    LEFT = "left"
-    DWELL = "dwell"  # Remained in zone for extended time
+    ENTERED = 'entered'
+    LEFT = 'left'
+    DWELL = 'dwell'  # Remained in zone for extended time
 
 
 @dataclass
@@ -156,7 +156,7 @@ class GeofenceZone:
     radius: float
     enabled: bool = True
     alerts_enabled: bool = True
-    description: str = ""
+    description: str = ''
     created_at: datetime = field(default_factory=dt_util.utcnow)
     updated_at: datetime = field(default_factory=dt_util.utcnow)
     metadata: GeofenceZoneMetadata = field(default_factory=_empty_zone_metadata)
@@ -205,22 +205,22 @@ class GeofenceZone:
         """Convert zone to a typed storage payload."""
 
         metadata_dict = _sanitize_zone_metadata(self.metadata)
-        if "tags" in metadata_dict:
-            metadata_dict["tags"] = list(metadata_dict["tags"])
+        if 'tags' in metadata_dict:
+            metadata_dict['tags'] = list(metadata_dict['tags'])
 
         payload_dict: dict[str, object] = {
-            "id": self.id,
-            "name": self.name,
-            "type": self.type.value,
-            "latitude": self.latitude,
-            "longitude": self.longitude,
-            "radius": self.radius,
-            "enabled": self.enabled,
-            "alerts_enabled": self.alerts_enabled,
-            "description": self.description,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat(),
-            "metadata": cast(GeofenceZoneMetadata, cast(Any, metadata_dict)),
+            'id': self.id,
+            'name': self.name,
+            'type': self.type.value,
+            'latitude': self.latitude,
+            'longitude': self.longitude,
+            'radius': self.radius,
+            'enabled': self.enabled,
+            'alerts_enabled': self.alerts_enabled,
+            'description': self.description,
+            'created_at': self.created_at.isoformat(),
+            'updated_at': self.updated_at.isoformat(),
+            'metadata': cast(GeofenceZoneMetadata, cast(Any, metadata_dict)),
         }
         return cast(GeofenceZoneStoragePayload, cast(Any, payload_dict))
 
@@ -228,30 +228,30 @@ class GeofenceZone:
     def from_storage_payload(cls, data: GeofenceZoneStoragePayload) -> GeofenceZone:
         """Create zone from dictionary data."""
 
-        metadata_raw = data.get("metadata", {})
+        metadata_raw = data.get('metadata', {})
         metadata = _sanitize_zone_metadata(
             metadata_raw if isinstance(metadata_raw, Mapping) else {}
         )
 
         return cls(
-            id=data["id"],
-            name=data["name"],
-            type=GeofenceType(data["type"]),
-            latitude=data["latitude"],
-            longitude=data["longitude"],
-            radius=data["radius"],
-            enabled=data.get("enabled", True),
-            alerts_enabled=data.get("alerts_enabled", True),
-            description=data.get("description", ""),
+            id=data['id'],
+            name=data['name'],
+            type=GeofenceType(data['type']),
+            latitude=data['latitude'],
+            longitude=data['longitude'],
+            radius=data['radius'],
+            enabled=data.get('enabled', True),
+            alerts_enabled=data.get('alerts_enabled', True),
+            description=data.get('description', ''),
             created_at=(
                 dt_util.parse_datetime(created_at)
-                if isinstance(created_at := data.get("created_at"), str)
+                if isinstance(created_at := data.get('created_at'), str)
                 else None
             )
             or dt_util.utcnow(),
             updated_at=(
                 dt_util.parse_datetime(updated_at)
-                if isinstance(updated_at := data.get("updated_at"), str)
+                if isinstance(updated_at := data.get('updated_at'), str)
                 else None
             )
             or dt_util.utcnow(),
@@ -336,9 +336,9 @@ class PawControlGeofencing:
 
         self._notification_manager = notification_manager
         if notification_manager:
-            _LOGGER.debug("Geofencing notification manager attached")
+            _LOGGER.debug('Geofencing notification manager attached')
         else:
-            _LOGGER.debug("Geofencing notification manager cleared")
+            _LOGGER.debug('Geofencing notification manager cleared')
 
     async def async_initialize(
         self,
@@ -364,14 +364,14 @@ class PawControlGeofencing:
                 stored_data = cast(GeofenceStoragePayload, stored_data_raw or {})
 
                 # Load zones
-                zones_data_raw = stored_data.get("zones", {})
+                zones_data_raw = stored_data.get('zones', {})
                 if isinstance(zones_data_raw, list):
                     zones_data_raw = {
-                        cast(str, zone.get("id")): cast(
+                        cast(str, zone.get('id')): cast(
                             GeofenceZoneStoragePayload, zone
                         )
                         for zone in zones_data_raw
-                        if isinstance(zone, Mapping) and isinstance(zone.get("id"), str)
+                        if isinstance(zone, Mapping) and isinstance(zone.get('id'), str)
                     }
                 elif not isinstance(zones_data_raw, Mapping):
                     zones_data_raw = {}
@@ -388,7 +388,7 @@ class PawControlGeofencing:
                         )
                     except Exception as err:
                         _LOGGER.warning(
-                            "Failed to load geofence zone %s: %s", zone_id, err
+                            'Failed to load geofence zone %s: %s', zone_id, err
                         )
 
                 # Initialize dog states
@@ -403,7 +403,7 @@ class PawControlGeofencing:
                 self._check_interval = check_interval
 
                 # Create home zone if enabled and not exists
-                if use_home_location and "home" not in self._zones:
+                if use_home_location and 'home' not in self._zones:
                     await self._create_home_zone()
 
                 # Start monitoring if enabled
@@ -411,14 +411,14 @@ class PawControlGeofencing:
                     await self._start_monitoring()
 
                 _LOGGER.info(
-                    "Geofencing initialized: %d zones, %d dogs, enabled=%s",
+                    'Geofencing initialized: %d zones, %d dogs, enabled=%s',
                     len(self._zones),
                     len(self._dog_states),
                     enabled,
                 )
 
             except Exception as err:
-                _LOGGER.error("Failed to initialize geofencing system: %s", err)
+                _LOGGER.error('Failed to initialize geofencing system: %s', err)
                 raise
 
     async def _create_home_zone(self) -> None:
@@ -427,28 +427,28 @@ class PawControlGeofencing:
             home_location = self.hass.config.location
             if home_location:
                 home_zone = GeofenceZone(
-                    id="home",
-                    name="Home",
+                    id='home',
+                    name='Home',
                     type=GeofenceType.HOME_ZONE,
                     latitude=home_location.latitude,
                     longitude=home_location.longitude,
                     radius=self._home_zone_radius,
-                    description="Automatically created home zone",
-                    metadata={"auto_created": True},
+                    description='Automatically created home zone',
+                    metadata={'auto_created': True},
                 )
 
-                self._zones["home"] = home_zone
+                self._zones['home'] = home_zone
                 await self._save_data()
 
                 _LOGGER.info(
-                    "Created home zone: %.6f,%.6f radius %dm",
+                    'Created home zone: %.6f,%.6f radius %dm',
                     home_zone.latitude,
                     home_zone.longitude,
                     home_zone.radius,
                 )
 
         except Exception as err:
-            _LOGGER.warning("Failed to create home zone: %s", err)
+            _LOGGER.warning('Failed to create home zone: %s', err)
 
     async def _start_monitoring(self) -> None:
         """Start background monitoring tasks."""
@@ -461,7 +461,7 @@ class PawControlGeofencing:
         # Start cleanup task
         self._cleanup_task = self.hass.async_create_task(self._cleanup_loop())
 
-        _LOGGER.debug("Started geofencing monitoring tasks")
+        _LOGGER.debug('Started geofencing monitoring tasks')
 
     async def _stop_monitoring(self) -> None:
         """Stop background monitoring tasks."""
@@ -477,7 +477,7 @@ class PawControlGeofencing:
                 await self._cleanup_task
             self._cleanup_task = None
 
-        _LOGGER.debug("Stopped geofencing monitoring tasks")
+        _LOGGER.debug('Stopped geofencing monitoring tasks')
 
     async def _monitoring_loop(self) -> None:
         """Main monitoring loop for geofence checking."""
@@ -488,7 +488,7 @@ class PawControlGeofencing:
             except asyncio.CancelledError:
                 break
             except Exception as err:
-                _LOGGER.error("Error in geofencing monitoring loop: %s", err)
+                _LOGGER.error('Error in geofencing monitoring loop: %s', err)
                 await asyncio.sleep(self._check_interval)
 
     async def _cleanup_loop(self) -> None:
@@ -500,7 +500,7 @@ class PawControlGeofencing:
             except asyncio.CancelledError:
                 break
             except Exception as err:
-                _LOGGER.error("Error in geofencing cleanup loop: %s", err)
+                _LOGGER.error('Error in geofencing cleanup loop: %s', err)
 
     async def _check_all_locations(self) -> None:
         """Check all dog locations against all geofence zones."""
@@ -576,20 +576,20 @@ class PawControlGeofencing:
         location = dog_state.last_location if dog_state else None
 
         event_data = {
-            "dog_id": dog_id,
-            "zone_id": zone_id,
-            "zone_name": zone.name,
-            "zone_type": zone.type.value,
-            "event_type": event.value,
-            "timestamp": dt_util.utcnow().isoformat(),
+            'dog_id': dog_id,
+            'zone_id': zone_id,
+            'zone_name': zone.name,
+            'zone_type': zone.type.value,
+            'event_type': event.value,
+            'timestamp': dt_util.utcnow().isoformat(),
         }
 
         if location:
             event_data.update(
                 {
-                    "latitude": location.latitude,
-                    "longitude": location.longitude,
-                    "altitude": location.altitude,
+                    'latitude': location.latitude,
+                    'longitude': location.longitude,
+                    'altitude': location.altitude,
                 }
             )
 
@@ -738,7 +738,7 @@ class PawControlGeofencing:
             else:
                 await self._stop_monitoring()
 
-            _LOGGER.info("Geofencing %s", "enabled" if enabled else "disabled")
+            _LOGGER.info('Geofencing %s', 'enabled' if enabled else 'disabled')
 
     def get_zones(self) -> dict[str, GeofenceZone]:
         """Get all geofence zones.
@@ -801,14 +801,14 @@ class PawControlGeofencing:
                 for zone_id, zone in self._zones.items()
             }
             data: GeofenceStoragePayload = {
-                "zones": zones_payload,
-                "last_updated": dt_util.utcnow().isoformat(),
+                'zones': zones_payload,
+                'last_updated': dt_util.utcnow().isoformat(),
             }
 
             await self._store.async_save(data)
 
         except Exception as err:
-            _LOGGER.error("Failed to save geofencing data: %s", err)
+            _LOGGER.error('Failed to save geofencing data: %s', err)
 
     async def async_cleanup(self) -> None:
         """Clean up geofencing system."""
@@ -837,19 +837,19 @@ class PawControlGeofencing:
         )
 
         notification_data: GeofenceNotificationPayload = {
-            "zone_id": zone.id,
-            "zone_name": zone.name,
-            "zone_type": zone.type.value,
-            "event_type": event.value,
-            "radius": zone.radius,
+            'zone_id': zone.id,
+            'zone_name': zone.name,
+            'zone_type': zone.type.value,
+            'event_type': event.value,
+            'radius': zone.radius,
         }
 
         if location:
             distance = zone.distance_to_location(location)
-            notification_data["latitude"] = location.latitude
-            notification_data["longitude"] = location.longitude
-            notification_data["distance_from_center_m"] = round(distance, 2)
-            notification_data["accuracy"] = location.accuracy
+            notification_data['latitude'] = location.latitude
+            notification_data['longitude'] = location.longitude
+            notification_data['distance_from_center_m'] = round(distance, 2)
+            notification_data['accuracy'] = location.accuracy
 
         try:
             await self._notification_manager.async_send_notification(
@@ -863,7 +863,7 @@ class PawControlGeofencing:
             )
         except Exception as err:  # pragma: no cover - defensive logging
             _LOGGER.error(
-                "Failed to send geofence notification for %s/%s: %s",
+                'Failed to send geofence notification for %s/%s: %s',
                 dog_id,
                 zone.id,
                 err,
@@ -904,7 +904,7 @@ class PawControlGeofencing:
     ) -> tuple[str, str]:
         """Create notification title and message for a geofence event."""
 
-        location_suffix = ""
+        location_suffix = ''
         if location:
             location_suffix = (
                 f" (lat {location.latitude:.5f}, lon {location.longitude:.5f})"

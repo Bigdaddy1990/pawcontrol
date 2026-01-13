@@ -32,7 +32,7 @@ AUTH_SUCCESS_STATUS_CODES: Final = (200, 201, 204)
 
 type CapabilityList = list[str]
 type JSONPrimitive = None | bool | float | int | str
-type JSONValue = JSONPrimitive | Mapping[str, "JSONValue"] | Sequence["JSONValue"]
+type JSONValue = JSONPrimitive | Mapping[str, 'JSONValue'] | Sequence['JSONValue']
 type JSONMapping = Mapping[str, JSONValue]
 type JSONSequence = Sequence[JSONValue]
 
@@ -46,12 +46,12 @@ class APIAuthenticationResult(TypedDict):
 
 
 type HealthStatus = Literal[
-    "healthy",
-    "degraded",
-    "unreachable",
-    "authentication_failed",
-    "timeout",
-    "error",
+    'healthy',
+    'degraded',
+    'unreachable',
+    'authentication_failed',
+    'timeout',
+    'error',
 ]
 
 
@@ -115,7 +115,7 @@ class APIValidator:
                 scenarios that rely on self-signed certificates.
         """
         self.hass = hass
-        self._session = ensure_shared_client_session(session, owner="APIValidator")
+        self._session = ensure_shared_client_session(session, owner='APIValidator')
         self._ssl_override: bool | None = None
         if not verify_ssl:
             # aiohttp accepts ``ssl=False`` to bypass certificate validation.
@@ -157,7 +157,7 @@ class APIValidator:
                     reachable=False,
                     authenticated=False,
                     response_time_ms=None,
-                    error_message="Invalid API endpoint format",
+                    error_message='Invalid API endpoint format',
                     api_version=None,
                     capabilities=None,
                 )
@@ -172,7 +172,7 @@ class APIValidator:
                     reachable=False,
                     authenticated=False,
                     response_time_ms=None,
-                    error_message="API endpoint not reachable",
+                    error_message='API endpoint not reachable',
                     api_version=None,
                     capabilities=None,
                 )
@@ -187,9 +187,9 @@ class APIValidator:
                     auth_result = await self._test_authentication(
                         api_endpoint, api_token
                     )
-                    authenticated = auth_result["authenticated"]
-                    api_version = auth_result["api_version"]
-                    capabilities = auth_result["capabilities"]
+                    authenticated = auth_result['authenticated']
+                    api_version = auth_result['api_version']
+                    capabilities = auth_result['capabilities']
 
                 if not authenticated:
                     response_time_ms = (time.monotonic() - start_time) * 1000
@@ -198,7 +198,7 @@ class APIValidator:
                         reachable=True,
                         authenticated=False,
                         response_time_ms=response_time_ms,
-                        error_message="API token authentication failed",
+                        error_message='API token authentication failed',
                         api_version=None,
                         capabilities=None,
                     )
@@ -223,12 +223,12 @@ class APIValidator:
                 reachable=False,
                 authenticated=False,
                 response_time_ms=response_time_ms,
-                error_message="API connection timeout",
+                error_message='API connection timeout',
                 api_version=None,
                 capabilities=None,
             )
         except Exception as err:
-            _LOGGER.error("API validation failed: %s", err)
+            _LOGGER.error('API validation failed: %s', err)
             response_time_ms = (time.monotonic() - start_time) * 1000
             return APIValidationResult(
                 valid=False,
@@ -253,7 +253,7 @@ class APIValidator:
             return False
 
         # Must start with http:// or https://
-        if not endpoint.startswith(("http://", "https://")):
+        if not endpoint.startswith(('http://', 'https://')):
             return False
 
         # Basic URL validation
@@ -279,11 +279,11 @@ class APIValidator:
 
             request_kwargs: _RequestOptions
             if self._ssl_override is None:
-                request_kwargs = {"allow_redirects": True}
+                request_kwargs = {'allow_redirects': True}
             else:
                 request_kwargs = {
-                    "allow_redirects": True,
-                    "ssl": self._ssl_override,
+                    'allow_redirects': True,
+                    'ssl': self._ssl_override,
                 }
 
             response_ctx = await session.get(endpoint, **request_kwargs)
@@ -293,10 +293,10 @@ class APIValidator:
                 return True
 
         except aiohttp.ClientError as err:
-            _LOGGER.debug("Endpoint not reachable: %s", err)
+            _LOGGER.debug('Endpoint not reachable: %s', err)
             return False
         except Exception as err:
-            _LOGGER.debug("Unexpected error testing reachability: %s", err)
+            _LOGGER.debug('Unexpected error testing reachability: %s', err)
             return False
 
     async def _test_authentication(
@@ -325,15 +325,15 @@ class APIValidator:
             )
 
             headers: dict[str, str] = {
-                "Authorization": f"Bearer {token}",
-                "Content-Type": "application/json",
+                'Authorization': f"Bearer {token}",
+                'Content-Type': 'application/json',
             }
 
             request_kwargs: _RequestOptions
             if self._ssl_override is None:
                 request_kwargs = {}
             else:
-                request_kwargs = {"ssl": self._ssl_override}
+                request_kwargs = {'ssl': self._ssl_override}
 
             # Try each endpoint until one works
             for auth_endpoint in auth_endpoints:
@@ -377,7 +377,7 @@ class APIValidator:
             )
 
         except Exception as err:
-            _LOGGER.error("Authentication test failed: %s", err)
+            _LOGGER.error('Authentication test failed: %s', err)
             return APIAuthenticationResult(
                 authenticated=False,
                 api_version=None,
@@ -412,16 +412,16 @@ class APIValidator:
                     error=validation_result.error_message,
                     api_version=validation_result.api_version,
                     capabilities=validation_result.capabilities,
-                    status="degraded",
+                    status='degraded',
                 )
 
                 # Determine overall health
                 if not validation_result.reachable:
-                    health_status["status"] = "unreachable"
+                    health_status['status'] = 'unreachable'
                 elif not validation_result.authenticated and api_token:
-                    health_status["status"] = "authentication_failed"
+                    health_status['status'] = 'authentication_failed'
                 elif validation_result.valid:
-                    health_status["status"] = "healthy"
+                    health_status['status'] = 'healthy'
 
                 return health_status
 
@@ -431,20 +431,20 @@ class APIValidator:
                 reachable=False,
                 authenticated=False,
                 response_time_ms=None,
-                error="Health check timeout",
-                status="timeout",
+                error='Health check timeout',
+                status='timeout',
                 api_version=None,
                 capabilities=None,
             )
         except Exception as err:
-            _LOGGER.error("API health check failed: %s", err)
+            _LOGGER.error('API health check failed: %s', err)
             return APIHealthStatus(
                 healthy=False,
                 reachable=False,
                 authenticated=False,
                 response_time_ms=None,
                 error=str(err),
-                status="error",
+                status='error',
                 api_version=None,
                 capabilities=None,
             )
@@ -461,7 +461,7 @@ def _extract_api_version(data: JSONMapping | _APIAuthPayload) -> str | None:
     """Return the reported API version when present."""
 
     if isinstance(data, Mapping):
-        version = data.get("version")
+        version = data.get('version')
         if isinstance(version, str):
             return version
     return None
@@ -473,7 +473,7 @@ def _extract_capabilities(data: JSONMapping | _APIAuthPayload) -> CapabilityList
     if not isinstance(data, Mapping):
         return None
 
-    capabilities = data.get("capabilities")
+    capabilities = data.get('capabilities')
     if isinstance(capabilities, Sequence) and not isinstance(
         capabilities, str | bytes | bytearray
     ):

@@ -17,16 +17,16 @@ from .homeassistant_test_stubs import (
 )
 
 __all__ = [
-    "ConfigEntryNotReady",
-    "HomeAssistantError",
-    "ensure_package",
-    "homeassistant_test_stubs",
-    "install_homeassistant_stubs",
-    "load_module",
-    "typed_deepcopy",
+    'ConfigEntryNotReady',
+    'HomeAssistantError',
+    'ensure_package',
+    'homeassistant_test_stubs',
+    'install_homeassistant_stubs',
+    'load_module',
+    'typed_deepcopy',
 ]
 
-T = TypeVar("T")
+T = TypeVar('T')
 
 
 def typed_deepcopy[T](value: T) -> T:

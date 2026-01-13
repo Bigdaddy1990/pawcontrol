@@ -42,9 +42,9 @@ if TYPE_CHECKING:
 _patch_pytest_async_fixture()
 
 pytest_plugins = (
-    "pytest_homeassistant_custom_component",
-    "pytest_asyncio",
-    "tests.plugins.asyncio_stub",
+    'pytest_homeassistant_custom_component',
+    'pytest_asyncio',
+    'tests.plugins.asyncio_stub',
 )
 
 
@@ -68,29 +68,29 @@ def mock_dog_config() -> FeedingManagerDogSetupPayload:
         Complete dog configuration mapping for FeedingManager
     """
     config: FeedingManagerDogSetupPayload = {
-        "dog_id": "test_dog",
-        "dog_name": "Buddy",
-        "breed": "Golden Retriever",
-        "weight": 30.0,
-        "ideal_weight": 28.0,
-        "age_months": 48,
-        "activity_level": "moderate",
-        "health_conditions": [],
-        "weight_goal": "maintain",
-        "modules": {
-            "feeding": True,
-            "walk": True,
-            "gps": True,
-            "health": True,
-            "notifications": True,
-            "weather": True,
+        'dog_id': 'test_dog',
+        'dog_name': 'Buddy',
+        'breed': 'Golden Retriever',
+        'weight': 30.0,
+        'ideal_weight': 28.0,
+        'age_months': 48,
+        'activity_level': 'moderate',
+        'health_conditions': [],
+        'weight_goal': 'maintain',
+        'modules': {
+            'feeding': True,
+            'walk': True,
+            'gps': True,
+            'health': True,
+            'notifications': True,
+            'weather': True,
         },
-        "feeding_config": {
-            "meals_per_day": 2,
-            "feeding_times": ["08:00", "18:00"],
-            "food_type": "dry",
-            "food_brand": "Test Brand",
-            "calories_per_100g": 350,
+        'feeding_config': {
+            'meals_per_day': 2,
+            'feeding_times': ['08:00', '18:00'],
+            'food_type': 'dry',
+            'food_brand': 'Test Brand',
+            'calories_per_100g': 350,
         },
     }
     return config
@@ -109,16 +109,16 @@ def mock_multi_dog_config(
         List of dog configuration payloads
     """
     dog1 = typed_deepcopy(mock_dog_config)
-    dog1["dog_id"] = "buddy"
-    dog1["dog_name"] = "Buddy"
-    dog1["weight"] = 30.0
+    dog1['dog_id'] = 'buddy'
+    dog1['dog_name'] = 'Buddy'
+    dog1['weight'] = 30.0
 
     dog2 = typed_deepcopy(mock_dog_config)
-    dog2["dog_id"] = "max"
-    dog2["dog_name"] = "Max"
-    dog2["weight"] = 15.0
-    dog2["breed"] = "Beagle"
-    dog2["activity_level"] = "high"
+    dog2['dog_id'] = 'max'
+    dog2['dog_name'] = 'Max'
+    dog2['weight'] = 15.0
+    dog2['breed'] = 'Beagle'
+    dog2['activity_level'] = 'high'
 
     return [dog1, dog2]
 
@@ -136,19 +136,19 @@ def mock_config_entry(mock_dog_config: FeedingManagerDogSetupPayload) -> ConfigE
     from homeassistant.config_entries import ConfigEntry
 
     entry = ConfigEntry(
-        domain="pawcontrol",
-        data={"dogs": [mock_dog_config]},
+        domain='pawcontrol',
+        data={'dogs': [mock_dog_config]},
         options={
-            "entity_profile": "standard",
-            "external_integrations": False,
-            "update_interval": 120,
+            'entity_profile': 'standard',
+            'external_integrations': False,
+            'update_interval': 120,
         },
-        title="Test PawControl",
+        title='Test PawControl',
     )
 
     entry.version = 1
     entry.minor_version = 0
-    entry.state = "loaded"
+    entry.state = 'loaded'
 
     return entry
 
@@ -188,24 +188,24 @@ class _MockClientSession(Mock):
             self.closed = True
 
         self.close = AsyncMock(side_effect=_close)
-        self.request = AsyncMock(name="request")
-        self.get = AsyncMock(side_effect=self.request, name="get")
+        self.request = AsyncMock(name='request')
+        self.get = AsyncMock(side_effect=self.request, name='get')
 
-        self.put = AsyncMock(side_effect=self.request, name="put")
-        self.patch = AsyncMock(side_effect=self.request, name="patch")
-        self.delete = AsyncMock(side_effect=self.request, name="delete")
-        self.head = AsyncMock(side_effect=self.request, name="head")
-        self.options = AsyncMock(side_effect=self.request, name="options")
+        self.put = AsyncMock(side_effect=self.request, name='put')
+        self.patch = AsyncMock(side_effect=self.request, name='patch')
+        self.delete = AsyncMock(side_effect=self.request, name='delete')
+        self.head = AsyncMock(side_effect=self.request, name='head')
+        self.options = AsyncMock(side_effect=self.request, name='options')
 
         def _context_response(*args: Any, **kwargs: Any) -> AsyncMock:
             """Return an async context manager for ``session.post`` usage."""
 
             response = Mock()
-            response.status = kwargs.get("status", 200)
-            response.text = AsyncMock(return_value=kwargs.get("text", ""))
-            response.json = AsyncMock(return_value=kwargs.get("json", {}))
+            response.status = kwargs.get('status', 200)
+            response.text = AsyncMock(return_value=kwargs.get('text', ''))
+            response.json = AsyncMock(return_value=kwargs.get('json', {}))
 
-            response.read = AsyncMock(return_value=kwargs.get("body", b""))
+            response.read = AsyncMock(return_value=kwargs.get('body', b''))
 
             response_cm = AsyncMock()
             response_cm.__aenter__.return_value = response
@@ -213,25 +213,25 @@ class _MockClientSession(Mock):
             response_cm.call_args = (args, kwargs)
             return response_cm
 
-        self.post = AsyncMock(side_effect=_context_response, name="post")
+        self.post = AsyncMock(side_effect=_context_response, name='post')
 
         async def _ws_connect(*args: Any, **kwargs: Any) -> AsyncMock:
             """Return an async context manager for websocket usage."""
 
             websocket = AsyncMock()
             websocket.closed = False
-            websocket.close = AsyncMock(name="close")
-            websocket.send_json = AsyncMock(name="send_json")
-            websocket.send_str = AsyncMock(name="send_str")
-            websocket.send_bytes = AsyncMock(name="send_bytes")
+            websocket.close = AsyncMock(name='close')
+            websocket.send_json = AsyncMock(name='send_json')
+            websocket.send_str = AsyncMock(name='send_str')
+            websocket.send_bytes = AsyncMock(name='send_bytes')
             websocket.receive_json = AsyncMock(
-                return_value=kwargs.get("receive_json", {}), name="receive_json"
+                return_value=kwargs.get('receive_json', {}), name='receive_json'
             )
             websocket.receive_str = AsyncMock(
-                return_value=kwargs.get("receive_str", ""), name="receive_str"
+                return_value=kwargs.get('receive_str', ''), name='receive_str'
             )
             websocket.receive_bytes = AsyncMock(
-                return_value=kwargs.get("receive_bytes", b""), name="receive_bytes"
+                return_value=kwargs.get('receive_bytes', b''), name='receive_bytes'
             )
 
             ws_cm = AsyncMock()
@@ -240,7 +240,7 @@ class _MockClientSession(Mock):
             ws_cm.call_args = (args, kwargs)
             return ws_cm
 
-        self.ws_connect = AsyncMock(side_effect=_ws_connect, name="ws_connect")
+        self.ws_connect = AsyncMock(side_effect=_ws_connect, name='ws_connect')
 
 
 @pytest.fixture
@@ -312,14 +312,14 @@ async def mock_coordinator(
     coordinator.resilience_manager = mock_resilience_manager
 
     coordinator.data = {
-        "test_dog": {
-            "dog_info": mock_config_entry.data["dogs"][0],
-            "status": "online",
-            "last_update": datetime.now(UTC).isoformat(),
-            "feeding": {},
-            "walk": {},
-            "gps": {},
-            "health": {},
+        'test_dog': {
+            'dog_info': mock_config_entry.data['dogs'][0],
+            'status': 'online',
+            'last_update': datetime.now(UTC).isoformat(),
+            'feeding': {},
+            'walk': {},
+            'gps': {},
+            'health': {},
         }
     }
 
@@ -363,7 +363,7 @@ async def mock_walk_manager(
     from custom_components.pawcontrol.walk_manager import WalkManager
 
     manager = WalkManager()
-    await manager.async_initialize([mock_dog_config["dog_id"]])
+    await manager.async_initialize([mock_dog_config['dog_id']])
 
     return manager
 
@@ -401,7 +401,7 @@ async def mock_notification_manager(mock_hass, mock_resilience_manager, mock_ses
     from custom_components.pawcontrol.notifications import PawControlNotificationManager
 
     manager = PawControlNotificationManager(
-        mock_hass, "test_entry", session=mock_session
+        mock_hass, 'test_entry', session=mock_session
     )
     manager.resilience_manager = mock_resilience_manager
 
@@ -422,7 +422,7 @@ async def mock_data_manager(mock_hass):
     """
     from custom_components.pawcontrol.data_manager import PawControlDataManager
 
-    manager = PawControlDataManager(mock_hass, "test_entry")
+    manager = PawControlDataManager(mock_hass, 'test_entry')
     await manager.async_initialize()
 
     return manager
@@ -460,7 +460,7 @@ def mock_walk_route(mock_gps_point):
     from custom_components.pawcontrol.gps_manager import GPSPoint, WalkRoute
 
     route = WalkRoute(
-        dog_id="test_dog",
+        dog_id='test_dog',
         start_time=datetime.now(UTC) - timedelta(hours=1),
         end_time=datetime.now(UTC),
     )
@@ -496,18 +496,18 @@ def assert_valid_dog_data():
 
     def _assert(data: CoordinatorDogData) -> None:
         """Validate dog data structure."""
-        assert "dog_info" in data
-        assert "status" in data
-        assert data["status"] in ["online", "offline", "unknown"]
+        assert 'dog_info' in data
+        assert 'status' in data
+        assert data['status'] in ['online', 'offline', 'unknown']
 
-        if "feeding" in data:
-            assert isinstance(data["feeding"], dict)
+        if 'feeding' in data:
+            assert isinstance(data['feeding'], dict)
 
-        if "walk" in data:
-            assert isinstance(data["walk"], dict)
+        if 'walk' in data:
+            assert isinstance(data['walk'], dict)
 
-        if "gps" in data:
-            assert isinstance(data["gps"], dict)
+        if 'gps' in data:
+            assert isinstance(data['gps'], dict)
 
     return _assert
 
@@ -521,26 +521,26 @@ def create_feeding_event() -> Callable[..., FeedingBatchEntry]:
     """
 
     def _create(
-        dog_id: str = "test_dog",
+        dog_id: str = 'test_dog',
         amount: float = 200.0,
-        meal_type: str = "breakfast",
+        meal_type: str = 'breakfast',
         timestamp: datetime | None = None,
     ) -> FeedingBatchEntry:
         """Create feeding event data."""
         from custom_components.pawcontrol.feeding_manager import FeedingBatchEntry
 
         event: FeedingBatchEntry = {
-            "dog_id": dog_id,
-            "amount": amount,
-            "meal_type": meal_type,
-            "timestamp": timestamp or datetime.now(UTC),
-            "notes": None,
-            "feeder": None,
-            "scheduled": False,
-            "with_medication": False,
-            "medication_name": None,
-            "medication_dose": None,
-            "medication_time": None,
+            'dog_id': dog_id,
+            'amount': amount,
+            'meal_type': meal_type,
+            'timestamp': timestamp or datetime.now(UTC),
+            'notes': None,
+            'feeder': None,
+            'scheduled': False,
+            'with_medication': False,
+            'medication_name': None,
+            'medication_dose': None,
+            'medication_time': None,
         }
         return event
 
@@ -556,7 +556,7 @@ def create_walk_event():
     """
 
     def _create(
-        dog_id: str = "test_dog",
+        dog_id: str = 'test_dog',
         duration_minutes: float = 30.0,
         distance_meters: float = 1500.0,
         walker: str | None = None,
@@ -566,14 +566,14 @@ def create_walk_event():
         start_time = end_time - timedelta(minutes=duration_minutes)
 
         event: JSONMutableMapping = {
-            "dog_id": dog_id,
-            "start_time": start_time.isoformat(),
-            "end_time": end_time.isoformat(),
-            "duration_minutes": duration_minutes,
-            "distance_meters": distance_meters,
-            "walker": walker,
-            "weather": None,
-            "leash_used": True,
+            'dog_id': dog_id,
+            'start_time': start_time.isoformat(),
+            'end_time': end_time.isoformat(),
+            'duration_minutes': duration_minutes,
+            'distance_meters': distance_meters,
+            'walker': walker,
+            'weather': None,
+            'leash_used': True,
         }
         return event
 
@@ -592,13 +592,13 @@ def pytest_configure(config):
         config: Pytest configuration object
     """
     config.addinivalue_line(
-        "markers", "unit: Unit tests that don't require Home Assistant"
+        'markers', "unit: Unit tests that don't require Home Assistant"
     )
     config.addinivalue_line(
-        "markers", "integration: Integration tests that require Home Assistant"
+        'markers', 'integration: Integration tests that require Home Assistant'
     )
-    config.addinivalue_line("markers", "slow: Slow running tests (> 1 second)")
-    config.addinivalue_line("markers", "load: Load testing tests")
+    config.addinivalue_line('markers', 'slow: Slow running tests (> 1 second)')
+    config.addinivalue_line('markers', 'load: Load testing tests')
 
 
 def pytest_collection_modifyitems(config, items):
@@ -610,9 +610,9 @@ def pytest_collection_modifyitems(config, items):
     """
     for item in items:
         # Auto-mark integration tests
-        if "components" in str(item.fspath):
+        if 'components' in str(item.fspath):
             item.add_marker(pytest.mark.integration)
 
         # Auto-mark unit tests
-        if "unit" in str(item.fspath):
+        if 'unit' in str(item.fspath):
             item.add_marker(pytest.mark.unit)

@@ -100,7 +100,7 @@ async def _async_add_entities_in_batches(
     total_entities = len(entities)
 
     _LOGGER.debug(
-        "Adding %d number entities in batches of %d to prevent Registry overload",
+        'Adding %d number entities in batches of %d to prevent Registry overload',
         total_entities,
         batch_size,
     )
@@ -112,7 +112,7 @@ async def _async_add_entities_in_batches(
         total_batches = (total_entities + batch_size - 1) // batch_size
 
         _LOGGER.debug(
-            "Processing number batch %d/%d with %d entities",
+            'Processing number batch %d/%d with %d entities',
             batch_num,
             total_batches,
             len(batch),
@@ -146,7 +146,7 @@ async def async_setup_entry(
     """
     runtime_data = get_runtime_data(hass, entry)
     if runtime_data is None:
-        _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
+        _LOGGER.error('Runtime data missing for entry %s', entry.entry_id)
         return
 
     coordinator: PawControlCoordinator = runtime_data.coordinator
@@ -160,7 +160,7 @@ async def async_setup_entry(
         dog_name: str = dog[DOG_NAME_FIELD]
         modules: DogModulesMapping = ensure_dog_modules_mapping(dog)
 
-        _LOGGER.debug("Creating number entities for dog: %s (%s)", dog_name, dog_id)
+        _LOGGER.debug('Creating number entities for dog: %s (%s)', dog_name, dog_id)
 
         # Base numbers - always created for every dog
         entities.extend(_create_base_numbers(coordinator, dog_id, dog_name, dog))
@@ -183,7 +183,7 @@ async def async_setup_entry(
     await _async_add_entities_in_batches(async_add_entities, entities, batch_size=12)
 
     _LOGGER.info(
-        "Created %d number entities for %d dogs using batched approach",
+        'Created %d number entities for %d dogs using batched approach',
         len(entities),
         len(dogs),
     )
@@ -362,9 +362,9 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
 
         # Link entity to PawControl device entry for the dog
         self.update_device_metadata(
-            model="Smart Dog Monitoring",
-            sw_version="1.0.0",
-            configuration_url="https://github.com/BigDaddy1990/pawcontrol",
+            model='Smart Dog Monitoring',
+            sw_version='1.0.0',
+            configuration_url='https://github.com/BigDaddy1990/pawcontrol',
         )
 
     async def async_added_to_hass(self) -> None:
@@ -377,20 +377,20 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
         # Restore previous value
         last_state = await self.async_get_last_state()
         if last_state is not None and last_state.state not in (
-            "unknown",
-            "unavailable",
+            'unknown',
+            'unavailable',
         ):
             try:
                 self._value = float(last_state.state)
                 _LOGGER.debug(
-                    "Restored number value for %s %s: %s",
+                    'Restored number value for %s %s: %s',
                     self._dog_name,
                     self._number_type,
                     self._value,
                 )
             except (ValueError, TypeError):
                 _LOGGER.warning(
-                    "Could not restore number value for %s %s: %s",
+                    'Could not restore number value for %s %s: %s',
                     self._dog_name,
                     self._number_type,
                     last_state.state,
@@ -418,11 +418,11 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
             NumberExtraAttributes,
             self._build_base_state_attributes(
                 {
-                    "number_type": self._number_type,
-                    "min_value": self.native_min_value,
-                    "max_value": self.native_max_value,
-                    "step": self.native_step,
-                    "last_changed": dt_util.utcnow().isoformat(),
+                    'number_type': self._number_type,
+                    'min_value': self.native_min_value,
+                    'max_value': self.native_max_value,
+                    'step': self.native_step,
+                    'last_changed': dt_util.utcnow().isoformat(),
                 }
             ),
         )
@@ -451,7 +451,7 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
             self.async_write_ha_state()
 
             _LOGGER.info(
-                "Set %s for %s (%s) to %s",
+                'Set %s for %s (%s) to %s',
                 self._number_type,
                 self._dog_name,
                 self._dog_id,
@@ -460,7 +460,7 @@ class PawControlNumberBase(PawControlDogEntityBase, NumberEntity, RestoreEntity)
 
         except Exception as err:
             _LOGGER.error(
-                "Failed to set %s for %s: %s", self._number_type, self._dog_name, err
+                'Failed to set %s for %s: %s', self._number_type, self._dog_name, err
             )
             raise HomeAssistantError(f"Failed to set {self._number_type}") from err
 
@@ -525,16 +525,16 @@ class PawControlDogWeightNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "weight",
+            'weight',
             device_class=NumberDeviceClass.WEIGHT,
             mode=NumberMode.BOX,
             native_unit_of_measurement=UnitOfMass.KILOGRAMS,
             native_min_value=MIN_DOG_WEIGHT,
             native_max_value=MAX_DOG_WEIGHT,
             native_step=0.1,
-            icon="mdi:scale",
+            icon='mdi:scale',
             initial_value=current_weight,
-            translation_key="weight",
+            translation_key='weight',
         )
 
     async def _async_set_number_value(self, value: float) -> None:
@@ -549,24 +549,24 @@ class PawControlDogWeightNumber(PawControlNumberBase):
     def extra_state_attributes(self) -> NumberExtraAttributes:
         """Return additional attributes for the weight number."""
         attrs = super().extra_state_attributes
-        health_data = self._get_module_data("health")
+        health_data = self._get_module_data('health')
 
         if isinstance(health_data, Mapping):
-            weight_trend = health_data.get("weight_trend")
+            weight_trend = health_data.get('weight_trend')
             if isinstance(weight_trend, str):
-                attrs["weight_trend"] = weight_trend
+                attrs['weight_trend'] = weight_trend
 
-            weight_change_percent = health_data.get("weight_change_percent")
+            weight_change_percent = health_data.get('weight_change_percent')
             if isinstance(weight_change_percent, int | float):
-                attrs["weight_change_percent"] = float(weight_change_percent)
+                attrs['weight_change_percent'] = float(weight_change_percent)
 
-            last_weight_date = health_data.get("last_weight_date")
+            last_weight_date = health_data.get('last_weight_date')
             if isinstance(last_weight_date, str):
-                attrs["last_weight_date"] = last_weight_date
+                attrs['last_weight_date'] = last_weight_date
 
-            target_weight = health_data.get("target_weight")
+            target_weight = health_data.get('target_weight')
             if isinstance(target_weight, int | float):
-                attrs["target_weight"] = float(target_weight)
+                attrs['target_weight'] = float(target_weight)
 
         return _normalise_attributes(attrs)
 
@@ -590,16 +590,16 @@ class PawControlDogAgeNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "age",
+            'age',
             mode=NumberMode.BOX,
             native_unit_of_measurement=UnitOfTime.YEARS,
             native_min_value=MIN_DOG_AGE,
             native_max_value=MAX_DOG_AGE,
             native_step=1,
-            icon="mdi:calendar",
+            icon='mdi:calendar',
             entity_category=EntityCategory.CONFIG,
             initial_value=current_age,
-            translation_key="age",
+            translation_key='age',
         )
 
     async def _async_set_number_value(self, value: float) -> None:
@@ -611,7 +611,7 @@ class PawControlDogAgeNumber(PawControlNumberBase):
         if dog_data is not None:
             profile_data = cast(
                 DogProfileSnapshot,
-                dog_data.setdefault("profile", cast(DogProfileSnapshot, {})),
+                dog_data.setdefault('profile', cast(DogProfileSnapshot, {})),
             )
             profile_data[DOG_AGE_FIELD] = int_value
 
@@ -620,14 +620,14 @@ class PawControlDogAgeNumber(PawControlNumberBase):
         if data_manager is not None:
             try:
                 await data_manager.async_update_dog_data(
-                    self._dog_id, {"profile": {DOG_AGE_FIELD: int_value}}
+                    self._dog_id, {'profile': {DOG_AGE_FIELD: int_value}}
                 )
             except Exception as err:  # pragma: no cover - best effort only
                 _LOGGER.debug(
-                    "Could not persist dog age for %s: %s", self._dog_name, err
+                    'Could not persist dog age for %s: %s', self._dog_name, err
                 )
 
-        _LOGGER.info("Set age for %s to %s", self._dog_name, int_value)
+        _LOGGER.info('Set age for %s to %s', self._dog_name, int_value)
 
 
 class PawControlActivityGoalNumber(PawControlNumberBase):
@@ -641,13 +641,13 @@ class PawControlActivityGoalNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "activity_goal",
+            'activity_goal',
             mode=NumberMode.SLIDER,
             native_unit_of_measurement=PERCENTAGE,
             native_min_value=50,
             native_max_value=200,
             native_step=5,
-            icon="mdi:target",
+            icon='mdi:target',
             initial_value=DEFAULT_ACTIVITY_GOAL,
         )
 
@@ -669,15 +669,15 @@ class PawControlDailyFoodAmountNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "daily_food_amount",
+            'daily_food_amount',
             mode=NumberMode.BOX,
             native_unit_of_measurement=UnitOfMass.GRAMS,
             native_min_value=50,
             native_max_value=2000,
             native_step=10,
-            icon="mdi:food",
+            icon='mdi:food',
             initial_value=300,
-            translation_key="daily_food_amount",
+            translation_key='daily_food_amount',
         )
 
     async def _async_set_number_value(self, value: float) -> None:
@@ -692,20 +692,20 @@ class PawControlDailyFoodAmountNumber(PawControlNumberBase):
 
         # Calculate recommended amount based on dog size/weight
         dog_data = self._get_dog_data()
-        if dog_data and "dog_info" in dog_data:
-            info = dog_data["dog_info"]
-            weight_value = info.get("dog_weight")
+        if dog_data and 'dog_info' in dog_data:
+            info = dog_data['dog_info']
+            weight_value = info.get('dog_weight')
             if isinstance(weight_value, int | float):
                 weight = float(weight_value)
             else:
                 weight = 20.0
             recommended = self._calculate_recommended_amount(weight)
-            attrs["recommended_amount"] = recommended
+            attrs['recommended_amount'] = recommended
             current_value = self.native_value
             if current_value is None or recommended <= 0:
-                attrs["current_vs_recommended"] = "N/A"
+                attrs['current_vs_recommended'] = 'N/A'
             else:
-                attrs["current_vs_recommended"] = (
+                attrs['current_vs_recommended'] = (
                     f"{(current_value / recommended * 100):.0f}%"
                 )
 
@@ -735,13 +735,13 @@ class PawControlFeedingReminderHoursNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "feeding_reminder_hours",
+            'feeding_reminder_hours',
             mode=NumberMode.BOX,
             native_unit_of_measurement=UnitOfTime.HOURS,
             native_min_value=2,
             native_max_value=24,
             native_step=1,
-            icon="mdi:clock-alert",
+            icon='mdi:clock-alert',
             initial_value=DEFAULT_FEEDING_REMINDER_HOURS,
         )
 
@@ -762,12 +762,12 @@ class PawControlMealsPerDayNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "meals_per_day",
+            'meals_per_day',
             mode=NumberMode.BOX,
             native_min_value=1,
             native_max_value=6,
             native_step=1,
-            icon="mdi:numeric",
+            icon='mdi:numeric',
             initial_value=2,
         )
 
@@ -788,15 +788,15 @@ class PawControlPortionSizeNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "portion_size",
+            'portion_size',
             mode=NumberMode.BOX,
             native_unit_of_measurement=UnitOfMass.GRAMS,
             native_min_value=10,
             native_max_value=500,
             native_step=5,
-            icon="mdi:food-variant",
+            icon='mdi:food-variant',
             initial_value=150,
-            translation_key="portion_size",
+            translation_key='portion_size',
         )
 
     async def _async_set_number_value(self, value: float) -> None:
@@ -816,15 +816,15 @@ class PawControlCalorieTargetNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "calorie_target",
+            'calorie_target',
             mode=NumberMode.BOX,
             native_unit_of_measurement=UnitOfEnergy.KILO_CALORIE,
             native_min_value=200,
             native_max_value=3000,
             native_step=50,
-            icon="mdi:fire",
+            icon='mdi:fire',
             initial_value=800,
-            translation_key="calorie_target",
+            translation_key='calorie_target',
         )
 
     async def _async_set_number_value(self, value: float) -> None:
@@ -845,12 +845,12 @@ class PawControlDailyWalkTargetNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "daily_walk_target",
+            'daily_walk_target',
             mode=NumberMode.BOX,
             native_min_value=1,
             native_max_value=10,
             native_step=1,
-            icon="mdi:walk",
+            icon='mdi:walk',
             initial_value=3,
         )
 
@@ -871,13 +871,13 @@ class PawControlWalkDurationTargetNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "walk_duration_target",
+            'walk_duration_target',
             mode=NumberMode.BOX,
             native_unit_of_measurement=UnitOfTime.MINUTES,
             native_min_value=10,
             native_max_value=180,
             native_step=5,
-            icon="mdi:timer",
+            icon='mdi:timer',
             initial_value=DEFAULT_WALK_DURATION_TARGET,
         )
 
@@ -898,13 +898,13 @@ class PawControlWalkDistanceTargetNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "walk_distance_target",
+            'walk_distance_target',
             mode=NumberMode.BOX,
             native_unit_of_measurement=UnitOfLength.METERS,
             native_min_value=100,
             native_max_value=10000,
             native_step=100,
-            icon="mdi:map-marker-distance",
+            icon='mdi:map-marker-distance',
             initial_value=2000,
         )
 
@@ -925,13 +925,13 @@ class PawControlWalkReminderHoursNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "walk_reminder_hours",
+            'walk_reminder_hours',
             mode=NumberMode.BOX,
             native_unit_of_measurement=UnitOfTime.HOURS,
             native_min_value=2,
             native_max_value=24,
             native_step=1,
-            icon="mdi:clock-alert",
+            icon='mdi:clock-alert',
             initial_value=8,
         )
 
@@ -952,13 +952,13 @@ class PawControlMaxWalkSpeedNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "max_walk_speed",
+            'max_walk_speed',
             mode=NumberMode.BOX,
             native_unit_of_measurement=UnitOfSpeed.KILOMETERS_PER_HOUR,
             native_min_value=2,
             native_max_value=30,
             native_step=1,
-            icon="mdi:speedometer",
+            icon='mdi:speedometer',
             initial_value=15,
         )
 
@@ -980,13 +980,13 @@ class PawControlGPSAccuracyThresholdNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "gps_accuracy_threshold",
+            'gps_accuracy_threshold',
             mode=NumberMode.BOX,
             native_unit_of_measurement=UnitOfLength.METERS,
             native_min_value=5,
             native_max_value=500,
             native_step=5,
-            icon="mdi:crosshairs-gps",
+            icon='mdi:crosshairs-gps',
             entity_category=EntityCategory.CONFIG,
             initial_value=DEFAULT_GPS_ACCURACY_THRESHOLD,
         )
@@ -1008,13 +1008,13 @@ class PawControlGPSUpdateIntervalNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "gps_update_interval",
+            'gps_update_interval',
             mode=NumberMode.BOX,
             native_unit_of_measurement=UnitOfTime.SECONDS,
             native_min_value=30,
             native_max_value=600,
             native_step=30,
-            icon="mdi:update",
+            icon='mdi:update',
             entity_category=EntityCategory.CONFIG,
             initial_value=60,
         )
@@ -1036,13 +1036,13 @@ class PawControlGeofenceRadiusNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "geofence_radius",
+            'geofence_radius',
             mode=NumberMode.BOX,
             native_unit_of_measurement=UnitOfLength.METERS,
             native_min_value=10,
             native_max_value=1000,
             native_step=10,
-            icon="mdi:map-marker-circle",
+            icon='mdi:map-marker-circle',
             initial_value=100,
         )
 
@@ -1063,13 +1063,13 @@ class PawControlLocationUpdateDistanceNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "location_update_distance",
+            'location_update_distance',
             mode=NumberMode.BOX,
             native_unit_of_measurement=UnitOfLength.METERS,
             native_min_value=1,
             native_max_value=100,
             native_step=1,
-            icon="mdi:map-marker-path",
+            icon='mdi:map-marker-path',
             entity_category=EntityCategory.CONFIG,
             initial_value=10,
         )
@@ -1091,13 +1091,13 @@ class PawControlGPSBatteryThresholdNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "gps_battery_threshold",
+            'gps_battery_threshold',
             mode=NumberMode.SLIDER,
             native_unit_of_measurement=PERCENTAGE,
             native_min_value=5,
             native_max_value=50,
             native_step=5,
-            icon="mdi:battery-alert",
+            icon='mdi:battery-alert',
             initial_value=20,
         )
 
@@ -1119,14 +1119,14 @@ class PawControlTargetWeightNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "target_weight",
+            'target_weight',
             device_class=NumberDeviceClass.WEIGHT,
             mode=NumberMode.BOX,
             native_unit_of_measurement=UnitOfMass.KILOGRAMS,
             native_min_value=MIN_DOG_WEIGHT,
             native_max_value=MAX_DOG_WEIGHT,
             native_step=0.1,
-            icon="mdi:target",
+            icon='mdi:target',
             initial_value=20.0,
         )
 
@@ -1147,13 +1147,13 @@ class PawControlWeightChangeThresholdNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "weight_change_threshold",
+            'weight_change_threshold',
             mode=NumberMode.SLIDER,
             native_unit_of_measurement=PERCENTAGE,
             native_min_value=5,
             native_max_value=25,
             native_step=1,
-            icon="mdi:scale-unbalanced",
+            icon='mdi:scale-unbalanced',
             initial_value=10,
         )
 
@@ -1174,13 +1174,13 @@ class PawControlGroomingIntervalNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "grooming_interval",
+            'grooming_interval',
             mode=NumberMode.BOX,
             native_unit_of_measurement=UnitOfTime.DAYS,
             native_min_value=7,
             native_max_value=90,
             native_step=7,
-            icon="mdi:content-cut",
+            icon='mdi:content-cut',
             initial_value=28,
         )
 
@@ -1201,15 +1201,15 @@ class PawControlVetCheckupIntervalNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "vet_checkup_interval",
+            'vet_checkup_interval',
             mode=NumberMode.BOX,
             native_unit_of_measurement=UnitOfTime.MONTHS,
             native_min_value=3,
             native_max_value=24,
             native_step=3,
-            icon="mdi:medical-bag",
+            icon='mdi:medical-bag',
             initial_value=12,
-            translation_key="vet_checkup_interval",
+            translation_key='vet_checkup_interval',
         )
 
     async def _async_set_number_value(self, value: float) -> None:
@@ -1229,13 +1229,13 @@ class PawControlHealthScoreThresholdNumber(PawControlNumberBase):
             coordinator,
             dog_id,
             dog_name,
-            "health_score_threshold",
+            'health_score_threshold',
             mode=NumberMode.SLIDER,
             native_unit_of_measurement=PERCENTAGE,
             native_min_value=30,
             native_max_value=90,
             native_step=5,
-            icon="mdi:heart-pulse",
+            icon='mdi:heart-pulse',
             initial_value=70,
         )
 

@@ -108,7 +108,7 @@ _LOGGER = logging.getLogger(__name__)
 CACHE_TTL_SECONDS = 300
 MAINTENANCE_INTERVAL = timedelta(hours=1)
 
-__all__ = ["EntityBudgetSnapshot", "PawControlCoordinator", "RuntimeCycleInfo"]
+__all__ = ['EntityBudgetSnapshot', 'PawControlCoordinator', 'RuntimeCycleInfo']
 
 
 class PawControlCoordinator(
@@ -125,7 +125,7 @@ class PawControlCoordinator(
         """Initialise the coordinator with Home Assistant runtime context."""
         self.config_entry = entry
         self.session = ensure_shared_client_session(
-            session, owner="PawControlCoordinator"
+            session, owner='PawControlCoordinator'
         )
         self.registry = DogConfigRegistry.from_entry(entry)
         self._use_external_api = bool(
@@ -134,8 +134,8 @@ class PawControlCoordinator(
         endpoint = entry.options.get(CONF_API_ENDPOINT)
         token = entry.options.get(CONF_API_TOKEN)
         self._api_client = self._build_api_client(
-            endpoint=endpoint if isinstance(endpoint, str) else "",
-            token=token if isinstance(token, str) else "",
+            endpoint=endpoint if isinstance(endpoint, str) else '',
+            token=token if isinstance(token, str) else '',
         )
 
         base_interval = self._initial_update_interval(entry)
@@ -150,7 +150,7 @@ class PawControlCoordinator(
         super().__init__(
             hass,
             _LOGGER,
-            name="PawControl Data",
+            name='PawControl Data',
             update_interval=timedelta(seconds=base_interval),
             config_entry=entry,
         )
@@ -209,7 +209,7 @@ class PawControlCoordinator(
         self._last_cycle: RuntimeCycleInfo | None = None
 
         _LOGGER.info(
-            "Coordinator initialised: %d dogs, %ds interval, external_api=%s",
+            'Coordinator initialised: %d dogs, %ds interval, external_api=%s',
             len(self.registry),
             base_interval,
             self._use_external_api,
@@ -219,8 +219,8 @@ class PawControlCoordinator(
         try:
             return self.registry.calculate_update_interval(entry.options)
         except ValidationError as err:
-            _LOGGER.warning("Invalid update interval configuration: %s", err)
-            return UPDATE_INTERVALS.get("balanced", 120)
+            _LOGGER.warning('Invalid update interval configuration: %s', err)
+            return UPDATE_INTERVALS.get('balanced', 120)
 
     def _build_api_client(
         self, *, endpoint: str, token: str
@@ -287,7 +287,7 @@ class PawControlCoordinator(
 
         bind_runtime_managers(self, self._modules, managers)
 
-        if hasattr(data_manager, "set_metrics_sink"):
+        if hasattr(data_manager, 'set_metrics_sink'):
             data_manager.set_metrics_sink(self._metrics)
 
     def clear_runtime_managers(self) -> None:
@@ -323,7 +323,7 @@ class PawControlCoordinator(
         """Deprecated private alias retained for backward compatibility."""
 
         _LOGGER.warning(
-            "PawControlCoordinator._async_setup is deprecated; use async_prepare_entry instead."
+            'PawControlCoordinator._async_setup is deprecated; use async_prepare_entry instead.'
         )
         await self.async_prepare_entry()
 
@@ -334,7 +334,7 @@ class PawControlCoordinator(
         await self.async_prepare_entry()
         dog_ids = self.registry.ids()
         if not dog_ids:
-            raise CoordinatorUpdateFailed("No valid dogs configured")
+            raise CoordinatorUpdateFailed('No valid dogs configured')
 
         data, _cycle = await self._execute_cycle(dog_ids)
         await self._synchronize_module_states(data)
@@ -347,7 +347,7 @@ class PawControlCoordinator(
         # the coordinator here ensures ``coordinator.data`` mirrors the most
         # recent payload even when the surrounding refresh workflow is bypassed.
         updated_payload = dict(self._data)
-        setter = getattr(self, "async_set_updated_data", None)
+        setter = getattr(self, 'async_set_updated_data', None)
         if callable(setter):
             result = setter(updated_payload)
             if isawaitable(result):
@@ -372,7 +372,7 @@ class PawControlCoordinator(
             return
 
         _LOGGER.debug(
-            "Adaptive polling adjusted interval from %.3fs to %.3fs",
+            'Adaptive polling adjusted interval from %.3fs to %.3fs',
             current_seconds,
             new_interval,
         )
@@ -405,7 +405,7 @@ class PawControlCoordinator(
     async def async_refresh_dog(self, dog_id: str) -> None:
         """Refresh data for a specific dog on demand."""
         if dog_id not in self.registry.ids():
-            _LOGGER.debug("Ignoring refresh for unknown dog_id: %s", dog_id)
+            _LOGGER.debug('Ignoring refresh for unknown dog_id: %s', dog_id)
             return
 
         await self._refresh_subset([dog_id])
@@ -464,7 +464,7 @@ class PawControlCoordinator(
             walk_state = dog_payload.get(MODULE_WALK)
             walk_active = False
             if isinstance(walk_state, Mapping):
-                walk_active = bool(walk_state.get("walk_in_progress"))
+                walk_active = bool(walk_state.get('walk_in_progress'))
 
             if not walk_active:
                 continue
@@ -475,7 +475,7 @@ class PawControlCoordinator(
 
             await garden_manager.async_end_garden_session(
                 dog_id,
-                notes="Paused due to active walk",
+                notes='Paused due to active walk',
                 suppress_notifications=True,
             )
             dog_payload[MODULE_GARDEN] = cast(
@@ -488,13 +488,13 @@ class PawControlCoordinator(
         self,
         dog_id: str,
         module: Literal[
-            "feeding",
-            "garden",
-            "geofencing",
-            "gps",
-            "health",
-            "walk",
-            "weather",
+            'feeding',
+            'garden',
+            'geofencing',
+            'gps',
+            'health',
+            'walk',
+            'weather',
         ],
     ) -> CoordinatorModuleState:
         """Return typed module data for the dog."""
@@ -538,7 +538,7 @@ class PawControlCoordinator(
         duration = perf_counter() - start
         self._metrics.record_statistics_timing(duration)
         self.logger.debug(
-            "Runtime statistics generated in %.3f ms (avg %.3f ms over %d samples)",
+            'Runtime statistics generated in %.3f ms (avg %.3f ms over %d samples)',
             duration * 1000,
             self._metrics.average_statistics_runtime_ms,
             len(self._metrics.statistics_timings),
@@ -553,7 +553,7 @@ class PawControlCoordinator(
         update_interval = (
             self.update_interval.total_seconds() if self.update_interval else 0.0
         )
-        last_update_time = getattr(self, "last_update_time", None)
+        last_update_time = getattr(self, 'last_update_time', None)
 
         resilience = collect_resilience_diagnostics(self)
 
@@ -565,19 +565,19 @@ class PawControlCoordinator(
             last_update_time=last_update_time,
             last_update_success=self.last_update_success,
             webhook_status=self._webhook_security_status(),
-            resilience=resilience.get("summary") if resilience else None,
+            resilience=resilience.get('summary') if resilience else None,
         )
         snapshot = cast(CoordinatorPerformanceSnapshot, dict(base_snapshot))
 
         if resilience:
-            snapshot["resilience"] = resilience
+            snapshot['resilience'] = resilience
 
-        rejection_metrics = snapshot.get("rejection_metrics")
+        rejection_metrics = snapshot.get('rejection_metrics')
         if not isinstance(rejection_metrics, Mapping):
             rejection_metrics = default_rejection_metrics()
-            snapshot["rejection_metrics"] = rejection_metrics
+            snapshot['rejection_metrics'] = rejection_metrics
 
-        runtime_data = getattr(self.config_entry, "runtime_data", None)
+        runtime_data = getattr(self.config_entry, 'runtime_data', None)
         performance_stats_payload = get_runtime_performance_stats(
             cast(PawControlRuntimeData | None, runtime_data)
         )
@@ -585,14 +585,14 @@ class PawControlCoordinator(
         entity_factory_guard = resolve_entity_factory_guard_metrics(
             performance_stats_payload
         )
-        snapshot["service_execution"] = {
-            "guard_metrics": guard_metrics,
-            "entity_factory_guard": entity_factory_guard,
-            "rejection_metrics": rejection_metrics,
+        snapshot['service_execution'] = {
+            'guard_metrics': guard_metrics,
+            'entity_factory_guard': entity_factory_guard,
+            'rejection_metrics': rejection_metrics,
         }
 
         if self._last_cycle is not None:
-            snapshot["last_cycle"] = self._last_cycle.to_dict()
+            snapshot['last_cycle'] = self._last_cycle.to_dict()
 
         return snapshot
 
@@ -623,5 +623,5 @@ class PawControlCoordinator(
     def _webhook_security_status(self) -> WebhookSecurityStatus:
         """Return normalised webhook security information."""
 
-        manager = getattr(self, "notification_manager", None)
+        manager = getattr(self, 'notification_manager', None)
         return normalise_webhook_status(manager)
