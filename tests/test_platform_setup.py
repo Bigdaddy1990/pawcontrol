@@ -8,7 +8,6 @@ from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from custom_components.pawcontrol.entity_factory import EntityFactory
 from custom_components.pawcontrol.runtime_data import store_runtime_data
 from custom_components.pawcontrol.types import PawControlRuntimeData

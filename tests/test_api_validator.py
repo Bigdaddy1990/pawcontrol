@@ -5,7 +5,6 @@ from __future__ import annotations
 from unittest.mock import AsyncMock
 
 import pytest
-
 from custom_components.pawcontrol.api_validator import APIValidator
 
 

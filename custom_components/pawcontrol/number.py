@@ -30,8 +30,6 @@ from homeassistant.util import dt as dt_util
 
 from .compat import ConfigEntry, HomeAssistantError
 from .const import (
-    ATTR_DOG_ID,
-    ATTR_DOG_NAME,
     MAX_DOG_AGE,
     MAX_DOG_WEIGHT,
     MIN_DOG_AGE,

@@ -291,9 +291,7 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return extra state attributes for enhanced functionality."""
-        attributes = self._build_base_state_attributes(
-            {"date_type": self._date_type}
-        )
+        attributes = self._build_base_state_attributes({"date_type": self._date_type})
 
         # Add calculated attributes for useful automations
         if self._current_value is not None:

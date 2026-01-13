@@ -968,10 +968,8 @@ class GPSGeofenceManager:
                                 max(5.0, float(config.update_interval)),
                             ),
                         )
-                    except asyncio.TimeoutError:
-                        _LOGGER.warning(
-                            "GPS tracking update timed out for %s", dog_id
-                        )
+                    except TimeoutError:
+                        _LOGGER.warning("GPS tracking update timed out for %s", dog_id)
 
                     # Wait for next update
                     await asyncio.sleep(config.update_interval)
@@ -1059,7 +1057,7 @@ class GPSGeofenceManager:
             task.cancel()
             try:
                 await asyncio.wait_for(task, timeout=_TASK_CANCEL_TIMEOUT)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 _LOGGER.warning(
                     "Timeout while stopping GPS tracking task for %s", dog_id
                 )

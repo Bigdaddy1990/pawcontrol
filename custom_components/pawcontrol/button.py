@@ -28,7 +28,6 @@ from . import compat
 from .compat import bind_exception_alias, ensure_homeassistant_exception_symbols
 from .const import (
     ATTR_DOG_ID,
-    ATTR_DOG_NAME,
     MODULE_FEEDING,
     MODULE_GARDEN,
     MODULE_GPS,
@@ -814,9 +813,7 @@ class PawControlButtonBase(PawControlDogEntityBase, ButtonEntity):
         attrs = self._build_base_state_attributes(
             {
                 "button_type": self._button_type,
-                "last_pressed": cast(
-                    str | None, getattr(self, "_last_pressed", None)
-                ),
+                "last_pressed": cast(str | None, getattr(self, "_last_pressed", None)),
             }
         )
 
