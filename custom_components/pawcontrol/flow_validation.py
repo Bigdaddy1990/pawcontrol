@@ -23,10 +23,21 @@ from .const import (
     MIN_DOG_WEIGHT,
 )
 from .exceptions import FlowValidationError, ValidationError
+from .validators import validate_name
 from .health_calculator import HealthMetrics
 from .types import DogConfigData, DogSetupStepInput, validate_dog_weight_for_size
 
 MAX_BREED_NAME_LENGTH = 100
+
+
+def _map_name_error(err: ValidationError) -> str:
+    if err.constraint == "name_required":
+        return "dog_name_required"
+    if err.constraint == "name_too_short":
+        return "dog_name_too_short"
+    if err.constraint == "name_too_long":
+        return "dog_name_too_long"
+    return "invalid_dog_name"
 
 
 def _coerce_int(field: str, value: Any) -> int:
@@ -113,13 +124,11 @@ def validate_dog_setup_input(
         field_errors[CONF_DOG_ID] = "dog_id_already_exists"
 
     raw_name = user_input.get(CONF_DOG_NAME, "")
-    dog_name = str(raw_name).strip() if raw_name is not None else ""
-    if not dog_name:
-        field_errors[CONF_DOG_NAME] = "dog_name_required"
-    elif len(dog_name) < MIN_DOG_NAME_LENGTH:
-        field_errors[CONF_DOG_NAME] = "dog_name_too_short"
-    elif len(dog_name) > MAX_DOG_NAME_LENGTH:
-        field_errors[CONF_DOG_NAME] = "dog_name_too_long"
+    try:
+        dog_name = validate_name(raw_name, field=CONF_DOG_NAME)
+    except ValidationError as err:
+        field_errors[CONF_DOG_NAME] = _map_name_error(err)
+        dog_name = ""
     else:
         normalized_names = {
             name.strip().lower()
@@ -198,13 +207,10 @@ def validate_dog_update_input(
     candidate: DogConfigData = dict(current_dog)
 
     raw_name = user_input.get(CONF_DOG_NAME, candidate.get(CONF_DOG_NAME, ""))
-    dog_name = str(raw_name).strip() if raw_name is not None else ""
-    if not dog_name:
-        field_errors[CONF_DOG_NAME] = "dog_name_required"
-    elif len(dog_name) < MIN_DOG_NAME_LENGTH:
-        field_errors[CONF_DOG_NAME] = "dog_name_too_short"
-    elif len(dog_name) > MAX_DOG_NAME_LENGTH:
-        field_errors[CONF_DOG_NAME] = "dog_name_too_long"
+    try:
+        dog_name = validate_name(raw_name, field=CONF_DOG_NAME)
+    except ValidationError as err:
+        field_errors[CONF_DOG_NAME] = _map_name_error(err)
     else:
         normalized_names = {
             name.strip().lower()

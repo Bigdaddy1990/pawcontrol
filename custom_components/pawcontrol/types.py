@@ -59,10 +59,13 @@ from .const import (
     CONF_FOOD_TYPE,
     CONF_LUNCH_TIME,
     CONF_MEALS_PER_DAY,
+    CONF_NOTIFICATIONS,
     CONF_QUIET_END,
     CONF_QUIET_HOURS,
     CONF_QUIET_START,
     CONF_REMINDER_REPEAT_MIN,
+    CONF_GPS_SETTINGS,
+    DEFAULT_REMINDER_REPEAT_MIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -1779,6 +1782,18 @@ type NotificationOptionsInput = NotificationSettingsInput | JSONMapping
 """Mapping accepted by :func:`ensure_notification_options`."""
 
 
+DEFAULT_NOTIFICATION_OPTIONS: Final[NotificationOptionsInput] = MappingProxyType(
+    {
+        NOTIFICATION_QUIET_HOURS_FIELD: True,
+        NOTIFICATION_QUIET_START_FIELD: "22:00:00",
+        NOTIFICATION_QUIET_END_FIELD: "07:00:00",
+        NOTIFICATION_REMINDER_REPEAT_FIELD: DEFAULT_REMINDER_REPEAT_MIN,
+        NOTIFICATION_PRIORITY_FIELD: True,
+        NOTIFICATION_MOBILE_FIELD: True,
+    }
+)
+
+
 class NotificationSettingsInput(TypedDict, total=False):
     """UI payload captured when editing notification options."""
 
@@ -2114,6 +2129,11 @@ class DogOptionsEntry(TypedDict, total=False):
 
     dog_id: str
     modules: DogModulesConfig
+    notifications: NotificationOptions
+    gps_settings: GPSOptions
+    geofence_settings: GeofenceOptions
+    feeding_settings: FeedingOptions
+    health_settings: HealthOptions
 
 
 type DogOptionsMap = dict[str, DogOptionsEntry]
@@ -6521,6 +6541,29 @@ def ensure_dog_options_entry(
         entry["modules"] = coerce_dog_modules_config(
             cast(Mapping[str, object], modules_payload)
         )
+
+    notifications_payload = value.get(CONF_NOTIFICATIONS)
+    if isinstance(notifications_payload, Mapping):
+        entry["notifications"] = ensure_notification_options(
+            cast(NotificationOptionsInput, dict(notifications_payload)),
+            defaults=DEFAULT_NOTIFICATION_OPTIONS,
+        )
+
+    gps_payload = value.get(CONF_GPS_SETTINGS)
+    if isinstance(gps_payload, Mapping):
+        entry["gps_settings"] = cast(GPSOptions, dict(gps_payload))
+
+    geofence_payload = value.get("geofence_settings")
+    if isinstance(geofence_payload, Mapping):
+        entry["geofence_settings"] = cast(GeofenceOptions, dict(geofence_payload))
+
+    feeding_payload = value.get("feeding_settings")
+    if isinstance(feeding_payload, Mapping):
+        entry["feeding_settings"] = cast(FeedingOptions, dict(feeding_payload))
+
+    health_payload = value.get("health_settings")
+    if isinstance(health_payload, Mapping):
+        entry["health_settings"] = cast(HealthOptions, dict(health_payload))
 
     return entry
 

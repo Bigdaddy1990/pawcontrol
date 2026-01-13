@@ -53,8 +53,13 @@ from custom_components.pawcontrol.const import (
     MODULE_MEDICATION,
     SPECIAL_DIET_OPTIONS,
 )
-from custom_components.pawcontrol.exceptions import FlowValidationError
+from custom_components.pawcontrol.exceptions import FlowValidationError, ValidationError
 from custom_components.pawcontrol.flow_validation import validate_dog_setup_input
+from custom_components.pawcontrol.validators import (
+    validate_gps_source,
+    validate_radius,
+    validate_timer,
+)
 from custom_components.pawcontrol.types import (
     ADD_ANOTHER_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE,
     ADD_DOG_CAPACITY_PLACEHOLDERS_TEMPLATE,
@@ -657,17 +662,67 @@ class DogManagementMixin(DogManagementMixinBase):
             return await self.async_step_add_dog()
 
         if user_input is not None:
-            # Store GPS configuration for this dog with strict typing
-            gps_source = _coerce_str(user_input.get(CONF_GPS_SOURCE), default="manual")
-            gps_update_interval = max(
-                5, _coerce_int(user_input.get("gps_update_interval"), default=60)
-            )
-            gps_accuracy = _coerce_float(
-                user_input.get("gps_accuracy_filter"), default=100.0
-            )
-            home_zone_radius = max(
-                1.0, _coerce_float(user_input.get("home_zone_radius"), default=50.0)
-            )
+            errors: dict[str, str] = {}
+            try:
+                gps_source = validate_gps_source(
+                    self.hass,
+                    user_input.get(CONF_GPS_SOURCE),
+                    field=CONF_GPS_SOURCE,
+                    allow_manual=True,
+                )
+            except ValidationError as err:
+                if err.constraint == "gps_source_unavailable":
+                    errors[CONF_GPS_SOURCE] = "gps_entity_unavailable"
+                elif err.constraint == "gps_source_not_found":
+                    errors[CONF_GPS_SOURCE] = "gps_entity_not_found"
+                else:
+                    errors[CONF_GPS_SOURCE] = "required"
+                gps_source = "manual"
+
+            try:
+                gps_update_interval = validate_timer(
+                    user_input.get("gps_update_interval"),
+                    field="gps_update_interval",
+                    min_value=5,
+                    max_value=600,
+                )
+            except ValidationError:
+                errors["gps_update_interval"] = "invalid_interval"
+                gps_update_interval = DEFAULT_GPS_UPDATE_INTERVAL
+
+            try:
+                gps_accuracy = validate_radius(
+                    user_input.get("gps_accuracy_filter"),
+                    field="gps_accuracy_filter",
+                    min_value=5,
+                    max_value=500,
+                )
+            except ValidationError:
+                errors["gps_accuracy_filter"] = "invalid_accuracy"
+                gps_accuracy = DEFAULT_GPS_ACCURACY_FILTER
+
+            try:
+                home_zone_radius = validate_radius(
+                    user_input.get("home_zone_radius"),
+                    field="home_zone_radius",
+                    min_value=10,
+                    max_value=500,
+                )
+            except ValidationError:
+                errors["home_zone_radius"] = "radius_out_of_range"
+                home_zone_radius = 50.0
+
+            if errors:
+                return self.async_show_form(
+                    step_id="dog_gps",
+                    data_schema=self._get_dog_gps_schema(),
+                    errors=errors,
+                    description_placeholders=dict(
+                        _build_dog_gps_placeholders(
+                            dog_name=current_dog[DOG_NAME_FIELD]
+                        )
+                    ),
+                )
 
             gps_config: DogGPSConfig = {
                 "gps_source": gps_source,
@@ -691,22 +746,28 @@ class DogManagementMixin(DogManagementMixinBase):
             self._current_dog_config = None
             return await self.async_step_add_another_dog()
 
-        # Get available GPS sources
+        return self.async_show_form(
+            step_id="dog_gps",
+            data_schema=self._get_dog_gps_schema(),
+            description_placeholders=dict(
+                _build_dog_gps_placeholders(dog_name=current_dog[DOG_NAME_FIELD])
+            ),
+        )
+
+    def _get_dog_gps_schema(self) -> vol.Schema:
+        """Return the GPS configuration schema for the current dog."""
+
         device_trackers = self._get_available_device_trackers()
         person_entities = self._get_available_person_entities()
 
         gps_options: list[str | dict[str, str]] = ["manual"]
-
         if device_trackers:
             gps_options.extend(device_trackers.keys())
-
         if person_entities:
             gps_options.extend(person_entities.keys())
-
-        # Add per-dog GPS device options
         gps_options.extend(["webhook", "mqtt", "tractive"])
 
-        schema = vol.Schema(
+        return vol.Schema(
             {
                 vol.Required(
                     CONF_GPS_SOURCE, default="manual"
@@ -738,14 +799,6 @@ class DogManagementMixin(DogManagementMixinBase):
                     )
                 ),
             }
-        )
-
-        return self.async_show_form(
-            step_id="dog_gps",
-            data_schema=schema,
-            description_placeholders=dict(
-                _build_dog_gps_placeholders(dog_name=current_dog[DOG_NAME_FIELD])
-            ),
         )
 
     async def async_step_dog_feeding(
