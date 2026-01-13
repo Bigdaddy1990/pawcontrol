@@ -14,7 +14,14 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from collections.abc import Awaitable, Callable, Iterable, Mapping, MutableMapping, Sequence
+from collections.abc import (
+    Awaitable,
+    Callable,
+    Iterable,
+    Mapping,
+    MutableMapping,
+    Sequence,
+)
 from contextlib import suppress
 from copy import deepcopy
 from datetime import datetime, timedelta
@@ -1403,9 +1410,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
             entry_raw = {}
             per_service_raw[service] = entry_raw
 
-        _apply_service_call_metrics(
-            entry_raw, status=status, duration_ms=duration_ms
-        )
+        _apply_service_call_metrics(entry_raw, status=status, duration_ms=duration_ms)
 
     def _wrap_service_handler(
         service: str,
