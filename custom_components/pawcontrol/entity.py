@@ -146,7 +146,7 @@ class PawControlEntity(
         else:
             attributes["last_updated"] = None
 
-                # Normalise attributes to ensure all values are JSON-serialisable. Use the
+            # Normalise attributes to ensure all values are JSON-serialisable. Use the
         # internal diagnostics normalisation helper instead of an undefined
         # `normalize_value` symbol. This avoids flake8 F821 errors and ensures
         # consistency with PawControlDogEntityBase._finalize_entity_attributes().
