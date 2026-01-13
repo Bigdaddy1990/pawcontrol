@@ -46,20 +46,27 @@ python -m script.hassfest --integration-path custom_components/pawcontrol
 python -m script.sync_contributor_guides
 ```
 
+The CI workflows must execute the same quality gate and **fail fast** when any
+command returns a non-zero exit code. Treat a green run as a hard requirement
+before opening or merging a pull request.
+
 ## Testing strategy
 
-Target **unit coverage for every entity type and flow**, including error paths:
+Target **unit coverage for every entity type and flow**, including normal and
+error paths:
 
 - Config flow, options flow, and reauth scenarios
 - Coordinator update failures and retry handling
 - Service validation and side effects
 - Diagnostics redaction
 - Entity behavior for typical + failure paths (e.g., missing API token,
-  invalid geofence coordinates)
+  invalid geofence coordinates, timeout handling)
 
 Use `pytest` fixtures and the Home Assistant stubs in
 `tests/helpers/homeassistant_test_stubs.py` to simulate core behavior without a
-full HA runtime.
+full HA runtime. Always exercise both successful and rejected paths by crafting
+fixtures for missing API tokens, invalid geofence inputs, or timeout
+conditions.
 
 ### Measuring coverage (without committing artifacts)
 
