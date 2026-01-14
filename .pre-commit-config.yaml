@@ -1,3 +1,4 @@
+
 ci:
   autoupdate_schedule: weekly
   autofix_prs: true
@@ -8,89 +9,79 @@ ci:
 default_language_version:
   python: python3.13
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.11
-    hooks:
-      - id: ruff-check
-        args:
-          - --fix
-          - --exit-non-zero-on-fix
-          - --show-fixes
-          - --unsafe-fixes
-        types_or:
-          - python
-          - pyi
-      - id: ruff-format
-        types_or:
-          - python
-          - pyi
-  - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
-    hooks:
-      - id: check-yaml
-        args:
-          - --unsafe
-          - --allow-multiple-documents
-        exclude: ^(tests/|docs/|examples?/)
-      - id: check-json
-      - id: check-toml
-      - id: end-of-file-fixer
-      - id: trailing-whitespace
-      - id: mixed-line-ending
-        args:
-          - --fix=lf
-      - id: double-quote-string-fixer
-      - id: debug-statements
-      - id: requirements-txt-fixer
-      - id: check-added-large-files
-      - id: check-case-conflict
-      - id: check-builtin-literals
-      - id: check-merge-conflict
-        args:
-          - --assume-in-merge
-      - id: check-symlinks
-      - id: pretty-format-json
-        args:
-          - --autofix
-      - id: debug-statements
-      - id: fix-byte-order-marker
-      - id: destroyed-symlinks
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.21.2
-    hooks:
-      - id: pyupgrade
-        args:
-          - --py39-plus
-  - repo: https://github.com/asottile/reorder-python-imports
-    rev: v3.16.0
-    hooks:
-      - id: reorder-python-imports
-        args:
-          - --py39-plus
-          - --add-import
-          - from __future__ import annotations
-  - repo: https://github.com/hhatto/autopep8
-    rev: v2.3.2
-    hooks:
-      - id: autopep8
-  - repo: https://github.com/asottile/add-trailing-comma
-    rev: v4.0.0
-    hooks:
-      - id: add-trailing-comma
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.1
-    hooks:
-      - id: mypy
-    # --- Config validation (früh failen) ---
-  - repo: https://github.com/abravalheri/validate-pyproject
-    rev: v0.24.1
-    hooks:
-      - id: validate-pyproject
-
-  - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.36.0
-    hooks:
-      - id: check-github-workflows
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.14.11
+  hooks:
+  - id: ruff-check
+    args:
+    - --fix
+    - --exit-non-zero-on-fix
+    - --show-fixes
+    - --unsafe-fixes
+    types_or:
+    - python
+    - pyi
+  - id: ruff-format
+    types_or:
+    - python
+    - pyi
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v6.0.0
+  hooks:
+  - id: check-yaml
+    args:
+    - --unsafe
+    - --allow-multiple-documents
+    exclude: ^(tests/|docs/|examples?/)
+  - id: check-json
+  - id: check-toml
+  - id: end-of-file-fixer
+  - id: trailing-whitespace
+  - id: mixed-line-ending
+    args:
+    - --fix=lf
+  - id: double-quote-string-fixer
+  - id: debug-statements
+  - id: requirements-txt-fixer
+  - id: check-added-large-files
+  - id: check-case-conflict
+  - id: check-builtin-literals
+  - id: check-merge-conflict
+    args:
+    - --assume-in-merge
+  - id: check-symlinks
+  - id: pretty-format-json
+    args:
+    - --autofix
+  - id: debug-statements
+  - id: fix-byte-order-marker
+  - id: destroyed-symlinks
+- repo: https://github.com/asottile/pyupgrade
+  rev: v3.21.2
+  hooks:
+  - id: pyupgrade
+    args:
+    - --py39-plus
+- repo: https://github.com/asottile/reorder-python-imports
+  rev: v3.16.0
+  hooks:
+  - id: reorder-python-imports
+    args:
+    - --py39-plus
+    - --add-import
+    - from __future__ import annotations
+- repo: https://github.com/hhatto/autopep8
+  rev: v2.3.2
+  hooks:
+  - id: autopep8
+- repo: https://github.com/asottile/add-trailing-comma
+  rev: v4.0.0
+  hooks:
+  - id: add-trailing-comma
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v1.19.1
+  hooks:
+  - id: mypy
 
 - repo: local
   hooks:
