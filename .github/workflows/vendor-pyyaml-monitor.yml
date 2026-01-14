@@ -16,6 +16,11 @@ on:
           - 'false'
           - 'true'
 
+
+permissions:
+  contents: write
+  pull-requests: write
+
 env:
   PYTHON_VERSION: ${{ vars.PYTHON_VERSION != '' && vars.PYTHON_VERSION || '3.13' }}
 
