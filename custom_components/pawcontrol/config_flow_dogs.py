@@ -58,9 +58,7 @@ from custom_components.pawcontrol.const import SPECIAL_DIET_OPTIONS
 from custom_components.pawcontrol.exceptions import FlowValidationError
 from custom_components.pawcontrol.exceptions import ValidationError
 from custom_components.pawcontrol.flow_validation import validate_dog_setup_input
-from custom_components.pawcontrol.types import (
-    ADD_ANOTHER_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE,
-)
+from custom_components.pawcontrol.types import ADD_ANOTHER_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE
 from custom_components.pawcontrol.types import ADD_DOG_CAPACITY_PLACEHOLDERS_TEMPLATE
 from custom_components.pawcontrol.types import AddAnotherDogInput
 from custom_components.pawcontrol.types import clone_placeholders
@@ -79,9 +77,7 @@ from custom_components.pawcontrol.types import DOG_HEALTH_PLACEHOLDERS_TEMPLATE
 from custom_components.pawcontrol.types import DOG_ID_FIELD
 from custom_components.pawcontrol.types import DOG_MODULES_FIELD
 from custom_components.pawcontrol.types import dog_modules_from_flow_input
-from custom_components.pawcontrol.types import (
-    DOG_MODULES_SUGGESTION_PLACEHOLDERS_TEMPLATE,
-)
+from custom_components.pawcontrol.types import DOG_MODULES_SUGGESTION_PLACEHOLDERS_TEMPLATE
 from custom_components.pawcontrol.types import DOG_NAME_FIELD
 from custom_components.pawcontrol.types import DOG_SIZE_FIELD
 from custom_components.pawcontrol.types import DOG_WEIGHT_FIELD
@@ -102,9 +98,7 @@ from custom_components.pawcontrol.types import DogValidationResult
 from custom_components.pawcontrol.types import ensure_dog_modules_config
 from custom_components.pawcontrol.types import freeze_placeholders
 from custom_components.pawcontrol.types import JSONMapping
-from custom_components.pawcontrol.types import (
-    MODULE_SETUP_SUMMARY_PLACEHOLDERS_TEMPLATE,
-)
+from custom_components.pawcontrol.types import MODULE_SETUP_SUMMARY_PLACEHOLDERS_TEMPLATE
 from custom_components.pawcontrol.types import MODULE_TOGGLE_FLAG_BY_KEY
 from custom_components.pawcontrol.types import MODULE_TOGGLE_KEYS
 from custom_components.pawcontrol.types import ModuleConfigurationSnapshot
