@@ -47,7 +47,10 @@ repos:
       - id: mixed-line-ending
         args:
           - --fix=lf
-      - id: double-quote-string-fixer
+      # The double-quote-string-fixer hook conflicts with Ruff’s own
+      # formatting; Ruff already ensures consistent string quoting, so we
+      # remove this hook to avoid churn.
+      # - id: double-quote-string-fixer
       - id: debug-statements
       - id: requirements-txt-fixer
       - id: check-added-large-files
@@ -74,27 +77,16 @@ repos:
         args:
           - --py39-plus
 
-  # Reorder imports consistently and add the future annotations import.
-  - repo: https://github.com/asottile/reorder-python-imports
-    rev: v3.16.0
-    hooks:
-      - id: reorder-python-imports
-        args:
-          - --py39-plus
-          - --add-import
-          - from __future__ import annotations
+  # The dedicated reorder-python-imports hook is removed because it clashes
+  # with Ruff’s import sorting. Ruff will handle import ordering on its own.
 
-  # AutoPEP8 is included for compatibility with some contributors’ editors.
-  - repo: https://github.com/hhatto/autopep8
-    rev: v2.3.2
-    hooks:
-      - id: autopep8
 
-  # Add trailing commas where appropriate to aid formatting tools.
-  - repo: https://github.com/asottile/add-trailing-comma
-    rev: v4.0.0
-    hooks:
-      - id: add-trailing-comma
+
+  # autopep8 has been removed; Ruff’s formatter and pyupgrade cover its scope.
+
+
+  # The add-trailing-comma hook is removed because Ruff’s formatting handles
+  # trailing commas consistently.
 
   # Run mypy with the project’s configuration.  We keep the hook but
   # relax the configuration in ``pyproject.toml`` to avoid an unmanageable
