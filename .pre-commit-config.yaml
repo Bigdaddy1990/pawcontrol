@@ -113,8 +113,8 @@ repos:
   rev: v3.7.4
   hooks:
   - id: prettier
-      types: [yaml]
-      files: |
+    types: [yaml]
+    files: |
           (?x)(
             ^\.github/workflows/.*\.ya?ml$|
             ^\.pre-commit-config\.ya?ml$
