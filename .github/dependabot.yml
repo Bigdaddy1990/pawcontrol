@@ -15,3 +15,6 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    labels:
+      - dependency
+      - github_actions

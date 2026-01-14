@@ -47,10 +47,6 @@ repos:
       - id: mixed-line-ending
         args:
           - --fix=lf
-      # The double-quote-string-fixer hook conflicts with Ruff’s own
-      # formatting; Ruff already ensures consistent string quoting, so we
-      # remove this hook to avoid churn.
-      # - id: double-quote-string-fixer
       - id: debug-statements
       - id: requirements-txt-fixer
       - id: check-added-large-files
@@ -60,43 +56,36 @@ repos:
         args:
           - --assume-in-merge
       - id: check-symlinks
+        args:
+          - --autofix
       - id: pretty-format-json
         args:
           - --autofix
+        exclude: ^(custom_components/pawcontrol/manifest.*|tests/|docs/|examples?/|script*/)
       - id: debug-statements
       - id: fix-byte-order-marker
       - id: destroyed-symlinks
 
-  # Pyupgrade modernises syntax to the target minimum version.  The
-  # ``--py39-plus`` argument ensures we only apply transformations valid for
-  # Python 3.9+, which matches Home Assistant’s minimum version.
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.21.2
     hooks:
       - id: pyupgrade
         args:
           - --py39-plus
-
-  # The dedicated reorder-python-imports hook is removed because it clashes
-  # with Ruff’s import sorting. Ruff will handle import ordering on its own.
-
-
-
-  # autopep8 has been removed; Ruff’s formatter and pyupgrade cover its scope.
-
-
-  # The add-trailing-comma hook is removed because Ruff’s formatting handles
-  # trailing commas consistently.
-
-  # Run mypy with the project’s configuration.  We keep the hook but
-  # relax the configuration in ``pyproject.toml`` to avoid an unmanageable
-  # flood of type errors (see that file for details).
- # - repo: https://github.com/pre-commit/mirrors-mypy
- #   rev: v1.19.1
- #   hooks:
- #     - id: mypy
-
-  # Local hooks implementing additional project-specific checks.
+  - repo: https://github.com/cdce8p/python-typing-update
+    rev: v0.6.0
+    hooks:
+      # Run `python-typing-update` hook manually from time to time
+      # to update python typing syntax.
+      # Will require manual work, before submitting changes!
+      # prek run --hook-stage manual python-typing-update --all-files
+      - id: python-typing-update
+        stages: [manual]
+        args:
+          - --py311-plus
+          - --force
+          - --keep-updates
+        files: ^(homeassistant|tests|script)/.+\.py$
   - repo: local
     hooks:
       - id: shared-session-guard
