@@ -6,10 +6,9 @@ ci:
   autoupdate_schedule: weekly
   autofix_prs: true
   autofix_commit_msg : '| [pre-commit.ci] Automatische Korrekturen von pre-commit.com-Hooks     Weitere Informationen finden Sie unter https://pre-commit.ci.'
-  autoupdate_branch : '' 
+  autoupdate_branch : 'main' 
   autoupdate_commit_msg : '[pre-commit.ci] Pre-Commit- Autoupdate' 
-  skip : [] 
-  submodules : false    
+  skip : []   
   
 default_language_version:
     python: python3.13
