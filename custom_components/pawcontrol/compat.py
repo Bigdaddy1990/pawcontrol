@@ -747,9 +747,7 @@ def _should_use_module_entry(entry_cls: Any) -> bool:
     except (TypeError, ValueError):  # pragma: no cover - signature unavailable
         return False
 
-    parameter_names = {
-        parameter.name for parameter in signature.parameters.values()
-    }
+    parameter_names = {parameter.name for parameter in signature.parameters.values()}
     return {'domain', 'entry_id'}.issubset(parameter_names)
 
 

@@ -58,9 +58,6 @@ def test_hassfest_stub_rejects_non_object_translations(tmp_path: Path) -> None:
         domain='invalid_translation',
     )
     (integration_path / 'strings.json').write_text('[]', encoding='utf-8')
-    (
-        integration_path / 'translations' /
-        'en.json'
-    ).write_text('[]', encoding='utf-8')
+    (integration_path / 'translations' / 'en.json').write_text('[]', encoding='utf-8')
 
     assert run(['--integration-path', str(integration_path)]) == 1

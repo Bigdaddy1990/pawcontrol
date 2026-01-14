@@ -223,8 +223,7 @@ def derive_next_feeding_time(
         if last_feeding_dt is None:
             return None
 
-        next_feeding_dt = last_feeding_dt + \
-            timedelta(hours=hours_between_meals)
+        next_feeding_dt = last_feeding_dt + timedelta(hours=hours_between_meals)
         return next_feeding_dt.strftime('%H:%M')
     except (TypeError, ValueError, ZeroDivisionError):
         return None
@@ -646,8 +645,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
             )
             now = dt_util.utcnow()
             days_this_week = now.weekday() + 1
-            avg_walks_per_day = (self.native_value or 0) / \
-                max(1, days_this_week)
+            avg_walks_per_day = (self.native_value or 0) / max(1, days_this_week)
             attrs.update(
                 {
                     'walks_today': walks_today,

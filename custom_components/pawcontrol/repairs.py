@@ -315,10 +315,7 @@ async def async_publish_feeding_compliance_issue(
     completed = cast(JSONMutableMapping, dict(result))
     missed_meals_raw = completed.get('missed_meals', [])
     missed_meals = (
-        [
-            dict(entry)
-            for entry in missed_meals_raw if isinstance(entry, Mapping)
-        ]
+        [dict(entry) for entry in missed_meals_raw if isinstance(entry, Mapping)]
         if isinstance(missed_meals_raw, Sequence)
         else []
     )

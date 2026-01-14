@@ -231,10 +231,7 @@ class GPSCache[LocationT: CachedGPSLocation]:
     def get_stats(self) -> GPSCacheStats:
         """Get cache statistics."""
         total_requests = self._hits + self._misses
-        hit_rate = (
-            self._hits / total_requests *
-            100.0
-        ) if total_requests else 0.0
+        hit_rate = (self._hits / total_requests * 100.0) if total_requests else 0.0
 
         stats: GPSCacheStats = {
             'hits': self._hits,
@@ -993,10 +990,7 @@ class WalkManager:
 
         # Sample points at regular intervals
         interval = len(path) // (PATH_POINT_LIMIT - 2)
-        optimized.extend(
-            path[i]
-            for i in range(interval, len(path) - 1, interval)
-        )
+        optimized.extend(path[i] for i in range(interval, len(path) - 1, interval))
 
         # Always keep end point
         optimized.append(path[-1])

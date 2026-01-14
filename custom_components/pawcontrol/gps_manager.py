@@ -962,10 +962,7 @@ class GPSGeofenceManager:
         Returns:
             Statistics dictionary
         """
-        total_routes = sum(
-            len(routes)
-            for routes in self._route_history.values()
-        )
+        total_routes = sum(len(routes) for routes in self._route_history.values())
         active_tracking = len(self._active_routes)
 
         snapshot: GPSManagerStatisticsSnapshot = {
@@ -1353,10 +1350,7 @@ class GPSGeofenceManager:
             )
 
             # Calculate time
-            time_diff = (
-                curr_point.timestamp -
-                prev_point.timestamp
-            ).total_seconds()
+            time_diff = (curr_point.timestamp - prev_point.timestamp).total_seconds()
 
             # Skip invalid segments
             if time_diff <= 0 or distance > 1000:  # Skip if >1km between points

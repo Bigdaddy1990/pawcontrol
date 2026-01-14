@@ -449,16 +449,12 @@ class _ScriptManagerCacheMonitor:
         for dog_id, scripts in dog_scripts.items():
             if not isinstance(dog_id, str):
                 continue
-            script_list = [
-                entity for entity in scripts if isinstance(entity, str)
-            ]
+            script_list = [entity for entity in scripts if isinstance(entity, str)]
             per_dog[dog_id] = {
                 'count': len(script_list),
                 'scripts': script_list,
             }
-        entry_list = [
-            entity for entity in entry_scripts if isinstance(entity, str)
-        ]
+        entry_list = [entity for entity in entry_scripts if isinstance(entity, str)]
 
         stats: ScriptManagerStats = {
             'scripts': len(created_list),
@@ -1973,8 +1969,7 @@ class PawControlScriptManager:
                     config_entry_id=self._entry.entry_id,
                 )
 
-        obsolete_entry_scripts = existing_entry_scripts - \
-            set(new_entry_scripts)
+        obsolete_entry_scripts = existing_entry_scripts - set(new_entry_scripts)
         for entity_id in obsolete_entry_scripts:
             await self._async_remove_script_entity(entity_id)
 

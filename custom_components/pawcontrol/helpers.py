@@ -287,8 +287,7 @@ class OptimizedDataCache[ValueT]:
                 self._diagnostics.get('expired_entries', 0),
             ) + len(expired_keys)
             self._diagnostics['expired_via_override'] = (
-                int(self._diagnostics.get('expired_via_override', 0)) +
-                override_expired
+                int(self._diagnostics.get('expired_via_override', 0)) + override_expired
             )
 
         return len(expired_keys)
@@ -425,10 +424,7 @@ class OptimizedDataCache[ValueT]:
         high-level effectiveness indicators (hits, misses, hit rate).
         """
         total_requests = self._hits + self._misses
-        hit_rate = (
-            self._hits / total_requests *
-            100
-        ) if total_requests else 0.0
+        hit_rate = (self._hits / total_requests * 100) if total_requests else 0.0
 
         stats: OptimizedCacheStats = {
             'entries': len(self._cache),
@@ -494,8 +490,7 @@ class PawControlDataStorage:
         self.hass = hass
         self.config_entry = config_entry
         self._stores: dict[StorageNamespaceKey, storage.Store] = {}
-        self._cache: OptimizedDataCache[StorageCacheValue] = OptimizedDataCache(
-        )
+        self._cache: OptimizedDataCache[StorageCacheValue] = OptimizedDataCache()
 
         # OPTIMIZATION: Batch save mechanism
         self._dirty_stores: set[StorageNamespaceKey] = set()
@@ -1216,10 +1211,7 @@ class PawControlData:
 
         return cast(
             JSONMutableMapping,
-            {
-                str(key): cast(JSONValue, value)
-                for key, value in payload.items()
-            },
+            {str(key): cast(JSONValue, value) for key, value in payload.items()},
         )
 
     @staticmethod
@@ -1857,10 +1849,7 @@ class PawControlNotificationManager:
                     # Send batch concurrently
                     if batch:
                         await asyncio.gather(
-                            *[
-                                self._send_notification_now(notif)
-                                for notif in batch
-                            ],
+                            *[self._send_notification_now(notif) for notif in batch],
                             return_exceptions=True,
                         )
 

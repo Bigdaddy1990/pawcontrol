@@ -509,7 +509,7 @@ class DogManagementOptionsMixin:
             'notifications': 'Alerts, reminders, status notifications',
             'dashboard': 'Custom dashboard generation',
             'visitor': 'Visitor mode for reduced monitoring',
-            'grooming': translated_grooming_label(  # noqa: F821
+            'grooming': translated_grooming_label(
                 hass_language,
                 'module_summary_description',
             ),
@@ -521,7 +521,7 @@ class DogManagementOptionsMixin:
             'grooming': translated_grooming_label(
                 hass_language,
                 'module_summary_label',
-            ),  # noqa: F821
+            ),
         }
 
         enabled_modules = [

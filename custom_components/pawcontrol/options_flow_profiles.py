@@ -331,8 +331,7 @@ class ProfileOptionsMixin:
             enabled_modules = [
                 module for module, enabled in modules_config.items() if enabled
             ]
-            utilization = (estimate / max_entities) * \
-                100 if max_entities > 0 else 0
+            utilization = (estimate / max_entities) * 100 if max_entities > 0 else 0
 
             entity_breakdown.append(
                 cast(

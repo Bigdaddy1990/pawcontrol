@@ -1835,10 +1835,7 @@ class PawControlOptionsFlow(
     ) -> tuple[DashboardOptions, str]:
         """Create typed dashboard configuration and selected mode."""
 
-        valid_modes = {
-            option['value']
-            for option in DASHBOARD_MODE_SELECTOR_OPTIONS
-        }
+        valid_modes = {option['value'] for option in DASHBOARD_MODE_SELECTOR_OPTIONS}
         mode = self._normalize_choice(
             user_input.get('dashboard_mode'),
             valid=valid_modes,
@@ -2260,8 +2257,7 @@ class PawControlOptionsFlow(
             enabled_modules = [
                 module for module, enabled in modules_config.items() if enabled
             ]
-            utilization = (estimate / max_entities) * \
-                100 if max_entities > 0 else 0
+            utilization = (estimate / max_entities) * 100 if max_entities > 0 else 0
 
             entity_breakdown.append(
                 cast(
@@ -4616,10 +4612,7 @@ class PawControlOptionsFlow(
         current_values = user_input or {}
         default_mode = self._normalize_choice(
             self._current_options().get(CONF_DASHBOARD_MODE, 'full'),
-            valid={
-                option['value']
-                for option in DASHBOARD_MODE_SELECTOR_OPTIONS
-            },
+            valid={option['value'] for option in DASHBOARD_MODE_SELECTOR_OPTIONS},
             default='full',
         )
 

@@ -624,8 +624,7 @@ class CoordinatorMetrics:
         return payload
 
 
-MANAGER_ATTRIBUTES: tuple[str, ...] = CoordinatorRuntimeManagers.attribute_names(
-)
+MANAGER_ATTRIBUTES: tuple[str, ...] = CoordinatorRuntimeManagers.attribute_names()
 
 
 def bind_runtime_managers(

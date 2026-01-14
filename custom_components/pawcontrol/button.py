@@ -656,10 +656,7 @@ class ProfileAwareButtonFactory:
 
         # Extract button entities
         buttons = [candidate['button'] for candidate in selected_candidates]
-        selected_types = [
-            candidate['type']
-            for candidate in selected_candidates
-        ]
+        selected_types = [candidate['type'] for candidate in selected_candidates]
 
         _LOGGER.info(
             'Created %d/%d buttons for %s (profile: %s): %s',

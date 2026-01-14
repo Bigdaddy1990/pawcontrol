@@ -798,8 +798,7 @@ def _log_setup_metrics(
 
     max_possible = max_entities * len(dogs)
     efficiency = (
-        (max_possible - total_entities) /
-        max_possible * 100 if max_possible > 0 else 0
+        (max_possible - total_entities) / max_possible * 100 if max_possible > 0 else 0
     )
 
     _LOGGER.info(
@@ -3640,8 +3639,7 @@ class PawControlCaloriesBurnedTodaySensor(PawControlSensorBase):
                             else 'low'
                         ),
                         'calories_per_hour': round(
-                            (self.native_value or 0) /
-                            max(0.1, total_duration / 60),
+                            (self.native_value or 0) / max(0.1, total_duration / 60),
                             1,
                         )
                         if total_duration > 0
@@ -3817,8 +3815,7 @@ class PawControlWalksThisWeekSensor(PawControlSensorBase):
             daily_walks = walk_data.get('daily_walk_counts', {})
             if isinstance(daily_walks, dict):
                 now = dt_util.utcnow()
-                week_start = now - \
-                    timedelta(days=now.weekday())  # Monday start
+                week_start = now - timedelta(days=now.weekday())  # Monday start
 
                 total_walks = 0
                 for i in range(7):  # 7 days in a week

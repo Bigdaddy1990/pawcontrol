@@ -1004,10 +1004,7 @@ class ModuleConfigurationMixin:
             dog_name = feeding_dogs[0].get('dog_name', 'Unknown')
             return f"Feeding configuration for {dog_name}"
 
-        dog_names = [
-            dog.get('dog_name', 'Unknown')
-            for dog in feeding_dogs[:3]
-        ]
+        dog_names = [dog.get('dog_name', 'Unknown') for dog in feeding_dogs[:3]]
         if len(feeding_dogs) > 3:
             dog_names.append(f"...and {len(feeding_dogs) - 3} more")
 
@@ -1028,9 +1025,7 @@ class ModuleConfigurationMixin:
         for dog in flow._dogs[:3]:  # Show first 3 dogs
             dog_name = dog.get('dog_name', 'Unknown')
             modules = cast(DogModulesConfig, dog.get(CONF_MODULES, {}))
-            enabled_count = sum(
-                1 for enabled in modules.values() if bool(enabled)
-            )
+            enabled_count = sum(1 for enabled in modules.values() if bool(enabled))
             summary_parts.append(f"{dog_name}: {enabled_count} modules")
 
         if len(flow._dogs) > 3:

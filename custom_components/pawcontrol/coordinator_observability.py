@@ -80,9 +80,7 @@ class EntityBudgetTracker:
         if not self._snapshots:
             return 0.0
 
-        total_capacity = sum(
-            snapshot.capacity for snapshot in self._snapshots.values()
-        )
+        total_capacity = sum(snapshot.capacity for snapshot in self._snapshots.values())
         if total_capacity <= 0:
             return 0.0
 

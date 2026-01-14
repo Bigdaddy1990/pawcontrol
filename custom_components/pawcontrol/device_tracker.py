@@ -875,8 +875,7 @@ class PawControlGPSTracker(PawControlDogEntityBase, TrackerEntity):
                 dlat = lat2 - lat1
                 dlon = lon2 - lon1
 
-                a = sin(dlat / 2) ** 2 + cos(lat1) * \
-                    cos(lat2) * sin(dlon / 2) ** 2
+                a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
                 c = 2 * atan2(sqrt(a), sqrt(1 - a))
                 distance = earth_radius_m * c
 
