@@ -21,7 +21,7 @@ jobs:
     name: Lint
     uses: ./.github/workflows/reusable-pre-commit.yml
     with:
-      python-version: ${{ env.PYTHON_VERSION }}
+      python-version: ${{ vars.PYTHON_VERSION }}
     secrets: inherit
 
   typed-dict-audit:
@@ -69,9 +69,9 @@ jobs:
     name: Test & Coverage
     uses: ./.github/workflows/reusable-python-tests.yml
     with:
-      python-version: ${{ env.PYTHON_VERSION }}
-      home-assistant-spec: ${{ format('=={0}', env.HA_VERSION) }}
-      coverage-min: ${{ env.CI_COVERAGE_MIN }}
+      python-version: ${{ vars.PYTHON_VERSION }}
+      home-assistant-spec: ${{ format('=={0}', vars.HA_VERSION) }}
+      coverage-min: ${{ vars.CI_COVERAGE_MIN }}
       coverage-xml-path: generated/coverage/coverage.xml
       coverage-html-dir: generated/coverage/html
       upload-junit-artifact: true
@@ -87,8 +87,8 @@ jobs:
       - name: Prepare coverage summary
         id: summary
         env:
-          COVERAGE_PERCENT: ${{ needs.test-coverage.outputs.coverage-percent }}
-          COVERAGE_THRESHOLD: ${{ needs.test-coverage.outputs.coverage-threshold }}
+          COVERAGE_PERCENT: ${{ vars.CI_COVERAGE_MIN }}
+          COVERAGE_THRESHOLD: ${{ vars.CI_COVERAGE_MIN }}
         run: |
           if [ -z "$COVERAGE_PERCENT" ]; then
             echo "::warning::Coverage percent unavailable; skipping comment"
