@@ -106,8 +106,10 @@ Issues = "https://github.com/BigDaddy1990/pawcontrol/issues"
 dependencies = { file = ["requirements.txt"] }
 
 [tool.mypy.overrides]
-module = ["untyped_package.*"]
+module = ["untyped_package.*", "homeassistant.*", "voluptuous"]
 follow_untyped_imports = true
+ignore_missing_imports = true
+
 
 [tool.autopep8]
 max_line_length = 88

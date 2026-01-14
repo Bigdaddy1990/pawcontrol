@@ -1,4 +1,6 @@
 {
+  "domain": "pawcontrol",
+  "name": "PawControl",
   "after_dependencies": [
     "bluetooth",
     "device_tracker",
@@ -8,8 +10,8 @@
   ],
   "bluetooth": [
     {
-      "connectable": true,
-      "service_uuid": "0000180f-0000-1000-8000-00805f9b34fb"
+      "service_uuid": "0000180f-0000-1000-8000-00805f9b34fb",
+      "connectable": true
     }
   ],
   "codeowners": [
@@ -31,7 +33,6 @@
     }
   ],
   "documentation": "https://github.com/BigDaddy1990/pawcontrol",
-  "domain": "pawcontrol",
   "homekit": {
     "models": [
       "tractive gps tracker",
@@ -45,36 +46,35 @@
   "loggers": [
     "custom_components.pawcontrol"
   ],
-  "name": "PawControl",
   "quality_scale": "platinum",
   "requirements": [
     "aiofiles>=24.1.0"
   ],
   "usb": [
     {
-      "description": "tractive gps tracker",
+      "vid": "1234",
       "pid": "5678",
-      "vid": "1234"
+      "description": "tractive gps tracker"
     },
     {
-      "description": "whistle health monitor",
+      "vid": "2345",
       "pid": "6789",
-      "vid": "2345"
+      "description": "whistle health monitor"
     }
   ],
   "version": "1.0.0",
   "zeroconf": [
     {
-      "name": "paw-control-*",
-      "type": "_pawcontrol._tcp.local."
+      "type": "_pawcontrol._tcp.local.",
+      "name": "paw-control-*"
     },
     {
-      "name": "petnet-*",
-      "type": "_petnet._tcp.local."
+      "type": "_petnet._tcp.local.",
+      "name": "petnet-*"
     },
     {
-      "name": "tractive-*",
-      "type": "_tractive._tcp.local."
+      "type": "_tractive._tcp.local.",
+      "name": "tractive-*"
     }
   ]
 }
