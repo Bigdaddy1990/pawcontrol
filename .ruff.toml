@@ -1,4 +1,3 @@
-extend = ".ruff.toml"
 # Ruff config for this Home Assistant custom integration
 target-version = "py313"
 line-length = 88
