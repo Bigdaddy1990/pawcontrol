@@ -83,22 +83,22 @@ repos:
   - id: mypy
   # --- Config validation (früh failen) ---
 - repo: https://github.com/abravalheri/validate-pyproject
-    rev: v0.24.1
-    hooks:
-      - id: validate-pyproject
+  rev: v0.24.1
+  hooks:
+  - id: validate-pyproject
 
 - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.36.0
-    hooks:
-      - id: check-github-workflows
+  rev: 0.36.0
+  hooks:
+  - id: check-github-workflows
 
   # --- Spelling (optional, aber hilfreich) ---
 - repo: https://github.com/crate-ci/typos
-    rev: v1.41.0
-    hooks:
-      - id: typos
-        args: ["--config", ".typos.toml"]
-        exclude: |
+  rev: v1.41.0
+  hooks:
+  - id: typos
+    args: ["--config", ".typos.toml"]
+    exclude: |
           (?x)(
             ^custom_components/pawcontrol/translations/|
             ^brands/|
@@ -110,11 +110,11 @@ repos:
 
   # --- YAML formatting (nur wenn ihr es wirklich wollt) ---
 - repo: https://github.com/rbubley/mirrors-prettier
-    rev: v3.7.4
-    hooks:
-      - id: prettier
-        types: [yaml]
-        files: |
+  rev: v3.7.4
+  hooks:
+  - id: prettier
+      types: [yaml]
+      files: |
           (?x)(
             ^\.github/workflows/.*\.ya?ml$|
             ^\.pre-commit-config\.ya?ml$
