@@ -10,22 +10,12 @@ from datetime import date
 from datetime import datetime
 from datetime import time
 from datetime import timedelta
-from typing import Any
-from typing import Union
 
 # Type alias for JSON-serializable values.
-JSONValue = Union[
-    str,
-    int,
-    float,
-    bool,
-    None,
-    list['JSONValue'],
-    dict[str, 'JSONValue'],
-]
+JSONValue = str | int | float | bool | None | list["JSONValue"] | dict[str, "JSONValue"]
 
 
-def normalize_value(value: Any) -> JSONValue:
+def normalize_value(value: object) -> JSONValue:
     """Recursively normalise values to JSON-serializable primitives.
 
     Converts datetimes to ISO strings, timedeltas to seconds, dataclasses to dicts,

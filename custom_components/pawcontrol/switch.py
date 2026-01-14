@@ -342,8 +342,8 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
     _attr_has_entity_name = True
 
     # OPTIMIZATION: Enhanced state cache with TTL
-    _state_cache: dict[str, tuple[bool, float]] = {}
-    _cache_ttl = 3.0  # Reduced to 3 seconds for better responsiveness
+    _state_cache: ClassVar[dict[str, tuple[bool, float]]] = {}
+    _cache_ttl: ClassVar[float] = 3.0  # Reduced to 3 seconds for better responsiveness
 
     def __init__(
         self,
@@ -382,15 +382,14 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
         await super().async_added_to_hass()
 
         # Restore previous state
-        if last_state := await self.async_get_last_state():
-            if last_state.state in ('on', 'off'):
-                self._is_on = last_state.state == 'on'
-                _LOGGER.debug(
-                    'Restored switch state for %s %s: %s',
-                    self._dog_name,
-                    self._switch_type,
-                    'on' if self._is_on else 'off',
-                )
+        if (last_state := await self.async_get_last_state()) and last_state.state in ('on', 'off'):
+            self._is_on = last_state.state == 'on'
+            _LOGGER.debug(
+                'Restored switch state for %s %s: %s',
+                self._dog_name,
+                self._switch_type,
+                'on' if self._is_on else 'off',
+            )
 
     @property
     def is_on(self) -> bool:
