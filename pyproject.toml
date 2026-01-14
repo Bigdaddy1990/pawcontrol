@@ -58,7 +58,7 @@ ignore = ["I001"]
 # ``custom_components/pawcontrol/__init__.py`` requires Python 3.12 or later,
 # so we target 3.12 to avoid mypy syntax errors while still supporting
 # Home Assistant’s minimum Python version.
-python_version = "3.12"
+python_version = "3.13"
 warn_unused_configs = true
 # Do not require every function to have type annotations; this dramatically
 # reduces noise while refactoring.  The previous setting (`true`) resulted in
@@ -112,7 +112,7 @@ classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Framework :: AsyncIO",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.13",
     "Topic :: Home Automation",
     "Typing :: Typed",
 ]
