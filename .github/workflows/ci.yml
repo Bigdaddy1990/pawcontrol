@@ -2,10 +2,10 @@ name: CI
 true:
   push:
     branches:
-    - main
+      - main
   pull_request:
     branches:
-    - main
+      - main
   workflow_dispatch: null
 permissions:
   contents: read
@@ -67,35 +67,36 @@ jobs:
     name: TypedDict audit
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v6
-    - name: Set up Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        cache: pip
-        cache-dependency-path: 'pyproject.toml
+      - name: Checkout code
+        uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: "pyproject.toml
 
-          requirements.txt
+            requirements.txt
 
-          requirements_test.txt
+            requirements_test.txt
 
-          '
-    - name: Install repository requirements
-      run: 'python -m pip install --upgrade pip
+            "
+      - name: Install repository requirements
+        run: "python -m pip install --upgrade pip
 
-        python -m pip install -r requirements.txt
+          python -m pip install -r requirements.txt
 
-        python -m pip install -r requirements_test.txt
+          python -m pip install -r requirements_test.txt
 
-        '
-    - name: Run TypedDict guard
-      run: "python -m script.check_typed_dicts \\\n  --path custom_components/pawcontrol \\\n  --path tests \\\n  --fail-on-findings\n"
-    - name: Publish TypedDict audit summary
-      if: success()
-      run: "{\n  echo \"### \u2705 TypedDict audit\"\n  echo\n  echo \"- Python: ${{ env.PYTHON_VERSION }}\"\n  echo \"- Paths:\
-        \ \\`custom_components/pawcontrol\\`, \\`tests\\`\"\n  echo \"- Command: \\`python -m script.check_typed_dicts --path\
-        \ custom_components/pawcontrol --path tests --fail-on-findings\\`\"\n} >> \"$GITHUB_STEP_SUMMARY\"\n"
+          "
+      - name: Run TypedDict guard
+        run: "python -m script.check_typed_dicts \\\n  --path custom_components/pawcontrol \\\n  --path tests \\\n  --fail-on-findings\n"
+      - name: Publish TypedDict audit summary
+        if: success()
+        run:
+          "{\n  echo \"### \u2705 TypedDict audit\"\n  echo\n  echo \"- Python: ${{ env.PYTHON_VERSION }}\"\n  echo \"- Paths:\
+          \ \\`custom_components/pawcontrol\\`, \\`tests\\`\"\n  echo \"- Command: \\`python -m script.check_typed_dicts --path\
+          \ custom_components/pawcontrol --path tests --fail-on-findings\\`\"\n} >> \"$GITHUB_STEP_SUMMARY\"\n"
   test-coverage:
     name: Test & Coverage
     uses: ./.github/workflows/reusable-python-tests.yml
@@ -114,46 +115,48 @@ jobs:
     if: ${{ github.event_name == 'pull_request' && needs.test-coverage.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
-    - name: Prepare coverage summary
-      id: summary
-      env:
-        COVERAGE_PERCENT: ${{ vars.CI_COVERAGE_MIN }}
-        COVERAGE_THRESHOLD: ${{ vars.CI_COVERAGE_MIN }}
-      run: "if [ -z \"$COVERAGE_PERCENT\" ]; then\n  echo \"::warning::Coverage percent unavailable; skipping comment\"\n\
-        \  exit 0\nfi\n\ncat <<MARKDOWN > coverage-comment.md\n<!-- coverage-report -->\n### \u2705 Coverage results\n\n|\
-        \ Metric | Value |\n| --- | --- |\n| Lines covered | ${COVERAGE_PERCENT}% |\n| Required minimum | ${COVERAGE_THRESHOLD}%\
-        \ |\n\n- Coverage artifacts uploaded with flag \\`unittests\\`.\n- [HTML report (latest main build)](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/index.html)\n\
-        MARKDOWN\n\necho \"has_comment=true\" >> \"$GITHUB_OUTPUT\"\n"
-    - name: Publish PR comment
-      if: steps.summary.outputs.has_comment == 'true'
-      uses: peter-evans/create-or-update-comment@v5
-      with:
-        issue-number: ${{ github.event.pull_request.number }}
-        token: ${{ secrets.GITHUB_TOKEN }}
-        body-path: coverage-comment.md
-        comment-identifier: coverage-report
+      - name: Prepare coverage summary
+        id: summary
+        env:
+          COVERAGE_PERCENT: ${{ vars.CI_COVERAGE_MIN }}
+          COVERAGE_THRESHOLD: ${{ vars.CI_COVERAGE_MIN }}
+        run:
+          "if [ -z \"$COVERAGE_PERCENT\" ]; then\n  echo \"::warning::Coverage percent unavailable; skipping comment\"\n\
+          \  exit 0\nfi\n\ncat <<MARKDOWN > coverage-comment.md\n<!-- coverage-report -->\n### \u2705 Coverage results\n\n|\
+          \ Metric | Value |\n| --- | --- |\n| Lines covered | ${COVERAGE_PERCENT}% |\n| Required minimum | ${COVERAGE_THRESHOLD}%\
+          \ |\n\n- Coverage artifacts uploaded with flag \\`unittests\\`.\n- [HTML report (latest main build)](https://bigdaddy1990.github.io/pawcontrol/coverage/latest/index.html)\n\
+          MARKDOWN\n\necho \"has_comment=true\" >> \"$GITHUB_OUTPUT\"\n"
+      - name: Publish PR comment
+        if: steps.summary.outputs.has_comment == 'true'
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body-path: coverage-comment.md
+          comment-identifier: coverage-report
   coverage-pages:
     name: Publish Coverage to GitHub Pages
     needs: test-coverage
     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.test-coverage.result == 'success' }}
     runs-on: ubuntu-latest
     steps:
-    - name: Download coverage artifact
-      uses: actions/download-artifact@v7
-      with:
-        name: coverage-report
-        path: artifacts/coverage
-    - name: Set up Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-    - name: Publish coverage bundle
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        GITHUB_REPOSITORY: ${{ github.repository }}
-      run: "python -m script.publish_coverage \\\n  --coverage-xml artifacts/coverage/generated/coverage/coverage.xml \\\n\
-        \  --coverage-html-index artifacts/coverage/generated/coverage/html/index.html \\\n  --artifact-directory artifacts/coverage/generated/coverage/artifacts\
-        \ \\\n  --mode pages \\\n  --pages-branch gh-pages \\\n  --pages-prefix coverage \\\n  --prune-expired-runs\n"
+      - name: Download coverage artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: coverage-report
+          path: artifacts/coverage
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Publish coverage bundle
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run:
+          "python -m script.publish_coverage \\\n  --coverage-xml artifacts/coverage/generated/coverage/coverage.xml \\\n\
+          \  --coverage-html-index artifacts/coverage/generated/coverage/html/index.html \\\n  --artifact-directory artifacts/coverage/generated/coverage/artifacts\
+          \ \\\n  --mode pages \\\n  --pages-branch gh-pages \\\n  --pages-prefix coverage \\\n  --prune-expired-runs\n"
     permissions:
       contents: write
   docs-diff-comment:
@@ -161,143 +164,148 @@ jobs:
     if: ${{ github.event_name == 'pull_request' }}
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v6
-      with:
-        fetch-depth: 0
-    - name: Summarise documentation & localization changes
-      id: docs
-      env:
-        BASE_SHA: ${{ github.event.pull_request.base.sha }}
-      run: "git diff --name-status \"$BASE_SHA\"...HEAD > changed_files.txt\npython - <<'PY'\nfrom __future__ import annotations\n\
-        \nfrom collections import defaultdict\n\ncategories: dict[str, list[str]] = defaultdict(list)\ncategory_map = {\n\
-        \    \"README.md\": \"Documentation\",\n    \"INSTALLATION.md\": \"Documentation\",\n    \"info.md\": \"Documentation\"\
-        ,\n    \"dev.md\": \"Documentation\",\n    \"docs\": \"Documentation\",\n    \"docs/\": \"Documentation\",\n    \"\
-        custom_components/pawcontrol/strings.json\": \"Localization\",\n    \"custom_components/pawcontrol/translations\"\
-        : \"Localization\",\n    \"custom_components/pawcontrol/translations/\": \"Localization\",\n}\n\ndef categorise(path:\
-        \ str) -> str | None:\n    for key, category in category_map.items():\n        if key.endswith(\"/\"):\n         \
-        \   if path.startswith(key):\n                return category\n        elif path == key:\n            return category\n\
-        \    if path.startswith(\"docs/\"):\n        return \"Documentation\"\n    if path.startswith(\"custom_components/pawcontrol/translations/\"\
-        ):\n        return \"Localization\"\n    if path.startswith(\"docs-\"):\n        return \"Documentation\"\n    return\
-        \ None\n\nchanged: list[tuple[str, str]] = []\nwith open(\"changed_files.txt\", \"r\", encoding=\"utf-8\") as handle:\n\
-        \    for line in handle:\n        line = line.strip()\n        if not line:\n            continue\n        status,\
-        \ file_path = line.split(\"\\t\", 1)\n        category = categorise(file_path)\n        if category is not None:\n\
-        \            categories[category].append(f\"{status} {file_path}\")\n            changed.append((status, file_path))\n\
-        \nif not changed:\n    with open(\"docs-diff-flag\", \"w\", encoding=\"utf-8\") as marker:\n        marker.write(\"\
-        false\")\n    raise SystemExit\n\nlines = [\"<!-- docs-diff -->\", \"### \U0001F4DA Documentation & localization changes\"\
-        , \"\"]\nfor category in sorted(categories):\n    entries = sorted(categories[category])\n    lines.append(f\"- **{category}\
-        \ ({len(entries)})**\")\n    for entry in entries:\n        lines.append(f\"  - `{entry}`\")\n\nlines.append(\"\"\
-        )\nlines.append(\n    \"Run `python -m script.sync_contributor_guides` after adjusting contributor docs to keep assistants\
-        \ in sync.\"\n)\n\nwith open(\"docs-diff-comment.md\", \"w\", encoding=\"utf-8\") as outfile:\n    outfile.write(\"\
-        \\n\".join(lines) + \"\\n\")\n\nwith open(\"docs-diff-flag\", \"w\", encoding=\"utf-8\") as marker:\n    marker.write(\"\
-        true\")\nPY\nif [ -f docs-diff-flag ] && [ \"$(cat docs-diff-flag)\" = \"true\" ]; then\n  echo \"has_changes=true\"\
-        \ >> \"$GITHUB_OUTPUT\"\nfi\n"
-    - name: Publish PR comment
-      if: steps.docs.outputs.has_changes == 'true'
-      uses: peter-evans/create-or-update-comment@v5
-      with:
-        issue-number: ${{ github.event.pull_request.number }}
-        token: ${{ secrets.GITHUB_TOKEN }}
-        body-path: docs-diff-comment.md
-        comment-identifier: docs-diff
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Summarise documentation & localization changes
+        id: docs
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run:
+          "git diff --name-status \"$BASE_SHA\"...HEAD > changed_files.txt\npython - <<'PY'\nfrom __future__ import annotations\n\
+          \nfrom collections import defaultdict\n\ncategories: dict[str, list[str]] = defaultdict(list)\ncategory_map = {\n\
+          \    \"README.md\": \"Documentation\",\n    \"INSTALLATION.md\": \"Documentation\",\n    \"info.md\": \"Documentation\"\
+          ,\n    \"dev.md\": \"Documentation\",\n    \"docs\": \"Documentation\",\n    \"docs/\": \"Documentation\",\n    \"\
+          custom_components/pawcontrol/strings.json\": \"Localization\",\n    \"custom_components/pawcontrol/translations\"\
+          : \"Localization\",\n    \"custom_components/pawcontrol/translations/\": \"Localization\",\n}\n\ndef categorise(path:\
+          \ str) -> str | None:\n    for key, category in category_map.items():\n        if key.endswith(\"/\"):\n         \
+          \   if path.startswith(key):\n                return category\n        elif path == key:\n            return category\n\
+          \    if path.startswith(\"docs/\"):\n        return \"Documentation\"\n    if path.startswith(\"custom_components/pawcontrol/translations/\"\
+          ):\n        return \"Localization\"\n    if path.startswith(\"docs-\"):\n        return \"Documentation\"\n    return\
+          \ None\n\nchanged: list[tuple[str, str]] = []\nwith open(\"changed_files.txt\", \"r\", encoding=\"utf-8\") as handle:\n\
+          \    for line in handle:\n        line = line.strip()\n        if not line:\n            continue\n        status,\
+          \ file_path = line.split(\"\\t\", 1)\n        category = categorise(file_path)\n        if category is not None:\n\
+          \            categories[category].append(f\"{status} {file_path}\")\n            changed.append((status, file_path))\n\
+          \nif not changed:\n    with open(\"docs-diff-flag\", \"w\", encoding=\"utf-8\") as marker:\n        marker.write(\"\
+          false\")\n    raise SystemExit\n\nlines = [\"<!-- docs-diff -->\", \"### \U0001F4DA Documentation & localization changes\"\
+          , \"\"]\nfor category in sorted(categories):\n    entries = sorted(categories[category])\n    lines.append(f\"- **{category}\
+          \ ({len(entries)})**\")\n    for entry in entries:\n        lines.append(f\"  - `{entry}`\")\n\nlines.append(\"\"\
+          )\nlines.append(\n    \"Run `python -m script.sync_contributor_guides` after adjusting contributor docs to keep assistants\
+          \ in sync.\"\n)\n\nwith open(\"docs-diff-comment.md\", \"w\", encoding=\"utf-8\") as outfile:\n    outfile.write(\"\
+          \\n\".join(lines) + \"\\n\")\n\nwith open(\"docs-diff-flag\", \"w\", encoding=\"utf-8\") as marker:\n    marker.write(\"\
+          true\")\nPY\nif [ -f docs-diff-flag ] && [ \"$(cat docs-diff-flag)\" = \"true\" ]; then\n  echo \"has_changes=true\"\
+          \ >> \"$GITHUB_OUTPUT\"\nfi\n"
+      - name: Publish PR comment
+        if: steps.docs.outputs.has_changes == 'true'
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          body-path: docs-diff-comment.md
+          comment-identifier: docs-diff
   code-quality:
     name: Code Quality
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v6
-    - name: Set up Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        cache: pip
-        cache-dependency-path: 'pyproject.toml
+      - name: Checkout code
+        uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: "pyproject.toml
 
-          requirements.txt
+            requirements.txt
+
+            "
+      - name: Install Ruff
+        run: "python -m pip install --upgrade pip
+
+          pip install ruff
+
+          "
+      - name: Run Ruff check
+        run: "ruff check custom_components/pawcontrol --output-format=github
+
+          ruff format custom_components/pawcontrol --check
+
+          "
+      - name: CodeFactor Analysis
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: 'echo "CodeFactor analysis runs automatically via webhook"
+
+          echo "Visit: https://www.codefactor.io/repository/github/${{ github.repository }}"
 
           '
-    - name: Install Ruff
-      run: 'python -m pip install --upgrade pip
-
-        pip install ruff
-
-        '
-    - name: Run Ruff check
-      run: 'ruff check custom_components/pawcontrol --output-format=github
-
-        ruff format custom_components/pawcontrol --check
-
-        '
-    - name: CodeFactor Analysis
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      run: 'echo "CodeFactor analysis runs automatically via webhook"
-
-        echo "Visit: https://www.codefactor.io/repository/github/${{ github.repository }}"
-
-        '
   localization-guards:
     name: Localization & Guide Sync
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v6
-    - name: Set up Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        cache: pip
-        cache-dependency-path: 'pyproject.toml
+      - name: Checkout code
+        uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: "pyproject.toml
 
-          requirements.txt
+            requirements.txt
 
-          '
-    - name: Validate localization tables and contributor guides
-      env:
-        PYTHONPATH: .
-      run: "python -m script.sync_localization_flags \\\n  --allowlist script/sync_localization_flags.allowlist \\\n  --check\n\
-        python -m script.sync_contributor_guides --check\n"
+            "
+      - name: Validate localization tables and contributor guides
+        env:
+          PYTHONPATH: .
+        run:
+          "python -m script.sync_localization_flags \\\n  --allowlist script/sync_localization_flags.allowlist \\\n  --check\n\
+          python -m script.sync_contributor_guides --check\n"
   mypy-config:
     name: Type Check Config Flows
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v6
-    - name: Set up Python
-      uses: actions/setup-python@v6
-      with:
-        python-version: ${{ env.PYTHON_VERSION }}
-        cache: pip
-        cache-dependency-path: 'pyproject.toml
+      - name: Checkout code
+        uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: "pyproject.toml
 
-          requirements.txt
+            requirements.txt
 
-          '
-    - name: Install mypy
-      run: 'python -m pip install --upgrade pip
+            "
+      - name: Install mypy
+        run: "python -m pip install --upgrade pip
 
-        pip install mypy
+          pip install mypy
 
-        '
-    - name: Run mypy for configuration modules
-      run: "mypy --follow-imports=skip \\\n  custom_components/pawcontrol/config_flow.py \\\n  custom_components/pawcontrol/config_flow_base.py\
-        \ \\\n  custom_components/pawcontrol/config_flow_dogs.py \\\n  custom_components/pawcontrol/options_flow.py \\\n \
-        \ custom_components/pawcontrol/config_flow_modules.py \\\n  custom_components/pawcontrol/config_flow_external.py \\\
-        \n  custom_components/pawcontrol/config_flow_dashboard_extension.py \\\n  custom_components/pawcontrol/config_flow_profile.py\n"
-    - name: Run mypy for telemetry modules
-      run: "mypy --follow-imports=skip \\\n  custom_components/pawcontrol/repairs.py \\\n  custom_components/pawcontrol/types.py\
-        \ \\\n  custom_components/pawcontrol/coordinator_tasks.py \\\n  custom_components/pawcontrol/performance.py \\\n \
-        \ custom_components/pawcontrol/services.py \\\n  custom_components/pawcontrol/telemetry.py\n"
+          "
+      - name: Run mypy for configuration modules
+        run:
+          "mypy --follow-imports=skip \\\n  custom_components/pawcontrol/config_flow.py \\\n  custom_components/pawcontrol/config_flow_base.py\
+          \ \\\n  custom_components/pawcontrol/config_flow_dogs.py \\\n  custom_components/pawcontrol/options_flow.py \\\n \
+          \ custom_components/pawcontrol/config_flow_modules.py \\\n  custom_components/pawcontrol/config_flow_external.py \\\
+          \n  custom_components/pawcontrol/config_flow_dashboard_extension.py \\\n  custom_components/pawcontrol/config_flow_profile.py\n"
+      - name: Run mypy for telemetry modules
+        run:
+          "mypy --follow-imports=skip \\\n  custom_components/pawcontrol/repairs.py \\\n  custom_components/pawcontrol/types.py\
+          \ \\\n  custom_components/pawcontrol/coordinator_tasks.py \\\n  custom_components/pawcontrol/performance.py \\\n \
+          \ custom_components/pawcontrol/services.py \\\n  custom_components/pawcontrol/telemetry.py\n"
   validate-manifest:
     name: Validate Manifest
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v6
-    - name: Validate manifest.json
-      run: "python -c \"\nimport json\nimport sys\n\nwith open('custom_components/pawcontrol/manifest.json', 'r') as f:\n\
-        \    manifest = json.load(f)\n\nrequired = ['domain', 'name', 'version', 'documentation', 'codeowners', 'requirements']\n\
-        missing = [field for field in required if field not in manifest]\n\nif missing:\n    print(f'Missing required fields:\
-        \ {missing}')\n    sys.exit(1)\n\nprint('\u2705 Manifest validation passed')\n\"\n"
+      - name: Checkout code
+        uses: actions/checkout@v6
+      - name: Validate manifest.json
+        run:
+          "python -c \"\nimport json\nimport sys\n\nwith open('custom_components/pawcontrol/manifest.json', 'r') as f:\n\
+          \    manifest = json.load(f)\n\nrequired = ['domain', 'name', 'version', 'documentation', 'codeowners', 'requirements']\n\
+          missing = [field for field in required if field not in manifest]\n\nif missing:\n    print(f'Missing required fields:\
+          \ {missing}')\n    sys.exit(1)\n\nprint('\u2705 Manifest validation passed')\n\"\n"
   marketplace-validation:
     name: Hassfest & HACS validation
     uses: ./.github/workflows/reusable-marketplace-validation.yml
@@ -308,43 +316,45 @@ jobs:
     name: All Checks Passed
     if: always()
     needs:
-    - lint
-    - typed-dict-audit
-    - test-coverage
-    - code-quality
-    - localization-guards
-    - mypy-config
-    - validate-manifest
-    - marketplace-validation
+      - lint
+      - typed-dict-audit
+      - test-coverage
+      - code-quality
+      - localization-guards
+      - mypy-config
+      - validate-manifest
+      - marketplace-validation
     runs-on: ubuntu-latest
     steps:
-    - name: Summarise upstream results
-      run: 'cat <<''SUMMARY''
+      - name: Summarise upstream results
+        run: "cat <<'SUMMARY'
 
-        typed-dict-audit: ${{ needs.typed-dict-audit.result }}
+          typed-dict-audit: ${{ needs.typed-dict-audit.result }}
 
-        lint: ${{ needs.lint.result }}
+          lint: ${{ needs.lint.result }}
 
-        test-coverage: ${{ needs.test-coverage.result }}
+          test-coverage: ${{ needs.test-coverage.result }}
 
-        code-quality: ${{ needs.code-quality.result }}
+          code-quality: ${{ needs.code-quality.result }}
 
-        localization-guards: ${{ needs.localization-guards.result }}
+          localization-guards: ${{ needs.localization-guards.result }}
 
-        mypy-config: ${{ needs.mypy-config.result }}
+          mypy-config: ${{ needs.mypy-config.result }}
 
-        validate-manifest: ${{ needs.validate-manifest.result }}
+          validate-manifest: ${{ needs.validate-manifest.result }}
 
-        marketplace-validation: ${{ needs.marketplace-validation.result }}
+          marketplace-validation: ${{ needs.marketplace-validation.result }}
 
-        SUMMARY
+          SUMMARY
 
-        '
-    - name: Fail when any prerequisite did not succeed
-      if: ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
-        }}
-      run: "echo \"\u274C At least one required job did not complete successfully.\" >&2\nexit 1\n"
-    - name: Confirm success
-      if: ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result,
-        'skipped') }}
-      run: "echo \"\u2705 All prerequisite checks succeeded\""
+          "
+      - name: Fail when any prerequisite did not succeed
+        if:
+          ${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') || contains(needs.*.result, 'skipped')
+          }}
+        run: "echo \"\u274C At least one required job did not complete successfully.\" >&2\nexit 1\n"
+      - name: Confirm success
+        if:
+          ${{ !contains(needs.*.result, 'failure') && !contains(needs.*.result, 'cancelled') && !contains(needs.*.result,
+          'skipped') }}
+        run: "echo \"\u2705 All prerequisite checks succeeded\""
