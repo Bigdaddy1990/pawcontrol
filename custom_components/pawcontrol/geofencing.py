@@ -560,12 +560,14 @@ class PawControlGeofencing:
                     newly_entered_zones.add(zone_id)
 
             # Check for zone exit
-            elif not currently_inside and was_inside:
-                # Use hysteresis to confirm exit
-                if not zone.contains_location(
+            elif (
+                not currently_inside
+                and was_inside
+                and not zone.contains_location(
                     dog_state.last_location,
                     1.0 / GEOFENCE_HYSTERESIS,
-                ):
+                )
+            ):
                     dog_state.current_zones.discard(zone_id)
                     dog_state.zone_entry_times.pop(zone_id, None)
                     newly_left_zones.add(zone_id)
@@ -805,10 +807,11 @@ class PawControlGeofencing:
         Returns:
             List of dog IDs currently in the zone
         """
-        dogs_in_zone = []
-        for dog_state in self._dog_states.values():
-            if zone_id in dog_state.current_zones:
-                dogs_in_zone.append(dog_state.dog_id)
+        dogs_in_zone: list[str] = [
+            dog_state.dog_id
+            for dog_state in self._dog_states.values()
+            if zone_id in dog_state.current_zones
+        ]
         return dogs_in_zone
 
     def is_enabled(self) -> bool:

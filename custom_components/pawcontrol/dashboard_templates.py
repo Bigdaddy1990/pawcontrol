@@ -853,8 +853,9 @@ class DashboardTemplates:
         self.hass = hass
         self._cache: TemplateCache[CardTemplatePayload] = TemplateCache()
 
+    @staticmethod
     @lru_cache(maxsize=64)
-    def _get_base_card_template(self, card_type: str) -> CardConfig:
+    def _get_base_card_template(card_type: str) -> CardConfig:
         """Get base template for card type with LRU caching.
 
         Args:
