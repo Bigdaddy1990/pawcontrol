@@ -259,8 +259,7 @@ jobs:
         env:
           PYTHONPATH: .
         run:
-          "python -m script.sync_localization_flags \\\n  --allowlist script/sync_localization_flags.allowlist \\\n  --check\n\
-          python -m script.sync_contributor_guides --check\n"
+          "python -m script.sync_localization_flags --allowlist script/sync_localization_flags.allowlist --check python -m script.sync_contributor_guides --check python -m script.sync_contributor_guides"
   mypy-config:
     name: Type Check Config Flows
     runs-on: ubuntu-latest
