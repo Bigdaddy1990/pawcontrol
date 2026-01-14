@@ -1153,8 +1153,12 @@ SERVICE_START_GROOMING_SCHEMA = vol.Schema(
         vol.Required('dog_id'): cv.string,
         vol.Required('grooming_type'): vol.In(
             [
-                'full_groom', 'bath', 'nail_trim',
-                'brush', 'ear_clean', 'teeth_clean',
+                'full_groom',
+                'bath',
+                'nail_trim',
+                'brush',
+                'ear_clean',
+                'teeth_clean',
             ],
         ),
         vol.Optional('groomer'): cv.string,
@@ -1191,8 +1195,12 @@ SERVICE_END_GARDEN_SCHEMA = vol.Schema(
                 {
                     vol.Required('type'): vol.In(
                         [
-                            'general', 'poop', 'play',
-                            'sniffing', 'digging', 'resting',
+                            'general',
+                            'poop',
+                            'play',
+                            'sniffing',
+                            'digging',
+                            'resting',
                         ],
                     ),
                     vol.Optional('duration_seconds'): vol.Coerce(int),

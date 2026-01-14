@@ -3488,7 +3488,8 @@ class PawControlOptionsFlow(
 
         module_labels = {
             'grooming': translated_grooming_label(
-                hass_language, 'module_summary_label',
+                hass_language,
+                'module_summary_label',
             ),
         }
 

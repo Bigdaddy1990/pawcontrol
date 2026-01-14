@@ -6,10 +6,10 @@ ci:
   autoupdate_schedule: weekly
   autofix_prs: true
   autofix_commit_msg : '| [pre-commit.ci] Automatische Korrekturen von pre-commit.com-Hooks     Weitere Informationen finden Sie unter https://pre-commit.ci.'
-  autoupdate_branch : 'main' 
-  autoupdate_commit_msg : '[pre-commit.ci] Pre-Commit- Autoupdate' 
-  skip : []   
-  
+  autoupdate_branch : 'main'
+  autoupdate_commit_msg : '[pre-commit.ci] Pre-Commit- Autoupdate'
+  skip : []
+
 default_language_version:
     python: python3.13
 
@@ -54,8 +54,8 @@ repos:
       - id: name-tests-test
       - id: fix-byte-order-marker
       - id: destroyed-symlinks
-      
-      
+
+
   - repo: https://github.com/asottile/pyupgrade
     rev: v3.21.2
     hooks:
