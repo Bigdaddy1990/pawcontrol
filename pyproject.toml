@@ -105,7 +105,7 @@ Issues = "https://github.com/BigDaddy1990/pawcontrol/issues"
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
 
-[tool.mypy.overrides]
+[[tool.mypy.overrides]]
 module = ["untyped_package.*", "homeassistant.*", "voluptuous"]
 follow_untyped_imports = true
 ignore_missing_imports = true
