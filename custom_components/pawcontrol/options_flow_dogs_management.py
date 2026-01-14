@@ -13,6 +13,7 @@ from .const import CONF_DOGS
 from .exceptions import FlowValidationError
 from .flow_validation import validate_dog_setup_input
 from .flow_validation import validate_dog_update_input
+from .grooming_translations import translated_grooming_label
 from .selector_shim import selector
 from .types import DOG_ID_FIELD
 from .types import DOG_NAME_FIELD
@@ -23,7 +24,6 @@ from .types import OptionsDogModulesInput
 from .types import OptionsDogRemovalInput
 from .types import OptionsDogSelectionInput
 from .types import OptionsMenuInput
-from .grooming_translations import translated_grooming_label
 
 _LOGGER = logging.getLogger(__name__)
 
