@@ -1874,9 +1874,8 @@ class FeedingManager:
 
         for schedule in config.get_todays_schedules():
             reminder_time = schedule.get_reminder_time()
-            if reminder_time and reminder_time > dt_util.now():
-                if next_reminder is None or reminder_time < next_reminder:
-                    next_reminder = reminder_time
+            if reminder_time and reminder_time > dt_util.now() and (next_reminder is None or reminder_time < next_reminder):
+                next_reminder = reminder_time
 
         # If no reminders today, check tomorrow
         if next_reminder is None:
@@ -1885,9 +1884,8 @@ class FeedingManager:
 
             for schedule in config.get_active_schedules():
                 reminder_time = schedule.get_reminder_time()
-                if reminder_time and reminder_time >= tomorrow_start:
-                    if next_reminder is None or reminder_time < next_reminder:
-                        next_reminder = reminder_time
+                if reminder_time and reminder_time >= tomorrow_start and (next_reminder is None or reminder_time < next_reminder):
+                    next_reminder = reminder_time
 
         return next_reminder
 
@@ -3134,9 +3132,8 @@ class FeedingManager:
         if health_metrics.life_stage == LifeStage.PUPPY:
             return 'puppy_formula'
 
-        if health_metrics.life_stage in [LifeStage.SENIOR, LifeStage.GERIATRIC]:
-            if health_metrics.activity_level == ActivityLevel.VERY_LOW:
-                return 'senior_formula'
+        if health_metrics.life_stage in [LifeStage.SENIOR, LifeStage.GERIATRIC] and health_metrics.activity_level == ActivityLevel.VERY_LOW:
+            return 'senior_formula'
 
         # Weight management
         if (

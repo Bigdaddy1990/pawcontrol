@@ -725,10 +725,10 @@ class PawControlDashboardGenerator:
                     len(self._dashboards),
                 )
 
-            except TimeoutError:
+            except TimeoutError as err:
                 _LOGGER.error('Dashboard generator initialization timeout')
                 await self._cleanup_failed_initialization()
-                raise HomeAssistantError('Dashboard initialization timeout')
+                raise HomeAssistantError('Dashboard initialization timeout') from err
             except Exception as err:
                 _LOGGER.warning(
                     'Dashboard initialization error: %s, using defaults',
@@ -1668,7 +1668,7 @@ class PawControlDashboardGenerator:
         )
 
         # Process results
-        for (url, dashboard_info), result in zip(
+        for (url, _dashboard_info), result in zip(
             self._dashboards.items(),
             validation_results,
             strict=False,

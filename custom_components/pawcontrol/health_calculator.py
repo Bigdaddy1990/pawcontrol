@@ -13,7 +13,7 @@ from dataclasses import field
 from datetime import date
 from datetime import timedelta
 from enum import Enum
-from typing import cast
+from typing import cast, ClassVar
 from typing import Literal
 from typing import TYPE_CHECKING
 from typing import TypedDict
@@ -224,7 +224,7 @@ class HealthCalculator:
     """Enhanced health calculator for comprehensive dog health metrics."""
 
     # Calorie requirements per kg by life stage (kcal/kg/day)
-    BASE_CALORIE_REQUIREMENTS = {
+    BASE_CALORIE_REQUIREMENTS: ClassVar[dict[LifeStage, int]] = {
         LifeStage.PUPPY: 130,  # Growing puppies need more calories
         LifeStage.YOUNG_ADULT: 110,  # Active young adults
         LifeStage.ADULT: 95,  # Standard adult maintenance

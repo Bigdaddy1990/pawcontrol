@@ -636,6 +636,7 @@ class DoorSensorManager:
         self._detection_states: dict[str, WalkDetectionState] = {}
         self._state_listeners: list[CALLBACK_TYPE] = []
         self._cleanup_task: asyncio.Task | None = None
+        self._background_tasks: set[asyncio.Task[object]] = set()
         self._last_activity: datetime | None = None
 
         # Dependencies (injected during initialization)
@@ -651,6 +652,16 @@ class DoorSensorManager:
             'false_negatives': 0,
             'average_confidence': 0.0,
         }
+
+
+    def _track_background_task(self, task: asyncio.Task[object]) -> None:
+        """Track a background task for lifecycle management.
+
+        Storing a reference prevents tasks from being garbage collected early and
+        makes it possible to cancel them during unload/cleanup if needed.
+        """
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
 
     def register_cache_monitors(
         self,
@@ -968,7 +979,7 @@ class DoorSensorManager:
         # Find which dog this sensor belongs to
         dog_id: str | None = None
         config = None
-        for dog_id, cfg in self._sensor_configs.items():
+        for _dog_id, cfg in self._sensor_configs.items():
             if cfg.entity_id == entity_id:
                 config = cfg
                 break
@@ -1027,9 +1038,7 @@ class DoorSensorManager:
             async def check_walk_timeout() -> None:
                 await asyncio.sleep(config.walk_detection_timeout)
                 await self._handle_walk_timeout(config, state)
-
-            asyncio.create_task(check_walk_timeout())
-
+            self._track_background_task(asyncio.create_task(check_walk_timeout(), name='pawcontrol_check_walk_timeout'))
     async def _handle_door_closed(
         self,
         config: DoorSensorConfig,
@@ -1153,9 +1162,7 @@ class DoorSensorManager:
                     config.dog_name,
                 )
                 await self._start_automatic_walk(config, state)
-
-        asyncio.create_task(confirmation_timeout())
-
+        self._track_background_task(asyncio.create_task(confirmation_timeout(), name='pawcontrol_confirmation_timeout'))
     async def _start_automatic_walk(
         self,
         config: DoorSensorConfig,
@@ -1216,9 +1223,7 @@ class DoorSensorManager:
                     await asyncio.sleep(config.maximum_walk_duration)
                     if state.current_state == WALK_STATE_ACTIVE:
                         await self._end_automatic_walk(config, state, 'timeout')
-
-                asyncio.create_task(auto_end_walk())
-
+                self._track_background_task(asyncio.create_task(auto_end_walk(), name='pawcontrol_auto_end_walk'))
         except Exception as err:
             _LOGGER.error(
                 'Failed to start automatic walk for %s: %s',

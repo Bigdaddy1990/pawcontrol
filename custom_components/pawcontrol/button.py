@@ -16,7 +16,7 @@ import logging
 from collections.abc import Mapping
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, ClassVar
 from typing import cast
 from typing import Protocol
 from typing import runtime_checkable
@@ -1228,7 +1228,7 @@ class PawControlMarkFedButton(PawControlButtonBase):
     """Button to mark dog as fed with optimized meal type detection."""
 
     # OPTIMIZATION: Pre-calculated meal schedule lookup table
-    _meal_schedule = {
+    _meal_schedule: ClassVar[dict[range, str]] = {
         range(5, 11): 'breakfast',
         range(11, 16): 'lunch',
         range(16, 22): 'dinner',
