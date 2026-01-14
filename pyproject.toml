@@ -108,3 +108,10 @@ dependencies = { file = ["requirements.txt"] }
 [tool.mypy.overrides]
 module = ["untyped_package.*"]
 follow_untyped_imports = true
+
+[tool.autopep8]
+max_line_length = 88
+ignore = "E501"
+in-place = true
+recursive = true
+aggressive = 3
