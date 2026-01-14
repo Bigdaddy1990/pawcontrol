@@ -254,8 +254,10 @@ class PawControlDateTimeBase(PawControlDogEntityBase, DateTimeEntity, RestoreEnt
         await super().async_added_to_hass()
 
         # Restore previous value
-        if (last_state := await self.async_get_last_state()) is not None and last_state.state not in ('unknown', 'unavailable'):
-                self._current_value = ensure_utc_datetime(last_state.state)
+        if (
+            last_state := await self.async_get_last_state()
+        ) is not None and last_state.state not in ('unknown', 'unavailable'):
+            self._current_value = ensure_utc_datetime(last_state.state)
 
     async def async_set_value(self, value: datetime) -> None:
         """Set new datetime value."""

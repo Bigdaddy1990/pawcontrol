@@ -16,8 +16,9 @@ import logging
 from collections.abc import Mapping
 from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, ClassVar
+from typing import Any
 from typing import cast
+from typing import ClassVar
 from typing import Protocol
 from typing import runtime_checkable
 from typing import TypedDict

@@ -568,9 +568,9 @@ class PawControlGeofencing:
                     1.0 / GEOFENCE_HYSTERESIS,
                 )
             ):
-                    dog_state.current_zones.discard(zone_id)
-                    dog_state.zone_entry_times.pop(zone_id, None)
-                    newly_left_zones.add(zone_id)
+                dog_state.current_zones.discard(zone_id)
+                dog_state.zone_entry_times.pop(zone_id, None)
+                newly_left_zones.add(zone_id)
 
         # Fire events for zone changes
         for zone_id in newly_entered_zones:
