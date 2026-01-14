@@ -13,7 +13,7 @@ import asyncio
 import logging
 from collections.abc import Mapping
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, ClassVar
 from typing import cast
 
 from homeassistant.components.switch import SwitchDeviceClass
@@ -70,7 +70,7 @@ class ProfileOptimizedSwitchFactory:
     """Factory for efficient profile-based switch creation with minimal entity count."""
 
     # Module configurations - only for modules that support switches
-    MODULE_CONFIGS = [
+    MODULE_CONFIGS: ClassVar[list[tuple[str, str, str]]] = [
         (MODULE_FEEDING, 'Feeding Tracking', 'mdi:food-drumstick'),
         (MODULE_WALK, 'Walk Tracking', 'mdi:walk'),
         (MODULE_GPS, 'GPS Tracking', 'mdi:map-marker'),
@@ -82,7 +82,7 @@ class ProfileOptimizedSwitchFactory:
     ]
 
     # Feature switches grouped by module - only created if module is enabled
-    FEATURE_SWITCHES = {
+    FEATURE_SWITCHES: ClassVar[dict[str, list[tuple[str, str, str]]]] = {
         MODULE_FEEDING: [
             ('auto_feeding_reminders', 'Auto Feeding Reminders', 'mdi:clock-alert'),
             ('feeding_schedule', 'Feeding Schedule', 'mdi:calendar-check'),

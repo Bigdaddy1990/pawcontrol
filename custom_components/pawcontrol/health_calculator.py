@@ -225,7 +225,7 @@ class HealthCalculator:
     """Enhanced health calculator for comprehensive dog health metrics."""
 
     # Calorie requirements per kg by life stage (kcal/kg/day)
-    BASE_CALORIE_REQUIREMENTS: ClassVar[dict[LifeStage, int]] = {
+    BASE_CALORIE_REQUIREMENTS = {
         LifeStage.PUPPY: 130,  # Growing puppies need more calories
         LifeStage.YOUNG_ADULT: 110,  # Active young adults
         LifeStage.ADULT: 95,  # Standard adult maintenance
@@ -234,7 +234,7 @@ class HealthCalculator:
     }
 
     # Activity level multipliers
-    ACTIVITY_MULTIPLIERS = {
+    ACTIVITY_MULTIPLIERS: ClassVar[dict[ActivityLevel, float]] = {
         ActivityLevel.VERY_LOW: 0.8,  # Sedentary, sick, or elderly
         ActivityLevel.LOW: 0.9,  # Light activity
         ActivityLevel.MODERATE: 1.0,  # Baseline
@@ -243,7 +243,7 @@ class HealthCalculator:
     }
 
     # Body condition score adjustments for portion size
-    BCS_ADJUSTMENTS = {
+    BCS_ADJUSTMENTS: ClassVar[dict[BodyConditionScore, float]] = {
         BodyConditionScore.EMACIATED: 1.5,  # Increase portions significantly
         BodyConditionScore.VERY_THIN: 1.3,  # Increase portions
         BodyConditionScore.THIN: 1.15,  # Slight increase
@@ -256,7 +256,7 @@ class HealthCalculator:
     }
 
     # Health condition adjustments
-    HEALTH_CONDITION_ADJUSTMENTS = {
+    HEALTH_CONDITION_ADJUSTMENTS: ClassVar[dict[str, float]] = {
         'diabetes': 0.9,  # Controlled portions
         'kidney_disease': 0.85,  # Reduced protein/phosphorus
         'heart_disease': 0.85,  # Weight management critical
