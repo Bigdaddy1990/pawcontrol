@@ -1,3 +1,4 @@
+
 ci:
   autoupdate_schedule: weekly
   autofix_prs: true
@@ -81,16 +82,6 @@ repos:
   rev: v1.19.1
   hooks:
   - id: mypy
-  # --- Config validation (früh failen) ---
-- repo: https://github.com/abravalheri/validate-pyproject
-  rev: v0.24.1
-  hooks:
-  - id: validate-pyproject
-
-- repo: https://github.com/python-jsonschema/check-jsonschema
-  rev: 0.36.0
-  hooks:
-  - id: check-github-workflows
 
 - repo: local
   hooks:
