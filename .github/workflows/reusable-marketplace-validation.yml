@@ -19,7 +19,6 @@ on:
         type: string
     secrets: {}
 
-
 permissions:
   contents: read
 
