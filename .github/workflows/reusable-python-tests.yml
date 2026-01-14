@@ -146,7 +146,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -U pytest pytest-asyncio pytest-cov coverage[toml]
           pip install -U pytest-homeassistant-custom-component
-          pip install -U "homeassistant${{ env.HA_SPEC }}"
+          pip install -U "homeassistant'${{ env.HA_SPEC }}'"
           pip install -r requirements.txt
           pip install -r requirements_test.txt
 

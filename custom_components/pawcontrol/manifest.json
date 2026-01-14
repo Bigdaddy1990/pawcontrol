@@ -1,4 +1,6 @@
 {
+  "domain": "pawcontrol",
+  "name": "PawControl",
   "after_dependencies": [
     "bluetooth",
     "device_tracker",
@@ -31,7 +33,6 @@
     }
   ],
   "documentation": "https://github.com/BigDaddy1990/pawcontrol",
-  "domain": "pawcontrol",
   "homekit": {
     "models": [
       "tractive gps tracker",
@@ -45,7 +46,6 @@
   "loggers": [
     "custom_components.pawcontrol"
   ],
-  "name": "PawControl",
   "quality_scale": "platinum",
   "requirements": [
     "aiofiles>=24.1.0"
