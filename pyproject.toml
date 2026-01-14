@@ -32,6 +32,13 @@ convention = "pep257"
 [tool.ruff.lint.pep8-naming]
 extend-ignore-names = ["test_*", "__init__*", "conftest*", "*example*"]
 
+# The built‑in isort plugin of Ruff (`I001`) conflicts with the separate
+# `reorder-python-imports` pre-commit hook.  To avoid an endless cycle
+# where each tool reorders imports differently on every run, we ignore
+# Ruff’s import‑sorting rule and let the dedicated hook handle ordering.
+[tool.ruff.lint]
+ignore = ["I001"]
+
 [tool.setuptools.package-dir]
 "" = "."
 
@@ -47,9 +54,11 @@ extend-ignore-names = ["test_*", "__init__*", "conftest*", "*example*"]
 # desired.
 
 [tool.mypy]
-# Match the minimum Python version used in continuous integration (3.11).  This
-# avoids false‑positive type errors due to future language features in 3.13.
-python_version = "3.11"
+# Match the Python version used by the integration.  A `Type` statement in
+# ``custom_components/pawcontrol/__init__.py`` requires Python 3.12 or later,
+# so we target 3.12 to avoid mypy syntax errors while still supporting
+# Home Assistant’s minimum Python version.
+python_version = "3.12"
 warn_unused_configs = true
 # Do not require every function to have type annotations; this dramatically
 # reduces noise while refactoring.  The previous setting (`true`) resulted in
