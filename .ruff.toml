@@ -9,14 +9,17 @@ indent-width = 4
 # Base: pycodestyle (E), pyflakes (F)
 # Plus: isort (I), pyupgrade (UP), bugbear (B), simplify (SIM)
 # Start with core correctness + imports
+select = ["E","F", "I", "UP", "B", "SIM"]
 #select = ["E4", "E7", "E9", "F", "I", "UP", "B", "SIM"]
 # Ignore long lines initially; ruff format will wrap many cases
-select = ["E","F","W","I","UP","B","SIM","RUF","PERF","FURB","N","TID","TD","FA","RET"]
+#select = ["E","F","W","I","UP","B","SIM","RUF","PERF","FURB","N","TID","TD","FA","RET"]
 ignore = ["E501"]
-#select = ["E", "F", "UP"]
 fixable = ["ALL"]
 # Allow fix for all enabled rules (when `--fix`) is provided.
 unfixable = []
+extend-ignore = [
+    "INP001", # File is part of an implicit namespace package. Add an `__init__.py`.
+]
 
 [lint.per-file-ignores]
 # Common package patterns
