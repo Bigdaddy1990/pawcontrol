@@ -179,9 +179,6 @@ runtime-typing = false
 [tool.pylint.CODE_STYLE]
 max-line-length-suggestions = 72
 
-[tool.coverage.run]
-source = ["custom_components/pawcontrol"]
-
 [tool.coverage.report]
 exclude_lines = [
   # Have to re-enable the standard pragma
