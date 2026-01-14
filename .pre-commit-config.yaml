@@ -51,7 +51,6 @@ repos:
       - id: pretty-format-json
         args: [--autofix]
       - id: debug-statements
-      - id: name-tests-test
       - id: fix-byte-order-marker
       - id: destroyed-symlinks
 
