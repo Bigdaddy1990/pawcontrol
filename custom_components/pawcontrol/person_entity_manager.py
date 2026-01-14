@@ -866,6 +866,8 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
                 if excluded not in person_entity_ids
             ]
         )
+
+
 result: PersonEntityValidationResult = {
             'valid': len(issues) == 0,
             'issues': issues,

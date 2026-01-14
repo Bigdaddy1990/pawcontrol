@@ -15,37 +15,37 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
-QUALITY_SCALE_LEVELS = {'internal', 'bronze', 'silver', 'gold', 'platinum'}
+QUALITY_SCALE_LEVELS = {"internal", "bronze", "silver", "gold", "platinum"}
 REQUIRED_KEYS = {
-    'domain',
-    'name',
-    'version',
-    'documentation',
-    'issue_tracker',
-    'requirements',
-    'codeowners',
-    'config_flow',
-    'integration_type',
-    'quality_scale',
-    'loggers',
-    'supported_by',
-    'iot_class',
+    "domain",
+    "name",
+    "version",
+    "documentation",
+    "issue_tracker",
+    "requirements",
+    "codeowners",
+    "config_flow",
+    "integration_type",
+    "quality_scale",
+    "loggers",
+    "supported_by",
+    "iot_class",
 }
-REQUIRED_LIST_KEYS = {'requirements', 'codeowners', 'loggers'}
+REQUIRED_LIST_KEYS = {"requirements", "codeowners", "loggers"}
 IOT_CLASS_VALUES = {
-    'assumed_state',
-    'cloud_polling',
-    'cloud_push',
-    'local_polling',
-    'local_push',
+    "assumed_state",
+    "cloud_polling",
+    "cloud_push",
+    "local_polling",
+    "local_push",
 }
 
 
 def _load_manifest(manifest_path: Path) -> dict[str, Any]:
-    manifest_text = manifest_path.read_text(encoding='utf-8')
+    manifest_text = manifest_path.read_text(encoding="utf-8")
     manifest = json.loads(manifest_text)
     if not isinstance(manifest, dict):
-        msg = 'manifest.json must contain a JSON object'
+        msg = "manifest.json must contain a JSON object"
         raise ValueError(msg)
     return manifest
 
@@ -53,7 +53,7 @@ def _load_manifest(manifest_path: Path) -> dict[str, Any]:
 def _validate_manifest(manifest_path: Path) -> list[str]:
     errors: list[str] = []
     if not manifest_path.is_file():
-        return ['manifest.json is missing']
+        return ["manifest.json is missing"]
 
     try:
         manifest = _load_manifest(manifest_path)
@@ -72,24 +72,24 @@ def _validate_manifest(manifest_path: Path) -> list[str]:
         if not isinstance(value, list) or not value:
             errors.append(f"manifest.{key} must be a non-empty list")
 
-    if not isinstance(manifest.get('config_flow'), bool):
-        errors.append('manifest.config_flow must be a boolean')
+    if not isinstance(manifest.get("config_flow"), bool):
+        errors.append("manifest.config_flow must be a boolean")
 
-    domain = manifest.get('domain')
+    domain = manifest.get("domain")
     expected_domain = manifest_path.parent.name
     if domain != expected_domain:
         errors.append(
             f"manifest.domain '{domain}' does not match integration folder '{expected_domain}'",
         )
 
-    quality_scale = manifest.get('quality_scale')
+    quality_scale = manifest.get("quality_scale")
     if quality_scale not in QUALITY_SCALE_LEVELS:
         errors.append(
-            'manifest.quality_scale must be one of: '
-            + ', '.join(sorted(QUALITY_SCALE_LEVELS)),
+            "manifest.quality_scale must be one of: "
+            + ", ".join(sorted(QUALITY_SCALE_LEVELS)),
         )
 
-    loggers = manifest.get('loggers')
+    loggers = manifest.get("loggers")
     if isinstance(loggers, list):
         expected_logger = f"custom_components.{expected_domain}"
         if expected_logger not in loggers:
@@ -97,16 +97,16 @@ def _validate_manifest(manifest_path: Path) -> list[str]:
                 f"manifest.loggers must include 'custom_components.{expected_domain}'",
             )
 
-    supported_by = manifest.get('supported_by')
+    supported_by = manifest.get("supported_by")
     if supported_by is not None and (
         not isinstance(supported_by, str) or not supported_by
     ):
-        errors.append('manifest.supported_by must be null or a non-empty string')
+        errors.append("manifest.supported_by must be null or a non-empty string")
 
-    iot_class = manifest.get('iot_class')
+    iot_class = manifest.get("iot_class")
     if iot_class not in IOT_CLASS_VALUES:
         errors.append(
-            'manifest.iot_class must be one of: ' + ', '.join(sorted(IOT_CLASS_VALUES)),
+            "manifest.iot_class must be one of: " + ", ".join(sorted(IOT_CLASS_VALUES)),
         )
 
     return errors
@@ -114,17 +114,17 @@ def _validate_manifest(manifest_path: Path) -> list[str]:
 
 def _validate_translations(integration_path: Path) -> list[str]:
     errors: list[str] = []
-    translations_dir = integration_path / 'translations'
-    strings_path = integration_path / 'strings.json'
+    translations_dir = integration_path / "translations"
+    strings_path = integration_path / "strings.json"
 
     if not translations_dir.is_dir():
-        errors.append('translations directory is missing')
+        errors.append("translations directory is missing")
     if not strings_path.is_file():
-        errors.append('strings.json is missing')
+        errors.append("strings.json is missing")
 
     def _load_object(path: Path) -> dict[str, Any] | None:
         try:
-            loaded = json.loads(path.read_text(encoding='utf-8'))
+            loaded = json.loads(path.read_text(encoding="utf-8"))
         except json.JSONDecodeError:
             errors.append(f"{path.name} is not valid JSON")
             return None
@@ -137,9 +137,9 @@ def _validate_translations(integration_path: Path) -> list[str]:
         _load_object(strings_path)
 
     if translations_dir.is_dir():
-        english_translation = translations_dir / 'en.json'
+        english_translation = translations_dir / "en.json"
         if not english_translation.is_file():
-            errors.append('translations/en.json is missing')
+            errors.append("translations/en.json is missing")
         else:
             _load_object(english_translation)
 
@@ -147,17 +147,17 @@ def _validate_translations(integration_path: Path) -> list[str]:
 
 
 def run(argv: Iterable[str] | None = None) -> int:
-    parser = ArgumentParser(description='Validate Home Assistant integration metadata')
+    parser = ArgumentParser(description="Validate Home Assistant integration metadata")
     parser.add_argument(
-        '--integration-path',
+        "--integration-path",
         type=Path,
         required=True,
-        help='Path to the integration directory (e.g. custom_components/pawcontrol)',
+        help="Path to the integration directory (e.g. custom_components/pawcontrol)",
     )
     args = parser.parse_args(list(argv) if argv is not None else None)
 
     integration_path = args.integration_path
-    manifest_path = integration_path / 'manifest.json'
+    manifest_path = integration_path / "manifest.json"
 
     errors = _validate_manifest(manifest_path)
     errors.extend(_validate_translations(integration_path))
@@ -175,5 +175,5 @@ def main() -> int:
     return run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     raise SystemExit(main())

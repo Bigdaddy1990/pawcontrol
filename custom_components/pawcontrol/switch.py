@@ -13,8 +13,9 @@ import asyncio
 import logging
 from collections.abc import Mapping
 from collections.abc import Sequence
-from typing import Any, ClassVar
+from typing import Any
 from typing import cast
+from typing import ClassVar
 
 from homeassistant.components.switch import SwitchDeviceClass
 from homeassistant.components.switch import SwitchEntity

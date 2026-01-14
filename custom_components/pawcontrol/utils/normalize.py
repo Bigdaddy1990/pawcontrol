@@ -20,8 +20,8 @@ JSONValue = Union[
     float,
     bool,
     None,
-    list['JSONValue'],
-    dict[str, 'JSONValue'],
+    list["JSONValue"],
+    dict[str, "JSONValue"],
 ]
 
 

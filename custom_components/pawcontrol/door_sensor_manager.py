@@ -1040,7 +1040,8 @@ class DoorSensorManager:
 
             self._track_background_task(
                 asyncio.create_task(
-                    check_walk_timeout(), name='pawcontrol_check_walk_timeout',
+                    check_walk_timeout(),
+                    name='pawcontrol_check_walk_timeout',
                 ),
             )
 
@@ -1170,7 +1171,8 @@ class DoorSensorManager:
 
         self._track_background_task(
             asyncio.create_task(
-                confirmation_timeout(), name='pawcontrol_confirmation_timeout',
+                confirmation_timeout(),
+                name='pawcontrol_confirmation_timeout',
             ),
         )
 
@@ -1237,7 +1239,8 @@ class DoorSensorManager:
 
                 self._track_background_task(
                     asyncio.create_task(
-                        auto_end_walk(), name='pawcontrol_auto_end_walk',
+                        auto_end_walk(),
+                        name='pawcontrol_auto_end_walk',
                     ),
                 )
         except Exception as err:
