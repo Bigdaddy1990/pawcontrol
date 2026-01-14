@@ -11,6 +11,8 @@ Quality Scale: Platinum target++
 """
 from __future__ import annotations
 
+
+from typing import ClassVar
 import logging
 from dataclasses import dataclass
 from dataclasses import field
@@ -208,14 +210,14 @@ class EnhancedHealthCalculator:
     """Enhanced health calculator with comprehensive medical tracking."""
 
     # Standard vaccination schedules (in months)
-    PUPPY_VACCINATION_SCHEDULE = {
+    PUPPY_VACCINATION_SCHEDULE: ClassVar[dict[VaccinationType, list[int]]] = {
         VaccinationType.DHPP: [6, 9, 12, 16],  # weeks for puppies
         VaccinationType.RABIES: [16, 68],  # 16 weeks initial, then yearly
         VaccinationType.BORDETELLA: [12, 16, 64],  # Optional but recommended
     }
 
     # Adult vaccination schedules (in months)
-    ADULT_VACCINATION_SCHEDULE = {
+    ADULT_VACCINATION_SCHEDULE: ClassVar[dict[VaccinationType, int]] = {
         VaccinationType.DHPP: 36,  # Every 3 years after puppy series
         VaccinationType.RABIES: 12,  # Yearly or every 3 years depending on vaccine
         VaccinationType.BORDETELLA: 12,  # Yearly
@@ -223,14 +225,14 @@ class EnhancedHealthCalculator:
     }
 
     # Deworming schedules by age and risk
-    PUPPY_DEWORMING_SCHEDULE = {
+    PUPPY_DEWORMING_SCHEDULE: ClassVar[dict[DewormingType, timedelta]] = {
         DewormingType.BROAD_SPECTRUM: timedelta(
             weeks=2,
         ),  # Every 2 weeks until 6 months
         DewormingType.HEARTWORM_PREVENTION: timedelta(days=30),  # Monthly
     }
 
-    ADULT_DEWORMING_SCHEDULE = {
+    ADULT_DEWORMING_SCHEDULE: ClassVar[dict[DewormingType, timedelta]] = {
         DewormingType.BROAD_SPECTRUM: timedelta(days=90),  # Every 3 months
         DewormingType.HEARTWORM_PREVENTION: timedelta(days=30),  # Monthly
         DewormingType.FLEA_TICK_PREVENTION: timedelta(days=30),  # Monthly

@@ -858,11 +858,15 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             )
 
         # Check excluded entities
-        for excluded in self._config.excluded_entities:
-            if excluded not in [p.entity_id for p in self._persons.values()]:
-                issues.append(f"Excluded entity {excluded} not found")
-
-        result: PersonEntityValidationResult = {
+        person_entity_ids = {p.entity_id for p in self._persons.values()}
+        issues.extend(
+            [
+                f"Excluded entity {excluded} not found"
+                for excluded in self._config.excluded_entities
+                if excluded not in person_entity_ids
+            ]
+        )
+result: PersonEntityValidationResult = {
             'valid': len(issues) == 0,
             'issues': issues,
             'recommendations': recommendations,
