@@ -7,47 +7,38 @@ Quality Scale: Platinum target
 Home Assistant: 2025.9.3+
 Python: 3.13+
 """
+
 from __future__ import annotations
 
 import asyncio
 import csv
 import json
 import logging
-from collections.abc import Coroutine
-from collections.abc import Sequence
-from dataclasses import dataclass
-from dataclasses import field
-from datetime import date
-from datetime import datetime
-from datetime import time
-from datetime import timedelta
+from collections.abc import Coroutine, Sequence
+from dataclasses import dataclass, field
+from datetime import date, datetime, time, timedelta
 from enum import Enum
 from pathlib import Path
-from typing import Any
-from typing import cast
-from typing import Literal
-from typing import TypedDict
+from typing import Any, Literal, TypedDict, cast
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from .const import DOMAIN
-from .const import EVENT_GARDEN_ENTERED
-from .const import EVENT_GARDEN_LEFT
-from .const import STORAGE_VERSION
+from .const import DOMAIN, EVENT_GARDEN_ENTERED, EVENT_GARDEN_LEFT, STORAGE_VERSION
 from .diagnostics import normalize_value
-from .notifications import NotificationPriority
-from .notifications import NotificationType
-from .types import GardenActiveSessionSnapshot
-from .types import GardenConfirmationSnapshot
-from .types import GardenFavoriteActivity
-from .types import GardenModulePayload
-from .types import GardenSessionSnapshot
-from .types import GardenStatsSnapshot
-from .types import GardenWeatherSummary
-from .types import GardenWeeklySummary
-from .types import JSONMutableMapping
+from .notifications import NotificationPriority, NotificationType
+from .types import (
+    GardenActiveSessionSnapshot,
+    GardenConfirmationSnapshot,
+    GardenFavoriteActivity,
+    GardenModulePayload,
+    GardenSessionSnapshot,
+    GardenStatsSnapshot,
+    GardenWeatherSummary,
+    GardenWeeklySummary,
+    JSONMutableMapping,
+)
 from .utils import async_fire_event
 
 _LOGGER = logging.getLogger(__name__)
@@ -84,23 +75,23 @@ def _stats_from_payload(payload: GardenStatsPayload) -> GardenStats:
 
     favorite_activities = cast(
         list[GardenFavoriteActivity],
-        payload.get('favorite_activities', []),
+        payload.get("favorite_activities", []),
     )
     weekly_summary = cast(
         GardenWeeklySummary,
-        payload.get('weekly_summary', {}) or {},
+        payload.get("weekly_summary", {}) or {},
     )
     return GardenStats(
-        total_sessions=payload.get('total_sessions', 0),
-        total_time_minutes=payload.get('total_time_minutes', 0.0),
-        total_poop_count=payload.get('total_poop_count', 0),
-        average_session_duration=payload.get('average_session_duration', 0.0),
-        most_active_time_of_day=payload.get('most_active_time_of_day'),
+        total_sessions=payload.get("total_sessions", 0),
+        total_time_minutes=payload.get("total_time_minutes", 0.0),
+        total_poop_count=payload.get("total_poop_count", 0),
+        average_session_duration=payload.get("average_session_duration", 0.0),
+        most_active_time_of_day=payload.get("most_active_time_of_day"),
         favorite_activities=favorite_activities,
-        total_activities=payload.get('total_activities', 0),
+        total_activities=payload.get("total_activities", 0),
         weekly_summary=weekly_summary,
         last_garden_visit=_parse_datetime_or_none(
-            payload.get('last_garden_visit'),
+            payload.get("last_garden_visit"),
         ),
     )
 
@@ -108,38 +99,38 @@ def _stats_from_payload(payload: GardenStatsPayload) -> GardenStats:
 class GardenActivityType(Enum):
     """Types of garden activities."""
 
-    GENERAL = 'general'
-    POOP = 'poop'
-    PLAY = 'play'
-    SNIFFING = 'sniffing'
-    DIGGING = 'digging'
-    RESTING = 'resting'
+    GENERAL = "general"
+    POOP = "poop"
+    PLAY = "play"
+    SNIFFING = "sniffing"
+    DIGGING = "digging"
+    RESTING = "resting"
 
 
 class GardenSessionStatus(Enum):
     """Status of garden sessions."""
 
-    ACTIVE = 'active'
-    COMPLETED = 'completed'
-    TIMEOUT = 'timeout'
-    CANCELLED = 'cancelled'
+    ACTIVE = "active"
+    COMPLETED = "completed"
+    TIMEOUT = "timeout"
+    CANCELLED = "cancelled"
 
 
 type GardenActivityTypeSlug = Literal[
-    'general',
-    'poop',
-    'play',
-    'sniffing',
-    'digging',
-    'resting',
+    "general",
+    "poop",
+    "play",
+    "sniffing",
+    "digging",
+    "resting",
 ]
 
 
 type GardenSessionStatusSlug = Literal[
-    'active',
-    'completed',
-    'timeout',
-    'cancelled',
+    "active",
+    "completed",
+    "timeout",
+    "cancelled",
 ]
 
 
@@ -244,12 +235,12 @@ class GardenActivity:
         """Create from dictionary data."""
 
         return cls(
-            activity_type=GardenActivityType(data['activity_type']),
-            timestamp=_parse_datetime_or_now(data['timestamp']),
-            duration_seconds=data.get('duration_seconds'),
-            location=data.get('location'),
-            notes=data.get('notes'),
-            confirmed=data.get('confirmed', False),
+            activity_type=GardenActivityType(data["activity_type"]),
+            timestamp=_parse_datetime_or_now(data["timestamp"]),
+            duration_seconds=data.get("duration_seconds"),
+            location=data.get("location"),
+            notes=data.get("notes"),
+            confirmed=data.get("confirmed", False),
         )
 
 
@@ -316,21 +307,21 @@ class GardenSession:
         """Create from dictionary data."""
 
         session = cls(
-            session_id=data['session_id'],
-            dog_id=data['dog_id'],
-            dog_name=data['dog_name'],
-            start_time=_parse_datetime_or_now(data['start_time']),
-            end_time=(_parse_datetime_or_none(data.get('end_time'))),
-            status=GardenSessionStatus(data['status']),
-            total_duration_seconds=data['total_duration_seconds'],
-            poop_count=data['poop_count'],
-            weather_conditions=data.get('weather_conditions'),
-            temperature=data.get('temperature'),
-            notes=data.get('notes'),
+            session_id=data["session_id"],
+            dog_id=data["dog_id"],
+            dog_name=data["dog_name"],
+            start_time=_parse_datetime_or_now(data["start_time"]),
+            end_time=(_parse_datetime_or_none(data.get("end_time"))),
+            status=GardenSessionStatus(data["status"]),
+            total_duration_seconds=data["total_duration_seconds"],
+            poop_count=data["poop_count"],
+            weather_conditions=data.get("weather_conditions"),
+            temperature=data.get("temperature"),
+            notes=data.get("notes"),
         )
 
         # Reconstruct activities
-        for activity_data in data.get('activities', []):
+        for activity_data in data.get("activities", []):
             session.activities.append(GardenActivity.from_dict(activity_data))
 
         return session
@@ -364,7 +355,7 @@ class GardenStats:
 class _GardenConfirmationRecord(TypedDict):
     """Internal confirmation record tracked by the garden manager."""
 
-    type: Literal['poop_confirmation']
+    type: Literal["poop_confirmation"]
     dog_id: str
     session_id: str
     timestamp: datetime | None
@@ -432,12 +423,12 @@ class GardenManager:
         # Apply configuration
         if config:
             self._session_timeout = config.get(
-                'session_timeout',
+                "session_timeout",
                 DEFAULT_GARDEN_SESSION_TIMEOUT,
             )
-            self._auto_poop_detection = config.get('auto_poop_detection', True)
+            self._auto_poop_detection = config.get("auto_poop_detection", True)
             self._confirmation_required = config.get(
-                'confirmation_required',
+                "confirmation_required",
                 True,
             )
 
@@ -453,7 +444,7 @@ class GardenManager:
         await self._start_background_tasks()
 
         _LOGGER.info(
-            'Garden manager initialized for %d dogs with %d historical sessions',
+            "Garden manager initialized for %d dogs with %d historical sessions",
             len(dogs),
             len(self._session_history),
         )
@@ -463,35 +454,35 @@ class GardenManager:
         try:
             stored_data = await self._store.async_load()
         except Exception as err:  # pragma: no cover - defensive
-            _LOGGER.error('Failed to load garden data: %s', err)
+            _LOGGER.error("Failed to load garden data: %s", err)
             return
 
         if not stored_data:
             return
 
         # Load session history
-        session_data: GardenSessionHistory = stored_data.get('sessions', [])
+        session_data: GardenSessionHistory = stored_data.get("sessions", [])
         for session_dict in session_data[-100:]:  # Keep last 100 sessions
             try:
                 session = GardenSession.from_dict(session_dict)
                 self._session_history.append(session)
             except Exception as err:  # pragma: no cover - defensive
-                _LOGGER.warning('Failed to load garden session: %s', err)
+                _LOGGER.warning("Failed to load garden session: %s", err)
 
         # Load dog statistics
-        stats_data: GardenStatsMapping = stored_data.get('stats', {})
+        stats_data: GardenStatsMapping = stored_data.get("stats", {})
         for dog_id, stats_dict in stats_data.items():
             try:
                 self._dog_stats[dog_id] = _stats_from_payload(stats_dict)
             except Exception as err:  # pragma: no cover - defensive
                 _LOGGER.warning(
-                    'Failed to load garden stats for %s: %s',
+                    "Failed to load garden stats for %s: %s",
                     dog_id,
                     err,
                 )
 
         _LOGGER.debug(
-            'Loaded %d garden sessions and stats for %d dogs',
+            "Loaded %d garden sessions and stats for %d dogs",
             len(self._session_history),
             len(self._dog_stats),
         )
@@ -500,10 +491,10 @@ class GardenManager:
         """Save garden data to storage."""
         try:
             data: GardenStorageData = {
-                'sessions': [
+                "sessions": [
                     session.to_dict() for session in self._session_history[-100:]
                 ],
-                'stats': {
+                "stats": {
                     dog_id: GardenStatsPayload(
                         total_sessions=stats.total_sessions,
                         total_time_minutes=stats.total_time_minutes,
@@ -521,13 +512,13 @@ class GardenManager:
                     )
                     for dog_id, stats in self._dog_stats.items()
                 },
-                'last_updated': dt_util.utcnow().isoformat(),
+                "last_updated": dt_util.utcnow().isoformat(),
             }
 
             await self._store.async_save(data)
 
         except Exception as err:  # pragma: no cover - defensive
-            _LOGGER.error('Failed to save garden data: %s', err)
+            _LOGGER.error("Failed to save garden data: %s", err)
 
     def _create_task(
         self,
@@ -536,7 +527,7 @@ class GardenManager:
     ) -> asyncio.Task[None]:
         """Create a named asyncio task using Home Assistant when available."""
 
-        hass_create_task = getattr(self.hass, 'async_create_task', None)
+        hass_create_task = getattr(self.hass, "async_create_task", None)
         if callable(hass_create_task):
             try:
                 task = hass_create_task(coro, name=name)
@@ -560,27 +551,27 @@ class GardenManager:
         try:
             await asyncio.wait_for(task, timeout=_TASK_CANCEL_TIMEOUT)
         except TimeoutError:
-            _LOGGER.warning('Timeout cancelling %s task', name)
+            _LOGGER.warning("Timeout cancelling %s task", name)
         except asyncio.CancelledError:
-            _LOGGER.debug('%s task cancelled', name)
+            _LOGGER.debug("%s task cancelled", name)
         except Exception as err:  # pragma: no cover - defensive log
-            _LOGGER.warning('Error while cancelling %s task: %s', name, err)
+            _LOGGER.warning("Error while cancelling %s task: %s", name, err)
 
     async def _start_background_tasks(self) -> None:
         """Start background monitoring tasks."""
         # Cleanup task for expired sessions and confirmations
         self._cleanup_task = self._create_task(
             self._cleanup_loop(),
-            'pawcontrol_garden_cleanup',
+            "pawcontrol_garden_cleanup",
         )
 
         # Stats update task
         self._stats_update_task = self._create_task(
             self._stats_update_loop(),
-            'pawcontrol_garden_stats',
+            "pawcontrol_garden_stats",
         )
 
-        _LOGGER.debug('Started garden manager background tasks')
+        _LOGGER.debug("Started garden manager background tasks")
 
     async def _cancel_confirmation_task(self, dog_id: str) -> None:
         """Cancel a pending poop confirmation task for a dog."""
@@ -604,9 +595,9 @@ class GardenManager:
             except asyncio.CancelledError:
                 break
             except TimeoutError:
-                _LOGGER.warning('Garden cleanup loop timed out')
+                _LOGGER.warning("Garden cleanup loop timed out")
             except Exception as err:
-                _LOGGER.error('Error in garden cleanup loop: %s', err)
+                _LOGGER.error("Error in garden cleanup loop: %s", err)
 
     async def _stats_update_loop(self) -> None:
         """Background statistics update task."""
@@ -624,15 +615,15 @@ class GardenManager:
             except asyncio.CancelledError:
                 break
             except TimeoutError:
-                _LOGGER.warning('Garden statistics update loop timed out')
+                _LOGGER.warning("Garden statistics update loop timed out")
             except Exception as err:
-                _LOGGER.error('Error in garden stats update loop: %s', err)
+                _LOGGER.error("Error in garden stats update loop: %s", err)
 
     async def async_start_garden_session(
         self,
         dog_id: str,
         dog_name: str,
-        detection_method: str = 'manual',
+        detection_method: str = "manual",
         weather_conditions: str | None = None,
         temperature: float | None = None,
     ) -> str:
@@ -669,11 +660,11 @@ class GardenManager:
             self.hass,
             EVENT_GARDEN_ENTERED,
             {
-                'dog_id': dog_id,
-                'dog_name': dog_name,
-                'session_id': session_id,
-                'detection_method': detection_method,
-                'timestamp': session.start_time.isoformat(),
+                "dog_id": dog_id,
+                "dog_name": dog_name,
+                "session_id": session_id,
+                "detection_method": detection_method,
+                "timestamp": session.start_time.isoformat(),
             },
         )
 
@@ -696,7 +687,7 @@ class GardenManager:
             )
 
         _LOGGER.info(
-            'Started garden session for %s (session: %s, method: %s)',
+            "Started garden session for %s (session: %s, method: %s)",
             dog_name,
             session_id,
             detection_method,
@@ -725,7 +716,7 @@ class GardenManager:
         await self._cancel_confirmation_task(dog_id)
         session = self._active_sessions.get(dog_id)
         if not session:
-            _LOGGER.warning('No active garden session for %s', dog_id)
+            _LOGGER.warning("No active garden session for %s", dog_id)
             return None
 
         # Complete the session
@@ -740,23 +731,23 @@ class GardenManager:
                 try:
                     activity_type = GardenActivityType(
                         activity_data.get(
-                            'type',
+                            "type",
                             GardenActivityType.GENERAL.value,
                         ),
                     )
                     activity = GardenActivity(
                         activity_type=activity_type,
                         timestamp=_parse_datetime_or_now(
-                            activity_data.get('timestamp'),
+                            activity_data.get("timestamp"),
                         ),
-                        duration_seconds=activity_data.get('duration_seconds'),
-                        location=activity_data.get('location'),
-                        notes=activity_data.get('notes'),
-                        confirmed=activity_data.get('confirmed', False),
+                        duration_seconds=activity_data.get("duration_seconds"),
+                        location=activity_data.get("location"),
+                        notes=activity_data.get("notes"),
+                        confirmed=activity_data.get("confirmed", False),
                     )
                     session.add_activity(activity)
                 except Exception as err:
-                    _LOGGER.warning('Failed to add activity: %s', err)
+                    _LOGGER.warning("Failed to add activity: %s", err)
 
         # Move to history
         self._session_history.append(session)
@@ -770,13 +761,13 @@ class GardenManager:
             self.hass,
             EVENT_GARDEN_LEFT,
             {
-                'dog_id': dog_id,
-                'dog_name': session.dog_name,
-                'session_id': session.session_id,
-                'duration_minutes': session.duration_minutes,
-                'poop_count': session.poop_count,
-                'activity_count': len(session.activities),
-                'timestamp': session.end_time.isoformat(),
+                "dog_id": dog_id,
+                "dog_name": session.dog_name,
+                "session_id": session.session_id,
+                "duration_minutes": session.duration_minutes,
+                "poop_count": session.poop_count,
+                "activity_count": len(session.activities),
+                "timestamp": session.end_time.isoformat(),
             },
         )
 
@@ -795,7 +786,7 @@ class GardenManager:
         await self._save_data()
 
         _LOGGER.info(
-            'Ended garden session for %s: %.1f minutes, %d activities, %d poop events',
+            "Ended garden session for %s: %.1f minutes, %d activities, %d poop events",
             session.dog_name,
             session.duration_minutes,
             len(session.activities),
@@ -808,7 +799,7 @@ class GardenManager:
         self,
         dog_id: str,
         *,
-        format: str = 'json',
+        format: str = "json",
         days: int | None = None,
         date_from: datetime | date | str | None = None,
         date_to: datetime | date | str | None = None,
@@ -857,21 +848,21 @@ class GardenManager:
 
         export_dir = (
             Path(
-                getattr(self.hass.config, 'config_dir', '.'),
+                getattr(self.hass.config, "config_dir", "."),
             )
             / DOMAIN
         )
-        export_dir = export_dir / 'exports'
+        export_dir = export_dir / "exports"
         export_dir.mkdir(parents=True, exist_ok=True)
 
-        timestamp = dt_util.utcnow().strftime('%Y%m%d%H%M%S')
+        timestamp = dt_util.utcnow().strftime("%Y%m%d%H%M%S")
         normalized_format = format.lower()
-        if normalized_format not in {'json', 'csv', 'markdown', 'md', 'txt'}:
-            normalized_format = 'json'
-        extension = 'md' if normalized_format == 'markdown' else normalized_format
+        if normalized_format not in {"json", "csv", "markdown", "md", "txt"}:
+            normalized_format = "json"
+        extension = "md" if normalized_format == "markdown" else normalized_format
         filename = f"{self.entry_id}_{dog_id}_garden_{timestamp}.{extension}".replace(
-            ' ',
-            '_',
+            " ",
+            "_",
         )
         export_path = export_dir / filename
 
@@ -880,28 +871,28 @@ class GardenManager:
             normalize_value(entries),
         )
 
-        if normalized_format == 'csv':
+        if normalized_format == "csv":
             fieldnames = sorted(
                 {key for entry in payload_entries for key in entry},
             )
 
             def _write_csv() -> None:
-                with open(export_path, 'w', newline='', encoding='utf-8') as handle:
+                with open(export_path, "w", newline="", encoding="utf-8") as handle:
                     writer = csv.DictWriter(handle, fieldnames=fieldnames)
                     if fieldnames:
                         writer.writeheader()
                     writer.writerows(payload_entries)
 
             await asyncio.to_thread(_write_csv)
-        elif normalized_format in {'markdown', 'md', 'txt'}:
+        elif normalized_format in {"markdown", "md", "txt"}:
 
             def _write_markdown() -> None:
-                lines = [f"# Garden export for {dog_id}", '']
+                lines = [f"# Garden export for {dog_id}", ""]
                 lines.extend(
-                    '- ' + ', '.join(f"{k}: {v}" for k, v in entry.items())
+                    "- " + ", ".join(f"{k}: {v}" for k, v in entry.items())
                     for entry in payload_entries
                 )
-                export_path.write_text('\n'.join(lines), encoding='utf-8')
+                export_path.write_text("\n".join(lines), encoding="utf-8")
 
             await asyncio.to_thread(_write_markdown)
         else:
@@ -911,16 +902,16 @@ class GardenManager:
                     JSONMutableMapping,
                     normalize_value(
                         {
-                            'dog_id': dog_id,
-                            'data_type': 'garden',
-                            'generated_at': dt_util.utcnow().isoformat(),
-                            'entries': payload_entries,
+                            "dog_id": dog_id,
+                            "data_type": "garden",
+                            "generated_at": dt_util.utcnow().isoformat(),
+                            "entries": payload_entries,
                         },
                     ),
                 )
                 export_path.write_text(
                     json.dumps(payload, ensure_ascii=False, indent=2),
-                    encoding='utf-8',
+                    encoding="utf-8",
                 )
 
             await asyncio.to_thread(_write_json)
@@ -952,7 +943,7 @@ class GardenManager:
         session = self._active_sessions.get(dog_id)
         if not session:
             _LOGGER.warning(
-                'No active garden session for %s to add activity',
+                "No active garden session for %s to add activity",
                 dog_id,
             )
             return False
@@ -970,7 +961,7 @@ class GardenManager:
             session.add_activity(activity)
 
             _LOGGER.debug(
-                'Added %s activity to garden session for %s',
+                "Added %s activity to garden session for %s",
                 activity_type,
                 session.dog_name,
             )
@@ -979,7 +970,7 @@ class GardenManager:
 
         except Exception as err:
             _LOGGER.error(
-                'Failed to add garden activity for %s: %s',
+                "Failed to add garden activity for %s: %s",
                 dog_id,
                 err,
             )
@@ -1011,7 +1002,7 @@ class GardenManager:
         if not session:
             # If no active session, this might be a standalone poop log
             _LOGGER.debug(
-                'No active garden session for %s, logging standalone poop event',
+                "No active garden session for %s, logging standalone poop event",
                 dog_id,
             )
             return await self._log_standalone_poop_event(
@@ -1050,7 +1041,7 @@ class GardenManager:
             )
 
         _LOGGER.info(
-            'Logged poop event for %s in garden session: %s',
+            "Logged poop event for %s in garden session: %s",
             session.dog_name,
             poop_notes,
         )
@@ -1116,11 +1107,11 @@ class GardenManager:
                 confirmation_id = f"poop_confirm_{dog_id}_{session_id}"
                 created = dt_util.utcnow()
                 record: _GardenConfirmationRecord = {
-                    'type': 'poop_confirmation',
-                    'dog_id': dog_id,
-                    'session_id': session_id,
-                    'timestamp': created,
-                    'timeout': created + timedelta(seconds=POOP_CONFIRMATION_TIMEOUT),
+                    "type": "poop_confirmation",
+                    "dog_id": dog_id,
+                    "session_id": session_id,
+                    "timestamp": created,
+                    "timeout": created + timedelta(seconds=POOP_CONFIRMATION_TIMEOUT),
                 }
                 self._pending_confirmations[confirmation_id] = record
 
@@ -1129,27 +1120,27 @@ class GardenManager:
                     title=f"💩 Poop check: {session.dog_name}",
                     message=(
                         f"Did {session.dog_name} have a poop in the garden? "
-                        'Tap to confirm or deny.'
+                        "Tap to confirm or deny."
                     ),
                     dog_id=dog_id,
                     priority=NotificationPriority.NORMAL,
                     data={
-                        'confirmation_id': confirmation_id,
-                        'actions': [
+                        "confirmation_id": confirmation_id,
+                        "actions": [
                             {
-                                'action': f"confirm_poop_{dog_id}",
-                                'title': 'Yes, had a poop',
+                                "action": f"confirm_poop_{dog_id}",
+                                "title": "Yes, had a poop",
                             },
                             {
-                                'action': f"deny_poop_{dog_id}",
-                                'title': 'No poop',
+                                "action": f"deny_poop_{dog_id}",
+                                "title": "No poop",
                             },
                         ],
                     },
                     expires_in=timedelta(seconds=POOP_CONFIRMATION_TIMEOUT),
                 )
         except asyncio.CancelledError:
-            _LOGGER.debug('Poop confirmation task cancelled for %s', dog_id)
+            _LOGGER.debug("Poop confirmation task cancelled for %s", dog_id)
             raise
         finally:
             if (
@@ -1179,8 +1170,8 @@ class GardenManager:
         confirmation_id = None
         for conf_id, conf_data in self._pending_confirmations.items():
             if (
-                conf_data['dog_id'] == dog_id
-                and conf_data['type'] == 'poop_confirmation'
+                conf_data["dog_id"] == dog_id
+                and conf_data["type"] == "poop_confirmation"
             ):
                 confirmation_id = conf_id
                 break
@@ -1191,20 +1182,20 @@ class GardenManager:
         if confirmed:
             await self.async_log_poop_event(
                 dog_id=dog_id,
-                quality=quality or 'normal',
-                size=size or 'normal',
+                quality=quality or "normal",
+                size=size or "normal",
                 location=location,
                 confirmed=True,
             )
         else:
-            _LOGGER.debug('Poop confirmation denied for %s', dog_id)
+            _LOGGER.debug("Poop confirmation denied for %s", dog_id)
 
     async def _end_active_session_for_dog(self, dog_id: str) -> None:
         """End any active session for a dog."""
         if dog_id in self._active_sessions:
             await self.async_end_garden_session(
                 dog_id,
-                notes='Auto-ended for new session',
+                notes="Auto-ended for new session",
             )
 
     async def _cleanup_expired_sessions(self) -> None:
@@ -1220,10 +1211,10 @@ class GardenManager:
         for dog_id in expired_dogs:
             session = self._active_sessions[dog_id]
             session.status = GardenSessionStatus.TIMEOUT
-            await self.async_end_garden_session(dog_id, notes='Session timed out')
+            await self.async_end_garden_session(dog_id, notes="Session timed out")
 
             _LOGGER.info(
-                'Garden session for %s timed out after %.1f minutes',
+                "Garden session for %s timed out after %.1f minutes",
                 session.dog_name,
                 session.duration_minutes,
             )
@@ -1234,7 +1225,7 @@ class GardenManager:
         expired_confirmations = []
 
         for conf_id, conf_data in self._pending_confirmations.items():
-            timeout = conf_data['timeout']
+            timeout = conf_data["timeout"]
             if timeout is not None and now > timeout:
                 expired_confirmations.append(conf_id)
 
@@ -1273,13 +1264,13 @@ class GardenManager:
         if hour_counts:
             most_active_hour = max(hour_counts.items(), key=lambda x: x[1])[0]
             if 6 <= most_active_hour < 12:
-                stats.most_active_time_of_day = 'morning'
+                stats.most_active_time_of_day = "morning"
             elif 12 <= most_active_hour < 18:
-                stats.most_active_time_of_day = 'afternoon'
+                stats.most_active_time_of_day = "afternoon"
             elif 18 <= most_active_hour < 22:
-                stats.most_active_time_of_day = 'evening'
+                stats.most_active_time_of_day = "evening"
             else:
-                stats.most_active_time_of_day = 'night'
+                stats.most_active_time_of_day = "night"
 
         # Find favorite activities
         activity_counts: dict[str, int] = {}
@@ -1300,8 +1291,8 @@ class GardenManager:
                 cast(
                     GardenFavoriteActivity,
                     {
-                        'activity': activity_type,
-                        'count': count,
+                        "activity": activity_type,
+                        "count": count,
                     },
                 ),
             )
@@ -1321,11 +1312,11 @@ class GardenManager:
                 session.calculate_duration() / 60 for session in weekly_sessions
             )
             stats.weekly_summary = {
-                'session_count': len(weekly_sessions),
-                'total_time_minutes': total_week_minutes,
-                'poop_events': sum(session.poop_count for session in weekly_sessions),
-                'average_duration': total_week_minutes / len(weekly_sessions),
-                'updated': now_utc.isoformat(),
+                "session_count": len(weekly_sessions),
+                "total_time_minutes": total_week_minutes,
+                "poop_events": sum(session.poop_count for session in weekly_sessions),
+                "average_duration": total_week_minutes / len(weekly_sessions),
+                "updated": now_utc.isoformat(),
             }
         else:
             stats.weekly_summary = {}
@@ -1385,8 +1376,8 @@ class GardenManager:
         """Return True if a poop confirmation is pending for the dog."""
 
         return any(
-            confirmation['dog_id'] == dog_id
-            and confirmation['type'] == 'poop_confirmation'
+            confirmation["dog_id"] == dog_id
+            and confirmation["type"] == "poop_confirmation"
             for confirmation in self._pending_confirmations.values()
         )
 
@@ -1399,17 +1390,17 @@ class GardenManager:
         confirmations: list[GardenConfirmationSnapshot] = []
         for confirmation in self._pending_confirmations.values():
             if (
-                confirmation['dog_id'] != dog_id
-                or confirmation['type'] != 'poop_confirmation'
+                confirmation["dog_id"] != dog_id
+                or confirmation["type"] != "poop_confirmation"
             ):
                 continue
 
-            timestamp = confirmation['timestamp']
-            timeout = confirmation['timeout']
+            timestamp = confirmation["timestamp"]
+            timeout = confirmation["timeout"]
             confirmation_payload: GardenConfirmationSnapshot = {
-                'session_id': confirmation['session_id'],
-                'created': timestamp.isoformat() if timestamp else None,
-                'expires': timeout.isoformat() if timeout else None,
+                "session_id": confirmation["session_id"],
+                "created": timestamp.isoformat() if timestamp else None,
+                "expires": timeout.isoformat() if timeout else None,
             }
             confirmations.append(confirmation_payload)
 
@@ -1424,18 +1415,18 @@ class GardenManager:
         """Build a snapshot of garden activity for sensors and diagnostics."""
 
         snapshot: GardenModulePayload = {
-            'status': 'idle',
-            'sessions_today': 0,
-            'time_today_minutes': 0.0,
-            'poop_today': 0,
-            'activities_today': 0,
-            'activities_total': 0,
-            'active_session': None,
-            'last_session': None,
-            'hours_since_last_session': None,
-            'stats': cast(GardenStatsSnapshot, {}),
-            'pending_confirmations': self.get_pending_confirmations(dog_id),
-            'weather_summary': None,
+            "status": "idle",
+            "sessions_today": 0,
+            "time_today_minutes": 0.0,
+            "poop_today": 0,
+            "activities_today": 0,
+            "activities_total": 0,
+            "active_session": None,
+            "last_session": None,
+            "hours_since_last_session": None,
+            "stats": cast(GardenStatsSnapshot, {}),
+            "pending_confirmations": self.get_pending_confirmations(dog_id),
+            "weather_summary": None,
         }
 
         now_local = dt_util.now()
@@ -1451,33 +1442,33 @@ class GardenManager:
 
         active_session = self.get_active_session(dog_id)
         if active_session:
-            snapshot['status'] = 'active'
+            snapshot["status"] = "active"
             active_payload: GardenActiveSessionSnapshot = {
-                'session_id': active_session.session_id,
-                'start_time': active_session.start_time.isoformat(),
-                'duration_minutes': round(active_session.calculate_duration() / 60, 2),
-                'activity_count': len(active_session.activities),
-                'poop_count': active_session.poop_count,
+                "session_id": active_session.session_id,
+                "start_time": active_session.start_time.isoformat(),
+                "duration_minutes": round(active_session.calculate_duration() / 60, 2),
+                "activity_count": len(active_session.activities),
+                "poop_count": active_session.poop_count,
             }
-            snapshot['active_session'] = active_payload
+            snapshot["active_session"] = active_payload
 
         stats = self.get_dog_statistics(dog_id)
         if stats:
             stats_payload: GardenStatsSnapshot = {
-                'total_sessions': stats.total_sessions,
-                'total_time_minutes': stats.total_time_minutes,
-                'total_poop_count': stats.total_poop_count,
-                'average_session_duration': stats.average_session_duration,
-                'most_active_time_of_day': stats.most_active_time_of_day,
-                'favorite_activities': stats.favorite_activities,
-                'weekly_summary': stats.weekly_summary,
-                'last_garden_visit': stats.last_garden_visit.isoformat()
+                "total_sessions": stats.total_sessions,
+                "total_time_minutes": stats.total_time_minutes,
+                "total_poop_count": stats.total_poop_count,
+                "average_session_duration": stats.average_session_duration,
+                "most_active_time_of_day": stats.most_active_time_of_day,
+                "favorite_activities": stats.favorite_activities,
+                "weekly_summary": stats.weekly_summary,
+                "last_garden_visit": stats.last_garden_visit.isoformat()
                 if stats.last_garden_visit
                 else None,
-                'total_activities': stats.total_activities,
+                "total_activities": stats.total_activities,
             }
-            snapshot['stats'] = stats_payload
-            snapshot['activities_total'] = stats.total_activities
+            snapshot["stats"] = stats_payload
+            snapshot["activities_total"] = stats.total_activities
 
         # Calculate today's aggregates including active session
         sessions_to_process = list(todays_sessions)
@@ -1506,42 +1497,42 @@ class GardenManager:
             if session.temperature is not None:
                 temperatures.append(session.temperature)
 
-        snapshot['sessions_today'] = len(sessions_to_process)
-        snapshot['time_today_minutes'] = round(total_seconds_today / 60, 2)
-        snapshot['poop_today'] = total_poop_today
-        snapshot['activities_today'] = total_activities_today
+        snapshot["sessions_today"] = len(sessions_to_process)
+        snapshot["time_today_minutes"] = round(total_seconds_today / 60, 2)
+        snapshot["poop_today"] = total_poop_today
+        snapshot["activities_today"] = total_activities_today
 
         if weather_conditions or temperatures:
             average_temperature = (
                 sum(temperatures) / len(temperatures) if temperatures else None
             )
             weather_summary: GardenWeatherSummary = {
-                'conditions': weather_conditions,
-                'average_temperature': average_temperature,
+                "conditions": weather_conditions,
+                "average_temperature": average_temperature,
             }
-            snapshot['weather_summary'] = weather_summary
+            snapshot["weather_summary"] = weather_summary
 
         if sessions:
             last_session = sessions[0]
             last_session_payload: GardenSessionSnapshot = {
-                'session_id': last_session.session_id,
-                'start_time': last_session.start_time.isoformat(),
-                'end_time': last_session.end_time.isoformat()
+                "session_id": last_session.session_id,
+                "start_time": last_session.start_time.isoformat(),
+                "end_time": last_session.end_time.isoformat()
                 if last_session.end_time
                 else None,
-                'duration_minutes': round(last_session.calculate_duration() / 60, 2),
-                'activity_count': len(last_session.activities),
-                'poop_count': last_session.poop_count,
-                'status': last_session.status.value,
-                'weather_conditions': last_session.weather_conditions,
-                'temperature': last_session.temperature,
-                'notes': last_session.notes,
+                "duration_minutes": round(last_session.calculate_duration() / 60, 2),
+                "activity_count": len(last_session.activities),
+                "poop_count": last_session.poop_count,
+                "status": last_session.status.value,
+                "weather_conditions": last_session.weather_conditions,
+                "temperature": last_session.temperature,
+                "notes": last_session.notes,
             }
-            snapshot['last_session'] = last_session_payload
+            snapshot["last_session"] = last_session_payload
 
             reference_time = last_session.end_time or last_session.start_time
             if reference_time:
-                snapshot['hours_since_last_session'] = round(
+                snapshot["hours_since_last_session"] = round(
                     (dt_util.utcnow() - reference_time).total_seconds() / 3600,
                     2,
                 )
@@ -1562,17 +1553,17 @@ class GardenManager:
     async def async_cleanup(self) -> None:
         """Clean up garden manager."""
         # Cancel background tasks
-        await self._cancel_task(self._cleanup_task, 'garden cleanup')
-        await self._cancel_task(self._stats_update_task, 'garden stats')
+        await self._cancel_task(self._cleanup_task, "garden cleanup")
+        await self._cancel_task(self._stats_update_task, "garden stats")
 
         for dog_id in list(self._confirmation_tasks.keys()):
             await self._cancel_confirmation_task(dog_id)
 
         # End all active sessions
         for dog_id in list(self._active_sessions.keys()):
-            await self.async_end_garden_session(dog_id, notes='System cleanup')
+            await self.async_end_garden_session(dog_id, notes="System cleanup")
 
         # Save final data
         await self._save_data()
 
-        _LOGGER.info('Garden manager cleanup completed')
+        _LOGGER.info("Garden manager cleanup completed")

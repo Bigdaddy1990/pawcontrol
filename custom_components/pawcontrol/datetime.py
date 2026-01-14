@@ -1,4 +1,5 @@
 """DateTime platform for Paw Control integration."""
+
 from __future__ import annotations
 
 import asyncio
@@ -14,26 +15,22 @@ from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
 from .compat import ConfigEntry
-from .const import ATTR_DOG_ID
-from .const import DOMAIN
-from .const import MODULE_FEEDING
-from .const import MODULE_HEALTH
-from .const import MODULE_WALK
+from .const import ATTR_DOG_ID, DOMAIN, MODULE_FEEDING, MODULE_HEALTH, MODULE_WALK
 from .coordinator import PawControlCoordinator
 from .diagnostics import normalize_value
 from .entity import PawControlDogEntityBase
 from .grooming_translations import translated_grooming_template
-from .notifications import NotificationPriority
-from .notifications import NotificationType
+from .notifications import NotificationPriority, NotificationType
 from .runtime_data import get_runtime_data
-from .types import DOG_ID_FIELD
-from .types import DOG_NAME_FIELD
-from .types import DogConfigData
-from .types import DogModulesMapping
-from .types import ensure_dog_modules_mapping
-from .types import JSONMutableMapping
-from .utils import async_call_add_entities
-from .utils import ensure_utc_datetime
+from .types import (
+    DOG_ID_FIELD,
+    DOG_NAME_FIELD,
+    DogConfigData,
+    DogModulesMapping,
+    JSONMutableMapping,
+    ensure_dog_modules_mapping,
+)
+from .utils import async_call_add_entities, ensure_utc_datetime
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -63,19 +60,19 @@ async def _async_add_entities_in_batches(
     total_entities = len(entities)
 
     _LOGGER.debug(
-        'Adding %d datetime entities in batches of %d to prevent Registry overload',
+        "Adding %d datetime entities in batches of %d to prevent Registry overload",
         total_entities,
         batch_size,
     )
 
     # Process entities in batches
     for i in range(0, total_entities, batch_size):
-        batch = entities[i: i + batch_size]
+        batch = entities[i : i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
 
         _LOGGER.debug(
-            'Processing datetime batch %d/%d with %d entities',
+            "Processing datetime batch %d/%d with %d entities",
             batch_num,
             total_batches,
             len(batch),
@@ -101,7 +98,7 @@ async def async_setup_entry(
     """Set up Paw Control datetime platform."""
     runtime_data = get_runtime_data(hass, entry)
     if runtime_data is None:
-        _LOGGER.error('Runtime data missing for entry %s', entry.entry_id)
+        _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
         return
 
     coordinator: PawControlCoordinator = runtime_data.coordinator
@@ -205,7 +202,7 @@ async def async_setup_entry(
     await _async_add_entities_in_batches(async_add_entities, entities, batch_size=12)
 
     _LOGGER.info(
-        'Created %d datetime entities for %d dogs using batched approach',
+        "Created %d datetime entities for %d dogs using batched approach",
         len(entities),
         len(dogs),
     )
@@ -231,9 +228,9 @@ class PawControlDateTimeBase(PawControlDogEntityBase, DateTimeEntity, RestoreEnt
 
         # Link entity to PawControl device entry for the dog
         self.update_device_metadata(
-            model='Smart Dog',
-            sw_version='1.0.0',
-            configuration_url='https://github.com/BigDaddy1990/pawcontrol',
+            model="Smart Dog",
+            sw_version="1.0.0",
+            configuration_url="https://github.com/BigDaddy1990/pawcontrol",
         )
 
     @property
@@ -245,7 +242,7 @@ class PawControlDateTimeBase(PawControlDogEntityBase, DateTimeEntity, RestoreEnt
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return extra state attributes."""
         attributes = self._build_base_state_attributes(
-            {'datetime_type': self._datetime_type},
+            {"datetime_type": self._datetime_type},
         )
         return cast(JSONMutableMapping, normalize_value(attributes))
 
@@ -256,7 +253,7 @@ class PawControlDateTimeBase(PawControlDogEntityBase, DateTimeEntity, RestoreEnt
         # Restore previous value
         if (
             last_state := await self.async_get_last_state()
-        ) is not None and last_state.state not in ('unknown', 'unavailable'):
+        ) is not None and last_state.state not in ("unknown", "unavailable"):
             self._current_value = ensure_utc_datetime(last_state.state)
 
     async def async_set_value(self, value: datetime) -> None:
@@ -264,7 +261,7 @@ class PawControlDateTimeBase(PawControlDogEntityBase, DateTimeEntity, RestoreEnt
         self._current_value = value
         self.async_write_ha_state()
         _LOGGER.debug(
-            'Set %s for %s to %s',
+            "Set %s for %s to %s",
             self._datetime_type,
             self._dog_name,
             value,
@@ -281,8 +278,8 @@ class PawControlBirthdateDateTime(PawControlDateTimeBase):
         dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'birthdate')
-        self._attr_icon = 'mdi:cake'
+        super().__init__(coordinator, dog_id, dog_name, "birthdate")
+        self._attr_icon = "mdi:cake"
 
     async def async_set_value(self, value: datetime) -> None:
         """Set new birthdate and update age calculation."""
@@ -294,7 +291,7 @@ class PawControlBirthdateDateTime(PawControlDateTimeBase):
 
         # This could update the dog age number entity
         _LOGGER.debug(
-            'Updated birthdate for %s, calculated age: %.1f years',
+            "Updated birthdate for %s, calculated age: %.1f years",
             self._dog_name,
             age_years,
         )
@@ -310,8 +307,8 @@ class PawControlAdoptionDateDateTime(PawControlDateTimeBase):
         dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'adoption_date')
-        self._attr_icon = 'mdi:home-heart'
+        super().__init__(coordinator, dog_id, dog_name, "adoption_date")
+        self._attr_icon = "mdi:home-heart"
 
 
 class PawControlBreakfastTimeDateTime(PawControlDateTimeBase):
@@ -324,8 +321,8 @@ class PawControlBreakfastTimeDateTime(PawControlDateTimeBase):
         dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'breakfast_time')
-        self._attr_icon = 'mdi:food-croissant'
+        super().__init__(coordinator, dog_id, dog_name, "breakfast_time")
+        self._attr_icon = "mdi:food-croissant"
 
         # Set default breakfast time
         now = dt_util.now()
@@ -343,8 +340,8 @@ class PawControlLunchTimeDateTime(PawControlDateTimeBase):
         dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'lunch_time')
-        self._attr_icon = 'mdi:food'
+        super().__init__(coordinator, dog_id, dog_name, "lunch_time")
+        self._attr_icon = "mdi:food"
 
         # Set default lunch time
         now = dt_util.now()
@@ -362,8 +359,8 @@ class PawControlDinnerTimeDateTime(PawControlDateTimeBase):
         dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'dinner_time')
-        self._attr_icon = 'mdi:silverware-fork-knife'
+        super().__init__(coordinator, dog_id, dog_name, "dinner_time")
+        self._attr_icon = "mdi:silverware-fork-knife"
 
         # Set default dinner time
         now = dt_util.now()
@@ -381,17 +378,17 @@ class PawControlLastFeedingDateTime(PawControlDateTimeBase):
         dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'last_feeding')
-        self._attr_icon = 'mdi:food-drumstick'
+        super().__init__(coordinator, dog_id, dog_name, "last_feeding")
+        self._attr_icon = "mdi:food-drumstick"
 
     @property
     def native_value(self) -> datetime | None:
         """Return the last feeding time from dog data."""
         dog_data = self.coordinator.get_dog_data(self._dog_id)
-        if not dog_data or 'feeding' not in dog_data:
+        if not dog_data or "feeding" not in dog_data:
             return self._current_value
 
-        last_feeding = dog_data['feeding'].get('last_feeding')
+        last_feeding = dog_data["feeding"].get("last_feeding")
         if last_feeding:
             timestamp = ensure_utc_datetime(last_feeding)
             if timestamp is not None:
@@ -406,10 +403,10 @@ class PawControlLastFeedingDateTime(PawControlDateTimeBase):
         # Log feeding event
         if not await self._async_call_hass_service(
             DOMAIN,
-            'feed_dog',
+            "feed_dog",
             {
                 ATTR_DOG_ID: self._dog_id,
-                'meal_type': 'snack',  # Default to snack for manual entries
+                "meal_type": "snack",  # Default to snack for manual entries
             },
         ):
             return
@@ -425,8 +422,8 @@ class PawControlNextFeedingDateTime(PawControlDateTimeBase):
         dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'next_feeding')
-        self._attr_icon = 'mdi:clock-alert'
+        super().__init__(coordinator, dog_id, dog_name, "next_feeding")
+        self._attr_icon = "mdi:clock-alert"
 
     async def async_set_value(self, value: datetime) -> None:
         """Set next feeding reminder time."""
@@ -434,7 +431,7 @@ class PawControlNextFeedingDateTime(PawControlDateTimeBase):
 
         # This could schedule a reminder automation
         _LOGGER.debug(
-            'Next feeding reminder set for %s at %s',
+            "Next feeding reminder set for %s at %s",
             self._dog_name,
             value,
         )
@@ -450,17 +447,17 @@ class PawControlLastVetVisitDateTime(PawControlDateTimeBase):
         dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'last_vet_visit')
-        self._attr_icon = 'mdi:medical-bag'
+        super().__init__(coordinator, dog_id, dog_name, "last_vet_visit")
+        self._attr_icon = "mdi:medical-bag"
 
     @property
     def native_value(self) -> datetime | None:
         """Return the last vet visit from dog data."""
         dog_data = self.coordinator.get_dog_data(self._dog_id)
-        if not dog_data or 'health' not in dog_data:
+        if not dog_data or "health" not in dog_data:
             return self._current_value
 
-        last_visit = dog_data['health'].get('last_vet_visit')
+        last_visit = dog_data["health"].get("last_vet_visit")
         if last_visit:
             timestamp = ensure_utc_datetime(last_visit)
             if timestamp is not None:
@@ -475,10 +472,10 @@ class PawControlLastVetVisitDateTime(PawControlDateTimeBase):
         # Log vet visit
         if not await self._async_call_hass_service(
             DOMAIN,
-            'log_health_data',
+            "log_health_data",
             {
                 ATTR_DOG_ID: self._dog_id,
-                'note': f"Vet visit recorded for {value.strftime('%Y-%m-%d')}",
+                "note": f"Vet visit recorded for {value.strftime('%Y-%m-%d')}",
             },
         ):
             return
@@ -494,8 +491,8 @@ class PawControlNextVetAppointmentDateTime(PawControlDateTimeBase):
         dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'next_vet_appointment')
-        self._attr_icon = 'mdi:calendar-medical'
+        super().__init__(coordinator, dog_id, dog_name, "next_vet_appointment")
+        self._attr_icon = "mdi:calendar-medical"
 
     async def async_set_value(self, value: datetime) -> None:
         """Set next vet appointment."""
@@ -503,7 +500,7 @@ class PawControlNextVetAppointmentDateTime(PawControlDateTimeBase):
 
         # This could create calendar event or reminder
         _LOGGER.debug(
-            'Next vet appointment scheduled for %s at %s',
+            "Next vet appointment scheduled for %s at %s",
             self._dog_name,
             value,
         )
@@ -519,17 +516,17 @@ class PawControlLastGroomingDateTime(PawControlDateTimeBase):
         dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'last_grooming')
-        self._attr_icon = 'mdi:content-cut'
+        super().__init__(coordinator, dog_id, dog_name, "last_grooming")
+        self._attr_icon = "mdi:content-cut"
 
     @property
     def native_value(self) -> datetime | None:
         """Return the last grooming from dog data."""
         dog_data = self.coordinator.get_dog_data(self._dog_id)
-        if not dog_data or 'health' not in dog_data:
+        if not dog_data or "health" not in dog_data:
             return self._current_value
 
-        last_grooming = dog_data['health'].get('last_grooming')
+        last_grooming = dog_data["health"].get("last_grooming")
         if last_grooming:
             timestamp = ensure_utc_datetime(last_grooming)
             if timestamp is not None:
@@ -542,21 +539,21 @@ class PawControlLastGroomingDateTime(PawControlDateTimeBase):
         await super().async_set_value(value)
 
         # Log grooming session
-        config_obj = getattr(self.hass, 'config', None)
+        config_obj = getattr(self.hass, "config", None)
         hass_language: str | None = None
         if config_obj is not None:
-            hass_language = getattr(config_obj, 'language', None)
+            hass_language = getattr(config_obj, "language", None)
 
         if not await self._async_call_hass_service(
             DOMAIN,
-            'start_grooming',
+            "start_grooming",
             {
                 ATTR_DOG_ID: self._dog_id,
-                'type': 'full_grooming',
-                'notes': translated_grooming_template(
+                "type": "full_grooming",
+                "notes": translated_grooming_template(
                     hass_language,
-                    'manual_session_notes',
-                    date=value.strftime('%Y-%m-%d'),
+                    "manual_session_notes",
+                    date=value.strftime("%Y-%m-%d"),
                 ),
             },
         ):
@@ -573,8 +570,8 @@ class PawControlNextGroomingDateTime(PawControlDateTimeBase):
         dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'next_grooming')
-        self._attr_icon = 'mdi:calendar-clock'
+        super().__init__(coordinator, dog_id, dog_name, "next_grooming")
+        self._attr_icon = "mdi:calendar-clock"
 
 
 class PawControlLastMedicationDateTime(PawControlDateTimeBase):
@@ -587,8 +584,8 @@ class PawControlLastMedicationDateTime(PawControlDateTimeBase):
         dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'last_medication')
-        self._attr_icon = 'mdi:pill'
+        super().__init__(coordinator, dog_id, dog_name, "last_medication")
+        self._attr_icon = "mdi:pill"
 
     async def async_set_value(self, value: datetime) -> None:
         """Set last medication and log medication."""
@@ -597,11 +594,11 @@ class PawControlLastMedicationDateTime(PawControlDateTimeBase):
         # Log medication
         if not await self._async_call_hass_service(
             DOMAIN,
-            'log_medication',
+            "log_medication",
             {
                 ATTR_DOG_ID: self._dog_id,
-                'medication_name': 'Manual Entry',
-                'dose': 'As scheduled',
+                "medication_name": "Manual Entry",
+                "dose": "As scheduled",
             },
         ):
             return
@@ -617,8 +614,8 @@ class PawControlNextMedicationDateTime(PawControlDateTimeBase):
         dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'next_medication')
-        self._attr_icon = 'mdi:alarm-plus'
+        super().__init__(coordinator, dog_id, dog_name, "next_medication")
+        self._attr_icon = "mdi:alarm-plus"
 
     async def async_set_value(self, value: datetime) -> None:
         """Set next medication reminder."""
@@ -626,7 +623,7 @@ class PawControlNextMedicationDateTime(PawControlDateTimeBase):
 
         # This could schedule medication reminder
         _LOGGER.debug(
-            'Next medication reminder set for %s at %s',
+            "Next medication reminder set for %s at %s",
             self._dog_name,
             value,
         )
@@ -642,17 +639,17 @@ class PawControlLastWalkDateTime(PawControlDateTimeBase):
         dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'last_walk')
-        self._attr_icon = 'mdi:walk'
+        super().__init__(coordinator, dog_id, dog_name, "last_walk")
+        self._attr_icon = "mdi:walk"
 
     @property
     def native_value(self) -> datetime | None:
         """Return the last walk from dog data."""
         dog_data = self.coordinator.get_dog_data(self._dog_id)
-        if not dog_data or 'walk' not in dog_data:
+        if not dog_data or "walk" not in dog_data:
             return self._current_value
 
-        last_walk = dog_data['walk'].get('last_walk')
+        last_walk = dog_data["walk"].get("last_walk")
         if last_walk:
             timestamp = ensure_utc_datetime(last_walk)
             if timestamp is not None:
@@ -667,7 +664,7 @@ class PawControlLastWalkDateTime(PawControlDateTimeBase):
         # Start and immediately end a walk for historical entry
         if not await self._async_call_hass_service(
             DOMAIN,
-            'start_walk',
+            "start_walk",
             {ATTR_DOG_ID: self._dog_id},
         ):
             return
@@ -675,7 +672,7 @@ class PawControlLastWalkDateTime(PawControlDateTimeBase):
         # End the walk
         if not await self._async_call_hass_service(
             DOMAIN,
-            'end_walk',
+            "end_walk",
             {ATTR_DOG_ID: self._dog_id},
         ):
             return
@@ -691,8 +688,8 @@ class PawControlNextWalkReminderDateTime(PawControlDateTimeBase):
         dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'next_walk_reminder')
-        self._attr_icon = 'mdi:bell-ring'
+        super().__init__(coordinator, dog_id, dog_name, "next_walk_reminder")
+        self._attr_icon = "mdi:bell-ring"
 
     async def async_set_value(self, value: datetime) -> None:
         """Set next walk reminder."""
@@ -700,7 +697,7 @@ class PawControlNextWalkReminderDateTime(PawControlDateTimeBase):
 
         # This could schedule walk reminder
         _LOGGER.debug(
-            'Next walk reminder set for %s at %s',
+            "Next walk reminder set for %s at %s",
             self._dog_name,
             value,
         )
@@ -716,8 +713,8 @@ class PawControlVaccinationDateDateTime(PawControlDateTimeBase):
         dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'vaccination_date')
-        self._attr_icon = 'mdi:needle'
+        super().__init__(coordinator, dog_id, dog_name, "vaccination_date")
+        self._attr_icon = "mdi:needle"
 
     async def async_set_value(self, value: datetime) -> None:
         """Set vaccination date and log health data."""
@@ -726,10 +723,10 @@ class PawControlVaccinationDateDateTime(PawControlDateTimeBase):
         # Log vaccination
         if not await self._async_call_hass_service(
             DOMAIN,
-            'log_health_data',
+            "log_health_data",
             {
                 ATTR_DOG_ID: self._dog_id,
-                'note': f"Vaccination recorded for {value.strftime('%Y-%m-%d')}",
+                "note": f"Vaccination recorded for {value.strftime('%Y-%m-%d')}",
             },
         ):
             return
@@ -745,8 +742,8 @@ class PawControlTrainingSessionDateTime(PawControlDateTimeBase):
         dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'training_session')
-        self._attr_icon = 'mdi:school'
+        super().__init__(coordinator, dog_id, dog_name, "training_session")
+        self._attr_icon = "mdi:school"
 
     async def async_set_value(self, value: datetime) -> None:
         """Set training session date."""
@@ -755,10 +752,10 @@ class PawControlTrainingSessionDateTime(PawControlDateTimeBase):
         # Log training session
         if not await self._async_call_hass_service(
             DOMAIN,
-            'log_health_data',
+            "log_health_data",
             {
                 ATTR_DOG_ID: self._dog_id,
-                'note': f"Training session on {value.strftime('%Y-%m-%d')}",
+                "note": f"Training session on {value.strftime('%Y-%m-%d')}",
             },
         ):
             return
@@ -774,8 +771,8 @@ class PawControlEmergencyDateTime(PawControlDateTimeBase):
         dog_name: str,
     ) -> None:
         """Initialize the datetime entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'emergency_date')
-        self._attr_icon = 'mdi:alert'
+        super().__init__(coordinator, dog_id, dog_name, "emergency_date")
+        self._attr_icon = "mdi:alert"
 
     async def async_set_value(self, value: datetime) -> None:
         """Set emergency date and log critical health data."""
@@ -784,10 +781,10 @@ class PawControlEmergencyDateTime(PawControlDateTimeBase):
         # Log emergency event
         if not await self._async_call_hass_service(
             DOMAIN,
-            'log_health_data',
+            "log_health_data",
             {
                 ATTR_DOG_ID: self._dog_id,
-                'note': f"EMERGENCY EVENT recorded for {value.strftime('%Y-%m-%d %H:%M')}",
+                "note": f"EMERGENCY EVENT recorded for {value.strftime('%Y-%m-%d %H:%M')}",
             },
         ):
             return
@@ -797,7 +794,7 @@ class PawControlEmergencyDateTime(PawControlDateTimeBase):
         if notification_manager is not None:
             await notification_manager.async_send_notification(
                 notification_type=NotificationType.HEALTH_ALERT,
-                title='🚨 Emergency Event Logged',
+                title="🚨 Emergency Event Logged",
                 message=(
                     f"Emergency event logged for {self._dog_name} on "
                     f"{value.strftime('%Y-%m-%d %H:%M')}"

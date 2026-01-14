@@ -1,37 +1,39 @@
 """Shared base entity classes for the PawControl integration."""
+
 from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any
-from typing import cast
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, cast
 
 from homeassistant.core import callback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
-from .const import ATTR_DOG_ID
-from .const import ATTR_DOG_NAME
+from .const import ATTR_DOG_ID, ATTR_DOG_NAME
 from .coordinator import PawControlCoordinator
 from .diagnostics import _normalise_json as _normalise_diagnostics_json
 from .dog_status import build_dog_status_snapshot
 from .runtime_data import get_runtime_data
 from .service_guard import ServiceGuardResult
-from .types import CoordinatorDogData
-from .types import CoordinatorModuleLookupResult
-from .types import CoordinatorRuntimeManagers
-from .types import CoordinatorUntypedModuleState
-from .types import DogConfigData
-from .types import DogStatusSnapshot
-from .types import ensure_json_mapping
-from .types import JSONMutableMapping
-from .utils import async_call_hass_service_if_available
-from .utils import JSONMappingLike
-from .utils import PawControlDeviceLinkMixin
+from .types import (
+    CoordinatorDogData,
+    CoordinatorModuleLookupResult,
+    CoordinatorRuntimeManagers,
+    CoordinatorUntypedModuleState,
+    DogConfigData,
+    DogStatusSnapshot,
+    JSONMutableMapping,
+    ensure_json_mapping,
+)
+from .utils import (
+    JSONMappingLike,
+    PawControlDeviceLinkMixin,
+    async_call_hass_service_if_available,
+)
 
-__all__ = ['PawControlDogEntityBase', 'PawControlEntity']
+__all__ = ["PawControlDogEntityBase", "PawControlEntity"]
 
 
 if TYPE_CHECKING:
@@ -71,7 +73,7 @@ class PawControlEntity(
         # added to the registry. The lightweight stubs used in the test suite
         # instantiate entities directly, so we provide a safe default here to
         # avoid attribute errors in helper routines that guard on ``self.hass``.
-        self.hass = getattr(self, 'hass', None)
+        self.hass = getattr(self, "hass", None)
 
     @property
     def dog_id(self) -> str:
@@ -89,13 +91,13 @@ class PawControlEntity(
     def has_entity_name(self) -> bool:
         """Expose the entity-name flag for simplified test doubles."""
 
-        return bool(getattr(self, '_attr_has_entity_name', False))
+        return bool(getattr(self, "_attr_has_entity_name", False))
 
     @property
     def name(self) -> str | None:
         """Return the entity name, defaulting to dog name when appropriate."""
 
-        name = getattr(self, '_attr_name', None)
+        name = getattr(self, "_attr_name", None)
         if name is not None:
             return name
 
@@ -108,13 +110,13 @@ class PawControlEntity(
     def unique_id(self) -> str | None:
         """Expose the generated unique ID for compatibility with stubs."""
 
-        return getattr(self, '_attr_unique_id', None)
+        return getattr(self, "_attr_unique_id", None)
 
     @property
     def translation_key(self) -> str | None:
         """Expose the translation key assigned during entity construction."""
 
-        return getattr(self, '_attr_translation_key', None)
+        return getattr(self, "_attr_translation_key", None)
 
     @property
     def device_class(self) -> str | None:
@@ -127,32 +129,32 @@ class PawControlEntity(
         the lightweight stubs used in the test harness.
         """
 
-        return getattr(self, '_attr_device_class', None)
+        return getattr(self, "_attr_device_class", None)
 
     @property
     def icon(self) -> str | None:
         """Return the configured Material Design icon for the entity."""
 
-        return getattr(self, '_attr_icon', None)
+        return getattr(self, "_attr_icon", None)
 
     @property
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Expose the entity's extra state attributes payload."""
 
-        attrs = getattr(self, '_attr_extra_state_attributes', None)
+        attrs = getattr(self, "_attr_extra_state_attributes", None)
         attributes = ensure_json_mapping(attrs)
 
         last_update = getattr(
             self.coordinator,
-            'last_update_success_time',
+            "last_update_success_time",
             None,
         )
         if isinstance(last_update, datetime):
-            attributes['last_updated'] = dt_util.as_local(
+            attributes["last_updated"] = dt_util.as_local(
                 last_update,
             ).isoformat()
         else:
-            attributes['last_updated'] = None
+            attributes["last_updated"] = None
 
         # Normalise attributes to ensure all values are JSON-serialisable. Use the
         # internal diagnostics normalisation helper instead of an undefined
@@ -181,7 +183,7 @@ class PawControlEntity(
         if runtime_data is not None:
             return runtime_data.runtime_managers
 
-        manager_container = getattr(self.coordinator, 'runtime_managers', None)
+        manager_container = getattr(self.coordinator, "runtime_managers", None)
         if isinstance(manager_container, CoordinatorRuntimeManagers):
             return manager_container
 
@@ -290,19 +292,19 @@ class PawControlDogEntityBase(PawControlEntity):
         if not isinstance(dog_data, Mapping):
             return
 
-        dog_info = dog_data.get('dog_info')
+        dog_info = dog_data.get("dog_info")
         if not isinstance(dog_info, Mapping):
             return
 
         info = cast(DogConfigData, dog_info)
-        if (breed := info.get('dog_breed')) is not None:
-            attrs['dog_breed'] = breed
-        if (age := info.get('dog_age')) is not None:
-            attrs['dog_age'] = age
-        if (size := info.get('dog_size')) is not None:
-            attrs['dog_size'] = size
-        if (weight := info.get('dog_weight')) is not None:
-            attrs['dog_weight'] = weight
+        if (breed := info.get("dog_breed")) is not None:
+            attrs["dog_breed"] = breed
+        if (age := info.get("dog_age")) is not None:
+            attrs["dog_age"] = age
+        if (size := info.get("dog_size")) is not None:
+            attrs["dog_size"] = size
+        if (weight := info.get("dog_weight")) is not None:
+            attrs["dog_weight"] = weight
 
     def _build_base_state_attributes(
         self,
@@ -356,7 +358,7 @@ class PawControlDogEntityBase(PawControlEntity):
             payload = self.coordinator.get_module_data(self._dog_id, module)
         except Exception as err:  # pragma: no cover - defensive log path
             _LOGGER.error(
-                'Error fetching module data for %s/%s: %s',
+                "Error fetching module data for %s/%s: %s",
                 self._dog_id,
                 module,
                 err,
@@ -365,7 +367,7 @@ class PawControlDogEntityBase(PawControlEntity):
 
         if not isinstance(payload, Mapping):
             _LOGGER.warning(
-                'Invalid module payload for %s/%s: expected mapping, got %s',
+                "Invalid module payload for %s/%s: expected mapping, got %s",
                 self._dog_id,
                 module,
                 type(payload).__name__,
@@ -381,7 +383,7 @@ class PawControlDogEntityBase(PawControlEntity):
         if not isinstance(dog_data, Mapping):
             return None
 
-        snapshot = dog_data.get('status_snapshot')
+        snapshot = dog_data.get("status_snapshot")
         if isinstance(snapshot, Mapping):
             return cast(DogStatusSnapshot, snapshot)
 

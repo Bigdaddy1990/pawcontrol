@@ -1,15 +1,14 @@
 """Helpers for constructing centralized dog status snapshots."""
+
 from __future__ import annotations
 
 from collections.abc import Mapping
 from typing import cast
 
-from .types import DogStatusSnapshot
-from .types import JSONMapping
-from .types import JSONMutableMapping
+from .types import DogStatusSnapshot, JSONMapping, JSONMutableMapping
 
 _DEFAULT_SAFE_ZONES: frozenset[str] = frozenset(
-    {'home', 'park', 'vet', 'friend_house'},
+    {"home", "park", "vet", "friend_house"},
 )
 
 
@@ -19,18 +18,18 @@ def build_dog_status_snapshot(
 ) -> DogStatusSnapshot:
     """Return the centralized status snapshot for a dog."""
 
-    feeding_data = _coerce_mapping(dog_data.get('feeding'))
-    walk_data = _coerce_mapping(dog_data.get('walk'))
-    gps_data = _coerce_mapping(dog_data.get('gps'))
+    feeding_data = _coerce_mapping(dog_data.get("feeding"))
+    walk_data = _coerce_mapping(dog_data.get("walk"))
+    gps_data = _coerce_mapping(dog_data.get("gps"))
 
-    on_walk = bool(walk_data.get('walk_in_progress', False))
-    needs_walk = bool(walk_data.get('needs_walk', False))
-    is_hungry = bool(feeding_data.get('is_hungry', False))
+    on_walk = bool(walk_data.get("walk_in_progress", False))
+    needs_walk = bool(walk_data.get("needs_walk", False))
+    is_hungry = bool(feeding_data.get("is_hungry", False))
 
-    zone = _coerce_zone_name(gps_data.get('zone'))
-    geofence_status = _coerce_mapping(gps_data.get('geofence_status'))
+    zone = _coerce_zone_name(gps_data.get("zone"))
+    geofence_status = _coerce_mapping(gps_data.get("geofence_status"))
     in_safe_zone = _resolve_safe_zone(geofence_status, zone)
-    is_home = zone == 'home'
+    is_home = zone == "home"
 
     state = _derive_status_state(
         on_walk=on_walk,
@@ -41,14 +40,14 @@ def build_dog_status_snapshot(
     )
 
     return {
-        'dog_id': dog_id,
-        'state': state,
-        'zone': zone,
-        'is_home': is_home,
-        'in_safe_zone': in_safe_zone,
-        'on_walk': on_walk,
-        'needs_walk': needs_walk,
-        'is_hungry': is_hungry,
+        "dog_id": dog_id,
+        "state": state,
+        "zone": zone,
+        "is_home": is_home,
+        "in_safe_zone": in_safe_zone,
+        "on_walk": on_walk,
+        "needs_walk": needs_walk,
+        "is_hungry": is_hungry,
     }
 
 
@@ -74,7 +73,7 @@ def _resolve_safe_zone(geofence_status: JSONMapping, zone: str | None) -> bool:
     """Determine safe-zone membership from geofence and zone data."""
 
     if geofence_status:
-        candidate = geofence_status.get('in_safe_zone')
+        candidate = geofence_status.get("in_safe_zone")
         if isinstance(candidate, bool):
             return candidate
         if isinstance(candidate, (int, float)):
@@ -95,13 +94,13 @@ def _derive_status_state(
     """Return the string status state for the dog."""
 
     if on_walk:
-        return 'walking'
+        return "walking"
     if is_home:
         if is_hungry:
-            return 'hungry'
+            return "hungry"
         if needs_walk:
-            return 'needs_walk'
-        return 'home'
+            return "needs_walk"
+        return "home"
     if zone:
         return f"at_{zone}"
-    return 'away'
+    return "away"

@@ -4,14 +4,17 @@ These functions generate description placeholders for flow forms and are kept in
 dedicated module to keep the entry flow implementation smaller and easier to
 maintain.
 """
+
 from __future__ import annotations
 
-from .types import ADD_ANOTHER_DOG_PLACEHOLDERS_TEMPLATE
-from .types import ADD_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE
-from .types import clone_placeholders
-from .types import ConfigFlowPlaceholders
-from .types import DOG_MODULES_SMART_DEFAULTS_TEMPLATE
-from .types import freeze_placeholders
+from .types import (
+    ADD_ANOTHER_DOG_PLACEHOLDERS_TEMPLATE,
+    ADD_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE,
+    DOG_MODULES_SMART_DEFAULTS_TEMPLATE,
+    ConfigFlowPlaceholders,
+    clone_placeholders,
+    freeze_placeholders,
+)
 
 
 def _build_add_dog_summary_placeholders(
@@ -23,9 +26,9 @@ def _build_add_dog_summary_placeholders(
     """Return placeholders for the main add-dog form."""
 
     placeholders = clone_placeholders(ADD_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE)
-    placeholders['dogs_configured'] = str(dogs_configured)
-    placeholders['max_dogs'] = str(max_dogs)
-    placeholders['discovery_hint'] = discovery_hint
+    placeholders["dogs_configured"] = str(dogs_configured)
+    placeholders["max_dogs"] = str(max_dogs)
+    placeholders["discovery_hint"] = discovery_hint
     return freeze_placeholders(placeholders)
 
 
@@ -38,9 +41,9 @@ def _build_dog_modules_form_placeholders(
     """Return placeholders for the module selection form."""
 
     placeholders = clone_placeholders(DOG_MODULES_SMART_DEFAULTS_TEMPLATE)
-    placeholders['dog_name'] = dog_name
-    placeholders['dogs_configured'] = str(dogs_configured)
-    placeholders['smart_defaults'] = smart_defaults
+    placeholders["dog_name"] = dog_name
+    placeholders["dogs_configured"] = str(dogs_configured)
+    placeholders["smart_defaults"] = smart_defaults
     return freeze_placeholders(placeholders)
 
 
@@ -55,9 +58,9 @@ def _build_add_another_placeholders(
     """Return placeholders used when prompting to add another dog."""
 
     placeholders = clone_placeholders(ADD_ANOTHER_DOG_PLACEHOLDERS_TEMPLATE)
-    placeholders['dogs_configured'] = str(dogs_configured)
-    placeholders['dogs_list'] = dogs_list
-    placeholders['can_add_more'] = 'yes' if can_add_more else 'no'
-    placeholders['max_dogs'] = str(max_dogs)
-    placeholders['performance_note'] = performance_note
+    placeholders["dogs_configured"] = str(dogs_configured)
+    placeholders["dogs_list"] = dogs_list
+    placeholders["can_add_more"] = "yes" if can_add_more else "no"
+    placeholders["max_dogs"] = str(max_dogs)
+    placeholders["performance_note"] = performance_note
     return freeze_placeholders(placeholders)

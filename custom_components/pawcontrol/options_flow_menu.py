@@ -1,4 +1,5 @@
 """Main menu step for the PawControl options flow."""
+
 from __future__ import annotations
 
 from homeassistant.config_entries import ConfigFlowResult
@@ -23,21 +24,21 @@ class MenuOptionsMixin:
             Configuration flow result for selected option
         """
         return self.async_show_menu(
-            step_id='init',
+            step_id="init",
             menu_options=[
-                'entity_profiles',  # NEW: Profile management
-                'manage_dogs',
-                'performance_settings',  # NEW: Performance & profiles
-                'gps_settings',
-                'geofence_settings',  # NEW: Geofencing configuration
-                'weather_settings',  # NEW: Weather configuration
-                'notifications',
-                'feeding_settings',
-                'health_settings',
-                'system_settings',
-                'dashboard_settings',
-                'advanced_settings',
-                'import_export',
+                "entity_profiles",  # NEW: Profile management
+                "manage_dogs",
+                "performance_settings",  # NEW: Performance & profiles
+                "gps_settings",
+                "geofence_settings",  # NEW: Geofencing configuration
+                "weather_settings",  # NEW: Weather configuration
+                "notifications",
+                "feeding_settings",
+                "health_settings",
+                "system_settings",
+                "dashboard_settings",
+                "advanced_settings",
+                "import_export",
             ],
         )
 

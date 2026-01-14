@@ -1,4 +1,5 @@
 """Schemas and constants used by the PawControl config flow."""
+
 from __future__ import annotations
 
 from typing import Final
@@ -6,23 +7,25 @@ from typing import Final
 import voluptuous as vol
 from homeassistant.helpers import config_validation as cv
 
-from .const import CONF_DOG_AGE
-from .const import CONF_DOG_BREED
-from .const import CONF_DOG_ID
-from .const import CONF_DOG_NAME
-from .const import CONF_DOG_SIZE
-from .const import CONF_DOG_WEIGHT
-from .const import CONF_MODULES
-from .const import DOG_SIZES
-from .const import MAX_DOG_AGE
-from .const import MAX_DOG_WEIGHT
-from .const import MIN_DOG_AGE
-from .const import MIN_DOG_WEIGHT
-from .const import MODULE_FEEDING
-from .const import MODULE_GPS
-from .const import MODULE_HEALTH
-from .const import MODULE_NOTIFICATIONS
-from .const import MODULE_WALK
+from .const import (
+    CONF_DOG_AGE,
+    CONF_DOG_BREED,
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOG_SIZE,
+    CONF_DOG_WEIGHT,
+    CONF_MODULES,
+    DOG_SIZES,
+    MAX_DOG_AGE,
+    MAX_DOG_WEIGHT,
+    MIN_DOG_AGE,
+    MIN_DOG_WEIGHT,
+    MODULE_FEEDING,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+    MODULE_WALK,
+)
 
 # Pre-compiled validation sets for O(1) lookups
 VALID_DOG_SIZES: frozenset[str] = frozenset(DOG_SIZES)
@@ -32,7 +35,7 @@ DOG_SCHEMA = vol.Schema(
     {
         vol.Required(CONF_DOG_ID): cv.string,
         vol.Required(CONF_DOG_NAME): cv.string,
-        vol.Optional(CONF_DOG_BREED, default=''): cv.string,
+        vol.Optional(CONF_DOG_BREED, default=""): cv.string,
         vol.Optional(CONF_DOG_AGE, default=3): vol.All(
             vol.Coerce(int),
             vol.Range(min=MIN_DOG_AGE, max=MAX_DOG_AGE),
@@ -44,7 +47,7 @@ DOG_SCHEMA = vol.Schema(
                 max=MAX_DOG_WEIGHT,
             ),
         ),
-        vol.Optional(CONF_DOG_SIZE, default='medium'): vol.In(VALID_DOG_SIZES),
+        vol.Optional(CONF_DOG_SIZE, default="medium"): vol.In(VALID_DOG_SIZES),
         vol.Optional(CONF_MODULES, default={}): dict,
     },
 )
