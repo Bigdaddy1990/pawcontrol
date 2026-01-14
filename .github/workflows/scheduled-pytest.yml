@@ -3,20 +3,18 @@ name: Scheduled full test suite
 on:
   schedule:
     # Run twice per week during the early-morning UTC window to avoid CI contention
-    - cron: '0 3 * * 2,5'
+    - cron: "0 3 * * 2,5"
   workflow_dispatch:
     inputs:
       override_ci_window:
-        description: 'Bestätige, dass du das reservierte Testfenster mit dem Team abgestimmt hast.'
+        description: "Bestätige, dass du das reservierte Testfenster mit dem Team abgestimmt hast."
         required: true
         type: boolean
       run_reason:
-        description: 'Kurzbeschreibung oder Link zum Issue/Incident für den manuellen Vollsuite-Lauf.'
+        description: "Kurzbeschreibung oder Link zum Issue/Incident für den manuellen Vollsuite-Lauf."
         required: true
         default: maintenance-window
         type: string
-
-
 
 permissions:
   contents: read

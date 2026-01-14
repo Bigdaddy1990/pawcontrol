@@ -84,7 +84,7 @@ on:
       pytest-maxfail:
         description: Maximum number of pytest failures before aborting
         required: false
-        default: '5'
+        default: "5"
         type: string
       pytest-traceback:
         description: Pytest traceback style to use
@@ -101,7 +101,6 @@ on:
       coverage-threshold:
         description: Coverage threshold enforced during the run
         value: ${{ jobs.tests.outputs.coverage-threshold }}
-
 
 permissions:
   contents: read
