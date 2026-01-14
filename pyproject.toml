@@ -32,6 +32,9 @@ convention = "pep257"
 [tool.ruff.lint.pep8-naming]
 extend-ignore-names = ["test_*", "__init__*", "conftest*", "*example*"]
 
+[tool.setuptools.package-dir]
+"" = "."
+
 [tool.mypy]
 python_version = "3.13"
 warn_unused_configs = true
@@ -68,14 +71,14 @@ output = "coverage.xml"
 name = "pawcontrol"
 description = "Platinum-grade PawControl integration for Home Assistant"
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [
     { name = "PawControl Engineering" },
 ]
 keywords = ["home assistant", "pawcontrol", "pets", "automation", "telemetry"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
-    "License :: OSI Approved :: MIT License",
     "Framework :: AsyncIO",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.13",
