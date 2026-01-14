@@ -2410,9 +2410,7 @@ class DashboardTemplates:
         ]
 
         if channels:
-            content_lines.extend(
-                f"• {channel.capitalize()}" for channel in channels
-            )
+            content_lines.extend(f"• {channel.capitalize()}" for channel in channels)
         else:
             content_lines.append(
                 '• '

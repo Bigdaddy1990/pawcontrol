@@ -331,9 +331,7 @@ WEATHER_RECOMMENDATION_KEY_SET: Final[frozenset[WeatherRecommendationKey]] = fro
     WEATHER_RECOMMENDATION_KEYS,
 )
 
-SUPPORTED_LANGUAGES: Final[
-    frozenset[LanguageCode]
-] = frozenset(_WEATHER_TRANSLATIONS)
+SUPPORTED_LANGUAGES: Final[frozenset[LanguageCode]] = frozenset(_WEATHER_TRANSLATIONS)
 
 
 def get_weather_translations(language: str) -> WeatherTranslations:

@@ -922,9 +922,7 @@ class DoorSensorManager:
     async def _start_sensor_monitoring(self) -> None:
         """Start monitoring all configured door sensors."""
         # Get all sensor entity IDs
-        sensor_entities = [
-            config.entity_id for config in self._sensor_configs.values()
-        ]
+        sensor_entities = [config.entity_id for config in self._sensor_configs.values()]
 
         # Track state changes for all door sensors
         async def handle_state_change(
@@ -1245,10 +1243,7 @@ class DoorSensorManager:
 
         # Calculate walk duration
         if state.potential_walk_start:
-            duration = (
-                dt_util.now() -
-                state.potential_walk_start
-            ).total_seconds()
+            duration = (dt_util.now() - state.potential_walk_start).total_seconds()
 
             # Check if walk duration is reasonable
             if duration < config.minimum_walk_duration:

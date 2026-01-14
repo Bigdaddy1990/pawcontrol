@@ -1397,10 +1397,7 @@ async def _get_dogs_summary(
         else None
     )
     dogs: list[DogConfigData] = (
-        [
-            cast(DogConfigData, dog)
-            for dog in dogs_source if isinstance(dog, Mapping)
-        ]
+        [cast(DogConfigData, dog) for dog in dogs_source if isinstance(dog, Mapping)]
         if dogs_source
         else []
     )

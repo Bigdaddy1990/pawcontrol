@@ -239,10 +239,7 @@ def _normalise_health_alert(payload: Mapping[str, object]) -> HealthAlertEntry:
     if isinstance(raw_details, Mapping):
         details = cast(
             JSONMutableMapping,
-            {
-                str(key): cast(JSONValue, value)
-                for key, value in raw_details.items()
-            },
+            {str(key): cast(JSONValue, value) for key, value in raw_details.items()},
         )
 
     alert: HealthAlertEntry = {

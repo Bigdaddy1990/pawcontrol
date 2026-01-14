@@ -194,8 +194,7 @@ class AdaptivePollingController:
 
         if not success:
             # Back off quickly when consecutive errors occur.
-            penalty_factor = 1.0 + \
-                min(0.5, 0.15 * self._error_streak + error_ratio)
+            penalty_factor = 1.0 + min(0.5, 0.15 * self._error_streak + error_ratio)
             next_interval = min(
                 self._max_interval,
                 next_interval * penalty_factor,
@@ -312,13 +311,8 @@ def summarize_entity_budgets(
     total_capacity = sum(snapshot.capacity for snapshot in snapshots)
     total_allocated = sum(snapshot.total_allocated for snapshot in snapshots)
     total_remaining = sum(snapshot.remaining for snapshot in snapshots)
-    denied_requests = sum(
-        len(snapshot.denied_requests)
-        for snapshot in snapshots
-    )
-    average_utilisation = (
-        total_allocated / total_capacity
-    ) if total_capacity else 0.0
+    denied_requests = sum(len(snapshot.denied_requests) for snapshot in snapshots)
+    average_utilisation = (total_allocated / total_capacity) if total_capacity else 0.0
     peak_utilisation = max(
         (snapshot.saturation for snapshot in snapshots),
         default=0.0,

@@ -2393,10 +2393,7 @@ class FeedingManager:
             )
             if daily_calorie_target:
                 try:
-                    progress = (
-                        total_calories_today /
-                        daily_calorie_target
-                    ) * 100
+                    progress = (total_calories_today / daily_calorie_target) * 100
                 except (TypeError, ZeroDivisionError):
                     calorie_goal_progress = 0.0
                 else:
@@ -2504,8 +2501,7 @@ class FeedingManager:
             )
         elif calories_per_gram is not None:
             try:
-                target_calories = daily_amount_target * \
-                    float(calories_per_gram)
+                target_calories = daily_amount_target * float(calories_per_gram)
                 consumed_calories = daily_amount * float(calories_per_gram)
                 remaining_calories = max(
                     0.0,
@@ -2844,12 +2840,10 @@ class FeedingManager:
 
         # Calculate metrics
         avg_daily_feedings = (
-            sum(daily_counts.values()) /
-            len(daily_counts) if daily_counts else 0
+            sum(daily_counts.values()) / len(daily_counts) if daily_counts else 0
         )
         avg_daily_amount = (
-            sum(daily_amounts.values()) /
-            len(daily_amounts) if daily_amounts else 0
+            sum(daily_amounts.values()) / len(daily_amounts) if daily_amounts else 0
         )
 
         most_common_meal = (
@@ -3960,8 +3954,7 @@ class FeedingManager:
                             'status',
                             'resolved',
                         )
-                        emergency_details['resolved_at'] = dt_util.utcnow(
-                        ).isoformat()
+                        emergency_details['resolved_at'] = dt_util.utcnow().isoformat()
                 finally:
                     self._emergency_restore_tasks.pop(dog_id, None)
 
@@ -4049,9 +4042,7 @@ class FeedingManager:
             self._invalidate_cache(dog_id)
 
             started_at = dt_util.now()
-            expected_completion = (
-                started_at + timedelta(days=transition_days)
-            ).date()
+            expected_completion = (started_at + timedelta(days=transition_days)).date()
 
             result = FeedingTransitionResult(
                 status='started',
@@ -4107,9 +4098,7 @@ class FeedingManager:
                     day=day,
                     old_food_percent=old_food_percent,
                     new_food_percent=new_food_percent,
-                    date=(
-                        dt_util.now() + timedelta(days=day - 1)
-                    ).date().isoformat(),
+                    date=(dt_util.now() + timedelta(days=day - 1)).date().isoformat(),
                 ),
             )
 

@@ -337,9 +337,7 @@ class PawControlBaseConfigFlow(ConfigFlow):
 
             # Enabled modules count
             modules_mapping = ensure_dog_modules_mapping(dog)
-            enabled_count = sum(
-                1 for enabled in modules_mapping.values() if enabled
-            )
+            enabled_count = sum(1 for enabled in modules_mapping.values() if enabled)
             total_modules = len(modules_mapping)
 
             # Special configurations
@@ -574,10 +572,7 @@ class PawControlBaseConfigFlow(ConfigFlow):
         summaries = []
         for dog in self._dogs:
             modules = ensure_dog_modules_mapping(dog)
-            enabled_modules = [
-                name for name,
-                enabled in modules.items() if enabled
-            ]
+            enabled_modules = [name for name, enabled in modules.items() if enabled]
 
             if enabled_modules:
                 modules_text = ', '.join(enabled_modules[:3])

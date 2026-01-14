@@ -663,8 +663,7 @@ class BaseCardGenerator:
                 _entity_validation_cache.items(),
                 key=lambda x: x[1][0],  # Sort by timestamp
             )
-            remove_count = len(_entity_validation_cache) - \
-                VALIDATION_CACHE_SIZE
+            remove_count = len(_entity_validation_cache) - VALIDATION_CACHE_SIZE
             for entity_id, _ in sorted_items[:remove_count]:
                 _entity_validation_cache.pop(entity_id, None)
 

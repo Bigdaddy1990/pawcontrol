@@ -426,10 +426,7 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
             modules = coerce_dog_modules_config(
                 dog_config.get(DOG_MODULES_FIELD),
             )
-            enabled_modules = [
-                module for module,
-                enabled in modules.items() if enabled
-            ]
+            enabled_modules = [module for module, enabled in modules.items() if enabled]
             attrs['enabled_modules'] = enabled_modules
             attrs['total_modules'] = len(enabled_modules)
 

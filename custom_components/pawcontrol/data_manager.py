@@ -1140,8 +1140,7 @@ class PawControlDataManager:
         self.entry_id = entry_id or 'default'
         config_dir = Path(getattr(hass.config, 'config_dir', '.'))
         self._storage_dir = config_dir / DOMAIN
-        self._storage_path = self._storage_dir / \
-            f"{self.entry_id}_{_STORAGE_FILENAME}"
+        self._storage_path = self._storage_dir / f"{self.entry_id}_{_STORAGE_FILENAME}"
         self._backup_path = self._storage_path.with_suffix(
             self._storage_path.suffix + '.backup',
         )
@@ -1840,10 +1839,7 @@ class PawControlDataManager:
                 errors_payload,
                 str | bytes | bytearray,
             ):
-                error_list = [
-                    str(item)
-                    for item in errors_payload if item is not None
-                ]
+                error_list = [str(item) for item in errors_payload if item is not None]
             elif isinstance(errors_payload, str):
                 error_list = [errors_payload]
             elif errors_payload is None:

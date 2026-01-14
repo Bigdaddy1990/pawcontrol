@@ -28,9 +28,7 @@ bind_exception_alias('ServiceValidationError')
 
 # Validation constants
 VALID_DOG_ID_PATTERN: Final[str] = r'^[a-zA-Z0-9_-]{1,50}$'
-VALID_EMAIL_PATTERN: Final[
-    str
-] = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+VALID_EMAIL_PATTERN: Final[str] = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
 VALID_PHONE_PATTERN: Final[str] = r'^\+?[1-9]\d{1,14}$'
 
 MIN_WEIGHT_KG: Final[float] = 0.5

@@ -89,10 +89,7 @@ def _sanitize_zone_metadata(
         if isinstance(tags_value, str):
             tags = [tags_value]
         elif isinstance(tags_value, Mapping):
-            tags = [
-                value for value in tags_value.values()
-                if isinstance(value, str)
-            ]
+            tags = [value for value in tags_value.values() if isinstance(value, str)]
         elif isinstance(tags_value, Iterable):
             tags = [tag for tag in tags_value if isinstance(tag, str)]
         if tags:

@@ -1810,9 +1810,7 @@ class DogManagementMixin(DogManagementMixinBase):
             time_value = _coerce_optional_str(
                 user_input.get(f"medication_{slot}_time"),
             )
-            entry['time'] = time_value or (
-                '08:00:00' if slot == '1' else '20:00:00'
-            )
+            entry['time'] = time_value or ('08:00:00' if slot == '1' else '20:00:00')
 
             if notes := _coerce_optional_str(
                 user_input.get(f"medication_{slot}_notes"),

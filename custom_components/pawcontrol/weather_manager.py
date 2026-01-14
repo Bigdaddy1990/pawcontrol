@@ -109,9 +109,7 @@ type RecommendationTranslationParts = tuple[
 type WeatherTranslationParts = AlertTranslationParts | RecommendationTranslationParts
 
 TRANSLATION_PREFIX: Final[str] = 'weather'
-ALERT_FIELD_TOKENS: Final[
-    frozenset[AlertField]
-] = frozenset(('title', 'message'))
+ALERT_FIELD_TOKENS: Final[frozenset[AlertField]] = frozenset(('title', 'message'))
 PRIMARY_ACTIVITIES: Final[
     tuple[Literal['walk'], Literal['play'], Literal['exercise']]
 ] = ('walk', 'play', 'exercise')
@@ -220,9 +218,7 @@ class WeatherForecast:
     min_health_score: int | None = None
     max_health_score: int | None = None
     avg_health_score: int | None = None
-    critical_periods: list[
-        tuple[datetime, datetime]
-    ] = field(default_factory=list)
+    critical_periods: list[tuple[datetime, datetime]] = field(default_factory=list)
     optimal_activity_windows: list[ActivityTimeSlot] = field(
         default_factory=list,
     )
@@ -234,10 +230,7 @@ class WeatherForecast:
             return False
 
         # Forecast should be less than 6 hours old for excellent quality
-        age_hours = (
-            dt_util.utcnow() -
-            self.generated_at
-        ).total_seconds() / 3600
+        age_hours = (dt_util.utcnow() - self.generated_at).total_seconds() / 3600
         return age_hours < 24  # Accept up to 24h old forecast
 
     @property
@@ -397,10 +390,7 @@ class WeatherConditions:
             return False
 
         # Data should be less than 2 hours old
-        age_hours = (
-            dt_util.utcnow() -
-            self.last_updated
-        ).total_seconds() / 3600
+        age_hours = (dt_util.utcnow() - self.last_updated).total_seconds() / 3600
         return age_hours < 2
 
 
@@ -1062,9 +1052,7 @@ class WeatherHealthManager:
                 ATTR_FORECAST_CONDITION,
             ]
 
-            has_required = all(
-                item.get(field) is not None for field in required_fields
-            )
+            has_required = all(item.get(field) is not None for field in required_fields)
             has_optional = sum(
                 1 for field in optional_fields if item.get(field) is not None
             )
@@ -1411,8 +1399,7 @@ class WeatherHealthManager:
                     if window_duration >= min_duration_hours:
                         # Create activity window
                         avg_score = int(
-                            sum(current_window_scores) /
-                            len(current_window_scores),
+                            sum(current_window_scores) / len(current_window_scores),
                         )
 
                         # Determine alert level based on average score
@@ -1637,9 +1624,7 @@ class WeatherHealthManager:
                 )
 
                 # Convert back to Celsius
-                self._current_conditions.wind_chill = (
-                    wind_chill_f - 32
-                ) * 5 / 9
+                self._current_conditions.wind_chill = (wind_chill_f - 32) * 5 / 9
 
     async def _update_weather_alerts(self) -> None:
         """Update weather alerts based on current conditions."""
@@ -2183,9 +2168,7 @@ class WeatherHealthManager:
                 CriticalPeriodSummary(
                     start=period[0].isoformat(),
                     end=period[1].isoformat(),
-                    duration_hours=(
-                        period[1] - period[0]
-                    ).total_seconds() / 3600,
+                    duration_hours=(period[1] - period[0]).total_seconds() / 3600,
                 )
                 for period in forecast.critical_periods
             ],
@@ -2245,15 +2228,10 @@ class WeatherHealthManager:
         alerts = [alert for alert in self._active_alerts if alert.is_active]
 
         if severity_filter:
-            alerts = [
-                alert for alert in alerts if alert.severity ==
-                severity_filter
-            ]
+            alerts = [alert for alert in alerts if alert.severity == severity_filter]
 
         if impact_filter:
-            alerts = [
-                alert for alert in alerts if alert.alert_type == impact_filter
-            ]
+            alerts = [alert for alert in alerts if alert.alert_type == impact_filter]
 
         return alerts
 

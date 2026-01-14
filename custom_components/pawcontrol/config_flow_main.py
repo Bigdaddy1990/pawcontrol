@@ -557,10 +557,7 @@ class PawControlConfigFlow(
     ) -> ConfigFlowDiscoveryData:
         """Remove dynamic fields (like timestamps) for comparison."""
 
-        cleaned = {
-            key: value for key, value in info.items() if key !=
-            'last_seen'
-        }
+        cleaned = {key: value for key, value in info.items() if key != 'last_seen'}
         return cast(ConfigFlowDiscoveryData, cleaned)
 
     async def _async_get_entry_for_unique_id(self) -> ConfigEntry | None:
@@ -1476,10 +1473,7 @@ class PawControlConfigFlow(
         dogs_list = []
         for i, dog in enumerate(self._dogs, 1):
             modules = ensure_dog_modules_mapping(dog)
-            enabled_modules = [
-                name for name,
-                enabled in modules.items() if enabled
-            ]
+            enabled_modules = [name for name, enabled in modules.items() if enabled]
             module_summary = (
                 ', '.join(
                     enabled_modules,

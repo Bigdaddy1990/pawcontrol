@@ -6356,9 +6356,7 @@ DOG_DISCOVERY_FIELD: Final[Literal['discovery_info']] = 'discovery_info'
 DOG_COLOR_FIELD: Final[Literal['dog_color']] = 'dog_color'
 DOG_MICROCHIP_ID_FIELD: Final[Literal['microchip_id']] = 'microchip_id'
 DOG_VET_CONTACT_FIELD: Final[Literal['vet_contact']] = 'vet_contact'
-DOG_EMERGENCY_CONTACT_FIELD: Final[
-    Literal['emergency_contact']
-] = 'emergency_contact'
+DOG_EMERGENCY_CONTACT_FIELD: Final[Literal['emergency_contact']] = 'emergency_contact'
 DOG_FEEDING_CONFIG_FIELD: Final[Literal['feeding_config']] = 'feeding_config'
 DOG_HEALTH_CONFIG_FIELD: Final[Literal['health_config']] = 'health_config'
 DOG_GPS_CONFIG_FIELD: Final[Literal['gps_config']] = 'gps_config'
@@ -6366,9 +6364,7 @@ DOG_IMAGE_FIELD: Final[Literal['dog_image']] = 'dog_image'
 DOG_TEXT_VALUES_FIELD: Final[Literal['text_values']] = 'text_values'
 DOG_TEXT_METADATA_FIELD: Final[Literal['text_metadata']] = 'text_metadata'
 WALK_IN_PROGRESS_FIELD: Final[Literal['walk_in_progress']] = 'walk_in_progress'
-VISITOR_MODE_ACTIVE_FIELD: Final[
-    Literal['visitor_mode_active']
-] = 'visitor_mode_active'
+VISITOR_MODE_ACTIVE_FIELD: Final[Literal['visitor_mode_active']] = 'visitor_mode_active'
 
 # Text snapshot keys maintained for text entity persistence.
 TextSnapshotKey = Literal[
@@ -6489,22 +6485,16 @@ DOOR_SENSOR_FIELD: Final[Literal['door_sensor']] = 'door_sensor'
 NOTIFY_FALLBACK_FIELD: Final[Literal['notify_fallback']] = 'notify_fallback'
 
 # Field literals for dashboard setup preferences.
-DASHBOARD_ENABLED_FIELD: Final[
-    Literal['dashboard_enabled']
-] = 'dashboard_enabled'
+DASHBOARD_ENABLED_FIELD: Final[Literal['dashboard_enabled']] = 'dashboard_enabled'
 DASHBOARD_AUTO_CREATE_FIELD: Final[Literal['dashboard_auto_create']] = (
     'dashboard_auto_create'
 )
-DASHBOARD_PER_DOG_FIELD: Final[
-    Literal['dashboard_per_dog']
-] = 'dashboard_per_dog'
+DASHBOARD_PER_DOG_FIELD: Final[Literal['dashboard_per_dog']] = 'dashboard_per_dog'
 DASHBOARD_THEME_FIELD: Final[Literal['dashboard_theme']] = 'dashboard_theme'
 DASHBOARD_MODE_FIELD: Final[Literal['dashboard_mode']] = 'dashboard_mode'
 SHOW_STATISTICS_FIELD: Final[Literal['show_statistics']] = 'show_statistics'
 SHOW_MAPS_FIELD: Final[Literal['show_maps']] = 'show_maps'
-SHOW_HEALTH_CHARTS_FIELD: Final[
-    Literal['show_health_charts']
-] = 'show_health_charts'
+SHOW_HEALTH_CHARTS_FIELD: Final[Literal['show_health_charts']] = 'show_health_charts'
 SHOW_FEEDING_SCHEDULE_FIELD: Final[Literal['show_feeding_schedule']] = (
     'show_feeding_schedule'
 )

@@ -79,8 +79,7 @@ _CANONICAL_CONFIG_ENTRY_NOT_READY: type[Exception] | None = getattr(
     'ConfigEntryNotReady',
     None,
 )
-_CONFIG_ENTRY_NOT_READY_CACHE: dict[tuple[type[Exception], ...], type[Exception]] = {
-}
+_CONFIG_ENTRY_NOT_READY_CACHE: dict[tuple[type[Exception], ...], type[Exception]] = {}
 
 
 def _resolve_config_entry_not_ready() -> type[Exception]:

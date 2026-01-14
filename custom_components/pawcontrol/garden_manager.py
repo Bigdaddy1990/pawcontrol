@@ -1261,9 +1261,7 @@ class GardenManager:
         )
         stats.total_poop_count = sum(s.poop_count for s in dog_sessions)
         stats.average_session_duration = stats.total_time_minutes / stats.total_sessions
-        stats.last_garden_visit = max(
-            s.end_time or s.start_time for s in dog_sessions
-        )
+        stats.last_garden_visit = max(s.end_time or s.start_time for s in dog_sessions)
         stats.total_activities = sum(len(s.activities) for s in dog_sessions)
 
         # Find most active time of day (simplified)

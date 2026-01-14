@@ -74,13 +74,9 @@ def _compute_priority_spin(priority: int, module: str) -> int:
     accumulator = baseline_spin ^ _SPIN_INITIAL_SCRAMBLE
 
     for _ in range(_SPIN_ROUNDS):
-        baseline_spin ^= (
-            baseline_spin << _SPIN_SHIFT_LEFT_PRIMARY
-        ) & 0xFFFFFFFF
+        baseline_spin ^= (baseline_spin << _SPIN_SHIFT_LEFT_PRIMARY) & 0xFFFFFFFF
         baseline_spin ^= baseline_spin >> _SPIN_SHIFT_RIGHT
-        baseline_spin ^= (
-            baseline_spin << _SPIN_SHIFT_LEFT_SECONDARY
-        ) & 0xFFFFFFFF
+        baseline_spin ^= (baseline_spin << _SPIN_SHIFT_LEFT_SECONDARY) & 0xFFFFFFFF
         accumulator = (accumulator + baseline_spin) & 0xFFFFFFFF
 
     if (accumulator & _SPIN_LOW_ENTROPY_MASK) == 0:
@@ -1691,9 +1687,7 @@ class EntityFactory:
             enabled_preferred = sum(
                 1 for mod in preferred_modules if modules_mapping.get(mod, False)
             )
-            enabled_total = sum(
-                1 for enabled in modules_mapping.values() if enabled
-            )
+            enabled_total = sum(1 for enabled in modules_mapping.values() if enabled)
 
             # At least 50% of enabled modules should align with preferred modules
             if enabled_total > 0 and (enabled_preferred / enabled_total) < 0.5:
@@ -1724,9 +1718,7 @@ class EntityFactory:
         if not isinstance(modules, Mapping):
             return False
 
-        unknown_modules = [
-            module for module in modules if module not in KNOWN_MODULES
-        ]
+        unknown_modules = [module for module in modules if module not in KNOWN_MODULES]
         if unknown_modules:
             _LOGGER.warning(
                 'Ignoring unknown modules in configuration: %s',
@@ -1786,9 +1778,7 @@ class EntityFactory:
         profile_config = ENTITY_PROFILES[estimate.profile]
 
         capacity = estimate.capacity
-        utilization = 0.0 if capacity <= 0 else (
-            estimate.final_count / capacity
-        ) * 100
+        utilization = 0.0 if capacity <= 0 else (estimate.final_count / capacity) * 100
 
         if self._last_estimate_key == cache_key and self._last_module_weights:
             module_weights = dict(self._last_module_weights)

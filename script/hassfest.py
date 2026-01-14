@@ -108,8 +108,7 @@ def _validate_manifest(manifest_path: Path) -> list[str]:
     iot_class = manifest.get('iot_class')
     if iot_class not in IOT_CLASS_VALUES:
         errors.append(
-            'manifest.iot_class must be one of: ' +
-            ', '.join(sorted(IOT_CLASS_VALUES)),
+            'manifest.iot_class must be one of: ' + ', '.join(sorted(IOT_CLASS_VALUES)),
         )
 
     return errors

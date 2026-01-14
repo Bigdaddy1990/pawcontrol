@@ -522,9 +522,7 @@ class EnhancedHealthCalculator:
 
         # Generate recommendations
         if health_profile.last_checkup_date:
-            days_since_checkup = (
-                current_date - health_profile.last_checkup_date
-            ).days
+            days_since_checkup = (current_date - health_profile.last_checkup_date).days
             if days_since_checkup > 365:
                 recommendations.append(
                     f"Annual checkup recommended - last visit was {days_since_checkup} days ago",

@@ -951,9 +951,7 @@ class PawControlNotificationManager:
                 raise
             finally:
                 # Update average delivery time
-                delivery_time_ms = (
-                    dt_util.now() - start_time
-                ).total_seconds() * 1000
+                delivery_time_ms = (dt_util.now() - start_time).total_seconds() * 1000
                 current_avg = self._performance_metrics['average_delivery_time_ms']
                 total_sent = self._performance_metrics['notifications_sent']
 
@@ -1631,10 +1629,7 @@ class PawControlNotificationManager:
                                 notifications,
                                 key=lambda n: n.created_at,
                             )
-                            age = (
-                                dt_util.now() -
-                                oldest.created_at
-                            ).total_seconds()
+                            age = (dt_util.now() - oldest.created_at).total_seconds()
                             if age > 300:  # 5 minutes
                                 batches_to_send[batch_key] = notifications
                                 del self._pending_batches[batch_key]
@@ -1663,9 +1658,7 @@ class PawControlNotificationManager:
         dog_name = dog_id.replace('_', ' ').title() if dog_id else 'System'
 
         # Create summary
-        summary_lines = [
-            f"• {notification.title}" for notification in notifications
-        ]
+        summary_lines = [f"• {notification.title}" for notification in notifications]
 
         # Create batch notification
         batch_title = f"📋 {len(notifications)} notifications for {dog_name}"
@@ -2698,10 +2691,7 @@ class PawControlNotificationManager:
             compliance=completed_payload,
         )
 
-        issues_payload = [
-            cast(JSONMutableMapping, dict(issue))
-            for issue in issues
-        ]
+        issues_payload = [cast(JSONMutableMapping, dict(issue)) for issue in issues]
         missed_meals_payload = [
             cast(JSONMutableMapping, dict(entry)) for entry in missed_meals
         ]

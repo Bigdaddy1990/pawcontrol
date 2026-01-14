@@ -678,10 +678,7 @@ class SystemSettingsOptionsMixin:
         current_values = user_input or {}
         default_mode = self._normalize_choice(
             self._current_options().get(CONF_DASHBOARD_MODE, 'full'),
-            valid={
-                option['value']
-                for option in DASHBOARD_MODE_SELECTOR_OPTIONS
-            },
+            valid={option['value'] for option in DASHBOARD_MODE_SELECTOR_OPTIONS},
             default='full',
         )
 

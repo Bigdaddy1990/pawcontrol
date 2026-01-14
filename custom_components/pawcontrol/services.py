@@ -1390,9 +1390,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         average = float(latency.get('average_ms', 0.0) or 0.0)
         next_samples = samples + 1
         latency['samples'] = next_samples
-        latency['average_ms'] = (
-            (average * samples) + duration_ms
-        ) / next_samples
+        latency['average_ms'] = ((average * samples) + duration_ms) / next_samples
 
         minimum = latency.get('minimum_ms')
         maximum = latency.get('maximum_ms')
@@ -1422,9 +1420,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
         target['total_calls'] = total_calls
         target['success_calls'] = success_calls
         target['error_calls'] = error_calls
-        target['error_rate'] = (
-            error_calls / total_calls
-        ) if total_calls else 0.0
+        target['error_rate'] = (error_calls / total_calls) if total_calls else 0.0
 
         _update_latency_metrics(target, duration_ms)
 
@@ -4182,9 +4178,7 @@ async def async_setup_services(hass: HomeAssistant) -> None:
                     await notification_manager.async_send_notification(
                         notification_type=NotificationType.SYSTEM_INFO,
                         title=title,
-                        message=' '.join(
-                            part for part in message_parts if part
-                        ),
+                        message=' '.join(part for part in message_parts if part),
                         dog_id=dog_id,
                     )
                 guard_snapshot = tuple(guard_results)
@@ -5294,9 +5288,7 @@ async def _perform_daily_reset(hass: HomeAssistant, entry: ConfigEntry) -> None:
                 status='success',
                 diagnostics=diagnostics,
                 metadata=success_metadata,
-                details=(
-                    service_details_payload if service_details_payload else None
-                ),
+                details=(service_details_payload if service_details_payload else None),
             )
             record_maintenance_result(
                 runtime_data,
