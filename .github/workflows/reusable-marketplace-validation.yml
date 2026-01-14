@@ -19,6 +19,10 @@ on:
         type: string
     secrets: {}
 
+
+permissions:
+  contents: read
+
 jobs:
   validate:
     name: Hassfest & HACS validation
