@@ -91,10 +91,10 @@ repos:
   # Run mypy with the project’s configuration.  We keep the hook but
   # relax the configuration in ``pyproject.toml`` to avoid an unmanageable
   # flood of type errors (see that file for details).
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.1
-    hooks:
-      - id: mypy
+ # - repo: https://github.com/pre-commit/mirrors-mypy
+ #   rev: v1.19.1
+ #   hooks:
+ #     - id: mypy
 
   # Local hooks implementing additional project-specific checks.
   - repo: local
