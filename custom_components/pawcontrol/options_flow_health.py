@@ -76,11 +76,11 @@ class HealthOptionsMixin(HealthOptionsHost):
 
         dog_options = self._current_dog_options()
         entry = dog_options.get(dog_id, {})
-        raw = entry.get("health_settings")
+        raw = entry.get('health_settings')
         if isinstance(raw, Mapping):
             return cast(HealthOptions, dict(raw))
 
-        legacy = self._current_options().get("health_settings", {})
+        legacy = self._current_options().get('health_settings', {})
         if isinstance(legacy, Mapping):
             return cast(HealthOptions, dict(legacy))
 
@@ -96,7 +96,7 @@ class HealthOptionsMixin(HealthOptionsHost):
             return await self.async_step_init()
 
         if user_input is not None:
-            selected_dog_id = user_input.get("dog_id")
+            selected_dog_id = user_input.get('dog_id')
             self._select_dog_by_id(
                 selected_dog_id if isinstance(selected_dog_id, str) else None,
             )
@@ -105,7 +105,7 @@ class HealthOptionsMixin(HealthOptionsHost):
             return await self.async_step_init()
 
         return self.async_show_form(
-            step_id="select_dog_for_health_settings",
+            step_id='select_dog_for_health_settings',
             data_schema=self._build_dog_selector_schema(),
         )
 
@@ -132,7 +132,7 @@ class HealthOptionsMixin(HealthOptionsHost):
                     cast(JSONLikeMapping, dict(dog_options.get(dog_id, {}))),
                     dog_id=dog_id,
                 )
-                entry["health_settings"] = self._build_health_settings(
+                entry['health_settings'] = self._build_health_settings(
                     user_input,
                     current_health,
                 )
@@ -140,10 +140,10 @@ class HealthOptionsMixin(HealthOptionsHost):
                 new_options[DOG_OPTIONS_FIELD] = dog_options
 
                 typed_options = self._normalise_options_snapshot(new_options)
-                return self.async_create_entry(title="", data=typed_options)
+                return self.async_create_entry(title='', data=typed_options)
             except FlowValidationError as err:
                 return self.async_show_form(
-                    step_id="health_settings",
+                    step_id='health_settings',
                     data_schema=self._get_health_settings_schema(
                         dog_id,
                         user_input,
@@ -152,16 +152,16 @@ class HealthOptionsMixin(HealthOptionsHost):
                 )
             except Exception:
                 return self.async_show_form(
-                    step_id="health_settings",
+                    step_id='health_settings',
                     data_schema=self._get_health_settings_schema(
                         dog_id,
                         user_input,
                     ),
-                    errors={"base": "update_failed"},
+                    errors={'base': 'update_failed'},
                 )
 
         return self.async_show_form(
-            step_id="health_settings",
+            step_id='health_settings',
             data_schema=self._get_health_settings_schema(dog_id),
         )
 
@@ -178,38 +178,38 @@ class HealthOptionsMixin(HealthOptionsHost):
         return vol.Schema(
             {
                 vol.Optional(
-                    "weight_tracking",
+                    'weight_tracking',
                     default=current_values.get(
-                        "weight_tracking",
-                        current_health.get("weight_tracking", True),
+                        'weight_tracking',
+                        current_health.get('weight_tracking', True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "medication_tracking",
+                    'medication_tracking',
                     default=current_values.get(
-                        "medication_tracking",
-                        current_health.get("medication_tracking", True),
+                        'medication_tracking',
+                        current_health.get('medication_tracking', True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "vet_reminders",
+                    'vet_reminders',
                     default=current_values.get(
-                        "vet_reminders",
-                        current_health.get("vet_reminders", True),
+                        'vet_reminders',
+                        current_health.get('vet_reminders', True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "activity_monitoring",
+                    'activity_monitoring',
                     default=current_values.get(
-                        "activity_monitoring",
-                        current_health.get("activity_monitoring", True),
+                        'activity_monitoring',
+                        current_health.get('activity_monitoring', True),
                     ),
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    "health_alerts",
+                    'health_alerts',
                     default=current_values.get(
-                        "health_alerts",
-                        current_health.get("health_alerts", True),
+                        'health_alerts',
+                        current_health.get('health_alerts', True),
                     ),
                 ): selector.BooleanSelector(),
             },
@@ -225,44 +225,44 @@ class HealthOptionsMixin(HealthOptionsHost):
         return cast(
             HealthOptions,
             {
-                "weight_tracking": bool(
+                'weight_tracking': bool(
                     user_input.get(
-                        "weight_tracking",
-                        current.get("weight_tracking", True),
+                        'weight_tracking',
+                        current.get('weight_tracking', True),
                     ),
                 ),
-                "medication_tracking": bool(
+                'medication_tracking': bool(
                     user_input.get(
-                        "medication_tracking",
+                        'medication_tracking',
                         current.get(
-                            "medication_tracking",
+                            'medication_tracking',
                             True,
                         ),
                     ),
                 ),
-                "vet_reminders": bool(
+                'vet_reminders': bool(
                     user_input.get(
-                        "vet_reminders",
+                        'vet_reminders',
                         current.get(
-                            "vet_reminders",
+                            'vet_reminders',
                             True,
                         ),
                     ),
                 ),
-                "activity_monitoring": bool(
+                'activity_monitoring': bool(
                     user_input.get(
-                        "activity_monitoring",
+                        'activity_monitoring',
                         current.get(
-                            "activity_monitoring",
+                            'activity_monitoring',
                             True,
                         ),
                     ),
                 ),
-                "health_alerts": bool(
+                'health_alerts': bool(
                     user_input.get(
-                        "health_alerts",
+                        'health_alerts',
                         current.get(
-                            "health_alerts",
+                            'health_alerts',
                             True,
                         ),
                     ),

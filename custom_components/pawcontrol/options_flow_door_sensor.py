@@ -36,7 +36,7 @@ class DoorSensorOptionsMixin:
             return await self.async_step_manage_dogs()
 
         if user_input is not None:
-            selected_dog_id = user_input.get("dog_id")
+            selected_dog_id = user_input.get('dog_id')
             self._current_dog = next(
                 (
                     dog
@@ -51,17 +51,17 @@ class DoorSensorOptionsMixin:
 
         dog_options = [
             {
-                "value": dog.get(DOG_ID_FIELD),
-                "label": f"{dog.get(DOG_NAME_FIELD)} ({dog.get(DOG_ID_FIELD)})",
+                'value': dog.get(DOG_ID_FIELD),
+                'label': f"{dog.get(DOG_NAME_FIELD)} ({dog.get(DOG_ID_FIELD)})",
             }
             for dog in current_dogs
         ]
 
         return self.async_show_form(
-            step_id="select_dog_for_door_sensor",
+            step_id='select_dog_for_door_sensor',
             data_schema=vol.Schema(
                 {
-                    vol.Required("dog_id"): selector.SelectSelector(
+                    vol.Required('dog_id'): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=dog_options,
                             mode=selector.SelectSelectorMode.DROPDOWN,
@@ -126,23 +126,23 @@ class DoorSensorOptionsMixin:
                 state = self.hass.states.get(trimmed_sensor)
                 device_class = (
                     state.attributes.get(
-                        "device_class",
+                        'device_class',
                     )
                     if state
                     else None
                 )
                 if device_class not in DOOR_SENSOR_DEVICE_CLASSES:  # noqa: F821
-                    errors[CONF_DOOR_SENSOR] = "door_sensor_not_found"
+                    errors[CONF_DOOR_SENSOR] = 'door_sensor_not_found'
 
             settings_overrides: dict[str, bool | int | float | str | None] = {}
             for key in (
-                "walk_detection_timeout",
-                "minimum_walk_duration",
-                "maximum_walk_duration",
-                "door_closed_delay",
-                "require_confirmation",
-                "auto_end_walks",
-                "confidence_threshold",
+                'walk_detection_timeout',
+                'minimum_walk_duration',
+                'maximum_walk_duration',
+                'door_closed_delay',
+                'require_confirmation',
+                'auto_end_walks',
+                'confidence_threshold',
             ):
                 value = user_input.get(key)
                 if isinstance(value, (bool, int, float, str)) or value is None:
@@ -196,7 +196,7 @@ class DoorSensorOptionsMixin:
                     if normalised_dog is None:
                         raise ValueError
                 except ValueError:
-                    errors["base"] = "door_sensor_not_found"
+                    errors['base'] = 'door_sensor_not_found'
                 else:
                     persist_updates: JSONMutableMapping = {}
                     if existing_sensor_trimmed != sensor_store:
@@ -223,25 +223,25 @@ class DoorSensorOptionsMixin:
                             runtime = require_runtime_data(self.hass, self._entry)  # noqa: F821
                         except RuntimeDataUnavailableError:  # noqa: F821
                             _LOGGER.error(
-                                "Runtime data unavailable while updating door sensor "
-                                "overrides for dog %s",
+                                'Runtime data unavailable while updating door sensor '
+                                'overrides for dog %s',
                                 dog_id,
                             )
-                            errors["base"] = "runtime_cache_unavailable"
+                            errors['base'] = 'runtime_cache_unavailable'
                         else:
                             data_manager = getattr(
                                 runtime,
-                                "data_manager",
+                                'data_manager',
                                 None,
                             )
                             if data_manager is None:
                                 _LOGGER.error(
-                                    "Door sensor overrides require an active data manager; "
-                                    "runtime payload missing data_manager for dog %s",
+                                    'Door sensor overrides require an active data manager; '
+                                    'runtime payload missing data_manager for dog %s',
                                     dog_id,
                                 )
-                                errors["base"] = "runtime_cache_unavailable"
-                    if data_manager and persist_updates and "base" not in errors:
+                                errors['base'] = 'runtime_cache_unavailable'
+                    if data_manager and persist_updates and 'base' not in errors:
                         try:
                             await data_manager.async_update_dog_data(
                                 dog_id,
@@ -249,7 +249,7 @@ class DoorSensorOptionsMixin:
                             )
                         except Exception as err:  # pragma: no cover - defensive
                             _LOGGER.error(
-                                "Failed to persist door sensor overrides for %s: %s",
+                                'Failed to persist door sensor overrides for %s: %s',
                                 dog_id,
                                 err,
                             )
@@ -262,19 +262,19 @@ class DoorSensorOptionsMixin:
                                 error=err,
                             )
                             issue_timestamp = (
-                                failure["recorded_at"]
-                                if failure and "recorded_at" in failure
+                                failure['recorded_at']
+                                if failure and 'recorded_at' in failure
                                 else dt_util.utcnow().isoformat()  # noqa: F821
                             )
                             issue_payload: JSONMutableMapping = {
-                                "dog_id": dog_id,
-                                "dog_name": dog_name,
-                                "door_sensor": sensor_store
+                                'dog_id': dog_id,
+                                'dog_name': dog_name,
+                                'door_sensor': sensor_store
                                 or existing_sensor_trimmed
-                                or "",
-                                "settings": cast(JSONValue, settings_store),
-                                "error": str(err),
-                                "timestamp": issue_timestamp,
+                                or '',
+                                'settings': cast(JSONValue, settings_store),
+                                'error': str(err),
+                                'timestamp': issue_timestamp,
                             }
                             try:
                                 await async_create_issue(  # noqa: F821
@@ -283,18 +283,18 @@ class DoorSensorOptionsMixin:
                                     f"{self._entry.entry_id}_door_sensor_{dog_id}",
                                     ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE,  # noqa: F821
                                     cast(JSONLikeMapping, issue_payload),  # noqa: F821
-                                    severity="error",
+                                    severity='error',
                                 )
                             except Exception as issue_err:  # pragma: no cover
                                 _LOGGER.debug(
-                                    "Skipping repair issue publication for %s: %s",
+                                    'Skipping repair issue publication for %s: %s',
                                     dog_id,
                                     issue_err,
                                 )
-                            errors["base"] = "door_sensor_update_failed"
-                    elif persist_updates and "base" not in errors:
+                            errors['base'] = 'door_sensor_update_failed'
+                    elif persist_updates and 'base' not in errors:
                         _LOGGER.debug(
-                            "Data manager unavailable while updating door sensor for %s",
+                            'Data manager unavailable while updating door sensor for %s',
                             dog_id,
                         )
 
@@ -322,12 +322,12 @@ class DoorSensorOptionsMixin:
                         return await self.async_step_manage_dogs()
 
         description_placeholders = {
-            "dog_name": self._current_dog.get(CONF_DOG_NAME, dog_id),
-            "current_sensor": existing_sensor or "None",
+            'dog_name': self._current_dog.get(CONF_DOG_NAME, dog_id),
+            'current_sensor': existing_sensor or 'None',
         }
 
         return self.async_show_form(
-            step_id="configure_door_sensor",
+            step_id='configure_door_sensor',
             data_schema=self._get_door_sensor_settings_schema(
                 available_sensors,
                 current_sensor=existing_sensor,

@@ -864,7 +864,7 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
                 f"Excluded entity {excluded} not found"
                 for excluded in self._config.excluded_entities
                 if excluded not in person_entity_ids
-            ]
+            ],
         )
         result: PersonEntityValidationResult = {
             'valid': len(issues) == 0,

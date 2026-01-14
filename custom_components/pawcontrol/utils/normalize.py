@@ -12,7 +12,7 @@ from datetime import time
 from datetime import timedelta
 
 # Type alias for JSON-serializable values.
-JSONValue = str | int | float | bool | None | list["JSONValue"] | dict[str, "JSONValue"]
+JSONValue = str | int | float | bool | None | list['JSONValue'] | dict[str, 'JSONValue']
 
 
 def normalize_value(value: object) -> JSONValue:
