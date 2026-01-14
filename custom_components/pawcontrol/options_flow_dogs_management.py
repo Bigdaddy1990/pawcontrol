@@ -23,6 +23,7 @@ from .types import OptionsDogModulesInput
 from .types import OptionsDogRemovalInput
 from .types import OptionsDogSelectionInput
 from .types import OptionsMenuInput
+from .grooming_translations import translated_grooming_label
 
 _LOGGER = logging.getLogger(__name__)
 
