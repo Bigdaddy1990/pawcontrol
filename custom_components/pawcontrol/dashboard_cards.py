@@ -592,9 +592,7 @@ class BaseCardGenerator:
                     self._performance_stats['errors_handled'] += 1
 
         # OPTIMIZED: Collect all valid entities
-        for entity_id in entities:
-            if cached_results.get(entity_id, False):
-                valid_entities.append(entity_id)
+        valid_entities = [entity_id for entity_id in entities if cached_results.get(entity_id, False)]
 
         # Update performance stats
         validation_time = asyncio.get_event_loop().time() - start_time
