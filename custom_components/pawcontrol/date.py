@@ -10,46 +10,41 @@ Metadata:
     Home Assistant: 2025.8.2+
     Python: 3.13+
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Awaitable
-from collections.abc import Callable
-from collections.abc import Mapping
+from collections.abc import Awaitable, Callable, Mapping
 from contextlib import suppress
 from datetime import date
 from typing import cast
 
 from homeassistant.components.date import DateEntity
-from homeassistant.core import callback
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 from homeassistant.util import dt as dt_util
 
 from .compat import ConfigEntry
-from .const import ATTR_DOG_ID
-from .const import DOMAIN
-from .const import MODULE_FEEDING
-from .const import MODULE_HEALTH
-from .const import MODULE_WALK
+from .const import ATTR_DOG_ID, DOMAIN, MODULE_FEEDING, MODULE_HEALTH, MODULE_WALK
 from .coordinator import PawControlCoordinator
 from .diagnostics import normalize_value
 from .entity import PawControlDogEntityBase
-from .exceptions import PawControlError
-from .exceptions import ValidationError
+from .exceptions import PawControlError, ValidationError
 from .helpers import performance_monitor
 from .runtime_data import get_runtime_data
-from .types import CoordinatorDogData
-from .types import DOG_ID_FIELD
-from .types import DOG_NAME_FIELD
-from .types import DogConfigData
-from .types import DogModulesMapping
-from .types import DogProfileSnapshot
-from .types import ensure_dog_modules_mapping
-from .types import HealthModulePayload
-from .types import JSONMutableMapping
+from .types import (
+    DOG_ID_FIELD,
+    DOG_NAME_FIELD,
+    CoordinatorDogData,
+    DogConfigData,
+    DogModulesMapping,
+    DogProfileSnapshot,
+    HealthModulePayload,
+    JSONMutableMapping,
+    ensure_dog_modules_mapping,
+)
 from .utils import async_call_add_entities
 
 _LOGGER = logging.getLogger(__name__)
@@ -80,19 +75,19 @@ async def _async_add_entities_in_batches(
     total_entities = len(entities)
 
     _LOGGER.debug(
-        'Adding %d date entities in batches of %d to prevent Registry overload',
+        "Adding %d date entities in batches of %d to prevent Registry overload",
         total_entities,
         batch_size,
     )
 
     # Process entities in batches
     for i in range(0, total_entities, batch_size):
-        batch = entities[i: i + batch_size]
+        batch = entities[i : i + batch_size]
         batch_num = (i // batch_size) + 1
         total_batches = (total_entities + batch_size - 1) // batch_size
 
         _LOGGER.debug(
-            'Processing date batch %d/%d with %d entities',
+            "Processing date batch %d/%d with %d entities",
             batch_num,
             total_batches,
             len(batch),
@@ -129,7 +124,7 @@ async def async_setup_entry(
         PawControlError: If setup fails due to configuration issues
     """
     _LOGGER.debug(
-        'Setting up Paw Control date platform for entry %s',
+        "Setting up Paw Control date platform for entry %s",
         entry.entry_id,
     )
 
@@ -137,7 +132,7 @@ async def async_setup_entry(
         # Retrieve runtime data from hass.data
         runtime_data = get_runtime_data(hass, entry)
         if runtime_data is None:
-            _LOGGER.error('Runtime data missing for entry %s', entry.entry_id)
+            _LOGGER.error("Runtime data missing for entry %s", entry.entry_id)
             return
 
         coordinator = runtime_data.coordinator
@@ -152,7 +147,7 @@ async def async_setup_entry(
                 modules: DogModulesMapping = ensure_dog_modules_mapping(dog)
 
                 _LOGGER.debug(
-                    'Creating date entities for dog %s (%s) with modules: %s',
+                    "Creating date entities for dog %s (%s) with modules: %s",
                     dog_name,
                     dog_id,
                     sorted(modules.keys()),
@@ -249,14 +244,14 @@ async def async_setup_entry(
 
             except KeyError as err:
                 _LOGGER.error(
-                    'Missing required configuration for dog: %s',
+                    "Missing required configuration for dog: %s",
                     err,
                 )
                 continue
             except Exception as err:
                 _LOGGER.error(
-                    'Error creating date entities for dog %s: %s',
-                    dog.get(DOG_ID_FIELD, 'unknown'),
+                    "Error creating date entities for dog %s: %s",
+                    dog.get(DOG_ID_FIELD, "unknown"),
                     err,
                     exc_info=True,
                 )
@@ -270,16 +265,16 @@ async def async_setup_entry(
             batch_size=12,
         )
         _LOGGER.info(
-            'Successfully set up %d date entities for %d dogs using batched approach',
+            "Successfully set up %d date entities for %d dogs using batched approach",
             len(entities),
             len(dogs),
         )
 
     except Exception as err:
-        _LOGGER.error('Failed to setup date platform: %s', err, exc_info=True)
+        _LOGGER.error("Failed to setup date platform: %s", err, exc_info=True)
         raise PawControlError(
-            'Date platform setup failed',
-            error_code='platform_setup_error',
+            "Date platform setup failed",
+            error_code="platform_setup_error",
         ) from err
 
 
@@ -292,8 +287,8 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
 
     _SET_VALUE_MONITOR = cast(
         Callable[
-            [Callable[['PawControlDateBase', date], Awaitable[None]]],
-            Callable[['PawControlDateBase', date], Awaitable[None]],
+            [Callable[["PawControlDateBase", date], Awaitable[None]]],
+            Callable[["PawControlDateBase", date], Awaitable[None]],
         ],
         performance_monitor(timeout=5.0),
     )
@@ -304,7 +299,7 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
         dog_id: str,
         dog_name: str,
         date_type: str,
-        icon: str = 'mdi:calendar',
+        icon: str = "mdi:calendar",
     ) -> None:
         """Initialize the date entity with comprehensive setup.
 
@@ -326,9 +321,9 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
         self._attr_icon = icon
 
         self.update_device_metadata(
-            model='Smart Dog Management',
-            sw_version='2025.8.2',
-            configuration_url='https://github.com/BigDaddy1990/pawcontrol',
+            model="Smart Dog Management",
+            sw_version="2025.8.2",
+            configuration_url="https://github.com/BigDaddy1990/pawcontrol",
             suggested_area=f"Pet Area - {dog_name}",
         )
 
@@ -345,7 +340,7 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
     def extra_state_attributes(self) -> JSONMutableMapping:
         """Return extra state attributes for enhanced functionality."""
         attributes = self._build_base_state_attributes(
-            {'date_type': self._date_type},
+            {"date_type": self._date_type},
         )
 
         # Add calculated attributes for useful automations
@@ -353,18 +348,18 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
             today = dt_util.now().date()
             days_diff = (self._current_value - today).days
 
-            attributes['days_from_today'] = days_diff
-            attributes['is_past'] = days_diff < 0
-            attributes['is_today'] = days_diff == 0
-            attributes['is_future'] = days_diff > 0
-            attributes['iso_string'] = self._current_value.isoformat()
+            attributes["days_from_today"] = days_diff
+            attributes["is_past"] = days_diff < 0
+            attributes["is_today"] = days_diff == 0
+            attributes["is_future"] = days_diff > 0
+            attributes["iso_string"] = self._current_value.isoformat()
 
             # Add age calculation for birthdate
-            if self._date_type == 'birthdate' and days_diff < 0:
+            if self._date_type == "birthdate" and days_diff < 0:
                 age_days = abs(days_diff)
-                attributes['age_days'] = age_days
-                attributes['age_years'] = round(age_days / 365.25, 2)
-                attributes['age_months'] = round(
+                attributes["age_days"] = age_days
+                attributes["age_years"] = round(age_days / 365.25, 2)
+                attributes["age_months"] = round(
                     (age_days % 365.25) / 30.44,
                     1,
                 )
@@ -380,18 +375,18 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
 
         # Restore previous state with error handling
         last_state = await self.async_get_last_state()
-        if last_state and last_state.state not in ('unknown', 'unavailable'):
+        if last_state and last_state.state not in ("unknown", "unavailable"):
             try:
                 self._current_value = dt_util.parse_date(last_state.state)
                 _LOGGER.debug(
-                    'Restored %s for %s: %s',
+                    "Restored %s for %s: %s",
                     self._date_type,
                     self._dog_name,
                     self._current_value,
                 )
             except (ValueError, TypeError) as err:
                 _LOGGER.warning(
-                    'Failed to restore date state for %s: %s',
+                    "Failed to restore date state for %s: %s",
                     self.entity_id,
                     err,
                 )
@@ -411,9 +406,9 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
             # Validate date value early so we can return a consistent error message.
             if not isinstance(value, date):
                 raise ValidationError(
-                    field='date_value',
+                    field="date_value",
                     value=str(value),
-                    constraint='Value must be a date object',
+                    constraint="Value must be a date object",
                 )
 
             previous_value = self._current_value
@@ -422,7 +417,7 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
 
             try:
                 _LOGGER.debug(
-                    'Set %s for %s (%s) to %s',
+                    "Set %s for %s (%s) to %s",
                     self._date_type,
                     self._dog_name,
                     self._dog_id,
@@ -440,14 +435,14 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
                     self.async_write_ha_state()
 
                 _LOGGER.error(
-                    'Error setting %s for %s: %s',
+                    "Error setting %s for %s: %s",
                     self._date_type,
                     self._dog_name,
                     err,
                     exc_info=True,
                 )
                 raise ValidationError(
-                    field='date_value',
+                    field="date_value",
                     value=str(value),
                     constraint=f"Failed to set date: {err}",
                 ) from err
@@ -456,7 +451,7 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
                 self.async_write_ha_state()
 
                 _LOGGER.debug(
-                    'Set %s for %s (%s) to %s',
+                    "Set %s for %s (%s) to %s",
                     self._date_type,
                     self._dog_name,
                     self._dog_id,
@@ -503,7 +498,7 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
                 if updated_value and updated_value != self._current_value:
                     self._current_value = updated_value
                     _LOGGER.debug(
-                        'Updated %s for %s from coordinator: %s',
+                        "Updated %s for %s from coordinator: %s",
                         self._date_type,
                         self._dog_name,
                         updated_value,
@@ -511,7 +506,7 @@ class PawControlDateBase(PawControlDogEntityBase, DateEntity, RestoreEntity):
 
         except Exception as err:
             _LOGGER.debug(
-                'Error updating %s from coordinator: %s',
+                "Error updating %s from coordinator: %s",
                 self._date_type,
                 err,
             )
@@ -543,13 +538,13 @@ class PawControlBirthdateDate(PawControlDateBase):
         dog_name: str,
     ) -> None:
         """Initialize the birthdate entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'birthdate', 'mdi:cake')
+        super().__init__(coordinator, dog_id, dog_name, "birthdate", "mdi:cake")
 
     def _extract_date_from_dog_data(self, dog_data: CoordinatorDogData) -> date | None:
         """Extract birthdate from dog data."""
-        profile = dog_data.get('profile')
+        profile = dog_data.get("profile")
         if isinstance(profile, dict):
-            birthdate_str = cast(DogProfileSnapshot, profile).get('birthdate')
+            birthdate_str = cast(DogProfileSnapshot, profile).get("birthdate")
             if birthdate_str:
                 with suppress(ValueError, TypeError):
                     return dt_util.parse_date(birthdate_str)
@@ -561,7 +556,7 @@ class PawControlBirthdateDate(PawControlDateBase):
         age_years = (today - value).days / 365.25
 
         _LOGGER.info(
-            'Updated birthdate for %s: %s (age: %.1f years)',
+            "Updated birthdate for %s: %s (age: %.1f years)",
             self._dog_name,
             value,
             age_years,
@@ -573,10 +568,10 @@ class PawControlBirthdateDate(PawControlDateBase):
             if data_manager is not None:
                 await data_manager.async_update_dog_profile(
                     self._dog_id,
-                    {'birthdate': value.isoformat()},
+                    {"birthdate": value.isoformat()},
                 )
         except Exception as err:
-            _LOGGER.debug('Could not update dog profile: %s', err)
+            _LOGGER.debug("Could not update dog profile: %s", err)
             raise
 
 
@@ -594,18 +589,18 @@ class PawControlAdoptionDate(PawControlDateBase):
             coordinator,
             dog_id,
             dog_name,
-            'adoption_date',
-            'mdi:home-heart',
+            "adoption_date",
+            "mdi:home-heart",
         )
 
     def _extract_date_from_dog_data(self, dog_data: CoordinatorDogData) -> date | None:
         """Extract adoption date from dog data."""
-        profile = dog_data.get('profile')
+        profile = dog_data.get("profile")
         if isinstance(profile, dict):
             adoption_date_str = cast(
                 DogProfileSnapshot,
                 profile,
-            ).get('adoption_date')
+            ).get("adoption_date")
             if adoption_date_str:
                 with suppress(ValueError, TypeError):
                     return dt_util.parse_date(adoption_date_str)
@@ -617,7 +612,7 @@ class PawControlAdoptionDate(PawControlDateBase):
         days_since = (today - value).days
 
         _LOGGER.info(
-            'Updated adoption date for %s: %s (%d days ago)',
+            "Updated adoption date for %s: %s (%d days ago)",
             self._dog_name,
             value,
             days_since,
@@ -641,16 +636,16 @@ class PawControlLastVetVisitDate(PawControlDateBase):
             coordinator,
             dog_id,
             dog_name,
-            'last_vet_visit',
-            'mdi:medical-bag',
+            "last_vet_visit",
+            "mdi:medical-bag",
         )
 
     def _extract_date_from_dog_data(self, dog_data: CoordinatorDogData) -> date | None:
         """Extract last vet visit date from dog data."""
-        health_state = dog_data.get('health')
+        health_state = dog_data.get("health")
         if isinstance(health_state, Mapping):
             health_payload = cast(HealthModulePayload, health_state)
-            vet_visit_str = health_payload.get('last_vet_visit')
+            vet_visit_str = health_payload.get("last_vet_visit")
             if vet_visit_str:
                 with suppress(ValueError, TypeError):
                     # Handle both date and datetime strings
@@ -664,7 +659,7 @@ class PawControlLastVetVisitDate(PawControlDateBase):
     async def _async_handle_date_set(self, value: date) -> None:
         """Handle vet visit date update - log health entry."""
         _LOGGER.info(
-            'Updated last vet visit for %s: %s',
+            "Updated last vet visit for %s: %s",
             self._dog_name,
             value,
         )
@@ -673,16 +668,16 @@ class PawControlLastVetVisitDate(PawControlDateBase):
         try:
             if not await self._async_call_hass_service(
                 DOMAIN,
-                'log_health_data',
+                "log_health_data",
                 {
                     ATTR_DOG_ID: self._dog_id,
-                    'note': f"Vet visit recorded for {value.strftime('%Y-%m-%d')}",
-                    'health_status': 'checked',
+                    "note": f"Vet visit recorded for {value.strftime('%Y-%m-%d')}",
+                    "health_status": "checked",
                 },
             ):
                 return
         except Exception as err:
-            _LOGGER.debug('Could not log vet visit: %s', err)
+            _LOGGER.debug("Could not log vet visit: %s", err)
             raise
 
 
@@ -700,14 +695,14 @@ class PawControlNextVetAppointmentDate(PawControlDateBase):
             coordinator,
             dog_id,
             dog_name,
-            'next_vet_appointment',
-            'mdi:calendar-medical',
+            "next_vet_appointment",
+            "mdi:calendar-medical",
         )
 
     async def _async_handle_date_set(self, value: date) -> None:
         """Handle next vet appointment date update."""
         _LOGGER.info(
-            'Scheduled next vet appointment for %s: %s',
+            "Scheduled next vet appointment for %s: %s",
             self._dog_name,
             value,
         )
@@ -718,7 +713,7 @@ class PawControlNextVetAppointmentDate(PawControlDateBase):
 
         if 0 <= days_until <= 7:
             _LOGGER.info(
-                'Vet appointment for %s is in %d days - consider setting up reminders',
+                "Vet appointment for %s is in %d days - consider setting up reminders",
                 self._dog_name,
                 days_until,
             )
@@ -738,16 +733,16 @@ class PawControlLastGroomingDate(PawControlDateBase):
             coordinator,
             dog_id,
             dog_name,
-            'last_grooming',
-            'mdi:content-cut',
+            "last_grooming",
+            "mdi:content-cut",
         )
 
     def _extract_date_from_dog_data(self, dog_data: CoordinatorDogData) -> date | None:
         """Extract last grooming date from dog data."""
-        health_state = dog_data.get('health')
+        health_state = dog_data.get("health")
         if isinstance(health_state, Mapping):
             health_payload = cast(HealthModulePayload, health_state)
-            grooming_str = health_payload.get('last_grooming')
+            grooming_str = health_payload.get("last_grooming")
             if grooming_str:
                 with suppress(ValueError, TypeError):
                     if parsed_dt := dt_util.parse_datetime(grooming_str):
@@ -772,8 +767,8 @@ class PawControlNextGroomingDate(PawControlDateBase):
             coordinator,
             dog_id,
             dog_name,
-            'next_grooming',
-            'mdi:calendar-clock',
+            "next_grooming",
+            "mdi:calendar-clock",
         )
 
 
@@ -791,14 +786,14 @@ class PawControlVaccinationDate(PawControlDateBase):
             coordinator,
             dog_id,
             dog_name,
-            'vaccination_date',
-            'mdi:needle',
+            "vaccination_date",
+            "mdi:needle",
         )
 
     async def _async_handle_date_set(self, value: date) -> None:
         """Handle vaccination date update - log health entry."""
         _LOGGER.info(
-            'Updated vaccination date for %s: %s',
+            "Updated vaccination date for %s: %s",
             self._dog_name,
             value,
         )
@@ -807,16 +802,16 @@ class PawControlVaccinationDate(PawControlDateBase):
         try:
             if not await self._async_call_hass_service(
                 DOMAIN,
-                'log_health_data',
+                "log_health_data",
                 {
                     ATTR_DOG_ID: self._dog_id,
-                    'note': f"Vaccination recorded for {value.strftime('%Y-%m-%d')}",
-                    'health_status': 'vaccinated',
+                    "note": f"Vaccination recorded for {value.strftime('%Y-%m-%d')}",
+                    "health_status": "vaccinated",
                 },
             ):
                 return
         except Exception as err:
-            _LOGGER.debug('Could not log vaccination: %s', err)
+            _LOGGER.debug("Could not log vaccination: %s", err)
             raise
 
 
@@ -834,8 +829,8 @@ class PawControlNextVaccinationDate(PawControlDateBase):
             coordinator,
             dog_id,
             dog_name,
-            'next_vaccination',
-            'mdi:calendar-plus',
+            "next_vaccination",
+            "mdi:calendar-plus",
         )
 
 
@@ -849,12 +844,12 @@ class PawControlDewormingDate(PawControlDateBase):
         dog_name: str,
     ) -> None:
         """Initialize the deworming date entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'deworming_date', 'mdi:pill')
+        super().__init__(coordinator, dog_id, dog_name, "deworming_date", "mdi:pill")
 
     async def _async_handle_date_set(self, value: date) -> None:
         """Handle deworming date update - log health entry."""
         _LOGGER.info(
-            'Updated deworming date for %s: %s',
+            "Updated deworming date for %s: %s",
             self._dog_name,
             value,
         )
@@ -863,16 +858,16 @@ class PawControlDewormingDate(PawControlDateBase):
         try:
             if not await self._async_call_hass_service(
                 DOMAIN,
-                'log_health_data',
+                "log_health_data",
                 {
                     ATTR_DOG_ID: self._dog_id,
-                    'note': f"Deworming treatment recorded for {value.strftime('%Y-%m-%d')}",
-                    'health_status': 'treated',
+                    "note": f"Deworming treatment recorded for {value.strftime('%Y-%m-%d')}",
+                    "health_status": "treated",
                 },
             ):
                 return
         except Exception as err:
-            _LOGGER.debug('Could not log deworming: %s', err)
+            _LOGGER.debug("Could not log deworming: %s", err)
             raise
 
 
@@ -890,8 +885,8 @@ class PawControlNextDewormingDate(PawControlDateBase):
             coordinator,
             dog_id,
             dog_name,
-            'next_deworming',
-            'mdi:calendar-alert',
+            "next_deworming",
+            "mdi:calendar-alert",
         )
 
 
@@ -908,11 +903,11 @@ class PawControlDietStartDate(PawControlDateBase):
         dog_name: str,
     ) -> None:
         """Initialize the diet start date entity."""
-        super().__init__(coordinator, dog_id, dog_name, 'diet_start_date', 'mdi:scale')
+        super().__init__(coordinator, dog_id, dog_name, "diet_start_date", "mdi:scale")
 
     async def _async_handle_date_set(self, value: date) -> None:
         """Handle diet start date update."""
-        _LOGGER.info('Set diet start date for %s: %s', self._dog_name, value)
+        _LOGGER.info("Set diet start date for %s: %s", self._dog_name, value)
 
 
 class PawControlDietEndDate(PawControlDateBase):
@@ -929,8 +924,8 @@ class PawControlDietEndDate(PawControlDateBase):
             coordinator,
             dog_id,
             dog_name,
-            'diet_end_date',
-            'mdi:scale-off',
+            "diet_end_date",
+            "mdi:scale-off",
         )
 
 
@@ -951,8 +946,8 @@ class PawControlTrainingStartDate(PawControlDateBase):
             coordinator,
             dog_id,
             dog_name,
-            'training_start_date',
-            'mdi:school',
+            "training_start_date",
+            "mdi:school",
         )
 
 
@@ -970,8 +965,8 @@ class PawControlNextTrainingDate(PawControlDateBase):
             coordinator,
             dog_id,
             dog_name,
-            'next_training_date',
-            'mdi:calendar-star',
+            "next_training_date",
+            "mdi:calendar-star",
         )
 
     async def _async_handle_date_set(self, value: date) -> None:
@@ -980,7 +975,7 @@ class PawControlNextTrainingDate(PawControlDateBase):
         days_until = (value - today).days
 
         _LOGGER.info(
-            'Scheduled next training session for %s: %s (%d days from today)',
+            "Scheduled next training session for %s: %s (%d days from today)",
             self._dog_name,
             value,
             days_until,

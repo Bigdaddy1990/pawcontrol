@@ -1,26 +1,27 @@
 """Synchronise assistant-specific contributor guides with the canonical copy."""
+
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
 
-SYNC_START = '<!-- SYNC:START -->'
-SYNC_END = '<!-- SYNC:END -->'
+SYNC_START = "<!-- SYNC:START -->"
+SYNC_END = "<!-- SYNC:END -->"
 REPO_ROOT = Path(__file__).resolve().parents[1]
-CANONICAL_SOURCE = REPO_ROOT / '.github' / 'copilot-instructions.md'
+CANONICAL_SOURCE = REPO_ROOT / ".github" / "copilot-instructions.md"
 TARGETS = [
-    REPO_ROOT / '.claude' / 'agents' / 'copilot-instructions.md',
-    REPO_ROOT / '.gemini' / 'styleguide.md',
+    REPO_ROOT / ".claude" / "agents" / "copilot-instructions.md",
+    REPO_ROOT / ".gemini" / "styleguide.md",
 ]
 
 
 def _load_canonical_block() -> str:
-    content = CANONICAL_SOURCE.read_text(encoding='utf-8').strip()
+    content = CANONICAL_SOURCE.read_text(encoding="utf-8").strip()
     return f"{SYNC_START}\n{content}\n{SYNC_END}"
 
 
 def _apply_sync_block(target: Path, block: str) -> tuple[str, str]:
-    text = target.read_text(encoding='utf-8')
+    text = target.read_text(encoding="utf-8")
     start = text.index(SYNC_START)
     end = text.index(SYNC_END, start) + len(SYNC_END)
     return text, text[:start] + block + text[end:]
@@ -29,9 +30,9 @@ def _apply_sync_block(target: Path, block: str) -> tuple[str, str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        '--check',
-        action='store_true',
-        help='only verify the files are synced',
+        "--check",
+        action="store_true",
+        help="only verify the files are synced",
     )
     args = parser.parse_args()
 
@@ -44,16 +45,16 @@ def main() -> int:
             if args.check:
                 print(f"{target} is out of date with {CANONICAL_SOURCE}")
             else:
-                target.write_text(updated, encoding='utf-8')
+                target.write_text(updated, encoding="utf-8")
                 print(f"Synced {target} with {CANONICAL_SOURCE}")
             had_changes = True
 
     if args.check and had_changes:
         return 1
     if not had_changes:
-        print('Contributor guides already match the canonical instructions.')
+        print("Contributor guides already match the canonical instructions.")
     return 0
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     raise SystemExit(main())

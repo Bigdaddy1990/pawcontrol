@@ -5,14 +5,13 @@ for common configuration and setup problems. It helps users resolve issues
 independently and maintains system health. Designed to meet Home Assistant's
 Platinum quality ambitions.
 """
+
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from inspect import isawaitable
-from typing import Any
-from typing import cast
+from typing import Any, cast
 
 import voluptuous as vol
 from homeassistant.components.repairs import RepairsFlow
@@ -23,69 +22,75 @@ from homeassistant.helpers.selector import selector
 from homeassistant.util import dt as dt_util
 
 from .compat import ConfigEntry
-from .const import CONF_DOG_ID
-from .const import CONF_DOG_NAME
-from .const import CONF_DOGS
-from .const import DOMAIN
-from .const import MODULE_FEEDING
-from .const import MODULE_GARDEN
-from .const import MODULE_GPS
-from .const import MODULE_HEALTH
-from .const import MODULE_NOTIFICATIONS
-from .const import MODULE_WALK
+from .const import (
+    CONF_DOG_ID,
+    CONF_DOG_NAME,
+    CONF_DOGS,
+    DOMAIN,
+    MODULE_FEEDING,
+    MODULE_GARDEN,
+    MODULE_GPS,
+    MODULE_HEALTH,
+    MODULE_NOTIFICATIONS,
+    MODULE_WALK,
+)
 from .coordinator_support import ensure_cache_repair_aggregate
 from .feeding_translations import build_feeding_compliance_summary
-from .runtime_data import describe_runtime_store_status
-from .runtime_data import require_runtime_data
-from .runtime_data import RuntimeDataUnavailableError
+from .runtime_data import (
+    RuntimeDataUnavailableError,
+    describe_runtime_store_status,
+    require_runtime_data,
+)
 from .telemetry import get_runtime_store_health
-from .types import ConfigFlowUserInput
-from .types import DogConfigData
-from .types import DogModulesConfig
-from .types import FeedingComplianceDisplayMapping
-from .types import FeedingComplianceEventPayload
-from .types import FeedingComplianceLocalizedSummary
-from .types import JSONLikeMapping
-from .types import JSONMutableMapping
-from .types import JSONValue
-from .types import ReconfigureTelemetry
-from .types import RuntimeStoreHealthLevel
-from .types import RuntimeStoreLevelDurationAlert
-from .types import ServiceContextMetadata
+from .types import (
+    ConfigFlowUserInput,
+    DogConfigData,
+    DogModulesConfig,
+    FeedingComplianceDisplayMapping,
+    FeedingComplianceEventPayload,
+    FeedingComplianceLocalizedSummary,
+    JSONLikeMapping,
+    JSONMutableMapping,
+    JSONValue,
+    ReconfigureTelemetry,
+    RuntimeStoreHealthLevel,
+    RuntimeStoreLevelDurationAlert,
+    ServiceContextMetadata,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
 # JSON serialisable payload used for issue registry metadata
 type JSONPrimitive = str | int | float | bool | None
-type JSONType = JSONPrimitive | list['JSONType'] | dict[str, 'JSONType']
+type JSONType = JSONPrimitive | list["JSONType"] | dict[str, "JSONType"]
 
 # Issue types
-ISSUE_MISSING_DOG_CONFIG = 'missing_dog_configuration'
-ISSUE_DUPLICATE_DOG_IDS = 'duplicate_dog_ids'
-ISSUE_INVALID_GPS_CONFIG = 'invalid_gps_configuration'
-ISSUE_MISSING_NOTIFICATIONS = 'missing_notification_config'
-ISSUE_OUTDATED_CONFIG = 'outdated_configuration'
-ISSUE_PERFORMANCE_WARNING = 'performance_warning'
-ISSUE_GPS_UPDATE_INTERVAL = 'gps_update_interval_warning'
-ISSUE_STORAGE_WARNING = 'storage_warning'
-ISSUE_MODULE_CONFLICT = 'module_configuration_conflict'
-ISSUE_INVALID_DOG_DATA = 'invalid_dog_data'
-ISSUE_COORDINATOR_ERROR = 'coordinator_error'
-ISSUE_CACHE_HEALTH_SUMMARY = 'cache_health_summary'
-ISSUE_RECONFIGURE_WARNINGS = 'reconfigure_warnings'
-ISSUE_RECONFIGURE_HEALTH = 'reconfigure_health'
-ISSUE_FEEDING_COMPLIANCE_ALERT = 'feeding_compliance_alert'
-ISSUE_FEEDING_COMPLIANCE_NO_DATA = 'feeding_compliance_no_data'
-ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE = 'door_sensor_persistence_failure'
-ISSUE_RUNTIME_STORE_COMPATIBILITY = 'runtime_store_compatibility'
-ISSUE_RUNTIME_STORE_DURATION_ALERT = 'runtime_store_duration_alert'
+ISSUE_MISSING_DOG_CONFIG = "missing_dog_configuration"
+ISSUE_DUPLICATE_DOG_IDS = "duplicate_dog_ids"
+ISSUE_INVALID_GPS_CONFIG = "invalid_gps_configuration"
+ISSUE_MISSING_NOTIFICATIONS = "missing_notification_config"
+ISSUE_OUTDATED_CONFIG = "outdated_configuration"
+ISSUE_PERFORMANCE_WARNING = "performance_warning"
+ISSUE_GPS_UPDATE_INTERVAL = "gps_update_interval_warning"
+ISSUE_STORAGE_WARNING = "storage_warning"
+ISSUE_MODULE_CONFLICT = "module_configuration_conflict"
+ISSUE_INVALID_DOG_DATA = "invalid_dog_data"
+ISSUE_COORDINATOR_ERROR = "coordinator_error"
+ISSUE_CACHE_HEALTH_SUMMARY = "cache_health_summary"
+ISSUE_RECONFIGURE_WARNINGS = "reconfigure_warnings"
+ISSUE_RECONFIGURE_HEALTH = "reconfigure_health"
+ISSUE_FEEDING_COMPLIANCE_ALERT = "feeding_compliance_alert"
+ISSUE_FEEDING_COMPLIANCE_NO_DATA = "feeding_compliance_no_data"
+ISSUE_DOOR_SENSOR_PERSISTENCE_FAILURE = "door_sensor_persistence_failure"
+ISSUE_RUNTIME_STORE_COMPATIBILITY = "runtime_store_compatibility"
+ISSUE_RUNTIME_STORE_DURATION_ALERT = "runtime_store_duration_alert"
 
 # Repair flow types
-REPAIR_FLOW_DOG_CONFIG = 'repair_dog_configuration'
-REPAIR_FLOW_GPS_SETUP = 'repair_gps_setup'
-REPAIR_FLOW_NOTIFICATION_SETUP = 'repair_notification_setup'
-REPAIR_FLOW_CONFIG_MIGRATION = 'repair_config_migration'
-REPAIR_FLOW_PERFORMANCE_OPTIMIZATION = 'repair_performance_optimization'
+REPAIR_FLOW_DOG_CONFIG = "repair_dog_configuration"
+REPAIR_FLOW_GPS_SETUP = "repair_gps_setup"
+REPAIR_FLOW_NOTIFICATION_SETUP = "repair_notification_setup"
+REPAIR_FLOW_CONFIG_MIGRATION = "repair_config_migration"
+REPAIR_FLOW_PERFORMANCE_OPTIMIZATION = "repair_performance_optimization"
 
 
 def _normalise_issue_severity(
@@ -107,18 +112,18 @@ def _normalise_issue_severity(
             return ir.IssueSeverity.WARNING
 
     _LOGGER.warning(
-        'Unexpected issue severity type %s; falling back to warning.',
+        "Unexpected issue severity type %s; falling back to warning.",
         type(severity).__name__,
     )
     return ir.IssueSeverity.WARNING
 
 
 _RUNTIME_STORE_STATUS_SEVERITY: dict[str, ir.IssueSeverity] = {
-    'future_incompatible': ir.IssueSeverity.ERROR,
-    'needs_migration': ir.IssueSeverity.ERROR,
-    'diverged': ir.IssueSeverity.ERROR,
-    'detached_entry': ir.IssueSeverity.WARNING,
-    'detached_store': ir.IssueSeverity.WARNING,
+    "future_incompatible": ir.IssueSeverity.ERROR,
+    "needs_migration": ir.IssueSeverity.ERROR,
+    "diverged": ir.IssueSeverity.ERROR,
+    "detached_entry": ir.IssueSeverity.WARNING,
+    "detached_store": ir.IssueSeverity.WARNING,
 }
 
 
@@ -142,20 +147,20 @@ async def async_create_issue(
     """
     issue_severity = _normalise_issue_severity(severity)
 
-    create_issue = getattr(ir, 'async_create_issue', None)
+    create_issue = getattr(ir, "async_create_issue", None)
     if not callable(create_issue):
         _LOGGER.debug(
-            'Issue registry unavailable; skipping issue %s (type %s)',
+            "Issue registry unavailable; skipping issue %s (type %s)",
             issue_id,
             issue_type,
         )
         return
 
     issue_data: JSONMutableMapping = {
-        'config_entry_id': entry.entry_id,
-        'issue_type': issue_type,
-        'created_at': dt_util.utcnow().isoformat(),
-        'severity': issue_severity.value,
+        "config_entry_id": entry.entry_id,
+        "issue_type": issue_type,
+        "created_at": dt_util.utcnow().isoformat(),
+        "severity": issue_severity.value,
     }
 
     if data:
@@ -181,10 +186,10 @@ async def async_create_issue(
         """Convert serialised metadata into user-friendly placeholder text."""
 
         if isinstance(value, list):
-            return ', '.join(_stringify_placeholder(item) for item in value)
+            return ", ".join(_stringify_placeholder(item) for item in value)
 
         if isinstance(value, dict):
-            return ', '.join(
+            return ", ".join(
                 f"{key}={_stringify_placeholder(item)}" for key, item in value.items()
             )
 
@@ -215,14 +220,14 @@ async def async_create_issue(
 
     if not isawaitable(result):
         _LOGGER.debug(
-            'Issue registry create_issue returned non-awaitable result for %s',
+            "Issue registry create_issue returned non-awaitable result for %s",
             issue_id,
         )
         return
 
     await result
 
-    _LOGGER.info('Created repair issue: %s (%s)', issue_id, issue_type)
+    _LOGGER.info("Created repair issue: %s (%s)", issue_id, issue_type)
 
 
 async def async_publish_feeding_compliance_issue(
@@ -234,15 +239,15 @@ async def async_publish_feeding_compliance_issue(
 ) -> None:
     """Create or clear feeding compliance repair issues based on telemetry."""
 
-    dog_id = payload['dog_id']
-    dog_name = payload.get('dog_name') or dog_id
+    dog_id = payload["dog_id"]
+    dog_name = payload.get("dog_name") or dog_id
     issue_id = f"{entry.entry_id}_feeding_compliance_{dog_id}"
-    result = payload['result']
+    result = payload["result"]
     if not isinstance(result, Mapping):
         return
 
-    language = getattr(getattr(hass, 'config', None), 'language', None)
-    localized_summary = payload.get('localized_summary')
+    language = getattr(getattr(hass, "config", None), "language", None)
+    localized_summary = payload.get("localized_summary")
     if localized_summary is None:
         localized_summary = build_feeding_compliance_summary(
             language,
@@ -251,54 +256,54 @@ async def async_publish_feeding_compliance_issue(
         )
 
     summary_copy: FeedingComplianceLocalizedSummary = {
-        'title': localized_summary['title'],
-        'message': localized_summary.get('message'),
-        'score_line': localized_summary.get('score_line'),
-        'missed_meals': list(localized_summary.get('missed_meals', [])),
-        'issues': list(localized_summary.get('issues', [])),
-        'recommendations': list(localized_summary.get('recommendations', [])),
+        "title": localized_summary["title"],
+        "message": localized_summary.get("message"),
+        "score_line": localized_summary.get("score_line"),
+        "missed_meals": list(localized_summary.get("missed_meals", [])),
+        "issues": list(localized_summary.get("issues", [])),
+        "recommendations": list(localized_summary.get("recommendations", [])),
     }
 
     result_copy = cast(JSONMutableMapping, dict(result))
     summary_json = cast(JSONMutableMapping, dict(summary_copy))
 
     issue_data: JSONMutableMapping = {
-        'dog_id': dog_id,
-        'dog_name': dog_name,
-        'days_to_check': payload.get('days_to_check'),
-        'notify_on_issues': payload.get('notify_on_issues'),
-        'notification_sent': payload.get('notification_sent'),
-        'notification_id': payload.get('notification_id'),
-        'result': result_copy,
-        'localized_summary': summary_json,
-        'notification_title': cast(str, summary_json.get('title')),
-        'notification_message': cast(str | None, summary_json.get('message')),
-        'score_line': cast(str | None, summary_json.get('score_line')),
-        'issue_summary': cast(list[str], summary_json.get('issues', [])),
-        'missed_meal_summary': cast(list[str], summary_json.get('missed_meals', [])),
-        'recommendations_summary': cast(
+        "dog_id": dog_id,
+        "dog_name": dog_name,
+        "days_to_check": payload.get("days_to_check"),
+        "notify_on_issues": payload.get("notify_on_issues"),
+        "notification_sent": payload.get("notification_sent"),
+        "notification_id": payload.get("notification_id"),
+        "result": result_copy,
+        "localized_summary": summary_json,
+        "notification_title": cast(str, summary_json.get("title")),
+        "notification_message": cast(str | None, summary_json.get("message")),
+        "score_line": cast(str | None, summary_json.get("score_line")),
+        "issue_summary": cast(list[str], summary_json.get("issues", [])),
+        "missed_meal_summary": cast(list[str], summary_json.get("missed_meals", [])),
+        "recommendations_summary": cast(
             list[str],
-            summary_json.get('recommendations', []),
+            summary_json.get("recommendations", []),
         ),
     }
 
     if context_metadata:
-        issue_data['context_metadata'] = cast(
+        issue_data["context_metadata"] = cast(
             JSONMutableMapping,
             dict(context_metadata),
         )
 
-    summary_message = summary_copy.get('message')
+    summary_message = summary_copy.get("message")
 
-    if cast(str, result.get('status')) != 'completed':
-        message_value: Any = result.get('message')
+    if cast(str, result.get("status")) != "completed":
+        message_value: Any = result.get("message")
         if not isinstance(message_value, str):
             message_value = summary_message
         issue_data.update(
             {
-                'status': cast(str | None, result.get('status')),
-                'message': message_value,
-                'checked_at': cast(str | None, result.get('checked_at')),
+                "status": cast(str | None, result.get("status")),
+                "message": message_value,
+                "checked_at": cast(str | None, result.get("checked_at")),
             },
         )
 
@@ -313,19 +318,19 @@ async def async_publish_feeding_compliance_issue(
         return
 
     completed = cast(JSONMutableMapping, dict(result))
-    missed_meals_raw = completed.get('missed_meals', [])
+    missed_meals_raw = completed.get("missed_meals", [])
     missed_meals = (
         [dict(entry) for entry in missed_meals_raw if isinstance(entry, Mapping)]
         if isinstance(missed_meals_raw, Sequence)
         else []
     )
-    issues_raw = completed.get('compliance_issues', [])
+    issues_raw = completed.get("compliance_issues", [])
     issues = (
         [dict(issue) for issue in issues_raw if isinstance(issue, Mapping)]
         if isinstance(issues_raw, Sequence)
         else []
     )
-    recommendations_raw = completed.get('recommendations', [])
+    recommendations_raw = completed.get("recommendations", [])
     recommendations = (
         [str(rec) for rec in recommendations_raw if isinstance(rec, str)]
         if isinstance(recommendations_raw, Sequence)
@@ -333,7 +338,7 @@ async def async_publish_feeding_compliance_issue(
         else []
     )
 
-    score_raw = completed.get('compliance_score', 0)
+    score_raw = completed.get("compliance_score", 0)
     score = (
         float(score_raw)
         if isinstance(
@@ -344,14 +349,14 @@ async def async_publish_feeding_compliance_issue(
     )
     has_issues = bool(
         completed.get(
-            'days_with_issues',
+            "days_with_issues",
         )
         or issues
         or missed_meals
         or score < 100,
     )
 
-    delete_issue = getattr(ir, 'async_delete_issue', None)
+    delete_issue = getattr(ir, "async_delete_issue", None)
     if not has_issues:
         if callable(delete_issue):
             delete_result = delete_issue(hass, DOMAIN, issue_id)
@@ -359,23 +364,23 @@ async def async_publish_feeding_compliance_issue(
                 await delete_result
         return
 
-    severity_enum = getattr(ir, 'IssueSeverity', None)
+    severity_enum = getattr(ir, "IssueSeverity", None)
     error_severity: str | ir.IssueSeverity
     warning_severity: str | ir.IssueSeverity
     critical_severity: str | ir.IssueSeverity | None
     warning_candidate: str | ir.IssueSeverity | None = None
 
     if severity_enum is None:
-        error_severity = 'error'
-        warning_severity = 'warning'
+        error_severity = "error"
+        warning_severity = "warning"
         critical_severity = None
     else:
-        error_severity = getattr(severity_enum, 'ERROR', 'error')
-        warning_candidate = getattr(severity_enum, 'WARNING', None)
+        error_severity = getattr(severity_enum, "ERROR", "error")
+        warning_candidate = getattr(severity_enum, "WARNING", None)
         warning_severity = (
             warning_candidate if warning_candidate is not None else error_severity
         )
-        critical_severity = getattr(severity_enum, 'CRITICAL', None)
+        critical_severity = getattr(severity_enum, "CRITICAL", None)
 
     severity: str | ir.IssueSeverity = error_severity
     if score < 70:
@@ -383,31 +388,31 @@ async def async_publish_feeding_compliance_issue(
             severity = critical_severity
         else:
             _LOGGER.debug(
-                'IssueSeverity.CRITICAL unavailable; defaulting to %s severity',
-                getattr(error_severity, 'value', error_severity),
+                "IssueSeverity.CRITICAL unavailable; defaulting to %s severity",
+                getattr(error_severity, "value", error_severity),
             )
             severity = error_severity
     elif score >= 90:
         if warning_candidate is None and severity_enum is not None:
             _LOGGER.debug(
-                'IssueSeverity.WARNING unavailable; defaulting to %s severity',
-                getattr(error_severity, 'value', error_severity),
+                "IssueSeverity.WARNING unavailable; defaulting to %s severity",
+                getattr(error_severity, "value", error_severity),
             )
         severity = warning_severity
 
     issue_data.update(
         {
-            'status': completed.get('status'),
-            'checked_at': completed.get('checked_at'),
-            'compliance_score': score,
-            'compliance_rate': completed.get('compliance_rate'),
-            'days_analyzed': completed.get('days_analyzed'),
-            'days_with_issues': completed.get('days_with_issues'),
-            'issue_count': len(issues),
-            'missed_meal_count': len(missed_meals),
-            'issues': issues,
-            'missed_meals': missed_meals,
-            'recommendations': recommendations,
+            "status": completed.get("status"),
+            "checked_at": completed.get("checked_at"),
+            "compliance_score": score,
+            "compliance_rate": completed.get("compliance_rate"),
+            "days_analyzed": completed.get("days_analyzed"),
+            "days_with_issues": completed.get("days_with_issues"),
+            "issue_count": len(issues),
+            "missed_meal_count": len(missed_meals),
+            "issues": issues,
+            "missed_meals": missed_meals,
+            "recommendations": recommendations,
         },
     )
 
@@ -432,7 +437,7 @@ async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> Non
         entry: Configuration entry to check
     """
     _LOGGER.debug(
-        'Checking for issues in Paw Control entry: %s',
+        "Checking for issues in Paw Control entry: %s",
         entry.entry_id,
     )
 
@@ -470,11 +475,11 @@ async def async_check_for_issues(hass: HomeAssistant, entry: ConfigEntry) -> Non
         # Check coordinator health
         await _check_coordinator_health(hass, entry)
 
-        _LOGGER.debug('Issue check completed for entry: %s', entry.entry_id)
+        _LOGGER.debug("Issue check completed for entry: %s", entry.entry_id)
 
     except Exception as err:
         _LOGGER.error(
-            'Error during issue check for entry %s: %s',
+            "Error during issue check for entry %s: %s",
             entry.entry_id,
             err,
         )
@@ -490,7 +495,7 @@ async def async_schedule_repair_evaluation(
         try:
             await async_check_for_issues(hass, entry)
         except Exception as err:  # pragma: no cover - defensive guard
-            _LOGGER.debug('Repair evaluation skipped due to error: %s', err)
+            _LOGGER.debug("Repair evaluation skipped due to error: %s", err)
 
     hass.async_create_task(
         _async_run_checks(),
@@ -528,8 +533,8 @@ async def _check_dog_configuration_issues(
             entry,
             f"{entry.entry_id}_no_dogs",
             ISSUE_MISSING_DOG_CONFIG,
-            {'dogs_count': 0},
-            severity='error',
+            {"dogs_count": 0},
+            severity="error",
         )
         return
 
@@ -554,10 +559,10 @@ async def _check_dog_configuration_issues(
             f"{entry.entry_id}_duplicate_dogs",
             ISSUE_DUPLICATE_DOG_IDS,
             {
-                'duplicate_ids': duplicate_ids,
-                'total_dogs': len(dogs),
+                "duplicate_ids": duplicate_ids,
+                "total_dogs": len(dogs),
             },
-            severity='error',
+            severity="error",
         )
 
     # Check for invalid dog data
@@ -567,7 +572,7 @@ async def _check_dog_configuration_issues(
         dog_name = dog.get(CONF_DOG_NAME)
         if not isinstance(dog_id, str) or not dog_id or not isinstance(dog_name, str):
             invalid_dogs.append(
-                cast(str, dog_id) if isinstance(dog_id, str) else 'unknown',
+                cast(str, dog_id) if isinstance(dog_id, str) else "unknown",
             )
 
     if invalid_dogs:
@@ -577,10 +582,10 @@ async def _check_dog_configuration_issues(
             f"{entry.entry_id}_invalid_dogs",
             ISSUE_INVALID_DOG_DATA,
             {
-                'invalid_dogs': invalid_dogs,
-                'total_dogs': len(dogs),
+                "invalid_dogs": invalid_dogs,
+                "total_dogs": len(dogs),
             },
-            severity='error',
+            severity="error",
         )
 
 
@@ -608,7 +613,7 @@ async def _check_gps_configuration_issues(
     ]
     gps_enabled_dogs = []
     for dog in dogs:
-        modules_raw = dog.get('modules', {})
+        modules_raw = dog.get("modules", {})
         modules = modules_raw if isinstance(modules_raw, Mapping) else {}
         if modules.get(MODULE_GPS, False):
             gps_enabled_dogs.append(dog)
@@ -617,25 +622,25 @@ async def _check_gps_configuration_issues(
         return  # No GPS configuration to check
 
     # Check if GPS sources are properly configured
-    gps_config_raw = entry.options.get('gps', {})
+    gps_config_raw = entry.options.get("gps", {})
     gps_config = gps_config_raw if isinstance(gps_config_raw, Mapping) else {}
 
     # Check for missing GPS source configuration
-    if not gps_config.get('gps_source'):
+    if not gps_config.get("gps_source"):
         await async_create_issue(
             hass,
             entry,
             f"{entry.entry_id}_missing_gps_source",
             ISSUE_INVALID_GPS_CONFIG,
             {
-                'issue': 'missing_gps_source',
-                'gps_enabled_dogs': len(gps_enabled_dogs),
+                "issue": "missing_gps_source",
+                "gps_enabled_dogs": len(gps_enabled_dogs),
             },
-            severity='warning',
+            severity="warning",
         )
 
     # Check for unrealistic GPS update intervals
-    update_interval_raw = gps_config.get('gps_update_interval', 60)
+    update_interval_raw = gps_config.get("gps_update_interval", 60)
     update_interval = (
         int(update_interval_raw)
         if isinstance(update_interval_raw, (int, float, str))
@@ -648,8 +653,8 @@ async def _check_gps_configuration_issues(
             f"{entry.entry_id}_gps_update_too_frequent",
             ISSUE_GPS_UPDATE_INTERVAL,
             {
-                'current_interval': update_interval,
-                'recommended_interval': 30,
+                "current_interval": update_interval,
+                "recommended_interval": 30,
             },
             severity=ir.IssueSeverity.WARNING,
         )
@@ -679,7 +684,7 @@ async def _check_notification_configuration_issues(
     ]
     notification_enabled_dogs = []
     for dog in dogs:
-        modules_raw = dog.get('modules', {})
+        modules_raw = dog.get("modules", {})
         modules = modules_raw if isinstance(modules_raw, Mapping) else {}
         if modules.get(MODULE_NOTIFICATIONS, False):
             notification_enabled_dogs.append(dog)
@@ -688,7 +693,7 @@ async def _check_notification_configuration_issues(
         return  # No notification configuration to check
 
     # Check if notification services are available
-    notification_config_raw = entry.options.get('notifications', {})
+    notification_config_raw = entry.options.get("notifications", {})
     notification_config = (
         notification_config_raw
         if isinstance(
@@ -699,28 +704,28 @@ async def _check_notification_configuration_issues(
     )
 
     # Check for mobile app availability
-    mobile_enabled_raw = notification_config.get('mobile_notifications', True)
+    mobile_enabled_raw = notification_config.get("mobile_notifications", True)
     mobile_enabled = (
         mobile_enabled_raw if isinstance(mobile_enabled_raw, bool) else True
     )
     if mobile_enabled:
         has_mobile_app_service = hass.services.has_service(
-            'notify',
-            'mobile_app',
+            "notify",
+            "mobile_app",
         )
 
         if not has_mobile_app_service:
-            async_services = getattr(hass.services, 'async_services', None)
+            async_services = getattr(hass.services, "async_services", None)
             if callable(async_services):
                 notify_services: Any
                 try:
-                    notify_services = async_services().get('notify', {})
+                    notify_services = async_services().get("notify", {})
                 except Exception:  # pragma: no cover - defensive fallback
                     notify_services = {}
 
                 if isinstance(notify_services, dict):
                     has_mobile_app_service = any(
-                        service.startswith('mobile_app') for service in notify_services
+                        service.startswith("mobile_app") for service in notify_services
                     )
 
         if not has_mobile_app_service:
@@ -730,10 +735,10 @@ async def _check_notification_configuration_issues(
                 f"{entry.entry_id}_mobile_app_missing",
                 ISSUE_MISSING_NOTIFICATIONS,
                 {
-                    'missing_service': 'mobile_app',
-                    'notification_enabled_dogs': len(notification_enabled_dogs),
+                    "missing_service": "mobile_app",
+                    "notification_enabled_dogs": len(notification_enabled_dogs),
                 },
-                severity='warning',
+                severity="warning",
             )
 
 
@@ -755,8 +760,8 @@ async def _check_outdated_configuration(
             f"{entry.entry_id}_outdated_config",
             ISSUE_OUTDATED_CONFIG,
             {
-                'current_version': entry.version,
-                'required_version': 1,
+                "current_version": entry.version,
+                "required_version": 1,
             },
             severity=ir.IssueSeverity.WARNING,
         )
@@ -773,9 +778,9 @@ async def _check_reconfigure_telemetry_issues(
         if isinstance(entry.options, Mapping)
         else {}
     )
-    telemetry_raw = options.get('reconfigure_telemetry')
+    telemetry_raw = options.get("reconfigure_telemetry")
 
-    delete_issue = getattr(ir, 'async_delete_issue', None)
+    delete_issue = getattr(ir, "async_delete_issue", None)
     warnings_issue_id = f"{entry.entry_id}_reconfigure_warnings"
     health_issue_id = f"{entry.entry_id}_reconfigure_health"
 
@@ -793,11 +798,11 @@ async def _check_reconfigure_telemetry_issues(
         return []
 
     timestamp = str(
-        telemetry.get('timestamp') or options.get('last_reconfigure') or '',
+        telemetry.get("timestamp") or options.get("last_reconfigure") or "",
     )
-    requested_profile = str(telemetry.get('requested_profile', ''))
-    previous_profile = str(telemetry.get('previous_profile', ''))
-    warnings = _as_list(telemetry.get('compatibility_warnings'))
+    requested_profile = str(telemetry.get("requested_profile", ""))
+    previous_profile = str(telemetry.get("previous_profile", ""))
+    warnings = _as_list(telemetry.get("compatibility_warnings"))
 
     if warnings:
         await async_create_issue(
@@ -806,21 +811,21 @@ async def _check_reconfigure_telemetry_issues(
             warnings_issue_id,
             ISSUE_RECONFIGURE_WARNINGS,
             {
-                'timestamp': timestamp,
-                'requested_profile': requested_profile,
-                'previous_profile': previous_profile,
-                'warnings': warnings,
+                "timestamp": timestamp,
+                "requested_profile": requested_profile,
+                "previous_profile": previous_profile,
+                "warnings": warnings,
             },
             severity=ir.IssueSeverity.WARNING,
         )
     elif callable(delete_issue):
         await delete_issue(hass, DOMAIN, warnings_issue_id)
 
-    health_summary = telemetry.get('health_summary')
+    health_summary = telemetry.get("health_summary")
     if isinstance(health_summary, Mapping):
-        healthy = bool(health_summary.get('healthy', True))
-        health_issues = _as_list(health_summary.get('issues'))
-        health_warnings = _as_list(health_summary.get('warnings'))
+        healthy = bool(health_summary.get("healthy", True))
+        health_issues = _as_list(health_summary.get("issues"))
+        health_warnings = _as_list(health_summary.get("warnings"))
 
         if not healthy or health_issues or health_warnings:
             severity = (
@@ -834,10 +839,10 @@ async def _check_reconfigure_telemetry_issues(
                 health_issue_id,
                 ISSUE_RECONFIGURE_HEALTH,
                 {
-                    'timestamp': timestamp,
-                    'requested_profile': requested_profile,
-                    'health_issues': health_issues,
-                    'health_warnings': health_warnings,
+                    "timestamp": timestamp,
+                    "requested_profile": requested_profile,
+                    "health_issues": health_issues,
+                    "health_warnings": health_warnings,
                 },
                 severity=severity,
             )
@@ -875,9 +880,9 @@ async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> 
             f"{entry.entry_id}_too_many_dogs",
             ISSUE_PERFORMANCE_WARNING,
             {
-                'dog_count': len(dogs),
-                'recommended_max': 10,
-                'suggestion': 'Consider performance mode optimization',
+                "dog_count": len(dogs),
+                "recommended_max": 10,
+                "suggestion": "Consider performance mode optimization",
             },
             severity=ir.IssueSeverity.WARNING,
         )
@@ -886,7 +891,7 @@ async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> 
     high_resource_modules = [MODULE_GPS, MODULE_HEALTH]
     dogs_with_all_modules = []
     for dog in dogs:
-        modules_raw = dog.get('modules', {})
+        modules_raw = dog.get("modules", {})
         modules = modules_raw if isinstance(modules_raw, Mapping) else {}
         if all(modules.get(module, False) for module in high_resource_modules):
             dogs_with_all_modules.append(dog)
@@ -898,9 +903,9 @@ async def _check_performance_issues(hass: HomeAssistant, entry: ConfigEntry) -> 
             f"{entry.entry_id}_resource_intensive_config",
             ISSUE_MODULE_CONFLICT,
             {
-                'intensive_dogs': len(dogs_with_all_modules),
-                'total_dogs': len(dogs),
-                'suggestion': 'Consider selective module enabling',
+                "intensive_dogs": len(dogs_with_all_modules),
+                "total_dogs": len(dogs),
+                "suggestion": "Consider selective module enabling",
             },
             severity=ir.IssueSeverity.WARNING,
         )
@@ -914,7 +919,7 @@ async def _check_storage_issues(hass: HomeAssistant, entry: ConfigEntry) -> None
         entry: Configuration entry
     """
     # Check data retention settings
-    retention_raw = entry.options.get('data_retention_days', 90)
+    retention_raw = entry.options.get("data_retention_days", 90)
     retention_days = (
         int(retention_raw)
         if isinstance(
@@ -931,9 +936,9 @@ async def _check_storage_issues(hass: HomeAssistant, entry: ConfigEntry) -> None
             f"{entry.entry_id}_high_storage_retention",
             ISSUE_STORAGE_WARNING,
             {
-                'current_retention': retention_days,
-                'recommended_max': 365,
-                'suggestion': 'Consider reducing data retention period',
+                "current_retention": retention_days,
+                "recommended_max": 365,
+                "suggestion": "Consider reducing data retention period",
             },
             severity=ir.IssueSeverity.WARNING,
         )
@@ -944,44 +949,44 @@ async def _check_runtime_store_health(hass: HomeAssistant, entry: ConfigEntry) -
 
     issue_id = f"{entry.entry_id}_runtime_store"
     snapshot = describe_runtime_store_status(hass, entry)
-    status = snapshot.get('status', 'current')
+    status = snapshot.get("status", "current")
     severity = _RUNTIME_STORE_STATUS_SEVERITY.get(status)
 
-    delete_issue = getattr(ir, 'async_delete_issue', None)
+    delete_issue = getattr(ir, "async_delete_issue", None)
 
     if severity is None:
         if callable(delete_issue):
             await delete_issue(hass, DOMAIN, issue_id)
         return
 
-    entry_snapshot = snapshot.get('entry', {})
-    store_snapshot = snapshot.get('store', {})
+    entry_snapshot = snapshot.get("entry", {})
+    store_snapshot = snapshot.get("store", {})
 
     def _string_or_unknown(value: Any) -> str:
         if value is None:
-            return 'n/a'
+            return "n/a"
         return str(value)
 
     issue_data: JSONMutableMapping = {
-        'status': status,
-        'current_version': snapshot.get('current_version'),
-        'minimum_compatible_version': snapshot.get('minimum_compatible_version'),
-        'entry_status': entry_snapshot.get('status'),
-        'store_status': store_snapshot.get('status'),
-        'divergence_detected': snapshot.get('divergence_detected', False),
+        "status": status,
+        "current_version": snapshot.get("current_version"),
+        "minimum_compatible_version": snapshot.get("minimum_compatible_version"),
+        "entry_status": entry_snapshot.get("status"),
+        "store_status": store_snapshot.get("status"),
+        "divergence_detected": snapshot.get("divergence_detected", False),
     }
 
-    issue_data['entry_version'] = _string_or_unknown(
-        entry_snapshot.get('version'),
+    issue_data["entry_version"] = _string_or_unknown(
+        entry_snapshot.get("version"),
     )
-    issue_data['entry_created_version'] = _string_or_unknown(
-        entry_snapshot.get('created_version'),
+    issue_data["entry_created_version"] = _string_or_unknown(
+        entry_snapshot.get("created_version"),
     )
-    issue_data['store_version'] = _string_or_unknown(
-        store_snapshot.get('version'),
+    issue_data["store_version"] = _string_or_unknown(
+        store_snapshot.get("version"),
     )
-    issue_data['store_created_version'] = _string_or_unknown(
-        store_snapshot.get('created_version'),
+    issue_data["store_created_version"] = _string_or_unknown(
+        store_snapshot.get("created_version"),
     )
 
     await async_create_issue(
@@ -1002,7 +1007,7 @@ def _normalise_duration_alerts(
     if not isinstance(summary, Mapping):
         return []
 
-    alerts_raw = summary.get('level_duration_guard_alerts')
+    alerts_raw = summary.get("level_duration_guard_alerts")
     if not isinstance(alerts_raw, Sequence):
         return []
 
@@ -1010,9 +1015,9 @@ def _normalise_duration_alerts(
     for candidate in alerts_raw:
         if not isinstance(candidate, Mapping):
             continue
-        level = candidate.get('level')
-        percentile_seconds = candidate.get('percentile_seconds')
-        guard_limit_seconds = candidate.get('guard_limit_seconds')
+        level = candidate.get("level")
+        percentile_seconds = candidate.get("percentile_seconds")
+        guard_limit_seconds = candidate.get("guard_limit_seconds")
         if (
             not isinstance(level, str)
             or not isinstance(percentile_seconds, (int, float))
@@ -1020,13 +1025,13 @@ def _normalise_duration_alerts(
         ):
             continue
         alert: RuntimeStoreLevelDurationAlert = {
-            'level': cast(RuntimeStoreHealthLevel, level),
-            'percentile_label': cast(str, candidate.get('percentile_label', 'p95')),
-            'percentile_rank': float(candidate.get('percentile_rank', 0.95) or 0.95),
-            'percentile_seconds': float(percentile_seconds),
-            'guard_limit_seconds': float(guard_limit_seconds),
-            'severity': cast(str, candidate.get('severity', 'warning')),
-            'recommended_action': cast(str | None, candidate.get('recommended_action')),
+            "level": cast(RuntimeStoreHealthLevel, level),
+            "percentile_label": cast(str, candidate.get("percentile_label", "p95")),
+            "percentile_rank": float(candidate.get("percentile_rank", 0.95) or 0.95),
+            "percentile_seconds": float(percentile_seconds),
+            "guard_limit_seconds": float(guard_limit_seconds),
+            "severity": cast(str, candidate.get("severity", "warning")),
+            "recommended_action": cast(str | None, candidate.get("recommended_action")),
         }
         alerts.append(alert)
     return alerts
@@ -1037,29 +1042,29 @@ def _resolve_duration_alert_severity(
 ) -> str | ir.IssueSeverity:
     """Return the issue severity matching ``alerts``."""
 
-    severity_enum = getattr(ir, 'IssueSeverity', None)
-    highest = 'warning'
+    severity_enum = getattr(ir, "IssueSeverity", None)
+    highest = "warning"
     for alert in alerts:
-        severity = str(alert.get('severity', 'warning')).lower()
-        if severity in {'critical', 'error'}:
-            highest = 'critical'
+        severity = str(alert.get("severity", "warning")).lower()
+        if severity in {"critical", "error"}:
+            highest = "critical"
             break
-        if severity == 'warning' and highest != 'critical':
-            highest = 'warning'
+        if severity == "warning" and highest != "critical":
+            highest = "warning"
 
     if severity_enum is None:
-        return 'error' if highest == 'critical' else 'warning'
+        return "error" if highest == "critical" else "warning"
 
-    if highest == 'critical':
-        critical_value = getattr(severity_enum, 'CRITICAL', None)
+    if highest == "critical":
+        critical_value = getattr(severity_enum, "CRITICAL", None)
         if critical_value is not None:
             return critical_value
-        return getattr(severity_enum, 'ERROR', severity_enum.WARNING)
+        return getattr(severity_enum, "ERROR", severity_enum.WARNING)
 
-    warning_value = getattr(severity_enum, 'WARNING', None)
+    warning_value = getattr(severity_enum, "WARNING", None)
     if warning_value is not None:
         return warning_value
-    return getattr(severity_enum, 'ERROR', severity_enum.WARNING)
+    return getattr(severity_enum, "ERROR", severity_enum.WARNING)
 
 
 def _format_duration_summary(seconds: float) -> str:
@@ -1084,68 +1089,68 @@ async def _check_runtime_store_duration_alerts(
     try:
         runtime_data = require_runtime_data(hass, entry)
     except RuntimeDataUnavailableError:
-        delete_issue = getattr(ir, 'async_delete_issue', None)
+        delete_issue = getattr(ir, "async_delete_issue", None)
         if callable(delete_issue):
             await delete_issue(hass, DOMAIN, issue_id)
         return
 
     history = get_runtime_store_health(runtime_data)
     if not isinstance(history, Mapping):
-        delete_issue = getattr(ir, 'async_delete_issue', None)
+        delete_issue = getattr(ir, "async_delete_issue", None)
         if callable(delete_issue):
             await delete_issue(hass, DOMAIN, issue_id)
         return
 
     timeline_summary = None
-    summary_candidate = history.get('assessment_timeline_summary')
+    summary_candidate = history.get("assessment_timeline_summary")
     if isinstance(summary_candidate, Mapping):
         timeline_summary = summary_candidate
     else:
-        assessment = history.get('assessment')
+        assessment = history.get("assessment")
         if isinstance(assessment, Mapping):
-            nested_summary = assessment.get('timeline_summary')
+            nested_summary = assessment.get("timeline_summary")
             if isinstance(nested_summary, Mapping):
                 timeline_summary = nested_summary
 
     alerts = _normalise_duration_alerts(timeline_summary)
     if not alerts:
-        delete_issue = getattr(ir, 'async_delete_issue', None)
+        delete_issue = getattr(ir, "async_delete_issue", None)
         if callable(delete_issue):
             await delete_issue(hass, DOMAIN, issue_id)
         return
 
     severity = _resolve_duration_alert_severity(alerts)
-    triggered_levels = ', '.join(sorted({alert['level'] for alert in alerts}))
-    alert_summaries = '; '.join(
+    triggered_levels = ", ".join(sorted({alert["level"] for alert in alerts}))
+    alert_summaries = "; ".join(
         f"{alert['level']}: {alert['percentile_label']} "
         f"{_format_duration_summary(alert['percentile_seconds'])} "
         f"(guard {_format_duration_summary(alert['guard_limit_seconds'])})"
         for alert in alerts
     )
-    recommendations = '; '.join(
+    recommendations = "; ".join(
         cast(str, action)
-        for action in (alert.get('recommended_action') for alert in alerts)
+        for action in (alert.get("recommended_action") for alert in alerts)
         if isinstance(action, str)
     )
 
     timeline_window = None
     last_event_timestamp = None
     if isinstance(timeline_summary, Mapping):
-        timeline_window = timeline_summary.get('timeline_window_days')
-        last_event_timestamp = timeline_summary.get('last_event_timestamp')
+        timeline_window = timeline_summary.get("timeline_window_days")
+        last_event_timestamp = timeline_summary.get("last_event_timestamp")
 
     issue_data: JSONMutableMapping = {
-        'alert_count': len(alerts),
-        'triggered_levels': triggered_levels,
-        'alert_summaries': alert_summaries,
-        'timeline_window_days': timeline_window
+        "alert_count": len(alerts),
+        "triggered_levels": triggered_levels,
+        "alert_summaries": alert_summaries,
+        "timeline_window_days": timeline_window
         if timeline_window is not None
-        else 'n/a',
-        'last_event_timestamp': last_event_timestamp
+        else "n/a",
+        "last_event_timestamp": last_event_timestamp
         if last_event_timestamp is not None
-        else 'n/a',
+        else "n/a",
     }
-    issue_data['recommended_actions'] = recommendations or 'n/a'
+    issue_data["recommended_actions"] = recommendations or "n/a"
 
     await async_create_issue(
         hass,
@@ -1164,30 +1169,30 @@ async def _publish_cache_health_issue(hass: HomeAssistant, entry: ConfigEntry) -
     try:
         runtime_data = require_runtime_data(hass, entry)
     except RuntimeDataUnavailableError:
-        delete_issue = getattr(ir, 'async_delete_issue', None)
+        delete_issue = getattr(ir, "async_delete_issue", None)
         if callable(delete_issue):
             await delete_issue(hass, DOMAIN, issue_id)
         return
 
-    data_manager = getattr(runtime_data, 'data_manager', None)
+    data_manager = getattr(runtime_data, "data_manager", None)
     if data_manager is None:
-        delete_issue = getattr(ir, 'async_delete_issue', None)
+        delete_issue = getattr(ir, "async_delete_issue", None)
         if callable(delete_issue):
             await delete_issue(hass, DOMAIN, issue_id)
         return
 
-    summary_method = getattr(data_manager, 'cache_repair_summary', None)
+    summary_method = getattr(data_manager, "cache_repair_summary", None)
     if not callable(summary_method):
         return
 
     try:
         summary = summary_method()
     except Exception as err:  # pragma: no cover - diagnostics guard
-        _LOGGER.debug('Skipping cache health issue publication: %s', err)
+        _LOGGER.debug("Skipping cache health issue publication: %s", err)
         return
 
     if summary is None:
-        delete_issue = getattr(ir, 'async_delete_issue', None)
+        delete_issue = getattr(ir, "async_delete_issue", None)
         if callable(delete_issue):
             await delete_issue(hass, DOMAIN, issue_id)
         return
@@ -1195,7 +1200,7 @@ async def _publish_cache_health_issue(hass: HomeAssistant, entry: ConfigEntry) -
     resolved_summary = ensure_cache_repair_aggregate(summary)
     if resolved_summary is None:
         _LOGGER.debug(
-            'Cache repair summary returned unexpected payload: %r',
+            "Cache repair summary returned unexpected payload: %r",
             summary,
         )
         return
@@ -1203,7 +1208,7 @@ async def _publish_cache_health_issue(hass: HomeAssistant, entry: ConfigEntry) -
     summary = resolved_summary
 
     if summary.anomaly_count == 0:
-        delete_issue = getattr(ir, 'async_delete_issue', None)
+        delete_issue = getattr(ir, "async_delete_issue", None)
         if callable(delete_issue):
             await delete_issue(hass, DOMAIN, issue_id)
         return
@@ -1214,7 +1219,7 @@ async def _publish_cache_health_issue(hass: HomeAssistant, entry: ConfigEntry) -
         entry,
         issue_id,
         ISSUE_CACHE_HEALTH_SUMMARY,
-        {'summary': summary.to_mapping()},
+        {"summary": summary.to_mapping()},
         severity=severity,
     )
 
@@ -1235,33 +1240,33 @@ async def _check_coordinator_health(hass: HomeAssistant, entry: ConfigEntry) -> 
             f"{entry.entry_id}_coordinator_missing",
             ISSUE_COORDINATOR_ERROR,
             {
-                'error': 'coordinator_not_initialized',
-                'suggestion': 'Try reloading the integration',
+                "error": "coordinator_not_initialized",
+                "suggestion": "Try reloading the integration",
             },
-            severity='error',
+            severity="error",
         )
         return
     except Exception as err:
-        _LOGGER.error('Error checking coordinator health: %s', err)
+        _LOGGER.error("Error checking coordinator health: %s", err)
         return
 
     coordinator = runtime_data.coordinator
 
-    if not getattr(coordinator, 'last_update_success', True):
-        last_update_time = getattr(coordinator, 'last_update_time', None)
+    if not getattr(coordinator, "last_update_success", True):
+        last_update_time = getattr(coordinator, "last_update_time", None)
         await async_create_issue(
             hass,
             entry,
             f"{entry.entry_id}_coordinator_failed",
             ISSUE_COORDINATOR_ERROR,
             {
-                'error': 'last_update_failed',
-                'last_update': last_update_time.isoformat()
+                "error": "last_update_failed",
+                "last_update": last_update_time.isoformat()
                 if last_update_time
                 else None,
-                'suggestion': 'Check logs for detailed error information',
+                "suggestion": "Check logs for detailed error information",
             },
-            severity='warning',
+            severity="warning",
         )
 
 
@@ -1272,7 +1277,7 @@ class PawControlRepairsFlow(RepairsFlow):
         """Initialize the repair flow."""
         super().__init__()
         self._issue_data: JSONMutableMapping = {}
-        self._repair_type: str = ''
+        self._repair_type: str = ""
 
     async def async_step_init(
         self,
@@ -1290,14 +1295,14 @@ class PawControlRepairsFlow(RepairsFlow):
             JSONMutableMapping,
             self.hass.data[ir.DOMAIN][self.issue_id].data,
         )
-        issue_type_raw = self._issue_data.get('issue_type', '')
+        issue_type_raw = self._issue_data.get("issue_type", "")
         self._repair_type = (
             issue_type_raw
             if isinstance(
                 issue_type_raw,
                 str,
             )
-            else ''
+            else ""
         )
 
         # Route to appropriate repair flow based on issue type
@@ -1339,32 +1344,32 @@ class PawControlRepairsFlow(RepairsFlow):
             Flow result for next step or completion
         """
         if user_input is not None:
-            action = user_input.get('action')
+            action = user_input.get("action")
 
-            if action == 'add_dog':
+            if action == "add_dog":
                 return await self.async_step_add_first_dog()
-            if action == 'reconfigure':
+            if action == "reconfigure":
                 # Redirect to reconfigure flow
                 return self.async_external_step(
-                    step_id='reconfigure',
-                    url='/config/integrations',
+                    step_id="reconfigure",
+                    url="/config/integrations",
                 )
             return await self.async_step_complete_repair()
 
         return self.async_show_form(
-            step_id='missing_dog_config',
+            step_id="missing_dog_config",
             data_schema=vol.Schema(
                 {
-                    vol.Required('action'): selector(
+                    vol.Required("action"): selector(
                         {
-                            'select': {
-                                'options': [
-                                    {'value': 'add_dog', 'label': 'Add a dog now'},
+                            "select": {
+                                "options": [
+                                    {"value": "add_dog", "label": "Add a dog now"},
                                     {
-                                        'value': 'reconfigure',
-                                        'label': 'Go to integration settings',
+                                        "value": "reconfigure",
+                                        "label": "Go to integration settings",
                                     },
-                                    {'value': 'ignore', 'label': 'Ignore for now'},
+                                    {"value": "ignore", "label": "Ignore for now"},
                                 ],
                             },
                         },
@@ -1372,7 +1377,7 @@ class PawControlRepairsFlow(RepairsFlow):
                 },
             ),
             description_placeholders={
-                'dogs_count': self._issue_data.get('dogs_count', 0),
+                "dogs_count": self._issue_data.get("dogs_count", 0),
             },
         )
 
@@ -1393,51 +1398,51 @@ class PawControlRepairsFlow(RepairsFlow):
         if user_input is not None:
             try:
                 # Validate dog data
-                dog_id_raw = user_input.get('dog_id')
-                dog_name_raw = user_input.get('dog_name')
+                dog_id_raw = user_input.get("dog_id")
+                dog_name_raw = user_input.get("dog_name")
 
                 if not isinstance(dog_id_raw, str) or not isinstance(dog_name_raw, str):
-                    errors['base'] = 'incomplete_data'
+                    errors["base"] = "incomplete_data"
                 else:
                     dog_id = dog_id_raw.lower().strip()
                     dog_name = dog_name_raw.strip()
 
                     if not dog_id or not dog_name:
-                        errors['base'] = 'incomplete_data'
+                        errors["base"] = "incomplete_data"
                     else:
                         # Get the config entry and update it
-                        config_entry_id = self._issue_data['config_entry_id']
+                        config_entry_id = self._issue_data["config_entry_id"]
                         entry = self.hass.config_entries.async_get_entry(
                             config_entry_id,
                         )
 
                         if entry:
                             # Create new dog configuration
-                            dog_breed_raw = user_input.get('dog_breed', '')
-                            dog_age_raw = user_input.get('dog_age', 3)
-                            dog_weight_raw = user_input.get('dog_weight', 20.0)
-                            dog_size_raw = user_input.get('dog_size', 'medium')
+                            dog_breed_raw = user_input.get("dog_breed", "")
+                            dog_age_raw = user_input.get("dog_age", 3)
+                            dog_weight_raw = user_input.get("dog_weight", 20.0)
+                            dog_size_raw = user_input.get("dog_size", "medium")
                             new_dog = {
                                 CONF_DOG_ID: dog_id,
                                 CONF_DOG_NAME: dog_name,
-                                'dog_breed': dog_breed_raw
+                                "dog_breed": dog_breed_raw
                                 if isinstance(dog_breed_raw, str)
-                                else '',
-                                'dog_age': int(dog_age_raw)
+                                else "",
+                                "dog_age": int(dog_age_raw)
                                 if isinstance(dog_age_raw, (int, float, str))
                                 else 3,
-                                'dog_weight': float(dog_weight_raw)
+                                "dog_weight": float(dog_weight_raw)
                                 if isinstance(dog_weight_raw, (int, float, str))
                                 else 20.0,
-                                'dog_size': dog_size_raw
+                                "dog_size": dog_size_raw
                                 if isinstance(dog_size_raw, str)
-                                else 'medium',
-                                'modules': {
-                                    'feeding': True,
-                                    'walk': True,
-                                    'gps': False,
-                                    'health': True,
-                                    'notifications': True,
+                                else "medium",
+                                "modules": {
+                                    "feeding": True,
+                                    "walk": True,
+                                    "gps": False,
+                                    "health": True,
+                                    "notifications": True,
                                 },
                             }
 
@@ -1451,25 +1456,25 @@ class PawControlRepairsFlow(RepairsFlow):
                         )
 
                         return await self.async_step_complete_repair()
-                    errors['base'] = 'config_entry_not_found'
+                    errors["base"] = "config_entry_not_found"
 
             except Exception as err:
-                _LOGGER.error('Error adding first dog: %s', err)
-                errors['base'] = 'unexpected_error'
+                _LOGGER.error("Error adding first dog: %s", err)
+                errors["base"] = "unexpected_error"
 
         return self.async_show_form(
-            step_id='add_first_dog',
+            step_id="add_first_dog",
             data_schema=vol.Schema(
                 {
-                    vol.Required('dog_id'): str,
-                    vol.Required('dog_name'): str,
-                    vol.Optional('dog_breed', default=''): str,
-                    vol.Optional('dog_age', default=3): int,
-                    vol.Optional('dog_weight', default=20.0): float,
-                    vol.Optional('dog_size', default='medium'): selector(
+                    vol.Required("dog_id"): str,
+                    vol.Required("dog_name"): str,
+                    vol.Optional("dog_breed", default=""): str,
+                    vol.Optional("dog_age", default=3): int,
+                    vol.Optional("dog_weight", default=20.0): float,
+                    vol.Optional("dog_size", default="medium"): selector(
                         {
-                            'select': {
-                                'options': ['toy', 'small', 'medium', 'large', 'giant'],
+                            "select": {
+                                "options": ["toy", "small", "medium", "large", "giant"],
                             },
                         },
                     ),
@@ -1491,27 +1496,27 @@ class PawControlRepairsFlow(RepairsFlow):
             Flow result for next step or completion
         """
         if user_input is not None:
-            action = user_input.get('action')
+            action = user_input.get("action")
 
-            if action == 'auto_fix':
+            if action == "auto_fix":
                 # Automatically fix duplicate IDs
                 await self._fix_duplicate_dog_ids()
                 return await self.async_step_complete_repair()
-            if action == 'manual_fix':
+            if action == "manual_fix":
                 return self.async_external_step(
-                    step_id='reconfigure',
-                    url='/config/integrations',
+                    step_id="reconfigure",
+                    url="/config/integrations",
                 )
             return await self.async_step_complete_repair()
 
-        duplicate_ids_raw = self._issue_data.get('duplicate_ids', [])
+        duplicate_ids_raw = self._issue_data.get("duplicate_ids", [])
         duplicate_ids = (
             [str(item) for item in duplicate_ids_raw]
             if isinstance(duplicate_ids_raw, Sequence)
             and not isinstance(duplicate_ids_raw, (str, bytes))
             else []
         )
-        total_dogs_raw = self._issue_data.get('total_dogs', 0)
+        total_dogs_raw = self._issue_data.get("total_dogs", 0)
         total_dogs = (
             int(total_dogs_raw)
             if isinstance(
@@ -1522,22 +1527,22 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
         return self.async_show_form(
-            step_id='duplicate_dog_ids',
+            step_id="duplicate_dog_ids",
             data_schema=vol.Schema(
                 {
-                    vol.Required('action'): selector(
+                    vol.Required("action"): selector(
                         {
-                            'select': {
-                                'options': [
+                            "select": {
+                                "options": [
                                     {
-                                        'value': 'auto_fix',
-                                        'label': 'Automatically fix duplicate IDs',
+                                        "value": "auto_fix",
+                                        "label": "Automatically fix duplicate IDs",
                                     },
                                     {
-                                        'value': 'manual_fix',
-                                        'label': 'Manually fix in integration settings',
+                                        "value": "manual_fix",
+                                        "label": "Manually fix in integration settings",
                                     },
-                                    {'value': 'ignore', 'label': 'Ignore for now'},
+                                    {"value": "ignore", "label": "Ignore for now"},
                                 ],
                             },
                         },
@@ -1545,8 +1550,8 @@ class PawControlRepairsFlow(RepairsFlow):
                 },
             ),
             description_placeholders={
-                'duplicate_ids': ', '.join(duplicate_ids),
-                'total_dogs': total_dogs,
+                "duplicate_ids": ", ".join(duplicate_ids),
+                "total_dogs": total_dogs,
             },
         )
 
@@ -1563,32 +1568,32 @@ class PawControlRepairsFlow(RepairsFlow):
             Flow result for next step or completion
         """
         if user_input is not None:
-            action = user_input.get('action')
+            action = user_input.get("action")
 
-            if action == 'configure_gps':
+            if action == "configure_gps":
                 return await self.async_step_configure_gps()
-            if action == 'disable_gps':
+            if action == "disable_gps":
                 await self._disable_gps_for_all_dogs()
                 return await self.async_step_complete_repair()
             return await self.async_step_complete_repair()
 
         return self.async_show_form(
-            step_id='invalid_gps_config',
+            step_id="invalid_gps_config",
             data_schema=vol.Schema(
                 {
-                    vol.Required('action'): selector(
+                    vol.Required("action"): selector(
                         {
-                            'select': {
-                                'options': [
+                            "select": {
+                                "options": [
                                     {
-                                        'value': 'configure_gps',
-                                        'label': 'Configure GPS settings',
+                                        "value": "configure_gps",
+                                        "label": "Configure GPS settings",
                                     },
                                     {
-                                        'value': 'disable_gps',
-                                        'label': 'Disable GPS for all dogs',
+                                        "value": "disable_gps",
+                                        "label": "Disable GPS for all dogs",
                                     },
-                                    {'value': 'ignore', 'label': 'Ignore for now'},
+                                    {"value": "ignore", "label": "Ignore for now"},
                                 ],
                             },
                         },
@@ -1596,8 +1601,8 @@ class PawControlRepairsFlow(RepairsFlow):
                 },
             ),
             description_placeholders={
-                'issue': self._issue_data.get('issue', 'unknown'),
-                'gps_enabled_dogs': self._issue_data.get('gps_enabled_dogs', 0),
+                "issue": self._issue_data.get("issue", "unknown"),
+                "gps_enabled_dogs": self._issue_data.get("gps_enabled_dogs", 0),
             },
         )
 
@@ -1616,18 +1621,18 @@ class PawControlRepairsFlow(RepairsFlow):
         if user_input is not None:
             try:
                 # Update GPS configuration
-                config_entry_id = self._issue_data['config_entry_id']
+                config_entry_id = self._issue_data["config_entry_id"]
                 entry = self.hass.config_entries.async_get_entry(
                     config_entry_id,
                 )
 
                 if entry:
                     new_options = entry.options.copy()
-                    new_options.setdefault('gps', {}).update(
+                    new_options.setdefault("gps", {}).update(
                         {
-                            'gps_source': user_input['gps_source'],
-                            'gps_update_interval': user_input['update_interval'],
-                            'gps_accuracy_filter': user_input['accuracy_filter'],
+                            "gps_source": user_input["gps_source"],
+                            "gps_update_interval": user_input["update_interval"],
+                            "gps_accuracy_filter": user_input["accuracy_filter"],
                         },
                     )
 
@@ -1637,33 +1642,33 @@ class PawControlRepairsFlow(RepairsFlow):
                     )
 
                     return await self.async_step_complete_repair()
-                return self.async_abort(reason='config_entry_not_found')
+                return self.async_abort(reason="config_entry_not_found")
 
             except Exception as err:
-                _LOGGER.error('Error configuring GPS: %s', err)
-                return self.async_abort(reason='unexpected_error')
+                _LOGGER.error("Error configuring GPS: %s", err)
+                return self.async_abort(reason="unexpected_error")
 
         return self.async_show_form(
-            step_id='configure_gps',
+            step_id="configure_gps",
             data_schema=vol.Schema(
                 {
-                    vol.Required('gps_source', default='device_tracker'): selector(
+                    vol.Required("gps_source", default="device_tracker"): selector(
                         {
-                            'select': {
-                                'options': [
-                                    'device_tracker',
-                                    'person_entity',
-                                    'manual',
-                                    'smartphone',
+                            "select": {
+                                "options": [
+                                    "device_tracker",
+                                    "person_entity",
+                                    "manual",
+                                    "smartphone",
                                 ],
                             },
                         },
                     ),
-                    vol.Required('update_interval', default=60): vol.All(
+                    vol.Required("update_interval", default=60): vol.All(
                         int,
                         vol.Range(min=30, max=600),
                     ),
-                    vol.Required('accuracy_filter', default=100): vol.All(
+                    vol.Required("accuracy_filter", default=100): vol.All(
                         int,
                         vol.Range(min=5, max=500),
                     ),
@@ -1684,35 +1689,35 @@ class PawControlRepairsFlow(RepairsFlow):
             Flow result for next step or completion
         """
         if user_input is not None:
-            action = user_input.get('action')
+            action = user_input.get("action")
 
-            if action == 'setup_mobile_app':
+            if action == "setup_mobile_app":
                 return self.async_external_step(
-                    step_id='setup_mobile',
-                    url='/config/mobile_app',
+                    step_id="setup_mobile",
+                    url="/config/mobile_app",
                 )
-            if action == 'disable_mobile':
+            if action == "disable_mobile":
                 await self._disable_mobile_notifications()
                 return await self.async_step_complete_repair()
             return await self.async_step_complete_repair()
 
         return self.async_show_form(
-            step_id='missing_notifications',
+            step_id="missing_notifications",
             data_schema=vol.Schema(
                 {
-                    vol.Required('action'): selector(
+                    vol.Required("action"): selector(
                         {
-                            'select': {
-                                'options': [
+                            "select": {
+                                "options": [
                                     {
-                                        'value': 'setup_mobile_app',
-                                        'label': 'Set up Mobile App integration',
+                                        "value": "setup_mobile_app",
+                                        "label": "Set up Mobile App integration",
                                     },
                                     {
-                                        'value': 'disable_mobile',
-                                        'label': 'Disable mobile notifications',
+                                        "value": "disable_mobile",
+                                        "label": "Disable mobile notifications",
                                     },
-                                    {'value': 'ignore', 'label': 'Ignore for now'},
+                                    {"value": "ignore", "label": "Ignore for now"},
                                 ],
                             },
                         },
@@ -1720,9 +1725,9 @@ class PawControlRepairsFlow(RepairsFlow):
                 },
             ),
             description_placeholders={
-                'missing_service': self._issue_data.get('missing_service', 'unknown'),
-                'notification_enabled_dogs': self._issue_data.get(
-                    'notification_enabled_dogs',
+                "missing_service": self._issue_data.get("missing_service", "unknown"),
+                "notification_enabled_dogs": self._issue_data.get(
+                    "notification_enabled_dogs",
                     0,
                 ),
             },
@@ -1741,35 +1746,35 @@ class PawControlRepairsFlow(RepairsFlow):
             Flow result for next step or completion
         """
         if user_input is not None:
-            action = user_input.get('action')
+            action = user_input.get("action")
 
-            if action == 'optimize':
+            if action == "optimize":
                 await self._apply_performance_optimizations()
                 return await self.async_step_complete_repair()
-            if action == 'configure':
+            if action == "configure":
                 return self.async_external_step(
-                    step_id='configure',
-                    url='/config/integrations',
+                    step_id="configure",
+                    url="/config/integrations",
                 )
             return await self.async_step_complete_repair()
 
         return self.async_show_form(
-            step_id='performance_warning',
+            step_id="performance_warning",
             data_schema=vol.Schema(
                 {
-                    vol.Required('action'): selector(
+                    vol.Required("action"): selector(
                         {
-                            'select': {
-                                'options': [
+                            "select": {
+                                "options": [
                                     {
-                                        'value': 'optimize',
-                                        'label': 'Apply automatic optimizations',
+                                        "value": "optimize",
+                                        "label": "Apply automatic optimizations",
                                     },
                                     {
-                                        'value': 'configure',
-                                        'label': 'Configure settings manually',
+                                        "value": "configure",
+                                        "label": "Configure settings manually",
                                     },
-                                    {'value': 'ignore', 'label': 'Ignore warning'},
+                                    {"value": "ignore", "label": "Ignore warning"},
                                 ],
                             },
                         },
@@ -1786,35 +1791,35 @@ class PawControlRepairsFlow(RepairsFlow):
         """Handle repair flow for storage warnings."""
 
         if user_input is not None:
-            action = user_input.get('action')
+            action = user_input.get("action")
 
-            if action == 'reduce_retention':
+            if action == "reduce_retention":
                 await self._reduce_data_retention()
                 return await self.async_step_complete_repair()
-            if action == 'configure':
+            if action == "configure":
                 return self.async_external_step(
-                    step_id='configure_storage',
-                    url='/config/integrations',
+                    step_id="configure_storage",
+                    url="/config/integrations",
                 )
             return await self.async_step_complete_repair()
 
         return self.async_show_form(
-            step_id='storage_warning',
+            step_id="storage_warning",
             data_schema=vol.Schema(
                 {
-                    vol.Required('action'): selector(
+                    vol.Required("action"): selector(
                         {
-                            'select': {
-                                'options': [
+                            "select": {
+                                "options": [
                                     {
-                                        'value': 'reduce_retention',
-                                        'label': 'Reduce data retention to recommended value',
+                                        "value": "reduce_retention",
+                                        "label": "Reduce data retention to recommended value",
                                     },
                                     {
-                                        'value': 'configure',
-                                        'label': 'Review storage settings manually',
+                                        "value": "configure",
+                                        "label": "Review storage settings manually",
                                     },
-                                    {'value': 'ignore', 'label': 'Ignore warning'},
+                                    {"value": "ignore", "label": "Ignore warning"},
                                 ],
                             },
                         },
@@ -1822,9 +1827,9 @@ class PawControlRepairsFlow(RepairsFlow):
                 },
             ),
             description_placeholders={
-                'current_retention': self._issue_data.get('current_retention'),
-                'recommended_max': self._issue_data.get('recommended_max'),
-                'suggestion': self._issue_data.get('suggestion'),
+                "current_retention": self._issue_data.get("current_retention"),
+                "recommended_max": self._issue_data.get("recommended_max"),
+                "suggestion": self._issue_data.get("suggestion"),
             },
         )
 
@@ -1835,42 +1840,42 @@ class PawControlRepairsFlow(RepairsFlow):
         """Handle repair flow for high resource module conflicts."""
 
         if user_input is not None:
-            action = user_input.get('action')
+            action = user_input.get("action")
 
-            if action == 'reduce_load':
+            if action == "reduce_load":
                 await self._limit_high_resource_modules()
                 return await self.async_step_complete_repair()
-            if action == 'optimize':
+            if action == "optimize":
                 await self._apply_performance_optimizations()
                 return await self.async_step_complete_repair()
-            if action == 'configure':
+            if action == "configure":
                 return self.async_external_step(
-                    step_id='configure_modules',
-                    url='/config/integrations',
+                    step_id="configure_modules",
+                    url="/config/integrations",
                 )
             return await self.async_step_complete_repair()
 
         return self.async_show_form(
-            step_id='module_conflict',
+            step_id="module_conflict",
             data_schema=vol.Schema(
                 {
-                    vol.Required('action'): selector(
+                    vol.Required("action"): selector(
                         {
-                            'select': {
-                                'options': [
+                            "select": {
+                                "options": [
                                     {
-                                        'value': 'reduce_load',
-                                        'label': 'Disable intensive modules for extra dogs',
+                                        "value": "reduce_load",
+                                        "label": "Disable intensive modules for extra dogs",
                                     },
                                     {
-                                        'value': 'optimize',
-                                        'label': 'Apply automatic optimizations',
+                                        "value": "optimize",
+                                        "label": "Apply automatic optimizations",
                                     },
                                     {
-                                        'value': 'configure',
-                                        'label': 'Adjust modules manually',
+                                        "value": "configure",
+                                        "label": "Adjust modules manually",
                                     },
-                                    {'value': 'ignore', 'label': 'Ignore warning'},
+                                    {"value": "ignore", "label": "Ignore warning"},
                                 ],
                             },
                         },
@@ -1878,9 +1883,9 @@ class PawControlRepairsFlow(RepairsFlow):
                 },
             ),
             description_placeholders={
-                'intensive_dogs': self._issue_data.get('intensive_dogs'),
-                'total_dogs': self._issue_data.get('total_dogs'),
-                'suggestion': self._issue_data.get('suggestion'),
+                "intensive_dogs": self._issue_data.get("intensive_dogs"),
+                "total_dogs": self._issue_data.get("total_dogs"),
+                "suggestion": self._issue_data.get("suggestion"),
             },
         )
 
@@ -1891,26 +1896,26 @@ class PawControlRepairsFlow(RepairsFlow):
         """Handle repair flow for invalid dog configuration data."""
 
         if user_input is not None:
-            action = user_input.get('action')
+            action = user_input.get("action")
 
-            if action == 'clean_up':
+            if action == "clean_up":
                 await self._remove_invalid_dogs()
                 return await self.async_step_complete_repair()
-            if action == 'reconfigure':
+            if action == "reconfigure":
                 return self.async_external_step(
-                    step_id='reconfigure',
-                    url='/config/integrations',
+                    step_id="reconfigure",
+                    url="/config/integrations",
                 )
             return await self.async_step_complete_repair()
 
-        invalid_dogs_raw = self._issue_data.get('invalid_dogs', [])
+        invalid_dogs_raw = self._issue_data.get("invalid_dogs", [])
         invalid_dogs = (
             [str(dog) for dog in invalid_dogs_raw]
             if isinstance(invalid_dogs_raw, Sequence)
             and not isinstance(invalid_dogs_raw, (str, bytes))
             else []
         )
-        total_dogs_raw = self._issue_data.get('total_dogs')
+        total_dogs_raw = self._issue_data.get("total_dogs")
         total_dogs = (
             int(total_dogs_raw)
             if isinstance(
@@ -1921,22 +1926,22 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
         return self.async_show_form(
-            step_id='invalid_dog_data',
+            step_id="invalid_dog_data",
             data_schema=vol.Schema(
                 {
-                    vol.Required('action'): selector(
+                    vol.Required("action"): selector(
                         {
-                            'select': {
-                                'options': [
+                            "select": {
+                                "options": [
                                     {
-                                        'value': 'clean_up',
-                                        'label': 'Remove invalid dog entries',
+                                        "value": "clean_up",
+                                        "label": "Remove invalid dog entries",
                                     },
                                     {
-                                        'value': 'reconfigure',
-                                        'label': 'Fix dog data manually',
+                                        "value": "reconfigure",
+                                        "label": "Fix dog data manually",
                                     },
-                                    {'value': 'ignore', 'label': 'Ignore for now'},
+                                    {"value": "ignore", "label": "Ignore for now"},
                                 ],
                             },
                         },
@@ -1944,8 +1949,8 @@ class PawControlRepairsFlow(RepairsFlow):
                 },
             ),
             description_placeholders={
-                'invalid_dogs': ', '.join(invalid_dogs),
-                'total_dogs': total_dogs,
+                "invalid_dogs": ", ".join(invalid_dogs),
+                "total_dogs": total_dogs,
             },
         )
 
@@ -1958,32 +1963,32 @@ class PawControlRepairsFlow(RepairsFlow):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            action = user_input.get('action')
+            action = user_input.get("action")
 
-            if action == 'reload':
+            if action == "reload":
                 if await self._reload_config_entry():
                     return await self.async_step_complete_repair()
-                errors['base'] = 'reload_failed'
-            elif action == 'view_logs':
-                return self.async_external_step(step_id='view_logs', url='/config/logs')
+                errors["base"] = "reload_failed"
+            elif action == "view_logs":
+                return self.async_external_step(step_id="view_logs", url="/config/logs")
             else:
                 return await self.async_step_complete_repair()
 
         data_schema = vol.Schema(
             {
-                vol.Required('action'): selector(
+                vol.Required("action"): selector(
                     {
-                        'select': {
-                            'options': [
+                        "select": {
+                            "options": [
                                 {
-                                    'value': 'reload',
-                                    'label': 'Reload Paw Control',
+                                    "value": "reload",
+                                    "label": "Reload Paw Control",
                                 },
                                 {
-                                    'value': 'view_logs',
-                                    'label': 'Open system logs',
+                                    "value": "view_logs",
+                                    "label": "Open system logs",
                                 },
-                                {'value': 'ignore', 'label': 'Ignore for now'},
+                                {"value": "ignore", "label": "Ignore for now"},
                             ],
                         },
                     },
@@ -1992,12 +1997,12 @@ class PawControlRepairsFlow(RepairsFlow):
         )
 
         return self.async_show_form(
-            step_id='coordinator_error',
+            step_id="coordinator_error",
             data_schema=data_schema,
             description_placeholders={
-                'error': self._issue_data.get('error', 'unknown'),
-                'last_update': self._issue_data.get('last_update'),
-                'suggestion': self._issue_data.get('suggestion'),
+                "error": self._issue_data.get("error", "unknown"),
+                "last_update": self._issue_data.get("last_update"),
+                "suggestion": self._issue_data.get("suggestion"),
             },
             errors=errors,
         )
@@ -2018,8 +2023,8 @@ class PawControlRepairsFlow(RepairsFlow):
         await ir.async_delete_issue(self.hass, DOMAIN, self.issue_id)
 
         return self.async_create_entry(
-            title='Repair completed',
-            data={'repaired_issue': self._repair_type},
+            title="Repair completed",
+            data={"repaired_issue": self._repair_type},
         )
 
     async def async_step_unknown_issue(
@@ -2034,13 +2039,13 @@ class PawControlRepairsFlow(RepairsFlow):
         Returns:
             Flow result for completion
         """
-        return self.async_abort(reason='unknown_issue_type')
+        return self.async_abort(reason="unknown_issue_type")
 
     # Helper methods for repair actions
 
     async def _fix_duplicate_dog_ids(self) -> None:
         """Automatically fix duplicate dog IDs."""
-        config_entry_id = self._issue_data['config_entry_id']
+        config_entry_id = self._issue_data["config_entry_id"]
         entry = self.hass.config_entries.async_get_entry(config_entry_id)
 
         if not entry:
@@ -2051,7 +2056,7 @@ class PawControlRepairsFlow(RepairsFlow):
         fixed_dogs = []
 
         for dog in dogs:
-            original_id = dog.get(CONF_DOG_ID, '')
+            original_id = dog.get(CONF_DOG_ID, "")
             dog_id = original_id
             counter = 1
 
@@ -2075,7 +2080,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
     async def _disable_gps_for_all_dogs(self) -> None:
         """Disable GPS module for all dogs."""
-        config_entry_id = self._issue_data['config_entry_id']
+        config_entry_id = self._issue_data["config_entry_id"]
         entry = self.hass.config_entries.async_get_entry(config_entry_id)
 
         if not entry:
@@ -2086,7 +2091,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
         for dog in dogs:
             updated_dog = dog.copy()
-            modules = updated_dog.setdefault('modules', {})
+            modules = updated_dog.setdefault("modules", {})
             modules[MODULE_GPS] = False
             updated_dogs.append(updated_dog)
 
@@ -2097,21 +2102,21 @@ class PawControlRepairsFlow(RepairsFlow):
 
     async def _disable_mobile_notifications(self) -> None:
         """Disable mobile app notifications."""
-        config_entry_id = self._issue_data['config_entry_id']
+        config_entry_id = self._issue_data["config_entry_id"]
         entry = self.hass.config_entries.async_get_entry(config_entry_id)
 
         if not entry:
             return
 
         new_options = entry.options.copy()
-        notifications = new_options.setdefault('notifications', {})
-        notifications['mobile_notifications'] = False
+        notifications = new_options.setdefault("notifications", {})
+        notifications["mobile_notifications"] = False
 
         self.hass.config_entries.async_update_entry(entry, options=new_options)
 
     async def _apply_performance_optimizations(self) -> None:
         """Apply automatic performance optimizations."""
-        config_entry_id = self._issue_data['config_entry_id']
+        config_entry_id = self._issue_data["config_entry_id"]
         entry = self.hass.config_entries.async_get_entry(config_entry_id)
 
         if not entry:
@@ -2120,19 +2125,19 @@ class PawControlRepairsFlow(RepairsFlow):
         new_options = entry.options.copy()
 
         # Set performance mode to minimal
-        new_options['performance_mode'] = 'minimal'
+        new_options["performance_mode"] = "minimal"
 
         # Optimize GPS settings if present
-        if 'gps' in new_options:
-            gps_settings = new_options['gps']
-            gps_settings['gps_update_interval'] = max(
-                gps_settings.get('gps_update_interval', 60),
+        if "gps" in new_options:
+            gps_settings = new_options["gps"]
+            gps_settings["gps_update_interval"] = max(
+                gps_settings.get("gps_update_interval", 60),
                 120,
             )
 
         # Reduce data retention
-        new_options['data_retention_days'] = min(
-            new_options.get('data_retention_days', 90),
+        new_options["data_retention_days"] = min(
+            new_options.get("data_retention_days", 90),
             30,
         )
 
@@ -2141,7 +2146,7 @@ class PawControlRepairsFlow(RepairsFlow):
     async def _reduce_data_retention(self) -> None:
         """Reduce stored history to the recommended value."""
 
-        config_entry_id = self._issue_data.get('config_entry_id')
+        config_entry_id = self._issue_data.get("config_entry_id")
         if not config_entry_id:
             return
 
@@ -2149,21 +2154,21 @@ class PawControlRepairsFlow(RepairsFlow):
         if not entry:
             return
 
-        recommended_max = self._issue_data.get('recommended_max')
+        recommended_max = self._issue_data.get("recommended_max")
         if not isinstance(recommended_max, int):
             recommended_max = 365
 
         new_options = entry.options.copy()
-        if new_options.get('data_retention_days') == recommended_max:
+        if new_options.get("data_retention_days") == recommended_max:
             return
 
-        new_options['data_retention_days'] = recommended_max
+        new_options["data_retention_days"] = recommended_max
         self.hass.config_entries.async_update_entry(entry, options=new_options)
 
     async def _limit_high_resource_modules(self) -> None:
         """Disable heavy modules for dogs beyond the recommended threshold."""
 
-        config_entry_id = self._issue_data.get('config_entry_id')
+        config_entry_id = self._issue_data.get("config_entry_id")
         if not config_entry_id:
             return
 
@@ -2178,7 +2183,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
         for dog in dogs:
             updated_dog = cast(DogConfigData, dict(dog))
-            modules_raw = updated_dog.get('modules', {})
+            modules_raw = updated_dog.get("modules", {})
             modules = cast(
                 DogModulesConfig,
                 {
@@ -2236,9 +2241,9 @@ class PawControlRepairsFlow(RepairsFlow):
             if modules.get(MODULE_GPS) and modules.get(MODULE_HEALTH):
                 high_resource_count += 1
                 if high_resource_count > high_resource_limit:
-                    modules['gps'] = False
+                    modules["gps"] = False
 
-            updated_dog['modules'] = modules
+            updated_dog["modules"] = modules
             updated_dogs.append(updated_dog)
 
         if updated_dogs == dogs:
@@ -2251,7 +2256,7 @@ class PawControlRepairsFlow(RepairsFlow):
     async def _remove_invalid_dogs(self) -> None:
         """Remove dogs that are missing required identifiers."""
 
-        config_entry_id = self._issue_data.get('config_entry_id')
+        config_entry_id = self._issue_data.get("config_entry_id")
         if not config_entry_id:
             return
 
@@ -2274,10 +2279,10 @@ class PawControlRepairsFlow(RepairsFlow):
     async def _reload_config_entry(self) -> bool:
         """Reload the integration config entry to recover from coordinator errors."""
 
-        config_entry_id = self._issue_data.get('config_entry_id')
+        config_entry_id = self._issue_data.get("config_entry_id")
         if not config_entry_id:
             _LOGGER.error(
-                'Missing config entry id while handling coordinator repair',
+                "Missing config entry id while handling coordinator repair",
             )
             return False
 
@@ -2285,7 +2290,7 @@ class PawControlRepairsFlow(RepairsFlow):
             result = await self.hass.config_entries.async_reload(config_entry_id)
         except Exception as err:  # pragma: no cover - defensive logging
             _LOGGER.error(
-                'Error reloading config entry %s during repair flow: %s',
+                "Error reloading config entry %s during repair flow: %s",
                 config_entry_id,
                 err,
             )
@@ -2293,7 +2298,7 @@ class PawControlRepairsFlow(RepairsFlow):
 
         if result is False:
             _LOGGER.error(
-                'Reload of config entry %s reported failure during repair flow',
+                "Reload of config entry %s reported failure during repair flow",
                 config_entry_id,
             )
             return False
@@ -2326,7 +2331,7 @@ async def async_create_fix_flow(
 
 async def async_register_repairs(hass: HomeAssistant) -> None:
     """Register initial repair checks for Paw Control integration."""
-    _LOGGER.debug('Registering Paw Control repair checks')
+    _LOGGER.debug("Registering Paw Control repair checks")
 
     # Iterate over all loaded entries and run checks for those with runtime data
     for entry in hass.config_entries.async_entries(DOMAIN):

@@ -1,27 +1,26 @@
 """Unit tests for PawControl input validation helpers."""
+
 from __future__ import annotations
 
 from pathlib import Path
 
 import pytest
 
-from tests.helpers import ensure_package
-from tests.helpers import install_homeassistant_stubs
-from tests.helpers import load_module
+from tests.helpers import ensure_package, install_homeassistant_stubs, load_module
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
 
 install_homeassistant_stubs()
-ensure_package('custom_components', PROJECT_ROOT / 'custom_components')
+ensure_package("custom_components", PROJECT_ROOT / "custom_components")
 ensure_package(
-    'custom_components.pawcontrol',
-    PROJECT_ROOT / 'custom_components' / 'pawcontrol',
+    "custom_components.pawcontrol",
+    PROJECT_ROOT / "custom_components" / "pawcontrol",
 )
 
 validation = load_module(
-    'custom_components.pawcontrol.validation',
-    PROJECT_ROOT / 'custom_components' / 'pawcontrol' / 'validation.py',
+    "custom_components.pawcontrol.validation",
+    PROJECT_ROOT / "custom_components" / "pawcontrol" / "validation.py",
 )
 
 InputValidator = validation.InputValidator
@@ -38,12 +37,12 @@ def test_validate_gps_coordinates_success() -> None:
 
 
 @pytest.mark.parametrize(
-    ('latitude', 'longitude', 'field'),
+    ("latitude", "longitude", "field"),
     [
-        (None, 13.4, 'latitude'),
-        (91, 13.4, 'latitude'),
-        (52.52, None, 'longitude'),
-        (52.52, 181, 'longitude'),
+        (None, 13.4, "latitude"),
+        (91, 13.4, "latitude"),
+        (52.52, None, "longitude"),
+        (52.52, 181, "longitude"),
     ],
 )
 def test_validate_gps_coordinates_invalid(
@@ -58,10 +57,10 @@ def test_validate_gps_coordinates_invalid(
 
 
 @pytest.mark.parametrize(
-    ('radius', 'field'),
+    ("radius", "field"),
     [
-        (0, 'radius'),
-        (5001, 'radius'),
+        (0, "radius"),
+        (5001, "radius"),
     ],
 )
 def test_validate_geofence_radius_bounds(radius: float, field: str) -> None:
