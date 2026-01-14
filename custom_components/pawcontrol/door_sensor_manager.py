@@ -653,7 +653,6 @@ class DoorSensorManager:
             'average_confidence': 0.0,
         }
 
-
     def _track_background_task(self, task: asyncio.Task[object]) -> None:
         """Track a background task for lifecycle management.
 
@@ -979,7 +978,7 @@ class DoorSensorManager:
         # Find which dog this sensor belongs to
         dog_id: str | None = None
         config = None
-        for _dog_id, cfg in self._sensor_configs.items():
+        for cfg in self._sensor_configs.values():
             if cfg.entity_id == entity_id:
                 config = cfg
                 break
@@ -1038,7 +1037,13 @@ class DoorSensorManager:
             async def check_walk_timeout() -> None:
                 await asyncio.sleep(config.walk_detection_timeout)
                 await self._handle_walk_timeout(config, state)
-            self._track_background_task(asyncio.create_task(check_walk_timeout(), name='pawcontrol_check_walk_timeout'))
+
+            self._track_background_task(
+                asyncio.create_task(
+                    check_walk_timeout(), name='pawcontrol_check_walk_timeout',
+                ),
+            )
+
     async def _handle_door_closed(
         self,
         config: DoorSensorConfig,
@@ -1162,7 +1167,13 @@ class DoorSensorManager:
                     config.dog_name,
                 )
                 await self._start_automatic_walk(config, state)
-        self._track_background_task(asyncio.create_task(confirmation_timeout(), name='pawcontrol_confirmation_timeout'))
+
+        self._track_background_task(
+            asyncio.create_task(
+                confirmation_timeout(), name='pawcontrol_confirmation_timeout',
+            ),
+        )
+
     async def _start_automatic_walk(
         self,
         config: DoorSensorConfig,
@@ -1223,7 +1234,12 @@ class DoorSensorManager:
                     await asyncio.sleep(config.maximum_walk_duration)
                     if state.current_state == WALK_STATE_ACTIVE:
                         await self._end_automatic_walk(config, state, 'timeout')
-                self._track_background_task(asyncio.create_task(auto_end_walk(), name='pawcontrol_auto_end_walk'))
+
+                self._track_background_task(
+                    asyncio.create_task(
+                        auto_end_walk(), name='pawcontrol_auto_end_walk',
+                    ),
+                )
         except Exception as err:
             _LOGGER.error(
                 'Failed to start automatic walk for %s: %s',

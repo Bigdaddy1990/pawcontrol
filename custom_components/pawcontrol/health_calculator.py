@@ -13,7 +13,8 @@ from dataclasses import field
 from datetime import date
 from datetime import timedelta
 from enum import Enum
-from typing import cast, ClassVar
+from typing import cast
+from typing import ClassVar
 from typing import Literal
 from typing import TYPE_CHECKING
 from typing import TypedDict
