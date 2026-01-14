@@ -844,11 +844,11 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             )
 
         # Check notification mappings
-        unmapped_persons = []
-        for person in self._persons.values():
-            if not person.notification_service and not person.mobile_device_id:
-                unmapped_persons.append(person.friendly_name)
-
+        unmapped_persons: list[str] = [
+            person.friendly_name
+            for person in self._persons.values()
+            if not person.notification_service and not person.mobile_device_id
+        ]
         if unmapped_persons:
             issues.append(
                 f"Persons without notification mapping: {', '.join(unmapped_persons)}",
@@ -858,10 +858,14 @@ class PersonEntityManager(SupportsCoordinatorSnapshot):
             )
 
         # Check excluded entities
-        for excluded in self._config.excluded_entities:
-            if excluded not in [p.entity_id for p in self._persons.values()]:
-                issues.append(f"Excluded entity {excluded} not found")
-
+        person_entity_ids = {p.entity_id for p in self._persons.values()}
+        issues.extend(
+            [
+                f"Excluded entity {excluded} not found"
+                for excluded in self._config.excluded_entities
+                if excluded not in person_entity_ids
+            ]
+        )
         result: PersonEntityValidationResult = {
             'valid': len(issues) == 0,
             'issues': issues,

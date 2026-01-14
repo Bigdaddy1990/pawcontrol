@@ -13,7 +13,7 @@ import asyncio
 import logging
 from collections.abc import Mapping
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, ClassVar
 from typing import cast
 
 from homeassistant.components.switch import SwitchDeviceClass
@@ -70,7 +70,7 @@ class ProfileOptimizedSwitchFactory:
     """Factory for efficient profile-based switch creation with minimal entity count."""
 
     # Module configurations - only for modules that support switches
-    MODULE_CONFIGS = [
+    MODULE_CONFIGS: ClassVar[list[tuple[str, str, str]]] = [
         (MODULE_FEEDING, 'Feeding Tracking', 'mdi:food-drumstick'),
         (MODULE_WALK, 'Walk Tracking', 'mdi:walk'),
         (MODULE_GPS, 'GPS Tracking', 'mdi:map-marker'),
@@ -82,7 +82,7 @@ class ProfileOptimizedSwitchFactory:
     ]
 
     # Feature switches grouped by module - only created if module is enabled
-    FEATURE_SWITCHES = {
+    FEATURE_SWITCHES: ClassVar[dict[str, list[tuple[str, str, str]]]] = {
         MODULE_FEEDING: [
             ('auto_feeding_reminders', 'Auto Feeding Reminders', 'mdi:clock-alert'),
             ('feeding_schedule', 'Feeding Schedule', 'mdi:calendar-check'),
@@ -342,8 +342,8 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
     _attr_has_entity_name = True
 
     # OPTIMIZATION: Enhanced state cache with TTL
-    _state_cache: dict[str, tuple[bool, float]] = {}
-    _cache_ttl = 3.0  # Reduced to 3 seconds for better responsiveness
+    _state_cache: ClassVar[dict[str, tuple[bool, float]]] = {}
+    _cache_ttl: ClassVar[float] = 3.0  # Reduced to 3 seconds for better responsiveness
 
     def __init__(
         self,
@@ -382,15 +382,14 @@ class OptimizedSwitchBase(PawControlDogEntityBase, SwitchEntity, RestoreEntity):
         await super().async_added_to_hass()
 
         # Restore previous state
-        if last_state := await self.async_get_last_state():
-            if last_state.state in ('on', 'off'):
-                self._is_on = last_state.state == 'on'
-                _LOGGER.debug(
-                    'Restored switch state for %s %s: %s',
-                    self._dog_name,
-                    self._switch_type,
-                    'on' if self._is_on else 'off',
-                )
+        if (last_state := await self.async_get_last_state()) and last_state.state in ('on', 'off'):
+            self._is_on = last_state.state == 'on'
+            _LOGGER.debug(
+                'Restored switch state for %s %s: %s',
+                self._dog_name,
+                self._switch_type,
+                'on' if self._is_on else 'off',
+            )
 
     @property
     def is_on(self) -> bool:
