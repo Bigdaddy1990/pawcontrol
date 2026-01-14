@@ -58,7 +58,9 @@ from custom_components.pawcontrol.const import SPECIAL_DIET_OPTIONS
 from custom_components.pawcontrol.exceptions import FlowValidationError
 from custom_components.pawcontrol.exceptions import ValidationError
 from custom_components.pawcontrol.flow_validation import validate_dog_setup_input
-from custom_components.pawcontrol.types import ADD_ANOTHER_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE
+from custom_components.pawcontrol.types import (
+    ADD_ANOTHER_DOG_SUMMARY_PLACEHOLDERS_TEMPLATE,
+)
 from custom_components.pawcontrol.types import ADD_DOG_CAPACITY_PLACEHOLDERS_TEMPLATE
 from custom_components.pawcontrol.types import AddAnotherDogInput
 from custom_components.pawcontrol.types import clone_placeholders
@@ -77,7 +79,9 @@ from custom_components.pawcontrol.types import DOG_HEALTH_PLACEHOLDERS_TEMPLATE
 from custom_components.pawcontrol.types import DOG_ID_FIELD
 from custom_components.pawcontrol.types import DOG_MODULES_FIELD
 from custom_components.pawcontrol.types import dog_modules_from_flow_input
-from custom_components.pawcontrol.types import DOG_MODULES_SUGGESTION_PLACEHOLDERS_TEMPLATE
+from custom_components.pawcontrol.types import (
+    DOG_MODULES_SUGGESTION_PLACEHOLDERS_TEMPLATE,
+)
 from custom_components.pawcontrol.types import DOG_NAME_FIELD
 from custom_components.pawcontrol.types import DOG_SIZE_FIELD
 from custom_components.pawcontrol.types import DOG_WEIGHT_FIELD
@@ -98,7 +102,9 @@ from custom_components.pawcontrol.types import DogValidationResult
 from custom_components.pawcontrol.types import ensure_dog_modules_config
 from custom_components.pawcontrol.types import freeze_placeholders
 from custom_components.pawcontrol.types import JSONMapping
-from custom_components.pawcontrol.types import MODULE_SETUP_SUMMARY_PLACEHOLDERS_TEMPLATE
+from custom_components.pawcontrol.types import (
+    MODULE_SETUP_SUMMARY_PLACEHOLDERS_TEMPLATE,
+)
 from custom_components.pawcontrol.types import MODULE_TOGGLE_FLAG_BY_KEY
 from custom_components.pawcontrol.types import MODULE_TOGGLE_KEYS
 from custom_components.pawcontrol.types import ModuleConfigurationSnapshot
@@ -116,7 +122,9 @@ _ASYNC_GET_TRANSLATIONS: Callable[..., Awaitable[dict[str, str]]] | None
 try:
     _translations_module = importlib.import_module(_TRANSLATIONS_IMPORT_PATH)
     _ASYNC_GET_TRANSLATIONS = getattr(
-        _translations_module, 'async_get_translations', None,
+        _translations_module,
+        'async_get_translations',
+        None,
     )
 except (ModuleNotFoundError, AttributeError):
     _ASYNC_GET_TRANSLATIONS = None
@@ -181,7 +189,10 @@ def _build_add_dog_placeholders(
 
 
 def _build_dog_modules_placeholders(
-    *, dog_name: str, dog_size: str, dog_age: int,
+    *,
+    dog_name: str,
+    dog_size: str,
+    dog_age: int,
 ) -> ConfigFlowPlaceholders:
     """Return immutable placeholders for the module selection step."""
 
@@ -409,7 +420,10 @@ class DogManagementMixin(DogManagementMixinBase):
             return {}
         try:
             return await _ASYNC_GET_TRANSLATIONS(
-                self.hass, language, 'config', {DOMAIN},
+                self.hass,
+                language,
+                'config',
+                {DOMAIN},
             )
         except Exception:  # pragma: no cover - defensive guard for HA API
             _LOGGER.debug('Failed to load %s translations for config flow', language)
@@ -432,7 +446,8 @@ class DogManagementMixin(DogManagementMixinBase):
         return translations, fallback
 
     async def async_step_add_dog(
-        self, user_input: DogSetupStepInput | None = None,
+        self,
+        user_input: DogSetupStepInput | None = None,
     ) -> ConfigFlowResult:
         """Handle adding a dog with rate-limited validation.
 
@@ -499,7 +514,9 @@ class DogManagementMixin(DogManagementMixinBase):
 
         # Create dynamic schema with enhanced UX
         schema = await self._create_enhanced_dog_schema(
-            user_input, suggested_id, suggested_breed,
+            user_input,
+            suggested_id,
+            suggested_breed,
         )
 
         return self.async_show_form(
@@ -553,7 +570,8 @@ class DogManagementMixin(DogManagementMixinBase):
                 input_payload = cast(DogModuleSelectionInput, user_input)
 
             modules: DogModulesConfig = dog_modules_from_flow_input(
-                input_payload, existing=existing_modules,
+                input_payload,
+                existing=existing_modules,
             )
 
             current_dog[DOG_MODULES_FIELD] = modules
@@ -563,7 +581,8 @@ class DogManagementMixin(DogManagementMixinBase):
             if modules.get(MODULE_FEEDING, False):
                 return await self.async_step_dog_feeding()
             if modules.get(MODULE_HEALTH, False) or modules.get(
-                MODULE_MEDICATION, False,
+                MODULE_MEDICATION,
+                False,
             ):
                 return await self.async_step_dog_health()
 
@@ -592,35 +611,45 @@ class DogManagementMixin(DogManagementMixinBase):
         schema = vol.Schema(
             {
                 vol.Optional(
-                    'enable_feeding', default=False,
+                    'enable_feeding',
+                    default=False,
                 ): selector.BooleanSelector(),
                 vol.Optional('enable_walk', default=False): selector.BooleanSelector(),
                 vol.Optional(
-                    'enable_health', default=False,
+                    'enable_health',
+                    default=False,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'enable_gps', default=suggested_gps,
+                    'enable_gps',
+                    default=suggested_gps,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'enable_garden', default=False,
+                    'enable_garden',
+                    default=False,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'enable_notifications', default=False,
+                    'enable_notifications',
+                    default=False,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'enable_dashboard', default=False,
+                    'enable_dashboard',
+                    default=False,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'enable_visitor', default=suggested_visitor,
+                    'enable_visitor',
+                    default=suggested_visitor,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'enable_grooming', default=False,
+                    'enable_grooming',
+                    default=False,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'enable_medication', default=suggested_medication,
+                    'enable_medication',
+                    default=suggested_medication,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'enable_training', default=False,
+                    'enable_training',
+                    default=False,
                 ): selector.BooleanSelector(),
             },
         )
@@ -638,7 +667,8 @@ class DogManagementMixin(DogManagementMixinBase):
         )
 
     async def async_step_dog_gps(
-        self, user_input: DogGPSStepInput | None = None,
+        self,
+        user_input: DogGPSStepInput | None = None,
     ) -> ConfigFlowResult:
         """Configure GPS settings for the specific dog.
 
@@ -725,7 +755,8 @@ class DogManagementMixin(DogManagementMixinBase):
                 'gps_update_interval': gps_update_interval,
                 'gps_accuracy_filter': gps_accuracy,
                 'enable_geofencing': _coerce_bool(
-                    user_input.get('enable_geofencing'), default=True,
+                    user_input.get('enable_geofencing'),
+                    default=True,
                 ),
                 'home_zone_radius': home_zone_radius,
             }
@@ -766,7 +797,8 @@ class DogManagementMixin(DogManagementMixinBase):
         return vol.Schema(
             {
                 vol.Required(
-                    CONF_GPS_SOURCE, default='manual',
+                    CONF_GPS_SOURCE,
+                    default='manual',
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=gps_options,
@@ -783,7 +815,8 @@ class DogManagementMixin(DogManagementMixinBase):
                     default=DEFAULT_GPS_ACCURACY_FILTER,
                 ): GPS_ACCURACY_FILTER_SELECTOR,
                 vol.Optional(
-                    'enable_geofencing', default=True,
+                    'enable_geofencing',
+                    default=True,
                 ): selector.BooleanSelector(),
                 vol.Optional('home_zone_radius', default=50): selector.NumberSelector(
                     selector.NumberSelectorConfig(
@@ -798,7 +831,8 @@ class DogManagementMixin(DogManagementMixinBase):
         )
 
     async def async_step_dog_feeding(
-        self, user_input: DogFeedingStepInput | None = None,
+        self,
+        user_input: DogFeedingStepInput | None = None,
     ) -> ConfigFlowResult:
         """Configure feeding settings for the specific dog.
 
@@ -825,7 +859,8 @@ class DogManagementMixin(DogManagementMixinBase):
 
             modules = ensure_dog_modules_config(current_dog)
             if modules.get(MODULE_HEALTH, False) or modules.get(
-                MODULE_MEDICATION, False,
+                MODULE_MEDICATION,
+                False,
             ):
                 return await self.async_step_dog_health()
 
@@ -843,7 +878,8 @@ class DogManagementMixin(DogManagementMixinBase):
         dog_size = dog_size_raw if isinstance(dog_size_raw, str) else 'medium'
 
         suggested_amount = self._calculate_suggested_food_amount(
-            dog_weight_value, dog_size,
+            dog_weight_value,
+            dog_size,
         )
 
         schema = vol.Schema(
@@ -857,7 +893,8 @@ class DogManagementMixin(DogManagementMixinBase):
                     ),
                 ),
                 vol.Required(
-                    CONF_DAILY_FOOD_AMOUNT, default=int(suggested_amount),
+                    CONF_DAILY_FOOD_AMOUNT,
+                    default=int(suggested_amount),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=50,
@@ -868,7 +905,8 @@ class DogManagementMixin(DogManagementMixinBase):
                     ),
                 ),
                 vol.Optional(
-                    CONF_FOOD_TYPE, default='dry_food',
+                    CONF_FOOD_TYPE,
+                    default='dry_food',
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=[
@@ -883,7 +921,8 @@ class DogManagementMixin(DogManagementMixinBase):
                     ),
                 ),
                 vol.Optional(
-                    'feeding_schedule', default='flexible',
+                    'feeding_schedule',
+                    default='flexible',
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=['flexible', 'strict', 'custom'],
@@ -892,31 +931,40 @@ class DogManagementMixin(DogManagementMixinBase):
                     ),
                 ),
                 vol.Optional(
-                    'breakfast_enabled', default=True,
+                    'breakfast_enabled',
+                    default=True,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    CONF_BREAKFAST_TIME, default='07:00:00',
+                    CONF_BREAKFAST_TIME,
+                    default='07:00:00',
                 ): selector.TimeSelector(),
                 vol.Optional(
-                    'lunch_enabled', default=False,
+                    'lunch_enabled',
+                    default=False,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    CONF_LUNCH_TIME, default='12:00:00',
+                    CONF_LUNCH_TIME,
+                    default='12:00:00',
                 ): selector.TimeSelector(),
                 vol.Optional(
-                    'dinner_enabled', default=True,
+                    'dinner_enabled',
+                    default=True,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    CONF_DINNER_TIME, default='18:00:00',
+                    CONF_DINNER_TIME,
+                    default='18:00:00',
                 ): selector.TimeSelector(),
                 vol.Optional(
-                    'snacks_enabled', default=False,
+                    'snacks_enabled',
+                    default=False,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'enable_reminders', default=True,
+                    'enable_reminders',
+                    default=True,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'reminder_minutes_before', default=15,
+                    'reminder_minutes_before',
+                    default=15,
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=5,
@@ -942,7 +990,8 @@ class DogManagementMixin(DogManagementMixinBase):
         )
 
     async def async_step_dog_health(
-        self, user_input: DogHealthStepInput | None = None,
+        self,
+        user_input: DogHealthStepInput | None = None,
     ) -> ConfigFlowResult:
         """Configure comprehensive health settings including health-aware feeding.
 
@@ -969,21 +1018,26 @@ class DogManagementMixin(DogManagementMixinBase):
                 'vet_name': _coerce_str(user_input.get('vet_name')),
                 'vet_phone': _coerce_str(user_input.get('vet_phone')),
                 'weight_tracking': _coerce_bool(
-                    user_input.get('weight_tracking'), default=True,
+                    user_input.get('weight_tracking'),
+                    default=True,
                 ),
                 'ideal_weight': _coerce_optional_float(user_input.get('ideal_weight'))
                 or _coerce_optional_float(current_dog.get(CONF_DOG_WEIGHT)),
                 'body_condition_score': _coerce_int(
-                    user_input.get('body_condition_score'), default=5,
+                    user_input.get('body_condition_score'),
+                    default=5,
                 ),
                 'activity_level': _coerce_str(
-                    user_input.get('activity_level'), default='moderate',
+                    user_input.get('activity_level'),
+                    default='moderate',
                 ),
                 'weight_goal': _coerce_str(
-                    user_input.get('weight_goal'), default='maintain',
+                    user_input.get('weight_goal'),
+                    default='maintain',
                 ),
                 'spayed_neutered': _coerce_bool(
-                    user_input.get('spayed_neutered'), default=True,
+                    user_input.get('spayed_neutered'),
+                    default=True,
                 ),
                 'health_conditions': self._collect_health_conditions(user_input),
                 'special_diet_requirements': self._collect_special_diet(user_input),
@@ -1031,7 +1085,8 @@ class DogManagementMixin(DogManagementMixinBase):
                 feeding_config_typed.update(
                     {
                         'health_aware_portions': user_input.get(
-                            'health_aware_portions', True,
+                            'health_aware_portions',
+                            True,
                         ),
                         'dog_weight': dog_weight_update,
                         'ideal_weight': health_config['ideal_weight'],
@@ -1098,10 +1153,12 @@ class DogManagementMixin(DogManagementMixinBase):
             vol.Optional('weight_tracking', default=True): selector.BooleanSelector(),
             # Health-aware feeding configuration
             vol.Optional(
-                'health_aware_portions', default=True,
+                'health_aware_portions',
+                default=True,
             ): selector.BooleanSelector(),
             vol.Optional(
-                'ideal_weight', default=suggested_ideal_weight,
+                'ideal_weight',
+                default=suggested_ideal_weight,
             ): selector.NumberSelector(
                 selector.NumberSelectorConfig(
                     min=MIN_DOG_WEIGHT,
@@ -1120,7 +1177,8 @@ class DogManagementMixin(DogManagementMixinBase):
                 ),
             ),
             vol.Optional(
-                'activity_level', default=suggested_activity,
+                'activity_level',
+                default=suggested_activity,
             ): selector.SelectSelector(
                 selector.SelectSelectorConfig(
                     options=[
@@ -1145,18 +1203,22 @@ class DogManagementMixin(DogManagementMixinBase):
             # Health conditions affecting feeding
             vol.Optional('has_diabetes', default=False): selector.BooleanSelector(),
             vol.Optional(
-                'has_kidney_disease', default=False,
+                'has_kidney_disease',
+                default=False,
             ): selector.BooleanSelector(),
             vol.Optional(
-                'has_heart_disease', default=False,
+                'has_heart_disease',
+                default=False,
             ): selector.BooleanSelector(),
             vol.Optional('has_arthritis', default=False): selector.BooleanSelector(),
             vol.Optional('has_allergies', default=False): selector.BooleanSelector(),
             vol.Optional(
-                'has_digestive_issues', default=False,
+                'has_digestive_issues',
+                default=False,
             ): selector.BooleanSelector(),
             vol.Optional(
-                'other_health_conditions', default='',
+                'other_health_conditions',
+                default='',
             ): selector.TextSelector(),
         }
 
@@ -1230,7 +1292,8 @@ class DogManagementMixin(DogManagementMixinBase):
                     vol.Optional('medication_1_name'): selector.TextSelector(),
                     vol.Optional('medication_1_dosage'): selector.TextSelector(),
                     vol.Optional(
-                        'medication_1_frequency', default='daily',
+                        'medication_1_frequency',
+                        default='daily',
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=['daily', 'twice_daily', 'weekly', 'as_needed'],
@@ -1239,16 +1302,19 @@ class DogManagementMixin(DogManagementMixinBase):
                         ),
                     ),
                     vol.Optional(
-                        'medication_1_time', default='08:00:00',
+                        'medication_1_time',
+                        default='08:00:00',
                     ): selector.TimeSelector(),
                     vol.Optional(
-                        'medication_1_with_meals', default=False,
+                        'medication_1_with_meals',
+                        default=False,
                     ): selector.BooleanSelector(),
                     vol.Optional('medication_1_notes'): selector.TextSelector(),
                     vol.Optional('medication_2_name'): selector.TextSelector(),
                     vol.Optional('medication_2_dosage'): selector.TextSelector(),
                     vol.Optional(
-                        'medication_2_frequency', default='daily',
+                        'medication_2_frequency',
+                        default='daily',
                     ): selector.SelectSelector(
                         selector.SelectSelectorConfig(
                             options=['daily', 'twice_daily', 'weekly', 'as_needed'],
@@ -1257,10 +1323,12 @@ class DogManagementMixin(DogManagementMixinBase):
                         ),
                     ),
                     vol.Optional(
-                        'medication_2_time', default='20:00:00',
+                        'medication_2_time',
+                        default='20:00:00',
                     ): selector.TimeSelector(),
                     vol.Optional(
-                        'medication_2_with_meals', default=False,
+                        'medication_2_with_meals',
+                        default=False,
                     ): selector.BooleanSelector(),
                     vol.Optional('medication_2_notes'): selector.TextSelector(),
                 },
@@ -1273,7 +1341,8 @@ class DogManagementMixin(DogManagementMixinBase):
         bcs_info = translations.get(bcs_key) or fallback.get(bcs_key) or ''
 
         diet_compatibility_info = await self._get_diet_compatibility_guidance(
-            dog_age, dog_size,
+            dog_age,
+            dog_size,
         )
 
         return self.async_show_form(
@@ -1294,7 +1363,8 @@ class DogManagementMixin(DogManagementMixinBase):
         )
 
     async def _async_validate_dog_config(
-        self, user_input: DogSetupStepInput,
+        self,
+        user_input: DogSetupStepInput,
     ) -> DogValidationResult:
         """Validate dog configuration with rate limiting.
 
@@ -1366,7 +1436,10 @@ class DogManagementMixin(DogManagementMixinBase):
             }
 
     def _create_cache_key(
-        self, dog_id: str, dog_name: str, user_input: DogSetupStepInput,
+        self,
+        dog_id: str,
+        dog_name: str,
+        user_input: DogSetupStepInput,
     ) -> str:
         weight = user_input.get(CONF_DOG_WEIGHT)
         age_val = user_input.get(CONF_DOG_AGE)
@@ -1393,7 +1466,9 @@ class DogManagementMixin(DogManagementMixinBase):
         return None
 
     def _update_validation_cache(
-        self, cache_key: str, result: DogValidationResult,
+        self,
+        cache_key: str,
+        result: DogValidationResult,
     ) -> None:
         cache_entry: DogValidationCacheEntry = {
             'result': cast(DogSetupStepInput | DogValidationResult | None, result),
@@ -1498,7 +1573,8 @@ class DogManagementMixin(DogManagementMixinBase):
         return vol.Schema(
             {
                 vol.Required(
-                    CONF_DOG_ID, default=current_values.get(CONF_DOG_ID, suggested_id),
+                    CONF_DOG_ID,
+                    default=current_values.get(CONF_DOG_ID, suggested_id),
                 ): selector.TextSelector(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT,
@@ -1506,7 +1582,8 @@ class DogManagementMixin(DogManagementMixinBase):
                     ),
                 ),
                 vol.Required(
-                    CONF_DOG_NAME, default=current_values.get(CONF_DOG_NAME, ''),
+                    CONF_DOG_NAME,
+                    default=current_values.get(CONF_DOG_NAME, ''),
                 ): selector.TextSelector(
                     selector.TextSelectorConfig(
                         type=selector.TextSelectorType.TEXT,
@@ -1523,7 +1600,8 @@ class DogManagementMixin(DogManagementMixinBase):
                     ),
                 ),
                 vol.Optional(
-                    CONF_DOG_AGE, default=current_values.get(CONF_DOG_AGE, 3),
+                    CONF_DOG_AGE,
+                    default=current_values.get(CONF_DOG_AGE, 3),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=MIN_DOG_AGE,
@@ -1534,7 +1612,8 @@ class DogManagementMixin(DogManagementMixinBase):
                     ),
                 ),
                 vol.Optional(
-                    CONF_DOG_WEIGHT, default=current_values.get(CONF_DOG_WEIGHT, 20.0),
+                    CONF_DOG_WEIGHT,
+                    default=current_values.get(CONF_DOG_WEIGHT, 20.0),
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=MIN_DOG_WEIGHT,
@@ -1545,7 +1624,8 @@ class DogManagementMixin(DogManagementMixinBase):
                     ),
                 ),
                 vol.Optional(
-                    CONF_DOG_SIZE, default=current_values.get(CONF_DOG_SIZE, 'medium'),
+                    CONF_DOG_SIZE,
+                    default=current_values.get(CONF_DOG_SIZE, 'medium'),
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=['toy', 'small', 'medium', 'large', 'giant'],
@@ -1557,7 +1637,8 @@ class DogManagementMixin(DogManagementMixinBase):
         )
 
     async def async_step_add_another_dog(
-        self, user_input: AddAnotherDogInput | None = None,
+        self,
+        user_input: AddAnotherDogInput | None = None,
     ) -> ConfigFlowResult:
         """Ask if the user wants to add another dog with enhanced UX.
 
@@ -1604,7 +1685,8 @@ class DogManagementMixin(DogManagementMixinBase):
         )
 
     def _build_vaccination_records(
-        self, user_input: DogHealthStepInput,
+        self,
+        user_input: DogHealthStepInput,
     ) -> dict[str, DogVaccinationRecord]:
         """Build vaccination records from user form input."""
 
@@ -1633,7 +1715,8 @@ class DogManagementMixin(DogManagementMixinBase):
         return vaccinations
 
     def _build_medication_entries(
-        self, user_input: DogHealthStepInput,
+        self,
+        user_input: DogHealthStepInput,
     ) -> list[DogMedicationEntry]:
         """Construct typed medication entries from the configuration form."""
 
@@ -1665,7 +1748,8 @@ class DogManagementMixin(DogManagementMixinBase):
                 entry['notes'] = notes
 
             entry['with_meals'] = _coerce_bool(
-                user_input.get(f"medication_{slot}_with_meals"), default=False,
+                user_input.get(f"medication_{slot}_with_meals"),
+                default=False,
             )
 
             medications.append(entry)
@@ -1738,7 +1822,8 @@ class DogManagementMixin(DogManagementMixinBase):
         return diet_requirements
 
     def _validate_diet_combinations(
-        self, diet_requirements: list[str],
+        self,
+        diet_requirements: list[str],
     ) -> DietValidationResult:
         """Validate special diet combinations for conflicts and incompatibilities.
 
@@ -1880,7 +1965,9 @@ class DogManagementMixin(DogManagementMixinBase):
         return size_activity_map.get(dog_size, 'moderate')
 
     async def _get_diet_compatibility_guidance(
-        self, dog_age: int, dog_size: str,
+        self,
+        dog_age: int,
+        dog_size: str,
     ) -> str:
         """Get guidance text about diet compatibility based on dog characteristics."""
 
@@ -1917,7 +2004,8 @@ class DogManagementMixin(DogManagementMixinBase):
         return _lookup('none')
 
     async def async_step_configure_modules(
-        self, user_input: ModuleConfigurationStepInput | None = None,
+        self,
+        user_input: ModuleConfigurationStepInput | None = None,
     ) -> ConfigFlowResult:
         """Configure global module settings after all dogs are added.
 
@@ -1939,7 +2027,8 @@ class DogManagementMixin(DogManagementMixinBase):
                 enable_notifications=bool(user_input.get('enable_notifications', True)),
                 enable_dashboard=bool(user_input.get('enable_dashboard', True)),
                 performance_mode=normalize_performance_mode(
-                    user_input.get('performance_mode'), fallback='balanced',
+                    user_input.get('performance_mode'),
+                    fallback='balanced',
                 ),
                 data_retention_days=int(user_input.get('data_retention_days', 90)),
                 auto_backup=bool(user_input.get('auto_backup', False)),
@@ -1975,13 +2064,16 @@ class DogManagementMixin(DogManagementMixinBase):
         schema = vol.Schema(
             {
                 vol.Optional(
-                    'enable_notifications', default=True,
+                    'enable_notifications',
+                    default=True,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'enable_dashboard', default=True,
+                    'enable_dashboard',
+                    default=True,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'performance_mode', default=suggested_performance,
+                    'performance_mode',
+                    default=suggested_performance,
                 ): selector.SelectSelector(
                     selector.SelectSelectorConfig(
                         options=['minimal', 'balanced', 'full'],
@@ -1990,7 +2082,8 @@ class DogManagementMixin(DogManagementMixinBase):
                     ),
                 ),
                 vol.Optional(
-                    'data_retention_days', default=90,
+                    'data_retention_days',
+                    default=90,
                 ): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=30,
@@ -2001,10 +2094,12 @@ class DogManagementMixin(DogManagementMixinBase):
                     ),
                 ),
                 vol.Optional(
-                    'auto_backup', default=suggested_backup,
+                    'auto_backup',
+                    default=suggested_backup,
                 ): selector.BooleanSelector(),
                 vol.Optional(
-                    'debug_logging', default=False,
+                    'debug_logging',
+                    default=False,
                 ): selector.BooleanSelector(),
             },
         )

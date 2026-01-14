@@ -30,7 +30,9 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument('--allowlist', type=Path, required=False)
     parser.add_argument(
-        '--check', action='store_true', help='Only validate; do not modify files.',
+        '--check',
+        action='store_true',
+        help='Only validate; do not modify files.',
     )
     args = parser.parse_args()
 
